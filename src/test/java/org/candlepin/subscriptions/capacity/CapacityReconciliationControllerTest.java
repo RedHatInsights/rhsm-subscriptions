@@ -30,7 +30,6 @@ import static org.mockito.Mockito.*;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
@@ -66,14 +65,12 @@ class CapacityReconciliationControllerTest {
 
   @MockBean SubscriptionRepository subscriptionRepository;
 
-  @MockBean CapacityProductExtractor capacityProductExtractor;
-
   @MockBean
   KafkaTemplate<String, ReconcileCapacityByOfferingTask> reconcileCapacityByOfferingKafkaTemplate;
 
   @AfterEach
   void afterEach() {
-    reset(subscriptionRepository, capacityProductExtractor, offeringRepository, denylist);
+    reset(subscriptionRepository, offeringRepository, denylist);
   }
 
   private static Map<SubscriptionMeasurementKey, Double> createMeasurement(
@@ -93,7 +90,7 @@ class CapacityReconciliationControllerTest {
 
   @Test
   void shouldAddNewMeasurementsAndProductIdsIfNotAlreadyExisting() {
-    List<String> productIds = List.of("RHEL");
+    Set<String> productIds = Set.of("RHEL");
     Offering offering =
         Offering.builder()
             .productIds(Set.of(45))
@@ -102,14 +99,13 @@ class CapacityReconciliationControllerTest {
             .sockets(44)
             .hypervisorSockets(45)
             .sku("MCT3718")
+            .productTags(productIds)
             .build();
 
     Subscription newSubscription = createSubscription("456", 10);
     newSubscription.setOffering(offering);
 
     when(denylist.productIdMatches(any())).thenReturn(false);
-    when(capacityProductExtractor.getProducts(offering.getProductIdsAsStrings()))
-        .thenReturn(new HashSet<>(productIds));
 
     capacityReconciliationController.reconcileCapacityForSubscription(newSubscription);
 
@@ -132,7 +128,13 @@ class CapacityReconciliationControllerTest {
 
     Set<String> productIds = Set.of("RHEL", "RHEL Workstation");
     Offering updatedOffering =
-        Offering.builder().productIds(Set.of(45, 25)).sku("MCT3718").cores(20).sockets(40).build();
+        Offering.builder()
+            .productIds(Set.of(45, 25))
+            .sku("MCT3718")
+            .cores(20)
+            .sockets(40)
+            .productTags(productIds)
+            .build();
 
     Subscription updatedSubscription = createSubscription("456", 10);
 
@@ -149,8 +151,6 @@ class CapacityReconciliationControllerTest {
     updatedSubscription.setOffering(updatedOffering);
 
     when(denylist.productIdMatches(any())).thenReturn(false);
-    when(capacityProductExtractor.getProducts(updatedOffering.getProductIdsAsStrings()))
-        .thenReturn(productIds);
 
     capacityReconciliationController.reconcileCapacityForSubscription(updatedSubscription);
 
@@ -166,7 +166,13 @@ class CapacityReconciliationControllerTest {
   void shouldRemoveAllCapacitiesWhenProductIsOnDenylist() {
     Set<String> productIds = Set.of("RHEL", "RHEL Workstation");
     Offering updatedOffering =
-        Offering.builder().productIds(Set.of(45, 25)).sku("MCT3718").cores(20).sockets(40).build();
+        Offering.builder()
+            .productIds(Set.of(45, 25))
+            .sku("MCT3718")
+            .cores(20)
+            .sockets(40)
+            .productTags(productIds)
+            .build();
 
     Subscription updatedSubscription = createSubscription("456", 10);
 
@@ -184,8 +190,6 @@ class CapacityReconciliationControllerTest {
     updatedSubscription.setOffering(updatedOffering);
 
     when(denylist.productIdMatches(any())).thenReturn(true);
-    when(capacityProductExtractor.getProducts(updatedOffering.getProductIdsAsStrings()))
-        .thenReturn(productIds);
 
     capacityReconciliationController.reconcileCapacityForSubscription(updatedSubscription);
 
@@ -196,7 +200,13 @@ class CapacityReconciliationControllerTest {
   @Test
   void shouldAddNewCapacitiesAndRemoveAllStaleCapacities() {
     Set<String> productIds = Set.of("RHEL");
-    Offering offering = Offering.builder().productIds(Set.of(45)).sku("MCT3718").cores(42).build();
+    Offering offering =
+        Offering.builder()
+            .productIds(Set.of(45))
+            .sku("MCT3718")
+            .cores(42)
+            .productTags(productIds)
+            .build();
     Subscription subscription = createSubscription("456", 10);
     Set<String> staleProductIds = Set.of("STALE RHEL", "STALE RHEL Workstation");
 
@@ -214,8 +224,6 @@ class CapacityReconciliationControllerTest {
     subscription.setOffering(offering);
 
     when(denylist.productIdMatches(any())).thenReturn(false);
-    when(capacityProductExtractor.getProducts(offering.getProductIdsAsStrings()))
-        .thenReturn(productIds);
 
     capacityReconciliationController.reconcileCapacityForSubscription(subscription);
 
@@ -259,7 +267,13 @@ class CapacityReconciliationControllerTest {
   @Test
   void shouldNotAttemptToCreateDuplicateMeasurementsWhenNoChanges() {
     Set<String> productIds = Set.of("RHEL");
-    Offering offering = Offering.builder().productIds(Set.of(45)).sku("MCT3718").cores(42).build();
+    Offering offering =
+        Offering.builder()
+            .productIds(Set.of(45))
+            .sku("MCT3718")
+            .cores(42)
+            .productTags(productIds)
+            .build();
     Subscription subscription = createSubscription("456", 1);
 
     var newMeasurements = new HashMap<>(subscription.getSubscriptionMeasurements());
@@ -270,8 +284,6 @@ class CapacityReconciliationControllerTest {
     subscription.setOffering(offering);
 
     when(denylist.productIdMatches(any())).thenReturn(false);
-    when(capacityProductExtractor.getProducts(offering.getProductIdsAsStrings()))
-        .thenReturn(productIds);
 
     capacityReconciliationController.reconcileCapacityForSubscription(subscription);
 
