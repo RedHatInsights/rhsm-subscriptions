@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.redhat.cloud.event.apps.exportservice.v1.Format;
 import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequest;
 import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequestClass;
@@ -34,6 +35,7 @@ import com.redhat.cloud.event.parser.ConsoleCloudEventParser;
 import com.redhat.cloud.event.parser.GenericConsoleCloudEvent;
 import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +49,7 @@ import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.json.SubscriptionsExport;
+import org.candlepin.subscriptions.json.SubscriptionsExportJson;
 import org.candlepin.subscriptions.rbac.RbacApiException;
 import org.candlepin.subscriptions.rbac.RbacService;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
@@ -76,11 +78,12 @@ public abstract class BaseDataExporterServiceTest
 
   @Autowired ConsoleCloudEventParser parser;
   @Autowired ObjectMapper objectMapper;
+  @Autowired CsvMapper csvMapper;
   @Autowired ExportSubscriptionListener listener;
   @Autowired KafkaProperties kafkaProperties;
   @Autowired OfferingRepository offeringRepository;
   @Autowired AccountServiceInventoryRepository accountServiceInventoryRepository;
-  @Autowired DataExporterService<?, ?> dataExporterService;
+  @Autowired DataExporterService<?> dataExporterService;
   @MockBean RbacService rbacService;
 
   protected KafkaTemplate<String, String> kafkaTemplate;
@@ -177,15 +180,27 @@ public abstract class BaseDataExporterServiceTest
   }
 
   protected void verifyRequestWasSentToExportServiceWithNoDataFound() {
-    verifyRequestWasSentToExportServiceWithUploadData(new SubscriptionsExport());
+    verifyRequestWasSentToExportServiceWithUploadData(
+        request, toJson(new SubscriptionsExportJson().withData(new ArrayList<>())));
   }
 
-  protected void verifyRequestWasSentToExportServiceWithUploadData(Object expected) {
+  protected String toJson(Object data) {
     try {
-      verifyRequestWasSentToExportServiceWithUploadData(
-          request, objectMapper.writeValueAsString(expected));
+      return objectMapper.writeValueAsString(data);
     } catch (JsonProcessingException e) {
       Assertions.fail("Failed to serialize the export data", e);
+      return null;
+    }
+  }
+
+  protected String toCsv(List<Object> data, Class<?> dataItemClass) {
+    try {
+      var csvSchema = csvMapper.schemaFor(dataItemClass).withUseHeader(true);
+      var writer = csvMapper.writer(csvSchema);
+      return writer.writeValueAsString(data);
+    } catch (JsonProcessingException e) {
+      Assertions.fail("Failed to serialize the export data", e);
+      return null;
     }
   }
 }

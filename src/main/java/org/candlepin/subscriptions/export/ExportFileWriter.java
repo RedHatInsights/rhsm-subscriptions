@@ -20,13 +20,11 @@
  */
 package org.candlepin.subscriptions.export;
 
-import java.io.Serializable;
+import java.io.File;
 import java.util.stream.Stream;
 
-public interface DataExporterService<T extends Serializable> {
-  boolean handles(ExportServiceRequest request);
+public interface ExportFileWriter {
 
-  Stream<T> fetchData(ExportServiceRequest request);
-
-  DataMapperService<T> getMapper(ExportServiceRequest request);
+  void write(
+      File output, DataMapperService<?> dataMapper, Stream<?> data, ExportServiceRequest request);
 }

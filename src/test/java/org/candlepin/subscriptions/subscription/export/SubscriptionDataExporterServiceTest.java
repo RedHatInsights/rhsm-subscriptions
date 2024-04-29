@@ -23,23 +23,21 @@ package org.candlepin.subscriptions.subscription.export;
 import com.redhat.cloud.event.apps.exportservice.v1.Format;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import jakarta.transaction.Transactional;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionMeasurementKey;
-import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.export.BaseDataExporterServiceTest;
-import org.candlepin.subscriptions.json.SubscriptionsExport;
-import org.candlepin.subscriptions.json.SubscriptionsExportItem;
-import org.candlepin.subscriptions.json.SubscriptionsExportMeasurement;
+import org.candlepin.subscriptions.json.SubscriptionsExportCsvItem;
+import org.candlepin.subscriptions.json.SubscriptionsExportJson;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -52,8 +50,15 @@ class SubscriptionDataExporterServiceTest extends BaseDataExporterServiceTest {
 
   @Autowired SubscriptionRepository subscriptionRepository;
   @Autowired ApplicationClock clock;
+  @Autowired SubscriptionCsvDataMapperService csvDataMapperService;
+  @Autowired SubscriptionJsonDataMapperService jsonDataMapperService;
 
   protected List<Subscription> itemsToBeExported = new ArrayList<>();
+
+  @AfterEach
+  public void tearDown() {
+    subscriptionRepository.deleteAll();
+  }
 
   @Override
   protected String resourceType() {
@@ -87,8 +92,7 @@ class SubscriptionDataExporterServiceTest extends BaseDataExporterServiceTest {
     givenSubscriptionWithMeasurement();
     givenExportRequestWithPermissions(Format.CSV);
     whenReceiveExportRequest();
-    // Since this is not implemented yet, we send an error:
-    verifyRequestWasSentToExportServiceWithError(request);
+    verifyRequestWasSentToExportService();
   }
 
   @ParameterizedTest
@@ -147,7 +151,9 @@ class SubscriptionDataExporterServiceTest extends BaseDataExporterServiceTest {
   void givenSubscriptionWithMeasurement() {
     Subscription subscription = new Subscription();
     subscription.setSubscriptionId(UUID.randomUUID().toString());
-    subscription.setStartDate(clock.now());
+    subscription.setSubscriptionNumber(UUID.randomUUID().toString());
+    subscription.setStartDate(OffsetDateTime.parse("2024-04-23T11:48:15.888129Z"));
+    subscription.setEndDate(OffsetDateTime.parse("2024-05-23T11:48:15.888129Z"));
     subscription.setOffering(offering);
     subscription.setOrgId(ORG_ID);
     subscription.setBillingProvider(BillingProvider.AWS);
@@ -163,36 +169,31 @@ class SubscriptionDataExporterServiceTest extends BaseDataExporterServiceTest {
 
   @Override
   protected void verifyRequestWasSentToExportService() {
-    var expected = new SubscriptionsExport();
-    expected.setData(new ArrayList<>());
+    boolean isCsvFormat = request.getData().getResourceRequest().getFormat() == Format.CSV;
+    List<Object> data = new ArrayList<>();
     for (Subscription subscription : itemsToBeExported) {
-      var item = new SubscriptionsExportItem();
-      item.setOrgId(subscription.getOrgId());
-      item.setMeasurements(new ArrayList<>());
-
-      // map offering
-      var offering = subscription.getOffering();
-      item.setSku(offering.getSku());
-      Optional.ofNullable(offering.getUsage()).map(Usage::getValue).ifPresent(item::setUsage);
-      Optional.ofNullable(offering.getServiceLevel())
-          .map(ServiceLevel::getValue)
-          .ifPresent(item::setServiceLevel);
-      item.setProductName(offering.getProductName());
-      item.setSubscriptionNumber(subscription.getSubscriptionNumber());
-      item.setQuantity(subscription.getQuantity());
-
-      // map measurements
-      for (var entry : subscription.getSubscriptionMeasurements().entrySet()) {
-        var measurement = new SubscriptionsExportMeasurement();
-        measurement.setMeasurementType(entry.getKey().getMeasurementType());
-        measurement.setCapacity(entry.getValue());
-        measurement.setMetricId(entry.getKey().getMetricId());
-
-        item.getMeasurements().add(measurement);
+      if (isCsvFormat) {
+        data.addAll(csvDataMapperService.mapDataItem(subscription, null));
+      } else {
+        data.addAll(jsonDataMapperService.mapDataItem(subscription, null));
       }
-      expected.getData().add(item);
     }
 
-    verifyRequestWasSentToExportServiceWithUploadData(expected);
+    if (isCsvFormat) {
+      verifyRequestWasSentToExportServiceWithUploadCsvData(data);
+    } else {
+      verifyRequestWasSentToExportServiceWithUploadJsonData(
+          new SubscriptionsExportJson().withData(data));
+    }
+  }
+
+  protected void verifyRequestWasSentToExportServiceWithUploadCsvData(List<Object> data) {
+    verifyRequestWasSentToExportServiceWithUploadData(
+        request, toCsv(data, SubscriptionsExportCsvItem.class));
+  }
+
+  protected void verifyRequestWasSentToExportServiceWithUploadJsonData(
+      SubscriptionsExportJson data) {
+    verifyRequestWasSentToExportServiceWithUploadData(request, toJson(data));
   }
 }
