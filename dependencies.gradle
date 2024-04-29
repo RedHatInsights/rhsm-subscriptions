@@ -31,7 +31,7 @@ ext.plugins = [
         // see https://github.com/OpenAPITools/openapi-generator/issues/15876
         "io.swagger.parser.v3:swagger-parser:2.1.22",
         "org.jsonschema2pojo:jsonschema2pojo-gradle-plugin:1.2.1",
-        "org.liquibase:liquibase-gradle-plugin:2.2.1",
+        "org.liquibase:liquibase-gradle-plugin:2.2.2",
         "org.kordamp.gradle:jandex-gradle-plugin:1.1.0",
         "org.openapitools:openapi-generator-gradle-plugin:7.5.0",
         "org.springframework.boot:spring-boot-gradle-plugin:${springVersion}",
