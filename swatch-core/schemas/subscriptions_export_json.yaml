@@ -1,6 +1,6 @@
 # From: https://github.com/RedHatInsights/export-service-go/blob/main/example_export_upload.json
 $schema: http://json-schema.org/draft-07/schema#
-title: InstancesExport
+title: SubscriptionExportJson
 properties:
   name:
     type: string
@@ -8,5 +8,3 @@ properties:
     type: string
   data:
     type: array
-    items:
-      $ref: instances_export_item.yaml

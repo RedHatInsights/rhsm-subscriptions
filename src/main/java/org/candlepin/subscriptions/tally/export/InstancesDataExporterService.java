@@ -20,8 +20,6 @@
  */
 package org.candlepin.subscriptions.tally.export;
 
-import static org.candlepin.subscriptions.resource.InstancesResource.getCategoryByMeasurementType;
-import static org.candlepin.subscriptions.resource.InstancesResource.getCloudProviderByMeasurementType;
 import static org.candlepin.subscriptions.resource.InstancesResource.getHardwareMeasurementTypesFromCategory;
 import static org.candlepin.subscriptions.resource.InstancesResource.isPayg;
 import static org.candlepin.subscriptions.resource.ResourceUtils.ANY;
@@ -29,24 +27,19 @@ import static org.candlepin.subscriptions.resource.ResourceUtils.ANY;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.registry.Variant;
-import com.redhat.swatch.configuration.util.MetricIdUtils;
 import jakarta.ws.rs.core.Response;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.TallyInstanceViewRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
-import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyInstanceView;
@@ -54,29 +47,22 @@ import org.candlepin.subscriptions.db.model.TallyInstancesDbReportCriteria;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ExportServiceException;
 import org.candlepin.subscriptions.export.DataExporterService;
+import org.candlepin.subscriptions.export.DataMapperService;
 import org.candlepin.subscriptions.export.ExportServiceRequest;
-import org.candlepin.subscriptions.json.InstancesExportGuest;
-import org.candlepin.subscriptions.json.InstancesExportItem;
-import org.candlepin.subscriptions.json.InstancesExportMetric;
 import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
+@AllArgsConstructor
 @Profile("worker")
-public class InstancesDataExporterService
-    implements DataExporterService<TallyInstanceView, InstancesExportItem> {
+public class InstancesDataExporterService implements DataExporterService<TallyInstanceView> {
 
-  public static final String INSTANCES_DATA = "instances";
-  public static final String PRODUCT_ID = "product_id";
-  private static final String BEGINNING = "beginning";
-  private static final int BAD_REQUEST = Response.Status.BAD_REQUEST.getStatusCode();
-  private static final int MAX_GUESTS_PER_QUERY = 20;
+  static final String INSTANCES_DATA = "instances";
+  static final String PRODUCT_ID = "product_id";
+  static final String BEGINNING = "beginning";
+  static final int BAD_REQUEST = Response.Status.BAD_REQUEST.getStatusCode();
   private static final Map<
           String,
           BiConsumer<TallyInstancesDbReportCriteria.TallyInstancesDbReportCriteriaBuilder, String>>
@@ -97,19 +83,14 @@ public class InstancesDataExporterService
               "billing_account_id",
               InstancesDataExporterService::handleBillingAccountIdFilter,
               BEGINNING,
-              InstancesDataExporterService::handleMonthFilter);
+              InstancesDataExporterService::handleMonthFilter,
+              "display_name_contains",
+              InstancesDataExporterService::handleDisplayNameContainsFilter);
 
   private static final List<String> MANDATORY_FILTERS = List.of(PRODUCT_ID);
 
   private final TallyInstanceViewRepository tallyViewRepository;
-  private final HostRepository hostRepository;
-
-  @Autowired
-  public InstancesDataExporterService(
-      TallyInstanceViewRepository tallyViewRepository, HostRepository hostRepository) {
-    this.tallyViewRepository = tallyViewRepository;
-    this.hostRepository = hostRepository;
-  }
+  private final InstancesJsonDataMapperService jsonDataMapperService;
 
   @Override
   public boolean handles(ExportServiceRequest request) {
@@ -124,88 +105,11 @@ public class InstancesDataExporterService
   }
 
   @Override
-  public InstancesExportItem mapDataItem(TallyInstanceView item, ExportServiceRequest request) {
-    var instance = new InstancesExportItem();
-    instance.setId(item.getId());
-    instance.setInstanceId(item.getKey().getInstanceId());
-    instance.setDisplayName(item.getDisplayName());
-    if (item.getHostBillingProvider() != null) {
-      instance.setBillingProvider(item.getHostBillingProvider().getValue());
-    }
-    var category = getCategoryByMeasurementType(item.getKey().getMeasurementType());
-    if (category != null) {
-      instance.setCategory(category.toString());
-    }
-
-    var cloudProvider = getCloudProviderByMeasurementType(item.getKey().getMeasurementType());
-    if (cloudProvider != null) {
-      instance.setCloudProvider(cloudProvider.toString());
-    }
-
-    instance.setBillingAccountId(item.getHostBillingAccountId());
-    instance.setMeasurements(new ArrayList<>());
-    var variant = Variant.findByTag(item.getKey().getProductId());
-    boolean isPayg = isPayg(variant);
-    String month = isPayg ? getMonthFromFiltersOrUseNow(request) : null;
-    var metrics = MetricIdUtils.getMetricIdsFromConfigForVariant(variant.orElse(null)).toList();
-    for (var metric : metrics) {
-      instance
-          .getMeasurements()
-          .add(toInstanceExportMetric(metric, resolveMetricValue(item, metric, month, isPayg)));
-    }
-
-    instance.setLastSeen(item.getLastSeen());
-    instance.setNumberOfGuests(item.getNumOfGuests());
-    instance.setSubscriptionManagerId(item.getSubscriptionManagerId());
-    instance.setInventoryId(item.getInventoryId());
-    if (item.getNumOfGuests() > 0) {
-      var guestsInInstance =
-          getGuestHostsByHypervisorInstanceId(item, PageRequest.ofSize(MAX_GUESTS_PER_QUERY));
-      Set<InstancesExportGuest> guests =
-          new HashSet<>(mapHostGuests(guestsInInstance.getContent()));
-      while (guestsInInstance.hasNext()) {
-        guestsInInstance =
-            getGuestHostsByHypervisorInstanceId(item, guestsInInstance.nextPageable());
-        guests.addAll(mapHostGuests(guestsInInstance.getContent()));
-      }
-
-      instance.setGuests(new ArrayList<>(guests));
-    }
-    return instance;
-  }
-
-  @Override
-  public Class<TallyInstanceView> getDataClass() {
-    return TallyInstanceView.class;
-  }
-
-  @Override
-  public Class<InstancesExportItem> getExportItemClass() {
-    return InstancesExportItem.class;
-  }
-
-  private Page<Host> getGuestHostsByHypervisorInstanceId(
-      TallyInstanceView item, Pageable pageRequest) {
-    return hostRepository.getGuestHostsByHypervisorInstanceId(
-        item.getOrgId(), item.getKey().getInstanceId(), pageRequest);
-  }
-
-  private List<InstancesExportGuest> mapHostGuests(List<Host> guests) {
-    return guests.stream()
-        .map(
-            guest ->
-                new InstancesExportGuest()
-                    .withDisplayName(guest.getDisplayName())
-                    .withHardwareType(
-                        guest.getHardwareType() == null ? null : guest.getHardwareType().toString())
-                    .withInsightsId(guest.getInsightsId())
-                    .withInventoryId(guest.getInventoryId())
-                    .withSubscriptionManagerId(guest.getSubscriptionManagerId())
-                    .withLastSeen(guest.getLastSeen())
-                    .withCloudProvider(guest.getCloudProvider())
-                    .withIsUnmappedGuest(guest.isUnmappedGuest())
-                    .withIsHypervisor(guest.isHypervisor()))
-        .toList();
+  public DataMapperService<TallyInstanceView> getMapper(ExportServiceRequest request) {
+    return switch (request.getFormat()) {
+      case JSON -> jsonDataMapperService;
+      case CSV -> throw new UnsupportedOperationException("CSV is not supported yet for instances");
+    };
   }
 
   private TallyInstancesDbReportCriteria extractExportFilter(ExportServiceRequest request) {
@@ -313,32 +217,8 @@ public class InstancesDataExporterService
         getHardwareMeasurementTypesFromCategory(ReportCategory.fromString(value)));
   }
 
-  private static InstancesExportMetric toInstanceExportMetric(MetricId metric, double value) {
-    return new InstancesExportMetric().withMetricId(metric.toString()).withValue(value);
-  }
-
-  private static double resolveMetricValue(
-      TallyInstanceView item, MetricId metricId, String month, boolean isPayg) {
-    if (metricId.equals(MetricIdUtils.getSockets())) {
-      return item.getSockets();
-    } else if (metricId.equals(MetricIdUtils.getCores())) {
-      return item.getCores();
-    } else if (!isPayg && item.getKey().getMetricId().equalsIgnoreCase(metricId.toString())) {
-      return item.getValue();
-    }
-
-    return Optional.ofNullable(item.getMonthlyTotal(month, metricId)).orElse(0.0);
-  }
-
-  private static String getMonthFromFiltersOrUseNow(ExportServiceRequest request) {
-    OffsetDateTime beginning = OffsetDateTime.now();
-    if (request.getFilters() != null) {
-      Object value = request.getFilters().get(BEGINNING);
-      if (value instanceof String str) {
-        beginning = OffsetDateTime.parse(str);
-      }
-    }
-
-    return InstanceMonthlyTotalKey.formatMonthId(beginning);
+  private static void handleDisplayNameContainsFilter(
+      TallyInstancesDbReportCriteria.TallyInstancesDbReportCriteriaBuilder builder, String value) {
+    builder.displayNameSubstring(value);
   }
 }

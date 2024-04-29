@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.util.StdDateFormat;
+import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationModule;
@@ -155,6 +156,23 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     objectMapper.registerModule(new Jdk8Module());
 
     return objectMapper;
+  }
+
+  @Bean
+  CsvMapper csvMapper() {
+    CsvMapper csvMapper = new CsvMapper();
+    csvMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    csvMapper.setDateFormat(new StdDateFormat().withColonInTimeZone(true));
+    csvMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    csvMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+    csvMapper.setAnnotationIntrospector(new JacksonAnnotationIntrospector());
+    // Explicitly load the modules we need rather than use ObjectMapper.findAndRegisterModules in
+    // order to avoid com.fasterxml.jackson.module.scala.DefaultScalaModule, which was causing
+    // deserialization to ignore @JsonProperty on OpenApi classes.
+    csvMapper.registerModule(new JakartaXmlBindAnnotationModule());
+    csvMapper.registerModule(new JavaTimeModule());
+    csvMapper.registerModule(new Jdk8Module());
+    return csvMapper;
   }
 
   /* Do not declare a MethodValidationPostProcessor!

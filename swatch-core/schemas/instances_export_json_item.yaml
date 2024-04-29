@@ -1,6 +1,6 @@
 # From: https://github.com/RedHatInsights/export-service-go/blob/main/example_export_upload.json
 $schema: http://json-schema.org/draft-07/schema#
-title: InstanceExportItem
+title: InstanceExportJsonItem
 properties:
   id:
     type: string
@@ -16,11 +16,11 @@ properties:
   measurements:
     type: array
     items:
-      $ref: instances_export_metric.yaml
+      $ref: instances_export_json_metric.yaml
   guests:
     type: array
     items:
-      $ref: instances_export_guest.yaml
+      $ref: instances_export_json_guest.yaml
   last_seen:
     format: date-time
     type: string
