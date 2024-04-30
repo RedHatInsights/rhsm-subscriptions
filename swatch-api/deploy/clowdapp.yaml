@@ -25,6 +25,8 @@ parameters:
     value: WARN
   - name: LOGGING_LEVEL
     value: INFO
+  - name: LOGGING_SHOW_SQL_QUERIES
+    value: 'false'
   - name: REPLICAS
     value: '1'
   - name: MEMORY_REQUEST
@@ -163,6 +165,8 @@ objects:
                 value: ${LOGGING_LEVEL_ROOT}
               - name: LOGGING_LEVEL_ORG_CANDLEPIN
                 value: ${LOGGING_LEVEL}
+              - name: LOGGING_SHOW_SQL_QUERIES
+                value: ${LOGGING_SHOW_SQL_QUERIES}
               - name: DATABASE_HOST
                 valueFrom:
                   secretKeyRef:
