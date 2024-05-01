@@ -186,11 +186,15 @@ public class SubscriptionSyncController {
           newOrUpdated.getOrgId());
       return;
     }
+
+    // If the billing provider is missing on a metered offering, skip syncing.
+    if (isMissingRequiredBillingProvider(newOrUpdated)) {
+      return;
+    }
+
     // enrich product IDs and measurements onto the incoming subscription record from the offering
     capacityReconciliationController.reconcileCapacityForSubscription(newOrUpdated);
     log.debug("New subscription that will need to be saved={}", newOrUpdated);
-
-    checkForMissingBillingProvider(newOrUpdated);
 
     if (subscriptionOptional.isPresent()) {
       final org.candlepin.subscriptions.db.model.Subscription existingSubscription =
@@ -248,15 +252,18 @@ public class SubscriptionSyncController {
     return true;
   }
 
-  private void checkForMissingBillingProvider(
+  private boolean isMissingRequiredBillingProvider(
       org.candlepin.subscriptions.db.model.Subscription subscription) {
     if ((subscription.getBillingProvider() == null
             || subscription.getBillingProvider().equals(BillingProvider.EMPTY))
         && subscription.getOffering().isMetered()) {
       log.warn(
-          "PAYG eligible subscription with subscriptionId:{} has no billing provider.",
-          subscription.getSubscriptionId());
+          "PAYG eligible subscription with subscriptionId:{} and subscription_number:{} has no billing provider.",
+          subscription.getSubscriptionId(),
+          subscription.getSubscriptionNumber());
+      return true;
     }
+    return false;
   }
 
   /**
@@ -484,7 +491,6 @@ public class SubscriptionSyncController {
         endDate = UmbSubscription.convertToUtc(status.get().getStartDate());
       }
     }
-
     // NOTE: we are not setting the offering yet
     return org.candlepin.subscriptions.db.model.Subscription.builder()
         // NOTE: UMB messages don't include subscriptionId
@@ -553,7 +559,6 @@ public class SubscriptionSyncController {
   @Transactional
   public void saveUmbSubscription(UmbSubscription umbSubscription) {
     org.candlepin.subscriptions.db.model.Subscription subscription = convertDto(umbSubscription);
-
     var subscriptions =
         subscriptionRepository.findBySubscriptionNumber(subscription.getSubscriptionNumber());
     if (subscriptions.size() > 1) {
