@@ -213,8 +213,10 @@ class TallySnapshotControllerTest implements ExtendWithEmbeddedKafka {
     // Host 1: monthly totals should be amended.
     // Host 2: monthly totals should remain the same.
     Host instance1 = hosts.get(instance1Id);
+    double instance1ExpectedMonthyTotal =
+        monthId.equals(InstanceMonthlyTotalKey.formatMonthId(firstSnapshotHour)) ? 350.0 : 50.0;
     assertEquals(
-        350.0,
+        instance1ExpectedMonthyTotal,
         instance1.getMonthlyTotal(
             InstanceMonthlyTotalKey.formatMonthId(instance1Event1.getTimestamp()),
             MetricIdUtils.getCores()));
