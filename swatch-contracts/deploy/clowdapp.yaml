@@ -47,6 +47,8 @@ parameters:
     value: 'INFO'
   - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
     value: 'INFO'
+  - name: LOGGING_SHOW_SQL_QUERIES
+    value: 'false'
   # allow overriding to support independent deploy with bonfire
   - name: DB_POD
     value: swatch-tally
@@ -126,6 +128,8 @@ objects:
                 value: ${LOGGING_LEVEL_ROOT}
               - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
                 value: ${LOGGING_LEVEL_COM_REDHAT_SWATCH}
+              - name: LOGGING_SHOW_SQL_QUERIES
+                value: ${LOGGING_SHOW_SQL_QUERIES}
               - name: DATABASE_HOST
                 valueFrom:
                   secretKeyRef:
