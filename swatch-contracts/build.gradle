@@ -2,6 +2,7 @@ plugins {
     id 'swatch.quarkus-conventions'
     id 'swatch.liquibase-conventions'
     id 'org.openapi.generator'
+    id 'jsonschema2pojo'
 }
 
 repositories {
@@ -32,10 +33,12 @@ dependencies {
     implementation("io.quarkus:quarkus-jdbc-postgresql")
     implementation("io.quarkus:quarkus-hibernate-orm-panache")
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-amqp'
+    implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka'
     implementation 'io.smallrye.reactive:smallrye-reactive-messaging-in-memory'
     implementation project(':clients:swatch-internal-subscription-client')
     implementation project(':clients:quarkus:subscription-client')
     implementation project(':swatch-common-config-workaround')
+    implementation project(':swatch-common-kafka')
     implementation project(':swatch-common-resteasy')
     implementation project(':clients:quarkus:rbac-client')
     implementation project(':clients:quarkus:product-client')
@@ -54,6 +57,7 @@ dependencies {
     testImplementation 'io.quarkus:quarkus-test-security'
     testImplementation libraries["junit-jupiter"]
     testImplementation libraries["wiremock"]
+    testImplementation libraries["awaitility"]
     testImplementation("io.quarkus:quarkus-jdbc-h2")
     testAnnotationProcessor libraries["mapstruct-processor"]
     // if you are using mapstruct in test code
@@ -91,6 +95,21 @@ openApiGenerate {
         "string+MetricId": "MetricId",
         "string+ProductId": "ProductId",
     ]
+}
+
+jsonSchema2Pojo {
+    source = files("${projectDir}/../swatch-core/schemas/enabled_orgs_request.yaml", "${projectDir}/../swatch-core/schemas/enabled_orgs_response.yaml")
+    targetPackage = "com.redhat.swatch.contract.model"
+    targetDirectory = file("${buildDir}/generated/src/gen/java")
+    includeAdditionalProperties = false
+    includeJsr303Annotations = true
+    initializeCollections = false
+    dateTimeType = 'java.time.OffsetDateTime'
+    sourceType = 'yamlschema'
+    generateBuilders = true
+    includeGetters = true
+    includeSetters = true
+    useJakartaValidation = true
 }
 
 sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
