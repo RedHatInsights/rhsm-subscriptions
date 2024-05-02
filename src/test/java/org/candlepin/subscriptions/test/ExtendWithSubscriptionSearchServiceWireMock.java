@@ -20,21 +20,15 @@
  */
 package org.candlepin.subscriptions.test;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
-import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequest;
-import com.redhat.cloud.event.parser.GenericConsoleCloudEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 public interface ExtendWithSubscriptionSearchServiceWireMock {
 
@@ -44,66 +38,13 @@ public interface ExtendWithSubscriptionSearchServiceWireMock {
   default void resetExportServiceWireMock() {
     SUBSCRIPTION_SERVICE_WIRE_MOCK_SERVER.resetAll();
     SUBSCRIPTION_SERVICE_WIRE_MOCK_SERVER.stubFor(
-        post(urlPathMatching("/search/criteria;subscription_number=*")));
+        get(urlPathMatching("/search/criteria;subscription_number*")));
   }
 
   @DynamicPropertySource
   static void registerExportApiProperties(DynamicPropertyRegistry registry) {
     registry.add(
         "rhsm-subscriptions.subscription.url", SUBSCRIPTION_SERVICE_WIRE_MOCK_SERVER::baseUrl);
-  }
-
-  default void verifyNoRequestsWereSentToExportServiceWithError(
-      GenericConsoleCloudEvent<ResourceRequest> request) {
-    SUBSCRIPTION_SERVICE_WIRE_MOCK_SERVER.verify(
-        0,
-        postRequestedFor(
-            urlEqualTo(
-                String.format(
-                    "/app/export/v1/%s/subscriptions/%s/error",
-                    request.getData().getResourceRequest().getUUID(),
-                    request.getData().getResourceRequest().getExportRequestUUID()))));
-  }
-
-  default void verifyRequestWasSentToExportServiceWithError(
-      GenericConsoleCloudEvent<ResourceRequest> request) {
-    Awaitility.await()
-        .untilAsserted(
-            () ->
-                SUBSCRIPTION_SERVICE_WIRE_MOCK_SERVER.verify(
-                    postRequestedFor(
-                        urlEqualTo(
-                            String.format(
-                                "/app/export/v1/%s/subscriptions/%s/error",
-                                request.getData().getResourceRequest().getExportRequestUUID(),
-                                request.getData().getResourceRequest().getUUID())))));
-  }
-
-  default void verifyNoRequestsWereSentToExportServiceWithUploadData(
-      GenericConsoleCloudEvent<ResourceRequest> request) {
-    SUBSCRIPTION_SERVICE_WIRE_MOCK_SERVER.verify(
-        0,
-        postRequestedFor(
-            urlEqualTo(
-                String.format(
-                    "/app/export/v1/%s/subscriptions/%s/upload",
-                    request.getData().getResourceRequest().getExportRequestUUID(),
-                    request.getData().getResourceRequest().getUUID()))));
-  }
-
-  default void verifyRequestWasSentToExportServiceWithUploadData(
-      GenericConsoleCloudEvent<ResourceRequest> request, String expected) {
-    Awaitility.await()
-        .untilAsserted(
-            () ->
-                SUBSCRIPTION_SERVICE_WIRE_MOCK_SERVER.verify(
-                    postRequestedFor(
-                            urlEqualTo(
-                                String.format(
-                                    "/app/export/v1/%s/subscriptions/%s/upload",
-                                    request.getData().getResourceRequest().getExportRequestUUID(),
-                                    request.getData().getResourceRequest().getUUID())))
-                        .withRequestBody(equalTo(expected))));
   }
 
   static WireMockServer startWireMockServer() {
