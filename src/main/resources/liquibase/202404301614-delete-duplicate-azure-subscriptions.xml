@@ -6,7 +6,7 @@
                       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
 
 
-  <changeSet id="202404301614-1" author="kflahert">
+  <changeSet id="202404301614-1" author="kflahert" dbms="postgresql">
     <comment>
       Delete duplicate azure subscription entries that are missing billing_provider.
     </comment>
