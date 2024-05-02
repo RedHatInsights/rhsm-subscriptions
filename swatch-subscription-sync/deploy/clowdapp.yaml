@@ -17,6 +17,8 @@ parameters:
     value: WARN
   - name: LOGGING_LEVEL
     value: INFO
+  - name: LOGGING_SHOW_SQL_QUERIES
+    value: 'false'
   - name: KAFKA_MESSAGE_THREADS
     value: '24'
   - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
@@ -287,6 +289,8 @@ objects:
               value: ${LOGGING_LEVEL_ROOT}
             - name: LOGGING_LEVEL_ORG_CANDLEPIN
               value: ${LOGGING_LEVEL}
+            - name: LOGGING_SHOW_SQL_QUERIES
+              value: ${LOGGING_SHOW_SQL_QUERIES}
             - name: KAFKA_MESSAGE_THREADS
               value: ${KAFKA_MESSAGE_THREADS}
             - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
