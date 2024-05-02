@@ -22,8 +22,11 @@ package org.candlepin.subscriptions.db;
 
 import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
+import java.util.Map;
 import javax.sql.DataSource;
+import org.hibernate.cfg.ManagedBeanSettings;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.TypeExcludeFilter;
@@ -35,6 +38,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.orm.hibernate5.SpringBeanContainer;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -80,11 +84,14 @@ public class RhsmSubscriptionsDataSourceConfiguration {
   @Primary
   public LocalContainerEntityManagerFactoryBean rhsmSubscriptionsEntityManagerFactory(
       EntityManagerFactoryBuilder builder,
+      ConfigurableListableBeanFactory beanFactory,
       @Qualifier("rhsmSubscriptionsDataSource") DataSource dataSource) {
     return builder
         .dataSource(dataSource)
         .packages("org.candlepin.subscriptions.db.model")
         .persistenceUnit("rhsm-subscriptions")
+        .properties(
+            Map.of(ManagedBeanSettings.BEAN_CONTAINER, new SpringBeanContainer(beanFactory)))
         .build();
   }
 

@@ -37,6 +37,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.candlepin.subscriptions.db.model.converters.EventRecordConverter;
 import org.candlepin.subscriptions.json.Event;
 
 /**

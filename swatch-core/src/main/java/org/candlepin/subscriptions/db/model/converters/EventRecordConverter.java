@@ -18,32 +18,21 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db.model;
+package org.candlepin.subscriptions.db.model.converters;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.AttributeConverter;
+import lombok.AllArgsConstructor;
 import org.candlepin.subscriptions.json.Event;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /** JPA AttributeConverter which uses Jackson to map to/from Event JSON. */
 @Component
+@AllArgsConstructor
 public class EventRecordConverter implements AttributeConverter<Event, String> {
 
-  private static ObjectMapper objectMapper;
-
-  public EventRecordConverter() {
-    /* intentionally left empty */
-  }
-
-  // hack to get ObjectMapper from spring context, we should remove once we're on Spring Boot 2.1 &
-  // Hibernate 5.3 per https://stackoverflow.com/a/54686119
-  @Autowired
-  @SuppressWarnings("java:S3010")
-  EventRecordConverter(ObjectMapper mapper) {
-    EventRecordConverter.objectMapper = mapper;
-  }
+  private final ObjectMapper objectMapper;
 
   @Override
   public String convertToDatabaseColumn(Event attribute) {
