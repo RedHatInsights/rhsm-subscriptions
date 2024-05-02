@@ -50,6 +50,7 @@ import org.candlepin.subscriptions.json.InstancesExportJson;
 import org.candlepin.subscriptions.json.InstancesExportJsonGuest;
 import org.candlepin.subscriptions.json.InstancesExportJsonItem;
 import org.candlepin.subscriptions.json.InstancesExportJsonMetric;
+import org.candlepin.subscriptions.test.ExtendWithSwatchDatabase;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -58,8 +59,9 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ActiveProfiles;
 
-@ActiveProfiles({"worker", "kafka-queue", "test"})
-class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
+@ActiveProfiles({"worker", "kafka-queue", "test-inventory"})
+class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest
+    implements ExtendWithSwatchDatabase {
 
   private static final String RHEL_FOR_X86 = "RHEL for x86";
   private static final String ROSA = "rosa";
@@ -127,7 +129,7 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
   void testRequestShouldBeUploadedWithInstancesAsJsonFilteringByProductIdAndReturnsNoData() {
     givenInstanceWithMetrics(RHEL_FOR_X86);
     givenExportRequestWithPermissions(Format.JSON);
-    givenFilterInExportRequest(PRODUCT_ID, "rosa");
+    givenFilterInExportRequest(PRODUCT_ID, ROSA);
     whenReceiveExportRequest();
     verifyRequestWasSentToExportServiceWithNoDataFound();
     verifyNoRequestsWereSentToExportServiceWithError();
@@ -217,8 +219,8 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
     instance.setBillingAccountId("123");
     instance.setInstanceType(INSTANCE_TYPE);
     instance.setSubscriptionManagerId(guest.getHypervisorUuid());
-    instance.addToMonthlyTotal(OffsetDateTime.now(), MetricIdUtils.getSockets(), 6.0);
-    instance.addToMonthlyTotal(OffsetDateTime.now(), MetricIdUtils.getCores(), 8.0);
+    instance.addToMonthlyTotal(OffsetDateTime.parse(APRIL), MetricIdUtils.getSockets(), 6.0);
+    instance.addToMonthlyTotal(OffsetDateTime.parse(APRIL), MetricIdUtils.getCores(), 8.0);
 
     // buckets
     HostTallyBucket bucket = new HostTallyBucket();
@@ -280,7 +282,6 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
       var metrics =
           MetricIdUtils.getMetricIdsFromConfigForVariant(variant.orElse(null))
               .map(MetricId::toString)
-              .sorted()
               .toList();
       instance.setMeasurements(new ArrayList<>());
       for (var metricId : metrics) {

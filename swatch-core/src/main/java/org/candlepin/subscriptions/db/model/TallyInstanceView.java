@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.db.model;
 import com.redhat.swatch.configuration.registry.MetricId;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
@@ -36,6 +37,7 @@ import java.util.HashMap;
 import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
+import org.candlepin.subscriptions.db.model.converters.TallyInstanceViewMetricsConverter;
 import org.springframework.data.annotation.Immutable;
 
 @Setter
@@ -45,7 +47,7 @@ import org.springframework.data.annotation.Immutable;
 @Table(name = "tally_instance_view")
 public class TallyInstanceView implements Serializable {
 
-  @EmbeddedId private TallyInstanceViewKey key;
+  @EmbeddedId private TallyInstanceViewKey key = new TallyInstanceViewKey();
 
   @Column(name = "id")
   private String id;
@@ -77,7 +79,9 @@ public class TallyInstanceView implements Serializable {
 
   private Integer sockets;
 
-  private Double value;
+  @Column(name = "metrics", insertable = false, updatable = false)
+  @Convert(converter = TallyInstanceViewMetricsConverter.class)
+  private Map<MetricId, Double> metrics = new HashMap<>();
 
   @Column(name = "subscription_manager_id")
   private String subscriptionManagerId;
@@ -85,16 +89,12 @@ public class TallyInstanceView implements Serializable {
   @Column(name = "inventory_id")
   private String inventoryId;
 
-  @ElementCollection(fetch = FetchType.EAGER)
+  @ElementCollection(fetch = FetchType.LAZY)
   @CollectionTable(
       name = "instance_monthly_totals",
       joinColumns = @JoinColumn(name = "host_id", referencedColumnName = "id"))
-  @Column(name = "value")
+  @Column(name = "value", insertable = false, updatable = false)
   private Map<InstanceMonthlyTotalKey, Double> monthlyTotals = new HashMap<>();
-
-  public TallyInstanceView() {
-    key = new TallyInstanceViewKey();
-  }
 
   public Double getMonthlyTotal(String monthId, MetricId metricId) {
     var totalKey = new InstanceMonthlyTotalKey(monthId, metricId.toString());

@@ -152,8 +152,8 @@ public class InstancesJsonDataMapperService implements DataMapperService<TallyIn
       return item.getSockets();
     } else if (metricId.equals(MetricIdUtils.getCores())) {
       return item.getCores();
-    } else if (!isPayg && item.getKey().getMetricId().equalsIgnoreCase(metricId.toString())) {
-      return item.getValue();
+    } else if (!isPayg && item.getMetrics().containsKey(metricId)) {
+      return item.getMetrics().get(metricId);
     }
 
     return Optional.ofNullable(item.getMonthlyTotal(month, metricId)).orElse(0.0);

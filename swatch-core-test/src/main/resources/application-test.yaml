@@ -38,6 +38,8 @@ spring:
   jpa:
     properties:
       hibernate:
+        # Set the dialect to
+        dialect: org.hibernate.dialect.HSQLDialect
         jdbc:
           # Force the testing database into UTC to prevent test failures when the database
           # determines the 'current' time in a query. NOTE: This is primarily when tests

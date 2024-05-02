@@ -63,7 +63,7 @@ public class InstancesDataExporterService implements DataExporterService<TallyIn
   public static final String PRODUCT_ID = "product_id";
   public static final String BEGINNING = "beginning";
   private static final int BAD_REQUEST = Response.Status.BAD_REQUEST.getStatusCode();
-  private static final int MAX_GUESTS_PER_QUERY = 20;
+
   private static final Map<
           String,
           BiConsumer<TallyInstancesDbReportCriteria.TallyInstancesDbReportCriteriaBuilder, String>>

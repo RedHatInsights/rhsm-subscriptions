@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.configuration.registry;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
@@ -31,7 +32,7 @@ import lombok.RequiredArgsConstructor;
 @Data
 // constructor is private so that the factory method is the only way to get a MetricId
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public class MetricId {
+public class MetricId implements Serializable {
 
   private final String value;
 

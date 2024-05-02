@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.db;
 
 import static com.redhat.swatch.configuration.util.MetricIdUtils.getMetricIdsFromConfigForTag;
 import static org.candlepin.subscriptions.resource.InstancesResource.FIELD_SORT_PARAM_MAPPING;
-import static org.candlepin.subscriptions.resource.InstancesResource.METRICS_SORT_PARAM;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -35,10 +34,8 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -50,12 +47,9 @@ import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyInstanceView;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.resource.InstancesResource;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.candlepin.subscriptions.test.ExtendWithSwatchDatabase;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,9 +63,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
-@ActiveProfiles("test")
-@TestInstance(Lifecycle.PER_CLASS)
-class TallyInstanceViewRepositoryTest {
+@ActiveProfiles({"worker", "test-inventory"})
+class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
 
   // Using this product ID because it has two valid metrics: Sockets and Cores
   private static final String OPENSHIFT_CONTAINER_PLATFORM = "OpenShift Container Platform";
@@ -89,7 +82,7 @@ class TallyInstanceViewRepositoryTest {
   private List<Host> defaultHosts;
 
   @Transactional
-  @BeforeAll
+  @BeforeEach
   void setupTestData() {
     Host host8 = createHost("inventory8");
     Host host9 = createHost("inventory9");
@@ -117,24 +110,18 @@ class TallyInstanceViewRepositoryTest {
   }
 
   @Transactional
-  @AfterAll
-  void cleanup() {
-    accountServiceInventoryRepository.deleteAll();
-  }
-
-  @Transactional
   @ParameterizedTest
   @MethodSource("instanceSortParams")
   void canSortByInstanceBasedSortMethods(String sort) {
 
     MetricId referenceMetricId = MetricIdUtils.getCores();
+    var page = PageRequest.of(0, 2);
     String sortValue = FIELD_SORT_PARAM_MAPPING.get(sort);
     if (sortValue == null) {
-      // it's a metric
-      sortValue = METRICS_SORT_PARAM;
       referenceMetricId = MetricId.fromString(sort);
+    } else {
+      page.withSort(Sort.by(sortValue));
     }
-    Pageable page = PageRequest.of(0, 2, Sort.by(sortValue));
     Page<TallyInstanceView> results =
         repo.findAllBy(
             DEFAULT_ORG_ID,
@@ -229,7 +216,7 @@ class TallyInstanceViewRepositoryTest {
             null,
             MetricIdUtils.getCores(),
             BillingProvider.AWS,
-            "_ANY",
+            BILLING_ACCOUNT_ID_ANY,
             null,
             page);
     assertEquals(1L, results.getTotalElements());
@@ -672,19 +659,16 @@ class TallyInstanceViewRepositoryTest {
             BILLING_ACCOUNT_ID_ANY,
             null,
             PageRequest.of(0, 10));
-    List<String> validMetricsByProduct =
-        getMetricIdsFromConfigForTag(OPENSHIFT_CONTAINER_PLATFORM)
-            .map(MetricId::toUpperCaseFormatted)
-            .toList();
+    List<MetricId> validMetricsByProduct =
+        getMetricIdsFromConfigForTag(OPENSHIFT_CONTAINER_PLATFORM).toList();
 
     // to ensure we're using a product with two metrics
     assertEquals(2, validMetricsByProduct.size());
-    assertEquals(
-        defaultHosts.size() * validMetricsByProduct.size(), (int) results.getTotalElements());
+    assertEquals(defaultHosts.size(), (int) results.getTotalElements());
     for (var host : defaultHosts) {
       for (var metric : validMetricsByProduct)
         assertTrue(
-            results.stream().anyMatch(h -> h.getKey().getMetricId().equalsIgnoreCase(metric)),
+            results.stream().anyMatch(h -> h.getMetrics().containsKey(metric)),
             "Metric " + metric + " not found in the host " + host.getInventoryId());
     }
   }
@@ -775,8 +759,6 @@ class TallyInstanceViewRepositoryTest {
   }
 
   static String[] instanceSortParams() {
-    Set<String> params = new HashSet<>(InstancesResource.METRICS_TO_SORT);
-    params.addAll(FIELD_SORT_PARAM_MAPPING.keySet());
-    return params.toArray(new String[0]);
+    return FIELD_SORT_PARAM_MAPPING.keySet().toArray(new String[0]);
   }
 }

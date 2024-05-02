@@ -20,8 +20,6 @@
  */
 package org.candlepin.subscriptions.db;
 
-import static com.redhat.swatch.configuration.util.MetricIdUtils.getMetricIdsFromConfigForTag;
-
 import com.redhat.swatch.configuration.registry.MetricId;
 import jakarta.persistence.criteria.JoinType;
 import java.util.List;
@@ -30,7 +28,6 @@ import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
-import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey_;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyInstanceView;
@@ -170,19 +167,11 @@ public interface TallyInstanceViewRepository
     };
   }
 
-  static Specification<TallyInstanceView> metricIdEquals(MetricId effectiveMetricId) {
-    return (root, query, builder) -> {
-      var key = root.get(TallyInstanceView_.key);
-      return builder.equal(
-          key.get(TallyInstanceViewKey_.metricId), effectiveMetricId.toUpperCaseFormatted());
-    };
-  }
-
-  static Specification<TallyInstanceView> metricIdIn(List<String> validMetrics) {
-    return (root, query, builder) -> {
-      var key = root.get(TallyInstanceView_.key);
-      return key.get(TallyInstanceViewKey_.metricId).in(validMetrics);
-    };
+  static Specification<TallyInstanceView> metricIdContains(MetricId effectiveMetricId) {
+    return (root, query, builder) ->
+        builder.like(
+            builder.upper(builder.function("jsonb_pretty", String.class, root.get("metrics"))),
+            "%" + effectiveMetricId.toUpperCaseFormatted() + "%");
   }
 
   static Specification<TallyInstanceView> displayNameContains(String displayNameSubstring) {
@@ -195,20 +184,17 @@ public interface TallyInstanceViewRepository
   static Specification<TallyInstanceView> monthlyKeyEquals(String month, MetricId metricId) {
     return (root, query, builder) -> {
       var instanceMonthlyTotalRoot = root.join(TallyInstanceView_.monthlyTotals, JoinType.LEFT);
-      return builder.equal(
-          instanceMonthlyTotalRoot.key(), new InstanceMonthlyTotalKey(month, metricId.toString()));
-    };
-  }
-
-  static Specification<TallyInstanceView> monthlyKeyEqualsWithValidMetrics(
-      String month, List<String> validMetrics) {
-    return (root, query, builder) -> {
-      var instanceMonthlyTotalRoot = root.join(TallyInstanceView_.monthlyTotals, JoinType.LEFT);
       var monthPredicate =
           builder.equal(instanceMonthlyTotalRoot.key().get(InstanceMonthlyTotalKey_.MONTH), month);
-      var metricIdsPredicate =
-          instanceMonthlyTotalRoot.key().get(InstanceMonthlyTotalKey_.METRIC_ID).in(validMetrics);
-      return builder.and(monthPredicate, metricIdsPredicate);
+      if (Objects.nonNull(metricId)) {
+        return builder.and(
+            monthPredicate,
+            builder.equal(
+                instanceMonthlyTotalRoot.key().get(InstanceMonthlyTotalKey_.METRIC_ID),
+                metricId.toUpperCaseFormatted()));
+      }
+
+      return monthPredicate;
     };
   }
 
@@ -222,12 +208,6 @@ public interface TallyInstanceViewRepository
   @SuppressWarnings("java:S107")
   default Specification<TallyInstanceView> buildSearchSpecification(
       TallyInstancesDbReportCriteria criteria) {
-
-    List<String> validMetricsByProduct =
-        getMetricIdsFromConfigForTag(criteria.getProductId())
-            .map(MetricId::toUpperCaseFormatted)
-            .toList();
-
     /* The where call allows us to build a Specification object to operate on even if the
      * first specification method we call returns null which is does because we're using the
      * Specification call to set the query to return distinct results */
@@ -258,19 +238,11 @@ public interface TallyInstanceViewRepository
       searchCriteria = searchCriteria.and(displayNameContains(criteria.getDisplayNameSubstring()));
     }
     if (Objects.nonNull(criteria.getMetricId())) {
-      searchCriteria = searchCriteria.and(metricIdEquals(criteria.getMetricId()));
-    } else {
-      searchCriteria = searchCriteria.and(metricIdIn(validMetricsByProduct));
+      searchCriteria = searchCriteria.and(metricIdContains(criteria.getMetricId()));
     }
     if (StringUtils.hasText(criteria.getMonth())) {
-      if (Objects.nonNull(criteria.getMetricId())) {
-        searchCriteria =
-            searchCriteria.and(monthlyKeyEquals(criteria.getMonth(), criteria.getMetricId()));
-      } else {
-        searchCriteria =
-            searchCriteria.and(
-                monthlyKeyEqualsWithValidMetrics(criteria.getMonth(), validMetricsByProduct));
-      }
+      searchCriteria =
+          searchCriteria.and(monthlyKeyEquals(criteria.getMonth(), criteria.getMetricId()));
     }
     if (!ObjectUtils.isEmpty(criteria.getHardwareMeasurementTypes())) {
       searchCriteria =

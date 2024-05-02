@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202404240830-1" author="jcarvaja" dbms="postgresql">
+    <comment>
+      Update the tally_instance_view to aggregate records by metrics
+    </comment>
+    <dropView viewName="tally_instance_view"/>
+    <createView
+      replaceIfExists="true"
+      viewName="tally_instance_view">
+      select distinct h.org_id,
+                      h.id,
+                      h.instance_id as instance_id,
+                      h.display_name,
+                      h.billing_provider as host_billing_provider,
+                      h.billing_account_id as host_billing_account_id,
+                      b.billing_provider as bucket_billing_provider,
+                      b.billing_account_id as bucket_billing_account_id,
+                      h.last_seen,
+                      h.last_applied_event_record_date,
+                      coalesce(h.num_of_guests, 0) AS num_of_guests,
+                      b.product_id,
+                      b.sla,
+                      b.usage,
+                      coalesce(b.measurement_type, 'EMPTY') AS measurement_type,
+                      jsonb_agg(jsonb_build_object('metric_id',m.metric_id,'value',m.value)) as metrics,
+                      b.sockets,
+                      b.cores,
+                      h.subscription_manager_id,
+                      h.inventory_id
+      from hosts h
+      join host_tally_buckets b on h.id = b.host_id
+      left outer join instance_measurements m on h.id = m.host_id
+      group by h.org_id,
+               h.id,
+               h.instance_id,
+               h.display_name,
+               h.billing_provider,
+               h.billing_account_id,
+               b.billing_provider,
+               b.billing_account_id,
+               h.last_seen,
+               h.last_applied_event_record_date,
+               h.num_of_guests,
+               b.product_id,
+               b.sla,
+               b."usage",
+               b.measurement_type,
+               b.sockets,
+               b.cores,
+               h.subscription_manager_id,
+               h.inventory_id
+    </createView>
+    <rollback>
+      <dropView viewName="tally_instance_view"/>
+      <createView
+              replaceIfExists="true"
+              viewName="tally_instance_view">
+        select
+        distinct org_id,
+        h.id,
+        h.instance_id as instance_id,
+        h.display_name,
+        h.billing_provider as host_billing_provider,
+        h.billing_account_id as host_billing_account_id,
+        b.billing_provider as bucket_billing_provider,
+        b.billing_account_id as bucket_billing_account_id,
+        h.last_seen,
+        h.last_applied_event_record_date,
+        coalesce(h.num_of_guests, 0) AS num_of_guests,
+        b.product_id,
+        b.sla,
+        b.usage,
+        coalesce(b.measurement_type, 'EMPTY') AS measurement_type,
+        m.metric_id,
+        m.value,
+        b.sockets,
+        b.cores,
+        h.subscription_manager_id,
+        h.inventory_id
+        from hosts h
+        join host_tally_buckets b on h.id = b.host_id
+        left outer join instance_measurements m on h.id = m.host_id;
+      </createView>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202404240830-2" author="jcarvaja" dbms="hsqldb">
+    <comment>
+        jsonb is not supported in hsql, so we will get duplicates when testing
+    </comment>
+      <createView
+              replaceIfExists="true"
+              viewName="tally_instance_view">
+          select distinct h.org_id,
+                          h.id,
+                          h.instance_id as instance_id,
+                          h.display_name,
+                          h.billing_provider as host_billing_provider,
+                          h.billing_account_id as host_billing_account_id,
+                          b.billing_provider as bucket_billing_provider,
+                          b.billing_account_id as bucket_billing_account_id,
+                          h.last_seen,
+                          h.last_applied_event_record_date,
+                          coalesce(h.num_of_guests, 0) AS num_of_guests,
+                          b.product_id,
+                          b.sla,
+                          b.usage,
+                          coalesce(b.measurement_type, 'EMPTY') AS measurement_type,
+                          CONCAT('[{"metric_id":"', m.metric_id, '","value":',m.value , '}]') as metrics,
+                          b.sockets,
+                          b.cores,
+                          h.subscription_manager_id,
+                          h.inventory_id
+          from hosts h
+          join host_tally_buckets b on h.id = b.host_id
+          left outer join instance_measurements m on h.id = m.host_id
+      </createView>
+    <rollback>
+        <dropView viewName="tally_instance_view"/>
+        <createView
+                  replaceIfExists="true"
+                  viewName="tally_instance_view">
+              select
+              distinct org_id,
+              h.id,
+              h.instance_id as instance_id,
+              h.display_name,
+              h.billing_provider as host_billing_provider,
+              h.billing_account_id as host_billing_account_id,
+              b.billing_provider as bucket_billing_provider,
+              b.billing_account_id as bucket_billing_account_id,
+              h.last_seen,
+              h.last_applied_event_record_date,
+              coalesce(h.num_of_guests, 0) AS num_of_guests,
+              b.product_id,
+              b.sla,
+              b.usage,
+              coalesce(b.measurement_type, 'EMPTY') AS measurement_type,
+              m.metric_id,
+              m.value,
+              b.sockets,
+              b.cores,
+              h.subscription_manager_id,
+              h.inventory_id
+              from hosts h
+              join host_tally_buckets b on h.id = b.host_id
+              left outer join instance_measurements m on h.id = m.host_id;
+        </createView>
+    </rollback>
+  </changeSet>
+</databaseChangeLog>
+<!-- vim: set expandtab sts=4 sw=4 ai: -->
