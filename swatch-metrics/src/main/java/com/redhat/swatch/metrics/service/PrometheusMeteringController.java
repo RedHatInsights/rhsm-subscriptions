@@ -260,6 +260,9 @@ public class PrometheusMeteringController {
 
     boolean is3rdPartyMigrated = Boolean.parseBoolean(labels.get("conversions_success"));
 
+    // Temporary workaround to force productTag to be looked up during event ingestion
+    productTag = "";
+
     // For the openshift metrics, we expect our results to be a 'matrix'
     // vector [(instant_time,value), ...] so we only look at the result's
     // getValues() data.

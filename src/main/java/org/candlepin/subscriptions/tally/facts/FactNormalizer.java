@@ -25,7 +25,6 @@ import com.redhat.swatch.configuration.registry.Variant;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -309,14 +308,13 @@ public class FactNormalizer {
     Set<String> products = new HashSet<>();
     for (String productId : productIds) {
       try {
-        var subscriptions = SubscriptionDefinition.lookupSubscriptionByEngId(productId);
-        if (Objects.nonNull(subscriptions)) {
-          subscriptions.forEach(
-              subscriptionDefinition ->
-                  subscriptionDefinition
-                      .findVariantForEngId(productId)
-                      .ifPresent(v -> products.add(v.getTag())));
-        }
+        // To be handled during SWATCH-2360
+        var is3rdPartyMigrated = false;
+
+        Variant.findByEngProductId(productId, is3rdPartyMigrated)
+            .map(Variant::getTag)
+            .ifPresent(products::add);
+
       } catch (NumberFormatException e) {
         log.debug("Skipping non-numeric productId: {}", productId);
       }
@@ -358,7 +356,7 @@ public class FactNormalizer {
 
       var subscription = SubscriptionDefinition.lookupSubscriptionByRole(role);
       if (subscription.isPresent()) {
-        // TODO SWATCH-2360
+        // To be handled during SWATCH-2360
         boolean is3rdPartyMigrated = false;
         var variant = Variant.findByRole(role, is3rdPartyMigrated);
         variant.ifPresent(v -> normalizedFacts.getProducts().add(v.getTag()));

@@ -76,12 +76,6 @@ public class SubscriptionDefinition {
   private Defaults defaults;
   private boolean contractEnabled;
 
-  public Optional<Variant> findVariantForEngId(String engId) {
-    return getVariants().stream()
-        .filter(v -> v.getEngineeringIds().contains(engId))
-        .collect(MoreCollectors.toOptional());
-  }
-
   /**
    * @param serviceType
    * @return Optional<Subscription>
@@ -198,8 +192,7 @@ public class SubscriptionDefinition {
                           .filter(SubscriptionDefinition::isPaygEligible)
                           .flatMap(
                               subDef ->
-                                  subDef
-                                      .findVariantForEngId(engId)
+                                  Variant.findByEngProductId(engId, is3rdPartyMigration)
                                       .filter(
                                           variant ->
                                               !ignoredSubscriptionIds.contains(
@@ -244,8 +237,7 @@ public class SubscriptionDefinition {
                           .filter(subDef -> !subDef.isPaygEligible())
                           .flatMap(
                               subDef ->
-                                  subDef
-                                      .findVariantForEngId(engId)
+                                  Variant.findByEngProductId(engId, is3rdPartyMigration)
                                       .filter(
                                           variant ->
                                               !ignoredSubscriptionIds.contains(
@@ -280,6 +272,8 @@ public class SubscriptionDefinition {
    * @param engProductId
    * @return Optional<Subscription> subscription
    */
+
+  // TODO this needs converted fingerprint
   public static Set<SubscriptionDefinition> lookupSubscriptionByEngId(String engProductId) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .filter(subscription -> !subscription.getVariants().isEmpty())
@@ -296,6 +290,7 @@ public class SubscriptionDefinition {
    * @param role
    * @return Optional<Subscription>
    */
+  // TODO needs fingerprint
   public static Optional<SubscriptionDefinition> lookupSubscriptionByRole(String role) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .filter(subscription -> !subscription.getVariants().isEmpty())
