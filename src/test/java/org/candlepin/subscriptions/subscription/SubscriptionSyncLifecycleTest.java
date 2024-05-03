@@ -48,7 +48,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @ActiveProfiles({"worker", "test-inventory"})
-public class SubscriptionSyncLifecycleTest
+class SubscriptionSyncLifecycleTest
     implements ExtendWithSubscriptionSearchServiceWireMock, ExtendWithSwatchDatabase {
   @Autowired SubscriptionRepository subscriptionRepository;
   @Autowired OfferingRepository offeringRepository;
