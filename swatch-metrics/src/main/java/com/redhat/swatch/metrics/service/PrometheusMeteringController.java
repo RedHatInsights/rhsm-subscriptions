@@ -258,7 +258,7 @@ public class PrometheusMeteringController {
       billingAccountId = labels.get("billing_marketplace_account");
     }
 
-    boolean is3rdPartyMigrated = Boolean.parseBoolean(labels.get("conversion_success"));
+    boolean is3rdPartyMigrated = Boolean.parseBoolean(labels.get("conversions_success"));
 
     // For the openshift metrics, we expect our results to be a 'matrix'
     // vector [(instant_time,value), ...] so we only look at the result's
