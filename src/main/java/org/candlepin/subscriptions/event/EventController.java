@@ -226,24 +226,7 @@ public class EventController {
         if (!EXCLUDE_LOG_FOR_EVENT_SOURCES.contains(eventToProcess.getEventSource())) {
           log.info("Event processing in batch: " + eventIndex.getKey());
         }
-
-        if (StringUtils.hasText(eventToProcess.getOrgId())) {
-          log.debug(
-              "Ensuring orgId={} has been set up for syncing/reporting.",
-              eventToProcess.getOrgId());
-          ensureOptIn(eventToProcess.getOrgId());
-        }
-
-        if (BillingProvider.AZURE.equals(eventToProcess.getBillingProvider())) {
-          setAzureBillingAccountId(eventToProcess);
-        }
-
-        if (validateServiceInstanceEvent(eventToProcess)) {
-          enrichServiceInstanceFromIncomingFeed(eventToProcess);
-          result.addEvent(eventToProcess, eventIndex.getValue());
-        } else {
-          log.warn("Skipping invalid service instance event: {}", eventToProcess);
-        }
+        processEvent(eventToProcess).ifPresent(e -> result.addEvent(e, eventIndex.getValue()));
       } catch (Exception e) {
         log.warn(
             "Issue found {} for the service instance json {} skipping to next: {}",
@@ -259,6 +242,27 @@ public class EventController {
     return result;
   }
 
+  private Optional<Event> processEvent(Event eventToProcess) {
+    if (!validateServiceInstanceEvent(eventToProcess)) {
+      log.warn(
+          "An invalid service instance event was encountered and will be skipped. {}",
+          eventToProcess);
+      return Optional.empty();
+    }
+
+    if (StringUtils.hasText(eventToProcess.getOrgId())) {
+      log.debug(
+          "Ensuring orgId={} has been set up for syncing/reporting.", eventToProcess.getOrgId());
+      ensureOptIn(eventToProcess.getOrgId());
+    }
+
+    if (BillingProvider.AZURE.equals(eventToProcess.getBillingProvider())) {
+      setAzureBillingAccountId(eventToProcess);
+    }
+    enrichServiceInstanceFromIncomingFeed(eventToProcess);
+    return Optional.of(eventToProcess);
+  }
+
   private void setAzureBillingAccountId(Event event) {
     if (event.getAzureTenantId().isPresent() && event.getAzureSubscriptionId().isPresent()) {
       String billingAccountId =
@@ -268,9 +272,9 @@ public class EventController {
     }
   }
 
-  private boolean validateServiceInstanceEvent(Event event) throws IllegalArgumentException {
+  public boolean validateServiceInstanceEvent(Event event) {
     if (Objects.isNull(event.getInstanceId())) {
-      log.warn("INVALID_EVENT: Event.instanceId must not be null.");
+      log.warn("Event.instanceId must not be null. event={}", event);
       return false;
     }
 
@@ -280,7 +284,7 @@ public class EventController {
             .toList();
 
     if (!invalidMeasurements.isEmpty()) {
-      log.warn("INVALID_EVENT: Measurement value(s) must be >= 0");
+      log.warn("Event measurement value(s) must be >= 0. event={}", event);
       return false;
     }
     return true;
