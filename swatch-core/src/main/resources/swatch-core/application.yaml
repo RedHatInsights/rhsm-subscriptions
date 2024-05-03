@@ -85,9 +85,11 @@ management:
 spring:
   # general hibernate configurations
   jpa:
+    show-sql: ${LOGGING_SHOW_SQL_QUERIES:false}
     open-in-view: false
     properties:
       hibernate:
+        format_sql: ${LOGGING_SHOW_SQL_QUERIES:false}
         jdbc:
           batch_size: ${JDBC_BATCH_SIZE}
         order_inserts: true

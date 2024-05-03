@@ -1,5 +1,5 @@
 ---
-version: '3.1'
+version: '3.8'
 services:
   db:
     # Use the same version as in https://gitlab.cee.redhat.com/service/app-interface/-/blob/ff61d457898da76ebd4abf21fe3ce7b5c74c87a5/data/services/insights/rhsm/namespaces/rhsm-prod.yml#L179
@@ -11,8 +11,14 @@ services:
       - POSTGRES_HOST_AUTH_METHOD=trust
       - POSTGRESQL_MAX_CONNECTIONS=5000
       - POSTGRESQL_ADMIN_PASSWORD=admin
+    healthcheck:
+      test: ["CMD", "pg_isready", "--username=postgres", "--host=127.0.0.1", "--port=5432"]
+      interval: 2s
+      timeout: 1m
+      retries: 5
+      start_period: 10s
     volumes:
-      - ./init_dbs.sh:/usr/share/container-scripts/postgresql/start/set_passwords.sh:z
+      - ./init_dbs.sh:/usr/share/container-scripts/postgresql/init/init_dbs.sh:z
       - ./postgresql.conf:/opt/app-root/src/postgresql-cfg/postgresql.conf:z
       - ./pg_hba.conf:/pg_hba.conf:z
     ports:
@@ -41,6 +47,12 @@ services:
       - KAFKA_OPTS=-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf
         # Note that as of this writing (20 Jul 2022), Kraft mode does not support SCRAM
       - KAFKA_SASL_MECHANISM=PLAIN
+    healthcheck:
+      test: ./bin/kafka-cluster.sh cluster-id --bootstrap-server 127.0.0.1:9092 || exit 1
+      interval: 2s
+      timeout: 1m
+      retries: 5
+      start_period: 10s
     ports:
       - "127.0.0.1:9092:9092"
       # Port 9093 is used by the Kraft configuration
@@ -54,13 +66,14 @@ services:
       swatch-network:
         aliases:
           - kafka
-    user: 0
+    user: root
   kafka-rest:
     image: docker.io/confluentinc/cp-kafka-rest
     environment:
       - KAFKA_REST_BOOTSTRAP_SERVERS=kafka:29092
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
   kafka-topics-ui:
     image: docker.io/landoop/kafka-topics-ui
     environment:
@@ -73,7 +86,7 @@ services:
   inventory:
     image: quay.io/cloudservices/insights-inventory
     entrypoint: /bin/bash -c
-    command: ["FLASK_APP=./manage.py flask db upgrade; gunicorn -c gunicorn.conf.py -b 0.0.0.0:8000 -t 60 run"]
+    command: ["make upgrade_db && ./run_gunicorn.py"]
     environment:
       - INVENTORY_LOG_LEVEL=DEBUG
       - INVENTORY_DB_HOST=db
@@ -82,47 +95,74 @@ services:
       - BYPASS_RBAC=true
       - FLASK_APP=./manage.py
       - UNLEASH_TOKEN=*:*.placeholder
+      - UNLEASH_URL=http://unleash:4242/api
       - UNLEASH_CACHE_DIR=/tmp/.unleashcache
     depends_on:
-      - kafka
-      - db
+      kafka:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+      unleash:
+        condition: service_healthy
     ports:
       - "127.0.0.1:8050:8000"
-    user: 0
+    user: root
   inventory-mq:
     image: quay.io/cloudservices/insights-inventory
     entrypoint: /bin/bash -c
-    command: ["./inv_mq_service.py"]
+    command: ["make run_inv_mq_service"]
     environment:
       - INVENTORY_LOG_LEVEL=DEBUG
-      - INVENTORY_DB_HOST=db
+      - INVENTORY_DB_HOST=127.0.0.1
       - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - prometheus_multiproc_dir=/tmp
       - BYPASS_RBAC=true
       - FLASK_APP=./manage.py
       - UNLEASH_TOKEN=*:*.placeholder
+      - UNLEASH_URL=http://unleash:4242
       - UNLEASH_CACHE_DIR=/tmp/.unleashcache
     depends_on:
-      - kafka
-      - db
-    user: 0
+      kafka:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    user: root
   unleash:
-    image: quay.io/cloudservices/unleash-server:4.21.0
+    image: quay.io/cloudservices/unleash-server:5.8.2
     environment:
-      - INIT_ADMIN_API_TOKENS=*:*.placeholder
+      - INIT_CLIENT_API_TOKENS=default:development.unleash-insecure-api-token
+      - INIT_ADMIN_API_TOKENS=*:*.unleash-insecure-admin-api-token
       - CHECK_VERSION=false
       - DATABASE_HOST=db
       - DATABASE_NAME=unleash
-      - DATABASE_USERNAME=${DATABASE_USER-insights}
-      - DATABASE_PASSWORD=${DATABASE_PASSWORD-insights}
+      - DATABASE_USERNAME=${DATABASE_USER:-unleash}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-unleash}
       - DATABASE_SSL=false
       - IMPORT_DROP_BEFORE_IMPORT=false
       - IMPORT_FILE=/.unleash/flags.json
       - IMPORT_DROP_BEFORE_IMPORT=true
       - LOG_LEVEL=INFO
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:4242/health || exit 1
+      interval: 2s
+      timeout: 1m
+      retries: 5
+      start_period: 10s
+    # Why do we do this?  Because there is an issue around the postgresql container where it
+    # starts, runs some initialization scripts, and then restarts itself.  See
+    # https://github.com/sclorg/postgresql-container/blob/master/12/root/usr/bin/run-postgresql#L54-L58
+    # This fools the healthcheck into reporting that the container is ready, only for the
+    # postgresql process to stop and restart.  Meanwhile, the unleash container tries to connect,
+    # fails, and doesn't start.  So we add this shim script to wait until the connection is stable.
+    # The script itself is sourced from the https://github.com/Unleash/unleash-docker container
+    command: ["/bin/sh", "/unleash/wait-for", "db:5432", "--", "node", "index.js"]
+    depends_on:
+      db:
+        condition: service_healthy
     ports:
-      - 4242:4242
+      - "127.0.0.1:4242:4242"
     volumes:
+      - './bin/wait-for:/unleash/wait-for:z'
       - './.unleash:/.unleash:z'
 networks:
   swatch-network:

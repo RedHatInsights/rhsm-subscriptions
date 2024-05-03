@@ -35,6 +35,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
@@ -45,7 +46,6 @@ import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.HostHardwareType;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.TallyInstanceView;
-import org.candlepin.subscriptions.db.model.TallyInstanceViewKey;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
@@ -93,7 +93,6 @@ class InstancesResourceTest {
     double expectedInstanceHoursValue = 0.0;
 
     var tallyInstanceView = new TallyInstanceView();
-    tallyInstanceView.setKey(new TallyInstanceViewKey());
     tallyInstanceView.setId("testHostId");
     tallyInstanceView.setDisplayName("rhv.example.com");
     tallyInstanceView.setNumOfGuests(3);
@@ -103,7 +102,7 @@ class InstancesResourceTest {
     tallyInstanceView.getKey().setInstanceId("d6214a0b-b344-4778-831c-d53dcacb2da3");
     tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.VIRTUAL);
-    tallyInstanceView.getKey().setMetricId(MetricIdUtils.getSockets().toString());
+    tallyInstanceView.setMetrics(Map.of(MetricIdUtils.getSockets(), 10.0));
     tallyInstanceView.setCores((int) expectedCoresValue);
 
     Mockito.when(
@@ -176,28 +175,24 @@ class InstancesResourceTest {
     BillingProvider expectedBillingProvider = BillingProvider.RED_HAT;
 
     var tallyInstanceViewPhysical = new TallyInstanceView();
-    tallyInstanceViewPhysical.setKey(new TallyInstanceViewKey());
     tallyInstanceViewPhysical.setDisplayName("rhv.example.com");
     tallyInstanceViewPhysical.setNumOfGuests(3);
     tallyInstanceViewPhysical.setLastSeen(OffsetDateTime.now());
     tallyInstanceViewPhysical.getKey().setInstanceId("d6214a0b-b344-4778-831c-d53dcacb2da3");
     tallyInstanceViewPhysical.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceViewPhysical.getKey().setMeasurementType(HardwareMeasurementType.PHYSICAL);
-    tallyInstanceViewPhysical.getKey().setMetricId(MetricIdUtils.getSockets().toString());
-    tallyInstanceViewPhysical.setValue(4.0);
+    tallyInstanceViewPhysical.setMetrics(Map.of(MetricIdUtils.getSockets(), 4.0));
     // Measurement should come from sockets value
     tallyInstanceViewPhysical.setSockets(2);
 
     var tallyInstanceViewHypervisor = new TallyInstanceView();
-    tallyInstanceViewHypervisor.setKey(new TallyInstanceViewKey());
     tallyInstanceViewHypervisor.setDisplayName("rhv.example.com");
     tallyInstanceViewHypervisor.setNumOfGuests(3);
     tallyInstanceViewHypervisor.setLastSeen(OffsetDateTime.now());
     tallyInstanceViewHypervisor.getKey().setInstanceId("d6214a0bb3444778831cd53dcacb2da3");
     tallyInstanceViewHypervisor.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceViewHypervisor.getKey().setMeasurementType(HardwareMeasurementType.HYPERVISOR);
-    tallyInstanceViewHypervisor.getKey().setMetricId(MetricIdUtils.getSockets().toString());
-    tallyInstanceViewHypervisor.setValue(8.0);
+    tallyInstanceViewHypervisor.setMetrics(Map.of(MetricIdUtils.getSockets(), 8.0));
     // Measurement should come from sockets value
     tallyInstanceViewHypervisor.setSockets(4);
 
@@ -276,14 +271,13 @@ class InstancesResourceTest {
     BillingProvider expectedBillingProvider = BillingProvider.AWS;
 
     var tallyInstanceView = new TallyInstanceView();
-    tallyInstanceView.setKey(new TallyInstanceViewKey());
     tallyInstanceView.setDisplayName("rhv.example.com");
     tallyInstanceView.setNumOfGuests(3);
     tallyInstanceView.setLastSeen(OffsetDateTime.now());
     tallyInstanceView.getKey().setInstanceId("d6214a0b-b344-4778-831c-d53dcacb2da3");
     tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.AWS);
-    tallyInstanceView.getKey().setMetricId(MetricIdUtils.getCores().getValue());
+    tallyInstanceView.setMetrics(Map.of(MetricIdUtils.getCores(), 8.0));
 
     String month = InstanceMonthlyTotalKey.formatMonthId(tallyInstanceView.getLastSeen());
 
@@ -373,7 +367,6 @@ class InstancesResourceTest {
     BillingProvider expectedBillingProvider = BillingProvider.RED_HAT;
 
     var tallyInstanceView = new TallyInstanceView();
-    tallyInstanceView.setKey(new TallyInstanceViewKey());
     tallyInstanceView.setDisplayName("rhv.example.com");
     tallyInstanceView.setNumOfGuests(3);
     tallyInstanceView.setLastSeen(OffsetDateTime.now());
@@ -381,7 +374,7 @@ class InstancesResourceTest {
     tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.VIRTUAL);
     tallyInstanceView.getKey().setProductId("RHEL");
-    tallyInstanceView.getKey().setMetricId(MetricIdUtils.getSockets().getValue());
+    tallyInstanceView.setMetrics(Map.of(MetricIdUtils.getSockets(), 8.0));
 
     Mockito.when(
             repository.findAllBy(
@@ -475,7 +468,6 @@ class InstancesResourceTest {
     BillingProvider expectedBillingProvider = BillingProvider.RED_HAT;
 
     var tallyInstanceView = new TallyInstanceView();
-    tallyInstanceView.setKey(new TallyInstanceViewKey());
     tallyInstanceView.setDisplayName("rhv.example.com");
     tallyInstanceView.setNumOfGuests(3);
     tallyInstanceView.setLastSeen(OffsetDateTime.now());
@@ -483,7 +475,7 @@ class InstancesResourceTest {
     tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.VIRTUAL);
     tallyInstanceView.getKey().setProductId("RHEL");
-    tallyInstanceView.getKey().setMetricId(MetricIdUtils.getCores().getValue());
+    tallyInstanceView.setMetrics(Map.of(MetricIdUtils.getCores(), 8.0));
 
     Mockito.when(
             repository.findAllBy(
@@ -542,7 +534,6 @@ class InstancesResourceTest {
     BillingProvider expectedBillingProvider = BillingProvider.RED_HAT;
 
     var tallyInstanceView = new TallyInstanceView();
-    tallyInstanceView.setKey(new TallyInstanceViewKey());
     tallyInstanceView.setDisplayName("rhv.example.com");
     tallyInstanceView.setNumOfGuests(3);
     tallyInstanceView.setLastSeen(OffsetDateTime.now());
@@ -550,7 +541,7 @@ class InstancesResourceTest {
     tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.VIRTUAL);
     tallyInstanceView.getKey().setProductId("RHEL");
-    tallyInstanceView.getKey().setMetricId(MetricIdUtils.getCores().getValue());
+    tallyInstanceView.setMetrics(Map.of(MetricIdUtils.getCores(), 8.0));
 
     Mockito.when(
             repository.findAllBy(
@@ -609,7 +600,6 @@ class InstancesResourceTest {
     BillingProvider expectedBillingProvider = BillingProvider.RED_HAT;
 
     var tallyInstanceView = new TallyInstanceView();
-    tallyInstanceView.setKey(new TallyInstanceViewKey());
     tallyInstanceView.setDisplayName("rhv.example.com");
     tallyInstanceView.setNumOfGuests(3);
     tallyInstanceView.setLastSeen(OffsetDateTime.now());
@@ -617,7 +607,7 @@ class InstancesResourceTest {
     tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.VIRTUAL);
     tallyInstanceView.getKey().setProductId("RHEL");
-    tallyInstanceView.getKey().setMetricId(MetricIdUtils.getSockets().getValue());
+    tallyInstanceView.setMetrics(Map.of(MetricIdUtils.getSockets(), 8.0));
 
     Mockito.when(
             repository.findAllBy(
@@ -676,7 +666,6 @@ class InstancesResourceTest {
     BillingProvider expectedBillingProvider = BillingProvider.RED_HAT;
 
     var tallyInstanceView = new TallyInstanceView();
-    tallyInstanceView.setKey(new TallyInstanceViewKey());
     tallyInstanceView.setDisplayName("rhv.example.com");
     tallyInstanceView.setNumOfGuests(3);
     tallyInstanceView.setLastSeen(OffsetDateTime.now());
@@ -684,7 +673,7 @@ class InstancesResourceTest {
     tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.VIRTUAL);
     tallyInstanceView.getKey().setProductId("RHEL");
-    tallyInstanceView.getKey().setMetricId(MetricIdUtils.getSockets().getValue());
+    tallyInstanceView.setMetrics(Map.of(MetricIdUtils.getSockets(), 8.0));
 
     Mockito.when(
             repository.findAllBy(
