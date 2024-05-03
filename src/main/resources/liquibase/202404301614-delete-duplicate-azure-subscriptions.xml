@@ -15,4 +15,11 @@
     </sql>
   </changeSet>
 
+  <changeSet id="202404301614-2" author="kflahert">
+    <comment>Delete testing subscriptions for Azure</comment>
+    <delete tableName="subscription">
+      <where>org_id = '17691289' and sku = 'RH02781HR'</where>
+    </delete>
+  </changeSet>
+
 </databaseChangeLog>
