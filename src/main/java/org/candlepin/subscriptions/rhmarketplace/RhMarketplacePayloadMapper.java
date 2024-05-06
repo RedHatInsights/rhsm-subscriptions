@@ -155,9 +155,9 @@ public class RhMarketplacePayloadMapper {
   }
 
   /**
-   * UsageEvents include a list of usage measurements. This data includes unit of measure (UOM), the
-   * value for the uom, and the rhmMetricId (RHM terminology) which is a configuration value of the
-   * product the uom is for.
+   * UsageEvents include a list of usage measurements. This data includes metric id equivalent of
+   * uom, and the rhmMetricId (RHM terminology) which is a configuration value of the product is
+   * for.
    *
    * @param billableUsage billable usage to transform
    * @return List&lt;UsageMeasurement%gt;
@@ -182,7 +182,6 @@ public class RhMarketplacePayloadMapper {
         && billableUsage.getSla() != null
         && billableUsage.getUsage() != null
         && billableUsage.getMetricId() != null
-        && billableUsage.getUom() != null
         && billableUsage.getBillingProvider() != null
         && billableUsage.getBillingAccountId() != null
         && billableUsage.getSnapshotDate() != null

@@ -190,7 +190,7 @@ class BillableUsageAggregateStreamTopologyTest {
     usage.setProductId("OpenShift-metrics");
     usage.setSnapshotDate(snapshotDate);
     usage.setUsage(BillableUsage.Usage.PRODUCTION);
-    usage.setUom(MetricIdUtils.getCores().toUpperCaseFormatted());
+    usage.setMetricId(MetricIdUtils.getCores().toUpperCaseFormatted());
     usage.setValue((double) value);
     usage.setSla(BillableUsage.Sla.PREMIUM);
     usage.setBillingProvider(BillableUsage.BillingProvider.AZURE);
