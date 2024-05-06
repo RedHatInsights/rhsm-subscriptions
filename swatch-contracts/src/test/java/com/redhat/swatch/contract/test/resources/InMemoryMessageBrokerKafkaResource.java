@@ -18,20 +18,26 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.aws.exception;
+package com.redhat.swatch.contract.test.resources;
 
-import lombok.Getter;
+import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import io.smallrye.reactive.messaging.memory.InMemoryConnector;
+import java.util.HashMap;
+import java.util.Map;
 
-@Getter
-public class AwsDimensionNotConfiguredException extends AwsProducerException {
-  private final String productId;
-  private final String uom;
+public class InMemoryMessageBrokerKafkaResource implements QuarkusTestResourceLifecycleManager {
 
-  public AwsDimensionNotConfiguredException(String productId, String uom) {
-    super(
-        ErrorCode.AWS_DIMENSION_NOT_CONFIGURED,
-        String.format("productId=%s and uom=%s", productId, uom));
-    this.productId = productId;
-    this.uom = uom;
+  @Override
+  public Map<String, String> start() {
+    Map<String, String> env = new HashMap<>();
+    env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory("subscription-prune-task"));
+    env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory("subscription-sync-task"));
+    env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory("enabled-orgs"));
+    return env;
+  }
+
+  @Override
+  public void stop() {
+    InMemoryConnector.clear();
   }
 }

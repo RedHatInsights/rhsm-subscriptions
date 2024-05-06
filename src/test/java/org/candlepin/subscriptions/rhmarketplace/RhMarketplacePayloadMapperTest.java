@@ -73,18 +73,6 @@ class RhMarketplacePayloadMapperTest {
   }
 
   @Test
-  void testUsesMetricIdRatherThanUom() {
-    var mockUsage = mock(BillableUsage.class);
-    when(mockUsage.getProductId()).thenReturn("OpenShift-metrics");
-    when(mockUsage.getMetricId()).thenReturn(MetricIdUtils.getCores().toUpperCaseFormatted());
-    when(mockUsage.getValue()).thenReturn(2.0);
-
-    rhMarketplacePayloadMapper.produceUsageMeasurement(mockUsage);
-    verify(mockUsage).getMetricId();
-    verify(mockUsage, never()).getUom();
-  }
-
-  @Test
   void testProduceUsageEvents() throws Exception {
     RhmUsageContext rhmUsageContext = new RhmUsageContext();
     rhmUsageContext.setRhSubscriptionId("PLACEHOLDER");
@@ -109,7 +97,6 @@ class RhMarketplacePayloadMapperTest {
             .withProductId("OpenShift-metrics")
             .withSnapshotDate(snapshotDate)
             .withUsage(Usage.PRODUCTION)
-            .withUom(MetricIdUtils.getCores().toUpperCaseFormatted())
             .withMetricId(MetricIdUtils.getCores().toUpperCaseFormatted())
             .withValue(36.0)
             .withSla(Sla.PREMIUM)
@@ -159,7 +146,6 @@ class RhMarketplacePayloadMapperTest {
             .withOrgId(orgId)
             .withSnapshotDate(snapshotDate)
             .withUsage(Usage.PRODUCTION)
-            .withUom(MetricIdUtils.getCores().getValue())
             .withMetricId(MetricIdUtils.getCores().getValue())
             .withValue(36.0)
             .withSla(Sla.PREMIUM)

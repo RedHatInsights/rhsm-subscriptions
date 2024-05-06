@@ -18,20 +18,13 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.azure.exception;
+package org.candlepin.subscriptions.export;
 
-import lombok.Getter;
+import java.io.File;
+import java.util.stream.Stream;
 
-@Getter
-public class AzureDimensionNotConfiguredException extends AzureProducerException {
-  private final String productId;
-  private final String metricId;
+public interface ExportFileWriter {
 
-  public AzureDimensionNotConfiguredException(String productId, String metricId) {
-    super(
-        ErrorCode.AZURE_DIMENSION_NOT_CONFIGURED,
-        String.format("productId=%s and metricId=%s", productId, metricId));
-    this.productId = productId;
-    this.metricId = metricId;
-  }
+  void write(
+      File output, DataMapperService<?> dataMapper, Stream<?> data, ExportServiceRequest request);
 }

@@ -23,18 +23,10 @@ package org.candlepin.subscriptions.export;
 import java.io.Serializable;
 import java.util.stream.Stream;
 
-public interface DataExporterService<T extends Serializable, U> {
+public interface DataExporterService<T extends Serializable> {
   boolean handles(ExportServiceRequest request);
 
   Stream<T> fetchData(ExportServiceRequest request);
 
-  U mapDataItem(T item, ExportServiceRequest request);
-
-  default U mapDataItem(Object item, ExportServiceRequest request) {
-    return mapDataItem(getDataClass().cast(item), request);
-  }
-
-  Class<T> getDataClass();
-
-  Class<U> getExportItemClass();
+  DataMapperService<T> getMapper(ExportServiceRequest request);
 }

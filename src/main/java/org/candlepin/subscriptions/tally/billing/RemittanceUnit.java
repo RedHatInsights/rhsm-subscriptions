@@ -25,7 +25,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 
-/** Represents the uom recorded on a remittance record */
+/** Represents the metric recorded on a remittance record */
 @Getter
 @ToString
 @EqualsAndHashCode

@@ -104,7 +104,6 @@ public class InternalBillingController {
         .withBillingProvider(
             BillableUsage.BillingProvider.fromValue(remittance.getBillingProvider()))
         .withBillingAccountId(remittance.getBillingAccountId())
-        .withUom(remittance.getMetricId())
         .withMetricId(remittance.getMetricId())
         .withValue(remittance.getRemittedPendingValue())
         .withHardwareMeasurementType(remittance.getHardwareMeasurementType())

@@ -296,7 +296,7 @@ public class SubscriptionTableController {
     return inventories.values();
   }
 
-  public SkuCapacity initializeSkuCapacity(
+  public static SkuCapacity initializeSkuCapacity(
       @Nonnull Subscription sub, @Nullable Uom uom, @Nullable String effectiveMetricId) {
     var offering = sub.getOffering();
     var inventory = new SkuCapacity();
@@ -369,7 +369,7 @@ public class SubscriptionTableController {
   }
 
   @SuppressWarnings("java:S3776")
-  public void addTotalCapacity(
+  public static void addTotalCapacity(
       Subscription subscription,
       SubscriptionMeasurementKey key,
       Double value,

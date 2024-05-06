@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.aws.processors;
 
-import com.redhat.swatch.aws.exception.AwsDimensionNotConfiguredException;
 import com.redhat.swatch.aws.exception.AwsMissingCredentialsException;
 import com.redhat.swatch.aws.exception.AwsUnprocessedRecordsException;
 import com.redhat.swatch.aws.exception.AwsUsageContextLookupException;
@@ -179,9 +178,7 @@ public class BillableUsageAggregateProcessor {
 
   private void transformAndSend(
       AwsUsageContext context, BillableUsageAggregate billableUsageAggregate, Metric metric)
-      throws AwsUnprocessedRecordsException,
-          AwsDimensionNotConfiguredException,
-          UsageTimestampOutOfBoundsException {
+      throws AwsUnprocessedRecordsException, UsageTimestampOutOfBoundsException {
     BatchMeterUsageRequest request =
         BatchMeterUsageRequest.builder()
             .productCode(context.getProductCode())
@@ -255,7 +252,7 @@ public class BillableUsageAggregateProcessor {
 
   private UsageRecord transformToAwsUsage(
       AwsUsageContext context, BillableUsageAggregate billableUsageAggregate, Metric metric)
-      throws AwsDimensionNotConfiguredException, UsageTimestampOutOfBoundsException {
+      throws UsageTimestampOutOfBoundsException {
     OffsetDateTime effectiveTimestamp = billableUsageAggregate.getWindowTimestamp();
     if (effectiveTimestamp.isBefore(context.getSubscriptionStartDate())) {
       // Because swatch doesn't store a precise timestamp for beginning of usage, we'll fall back to
@@ -285,7 +282,7 @@ public class BillableUsageAggregateProcessor {
     }
 
     if (aggregationKey.getMetricId() == null) {
-      log.debug("Snapshot not applicable because billable uom is empty");
+      log.debug("Snapshot not applicable because billable metric is empty");
       return Optional.empty();
     }
 
@@ -300,7 +297,8 @@ public class BillableUsageAggregateProcessor {
             .findFirst();
 
     if (metric.isEmpty()) {
-      log.debug("Snapshot not applicable because productId and/or uom is not configured for AWS");
+      log.debug(
+          "Snapshot not applicable because productId and/or metric is not configured for AWS");
     }
 
     return metric;

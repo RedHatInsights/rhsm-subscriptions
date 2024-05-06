@@ -177,6 +177,35 @@ class SubscriptionSyncControllerTest {
   }
 
   @Test
+  void shouldUpdateSubscriptionRecordForMeteredOffering() {
+    Mockito.when(offeringRepository.existsById(SKU)).thenReturn(true);
+    Offering offering = Offering.builder().sku(SKU).metered(true).build();
+    when(offeringRepository.getReferenceById(SKU)).thenReturn(offering);
+    when(denylist.productIdMatches(any())).thenReturn(false);
+    var existingSubscription = createSubscription();
+    existingSubscription.setBillingProvider(BillingProvider.AZURE);
+    existingSubscription.setBillingProviderId("testProviderId");
+    existingSubscription.setBillingAccountId("testAccountId");
+    existingSubscription.setQuantity(10);
+    var dto = createDto("456", 10);
+    subscriptionSyncController.syncSubscription(dto, Optional.of(existingSubscription));
+    verify(subscriptionRepository, Mockito.times(1)).save(Mockito.any(Subscription.class));
+    verify(capacityReconciliationController, Mockito.times(2))
+        .reconcileCapacityForSubscription(Mockito.any(Subscription.class));
+  }
+
+  @Test
+  void shouldSkipSyncIfMeteredOfferingIsMissingBillingProvider() {
+    Mockito.when(offeringRepository.existsById(SKU)).thenReturn(true);
+    Offering offering = Offering.builder().sku(SKU).metered(true).build();
+    when(offeringRepository.getReferenceById(SKU)).thenReturn(offering);
+    when(denylist.productIdMatches(any())).thenReturn(false);
+    var dto = createDto("456", 10);
+    subscriptionSyncController.syncSubscription(dto, Optional.empty());
+    verify(subscriptionRepository, never()).save(any());
+  }
+
+  @Test
   void shouldUpdateSubscriptionWhenUpdateProductIds() {
     var dto = createDto(123, "456", 4);
     givenOfferingWithProductIds(290);

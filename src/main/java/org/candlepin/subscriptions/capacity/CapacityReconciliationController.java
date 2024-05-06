@@ -53,7 +53,6 @@ public class CapacityReconciliationController {
   private final KafkaTemplate<String, ReconcileCapacityByOfferingTask>
       reconcileCapacityByOfferingKafkaTemplate;
   private final ProductDenylist productDenylist;
-  private final CapacityProductExtractor productExtractor;
 
   private final Counter measurementsCreated;
   private final Counter measurementsUpdated;
@@ -64,14 +63,12 @@ public class CapacityReconciliationController {
   public CapacityReconciliationController(
       SubscriptionRepository subscriptionRepository,
       ProductDenylist productDenylist,
-      CapacityProductExtractor productExtractor,
       MeterRegistry meterRegistry,
       KafkaTemplate<String, ReconcileCapacityByOfferingTask>
           reconcileCapacityByOfferingKafkaTemplate,
       @Qualifier("reconcileCapacityTasks") TaskQueueProperties props) {
     this.subscriptionRepository = subscriptionRepository;
     this.productDenylist = productDenylist;
-    this.productExtractor = productExtractor;
     this.reconcileCapacityByOfferingKafkaTemplate = reconcileCapacityByOfferingKafkaTemplate;
     this.reconcileCapacityTopic = props.getTopic();
     measurementsCreated = meterRegistry.counter("rhsm-subscriptions.capacity.measurements_created");
@@ -157,7 +154,7 @@ public class CapacityReconciliationController {
   private void reconcileSubscriptionProductIds(Subscription subscription) {
     Offering offering = subscription.getOffering();
 
-    Set<String> expectedProducts = productExtractor.getProducts(offering.getProductIdsAsStrings());
+    Set<String> expectedProducts = offering.getProductTags();
     var toBeRemoved =
         subscription.getSubscriptionProductIds().stream()
             .filter(p -> !expectedProducts.contains(p))
