@@ -192,12 +192,7 @@ public class SubscriptionTableController {
       }
     }
 
-    boolean isOnDemand =
-        SubscriptionDefinition.lookupSubscriptionByTag(productId.toString())
-            .filter(SubscriptionDefinition::isPrometheusEnabled)
-            .stream()
-            .findFirst()
-            .isPresent();
+    boolean isOnDemand = SubscriptionDefinition.isPrometheusEnabled(productId.toString());
 
     SubscriptionType subscriptionType =
         isOnDemand ? SubscriptionType.ON_DEMAND : SubscriptionType.ANNUAL;
