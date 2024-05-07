@@ -18,13 +18,18 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.json;
+package org.candlepin.subscriptions.event;
 
-import static com.fasterxml.jackson.annotation.JsonTypeInfo.Id.DEDUCTION;
+import org.candlepin.subscriptions.json.Event;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
+@Mapper(componentModel = "spring")
+public interface ResolvedEventMapper {
 
-@JsonTypeInfo(use = DEDUCTION) // Deserialize based on available fields
-@JsonSubTypes({@JsonSubTypes.Type(Event.class), @JsonSubTypes.Type(CleanUpEvent.class)})
-public interface EventsMixin {}
+  @Mapping(target = "measurements", ignore = true)
+  @Mapping(target = "eventId", ignore = true)
+  @Mapping(target = "recordDate", ignore = true)
+  void update(@MappingTarget Event dest, Event source);
+}

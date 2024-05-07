@@ -23,7 +23,7 @@ package org.candlepin.subscriptions.event;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -35,7 +35,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.UUID;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.json.Event;
@@ -68,7 +67,6 @@ class EventControllerTest {
   String eventRecord5;
   String azureEventRecord1;
   String eventRecordNegativeMeasurement;
-  String cleanUpEvent;
 
   @BeforeEach
   void setup() {
@@ -223,18 +221,6 @@ class EventControllerTest {
                    "service_type": "OpenShift Cluster"
                  }
         """;
-    cleanUpEvent =
-        """
-                {
-                   "org_id": "7",
-                   "start": "2023-05-02T00:00:00Z",
-                   "end": "2023-05-02T01:00:00Z",
-                   "metering_batch_id": "e3a62bd1-fd00-405c-9401-f2288808588d",
-                   "event_type": "snapshot_redhat.com:openshift_dedicated:cluster_hour",
-                   "event_source": "prometheus",
-                   "action": "cleanup"
-                 }
-        """;
     when(eventRecordRepository.getEntityManager()).thenReturn(mockEntityManager);
   }
 
@@ -252,7 +238,6 @@ class EventControllerTest {
     verify(eventRecordRepository).saveAll(eventsSaved.capture());
     List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
     assertEquals(2, events.size());
-    verifyDeletionOfStaleEventsIsNotDone();
   }
 
   @Test
@@ -272,18 +257,6 @@ class EventControllerTest {
     verify(eventRecordRepository).saveAll(eventsSaved.capture());
     List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
     assertEquals(2, events.size());
-    verifyDeletionOfStaleEventsIsNotDone();
-  }
-
-  @Test
-  void testPersistServiceInstances_ProcessCleanUpEvent() {
-    List<String> eventRecords = List.of(eventRecord1, eventRecord2, cleanUpEvent);
-    eventController.persistServiceInstances(eventRecords);
-    verify(optInController, times(3)).optInByOrgId(any(), any());
-    verify(eventRecordRepository).saveAll(eventsSaved.capture());
-    List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
-    assertEquals(2, events.size());
-    verifyDeletionOfStaleEventsIsDone();
   }
 
   @Test
@@ -320,44 +293,66 @@ class EventControllerTest {
 
     eventController.persistServiceInstances(eventRecords);
 
-    verify(optInController, times(2)).optInByOrgId(any(), any());
+    verify(optInController, times(1)).optInByOrgId(any(), any());
     when(eventRecordRepository.saveAll(any())).thenReturn(new ArrayList<>());
     verify(eventRecordRepository).saveAll(eventsSaved.capture());
     List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
     assertEquals(1, events.size());
     assertEquals(expectedEvent, events.get(0));
-    verifyDeletionOfStaleEventsIsNotDone();
   }
 
   @Test
-  void testPersistServiceInstances_SuccessfullyRetryFailedEventSave() {
+  void testPersistServiceInstances_SuccessfullyRetryFailedEventSave() throws Exception {
     List<String> eventRecords = new ArrayList<>();
     eventRecords.add(eventRecord1);
     eventRecords.add(eventRecord2);
     eventRecords.add(eventRecord5);
 
-    when(eventRecordRepository.saveAll(any())).thenThrow(new RuntimeException());
-    when(eventRecordRepository.save(any())).thenReturn(new EventRecord());
+    EventRecord record1 = new EventRecord(mapper.readValue(eventRecord1, Event.class));
+    EventRecord record2 = new EventRecord(mapper.readValue(eventRecord2, Event.class));
+    EventRecord record5 = new EventRecord(mapper.readValue(eventRecord5, Event.class));
+
+    List<EventRecord> failedEventList = List.of(record1, record2, record5);
+    List<EventRecord> event1List = List.of(record1);
+    List<EventRecord> event2List = List.of(record2);
+    List<EventRecord> event5List = List.of(record5);
+
+    when(eventRecordRepository.saveAll(failedEventList)).thenThrow(new RuntimeException());
+    when(eventRecordRepository.saveAll(event1List)).thenReturn(event1List);
+    when(eventRecordRepository.saveAll(event2List)).thenReturn(event2List);
+    when(eventRecordRepository.saveAll(event5List)).thenReturn(event5List);
 
     // Error is caught and retry saving events individually.
     eventController.persistServiceInstances(eventRecords);
 
     // Since saveAll threw an Error we should try saving all records individually
-    verify(eventRecordRepository, times(3)).save(any());
+    verify(eventRecordRepository, times(4)).saveAll(any());
+    verify(eventRecordRepository).saveAll(failedEventList);
+    verify(eventRecordRepository).saveAll(event1List);
+    verify(eventRecordRepository).saveAll(event2List);
+    verify(eventRecordRepository).saveAll(event5List);
   }
 
   @Test
-  void testPersistServiceInstances_RetryFailedEventsSavesUntilError() {
+  void testPersistServiceInstances_RetryFailedEventsSavesUntilError() throws Exception {
     List<String> eventRecords = new ArrayList<>();
     eventRecords.add(eventRecord1);
     eventRecords.add(eventRecord2);
     eventRecords.add(eventRecord5);
 
-    when(eventRecordRepository.saveAll(any())).thenThrow(new RuntimeException());
-    when(eventRecordRepository.save(any()))
-        .thenReturn(new EventRecord())
-        // Throw an exception on the second record we try to save
-        .thenThrow(new RuntimeException());
+    EventRecord record1 = new EventRecord(mapper.readValue(eventRecord1, Event.class));
+    EventRecord record2 = new EventRecord(mapper.readValue(eventRecord2, Event.class));
+    EventRecord record5 = new EventRecord(mapper.readValue(eventRecord5, Event.class));
+
+    List<EventRecord> failedEventList = List.of(record1, record2, record5);
+    List<EventRecord> event1List = List.of(record1);
+    List<EventRecord> event2List = List.of(record2);
+    List<EventRecord> event5List = List.of(record5);
+
+    when(eventRecordRepository.saveAll(failedEventList)).thenThrow(new RuntimeException());
+    when(eventRecordRepository.saveAll(event1List)).thenReturn(event1List);
+    // Throw an exception on the second record we try to save
+    when(eventRecordRepository.saveAll(event2List)).thenThrow(new RuntimeException());
 
     // First is caught and retry saving events individually. Second exception is raised as
     // BatchListenerFailedException
@@ -368,8 +363,13 @@ class EventControllerTest {
 
     // Index should be 1 since we want to retry failed second event in this case
     assertEquals(1, exception.getIndex());
+
     // Last event is never attempted to save since second event fails
-    verify(eventRecordRepository, times(2)).save(any());
+    verify(eventRecordRepository, times(3)).saveAll(any());
+    verify(eventRecordRepository).saveAll(failedEventList);
+    verify(eventRecordRepository).saveAll(event1List);
+    verify(eventRecordRepository).saveAll(event2List);
+    verify(eventRecordRepository, never()).saveAll(event5List);
   }
 
   @Test
@@ -416,22 +416,6 @@ class EventControllerTest {
     assertEquals(batchSize, finalBatchCount.get(1));
     assertEquals(batchSize, finalBatchCount.get(2));
     assertEquals(1, finalBatchCount.get(3));
-  }
-
-  private void verifyDeletionOfStaleEventsIsDone() {
-    verify(eventRecordRepository)
-        .deleteStaleEvents(
-            eq("7"),
-            eq("prometheus"),
-            eq("snapshot_redhat.com:openshift_dedicated:cluster_hour"),
-            eq(UUID.fromString("e3a62bd1-fd00-405c-9401-f2288808588d")),
-            any(),
-            any());
-  }
-
-  private void verifyDeletionOfStaleEventsIsNotDone() {
-    verify(eventRecordRepository, times(0))
-        .deleteStaleEvents(any(), any(), any(), any(), any(), any());
   }
 
   private class BatchedEventCounter {

@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.metrics.service;
 
-import static com.redhat.swatch.metrics.util.MeteringEventFactory.getEventType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -56,7 +55,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
-import org.candlepin.subscriptions.json.BaseEvent;
 import org.candlepin.subscriptions.json.Event;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.BeforeEach;
@@ -98,7 +96,7 @@ class PrometheusMeteringControllerTest {
   @InjectPrometheus PrometheusQueryWiremock prometheusServer;
   @Inject @Any InMemoryConnector connector;
 
-  private InMemorySink<BaseEvent> results;
+  private InMemorySink<Event> results;
   private QueryHelper queries;
 
   @BeforeEach
@@ -208,7 +206,7 @@ class PrometheusMeteringControllerTest {
     OffsetDateTime start = clock.startOfCurrentHour();
     OffsetDateTime end = start.plusDays(1);
 
-    List<BaseEvent> expectedEvents =
+    List<Event> expectedEvents =
         List.of(
             MeteringEventFactory.createMetricEvent(
                 expectedOrgId,
@@ -245,14 +243,7 @@ class PrometheusMeteringControllerTest {
                 expectedProductTag,
                 expectedSpanId,
                 List.of(),
-                expectedDisplayName),
-            MeteringEventFactory.createCleanUpEvent(
-                expectedOrgId,
-                getEventType(expectedMetricId.toString(), expectedProductTag),
-                PROMETHEUS,
-                start,
-                end,
-                expectedSpanId));
+                expectedDisplayName));
 
     whenCollectMetrics(start, end);
 
@@ -304,7 +295,7 @@ class PrometheusMeteringControllerTest {
             List.of(),
             expectedDisplayName);
 
-    List<BaseEvent> expectedEvents =
+    List<Event> expectedEvents =
         List.of(
             updatedEvent,
             MeteringEventFactory.createMetricEvent(
@@ -324,14 +315,7 @@ class PrometheusMeteringControllerTest {
                 expectedProductTag,
                 expectedSpanId,
                 List.of(),
-                expectedDisplayName),
-            MeteringEventFactory.createCleanUpEvent(
-                expectedOrgId,
-                getEventType(expectedMetricId.toString(), expectedProductTag),
-                PROMETHEUS,
-                start,
-                end,
-                expectedSpanId));
+                expectedDisplayName));
 
     whenCollectMetrics(start, end);
     assertEquals(expectedEvents.size(), results.received().size());
@@ -391,16 +375,7 @@ class PrometheusMeteringControllerTest {
             List.of(),
             expectedClusterId);
 
-    List<BaseEvent> expectedEvents =
-        List.of(
-            updatedEvent,
-            MeteringEventFactory.createCleanUpEvent(
-                expectedOrgId,
-                getEventType(expectedMetricId.toString(), expectedProductTag),
-                PROMETHEUS,
-                start,
-                end,
-                expectedSpanId));
+    List<Event> expectedEvents = List.of(updatedEvent);
     whenCollectMetrics(start, end);
     assertEquals(expectedEvents.size(), results.received().size());
 
@@ -435,7 +410,7 @@ class PrometheusMeteringControllerTest {
     OffsetDateTime start = clock.startOfCurrentHour();
     OffsetDateTime end = start.plusDays(1);
 
-    List<BaseEvent> expectedEvents =
+    List<Event> expectedEvents =
         List.of(
             MeteringEventFactory.createMetricEvent(
                 expectedOrgId,
@@ -472,14 +447,7 @@ class PrometheusMeteringControllerTest {
                 expectedProductTag,
                 expectedSpanId,
                 List.of(),
-                expectedClusterId),
-            MeteringEventFactory.createCleanUpEvent(
-                expectedOrgId,
-                getEventType(expectedMetricId.toString(), expectedProductTag),
-                PROMETHEUS,
-                start,
-                end,
-                expectedSpanId));
+                expectedClusterId));
 
     whenCollectMetrics(start, end);
 

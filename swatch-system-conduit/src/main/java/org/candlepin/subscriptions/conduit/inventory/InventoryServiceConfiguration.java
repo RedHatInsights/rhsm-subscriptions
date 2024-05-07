@@ -24,16 +24,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.util.StdDateFormat;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.candlepin.subscriptions.conduit.inventory.kafka.CreateUpdateHostMessage;
 import org.candlepin.subscriptions.conduit.inventory.kafka.InventoryServiceKafkaConfigurator;
 import org.candlepin.subscriptions.conduit.inventory.kafka.KafkaEnabledInventoryService;
-import org.candlepin.subscriptions.json.BaseEvent;
-import org.candlepin.subscriptions.json.CleanUpEvent;
-import org.candlepin.subscriptions.json.Event;
-import org.candlepin.subscriptions.json.EventsMixin;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -64,13 +59,6 @@ public class InventoryServiceConfiguration {
     objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
     objectMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
     objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-    // Enable polymorphism for Event and CleanUp
-    objectMapper.addMixIn(BaseEvent.class, EventsMixin.class);
-    objectMapper.setPolymorphicTypeValidator(
-        BasicPolymorphicTypeValidator.builder()
-            .allowIfSubType(Event.class)
-            .allowIfSubType(CleanUpEvent.class)
-            .build());
 
     // Tell the mapper to check the classpath for any serialization/deserialization modules
     // such as the Java8 date/time module (JavaTimeModule).
