@@ -30,7 +30,6 @@ import com.redhat.cloud.event.apps.exportservice.v1.Format;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
-import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -198,61 +197,6 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest
     verifyRequestWasSentToExportServiceWithError(request);
   }
 
-  @Transactional
-  void givenInstanceWithMetrics(String productId) {
-    Host guest = new Host();
-    guest.setOrgId(ORG_ID);
-    guest.setDisplayName("this is the guest");
-    guest.setLastSeen(OffsetDateTime.parse(APRIL));
-    guest.setHardwareType(HostHardwareType.PHYSICAL);
-    guest.setInstanceType(INSTANCE_TYPE);
-    guest.setInstanceId(UUID.randomUUID().toString());
-    guest.setHypervisorUuid(UUID.randomUUID().toString());
-    repository.save(guest);
-
-    Host instance = new Host();
-    instance.setOrgId(ORG_ID);
-    instance.setNumOfGuests(1);
-    instance.setInstanceId("456");
-    instance.setDisplayName("my host");
-    instance.setBillingProvider(BillingProvider.AWS);
-    instance.setBillingAccountId("123");
-    instance.setInstanceType(INSTANCE_TYPE);
-    instance.setSubscriptionManagerId(guest.getHypervisorUuid());
-    instance.addToMonthlyTotal(OffsetDateTime.parse(APRIL), MetricIdUtils.getSockets(), 6.0);
-    instance.addToMonthlyTotal(OffsetDateTime.parse(APRIL), MetricIdUtils.getCores(), 8.0);
-
-    // buckets
-    HostTallyBucket bucket = new HostTallyBucket();
-    bucket.setKey(new HostBucketKey());
-    bucket.getKey().setProductId(productId);
-    bucket.getKey().setUsage(Usage._ANY);
-    bucket.getKey().setSla(ServiceLevel._ANY);
-    bucket.getKey().setAsHypervisor(true);
-    bucket.getKey().setBillingProvider(BillingProvider._ANY);
-    bucket.getKey().setBillingAccountId(ANY);
-    bucket.setMeasurementType(HardwareMeasurementType.PHYSICAL);
-    bucket.setCores(5);
-    bucket.setSockets(6);
-    bucket.setHost(instance);
-    instance.addBucket(bucket);
-
-    // metrics
-    instance.setMeasurements(
-        Map.of(
-            MetricIdUtils.getSockets().toUpperCaseFormatted(),
-            6.0,
-            MetricIdUtils.getCores().toUpperCaseFormatted(),
-            8.0));
-
-    // save
-    repository.save(instance);
-    HostWithGuests item = new HostWithGuests();
-    item.host = instance;
-    item.guests = List.of(guest);
-    itemsToBeExported.add(item);
-  }
-
   @Override
   protected void verifyRequestWasSentToExportService() {
     var expected = new InstancesExportJson();
@@ -315,6 +259,60 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest
     }
 
     verifyRequestWasSentToExportServiceWithUploadData(request, toJson(expected));
+  }
+
+  private void givenInstanceWithMetrics(String productId) {
+    Host guest = new Host();
+    guest.setOrgId(ORG_ID);
+    guest.setDisplayName("this is the guest");
+    guest.setLastSeen(OffsetDateTime.parse(APRIL));
+    guest.setHardwareType(HostHardwareType.PHYSICAL);
+    guest.setInstanceType(INSTANCE_TYPE);
+    guest.setInstanceId(UUID.randomUUID().toString());
+    guest.setHypervisorUuid(UUID.randomUUID().toString());
+    repository.save(guest);
+
+    Host instance = new Host();
+    instance.setOrgId(ORG_ID);
+    instance.setNumOfGuests(1);
+    instance.setInstanceId("456");
+    instance.setDisplayName("my host");
+    instance.setBillingProvider(BillingProvider.AWS);
+    instance.setBillingAccountId("123");
+    instance.setInstanceType(INSTANCE_TYPE);
+    instance.setSubscriptionManagerId(guest.getHypervisorUuid());
+    instance.addToMonthlyTotal(OffsetDateTime.parse(APRIL), MetricIdUtils.getSockets(), 6.0);
+    instance.addToMonthlyTotal(OffsetDateTime.parse(APRIL), MetricIdUtils.getCores(), 8.0);
+
+    // buckets
+    HostTallyBucket bucket = new HostTallyBucket();
+    bucket.setKey(new HostBucketKey());
+    bucket.getKey().setProductId(productId);
+    bucket.getKey().setUsage(Usage._ANY);
+    bucket.getKey().setSla(ServiceLevel._ANY);
+    bucket.getKey().setAsHypervisor(true);
+    bucket.getKey().setBillingProvider(BillingProvider._ANY);
+    bucket.getKey().setBillingAccountId(ANY);
+    bucket.setMeasurementType(HardwareMeasurementType.PHYSICAL);
+    bucket.setCores(5);
+    bucket.setSockets(6);
+    bucket.setHost(instance);
+    instance.addBucket(bucket);
+
+    // metrics
+    instance.setMeasurements(
+        Map.of(
+            MetricIdUtils.getSockets().toUpperCaseFormatted(),
+            6.0,
+            MetricIdUtils.getCores().toUpperCaseFormatted(),
+            8.0));
+
+    // save
+    repository.save(instance);
+    HostWithGuests item = new HostWithGuests();
+    item.host = instance;
+    item.guests = List.of(guest);
+    itemsToBeExported.add(item);
   }
 
   private static double resolveMetricValue(HostTallyBucket bucket, MetricId metricId) {

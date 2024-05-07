@@ -69,6 +69,8 @@ import org.springframework.kafka.core.KafkaTemplate;
 public abstract class BaseDataExporterServiceTest
     implements ExtendWithExportServiceWireMock, ExtendWithEmbeddedKafka {
 
+  protected static final String RHEL_FOR_X86 = "RHEL for x86";
+  protected static final String ROSA = "rosa";
   protected static final String ORG_ID = "13259775";
   protected static final String INSTANCE_TYPE = "HBI_HOST";
 
@@ -182,6 +184,10 @@ public abstract class BaseDataExporterServiceTest
   protected void verifyRequestWasSentToExportServiceWithNoDataFound() {
     verifyRequestWasSentToExportServiceWithUploadData(
         request, toJson(new SubscriptionsExportJson().withData(new ArrayList<>())));
+  }
+
+  protected void updateOffering() {
+    offeringRepository.save(offering);
   }
 
   protected String toJson(Object data) {
