@@ -18,20 +18,18 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.aws.exception;
+package org.candlepin.subscriptions.event;
 
-import lombok.Getter;
+import org.candlepin.subscriptions.json.Event;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 
-@Getter
-public class AwsDimensionNotConfiguredException extends AwsProducerException {
-  private final String productId;
-  private final String uom;
+@Mapper(componentModel = "spring")
+public interface ResolvedEventMapper {
 
-  public AwsDimensionNotConfiguredException(String productId, String uom) {
-    super(
-        ErrorCode.AWS_DIMENSION_NOT_CONFIGURED,
-        String.format("productId=%s and uom=%s", productId, uom));
-    this.productId = productId;
-    this.uom = uom;
-  }
+  @Mapping(target = "measurements", ignore = true)
+  @Mapping(target = "eventId", ignore = true)
+  @Mapping(target = "recordDate", ignore = true)
+  void update(@MappingTarget Event dest, Event source);
 }

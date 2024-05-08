@@ -20,8 +20,6 @@
  */
 package com.redhat.swatch.metrics.service;
 
-import static com.redhat.swatch.metrics.util.MeteringEventFactory.createCleanUpEvent;
-
 import com.redhat.swatch.clients.prometheus.api.model.QueryResultDataResultInner;
 import com.redhat.swatch.clients.prometheus.api.model.StatusType;
 import com.redhat.swatch.configuration.registry.Metric;
@@ -60,8 +58,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.model.EventKey;
-import org.candlepin.subscriptions.json.BaseEvent;
-import org.candlepin.subscriptions.json.CleanUpEvent;
 import org.candlepin.subscriptions.json.Event;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.reactive.messaging.Channel;
@@ -76,7 +72,7 @@ public class PrometheusMeteringController {
   private static final String PRODUCT_TAG = "productTag";
 
   private final PrometheusService prometheusService;
-  private final EmitterService<BaseEvent> emitter;
+  private final EmitterService<Event> emitter;
   private final ApplicationClock clock;
   private final MetricProperties metricProperties;
   private final SpanGenerator spanGenerator;
@@ -90,7 +86,7 @@ public class PrometheusMeteringController {
       SpanGenerator spanGenerator,
       QueryBuilder prometheusQueryBuilder,
       MeterRegistry registry,
-      @Channel("events-out") Emitter<BaseEvent> emitter) {
+      @Channel("events-out") Emitter<Event> emitter) {
     this.prometheusService = prometheusService;
     this.clock = clock;
     this.metricProperties = metricProperties;
@@ -182,9 +178,6 @@ public class PrometheusMeteringController {
       updateMetrics(tag, sample, metricData, eventsSent);
 
       log.info("Sent {} events for {} {} metrics.", eventsSent.size(), tag, metric);
-      // Send event to delete any stale events found during the period
-      sendCleanUpEvent(
-          tag, orgId, metric, start.minusSeconds(metricProperties.step()), end, meteringBatchId);
     } catch (Exception e) {
       log.warn(
           "Exception thrown while updating {} {} {} metrics. [Attempt: {}]: {}",
@@ -303,23 +296,6 @@ public class PrometheusMeteringController {
     }
   }
 
-  private void sendCleanUpEvent(
-      String productTag,
-      String orgId,
-      Metric tagMetric,
-      OffsetDateTime start,
-      OffsetDateTime end,
-      UUID meteringBatchId) {
-    sendToServiceInstanceTopic(
-        createCleanUpEvent(
-            orgId,
-            MeteringEventFactory.getEventType(tagMetric.getId(), productTag),
-            metricProperties.eventSource(),
-            start,
-            end,
-            meteringBatchId));
-  }
-
   @SuppressWarnings("java:S107")
   private Event createOrUpdateEvent(
       String orgId,
@@ -363,15 +339,8 @@ public class PrometheusMeteringController {
     return event;
   }
 
-  private void sendToServiceInstanceTopic(BaseEvent event) {
-    if (event instanceof Event eventToSend) {
-      log.debug(
-          "Sending event with id {} for organization {}",
-          eventToSend.getEventId(),
-          eventToSend.getOrgId());
-    } else if (event instanceof CleanUpEvent) {
-      log.debug("Sending clean-up event for organization {}", event.getOrgId());
-    }
+  private void sendToServiceInstanceTopic(Event event) {
+    log.debug("Sending event with id {} for organization {}", event.getEventId(), event.getOrgId());
 
     OutgoingKafkaRecordMetadata<?> metadata =
         OutgoingKafkaRecordMetadata.builder().withKey(event.getOrgId()).build();

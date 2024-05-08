@@ -27,7 +27,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
-import org.candlepin.subscriptions.json.CleanUpEvent;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.BillingProvider;
 import org.candlepin.subscriptions.json.Event.Role;
@@ -100,35 +99,6 @@ public final class MeteringEventFactory {
         productIds,
         displayName,
         is3rdPartyMigrated);
-    return event;
-  }
-
-  /**
-   * Creates an event with type "cleanup" which is a special type that triggers the deletion of
-   * stale events.
-   *
-   * @param orgId the organization id.
-   * @param eventType the event type.
-   * @param eventSource the event source.
-   * @param start the start time window.
-   * @param end the end time window.
-   * @param meteringBatchId Metering batch ID that identifies which process generated the event.
-   * @return a populated Event instance.
-   */
-  public static CleanUpEvent createCleanUpEvent(
-      String orgId,
-      String eventType,
-      String eventSource,
-      OffsetDateTime start,
-      OffsetDateTime end,
-      UUID meteringBatchId) {
-    CleanUpEvent event = new CleanUpEvent();
-    event.setOrgId(orgId);
-    event.setEventSource(eventSource);
-    event.setEventType(eventType);
-    event.setMeteringBatchId(meteringBatchId);
-    event.setStart(start);
-    event.setEnd(end);
     return event;
   }
 

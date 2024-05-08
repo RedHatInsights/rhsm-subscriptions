@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.subscription.export;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import jakarta.ws.rs.core.Response;
 import java.util.Locale;
 import java.util.Map;
@@ -51,11 +52,12 @@ import org.springframework.stereotype.Component;
 @Profile("capacity-ingress")
 @AllArgsConstructor
 public class SubscriptionDataExporterService implements DataExporterService<Subscription> {
-  public static final String SUBSCRIPTIONS_DATA = "subscriptions";
+  static final String SUBSCRIPTIONS_DATA = "subscriptions";
+  static final String PRODUCT_ID = "product_id";
   private static final Map<String, BiConsumer<DbReportCriteria.DbReportCriteriaBuilder, String>>
       FILTERS =
           Map.of(
-              "product_id",
+              PRODUCT_ID,
               SubscriptionDataExporterService::handleProductIdFilter,
               "usage",
               SubscriptionDataExporterService::handleUsageFilter,
@@ -125,7 +127,12 @@ public class SubscriptionDataExporterService implements DataExporterService<Subs
 
   private static void handleProductIdFilter(
       DbReportCriteria.DbReportCriteriaBuilder builder, String value) {
-    builder.productId(ProductId.fromString(value).getValue());
+    var productId = ProductId.fromString(value).getValue();
+    if (SubscriptionDefinition.isPrometheusEnabled(productId)) {
+      builder.productTag(productId);
+    } else {
+      builder.productId(productId);
+    }
   }
 
   private static void handleUsageFilter(
