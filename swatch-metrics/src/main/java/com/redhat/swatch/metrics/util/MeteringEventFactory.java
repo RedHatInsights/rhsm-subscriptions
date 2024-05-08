@@ -24,7 +24,6 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.candlepin.subscriptions.json.Event;
@@ -40,7 +39,6 @@ import org.slf4j.LoggerFactory;
 public final class MeteringEventFactory {
 
   private static final Logger log = LoggerFactory.getLogger(MeteringEventFactory.class);
-  private static final String EVENT_TYPE = "snapshot";
 
   private MeteringEventFactory() {}
 
@@ -54,7 +52,6 @@ public final class MeteringEventFactory {
    * @param measuredTime the time the measurement was taken.
    * @param expired the time the measurement had ended.
    * @param measuredValue the value that was measured.
-   * @param productTag the product tag.
    * @param displayName the display name.
    * @return a populated Event instance.
    */
@@ -73,7 +70,6 @@ public final class MeteringEventFactory {
       String billingAccountId,
       MetricId measuredMetric,
       Double measuredValue,
-      String productTag,
       UUID meteringBatchId,
       List<String> productIds,
       String displayName,
@@ -94,7 +90,6 @@ public final class MeteringEventFactory {
         billingAccountId,
         measuredMetric,
         measuredValue,
-        productTag,
         meteringBatchId,
         productIds,
         displayName,
@@ -118,7 +113,6 @@ public final class MeteringEventFactory {
       String billingAccountId,
       MetricId measuredMetric,
       Double measuredValue,
-      String productTag,
       UUID meteringBatchId,
       List<String> productIds,
       String displayName,
@@ -140,19 +134,12 @@ public final class MeteringEventFactory {
                     .withValue(measuredValue)))
         .withRole(getRole(role, orgId, instanceId))
         .withEventSource(eventSource)
-        .withEventType(MeteringEventFactory.getEventType(measuredMetric.getValue(), productTag))
         .withOrgId(orgId)
         .withInstanceId(instanceId)
         .withMeteringBatchId(meteringBatchId)
-        .withProductTag(Set.of(productTag))
         .withProductIds(productIds)
-        .withConversion(is3rdPartyMigrated);
-  }
-
-  public static String getEventType(String metricId, String productTag) {
-    return StringUtils.isNotEmpty(metricId) && StringUtils.isNotEmpty(productTag)
-        ? String.format("%s_%s_%s", EVENT_TYPE, productTag.toLowerCase(), metricId.toLowerCase())
-        : EVENT_TYPE;
+        .withConversion(is3rdPartyMigrated)
+        .withEventType("snapshot");
   }
 
   private static Sla getSla(String serviceLevel, String orgId, String clusterId) {
