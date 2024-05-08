@@ -25,14 +25,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.time.OffsetDateTime;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 class HostTest {
 
@@ -57,6 +64,7 @@ class HostTest {
     assertNull(host.getCloudProvider());
     assertNull(host.getLastSeen());
     assertNull(host.getHardwareType());
+    assertFalse(host.isMetered());
   }
 
   @Test
@@ -205,6 +213,30 @@ class HostTest {
     HostTallyBucket actualBucket = host.getBuckets().stream().findFirst().orElseThrow();
     assertEquals(2, actualBucket.getCores());
     assertEquals(2, actualBucket.getSockets());
+  }
+
+  @Test
+  void testIsMeteredTrueOrFalse() {
+    Host host = new Host();
+    HostTallyBucket hostTallyBucket = mock(HostTallyBucket.class);
+    HostBucketKey hostBucketKey = mock(HostBucketKey.class);
+    when(hostTallyBucket.getKey()).thenReturn(hostBucketKey);
+    when(hostBucketKey.getProductId()).thenReturn("test-prod");
+    MockedStatic subscriptionDefinitionMockedStatic =
+        Mockito.mockStatic(
+            SubscriptionDefinition.class,
+            Mockito.withSettings().defaultAnswer(Mockito.CALLS_REAL_METHODS));
+    SubscriptionDefinition subscriptionDefinition = mock(SubscriptionDefinition.class);
+    when(SubscriptionDefinition.lookupSubscriptionByTag(any()))
+        .thenReturn(Optional.ofNullable(subscriptionDefinition));
+    host.addBucket(hostTallyBucket);
+
+    when(subscriptionDefinition.isPaygEligible()).thenReturn(true);
+    assertTrue(host.isMetered());
+    when(subscriptionDefinition.isPaygEligible()).thenReturn(false);
+    assertFalse(host.isMetered());
+    // remove the static mocking
+    subscriptionDefinitionMockedStatic.close();
   }
 
   @Test
