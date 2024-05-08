@@ -94,7 +94,7 @@ services:
       - prometheus_multiproc_dir=/tmp
       - BYPASS_RBAC=true
       - FLASK_APP=./manage.py
-      - UNLEASH_TOKEN=*:*.placeholder
+      - UNLEASH_TOKEN=default:development.unleash-insecure-api-token
       - UNLEASH_URL=http://unleash:4242/api
       - UNLEASH_CACHE_DIR=/tmp/.unleashcache
     depends_on:
@@ -118,7 +118,7 @@ services:
       - prometheus_multiproc_dir=/tmp
       - BYPASS_RBAC=true
       - FLASK_APP=./manage.py
-      - UNLEASH_TOKEN=*:*.placeholder
+      - UNLEASH_TOKEN=default:development.unleash-insecure-api-token
       - UNLEASH_URL=http://unleash:4242
       - UNLEASH_CACHE_DIR=/tmp/.unleashcache
     depends_on:
