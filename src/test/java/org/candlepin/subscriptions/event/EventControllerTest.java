@@ -203,7 +203,6 @@ class EventControllerTest {
 
   @Test
   void testPersistServiceInstances_WhenValidPayload() {
-
     List<String> eventRecords = new ArrayList<>();
     eventRecords.add(eventRecord1);
     eventRecords.add(eventRecord2);
