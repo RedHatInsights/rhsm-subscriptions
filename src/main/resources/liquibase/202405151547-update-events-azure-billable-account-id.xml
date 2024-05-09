@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+  <changeSet id="202405151547-01" author="wpoteat">
+    <comment>
+      Copy data from azure_subscription_id field to billable_account_id field
+    </comment>
+    <sql dbms="postgresql">
+      update events
+      set data = jsonb_set(data::jsonb, '{"billable_account_id"}', data -> 'azure_subscription_id')
+      where data -> 'azure_subscription_id' is not null
+    </sql>
+    <rollback>empty</rollback>
+  </changeSet>
+</databaseChangeLog>

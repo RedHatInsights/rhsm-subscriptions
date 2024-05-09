@@ -61,7 +61,6 @@ class AzureContractLifecycleIntegrationTest {
 
   @Inject OfferingRepository offeringRepository;
 
-  static String AZURE_TENANT_ID = "256af912-d792-4dd4-811d-1152375f1f41";
   static String AZURE_CUSTOMER_ID = "azure_customer_id_placeholder";
   static String AZURE_SUBSCRIPTION_ID = "d351b825-7e4b-4bfb-aad3-28441b34b5f1";
   static String AZURE_RESOURCE_ID = "f226c862-dbc3-4f91-b8ed-1eba40dcdc59";
@@ -78,12 +77,11 @@ class AzureContractLifecycleIntegrationTest {
               "azureResourceId":"%s",
               "azureOfferId":"azureOfferId",
               "planId":"vcpu-hours",
-              "azureTenantId":"%s",
               "partner":"azure_marketplace"
             }
           }
           """,
-          AZURE_RESOURCE_ID, AZURE_TENANT_ID);
+          AZURE_RESOURCE_ID);
 
   static String AZURE_PARTNER_API_RESPONSE_CONTRACT_CREATED =
       String.format(
@@ -96,7 +94,6 @@ class AzureContractLifecycleIntegrationTest {
                   "startDate": "2024-01-01T00:00:00.000000Z"
                 },
                 "partnerIdentities": {
-                  "azureTenantId": "%s",
                   "azureCustomerId": "%s"
                 },
                 "purchase": {
@@ -127,7 +124,7 @@ class AzureContractLifecycleIntegrationTest {
             }
           }
           """,
-          AZURE_TENANT_ID, AZURE_CUSTOMER_ID, AZURE_RESOURCE_ID, RH_SUBSCRIPTION_NUMBER);
+          AZURE_CUSTOMER_ID, AZURE_RESOURCE_ID, RH_SUBSCRIPTION_NUMBER);
 
   static String AZURE_UMB_MESSAGE_ORG_ASSOCIATED =
       String.format(
@@ -140,13 +137,12 @@ class AzureContractLifecycleIntegrationTest {
               "azureResourceId":"%s",
               "azureOfferId":"azureOfferId",
               "planId":"vcpu-hours",
-              "azureTenantId":"%s",
               "partner":"azure_marketplace"
             },
             "redHatSubscriptionNumber":"%s"
           }
           """,
-          AZURE_RESOURCE_ID, AZURE_TENANT_ID, RH_SUBSCRIPTION_NUMBER);
+          AZURE_RESOURCE_ID, RH_SUBSCRIPTION_NUMBER);
 
   static String AZURE_PARTNER_API_RESPONSE_SKU_MISSING =
       String.format(
@@ -159,7 +155,6 @@ class AzureContractLifecycleIntegrationTest {
                   "startDate": "2024-01-01T00:00:00.000000Z"
                 },
                 "partnerIdentities": {
-                  "azureTenantId": "%s",
                   "azureCustomerId": "%s"
                 },
                 "purchase": {
@@ -191,7 +186,7 @@ class AzureContractLifecycleIntegrationTest {
             }
           }
           """,
-          AZURE_TENANT_ID, AZURE_CUSTOMER_ID, AZURE_RESOURCE_ID, RH_ORG_ID, RH_SUBSCRIPTION_NUMBER);
+          AZURE_CUSTOMER_ID, AZURE_RESOURCE_ID, RH_ORG_ID, RH_SUBSCRIPTION_NUMBER);
 
   static String AZURE_PARTNER_API_RESPONSE_ORG_ASSOCIATED =
       String.format(
@@ -204,73 +199,7 @@ class AzureContractLifecycleIntegrationTest {
                   "startDate": "2024-01-01T00:00:00.000000Z"
                 },
                 "partnerIdentities": {
-                  "azureTenantId": "%s",
-                  "azureCustomerId": "%s"
-                },
-                "purchase": {
-                  "azureResourceId": "%s",
-                  "contracts": [
-                    {
-                      "endDate": "2030-01-01T00:00:00.000000Z",
-                      "planId": "vcpu-hours",
-                      "startDate": "2024-01-01T00:00:00.000000Z"
-                    }
-                  ],
-                  "vendorProductCode": "azureOfferId"
-                },
-                "rhAccountId": "%s",
-                "rhEntitlements": [
-                  {
-                    "sku": "BASILISK",
-                    "subscriptionNumber": "%s"
-                  }
-                ],
-                "sourcePartner": "azure_marketplace",
-                "status": "SUBSCRIBED"
-              }
-            ],
-            "page": {
-              "size": 0,
-              "totalElements": 0,
-              "totalPages": 0,
-              "number": 0
-            }
-          }
-          """,
-          AZURE_TENANT_ID, AZURE_CUSTOMER_ID, AZURE_RESOURCE_ID, RH_ORG_ID, RH_SUBSCRIPTION_NUMBER);
-
-  static String AZURE_UMB_MESSAGE_AZURE_SUBSCRIPTION_ID_ADDED =
-      String.format(
-          """
-          {
-            "action":"contract-updated",
-            "currentDimensions":[{"dimensionName":"vcpu_hours","dimensionValue":"0"}],
-            "cloudIdentifiers":{
-              "type":"saas",
-              "azureResourceId":"%s",
-              "azureSubscriptionId":"%s",
-              "azureOfferId":"azureOfferId",
-              "planId":"vcpu-hours",
-              "azureTenantId":"%s",
-              "partner":"azure_marketplace"
-            }
-          }
-          """,
-          AZURE_RESOURCE_ID, AZURE_SUBSCRIPTION_ID, AZURE_TENANT_ID);
-
-  static String AZURE_PARTNER_API_RESPONSE_AZURE_SUBSCRIPTION_ID_ADDED =
-      String.format(
-          """
-          {
-            "content": [
-              {
-                "entitlementDates": {
-                  "endDate": "2030-01-01T00:00:00.000000Z",
-                  "startDate": "2024-01-01T00:00:00.000000Z"
-                },
-                "partnerIdentities": {
                   "azureSubscriptionId": "%s",
-                  "azureTenantId": "%s",
                   "azureCustomerId": "%s"
                 },
                 "purchase": {
@@ -304,7 +233,74 @@ class AzureContractLifecycleIntegrationTest {
           }
           """,
           AZURE_SUBSCRIPTION_ID,
-          AZURE_TENANT_ID,
+          AZURE_CUSTOMER_ID,
+          AZURE_RESOURCE_ID,
+          RH_ORG_ID,
+          RH_SUBSCRIPTION_NUMBER);
+
+  static String AZURE_UMB_MESSAGE_AZURE_SUBSCRIPTION_ID_ADDED =
+      String.format(
+          """
+          {
+            "action":"contract-updated",
+            "currentDimensions":[{"dimensionName":"vcpu_hours","dimensionValue":"0"}],
+            "cloudIdentifiers":{
+              "type":"saas",
+              "azureResourceId":"%s",
+              "azureSubscriptionId":"%s",
+              "azureOfferId":"azureOfferId",
+              "planId":"vcpu-hours",
+              "partner":"azure_marketplace"
+            }
+          }
+          """,
+          AZURE_RESOURCE_ID, AZURE_SUBSCRIPTION_ID);
+
+  static String AZURE_PARTNER_API_RESPONSE_AZURE_SUBSCRIPTION_ID_ADDED =
+      String.format(
+          """
+          {
+            "content": [
+              {
+                "entitlementDates": {
+                  "endDate": "2030-01-01T00:00:00.000000Z",
+                  "startDate": "2024-01-01T00:00:00.000000Z"
+                },
+                "partnerIdentities": {
+                  "azureSubscriptionId": "%s",
+                  "azureCustomerId": "%s"
+                },
+                "purchase": {
+                  "azureResourceId": "%s",
+                  "contracts": [
+                    {
+                      "endDate": "2030-01-01T00:00:00.000000Z",
+                      "planId": "vcpu-hours",
+                      "startDate": "2024-01-01T00:00:00.000000Z"
+                    }
+                  ],
+                  "vendorProductCode": "azureOfferId"
+                },
+                "rhAccountId": "%s",
+                "rhEntitlements": [
+                  {
+                    "sku": "BASILISK",
+                    "subscriptionNumber": "%s"
+                  }
+                ],
+                "sourcePartner": "azure_marketplace",
+                "status": "SUBSCRIBED"
+              }
+            ],
+            "page": {
+              "size": 0,
+              "totalElements": 0,
+              "totalPages": 0,
+              "number": 0
+            }
+          }
+          """,
+          AZURE_SUBSCRIPTION_ID,
           AZURE_CUSTOMER_ID,
           AZURE_RESOURCE_ID,
           RH_ORG_ID,
@@ -372,12 +368,8 @@ class AzureContractLifecycleIntegrationTest {
     assertEquals(1, subscriptionRepository.count());
     var contract = contractRepository.findAll().stream().findFirst().orElseThrow();
     var subscription = subscriptionRepository.findAll().stream().findFirst().orElseThrow();
-    assertEquals(
-        String.format("%s;%s", AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID),
-        contract.getBillingAccountId());
-    assertEquals(
-        String.format("%s;%s", AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID),
-        subscription.getBillingAccountId());
+    assertEquals(AZURE_SUBSCRIPTION_ID, contract.getBillingAccountId());
+    assertEquals(AZURE_SUBSCRIPTION_ID, subscription.getBillingAccountId());
     assertEquals(
         String.format(
             "%s;%s;%s;%s", AZURE_RESOURCE_ID, "vcpu-hours", "azureOfferId", AZURE_CUSTOMER_ID),

@@ -257,19 +257,10 @@ public class EventController {
     }
 
     if (BillingProvider.AZURE.equals(eventToProcess.getBillingProvider())) {
-      setAzureBillingAccountId(eventToProcess);
+      eventToProcess.setBillingAccountId(eventToProcess.getAzureSubscriptionId());
     }
     enrichServiceInstanceFromIncomingFeed(eventToProcess);
     return Optional.of(eventToProcess);
-  }
-
-  private void setAzureBillingAccountId(Event event) {
-    if (event.getAzureTenantId().isPresent() && event.getAzureSubscriptionId().isPresent()) {
-      String billingAccountId =
-          String.format(
-              "%s;%s", event.getAzureTenantId().get(), event.getAzureSubscriptionId().get());
-      event.setBillingAccountId(Optional.of(billingAccountId));
-    }
   }
 
   public boolean validateServiceInstanceEvent(Event event) {

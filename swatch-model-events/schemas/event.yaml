@@ -179,6 +179,7 @@ properties:
     type: string
     existingJavaType: java.util.Optional<String>
     required: false
+    deprecationMessage: This field is no longer used in billing logic
   azure_resource_id:
     description: The azure resource ID used for billing
     type: string

@@ -91,11 +91,7 @@ class BillableUsageConsumerTest {
           BASILISK, STORAGE_GIB_MONTHS, OffsetDateTime.now(Clock.systemUTC()).minusHours(73), 42);
 
   public static final AzureUsageContext MOCK_AZURE_USAGE_CONTEXT =
-      new AzureUsageContext()
-          .azureResourceId("id")
-          .azureTenantId("tenant")
-          .offerId("product")
-          .planId("plan");
+      new AzureUsageContext().azureResourceId("id").offerId("product").planId("plan");
   public static final UsageEventOkResponse USAGE_EVENT_RESPONSE = getDefaultUsageEventResponse();
 
   @InjectMock @RestClient InternalSubscriptionsApi internalSubscriptionsApi;

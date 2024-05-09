@@ -108,11 +108,8 @@ public interface ContractEntityMapper {
   default String extractBillingAccountId(PartnerIdentityV1 accountId) {
     if (accountId.getCustomerAwsAccountId() != null) {
       return accountId.getCustomerAwsAccountId();
-    } else if (accountId.getAzureTenantId() != null && accountId.getAzureSubscriptionId() != null) {
-      return String.format(
-          "%s;%s", accountId.getAzureTenantId(), accountId.getAzureSubscriptionId());
-    } else if (accountId.getAzureTenantId() != null) {
-      return accountId.getAzureTenantId();
+    } else if (accountId.getAzureSubscriptionId() != null) {
+      return accountId.getAzureSubscriptionId();
     }
     return null;
   }

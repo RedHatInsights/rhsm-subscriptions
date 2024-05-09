@@ -391,9 +391,8 @@ class PrometheusMeteringControllerTest {
     BigDecimal val1 = BigDecimal.valueOf(100L);
     BigDecimal time2 = BigDecimal.valueOf(222222.222);
     BigDecimal val2 = BigDecimal.valueOf(120L);
-    var expectedAzureTenantId = "testTenantId";
     var expectedAzureSubscriptionId = "testSubscriptionId";
-    var expectedAzureBillingAccountId = "testTenantId;testSubscriptionId";
+    var expectedAzureBillingAccountId = "testSubscriptionId";
 
     QueryResult data =
         buildAzureOpenShiftClusterQueryResult(
@@ -402,7 +401,6 @@ class PrometheusMeteringControllerTest {
             expectedSla,
             expectedUsage,
             expectedBillingProvider,
-            expectedAzureTenantId,
             expectedAzureSubscriptionId,
             List.of(List.of(time1, val1), List.of(time2, val2)));
     prometheusServer.stubQueryRange(data);
@@ -508,7 +506,6 @@ class PrometheusMeteringControllerTest {
       String sla,
       String usage,
       String billingProvider,
-      String azureTenantId,
       String azureSubscriptionId,
       List<List<BigDecimal>> timeValueTuples) {
     QueryResultDataResultInner dataResult =
@@ -518,7 +515,6 @@ class PrometheusMeteringControllerTest {
             .putMetricItem("usage", usage)
             .putMetricItem("external_organization", orgId)
             .putMetricItem("billing_marketplace", billingProvider)
-            .putMetricItem("azure_tenant_id", azureTenantId)
             .putMetricItem("azure_subscription_id", azureSubscriptionId);
 
     // NOTE: A tuple is [unix_time,value]
