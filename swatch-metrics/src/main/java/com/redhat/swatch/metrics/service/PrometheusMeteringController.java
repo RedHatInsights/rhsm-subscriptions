@@ -239,6 +239,35 @@ public class PrometheusMeteringController {
       role = null;
     }
 
+    boolean is3rdPartyMigrated = Boolean.parseBoolean(labels.get("conversions_success"));
+
+    var matchingTags =
+        SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
+            role, productIds, null, is3rdPartyMigrated);
+
+    Optional<String> firstTag = matchingTags.stream().findFirst();
+    if (firstTag.isPresent()) {
+
+      var derivedProductTag = firstTag.get();
+
+      if (!Objects.equals(derivedProductTag, productTag)) {
+        log.warn(
+            "Starting product tag {} does not match derived product tag {} based on data contents",
+            productTag,
+            derivedProductTag);
+      }
+
+      productTag = derivedProductTag;
+
+      log.info("Creating Event for product {}", productTag);
+
+    } else {
+      log.info(
+          "Data does not match any swatch-product-configuration definition, skipping Event creation");
+      log.debug("Data: {}", labels);
+      return;
+    }
+
     String billingProvider = labels.get("billing_marketplace");
     String billingAccountId;
 
@@ -250,11 +279,6 @@ public class PrometheusMeteringController {
     } else {
       billingAccountId = labels.get("billing_marketplace_account");
     }
-
-    boolean is3rdPartyMigrated = Boolean.parseBoolean(labels.get("conversions_success"));
-
-    // Temporary workaround to force productTag to be looked up during event ingestion
-    productTag = "";
 
     // For the openshift metrics, we expect our results to be a 'matrix'
     // vector [(instant_time,value), ...] so we only look at the result's
