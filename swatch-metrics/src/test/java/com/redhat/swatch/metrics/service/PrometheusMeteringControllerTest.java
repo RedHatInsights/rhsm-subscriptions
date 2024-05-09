@@ -325,66 +325,6 @@ class PrometheusMeteringControllerTest {
   }
 
   @Test
-  void testVerifyConflictingSlaCausesSavesFirstValue() {
-    QueryResultDataResultInner standardResultItem =
-        new QueryResultDataResultInner()
-            .putMetricItem("_id", expectedClusterId)
-            .putMetricItem("support", "Standard")
-            .putMetricItem("usage", "Production")
-            .putMetricItem("role", "osd")
-            .putMetricItem("external_organization", expectedOrgId)
-            .putMetricItem("billing_marketplace", "red hat")
-            .putMetricItem("billing_marketplace_account", expectedBillingAccountId)
-            .addValuesItem(List.of(BigDecimal.valueOf(1616787308L), BigDecimal.valueOf(4.0)));
-    QueryResultDataResultInner premiumResultItem =
-        new QueryResultDataResultInner()
-            .putMetricItem("_id", expectedClusterId)
-            .putMetricItem("support", "Standard")
-            .putMetricItem("usage", "Production")
-            .putMetricItem("role", "osd")
-            .putMetricItem("external_organization", expectedOrgId)
-            .putMetricItem("billing_marketplace", "red hat")
-            .putMetricItem("billing_marketplace_account", expectedBillingAccountId)
-            .addValuesItem(List.of(BigDecimal.valueOf(1616787308L), BigDecimal.valueOf(4.0)));
-    QueryResultData queryResultData =
-        new QueryResultData().addResultItem(standardResultItem).addResultItem(premiumResultItem);
-    QueryResult data = new QueryResult().data(queryResultData).status(StatusType.SUCCESS);
-
-    prometheusServer.stubQueryRange(data);
-
-    OffsetDateTime start = clock.startOfCurrentHour();
-    OffsetDateTime end = clock.endOfHour(start.plusDays(1));
-
-    Event updatedEvent =
-        MeteringEventFactory.createMetricEvent(
-            expectedOrgId,
-            expectedClusterId,
-            "Standard",
-            expectedUsage,
-            expectedRole,
-            PROMETHEUS,
-            clock.dateFromUnix(1616787308L).minusSeconds(metricProperties.step()),
-            clock.dateFromUnix(1616787308L),
-            expectedServiceType,
-            expectedBillingProvider,
-            expectedBillingAccountId,
-            expectedMetricId,
-            4.0,
-            expectedProductTag,
-            expectedSpanId,
-            List.of(),
-            expectedClusterId);
-
-    List<Event> expectedEvents = List.of(updatedEvent);
-    whenCollectMetrics(start, end);
-    assertEquals(expectedEvents.size(), results.received().size());
-
-    verifyQueryRange(start, end);
-    assertTrue(
-        results.received().stream().map(Message::getPayload).allMatch(expectedEvents::contains));
-  }
-
-  @Test
   @SuppressWarnings("indentation")
   void testCollectAzureOpenShiftMetricsWillPersistCorrectBillingAccountId() {
     BigDecimal time1 = BigDecimal.valueOf(123456.234);

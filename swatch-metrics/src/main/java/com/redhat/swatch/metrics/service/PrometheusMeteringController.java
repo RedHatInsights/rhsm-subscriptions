@@ -46,18 +46,15 @@ import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.candlepin.clock.ApplicationClock;
-import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.json.Event;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.reactive.messaging.Channel;
@@ -156,7 +153,7 @@ public class PrometheusMeteringController {
     try {
       log.info("Collecting metrics for orgId={}: {} {}", orgId, tag, metric);
       Sample sample = Timer.start(registry);
-      Set<EventKey> eventsSent = new HashSet<>();
+      AtomicInteger eventsSent = new AtomicInteger(0);
       QuerySummaryResult metricData =
           prometheusService.runRangeQuery(
               buildPromQLForMetering(orgId, metric),
@@ -177,7 +174,7 @@ public class PrometheusMeteringController {
 
       updateMetrics(tag, sample, metricData, eventsSent);
 
-      log.info("Sent {} events for {} {} metrics.", eventsSent.size(), tag, metric);
+      log.info("Sent {} events for {} {} metrics.", eventsSent.get(), tag, metric);
     } catch (Exception e) {
       log.warn(
           "Exception thrown while updating {} {} {} metrics. [Attempt: {}]: {}",
@@ -191,7 +188,7 @@ public class PrometheusMeteringController {
   }
 
   private void updateMetrics(
-      String tag, Sample sample, QuerySummaryResult metricData, Set<EventKey> eventsSent) {
+      String tag, Sample sample, QuerySummaryResult metricData, AtomicInteger eventsSent) {
     sample.stop(
         registry.timer(
             "metrics.collection.timer",
@@ -199,8 +196,7 @@ public class PrometheusMeteringController {
             tag,
             "status",
             metricData.getStatus().toString()));
-
-    Gauge.builder("metrics.events.count", eventsSent::size)
+    Gauge.builder("metrics.events.count", eventsSent::get)
         .baseUnit(BaseUnits.EVENTS)
         .tags(PRODUCT_TAG, tag)
         .register(registry);
@@ -208,7 +204,7 @@ public class PrometheusMeteringController {
 
   private void createEventFromDataAndSend(
       QueryResultDataResultInner item,
-      Set<EventKey> eventsSent,
+      AtomicInteger eventsSent,
       String productTag,
       String orgId,
       UUID meteringBatchId,
@@ -282,11 +278,9 @@ public class PrometheusMeteringController {
               meteringBatchId,
               productIds,
               displayName);
-      // Send if and only if it has not been sent yet.
-      // Related to https://github.com/RedHatInsights/rhsm-subscriptions/pull/374.
-      if (eventsSent.add(EventKey.fromEvent(event))) {
-        sendToServiceInstanceTopic(event);
-      }
+
+      eventsSent.getAndIncrement();
+      sendToServiceInstanceTopic(event);
     }
   }
 
