@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+
+
+  <changeSet id="202405081325-1" author="kflahert" dbms="postgres">
+    <comment>Delete duplicated subscriptions for AWS</comment>
+    <sql>
+      DELETE FROM SUBSCRIPTION_MEASUREMENTS measurement
+      WHERE exists (SELECT FROM
+                             SUBSCRIPTION invalidSub,
+                             SUBSCRIPTION validSub
+                    WHERE
+                        invalidSub.SUBSCRIPTION_NUMBER = validSub.SUBSCRIPTION_NUMBER
+                      AND invalidSub.START_DATE::date = validSub.START_DATE::date
+                      AND invalidSub.START_DATE::varchar like ('%:00:00+00')
+                      AND invalidSub.START_DATE != validSub.START_DATE
+                      AND validSub.BILLING_PROVIDER = 'aws'
+                      AND measurement.SUBSCRIPTION_ID = invalidSub.SUBSCRIPTION_ID
+                      AND measurement.START_DATE = invalidSub.START_DATE);
+
+      DELETE FROM SUBSCRIPTION_PRODUCT_IDS products
+      WHERE exists (SELECT FROM
+                             SUBSCRIPTION invalidSub,
+                             SUBSCRIPTION validSub
+                    WHERE
+                        invalidSub.SUBSCRIPTION_NUMBER = validSub.SUBSCRIPTION_NUMBER
+                      AND invalidSub.START_DATE::date = validSub.START_DATE::date
+                      AND invalidSub.START_DATE::varchar like ('%:00:00+00')
+                      AND invalidSub.START_DATE != validSub.START_DATE
+                      AND validSub.BILLING_PROVIDER = 'aws'
+                      AND products.SUBSCRIPTION_ID = invalidSub.SUBSCRIPTION_ID
+                      AND products.START_DATE = invalidSub.START_DATE);
+
+      DELETE FROM SUBSCRIPTION invalidSub
+      WHERE exists (SELECT FROM
+        SUBSCRIPTION validSub
+                    WHERE
+                        invalidSub.SUBSCRIPTION_NUMBER = validSub.SUBSCRIPTION_NUMBER
+                      AND invalidSub.START_DATE::date = validSub.START_DATE::date
+                      AND invalidSub.START_DATE::varchar like ('%:00:00+00')
+                      AND invalidSub.START_DATE != validSub.START_DATE
+			                AND validSub.BILLING_PROVIDER = 'aws');
+    </sql>
+  </changeSet>
+
+</databaseChangeLog>

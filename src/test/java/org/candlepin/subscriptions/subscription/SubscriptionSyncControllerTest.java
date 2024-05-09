@@ -195,7 +195,7 @@ class SubscriptionSyncControllerTest {
   }
 
   @Test
-  void shouldSkipSyncIfMeteredOfferingIsMissingBillingProvider() {
+  void shouldSkipSyncIfMeteredOfferingSubscriptionNotAlreadyCreatedByContractService() {
     Mockito.when(offeringRepository.existsById(SKU)).thenReturn(true);
     Offering offering = Offering.builder().sku(SKU).metered(true).build();
     when(offeringRepository.getReferenceById(SKU)).thenReturn(offering);

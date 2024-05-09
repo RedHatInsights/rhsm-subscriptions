@@ -187,10 +187,13 @@ public class SubscriptionSyncController {
       return;
     }
 
-    // If the billing provider is missing on a metered offering, skip syncing.
-    if (isMissingRequiredBillingProvider(newOrUpdated)) {
+    // If this is a new Contract that has not been synced yet, skip syncing so Contract service can
+    // save the correct start_date.
+    if (isNewContractWithoutExistingSubscription(newOrUpdated, subscriptionOptional)) {
       return;
     }
+
+    checkForMissingRequiredBillingProvider(newOrUpdated);
 
     // enrich product IDs and measurements onto the incoming subscription record from the offering
     capacityReconciliationController.reconcileCapacityForSubscription(newOrUpdated);
@@ -252,7 +255,7 @@ public class SubscriptionSyncController {
     return true;
   }
 
-  private boolean isMissingRequiredBillingProvider(
+  private void checkForMissingRequiredBillingProvider(
       org.candlepin.subscriptions.db.model.Subscription subscription) {
     if ((subscription.getBillingProvider() == null
             || subscription.getBillingProvider().equals(BillingProvider.EMPTY))
@@ -260,6 +263,16 @@ public class SubscriptionSyncController {
       log.warn(
           "PAYG eligible subscription with subscriptionId:{} and subscription_number:{} has no billing provider.",
           subscription.getSubscriptionId(),
+          subscription.getSubscriptionNumber());
+    }
+  }
+
+  private boolean isNewContractWithoutExistingSubscription(
+      org.candlepin.subscriptions.db.model.Subscription subscription,
+      Optional<org.candlepin.subscriptions.db.model.Subscription> existingSubscription) {
+    if (subscription.getOffering().isMetered() && existingSubscription.isEmpty()) {
+      log.info(
+          "Skipping sync for PAYG eligible subscription to allow contracts service to initialize subscription record. subscription_number: {}",
           subscription.getSubscriptionNumber());
       return true;
     }
