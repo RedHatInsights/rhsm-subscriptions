@@ -38,7 +38,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class SubscriptionCsvDataMapperService implements DataMapperService<Subscription> {
 
-  private static final Uom NO_UOM = null;
+  protected static final Uom NO_UOM = null;
 
   @Override
   public List<Object> mapDataItem(Subscription dataItem, ExportServiceRequest request) {

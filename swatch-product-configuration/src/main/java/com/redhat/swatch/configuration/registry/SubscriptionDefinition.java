@@ -127,6 +127,12 @@ public class SubscriptionDefinition {
         .collect(Collectors.toSet());
   }
 
+  public static boolean isPrometheusEnabled(@NotNull @NotEmpty String tag) {
+    return lookupSubscriptionByTag(tag).filter(SubscriptionDefinition::isPrometheusEnabled).stream()
+        .findFirst()
+        .isPresent();
+  }
+
   public boolean isPrometheusEnabled() {
     return this.getMetrics().stream().anyMatch(metric -> Objects.nonNull(metric.getPrometheus()));
   }

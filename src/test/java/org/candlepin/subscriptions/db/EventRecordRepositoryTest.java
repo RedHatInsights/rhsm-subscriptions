@@ -27,10 +27,13 @@ import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.test.ExtendWithSwatchDatabase;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,9 +44,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
 @Transactional
-@ActiveProfiles("test")
+@ActiveProfiles({"worker", "test-inventory"})
 @Import(TestClockConfiguration.class)
-class EventRecordRepositoryTest {
+class EventRecordRepositoryTest implements ExtendWithSwatchDatabase {
   private static final Clock CLOCK = new TestClockConfiguration().adjustableClock().getClock();
 
   @Autowired private EventRecordRepository repository;
@@ -67,7 +70,6 @@ class EventRecordRepositoryTest {
     assertNull(found.getEvent().getInventoryId());
     assertNotNull(found.getEvent().getDisplayName());
     assertFalse(found.getEvent().getDisplayName().isPresent());
-    //    record.setRecordDate(found.getRecordDate());
     assertEquals(record, found);
   }
 
@@ -181,6 +183,62 @@ class EventRecordRepositoryTest {
     var results = repository.findAll();
 
     assertEquals(1, results.size());
+  }
+
+  @Test
+  void testFindConflictingEvents() {
+    Event event1 = new Event();
+    event1.setOrgId("org123");
+    event1.setInstanceId("instance1");
+    event1.setServiceType("RHEL System");
+    event1.setTimestamp(OffsetDateTime.now(CLOCK));
+    event1.setEventType("event-type");
+    event1.setEventSource("test-data");
+    EventRecord eventRecord1 = new EventRecord(event1);
+
+    // Duplicate event1 so that we get a duplicate hash.
+    Event event2 = new Event();
+    event2.setOrgId("org123");
+    event2.setInstanceId("instance1");
+    event2.setServiceType("RHEL System");
+    event2.setTimestamp(OffsetDateTime.now(CLOCK));
+    event2.setEventType("event-type");
+    event2.setEventSource("test-data");
+    EventRecord eventRecord2 = new EventRecord(event2);
+
+    // Same instance different timestamp.
+    Event event3 = new Event();
+    event3.setOrgId("org123");
+    event3.setInstanceId("instance1");
+    event3.setServiceType("RHEL System");
+    event3.setTimestamp(OffsetDateTime.now(CLOCK).plusHours(1));
+    event3.setEventType("event-type");
+    event3.setEventSource("test-data");
+    EventRecord eventRecord3 = new EventRecord(event3);
+
+    // Not included due to org_id
+    Event event4 = new Event();
+    event4.setOrgId("org222");
+    event4.setInstanceId("instance3");
+    event4.setServiceType("RHEL System");
+    event4.setTimestamp(OffsetDateTime.now(CLOCK));
+    event4.setEventType("event-type");
+    event4.setEventSource("test-data");
+    EventRecord eventRecord4 = new EventRecord(event4);
+
+    repository.saveAllAndFlush(List.of(eventRecord1, eventRecord2, eventRecord3, eventRecord4));
+
+    List<EventRecord> match1 = repository.findConflictingEvents(Set.of(EventKey.fromEvent(event1)));
+    assertEquals(2, match1.size());
+    assertTrue(match1.containsAll(List.of(eventRecord1, eventRecord2)));
+
+    List<EventRecord> match2 = repository.findConflictingEvents(Set.of(EventKey.fromEvent(event3)));
+    assertEquals(1, match2.size());
+    assertTrue(match2.contains(eventRecord3));
+
+    List<EventRecord> match3 = repository.findConflictingEvents(Set.of(EventKey.fromEvent(event4)));
+    assertEquals(1, match3.size());
+    assertTrue(match3.contains(eventRecord4));
   }
 
   private Event event(

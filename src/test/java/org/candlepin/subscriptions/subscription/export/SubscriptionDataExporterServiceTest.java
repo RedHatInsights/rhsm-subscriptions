@@ -20,9 +20,11 @@
  */
 package org.candlepin.subscriptions.subscription.export;
 
+import static org.candlepin.subscriptions.subscription.export.SubscriptionDataExporterService.PRODUCT_ID;
+
 import com.redhat.cloud.event.apps.exportservice.v1.Format;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
-import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -81,15 +83,24 @@ class SubscriptionDataExporterServiceTest extends BaseDataExporterServiceTest {
 
   @Test
   void testRequestShouldBeUploadedWithSubscriptionsAsJson() {
-    givenSubscriptionWithMeasurement();
+    givenSubscriptionWithMeasurement(RHEL_FOR_X86);
     givenExportRequestWithPermissions(Format.JSON);
     whenReceiveExportRequest();
     verifyRequestWasSentToExportService();
   }
 
   @Test
+  void testRequestShouldBeUploadedWithSubscriptionsUsingPrometheusEnabledProductAsJson() {
+    givenSubscriptionWithMeasurement(ROSA);
+    givenExportRequestWithPermissions(Format.JSON);
+    givenFilterInExportRequest(PRODUCT_ID, ROSA);
+    whenReceiveExportRequest();
+    verifyRequestWasSentToExportService();
+  }
+
+  @Test
   void testRequestShouldBeUploadedWithSubscriptionsAsCsv() {
-    givenSubscriptionWithMeasurement();
+    givenSubscriptionWithMeasurement(RHEL_FOR_X86);
     givenExportRequestWithPermissions(Format.CSV);
     whenReceiveExportRequest();
     verifyRequestWasSentToExportService();
@@ -98,7 +109,7 @@ class SubscriptionDataExporterServiceTest extends BaseDataExporterServiceTest {
   @ParameterizedTest
   @CsvSource(
       value = {
-        "product_id,RHEL for x86",
+        PRODUCT_ID + "," + RHEL_FOR_X86,
         "usage,production",
         "category,hypervisor",
         "sla,premium",
@@ -107,7 +118,7 @@ class SubscriptionDataExporterServiceTest extends BaseDataExporterServiceTest {
         "billing_account_id,123"
       })
   void testFiltersFoundData(String filterName, String exists) {
-    givenSubscriptionWithMeasurement();
+    givenSubscriptionWithMeasurement(RHEL_FOR_X86);
     givenExportRequestWithPermissions(Format.JSON);
     givenFilterInExportRequest(filterName, exists);
     whenReceiveExportRequest();
@@ -118,7 +129,7 @@ class SubscriptionDataExporterServiceTest extends BaseDataExporterServiceTest {
   @ParameterizedTest
   @CsvSource(
       value = {
-        "product_id,rosa",
+        PRODUCT_ID + "," + ROSA,
         "usage,disaster recovery",
         "category,cloud",
         "sla,standard",
@@ -127,7 +138,7 @@ class SubscriptionDataExporterServiceTest extends BaseDataExporterServiceTest {
         "billing_account_id,345"
       })
   void testFiltersDoesNotFoundDataAndReportIsEmpty(String filterName, String doesNotExist) {
-    givenSubscriptionWithMeasurement();
+    givenSubscriptionWithMeasurement(RHEL_FOR_X86);
     givenExportRequestWithPermissions(Format.JSON);
     givenFilterInExportRequest(filterName, doesNotExist);
     whenReceiveExportRequest();
@@ -136,35 +147,14 @@ class SubscriptionDataExporterServiceTest extends BaseDataExporterServiceTest {
   }
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {"product_id", "usage", "category", "sla", "metric_id", "billing_provider"})
+  @ValueSource(strings = {PRODUCT_ID, "usage", "category", "sla", "metric_id", "billing_provider"})
   void testFiltersAreInvalid(String filterName) {
-    givenSubscriptionWithMeasurement();
+    givenSubscriptionWithMeasurement(RHEL_FOR_X86);
     givenExportRequestWithPermissions(Format.JSON);
     givenFilterInExportRequest(filterName, "wrong!");
     whenReceiveExportRequest();
     verifyNoRequestsWereSentToExportServiceWithUploadData();
     verifyRequestWasSentToExportServiceWithError(request);
-  }
-
-  @Transactional
-  void givenSubscriptionWithMeasurement() {
-    Subscription subscription = new Subscription();
-    subscription.setSubscriptionId(UUID.randomUUID().toString());
-    subscription.setSubscriptionNumber(UUID.randomUUID().toString());
-    subscription.setStartDate(OffsetDateTime.parse("2024-04-23T11:48:15.888129Z"));
-    subscription.setEndDate(OffsetDateTime.parse("2024-05-23T11:48:15.888129Z"));
-    subscription.setOffering(offering);
-    subscription.setOrgId(ORG_ID);
-    subscription.setBillingProvider(BillingProvider.AWS);
-    subscription.setSubscriptionProductIds(Set.of("RHEL for x86"));
-    subscription.setBillingAccountId("123");
-    subscription.setSubscriptionMeasurements(
-        Map.of(
-            new SubscriptionMeasurementKey(MetricIdUtils.getCores().toString(), "HYPERVISOR"),
-            5.0));
-    subscriptionRepository.save(subscription);
-    itemsToBeExported.add(subscription);
   }
 
   @Override
@@ -187,13 +177,40 @@ class SubscriptionDataExporterServiceTest extends BaseDataExporterServiceTest {
     }
   }
 
-  protected void verifyRequestWasSentToExportServiceWithUploadCsvData(List<Object> data) {
+  private void verifyRequestWasSentToExportServiceWithUploadCsvData(List<Object> data) {
     verifyRequestWasSentToExportServiceWithUploadData(
         request, toCsv(data, SubscriptionsExportCsvItem.class));
   }
 
-  protected void verifyRequestWasSentToExportServiceWithUploadJsonData(
-      SubscriptionsExportJson data) {
+  private void verifyRequestWasSentToExportServiceWithUploadJsonData(SubscriptionsExportJson data) {
     verifyRequestWasSentToExportServiceWithUploadData(request, toJson(data));
+  }
+
+  private void givenSubscriptionWithMeasurement(String productId) {
+    Subscription subscription = new Subscription();
+    subscription.setSubscriptionId(UUID.randomUUID().toString());
+    subscription.setSubscriptionNumber(UUID.randomUUID().toString());
+    subscription.setStartDate(OffsetDateTime.parse("2024-04-23T11:48:15.888129Z"));
+    subscription.setEndDate(OffsetDateTime.parse("2024-05-23T11:48:15.888129Z"));
+    subscription.setOffering(offering);
+    subscription.setOrgId(ORG_ID);
+    subscription.setBillingProvider(BillingProvider.AWS);
+    if (SubscriptionDefinition.isPrometheusEnabled(productId)) {
+      // for products with prometheus enabled, the product IDs are linked via the offering
+      offering.getProductTags().add(productId);
+      updateOffering();
+    } else {
+      // for products without prometheus enabled, the product IDs are defined via subscription
+      // product IDs
+      subscription.setSubscriptionProductIds(Set.of(productId));
+    }
+
+    subscription.setBillingAccountId("123");
+    subscription.setSubscriptionMeasurements(
+        Map.of(
+            new SubscriptionMeasurementKey(MetricIdUtils.getCores().toString(), "HYPERVISOR"),
+            5.0));
+    subscriptionRepository.save(subscription);
+    itemsToBeExported.add(subscription);
   }
 }
