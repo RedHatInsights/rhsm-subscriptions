@@ -247,7 +247,6 @@ class ContractServiceTest extends BaseUnitTest {
         new PartnerEntitlementContractCloudIdentifiers()
             .partner(SourcePartnerEnum.AZURE_MARKETPLACE.value())
             .azureResourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
-            .azureTenantId("64dc69e4-d083-49fc-9569-ebece1dd1408")
             .azureOfferId("azureProductCode")
             .planId("rh-rhel-sub-1yr"));
 
@@ -278,7 +277,6 @@ class ContractServiceTest extends BaseUnitTest {
         new PartnerEntitlementContractCloudIdentifiers()
             .partner(SourcePartnerEnum.AZURE_MARKETPLACE.value())
             .azureResourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
-            .azureTenantId("64dc69e4-d083-49fc-9569-ebece1dd1408")
             .azureOfferId("azureProductCode")
             .planId("rh-rhel-sub-1yr"));
 
@@ -306,7 +304,6 @@ class ContractServiceTest extends BaseUnitTest {
         new PartnerEntitlementContractCloudIdentifiers()
             .partner(SourcePartnerEnum.AZURE_MARKETPLACE.value())
             .azureResourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
-            .azureTenantId("64dc69e4-d083-49fc-9569-ebece1dd1408")
             .azureOfferId("azureProductCode")
             .planId("rh-rhel-sub-1yr"));
 
@@ -384,7 +381,6 @@ class ContractServiceTest extends BaseUnitTest {
         new PartnerEntitlementContractCloudIdentifiers()
             .partner(SourcePartnerEnum.AZURE_MARKETPLACE.value())
             .azureResourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
-            .azureTenantId("64dc69e4-d083-49fc-9569-ebece1dd1408")
             .azureOfferId("azureProductCode")
             .planId("rh-rhel-sub-1yr"));
     return contract;
@@ -496,7 +492,6 @@ class ContractServiceTest extends BaseUnitTest {
             .partnerIdentities(
                 new PartnerIdentityV1()
                     .azureSubscriptionId("fa650050-dedd-4958-b901-d8e5118c0a5f")
-                    .azureTenantId("64dc69e4-d083-49fc-9569-ebece1dd1408")
                     .azureCustomerId("eadf26ee-6fbc-4295-9a9e-25d4fea8951d_2019-05-31"))
             .rhEntitlements(List.of(new RhEntitlementV1().sku(SKU).subscriptionNumber("testSubId")))
             .purchase(
