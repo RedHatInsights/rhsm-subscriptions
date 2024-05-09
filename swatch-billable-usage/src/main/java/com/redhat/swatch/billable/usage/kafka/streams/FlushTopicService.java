@@ -20,6 +20,8 @@
  */
 package com.redhat.swatch.billable.usage.kafka.streams;
 
+import static com.redhat.swatch.billable.usage.configuration.Channels.BILLABLE_USAGE_AGGREGATION_OUT;
+
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
@@ -48,7 +50,7 @@ public class FlushTopicService {
   private final BillableUsageAggregateKey flushKey;
 
   public FlushTopicService(
-      @Channel("billable-usage-aggregation-repartition-out") Emitter<BillableUsage> emitter) {
+      @Channel(BILLABLE_USAGE_AGGREGATION_OUT) Emitter<BillableUsage> emitter) {
     this.emitter = emitter;
     this.flushKey = new BillableUsageAggregateKey();
     flushKey.setOrgId(FLUSH_ORG);

@@ -82,6 +82,7 @@ objects:
       envName: ${ENV_NAME}
       dependencies:
         - swatch-tally
+        - swatch-billable-usage
         - rbac
 
       database:

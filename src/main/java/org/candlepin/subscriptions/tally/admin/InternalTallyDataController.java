@@ -39,6 +39,7 @@ import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.tally.AccountResetService;
 import org.candlepin.subscriptions.tally.TallySnapshotController;
+import org.candlepin.subscriptions.tally.billing.BillableUsageController;
 import org.candlepin.subscriptions.tally.billing.ContractsController;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfig;
@@ -53,6 +54,7 @@ public class InternalTallyDataController {
   private final ObjectMapper objectMapper;
   private final OptInController controller;
   private final ContractsController contractsController;
+  private final BillableUsageController billableUsageController;
   private final TallySnapshotController snapshotController;
 
   public InternalTallyDataController(
@@ -62,6 +64,7 @@ public class InternalTallyDataController {
       ObjectMapper objectMapper,
       OptInController controller,
       ContractsController contractsController,
+      BillableUsageController billableUsageController,
       TallySnapshotController snapshotController) {
     this.accountResetService = accountResetService;
     this.eventController = eventController;
@@ -69,12 +72,14 @@ public class InternalTallyDataController {
     this.objectMapper = objectMapper;
     this.controller = controller;
     this.contractsController = contractsController;
+    this.billableUsageController = billableUsageController;
     this.snapshotController = snapshotController;
   }
 
   public void deleteDataAssociatedWithOrg(String orgId) {
     // we first delete the contracts and if it works, we continue with the rest of the data.
     contractsController.deleteContractsWithOrg(orgId);
+    billableUsageController.deleteRemittancesWithOrg(orgId);
     accountResetService.deleteDataForOrg(orgId);
   }
 

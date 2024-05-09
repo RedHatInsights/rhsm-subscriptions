@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.billable.usage.kafka;
 
+import static com.redhat.swatch.billable.usage.configuration.Channels.BILLABLE_USAGE_AGGREGATION_OUT;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import com.redhat.swatch.billable.usage.kafka.streams.FlushTopicService;
@@ -45,8 +46,7 @@ class FlushTopicServiceTest {
 
   @Test
   void testFlushTopics() {
-    InMemorySink<BillableUsage> results =
-        connector.sink("billable-usage-aggregation-repartition-out");
+    InMemorySink<BillableUsage> results = connector.sink(BILLABLE_USAGE_AGGREGATION_OUT);
     service.sendFlushToBillableUsageRepartitionTopic();
     assertFalse(results.received().isEmpty());
   }

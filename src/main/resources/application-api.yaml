@@ -13,6 +13,17 @@ rhsm-subscriptions:
     truststore-type: ${clowder.endpoints.rbac-service.trust-store-type}
     max-connections: ${RHSM_RBAC_MAX_CONNECTIONS:100}
     stub-permissions: ${RHSM_RBAC_STUB_PERMISSIONS:subscriptions:*:*}
+  billable-usage:
+    client:
+      back-off-initial-interval: ${BILLABLE_USAGE_CLIENT_BACK_OFF_INITIAL_INTERVAL_MILLIS:1000}
+      back-off-max-interval: ${BILLABLE_USAGE_CLIENT_BACK_OFF_MAX_INTERVAL_MILLIS:64000}
+      back-off-multiplier: ${BILLABLE_USAGE_CLIENT_BACK_OFF_MULTIPLIER:2}
+      max-attempts: ${BILLABLE_USAGE_CLIENT_MAX_ATTEMPTS:1}
+      url: ${clowder.endpoints.swatch-billable-usage-service.url:http://localhost:8002}
+      truststore: ${clowder.endpoints.swatch-billable-usage-service.trust-store-path}
+      truststore-password: ${clowder.endpoints.swatch-billable-usage-service.trust-store-password}
+      truststore-type: ${clowder.endpoints.swatch-billable-usage-service.trust-store-type}
+      psk: ${SWATCH_SELF_PSK:placeholder}
   api:
     capacity:
       client:

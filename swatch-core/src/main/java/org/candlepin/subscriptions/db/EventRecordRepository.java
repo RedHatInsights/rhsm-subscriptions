@@ -117,7 +117,7 @@ public interface EventRecordRepository
    */
   @Modifying
   @Query("DELETE FROM EventRecord e WHERE e.timestamp<:cutoffDate")
-  void deleteInBulkEventRecordsByTimestampBefore(OffsetDateTime cutoffDate);
+  int deleteInBulkEventRecordsByTimestampBefore(OffsetDateTime cutoffDate);
 
   void deleteByOrgId(String orgId);
 

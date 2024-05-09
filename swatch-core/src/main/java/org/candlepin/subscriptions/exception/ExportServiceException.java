@@ -22,9 +22,10 @@ package org.candlepin.subscriptions.exception;
 
 import lombok.Getter;
 
+@Getter
 public class ExportServiceException extends RuntimeException {
-  @Getter private final String message;
-  @Getter private final Integer status;
+  private final String message;
+  private final Integer status;
 
   public ExportServiceException(Integer status, String message) {
     this.status = status;

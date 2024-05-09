@@ -109,14 +109,6 @@ parameters:
     value: 1s
   - name: USER_BACK_OFF_MULTIPLIER
     value: '2'
-  - name: BILLING_PRODUCER_BACK_OFF_INITIAL_INTERVAL
-    value: 1s
-  - name: BILLING_PRODUCER_BACK_OFF_MAX_INTERVAL
-    value: 1m
-  - name: BILLING_PRODUCER_BACK_OFF_MULTIPLIER
-    value: '2'
-  - name: BILLING_PRODUCER_MAX_ATTEMPTS
-    value: '1'
   - name: RH_MARKETPLACE_BILLABLE_USAGE_KAFKA_SEEK_OVERRIDE_END
     value: 'false'
   - name: RH_MARKETPLACE_BILLABLE_USAGE_KAFKA_SEEK_OVERRIDE_TIMESTAMP
@@ -363,14 +355,6 @@ objects:
               value: /pinhead/keystore.jks
             - name: DEV_MODE
               value: ${DEV_MODE}
-            - name: BILLING_PRODUCER_BACK_OFF_INITIAL_INTERVAL
-              value: ${BILLING_PRODUCER_BACK_OFF_INITIAL_INTERVAL}
-            - name: BILLING_PRODUCER_BACK_OFF_MAX_INTERVAL
-              value: ${BILLING_PRODUCER_BACK_OFF_MAX_INTERVAL}
-            - name: BILLING_PRODUCER_BACK_OFF_MULTIPLIER
-              value: ${BILLING_PRODUCER_BACK_OFF_MULTIPLIER}
-            - name: BILLING_PRODUCER_MAX_ATTEMPTS
-              value: ${BILLING_PRODUCER_MAX_ATTEMPTS}
             - name: ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC
               value: ${ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC}
             - name: OTEL_EXPORTER_OTLP_ENDPOINT

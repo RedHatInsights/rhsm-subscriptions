@@ -1,10 +1,10 @@
 plugins {
     id 'swatch.quarkus-conventions'
     id 'org.openapi.generator'
+    id 'jsonschema2pojo'
 }
 
 dependencies {
-    compileOnly libraries["lombok"]
     implementation 'io.quarkus:quarkus-micrometer-registry-prometheus'
     implementation 'io.quarkus:quarkus-resteasy-reactive-jackson'
     implementation 'io.quarkus:quarkus-opentelemetry'
@@ -13,20 +13,29 @@ dependencies {
     implementation 'io.quarkus:quarkus-kafka-streams'
     implementation 'io.quarkus:quarkus-smallrye-openapi'
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka'
-    implementation 'jakarta.validation:jakarta.validation-api'
+    implementation 'io.quarkus:quarkus-hibernate-validator'
+    implementation("io.quarkus:quarkus-jdbc-postgresql")
     implementation project(':clients:swatch-internal-subscription-client')
     implementation project(":clients:quarkus:contracts-client")
     implementation project(':swatch-common-config-workaround')
     implementation project(':swatch-common-resteasy-client')
+    implementation project(':swatch-common-clock')
+    implementation project(':swatch-common-panache')
+    implementation project(':swatch-common-kafka')
+    implementation project(':swatch-common-smallrye-fault-tolerance')
     implementation libraries["clowder-quarkus-config-source"]
     implementation libraries["quarkus-logging-splunk"]
     implementation libraries["splunk-library-javalogging"]
     implementation project(':swatch-product-configuration')
     implementation project(":swatch-model-billable-usage")
+    compileOnly libraries["lombok"]
     annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
+    annotationProcessor "org.hibernate.orm:hibernate-jpamodelgen"
     testImplementation libraries["junit-jupiter"]
+    testImplementation libraries["awaitility"]
     testImplementation "org.apache.kafka:kafka-streams-test-utils"
     testImplementation 'io.smallrye.reactive:smallrye-reactive-messaging-in-memory'
+    testImplementation("io.quarkus:quarkus-jdbc-h2")
 }
 
 compileJava.dependsOn tasks.openApiGenerate
@@ -35,9 +44,9 @@ openApiGenerate {
     generatorName = "java"
     inputSpec = "${projectDir}/src/main/resources/META-INF/openapi.yaml"
     outputDir = "${buildDir}/generated"
-    apiPackage = "com.redhat.swatch.billable.usage.openapi.resource"
-    modelPackage = "com.redhat.swatch.billable.usage.openapi.model"
-    invokerPackage = "com.redhat.swatch.billable.usage.openapi"
+    apiPackage = "com.redhat.swatch.billable.usage.admin.api"
+    modelPackage = "com.redhat.swatch.billable.usage.model"
+    invokerPackage = "com.redhat.swatch.billable.usage"
     groupId = "com.redhat.swatch.billable.usage"
     configOptions = [sourceFolder     : "src/gen/java",
                      interfaceOnly    : "true",
@@ -54,6 +63,23 @@ openApiGenerate {
     importMappings = [
             "BillableUsage": "org.candlepin.subscriptions.billable.usage.BillableUsage"
     ]
+}
+
+jsonSchema2Pojo {
+    source = files("${projectDir}/../swatch-core/schemas/enabled_orgs_request.yaml",
+            "${projectDir}/../swatch-core/schemas/enabled_orgs_response.yaml",
+            "${projectDir}/../swatch-core/schemas/tally_summary.yaml")
+    targetPackage = "com.redhat.swatch.billable.usage.model"
+    targetDirectory = file("${buildDir}/generated/src/gen/java")
+    includeAdditionalProperties = false
+    includeJsr303Annotations = true
+    initializeCollections = false
+    dateTimeType = 'java.time.OffsetDateTime'
+    sourceType = 'yamlschema'
+    generateBuilders = true
+    includeGetters = true
+    includeSetters = true
+    useJakartaValidation = true
 }
 
 sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
