@@ -6,7 +6,7 @@
                       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
 
 
-  <changeSet id="202405081325-1" author="kflahert" dbms="postgres">
+  <changeSet id="202405081325-1" author="kflahert" dbms="postgresql">
     <comment>Delete duplicated subscriptions for AWS</comment>
     <sql>
       DELETE FROM SUBSCRIPTION_MEASUREMENTS measurement
