@@ -95,7 +95,9 @@ public enum ErrorCode {
 
   OFFERING_MISSING_ERROR(3003, "Sku not present in Offering"),
 
-  CONTRACT_NOT_AVAILABLE(3004, "Expected contract missing");
+  CONTRACT_NOT_AVAILABLE(3004, "Expected contract missing"),
+  /** An unexpected exception was thrown by the Swatch Billable Usage Service */
+  BILLABLE_USAGE_SERVICE_ERROR(4000, "Swatch Billable Usage Service Error");
 
   private static final String CODE_PREFIX = "SUBSCRIPTIONS";
 

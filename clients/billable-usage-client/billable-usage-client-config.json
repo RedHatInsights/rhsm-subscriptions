@@ -1,0 +1,8 @@
+{
+  "modelPackage": "com.redhat.swatch.billable.usage.api.model",
+  "apiPackage": "com.redhat.swatch.billable.usage.api.resources",
+  "invokerPackage": "com.redhat.swatch.billable.usage.client",
+  "groupId": "org.candlepin",
+  "artifactId": "billable.usage-client",
+  "java8": true
+}

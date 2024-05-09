@@ -42,9 +42,6 @@ public interface BillableUsageRemittanceRepository
         JpaSpecificationExecutor<BillableUsageRemittanceEntity>,
         EntityManagerLookup {
 
-  @Query
-  void deleteByOrgId(String orgId);
-
   List<BillableUsageRemittanceEntity> findByRetryAfterLessThan(OffsetDateTime asOf);
 
   default List<BillableUsageRemittanceEntity> filterBy(BillableUsageRemittanceFilter filter) {

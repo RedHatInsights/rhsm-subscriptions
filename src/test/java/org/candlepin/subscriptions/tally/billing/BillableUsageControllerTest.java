@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -86,12 +87,15 @@ class BillableUsageControllerTest {
   private static final String AWS_METRIC_ID = "aws_metric";
 
   private static final String CORES = "CORES";
+  private static final String ORG_ID = "org123";
 
   @Mock BillingProducer producer;
   @Mock BillableUsageRemittanceRepository remittanceRepo;
   @Mock TallySnapshotRepository snapshotRepo;
   @Mock DefaultApi contractsApi;
   @Mock ContractsClientProperties contractsClientProperties;
+  @Mock com.redhat.swatch.billable.usage.api.resources.DefaultApi billableUsageApi;
+  @Mock BillableUsageClientProperties billableUsageClientProperties;
 
   private SubscriptionDefinitionRegistry subscriptionDefinitionRegistry;
   private BillableUsageController controller;
@@ -117,7 +121,13 @@ class BillableUsageControllerTest {
     contractsController = new ContractsController(contractsApi, contractsClientProperties);
     controller =
         new BillableUsageController(
-            CLOCK, producer, remittanceRepo, snapshotRepo, contractsController);
+            CLOCK,
+            producer,
+            remittanceRepo,
+            snapshotRepo,
+            contractsController,
+            billableUsageApi,
+            billableUsageClientProperties);
     subscriptionDefinitionRegistry = mock(SubscriptionDefinitionRegistry.class);
     setMock(subscriptionDefinitionRegistry);
     var usage = billable(CLOCK.startOfCurrentMonth(), 0.0);
@@ -133,6 +143,12 @@ class BillableUsageControllerTest {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+  }
+
+  @Test
+  void testDeleteRemittancesWithOrg() throws com.redhat.swatch.billable.usage.client.ApiException {
+    controller.deleteRemittancesWithOrg(ORG_ID);
+    verify(billableUsageApi).deleteRemittancesAssociatedWithOrg(ORG_ID);
   }
 
   @Test
@@ -688,7 +704,8 @@ class BillableUsageControllerTest {
             .metrics(List.of(awsMetric))
             .build();
     variant.setSubscription(subscriptionDefinition);
-    when(subscriptionDefinitionRegistry.getSubscriptions())
+    lenient()
+        .when(subscriptionDefinitionRegistry.getSubscriptions())
         .thenReturn(List.of(subscriptionDefinition));
   }
 

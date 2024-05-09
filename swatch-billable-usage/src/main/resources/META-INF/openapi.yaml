@@ -13,8 +13,6 @@ paths:
     put:
       summary: Publishes messages to the billable-usage-aggregation-repartition topic for every partition in order to flush out stuck aggregations.
       operationId: flushBillableUsageAggregationTopic
-      tags:
-        - internalBillableUsage
       responses:
         '200':
           description: Topic successfully flushed.
@@ -24,6 +22,29 @@ paths:
                 $ref: "#/components/schemas/DefaultResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
+  /api/swatch-billable-usage/internal/rpc/remittance/{org_id}:
+    description: Clear remittance usages for a given org ID.
+    delete:
+      operationId: deleteRemittancesAssociatedWithOrg
+      parameters:
+        - in: path
+          name: org_id
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Finished deleting data associated with organization
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
+        '400':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
 components:
   schemas:
     Error:
