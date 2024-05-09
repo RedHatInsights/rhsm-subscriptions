@@ -159,19 +159,15 @@ public interface EventRecordRepository
               .map(
                   e ->
                       String.format(
-                          "('%s', '%s', '%s', '%s', '%s')",
-                          e.getOrgId(),
-                          e.getEventType(),
-                          e.getEventSource(),
-                          e.getInstanceId(),
-                          e.getTimestamp()))
+                          "('%s', '%s', '%s', '%s')",
+                          e.getOrgId(), e.getEventSource(), e.getInstanceId(), e.getTimestamp()))
               .collect(Collectors.toSet());
 
       String query =
           String.format(
               """
               select * from events
-              where (org_id, event_type, event_source, instance_id, timestamp)
+              where (org_id, event_source, instance_id, timestamp)
               in (%s)
               """,
               String.join(",", matchingTuples));

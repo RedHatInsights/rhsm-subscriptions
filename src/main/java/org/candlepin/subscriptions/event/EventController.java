@@ -177,8 +177,10 @@ public class EventController {
     try {
       if (!result.eventsMap.isEmpty()) {
         // Check to see if any of the incoming Events are in conflict and if so, resolve them.
-        List<EventRecord> resolved = resolveEventConflicts(incomingEvents);
-        int updated = transactionHandler.runInNewTransaction(() -> repo.saveAll(resolved)).size();
+        int updated =
+            transactionHandler
+                .runInNewTransaction(() -> repo.saveAll(resolveEventConflicts(incomingEvents)))
+                .size();
         log.debug("Adding/Updating {} metric events", updated);
       }
     } catch (Exception saveAllException) {
