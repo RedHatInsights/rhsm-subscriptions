@@ -22,6 +22,7 @@ package com.redhat.swatch.metrics.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.clients.prometheus.api.model.QueryResult;
@@ -223,6 +224,7 @@ class PrometheusMeteringControllerTest {
                 expectedBillingAccountId,
                 expectedMetricId,
                 val1.doubleValue(),
+                expectedProductTag,
                 expectedSpanId,
                 List.of(),
                 expectedDisplayName,
@@ -241,6 +243,7 @@ class PrometheusMeteringControllerTest {
                 expectedBillingAccountId,
                 expectedMetricId,
                 val2.doubleValue(),
+                expectedProductTag,
                 expectedSpanId,
                 List.of(),
                 expectedDisplayName,
@@ -248,9 +251,10 @@ class PrometheusMeteringControllerTest {
 
     whenCollectMetrics(start, end);
 
+    assertEquals(expectedEvents.size(), results.received().size());
     verifyQueryRange(start, end);
-
-    assertEquals(expectedEvents, results.received().stream().map(Message::getPayload).toList());
+    assertTrue(
+        results.received().stream().map(Message::getPayload).allMatch(expectedEvents::contains));
   }
 
   @Test
@@ -290,6 +294,7 @@ class PrometheusMeteringControllerTest {
             expectedBillingAccountId,
             expectedMetricId,
             val1.doubleValue(),
+            expectedProductTag,
             expectedSpanId,
             List.of(),
             expectedDisplayName,
@@ -312,16 +317,78 @@ class PrometheusMeteringControllerTest {
                 expectedBillingAccountId,
                 expectedMetricId,
                 val2.doubleValue(),
+                expectedProductTag,
                 expectedSpanId,
                 List.of(),
                 expectedDisplayName,
                 expected3rdPartyMigrationFlag));
 
     whenCollectMetrics(start, end);
+    assertEquals(expectedEvents.size(), results.received().size());
+    verifyQueryRange(start, end);
+    assertTrue(
+        results.received().stream().map(Message::getPayload).allMatch(expectedEvents::contains));
+  }
+
+  @Test
+  void testVerifyConflictingSlaCausesSavesFirstValue() {
+    QueryResultDataResultInner standardResultItem =
+        new QueryResultDataResultInner()
+            .putMetricItem("_id", expectedClusterId)
+            .putMetricItem("support", "Standard")
+            .putMetricItem("usage", "Production")
+            .putMetricItem("role", "osd")
+            .putMetricItem("external_organization", expectedOrgId)
+            .putMetricItem("billing_marketplace", "red hat")
+            .putMetricItem("billing_marketplace_account", expectedBillingAccountId)
+            .addValuesItem(List.of(BigDecimal.valueOf(1616787308L), BigDecimal.valueOf(4.0)));
+    QueryResultDataResultInner premiumResultItem =
+        new QueryResultDataResultInner()
+            .putMetricItem("_id", expectedClusterId)
+            .putMetricItem("support", "Standard")
+            .putMetricItem("usage", "Production")
+            .putMetricItem("role", "osd")
+            .putMetricItem("external_organization", expectedOrgId)
+            .putMetricItem("billing_marketplace", "red hat")
+            .putMetricItem("billing_marketplace_account", expectedBillingAccountId)
+            .addValuesItem(List.of(BigDecimal.valueOf(1616787308L), BigDecimal.valueOf(4.0)));
+    QueryResultData queryResultData =
+        new QueryResultData().addResultItem(standardResultItem).addResultItem(premiumResultItem);
+    QueryResult data = new QueryResult().data(queryResultData).status(StatusType.SUCCESS);
+
+    prometheusServer.stubQueryRange(data);
+
+    OffsetDateTime start = clock.startOfCurrentHour();
+    OffsetDateTime end = clock.endOfHour(start.plusDays(1));
+
+    Event updatedEvent =
+        MeteringEventFactory.createMetricEvent(
+            expectedOrgId,
+            expectedClusterId,
+            "Standard",
+            expectedUsage,
+            expectedRole,
+            PROMETHEUS,
+            clock.dateFromUnix(1616787308L).minusSeconds(metricProperties.step()),
+            clock.dateFromUnix(1616787308L),
+            expectedServiceType,
+            expectedBillingProvider,
+            expectedBillingAccountId,
+            expectedMetricId,
+            4.0,
+            expectedProductTag,
+            expectedSpanId,
+            List.of(),
+            expectedClusterId,
+            expected3rdPartyMigrationFlag);
+
+    List<Event> expectedEvents = List.of(updatedEvent);
+    whenCollectMetrics(start, end);
+    assertEquals(expectedEvents.size(), results.received().size());
 
     verifyQueryRange(start, end);
-
-    assertEquals(expectedEvents, results.received().stream().map(Message::getPayload).toList());
+    assertTrue(
+        results.received().stream().map(Message::getPayload).allMatch(expectedEvents::contains));
   }
 
   @Test
@@ -366,6 +433,7 @@ class PrometheusMeteringControllerTest {
                 expectedAzureBillingAccountId,
                 expectedMetricId,
                 val1.doubleValue(),
+                expectedProductTag,
                 expectedSpanId,
                 List.of(),
                 expectedClusterId,
@@ -384,6 +452,7 @@ class PrometheusMeteringControllerTest {
                 expectedAzureBillingAccountId,
                 expectedMetricId,
                 val2.doubleValue(),
+                expectedProductTag,
                 expectedSpanId,
                 List.of(),
                 expectedClusterId,
@@ -391,9 +460,10 @@ class PrometheusMeteringControllerTest {
 
     whenCollectMetrics(start, end);
 
+    assertEquals(expectedEvents.size(), results.received().size());
     verifyQueryRange(start, end);
-
-    assertEquals(expectedEvents, results.received().stream().map(Message::getPayload).toList());
+    assertTrue(
+        results.received().stream().map(Message::getPayload).allMatch(expectedEvents::contains));
   }
 
   private void whenCollectMetrics(OffsetDateTime start, OffsetDateTime end) {

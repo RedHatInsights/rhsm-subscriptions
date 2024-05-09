@@ -75,6 +75,7 @@ class MeteringEventFactoryTest {
             null,
             uom,
             measuredValue,
+            productTag,
             meteringBatchId,
             List.of(),
             DISPLAY_NAME,
@@ -87,6 +88,8 @@ class MeteringEventFactoryTest {
     assertEquals(Sla.PREMIUM, event.getSla());
     assertEquals(Usage.PRODUCTION, event.getUsage());
     assertEquals(EVENT_SOURCE, event.getEventSource());
+    assertEquals(
+        MeteringEventFactory.getEventType(uom.getValue(), productTag), event.getEventType());
     assertEquals(serviceType, event.getServiceType());
     assertEquals(meteringBatchId, event.getMeteringBatchId());
     assertEquals(1, event.getMeasurements().size());
@@ -114,6 +117,7 @@ class MeteringEventFactoryTest {
             null,
             MetricIdUtils.getCores(),
             12.5,
+            productTag,
             UUID.randomUUID(),
             List.of(),
             DISPLAY_NAME,
@@ -138,6 +142,7 @@ class MeteringEventFactoryTest {
             "null",
             MetricIdUtils.getCores(),
             12.5,
+            productTag,
             UUID.randomUUID(),
             List.of(),
             DISPLAY_NAME,
@@ -162,6 +167,7 @@ class MeteringEventFactoryTest {
             null,
             MetricIdUtils.getCores(),
             12.5,
+            productTag,
             UUID.randomUUID(),
             List.of(),
             DISPLAY_NAME,
@@ -186,6 +192,7 @@ class MeteringEventFactoryTest {
             null,
             MetricIdUtils.getCores(),
             12.5,
+            productTag,
             UUID.randomUUID(),
             List.of(),
             DISPLAY_NAME,
@@ -210,6 +217,7 @@ class MeteringEventFactoryTest {
             null,
             MetricIdUtils.getCores(),
             12.5,
+            productTag,
             UUID.randomUUID(),
             List.of(),
             DISPLAY_NAME,
@@ -234,6 +242,7 @@ class MeteringEventFactoryTest {
             null,
             MetricIdUtils.getCores(),
             12.5,
+            productTag,
             UUID.randomUUID(),
             List.of(),
             DISPLAY_NAME,
@@ -258,6 +267,7 @@ class MeteringEventFactoryTest {
             null,
             MetricIdUtils.getCores(),
             12.5,
+            productTag,
             UUID.randomUUID(),
             List.of(),
             DISPLAY_NAME,
@@ -282,6 +292,7 @@ class MeteringEventFactoryTest {
             "aws_account_123",
             MetricIdUtils.getCores(),
             12.5,
+            productTag,
             UUID.randomUUID(),
             List.of(),
             DISPLAY_NAME,
@@ -308,6 +319,7 @@ class MeteringEventFactoryTest {
             null,
             MetricIdUtils.getCores(),
             12.5,
+            productTag,
             UUID.randomUUID(),
             List.of(),
             DISPLAY_NAME,
@@ -333,6 +345,7 @@ class MeteringEventFactoryTest {
             null,
             MetricIdUtils.getCores(),
             12.5,
+            productTag,
             UUID.randomUUID(),
             List.of(),
             DISPLAY_NAME,
@@ -357,11 +370,45 @@ class MeteringEventFactoryTest {
             null,
             MetricIdUtils.getCores(),
             12.5,
+            productTag,
             UUID.randomUUID(),
             List.of(),
             DISPLAY_NAME,
             is3rdPartyMigrated);
     assertNull(event.getBillingProvider());
+  }
+
+  @Test
+  void testEventTypeGeneratedOnEventCreation() {
+    Event event =
+        MeteringEventFactory.createMetricEvent(
+            "my-org",
+            "cluster-id",
+            "Premium",
+            "Production",
+            null,
+            EVENT_SOURCE,
+            OffsetDateTime.now(),
+            OffsetDateTime.now(),
+            "service_type",
+            "red hat",
+            null,
+            MetricIdUtils.getCores(),
+            12.5,
+            productTag,
+            UUID.randomUUID(),
+            List.of(),
+            DISPLAY_NAME,
+            is3rdPartyMigrated);
+    assertEquals("snapshot_openshift-dedicated-metrics_cores", event.getEventType());
+  }
+
+  @Test
+  void testEventTypeGeneration() {
+    assertEquals(
+        "snapshot_openshift-dedicated-metrics_my-metric",
+        MeteringEventFactory.getEventType("my-metric", productTag));
+    assertEquals("snapshot", MeteringEventFactory.getEventType("", ""));
   }
 
   @Test
@@ -381,6 +428,7 @@ class MeteringEventFactoryTest {
             null,
             MetricIdUtils.getCores(),
             12.5,
+            productTag,
             UUID.randomUUID(),
             List.of(),
             DISPLAY_NAME,
