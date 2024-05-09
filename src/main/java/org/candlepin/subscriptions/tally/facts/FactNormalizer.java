@@ -23,8 +23,6 @@ package org.candlepin.subscriptions.tally.facts;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import java.time.OffsetDateTime;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -67,16 +65,18 @@ public class FactNormalizer {
    * Normalize the FactSets of the given host.
    *
    * @param hostFacts the collection of facts to normalize.
+   * @param isMetered
    * @return a normalized version of the host's facts.
    */
-  public NormalizedFacts normalize(InventoryHostFacts hostFacts, OrgHostsData guestData) {
+  public NormalizedFacts normalize(
+      InventoryHostFacts hostFacts, OrgHostsData guestData, boolean isMetered) {
 
     NormalizedFacts normalizedFacts = new NormalizedFacts();
     normalizeClassification(normalizedFacts, hostFacts, guestData);
     normalizeHardwareType(normalizedFacts, hostFacts);
-    normalizeSystemProfileFacts(normalizedFacts, hostFacts);
+    normalizeSystemProfileFacts(normalizedFacts, hostFacts, isMetered);
     normalizeSatelliteFacts(normalizedFacts, hostFacts);
-    normalizeRhsmFacts(normalizedFacts, hostFacts);
+    normalizeRhsmFacts(normalizedFacts, hostFacts, isMetered);
     normalizeQpcFacts(normalizedFacts, hostFacts);
     normalizeSocketCount(normalizedFacts, hostFacts);
     normalizeMarketplace(normalizedFacts, hostFacts);
@@ -210,7 +210,7 @@ public class FactNormalizer {
   }
 
   private void normalizeSystemProfileFacts(
-      NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
+      NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts, boolean isMetered) {
     String cloudProvider = hostFacts.getCloudProvider();
     if (HardwareMeasurementType.isSupportedCloudProvider(cloudProvider)) {
       normalizedFacts.setCloudProviderType(HardwareMeasurementType.fromString(cloudProvider));
@@ -227,7 +227,7 @@ public class FactNormalizer {
     }
     normalizedFacts
         .getProducts()
-        .addAll(getProductsFromProductIds(hostFacts.getSystemProfileProductIds()));
+        .addAll(getProductsFromProductIds(hostFacts.getSystemProfileProductIds(), isMetered));
     if ("x86_64".equals(hostFacts.getSystemProfileArch())
         && HardwareMeasurementType.VIRTUAL
             .toString()
@@ -300,31 +300,19 @@ public class FactNormalizer {
     return (int) Math.ceil(cpu / threadsPerCore);
   }
 
-  private Set<String> getProductsFromProductIds(Collection<String> productIds) {
+  private Set<String> getProductsFromProductIds(Collection<String> productIds, boolean isMetered) {
     if (productIds == null) {
       return Set.of();
     }
-
-    Set<String> products = new HashSet<>();
-    for (String productId : productIds) {
-      try {
-        var subscriptions = SubscriptionDefinition.lookupSubscriptionByEngId(productId);
-        if (Objects.nonNull(subscriptions)) {
-          subscriptions.forEach(
-              subscriptionDefinition ->
-                  subscriptionDefinition
-                      .findVariantForEngId(productId)
-                      .ifPresent(v -> products.add(v.getTag())));
-        }
-      } catch (NumberFormatException e) {
-        log.debug("Skipping non-numeric productId: {}", productId);
-      }
-    }
-
-    return products;
+    return isMetered
+        ? SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
+            null, productIds, null)
+        : SubscriptionDefinition.getAllProductTagsWithNonPaygEligibleByRoleOrEngIds(
+            null, productIds, null);
   }
 
-  private void normalizeRhsmFacts(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
+  private void normalizeRhsmFacts(
+      NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts, boolean isMetered) {
     // If the host hasn't been seen by rhsm-conduit, consider the host as unregistered, and do not
     // apply this host's facts.
     //
@@ -339,13 +327,17 @@ public class FactNormalizer {
                         && hostUnregistered(OffsetDateTime.parse(syncTimestamp)))
             .orElse(false);
     if (!skipRhsmFacts) {
-      normalizedFacts.getProducts().addAll(getProductsFromProductIds(hostFacts.getProducts()));
+      normalizedFacts
+          .getProducts()
+          .addAll(
+              isMetered
+                  ? SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
+                      hostFacts.getSyspurposeRole(), hostFacts.getProducts(), null)
+                  : SubscriptionDefinition.getAllProductTagsWithNonPaygEligibleByRoleOrEngIds(
+                      hostFacts.getSyspurposeRole(), hostFacts.getProducts(), null));
 
       // Check for cores and sockets. If not included, default to 0.
-
       normalizedFacts.setOrgId(hostFacts.getOrgId());
-
-      handleRole(normalizedFacts, hostFacts.getSyspurposeRole());
       handleSla(normalizedFacts, hostFacts, hostFacts.getSyspurposeSla());
       handleUsage(normalizedFacts, hostFacts, hostFacts.getSyspurposeUsage());
     }

@@ -250,13 +250,17 @@ public class InventoryAccountUsageCollector {
         "Reconciling HBI inventoryId={} & swatch inventoryId={}",
         Optional.ofNullable(hbiSystem).map(InventoryHostFacts::getInventoryId),
         Optional.ofNullable(swatchSystem).map(Host::getInventoryId));
+    boolean isMetered = swatchSystem != null && swatchSystem.isMetered();
     if (hbiSystem == null && swatchSystem == null) {
       log.debug("Unexpected, both HBI & Swatch system records are empty");
     } else if (hbiSystem == null) {
-      log.info("Deleting system w/ inventoryId={}", swatchSystem.getInventoryId());
-      hostRepository.delete(swatchSystem);
+      if (!isMetered) {
+        log.info("Deleting system w/ inventoryId={}", swatchSystem.getInventoryId());
+        hostRepository.delete(swatchSystem);
+      }
     } else {
-      NormalizedFacts normalizedFacts = factNormalizer.normalize(hbiSystem, orgHostsData);
+      NormalizedFacts normalizedFacts =
+          factNormalizer.normalize(hbiSystem, orgHostsData, isMetered);
       Set<Key> usageKeys = createHostUsageKeys(applicableProducts, normalizedFacts);
       if (swatchSystem != null) {
         log.debug("Updating system w/ inventoryId={}", hbiSystem.getInventoryId());
