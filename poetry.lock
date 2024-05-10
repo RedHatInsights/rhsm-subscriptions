@@ -425,13 +425,13 @@ toml = ["tomli"]
 
 [[package]]
 name = "crc-bonfire"
-version = "5.7.1"
+version = "5.7.2"
 description = "A CLI tool used to deploy ephemeral environments for testing cloud.redhat.com applications"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "crc-bonfire-5.7.1.tar.gz", hash = "sha256:8796e12daa22f436ecb015d878462e0a91a7d793c8b547d1764ac0e8a000f523"},
-    {file = "crc_bonfire-5.7.1-py3-none-any.whl", hash = "sha256:bd2d1e756660b113ee1de04d6765470eb171a11ece01d45e538fe5e599857eb2"},
+    {file = "crc_bonfire-5.7.2-py3-none-any.whl", hash = "sha256:ee04ff4da655e281878ada0ddb1944274403b24e2f2572496c1b9aff3c1081e5"},
+    {file = "crc_bonfire-5.7.2.tar.gz", hash = "sha256:c156f38fc2082eaf14e07a4176acbab426f078400fc5885659a2b24b08721649"},
 ]
 
 [package.dependencies]
