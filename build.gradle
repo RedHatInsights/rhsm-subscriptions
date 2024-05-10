@@ -45,6 +45,7 @@ dependencies {
     implementation project(":clients:contracts-client")
     implementation project(":clients:swatch-internal-subscription-springboot-client")
     implementation project(":clients:export-client")
+    implementation project(":clients:billable-usage-client")
 
     implementation "org.springframework.boot:spring-boot-starter-data-jpa"
     implementation "org.springframework.kafka:spring-kafka"
