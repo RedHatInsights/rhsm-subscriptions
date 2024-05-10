@@ -21,10 +21,12 @@
 package org.candlepin.subscriptions.event;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -73,19 +75,21 @@ public class EventConflictResolver {
     this.resolvedEventMapper = resolvedEventMapper;
   }
 
-  public List<EventRecord> resolveIncomingEvents(Map<EventKey, Event> eventsToResolve) {
+  public List<EventRecord> resolveIncomingEvents(Map<EventKey, List<Event>> eventsToResolve) {
     log.info("Resolving existing events for incoming batch.");
-    Map<EventKey, List<EventRecord>> allConflicting = getConflictingEvents(eventsToResolve);
+    Map<EventKey, List<EventRecord>> allConflicting = getConflictingEvents(eventsToResolve.keySet());
     // Nothing to resolve
     if (allConflicting.isEmpty()) {
       log.info("No conflicting incoming events in batch. Nothing to resolve.");
-      return eventsToResolve.values().stream().map(EventRecord::new).toList();
+      return eventsToResolve.values().stream()
+          .flatMap(Collection::stream)
+          .map(EventRecord::new).toList();
     }
 
     // Resolve any conflicting events.
     List<EventRecord> resolvedEvents = new LinkedList<>();
     eventsToResolve.forEach(
-        (key, event) -> {
+        (key, eventList) -> eventList.forEach(event -> {
           if (allConflicting.containsKey(key)) {
             List<EventRecord> resolvedConflicts =
                 resolveEventConflicts(event, allConflicting.get(key));
@@ -98,7 +102,7 @@ public class EventConflictResolver {
           }
           // Include the incoming event since this event will be the new value.
           resolvedEvents.add(new EventRecord(event));
-        });
+        }));
     return resolvedEvents;
   }
 
@@ -173,9 +177,8 @@ public class EventConflictResolver {
         : measurement.getUom();
   }
 
-  private Map<EventKey, List<EventRecord>> getConflictingEvents(
-      Map<EventKey, Event> incomingEvents) {
-    return eventRecordRepository.findConflictingEvents(incomingEvents.keySet()).stream()
+  private Map<EventKey, List<EventRecord>> getConflictingEvents(Set<EventKey> eventKeys) {
+    return eventRecordRepository.findConflictingEvents(eventKeys).stream()
         .collect(Collectors.groupingBy(e -> EventKey.fromEvent(e.getEvent())));
   }
 

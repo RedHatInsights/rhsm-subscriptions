@@ -170,37 +170,42 @@ public class EventController {
   public void persistServiceInstances(List<String> eventJsonList)
       throws BatchListenerFailedException {
     ServiceInstancesResult result = parseServiceInstancesResult(eventJsonList);
-    Map<EventKey, Event> incomingEvents =
+    Map<EventKey, List<Event>> incomingEvents =
         result.eventsMap.entrySet().stream()
-            .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().getKey()));
+            .collect(Collectors.toMap(Entry::getKey,
+                e -> e.getValue().stream().map(Pair::getKey).toList()));
 
     try {
       if (!result.eventsMap.isEmpty()) {
         // Check to see if any of the incoming Events are in conflict and if so, resolve them.
         int updated =
             transactionHandler
-                .runInNewTransaction(() -> repo.saveAll(resolveEventConflicts(incomingEvents)))
+                .runInNewTransaction(() -> {
+
+                  List<EventRecord> resolved = resolveEventConflicts(incomingEvents);
+                  return repo.saveAll(resolved);
+                })
                 .size();
         log.debug("Adding/Updating {} metric events", updated);
       }
     } catch (Exception saveAllException) {
       log.warn("Failed to save events. Retrying individually {} events.", result.eventsMap.size());
       result.eventsMap.forEach(
-          (eventKey, eventIndexPair) -> {
-            try {
-              transactionHandler.runInNewTransaction(
-                  () ->
-                      repo.saveAll(
-                          eventConflictResolver.resolveIncomingEvents(
-                              Map.of(eventKey, eventIndexPair.getKey()))));
-            } catch (Exception individualSaveException) {
-              log.warn(
-                  "Failed to save individual event record: {} with error {}.",
-                  eventIndexPair.getKey(),
-                  ExceptionUtils.getStackTrace(individualSaveException));
-              throw new BatchListenerFailedException(
-                  individualSaveException.getMessage(), eventIndexPair.getValue());
-            }
+          (eventKey, eventPairs) -> {
+            eventPairs.forEach(eventIndexPair -> {
+              try {
+                transactionHandler.runInNewTransaction(() ->
+                    repo.saveAll(eventConflictResolver.resolveIncomingEvents(
+                        Map.of(eventKey, List.of(eventIndexPair.getKey())))));
+              } catch (Exception individualSaveException) {
+                log.warn(
+                    "Failed to save individual event record: {} with error {}.",
+                    eventIndexPair.getKey(),
+                    ExceptionUtils.getStackTrace(individualSaveException));
+                throw new BatchListenerFailedException(
+                    individualSaveException.getMessage(), eventIndexPair.getValue());
+              }
+            });
           });
     }
 
@@ -215,7 +220,7 @@ public class EventController {
     }
   }
 
-  public List<EventRecord> resolveEventConflicts(Map<EventKey, Event> toResolve) {
+  public List<EventRecord> resolveEventConflicts(Map<EventKey, List<Event>> toResolve) {
     return eventConflictResolver.resolveIncomingEvents(toResolve);
   }
 
@@ -325,11 +330,13 @@ public class EventController {
   }
 
   private static class ServiceInstancesResult {
-    private final Map<EventKey, Pair<Event, Integer>> eventsMap = new HashMap<>();
+    private final Map<EventKey, List<Pair<Event, Integer>>> eventsMap = new HashMap<>();
     private Optional<Integer> failedOnIndex = Optional.empty();
 
     private void addEvent(Event event, int index) {
-      eventsMap.putIfAbsent(EventKey.fromEvent(event), Pair.of(event, index));
+      EventKey key = EventKey.fromEvent(event);
+      eventsMap.computeIfAbsent(key, l -> new ArrayList<>());
+      eventsMap.get(key).add(Pair.of(event, index));
     }
 
     public void setFailedOnIndex(int index) {
