@@ -25,7 +25,7 @@ ext {
 ext.plugins = [
         "com.adarshr:gradle-test-logger-plugin:4.0.0",
         "com.diffplug.spotless:spotless-plugin-gradle:6.25.0",
-        "com.netflix.nebula:nebula-release-plugin:19.0.6",
+        "com.netflix.nebula:nebula-release-plugin:19.0.9",
         "io.quarkus:gradle-application-plugin:${quarkusVersion}",
         // swagger-parser manually upgraded for compatibility with snakeyaml 2.0
         // see https://github.com/OpenAPITools/openapi-generator/issues/15876
@@ -44,7 +44,7 @@ libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-de
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:3.0.0"
-libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.25.46"
+libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.25.48"
 libraries["clowder-quarkus-config-source"] = "com.redhat.cloud.common:clowder-quarkus-config-source:2.6.1"
 libraries["guava"] = "com.google.guava:guava:33.2.0-jre"
 libraries["commons-lang3"] = "org.apache.commons:commons-lang3:3.14.0"
@@ -79,7 +79,7 @@ libraries["webjars-locator"] = "org.webjars:webjars-locator:0.52"
 libraries["wiremock"] = "com.github.tomakehurst:wiremock-standalone:3.0.1"
 libraries["awaitility"] = "org.awaitility:awaitility:4.2.1"
 libraries["splunk-otel-agent"] = 'com.splunk:splunk-otel-javaagent:1.32.0'
-libraries["testcontainers-postgresql"] = 'org.testcontainers:postgresql:1.19.7'
+libraries["testcontainers-postgresql"] = 'org.testcontainers:postgresql:1.19.8'
 libraries["kafka-streams-test-utils"] = "org.apache.kafka:kafka-streams-test-utils:3.7.0"
 libraries["slf4j-api"] = "org.slf4j:slf4j-api:2.0.13"
 libraries["snakeyaml"] = "org.yaml:snakeyaml:2.2"

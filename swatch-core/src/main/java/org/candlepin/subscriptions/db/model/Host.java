@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.db.model;
 
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
@@ -160,6 +161,25 @@ public class Host implements Serializable {
     this.insightsId = insightsId;
     this.orgId = orgId;
     this.subscriptionManagerId = subManId;
+  }
+
+  public boolean isMetered() {
+    boolean metered = false;
+    Set<HostTallyBucket> bucketSet = this.getBuckets();
+    if (bucketSet == null || bucketSet.isEmpty()) {
+      return false;
+    }
+    for (HostTallyBucket bucket : bucketSet) {
+      if (bucket.getKey() != null) {
+        Optional<SubscriptionDefinition> subscriptionDefinition =
+            SubscriptionDefinition.lookupSubscriptionByTag(bucket.getKey().getProductId());
+        metered =
+            metered
+                || subscriptionDefinition.isPresent()
+                    && subscriptionDefinition.get().isPaygEligible();
+      }
+    }
+    return metered;
   }
 
   public Double getMeasurement(String metricId) {
