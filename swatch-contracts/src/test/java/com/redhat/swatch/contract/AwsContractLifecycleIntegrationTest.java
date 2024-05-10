@@ -157,7 +157,6 @@ class AwsContractLifecycleIntegrationTest {
   }
 
   @Test
-  @Transactional
   void testAwsContractLifecycleHandledAppropriately() throws JsonProcessingException {
     stubPartnerSubscriptionApi(AWS_PARTNER_API_RESPONSE_CONTRACT_CREATED);
     var status =
