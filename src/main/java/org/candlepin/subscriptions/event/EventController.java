@@ -26,23 +26,19 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.candlepin.subscriptions.db.EventRecordRepository;
-import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.json.Event;
@@ -170,42 +166,40 @@ public class EventController {
   public void persistServiceInstances(List<String> eventJsonList)
       throws BatchListenerFailedException {
     ServiceInstancesResult result = parseServiceInstancesResult(eventJsonList);
-    Map<EventKey, List<Event>> incomingEvents =
-        result.eventsMap.entrySet().stream()
-            .collect(Collectors.toMap(Entry::getKey,
-                e -> e.getValue().stream().map(Pair::getKey).toList()));
-
     try {
-      if (!result.eventsMap.isEmpty()) {
+      if (!result.indexedEvents.isEmpty()) {
         // Check to see if any of the incoming Events are in conflict and if so, resolve them.
         int updated =
             transactionHandler
-                .runInNewTransaction(() -> {
-
-                  List<EventRecord> resolved = resolveEventConflicts(incomingEvents);
-                  return repo.saveAll(resolved);
-                })
+                .runInNewTransaction(
+                    () -> {
+                      List<EventRecord> resolved =
+                          resolveEventConflicts(
+                              result.indexedEvents.stream().map(Pair::getKey).toList());
+                      return repo.saveAll(resolved);
+                    })
                 .size();
         log.debug("Adding/Updating {} metric events", updated);
       }
     } catch (Exception saveAllException) {
-      log.warn("Failed to save events. Retrying individually {} events.", result.eventsMap.size());
-      result.eventsMap.forEach(
-          (eventKey, eventPairs) -> {
-            eventPairs.forEach(eventIndexPair -> {
-              try {
-                transactionHandler.runInNewTransaction(() ->
-                    repo.saveAll(eventConflictResolver.resolveIncomingEvents(
-                        Map.of(eventKey, List.of(eventIndexPair.getKey())))));
-              } catch (Exception individualSaveException) {
-                log.warn(
-                    "Failed to save individual event record: {} with error {}.",
-                    eventIndexPair.getKey(),
-                    ExceptionUtils.getStackTrace(individualSaveException));
-                throw new BatchListenerFailedException(
-                    individualSaveException.getMessage(), eventIndexPair.getValue());
-              }
-            });
+      log.warn(
+          "Failed to save events. Retrying individually {} events.", result.indexedEvents.size());
+      result.indexedEvents.forEach(
+          indexedPair -> {
+            try {
+              transactionHandler.runInNewTransaction(
+                  () ->
+                      repo.saveAll(
+                          eventConflictResolver.resolveIncomingEvents(
+                              List.of(indexedPair.getKey()))));
+            } catch (Exception individualSaveException) {
+              log.warn(
+                  "Failed to save individual event record: {} with error {}.",
+                  indexedPair.getKey(),
+                  ExceptionUtils.getStackTrace(individualSaveException));
+              throw new BatchListenerFailedException(
+                  individualSaveException.getMessage(), indexedPair.getValue());
+            }
           });
     }
 
@@ -220,28 +214,28 @@ public class EventController {
     }
   }
 
-  public List<EventRecord> resolveEventConflicts(Map<EventKey, List<Event>> toResolve) {
+  public List<EventRecord> resolveEventConflicts(List<Event> toResolve) {
     return eventConflictResolver.resolveIncomingEvents(toResolve);
   }
 
   private ServiceInstancesResult parseServiceInstancesResult(List<String> eventJsonList) {
-    ServiceInstancesResult result = new ServiceInstancesResult();
-    LinkedHashMap<String, Integer> eventIndexMap = mapEventsToBatchIndex(eventJsonList);
-    for (Entry<String, Integer> eventIndex : eventIndexMap.entrySet()) {
+    LinkedHashMap<String, Integer> indexedEventJson = mapEventsToBatchIndex(eventJsonList);
+    ServiceInstancesResult result = new ServiceInstancesResult(indexedEventJson.size());
+    for (Entry<String, Integer> entry : indexedEventJson.entrySet()) {
       try {
-        Event eventToProcess = objectMapper.readValue(eventIndex.getKey(), Event.class);
+        Event eventToProcess = objectMapper.readValue(entry.getKey(), Event.class);
         if (!EXCLUDE_LOG_FOR_EVENT_SOURCES.contains(eventToProcess.getEventSource())) {
-          log.info("Event processing in batch: " + eventIndex.getKey());
+          log.info("Event processing in batch: " + entry.getKey());
         }
-        processEvent(eventToProcess).ifPresent(e -> result.addEvent(e, eventIndex.getValue()));
+        processEvent(eventToProcess).ifPresent(e -> result.addEvent(e, entry.getValue()));
       } catch (Exception e) {
         log.warn(
             "Issue found {} for the service instance json {} skipping to next: {}",
             e.getMessage(),
-            eventIndex.getKey(),
+            entry.getKey(),
             ExceptionUtils.getStackTrace(e));
         if (result.failedOnIndex.isEmpty()) {
-          result.setFailedOnIndex(eventIndex.getValue());
+          result.setFailedOnIndex(entry.getValue());
         }
         break;
       }
@@ -330,13 +324,15 @@ public class EventController {
   }
 
   private static class ServiceInstancesResult {
-    private final Map<EventKey, List<Pair<Event, Integer>>> eventsMap = new HashMap<>();
+    private final List<Pair<Event, Integer>> indexedEvents;
     private Optional<Integer> failedOnIndex = Optional.empty();
 
+    public ServiceInstancesResult(int potentialSize) {
+      this.indexedEvents = new ArrayList<>(potentialSize);
+    }
+
     private void addEvent(Event event, int index) {
-      EventKey key = EventKey.fromEvent(event);
-      eventsMap.computeIfAbsent(key, l -> new ArrayList<>());
-      eventsMap.get(key).add(Pair.of(event, index));
+      indexedEvents.add(Pair.of(event, index));
     }
 
     public void setFailedOnIndex(int index) {

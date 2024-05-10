@@ -28,7 +28,6 @@ import static org.mockito.Mockito.when;
 import java.time.OffsetDateTime;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.EventRecordRepository;
@@ -62,8 +61,7 @@ class EventConflictResolverTest {
     EventRecord expectedEventRecord = withExistingEvent("instance1", CLOCK.now(), "cores", 12.0);
     Event expectedEvent = expectedEventRecord.getEvent();
 
-    List<EventRecord> resolved =
-        resolver.resolveIncomingEvents(Map.of(EventKey.fromEvent(expectedEvent), List.of(expectedEvent)));
+    List<EventRecord> resolved = resolver.resolveIncomingEvents(List.of(expectedEvent));
     assertEquals(1, resolved.size());
     EventRecord resolvedEvent = resolved.get(0);
     assertNull(resolvedEvent.getEvent().getAmendmentType());
@@ -75,12 +73,11 @@ class EventConflictResolverTest {
     EventRecord existingEventRecord = withExistingEvent("instance1", CLOCK.now(), "cores", 5.0);
     Event existingEvent = existingEventRecord.getEvent();
     EventKey existingEventKey = EventKey.fromEvent(existingEvent);
-    Map<EventKey, List<Event>> existingEventMap = Map.of(existingEventKey, List.of(existingEvent));
 
-    when(repo.findConflictingEvents(existingEventMap.keySet()))
+    when(repo.findConflictingEvents(Set.of(existingEventKey)))
         .thenReturn(List.of(existingEventRecord));
 
-    List<EventRecord> resolved = resolver.resolveIncomingEvents(existingEventMap);
+    List<EventRecord> resolved = resolver.resolveIncomingEvents(List.of(existingEvent));
     assertTrue(resolved.isEmpty(), "Expected resolved events to be empty.");
   }
 
@@ -95,8 +92,7 @@ class EventConflictResolverTest {
 
     Event incomingEvent = withIncomingEvent(instanceId, eventTimestamp, "cores", 15.0);
 
-    List<EventRecord> resolved =
-        resolver.resolveIncomingEvents(Map.of(EventKey.fromEvent(incomingEvent), List.of(incomingEvent)));
+    List<EventRecord> resolved = resolver.resolveIncomingEvents(List.of(incomingEvent));
     assertEquals(2, resolved.size());
 
     Event deductionEvent = resolved.get(0).getEvent();
@@ -125,8 +121,7 @@ class EventConflictResolverTest {
                 new Measurement().withMetricId("cores").withValue(15.0),
                 new Measurement().withMetricId("instance-hours").withValue(15.0)));
 
-    List<EventRecord> resolved =
-        resolver.resolveIncomingEvents(Map.of(EventKey.fromEvent(incomingEvent), List.of(incomingEvent)));
+    List<EventRecord> resolved = resolver.resolveIncomingEvents(List.of(incomingEvent));
 
     assertEquals(2, resolved.size());
 
@@ -156,8 +151,7 @@ class EventConflictResolverTest {
 
     Event incomingEvent = withIncomingEvent(instanceId, eventTimestamp, "cores", 25.0);
 
-    List<EventRecord> resolved =
-        resolver.resolveIncomingEvents(Map.of(EventKey.fromEvent(incomingEvent), List.of(incomingEvent)));
+    List<EventRecord> resolved = resolver.resolveIncomingEvents(List.of(incomingEvent));
     assertEquals(2, resolved.size());
 
     // The existing amendment event of -5.0 cores is ignored as the existing event
@@ -189,8 +183,7 @@ class EventConflictResolverTest {
     when(repo.findConflictingEvents(Set.of(EventKey.fromEvent(event1.getEvent()))))
         .thenReturn(List.of(event1, event2));
 
-    List<EventRecord> resolved =
-        resolver.resolveIncomingEvents(Map.of(EventKey.fromEvent(incomingEvent), List.of(incomingEvent)));
+    List<EventRecord> resolved = resolver.resolveIncomingEvents(List.of(incomingEvent));
     assertEquals(3, resolved.size());
     assertDeductionEvent(resolved.get(0).getEvent(), instanceId, "cores", -10.0);
     assertDeductionEvent(resolved.get(1).getEvent(), instanceId, "instance-hours", -2.0);
@@ -213,8 +206,7 @@ class EventConflictResolverTest {
         .thenReturn(List.of(existingEvent));
 
     Event incomingEvent = withIncomingEvent(instanceId, eventTimestamp, "instance-hours", 10.0);
-    List<EventRecord> resolved =
-        resolver.resolveIncomingEvents(Map.of(EventKey.fromEvent(incomingEvent), List.of(incomingEvent)));
+    List<EventRecord> resolved = resolver.resolveIncomingEvents(List.of(incomingEvent));
 
     assertEquals(2, resolved.size());
 
@@ -244,11 +236,7 @@ class EventConflictResolverTest {
     when(repo.findConflictingEvents(lookupKeys))
         .thenReturn(List.of(i1ExistingEvent, i2ExistingEvent));
 
-    Map<EventKey, List<Event>> incomingEvents =
-        Map.of(
-            EventKey.fromEvent(i1IncomingEvent), List.of(i1IncomingEvent),
-            EventKey.fromEvent(i2IncomingEvent), List.of(i2IncomingEvent));
-
+    List<Event> incomingEvents = List.of(i1IncomingEvent, i2IncomingEvent);
     List<EventRecord> resolved =
         resolver.resolveIncomingEvents(incomingEvents).stream()
             .sorted(Comparator.comparing(EventRecord::getInstanceId))
@@ -286,8 +274,7 @@ class EventConflictResolverTest {
     when(repo.findConflictingEvents(Set.of(EventKey.fromEvent(event1.getEvent()))))
         .thenReturn(List.of(event1));
 
-    List<EventRecord> resolved =
-        resolver.resolveIncomingEvents(Map.of(EventKey.fromEvent(incomingEvent), List.of(incomingEvent)));
+    List<EventRecord> resolved = resolver.resolveIncomingEvents(List.of(incomingEvent));
     assertEquals(3, resolved.size());
     assertDeductionEvent(resolved.get(0).getEvent(), instanceId, "Cores", -1.0);
     assertDeductionEvent(resolved.get(1).getEvent(), instanceId, "Instance-hours", -5.0);

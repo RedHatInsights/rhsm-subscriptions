@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.event;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -75,34 +74,37 @@ public class EventConflictResolver {
     this.resolvedEventMapper = resolvedEventMapper;
   }
 
-  public List<EventRecord> resolveIncomingEvents(Map<EventKey, List<Event>> eventsToResolve) {
+  public List<EventRecord> resolveIncomingEvents(List<Event> incomingEvents) {
     log.info("Resolving existing events for incoming batch.");
-    Map<EventKey, List<EventRecord>> allConflicting = getConflictingEvents(eventsToResolve.keySet());
+    Map<EventKey, List<Event>> eventsToResolve =
+        incomingEvents.stream().collect(Collectors.groupingBy(EventKey::fromEvent));
+    Map<EventKey, List<EventRecord>> allConflicting =
+        getConflictingEvents(eventsToResolve.keySet());
     // Nothing to resolve
     if (allConflicting.isEmpty()) {
       log.info("No conflicting incoming events in batch. Nothing to resolve.");
-      return eventsToResolve.values().stream()
-          .flatMap(Collection::stream)
-          .map(EventRecord::new).toList();
+      return incomingEvents.stream().map(EventRecord::new).toList();
     }
 
     // Resolve any conflicting events.
     List<EventRecord> resolvedEvents = new LinkedList<>();
     eventsToResolve.forEach(
-        (key, eventList) -> eventList.forEach(event -> {
-          if (allConflicting.containsKey(key)) {
-            List<EventRecord> resolvedConflicts =
-                resolveEventConflicts(event, allConflicting.get(key));
-            // When there is a conflict with no resolution, the incoming event is a duplicate
-            // and there is no need to add it as resolved.
-            if (resolvedConflicts.isEmpty()) {
-              return;
-            }
-            resolvedEvents.addAll(resolvedConflicts);
-          }
-          // Include the incoming event since this event will be the new value.
-          resolvedEvents.add(new EventRecord(event));
-        }));
+        (key, eventList) ->
+            eventList.forEach(
+                event -> {
+                  if (allConflicting.containsKey(key)) {
+                    List<EventRecord> resolvedConflicts =
+                        resolveEventConflicts(event, allConflicting.get(key));
+                    // When there is a conflict with no resolution, the incoming event is a
+                    // duplicate and there is no need to add it as resolved.
+                    if (resolvedConflicts.isEmpty()) {
+                      return;
+                    }
+                    resolvedEvents.addAll(resolvedConflicts);
+                  }
+                  // Include the incoming event since this event will be the new value.
+                  resolvedEvents.add(new EventRecord(event));
+                }));
     return resolvedEvents;
   }
 
