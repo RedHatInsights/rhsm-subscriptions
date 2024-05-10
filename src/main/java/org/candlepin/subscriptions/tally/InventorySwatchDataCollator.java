@@ -265,8 +265,8 @@ public class InventorySwatchDataCollator {
     @Override
     public int compareTo(@NotNull SortKey other) {
       var instanceIdResult = compare(instanceId, other.getInstanceId());
-      if (instanceIdResult == 0) {
-        return 0;
+      if (instanceIdResult != 0) {
+        return instanceIdResult;
       }
       var hardwareSubmanIdResult = compare(hardwareSubmanId, other.getHardwareSubmanId());
       if (hardwareSubmanIdResult != 0) {
