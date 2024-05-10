@@ -245,28 +245,23 @@ public class PrometheusMeteringController {
         SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
             role, productIds, null, is3rdPartyMigrated);
 
-    Optional<String> firstTag = matchingTags.stream().findFirst();
-    if (firstTag.isPresent()) {
-
-      var derivedProductTag = firstTag.get();
-
-      if (!Objects.equals(derivedProductTag, productTag)) {
-        log.warn(
-            "Starting product tag {} does not match derived product tag {} based on data contents",
-            productTag,
-            derivedProductTag);
-      }
-
-      productTag = derivedProductTag;
-
-      log.info("Creating Event for product {}", productTag);
-
-    } else {
-      log.info(
-          "Data does not match any swatch-product-configuration definition, skipping Event creation");
+    if (matchingTags.size() != 1) {
+      log.warn(
+          "Data does not uniquely match a swatch-product-configuration product-tag, skipping Event creation");
       log.debug("Data: {}", labels);
       return;
     }
+
+    var derivedProductTag = matchingTags.iterator().next();
+
+    if (!Objects.equals(productTag, derivedProductTag)) {
+      log.warn(
+          "Starting product tag {} does not match derived product tag {} based on data contents",
+          productTag,
+          derivedProductTag);
+    }
+
+    log.info("Creating Event for product {}", derivedProductTag);
 
     String billingProvider = labels.get("billing_marketplace");
     String billingAccountId;
@@ -307,7 +302,7 @@ public class PrometheusMeteringController {
               billingAccountId,
               MetricId.fromString(tagMetric.getId()),
               value,
-              productTag,
+              derivedProductTag,
               meteringBatchId,
               productIds,
               displayName,
