@@ -18,21 +18,26 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.retention;
+package com.redhat.swatch.billable.usage.admin.api;
 
-import java.time.Duration;
-import lombok.Getter;
-import lombok.Setter;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
+import static org.mockito.Mockito.verify;
 
-/** Retention policies for supported granularities. */
-@Component
-@Getter
-@Setter
-@ConfigurationProperties(prefix = "rhsm-subscriptions.remittance-retention-policy")
-public class RemittanceRetentionPolicyProperties {
+import com.redhat.swatch.billable.usage.services.EnabledOrgsProducer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-  /** Defines the max duration remittance records are retained. */
-  private Duration duration;
+@ExtendWith(MockitoExtension.class)
+class InternalBillableUsageResourceTest {
+  @Mock EnabledOrgsProducer enabledOrgsProducer;
+
+  @InjectMocks InternalBillableUsageResource resource;
+
+  @Test
+  void testPurgeRemittances() {
+    resource.purgeRemittances();
+    verify(enabledOrgsProducer).sendTaskForRemittancesPurgeTask();
+  }
 }

@@ -23,6 +23,7 @@ package com.redhat.swatch.billable.usage.admin.api;
 import com.redhat.swatch.billable.usage.kafka.streams.FlushTopicService;
 import com.redhat.swatch.billable.usage.openapi.model.DefaultResponse;
 import com.redhat.swatch.billable.usage.openapi.resource.DefaultApi;
+import com.redhat.swatch.billable.usage.services.EnabledOrgsProducer;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.ProcessingException;
 import lombok.AllArgsConstructor;
@@ -37,6 +38,7 @@ public class InternalBillableUsageResource implements DefaultApi {
 
   private final FlushTopicService flushTopicService;
   private final InternalBillableUsageController billingController;
+  private final EnabledOrgsProducer enabledOrgsProducer;
 
   @Override
   public DefaultResponse flushBillableUsageAggregationTopic() throws ProcessingException {
@@ -48,6 +50,12 @@ public class InternalBillableUsageResource implements DefaultApi {
   public DefaultResponse deleteRemittancesAssociatedWithOrg(String orgId)
       throws ProcessingException {
     billingController.deleteDataForOrg(orgId);
+    return getDefaultResponse(SUCCESS_STATUS);
+  }
+
+  @Override
+  public DefaultResponse purgeRemittances() {
+    enabledOrgsProducer.sendTaskForRemittancesPurgeTask();
     return getDefaultResponse(SUCCESS_STATUS);
   }
 

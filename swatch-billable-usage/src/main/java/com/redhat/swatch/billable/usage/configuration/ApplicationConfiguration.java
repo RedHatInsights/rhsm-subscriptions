@@ -18,26 +18,16 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.billable.usage.data;
+package com.redhat.swatch.billable.usage.configuration;
 
-import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.transaction.Transactional;
-import java.time.OffsetDateTime;
-import java.util.UUID;
+import java.time.Duration;
+import lombok.Getter;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
-public class BillableUsageRemittanceRepository
-    implements PanacheRepositoryBase<BillableUsageRemittanceEntity, UUID> {
-
-  @Transactional
-  public void deleteAllByOrgIdAndRemittancePendingDateBefore(
-      String orgId, OffsetDateTime cutoffDate) {
-    delete("orgId = ?1 AND remittancePendingDate < ?2", orgId, cutoffDate);
-  }
-
-  @Transactional
-  public void deleteByOrgId(String orgId) {
-    delete("orgId = ?1", orgId);
-  }
+@Getter
+public class ApplicationConfiguration {
+  @ConfigProperty(name = "rhsm-subscriptions.remittance-retention-policy.duration")
+  Duration remittanceRetentionPolicyDuration;
 }

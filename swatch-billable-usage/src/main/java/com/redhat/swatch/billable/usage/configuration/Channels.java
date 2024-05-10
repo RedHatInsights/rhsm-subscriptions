@@ -18,26 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.billable.usage.data;
+package com.redhat.swatch.billable.usage.configuration;
 
-import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.transaction.Transactional;
-import java.time.OffsetDateTime;
-import java.util.UUID;
+public final class Channels {
 
-@ApplicationScoped
-public class BillableUsageRemittanceRepository
-    implements PanacheRepositoryBase<BillableUsageRemittanceEntity, UUID> {
+  public static final String ENABLED_ORGS = "enabled-orgs";
+  public static final String REMITTANCES_PURGE_TASK = "remittances-purge-task";
+  public static final String BILLABLE_USAGE_AGGREGATION_OUT =
+      "billable-usage-aggregation-repartition-out";
 
-  @Transactional
-  public void deleteAllByOrgIdAndRemittancePendingDateBefore(
-      String orgId, OffsetDateTime cutoffDate) {
-    delete("orgId = ?1 AND remittancePendingDate < ?2", orgId, cutoffDate);
-  }
-
-  @Transactional
-  public void deleteByOrgId(String orgId) {
-    delete("orgId = ?1", orgId);
-  }
+  private Channels() {}
 }

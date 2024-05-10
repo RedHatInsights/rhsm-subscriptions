@@ -32,8 +32,6 @@ import org.candlepin.subscriptions.billing.admin.api.InternalApi;
 import org.candlepin.subscriptions.billing.admin.api.model.DefaultResponse;
 import org.candlepin.subscriptions.billing.admin.api.model.MonthlyRemittance;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
-import org.candlepin.subscriptions.retention.RemittanceRetentionController;
-import org.springframework.core.task.TaskRejectedException;
 import org.springframework.stereotype.Component;
 
 /** This resource is for exposing administrator REST endpoints for Remittance. */
@@ -44,15 +42,11 @@ public class InternalBillingResource implements InternalApi {
   private static final String REJECTED_STATUS = "Rejected";
 
   private final InternalBillingController billingController;
-  private final RemittanceRetentionController remittanceRetentionController;
   private final ApplicationClock clock;
 
   public InternalBillingResource(
-      InternalBillingController billingController,
-      RemittanceRetentionController remittanceRetentionController,
-      ApplicationClock clock) {
+      InternalBillingController billingController, ApplicationClock clock) {
     this.billingController = billingController;
-    this.remittanceRetentionController = remittanceRetentionController;
     this.clock = clock;
   }
 
@@ -119,18 +113,6 @@ public class InternalBillingResource implements InternalApi {
               "No record found for billable usage remittance for productId %s and between start %s and end date %s and orgIds %s",
               productId, start, end, orgIds));
     }
-  }
-
-  @Override
-  public DefaultResponse purgeRemittances() {
-    try {
-      log.info("Initiating remittance purge.");
-      remittanceRetentionController.purgeRemittancesAsync();
-    } catch (TaskRejectedException e) {
-      log.warn("A tally snapshots purge job is already running.");
-      return getDefaultResponse(REJECTED_STATUS);
-    }
-    return getDefaultResponse(SUCCESS_STATUS);
   }
 
   private DefaultResponse getDefaultResponse(String status) {

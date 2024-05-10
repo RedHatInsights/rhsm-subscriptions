@@ -1,6 +1,7 @@
 plugins {
     id 'swatch.quarkus-conventions'
     id 'org.openapi.generator'
+    id 'jsonschema2pojo'
 }
 
 dependencies {
@@ -20,6 +21,7 @@ dependencies {
     implementation project(":clients:quarkus:contracts-client")
     implementation project(':swatch-common-config-workaround')
     implementation project(':swatch-common-resteasy-client')
+    implementation project(':swatch-common-clock')
     implementation libraries["clowder-quarkus-config-source"]
     implementation libraries["quarkus-logging-splunk"]
     implementation libraries["splunk-library-javalogging"]
@@ -57,6 +59,23 @@ openApiGenerate {
     importMappings = [
             "BillableUsage": "org.candlepin.subscriptions.billable.usage.BillableUsage"
     ]
+}
+
+jsonSchema2Pojo {
+    source = files("${projectDir}/../swatch-core/schemas/enabled_orgs_request.yaml",
+            "${projectDir}/../swatch-core/schemas/enabled_orgs_response.yaml",
+            "${projectDir}/../swatch-core/schemas/tally_summary.yaml")
+    targetPackage = "com.redhat.swatch.billable.usage.model"
+    targetDirectory = file("${buildDir}/generated/src/gen/java")
+    includeAdditionalProperties = false
+    includeJsr303Annotations = true
+    initializeCollections = false
+    dateTimeType = 'java.time.OffsetDateTime'
+    sourceType = 'yamlschema'
+    generateBuilders = true
+    includeGetters = true
+    includeSetters = true
+    useJakartaValidation = true
 }
 
 sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]

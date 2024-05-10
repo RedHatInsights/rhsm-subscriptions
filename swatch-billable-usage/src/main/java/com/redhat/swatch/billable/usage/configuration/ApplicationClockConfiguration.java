@@ -18,27 +18,16 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.tally.admin;
+package com.redhat.swatch.billable.usage.configuration;
 
-import static org.mockito.Mockito.verify;
+import jakarta.enterprise.context.Dependent;
+import jakarta.enterprise.inject.Produces;
+import org.candlepin.clock.ApplicationClock;
 
-import org.candlepin.subscriptions.retention.RemittanceRetentionController;
-import org.candlepin.subscriptions.tally.billing.admin.InternalBillingResource;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-@ExtendWith(MockitoExtension.class)
-class InternalBillingResourceTest {
-  @Mock RemittanceRetentionController remittanceRetentionController;
-
-  @InjectMocks InternalBillingResource resource;
-
-  @Test
-  void testPurgeRemittances() {
-    resource.purgeRemittances();
-    verify(remittanceRetentionController).purgeRemittancesAsync();
+@Dependent
+public class ApplicationClockConfiguration {
+  @Produces
+  public ApplicationClock applicationClock() {
+    return new ApplicationClock();
   }
 }
