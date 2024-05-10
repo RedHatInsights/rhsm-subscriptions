@@ -115,6 +115,7 @@ public class InventorySwatchDataCollator {
     counts and tally buckets, between iterations.
      */
     OrgHostsData orgHostsData = new OrgHostsData("placeholder"); // orgId not used
+    String previousProviderId = null;
     int iterationCount = 0;
 
     while (inventoryDataIterator.hasNext() || swatchDataIterator.hasNext()) {
@@ -158,7 +159,15 @@ public class InventorySwatchDataCollator {
         // consume the swatch system from the stream to prepare for the next iteration
         swatchDataIterator.next();
       }
-      processor.accept(activeHbiSystem, activeSwatchSystem, orgHostsData, iterationCount);
+      // process iteration if and only if the hbi system is null or the previous provider ID is not
+      // equal to the current provider ID (because it would be a duplicated host)
+      if (activeHbiSystem == null
+          || activeHbiSystem.getProviderId() == null
+          || !activeHbiSystem.getProviderId().equals(previousProviderId)) {
+        processor.accept(activeHbiSystem, activeSwatchSystem, orgHostsData, iterationCount);
+      }
+      previousProviderId =
+          Optional.ofNullable(activeHbiSystem).map(InventoryHostFacts::getProviderId).orElse(null);
     }
     return iterationCount;
   }
@@ -218,6 +227,7 @@ public class InventorySwatchDataCollator {
     private String hardwareSubmanId;
     private String hypervisorUuid;
     private String inventoryId;
+    private String instanceId;
 
     public static SortKey fromSwatchSystem(Host system) {
       String hardwareSubmanId;
@@ -248,29 +258,30 @@ public class InventorySwatchDataCollator {
           .hardwareSubmanId(hardwareSubmanId)
           .hypervisorUuid(hypervisorUuid)
           .inventoryId(system.getInventoryId().toString())
+          .instanceId(system.getProviderId())
           .build();
     }
 
     @Override
     public int compareTo(@NotNull SortKey other) {
-      var hardwareSubmanIdResult =
-          Objects.compare(
-              hardwareSubmanId,
-              other.getHardwareSubmanId(),
-              Comparator.nullsLast(Comparator.naturalOrder()));
+      var instanceIdResult = compare(instanceId, other.getInstanceId());
+      if (instanceIdResult == 0) {
+        return 0;
+      }
+      var hardwareSubmanIdResult = compare(hardwareSubmanId, other.getHardwareSubmanId());
       if (hardwareSubmanIdResult != 0) {
         return hardwareSubmanIdResult;
       }
-      var hypervisorUuidResult =
-          Objects.compare(
-              hypervisorUuid,
-              other.getHypervisorUuid(),
-              Comparator.nullsLast(Comparator.naturalOrder()));
+      var hypervisorUuidResult = compare(hypervisorUuid, other.getHypervisorUuid());
       if (hypervisorUuidResult != 0) {
         return hypervisorUuidResult;
       }
-      return Objects.compare(
-          inventoryId, other.getInventoryId(), Comparator.nullsLast(Comparator.naturalOrder()));
+
+      return compare(inventoryId, other.getInventoryId());
+    }
+
+    private static int compare(String field, String other) {
+      return Objects.compare(field, other, Comparator.nullsLast(Comparator.naturalOrder()));
     }
   }
 }

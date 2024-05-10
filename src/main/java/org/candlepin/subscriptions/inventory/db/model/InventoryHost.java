@@ -150,7 +150,7 @@ import lombok.Setter;
            and (h.system_profile_facts->>'host_type' IS NULL OR h.system_profile_facts->>'host_type' <> 'edge')
            and NOW() < stale_timestamp + make_interval(days => :culledOffsetDays)
         -- NOTE: ordering is crucial for correct streaming reconciliation of HBI data
-        order by hardware_subman_id, any_hypervisor_uuid, inventory_id
+        order by provider_id, hardware_subman_id, any_hypervisor_uuid, inventory_id
     """,
     resultSetMapping = "inventoryHostFactsMapping")
 @Getter

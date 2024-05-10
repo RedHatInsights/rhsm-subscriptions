@@ -247,28 +247,39 @@ public class InventoryAccountUsageCollector {
       Set<String> applicableProducts,
       List<Host> hosts) {
     log.debug(
-        "Reconciling HBI inventoryId={} & swatch inventoryId={}",
+        "Reconciling HBI inventoryId={} & swatch inventoryId={} & swatch instanceId={}",
         Optional.ofNullable(hbiSystem).map(InventoryHostFacts::getInventoryId),
-        Optional.ofNullable(swatchSystem).map(Host::getInventoryId));
+        Optional.ofNullable(swatchSystem).map(Host::getInventoryId),
+        Optional.ofNullable(swatchSystem).map(Host::getInstanceId));
     boolean isMetered = swatchSystem != null && swatchSystem.isMetered();
     if (hbiSystem == null && swatchSystem == null) {
       log.debug("Unexpected, both HBI & Swatch system records are empty");
-    } else if (hbiSystem == null) {
+    } else if (hbiSystem == null
+        && HBI_INSTANCE_TYPE.equalsIgnoreCase(swatchSystem.getInstanceType())) {
       if (!isMetered) {
-        log.info("Deleting system w/ inventoryId={}", swatchSystem.getInventoryId());
+        log.info(
+            "Deleting system w/ inventoryId={} and instanceId={}",
+            swatchSystem.getInventoryId(),
+            swatchSystem.getInstanceId());
         hostRepository.delete(swatchSystem);
       }
-    } else {
+    } else if (hbiSystem != null) {
       NormalizedFacts normalizedFacts =
           factNormalizer.normalize(hbiSystem, orgHostsData, isMetered);
       Set<Key> usageKeys = createHostUsageKeys(applicableProducts, normalizedFacts);
       if (swatchSystem != null) {
-        log.debug("Updating system w/ inventoryId={}", hbiSystem.getInventoryId());
+        log.debug(
+            "Updating system w/ inventoryId={} and instanceId={}",
+            hbiSystem.getInventoryId(),
+            hbiSystem.getProviderId());
         Host updatedSwatchSystem =
             updateSwatchSystem(hbiSystem, normalizedFacts, swatchSystem, usageKeys);
         hosts.add(updatedSwatchSystem);
       } else {
-        log.debug("Creating system w/ inventoryId={}", hbiSystem.getInventoryId());
+        log.debug(
+            "Creating system w/ inventoryId={} and instanceId={}",
+            hbiSystem.getInventoryId(),
+            hbiSystem.getProviderId());
         swatchSystem = createSwatchSystem(hbiSystem, normalizedFacts, usageKeys);
         hosts.add(swatchSystem);
       }
