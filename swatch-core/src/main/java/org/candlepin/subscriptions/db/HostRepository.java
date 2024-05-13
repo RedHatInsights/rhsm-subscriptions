@@ -70,7 +70,7 @@ public interface HostRepository
       left join fetch h.buckets
       left join fetch h.monthlyTotals
       where h.orgId=:orgId
-      order by coalesce(h.hypervisorUuid, h.subscriptionManagerId), h.instanceId, h.hypervisorUuid, h.inventoryId, h.id
+      order by h.instanceId, coalesce(h.hypervisorUuid, h.subscriptionManagerId), h.hypervisorUuid, h.inventoryId, h.id
           """)
   @QueryHints(value = {@QueryHint(name = HINT_FETCH_SIZE, value = "1024")})
   Stream<Host> streamHbiHostsByOrgId(@Param("orgId") String orgId);
