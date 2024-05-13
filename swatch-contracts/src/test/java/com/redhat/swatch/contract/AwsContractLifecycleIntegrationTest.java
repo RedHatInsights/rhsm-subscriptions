@@ -44,7 +44,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@QuarkusTestResource(value = WireMockResource.class, restrictToAnnotatedClass = true)
+@QuarkusTestResource(value = WireMockResource.class)
 class AwsContractLifecycleIntegrationTest {
 
   @Inject ContractService contractService;
@@ -154,6 +154,7 @@ class AwsContractLifecycleIntegrationTest {
     subscriptionRepository.deleteAll();
     contractRepository.deleteAll();
     offeringRepository.deleteAll();
+
   }
 
   @Test
