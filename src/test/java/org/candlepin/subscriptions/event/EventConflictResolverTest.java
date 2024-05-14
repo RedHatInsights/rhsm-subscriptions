@@ -57,7 +57,7 @@ class EventConflictResolverTest {
   }
 
   @Test
-  void testNoEventConflictsYieldsNewEventRecord() {
+  void testConflictResolution_NoEventConflictsYieldsNewEventRecord() {
     EventRecord expectedEventRecord = withExistingEvent("instance1", CLOCK.now(), "cores", 12.0);
     Event expectedEvent = expectedEventRecord.getEvent();
 
@@ -69,7 +69,7 @@ class EventConflictResolverTest {
   }
 
   @Test
-  void testEventConflictWithSameMeasurementsYieldsNoEvents() {
+  void testConflictResolution_EventConflictWithSameMeasurementsYieldsNoEvents() {
     EventRecord existingEventRecord = withExistingEvent("instance1", CLOCK.now(), "cores", 5.0);
     Event existingEvent = existingEventRecord.getEvent();
     EventKey existingEventKey = EventKey.fromEvent(existingEvent);
@@ -82,7 +82,7 @@ class EventConflictResolverTest {
   }
 
   @Test
-  void testEventConflictWithDifferentMeasurementValuesYieldsAmendmentEvents() {
+  void testConflictResolution_EventConflictWithDifferentMeasurementValuesYieldsAmendmentEvents() {
     OffsetDateTime eventTimestamp = CLOCK.now();
     String instanceId = "instance1";
     EventRecord existingEventRecord = withExistingEvent(instanceId, eventTimestamp, "cores", 5.0);
@@ -104,7 +104,8 @@ class EventConflictResolverTest {
   }
 
   @Test
-  void testEventConflictWithOneDifferingMeasurementValueYieldsAmendmentsPlusNewEvent() {
+  void
+      testConflictResolution_EventConflictWithOneDifferingMeasurementValueYieldsAmendmentsPlusNewEvent() {
     OffsetDateTime eventTimestamp = CLOCK.now();
     String instanceId = "instance1";
 
@@ -134,7 +135,7 @@ class EventConflictResolverTest {
   }
 
   @Test
-  void testEventConflictWithExistingAmendmentResolvesToAdditionalAmendment() {
+  void testConflictResolution_EventConflictWithExistingAmendmentResolvesToAdditionalAmendment() {
     OffsetDateTime eventTimestamp = CLOCK.now();
     String instanceId = "instance1";
 
@@ -167,7 +168,7 @@ class EventConflictResolverTest {
 
   @Test
   void
-      testEventConflictResolutionWithSingleIncomingEventAndMultipleExistingEventsWithMultipleMetrics() {
+      testConflictResolution_EventConflictResolutionWithSingleIncomingEventAndMultipleExistingEventsWithMultipleMetrics() {
     OffsetDateTime eventTimestamp = CLOCK.now();
     String instanceId = "instance1";
     EventRecord event1 = withExistingEvent(instanceId, eventTimestamp, "cores", 10.0);
@@ -191,7 +192,7 @@ class EventConflictResolverTest {
   }
 
   @Test
-  void testResolutionWithSingleMetricMatchingOneOfMultipleMetrics() {
+  void testConflictResolution_ResolutionWithSingleMetricMatchingOneOfMultipleMetrics() {
     OffsetDateTime eventTimestamp = CLOCK.now();
     String instanceId = "instance1";
     EventRecord existingEvent =
@@ -249,7 +250,7 @@ class EventConflictResolverTest {
   }
 
   @Test
-  void testEventResolutionWillPreferMetricIdOverUomButSupportsBoth() {
+  void testConflictResolution_WillPreferMetricIdOverUomButSupportsBoth() {
     // NOTE We should never see a case where the metric_id and uom are different
     //      for a single measurement, but will test the edge case just in case.
     OffsetDateTime eventTimestamp = CLOCK.now();
@@ -279,6 +280,39 @@ class EventConflictResolverTest {
     assertDeductionEvent(resolved.get(0).getEvent(), instanceId, "Cores", -1.0);
     assertDeductionEvent(resolved.get(1).getEvent(), instanceId, "Instance-hours", -5.0);
     assertEquals(new EventRecord(incomingEvent), resolved.get(2));
+  }
+
+  @Test
+  void testConflictResolution_DuplicateIncomingEventsResultInSingleRecord() {
+    OffsetDateTime eventTimestamp = CLOCK.now();
+    String instanceId = "instance1";
+    Event incoming1 = withIncomingEvent(instanceId, eventTimestamp, "cores", 4.0);
+    Event incomingDuplicate = withIncomingEvent(instanceId, eventTimestamp, "cores", 4.0);
+
+    List<Event> incomingEvents = List.of(incoming1, incomingDuplicate);
+    List<EventRecord> resolved = resolver.resolveIncomingEvents(incomingEvents);
+    assertEquals(1, resolved.size());
+    assertResolvedEvent(resolved.get(0).getEvent(), instanceId, "cores", 4.0);
+  }
+
+  @Test
+  void testConflictResolution_IncomingNonPersistedEventConflictsAreResolved() {
+    OffsetDateTime eventTimestamp = CLOCK.now();
+    String instanceId = "instance1";
+    EventRecord existingEvent = withExistingEvent(instanceId, eventTimestamp, "cores", 10.0);
+    Event incoming1 = withIncomingEvent(instanceId, eventTimestamp, "cores", 4.0);
+    Event incoming2 = withIncomingEvent(instanceId, eventTimestamp, "cores", 1.0);
+    List<Event> incomingEvents = List.of(incoming1, incoming2);
+
+    Set<EventKey> lookupKeys = Set.of(EventKey.fromEvent(incoming1));
+    when(repo.findConflictingEvents(lookupKeys)).thenReturn(List.of(existingEvent));
+
+    List<EventRecord> resolved = resolver.resolveIncomingEvents(incomingEvents);
+    assertEquals(4, resolved.size());
+    assertDeductionEvent(resolved.get(0).getEvent(), instanceId, "cores", -10.0);
+    assertResolvedEvent(resolved.get(1).getEvent(), instanceId, "cores", 4.0);
+    assertDeductionEvent(resolved.get(2).getEvent(), instanceId, "cores", -4.0);
+    assertResolvedEvent(resolved.get(3).getEvent(), instanceId, "cores", 1.0);
   }
 
   private Event createEvent(String instanceId, OffsetDateTime timestamp) {

@@ -80,11 +80,6 @@ public class EventConflictResolver {
         incomingEvents.stream().collect(Collectors.groupingBy(EventKey::fromEvent));
     Map<EventKey, List<EventRecord>> allConflicting =
         getConflictingEvents(eventsToResolve.keySet());
-    // Nothing to resolve
-    if (allConflicting.isEmpty()) {
-      log.info("No conflicting incoming events in batch. Nothing to resolve.");
-      return incomingEvents.stream().map(EventRecord::new).toList();
-    }
 
     // Resolve any conflicting events.
     List<EventRecord> resolvedEvents = new LinkedList<>();
@@ -95,15 +90,22 @@ public class EventConflictResolver {
                   if (allConflicting.containsKey(key)) {
                     List<EventRecord> resolvedConflicts =
                         resolveEventConflicts(event, allConflicting.get(key));
-                    // When there is a conflict with no resolution, the incoming event is a
-                    // duplicate and there is no need to add it as resolved.
+                    // When there is a conflict without a resolution, the incoming event is a
+                    // duplicate and there is nothing to resolve.
                     if (resolvedConflicts.isEmpty()) {
                       return;
                     }
+                    // Add newly resolved conflicts so that the next event considers them.
+                    allConflicting.get(key).addAll(resolvedConflicts);
                     resolvedEvents.addAll(resolvedConflicts);
                   }
                   // Include the incoming event since this event will be the new value.
-                  resolvedEvents.add(new EventRecord(event));
+                  // It is added to the conflict list since it is will need to be applied
+                  // to any other events.
+                  EventRecord resolvedEvent = new EventRecord(event);
+                  allConflicting.putIfAbsent(key, new ArrayList<>());
+                  allConflicting.get(key).add(resolvedEvent);
+                  resolvedEvents.add(resolvedEvent);
                 }));
     return resolvedEvents;
   }
@@ -131,12 +133,12 @@ public class EventConflictResolver {
 
   private List<EventRecord> resolveEventMeasurements(
       Event toResolve, List<EventRecord> conflictingEvents) {
-    Map<String, Measurement> deductionEvents =
+    Map<String, Measurement> deductionMeasurements =
         getDeductionMeasurements(toResolve, determineMeasurementDeductions(conflictingEvents));
 
     // Create events for each measurement deduction.
     List<EventRecord> resolved = new ArrayList<>();
-    deductionEvents.forEach(
+    deductionMeasurements.forEach(
         (metricId, measurement) -> {
           Event deductionEvent = createRecordFrom(toResolve);
           deductionEvent.setAmendmentType(AmendmentType.DEDUCTION);
