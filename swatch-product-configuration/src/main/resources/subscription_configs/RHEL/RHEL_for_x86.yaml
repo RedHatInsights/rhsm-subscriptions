@@ -3,6 +3,8 @@ platform: RHEL
 
 id: rhel-for-x86
 
+vdcType: true
+
 variants:
   - tag: RHEL for x86
     engineeringIds:

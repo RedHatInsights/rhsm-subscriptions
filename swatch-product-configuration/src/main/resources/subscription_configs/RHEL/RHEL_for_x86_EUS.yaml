@@ -2,6 +2,9 @@
 platform: RHEL
 
 id: rhel-for-x86-eus
+
+vdcType: true
+
 # TODO: https://issues.redhat.com/browse/SWATCH-1692 keep this commented out until UI updates are in place.
 #includedSubscriptions:
 #  - rhel-for-x86
