@@ -233,7 +233,9 @@ public class FactNormalizer {
     normalizedFacts
         .getProducts()
         .addAll(
-            getProductsFromProductIds(hostFacts.getSystemProfileProductIds(), is3rdPartyMigrated));
+            getProductsFromProductIds(
+                hostFacts.getSystemProfileProductIds(), isMetered, is3rdPartyMigrated));
+
     if ("x86_64".equals(hostFacts.getSystemProfileArch())
         && HardwareMeasurementType.VIRTUAL
             .toString()
@@ -306,13 +308,11 @@ public class FactNormalizer {
     return (int) Math.ceil(cpu / threadsPerCore);
   }
 
-  private Set<String> getProductsFromProductIds(Collection<String> productIds, boolean isMetered) {
+  private Set<String> getProductsFromProductIds(
+      Collection<String> productIds, boolean isMetered, boolean is3rdPartyMigrated) {
     if (productIds == null) {
       return Set.of();
     }
-
-    // To be handled during SWATCH-2360
-    boolean is3rdPartyMigrated = false;
 
     return isMetered
         ? SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(

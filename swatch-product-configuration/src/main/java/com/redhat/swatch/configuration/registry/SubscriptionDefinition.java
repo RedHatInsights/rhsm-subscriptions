@@ -221,7 +221,7 @@ public class SubscriptionDefinition {
   }
 
   public static Set<String> getAllProductTagsWithNonPaygEligibleByRoleOrEngIds(
-      String role, Collection<?> engIds, String productName, Boolean is3rdPartyMigration) {
+      String role, Collection<?> engIds, String productName, boolean is3rdPartyMigration) {
     Set<String> productTags = new HashSet<>();
     // Filter tags that are nonPaygEligible
 
