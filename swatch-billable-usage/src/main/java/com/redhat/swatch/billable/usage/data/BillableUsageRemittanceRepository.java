@@ -30,7 +30,6 @@ import java.util.UUID;
 public class BillableUsageRemittanceRepository
     implements PanacheRepositoryBase<BillableUsageRemittanceEntity, UUID> {
 
-  @Transactional
   public void deleteAllByOrgIdAndRemittancePendingDateBefore(
       String orgId, OffsetDateTime cutoffDate) {
     delete("orgId = ?1 AND remittancePendingDate < ?2", orgId, cutoffDate);

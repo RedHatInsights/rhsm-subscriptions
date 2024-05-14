@@ -25,8 +25,8 @@ import static com.redhat.swatch.billable.usage.configuration.Channels.REMITTANCE
 import com.redhat.swatch.billable.usage.configuration.ApplicationConfiguration;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
 import com.redhat.swatch.billable.usage.model.EnabledOrgsResponse;
-import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,14 +41,21 @@ public class RemittancesPurgeTaskConsumer {
   private final ApplicationConfiguration configuration;
   private final BillableUsageRemittanceRepository remittanceRepository;
 
-  @Blocking
+  @Transactional
   @Incoming(REMITTANCES_PURGE_TASK)
   public void consume(EnabledOrgsResponse message) {
-    log.info("Received task for remittances purge with org ID: {}", message.getOrgId());
+    log.debug("Received task for remittances purge with org ID: {}", message.getOrgId());
     OffsetDateTime cutoffDate = getCutoffDate();
     if (cutoffDate == null) {
+      log.warn(
+          "Skipping purge remittances task for org ID '{}' because the policy duration is not configured. ",
+          message.getOrgId());
       return;
     }
+    log.info(
+        "Delete usage remittances for org ID '{}' with cut off date of '{}'",
+        message.getOrgId(),
+        cutoffDate);
     remittanceRepository.deleteAllByOrgIdAndRemittancePendingDateBefore(
         message.getOrgId(), cutoffDate);
   }

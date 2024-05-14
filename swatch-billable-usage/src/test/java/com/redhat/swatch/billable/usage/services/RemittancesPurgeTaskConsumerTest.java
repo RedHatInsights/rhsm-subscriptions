@@ -20,14 +20,14 @@
  */
 package com.redhat.swatch.billable.usage.services;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.billable.usage.configuration.ApplicationConfiguration;
 import com.redhat.swatch.billable.usage.configuration.Channels;
+import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceEntity;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
 import com.redhat.swatch.billable.usage.kafka.InMemoryMessageBrokerKafkaResource;
 import com.redhat.swatch.billable.usage.model.EnabledOrgsResponse;
@@ -39,7 +39,9 @@ import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import io.smallrye.reactive.messaging.memory.InMemorySource;
 import jakarta.enterprise.inject.Any;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import java.time.Duration;
+import java.time.OffsetDateTime;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,6 +51,9 @@ import org.junit.jupiter.api.Test;
     value = InMemoryMessageBrokerKafkaResource.class,
     restrictToAnnotatedClass = true)
 class RemittancesPurgeTaskConsumerTest {
+
+  private static final String ORG_ID = "org123";
+
   @InjectMock ApplicationConfiguration configuration;
   @InjectSpy BillableUsageRemittanceRepository remittanceRepository;
   @InjectSpy RemittancesPurgeTaskConsumer consumer;
@@ -70,15 +75,35 @@ class RemittancesPurgeTaskConsumerTest {
 
   @Test
   void testWhenConsumeWithPolicyThenPurgeHappens() {
-    String expectedOrgId = "org123";
+    givenExistingRemittance();
     when(configuration.getRemittanceRetentionPolicyDuration()).thenReturn(Duration.ofMinutes(5));
-    whenSendResponse(new EnabledOrgsResponse().withOrgId(expectedOrgId));
-    verify(remittanceRepository)
-        .deleteAllByOrgIdAndRemittancePendingDateBefore(eq(expectedOrgId), any());
+    whenSendResponse(new EnabledOrgsResponse().withOrgId(ORG_ID));
+    Awaitility.await().untilAsserted(this::verifyNoRemittancesInDatabase);
+  }
+
+  @Transactional
+  void givenExistingRemittance() {
+    var remittance = new BillableUsageRemittanceEntity();
+    remittance.setOrgId(ORG_ID);
+    remittance.setProductId("rosa");
+    remittance.setMetricId("Cores");
+    remittance.setAccumulationPeriod("mm-AAAA");
+    remittance.setSla("_ANY");
+    remittance.setUsage("_ANY");
+    remittance.setBillingProvider("aws");
+    remittance.setBillingAccountId("123");
+    remittance.setRemittancePendingDate(OffsetDateTime.now().minusYears(5));
+    remittance.setRemittedPendingValue(2.0);
+    remittanceRepository.persist(remittance);
   }
 
   private void whenSendResponse(EnabledOrgsResponse response) {
     source.send(response);
     Awaitility.await().untilAsserted(() -> verify(consumer).consume(response));
+  }
+
+  @Transactional
+  void verifyNoRemittancesInDatabase() {
+    assertEquals(0, remittanceRepository.count());
   }
 }

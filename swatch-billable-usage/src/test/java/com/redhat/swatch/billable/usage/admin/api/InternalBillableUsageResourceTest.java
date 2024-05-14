@@ -24,10 +24,13 @@ import static com.redhat.swatch.billable.usage.configuration.Channels.ENABLED_OR
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.billable.usage.configuration.ApplicationConfiguration;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
 import com.redhat.swatch.billable.usage.kafka.InMemoryMessageBrokerKafkaResource;
 import com.redhat.swatch.billable.usage.model.EnabledOrgsRequest;
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectSpy;
@@ -35,7 +38,9 @@ import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import io.smallrye.reactive.messaging.memory.InMemorySink;
 import jakarta.enterprise.inject.Any;
 import jakarta.inject.Inject;
+import java.time.Duration;
 import org.apache.http.HttpStatus;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
@@ -46,8 +51,17 @@ class InternalBillableUsageResourceTest {
 
   private static final String ORG_ID = "org123";
 
+  @InjectMock ApplicationConfiguration configuration;
   @InjectSpy BillableUsageRemittanceRepository remittanceRepository;
   @Inject @Any InMemoryConnector connector;
+
+  InMemorySink<EnabledOrgsRequest> sink;
+
+  @BeforeEach
+  void setUp() {
+    sink = connector.sink(ENABLED_ORGS);
+    sink.clear();
+  }
 
   @Test
   void testDeleteRemittancesAssociatedWithOrg() {
@@ -59,12 +73,23 @@ class InternalBillableUsageResourceTest {
   }
 
   @Test
-  void testPurgeRemittances() {
+  void testPurgeRemittancesWhenNoPolicy() {
+    when(configuration.getRemittanceRetentionPolicyDuration()).thenReturn(null);
+    whenPurgeRemittances();
+    assertEquals(0, sink.received().size());
+  }
+
+  @Test
+  void testPurgeRemittancesWhenPolicyIsConfigured() {
+    when(configuration.getRemittanceRetentionPolicyDuration()).thenReturn(Duration.ofDays(1));
+    whenPurgeRemittances();
+    assertEquals(1, sink.received().size());
+  }
+
+  private static void whenPurgeRemittances() {
     given()
         .post("/api/swatch-billable-usage/internal/rpc/remittance/purge")
         .then()
         .statusCode(HttpStatus.SC_OK);
-    InMemorySink<EnabledOrgsRequest> sink = connector.sink(ENABLED_ORGS);
-    assertEquals(1, sink.received().size());
   }
 }
