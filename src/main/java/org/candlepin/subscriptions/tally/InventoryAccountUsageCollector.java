@@ -180,22 +180,10 @@ public class InventoryAccountUsageCollector {
   public static void populateHostFieldsFromHbi(
       Host host, InventoryHostFacts inventoryHostFacts, NormalizedFacts normalizedFacts) {
 
-    if (inventoryHostFacts.getProviderId() != null) {
-      // will use the provider ID from HBI
-      host.setInstanceId(inventoryHostFacts.getProviderId());
-    }
-
+    host.setInstanceId(inventoryHostFacts.getInstanceId());
     if (inventoryHostFacts.getInventoryId() != null) {
       host.setInventoryId(inventoryHostFacts.getInventoryId().toString());
-
-      // fallback logic to set the instance ID if and only if the instanceId is not set yet:
-      if (host.getInstanceId() == null) {
-        // We assume that the instance ID for any given HBI host record is the inventory ID; compare
-        // to an OpenShift Cluster from Prometheus data, where we use the cluster ID.
-        host.setInstanceId(inventoryHostFacts.getInventoryId().toString());
-      }
     }
-
     host.setInsightsId(inventoryHostFacts.getInsightsId());
     host.setOrgId(inventoryHostFacts.getOrgId());
     host.setDisplayName(inventoryHostFacts.getDisplayName());
@@ -271,7 +259,7 @@ public class InventoryAccountUsageCollector {
         log.debug(
             "Updating system w/ inventoryId={} and instanceId={}",
             hbiSystem.getInventoryId(),
-            hbiSystem.getProviderId());
+            hbiSystem.getInstanceId());
         Host updatedSwatchSystem =
             updateSwatchSystem(hbiSystem, normalizedFacts, swatchSystem, usageKeys);
         hosts.add(updatedSwatchSystem);
@@ -279,7 +267,7 @@ public class InventoryAccountUsageCollector {
         log.debug(
             "Creating system w/ inventoryId={} and instanceId={}",
             hbiSystem.getInventoryId(),
-            hbiSystem.getProviderId());
+            hbiSystem.getInstanceId());
         swatchSystem = createSwatchSystem(hbiSystem, normalizedFacts, usageKeys);
         hosts.add(swatchSystem);
       }

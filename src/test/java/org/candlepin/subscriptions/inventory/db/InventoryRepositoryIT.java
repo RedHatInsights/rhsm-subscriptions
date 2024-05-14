@@ -121,7 +121,7 @@ class InventoryRepositoryIT implements ExtendWithInventoryService, ExtendWithSwa
     assertEquals(ARCH, fact.getSystemProfileArch());
     assertTrue(fact.isMarketplace());
     assertEquals(INSIGHTS_ID, fact.getInsightsId());
-    assertEquals(PROVIDER_ID, fact.getProviderId());
+    assertEquals(PROVIDER_ID, fact.getInstanceId());
     assertEquals(VIRTUAL_HOST_UUID, fact.getHardwareSubmanId());
     assertEquals(RH_PROD, fact.getProducts());
     assertEquals(RH_PRODUCTS_INSTALLED, fact.getQpcProducts());

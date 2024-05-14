@@ -113,7 +113,7 @@ class HostTest {
   void populateFieldsFromHbiMappedGuest() {
     Host host = new Host();
     InventoryHostFacts inventoryHostFacts = getInventoryHostFactsFull();
-    NormalizedFacts normalizedFacts = getNormalizedFactsUnmappedGuest();
+    NormalizedFacts normalizedFacts = getNormalizedFactsMappedGuest();
 
     populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
     assertEquals(host.getInventoryId(), inventoryHostFacts.getInventoryId().toString());
@@ -240,34 +240,13 @@ class HostTest {
   }
 
   @Test
-  void testPopulateHostFieldsFromHbiShouldSetInstanceIdFromProviderId() {
+  void testPopulateHostFieldsFromHbiShouldSetInstanceId() {
     Host host = new Host();
     InventoryHostFacts inventoryHostFacts = new InventoryHostFacts();
-    inventoryHostFacts.setProviderId(UUID.randomUUID().toString());
+    inventoryHostFacts.setInstanceId(UUID.randomUUID().toString());
 
     populateHostFieldsFromHbi(host, inventoryHostFacts, new NormalizedFacts());
-    assertEquals(inventoryHostFacts.getProviderId(), host.getInstanceId());
-  }
-
-  @Test
-  void testPopulateHostFieldsFromHbiShouldOverwriteInstanceId() {
-    Host host = new Host();
-    host.setInstanceId(UUID.randomUUID().toString());
-    InventoryHostFacts inventoryHostFacts = new InventoryHostFacts();
-    inventoryHostFacts.setProviderId(UUID.randomUUID().toString());
-
-    populateHostFieldsFromHbi(host, inventoryHostFacts, new NormalizedFacts());
-    assertEquals(inventoryHostFacts.getProviderId(), host.getInstanceId());
-  }
-
-  @Test
-  void testPopulateHostFieldsFromHbiShouldUseInventoryIdWhenProviderIdIsNotSet() {
-    Host host = new Host();
-    InventoryHostFacts inventoryHostFacts = new InventoryHostFacts();
-    inventoryHostFacts.setInventoryId(UUID.randomUUID());
-
-    populateHostFieldsFromHbi(host, inventoryHostFacts, new NormalizedFacts());
-    assertEquals(inventoryHostFacts.getInventoryId().toString(), host.getInstanceId());
+    assertEquals(inventoryHostFacts.getInstanceId(), host.getInstanceId());
   }
 
   private InventoryHostFacts getInventoryHostFactsFull() {

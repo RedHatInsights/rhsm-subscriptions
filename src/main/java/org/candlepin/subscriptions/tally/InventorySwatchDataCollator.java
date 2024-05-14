@@ -115,7 +115,7 @@ public class InventorySwatchDataCollator {
     counts and tally buckets, between iterations.
      */
     OrgHostsData orgHostsData = new OrgHostsData("placeholder"); // orgId not used
-    String previousProviderId = null;
+    String previousInstanceId = null;
     int iterationCount = 0;
 
     while (inventoryDataIterator.hasNext() || swatchDataIterator.hasNext()) {
@@ -162,12 +162,12 @@ public class InventorySwatchDataCollator {
       // process iteration if and only if the hbi system is null or the previous provider ID is not
       // equal to the current provider ID (because it would be a duplicated host)
       if (activeHbiSystem == null
-          || activeHbiSystem.getProviderId() == null
-          || !activeHbiSystem.getProviderId().equals(previousProviderId)) {
+          || activeHbiSystem.getInstanceId() == null
+          || !activeHbiSystem.getInstanceId().equals(previousInstanceId)) {
         processor.accept(activeHbiSystem, activeSwatchSystem, orgHostsData, iterationCount);
       }
-      previousProviderId =
-          Optional.ofNullable(activeHbiSystem).map(InventoryHostFacts::getProviderId).orElse(null);
+      previousInstanceId =
+          Optional.ofNullable(activeHbiSystem).map(InventoryHostFacts::getInstanceId).orElse(null);
     }
     return iterationCount;
   }
@@ -239,6 +239,7 @@ public class InventorySwatchDataCollator {
       return SortKey.builder()
           .hardwareSubmanId(hardwareSubmanId)
           .inventoryId(system.getInventoryId())
+          .instanceId(system.getInstanceId())
           .hypervisorUuid(system.getHypervisorUuid())
           .build();
     }
@@ -258,7 +259,7 @@ public class InventorySwatchDataCollator {
           .hardwareSubmanId(hardwareSubmanId)
           .hypervisorUuid(hypervisorUuid)
           .inventoryId(system.getInventoryId().toString())
-          .instanceId(system.getProviderId())
+          .instanceId(system.getInstanceId())
           .build();
     }
 
