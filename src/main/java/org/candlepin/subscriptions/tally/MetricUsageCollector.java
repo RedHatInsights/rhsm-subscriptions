@@ -36,6 +36,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.commons.lang3.StringUtils;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostRepository;
@@ -164,12 +165,19 @@ public class MetricUsageCollector {
         .forEach(
             measurement -> {
               if (!isUsageAlreadyApplied(instance, event)) {
-                instance.setMeasurement(measurement.getUom(), measurement.getValue());
+                instance.setMeasurement(
+                    !StringUtils.isEmpty(measurement.getMetricId())
+                        ? measurement.getMetricId()
+                        : measurement.getUom(),
+                    measurement.getValue());
               }
               // Every event should be applied to the totals.
               instance.addToMonthlyTotal(
                   event.getTimestamp(),
-                  MetricId.fromString(measurement.getUom()),
+                  MetricId.fromString(
+                      !StringUtils.isEmpty(measurement.getMetricId())
+                          ? measurement.getMetricId()
+                          : measurement.getUom()),
                   measurement.getValue());
             });
     addBucketsFromEvent(instance, event);
@@ -370,7 +378,8 @@ public class MetricUsageCollector {
                       calc.addUsage(
                           usageKey,
                           hardwareMeasurementType,
-                          MetricId.fromString(m.getUom()),
+                          MetricId.fromString(
+                              !StringUtils.isEmpty(m.getMetricId()) ? m.getMetricId() : m.getUom()),
                           m.getValue()));
         });
   }
