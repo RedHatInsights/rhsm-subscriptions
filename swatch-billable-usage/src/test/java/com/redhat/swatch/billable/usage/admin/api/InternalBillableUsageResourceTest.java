@@ -20,24 +20,51 @@
  */
 package com.redhat.swatch.billable.usage.admin.api;
 
+import static com.redhat.swatch.billable.usage.configuration.Channels.ENABLED_ORGS;
+import static io.restassured.RestAssured.given;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 
-import com.redhat.swatch.billable.usage.services.EnabledOrgsProducer;
+import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
+import com.redhat.swatch.billable.usage.kafka.InMemoryMessageBrokerKafkaResource;
+import com.redhat.swatch.billable.usage.model.EnabledOrgsRequest;
+import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.mockito.InjectSpy;
+import io.smallrye.reactive.messaging.memory.InMemoryConnector;
+import io.smallrye.reactive.messaging.memory.InMemorySink;
+import jakarta.enterprise.inject.Any;
+import jakarta.inject.Inject;
+import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
+@QuarkusTest
+@QuarkusTestResource(
+    value = InMemoryMessageBrokerKafkaResource.class,
+    restrictToAnnotatedClass = true)
 class InternalBillableUsageResourceTest {
-  @Mock EnabledOrgsProducer enabledOrgsProducer;
 
-  @InjectMocks InternalBillableUsageResource resource;
+  private static final String ORG_ID = "org123";
+
+  @InjectSpy BillableUsageRemittanceRepository remittanceRepository;
+  @Inject @Any InMemoryConnector connector;
+
+  @Test
+  void testDeleteRemittancesAssociatedWithOrg() {
+    given()
+        .delete("/api/swatch-billable-usage/internal/rpc/remittance/" + ORG_ID)
+        .then()
+        .statusCode(HttpStatus.SC_OK);
+    verify(remittanceRepository).deleteByOrgId(ORG_ID);
+  }
 
   @Test
   void testPurgeRemittances() {
-    resource.purgeRemittances();
-    verify(enabledOrgsProducer).sendTaskForRemittancesPurgeTask();
+    given()
+        .post("/api/swatch-billable-usage/internal/rpc/remittance/purge")
+        .then()
+        .statusCode(HttpStatus.SC_OK);
+    InMemorySink<EnabledOrgsRequest> sink = connector.sink(ENABLED_ORGS);
+    assertEquals(1, sink.received().size());
   }
 }

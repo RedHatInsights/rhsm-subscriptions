@@ -25,6 +25,7 @@ import static com.redhat.swatch.billable.usage.configuration.Channels.REMITTANCE
 import com.redhat.swatch.billable.usage.configuration.ApplicationConfiguration;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
 import com.redhat.swatch.billable.usage.model.EnabledOrgsResponse;
+import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.time.OffsetDateTime;
 import lombok.AllArgsConstructor;
@@ -40,6 +41,7 @@ public class RemittancesPurgeTaskConsumer {
   private final ApplicationConfiguration configuration;
   private final BillableUsageRemittanceRepository remittanceRepository;
 
+  @Blocking
   @Incoming(REMITTANCES_PURGE_TASK)
   public void consume(EnabledOrgsResponse message) {
     log.info("Received task for remittances purge with org ID: {}", message.getOrgId());
