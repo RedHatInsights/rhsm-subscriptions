@@ -154,7 +154,6 @@ class AwsContractLifecycleIntegrationTest {
     subscriptionRepository.deleteAll();
     contractRepository.deleteAll();
     offeringRepository.deleteAll();
-
   }
 
   @Test
