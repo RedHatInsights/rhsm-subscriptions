@@ -83,3 +83,10 @@ project(":clients:quarkus:contracts-client") {
         inputSpec = "${rootDir}/swatch-contracts/src/main/resources/META-INF/openapi.yaml"
     }
 }
+
+project(":clients:billable-usage-client") {
+    apply plugin: "swatch.spring-boot-rest-client-conventions"
+    openApiGenerate {
+        inputSpec = "${rootDir}/swatch-billable-usage/src/main/resources/META-INF/openapi.yaml"
+    }
+}

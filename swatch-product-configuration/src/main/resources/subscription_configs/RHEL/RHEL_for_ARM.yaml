@@ -3,6 +3,8 @@ platform: RHEL
 
 id: rhel-for-arm
 
+vdcType: true
+
 variants:
   - tag: RHEL for ARM
     engineeringIds:

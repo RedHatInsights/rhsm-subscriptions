@@ -74,27 +74,6 @@ class BillableUsageRemittanceRepositoryTest {
   }
 
   @Test
-  void deleteByOrgId() {
-    BillableUsageRemittanceEntity remittance1 =
-        remittance(
-            "org123", "product1", BillingProvider.AWS.value(), 12.0, clock.startOfCurrentMonth());
-    BillableUsageRemittanceEntity remittance2 =
-        remittance(
-            "org555", "product1", BillingProvider.AWS.value(), 12.0, clock.startOfCurrentMonth());
-
-    List<BillableUsageRemittanceEntity> toSave = List.of(remittance1, remittance2);
-    repository.saveAllAndFlush(toSave);
-
-    repository.deleteByOrgId("org123");
-    repository.flush();
-    assertTrue(repository.findOne(billableUsageRemittanceFilterFromEntity(remittance1)).isEmpty());
-    Optional<BillableUsageRemittanceEntity> found =
-        repository.findOne(billableUsageRemittanceFilterFromEntity(remittance2));
-    assertTrue(found.isPresent());
-    assertEquals(remittance2, found.get());
-  }
-
-  @Test
   void findByAccount() {
     BillableUsageRemittanceEntity remittance1 =
         remittance(

@@ -22,26 +22,38 @@ package com.redhat.swatch.billable.usage.admin.api;
 
 import com.redhat.swatch.billable.usage.kafka.streams.FlushTopicService;
 import com.redhat.swatch.billable.usage.openapi.model.DefaultResponse;
-import com.redhat.swatch.billable.usage.openapi.resource.ApiException;
-import com.redhat.swatch.billable.usage.openapi.resource.InternalBillableUsageApi;
+import com.redhat.swatch.billable.usage.openapi.resource.DefaultApi;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.ProcessingException;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @ApplicationScoped
-public class InternalBillableUsageResource implements InternalBillableUsageApi {
+@AllArgsConstructor
+public class InternalBillableUsageResource implements DefaultApi {
+
+  private static final String SUCCESS_STATUS = "Success";
 
   private final FlushTopicService flushTopicService;
+  private final InternalBillableUsageController billingController;
 
-  public InternalBillableUsageResource(FlushTopicService flushTopicService) {
-    this.flushTopicService = flushTopicService;
+  @Override
+  public DefaultResponse flushBillableUsageAggregationTopic() throws ProcessingException {
+    flushTopicService.sendFlushToBillableUsageRepartitionTopic();
+    return new DefaultResponse().status(SUCCESS_STATUS);
   }
 
   @Override
-  public DefaultResponse flushBillableUsageAggregationTopic()
-      throws ApiException, ProcessingException {
-    flushTopicService.sendFlushToBillableUsageRepartitionTopic();
-    return new DefaultResponse().status("Success");
+  public DefaultResponse deleteRemittancesAssociatedWithOrg(String orgId)
+      throws ProcessingException {
+    billingController.deleteDataForOrg(orgId);
+    return getDefaultResponse(SUCCESS_STATUS);
+  }
+
+  private DefaultResponse getDefaultResponse(String status) {
+    var response = new DefaultResponse();
+    response.setStatus(status);
+    return response;
   }
 }

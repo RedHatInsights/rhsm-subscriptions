@@ -130,8 +130,7 @@ public class InternalTallyResource implements InternalApi {
         internalTallyDataController.deleteDataAssociatedWithOrg(orgId);
       } catch (Exception e) {
         log.error("Unable to delete data for organization {}", orgId, e);
-        response.setDetail(String.format("Unable to delete data for organization %s", orgId));
-        return response;
+        throw e;
       }
       var successMessage = "Finished deleting data associated with organization " + orgId;
       response.setDetail(successMessage);

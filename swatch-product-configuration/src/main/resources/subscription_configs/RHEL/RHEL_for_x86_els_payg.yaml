@@ -3,6 +3,8 @@ platform: RHEL
 
 id: rhel-for-x86-els-payg
 
+vdcType: true
+
 #includedSubscriptions:
 #  - rhel-for-x86
 

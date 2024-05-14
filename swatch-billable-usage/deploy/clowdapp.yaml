@@ -31,6 +31,8 @@ parameters:
     value: 'INFO'
   - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
     value: 'INFO'
+  - name: LOGGING_SHOW_SQL_QUERIES
+    value: 'false'
   - name: KAFKA_BILLABLE_USAGE_REPLICAS
     value: '3'
   - name: KAFKA_BILLABLE_USAGE_PARTITIONS
@@ -61,8 +63,12 @@ objects:
       prometheus: quarkus
   spec:
     envName: ${ENV_NAME}
+    database:
+      sharedDbAppName: swatch-tally
     dependencies:
       - swatch-contracts
+      # wait for swatch-tally to initialize the db entities
+      - swatch-tally
 
     kafkaTopics:
       - replicas: ${{KAFKA_BILLABLE_USAGE_REPLICAS}}
@@ -125,6 +131,8 @@ objects:
               value: ${LOGGING_LEVEL_ROOT}
             - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
               value: ${LOGGING_LEVEL_COM_REDHAT_SWATCH}
+            - name: LOGGING_SHOW_SQL_QUERIES
+              value: ${LOGGING_SHOW_SQL_QUERIES}
             - name: SPLUNKMETA_namespace
               valueFrom:
                 fieldRef:
