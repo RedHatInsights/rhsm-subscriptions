@@ -25,8 +25,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
-import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.util.StdDateFormat;
+import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationModule;
@@ -40,10 +40,6 @@ import org.candlepin.subscriptions.capacity.CapacityReconciliationWorkerConfigur
 import org.candlepin.subscriptions.clowder.KafkaSslBeanPostProcessor;
 import org.candlepin.subscriptions.clowder.RdsSslBeanPostProcessor;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
-import org.candlepin.subscriptions.json.BaseEvent;
-import org.candlepin.subscriptions.json.CleanUpEvent;
-import org.candlepin.subscriptions.json.Event;
-import org.candlepin.subscriptions.json.EventsMixin;
 import org.candlepin.subscriptions.product.OfferingWorkerConfiguration;
 import org.candlepin.subscriptions.resource.ApiConfiguration;
 import org.candlepin.subscriptions.rhmarketplace.RhMarketplaceWorkerConfiguration;
@@ -139,13 +135,6 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
     objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     objectMapper.setAnnotationIntrospector(new JacksonAnnotationIntrospector());
-    // Enable polymorphism for Event and CleanUp
-    objectMapper.addMixIn(BaseEvent.class, EventsMixin.class);
-    objectMapper.setPolymorphicTypeValidator(
-        BasicPolymorphicTypeValidator.builder()
-            .allowIfSubType(Event.class)
-            .allowIfSubType(CleanUpEvent.class)
-            .build());
 
     // Explicitly load the modules we need rather than use ObjectMapper.findAndRegisterModules in
     // order to avoid com.fasterxml.jackson.module.scala.DefaultScalaModule, which was causing
@@ -155,6 +144,23 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     objectMapper.registerModule(new Jdk8Module());
 
     return objectMapper;
+  }
+
+  @Bean
+  CsvMapper csvMapper() {
+    CsvMapper csvMapper = new CsvMapper();
+    csvMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    csvMapper.setDateFormat(new StdDateFormat().withColonInTimeZone(true));
+    csvMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    csvMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+    csvMapper.setAnnotationIntrospector(new JacksonAnnotationIntrospector());
+    // Explicitly load the modules we need rather than use ObjectMapper.findAndRegisterModules in
+    // order to avoid com.fasterxml.jackson.module.scala.DefaultScalaModule, which was causing
+    // deserialization to ignore @JsonProperty on OpenApi classes.
+    csvMapper.registerModule(new JakartaXmlBindAnnotationModule());
+    csvMapper.registerModule(new JavaTimeModule());
+    csvMapper.registerModule(new Jdk8Module());
+    return csvMapper;
   }
 
   /* Do not declare a MethodValidationPostProcessor!

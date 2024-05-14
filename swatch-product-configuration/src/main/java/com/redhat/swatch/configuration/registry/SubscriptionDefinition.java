@@ -75,6 +75,7 @@ public class SubscriptionDefinition {
   @Builder.Default private List<Metric> metrics = new ArrayList<>();
   private Defaults defaults;
   private boolean contractEnabled;
+  private boolean vdcType;
 
   public Optional<Variant> findVariantForEngId(String engId) {
     return getVariants().stream()
@@ -125,6 +126,12 @@ public class SubscriptionDefinition {
         .map(SubscriptionDefinition::getServiceType)
         .filter(Objects::nonNull)
         .collect(Collectors.toSet());
+  }
+
+  public static boolean isPrometheusEnabled(@NotNull @NotEmpty String tag) {
+    return lookupSubscriptionByTag(tag).filter(SubscriptionDefinition::isPrometheusEnabled).stream()
+        .findFirst()
+        .isPresent();
   }
 
   public boolean isPrometheusEnabled() {
@@ -334,6 +341,10 @@ public class SubscriptionDefinition {
     return lookupSubscriptionByTag(tag)
         .map(SubscriptionDefinition::isContractEnabled)
         .orElse(false);
+  }
+
+  public static boolean isVdcType(@NotNull @NotEmpty String id) {
+    return lookupSubscriptionByTag(id).map(SubscriptionDefinition::isVdcType).orElse(false);
   }
 
   public boolean isPaygEligible() {

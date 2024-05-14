@@ -111,7 +111,7 @@ class MetricUsageCollectorTest {
   @Test
   void testUpdateHostsCreatesAccountServiceInventoryWhenItDoesNotExist() {
     Measurement measurement =
-        new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event =
         createEvent()
             .withEventId(UUID.randomUUID())
@@ -141,7 +141,7 @@ class MetricUsageCollectorTest {
   @Test
   void testUpdateHostsCreatesNewInstanceRecords() {
     Measurement measurement =
-        new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event =
         createEvent()
             .withEventId(UUID.randomUUID())
@@ -161,6 +161,82 @@ class MetricUsageCollectorTest {
   @Test
   void updateHostsOnlyUpdatesLastSeenAndMeasurementsWhenEventTimestampMostRecent() {
     Measurement coresMeasurement =
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
+    Event event1 =
+        createEvent()
+            .withEventId(UUID.randomUUID())
+            .withProductIds(List.of(RHEL_FOR_X86))
+            .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
+            .withServiceType("RHEL System")
+            .withMeasurements(List.of(coresMeasurement))
+            .withSla(Event.Sla.PREMIUM)
+            .withBillingProvider(Event.BillingProvider.RED_HAT)
+            .withBillingAccountId(Optional.of("sellerAcctId"));
+
+    Measurement oldCoresMeasurement =
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(100.0);
+    Event event2 =
+        createEvent(event1.getInstanceId())
+            .withEventId(UUID.randomUUID())
+            .withProductIds(List.of(RHEL_FOR_X86))
+            .withTimestamp(event1.getTimestamp().minusMonths(1))
+            .withServiceType("RHEL System")
+            .withMeasurements(List.of(oldCoresMeasurement))
+            .withSla(Event.Sla.PREMIUM)
+            .withBillingProvider(Event.BillingProvider.RED_HAT)
+            .withBillingAccountId(Optional.of("sellerAcctId"));
+
+    Measurement instanceHoursMeasurement =
+        new Measurement().withMetricId(MetricIdUtils.getInstanceHours().toString()).withValue(5.0);
+    Event event3 =
+        createEvent(event1.getInstanceId())
+            .withEventId(UUID.randomUUID())
+            .withProductIds(List.of(RHEL_FOR_X86))
+            .withTimestamp(event1.getTimestamp())
+            .withServiceType("RHEL System")
+            .withMeasurements(List.of(instanceHoursMeasurement))
+            .withSla(Event.Sla.PREMIUM)
+            .withBillingProvider(Event.BillingProvider.RED_HAT)
+            .withBillingAccountId(Optional.of("sellerAcctId"));
+
+    OffsetDateTime instanceDate = event1.getTimestamp().minusDays(1);
+    Host activeInstance = new Host();
+    activeInstance.setInstanceId(event1.getInstanceId());
+    activeInstance.setInstanceType(SERVICE_TYPE);
+    activeInstance.setLastSeen(instanceDate);
+
+    doAnswer(invocation -> Stream.of(activeInstance))
+        .when(hostRepository)
+        .findAllByOrgIdAndInstanceIdIn(ORG_ID, Set.of(event1.getInstanceId()));
+
+    // First update should change the date.
+    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(event1));
+    assertEquals(event1.getTimestamp(), activeInstance.getLastSeen());
+    assertTrue(activeInstance.getMeasurements().containsKey("CORES"));
+    assertEquals(coresMeasurement.getValue(), activeInstance.getMeasurement("CORES"));
+
+    // Second update should have the Event applied, but the lastSeen date should
+    // not change since this event represents older usage.
+    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(event2));
+    assertEquals(event1.getTimestamp(), activeInstance.getLastSeen());
+    assertTrue(activeInstance.getMeasurements().containsKey("CORES"));
+    // Should remain the same as the first event.
+    assertEquals(coresMeasurement.getValue(), activeInstance.getMeasurement("CORES"));
+
+    // Third update should have the third event applied because it's the same timestamp, but
+    // includes
+    // a different measurement.
+    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(event3));
+    assertEquals(event1.getTimestamp(), activeInstance.getLastSeen());
+    assertEquals(coresMeasurement.getValue(), activeInstance.getMeasurement("CORES"));
+    assertEquals(
+        instanceHoursMeasurement.getValue(), activeInstance.getMeasurement("INSTANCE_HOURS"));
+  }
+
+  // Redundant test to show that the fallback to UOM is working
+  @Test
+  void updateHostsOnlyUpdatesLastSeenAndMeasurementsWhenEventTimestampMostRecentUOMVersion() {
+    Measurement coresMeasurement =
         new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event1 =
         createEvent()
@@ -174,7 +250,7 @@ class MetricUsageCollectorTest {
             .withBillingAccountId(Optional.of("sellerAcctId"));
 
     Measurement oldCoresMeasurement =
-        new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(100.0);
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(100.0);
     Event event2 =
         createEvent(event1.getInstanceId())
             .withEventId(UUID.randomUUID())
@@ -187,7 +263,7 @@ class MetricUsageCollectorTest {
             .withBillingAccountId(Optional.of("sellerAcctId"));
 
     Measurement instanceHoursMeasurement =
-        new Measurement().withUom(MetricIdUtils.getInstanceHours().toString()).withValue(5.0);
+        new Measurement().withMetricId(MetricIdUtils.getInstanceHours().toString()).withValue(5.0);
     Event event3 =
         createEvent(event1.getInstanceId())
             .withEventId(UUID.randomUUID())
@@ -257,7 +333,7 @@ class MetricUsageCollectorTest {
   void testCollectHandlesAllHardwareTypes(
       Event.HardwareType hardwareType, HardwareMeasurementType expectedType) {
     Measurement measurement =
-        new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event =
         createEvent()
             .withEventId(UUID.randomUUID())
@@ -325,7 +401,7 @@ class MetricUsageCollectorTest {
   void testCalculateUsageHandlesAllCloudProviders(
       Event.CloudProvider cloudProvider, HardwareMeasurementType expectedMeasurementType) {
     Measurement measurement =
-        new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
 
     // If CloudProvider is __EMPTY__ the hardware type can not be CLOUD.
     HardwareType hardwareType =
@@ -370,7 +446,7 @@ class MetricUsageCollectorTest {
   @Test
   void testUpdateHostsAddsBucketsForApplicableUsageKeys() {
     Measurement measurement =
-        new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event =
         createEvent()
             .withEventId(UUID.randomUUID())
@@ -423,7 +499,7 @@ class MetricUsageCollectorTest {
   @Test
   void testCalculateUsageAddsAnySlaToBuckets() {
     Measurement measurement =
-        new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event =
         createEvent()
             .withEventId(UUID.randomUUID())
@@ -464,7 +540,7 @@ class MetricUsageCollectorTest {
   @Test
   void testCalculateUsageAddsAnyUsageToBuckets() {
     Measurement measurement =
-        new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event =
         createEvent()
             .withEventId(UUID.randomUUID())
@@ -505,7 +581,7 @@ class MetricUsageCollectorTest {
   @Test
   void productsDefinedInRolesAreIncludedInBucketsWhenSetOnEventWhileCalculating() {
     Measurement measurement =
-        new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event =
         createEvent()
             .withEventId(UUID.randomUUID())
@@ -551,7 +627,7 @@ class MetricUsageCollectorTest {
   @Test
   void productsAreIncludedInBucketsWhenEngIdIsSetOnEventWhileCalculating() {
     Measurement measurement =
-        new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event =
         createEvent()
             .withEventId(UUID.randomUUID())
@@ -611,7 +687,7 @@ class MetricUsageCollectorTest {
   @ParameterizedTest
   @MethodSource("generateDuplicateEventTestData")
   void testHandlesDuplicateEvents(MetricId metricId) {
-    Measurement measurement = new Measurement().withUom(metricId.toString()).withValue(42.0);
+    Measurement measurement = new Measurement().withMetricId(metricId.toString()).withValue(42.0);
     Event event =
         createEvent()
             .withEventId(UUID.randomUUID())
@@ -663,9 +739,9 @@ class MetricUsageCollectorTest {
     OffsetDateTime usageTimestamp = OffsetDateTime.parse("2021-02-26T00:00:00Z");
 
     Measurement coresMeasurement =
-        new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
     Measurement instanceHoursMeasurement =
-        new Measurement().withUom(MetricIdUtils.getInstanceHours().toString()).withValue(43.0);
+        new Measurement().withMetricId(MetricIdUtils.getInstanceHours().toString()).withValue(43.0);
 
     // Events can have the same timestamp, and will be applied if the
     // record date is different. Order of creation matters for the following
@@ -723,7 +799,7 @@ class MetricUsageCollectorTest {
   @Test
   void testUpdatesMonthlyTotalWhenEventsAreOldButRecordDateIsValid() {
     Measurement measurement =
-        new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
     String instanceId = UUID.randomUUID().toString();
     OffsetDateTime eventDate = clock.startOfCurrentHour();
 
@@ -770,7 +846,7 @@ class MetricUsageCollectorTest {
   @Test
   void testHandleMonthlyTotalWhenDuplicateInstanceIDFromHBIAndCost() {
     Measurement measurement =
-        new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
     String instanceId = UUID.randomUUID().toString();
     OffsetDateTime eventDate = clock.startOfCurrentHour();
 
@@ -828,7 +904,7 @@ class MetricUsageCollectorTest {
   void testEventWithNullFieldsProcessedDuringUpdateHosts() {
     // NOTE: null in the JSON gets represented as Optional.empty()
     Measurement measurement =
-        new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event =
         createEvent()
             .withEventId(UUID.randomUUID())
@@ -853,7 +929,7 @@ class MetricUsageCollectorTest {
   @Test
   void testCreateInstanceDefaultBillingProvider() {
     Measurement measurement =
-        new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event =
         createEvent()
             .withEventId(UUID.randomUUID())
@@ -874,7 +950,7 @@ class MetricUsageCollectorTest {
   @Test
   void testInstanceHasOrgIdSet() {
     Measurement measurement =
-        new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event =
         createEvent()
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
@@ -911,7 +987,7 @@ class MetricUsageCollectorTest {
     cache.getCalculations().put(eventTimestamp, existingCalc);
 
     Measurement measurement =
-        new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event1 =
         createEvent()
             .withEventId(UUID.randomUUID())
@@ -952,7 +1028,7 @@ class MetricUsageCollectorTest {
         .thenReturn(Stream.of(snapshot));
 
     Measurement measurement =
-        new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event =
         createEvent()
             .withEventId(UUID.randomUUID())
@@ -995,7 +1071,9 @@ class MetricUsageCollectorTest {
     for (var value : Set.of(1, 2)) {
       var billingAccountId = "billingAccount" + value;
       Measurement measurement =
-          new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue((double) value);
+          new Measurement()
+              .withMetricId(MetricIdUtils.getCores().toString())
+              .withValue((double) value);
       Event event =
           createEvent()
               .withEventId(UUID.randomUUID())
@@ -1064,7 +1142,9 @@ class MetricUsageCollectorTest {
   private void assertUsageCalculationForEvent(Event event) {
     double expectedValue = 42.0;
     Measurement measurement =
-        new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(expectedValue);
+        new Measurement()
+            .withMetricId(MetricIdUtils.getCores().toString())
+            .withValue(expectedValue);
     event.withMeasurements(List.of(measurement));
     AccountUsageCalculationCache cache = new AccountUsageCalculationCache();
     metricUsageCollector.calculateUsage(List.of(event), cache);

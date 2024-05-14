@@ -23,13 +23,13 @@ package org.candlepin.subscriptions.tally.export;
 import static org.candlepin.subscriptions.resource.InstancesResource.getCategoryByMeasurementType;
 import static org.candlepin.subscriptions.resource.InstancesResource.getCloudProviderByMeasurementType;
 import static org.candlepin.subscriptions.resource.ResourceUtils.ANY;
+import static org.candlepin.subscriptions.tally.export.InstancesDataExporterService.BEGINNING;
 import static org.candlepin.subscriptions.tally.export.InstancesDataExporterService.PRODUCT_ID;
 
 import com.redhat.cloud.event.apps.exportservice.v1.Format;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
-import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,10 +45,12 @@ import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.export.BaseDataExporterServiceTest;
-import org.candlepin.subscriptions.json.InstancesExport;
-import org.candlepin.subscriptions.json.InstancesExportGuest;
-import org.candlepin.subscriptions.json.InstancesExportItem;
-import org.candlepin.subscriptions.json.InstancesExportMetric;
+import org.candlepin.subscriptions.json.InstancesExportJson;
+import org.candlepin.subscriptions.json.InstancesExportJsonGuest;
+import org.candlepin.subscriptions.json.InstancesExportJsonItem;
+import org.candlepin.subscriptions.json.InstancesExportJsonMetric;
+import org.candlepin.subscriptions.test.ExtendWithSwatchDatabase;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -56,14 +58,22 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ActiveProfiles;
 
-@ActiveProfiles({"worker", "kafka-queue", "test"})
-class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
+@ActiveProfiles({"worker", "kafka-queue", "test-inventory"})
+class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest
+    implements ExtendWithSwatchDatabase {
 
   private static final String RHEL_FOR_X86 = "RHEL for x86";
+  private static final String ROSA = "rosa";
+  private static final String APRIL = "2024-04-16T07:12:52.426707Z";
 
   private final List<HostWithGuests> itemsToBeExported = new ArrayList<>();
 
   @Autowired HostRepository repository;
+
+  @AfterEach
+  public void tearDown() {
+    repository.deleteAll();
+  }
 
   @Override
   protected String resourceType() {
@@ -79,7 +89,7 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
 
   @Test
   void testRequestShouldFailIfItDoesNotFilterByProductId() {
-    givenInstanceWithMetrics();
+    givenInstanceWithMetrics(RHEL_FOR_X86);
     givenExportRequestWithPermissions(Format.JSON);
     whenReceiveExportRequest();
     verifyRequestWasSentToExportServiceWithError(request);
@@ -87,7 +97,7 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
 
   @Test
   void testRequestShouldBeUploadedWithInstancesAsJsonFilteringByProductId() {
-    givenInstanceWithMetrics();
+    givenInstanceWithMetrics(RHEL_FOR_X86);
     givenExportRequestWithPermissions(Format.JSON);
     givenFilterInExportRequest(PRODUCT_ID, RHEL_FOR_X86);
     whenReceiveExportRequest();
@@ -95,8 +105,18 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
   }
 
   @Test
+  void testRequestShouldBeUploadedWithInstancesAsJsonFilteringByProductIdAndMonth() {
+    givenInstanceWithMetrics(ROSA);
+    givenExportRequestWithPermissions(Format.JSON);
+    givenFilterInExportRequest(PRODUCT_ID, ROSA);
+    givenFilterInExportRequest(BEGINNING, APRIL);
+    whenReceiveExportRequest();
+    verifyRequestWasSentToExportService();
+  }
+
+  @Test
   void testRequestShouldBeUploadedWithInstancesAsJsonFilteringByWrongProductId() {
-    givenInstanceWithMetrics();
+    givenInstanceWithMetrics(RHEL_FOR_X86);
     givenExportRequestWithPermissions(Format.JSON);
     givenFilterInExportRequest(PRODUCT_ID, "wrong!");
     whenReceiveExportRequest();
@@ -106,9 +126,9 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
 
   @Test
   void testRequestShouldBeUploadedWithInstancesAsJsonFilteringByProductIdAndReturnsNoData() {
-    givenInstanceWithMetrics();
+    givenInstanceWithMetrics(RHEL_FOR_X86);
     givenExportRequestWithPermissions(Format.JSON);
-    givenFilterInExportRequest(PRODUCT_ID, "rosa");
+    givenFilterInExportRequest(PRODUCT_ID, ROSA);
     whenReceiveExportRequest();
     verifyRequestWasSentToExportServiceWithNoDataFound();
     verifyNoRequestsWereSentToExportServiceWithError();
@@ -116,7 +136,7 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
 
   @Test
   void testRequestShouldBeUploadedWithInstancesAsCsv() {
-    givenInstanceWithMetrics();
+    givenInstanceWithMetrics(RHEL_FOR_X86);
     givenExportRequestWithPermissions(Format.CSV);
     whenReceiveExportRequest();
     // Since this is not implemented yet, we send an error:
@@ -135,7 +155,7 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
         "display_name_contains,ho"
       })
   void testFiltersFoundData(String filterName, String exists) {
-    givenInstanceWithMetrics();
+    givenInstanceWithMetrics(RHEL_FOR_X86);
     givenExportRequestWithPermissions(Format.JSON);
     givenFilterInExportRequest(PRODUCT_ID, RHEL_FOR_X86);
     givenFilterInExportRequest(filterName, exists);
@@ -156,7 +176,7 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
         "display_name_contains,another host"
       })
   void testFiltersDoesNotFoundDataAndReportIsEmpty(String filterName, String doesNotExist) {
-    givenInstanceWithMetrics();
+    givenInstanceWithMetrics(RHEL_FOR_X86);
     givenExportRequestWithPermissions(Format.JSON);
     givenFilterInExportRequest(PRODUCT_ID, RHEL_FOR_X86);
     givenFilterInExportRequest(filterName, doesNotExist);
@@ -166,9 +186,9 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"usage", "category", "sla", "metric_id", "billing_provider", "beginning"})
+  @ValueSource(strings = {"usage", "category", "sla", "metric_id", "billing_provider", BEGINNING})
   void testFiltersAreInvalid(String filterName) {
-    givenInstanceWithMetrics();
+    givenInstanceWithMetrics(RHEL_FOR_X86);
     givenExportRequestWithPermissions(Format.JSON);
     givenFilterInExportRequest(PRODUCT_ID, RHEL_FOR_X86);
     givenFilterInExportRequest(filterName, "wrong!");
@@ -177,62 +197,13 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
     verifyRequestWasSentToExportServiceWithError(request);
   }
 
-  @Transactional
-  void givenInstanceWithMetrics() {
-    Host guest = new Host();
-    guest.setOrgId(ORG_ID);
-    guest.setDisplayName("this is the guest");
-    guest.setLastSeen(OffsetDateTime.parse("2024-04-16T07:12:52.426707Z"));
-    guest.setHardwareType(HostHardwareType.PHYSICAL);
-    guest.setInstanceType(INSTANCE_TYPE);
-    guest.setInstanceId(UUID.randomUUID().toString());
-    guest.setHypervisorUuid(UUID.randomUUID().toString());
-    repository.save(guest);
-
-    Host instance = new Host();
-    instance.setOrgId(ORG_ID);
-    instance.setNumOfGuests(1);
-    instance.setInstanceId("456");
-    instance.setDisplayName("my host");
-    instance.setBillingProvider(BillingProvider.AWS);
-    instance.setBillingAccountId("123");
-    instance.setInstanceType(INSTANCE_TYPE);
-    instance.setSubscriptionManagerId(guest.getHypervisorUuid());
-    instance.addToMonthlyTotal(OffsetDateTime.now(), MetricIdUtils.getSockets(), 6.0);
-
-    // buckets
-    HostTallyBucket bucket = new HostTallyBucket();
-    bucket.setKey(new HostBucketKey());
-    bucket.getKey().setProductId("RHEL for x86");
-    bucket.getKey().setUsage(Usage._ANY);
-    bucket.getKey().setSla(ServiceLevel._ANY);
-    bucket.getKey().setAsHypervisor(true);
-    bucket.getKey().setBillingProvider(BillingProvider._ANY);
-    bucket.getKey().setBillingAccountId(ANY);
-    bucket.setMeasurementType(HardwareMeasurementType.PHYSICAL);
-    bucket.setCores(5);
-    bucket.setSockets(6);
-    bucket.setHost(instance);
-    instance.addBucket(bucket);
-
-    // metrics
-    instance.setMeasurements(Map.of(MetricIdUtils.getSockets().toUpperCaseFormatted(), 6.0));
-
-    // save
-    repository.save(instance);
-    HostWithGuests item = new HostWithGuests();
-    item.host = instance;
-    item.guests = List.of(guest);
-    itemsToBeExported.add(item);
-  }
-
   @Override
   protected void verifyRequestWasSentToExportService() {
-    var expected = new InstancesExport();
+    var expected = new InstancesExportJson();
     expected.setData(new ArrayList<>());
     for (HostWithGuests item : itemsToBeExported) {
       Host host = item.host;
-      var instance = new InstancesExportItem();
+      var instance = new InstancesExportJsonItem();
       instance.setId(host.getId().toString());
       instance.setInstanceId(host.getInstanceId());
       instance.setDisplayName(host.getDisplayName());
@@ -251,17 +222,19 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
       }
 
       instance.setBillingAccountId(host.getBillingAccountId());
-      var variant = Variant.findByTag(PRODUCT_ID);
+      var variant = Variant.findByTag(bucket.getKey().getProductId());
       var metrics =
-          MetricIdUtils.getMetricIdsFromConfigForVariant(variant.orElse(null)).sorted().toList();
+          MetricIdUtils.getMetricIdsFromConfigForVariant(variant.orElse(null))
+              .map(MetricId::toString)
+              .toList();
       instance.setMeasurements(new ArrayList<>());
       for (var metricId : metrics) {
         instance
             .getMeasurements()
             .add(
-                new InstancesExportMetric()
-                    .withMetricId(metricId.toString())
-                    .withValue(resolveMetricValue(bucket, metricId)));
+                new InstancesExportJsonMetric()
+                    .withMetricId(metricId)
+                    .withValue(resolveMetricValue(bucket, MetricId.fromString(metricId))));
       }
 
       instance.setLastSeen(host.getLastSeen());
@@ -273,7 +246,7 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
             item.guests.stream()
                 .map(
                     g ->
-                        new InstancesExportGuest()
+                        new InstancesExportJsonGuest()
                             .withDisplayName(g.getDisplayName())
                             .withHardwareType(g.getHardwareType().toString())
                             .withLastSeen(g.getLastSeen())
@@ -285,7 +258,61 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
       expected.getData().add(instance);
     }
 
-    verifyRequestWasSentToExportServiceWithUploadData(expected);
+    verifyRequestWasSentToExportServiceWithUploadData(request, toJson(expected));
+  }
+
+  private void givenInstanceWithMetrics(String productId) {
+    Host guest = new Host();
+    guest.setOrgId(ORG_ID);
+    guest.setDisplayName("this is the guest");
+    guest.setLastSeen(OffsetDateTime.parse(APRIL));
+    guest.setHardwareType(HostHardwareType.PHYSICAL);
+    guest.setInstanceType(INSTANCE_TYPE);
+    guest.setInstanceId(UUID.randomUUID().toString());
+    guest.setHypervisorUuid(UUID.randomUUID().toString());
+    repository.save(guest);
+
+    Host instance = new Host();
+    instance.setOrgId(ORG_ID);
+    instance.setNumOfGuests(1);
+    instance.setInstanceId("456");
+    instance.setDisplayName("my host");
+    instance.setBillingProvider(BillingProvider.AWS);
+    instance.setBillingAccountId("123");
+    instance.setInstanceType(INSTANCE_TYPE);
+    instance.setSubscriptionManagerId(guest.getHypervisorUuid());
+    instance.addToMonthlyTotal(OffsetDateTime.parse(APRIL), MetricIdUtils.getSockets(), 6.0);
+    instance.addToMonthlyTotal(OffsetDateTime.parse(APRIL), MetricIdUtils.getCores(), 8.0);
+
+    // buckets
+    HostTallyBucket bucket = new HostTallyBucket();
+    bucket.setKey(new HostBucketKey());
+    bucket.getKey().setProductId(productId);
+    bucket.getKey().setUsage(Usage._ANY);
+    bucket.getKey().setSla(ServiceLevel._ANY);
+    bucket.getKey().setAsHypervisor(true);
+    bucket.getKey().setBillingProvider(BillingProvider._ANY);
+    bucket.getKey().setBillingAccountId(ANY);
+    bucket.setMeasurementType(HardwareMeasurementType.PHYSICAL);
+    bucket.setCores(5);
+    bucket.setSockets(6);
+    bucket.setHost(instance);
+    instance.addBucket(bucket);
+
+    // metrics
+    instance.setMeasurements(
+        Map.of(
+            MetricIdUtils.getSockets().toUpperCaseFormatted(),
+            6.0,
+            MetricIdUtils.getCores().toUpperCaseFormatted(),
+            8.0));
+
+    // save
+    repository.save(instance);
+    HostWithGuests item = new HostWithGuests();
+    item.host = instance;
+    item.guests = List.of(guest);
+    itemsToBeExported.add(item);
   }
 
   private static double resolveMetricValue(HostTallyBucket bucket, MetricId metricId) {

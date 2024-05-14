@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.test;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
@@ -101,12 +101,21 @@ public interface ExtendWithExportServiceWireMock {
                                     "/app/export/v1/%s/subscriptions/%s/upload",
                                     request.getData().getResourceRequest().getExportRequestUUID(),
                                     request.getData().getResourceRequest().getUUID())))
-                        .withRequestBody(equalToJson(expected, true, true))));
+                        .withRequestBody(equalTo(expected))));
   }
 
   static WireMockServer startWireMockServer() {
     var wireMockServer =
-        new WireMockServer(wireMockConfig().dynamicPort().notifier(new ConsoleNotifier(true)));
+        new WireMockServer(
+            wireMockConfig()
+                .dynamicPort()
+                .notifier(new ConsoleNotifier(true))
+                // This is mandatory to handle large files, otherwise Wiremock returns 500 Server
+                // Error
+                .jettyHeaderRequestSize(16384)
+                .jettyHeaderResponseSize(80000)
+                .stubRequestLoggingDisabled(true)
+                .maxLoggedResponseSize(1000));
     wireMockServer.start();
     System.out.printf("Running export service on port %d%n", wireMockServer.port());
     return wireMockServer;

@@ -25,7 +25,6 @@ import lombok.Getter;
 @Getter
 public enum ErrorCode {
   AZURE_UNPROCESSED_RECORDS_ERROR(1000, "Some Azure UsageEvents were not processed"),
-  AZURE_DIMENSION_NOT_CONFIGURED(1001, "Azure Dimension not configured"),
   AZURE_MANUAL_SUBMISSION_DISABLED(1005, "Manual submission disabled."),
   SUBSCRIPTION_RECENTLY_TERMINATED(1006, "Subscription recently terminated"),
   USAGE_TIMESTAMP_OUT_OF_RANGE(1007, "Usage timestamp will not be accepted by AWS"),

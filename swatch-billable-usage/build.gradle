@@ -13,7 +13,9 @@ dependencies {
     implementation 'io.quarkus:quarkus-kafka-streams'
     implementation 'io.quarkus:quarkus-smallrye-openapi'
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka'
+    implementation 'io.quarkus:quarkus-hibernate-orm-panache'
     implementation 'jakarta.validation:jakarta.validation-api'
+    implementation("io.quarkus:quarkus-jdbc-postgresql")
     implementation project(':clients:swatch-internal-subscription-client')
     implementation project(":clients:quarkus:contracts-client")
     implementation project(':swatch-common-config-workaround')
@@ -27,6 +29,7 @@ dependencies {
     testImplementation libraries["junit-jupiter"]
     testImplementation "org.apache.kafka:kafka-streams-test-utils"
     testImplementation 'io.smallrye.reactive:smallrye-reactive-messaging-in-memory'
+    testImplementation("io.quarkus:quarkus-jdbc-h2")
 }
 
 compileJava.dependsOn tasks.openApiGenerate

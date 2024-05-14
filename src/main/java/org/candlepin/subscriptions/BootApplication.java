@@ -47,6 +47,11 @@ public class BootApplication {
     TimeZone.setDefault(TimeZone.getTimeZone(ZoneOffset.UTC));
     // Force liquibase-hub to off to avoid unnecessary warnings in our logs
     System.setProperty("liquibase.hub.mode", "off");
+    // To remove the file size limitation that resteasy client has by default which is 50MB.
+    // More information in https://github.com/orgs/resteasy/discussions/4085.
+    // Note that this needs to be set via system properties since using the client builder
+    // is not supported.
+    System.setProperty("dev.resteasy.entity.file.threshold", "-1");
 
     SpringApplication app = new SpringApplication(BootApplication.class);
     app.run(args);

@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.tally;
 
 import jakarta.transaction.Transactional;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
-import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
@@ -39,7 +38,6 @@ public class AccountResetService {
   private final TallySnapshotRepository tallySnapshotRepository;
   private final AccountServiceInventoryRepository accountServiceInventoryRepository;
   private final SubscriptionRepository subscriptionRepository;
-  private final BillableUsageRemittanceRepository remittanceRepository;
   private final TallyStateRepository tallyStateRepository;
 
   @Autowired
@@ -49,14 +47,12 @@ public class AccountResetService {
       TallySnapshotRepository tallySnapshotRepository,
       AccountServiceInventoryRepository accountServiceInventoryRepository,
       SubscriptionRepository subscriptionRepository,
-      BillableUsageRemittanceRepository remittanceRepository,
       TallyStateRepository tallyStateRepository) {
     this.eventRecordRepo = eventRecordRepo;
     this.hostRepo = hostRepo;
     this.tallySnapshotRepository = tallySnapshotRepository;
     this.accountServiceInventoryRepository = accountServiceInventoryRepository;
     this.subscriptionRepository = subscriptionRepository;
-    this.remittanceRepository = remittanceRepository;
     this.tallyStateRepository = tallyStateRepository;
   }
 
@@ -67,7 +63,6 @@ public class AccountResetService {
     eventRecordRepo.deleteByOrgId(orgId);
     tallySnapshotRepository.deleteByOrgId(orgId);
     subscriptionRepository.deleteByOrgId(orgId);
-    remittanceRepository.deleteByOrgId(orgId);
     tallyStateRepository.deleteByOrgId(orgId);
   }
 }

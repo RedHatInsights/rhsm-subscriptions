@@ -37,6 +37,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.candlepin.subscriptions.db.model.converters.EventRecordConverter;
 import org.candlepin.subscriptions.json.Event;
 
 /**
@@ -109,7 +110,7 @@ public class EventRecord {
   private Event event;
 
   @PrePersist
-  public void populateEventId() {
+  public void prePersist() {
     this.recordDate = OffsetDateTime.now(ZoneId.of("UTC"));
 
     if (event == null) {

@@ -1,0 +1,76 @@
+/*
+ * Copyright Red Hat, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Red Hat trademarks are not licensed under GPLv3. No permission is
+ * granted to use or replicate Red Hat trademarks that are incorporated
+ * in this software or its documentation.
+ */
+package org.candlepin.subscriptions.subscription.export;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Subscription;
+import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.export.DataMapperService;
+import org.candlepin.subscriptions.export.ExportServiceRequest;
+import org.candlepin.subscriptions.json.SubscriptionsExportJsonItem;
+import org.candlepin.subscriptions.json.SubscriptionsExportJsonMeasurement;
+import org.springframework.stereotype.Service;
+
+@Service
+public class SubscriptionJsonDataMapperService implements DataMapperService<Subscription> {
+  @Override
+  public List<Object> mapDataItem(Subscription dataItem, ExportServiceRequest request) {
+    var item = new SubscriptionsExportJsonItem();
+    item.setOrgId(dataItem.getOrgId());
+    item.setMeasurements(new ArrayList<>());
+
+    // map offering
+    var offering = dataItem.getOffering();
+    item.setSku(offering.getSku());
+    Optional.ofNullable(offering.getUsage()).map(Usage::getValue).ifPresent(item::setUsage);
+    Optional.ofNullable(offering.getServiceLevel())
+        .map(ServiceLevel::getValue)
+        .ifPresent(item::setServiceLevel);
+    item.setProductName(offering.getProductName());
+    item.setSubscriptionNumber(dataItem.getSubscriptionNumber());
+    item.setQuantity((double) dataItem.getQuantity());
+
+    // map measurements
+    for (var entry : dataItem.getSubscriptionMeasurements().entrySet()) {
+      var measurement = new SubscriptionsExportJsonMeasurement();
+      measurement.setMeasurementType(entry.getKey().getMeasurementType());
+      measurement.setCapacity(entry.getValue());
+      measurement.setMetricId(entry.getKey().getMetricId());
+
+      item.getMeasurements().add(measurement);
+    }
+
+    return List.of(item);
+  }
+
+  @Override
+  public Class<Subscription> getDataClass() {
+    return Subscription.class;
+  }
+
+  @Override
+  public Class<?> getExportItemClass() {
+    return SubscriptionsExportJsonItem.class;
+  }
+}

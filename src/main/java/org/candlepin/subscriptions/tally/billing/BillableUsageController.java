@@ -20,12 +20,16 @@
  */
 package org.candlepin.subscriptions.tally.billing;
 
+import com.redhat.swatch.billable.usage.api.resources.DefaultApi;
+import com.redhat.swatch.billable.usage.client.ApiException;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import jakarta.ws.rs.ProcessingException;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.Optional;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
@@ -42,11 +46,15 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
+import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.json.BillableUsage;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
+@AllArgsConstructor
 public class BillableUsageController {
 
   private final ApplicationClock clock;
@@ -54,18 +62,28 @@ public class BillableUsageController {
   private final BillableUsageRemittanceRepository billableUsageRemittanceRepository;
   private final TallySnapshotRepository snapshotRepository;
   private final ContractsController contractsController;
+  private final DefaultApi billableUsageApi;
 
-  public BillableUsageController(
-      ApplicationClock clock,
-      BillingProducer billingProducer,
-      BillableUsageRemittanceRepository billableUsageRemittanceRepository,
-      TallySnapshotRepository snapshotRepository,
-      ContractsController contractsController) {
-    this.clock = clock;
-    this.billingProducer = billingProducer;
-    this.billableUsageRemittanceRepository = billableUsageRemittanceRepository;
-    this.snapshotRepository = snapshotRepository;
-    this.contractsController = contractsController;
+  @SuppressWarnings("unused")
+  private final BillableUsageClientProperties billableUsageClientProperties;
+
+  @Retryable(
+      retryFor = ExternalServiceException.class,
+      maxAttemptsExpression = "#{@billableUsageClientProperties.getMaxAttempts()}",
+      backoff =
+          @Backoff(
+              delayExpression = "#{@billableUsageClientProperties.getBackOffInitialInterval()}",
+              maxDelayExpression = "#{@billableUsageClientProperties.getBackOffMaxInterval()}",
+              multiplierExpression = "#{@billableUsageClientProperties.getBackOffMultiplier()}"))
+  public void deleteRemittancesWithOrg(String orgId) {
+    try {
+      billableUsageApi.deleteRemittancesAssociatedWithOrg(orgId);
+    } catch (ApiException | ProcessingException ex) {
+      throw new ExternalServiceException(
+          ErrorCode.BILLABLE_USAGE_SERVICE_ERROR,
+          String.format("Could not delete remittances with org ID '%s'", orgId),
+          ex);
+    }
   }
 
   public void submitBillableUsage(BillableUsage usage) {

@@ -58,11 +58,6 @@ properties:
       properties:
         hardware_measurement_type:
           type: string
-        uom:
-          description: Preferred unit of measure for the subject (for products with multiple possible UOM). Deprecated in favor of metric_id.
-          type: string
-          deprecated: true # Will be removed in https://issues.redhat.com/browse/SWATCH-1384
-          deprecationMessage: Use 'metric_id' instead.
         metric_id:
           description: Preferred unit of measure for the subject (for products with multiple possible metrics).
           type: string

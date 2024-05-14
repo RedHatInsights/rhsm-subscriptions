@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.contract.resource;
 
+import com.redhat.swatch.contract.config.ApplicationConfiguration;
 import com.redhat.swatch.contract.openapi.model.AwsUsageContext;
 import com.redhat.swatch.contract.openapi.model.AzureUsageContext;
 import com.redhat.swatch.contract.openapi.model.Contract;
@@ -38,21 +39,27 @@ import com.redhat.swatch.contract.openapi.resource.ApiException;
 import com.redhat.swatch.contract.openapi.resource.DefaultApi;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.service.ContractService;
+import com.redhat.swatch.contract.service.EnabledOrgsProducer;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.ProcessingException;
 import java.time.OffsetDateTime;
 import java.util.List;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jboss.resteasy.reactive.common.NotImplementedYet;
 
 @Slf4j
 @ApplicationScoped
+@AllArgsConstructor
 public class ContractsTestingResource implements DefaultApi {
 
-  @Inject ContractService service;
+  public static final String FEATURE_NOT_ENABLED_MESSAGE = "This feature is not currently enabled.";
+
+  private final ContractService service;
+  private final EnabledOrgsProducer enabledOrgsProducer;
+  private final ApplicationConfiguration applicationConfiguration;
 
   /**
    * Create contract record in database from provided contract dto payload
@@ -198,7 +205,8 @@ public class ContractsTestingResource implements DefaultApi {
   @Override
   @RolesAllowed({"test", "support", "service"})
   public RpcResponse pruneUnlistedSubscriptions() throws ProcessingException {
-    throw new NotImplementedYet();
+    enabledOrgsProducer.sendTaskForSubscriptionsPrune();
+    return new RpcResponse();
   }
 
   @Override
@@ -217,7 +225,15 @@ public class ContractsTestingResource implements DefaultApi {
   @Override
   @RolesAllowed({"test", "support", "service"})
   public RpcResponse syncAllSubscriptions(Boolean forceSync) throws ProcessingException {
-    throw new NotImplementedYet();
+    var response = new RpcResponse();
+    if (Boolean.FALSE.equals(forceSync) && !applicationConfiguration.isSubscriptionSyncEnabled()) {
+      log.info(
+          "Will not sync subscriptions for all opted-in orgs even though job was scheduled because subscriptionSyncEnabled=false.");
+      response.setResult(FEATURE_NOT_ENABLED_MESSAGE);
+      return response;
+    }
+    enabledOrgsProducer.sendTaskForSubscriptionsSync();
+    return response;
   }
 
   @Override

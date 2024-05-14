@@ -20,13 +20,27 @@
  */
 package org.candlepin.subscriptions.tally.admin;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
+import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.db.EventRecordRepository;
+import org.candlepin.subscriptions.db.model.EventRecord;
+import org.candlepin.subscriptions.event.EventController;
+import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.tally.AccountResetService;
 import org.candlepin.subscriptions.tally.TallySnapshotController;
+import org.candlepin.subscriptions.tally.billing.BillableUsageController;
 import org.candlepin.subscriptions.tally.billing.ContractsController;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -35,19 +49,24 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
 class InternalTallyDataControllerTest {
-
+  private static final ApplicationClock CLOCK = new TestClockConfiguration().adjustableClock();
   private static final String ORG_ID = "org1";
 
   @MockBean ContractsController contractsController;
+  @MockBean BillableUsageController billableUsageController;
   @MockBean AccountResetService accountResetService;
   @MockBean TallySnapshotController snapshotController;
   @MockBean CaptureSnapshotsTaskManager tasks;
+  @MockBean EventRecordRepository eventRepo;
+  @Autowired EventController eventController;
   @Autowired InternalTallyDataController controller;
+  @Autowired ObjectMapper mapper;
 
   @Test
   void testDeleteDataAssociatedWithOrg() {
     controller.deleteDataAssociatedWithOrg(ORG_ID);
     verify(contractsController).deleteContractsWithOrg(ORG_ID);
+    verify(billableUsageController).deleteRemittancesWithOrg(ORG_ID);
     verify(accountResetService).deleteDataForOrg(ORG_ID);
   }
 
@@ -61,5 +80,80 @@ class InternalTallyDataControllerTest {
   void testTallyOrgSync() {
     controller.tallyOrgSync(ORG_ID);
     verify(snapshotController).produceSnapshotsForOrg(ORG_ID);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void testEventWithNullInstanceIdIsSkipped() throws JsonProcessingException {
+    Event event =
+        new Event()
+            .withEventType("test-event")
+            .withOrgId("org123")
+            .withEventSource("TEST_SOURCE")
+            .withTimestamp(CLOCK.now())
+            .withMeasurements(List.of(new Measurement().withMetricId("Cores").withValue(1.0)));
+
+    List<Event> events = List.of(event);
+    String json = mapper.writeValueAsString(events);
+    ArgumentCaptor<List<EventRecord>> eventRecordCaptor = ArgumentCaptor.forClass(List.class);
+    assertEquals("Events saved", controller.saveEvents(json));
+
+    verify(eventRepo).saveAll(eventRecordCaptor.capture());
+    assertTrue(eventRecordCaptor.getValue().isEmpty());
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void testEventsWithNegativeMeasurementSkipped() throws JsonProcessingException {
+    Event event =
+        new Event()
+            .withEventType("test-event")
+            .withOrgId("org123")
+            .withEventSource("TEST_SOURCE")
+            .withInstanceId("1234")
+            .withTimestamp(CLOCK.now())
+            .withMeasurements(List.of(new Measurement().withMetricId("Cores").withValue(-1.0)));
+
+    List<Event> events = List.of(event);
+    String json = mapper.writeValueAsString(events);
+    ArgumentCaptor<List<EventRecord>> eventRecordCaptor = ArgumentCaptor.forClass(List.class);
+    assertEquals("Events saved", controller.saveEvents(json));
+
+    verify(eventRepo).saveAll(eventRecordCaptor.capture());
+    assertTrue(eventRecordCaptor.getValue().isEmpty());
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void testOnlyValidEventIsPersisted() throws JsonProcessingException {
+    Event event =
+        new Event()
+            .withEventType("test-event")
+            .withOrgId("org123")
+            .withEventSource("TEST_SOURCE")
+            .withInstanceId("1234")
+            .withTimestamp(CLOCK.now())
+            .withMeasurements(List.of(new Measurement().withMetricId("Cores").withValue(1.0)));
+
+    Event invalidEvent =
+        new Event()
+            .withEventType("test-event")
+            .withOrgId("org123")
+            .withEventSource("TEST_SOURCE")
+            .withInstanceId("1234")
+            .withTimestamp(CLOCK.now())
+            .withMeasurements(List.of(new Measurement().withMetricId("Cores").withValue(-1.0)));
+
+    List<Event> events = List.of(event, invalidEvent);
+
+    ArgumentCaptor<List<EventRecord>> eventRecordCaptor = ArgumentCaptor.forClass(List.class);
+    String json = mapper.writeValueAsString(events);
+    assertEquals("Events saved", controller.saveEvents(json));
+
+    verify(eventRepo).saveAll(eventRecordCaptor.capture());
+
+    List<EventRecord> savedEvents = eventRecordCaptor.getValue();
+    assertEquals(1, savedEvents.size());
+    assertEquals(new EventRecord(event), savedEvents.get(0));
   }
 }

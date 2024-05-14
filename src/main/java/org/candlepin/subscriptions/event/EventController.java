@@ -25,8 +25,8 @@ import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +36,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -44,8 +45,6 @@ import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.db.model.config.OptInType;
-import org.candlepin.subscriptions.json.BaseEvent;
-import org.candlepin.subscriptions.json.CleanUpEvent;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.BillingProvider;
 import org.candlepin.subscriptions.json.Measurement;
@@ -67,16 +66,19 @@ public class EventController {
   private final ObjectMapper objectMapper;
   private final OptInController optInController;
   private final TransactionHandler transactionHandler;
+  private final EventConflictResolver eventConflictResolver;
 
   public EventController(
       EventRecordRepository repo,
       ObjectMapper objectMapper,
       OptInController optInController,
-      TransactionHandler transactionHandler) {
+      TransactionHandler transactionHandler,
+      EventConflictResolver eventConflictResolver) {
     this.repo = repo;
     this.objectMapper = objectMapper;
     this.optInController = optInController;
     this.transactionHandler = transactionHandler;
+    this.eventConflictResolver = eventConflictResolver;
   }
 
   /**
@@ -129,14 +131,13 @@ public class EventController {
   }
 
   /**
-   * Validates and saves a list of event JSON objects in the DB.
+   * Save the collection of EventRecord to the DB.
    *
-   * @param events the event JSON objects to save.
+   * @param events the event records to save.
+   * @return the persisted {@link EventRecord}s
    */
-  public List<Event> saveAll(Collection<Event> events) {
-    return repo.saveAll(events.stream().map(EventRecord::new).toList()).stream()
-        .map(EventRecord::getEvent)
-        .toList();
+  public List<EventRecord> saveAllEventRecords(Collection<EventRecord> events) {
+    return repo.saveAll(events);
   }
 
   /**
@@ -168,56 +169,38 @@ public class EventController {
    */
   public void persistServiceInstances(List<String> eventJsonList)
       throws BatchListenerFailedException {
-
     ServiceInstancesResult result = parseServiceInstancesResult(eventJsonList);
+    Map<EventKey, Event> incomingEvents =
+        result.eventsMap.entrySet().stream()
+            .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().getKey()));
 
     try {
       if (!result.eventsMap.isEmpty()) {
-        int updated =
-            transactionHandler
-                .runInNewTransaction(
-                    () -> saveAll(result.eventsMap.values().stream().map(Pair::getKey).toList()))
-                .size();
+        // Check to see if any of the incoming Events are in conflict and if so, resolve them.
+        List<EventRecord> resolved = resolveEventConflicts(incomingEvents);
+        int updated = transactionHandler.runInNewTransaction(() -> repo.saveAll(resolved)).size();
         log.debug("Adding/Updating {} metric events", updated);
       }
     } catch (Exception saveAllException) {
       log.warn("Failed to save events. Retrying individually {} events.", result.eventsMap.size());
-      result
-          .eventsMap
-          .values()
-          .forEach(
-              eventIndexPair -> {
-                try {
-                  transactionHandler.runInNewTransaction(() -> save(eventIndexPair.getKey()));
-                } catch (Exception individualSaveException) {
-                  log.warn(
-                      "Failed to save individual event record: {} with error {}.",
-                      eventIndexPair.getKey(),
-                      ExceptionUtils.getStackTrace(individualSaveException));
-                  throw new BatchListenerFailedException(
-                      individualSaveException.getMessage(), eventIndexPair.getValue());
-                }
-              });
-    }
-
-    result.cleanUpEvents.forEach(
-        cleanUpEvent -> {
-          int deleted =
+      result.eventsMap.forEach(
+          (eventKey, eventIndexPair) -> {
+            try {
               transactionHandler.runInNewTransaction(
                   () ->
-                      repo.deleteStaleEvents(
-                          cleanUpEvent.getOrgId(),
-                          cleanUpEvent.getEventSource(),
-                          cleanUpEvent.getEventType(),
-                          cleanUpEvent.getMeteringBatchId(),
-                          cleanUpEvent.getStart(),
-                          cleanUpEvent.getEnd()));
-          log.info(
-              "Deleting {} stale metric events for orgId={} and {} metrics",
-              deleted,
-              cleanUpEvent.getOrgId(),
-              cleanUpEvent.getEventType());
-        });
+                      repo.saveAll(
+                          eventConflictResolver.resolveIncomingEvents(
+                              Map.of(eventKey, eventIndexPair.getKey()))));
+            } catch (Exception individualSaveException) {
+              log.warn(
+                  "Failed to save individual event record: {} with error {}.",
+                  eventIndexPair.getKey(),
+                  ExceptionUtils.getStackTrace(individualSaveException));
+              throw new BatchListenerFailedException(
+                  individualSaveException.getMessage(), eventIndexPair.getValue());
+            }
+          });
+    }
 
     if (result
         .failedOnIndex
@@ -230,33 +213,20 @@ public class EventController {
     }
   }
 
+  public List<EventRecord> resolveEventConflicts(Map<EventKey, Event> toResolve) {
+    return eventConflictResolver.resolveIncomingEvents(toResolve);
+  }
+
   private ServiceInstancesResult parseServiceInstancesResult(List<String> eventJsonList) {
     ServiceInstancesResult result = new ServiceInstancesResult();
     LinkedHashMap<String, Integer> eventIndexMap = mapEventsToBatchIndex(eventJsonList);
     for (Entry<String, Integer> eventIndex : eventIndexMap.entrySet()) {
       try {
-        BaseEvent baseEvent = objectMapper.readValue(eventIndex.getKey(), BaseEvent.class);
-        if (!EXCLUDE_LOG_FOR_EVENT_SOURCES.contains(baseEvent.getEventSource())) {
+        Event eventToProcess = objectMapper.readValue(eventIndex.getKey(), Event.class);
+        if (!EXCLUDE_LOG_FOR_EVENT_SOURCES.contains(eventToProcess.getEventSource())) {
           log.info("Event processing in batch: " + eventIndex.getKey());
         }
-        if (StringUtils.hasText(baseEvent.getOrgId())) {
-          log.debug(
-              "Ensuring orgId={} has been set up for syncing/reporting.", baseEvent.getOrgId());
-          ensureOptIn(baseEvent.getOrgId());
-        }
-
-        if (baseEvent instanceof Event eventToSave) {
-          if (BillingProvider.AZURE.equals(eventToSave.getBillingProvider())) {
-            setAzureBillingAccountId(eventToSave);
-          }
-          validateServiceInstanceEvent(eventToSave);
-          enrichServiceInstanceFromIncomingFeed(eventToSave);
-          result.addEvent(eventToSave, eventIndex.getValue());
-        } else if (baseEvent instanceof CleanUpEvent cleanUpEvent) {
-          log.debug("Processing clean up event for: " + cleanUpEvent);
-          result.addCleanUpEvent(cleanUpEvent);
-        }
-
+        processEvent(eventToProcess).ifPresent(e -> result.addEvent(e, eventIndex.getValue()));
       } catch (Exception e) {
         log.warn(
             "Issue found {} for the service instance json {} skipping to next: {}",
@@ -272,6 +242,27 @@ public class EventController {
     return result;
   }
 
+  private Optional<Event> processEvent(Event eventToProcess) {
+    if (!validateServiceInstanceEvent(eventToProcess)) {
+      log.warn(
+          "An invalid service instance event was encountered and will be skipped. {}",
+          eventToProcess);
+      return Optional.empty();
+    }
+
+    if (StringUtils.hasText(eventToProcess.getOrgId())) {
+      log.debug(
+          "Ensuring orgId={} has been set up for syncing/reporting.", eventToProcess.getOrgId());
+      ensureOptIn(eventToProcess.getOrgId());
+    }
+
+    if (BillingProvider.AZURE.equals(eventToProcess.getBillingProvider())) {
+      setAzureBillingAccountId(eventToProcess);
+    }
+    enrichServiceInstanceFromIncomingFeed(eventToProcess);
+    return Optional.of(eventToProcess);
+  }
+
   private void setAzureBillingAccountId(Event event) {
     if (event.getAzureTenantId().isPresent() && event.getAzureSubscriptionId().isPresent()) {
       String billingAccountId =
@@ -281,15 +272,22 @@ public class EventController {
     }
   }
 
-  private void validateServiceInstanceEvent(Event event) throws IllegalArgumentException {
+  public boolean validateServiceInstanceEvent(Event event) {
+    if (Objects.isNull(event.getInstanceId())) {
+      log.warn("Event.instanceId must not be null. event={}", event);
+      return false;
+    }
+
     List<Measurement> invalidMeasurements =
-        event.getMeasurements().stream()
+        Optional.ofNullable(event.getMeasurements()).orElse(Collections.emptyList()).stream()
             .filter(m -> Objects.nonNull(m.getValue()) && m.getValue() < 0)
             .toList();
 
     if (!invalidMeasurements.isEmpty()) {
-      throw new IllegalArgumentException("Event measurement(s) must be > 0");
+      log.warn("Event measurement value(s) must be >= 0. event={}", event);
+      return false;
     }
+    return true;
   }
 
   private void enrichServiceInstanceFromIncomingFeed(Event event) {
@@ -327,14 +325,9 @@ public class EventController {
   private static class ServiceInstancesResult {
     private final Map<EventKey, Pair<Event, Integer>> eventsMap = new HashMap<>();
     private Optional<Integer> failedOnIndex = Optional.empty();
-    private final Set<CleanUpEvent> cleanUpEvents = new HashSet<>();
 
     private void addEvent(Event event, int index) {
       eventsMap.putIfAbsent(EventKey.fromEvent(event), Pair.of(event, index));
-    }
-
-    public void addCleanUpEvent(CleanUpEvent cleanUpEvent) {
-      cleanUpEvents.add(cleanUpEvent);
     }
 
     public void setFailedOnIndex(int index) {

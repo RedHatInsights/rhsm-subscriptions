@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.resource;
 
+import static java.util.Optional.ofNullable;
+
 import com.google.common.collect.ImmutableMap;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
@@ -87,7 +89,6 @@ public class InstancesResource implements InstancesApi {
 
   public static final Set<String> METRICS_TO_SORT =
       MetricId.getAll().stream().map(MetricId::getValue).collect(Collectors.toUnmodifiableSet());
-  public static final String METRICS_SORT_PARAM = "value";
   private static final Sort.Order IMPLICIT_ORDER_TO_SORT = Sort.Order.by("id");
 
   private static final Map<ReportCategory, List<HardwareMeasurementType>> CATEGORY_MAP =
@@ -191,8 +192,8 @@ public class InstancesResource implements InstancesApi {
     Pageable page = ResourceUtils.getPageable(offset, limit, toSort(sort, dir));
 
     OffsetDateTime now = OffsetDateTime.now();
-    OffsetDateTime start = Optional.ofNullable(beginning).orElse(now);
-    OffsetDateTime end = Optional.ofNullable(ending).orElse(now);
+    OffsetDateTime start = ofNullable(beginning).orElse(now);
+    OffsetDateTime end = ofNullable(ending).orElse(now);
 
     var variant = Variant.findByTag(productId.toString());
     var metricIdSet =
@@ -262,9 +263,8 @@ public class InstancesResource implements InstancesApi {
 
     Sort sortValue;
 
-    if (sort != null) {
-      String column =
-          METRICS_TO_SORT.contains(sort) ? METRICS_SORT_PARAM : FIELD_SORT_PARAM_MAPPING.get(sort);
+    if (sort != null && FIELD_SORT_PARAM_MAPPING.containsKey(sort)) {
+      String column = FIELD_SORT_PARAM_MAPPING.get(sort);
       Sort.Order userDefinedOrder = new Sort.Order(dirValue, column);
       sortValue = Sort.by(userDefinedOrder, IMPLICIT_ORDER_TO_SORT);
     } else {
@@ -328,19 +328,16 @@ public class InstancesResource implements InstancesApi {
       boolean isPAYG) {
     List<Double> measurementList = new ArrayList<>();
     for (String metric : measurements) {
-      if (MetricIdUtils.getSockets().equals(MetricId.fromString(metric))) {
-        measurementList.add(
-            Double.valueOf(Optional.ofNullable(tallyInstanceView.getSockets()).orElse(0)));
-      } else if (MetricIdUtils.getCores().equals(MetricId.fromString(metric))) {
-        measurementList.add(
-            Double.valueOf(Optional.ofNullable(tallyInstanceView.getCores()).orElse(0)));
-      } else if (!isPAYG && tallyInstanceView.getKey().getMetricId().equalsIgnoreCase(metric)) {
-        measurementList.add(Optional.ofNullable(tallyInstanceView.getValue()).orElse(0.0));
+      MetricId metricId = MetricId.fromString(metric);
+      if (MetricIdUtils.getSockets().equals(metricId)) {
+        measurementList.add(Double.valueOf(ofNullable(tallyInstanceView.getSockets()).orElse(0)));
+      } else if (MetricIdUtils.getCores().equals(metricId)) {
+        measurementList.add(Double.valueOf(ofNullable(tallyInstanceView.getCores()).orElse(0)));
+      } else if (!isPAYG && tallyInstanceView.getMetrics().containsKey(metricId)) {
+        measurementList.add(ofNullable(tallyInstanceView.getMetrics().get(metricId)).orElse(0.0));
       } else {
         measurementList.add(
-            Optional.ofNullable(
-                    tallyInstanceView.getMonthlyTotal(monthId, MetricId.fromString(metric)))
-                .orElse(0.0));
+            ofNullable(tallyInstanceView.getMonthlyTotal(monthId, metricId)).orElse(0.0));
       }
     }
     return measurementList;

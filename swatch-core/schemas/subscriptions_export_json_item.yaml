@@ -1,0 +1,22 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: SubscriptionExportJsonItem
+properties:
+  sku:
+    type: string
+  product_name:
+    type: string
+  service_level:
+    type: string
+  usage:
+    type: string
+  org_id:
+    type: string
+  subscription_number:
+    type: string
+  quantity:
+    type: number
+  measurements:
+    description: List of subscription measurements
+    type: array
+    items:
+      $ref: subscriptions_export_json_measurement.yaml

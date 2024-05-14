@@ -22,21 +22,16 @@ package org.candlepin.subscriptions.export;
 
 import static org.candlepin.subscriptions.export.ExportSubscriptionConfiguration.SUBSCRIPTION_EXPORT_QUALIFIER;
 
-import com.fasterxml.jackson.core.JsonEncoding;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.redhat.cloud.event.apps.exportservice.v1.Format;
 import com.redhat.cloud.event.parser.ConsoleCloudEventParser;
 import com.redhat.swatch.clients.export.api.client.ApiException;
 import com.redhat.swatch.clients.export.api.model.DownloadExportErrorRequest;
 import com.redhat.swatch.clients.export.api.resources.ExportApi;
 import io.micrometer.core.annotation.Timed;
+import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.exception.ExportServiceException;
@@ -62,8 +57,9 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
   private final ExportApi exportApi;
   private final ConsoleCloudEventParser parser;
   private final RbacService rbacService;
-  private final ObjectMapper objectMapper;
-  private final List<DataExporterService<?, ?>> exporterServices;
+  private final JsonExportFileWriter jsonExportFileWriter;
+  private final List<DataExporterService<?>> exporterServices;
+  private final CsvExportFileWriter csvExportFileWriter;
 
   protected ExportSubscriptionListener(
       @Qualifier(SUBSCRIPTION_EXPORT_QUALIFIER) TaskQueueProperties taskQueueProperties,
@@ -71,14 +67,16 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
       ConsoleCloudEventParser parser,
       ExportApi exportApi,
       RbacService rbacService,
-      ObjectMapper objectMapper,
-      List<DataExporterService<?, ?>> exporterServices) {
+      JsonExportFileWriter jsonExportFileWriter,
+      List<DataExporterService<?>> exporterServices,
+      CsvExportFileWriter csvExportFileWriter) {
     super(taskQueueProperties, kafkaConsumerRegistry);
     this.parser = parser;
     this.exportApi = exportApi;
     this.rbacService = rbacService;
-    this.objectMapper = objectMapper;
+    this.jsonExportFileWriter = jsonExportFileWriter;
     this.exporterServices = exporterServices;
+    this.csvExportFileWriter = csvExportFileWriter;
   }
 
   @Timed("rhsm-subscriptions.exports.upload")
@@ -128,61 +126,25 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
     }
   }
 
-  private void uploadData(DataExporterService<?, ?> exporterService, ExportServiceRequest request) {
-    // Here we need to determine format (csv or json)
+  private void uploadData(DataExporterService<?> exporterService, ExportServiceRequest request) {
     Stream<?> data = exporterService.fetchData(request);
-    if (Objects.equals(request.getFormat(), Format.CSV)) {
-      uploadCsv(request);
-    } else if (Objects.equals(request.getFormat(), Format.JSON)) {
-      uploadJson(exporterService, data, request);
-    } else {
+    File file = createTemporalFile(request);
+    getFileWriter(request).write(file, exporterService.getMapper(request), data, request);
+    upload(file, request);
+  }
+
+  private ExportFileWriter getFileWriter(ExportServiceRequest request) {
+    if (request.getFormat() == null) {
       throw new ExportServiceException(Status.FORBIDDEN.getStatusCode(), "Format isn't supported");
     }
+
+    return switch (request.getFormat()) {
+      case JSON -> jsonExportFileWriter;
+      case CSV -> csvExportFileWriter;
+    };
   }
 
-  private void uploadCsv(ExportServiceRequest request) {
-    log.debug("Uploading CSV for request {}", request.getExportRequestUUID());
-    throw new ExportServiceException(
-        Status.NOT_IMPLEMENTED.getStatusCode(), "Export upload csv isn't implemented ");
-  }
-
-  private void uploadJson(
-      DataExporterService<?, ?> exporterService, Stream<?> data, ExportServiceRequest request) {
-    log.debug("Uploading Json for request {}", request.getExportRequestUUID());
-    File file = createTemporalFile(request);
-    try (data;
-        FileOutputStream stream = new FileOutputStream(file);
-        JsonGenerator jGenerator = objectMapper.createGenerator(stream, JsonEncoding.UTF8)) {
-      jGenerator.writeStartObject();
-      jGenerator.writeArrayFieldStart("data");
-      var serializerProvider = objectMapper.getSerializerProviderInstance();
-      var serializer =
-          serializerProvider.findTypedValueSerializer(
-              exporterService.getExportItemClass(), false, null);
-      data.map(i -> exporterService.mapDataItem(i, request))
-          .forEach(
-              item -> {
-                try {
-                  serializer.serialize(item, jGenerator, serializerProvider);
-                } catch (IOException e) {
-                  log.error(
-                      "Error serializing the data item {} for request {}",
-                      item,
-                      request.getExportRequestUUID(),
-                      e);
-                  throw new ExportServiceException(
-                      Status.INTERNAL_SERVER_ERROR.getStatusCode(),
-                      "Error writing the Json payload");
-                }
-              });
-      jGenerator.writeEndArray();
-      jGenerator.writeEndObject();
-    } catch (IOException e) {
-      log.error("Error writing the Json payload for request {}", request.getExportRequestUUID(), e);
-      throw new ExportServiceException(
-          Status.INTERNAL_SERVER_ERROR.getStatusCode(), "Error writing the Json payload");
-    }
-
+  private void upload(File file, ExportServiceRequest request) {
     try {
       exportApi.downloadExportUpload(
           request.getExportRequestUUID(),
@@ -190,7 +152,7 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
           request.getRequest().getUUID(),
           file);
     } catch (ApiException e) {
-      log.error("Error sending the Json upload for request {}", request.getExportRequestUUID(), e);
+      log.error("Error sending the upload for request {}", request.getExportRequestUUID(), e);
       throw new ExportServiceException(
           Status.INTERNAL_SERVER_ERROR.getStatusCode(),
           "Error sending upload request with message: " + e.getMessage());
@@ -217,11 +179,11 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
 
   private static File createTemporalFile(ExportServiceRequest request) {
     try {
-      return File.createTempFile("export", "json");
+      return File.createTempFile("export", request.getFormat().toString());
     } catch (IOException e) {
       log.error("Error creating the temporal file for request {}", request.getId(), e);
       throw new ExportServiceException(
-          Status.INTERNAL_SERVER_ERROR.getStatusCode(),
+          Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(),
           "Error sending upload request with message: " + e.getMessage());
     }
   }

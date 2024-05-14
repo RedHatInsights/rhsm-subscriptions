@@ -22,14 +22,14 @@ package org.candlepin.subscriptions.subscription.export;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import jakarta.ws.rs.core.Response;
-import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.HypervisorReportCategory;
@@ -41,24 +41,23 @@ import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ExportServiceException;
 import org.candlepin.subscriptions.export.DataExporterService;
+import org.candlepin.subscriptions.export.DataMapperService;
 import org.candlepin.subscriptions.export.ExportServiceRequest;
-import org.candlepin.subscriptions.json.SubscriptionsExportItem;
-import org.candlepin.subscriptions.json.SubscriptionsExportMeasurement;
 import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
 @Profile("capacity-ingress")
-public class SubscriptionDataExporterService
-    implements DataExporterService<Subscription, SubscriptionsExportItem> {
-  public static final String SUBSCRIPTIONS_DATA = "subscriptions";
+@AllArgsConstructor
+public class SubscriptionDataExporterService implements DataExporterService<Subscription> {
+  static final String SUBSCRIPTIONS_DATA = "subscriptions";
+  static final String PRODUCT_ID = "product_id";
   private static final Map<String, BiConsumer<DbReportCriteria.DbReportCriteriaBuilder, String>>
       FILTERS =
           Map.of(
-              "product_id",
+              PRODUCT_ID,
               SubscriptionDataExporterService::handleProductIdFilter,
               "usage",
               SubscriptionDataExporterService::handleUsageFilter,
@@ -74,14 +73,9 @@ public class SubscriptionDataExporterService
               SubscriptionDataExporterService::handleBillingAccountIdFilter);
 
   private final SubscriptionRepository subscriptionRepository;
+  private final SubscriptionJsonDataMapperService jsonDataMapperService;
+  private final SubscriptionCsvDataMapperService csvDataMapperService;
   private final ApplicationClock clock;
-
-  @Autowired
-  public SubscriptionDataExporterService(
-      SubscriptionRepository subscriptionRepository, ApplicationClock clock) {
-    this.subscriptionRepository = subscriptionRepository;
-    this.clock = clock;
-  }
 
   @Override
   public boolean handles(ExportServiceRequest request) {
@@ -96,43 +90,11 @@ public class SubscriptionDataExporterService
   }
 
   @Override
-  public SubscriptionsExportItem mapDataItem(Subscription dataItem, ExportServiceRequest request) {
-    var item = new SubscriptionsExportItem();
-    item.setOrgId(dataItem.getOrgId());
-    item.setMeasurements(new ArrayList<>());
-
-    // map offering
-    var offering = dataItem.getOffering();
-    item.setSku(offering.getSku());
-    Optional.ofNullable(offering.getUsage()).map(Usage::getValue).ifPresent(item::setUsage);
-    Optional.ofNullable(offering.getServiceLevel())
-        .map(ServiceLevel::getValue)
-        .ifPresent(item::setServiceLevel);
-    item.setProductName(offering.getProductName());
-    item.setSubscriptionNumber(dataItem.getSubscriptionNumber());
-    item.setQuantity(dataItem.getQuantity());
-
-    // map measurements
-    for (var entry : dataItem.getSubscriptionMeasurements().entrySet()) {
-      var measurement = new SubscriptionsExportMeasurement();
-      measurement.setMeasurementType(entry.getKey().getMeasurementType());
-      measurement.setCapacity(entry.getValue());
-      measurement.setMetricId(entry.getKey().getMetricId());
-
-      item.getMeasurements().add(measurement);
-    }
-
-    return item;
-  }
-
-  @Override
-  public Class<Subscription> getDataClass() {
-    return Subscription.class;
-  }
-
-  @Override
-  public Class<SubscriptionsExportItem> getExportItemClass() {
-    return SubscriptionsExportItem.class;
+  public DataMapperService<Subscription> getMapper(ExportServiceRequest request) {
+    return switch (request.getFormat()) {
+      case JSON -> jsonDataMapperService;
+      case CSV -> csvDataMapperService;
+    };
   }
 
   private DbReportCriteria extractExportFilter(ExportServiceRequest request) {
@@ -165,7 +127,12 @@ public class SubscriptionDataExporterService
 
   private static void handleProductIdFilter(
       DbReportCriteria.DbReportCriteriaBuilder builder, String value) {
-    builder.productId(ProductId.fromString(value).getValue());
+    var productId = ProductId.fromString(value).getValue();
+    if (SubscriptionDefinition.isPrometheusEnabled(productId)) {
+      builder.productTag(productId);
+    } else {
+      builder.productId(productId);
+    }
   }
 
   private static void handleUsageFilter(

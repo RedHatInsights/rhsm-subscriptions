@@ -116,7 +116,7 @@ class TallySummaryMapperTest {
         m -> {
           HardwareMeasurementType type =
               HardwareMeasurementType.valueOf(m.getHardwareMeasurementType());
-          TallyMeasurementKey key = new TallyMeasurementKey(type, m.getUom());
+          TallyMeasurementKey key = new TallyMeasurementKey(type, m.getMetricId());
           assertTrue(expectedMeasurements.containsKey(key));
           Double expectedValue = expectedMeasurements.get(key);
           assertEquals(expectedValue, m.getValue());
