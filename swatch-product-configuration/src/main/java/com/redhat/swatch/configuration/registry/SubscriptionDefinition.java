@@ -75,6 +75,7 @@ public class SubscriptionDefinition {
   @Builder.Default private List<Metric> metrics = new ArrayList<>();
   private Defaults defaults;
   private boolean contractEnabled;
+  private boolean vdcType;
 
   /**
    * @param serviceType
@@ -329,6 +330,10 @@ public class SubscriptionDefinition {
     return lookupSubscriptionByTag(tag)
         .map(SubscriptionDefinition::isContractEnabled)
         .orElse(false);
+  }
+
+  public static boolean isVdcType(@NotNull @NotEmpty String id) {
+    return lookupSubscriptionByTag(id).map(SubscriptionDefinition::isVdcType).orElse(false);
   }
 
   public boolean isPaygEligible() {

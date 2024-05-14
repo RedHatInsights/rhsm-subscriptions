@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
@@ -39,6 +40,7 @@ import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.tally.AccountResetService;
 import org.candlepin.subscriptions.tally.TallySnapshotController;
+import org.candlepin.subscriptions.tally.billing.BillableUsageController;
 import org.candlepin.subscriptions.tally.billing.ContractsController;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfig;
@@ -46,6 +48,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
+@AllArgsConstructor
 public class InternalTallyDataController {
   private final AccountResetService accountResetService;
   private final EventController eventController;
@@ -53,28 +56,13 @@ public class InternalTallyDataController {
   private final ObjectMapper objectMapper;
   private final OptInController controller;
   private final ContractsController contractsController;
+  private final BillableUsageController billableUsageController;
   private final TallySnapshotController snapshotController;
-
-  public InternalTallyDataController(
-      AccountResetService accountResetService,
-      EventController eventController,
-      CaptureSnapshotsTaskManager tasks,
-      ObjectMapper objectMapper,
-      OptInController controller,
-      ContractsController contractsController,
-      TallySnapshotController snapshotController) {
-    this.accountResetService = accountResetService;
-    this.eventController = eventController;
-    this.tasks = tasks;
-    this.objectMapper = objectMapper;
-    this.controller = controller;
-    this.contractsController = contractsController;
-    this.snapshotController = snapshotController;
-  }
 
   public void deleteDataAssociatedWithOrg(String orgId) {
     // we first delete the contracts and if it works, we continue with the rest of the data.
     contractsController.deleteContractsWithOrg(orgId);
+    billableUsageController.deleteRemittancesWithOrg(orgId);
     accountResetService.deleteDataForOrg(orgId);
   }
 

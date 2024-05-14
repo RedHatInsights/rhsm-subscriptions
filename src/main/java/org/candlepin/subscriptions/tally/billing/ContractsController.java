@@ -26,6 +26,7 @@ import com.redhat.swatch.contracts.api.model.Contract;
 import com.redhat.swatch.contracts.api.model.Metric;
 import com.redhat.swatch.contracts.api.resources.DefaultApi;
 import com.redhat.swatch.contracts.client.ApiException;
+import jakarta.ws.rs.ProcessingException;
 import java.util.List;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
@@ -130,7 +131,7 @@ public class ContractsController {
   public void deleteContractsWithOrg(String orgId) {
     try {
       contractsApi.deleteContractsByOrg(orgId);
-    } catch (ApiException ex) {
+    } catch (ApiException | ProcessingException ex) {
       throw new ExternalServiceException(
           ErrorCode.CONTRACTS_SERVICE_ERROR,
           String.format("Could not delete contracts with org ID '%s'", orgId),

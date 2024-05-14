@@ -3,6 +3,8 @@ platform: RHEL
 
 id: rhel-for-sap-x86
 
+vdcType: true
+
 variants:
   - tag: rhel-for-sap-x86
     engineeringIds:

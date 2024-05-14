@@ -22,6 +22,7 @@ package com.redhat.swatch.contracts.client;
 
 import com.redhat.swatch.contracts.api.model.Contract;
 import com.redhat.swatch.contracts.api.model.Metric;
+import com.redhat.swatch.contracts.api.model.StatusResponse;
 import com.redhat.swatch.contracts.api.resources.DefaultApi;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -84,5 +85,10 @@ public class StubContactsApi extends DefaultApi {
         .billingAccountId(billingAccountId)
         .vendorProductCode(vendorProductCode)
         .addMetricsItem(new Metric().metricId(metricId).value(value));
+  }
+
+  @Override
+  public StatusResponse deleteContractsByOrg(String orgId) {
+    return new StatusResponse();
   }
 }

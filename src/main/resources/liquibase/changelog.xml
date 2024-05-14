@@ -153,5 +153,6 @@
     <include file="/liquibase/202404121601-add-new-columns-billable-usage-remittance.xml"/>
     <include file="/liquibase/202404240830-update-instance-view-to-aggregate-metrics.xml"/>
     <include file="/liquibase/202404301614-terminate-duplicate-azure-subscriptions.xml"/>
+    <include file="/liquibase/202405080950-copy-uom-to-metric-id-events-table.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

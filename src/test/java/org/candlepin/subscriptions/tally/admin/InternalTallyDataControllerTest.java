@@ -35,6 +35,7 @@ import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.tally.AccountResetService;
 import org.candlepin.subscriptions.tally.TallySnapshotController;
+import org.candlepin.subscriptions.tally.billing.BillableUsageController;
 import org.candlepin.subscriptions.tally.billing.ContractsController;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
@@ -52,6 +53,7 @@ class InternalTallyDataControllerTest {
   private static final String ORG_ID = "org1";
 
   @MockBean ContractsController contractsController;
+  @MockBean BillableUsageController billableUsageController;
   @MockBean AccountResetService accountResetService;
   @MockBean TallySnapshotController snapshotController;
   @MockBean CaptureSnapshotsTaskManager tasks;
@@ -64,6 +66,7 @@ class InternalTallyDataControllerTest {
   void testDeleteDataAssociatedWithOrg() {
     controller.deleteDataAssociatedWithOrg(ORG_ID);
     verify(contractsController).deleteContractsWithOrg(ORG_ID);
+    verify(billableUsageController).deleteRemittancesWithOrg(ORG_ID);
     verify(accountResetService).deleteDataForOrg(ORG_ID);
   }
 

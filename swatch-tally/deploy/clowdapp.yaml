@@ -248,6 +248,7 @@ objects:
     dependencies:
       - host-inventory
       - swatch-contracts
+      - swatch-billable-usage
       - rbac
       - export-service
     # IQE plugin your ClowdApp is associated with
