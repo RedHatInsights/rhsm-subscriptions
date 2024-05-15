@@ -24,11 +24,16 @@ import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @ApplicationScoped
 public class BillableUsageRemittanceRepository
     implements PanacheRepositoryBase<BillableUsageRemittanceEntity, UUID> {
+
+  public List<BillableUsageRemittanceEntity> findByRetryAfterLessThan(OffsetDateTime asOf) {
+    return find("retryAfter < ?1", asOf).list();
+  }
 
   public void deleteAllByOrgIdAndRemittancePendingDateBefore(
       String orgId, OffsetDateTime cutoffDate) {

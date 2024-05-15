@@ -27,8 +27,11 @@ import com.redhat.swatch.billable.usage.openapi.resource.DefaultApi;
 import com.redhat.swatch.billable.usage.services.EnabledOrgsProducer;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.ProcessingException;
+import java.time.OffsetDateTime;
+import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.clock.ApplicationClock;
 
 @Slf4j
 @ApplicationScoped
@@ -42,6 +45,7 @@ public class InternalBillableUsageResource implements DefaultApi {
   private final InternalBillableUsageController billingController;
   private final EnabledOrgsProducer enabledOrgsProducer;
   private final ApplicationConfiguration configuration;
+  private final ApplicationClock clock;
 
   @Override
   public DefaultResponse flushBillableUsageAggregationTopic() throws ProcessingException {
@@ -68,6 +72,20 @@ public class InternalBillableUsageResource implements DefaultApi {
 
     enabledOrgsProducer.sendTaskForRemittancesPurgeTask();
     return getDefaultResponse(SUCCESS_STATUS);
+  }
+
+  @Override
+  public DefaultResponse processRetries(OffsetDateTime asOf) {
+    OffsetDateTime effectiveAsOf = Optional.ofNullable(asOf).orElse(clock.now());
+    log.info("Retry billable usage remittances as of {}", effectiveAsOf);
+    try {
+      long remittances = billingController.processRetries(effectiveAsOf);
+      log.debug("Retried {} billable usage remittances with as of {}", remittances, effectiveAsOf);
+      return getDefaultResponse(SUCCESS_STATUS);
+    } catch (Exception e) {
+      log.error("Error retrying billable usage remittances", e);
+      return getDefaultResponse(REJECTED_STATUS);
+    }
   }
 
   private DefaultResponse getDefaultResponse(String status) {

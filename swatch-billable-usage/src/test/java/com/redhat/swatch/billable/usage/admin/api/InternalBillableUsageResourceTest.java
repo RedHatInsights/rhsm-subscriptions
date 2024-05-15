@@ -20,13 +20,16 @@
  */
 package com.redhat.swatch.billable.usage.admin.api;
 
+import static com.redhat.swatch.billable.usage.configuration.Channels.BILLABLE_USAGE_OUT;
 import static com.redhat.swatch.billable.usage.configuration.Channels.ENABLED_ORGS;
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.billable.usage.configuration.ApplicationConfiguration;
+import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceEntity;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
 import com.redhat.swatch.billable.usage.kafka.InMemoryMessageBrokerKafkaResource;
 import com.redhat.swatch.billable.usage.model.EnabledOrgsRequest;
@@ -38,8 +41,12 @@ import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import io.smallrye.reactive.messaging.memory.InMemorySink;
 import jakarta.enterprise.inject.Any;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import java.time.Duration;
+import java.time.OffsetDateTime;
 import org.apache.http.HttpStatus;
+import org.awaitility.Awaitility;
+import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -50,17 +57,32 @@ import org.junit.jupiter.api.Test;
 class InternalBillableUsageResourceTest {
 
   private static final String ORG_ID = "org123";
+  private static final String PRODUCT_ID = "rosa";
 
   @InjectMock ApplicationConfiguration configuration;
   @InjectSpy BillableUsageRemittanceRepository remittanceRepository;
   @Inject @Any InMemoryConnector connector;
 
-  InMemorySink<EnabledOrgsRequest> sink;
+  InMemorySink<EnabledOrgsRequest> enabledOrgsSink;
+  InMemorySink<BillableUsage> billableUsageSink;
 
   @BeforeEach
   void setUp() {
-    sink = connector.sink(ENABLED_ORGS);
-    sink.clear();
+    enabledOrgsSink = connector.sink(ENABLED_ORGS);
+    enabledOrgsSink.clear();
+    billableUsageSink = connector.sink(BILLABLE_USAGE_OUT);
+    billableUsageSink.clear();
+  }
+
+  @Test
+  void testProcessRetries() {
+    var entity = givenRemittanceForOrgId(ORG_ID);
+    given()
+        .post("/api/swatch-billable-usage/internal/rpc/remittance/processRetries")
+        .then()
+        .statusCode(HttpStatus.SC_OK);
+    Awaitility.await().untilAsserted(() -> assertEquals(1, billableUsageSink.received().size()));
+    assertNull(remittanceRepository.findById(entity.getUuid()).getRetryAfter());
   }
 
   @Test
@@ -76,14 +98,34 @@ class InternalBillableUsageResourceTest {
   void testPurgeRemittancesWhenNoPolicy() {
     when(configuration.getRemittanceRetentionPolicyDuration()).thenReturn(null);
     whenPurgeRemittances();
-    assertEquals(0, sink.received().size());
+    assertEquals(0, enabledOrgsSink.received().size());
   }
 
   @Test
   void testPurgeRemittancesWhenPolicyIsConfigured() {
     when(configuration.getRemittanceRetentionPolicyDuration()).thenReturn(Duration.ofDays(1));
     whenPurgeRemittances();
-    assertEquals(1, sink.received().size());
+    assertEquals(1, enabledOrgsSink.received().size());
+  }
+
+  @Transactional
+  BillableUsageRemittanceEntity givenRemittanceForOrgId(String orgId) {
+    var entity =
+        BillableUsageRemittanceEntity.builder()
+            .usage(BillableUsage.Usage.PRODUCTION.value())
+            .orgId(orgId)
+            .billingProvider(BillableUsage.BillingProvider.AZURE.value())
+            .billingAccountId(String.format("%s_%s_ba", orgId, PRODUCT_ID))
+            .productId(PRODUCT_ID)
+            .accumulationPeriod("mm-DD")
+            .sla(BillableUsage.Sla.PREMIUM.value())
+            .metricId("Cores")
+            .remittancePendingDate(OffsetDateTime.now())
+            .remittedPendingValue(2.0)
+            .retryAfter(OffsetDateTime.now().minusDays(1))
+            .build();
+    remittanceRepository.persist(entity);
+    return entity;
   }
 
   private static void whenPurgeRemittances() {

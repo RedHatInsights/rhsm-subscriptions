@@ -30,10 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.billing.admin.api.model.MonthlyRemittance;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
-import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
 import org.candlepin.subscriptions.db.model.RemittanceSummaryProjection;
-import org.candlepin.subscriptions.json.BillableUsage;
-import org.candlepin.subscriptions.tally.billing.BillingProducer;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,12 +38,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class InternalBillingController {
   private final BillableUsageRemittanceRepository remittanceRepository;
-  private final BillingProducer billingProducer;
 
-  public InternalBillingController(
-      BillableUsageRemittanceRepository remittanceRepository, BillingProducer billingProducer) {
+  public InternalBillingController(BillableUsageRemittanceRepository remittanceRepository) {
     this.remittanceRepository = remittanceRepository;
-    this.billingProducer = billingProducer;
   }
 
   public List<MonthlyRemittance> getRemittances(BillableUsageRemittanceFilter filter) {
@@ -70,44 +64,6 @@ public class InternalBillingController {
     }
     log.debug("Found {} matches for Org Id: {}", accountRemittanceList.size(), filter.getOrgId());
     return accountRemittanceList;
-  }
-
-  public long processRetries(OffsetDateTime asOf) {
-    List<BillableUsageRemittanceEntity> remittances =
-        remittanceRepository.findByRetryAfterLessThan(asOf);
-    for (BillableUsageRemittanceEntity remittance : remittances) {
-      // re-trigger billable usage
-      billingProducer.produce(toBillableUsage(remittance));
-      // reset the retry after column
-      remittance.setRetryAfter(null);
-    }
-
-    // to save the retry after column for all the entities
-    remittanceRepository.saveAll(remittances);
-    return remittances.size();
-  }
-
-  private BillableUsage toBillableUsage(BillableUsageRemittanceEntity remittance) {
-    // Remove this null assignment once we start adding statuses in prod
-    // https://issues.redhat.com/browse/SWATCH-2289
-    var remittanceStatus =
-        Objects.nonNull(remittance.getStatus())
-            ? BillableUsage.Status.fromValue(remittance.getStatus().getValue())
-            : null;
-    return new BillableUsage()
-        .withOrgId(remittance.getOrgId())
-        .withId(remittance.getTallyId())
-        .withSnapshotDate(remittance.getRemittancePendingDate())
-        .withProductId(remittance.getProductId())
-        .withSla(BillableUsage.Sla.fromValue(remittance.getSla()))
-        .withUsage(BillableUsage.Usage.fromValue(remittance.getUsage()))
-        .withBillingProvider(
-            BillableUsage.BillingProvider.fromValue(remittance.getBillingProvider()))
-        .withBillingAccountId(remittance.getBillingAccountId())
-        .withMetricId(remittance.getMetricId())
-        .withValue(remittance.getRemittedPendingValue())
-        .withHardwareMeasurementType(remittance.getHardwareMeasurementType())
-        .withStatus(remittanceStatus);
   }
 
   private List<MonthlyRemittance> transformUsageToMonthlyRemittance(

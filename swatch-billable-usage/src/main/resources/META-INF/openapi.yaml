@@ -61,6 +61,30 @@ paths:
           $ref: "../../../../../spec/error-responses.yaml#/$defs/Unauthorized"
         '500':
           $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+
+  /api/swatch-billable-usage/internal/rpc/remittance/processRetries:
+    post:
+      operationId: processRetries
+      summary: Trigger retry of reprocessing billable usages
+      description: Reprocess billable usages with as_of parameter AFTER billable_usage_remittance.retry_after column.
+      parameters:
+        - examples:
+            this_century:
+              value: 2000-01-01T00:00Z
+          name: as_of
+          description: Defaults to current timestamp if left empty
+          schema:
+            format: date-time
+            type: string
+          in: query
+          required: false
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
+          description: Accepted request to retry billable usage remittance
 components:
   schemas:
     Error:
