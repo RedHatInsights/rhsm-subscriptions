@@ -21,7 +21,10 @@
 package org.candlepin.subscriptions.subscription;
 
 import static java.util.Arrays.asList;
+import static org.candlepin.subscriptions.resource.CapacityResource.HYPERVISOR;
+import static org.candlepin.subscriptions.resource.CapacityResource.PHYSICAL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -120,6 +123,18 @@ class SubscriptionTableControllerTest {
           ServiceLevel.STANDARD,
           Usage.PRODUCTION,
           false);
+  private static final MeasurementSpec RH0180193_INSTANCE_HOURS =
+      MeasurementSpec.offering(
+              "RH0180193",
+              "RHEL Server",
+              null,
+              null,
+              null,
+              null,
+              ServiceLevel.STANDARD,
+              Usage.PRODUCTION,
+              false)
+          .withMetric(MetricIdUtils.getInstanceHours().toString(), 5);
   private static final MeasurementSpec RH0180194_SOCKETS_AND_CORES =
       MeasurementSpec.offering(
           "RH0180194", "RHEL Server", 2, 2, 2, 2, ServiceLevel.STANDARD, Usage.PRODUCTION, false);
@@ -198,7 +213,7 @@ class SubscriptionTableControllerTest {
     SkuCapacity actualItem = actual.getData().get(0);
     assertEquals(RH0180191.sku, actualItem.getSku(), "Wrong SKU");
     assertEquals(4, actualItem.getQuantity(), "Incorrect quantity");
-    assertCapacities(8, 0, Uom.SOCKETS, actualItem);
+    assertCapacities(8, 0, MetricIdUtils.getSockets().toUpperCaseFormatted(), actualItem);
     assertSubscription(expectedSub, actualItem.getSubscriptions().get(0));
     assertEquals(
         SubscriptionEventType.END, actualItem.getNextEventType(), "Wrong upcoming event type");
@@ -237,7 +252,7 @@ class SubscriptionTableControllerTest {
     assertEquals(RH0180191.sku, actualItem.getSku(), "Wrong SKU");
     assertEquals(
         9, actualItem.getQuantity(), "Item should contain the sum of all subs' quantities");
-    assertCapacities(18, 0, Uom.SOCKETS, actualItem);
+    assertCapacities(18, 0, MetricIdUtils.getSockets().toUpperCaseFormatted(), actualItem);
     assertEquals(
         SubscriptionEventType.END, actualItem.getNextEventType(), "Wrong upcoming event type");
     assertEquals(
@@ -297,7 +312,7 @@ class SubscriptionTableControllerTest {
         5,
         actualItem.getQuantity(),
         "Sub quantity should come from only sub(s) providing the SKU.");
-    assertCapacities(10, 10, Uom.SOCKETS, actualItem);
+    assertCapacities(10, 10, MetricIdUtils.getSockets().toUpperCaseFormatted(), actualItem);
     assertSubscription(expectedOlderSub, actualItem.getSubscriptions().get(0));
     assertEquals(
         SubscriptionEventType.END, actualItem.getNextEventType(), "Wrong upcoming event type");
@@ -310,7 +325,7 @@ class SubscriptionTableControllerTest {
         4,
         actualItem.getQuantity(),
         "Sub quantity should come from only sub(s) providing the SKU.");
-    assertCapacities(8, 0, Uom.SOCKETS, actualItem);
+    assertCapacities(8, 0, MetricIdUtils.getSockets().toUpperCaseFormatted(), actualItem);
     assertSubscription(expectedNewerSub, actualItem.getSubscriptions().get(0));
     assertEquals(
         SubscriptionEventType.END, actualItem.getNextEventType(), "Wrong upcoming event type");
@@ -902,7 +917,7 @@ class SubscriptionTableControllerTest {
     assertEquals(1, actual.getData().size(), "Wrong number of items returned");
     SkuCapacity actualItem = actual.getData().get(0);
     assertEquals(spec1.sku, actualItem.getSku(), "Wrong SKU");
-    assertCapacities(0, 8, Uom.SOCKETS, actualItem);
+    assertCapacities(0, 8, MetricIdUtils.getSockets().toUpperCaseFormatted(), actualItem);
   }
 
   @Test
@@ -928,7 +943,33 @@ class SubscriptionTableControllerTest {
     assertEquals(1, actual.getData().size(), "Wrong number of items returned");
     SkuCapacity actualItem = actual.getData().get(0);
     assertEquals(spec1.sku, actualItem.getSku(), "Wrong SKU");
-    assertCapacities(0, 8, Uom.CORES, actualItem);
+    assertCapacities(0, 8, MetricIdUtils.getCores().toUpperCaseFormatted(), actualItem);
+  }
+
+  @Test
+  void testGetSkuCapacityReportInstanceHours() {
+    // Given an org with one active sub with a quantity of 4 and has an eng product with a
+    // physical instance hours of 5,
+    var productId = RHEL_FOR_X86;
+    var expectedSub = stubSubscription("1234", "1235", 4);
+    var spec1 = RH0180193_INSTANCE_HOURS.withSub(expectedSub);
+
+    givenCapacities(Org.STANDARD, productId, spec1);
+    givenSubscriptionsInRepository(expectedSub);
+
+    givenOfferings(spec1);
+
+    // When requesting a SKU capacity report for the eng product,
+    SkuCapacityReport actual =
+        subscriptionTableController.capacityReportBySku(
+            productId, null, null, null, null, null, null, null, null, null, null, null);
+
+    // Then the report contains a single inventory item containing the sub and appropriate
+    // quantity and capacities.
+    assertEquals(1, actual.getData().size(), "Wrong number of items returned");
+    SkuCapacity actualItem = actual.getData().get(0);
+    assertEquals(spec1.sku, actualItem.getSku(), "Wrong SKU");
+    assertCapacities(20, 0, MetricIdUtils.getInstanceHours().toUpperCaseFormatted(), actualItem);
   }
 
   private void givenOfferings(MeasurementSpec... specs) {
@@ -941,8 +982,16 @@ class SubscriptionTableControllerTest {
   }
 
   private static void assertCapacities(
-      int expectedCap, int expectedHypCap, Uom expectedUom, SkuCapacity actual) {
-    assertEquals(expectedUom, actual.getUom(), "Wrong UOM");
+      int expectedCap, int expectedHypCap, String expectedMetricId, SkuCapacity actual) {
+    if (MetricIdUtils.getCores().toString().equalsIgnoreCase(expectedMetricId)) {
+      assertEquals(Uom.CORES, actual.getUom(), "Wrong UOM");
+    } else if (MetricIdUtils.getSockets().toString().equalsIgnoreCase(expectedMetricId)) {
+      assertEquals(Uom.SOCKETS, actual.getUom(), "Wrong UOM");
+    } else {
+      assertNull(actual.getUom());
+    }
+
+    assertEquals(expectedMetricId, actual.getMetricId(), "Wrong Metric ID");
     assertEquals(expectedCap, actual.getCapacity(), "Wrong Standard Capacity");
     assertEquals(expectedHypCap, actual.getHypervisorCapacity(), "Wrong Hypervisor Capacity");
     assertEquals(expectedCap + expectedHypCap, actual.getTotalCapacity(), "Wrong Total Capacity");
@@ -985,6 +1034,7 @@ class SubscriptionTableControllerTest {
     final Integer cores;
     final Integer hypervisorSockets;
     final Integer hypervisorCores;
+    final Map<String, Integer> otherMetrics;
     final ServiceLevel serviceLevel;
     final Usage usage;
     final boolean hasUnlimitedUsage;
@@ -996,6 +1046,7 @@ class SubscriptionTableControllerTest {
         Integer cores,
         Integer hypervisorSockets,
         Integer hypervisorCores,
+        Map<String, Integer> otherMetrics,
         ServiceLevel serviceLevel,
         Usage usage,
         boolean hasUnlimitedUsage,
@@ -1006,10 +1057,16 @@ class SubscriptionTableControllerTest {
       this.cores = cores;
       this.hypervisorSockets = hypervisorSockets;
       this.hypervisorCores = hypervisorCores;
+      this.otherMetrics = otherMetrics;
       this.serviceLevel = serviceLevel;
       this.usage = usage;
       this.hasUnlimitedUsage = hasUnlimitedUsage;
       this.subscription = subscription;
+    }
+
+    public MeasurementSpec withMetric(String metric, Integer value) {
+      otherMetrics.put(metric, value);
+      return this;
     }
 
     /*
@@ -1034,6 +1091,7 @@ class SubscriptionTableControllerTest {
           cores,
           hypervisorSockets,
           hypervisorCores,
+          new HashMap<>(),
           serviceLevel,
           usage,
           hasUnlimitedUsage,
@@ -1053,6 +1111,7 @@ class SubscriptionTableControllerTest {
           cores,
           hypervisorSockets,
           hypervisorCores,
+          otherMetrics,
           serviceLevel,
           usage,
           hasUnlimitedUsage,
@@ -1090,15 +1149,20 @@ class SubscriptionTableControllerTest {
       var socketsMetric = MetricId.fromString("Sockets");
 
       var measurements = new HashMap<SubscriptionMeasurementKey, Double>();
+      measurements.putAll(buildMeasurement(PHYSICAL, coresMetric, totalCapacity(cores, quantity)));
       measurements.putAll(
-          buildMeasurement("PHYSICAL", coresMetric, totalCapacity(cores, quantity)));
+          buildMeasurement(PHYSICAL, socketsMetric, totalCapacity(sockets, quantity)));
       measurements.putAll(
-          buildMeasurement("PHYSICAL", socketsMetric, totalCapacity(sockets, quantity)));
+          buildMeasurement(HYPERVISOR, coresMetric, totalCapacity(hypervisorCores, quantity)));
       measurements.putAll(
-          buildMeasurement("HYPERVISOR", coresMetric, totalCapacity(hypervisorCores, quantity)));
-      measurements.putAll(
-          buildMeasurement(
-              "HYPERVISOR", socketsMetric, totalCapacity(hypervisorSockets, quantity)));
+          buildMeasurement(HYPERVISOR, socketsMetric, totalCapacity(hypervisorSockets, quantity)));
+      for (Map.Entry<String, Integer> otherMetric : otherMetrics.entrySet()) {
+        measurements.putAll(
+            buildMeasurement(
+                PHYSICAL,
+                MetricId.fromString(otherMetric.getKey()),
+                totalCapacity(otherMetric.getValue(), quantity)));
+      }
 
       var productIds = new HashSet<>(subscription.getSubscriptionProductIds());
       productIds.add(productId.toString());
