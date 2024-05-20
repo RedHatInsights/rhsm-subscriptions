@@ -75,15 +75,11 @@ class PrometheusMeteringControllerTest {
   private final String expectedClusterId = "C1";
   private final String expectedSla = "Premium";
   private final String expectedUsage = "Production";
-  private final String expectedRole = "ocm";
-  private final String expectedServiceType = "OpenShift Cluster";
   private final String expectedBillingProvider = "red hat";
   private final String expectedBillingAccountId = "mktp-account";
   private final String expectedDisplayName = "display name";
-  private final MetricId expectedMetricId = MetricIdUtils.getCores();
   private final String expectedProductTag = "OpenShift-metrics";
   private final UUID expectedSpanId = UUID.randomUUID();
-  private final boolean expected3rdPartyMigrationFlag = false;
 
   @Inject PrometheusMeteringController controller;
 
@@ -187,6 +183,25 @@ class PrometheusMeteringControllerTest {
                 expectedSpanId,
                 controller.extractProductIdsFromProductLabel(products),
                 displayName,
+                is3rdPartyMigrationFlag),
+            MeteringEventFactory.createMetricEvent(
+                externalOrganization,
+                clusterId,
+                expectedSla,
+                expectedUsage,
+                null,
+                PROMETHEUS, // this would actually be "rhelemeter" set by an env var
+                clock.dateFromUnix(time2).minusSeconds(metricProperties.step()),
+                clock.dateFromUnix(time2),
+                serviceType,
+                billingProvider,
+                billingMarketplaceAccount,
+                MetricId.fromString(metricId),
+                val2.doubleValue(),
+                productTag,
+                expectedSpanId,
+                controller.extractProductIdsFromProductLabel(products),
+                displayName,
                 is3rdPartyMigrationFlag)),
         actual);
   }
@@ -195,8 +210,7 @@ class PrometheusMeteringControllerTest {
   void testProductLabelNonProductIds() {
     var productTag = "rosa";
     var metricId = "Instance-hours";
-    var serviceType = "moa-hostedcontrolplane";
-
+    var serviceType = "rosa Instance";
     var clusterId = UUID.randomUUID().toString();
     var billingProvider = "aws";
     var billingMarketplaceAccount = UUID.randomUUID().toString();
@@ -208,7 +222,7 @@ class PrometheusMeteringControllerTest {
     var receive = true;
     var socketCount = 1;
     var tenantId = UUID.randomUUID().toString();
-    var is3rdPartyMigrationFlag = true;
+    var is3rdPartyMigrationFlag = false;
 
     QueryResultDataResultInner dataResult =
         new QueryResultDataResultInner()
@@ -253,7 +267,7 @@ class PrometheusMeteringControllerTest {
                 clusterId,
                 expectedSla,
                 expectedUsage,
-                null,
+                product,
                 PROMETHEUS,
                 clock.dateFromUnix(time1).minusSeconds(metricProperties.step()),
                 clock.dateFromUnix(time1),
