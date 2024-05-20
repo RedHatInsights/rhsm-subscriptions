@@ -20,12 +20,15 @@
  */
 package org.candlepin.subscriptions.exception;
 
+import lombok.Getter;
+
 /**
  * Represents the various application codes.
  *
  * <p>SUBSCRIPTIONS1XXX: General application error code space. SUBSCRIPTIONS2XXX: Insights Inventory
  * API related application error code space.
  */
+@Getter
 public enum ErrorCode {
 
   /**
@@ -96,25 +99,21 @@ public enum ErrorCode {
   OFFERING_MISSING_ERROR(3003, "Sku not present in Offering"),
 
   CONTRACT_NOT_AVAILABLE(3004, "Expected contract missing"),
+
+  INVALID_EVENT_CONSUMER_ERROR(
+      3005, "An invalid service instance event was encountered and will be skipped. {}"),
+
   /** An unexpected exception was thrown by the Swatch Billable Usage Service */
   BILLABLE_USAGE_SERVICE_ERROR(4000, "Swatch Billable Usage Service Error");
 
   private static final String CODE_PREFIX = "SUBSCRIPTIONS";
 
-  private String code;
-  private String description;
+  private final String code;
+  private final String description;
 
   ErrorCode(int intCode, String description) {
     this.code = CODE_PREFIX + intCode;
     this.description = description;
-  }
-
-  public String getCode() {
-    return this.code;
-  }
-
-  public String getDescription() {
-    return this.description;
   }
 
   @Override

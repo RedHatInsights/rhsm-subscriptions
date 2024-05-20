@@ -45,6 +45,7 @@ import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.db.model.config.OptInType;
+import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.BillingProvider;
 import org.candlepin.subscriptions.json.Measurement;
@@ -244,9 +245,7 @@ public class EventController {
 
   private Optional<Event> processEvent(Event eventToProcess) {
     if (!validateServiceInstanceEvent(eventToProcess)) {
-      log.warn(
-          "An invalid service instance event was encountered and will be skipped. {}",
-          eventToProcess);
+      log.warn(ErrorCode.INVALID_EVENT_CONSUMER_ERROR.toString(), eventToProcess);
       return Optional.empty();
     }
 
@@ -296,14 +295,14 @@ public class EventController {
         SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
             role, event.getProductIds(), null, event.getConversion());
 
-    log.debug(
+    log.info(
         "matching product tags for role={}, productIds={}, productName={}, conversion={}: {}",
         role,
         event.getProductIds(),
         null,
         event.getConversion(),
         matchingProductTags);
-    log.debug("event.product_tags={}", event.getProductTag());
+    log.info("event.product_tags={}", event.getProductTag());
 
     if (matchingProductTags.isEmpty()
         || (event.getProductTag() != null
