@@ -18,21 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.retention;
+package com.redhat.swatch.billable.usage.configuration;
 
-import java.time.Duration;
-import lombok.Getter;
-import lombok.Setter;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
+public final class Channels {
 
-/** Retention policies for supported granularities. */
-@Component
-@Getter
-@Setter
-@ConfigurationProperties(prefix = "rhsm-subscriptions.remittance-retention-policy")
-public class RemittanceRetentionPolicyProperties {
+  public static final String ENABLED_ORGS = "enabled-orgs";
+  public static final String REMITTANCES_PURGE_TASK = "remittances-purge-task";
+  public static final String BILLABLE_USAGE_AGGREGATION_OUT =
+      "billable-usage-aggregation-repartition-out";
 
-  /** Defines the max duration remittance records are retained. */
-  private Duration duration;
+  private Channels() {}
 }

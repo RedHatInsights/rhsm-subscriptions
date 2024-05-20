@@ -43,9 +43,6 @@ rhsm-subscriptions:
     # Five years' worth
     quarterly: ${TALLY_RETENTION_QUARTERLY:20}
     yearly: ${TALLY_RETENTION_YEARLY:5}
-  remittance-retention-policy:
-    # 70 days worth
-    duration: ${REMITTANCE_RETENTION_DURATION:70d}
   tally-summary-producer:
     back-off-initial-interval: ${TALLY_SUMMARY_PRODUCER_BACK_OFF_INITIAL_INTERVAL:1s}
     back-off-max-interval: ${TALLY_SUMMARY_PRODUCER_BACK_OFF_MAX_INTERVAL:1m}
@@ -108,7 +105,7 @@ rhsm-subscriptions:
     seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
     seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
   enabled-orgs:
-    target-topics-allowed: platform.rhsm-subscriptions.subscription-prune-task, platform.rhsm-subscriptions.subscription-sync-task
+    target-topics-allowed: platform.rhsm-subscriptions.subscription-prune-task, platform.rhsm-subscriptions.subscription-sync-task, platform.rhsm-subscriptions.remittances-purge-task
     incoming:
       topic: ${ENABLED_ORGS_TOPIC}
       kafka-group-id: ${KAFKA_GROUP_ID:rhsm-subscriptions-enabled-orgs-processor}

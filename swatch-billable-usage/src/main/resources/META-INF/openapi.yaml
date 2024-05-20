@@ -45,6 +45,22 @@ paths:
           $ref: "../../../../../spec/error-responses.yaml#/$defs/Forbidden"
         '500':
           $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+
+  /api/swatch-billable-usage/internal/rpc/remittance/purge:
+    post:
+      operationId: purgeRemittances
+      summary: 'Purge existing remittances matching the configured retention policy.'
+      responses:
+        '201':
+          description: 'The process for purging remittances was started.'
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
+        '401':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/Unauthorized"
+        '500':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
 components:
   schemas:
     Error:

@@ -18,25 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.billable.usage.data;
+package com.redhat.swatch.billable.usage.services.json;
 
-import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.transaction.Transactional;
-import java.time.OffsetDateTime;
-import java.util.UUID;
+import com.redhat.swatch.billable.usage.model.EnabledOrgsResponse;
+import io.quarkus.kafka.client.serialization.ObjectMapperDeserializer;
 
-@ApplicationScoped
-public class BillableUsageRemittanceRepository
-    implements PanacheRepositoryBase<BillableUsageRemittanceEntity, UUID> {
-
-  public void deleteAllByOrgIdAndRemittancePendingDateBefore(
-      String orgId, OffsetDateTime cutoffDate) {
-    delete("orgId = ?1 AND remittancePendingDate < ?2", orgId, cutoffDate);
-  }
-
-  @Transactional
-  public void deleteByOrgId(String orgId) {
-    delete("orgId = ?1", orgId);
+/** Provides quarkus a hint that we want to use Jackson to serialize EnabledOrgsResponse objects. */
+public class EnabledOrgsResponseDeserializer extends ObjectMapperDeserializer<EnabledOrgsResponse> {
+  public EnabledOrgsResponseDeserializer() {
+    super(EnabledOrgsResponse.class);
   }
 }
