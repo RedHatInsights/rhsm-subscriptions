@@ -84,4 +84,4 @@ libraries["kafka-streams-test-utils"] = "org.apache.kafka:kafka-streams-test-uti
 libraries["slf4j-api"] = "org.slf4j:slf4j-api:2.0.13"
 libraries["snakeyaml"] = "org.yaml:snakeyaml:2.2"
 libraries["unleash-spring-boot-starter"] = "io.getunleash:springboot-unleash-starter:1.1.0"
-libraries["unleash-quarkus"] = "io.quarkiverse.unleash:quarkus-unleash:1.5.0"
+libraries["unleash-quarkus"] = "io.quarkiverse.unleash:quarkus-unleash:1.6.0"
