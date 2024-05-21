@@ -41,6 +41,8 @@ class MeteringEventFactoryTest {
   private static final String EVENT_SOURCE = "any";
   private static final String DISPLAY_NAME = "display name";
 
+  private final boolean is3rdPartyMigrated = false;
+
   private final String productTag = "OpenShift-dedicated-metrics";
 
   @Test
@@ -76,7 +78,8 @@ class MeteringEventFactoryTest {
             productTag,
             meteringBatchId,
             List.of(),
-            DISPLAY_NAME);
+            DISPLAY_NAME,
+            is3rdPartyMigrated);
 
     assertEquals(orgId, event.getOrgId());
     assertEquals(measuredTime, event.getTimestamp());
@@ -117,7 +120,8 @@ class MeteringEventFactoryTest {
             productTag,
             UUID.randomUUID(),
             List.of(),
-            DISPLAY_NAME);
+            DISPLAY_NAME,
+            is3rdPartyMigrated);
     assertNull(event.getSla());
   }
 
@@ -141,7 +145,8 @@ class MeteringEventFactoryTest {
             productTag,
             UUID.randomUUID(),
             List.of(),
-            DISPLAY_NAME);
+            DISPLAY_NAME,
+            is3rdPartyMigrated);
     assertEquals(Sla.__EMPTY__, event.getSla());
   }
 
@@ -165,7 +170,8 @@ class MeteringEventFactoryTest {
             productTag,
             UUID.randomUUID(),
             List.of(),
-            DISPLAY_NAME);
+            DISPLAY_NAME,
+            is3rdPartyMigrated);
     assertNull(event.getSla());
   }
 
@@ -189,7 +195,8 @@ class MeteringEventFactoryTest {
             productTag,
             UUID.randomUUID(),
             List.of(),
-            DISPLAY_NAME);
+            DISPLAY_NAME,
+            is3rdPartyMigrated);
     assertNull(event.getUsage());
   }
 
@@ -213,7 +220,8 @@ class MeteringEventFactoryTest {
             productTag,
             UUID.randomUUID(),
             List.of(),
-            DISPLAY_NAME);
+            DISPLAY_NAME,
+            is3rdPartyMigrated);
     assertNull(event.getUsage());
   }
 
@@ -237,7 +245,8 @@ class MeteringEventFactoryTest {
             productTag,
             UUID.randomUUID(),
             List.of(),
-            DISPLAY_NAME);
+            DISPLAY_NAME,
+            is3rdPartyMigrated);
     assertNull(event.getRole());
   }
 
@@ -261,7 +270,8 @@ class MeteringEventFactoryTest {
             productTag,
             UUID.randomUUID(),
             List.of(),
-            DISPLAY_NAME);
+            DISPLAY_NAME,
+            is3rdPartyMigrated);
     assertNull(event.getRole());
   }
 
@@ -285,7 +295,8 @@ class MeteringEventFactoryTest {
             productTag,
             UUID.randomUUID(),
             List.of(),
-            DISPLAY_NAME);
+            DISPLAY_NAME,
+            is3rdPartyMigrated);
     assertEquals(BillingProvider.AWS, event.getBillingProvider());
     assertTrue(event.getBillingAccountId().isPresent());
     assertEquals("aws_account_123", event.getBillingAccountId().get());
@@ -311,7 +322,8 @@ class MeteringEventFactoryTest {
             productTag,
             UUID.randomUUID(),
             List.of(),
-            DISPLAY_NAME);
+            DISPLAY_NAME,
+            is3rdPartyMigrated);
     assertEquals(BillingProvider.RED_HAT, event.getBillingProvider());
     assertTrue(event.getBillingAccountId().isEmpty());
   }
@@ -336,7 +348,8 @@ class MeteringEventFactoryTest {
             productTag,
             UUID.randomUUID(),
             List.of(),
-            DISPLAY_NAME);
+            DISPLAY_NAME,
+            is3rdPartyMigrated);
     assertEquals(BillingProvider.RED_HAT, event.getBillingProvider());
   }
 
@@ -360,7 +373,8 @@ class MeteringEventFactoryTest {
             productTag,
             UUID.randomUUID(),
             List.of(),
-            DISPLAY_NAME);
+            DISPLAY_NAME,
+            is3rdPartyMigrated);
     assertNull(event.getBillingProvider());
   }
 
@@ -384,7 +398,8 @@ class MeteringEventFactoryTest {
             productTag,
             UUID.randomUUID(),
             List.of(),
-            DISPLAY_NAME);
+            DISPLAY_NAME,
+            is3rdPartyMigrated);
     assertEquals("snapshot_openshift-dedicated-metrics_cores", event.getEventType());
   }
 
@@ -416,7 +431,8 @@ class MeteringEventFactoryTest {
             productTag,
             UUID.randomUUID(),
             List.of(),
-            DISPLAY_NAME);
+            DISPLAY_NAME,
+            is3rdPartyMigrated);
     assertEquals(BillingProvider.RED_HAT, event.getBillingProvider());
   }
 }

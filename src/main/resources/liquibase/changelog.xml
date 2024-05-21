@@ -148,6 +148,7 @@
     <include file="/liquibase/202401080920-remove-uniqueness-constraint-on-events.xml" />
     <include file="/liquibase/202401161133-update-instance-view-to-include-last-applied-event-record-date.xml" />
     <include file="/liquibase/202403260830-update-instance-view-to-include-inventory-id.xml" />
+    <include file="/liquibase/202404080930-add-special_pricing_flag-to-offering.xml" />
     <include file="/liquibase/202404051233-fix-bad-tally-state-and-event-data.xml"/>
     <include file="/liquibase/202404121601-add-new-columns-billable-usage-remittance.xml"/>
     <include file="/liquibase/202404240830-update-instance-view-to-aggregate-metrics.xml"/>

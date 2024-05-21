@@ -239,6 +239,30 @@ public class PrometheusMeteringController {
       role = null;
     }
 
+    boolean is3rdPartyMigrated = Boolean.parseBoolean(labels.get("conversions_success"));
+
+    var matchingTags =
+        SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
+            role, productIds, null, is3rdPartyMigrated);
+
+    if (matchingTags.size() != 1) {
+      log.warn(
+          "Data does not uniquely match a swatch-product-configuration product-tag, skipping Event creation");
+      log.debug("Data: {}", labels);
+      return;
+    }
+
+    var derivedProductTag = matchingTags.iterator().next();
+
+    if (!Objects.equals(productTag, derivedProductTag)) {
+      log.warn(
+          "Starting product tag {} does not match derived product tag {} based on data contents",
+          productTag,
+          derivedProductTag);
+    }
+
+    log.info("Creating Event for product {}", derivedProductTag);
+
     String billingProvider = labels.get("billing_marketplace");
     String billingAccountId;
 
@@ -277,10 +301,11 @@ public class PrometheusMeteringController {
               billingAccountId,
               MetricId.fromString(tagMetric.getId()),
               value,
-              productTag,
+              derivedProductTag,
               meteringBatchId,
               productIds,
-              displayName);
+              displayName,
+              is3rdPartyMigrated);
       // Send if and only if it has not been sent yet.
       // Related to https://github.com/RedHatInsights/rhsm-subscriptions/pull/374.
       if (eventsSent.add(EventKey.fromEvent(event))) {
@@ -306,7 +331,8 @@ public class PrometheusMeteringController {
       String productTag,
       UUID meteringBatchId,
       List<String> productIds,
-      String displayName) {
+      String displayName,
+      boolean is3rdPartyMigrated) {
     Event event = new Event();
     MeteringEventFactory.updateMetricEvent(
         event,
@@ -326,7 +352,8 @@ public class PrometheusMeteringController {
         productTag,
         meteringBatchId,
         productIds,
-        displayName);
+        displayName,
+        is3rdPartyMigrated);
     return event;
   }
 

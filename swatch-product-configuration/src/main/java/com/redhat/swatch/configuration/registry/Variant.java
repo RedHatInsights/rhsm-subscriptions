@@ -45,19 +45,22 @@ public class Variant {
   @ToString.Exclude @EqualsAndHashCode.Exclude @NotNull private SubscriptionDefinition subscription;
 
   @NotNull @NotEmpty private String tag; // required
+  @Builder.Default private Boolean isMigrationProduct = false;
 
   @Builder.Default private List<String> roles = new ArrayList<>();
   @Builder.Default private List<String> engineeringIds = new ArrayList<>();
   @Builder.Default private List<String> productNames = new ArrayList<>();
 
-  public static Optional<Variant> findByRole(String role) {
+  public static Optional<Variant> findByRole(String role, boolean isMigrationProduct) {
     return SubscriptionDefinition.lookupSubscriptionByRole(role)
         .flatMap(
             subscription ->
                 subscription.getVariants().stream()
                     .filter(
                         variant ->
-                            !variant.getRoles().isEmpty() && variant.getRoles().contains(role))
+                            !variant.getRoles().isEmpty()
+                                && variant.getRoles().contains(role)
+                                && Objects.equals(variant.isMigrationProduct, isMigrationProduct))
                     .findFirst());
   }
 
@@ -67,12 +70,18 @@ public class Variant {
    * return the Variant that's designated to be the default in the Subscription.defaults property
    *
    * @param engProductId
+   * @param isMigrationProduct
    * @return Optional<Variant>
    */
-  public static Optional<Variant> findByEngProductId(String engProductId) {
+  public static Optional<Variant> findByEngProductId(
+      String engProductId, boolean isMigrationProduct) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .flatMap(subscription -> subscription.getVariants().stream())
-        .filter(variant -> variant.getEngineeringIds().contains(engProductId))
+        .filter(
+            variant ->
+                !variant.getEngineeringIds().isEmpty()
+                    && variant.getEngineeringIds().contains(engProductId)
+                    && Objects.equals(variant.isMigrationProduct, isMigrationProduct))
         .findFirst();
   }
 
@@ -93,11 +102,15 @@ public class Variant {
                 subscriptionDefinition.getSupportedGranularity().contains(granularity));
   }
 
-  public static Stream<Variant> filterVariantsByProductName(String productName) {
+  public static Stream<Variant> filterVariantsByProductName(
+      String productName, boolean isMigrationProduct) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .map(SubscriptionDefinition::getVariants)
         .flatMap(List::stream)
-        .filter(v -> v.getProductNames().contains(productName));
+        .filter(
+            v ->
+                v.getProductNames().contains(productName)
+                    && Objects.equals(v.isMigrationProduct, isMigrationProduct));
   }
 
   public static boolean isValidProductTag(String productId) {
