@@ -256,7 +256,13 @@ public class EventController {
     }
 
     if (BillingProvider.AZURE.equals(eventToProcess.getBillingProvider())) {
-      eventToProcess.setBillingAccountId(eventToProcess.getAzureSubscriptionId());
+
+      Optional<String> azureSubscriptionId = eventToProcess.getAzureSubscriptionId();
+      if (azureSubscriptionId != null && azureSubscriptionId.isPresent()) {
+        eventToProcess.setBillingAccountId(azureSubscriptionId);
+      } else {
+        eventToProcess.setBillingAccountId(eventToProcess.getBillingAccountId());
+      }
     }
     return Optional.of(eventToProcess);
   }
