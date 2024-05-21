@@ -189,7 +189,7 @@ public class WireMockResource
                                                          },
                                                          "rhEntitlements": [
                                                              {
-                                                                 "sku": "BASILISK",
+                                                                 "sku": "RH000000",
                                                                  "subscriptionNumber": "13294886"
                                                              }
                                                          ],

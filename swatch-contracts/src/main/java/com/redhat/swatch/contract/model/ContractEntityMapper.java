@@ -44,7 +44,8 @@ import org.mapstruct.Named;
 @Mapper(
     componentModel = "cdi",
     collectionMappingStrategy = CollectionMappingStrategy.ADDER_PREFERRED,
-    builder = @Builder(disableBuilder = true))
+    builder = @Builder(disableBuilder = true),
+    uses = {ContractOfferingMapper.class})
 public interface ContractEntityMapper {
 
   @Mapping(
@@ -52,7 +53,7 @@ public interface ContractEntityMapper {
       source = "entitlement.rhEntitlements",
       qualifiedByName = "subscriptionNumber")
   @Mapping(target = "orgId", source = "entitlement.rhAccountId")
-  @Mapping(target = "sku", source = "entitlement.rhEntitlements", qualifiedByName = "sku")
+  @Mapping(target = "offering", source = "entitlement.rhEntitlements", qualifiedByName = "offering")
   @Mapping(target = "startDate", source = "entitlementDates.startDate")
   @Mapping(target = "endDate", source = "entitlementDates.endDate")
   @Mapping(target = "vendorProductCode", source = "entitlement.purchase.vendorProductCode")
@@ -95,11 +96,6 @@ public interface ContractEntityMapper {
             .flatMap(contract -> contract.getDimensions().stream())
             .map(this::mapDimensionToContractMetricEntity)
             .collect(Collectors.toSet()));
-  }
-
-  @Named("sku")
-  default String extractSku(List<RhEntitlementV1> rhEntitlements) {
-    return extractValueFromRhEntitlements(rhEntitlements, RhEntitlementV1::getSku);
   }
 
   // this method is to properly map value from entitlement partnerIdentities
