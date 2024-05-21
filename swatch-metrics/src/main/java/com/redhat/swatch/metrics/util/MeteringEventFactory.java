@@ -76,7 +76,8 @@ public final class MeteringEventFactory {
       String productTag,
       UUID meteringBatchId,
       List<String> productIds,
-      String displayName) {
+      String displayName,
+      boolean is3rdPartyMigrated) {
     Event event = new Event();
     updateMetricEvent(
         event,
@@ -96,7 +97,8 @@ public final class MeteringEventFactory {
         productTag,
         meteringBatchId,
         productIds,
-        displayName);
+        displayName,
+        is3rdPartyMigrated);
     return event;
   }
 
@@ -119,7 +121,8 @@ public final class MeteringEventFactory {
       String productTag,
       UUID meteringBatchId,
       List<String> productIds,
-      String displayName) {
+      String displayName,
+      boolean is3rdPartyMigrated) {
     toUpdate
         .withServiceType(serviceType)
         .withTimestamp(measuredTime)
@@ -142,7 +145,8 @@ public final class MeteringEventFactory {
         .withInstanceId(instanceId)
         .withMeteringBatchId(meteringBatchId)
         .withProductTag(Set.of(productTag))
-        .withProductIds(productIds);
+        .withProductIds(productIds)
+        .withConversion(is3rdPartyMigrated);
   }
 
   public static String getEventType(String metricId, String productTag) {

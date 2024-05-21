@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.tally.facts;
 
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.registry.Variant;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.Optional;
@@ -65,12 +66,12 @@ public class FactNormalizer {
    * Normalize the FactSets of the given host.
    *
    * @param hostFacts the collection of facts to normalize.
+   * @param guestData
    * @param isMetered
    * @return a normalized version of the host's facts.
    */
   public NormalizedFacts normalize(
       InventoryHostFacts hostFacts, OrgHostsData guestData, boolean isMetered) {
-
     NormalizedFacts normalizedFacts = new NormalizedFacts();
     normalizeClassification(normalizedFacts, hostFacts, guestData);
     normalizeHardwareType(normalizedFacts, hostFacts);
@@ -225,9 +226,16 @@ public class FactNormalizer {
       normalizedFacts.setCores(
           hostFacts.getSystemProfileCoresPerSocket() * hostFacts.getSystemProfileSockets());
     }
+
+    // To be handled during SWATCH-2360
+    boolean is3rdPartyMigrated = false;
+
     normalizedFacts
         .getProducts()
-        .addAll(getProductsFromProductIds(hostFacts.getSystemProfileProductIds(), isMetered));
+        .addAll(
+            getProductsFromProductIds(
+                hostFacts.getSystemProfileProductIds(), isMetered, is3rdPartyMigrated));
+
     if ("x86_64".equals(hostFacts.getSystemProfileArch())
         && HardwareMeasurementType.VIRTUAL
             .toString()
@@ -300,15 +308,17 @@ public class FactNormalizer {
     return (int) Math.ceil(cpu / threadsPerCore);
   }
 
-  private Set<String> getProductsFromProductIds(Collection<String> productIds, boolean isMetered) {
+  private Set<String> getProductsFromProductIds(
+      Collection<String> productIds, boolean isMetered, boolean is3rdPartyMigrated) {
     if (productIds == null) {
       return Set.of();
     }
+
     return isMetered
         ? SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
-            null, productIds, null)
+            null, productIds, null, is3rdPartyMigrated)
         : SubscriptionDefinition.getAllProductTagsWithNonPaygEligibleByRoleOrEngIds(
-            null, productIds, null);
+            null, productIds, null, is3rdPartyMigrated);
   }
 
   private void normalizeRhsmFacts(
@@ -327,14 +337,24 @@ public class FactNormalizer {
                         && hostUnregistered(OffsetDateTime.parse(syncTimestamp)))
             .orElse(false);
     if (!skipRhsmFacts) {
+
+      // To be handled during SWATCH-2360
+      boolean is3rdPartyMigrated = false;
+
       normalizedFacts
           .getProducts()
           .addAll(
               isMetered
                   ? SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
-                      hostFacts.getSyspurposeRole(), hostFacts.getProducts(), null)
+                      hostFacts.getSyspurposeRole(),
+                      hostFacts.getProducts(),
+                      null,
+                      is3rdPartyMigrated)
                   : SubscriptionDefinition.getAllProductTagsWithNonPaygEligibleByRoleOrEngIds(
-                      hostFacts.getSyspurposeRole(), hostFacts.getProducts(), null));
+                      hostFacts.getSyspurposeRole(),
+                      hostFacts.getProducts(),
+                      null,
+                      is3rdPartyMigrated));
 
       // Check for cores and sockets. If not included, default to 0.
       normalizedFacts.setOrgId(hostFacts.getOrgId());
@@ -349,7 +369,9 @@ public class FactNormalizer {
 
       var subscription = SubscriptionDefinition.lookupSubscriptionByRole(role);
       if (subscription.isPresent()) {
-        var variant = subscription.get().findVariantForRole(role);
+        // To be handled during SWATCH-2360
+        boolean is3rdPartyMigrated = false;
+        var variant = Variant.findByRole(role, is3rdPartyMigrated);
         variant.ifPresent(v -> normalizedFacts.getProducts().add(v.getTag()));
       }
     }
