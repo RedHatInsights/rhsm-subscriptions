@@ -193,7 +193,7 @@ objects:
             - /usr/bin/bash
             - -c
             - >
-              /usr/bin/curl --fail -H "Origin: https://swatch-bilable-usage-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-billable-usage-service:8000/api/swatch-billable-usage/internal/rpc/topics/flush"
+              /usr/bin/curl --fail -H "Origin: https://swatch-billable-usage-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-billable-usage-service:8000/api/swatch-billable-usage/internal/rpc/topics/flush"
           env:
             - name: SWATCH_SELF_PSK
               valueFrom:
@@ -219,7 +219,7 @@ objects:
             - /usr/bin/bash
             - -c
             - >
-              /usr/bin/curl --fail -H "Origin: https://swatch-bilable-usage-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X POST "http://swatch-billable-usage-service:8000/api/swatch-billable-usage/internal/rpc/remittance/purge"
+              /usr/bin/curl --fail -H "Origin: https://swatch-billable-usage-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X POST "http://swatch-billable-usage-service:8000/api/swatch-billable-usage/internal/rpc/remittance/purge"
           env:
             - name: SWATCH_SELF_PSK
               valueFrom:
@@ -245,7 +245,7 @@ objects:
             - /usr/bin/bash
             - -c
             - >
-              /usr/bin/curl --fail -H "Origin: https://swatch-bilable-usage-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X POST "http://swatch-billable-usage-service:8000/api/swatch-billable-usage/internal/rpc/remittance/processRetries"
+              /usr/bin/curl --fail -H "Origin: https://swatch-billable-usage-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X POST "http://swatch-billable-usage-service:8000/api/swatch-billable-usage/internal/rpc/remittance/processRetries"
           env:
             - name: SWATCH_SELF_PSK
               valueFrom:
