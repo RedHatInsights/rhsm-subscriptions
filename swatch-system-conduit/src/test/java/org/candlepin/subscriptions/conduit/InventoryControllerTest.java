@@ -20,9 +20,12 @@
  */
 package org.candlepin.subscriptions.conduit;
 
+import static org.candlepin.subscriptions.conduit.InventoryController.CONVERSION;
+import static org.candlepin.subscriptions.conduit.InventoryController.CONVERSIONS_ACTIVITY;
 import static org.candlepin.subscriptions.conduit.InventoryController.INSTANCE_ID;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -771,6 +774,27 @@ class InventoryControllerTest {
     ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
     assertEquals("1.0.0", conduitFacts.getBiosVersion());
     assertEquals("foobar", conduitFacts.getBiosVendor());
+  }
+
+  @Test
+  void testExtractsConversionsActivity() {
+    Consumer consumer = new Consumer();
+    // no system fact, then conversions activity should be false
+    var facts = controller.getFactsFromConsumer(consumer);
+    assertNull(facts.getConversionsActivity());
+    assertNull(facts.getOriginalFacts().get(CONVERSIONS_ACTIVITY));
+
+    // when set with a value other than conversion, it should return false
+    consumer.getFacts().put(CONVERSIONS_ACTIVITY, "any");
+    facts = controller.getFactsFromConsumer(consumer);
+    assertFalse(facts.getConversionsActivity());
+    assertEquals("any", facts.getOriginalFacts().get(CONVERSIONS_ACTIVITY));
+
+    // when set with a value equal to "conversion", it should return true
+    consumer.getFacts().put(CONVERSIONS_ACTIVITY, CONVERSION);
+    facts = controller.getFactsFromConsumer(consumer);
+    assertTrue(facts.getConversionsActivity());
+    assertEquals(CONVERSION, facts.getOriginalFacts().get(CONVERSIONS_ACTIVITY));
   }
 
   @Test
