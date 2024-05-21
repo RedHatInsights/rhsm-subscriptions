@@ -279,8 +279,6 @@ public class SubscriptionDefinition {
    * @param engProductId
    * @return Optional<Subscription> subscription
    */
-
-  // TODO this needs converted fingerprint
   public static Set<SubscriptionDefinition> lookupSubscriptionByEngId(String engProductId) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .filter(subscription -> !subscription.getVariants().isEmpty())
@@ -297,7 +295,6 @@ public class SubscriptionDefinition {
    * @param role
    * @return Optional<Subscription>
    */
-  // TODO needs fingerprint
   public static Optional<SubscriptionDefinition> lookupSubscriptionByRole(String role) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .filter(subscription -> !subscription.getVariants().isEmpty())

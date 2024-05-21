@@ -553,31 +553,4 @@ class PrometheusMeteringControllerTest {
         .status(StatusType.SUCCESS)
         .data(new QueryResultData().resultType(ResultType.MATRIX).addResultItem(dataResult));
   }
-
-  private QueryResult buildAzureOpenShiftClusterQueryResult(
-      String orgId,
-      String clusterId,
-      String sla,
-      String usage,
-      String billingProvider,
-      String azureTenantId,
-      String azureSubscriptionId,
-      List<List<BigDecimal>> timeValueTuples) {
-    QueryResultDataResultInner dataResult =
-        new QueryResultDataResultInner()
-            .putMetricItem("_id", clusterId)
-            .putMetricItem("support", sla)
-            .putMetricItem("usage", usage)
-            .putMetricItem("external_organization", orgId)
-            .putMetricItem("billing_marketplace", billingProvider)
-            .putMetricItem("azure_tenant_id", azureTenantId)
-            .putMetricItem("azure_subscription_id", azureSubscriptionId);
-
-    // NOTE: A tuple is [unix_time,value]
-    timeValueTuples.forEach(dataResult::addValuesItem);
-
-    return new QueryResult()
-        .status(StatusType.SUCCESS)
-        .data(new QueryResultData().resultType(ResultType.MATRIX).addResultItem(dataResult));
-  }
 }

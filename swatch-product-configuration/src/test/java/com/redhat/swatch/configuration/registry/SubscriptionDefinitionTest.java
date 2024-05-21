@@ -252,7 +252,6 @@ class SubscriptionDefinitionTest {
     var productName = "OpenShift Online";
     var expected = List.of("rosa");
 
-    // TODO
     var actual =
         Variant.filterVariantsByProductName(productName, false)
             .filter(v -> v.getSubscription().isPaygEligible())

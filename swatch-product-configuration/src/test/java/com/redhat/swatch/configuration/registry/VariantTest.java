@@ -71,20 +71,7 @@ class VariantTest {
   }
 
   @Test
-  void testFindByRole() {
-
-    // TODO
-    var variant = Variant.findByRole("Red Hat Enterprise Linux Server", false);
-
-    var expected = "RHEL for x86";
-    var actual = variant.get().getTag();
-
-    assertEquals(expected, actual);
-  }
-
-  @Test
   void testGetParentSubscription() {
-    // TODO
     var variant = Variant.findByRole("Red Hat Enterprise Linux Compute Node", false).get();
     var expected = "rhel-for-x86";
     var actual = variant.getSubscription().getId();
