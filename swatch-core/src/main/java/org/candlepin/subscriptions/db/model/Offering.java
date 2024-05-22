@@ -215,7 +215,8 @@ public class Offering implements Serializable {
         && Objects.equals(hasUnlimitedUsage, offering.hasUnlimitedUsage)
         && Objects.equals(derivedSku, offering.derivedSku)
         && Objects.equals(metered, offering.metered)
-        && Objects.equals(productTags, offering.productTags);
+        && Objects.equals(productTags, offering.productTags)
+        && Objects.equals(specialPricingFlag, offering.specialPricingFlag);
   }
 
   @Override
@@ -235,6 +236,7 @@ public class Offering implements Serializable {
         hasUnlimitedUsage,
         derivedSku,
         metered,
-        productTags);
+        productTags,
+        specialPricingFlag);
   }
 }
