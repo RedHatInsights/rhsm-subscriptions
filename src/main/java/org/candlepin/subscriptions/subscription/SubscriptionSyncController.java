@@ -393,7 +393,17 @@ public class SubscriptionSyncController {
     CustomBatchIterator.batchStreamOf(stream, batchSize)
         .forEach(
             batch -> {
-              batch.forEach(dto -> syncSubscription(dto, Optional.empty()));
+              batch.forEach(
+                  dto -> {
+                    // Contract provided subscriptions will have a different start_date than what is
+                    // stored in Subscription SearchAPI
+                    var existingSubscription =
+                        subscriptionRepository
+                            .findBySubscriptionNumber(dto.getSubscriptionNumber())
+                            .stream()
+                            .findFirst();
+                    syncSubscription(dto, existingSubscription);
+                  });
 
               subscriptionRepository.flush();
               entityManager.clear();
