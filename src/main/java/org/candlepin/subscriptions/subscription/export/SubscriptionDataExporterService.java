@@ -154,18 +154,6 @@ public class SubscriptionDataExporterService
     return null;
   }
 
-  private static Specification<SubscriptionCapacityView> handleCategoryFilter(String value) {
-    String measurementType = getMeasurementTypeFromCategory(value);
-    if (measurementType != null) {
-      return (root, query, builder) ->
-          builder.like(
-              builder.upper(builder.function("jsonb_pretty", String.class, root.get("metrics"))),
-              "%" + measurementType.toUpperCase(Locale.ROOT) + "%");
-    }
-
-    return null;
-  }
-
   private static Specification<SubscriptionCapacityView> handleSlaFilter(String value) {
     ServiceLevel serviceLevel = ServiceLevel.fromString(value);
     if (value.equalsIgnoreCase(serviceLevel.getValue())) {
@@ -181,12 +169,28 @@ public class SubscriptionDataExporterService
     return null;
   }
 
+  private static Specification<SubscriptionCapacityView> handleCategoryFilter(String value) {
+    String measurementType = getMeasurementTypeFromCategory(value);
+    if (measurementType != null) {
+      return handleMetricsFilter("measurement_type", measurementType);
+    }
+
+    return null;
+  }
+
   private static Specification<SubscriptionCapacityView> handleMetricIdFilter(String value) {
-    String metricId = MetricId.fromString(value).toUpperCaseFormatted();
+    return handleMetricsFilter(METRIC_ID, MetricId.fromString(value).toString());
+  }
+
+  private static Specification<SubscriptionCapacityView> handleMetricsFilter(
+      String key, String value) {
     return (root, query, builder) ->
-        builder.like(
-            builder.upper(builder.function("jsonb_pretty", String.class, root.get("metrics"))),
-            "%" + metricId + "%");
+        builder.isTrue(
+            builder.function(
+                "jsonb_path_exists",
+                Boolean.class,
+                root.get("metrics"),
+                builder.literal("$[*] ? (@." + key + " == \"" + value + "\")")));
   }
 
   private static Specification<SubscriptionCapacityView> handleBillingProviderFilter(String value) {
