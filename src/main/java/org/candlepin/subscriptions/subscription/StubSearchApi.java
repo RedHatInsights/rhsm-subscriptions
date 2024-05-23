@@ -101,7 +101,7 @@ public class StubSearchApi extends SearchApi {
         .subscriptionNumber("4243626")
         .effectiveStartDate(OffsetDateTime.parse(START_DATE).toEpochSecond() * 1000L)
         .effectiveEndDate(OffsetDateTime.parse(END_DATE).toEpochSecond() * 1000L)
-        .putExternalReferencesItem("aws", awsRef)
+        .putExternalReferencesItem("awsMarketplace", awsRef)
         .subscriptionProducts(List.of(new SubscriptionProduct().sku("MW01882")));
   }
 }
