@@ -21,6 +21,7 @@
 package com.redhat.swatch.billable.usage.kafka;
 
 import static com.redhat.swatch.billable.usage.configuration.Channels.BILLABLE_USAGE_AGGREGATION_OUT;
+import static com.redhat.swatch.billable.usage.configuration.Channels.BILLABLE_USAGE_OUT;
 import static com.redhat.swatch.billable.usage.configuration.Channels.ENABLED_ORGS;
 import static com.redhat.swatch.billable.usage.configuration.Channels.REMITTANCES_PURGE_TASK;
 
@@ -37,6 +38,7 @@ public class InMemoryMessageBrokerKafkaResource implements QuarkusTestResourceLi
     env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory(ENABLED_ORGS));
     env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory(REMITTANCES_PURGE_TASK));
     env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory(BILLABLE_USAGE_AGGREGATION_OUT));
+    env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory(BILLABLE_USAGE_OUT));
     return env;
   }
 

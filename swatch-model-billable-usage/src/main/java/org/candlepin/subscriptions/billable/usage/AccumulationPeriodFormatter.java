@@ -18,15 +18,18 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.billable.usage.configuration;
+package org.candlepin.subscriptions.billable.usage;
 
-public final class Channels {
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 
-  public static final String ENABLED_ORGS = "enabled-orgs";
-  public static final String REMITTANCES_PURGE_TASK = "remittances-purge-task";
-  public static final String BILLABLE_USAGE_OUT = "billable-usage-out";
-  public static final String BILLABLE_USAGE_AGGREGATION_OUT =
-      "billable-usage-aggregation-repartition-out";
+public final class AccumulationPeriodFormatter {
+  private static final DateTimeFormatter MONTH_ID_FORMATTER =
+      DateTimeFormatter.ofPattern("uuuu-MM");
 
-  private Channels() {}
+  private AccumulationPeriodFormatter() {}
+
+  public static String toMonthId(OffsetDateTime reference) {
+    return reference.format(MONTH_ID_FORMATTER);
+  }
 }

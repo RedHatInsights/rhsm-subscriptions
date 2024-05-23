@@ -18,15 +18,27 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.billable.usage.configuration;
+package com.redhat.swatch.billable.usage.services;
 
-public final class Channels {
+import static org.mockito.Mockito.verify;
 
-  public static final String ENABLED_ORGS = "enabled-orgs";
-  public static final String REMITTANCES_PURGE_TASK = "remittances-purge-task";
-  public static final String BILLABLE_USAGE_OUT = "billable-usage-out";
-  public static final String BILLABLE_USAGE_AGGREGATION_OUT =
-      "billable-usage-aggregation-repartition-out";
+import io.smallrye.reactive.messaging.MutinyEmitter;
+import org.candlepin.subscriptions.billable.usage.BillableUsage;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-  private Channels() {}
+@ExtendWith(MockitoExtension.class)
+class BillingProducerTest {
+  @Mock MutinyEmitter<BillableUsage> emitter;
+  @InjectMocks BillingProducer producer;
+
+  @Test
+  void testBillableUsageIsSentToTopic() {
+    BillableUsage usage = new BillableUsage();
+    producer.produce(usage);
+    verify(emitter).sendAndAwait(usage);
+  }
 }

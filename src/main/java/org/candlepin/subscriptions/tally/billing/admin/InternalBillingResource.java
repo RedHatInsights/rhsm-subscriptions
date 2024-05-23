@@ -24,10 +24,8 @@ import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.billing.admin.api.InternalApi;
 import org.candlepin.subscriptions.billing.admin.api.model.DefaultResponse;
 import org.candlepin.subscriptions.billing.admin.api.model.MonthlyRemittance;
@@ -42,12 +40,9 @@ public class InternalBillingResource implements InternalApi {
   private static final String REJECTED_STATUS = "Rejected";
 
   private final InternalBillingController billingController;
-  private final ApplicationClock clock;
 
-  public InternalBillingResource(
-      InternalBillingController billingController, ApplicationClock clock) {
+  public InternalBillingResource(InternalBillingController billingController) {
     this.billingController = billingController;
-    this.clock = clock;
   }
 
   public List<MonthlyRemittance> getRemittances(
@@ -78,20 +73,6 @@ public class InternalBillingResource implements InternalApi {
             .ending(ending)
             .build();
     return billingController.getRemittances(filter);
-  }
-
-  @Override
-  public DefaultResponse processRetries(OffsetDateTime asOf) {
-    OffsetDateTime effectiveAsOf = Optional.ofNullable(asOf).orElse(clock.now());
-    log.info("Retry billable usage remittances as of {}", effectiveAsOf);
-    try {
-      long remittances = billingController.processRetries(effectiveAsOf);
-      log.debug("Retried {} billable usage remittances with as of {}", remittances, effectiveAsOf);
-      return getDefaultResponse(SUCCESS_STATUS);
-    } catch (Exception e) {
-      log.error("Error retrying billable usage remittances", e);
-      return getDefaultResponse(REJECTED_STATUS);
-    }
   }
 
   @Override
