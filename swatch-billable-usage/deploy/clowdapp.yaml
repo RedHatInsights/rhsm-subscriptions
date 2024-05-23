@@ -37,6 +37,14 @@ parameters:
     value: '3'
   - name: KAFKA_BILLABLE_USAGE_PARTITIONS
     value: '3'
+  - name: KAFKA_ENABLED_ORGS_REPLICAS
+    value: '3'
+  - name: KAFKA_ENABLED_ORGS_PARTITIONS
+    value: '3'
+  - name: KAFKA_REMITTANCES_PURGE_TASK_REPLICAS
+    value: '3'
+  - name: KAFKA_REMITTANCES_PURGE_TASK_PARTITIONS
+    value: '3'
   - name: QUARKUS_PROFILE
     value: prod
   - name: CURL_CRON_IMAGE
@@ -52,6 +60,10 @@ parameters:
   - name: CURL_CRON_CPU_LIMIT
     value: 500m
   - name: AGGREGATE_FLUSH_SCHEDULE
+    value: '@hourly'
+  - name: PURGE_REMITTANCE_SCHEDULE
+    value: 0 3 * * *
+  - name: RETRY_REMITTANCE_SCHEDULE
     value: '@hourly'
 
 objects:
@@ -83,6 +95,12 @@ objects:
       - replicas: ${{KAFKA_BILLABLE_USAGE_REPLICAS}}
         partitions: ${{KAFKA_BILLABLE_USAGE_PARTITIONS}}
         topicName: platform.rhsm-subscriptions.swatch-billable-usage-aggregator-billable-usage-suppress-store-changelog
+      - replicas: ${{KAFKA_ENABLED_ORGS_REPLICAS}}
+        partitions: ${{KAFKA_ENABLED_ORGS_PARTITIONS}}
+        topicName: platform.rhsm-subscriptions.enabled-orgs-for-tasks
+      - replicas: ${{KAFKA_REMITTANCES_PURGE_TASK_REPLICAS}}
+        partitions: ${{KAFKA_REMITTANCES_PURGE_TASK_PARTITIONS}}
+        topicName: platform.rhsm-subscriptions.remittances-purge-task
 
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
@@ -175,7 +193,7 @@ objects:
             - /usr/bin/bash
             - -c
             - >
-              /usr/bin/curl --fail -H "Origin: https://swatch-bilable-usage-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-billable-usage-service:8000/api/swatch-billable-usage/internal/rpc/topics/flush"
+              /usr/bin/curl --fail -H "Origin: https://swatch-billable-usage-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-billable-usage-service:8000/api/swatch-billable-usage/internal/rpc/topics/flush"
           env:
             - name: SWATCH_SELF_PSK
               valueFrom:
@@ -189,6 +207,58 @@ objects:
             limits:
               cpu: ${CURL_CRON_CPU_LIMIT}
               memory: ${CURL_CRON_MEMORY_LIMIT}
+
+      - name: purge-remittances
+        schedule: ${PURGE_REMITTANCE_SCHEDULE}
+        activeDeadlineSeconds: 1800
+        successfulJobsHistoryLimit: 2
+        restartPolicy: Never
+        podSpec:
+          image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
+          command:
+            - /usr/bin/bash
+            - -c
+            - >
+              /usr/bin/curl --fail -H "Origin: https://swatch-billable-usage-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X POST "http://swatch-billable-usage-service:8000/api/swatch-billable-usage/internal/rpc/remittance/purge"
+          env:
+            - name: SWATCH_SELF_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: swatch-psks
+                  key: self
+          resources:
+            requests:
+              cpu: ${CURL_CRON_CPU_REQUEST}
+              memory: ${CURL_CRON_MEMORY_REQUEST}
+            limits:
+              cpu: ${CURL_CRON_CPU_LIMIT}
+              memory: ${CURL_CRON_MEMORY_LIMIT}
+
+      - name: retry-remittances
+        schedule: ${RETRY_REMITTANCE_SCHEDULE}
+        activeDeadlineSeconds: 1800
+        successfulJobsHistoryLimit: 2
+        restartPolicy: Never
+        podSpec:
+          image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
+          command:
+            - /usr/bin/bash
+            - -c
+            - >
+              /usr/bin/curl --fail -H "Origin: https://swatch-billable-usage-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X POST "http://swatch-billable-usage-service:8000/api/swatch-billable-usage/internal/rpc/remittance/processRetries"
+          env:
+            - name: SWATCH_SELF_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: swatch-psks
+                  key: self
+        resources:
+          requests:
+            cpu: ${CURL_CRON_CPU_REQUEST}
+            memory: ${CURL_CRON_MEMORY_REQUEST}
+          limits:
+            cpu: ${CURL_CRON_CPU_LIMIT}
+            memory: ${CURL_CRON_MEMORY_LIMIT}
 
 - apiVersion: v1
   kind: Secret

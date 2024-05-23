@@ -69,6 +69,7 @@ class UpstreamProductData {
     METERED,
     X_DESCRIPTION,
     /** Role originates from opProd roles field, not an attribute. */
+    SPECIAL_PRICING_FLAG,
     X_ROLE;
   }
 
@@ -328,6 +329,7 @@ class UpstreamProductData {
     }
 
     offering.setMetered(YES.equalsIgnoreCase(attrs.get(Attr.METERED)));
+    offering.setSpecialPricingFlag(attrs.get(Attr.SPECIAL_PRICING_FLAG));
 
     return offering;
   }

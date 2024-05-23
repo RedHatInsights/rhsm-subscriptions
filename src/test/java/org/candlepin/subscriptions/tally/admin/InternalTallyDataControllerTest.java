@@ -128,6 +128,8 @@ class InternalTallyDataControllerTest {
   void testOnlyValidEventIsPersisted() throws JsonProcessingException {
     Event event =
         new Event()
+            .withConversion(true)
+            .withProductIds(List.of("204"))
             .withEventType("test-event")
             .withOrgId("org123")
             .withEventSource("TEST_SOURCE")
@@ -151,7 +153,6 @@ class InternalTallyDataControllerTest {
     assertEquals("Events saved", controller.saveEvents(json));
 
     verify(eventRepo).saveAll(eventRecordCaptor.capture());
-
     List<EventRecord> savedEvents = eventRecordCaptor.getValue();
     assertEquals(1, savedEvents.size());
     assertEquals(new EventRecord(event), savedEvents.get(0));

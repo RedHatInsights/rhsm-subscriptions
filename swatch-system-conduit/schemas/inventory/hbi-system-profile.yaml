@@ -37,4 +37,5 @@ properties:
       $ref: "hbi-network-interface.yaml"
   virtual_host_uuid:
     type: string
-
+  conversions:
+    $ref: "hbi-system-profile-conversions.yaml"

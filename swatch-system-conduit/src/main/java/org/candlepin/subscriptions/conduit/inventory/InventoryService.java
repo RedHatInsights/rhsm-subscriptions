@@ -27,6 +27,7 @@ import org.apache.commons.lang3.math.NumberUtils;
 import org.candlepin.subscriptions.conduit.json.inventory.HbiFactSet;
 import org.candlepin.subscriptions.conduit.json.inventory.HbiHost;
 import org.candlepin.subscriptions.conduit.json.inventory.HbiSystemProfile;
+import org.candlepin.subscriptions.conduit.json.inventory.HbiSystemProfileConversions;
 import org.candlepin.subscriptions.conduit.json.inventory.HbiSystemProfileOperatingSystem;
 import org.candlepin.subscriptions.utilization.api.model.ConsumerInventory;
 import org.candlepin.subscriptions.utilization.api.model.OrgInventory;
@@ -150,6 +151,11 @@ public abstract class InventoryService {
     systemProfile.setIsMarketplace(facts.getIsMarketplace());
     systemProfile.setReleasever(facts.getReleaseVer());
     systemProfile.setVirtualHostUuid(facts.getVirtualHostUuid());
+    if (facts.getConversionsActivity() != null) {
+      systemProfile.setConversions(
+          new HbiSystemProfileConversions().withActivity(facts.getConversionsActivity()));
+    }
+
     return systemProfile;
   }
 
@@ -175,8 +181,10 @@ public abstract class InventoryService {
     addFact(rhsmFactMap, "SYSPURPOSE_ADDONS", conduitFacts.getSysPurposeAddons());
     addFact(rhsmFactMap, "SYSPURPOSE_UNITS", conduitFacts.getSysPurposeUnits());
     addFact(rhsmFactMap, "BILLING_MODEL", conduitFacts.getBillingModel());
-
     rhsmFactMap.put("SYNC_TIMESTAMP", syncTimestamp);
+    for (var entry : conduitFacts.getOriginalFacts().entrySet()) {
+      addFact(rhsmFactMap, entry.getKey(), entry.getValue());
+    }
     return rhsmFactMap;
   }
 

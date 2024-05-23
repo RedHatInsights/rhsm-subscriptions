@@ -202,3 +202,9 @@ properties:
     enum:
       - deduction
     required: false
+  conversion:
+    description: > 
+      Indicates 3rd party migration instances and used to honor the isMigrationProduct
+      attribute when identifying the swatch product tag
+    type: boolean
+    default: false
