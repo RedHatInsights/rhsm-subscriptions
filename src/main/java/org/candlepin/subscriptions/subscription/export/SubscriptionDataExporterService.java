@@ -26,6 +26,7 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
 import jakarta.ws.rs.core.Response;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -34,6 +35,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.HypervisorReportCategory;
 import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
@@ -220,7 +222,7 @@ public class SubscriptionDataExporterService
 
   protected static List<SubscriptionsExportJsonMeasurement> groupMetrics(
       SubscriptionCapacityView dataItem, ExportServiceRequest request) {
-    List<SubscriptionsExportJsonMeasurement> metrics = new ArrayList<>();
+    Map<MetricKey, SubscriptionsExportJsonMeasurement> metrics = new HashMap<>();
 
     // metric filters: metric_id and measurement_type
     String filterByMetricId = getMetricIdFilter(request);
@@ -235,7 +237,7 @@ public class SubscriptionDataExporterService
       }
     }
 
-    return metrics;
+    return new ArrayList<>(metrics.values());
   }
 
   private static boolean isFilterByMetricId(SubscriptionCapacityViewMetric metric, String filter) {
@@ -279,21 +281,29 @@ public class SubscriptionDataExporterService
   }
 
   private static SubscriptionsExportJsonMeasurement getOrCreateMeasurement(
-      List<SubscriptionsExportJsonMeasurement> metrics, SubscriptionCapacityViewMetric metric) {
-    return metrics.stream()
-        .filter(
-            m ->
-                Objects.equals(m.getMetricId(), metric.getMetricId())
-                    && Objects.equals(m.getMeasurementType(), metric.getMeasurementType()))
-        .findFirst()
-        .orElseGet(
-            () -> {
-              var m = new SubscriptionsExportJsonMeasurement();
-              m.setMeasurementType(metric.getMeasurementType());
-              m.setCapacity(0.0);
-              m.setMetricId(metric.getMetricId());
-              metrics.add(m);
-              return m;
-            });
+      Map<MetricKey, SubscriptionsExportJsonMeasurement> metrics,
+      SubscriptionCapacityViewMetric metric) {
+
+    MetricKey key = MetricKey.of(metric);
+    return metrics.computeIfAbsent(
+        key,
+        k -> {
+          var m = new SubscriptionsExportJsonMeasurement();
+          m.setMetricId(k.metricId);
+          m.setMeasurementType(k.measurementType);
+          m.setCapacity(0.0);
+          return m;
+        });
+  }
+
+  @AllArgsConstructor
+  @EqualsAndHashCode
+  private static class MetricKey {
+    final String metricId;
+    final String measurementType;
+
+    public static MetricKey of(SubscriptionCapacityViewMetric metric) {
+      return new MetricKey(metric.getMetricId(), metric.getMeasurementType());
+    }
   }
 }

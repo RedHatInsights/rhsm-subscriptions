@@ -89,6 +89,8 @@ public class SubscriptionCapacityViewMetricConverter
       return d;
     } else if (o instanceof Long l) {
       return l;
+    } else if (o instanceof Float f) {
+      return f;
     }
 
     return 0.0;
