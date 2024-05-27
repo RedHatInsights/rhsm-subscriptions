@@ -20,33 +20,28 @@
  */
 package org.candlepin.subscriptions.subscription.export;
 
-import static org.candlepin.subscriptions.resource.SubscriptionTableController.addTotalCapacity;
-import static org.candlepin.subscriptions.resource.SubscriptionTableController.initializeSkuCapacity;
+import static org.candlepin.subscriptions.subscription.export.SubscriptionDataExporterService.PHYSICAL;
+import static org.candlepin.subscriptions.subscription.export.SubscriptionDataExporterService.groupMetrics;
 
 import java.util.List;
 import java.util.Optional;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.Subscription;
-import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
 import org.candlepin.subscriptions.export.DataMapperService;
 import org.candlepin.subscriptions.export.ExportServiceRequest;
 import org.candlepin.subscriptions.json.SubscriptionsExportCsvItem;
-import org.candlepin.subscriptions.utilization.api.model.SkuCapacity;
-import org.candlepin.subscriptions.utilization.api.model.Uom;
 import org.springframework.stereotype.Service;
 
 @Service
-public class SubscriptionCsvDataMapperService implements DataMapperService<Subscription> {
-
-  protected static final Uom NO_UOM = null;
+public class SubscriptionCsvDataMapperService
+    implements DataMapperService<SubscriptionCapacityView> {
 
   @Override
-  public List<Object> mapDataItem(Subscription dataItem, ExportServiceRequest request) {
-    if (dataItem.getSubscriptionMeasurements().isEmpty()) {
+  public List<Object> mapDataItem(SubscriptionCapacityView dataItem, ExportServiceRequest request) {
+    if (dataItem.getMetrics().isEmpty()) {
       return List.of();
     }
 
-    return dataItem.getSubscriptionMeasurements().entrySet().stream()
+    return groupMetrics(dataItem, request).stream()
         .map(
             m -> {
               var item = new SubscriptionsExportCsvItem();
@@ -55,32 +50,26 @@ public class SubscriptionCsvDataMapperService implements DataMapperService<Subsc
               item.setBegin(dataItem.getStartDate());
               item.setEnd(dataItem.getEndDate());
               item.setQuantity((double) dataItem.getQuantity());
-              item.setMetricId(m.getKey().getMetricId());
-
-              SkuCapacity skuCapacity = initializeSkuCapacity(dataItem, NO_UOM, item.getMetricId());
-              addTotalCapacity(dataItem, m.getKey(), m.getValue(), skuCapacity);
-
-              item.setCapacity(skuCapacity.getCapacity());
-              item.setHypervisorCapacity(skuCapacity.getHypervisorCapacity());
+              item.setMetricId(m.getMetricId());
+              if (PHYSICAL.equals(m.getMeasurementType())) {
+                item.setHypervisorCapacity(m.getCapacity());
+              } else {
+                item.setCapacity(m.getCapacity());
+              }
 
               // map offering
-              var offering = dataItem.getOffering();
-              item.setSku(offering.getSku());
-              Optional.ofNullable(offering.getUsage())
-                  .map(Usage::getValue)
-                  .ifPresent(item::setUsage);
-              Optional.ofNullable(offering.getServiceLevel())
-                  .map(ServiceLevel::getValue)
-                  .ifPresent(item::setServiceLevel);
-              item.setProductName(offering.getProductName());
+              item.setSku(dataItem.getSku());
+              Optional.ofNullable(dataItem.getUsage()).ifPresent(item::setUsage);
+              Optional.ofNullable(dataItem.getServiceLevel()).ifPresent(item::setServiceLevel);
+              item.setProductName(dataItem.getProductName());
               return (Object) item;
             })
         .toList();
   }
 
   @Override
-  public Class<Subscription> getDataClass() {
-    return Subscription.class;
+  public Class<SubscriptionCapacityView> getDataClass() {
+    return SubscriptionCapacityView.class;
   }
 
   @Override

@@ -55,6 +55,7 @@ import org.candlepin.subscriptions.rbac.RbacService;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.test.ExtendWithEmbeddedKafka;
 import org.candlepin.subscriptions.test.ExtendWithExportServiceWireMock;
+import org.candlepin.subscriptions.test.ExtendWithSwatchDatabase;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,7 +68,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 
 @SpringBootTest
 public abstract class BaseDataExporterServiceTest
-    implements ExtendWithExportServiceWireMock, ExtendWithEmbeddedKafka {
+    implements ExtendWithExportServiceWireMock, ExtendWithEmbeddedKafka, ExtendWithSwatchDatabase {
 
   protected static final String RHEL_FOR_X86 = "RHEL for x86";
   protected static final String ROSA = "rosa";

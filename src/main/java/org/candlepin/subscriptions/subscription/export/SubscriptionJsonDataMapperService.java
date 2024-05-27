@@ -20,53 +20,43 @@
  */
 package org.candlepin.subscriptions.subscription.export;
 
+import static org.candlepin.subscriptions.subscription.export.SubscriptionDataExporterService.groupMetrics;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.Subscription;
-import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
 import org.candlepin.subscriptions.export.DataMapperService;
 import org.candlepin.subscriptions.export.ExportServiceRequest;
 import org.candlepin.subscriptions.json.SubscriptionsExportJsonItem;
-import org.candlepin.subscriptions.json.SubscriptionsExportJsonMeasurement;
 import org.springframework.stereotype.Service;
 
 @Service
-public class SubscriptionJsonDataMapperService implements DataMapperService<Subscription> {
+public class SubscriptionJsonDataMapperService
+    implements DataMapperService<SubscriptionCapacityView> {
   @Override
-  public List<Object> mapDataItem(Subscription dataItem, ExportServiceRequest request) {
+  public List<Object> mapDataItem(SubscriptionCapacityView dataItem, ExportServiceRequest request) {
     var item = new SubscriptionsExportJsonItem();
     item.setOrgId(dataItem.getOrgId());
     item.setMeasurements(new ArrayList<>());
 
     // map offering
-    var offering = dataItem.getOffering();
-    item.setSku(offering.getSku());
-    Optional.ofNullable(offering.getUsage()).map(Usage::getValue).ifPresent(item::setUsage);
-    Optional.ofNullable(offering.getServiceLevel())
-        .map(ServiceLevel::getValue)
-        .ifPresent(item::setServiceLevel);
-    item.setProductName(offering.getProductName());
+    item.setSku(dataItem.getSku());
+    Optional.ofNullable(dataItem.getUsage()).ifPresent(item::setUsage);
+    Optional.ofNullable(dataItem.getServiceLevel()).ifPresent(item::setServiceLevel);
+    item.setProductName(dataItem.getProductName());
     item.setSubscriptionNumber(dataItem.getSubscriptionNumber());
     item.setQuantity((double) dataItem.getQuantity());
 
-    // map measurements
-    for (var entry : dataItem.getSubscriptionMeasurements().entrySet()) {
-      var measurement = new SubscriptionsExportJsonMeasurement();
-      measurement.setMeasurementType(entry.getKey().getMeasurementType());
-      measurement.setCapacity(entry.getValue());
-      measurement.setMetricId(entry.getKey().getMetricId());
-
-      item.getMeasurements().add(measurement);
-    }
+    // aggregate metrics
+    item.setMeasurements(groupMetrics(dataItem, request));
 
     return List.of(item);
   }
 
   @Override
-  public Class<Subscription> getDataClass() {
-    return Subscription.class;
+  public Class<SubscriptionCapacityView> getDataClass() {
+    return SubscriptionCapacityView.class;
   }
 
   @Override

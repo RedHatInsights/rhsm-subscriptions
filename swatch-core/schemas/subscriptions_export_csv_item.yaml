@@ -14,9 +14,11 @@ properties:
   quantity:
     type: number
   capacity:
-    type: integer
+    type: number
+    default: 0
   hypervisor_capacity:
-    type: integer
+    type: number
+    default: 0
   metric_id:
     type: string
   sku:
