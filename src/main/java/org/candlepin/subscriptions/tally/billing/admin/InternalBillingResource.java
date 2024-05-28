@@ -24,16 +24,12 @@ import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.billing.admin.api.InternalApi;
 import org.candlepin.subscriptions.billing.admin.api.model.DefaultResponse;
 import org.candlepin.subscriptions.billing.admin.api.model.MonthlyRemittance;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
-import org.candlepin.subscriptions.retention.RemittanceRetentionController;
-import org.springframework.core.task.TaskRejectedException;
 import org.springframework.stereotype.Component;
 
 /** This resource is for exposing administrator REST endpoints for Remittance. */
@@ -44,16 +40,9 @@ public class InternalBillingResource implements InternalApi {
   private static final String REJECTED_STATUS = "Rejected";
 
   private final InternalBillingController billingController;
-  private final RemittanceRetentionController remittanceRetentionController;
-  private final ApplicationClock clock;
 
-  public InternalBillingResource(
-      InternalBillingController billingController,
-      RemittanceRetentionController remittanceRetentionController,
-      ApplicationClock clock) {
+  public InternalBillingResource(InternalBillingController billingController) {
     this.billingController = billingController;
-    this.remittanceRetentionController = remittanceRetentionController;
-    this.clock = clock;
   }
 
   public List<MonthlyRemittance> getRemittances(
@@ -87,20 +76,6 @@ public class InternalBillingResource implements InternalApi {
   }
 
   @Override
-  public DefaultResponse processRetries(OffsetDateTime asOf) {
-    OffsetDateTime effectiveAsOf = Optional.ofNullable(asOf).orElse(clock.now());
-    log.info("Retry billable usage remittances as of {}", effectiveAsOf);
-    try {
-      long remittances = billingController.processRetries(effectiveAsOf);
-      log.debug("Retried {} billable usage remittances with as of {}", remittances, effectiveAsOf);
-      return getDefaultResponse(SUCCESS_STATUS);
-    } catch (Exception e) {
-      log.error("Error retrying billable usage remittances", e);
-      return getDefaultResponse(REJECTED_STATUS);
-    }
-  }
-
-  @Override
   public DefaultResponse resetBillableUsageRemittance(
       Set<String> orgIds, String productId, OffsetDateTime start, OffsetDateTime end) {
     int updatedRemittance = 0;
@@ -119,18 +94,6 @@ public class InternalBillingResource implements InternalApi {
               "No record found for billable usage remittance for productId %s and between start %s and end date %s and orgIds %s",
               productId, start, end, orgIds));
     }
-  }
-
-  @Override
-  public DefaultResponse purgeRemittances() {
-    try {
-      log.info("Initiating remittance purge.");
-      remittanceRetentionController.purgeRemittancesAsync();
-    } catch (TaskRejectedException e) {
-      log.warn("A tally snapshots purge job is already running.");
-      return getDefaultResponse(REJECTED_STATUS);
-    }
-    return getDefaultResponse(SUCCESS_STATUS);
   }
 
   private DefaultResponse getDefaultResponse(String status) {

@@ -18,21 +18,18 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.retention;
+package org.candlepin.subscriptions.billable.usage;
 
-import java.time.Duration;
-import lombok.Getter;
-import lombok.Setter;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 
-/** Retention policies for supported granularities. */
-@Component
-@Getter
-@Setter
-@ConfigurationProperties(prefix = "rhsm-subscriptions.remittance-retention-policy")
-public class RemittanceRetentionPolicyProperties {
+public final class AccumulationPeriodFormatter {
+  private static final DateTimeFormatter MONTH_ID_FORMATTER =
+      DateTimeFormatter.ofPattern("uuuu-MM");
 
-  /** Defines the max duration remittance records are retained. */
-  private Duration duration;
+  private AccumulationPeriodFormatter() {}
+
+  public static String toMonthId(OffsetDateTime reference) {
+    return reference.format(MONTH_ID_FORMATTER);
+  }
 }

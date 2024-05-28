@@ -45,7 +45,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.conduit.inventory.ConduitFacts;
 import org.candlepin.subscriptions.conduit.inventory.InventoryService;
-import org.candlepin.subscriptions.conduit.inventory.InventoryServiceProperties;
 import org.candlepin.subscriptions.conduit.inventory.ProviderFact;
 import org.candlepin.subscriptions.conduit.job.OrgSyncTaskManager;
 import org.candlepin.subscriptions.conduit.json.inventory.HbiNetworkInterface;
@@ -117,6 +116,8 @@ public class InventoryController {
   public static final String UNKNOWN = "unknown";
   public static final String TRUE = "True";
   public static final String INSTANCE_ID = "instance_id";
+  public static final String CONVERSIONS_ACTIVITY = "conversions.activity";
+  public static final String CONVERSION = "conversion";
 
   public static final Set<String> IGNORED_CONSUMER_TYPES = Set.of("candlepin", "satellite", "sam");
   public static final long MAX_ALLOWED_SYSTEM_MEMORY_BYTES = 9007199254740991L;
@@ -151,8 +152,6 @@ public class InventoryController {
   private Counter finalizeOrgCounter;
   private Timer transformHostTimer;
   private Timer validateHostTimer;
-
-  @Autowired private InventoryServiceProperties serviceProperties;
 
   @Autowired
   public InventoryController(
@@ -200,6 +199,7 @@ public class InventoryController {
     facts.setSysPurposeAddons(consumer.getSysPurposeAddons());
     facts.setSysPurposeUnits(rhsmFacts.get(OCM_UNITS));
     facts.setBillingModel(rhsmFacts.get(OCM_BILLING_MODEL));
+    extractConversionsActivity(rhsmFacts, facts);
 
     extractNetworkFacts(rhsmFacts, facts);
     extractHardwareFacts(rhsmFacts, facts);
@@ -213,6 +213,14 @@ public class InventoryController {
 
     extractMarketPlaceFacts(rhsmFacts, facts);
     return facts;
+  }
+
+  private void extractConversionsActivity(Map<String, String> rhsmFacts, ConduitFacts facts) {
+    var conversionsActivity = rhsmFacts.get(CONVERSIONS_ACTIVITY);
+    if (conversionsActivity != null) {
+      facts.setConversionsActivity(CONVERSION.equals(conversionsActivity));
+      facts.addOriginalFact(CONVERSIONS_ACTIVITY, conversionsActivity);
+    }
   }
 
   private void extractProviderFacts(Map<String, String> rhsmFacts, ConduitFacts facts) {

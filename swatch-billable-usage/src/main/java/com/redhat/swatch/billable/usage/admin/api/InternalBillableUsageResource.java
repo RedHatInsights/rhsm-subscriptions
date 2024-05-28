@@ -20,13 +20,18 @@
  */
 package com.redhat.swatch.billable.usage.admin.api;
 
+import com.redhat.swatch.billable.usage.configuration.ApplicationConfiguration;
 import com.redhat.swatch.billable.usage.kafka.streams.FlushTopicService;
 import com.redhat.swatch.billable.usage.openapi.model.DefaultResponse;
 import com.redhat.swatch.billable.usage.openapi.resource.DefaultApi;
+import com.redhat.swatch.billable.usage.services.EnabledOrgsProducer;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.ProcessingException;
+import java.time.OffsetDateTime;
+import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.clock.ApplicationClock;
 
 @Slf4j
 @ApplicationScoped
@@ -34,9 +39,13 @@ import lombok.extern.slf4j.Slf4j;
 public class InternalBillableUsageResource implements DefaultApi {
 
   private static final String SUCCESS_STATUS = "Success";
+  private static final String REJECTED_STATUS = "Rejected";
 
   private final FlushTopicService flushTopicService;
   private final InternalBillableUsageController billingController;
+  private final EnabledOrgsProducer enabledOrgsProducer;
+  private final ApplicationConfiguration configuration;
+  private final ApplicationClock clock;
 
   @Override
   public DefaultResponse flushBillableUsageAggregationTopic() throws ProcessingException {
@@ -49,6 +58,34 @@ public class InternalBillableUsageResource implements DefaultApi {
       throws ProcessingException {
     billingController.deleteDataForOrg(orgId);
     return getDefaultResponse(SUCCESS_STATUS);
+  }
+
+  @Override
+  public DefaultResponse purgeRemittances() {
+    var policyDuration = configuration.getRemittanceRetentionPolicyDuration();
+    if (policyDuration == null) {
+      log.warn(
+          "Purging remittances won't be done because the policy duration is not configured. "
+              + "You can configure it by using `rhsm-subscriptions.remittance-retention-policy.duration`.");
+      return getDefaultResponse(REJECTED_STATUS);
+    }
+
+    enabledOrgsProducer.sendTaskForRemittancesPurgeTask();
+    return getDefaultResponse(SUCCESS_STATUS);
+  }
+
+  @Override
+  public DefaultResponse processRetries(OffsetDateTime asOf) {
+    OffsetDateTime effectiveAsOf = Optional.ofNullable(asOf).orElse(clock.now());
+    log.info("Retry billable usage remittances as of {}", effectiveAsOf);
+    try {
+      long remittances = billingController.processRetries(effectiveAsOf);
+      log.debug("Retried {} billable usage remittances with as of {}", remittances, effectiveAsOf);
+      return getDefaultResponse(SUCCESS_STATUS);
+    } catch (Exception e) {
+      log.error("Error retrying billable usage remittances", e);
+      return getDefaultResponse(REJECTED_STATUS);
+    }
   }
 
   private DefaultResponse getDefaultResponse(String status) {

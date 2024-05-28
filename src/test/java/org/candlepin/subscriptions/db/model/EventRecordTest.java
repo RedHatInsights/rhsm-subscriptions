@@ -39,7 +39,7 @@ class EventRecordTest {
   @Test
   void testJsonOptionalVsNull() throws JsonProcessingException {
     String testData =
-        "{\"event_id\":\"99f6b275-6031-4967-84b6-147bd0191474\",\"display_name\":null}";
+        "{\"event_id\":\"99f6b275-6031-4967-84b6-147bd0191474\",\"display_name\":null,\"conversion\":false}";
     EventRecord eventRecord = objectMapper.readValue(testData, EventRecord.class);
     Event event = eventRecord.getEvent();
     assertNotNull(event.getDisplayName());

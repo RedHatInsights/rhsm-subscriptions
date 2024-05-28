@@ -23,8 +23,6 @@ package org.candlepin.subscriptions.tally.billing.admin;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.verify;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -38,12 +36,10 @@ import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.RemittanceStatus;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.BillableUsage.BillingProvider;
-import org.candlepin.subscriptions.tally.billing.BillingProducer;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -62,13 +58,12 @@ class InternalBillingControllerTest {
 
   @Autowired BillableUsageRemittanceRepository remittanceRepo;
   @Autowired ApplicationClock clock;
-  @Mock BillingProducer billingProducer;
 
   InternalBillingController controller;
 
   @BeforeEach
   void setup() {
-    controller = new InternalBillingController(remittanceRepo, billingProducer);
+    controller = new InternalBillingController(remittanceRepo);
 
     BillableUsageRemittanceEntity remittance1 =
         remittance(
@@ -267,35 +262,6 @@ class InternalBillingControllerTest {
             Set.of("1234"));
     assertEquals(2, remittancePresent);
     assertEquals(0, remittanceNotPresent);
-  }
-
-  @Test
-  void testProcessRetries() {
-    String orgId = "testProcessRetriesOrg123";
-    givenRemittanceWithOldRetryAfter(orgId);
-
-    controller.processRetries(OffsetDateTime.now());
-
-    // verify remittance has been sent
-    verify(billingProducer).produce(argThat(b -> b.getOrgId().equals(orgId)));
-    // verify retry after is reset
-    assertTrue(
-        remittanceRepo.findAll().stream()
-            .filter(b -> b.getOrgId().equals(orgId))
-            .allMatch(b -> b.getRetryAfter() == null));
-  }
-
-  private void givenRemittanceWithOldRetryAfter(String orgId) {
-    var remittance =
-        remittance(
-            orgId,
-            "product",
-            BillingProvider.AZURE,
-            4.0,
-            clock.startOfCurrentMonth(),
-            RemittanceStatus.PENDING);
-    remittance.setRetryAfter(clock.now().minusMonths(30));
-    remittanceRepo.saveAndFlush(remittance);
   }
 
   private BillableUsageRemittanceEntity remittance(

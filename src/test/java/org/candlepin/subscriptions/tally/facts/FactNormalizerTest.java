@@ -30,6 +30,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.times;
 
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
@@ -128,7 +129,7 @@ class FactNormalizerTest {
     subscriptionDefinitionMockedStatic.verify(
         () ->
             SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
-                any(), any(), any()),
+                any(), any(), any(), anyBoolean()),
         times(1));
   }
 
@@ -144,7 +145,7 @@ class FactNormalizerTest {
     subscriptionDefinitionMockedStatic.verify(
         () ->
             SubscriptionDefinition.getAllProductTagsWithNonPaygEligibleByRoleOrEngIds(
-                any(), any(), any()),
+                any(), any(), any(), anyBoolean()),
         times(1));
   }
 
@@ -163,7 +164,7 @@ class FactNormalizerTest {
     subscriptionDefinitionMockedStatic.verify(
         () ->
             SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
-                any(), any(), any()),
+                any(), any(), any(), anyBoolean()),
         times(1));
   }
 
@@ -182,7 +183,7 @@ class FactNormalizerTest {
     subscriptionDefinitionMockedStatic.verify(
         () ->
             SubscriptionDefinition.getAllProductTagsWithNonPaygEligibleByRoleOrEngIds(
-                any(), any(), any()),
+                any(), any(), any(), anyBoolean()),
         times(1));
   }
 
