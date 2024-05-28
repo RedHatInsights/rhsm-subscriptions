@@ -120,7 +120,7 @@ class HttpServerMetricsTest {
             + "method=\"GET\","
             + "outcome=\"SUCCESS\","
             + "status=\"204\","
-            + "uri=\"/api/rhsm-subscriptions/v1/internal/organizations/{org_id}/inventory\",} 1.0");
+            + "uri=\"/api/rhsm-subscriptions/v1/internal/organizations/{org_id}/inventory\"} 1");
   }
 
   private void assertMetricIsFoundWithError() {
@@ -130,7 +130,7 @@ class HttpServerMetricsTest {
             + "method=\"GET\","
             + "outcome=\"CLIENT_ERROR\","
             + "status=\"401\","
-            + "uri=\"/api/rhsm-subscriptions/v1/internal/organizations/org123/inventory\",} 1.0");
+            + "uri=\"/api/rhsm-subscriptions/v1/internal/organizations/org123/inventory\"} 1");
   }
 
   private HttpEntity<Void> request() {
