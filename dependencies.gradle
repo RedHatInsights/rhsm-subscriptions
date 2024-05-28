@@ -14,7 +14,7 @@ buildscript {
 
 ext {
     quarkusVersion='3.9.2'
-    springVersion='3.2.5'
+    springVersion='3.3.0'
     resteasyVersion='6.2.9.Final'
     libraries = [:]
     plugins = []
@@ -44,7 +44,7 @@ libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-de
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:3.0.0"
-libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.25.57"
+libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.25.60"
 libraries["clowder-quarkus-config-source"] = "com.redhat.cloud.common:clowder-quarkus-config-source:2.6.1"
 libraries["guava"] = "com.google.guava:guava:33.2.0-jre"
 libraries["commons-lang3"] = "org.apache.commons:commons-lang3:3.14.0"
@@ -74,11 +74,11 @@ libraries["resteasy-spring-boot-starter"] = "org.jboss.resteasy:resteasy-servlet
 libraries["resteasy-validator-provider"] = "org.jboss.resteasy:resteasy-validator-provider:${resteasyVersion}"
 libraries["splunk-library-javalogging"] = "com.splunk.logging:splunk-library-javalogging:1.11.8"
 libraries["swagger-annotations"] = "io.swagger:swagger-annotations:1.6.14"
-libraries["swagger-ui"] = "org.webjars:swagger-ui:5.17.2"
+libraries["swagger-ui"] = "org.webjars:swagger-ui:5.17.11"
 libraries["webjars-locator"] = "org.webjars:webjars-locator:0.52"
 libraries["wiremock"] = "com.github.tomakehurst:wiremock-standalone:3.0.1"
 libraries["awaitility"] = "org.awaitility:awaitility:4.2.1"
-libraries["splunk-otel-agent"] = 'com.splunk:splunk-otel-javaagent:1.32.0'
+libraries["splunk-otel-agent"] = 'com.splunk:splunk-otel-javaagent:1.32.1'
 libraries["testcontainers-postgresql"] = 'org.testcontainers:postgresql:1.19.8'
 libraries["kafka-streams-test-utils"] = "org.apache.kafka:kafka-streams-test-utils:3.7.0"
 libraries["slf4j-api"] = "org.slf4j:slf4j-api:2.0.13"
