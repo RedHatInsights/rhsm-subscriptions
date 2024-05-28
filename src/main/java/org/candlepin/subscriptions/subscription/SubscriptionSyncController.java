@@ -203,8 +203,10 @@ public class SubscriptionSyncController {
       final org.candlepin.subscriptions.db.model.Subscription existingSubscription =
           subscriptionOptional.get();
       log.debug("Existing subscription in DB={}", existingSubscription);
-      if (Objects.nonNull(existingSubscription.getBillingProvider())
-          && !existingSubscription.getSubscriptionMeasurements().isEmpty()) {
+      BillingProvider billingProvider = existingSubscription.getBillingProvider();
+      boolean hasBillingProvider =
+          Objects.nonNull(billingProvider) && billingProvider.nonEmptyBillingProvider();
+      if (hasBillingProvider && !existingSubscription.getSubscriptionMeasurements().isEmpty()) {
         // NOTE(khowell): longer term, we should query the partnerEntitlement service for this
         // subscription on any attempt to sync, but for now we rely on UMB messages from the IT
         // Partner Entitlement service to update this record outside this process.
@@ -257,9 +259,10 @@ public class SubscriptionSyncController {
 
   private void checkForMissingRequiredBillingProvider(
       org.candlepin.subscriptions.db.model.Subscription subscription) {
-    if ((subscription.getBillingProvider() == null
-            || subscription.getBillingProvider().equals(BillingProvider.EMPTY))
-        && subscription.getOffering().isMetered()) {
+    BillingProvider billingProvider = subscription.getBillingProvider();
+    boolean noBillingProvider =
+        Objects.isNull(billingProvider) || !billingProvider.nonEmptyBillingProvider();
+    if (noBillingProvider && subscription.getOffering().isMetered()) {
       log.warn(
           "PAYG eligible subscription with subscriptionId:{} and subscription_number:{} has no billing provider.",
           subscription.getSubscriptionId(),
