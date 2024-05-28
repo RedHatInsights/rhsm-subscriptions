@@ -26,6 +26,7 @@ import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 @ApplicationScoped
 public class BillableUsageRemittanceRepository
@@ -43,5 +44,10 @@ public class BillableUsageRemittanceRepository
   @Transactional
   public void deleteByOrgId(String orgId) {
     delete("orgId = ?1", orgId);
+  }
+
+  @Transactional
+  public Stream<BillableUsageRemittanceEntity> findByIdIn(List<String> uuids) {
+    return find("uuid in (?1)", uuids).stream();
   }
 }
