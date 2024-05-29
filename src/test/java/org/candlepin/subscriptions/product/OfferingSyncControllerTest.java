@@ -21,10 +21,12 @@
 package org.candlepin.subscriptions.product;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -284,6 +286,7 @@ class OfferingSyncControllerTest {
     // this shows that the eng ids were derived from the product service's definition of the SVC sku
     assertEquals(30, actual.getValue().getProductIds().size());
     assertTrue(actual.getValue().isMetered());
+    assertFalse(actual.getValue().isMigrationOffering());
   }
 
   @Test
@@ -395,6 +398,16 @@ class OfferingSyncControllerTest {
 
     // When syncing the Offering an exception is thrown
     assertThrows(DataIntegrityViolationException.class, () -> subject.syncOffering(sku));
+  }
+
+  @Test
+  void testSpecialPricingFlagIsPopulated() {
+    var sku = "RH02781MO"; // The SKU is mocked to set the special pricing flag.
+    when(repo.findById(sku)).thenReturn(Optional.empty());
+    // When getting the upstream Offering,
+    var actual = subject.syncOffering(sku);
+    assertEquals(SyncResult.FETCHED_AND_SYNCED, actual);
+    verify(repo).saveAndFlush(argThat(o -> o.getSku().equals(sku) && o.isMigrationOffering()));
   }
 
   private Offering createStubProductApiOffering() {

@@ -43,7 +43,6 @@ import com.redhat.swatch.contract.model.SubscriptionEntityMapper;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.ContractRequest;
 import com.redhat.swatch.contract.openapi.model.ContractResponse;
-import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.repository.ContractEntity;
@@ -80,7 +79,6 @@ public class ContractService {
   private final ContractRepository contractRepository;
   private final SubscriptionRepository subscriptionRepository;
   private final MeasurementMetricIdTransformer measurementMetricIdTransformer;
-  private final SubscriptionSyncService syncService;
   @Inject ContractEntityMapper contractEntityMapper;
   @Inject ContractDtoMapper contractDtoMapper;
   @Inject SubscriptionEntityMapper subscriptionEntityMapper;
@@ -93,13 +91,11 @@ public class ContractService {
       ContractRepository contractRepository,
       SubscriptionRepository subscriptionRepository,
       MeasurementMetricIdTransformer measurementMetricIdTransformer,
-      SubscriptionSyncService syncService,
       AwsPartnerEntitlementsProvider awsPartnerEntitlementsProvider,
       AzurePartnerEntitlementsProvider azurePartnerEntitlementsProvider) {
     this.contractRepository = contractRepository;
     this.subscriptionRepository = subscriptionRepository;
     this.measurementMetricIdTransformer = measurementMetricIdTransformer;
-    this.syncService = syncService;
     this.partnerEntitlementsProviders =
         List.of(awsPartnerEntitlementsProvider, azurePartnerEntitlementsProvider);
   }
@@ -139,7 +135,7 @@ public class ContractService {
    * based on specifications.
    *
    * @param orgId the org ID.
-   * @param productId the product ID.
+   * @param productTag the product tag.
    * @param billingProvider the billing provider.
    * @param billingAccountId the billing account ID.
    * @param vendorProductCode the vendor product code.
@@ -147,7 +143,7 @@ public class ContractService {
    */
   public List<Contract> getContracts(
       String orgId,
-      String productId,
+      String productTag,
       String billingProvider,
       String billingAccountId,
       String vendorProductCode,
@@ -155,8 +151,8 @@ public class ContractService {
 
     Specification<ContractEntity> specification = ContractEntity.orgIdEquals(orgId);
 
-    if (productId != null) {
-      specification = specification.and(ContractEntity.productIdEquals(productId));
+    if (productTag != null) {
+      specification = specification.and(ContractEntity.productTagEquals(productTag));
     }
     if (billingProvider != null) {
       specification = specification.and(ContractEntity.billingProviderEquals(billingProvider));
@@ -531,11 +527,7 @@ public class ContractService {
               entitlement.getPartnerIdentities().getSellerAccountId()));
     }
 
-    populateProductIdBySku(entity);
-    // if the product ID has been populated, we can discard the wrong metrics from the contract
-    if (entity.getProductId() != null) {
-      measurementMetricIdTransformer.resolveConflictingMetrics(entity);
-    }
+    measurementMetricIdTransformer.resolveConflictingMetrics(entity);
 
     return entity;
   }
@@ -563,27 +555,6 @@ public class ContractService {
       return contractEntityMapper.extractSubscriptionNumber(entitlement.getRhEntitlements());
     }
     return null;
-  }
-
-  private void populateProductIdBySku(ContractEntity entity) {
-    var sku = entity.getSku();
-    log.trace("Call swatch api to get product tags by sku {}", sku);
-
-    if (Objects.nonNull(sku)) {
-      try {
-        OfferingProductTags productTags = syncService.getOfferingProductTags(sku);
-        if (Objects.nonNull(productTags)
-            && Objects.nonNull(productTags.getData())
-            && !productTags.getData().isEmpty()
-            && Objects.nonNull(productTags.getData().get(0))) {
-          entity.setProductId(productTags.getData().get(0));
-        } else {
-          log.error("Error getting product tags");
-        }
-      } catch (Exception e) {
-        log.error("Unable to connect to swatch api to get product tags");
-      }
-    }
   }
 
   private static StatusResponse buildContractDetailsMissingStatus(

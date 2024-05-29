@@ -38,6 +38,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.MapKeyColumn;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import jakarta.validation.constraints.NotNull;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
@@ -60,7 +61,12 @@ import lombok.ToString;
 @Getter
 @Entity
 @ToString
-@Table(name = "hosts")
+@Table(
+    name = "hosts",
+    uniqueConstraints = {
+      @UniqueConstraint(columnNames = {"org_id", "instance_id"}),
+      @UniqueConstraint(columnNames = {"org_id", "inventory_id"})
+    })
 public class Host implements Serializable {
 
   @Id

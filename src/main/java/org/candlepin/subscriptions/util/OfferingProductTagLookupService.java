@@ -62,11 +62,17 @@ public class OfferingProductTagLookupService {
     if (offering.isMetered()) {
       // lookup product tags by either role or eng IDs
       SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
-              offering.getRole(), offering.getProductIds(), offering.getProductName())
+              offering.getRole(),
+              offering.getProductIds(),
+              offering.getProductName(),
+              offering.isMigrationOffering())
           .forEach(productTags::addDataItem);
     } else {
       SubscriptionDefinition.getAllProductTagsWithNonPaygEligibleByRoleOrEngIds(
-              offering.getRole(), offering.getProductIds(), offering.getProductName())
+              offering.getRole(),
+              offering.getProductIds(),
+              offering.getProductName(),
+              offering.isMigrationOffering())
           .forEach(productTags::addDataItem);
     }
   }

@@ -191,7 +191,7 @@ class SubscriptionDataExporterServiceTest extends BaseDataExporterServiceTest {
     subscription.setSubscriptionId(UUID.randomUUID().toString());
     subscription.setSubscriptionNumber(UUID.randomUUID().toString());
     subscription.setStartDate(OffsetDateTime.parse("2024-04-23T11:48:15.888129Z"));
-    subscription.setEndDate(OffsetDateTime.parse("2024-05-23T11:48:15.888129Z"));
+    subscription.setEndDate(OffsetDateTime.parse("2028-05-23T11:48:15.888129Z"));
     subscription.setOffering(offering);
     subscription.setOrgId(ORG_ID);
     subscription.setBillingProvider(BillingProvider.AWS);

@@ -51,7 +51,6 @@ import java.util.UUID;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
-import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
@@ -78,9 +77,12 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 @Slf4j
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class BillableUsageControllerTest {
   private static SubscriptionDefinitionRegistry originalReference;
   private static final ApplicationClock CLOCK = new TestClockConfiguration().adjustableClock();
@@ -486,6 +488,35 @@ class BillableUsageControllerTest {
         false);
   }
 
+  @Test
+  // See SWATCH-2494
+  void testGetTotalRemittedConsidersAllStatuses() {
+    record RemittanceTuple(double value, RemittanceStatus status, OffsetDateTime date) {}
+    ;
+
+    OffsetDateTime startOfUsage = CLOCK.startOfCurrentMonth().plusDays(4);
+    var t1 = new RemittanceTuple(1.0, RemittanceStatus.SUCCEEDED, startOfUsage);
+    var t2 = new RemittanceTuple(5.0, RemittanceStatus.PENDING, startOfUsage.plusDays(2));
+    var t3 = new RemittanceTuple(10.0, RemittanceStatus.FAILED, startOfUsage.plusDays(4));
+    var t4 = new RemittanceTuple(20.0, null, startOfUsage.plusDays(4));
+
+    List<RemittanceSummaryProjection> summaries = new ArrayList<>();
+    for (var tuple : List.of(t1, t2, t3, t4)) {
+      summaries.add(
+          RemittanceSummaryProjection.builder()
+              .totalRemittedPendingValue(tuple.value)
+              .status(tuple.status)
+              .remittancePendingDate(tuple.date)
+              .build());
+    }
+
+    when(remittanceRepo.getRemittanceSummaries(any())).thenReturn(summaries);
+
+    BillableUsage usage = billable(CLOCK.endOfCurrentMonth(), 0.0);
+    var result = controller.getTotalRemitted(usage);
+    assertEquals(36.0, result);
+  }
+
   static Stream<Arguments> remittanceBillingFactorParameters() {
     OffsetDateTime startOfUsage = CLOCK.startOfCurrentMonth().plusDays(4);
     return Stream.of(
@@ -713,15 +744,16 @@ class BillableUsageControllerTest {
   void testUpdateBillableUsageRemittanceWithRetryAfter() {
     var retryAfter = OffsetDateTime.now();
     var expectedRemittance = new BillableUsageRemittanceEntity();
-    when(remittanceRepo.findOne(any(BillableUsageRemittanceFilter.class)))
-        .thenReturn(Optional.of(new BillableUsageRemittanceEntity()));
+    var uuid = UUID.fromString("9faed3fe-db0e-44c4-babb-35c7106ab50b");
     var billableUsage = new BillableUsage();
+    when(remittanceRepo.findById(uuid))
+        .thenReturn(Optional.of(new BillableUsageRemittanceEntity()));
     billableUsage.setUsage(Usage.PRODUCTION);
     billableUsage.setBillingProvider(BillingProvider.AZURE);
     billableUsage.setSla(Sla.STANDARD);
     billableUsage.setSnapshotDate(OffsetDateTime.now());
     billableUsage.setMetricId(CORES);
-    createSubscriptionDefinition("osd", CORES, 0.25, false);
+    billableUsage.setUuid(uuid);
     controller.updateBillableUsageRemittanceWithRetryAfter(billableUsage, retryAfter);
     expectedRemittance.setRetryAfter(retryAfter);
     verify(remittanceRepo).save(expectedRemittance);
@@ -736,7 +768,6 @@ class BillableUsageControllerTest {
     billableUsage.setSla(Sla.STANDARD);
     billableUsage.setSnapshotDate(OffsetDateTime.now());
     billableUsage.setMetricId(CORES);
-    createSubscriptionDefinition("osd", CORES, 0.25, false);
     controller.updateBillableUsageRemittanceWithRetryAfter(billableUsage, retryAfter);
     verify(remittanceRepo, never()).saveAndFlush(any());
   }

@@ -1,0 +1,199 @@
+---
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: unleash-import
+parameters:
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
+  - name: ENV_NAME
+    value: env-rhsm
+  # When needed bump UNLEASH_IMPORT_RUN_NUMBER
+  - name: UNLEASH_IMPORT_RUN_NUMBER
+    value: "1"
+  - name: UNLEASH_IMPORT_IMAGE
+    value: quay.io/awood/unleash-import
+  - name: UNLEASH_IMPORT_IMAGE_TAG
+    value: latest
+  - name: UNLEASH_IMPORT_MEMORY_REQUEST
+    value: 500Mi
+  - name: UNLEASH_IMPORT_MEMORY_LIMIT
+    value: 800Mi
+  - name: UNLEASH_IMPORT_CPU_REQUEST
+    value: 350m
+  - name: UNLEASH_IMPORT_CPU_LIMIT
+    value: 500m
+  - name: UNLEASH_USER
+    value: admin
+  - name: UNLEASH_PASSWORD
+    value: unleash4all
+
+objects:
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdApp
+    metadata:
+      name: unleash-import
+    spec:
+      envName: ${ENV_NAME}
+      featureFlags: true
+      pullSecrets:
+        name: ${IMAGE_PULL_SECRET}
+
+      jobs:
+        - name: unleash-import-job-${UNLEASH_IMPORT_RUN_NUMBER}
+          activeDeadlineSeconds: 1800
+          successfulJobsHistoryLimit: 1
+          podSpec:
+            image: ${UNLEASH_IMPORT_IMAGE}:${UNLEASH_IMPORT_IMAGE_TAG}
+            command: ["/bin/bash", "-x"]
+            args:
+              - /opt/unleash/import-features.sh
+              - /unleash/flags.json
+            env:
+              - name: UNLEASH_USER
+                value: ${UNLEASH_USER}
+              - name: UNLEASH_PASSWORD
+                value: ${UNLEASH_PASSWORD}
+            resources:
+              requests:
+                cpu: ${UNLEASH_IMPORT_CPU_REQUEST}
+                memory: ${UNLEASH_IMPORT_MEMORY_REQUEST}
+              limits:
+                cpu: ${UNLEASH_IMPORT_CPU_LIMIT}
+                memory: ${UNLEASH_IMPORT_MEMORY_LIMIT}
+            volumeMounts:
+              - name: unleash-json
+                mountPath: /unleash
+            volumes:
+              - name: unleash-json
+                configMap:
+                  name: unleash-json
+
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdJobInvocation
+    metadata:
+      name: unleash-import-${UNLEASH_IMPORT_RUN_NUMBER}
+    spec:
+      appName: unleash-import
+      jobs:
+        - unleash-import-job-${UNLEASH_IMPORT_RUN_NUMBER}
+
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: unleash-json
+    data:
+      flags.json: |-
+        {
+            "version": 1,
+            "features": [
+                {
+                    "name": "hbi.api.disable-xjoin-test",
+                    "description": "A list of org_id for customers allow listed for postgres direct querying.",
+                    "type": "operational",
+                    "project": "default",
+                    "enabled": true,
+                    "stale": false,
+                    "strategies": [
+                        {
+                            "name": "default",
+                            "parameters": {}
+                        }
+                    ],
+                    "variants": [],
+                    "createdAt": "2024-01-09T18:49:38.445Z"
+                },
+                {
+                    "name": "hbi.api.disable-xjoin",
+                    "description": "A list of org_id for customers allow listed for postgres direct querying.",
+                    "type": "operational",
+                    "project": "default",
+                    "enabled": true,
+                    "stale": false,
+                    "strategies": [
+                        {
+                            "name": "default",
+                            "parameters": {}
+                        }
+                    ],
+                    "variants": [],
+                    "createdAt": "2024-01-09T18:49:38.445Z"
+                },
+                {
+                    "name": "hbi.group-assignment-rules",
+                    "description": "If active, newly-created hosts will automatically be assigned to groups based on the account's assignment rules.",
+                    "type": "release",
+                    "project": "default",
+                    "stale": false,
+                    "enabled": true,
+                    "strategies": [
+                        {
+                            "name": "default",
+                            "parameters": {}
+                        }
+                    ],
+                    "variants": [],
+                    "createdAt": "2024-01-10T20:16:35.042Z"
+                },
+                {
+                    "name": "hbi.custom-staleness",
+                    "description": "If active, Custom host staleness/culling features will be enabled in the API and UI",
+                    "type": "release",
+                    "project": "default",
+                    "stale": false,
+                    "enabled": true,
+                    "strategies": [
+                        {
+                            "name": "default",
+                            "parameters": {}
+                        }
+                    ],
+                    "variants": [],
+                    "createdAt": "2024-01-10T20:18:18.842Z"
+                },
+                {
+                    "name": "hbi.api.hide-edge-by-default",
+                    "description": "If this is toggled, the HBI API will hide Edge hosts by default on all requests. If the request has a host-type filter, that is used instead.",
+                    "type": "release",
+                    "project": "default",
+                    "stale": false,
+                    "strategies": [
+                        {
+                            "name": "default",
+                            "parameters": {}
+                        }
+                    ],
+                    "variants": [],
+                    "createdAt": "2024-01-10T20:19:30.848Z"
+                },
+                {
+                    "name": "edgeParity.groups-migration",
+                    "description": "In the context of edge-parity, enables the migrate of edge management groups to insights inventory groups.",
+                    "type": "release",
+                    "project": "default",
+                    "stale": false,
+                    "strategies": [
+                        {
+                            "name": "default",
+                            "parameters": {}
+                        }
+                    ],
+                    "variants": [],
+                    "createdAt": "2024-01-10T20:20:42.531Z"
+                }
+            ],
+            "strategies": [
+                {
+                    "name": "schema-strategy",
+                    "description": "Enablement based on account/schema number",
+                    "parameters": [
+                        {
+                            "name": "schema-name",
+                            "type": "list",
+                            "description": "values must begin with `acct` or `org`",
+                            "required": false
+                        }
+                    ]
+                }
+            ]
+        }

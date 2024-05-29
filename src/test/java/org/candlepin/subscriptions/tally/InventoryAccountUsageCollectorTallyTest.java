@@ -210,12 +210,11 @@ class InventoryAccountUsageCollectorTallyTest {
   @Test
   void physicalSystemTotalsForRHEL() {
     List<Integer> products = List.of(TEST_PRODUCT_ID);
-
     InventoryHostFacts host = createRhsmHost(ORG_ID, products, "", OffsetDateTime.now());
     host.setSystemProfileCoresPerSocket(4);
     host.setSystemProfileSockets(3);
-    mockReportedHypervisors(ORG_ID, new HashMap<>());
 
+    mockReportedHypervisors(ORG_ID, new HashMap<>());
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(host));
 
     whenProcessHost(RHEL_PRODUCTS, ORG_ID);
@@ -623,41 +622,18 @@ class InventoryAccountUsageCollectorTallyTest {
   }
 
   @Test
-  void accountsWithNullInventoryIdFiltered() {
-    List<Integer> products = List.of(TEST_PRODUCT_ID);
-    InventoryHostFacts host = createRhsmHost(ORG_ID, products, "", OffsetDateTime.now());
-    host.setSystemProfileCoresPerSocket(4);
-    host.setSystemProfileSockets(3);
-
-    mockReportedHypervisors(ORG_ID, new HashMap<>());
-    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(host));
-
-    whenProcessHost(RHEL_PRODUCTS, ORG_ID);
-    mockBucketRepositoryFromAccountService();
-
-    AccountUsageCalculation calc = collector.tally(ORG_ID);
-    // odd sockets are rounded up.
-    checkTotalsCalculation(calc, ORG_ID, TEST_PRODUCT, 12, 4, 1);
-    checkPhysicalTotalsCalculation(calc, ORG_ID, TEST_PRODUCT, 12, 4, 1);
-    assertNull(
-        calc.getCalculation(createUsageKey(TEST_PRODUCT))
-            .getTotals(HardwareMeasurementType.VIRTUAL));
-  }
-
-  @Test
   void ensureStaleHostsAreDeleted() {
     List<Integer> products = List.of(TEST_PRODUCT_ID);
     InventoryHostFacts host = createRhsmHost(ORG_ID, products, "", OffsetDateTime.now());
     host.setSystemProfileCoresPerSocket(4);
     host.setSystemProfileSockets(3);
     Host orig = new Host(host.getInventoryId().toString(), "insights1", host.getOrgId(), null);
-    orig.setInstanceId(host.getInventoryId().toString());
     Host noLongerReported = new Host("i2-inventory-id", "insights2", host.getOrgId(), null);
     noLongerReported.setInstanceId("i2");
 
     AccountServiceInventory accountServiceInventory =
         new AccountServiceInventory(ORG_ID, "HBI_HOST");
-    accountServiceInventory.getServiceInstances().put(host.getInventoryId().toString(), orig);
+    accountServiceInventory.getServiceInstances().put(host.getInstanceId(), orig);
     accountServiceInventory.getServiceInstances().put("i2", noLongerReported);
 
     when(accountServiceInventoryRepository.findById(

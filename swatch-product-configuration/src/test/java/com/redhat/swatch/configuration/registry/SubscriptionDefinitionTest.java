@@ -251,8 +251,9 @@ class SubscriptionDefinitionTest {
   void testFetchProductTagsWhenProductNameProvided() {
     var productName = "OpenShift Online";
     var expected = List.of("rosa");
+
     var actual =
-        Variant.filterVariantsByProductName(productName)
+        Variant.filterVariantsByProductName(productName, false)
             .filter(v -> v.getSubscription().isPaygEligible())
             .map(Variant::getTag)
             .toList();

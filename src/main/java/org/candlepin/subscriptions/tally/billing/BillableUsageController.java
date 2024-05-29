@@ -27,6 +27,7 @@ import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import jakarta.ws.rs.ProcessingException;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Objects;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -94,8 +95,8 @@ public class BillableUsageController {
   public double getTotalRemitted(BillableUsage billableUsage) {
     var filter = BillableUsageRemittanceFilter.fromUsage(billableUsage);
     return billableUsageRemittanceRepository.getRemittanceSummaries(filter).stream()
-        .findFirst()
         .map(RemittanceSummaryProjection::getTotalRemittedPendingValue)
+        .reduce(Double::sum)
         .orElse(0.0);
   }
 
@@ -291,9 +292,12 @@ public class BillableUsageController {
 
   public void updateBillableUsageRemittanceWithRetryAfter(
       BillableUsage billableUsage, OffsetDateTime retryAfter) {
+    if (Objects.isNull(billableUsage.getUuid())) {
+      log.warn(
+          "Unable to find billable usage because of null UUID. BillableUsage: {}", billableUsage);
+    }
     var billableUsageRemittance =
-        billableUsageRemittanceRepository.findOne(
-            BillableUsageRemittanceFilter.fromUsage(billableUsage));
+        billableUsageRemittanceRepository.findById(billableUsage.getUuid());
     if (billableUsageRemittance.isPresent()) {
       billableUsageRemittance.get().setRetryAfter(retryAfter);
       billableUsageRemittanceRepository.save(billableUsageRemittance.get());

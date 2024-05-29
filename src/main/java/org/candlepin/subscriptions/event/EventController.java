@@ -45,6 +45,7 @@ import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.db.model.config.OptInType;
+import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.BillingProvider;
 import org.candlepin.subscriptions.json.Measurement;
@@ -244,9 +245,7 @@ public class EventController {
 
   private Optional<Event> processEvent(Event eventToProcess) {
     if (!validateServiceInstanceEvent(eventToProcess)) {
-      log.warn(
-          "An invalid service instance event was encountered and will be skipped. {}",
-          eventToProcess);
+      log.warn(ErrorCode.INVALID_EVENT_CONSUMER_ERROR.toString(), eventToProcess);
       return Optional.empty();
     }
 
@@ -259,7 +258,6 @@ public class EventController {
     if (BillingProvider.AZURE.equals(eventToProcess.getBillingProvider())) {
       setAzureBillingAccountId(eventToProcess);
     }
-    enrichServiceInstanceFromIncomingFeed(eventToProcess);
     return Optional.of(eventToProcess);
   }
 
@@ -287,17 +285,36 @@ public class EventController {
       log.warn("Event measurement value(s) must be >= 0. event={}", event);
       return false;
     }
-    return true;
-  }
 
-  private void enrichServiceInstanceFromIncomingFeed(Event event) {
     // Determine whether the product is payg or non-payg, and then add the appropriate tag in
     // SWATCH-1993. We are only checking for payg at this time because we only support payg in this
     // flow, and we don't have a way to distinguish between payg and non-payg through events.
-    String role = Optional.ofNullable(event.getRole()).map(Object::toString).orElse(null);
-    event.setProductTag(
+    String role = event.getRole() != null ? event.getRole().toString() : null;
+
+    Set<String> matchingProductTags =
         SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
-            role, event.getProductIds(), null));
+            role, event.getProductIds(), null, event.getConversion());
+
+    log.info(
+        "matching product tags for role={}, productIds={}, productName={}, conversion={}: {}",
+        role,
+        event.getProductIds(),
+        null,
+        event.getConversion(),
+        matchingProductTags);
+    log.info("event.product_tags={}", event.getProductTag());
+
+    if (matchingProductTags.isEmpty()
+        || (event.getProductTag() != null
+            && !event.getProductTag().isEmpty()
+            && !matchingProductTags.containsAll(event.getProductTag()))) {
+      log.warn("Event doesn't match configured product tags in swatch");
+
+      return false;
+    }
+
+    event.setProductTag(matchingProductTags);
+    return true;
   }
 
   /**

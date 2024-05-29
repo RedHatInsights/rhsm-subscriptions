@@ -146,6 +146,7 @@ class InventoryAccountUsageCollectorReconcileTest {
   void testDelete() {
     var collector = setupCollector();
     Host swatchSystem = new Host();
+    swatchSystem.setInstanceType(InventoryAccountUsageCollector.HBI_INSTANCE_TYPE);
     collector.reconcileHbiSystemWithSwatchSystem(
         null, swatchSystem, new OrgHostsData("org123"), Set.of("RHEL for x86"), new ArrayList<>());
     verify(hostRepository).delete(swatchSystem);

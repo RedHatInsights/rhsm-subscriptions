@@ -18,29 +18,16 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.service;
+package com.redhat.swatch.billable.usage.configuration;
 
-import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
-import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
-import com.redhat.swatch.contract.model.ProductTagsMapper;
-import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.ws.rs.ProcessingException;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
+import java.time.Duration;
+import lombok.Getter;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
-public class SubscriptionSyncService {
-
-  @RestClient @Inject InternalSubscriptionsApi internalSubscriptionsApi;
-
-  @Inject ProductTagsMapper mapper;
-
-  public OfferingProductTags getOfferingProductTags(String sku) {
-    try {
-      return mapper.clientToApi(internalSubscriptionsApi.getSkuProductTags(sku));
-    } catch (ApiException e) {
-      throw new ProcessingException(e);
-    }
-  }
+@Getter
+public class ApplicationConfiguration {
+  @ConfigProperty(name = "rhsm-subscriptions.remittance-retention-policy.duration")
+  Duration remittanceRetentionPolicyDuration;
 }

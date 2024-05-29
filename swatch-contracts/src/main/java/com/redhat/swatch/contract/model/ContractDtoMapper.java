@@ -25,6 +25,7 @@ import com.redhat.swatch.contract.repository.ContractEntity;
 import org.mapstruct.Builder;
 import org.mapstruct.CollectionMappingStrategy;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 @Mapper(
     componentModel = "cdi",
@@ -32,5 +33,7 @@ import org.mapstruct.Mapper;
     builder = @Builder(disableBuilder = true))
 public interface ContractDtoMapper {
 
+  @Mapping(target = "sku", source = "offering.sku")
+  @Mapping(target = "productTags", source = "offering.productTags")
   Contract contractEntityToDto(ContractEntity contract);
 }

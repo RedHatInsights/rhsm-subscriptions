@@ -159,6 +159,9 @@ public class OfferingEntity implements Serializable {
   @Column(name = "metered")
   private Boolean metered;
 
+  @Column(name = "special_pricing_flag")
+  private String specialPricingFlag;
+
   public Boolean getHasUnlimitedUsage() {
     return hasUnlimitedUsage;
   }
@@ -186,7 +189,8 @@ public class OfferingEntity implements Serializable {
         && Objects.equals(hasUnlimitedUsage, offering.hasUnlimitedUsage)
         && Objects.equals(derivedSku, offering.derivedSku)
         && Objects.equals(metered, offering.metered)
-        && Objects.equals(productTags, offering.productTags);
+        && Objects.equals(productTags, offering.productTags)
+        && Objects.equals(specialPricingFlag, offering.specialPricingFlag);
   }
 
   @Override
@@ -206,6 +210,7 @@ public class OfferingEntity implements Serializable {
         hasUnlimitedUsage,
         derivedSku,
         metered,
-        productTags);
+        productTags,
+        specialPricingFlag);
   }
 }

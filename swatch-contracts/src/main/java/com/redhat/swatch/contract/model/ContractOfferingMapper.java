@@ -20,23 +20,43 @@
  */
 package com.redhat.swatch.contract.model;
 
-import com.redhat.swatch.contract.repository.ContractEntity;
+import com.redhat.swatch.clients.rh.partner.gateway.api.model.RhEntitlementV1;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.OfferingRepository;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
+import java.util.List;
 import java.util.Objects;
+import lombok.AllArgsConstructor;
+import org.mapstruct.Named;
 
 @ApplicationScoped
+@AllArgsConstructor
 public class ContractOfferingMapper {
-  @Inject OfferingRepository offeringRepository;
+  private final OfferingRepository offeringRepository;
 
-  public OfferingEntity mapContractToOfferingEntity(ContractEntity contract) {
-    var offering = offeringRepository.findById(contract.getSku());
-    if (Objects.isNull(offering)) {
-      throw new BadRequestException("Could not find sku " + contract.getSku());
+  @Named("offering")
+  public OfferingEntity findOffering(List<RhEntitlementV1> rhEntitlements) {
+    if (rhEntitlements == null) {
+      return null;
     }
+
+    String sku =
+        rhEntitlements.stream()
+            .map(RhEntitlementV1::getSku)
+            .filter(Objects::nonNull)
+            .findFirst()
+            .orElse(null);
+
+    if (sku == null) {
+      return null;
+    }
+
+    var offering = offeringRepository.findById(sku);
+    if (Objects.isNull(offering)) {
+      throw new BadRequestException("Could not find sku " + sku);
+    }
+
     return offering;
   }
 }

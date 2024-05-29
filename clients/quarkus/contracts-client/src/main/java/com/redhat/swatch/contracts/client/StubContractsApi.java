@@ -53,7 +53,7 @@ public class StubContractsApi implements DefaultApi {
   @Override
   public List<Contract> getContract(
       String orgId,
-      String productId,
+      String productTag,
       String vendorProductCode,
       String billingProvider,
       String billingAccountId,
@@ -65,7 +65,7 @@ public class StubContractsApi implements DefaultApi {
     return List.of(
         createContract(
             orgId,
-            productId,
+            productTag,
             CONTRACT_METRIC_ID,
             vendorProductCode,
             billingProvider,
@@ -73,7 +73,7 @@ public class StubContractsApi implements DefaultApi {
             5),
         createContract(
             orgId,
-            productId,
+            productTag,
             CONTRACT_METRIC_ID,
             vendorProductCode,
             billingProvider,
@@ -199,19 +199,23 @@ public class StubContractsApi implements DefaultApi {
 
   private static Contract createContract(
       String orgId,
-      String productId,
+      String productTag,
       String metricId,
       String vendorProductCode,
       String billingProvider,
       String billingAccountId,
       int value) {
-    return new Contract()
-        .orgId(orgId)
-        .productId(productId)
-        .billingProvider(billingProvider)
-        .startDate(OffsetDateTime.of(2022, 1, 1, 1, 0, 0, 0, ZoneOffset.UTC))
-        .billingAccountId(billingAccountId)
-        .vendorProductCode(vendorProductCode)
-        .addMetricsItem(new Metric().metricId(metricId).value(value));
+    Contract contract =
+        new Contract()
+            .orgId(orgId)
+            .billingProvider(billingProvider)
+            .startDate(OffsetDateTime.of(2022, 1, 1, 1, 0, 0, 0, ZoneOffset.UTC))
+            .billingAccountId(billingAccountId)
+            .vendorProductCode(vendorProductCode)
+            .addMetricsItem(new Metric().metricId(metricId).value(value));
+    if (productTag != null) {
+      contract.setProductTags(List.of(productTag));
+    }
+    return contract;
   }
 }

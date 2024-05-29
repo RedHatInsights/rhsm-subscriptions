@@ -391,7 +391,7 @@ class ContractsControllerTest {
   private Contract contractFromUsage(BillableUsage usage) {
     return new Contract()
         .orgId(usage.getOrgId())
-        .productId(usage.getProductId())
+        .productTags(List.of(usage.getProductId()))
         .endDate(OffsetDateTime.now())
         .billingAccountId(usage.getBillingAccountId())
         .billingProvider(usage.getBillingProvider().value())
