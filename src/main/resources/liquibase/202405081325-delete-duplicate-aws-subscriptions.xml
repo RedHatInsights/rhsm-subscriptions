@@ -9,6 +9,42 @@
   <changeSet id="202405081325-1" author="kflahert" dbms="postgresql">
     <comment>Delete duplicated subscriptions for AWS</comment>
     <sql>
+      SELECT * INTO SUBSCRIPTION_MEASUREMENTS_BACKUP FROM SUBSCRIPTION_MEASUREMENTS measurement
+      WHERE exists (SELECT FROM
+                             SUBSCRIPTION invalidSub,
+                             SUBSCRIPTION validSub
+                    WHERE
+                        invalidSub.SUBSCRIPTION_NUMBER = validSub.SUBSCRIPTION_NUMBER
+                      AND invalidSub.START_DATE::date = validSub.START_DATE::date
+                      AND invalidSub.START_DATE::varchar like ('%:00:00+00')
+                      AND invalidSub.START_DATE != validSub.START_DATE
+                      AND validSub.BILLING_PROVIDER = 'aws'
+                      AND measurement.SUBSCRIPTION_ID = invalidSub.SUBSCRIPTION_ID
+                      AND measurement.START_DATE = invalidSub.START_DATE);
+
+      SELECT * INTO SUBSCRIPTION_PRODUCT_IDS_BACKUP FROM SUBSCRIPTION_PRODUCT_IDS products
+      WHERE exists (SELECT FROM
+                             SUBSCRIPTION invalidSub,
+                             SUBSCRIPTION validSub
+                    WHERE
+                        invalidSub.SUBSCRIPTION_NUMBER = validSub.SUBSCRIPTION_NUMBER
+                      AND invalidSub.START_DATE::date = validSub.START_DATE::date
+                      AND invalidSub.START_DATE::varchar like ('%:00:00+00')
+                      AND invalidSub.START_DATE != validSub.START_DATE
+                      AND validSub.BILLING_PROVIDER = 'aws'
+                      AND products.SUBSCRIPTION_ID = invalidSub.SUBSCRIPTION_ID
+                      AND products.START_DATE = invalidSub.START_DATE);
+
+      SELECT * INTO SUBSCRIPTION_BACKUP FROM SUBSCRIPTION invalidSub
+      WHERE exists (SELECT FROM
+        SUBSCRIPTION validSub
+                    WHERE
+                        invalidSub.SUBSCRIPTION_NUMBER = validSub.SUBSCRIPTION_NUMBER
+                      AND invalidSub.START_DATE::date = validSub.START_DATE::date
+                      AND invalidSub.START_DATE::varchar like ('%:00:00+00')
+                      AND invalidSub.START_DATE != validSub.START_DATE
+                      AND validSub.BILLING_PROVIDER = 'aws');
+
       DELETE FROM SUBSCRIPTION_MEASUREMENTS measurement
       WHERE exists (SELECT FROM
                              SUBSCRIPTION invalidSub,
