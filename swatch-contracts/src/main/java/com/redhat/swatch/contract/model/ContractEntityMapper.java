@@ -20,9 +20,11 @@
  */
 package com.redhat.swatch.contract.model;
 
+import static com.redhat.swatch.contract.model.ContractSourcePartnerEnum.isAwsMarketplace;
+import static com.redhat.swatch.contract.model.ContractSourcePartnerEnum.isAzureMarketplace;
+
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.DimensionV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1;
-import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1.SourcePartnerEnum;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerIdentityV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.RhEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.SaasContractV1;
@@ -117,13 +119,13 @@ public interface ContractEntityMapper {
   @Named("billingProviderId")
   default String extractBillingProviderId(PartnerEntitlementV1 entitlement) {
     var partner = entitlement.getSourcePartner();
-    if (partner == SourcePartnerEnum.AWS_MARKETPLACE) {
+    if (isAwsMarketplace(partner)) {
       return String.format(
           "%s;%s;%s",
           entitlement.getPurchase().getVendorProductCode(),
           entitlement.getPartnerIdentities().getAwsCustomerId(),
           entitlement.getPartnerIdentities().getSellerAccountId());
-    } else if (partner == SourcePartnerEnum.AZURE_MARKETPLACE) {
+    } else if (isAzureMarketplace(partner)) {
       var azurePlanId =
           entitlement.getPurchase().getContracts().stream()
               .map(SaasContractV1::getPlanId)
@@ -139,8 +141,8 @@ public interface ContractEntityMapper {
   }
 
   @Named("billingProvider")
-  default String extractBillingProvider(SourcePartnerEnum sourcePartner) {
-    return ContractSourcePartnerEnum.getByCode(sourcePartner.value());
+  default String extractBillingProvider(String sourcePartner) {
+    return ContractSourcePartnerEnum.getByCode(sourcePartner);
   }
 
   default String extractValueFromRhEntitlements(
