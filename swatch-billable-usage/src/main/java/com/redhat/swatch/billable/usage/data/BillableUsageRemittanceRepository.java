@@ -26,7 +26,6 @@ import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 @ApplicationScoped
 public class BillableUsageRemittanceRepository
@@ -47,7 +46,16 @@ public class BillableUsageRemittanceRepository
   }
 
   @Transactional
-  public Stream<BillableUsageRemittanceEntity> findByIdIn(List<String> uuids) {
-    return find("uuid in (?1)", uuids).stream();
+  public void updateStatusByIdIn(
+      List<String> uuids,
+      RemittanceStatus status,
+      OffsetDateTime billedOn,
+      RemittanceErrorCode errorCode) {
+    update(
+        "status = ?1, billedOn=?2, errorCode=?3 where uuid in (?4)",
+        status,
+        billedOn,
+        errorCode,
+        uuids);
   }
 }

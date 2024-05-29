@@ -169,8 +169,7 @@ public class BillableUsageAggregateConsumer {
     OffsetDateTime startOfCurrentHour =
         OffsetDateTime.now(Clock.systemUTC()).truncatedTo(ChronoUnit.HOURS);
     OffsetDateTime cutoff = startOfCurrentHour.minus(azureUsageWindow);
-    var earliestUsageDate = aggregate.getSnapshotDates().stream().sorted().findFirst();
-    return !earliestUsageDate.map(date -> date.isBefore(cutoff)).orElse(false);
+    return !aggregate.getWindowTimestamp().isBefore(cutoff);
   }
 
   private void transformAndSend(

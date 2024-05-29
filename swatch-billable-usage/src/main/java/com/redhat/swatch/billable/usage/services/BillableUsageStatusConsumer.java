@@ -24,10 +24,10 @@ import com.redhat.swatch.billable.usage.configuration.Channels;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
 import com.redhat.swatch.billable.usage.data.RemittanceErrorCode;
 import com.redhat.swatch.billable.usage.data.RemittanceStatus;
-import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import java.util.Objects;
+import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
@@ -41,28 +41,22 @@ public class BillableUsageStatusConsumer {
   private final BillableUsageRemittanceRepository remittanceRepository;
 
   @Incoming(Channels.BILLABLE_USAGE_STATUS)
-  @Blocking
   @Transactional
   public void process(BillableUsageAggregate billableUsageAggregate) {
-    var remittances = remittanceRepository.findByIdIn(billableUsageAggregate.getRemittanceUuids());
-    remittances.forEach(
-        remittance -> {
-          if (Objects.nonNull(billableUsageAggregate.getStatus())) {
-            remittance.setStatus(
-                RemittanceStatus.fromString(billableUsageAggregate.getStatus().value()));
-          } else {
-            log.error(
-                "Billable Usage Status update received with no status, {}:",
-                billableUsageAggregate);
-          }
-          if (Objects.nonNull(billableUsageAggregate.getBilledOn())) {
-            remittance.setBilledOn(billableUsageAggregate.getBilledOn());
-          }
-          if (Objects.nonNull(billableUsageAggregate.getErrorCode())) {
-            remittance.setErrorCode(
-                RemittanceErrorCode.fromString(billableUsageAggregate.getErrorCode().value()));
-          }
-          remittanceRepository.persist(remittance);
-        });
+    if (Objects.isNull(billableUsageAggregate.getStatus())) {
+      log.error(
+          "Billable Usage Status update received with no status, {}:", billableUsageAggregate);
+      return;
+    }
+    var status = RemittanceStatus.fromString(billableUsageAggregate.getStatus().value());
+    var errorCode =
+        Optional.ofNullable(billableUsageAggregate.getErrorCode())
+            .map(code -> RemittanceErrorCode.fromString(code.value()))
+            .orElse(null);
+    remittanceRepository.updateStatusByIdIn(
+        billableUsageAggregate.getRemittanceUuids(),
+        status,
+        billableUsageAggregate.getBilledOn(),
+        errorCode);
   }
 }

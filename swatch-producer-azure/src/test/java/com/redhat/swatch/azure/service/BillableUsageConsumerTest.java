@@ -62,7 +62,6 @@ import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
@@ -319,7 +318,6 @@ class BillableUsageConsumerTest {
       String productId, String metricId, OffsetDateTime timestamp, double totalValue) {
     var aggregate = new BillableUsageAggregate();
     aggregate.setWindowTimestamp(timestamp);
-    aggregate.setSnapshotDates(Set.of(timestamp));
     aggregate.setTotalValue(new BigDecimal(totalValue));
     aggregate.setRemittanceUuids(List.of(UUID.randomUUID().toString()));
     var key =
