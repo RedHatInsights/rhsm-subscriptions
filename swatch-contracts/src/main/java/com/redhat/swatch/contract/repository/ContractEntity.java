@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.contract.repository;
 
+import com.redhat.swatch.panache.Specification;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
