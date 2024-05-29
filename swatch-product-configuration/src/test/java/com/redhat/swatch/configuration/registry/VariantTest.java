@@ -23,6 +23,7 @@ package com.redhat.swatch.configuration.registry;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
 class VariantTest {
@@ -54,18 +55,24 @@ class VariantTest {
   @Test
   void testMigrationProductFlagWithEngIds() {
 
-    var expected = Set.of();
+    var expected = Set.of("rhel-for-x86-els-trad-unconverted");
 
-    var actual = Variant.findByEngProductId("204", false);
+    var actual =
+        Variant.findByEngProductId("204", false).stream()
+            .map(Variant::getTag)
+            .collect(Collectors.toSet());
 
     assertEquals(expected, actual);
   }
 
   @Test
   void testMigrationProductFlagTrueWithEngIds() {
-    var expected = Set.of(Variant.findByTag("rhel-for-x86-els-payg").get());
+    var expected = Set.of("rhel-for-x86-els-payg", "rhel-for-x86-els-trad-converted");
 
-    var variant = Variant.findByEngProductId("204", true);
+    var variant =
+        Variant.findByEngProductId("204", true).stream()
+            .map(Variant::getTag)
+            .collect(Collectors.toSet());
 
     assertEquals(expected, variant);
   }
