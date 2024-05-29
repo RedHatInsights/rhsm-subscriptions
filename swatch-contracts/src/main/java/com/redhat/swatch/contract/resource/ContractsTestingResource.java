@@ -99,14 +99,14 @@ public class ContractsTestingResource implements DefaultApi {
   @RolesAllowed({"test", "support", "service"})
   public List<Contract> getContract(
       String orgId,
-      String productId,
+      String productTag,
       String vendorProductCode,
       String billingProvider,
       String billingAccountId,
       OffsetDateTime timestamp)
       throws ProcessingException {
     return service.getContracts(
-        orgId, productId, billingProvider, billingAccountId, vendorProductCode, timestamp);
+        orgId, productTag, billingProvider, billingAccountId, vendorProductCode, timestamp);
   }
 
   @Override

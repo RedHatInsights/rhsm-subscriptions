@@ -21,15 +21,11 @@
 package com.redhat.swatch.contract.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
 import com.redhat.swatch.contract.repository.OfferingEntity;
-import com.redhat.swatch.contract.repository.OfferingRepository;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
-import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
@@ -40,14 +36,13 @@ import org.junit.jupiter.api.Test;
 class SubscriptionEntityMapperTest {
 
   @Inject SubscriptionEntityMapper mapper;
-  @InjectMock OfferingRepository offeringRepository;
 
   @Test
   void testMapContractEntityToSubscriptionEntity() {
     var expectedSku = "MCT123";
     var offering = new OfferingEntity();
     offering.setSku(expectedSku);
-    when(offeringRepository.findById(expectedSku)).thenReturn(offering);
+    offering.setProductTags(Set.of("rosa"));
 
     var subscription = new SubscriptionEntity();
     var metric = new ContractMetricEntity();
@@ -55,7 +50,7 @@ class SubscriptionEntityMapperTest {
     metric.setValue(42.0);
 
     var contract = new ContractEntity();
-    contract.setSku(expectedSku);
+    contract.setOffering(offering);
     contract.setMetrics(Set.of(metric));
     contract.setStartDate(OffsetDateTime.parse("2000-01-01T00:00Z"));
     contract.setEndDate(OffsetDateTime.parse("2020-01-01T00:00Z"));
@@ -63,23 +58,19 @@ class SubscriptionEntityMapperTest {
     contract.setBillingProvider("aws");
     contract.setBillingAccountId("12345678");
     contract.setOrgId("org123");
-    contract.setProductId("rosa");
 
     mapper.mapSubscriptionEntityFromContractEntity(subscription, contract);
     assertEquals(contract.getSubscriptionNumber(), subscription.getSubscriptionNumber());
     assertEquals(1, subscription.getSubscriptionMeasurements().size());
-    assertEquals(contract.getSku(), subscription.getOffering().getSku());
+    assertEquals(contract.getOffering(), subscription.getOffering());
     assertEquals(contract.getEndDate(), subscription.getEndDate());
     assertEquals(contract.getBillingProvider(), subscription.getBillingProvider().getValue());
     assertEquals(contract.getBillingAccountId(), subscription.getBillingAccountId());
     assertEquals(contract.getOrgId(), subscription.getOrgId());
     assertEquals(1, subscription.getSubscriptionProductIds().size());
-    var productId = subscription.getSubscriptionProductIds().stream().findFirst().orElseThrow();
-    assertEquals(contract.getProductId(), productId.getProductId());
     var measurement = subscription.getSubscriptionMeasurements().get(0);
     assertEquals(metric.getMetricId(), measurement.getMetricId());
     assertEquals(metric.getValue(), measurement.getValue());
     assertEquals("PHYSICAL", measurement.getMeasurementType());
-    verify(offeringRepository).findById(expectedSku);
   }
 }
