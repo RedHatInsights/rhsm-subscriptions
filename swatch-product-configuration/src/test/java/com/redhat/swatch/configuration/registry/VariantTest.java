@@ -22,6 +22,7 @@ package com.redhat.swatch.configuration.registry;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class VariantTest {
@@ -35,15 +36,17 @@ class VariantTest {
   void testMigrationProductFlagTrueWithRole() {
     var variant = Variant.findByRole("Red Hat Enterprise Linux Server", true);
 
-    assertFalse(variant.isPresent());
+    assertTrue(variant.isEmpty());
   }
 
   @Test
   void testMigrationProductFlagFalseWithRole() {
     var variant = Variant.findByRole("Red Hat Enterprise Linux Server", false);
 
+    assertEquals(1, variant.size());
+
     var expected = "RHEL for x86";
-    var actual = variant.get().getTag();
+    var actual = variant.iterator().next().getTag();
 
     assertEquals(expected, actual);
   }
@@ -51,31 +54,33 @@ class VariantTest {
   @Test
   void testMigrationProductFlagWithEngIds() {
 
-    var elsMigratedVariant = Variant.findByTag("rhel-for-x86-els-payg");
+    var expected = Set.of(Variant.findByTag("rhel-for-x86-els-trad-unconverted").get());
 
-    var variant =
-        Variant.findByEngProductId(elsMigratedVariant.get().getEngineeringIds().get(0), false);
+    var actual = Variant.findByEngProductId("204", false);
 
-    assertFalse(variant.isPresent());
+    assertEquals(expected, actual);
   }
 
   @Test
   void testMigrationProductFlagTrueWithEngIds() {
+    var expected =
+        Set.of(
+            Variant.findByTag("rhel-for-x86-els-payg").get(),
+            Variant.findByTag("rhel-for-x86-els-trad-converted").get());
 
-    var elsMigratedVariant = Variant.findByTag("rhel-for-x86-els-payg");
+    var variant = Variant.findByEngProductId("204", true);
 
-    var variant =
-        Variant.findByEngProductId(elsMigratedVariant.get().getEngineeringIds().get(0), true);
-
-    assertEquals(elsMigratedVariant, variant);
+    assertEquals(expected, variant);
   }
 
   @Test
   void testGetParentSubscription() {
-    var variant = Variant.findByRole("Red Hat Enterprise Linux Compute Node", false).get();
+    var variant = Variant.findByRole("Red Hat Enterprise Linux Compute Node", false);
     var expected = "rhel-for-x86";
-    var actual = variant.getSubscription().getId();
 
+    assertEquals(1, variant.size());
+
+    var actual = variant.iterator().next().getSubscription().getId();
     assertEquals(expected, actual);
   }
 
@@ -84,7 +89,9 @@ class VariantTest {
 
     var actual = Variant.findByEngProductId("69", false);
 
-    assertEquals("RHEL for x86", actual.get().getTag());
+    assertEquals(1, actual.size());
+
+    assertEquals("RHEL for x86", actual.iterator().next().getTag());
   }
 
   @Test

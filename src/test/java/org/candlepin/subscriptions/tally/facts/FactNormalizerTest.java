@@ -128,8 +128,8 @@ class FactNormalizerTest {
     normalizer.normalize(rhsmHost, hypervisorData(), true);
     subscriptionDefinitionMockedStatic.verify(
         () ->
-            SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
-                any(), any(), any(), anyBoolean()),
+            SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
+                any(), any(), any(), anyBoolean(), anyBoolean()),
         times(1));
   }
 
@@ -144,8 +144,8 @@ class FactNormalizerTest {
     normalizer.normalize(rhsmHost, hypervisorData(), false);
     subscriptionDefinitionMockedStatic.verify(
         () ->
-            SubscriptionDefinition.getAllProductTagsWithNonPaygEligibleByRoleOrEngIds(
-                any(), any(), any(), anyBoolean()),
+            SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
+                any(), any(), any(), anyBoolean(), anyBoolean()),
         times(1));
   }
 
@@ -163,8 +163,8 @@ class FactNormalizerTest {
     normalizer.normalize(rhsmHost, hypervisorData(), true);
     subscriptionDefinitionMockedStatic.verify(
         () ->
-            SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
-                any(), any(), any(), anyBoolean()),
+            SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
+                any(), any(), any(), anyBoolean(), anyBoolean()),
         times(1));
   }
 
@@ -182,8 +182,8 @@ class FactNormalizerTest {
     normalizer.normalize(rhsmHost, hypervisorData(), false);
     subscriptionDefinitionMockedStatic.verify(
         () ->
-            SubscriptionDefinition.getAllProductTagsWithNonPaygEligibleByRoleOrEngIds(
-                any(), any(), any(), anyBoolean()),
+            SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
+                any(), any(), any(), anyBoolean(), anyBoolean()),
         times(1));
   }
 

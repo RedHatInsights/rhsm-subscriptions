@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.tally.facts;
 
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
-import com.redhat.swatch.configuration.registry.Variant;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.Optional;
@@ -76,7 +75,7 @@ public class FactNormalizer {
     normalizeClassification(normalizedFacts, hostFacts, guestData);
     normalizeHardwareType(normalizedFacts, hostFacts);
     normalizeSystemProfileFacts(normalizedFacts, hostFacts, isMetered);
-    normalizeSatelliteFacts(normalizedFacts, hostFacts);
+    normalizeSatelliteFacts(normalizedFacts, hostFacts, isMetered);
     normalizeRhsmFacts(normalizedFacts, hostFacts, isMetered);
     normalizeQpcFacts(normalizedFacts, hostFacts);
     normalizeSocketCount(normalizedFacts, hostFacts);
@@ -89,8 +88,8 @@ public class FactNormalizer {
   }
 
   private void normalizeSatelliteFacts(
-      NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
-    handleRole(normalizedFacts, hostFacts.getSatelliteRole());
+      NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts, boolean isMetered) {
+    handleRole(normalizedFacts, hostFacts.getSatelliteRole(), isMetered);
     handleSla(normalizedFacts, hostFacts, hostFacts.getSatelliteSla());
     handleUsage(normalizedFacts, hostFacts, hostFacts.getSatelliteUsage());
   }
@@ -314,11 +313,8 @@ public class FactNormalizer {
       return Set.of();
     }
 
-    return isMetered
-        ? SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
-            null, productIds, null, is3rdPartyMigrated)
-        : SubscriptionDefinition.getAllProductTagsWithNonPaygEligibleByRoleOrEngIds(
-            null, productIds, null, is3rdPartyMigrated);
+    return SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
+        null, productIds, null, isMetered, is3rdPartyMigrated);
   }
 
   private void normalizeRhsmFacts(
@@ -344,17 +340,12 @@ public class FactNormalizer {
       normalizedFacts
           .getProducts()
           .addAll(
-              isMetered
-                  ? SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
-                      hostFacts.getSyspurposeRole(),
-                      hostFacts.getProducts(),
-                      null,
-                      is3rdPartyMigrated)
-                  : SubscriptionDefinition.getAllProductTagsWithNonPaygEligibleByRoleOrEngIds(
-                      hostFacts.getSyspurposeRole(),
-                      hostFacts.getProducts(),
-                      null,
-                      is3rdPartyMigrated));
+              SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
+                  hostFacts.getSyspurposeRole(),
+                  hostFacts.getProducts(),
+                  null,
+                  isMetered,
+                  is3rdPartyMigrated));
 
       // Check for cores and sockets. If not included, default to 0.
       normalizedFacts.setOrgId(hostFacts.getOrgId());
@@ -363,7 +354,7 @@ public class FactNormalizer {
     }
   }
 
-  private void handleRole(NormalizedFacts normalizedFacts, String role) {
+  private void handleRole(NormalizedFacts normalizedFacts, String role, boolean isMetered) {
     if (role != null) {
       normalizedFacts.getProducts().removeIf(FactNormalizer::isRhelVariant);
 
@@ -371,8 +362,12 @@ public class FactNormalizer {
       if (subscription.isPresent()) {
         // To be handled during SWATCH-2360
         boolean is3rdPartyMigrated = false;
-        var variant = Variant.findByRole(role, is3rdPartyMigrated);
-        variant.ifPresent(v -> normalizedFacts.getProducts().add(v.getTag()));
+
+        normalizedFacts
+            .getProducts()
+            .addAll(
+                SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
+                    role, Set.of(), null, isMetered, is3rdPartyMigrated));
       }
     }
   }
