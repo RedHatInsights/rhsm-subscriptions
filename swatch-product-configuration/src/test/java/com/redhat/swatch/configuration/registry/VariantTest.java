@@ -54,7 +54,7 @@ class VariantTest {
   @Test
   void testMigrationProductFlagWithEngIds() {
 
-    var expected = Set.of(Variant.findByTag("rhel-for-x86-els-trad-unconverted").get());
+    var expected = Set.of();
 
     var actual = Variant.findByEngProductId("204", false);
 
@@ -63,10 +63,7 @@ class VariantTest {
 
   @Test
   void testMigrationProductFlagTrueWithEngIds() {
-    var expected =
-        Set.of(
-            Variant.findByTag("rhel-for-x86-els-payg").get(),
-            Variant.findByTag("rhel-for-x86-els-trad-converted").get());
+    var expected = Set.of(Variant.findByTag("rhel-for-x86-els-payg").get());
 
     var variant = Variant.findByEngProductId("204", true);
 

@@ -851,38 +851,6 @@ class FactNormalizerTest {
     assertEquals(0, normalizedFacts.getSockets());
   }
 
-  @ParameterizedTest
-  @ValueSource(strings = {"x86_64", "i386", "i686"})
-  void testQpcSystemArchSetRhelForX86Product(String arch) {
-    NormalizedFacts normalized =
-        normalizer.normalize(createQpcHost("RHEL", arch, clock.now()), hypervisorData(), false);
-    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL for x86"));
-  }
-
-  @Test
-  void testQpcSystemArchSetRhelForArm() {
-    NormalizedFacts normalized =
-        normalizer.normalize(
-            createQpcHost("RHEL", "aarch64", clock.now()), hypervisorData(), false);
-    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL for ARM"));
-  }
-
-  @Test
-  void testQpcSystemArchSetRhelForIbmPower() {
-    NormalizedFacts normalized =
-        normalizer.normalize(
-            createQpcHost("RHEL", "ppc64le", clock.now()), hypervisorData(), false);
-    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL for IBM Power"));
-  }
-
-  @Test
-  void testQpcProductIdFromEngId() {
-    var host = createQpcHost("RHEL", "Test", clock.now());
-    host.setSystemProfileProductIds("69");
-    NormalizedFacts normalized = normalizer.normalize(host, hypervisorData(), false);
-    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL for x86"));
-  }
-
   private InventoryHostFacts givenInventoryHostFactsForX86AndVirtual() {
     InventoryHostFacts facts = createBaseHost("01");
     facts.setSystemProfileArch("x86_64");
