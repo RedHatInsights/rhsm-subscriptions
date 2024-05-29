@@ -46,6 +46,7 @@ public class InventoryHostFacts {
   private Integer systemProfileThreadsPerCore;
   private String systemProfileArch;
   private boolean isMarketplace;
+  private boolean conversionsActivity;
   private boolean isVirtual;
   private String hypervisorUuid;
   private String satelliteHypervisorUuid;
@@ -91,6 +92,7 @@ public class InventoryHostFacts {
       String systemProfileThreadsPerCore,
       String systemProfileArch,
       String isMarketplace,
+      String conversionsActivity,
       String qpcProducts,
       String systemProfileProductIds,
       String syspurposeRole,
@@ -126,6 +128,7 @@ public class InventoryHostFacts {
     this.systemProfileThreadsPerCore = asInt(systemProfileThreadsPerCore);
     this.systemProfileArch = systemProfileArch;
     this.isMarketplace = asBoolean(isMarketplace);
+    this.conversionsActivity = asBoolean(conversionsActivity);
     this.systemProfileProductIds = asStringSet(systemProfileProductIds);
     this.syspurposeRole = syspurposeRole;
     this.syspurposeSla = syspurposeSla;

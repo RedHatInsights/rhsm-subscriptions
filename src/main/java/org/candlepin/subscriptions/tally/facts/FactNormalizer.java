@@ -76,6 +76,10 @@ public class FactNormalizer {
     // apply this host's facts.
     // NOTE: This logic is applied since currently the inventory service does not prune inventory
     // records once a host no longer exists.
+    NormalizedFacts normalizedFacts = new NormalizedFacts();
+    boolean is3rdPartyMigrated = hostFacts.isConversionsActivity();
+    normalizedFacts.set3rdPartyConversion(is3rdPartyMigrated);
+
     var syncTimestampOptional = Optional.ofNullable(hostFacts.getSyncTimestamp());
     boolean skipRhsmFacts =
         syncTimestampOptional
@@ -85,10 +89,9 @@ public class FactNormalizer {
                         && hostUnregistered(OffsetDateTime.parse(syncTimestamp)))
             .orElse(false);
 
-    NormalizedFacts normalizedFacts = new NormalizedFacts();
-
     normalizedFacts.setProducts(
-        productNormalizer.normalizeProducts(hostFacts, isMetered, skipRhsmFacts));
+        productNormalizer.normalizeProducts(
+            hostFacts, isMetered, is3rdPartyMigrated, skipRhsmFacts));
 
     normalizeClassification(normalizedFacts, hostFacts, guestData);
     normalizeHardwareType(normalizedFacts, hostFacts);

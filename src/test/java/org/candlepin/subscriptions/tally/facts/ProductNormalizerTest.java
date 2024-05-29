@@ -48,9 +48,12 @@ class ProductNormalizerTest {
     var inventoryHostFacts = createQpcHost("RHEL", arch, OffsetDateTime.now(Clock.systemUTC()));
 
     var isMetered = false;
+    boolean is3rdPartyMigrated = false;
+
     var skipRhsm = false;
     assertThat(
-        productNormalizer.normalizeProducts(inventoryHostFacts, isMetered, skipRhsm),
+        productNormalizer.normalizeProducts(
+            inventoryHostFacts, isMetered, is3rdPartyMigrated, skipRhsm),
         Matchers.hasItem(expectedProduct));
   }
 
@@ -71,9 +74,11 @@ class ProductNormalizerTest {
     host.setSystemProfileProductIds("69");
 
     var isMetered = false;
+    boolean is3rdPartyMigrated = false;
+
     var skipRhsm = false;
 
-    var actual = productNormalizer.normalizeProducts(host, isMetered, skipRhsm);
+    var actual = productNormalizer.normalizeProducts(host, isMetered, is3rdPartyMigrated, skipRhsm);
     var expected = Set.of("RHEL Ungrouped", "RHEL for x86", "RHEL");
     assertEquals(expected, actual);
   }

@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
@@ -245,6 +246,59 @@ class SubscriptionDefinitionTest {
   void testGetAzureDimension() {
     assertEquals(
         "cluster_hour", SubscriptionDefinition.getAzureDimension("BASILISK", "Instance-hours"));
+  }
+
+  @SuppressWarnings({"linelength", "indentation"})
+  @ParameterizedTest(
+      name =
+          "Signature [engineeringIds: {0}, isMetered: {1}, is3rdPartyConverted {2}] returns swatch product tags {3}")
+  @MethodSource("elsAndGeneralRhelCombos")
+  void testElsDetectionByEngineeringIds(
+      Set<String> engineeringIds,
+      boolean isMetered,
+      boolean is3rdPartyConverted,
+      Set<String> expectedProductTags) {
+
+    var actual =
+        SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
+            null, engineeringIds, null, isMetered, is3rdPartyConverted);
+
+    assertEquals(expectedProductTags, actual);
+  }
+
+  @SuppressWarnings({"linelength", "indentation"})
+  private static Stream<Arguments> elsAndGeneralRhelCombos() {
+    var isMetered = true;
+    var is3rdPartyConverted = true;
+
+    var generalRhel = "479";
+    var els = "204";
+
+    return Stream.of(
+        Arguments.of(Set.of(generalRhel), !isMetered, !is3rdPartyConverted, Set.of("RHEL for x86")),
+        Arguments.of(
+            Set.of(generalRhel, els),
+            !isMetered,
+            !is3rdPartyConverted,
+            Set.of("RHEL for x86", "rhel-for-x86-els-trad-unconverted")),
+        Arguments.of(Set.of(generalRhel), !isMetered, is3rdPartyConverted, Set.of()),
+        Arguments.of(
+            Set.of(generalRhel, els),
+            !isMetered,
+            is3rdPartyConverted,
+            Set.of("rhel-for-x86-els-trad-converted")),
+        Arguments.of(
+            Set.of(els),
+            !isMetered,
+            is3rdPartyConverted,
+            Set.of("rhel-for-x86-els-trad-converted")),
+        Arguments.of(Set.of(generalRhel), isMetered, !is3rdPartyConverted, Set.of()),
+        Arguments.of(Set.of(generalRhel), isMetered, is3rdPartyConverted, Set.of()),
+        Arguments.of(
+            Set.of(generalRhel, els),
+            isMetered,
+            is3rdPartyConverted,
+            Set.of("rhel-for-x86-els-payg")));
   }
 
   @Test

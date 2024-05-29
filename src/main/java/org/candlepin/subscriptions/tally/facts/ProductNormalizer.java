@@ -108,10 +108,12 @@ public class ProductNormalizer {
   }
 
   public Set<String> normalizeProducts(
-      InventoryHostFacts hostFacts, boolean isMetered, boolean skipRhsmFacts) {
+      InventoryHostFacts hostFacts,
+      boolean isMetered,
+      boolean is3rdPartyMigrated,
+      boolean skipRhsmFacts) {
 
     Set<String> products = new HashSet<>();
-    boolean is3rdPartyMigrated = false;
 
     products.addAll(getSystemProfileProducts(hostFacts, isMetered, is3rdPartyMigrated));
     products.addAll(getSatelliteRoleProducts(hostFacts, isMetered, is3rdPartyMigrated));
