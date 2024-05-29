@@ -242,8 +242,8 @@ public class PrometheusMeteringController {
     boolean is3rdPartyMigrated = Boolean.parseBoolean(labels.get("conversions_success"));
 
     var matchingTags =
-        SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
-            role, productIds, null, is3rdPartyMigrated);
+        SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
+            role, productIds, null, true, is3rdPartyMigrated);
 
     if (matchingTags.size() != 1) {
       log.warn(

@@ -292,11 +292,11 @@ public class EventController {
     String role = event.getRole() != null ? event.getRole().toString() : null;
 
     Set<String> matchingProductTags =
-        SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
-            role, event.getProductIds(), null, event.getConversion());
+        SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
+            role, event.getProductIds(), null, true, event.getConversion());
 
     log.info(
-        "matching product tags for role={}, productIds={}, productName={}, conversion={}: {}",
+        "matching payg product tags for role={}, productIds={}, productName={}, conversion={}: {}",
         role,
         event.getProductIds(),
         null,
