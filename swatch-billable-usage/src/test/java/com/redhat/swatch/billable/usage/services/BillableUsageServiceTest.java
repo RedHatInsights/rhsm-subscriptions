@@ -471,7 +471,6 @@ class BillableUsageServiceTest {
   // See SWATCH-2494
   void testGetTotalRemittedConsidersAllStatuses() {
     record RemittanceTuple(double value, RemittanceStatus status, OffsetDateTime date) {}
-    ;
 
     OffsetDateTime startOfUsage = CLOCK.startOfCurrentMonth().plusDays(4);
     var t1 = new RemittanceTuple(1.0, RemittanceStatus.SUCCEEDED, startOfUsage);
@@ -492,7 +491,7 @@ class BillableUsageServiceTest {
     when(remittanceRepo.getRemittanceSummaries(any())).thenReturn(summaries);
 
     BillableUsage usage = billable(CLOCK.endOfCurrentMonth(), 0.0);
-    var result = controller.getTotalRemitted(usage);
+    var result = service.getTotalRemitted(usage);
     assertEquals(36.0, result);
   }
 

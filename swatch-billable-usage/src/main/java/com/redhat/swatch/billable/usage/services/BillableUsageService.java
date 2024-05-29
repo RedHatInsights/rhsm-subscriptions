@@ -154,6 +154,14 @@ public class BillableUsageService {
     return usage;
   }
 
+  protected double getTotalRemitted(BillableUsage billableUsage) {
+    var filter = BillableUsageRemittanceFilter.fromUsage(billableUsage);
+    return billableUsageRemittanceRepository.getRemittanceSummaries(filter).stream()
+        .map(RemittanceSummaryProjection::getTotalRemittedPendingValue)
+        .reduce(Double::sum)
+        .orElse(0.0);
+  }
+
   /**
    * Find the latest remitted value and billing factor used for that remittance in the database.
    * Convert it to use the billing factor that's currently listed in the
@@ -196,14 +204,6 @@ public class BillableUsageService {
         .remittanceDate(clock.now())
         .billingFactor(billingUnit.getBillingFactor())
         .build();
-  }
-
-  private double getTotalRemitted(BillableUsage billableUsage) {
-    var filter = BillableUsageRemittanceFilter.fromUsage(billableUsage);
-    return billableUsageRemittanceRepository.getRemittanceSummaries(filter).stream()
-        .findFirst()
-        .map(RemittanceSummaryProjection::getTotalRemittedPendingValue)
-        .orElse(0.0);
   }
 
   private void createRemittance(BillableUsage usage, BillableUsageCalculation usageCalc) {
