@@ -180,22 +180,10 @@ public class InventoryAccountUsageCollector {
   public static void populateHostFieldsFromHbi(
       Host host, InventoryHostFacts inventoryHostFacts, NormalizedFacts normalizedFacts) {
 
-    if (inventoryHostFacts.getProviderId() != null) {
-      // will use the provider ID from HBI
-      host.setInstanceId(inventoryHostFacts.getProviderId());
-    }
-
+    host.setInstanceId(inventoryHostFacts.getInstanceId());
     if (inventoryHostFacts.getInventoryId() != null) {
       host.setInventoryId(inventoryHostFacts.getInventoryId().toString());
-
-      // fallback logic to set the instance ID if and only if the instanceId is not set yet:
-      if (host.getInstanceId() == null) {
-        // We assume that the instance ID for any given HBI host record is the inventory ID; compare
-        // to an OpenShift Cluster from Prometheus data, where we use the cluster ID.
-        host.setInstanceId(inventoryHostFacts.getInventoryId().toString());
-      }
     }
-
     host.setInsightsId(inventoryHostFacts.getInsightsId());
     host.setOrgId(inventoryHostFacts.getOrgId());
     host.setDisplayName(inventoryHostFacts.getDisplayName());
@@ -247,28 +235,39 @@ public class InventoryAccountUsageCollector {
       Set<String> applicableProducts,
       List<Host> hosts) {
     log.debug(
-        "Reconciling HBI inventoryId={} & swatch inventoryId={}",
+        "Reconciling HBI inventoryId={} & swatch inventoryId={} & swatch instanceId={}",
         Optional.ofNullable(hbiSystem).map(InventoryHostFacts::getInventoryId),
-        Optional.ofNullable(swatchSystem).map(Host::getInventoryId));
+        Optional.ofNullable(swatchSystem).map(Host::getInventoryId),
+        Optional.ofNullable(swatchSystem).map(Host::getInstanceId));
     boolean isMetered = swatchSystem != null && swatchSystem.isMetered();
     if (hbiSystem == null && swatchSystem == null) {
       log.debug("Unexpected, both HBI & Swatch system records are empty");
-    } else if (hbiSystem == null) {
+    } else if (hbiSystem == null
+        && HBI_INSTANCE_TYPE.equalsIgnoreCase(swatchSystem.getInstanceType())) {
       if (!isMetered) {
-        log.info("Deleting system w/ inventoryId={}", swatchSystem.getInventoryId());
+        log.info(
+            "Deleting system w/ inventoryId={} and instanceId={}",
+            swatchSystem.getInventoryId(),
+            swatchSystem.getInstanceId());
         hostRepository.delete(swatchSystem);
       }
-    } else {
+    } else if (hbiSystem != null) {
       NormalizedFacts normalizedFacts =
           factNormalizer.normalize(hbiSystem, orgHostsData, isMetered);
       Set<Key> usageKeys = createHostUsageKeys(applicableProducts, normalizedFacts);
       if (swatchSystem != null) {
-        log.debug("Updating system w/ inventoryId={}", hbiSystem.getInventoryId());
+        log.debug(
+            "Updating system w/ inventoryId={} and instanceId={}",
+            hbiSystem.getInventoryId(),
+            hbiSystem.getInstanceId());
         Host updatedSwatchSystem =
             updateSwatchSystem(hbiSystem, normalizedFacts, swatchSystem, usageKeys);
         hosts.add(updatedSwatchSystem);
       } else {
-        log.debug("Creating system w/ inventoryId={}", hbiSystem.getInventoryId());
+        log.debug(
+            "Creating system w/ inventoryId={} and instanceId={}",
+            hbiSystem.getInventoryId(),
+            hbiSystem.getInstanceId());
         swatchSystem = createSwatchSystem(hbiSystem, normalizedFacts, usageKeys);
         hosts.add(swatchSystem);
       }
