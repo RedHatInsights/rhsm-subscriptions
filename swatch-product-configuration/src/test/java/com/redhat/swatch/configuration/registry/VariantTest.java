@@ -55,7 +55,7 @@ class VariantTest {
   @Test
   void testMigrationProductFlagWithEngIds() {
 
-    var expected = Set.of("rhel-for-x86-els-trad-unconverted");
+    var expected = Set.of("rhel-for-x86-els-unconverted");
 
     var actual =
         Variant.findByEngProductId("204", false).stream()
@@ -67,7 +67,7 @@ class VariantTest {
 
   @Test
   void testMigrationProductFlagTrueWithEngIds() {
-    var expected = Set.of("rhel-for-x86-els-payg", "rhel-for-x86-els-trad-converted");
+    var expected = Set.of("rhel-for-x86-els-payg", "rhel-for-x86-els-converted");
 
     var variant =
         Variant.findByEngProductId("204", true).stream()
