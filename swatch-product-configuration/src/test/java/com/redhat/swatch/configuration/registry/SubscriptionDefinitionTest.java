@@ -280,18 +280,15 @@ class SubscriptionDefinitionTest {
             Set.of(generalRhel, els),
             !isMetered,
             !is3rdPartyConverted,
-            Set.of("RHEL for x86", "rhel-for-x86-els-trad-unconverted")),
+            Set.of("RHEL for x86", "rhel-for-x86-els-unconverted")),
         Arguments.of(Set.of(generalRhel), !isMetered, is3rdPartyConverted, Set.of()),
         Arguments.of(
             Set.of(generalRhel, els),
             !isMetered,
             is3rdPartyConverted,
-            Set.of("rhel-for-x86-els-trad-converted")),
+            Set.of("rhel-for-x86-els-converted")),
         Arguments.of(
-            Set.of(els),
-            !isMetered,
-            is3rdPartyConverted,
-            Set.of("rhel-for-x86-els-trad-converted")),
+            Set.of(els), !isMetered, is3rdPartyConverted, Set.of("rhel-for-x86-els-converted")),
         Arguments.of(Set.of(generalRhel), isMetered, !is3rdPartyConverted, Set.of()),
         Arguments.of(Set.of(generalRhel), isMetered, is3rdPartyConverted, Set.of()),
         Arguments.of(
