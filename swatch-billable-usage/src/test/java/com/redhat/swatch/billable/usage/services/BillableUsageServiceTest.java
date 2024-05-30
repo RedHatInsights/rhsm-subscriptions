@@ -244,7 +244,7 @@ class BillableUsageServiceTest {
 
     when(remittanceRepo.getRemittanceSummaries(any())).thenReturn(summaries);
 
-    createSubscriptionDefinition("osd", usage.getMetricId().toString(), 0.25, false);
+    createSubscriptionDefinition("osd", usage.getMetricId(), 0.25, false);
 
     service.submitBillableUsage(usage);
 

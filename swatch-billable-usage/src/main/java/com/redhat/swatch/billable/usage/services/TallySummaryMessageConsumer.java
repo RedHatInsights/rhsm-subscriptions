@@ -25,9 +25,9 @@ import static com.redhat.swatch.billable.usage.configuration.Channels.TALLY_SUMM
 import com.redhat.swatch.billable.usage.model.TallySummary;
 import com.redhat.swatch.faulttolerance.api.RetryWithExponentialBackoff;
 import com.redhat.swatch.kafka.MessageHelper;
+import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.kafka.api.KafkaMessageMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -42,7 +42,7 @@ public class TallySummaryMessageConsumer {
   private final BillableUsageService billableUsageService;
 
   @Incoming(TALLY_SUMMARY)
-  @Transactional
+  @Blocking
   @RetryWithExponentialBackoff(
       maxRetries = "${BILLING_PRODUCER_MAX_ATTEMPTS:1}",
       delay = "${BILLING_PRODUCER_BACK_OFF_INITIAL_INTERVAL:1s}",

@@ -26,6 +26,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
@@ -42,6 +45,7 @@ import com.redhat.swatch.configuration.util.MetricIdUtils;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.mockito.InjectSpy;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import io.smallrye.reactive.messaging.memory.InMemorySink;
 import io.smallrye.reactive.messaging.memory.InMemorySource;
@@ -51,11 +55,13 @@ import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import org.awaitility.Awaitility;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 @QuarkusTest
 @QuarkusTestResource(
@@ -73,7 +79,8 @@ class TallySummaryMessageConsumerTest {
   private static final String BILLING_ACCOUNT_ID = "456";
 
   @InjectMock @RestClient DefaultApi contractsApi;
-  @Inject BillableUsageRemittanceRepository usageRemittanceRepository;
+  @InjectSpy BillingProducer billingProducer;
+  @InjectSpy BillableUsageRemittanceRepository usageRemittanceRepository;
   @Inject @Any InMemoryConnector connector;
 
   private InMemorySource<TallySummary> source;
@@ -89,6 +96,7 @@ class TallySummaryMessageConsumerTest {
     snapshotDate = OffsetDateTime.now();
     usageRemittanceRepository.deleteAll();
     snapshots.clear();
+    target.clear();
   }
 
   @Test
@@ -104,6 +112,37 @@ class TallySummaryMessageConsumerTest {
     thenRemittanceIsEmitted();
   }
 
+  @Test
+  void testRemittanceFailsToBeSent() {
+    // the billing factor for the Cores metric is 0.25, so the effective value is 32 (8/0.25)
+    givenValidContractWithMetric(8);
+    givenSnapshotWithUsages(80);
+    givenExceptionWhenProduceUsage();
+
+    whenSendSnapshots();
+
+    // 48 because the contract limit was 32, so 80 - 32 = 48.
+    thenRemittanceIsCreatedWithPendingValue(48.0);
+    thenRemittanceIsNotEmitted();
+
+    // reset repository
+    reset(usageRemittanceRepository);
+
+    // the message will be retried automatically by the `@RetryWithExponentialBackoff` annotation
+    givenNoExceptionWhenProduceUsage();
+    thenRemittanceIsEmitted();
+    // verify that the repository was not used after retrying the same message
+    verify(usageRemittanceRepository, times(0)).getRemittanceSummaries(any());
+  }
+
+  private void givenExceptionWhenProduceUsage() {
+    Mockito.doThrow(new RuntimeException("Test exception!")).when(billingProducer).produce(any());
+  }
+
+  private void givenNoExceptionWhenProduceUsage() {
+    Mockito.reset(billingProducer);
+  }
+
   private void givenSnapshotWithUsages(double... usages) {
     TallySnapshot snapshot = new TallySnapshot();
     List<TallyMeasurement> measurements = new ArrayList<>();
@@ -115,6 +154,7 @@ class TallySummaryMessageConsumerTest {
               .withValue(usage)
               .withCurrentTotal(usage));
     }
+    snapshot.setId(UUID.randomUUID());
     snapshot.setTallyMeasurements(measurements);
     snapshot.setSnapshotDate(snapshotDate);
     snapshot.setBillingAccountId(BILLING_ACCOUNT_ID);
@@ -175,5 +215,9 @@ class TallySummaryMessageConsumerTest {
 
   private void thenRemittanceIsEmitted() {
     Awaitility.await().untilAsserted(() -> assertEquals(1, target.received().size()));
+  }
+
+  private void thenRemittanceIsNotEmitted() {
+    assertEquals(0, target.received().size());
   }
 }

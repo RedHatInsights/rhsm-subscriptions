@@ -34,6 +34,7 @@ import com.redhat.swatch.billable.usage.services.model.Quantity;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
@@ -54,56 +55,21 @@ public class BillableUsageService {
   private final ContractsController contractsController;
 
   public void submitBillableUsage(BillableUsage usage) {
-    // Send the message last to ensure that remittance has been updated.
-    // If the message fails to send, it will roll back the transaction.
-    billingProducer.produce(produceMonthlyBillable(usage));
+    // transaction to store the usage into database
+    usage = produceMonthlyBillable(usage);
+
+    // transaction to send usage over kafka
+    billingProducer.produce(usage);
   }
 
-  /**
-   * Find the latest remitted value and billing factor used for that remittance in the database.
-   * Convert it to use the billing factor that's currently listed in the
-   * swatch-product-configuration library. This might be a no-op if the factor hasn't changed.
-   * BillableUsage should be the difference between the current usage and the previous usage at the
-   * newest swatch-product-configuration library billing factor. Integer-only billing is then
-   * applied before remitting. calculations that are need to bill any unbilled amount and to record
-   * any unbilled amount
-   *
-   * @param applicableUsage The total amount of measured usage used during the calculation.
-   * @param usage The specific event within a given month to determine what need to be billed
-   * @param remittanceTotal The previous record amount for remitted amount
-   * @return calculations that are need to bill any un-billed amount and to record any un-billed
-   *     amount
-   */
-  private BillableUsageCalculation calculateBillableUsage(
-      double applicableUsage, BillableUsage usage, double remittanceTotal) {
-    Quantity<MetricUnit> totalUsage = Quantity.of(applicableUsage);
-    var billingUnit = new BillingUnit(usage);
-    Quantity<MetricUnit> currentRemittance = Quantity.of(remittanceTotal);
-    Quantity<BillingUnit> billableValue =
-        totalUsage
-            .subtract(currentRemittance)
-            .to(billingUnit)
-            // only emit integers for billing
-            .ceil()
-            // Message could have been received out of order via another process
-            // or usage is credited, nothing to bill in either case.
-            .positiveOrZero();
+  @Transactional
+  public BillableUsage produceMonthlyBillable(BillableUsage usage) {
+    if (usage.getId() != null && billableUsageRemittanceRepository.existsBillableUsage(usage)) {
+      log.warn("Skipping usage {} because it's already stored", usage);
+      // usage was already stored, so moving forward.
+      return usage;
+    }
 
-    log.debug(
-        "Running total: {}, already remitted: {}, to be remitted: {}",
-        totalUsage,
-        currentRemittance,
-        billableValue);
-
-    return BillableUsageCalculation.builder()
-        .billableValue(billableValue.getValue())
-        .remittedValue(billableValue.to(new MetricUnit()).getValue())
-        .remittanceDate(clock.now())
-        .billingFactor(billingUnit.getBillingFactor())
-        .build();
-  }
-
-  private BillableUsage produceMonthlyBillable(BillableUsage usage) {
     log.info(
         "Processing monthly billable usage for orgId={} productId={} metric={} provider={}, billingAccountId={} snapshotDate={}",
         usage.getOrgId(),
@@ -186,6 +152,50 @@ public class BillableUsageService {
         usage.getBillingProvider(),
         usage.getSnapshotDate());
     return usage;
+  }
+
+  /**
+   * Find the latest remitted value and billing factor used for that remittance in the database.
+   * Convert it to use the billing factor that's currently listed in the
+   * swatch-product-configuration library. This might be a no-op if the factor hasn't changed.
+   * BillableUsage should be the difference between the current usage and the previous usage at the
+   * newest swatch-product-configuration library billing factor. Integer-only billing is then
+   * applied before remitting. calculations that are need to bill any unbilled amount and to record
+   * any unbilled amount
+   *
+   * @param applicableUsage The total amount of measured usage used during the calculation.
+   * @param usage The specific event within a given month to determine what need to be billed
+   * @param remittanceTotal The previous record amount for remitted amount
+   * @return calculations that are need to bill any un-billed amount and to record any un-billed
+   *     amount
+   */
+  private BillableUsageCalculation calculateBillableUsage(
+      double applicableUsage, BillableUsage usage, double remittanceTotal) {
+    Quantity<MetricUnit> totalUsage = Quantity.of(applicableUsage);
+    var billingUnit = new BillingUnit(usage);
+    Quantity<MetricUnit> currentRemittance = Quantity.of(remittanceTotal);
+    Quantity<BillingUnit> billableValue =
+        totalUsage
+            .subtract(currentRemittance)
+            .to(billingUnit)
+            // only emit integers for billing
+            .ceil()
+            // Message could have been received out of order via another process
+            // or usage is credited, nothing to bill in either case.
+            .positiveOrZero();
+
+    log.debug(
+        "Running total: {}, already remitted: {}, to be remitted: {}",
+        totalUsage,
+        currentRemittance,
+        billableValue);
+
+    return BillableUsageCalculation.builder()
+        .billableValue(billableValue.getValue())
+        .remittedValue(billableValue.to(new MetricUnit()).getValue())
+        .remittanceDate(clock.now())
+        .billingFactor(billingUnit.getBillingFactor())
+        .build();
   }
 
   private double getTotalRemitted(BillableUsage billableUsage) {
