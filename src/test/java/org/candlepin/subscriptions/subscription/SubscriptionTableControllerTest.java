@@ -68,7 +68,6 @@ import org.candlepin.subscriptions.utilization.api.model.SubscriptionEventType;
 import org.candlepin.subscriptions.utilization.api.model.SubscriptionType;
 import org.candlepin.subscriptions.utilization.api.model.Uom;
 import org.candlepin.subscriptions.utilization.api.model.UsageType;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -88,12 +87,6 @@ class SubscriptionTableControllerTest {
   @MockBean SubscriptionRepository subscriptionRepository;
   @Autowired ApplicationClock clock;
   @Autowired SubscriptionTableController subscriptionTableController;
-
-  @BeforeEach
-  void setup() {
-    // The @ReportingAccessRequired annotation checks if the org of the user is allowlisted
-    // to receive reports or not. This org will be used throughout most tests.
-  }
 
   private static final MeasurementSpec RH0180191 =
       MeasurementSpec.offering(
