@@ -91,10 +91,15 @@ public class InventorySwatchDataCollator {
    */
   public int collateData(String orgId, int culledOffsetDays, Processor processor) {
     Stream<InventoryHostFacts> inventorySystemStream =
-        inventoryRepository.streamFacts(orgId, culledOffsetDays);
+        inventoryRepository
+            .streamFacts(orgId, culledOffsetDays)
+            .sorted(Comparator.comparing(SortKey::fromHbiSystem));
     Stream<String> activeSubmanIdStream =
         inventoryRepository.streamActiveSubscriptionManagerIds(orgId, culledOffsetDays);
-    Stream<Host> swatchSystemStream = hostRepository.streamHbiHostsByOrgId(orgId);
+    Stream<Host> swatchSystemStream =
+        hostRepository
+            .streamHbiHostsByOrgId(orgId)
+            .sorted(Comparator.comparing(SortKey::fromSwatchSystem));
 
     /*
     Setup peeking iterators for each of HBI systems, HBI subman IDs, and swatch systems.

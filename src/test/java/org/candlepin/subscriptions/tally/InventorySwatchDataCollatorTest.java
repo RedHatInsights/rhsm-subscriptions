@@ -96,21 +96,26 @@ class InventorySwatchDataCollatorTest {
   }
 
   @Test
-  void testCollatorProcessesSameInventoryIdTogetherInOneIteration() {
+  void testCollatorProcessesSameInventoryIdTogetherInTwoIterations() {
     InventoryHostFacts hbiSystem = new InventoryHostFacts();
     hbiSystem.setInventoryId(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"));
+    hbiSystem.setInstanceId(hbiSystem.getInventoryId().toString());
     when(inventoryRepository.streamFacts(any(), any())).thenReturn(Stream.of(hbiSystem));
 
+    Host first = new Host();
+    first.setInventoryId("0");
+    first.setInstanceId(first.getInstanceId());
     Host swatchSystem = new Host();
-    swatchSystem.setInventoryId("123e4567-e89b-12d3-a456-426614174000");
-    when(hostRepository.streamHbiHostsByOrgId(any())).thenReturn(Stream.of(swatchSystem));
+    swatchSystem.setInventoryId(hbiSystem.getInventoryId().toString());
+    swatchSystem.setInstanceId(hbiSystem.getInventoryId().toString());
+    when(hostRepository.streamHbiHostsByOrgId(any())).thenReturn(Stream.of(swatchSystem, first));
 
     InventorySwatchDataCollator collator =
         new InventorySwatchDataCollator(inventoryRepository, hostRepository);
-    var iterations = collator.collateData("foo", 7, processor);
+    collator.collateData("foo", 7, processor);
 
-    verify(processor).accept(hbiSystem, swatchSystem, new OrgHostsData("placeholder"), 1);
-    assertEquals(1, iterations);
+    verify(processor).accept(eq(hbiSystem), eq(swatchSystem), any(), eq(1));
+    verify(processor).accept(eq(null), eq(first), any(), eq(2));
   }
 
   @Test
