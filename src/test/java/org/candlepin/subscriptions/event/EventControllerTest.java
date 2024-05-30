@@ -388,6 +388,71 @@ class EventControllerTest {
   }
 
   @Test
+  void testPersistServiceInstances_WhenProductTagExists() {
+    List<String> eventRecords = new ArrayList<>();
+
+    var invalidProductTagEventRecord1 =
+        """
+                    {
+                     "sla":"Premium",
+                     "org_id":"3340851",
+                     "timestamp":"2024-06-10T10:00:00Z",
+                     "conversion":false,
+                     "event_type":"managed-host",
+                     "expiration":"2024-06-10T11:00:00Z",
+                     "instance_id":"d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                     "product_tag":[
+                        "dummy"
+                     ],
+                     "display_name":"automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                     "event_source":"Premium",
+                     "measurements":[
+                        {
+                           "uom":"Managed-nodes",
+                           "value":4.0,
+                           "metric_id":"Managed-nodes"
+                        }
+                     ],
+                     "service_type":"Ansible Managed Node"
+                  }
+            """;
+
+    var validProductTagEventRecord1 =
+        """
+                    {
+                     "sla":"Premium",
+                     "org_id":"3340851",
+                     "timestamp":"2024-06-10T10:00:00Z",
+                     "conversion":false,
+                     "event_type":"managed-host",
+                     "expiration":"2024-06-10T11:00:00Z",
+                     "instance_id":"d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                     "product_tag":[
+                        "ansible-aap-managed"
+                     ],
+                     "display_name":"automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                     "event_source":"Premium",
+                     "measurements":[
+                        {
+                           "uom":"Managed-nodes",
+                           "value":4.0,
+                           "metric_id":"Managed-nodes"
+                        }
+                     ],
+                     "service_type":"Ansible Managed Node"
+                  }
+            """;
+    eventRecords.add(validProductTagEventRecord1);
+    eventRecords.add(invalidProductTagEventRecord1);
+    eventController.persistServiceInstances(eventRecords);
+    when(eventRecordRepository.saveAll(any())).thenReturn(new ArrayList<>());
+
+    verify(eventRecordRepository).saveAll(eventsSaved.capture());
+    List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
+    assertEquals(1, events.size());
+  }
+
+  @Test
   void testProcessEventsInBatches_processesAllEvents() {
     List<EventRecord> all = new LinkedList<>();
     for (int i = 0; i < 10; i++) {

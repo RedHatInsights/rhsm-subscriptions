@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.event;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.registry.Variant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -271,11 +272,18 @@ public class EventController {
   }
 
   public boolean validateServiceInstanceEvent(Event event) {
+    return isValidInstanceId(event) && isValidMeasurement(event) && isValidProductTag(event);
+  }
+
+  private static boolean isValidInstanceId(Event event) {
     if (Objects.isNull(event.getInstanceId())) {
       log.warn("Event.instanceId must not be null. event={}", event);
       return false;
     }
+    return true;
+  }
 
+  private static boolean isValidMeasurement(Event event) {
     List<Measurement> invalidMeasurements =
         Optional.ofNullable(event.getMeasurements()).orElse(Collections.emptyList()).stream()
             .filter(m -> Objects.nonNull(m.getValue()) && m.getValue() < 0)
@@ -285,35 +293,50 @@ public class EventController {
       log.warn("Event measurement value(s) must be >= 0. event={}", event);
       return false;
     }
+    return true;
+  }
 
-    // Determine whether the product is payg or non-payg, and then add the appropriate tag in
-    // SWATCH-1993. We are only checking for payg at this time because we only support payg in this
-    // flow, and we don't have a way to distinguish between payg and non-payg through events.
-    String role = event.getRole() != null ? event.getRole().toString() : null;
+  private static boolean isValidProductTag(Event event) {
+    // If product tag is already present in the event then verify whether it is present in our
+    // config
+    if (Objects.nonNull(event.getProductTag()) && !event.getProductTag().isEmpty()) {
+      boolean isValid =
+          event.getProductTag().stream().findFirst().map(Variant::isValidProductTag).orElse(false);
+      if (!isValid) {
+        log.warn("Product tag {} is invalid.", event.getProductTag().stream().findFirst());
+      }
+      return isValid;
+    } else {
+      // Determine whether the product is payg or non-payg, and then add the appropriate tag in
+      // SWATCH-1993. We are only checking for payg at this time because we only support payg in
+      // this
+      // flow, and we don't have a way to distinguish between payg and non-payg through events.
+      String role = event.getRole() != null ? event.getRole().toString() : null;
 
-    Set<String> matchingProductTags =
-        SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
-            role, event.getProductIds(), null, true, event.getConversion());
+      Set<String> matchingProductTags =
+          SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
+              role, event.getProductIds(), null, true, event.getConversion());
 
-    log.info(
-        "matching payg product tags for role={}, productIds={}, productName={}, conversion={}: {}",
-        role,
-        event.getProductIds(),
-        null,
-        event.getConversion(),
-        matchingProductTags);
-    log.info("event.product_tags={}", event.getProductTag());
+      log.info(
+          "matching payg product tags for role={}, productIds={}, productName={}, conversion={}: {}",
+          role,
+          event.getProductIds(),
+          null,
+          event.getConversion(),
+          matchingProductTags);
+      log.info("event.product_tags={}", event.getProductTag());
 
-    if (matchingProductTags.isEmpty()
-        || (event.getProductTag() != null
-            && !event.getProductTag().isEmpty()
-            && !matchingProductTags.containsAll(event.getProductTag()))) {
-      log.warn("Event doesn't match configured product tags in swatch");
+      if (matchingProductTags.isEmpty()
+          || (event.getProductTag() != null
+              && !event.getProductTag().isEmpty()
+              && !matchingProductTags.containsAll(event.getProductTag()))) {
+        log.warn("Event doesn't match configured product tags in swatch");
 
-      return false;
+        return false;
+      }
+
+      event.setProductTag(matchingProductTags);
     }
-
-    event.setProductTag(matchingProductTags);
     return true;
   }
 
