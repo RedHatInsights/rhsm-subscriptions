@@ -20,40 +20,32 @@
  */
 package org.candlepin.subscriptions.db.model;
 
+import static java.util.Optional.ofNullable;
+
 import com.redhat.swatch.configuration.registry.MetricId;
 import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
-import java.io.Serializable;
-import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.data.annotation.Immutable;
 
-/** Key for instance monthly totals */
-@Data
-@NoArgsConstructor
-@Embeddable
-public class InstanceMonthlyTotalKey implements Serializable {
-  private static final DateTimeFormatter MONTH_ID_FORMATTER =
-      DateTimeFormatter.ofPattern("uuuu-MM");
+@Setter
+@Getter
+@Entity
+@Immutable
+@Table(name = "tally_instance_payg_view")
+public class TallyInstancePaygView extends TallyInstanceView {
 
-  /** month in YYYY-MM format */
-  @Column(nullable = false) // ENT-4622 needed to avoid recreating collections
+  @Column(name = "month")
   private String month;
 
-  @Column(name = "metric_id", nullable = false)
-  private String metricId;
+  @Override
+  public double getMetricValue(MetricId metricId) {
+    if (getMetrics().containsKey(metricId)) {
+      return ofNullable(getMetrics().get(metricId)).orElse(0.0);
+    }
 
-  public static String formatMonthId(OffsetDateTime reference) {
-    return reference.format(MONTH_ID_FORMATTER);
-  }
-
-  public InstanceMonthlyTotalKey(OffsetDateTime reference, MetricId metricId) {
-    this(formatMonthId(reference), metricId);
-  }
-
-  public InstanceMonthlyTotalKey(String month, MetricId metricId) {
-    this.month = month;
-    this.metricId = metricId.toUpperCaseFormatted();
+    return 0;
   }
 }

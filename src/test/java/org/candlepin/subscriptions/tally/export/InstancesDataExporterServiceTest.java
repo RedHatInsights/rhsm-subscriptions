@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally.export;
 
+import static org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey.formatMonthId;
 import static org.candlepin.subscriptions.resource.InstancesResource.getCategoryByMeasurementType;
 import static org.candlepin.subscriptions.resource.InstancesResource.getCloudProviderByMeasurementType;
 import static org.candlepin.subscriptions.resource.ResourceUtils.ANY;
@@ -34,6 +35,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
@@ -232,7 +234,7 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
             .add(
                 new InstancesExportJsonMetric()
                     .withMetricId(metricId)
-                    .withValue(resolveMetricValue(bucket, MetricId.fromString(metricId))));
+                    .withValue(resolveMetricValue(item, MetricId.fromString(metricId))));
       }
 
       instance.setLastSeen(host.getLastSeen());
@@ -279,8 +281,6 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
     instance.setBillingAccountId("123");
     instance.setInstanceType(INSTANCE_TYPE);
     instance.setSubscriptionManagerId(guest.getHypervisorUuid());
-    instance.addToMonthlyTotal(OffsetDateTime.parse(APRIL), MetricIdUtils.getSockets(), 6.0);
-    instance.addToMonthlyTotal(OffsetDateTime.parse(APRIL), MetricIdUtils.getCores(), 8.0);
 
     // buckets
     HostTallyBucket bucket = new HostTallyBucket();
@@ -292,39 +292,58 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
     bucket.getKey().setBillingProvider(BillingProvider._ANY);
     bucket.getKey().setBillingAccountId(ANY);
     bucket.setMeasurementType(HardwareMeasurementType.PHYSICAL);
+    // in non-payg products, buckets metrics should be used over the instance measurements
     bucket.setCores(5);
     bucket.setSockets(6);
     bucket.setHost(instance);
     instance.addBucket(bucket);
+    boolean isPayg = !productId.equals(RHEL_FOR_X86);
 
-    // metrics
-    instance.setMeasurements(
-        Map.of(
-            MetricIdUtils.getSockets().toUpperCaseFormatted(),
-            6.0,
-            MetricIdUtils.getCores().toUpperCaseFormatted(),
-            8.0));
+    if (isPayg) {
+      // metrics for payg
+      instance.addToMonthlyTotal(OffsetDateTime.parse(APRIL), MetricIdUtils.getSockets(), 7.0);
+      instance.addToMonthlyTotal(OffsetDateTime.parse(APRIL), MetricIdUtils.getCores(), 8.0);
+    } else {
+      // metrics for non-payg
+      instance.setMeasurements(
+          Map.of(
+              MetricIdUtils.getSockets().toUpperCaseFormatted(),
+              9.0,
+              MetricIdUtils.getCores().toUpperCaseFormatted(),
+              10.0));
+    }
 
     // save
     repository.save(instance);
     HostWithGuests item = new HostWithGuests();
     item.host = instance;
     item.guests = List.of(guest);
+    item.usePaygProduct = isPayg;
     itemsToBeExported.add(item);
   }
 
-  private static double resolveMetricValue(HostTallyBucket bucket, MetricId metricId) {
-    if (metricId.equals(MetricIdUtils.getSockets())) {
-      return bucket.getSockets();
-    } else if (metricId.equals(MetricIdUtils.getCores())) {
-      return bucket.getCores();
+  private static double resolveMetricValue(HostWithGuests item, MetricId metricId) {
+    Double value = null;
+    if (item.usePaygProduct) {
+      // then use the monthly totals
+      value = item.host.getMonthlyTotal(formatMonthId(OffsetDateTime.parse(APRIL)), metricId);
+      System.out.println(
+          "Looking for " + metricId + " in " + item.host.getMonthlyTotals() + ". Found: " + value);
+    } else {
+      // for non payg products:
+      if (metricId.equals(MetricIdUtils.getSockets())) {
+        value = Double.valueOf(item.host.getBuckets().iterator().next().getSockets());
+      } else if (metricId.equals(MetricIdUtils.getCores())) {
+        value = Double.valueOf(item.host.getBuckets().iterator().next().getCores());
+      }
     }
 
-    return 0;
+    return Optional.ofNullable(value).orElse(0.0);
   }
 
   private static class HostWithGuests {
     Host host;
     List<Host> guests;
+    boolean usePaygProduct;
   }
 }
