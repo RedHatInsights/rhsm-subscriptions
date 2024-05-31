@@ -66,7 +66,7 @@ public class HostTallyBucket implements Serializable {
   @SuppressWarnings("java:S107")
   public HostTallyBucket(
       Host host,
-      String productId,
+      String productTag,
       ServiceLevel sla,
       Usage usage,
       BillingProvider billingProvider,
@@ -78,7 +78,7 @@ public class HostTallyBucket implements Serializable {
     this.host = host;
     setKey(
         new HostBucketKey(
-            host, productId, sla, usage, billingProvider, billingAccountId, asHypervisor));
+            host, productTag, sla, usage, billingProvider, billingAccountId, asHypervisor));
     this.cores = cores;
     this.sockets = sockets;
     this.measurementType = type;

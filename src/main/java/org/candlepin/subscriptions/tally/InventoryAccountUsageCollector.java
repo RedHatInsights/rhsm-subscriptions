@@ -261,22 +261,29 @@ public class InventoryAccountUsageCollector {
             hbiSystem.getInventoryId(),
             hbiSystem.getInstanceId());
         Host updatedSwatchSystem =
-            updateSwatchSystem(hbiSystem, normalizedFacts, swatchSystem, usageKeys);
+            updateSwatchSystem(
+                hbiSystem, normalizedFacts, swatchSystem, usageKeys, applicableProducts);
         hosts.add(updatedSwatchSystem);
       } else {
         log.debug(
             "Creating system w/ inventoryId={} and instanceId={}",
             hbiSystem.getInventoryId(),
             hbiSystem.getInstanceId());
-        swatchSystem = createSwatchSystem(hbiSystem, normalizedFacts, usageKeys);
+        swatchSystem =
+            createSwatchSystem(hbiSystem, normalizedFacts, usageKeys, applicableProducts);
         hosts.add(swatchSystem);
       }
-      reconcileHypervisorData(normalizedFacts, swatchSystem, orgHostsData, usageKeys);
+      reconcileHypervisorData(
+          normalizedFacts, swatchSystem, orgHostsData, usageKeys, applicableProducts);
     }
   }
 
   private void reconcileHypervisorData(
-      NormalizedFacts normalizedFacts, Host system, OrgHostsData orgHostsData, Set<Key> usageKeys) {
+      NormalizedFacts normalizedFacts,
+      Host system,
+      OrgHostsData orgHostsData,
+      Set<Key> usageKeys,
+      Set<String> applicableProducts) {
     Set<HostBucketKey> seenBucketKeys = new HashSet<>();
     if (system.getHypervisorUuid() != null
         && orgHostsData.hasHypervisorUuid(system.getHypervisorUuid())) {
@@ -315,15 +322,22 @@ public class InventoryAccountUsageCollector {
     // subscription requirements (i.e. the bucket was populated from a guest).
     system
         .getBuckets()
-        .removeIf(b -> b.getKey().getAsHypervisor() && !seenBucketKeys.contains(b.getKey()));
+        .removeIf(
+            b ->
+                b.getKey().getAsHypervisor()
+                    && !seenBucketKeys.contains(b.getKey())
+                    && applicableProducts.contains(b.getKey().getProductId()));
   }
 
   private Host createSwatchSystem(
-      InventoryHostFacts inventoryHostFacts, NormalizedFacts normalizedFacts, Set<Key> usageKeys) {
+      InventoryHostFacts inventoryHostFacts,
+      NormalizedFacts normalizedFacts,
+      Set<Key> usageKeys,
+      Set<String> applicableProducts) {
     Host host = new Host();
     host.setInstanceType(HBI_INSTANCE_TYPE);
     populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
-    applyNonHypervisorBuckets(host, normalizedFacts, usageKeys);
+    applyNonHypervisorBuckets(host, normalizedFacts, usageKeys, applicableProducts);
     entityManager.persist(host);
     return host;
   }
@@ -337,7 +351,8 @@ public class InventoryAccountUsageCollector {
         Set.of("_ANY"));
   }
 
-  private void applyNonHypervisorBuckets(Host host, NormalizedFacts facts, Set<Key> usageKeys) {
+  private void applyNonHypervisorBuckets(
+      Host host, NormalizedFacts facts, Set<Key> usageKeys, Set<String> applicableProducts) {
     Set<HostBucketKey> seenBucketKeys = new HashSet<>();
 
     // Calculate for each UsageKey
@@ -364,16 +379,21 @@ public class InventoryAccountUsageCollector {
     // NOTE: asHypervisor=false is used to operate solely on buckets for this system (filtering out
     // those added for a guest system).
     host.getBuckets()
-        .removeIf(b -> !b.getKey().getAsHypervisor() && !seenBucketKeys.contains(b.getKey()));
+        .removeIf(
+            b ->
+                !b.getKey().getAsHypervisor()
+                    && !seenBucketKeys.contains(b.getKey())
+                    && applicableProducts.contains(b.getKey().getProductId()));
   }
 
   private Host updateSwatchSystem(
       InventoryHostFacts inventoryHostFacts,
       NormalizedFacts normalizedFacts,
       Host host,
-      Set<Key> usageKeys) {
+      Set<Key> usageKeys,
+      Set<String> applicableProducts) {
     populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
-    applyNonHypervisorBuckets(host, normalizedFacts, usageKeys);
+    applyNonHypervisorBuckets(host, normalizedFacts, usageKeys, applicableProducts);
     return entityManager.merge(host);
   }
 }
