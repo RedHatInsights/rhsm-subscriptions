@@ -45,6 +45,7 @@ import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.ProcessingException;
+import jakarta.ws.rs.core.Response.Status;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -169,7 +170,8 @@ public class BillableUsageAggregateConsumer {
     OffsetDateTime startOfCurrentHour =
         OffsetDateTime.now(Clock.systemUTC()).truncatedTo(ChronoUnit.HOURS);
     OffsetDateTime cutoff = startOfCurrentHour.minus(azureUsageWindow);
-    return !aggregate.getWindowTimestamp().isBefore(cutoff);
+    var earliestSnapshotDate = aggregate.getSnapshotDates().stream().sorted().findFirst();
+    return !earliestSnapshotDate.map(date -> date.isBefore(cutoff)).orElse(false);
   }
 
   private void transformAndSend(
@@ -240,10 +242,10 @@ public class BillableUsageAggregateConsumer {
         if (isRecentlyTerminatedError) {
           throw new SubscriptionRecentlyTerminatedException(e);
         }
-        var isSubscriptionCannotBeDeterminedError =
+        var isNotFound =
             optionalErrors.get().getErrors().stream()
-                .anyMatch(error -> ("SUBSCRIPTIONS1006").equals(error.getCode()));
-        if (isSubscriptionCannotBeDeterminedError) {
+                .anyMatch(error -> (Status.NOT_FOUND.toString()).equals(error.getStatus()));
+        if (isNotFound) {
           throw new SubscriptionCanNotBeDeterminedException(e);
         }
       }
