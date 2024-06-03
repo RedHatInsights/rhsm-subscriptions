@@ -145,6 +145,7 @@ class AwsContractLifecycleIntegrationTest {
   public void setup() {
     OfferingEntity offering = new OfferingEntity();
     offering.setSku("BASILISK");
+    offering.getProductTags().add("BASILISK");
     offeringRepository.persist(offering);
   }
 
