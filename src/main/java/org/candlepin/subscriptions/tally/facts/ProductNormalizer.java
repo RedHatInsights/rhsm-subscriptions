@@ -23,9 +23,7 @@ package org.candlepin.subscriptions.tally.facts;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
@@ -87,24 +85,11 @@ public class ProductNormalizer {
   }
 
   private void normalizeRhelVariants(Set<String> products) {
-    long variantCount = products.stream().filter(FactNormalizer::isRhelVariant).count();
+    long variantCount = products.stream().filter(this::isRhelVariant).count();
     boolean hasRhel = products.contains("RHEL");
     if ((variantCount == 0 && hasRhel) || variantCount > 1) {
       products.add("RHEL Ungrouped");
     }
-  }
-
-  private void pruneExcludedProducts(Set<String> products) {
-    Set<String> exclusions =
-        products.stream()
-            .map(SubscriptionDefinition::lookupSubscriptionByTag)
-            .filter(Optional::isPresent)
-            .flatMap(s -> s.get().getIncludedSubscriptions().stream())
-            .flatMap(
-                productId ->
-                    SubscriptionDefinition.getAllProductTagsByProductId(productId).stream())
-            .collect(Collectors.toSet());
-    products.removeIf(exclusions::contains);
   }
 
   public Set<String> normalizeProducts(
@@ -113,19 +98,23 @@ public class ProductNormalizer {
       boolean is3rdPartyMigrated,
       boolean skipRhsmFacts) {
 
-    Set<String> products = new HashSet<>();
+    Set<String> productTags = new HashSet<>();
 
-    products.addAll(getSystemProfileProducts(hostFacts, isMetered, is3rdPartyMigrated));
-    products.addAll(getSatelliteRoleProducts(hostFacts, isMetered, is3rdPartyMigrated));
+    productTags.addAll(getSystemProfileProducts(hostFacts, isMetered, is3rdPartyMigrated));
+    productTags.addAll(getSatelliteRoleProducts(hostFacts, isMetered, is3rdPartyMigrated));
 
     if (!skipRhsmFacts) {
-      products.addAll(getRhsmProducts(hostFacts, isMetered, is3rdPartyMigrated));
+      productTags.addAll(getRhsmProducts(hostFacts, isMetered, is3rdPartyMigrated));
     }
 
-    addQpcProducts(products, hostFacts);
-    normalizeRhelVariants(products);
-    pruneExcludedProducts(products);
+    addQpcProducts(productTags, hostFacts);
+    normalizeRhelVariants(productTags);
+    SubscriptionDefinition.pruneIncludedProducts(productTags);
 
-    return products;
+    return productTags;
+  }
+
+  private boolean isRhelVariant(String product) {
+    return product.startsWith("RHEL ") && !product.startsWith("RHEL for ");
   }
 }

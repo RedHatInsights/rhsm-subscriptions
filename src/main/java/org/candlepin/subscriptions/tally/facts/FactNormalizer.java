@@ -57,10 +57,6 @@ public class FactNormalizer {
     log.info("rhsm-conduit stale threshold: {}", props.getHostLastSyncThreshold());
   }
 
-  public static boolean isRhelVariant(String product) {
-    return product.startsWith("RHEL ") && !product.startsWith("RHEL for ");
-  }
-
   /**
    * Normalize the FactSets of the given host.
    *

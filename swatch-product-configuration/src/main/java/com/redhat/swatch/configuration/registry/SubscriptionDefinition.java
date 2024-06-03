@@ -191,22 +191,10 @@ public class SubscriptionDefinition {
     }
 
     if (Objects.nonNull(engIds) && !engIds.isEmpty()) {
-
-      Set<String> ignoredSubscriptionIds =
-          engIds.stream()
-              .flatMap(
-                  id ->
-                      SubscriptionDefinition.lookupSubscriptionByEngId(String.valueOf(id)).stream())
-              .flatMap(sub -> sub.getIncludedSubscriptions().stream())
-              .collect(Collectors.toSet());
-
       engIds.forEach(
           id ->
               productTags.addAll(
                   Variant.findByEngProductId(id.toString(), is3rdPartyMigration, isMetered).stream()
-                      .filter(
-                          variant ->
-                              !ignoredSubscriptionIds.contains(variant.getSubscription().getId()))
                       .map(Variant::getTag)
                       .collect(Collectors.toSet())));
     }
@@ -218,6 +206,9 @@ public class SubscriptionDefinition {
               .map(Variant::getTag)
               .collect(Collectors.toSet()));
     }
+
+    SubscriptionDefinition.pruneIncludedProducts(productTags);
+
     return productTags;
   }
 
@@ -314,5 +305,19 @@ public class SubscriptionDefinition {
 
   private static boolean isNullOrEmpty(String str) {
     return str == null || str.isEmpty();
+  }
+
+  public static void pruneIncludedProducts(Set<String> productTags) {
+    Set<String> exclusions =
+        productTags.stream()
+            .map(SubscriptionDefinition::lookupSubscriptionByTag)
+            .filter(Optional::isPresent)
+            .flatMap(s -> s.get().getIncludedSubscriptions().stream())
+            .flatMap(
+                productId ->
+                    SubscriptionDefinition.getAllProductTagsByProductId(productId).stream())
+            .collect(Collectors.toSet());
+
+    productTags.removeIf(exclusions::contains);
   }
 }
