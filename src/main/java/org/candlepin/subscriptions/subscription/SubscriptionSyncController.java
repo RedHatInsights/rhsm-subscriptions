@@ -56,7 +56,6 @@ import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.DbReportCriteria;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.Subscription.SubscriptionCompoundId;
 import org.candlepin.subscriptions.db.model.Subscription_;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
@@ -145,6 +144,7 @@ public class SubscriptionSyncController {
    * @param subscriptionOptional optional existing Subscription. Managed in the persistence context.
    */
   @Transactional
+  @SuppressWarnings("java:S3776")
   public void syncSubscription(
       String sku,
       org.candlepin.subscriptions.db.model.Subscription newOrUpdated,
@@ -218,6 +218,15 @@ public class SubscriptionSyncController {
       if (existingSubscription.equals(newOrUpdated)) {
         return; // we have nothing to do as the DB and the subs service have the same info
       }
+
+      /* If the quantity on a subscription has changed, we need to terminate that subscription
+       * and create a new subscription with the updated quantity that begins now and ends when
+       * the previous subscription used to end.  In the case that the quantity changes multiple
+       * times (which should be very rare), we always need to build the new subscription segment
+       * off of the current segment.  E.g. If we have A -> A' and the quantity changes again, we
+       * need to update A' not A.  We do this via the DESC sort on subscription start date for
+       * findByOrgId
+       */
       if (existingSubscription.quantityHasChanged(newOrUpdated.getQuantity())) {
         existingSubscription.endSubscription();
         subscriptionRepository.save(existingSubscription);
@@ -337,26 +346,18 @@ public class SubscriptionSyncController {
               subscription -> SubscriptionDtoUtil.extractBillingProviderId(subscription) != null);
     }
 
-    var subCompoundIdToDtoMap =
+    var subIdToDtoMap =
         dtos.filter(this::shouldSyncSub)
             .collect(
                 Collectors.toMap(
-                    dto -> {
-                      OffsetDateTime startDate =
-                          clock.dateFromMilliseconds(dto.getEffectiveStartDate());
-
-                      return new SubscriptionCompoundId(dto.getId().toString(), startDate);
-                    },
+                    dto -> dto.getId().toString(),
                     Function.identity(),
                     (firstMatch, secondMatch) -> firstMatch));
 
     List<org.candlepin.subscriptions.db.model.Subscription> subEntitiesForDeletion =
         new ArrayList<>();
 
-    Set<String> seenIds =
-        subCompoundIdToDtoMap.keySet().stream()
-            .map(SubscriptionCompoundId::getSubscriptionId)
-            .collect(Collectors.toSet());
+    Set<String> seenIds = new HashSet<>(subIdToDtoMap.keySet());
 
     var batchSize = 1024;
     CustomBatchIterator.batchStreamOf(subscriptionRepository.findByOrgId(orgId), batchSize)
@@ -364,12 +365,8 @@ public class SubscriptionSyncController {
             batch -> {
               batch.forEach(
                   subEntity -> {
-                    var startDate = subEntity.getStartDate();
                     var subId = subEntity.getSubscriptionId();
-
-                    var key = new SubscriptionCompoundId(subId, startDate);
-
-                    var dto = subCompoundIdToDtoMap.remove(key);
+                    var dto = subIdToDtoMap.remove(subId);
 
                     // delete from swatch because it didn't appear in the latest list from the
                     // subscription service, or it's in the denylist
@@ -391,7 +388,7 @@ public class SubscriptionSyncController {
             });
 
     // These are additional subs that should be sync'd but weren't previously in the database
-    Stream<Subscription> stream = subCompoundIdToDtoMap.values().stream();
+    Stream<Subscription> stream = subIdToDtoMap.values().stream();
 
     CustomBatchIterator.batchStreamOf(stream, batchSize)
         .forEach(
