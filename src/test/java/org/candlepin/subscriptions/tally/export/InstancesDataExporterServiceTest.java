@@ -49,7 +49,6 @@ import org.candlepin.subscriptions.json.InstancesExportJson;
 import org.candlepin.subscriptions.json.InstancesExportJsonGuest;
 import org.candlepin.subscriptions.json.InstancesExportJsonItem;
 import org.candlepin.subscriptions.json.InstancesExportJsonMetric;
-import org.candlepin.subscriptions.test.ExtendWithSwatchDatabase;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -59,8 +58,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ActiveProfiles;
 
 @ActiveProfiles({"worker", "kafka-queue", "test-inventory"})
-class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest
-    implements ExtendWithSwatchDatabase {
+class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
 
   private static final String RHEL_FOR_X86 = "RHEL for x86";
   private static final String ROSA = "rosa";
