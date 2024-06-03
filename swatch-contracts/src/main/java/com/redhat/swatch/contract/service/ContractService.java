@@ -20,13 +20,13 @@
  */
 package com.redhat.swatch.contract.service;
 
+import static com.redhat.swatch.contract.model.ContractSourcePartnerEnum.isAwsMarketplace;
 import static com.redhat.swatch.contract.utils.ContractMessageProcessingResult.INVALID_MESSAGE_UNPROCESSED;
 import static com.redhat.swatch.contract.utils.ContractMessageProcessingResult.NEW_CONTRACT_CREATED;
 import static com.redhat.swatch.contract.utils.ContractMessageProcessingResult.PARTNER_API_FAILURE;
 
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PageRequest;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1;
-import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1.SourcePartnerEnum;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.QueryPartnerEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.ApiException;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.PartnerApi;
@@ -37,6 +37,7 @@ import com.redhat.swatch.contract.exception.ContractsException;
 import com.redhat.swatch.contract.exception.ErrorCode;
 import com.redhat.swatch.contract.model.ContractDtoMapper;
 import com.redhat.swatch.contract.model.ContractEntityMapper;
+import com.redhat.swatch.contract.model.ContractSourcePartnerEnum;
 import com.redhat.swatch.contract.model.MeasurementMetricIdTransformer;
 import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
 import com.redhat.swatch.contract.model.SubscriptionEntityMapper;
@@ -289,7 +290,8 @@ public class ContractService {
           "Contracts fetched for org {} from upstream {}", contractOrgSync, result.toString());
       if (Objects.nonNull(result.getContent()) && !result.getContent().isEmpty()) {
         for (PartnerEntitlementV1 entitlement : result.getContent()) {
-          if (entitlement != null) {
+          if (entitlement != null
+              && ContractSourcePartnerEnum.isSupported(entitlement.getSourcePartner())) {
             tryUpsertPartnerContract(entitlement);
           }
         }
@@ -310,6 +312,20 @@ public class ContractService {
       statusResponse.setMessage("An Error occurred while calling Partner Api");
       return statusResponse;
     }
+    return statusResponse;
+  }
+
+  @Transactional
+  public StatusResponse syncSubscriptionsForContractsByOrg(String orgId) {
+    StatusResponse statusResponse = new StatusResponse();
+
+    contractRepository
+        .findContracts(ContractEntity.orgIdEquals(orgId))
+        // we only want to update existing subscriptions, so we don't need to provide the
+        // subscriptionId here.
+        .forEach(contract -> syncSubscriptionForContract(contract, null));
+
+    statusResponse.setStatus(SUCCESS_MESSAGE);
     return statusResponse;
   }
 
@@ -365,6 +381,8 @@ public class ContractService {
   private ContractMessageProcessingResult updateContractRecord(
       ContractEntity existingContract, ContractEntity entity, String subscriptionId) {
     if (Objects.equals(entity, existingContract)) {
+      syncSubscriptionForContract(existingContract, subscriptionId);
+
       log.info(
           "Duplicate contract found that matches the record for uuid {}",
           existingContract.getUuid());
@@ -394,13 +412,19 @@ public class ContractService {
       // updated).
       contractEntityMapper.updateContract(existingContract, entity);
       persistContract(existingContract, OffsetDateTime.now());
-      if (existingContract.getSubscriptionNumber() != null) {
-        SubscriptionEntity subscription =
-            createOrUpdateSubscription(existingContract, subscriptionId);
-        subscriptionRepository.persist(subscription);
-      }
+      syncSubscriptionForContract(existingContract, subscriptionId);
       log.info("Contract metadata updated");
       return ContractMessageProcessingResult.METADATA_UPDATED.withContract(existingContract);
+    }
+  }
+
+  private void syncSubscriptionForContract(ContractEntity existingContract, String subscriptionId) {
+    if (existingContract.getSubscriptionNumber() != null) {
+
+      log.debug("Synchronizing the subscription for contract {}", existingContract);
+      SubscriptionEntity subscription =
+          createOrUpdateSubscription(existingContract, subscriptionId);
+      subscriptionRepository.persist(subscription);
     }
   }
 
@@ -518,7 +542,7 @@ public class ContractService {
 
   private ContractEntity mapUpstreamContractToContractEntity(PartnerEntitlementV1 entitlement) {
     ContractEntity entity = contractEntityMapper.mapEntitlementToContractEntity(entitlement);
-    if (Objects.equals(entitlement.getSourcePartner(), SourcePartnerEnum.AWS_MARKETPLACE)) {
+    if (isAwsMarketplace(entitlement.getSourcePartner())) {
       entity.setBillingProviderId(
           String.format(
               "%s;%s;%s",

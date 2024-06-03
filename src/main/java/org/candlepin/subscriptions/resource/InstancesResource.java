@@ -205,14 +205,7 @@ public class InstancesResource implements InstancesApi {
 
     boolean isPAYG = isPayg(variant);
     String month = isPAYG ? InstanceMonthlyTotalKey.formatMonthId(start) : null;
-    // We depend on a "reference MetricId" in order to filter out instances that were not active in
-    // the selected month. This is also used for sorting purposes (same join). See
-    // org.candlepin.subscriptions.db.TallyInstanceViewSpecification#toPredicate and
-    // org.candlepin.subscriptions.db.TallyInstanceViewRepository#findAllBy.
     MetricId referenceMetricId = metricIdOptional.orElse(null);
-    if (referenceMetricId == null && sort != null && METRICS_TO_SORT.contains(sort)) {
-      referenceMetricId = MetricId.fromString(sort);
-    }
 
     instances =
         repository.findAllBy(
@@ -266,6 +259,8 @@ public class InstancesResource implements InstancesApi {
     if (sort != null && FIELD_SORT_PARAM_MAPPING.containsKey(sort)) {
       String column = FIELD_SORT_PARAM_MAPPING.get(sort);
       Sort.Order userDefinedOrder = new Sort.Order(dirValue, column);
+      userDefinedOrder =
+          dirValue.isAscending() ? userDefinedOrder.nullsFirst() : userDefinedOrder.nullsLast();
       sortValue = Sort.by(userDefinedOrder, IMPLICIT_ORDER_TO_SORT);
     } else {
       sortValue = Sort.by(IMPLICIT_ORDER_TO_SORT);

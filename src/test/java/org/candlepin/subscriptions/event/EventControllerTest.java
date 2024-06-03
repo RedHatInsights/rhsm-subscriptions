@@ -382,9 +382,7 @@ class EventControllerTest {
     verify(eventRecordRepository).saveAll(eventsSaved.capture());
     List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
     assertEquals(1, events.size());
-    assertEquals(
-        "TestAzureTenantId;TestAzureSubscriptionId",
-        events.get(0).getEvent().getBillingAccountId().get());
+    assertEquals("TestAzureSubscriptionId", events.get(0).getEvent().getBillingAccountId().get());
   }
 
   @Test

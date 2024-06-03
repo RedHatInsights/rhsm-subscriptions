@@ -187,6 +187,12 @@ public class StubContractsApi implements DefaultApi {
   }
 
   @Override
+  public StatusResponse syncSubscriptionsForContractsByOrg(String orgId)
+      throws ProcessingException {
+    return null;
+  }
+
+  @Override
   public OfferingResponse syncOffering(String sku) throws ProcessingException {
     return null;
   }
