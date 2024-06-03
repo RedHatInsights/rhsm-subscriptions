@@ -57,7 +57,6 @@ import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.Response.Status;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.OffsetDateTime;
@@ -87,7 +86,7 @@ class BillableUsageConsumerTest {
 
   private static final BillableUsageAggregate BASILISK_INSTANCE_HOURS_RECORD_OLD =
       createAggregate(
-          BASILISK, INSTANCE_HOURS, OffsetDateTime.now(Clock.systemUTC()).minusHours(73), 42);
+          BASILISK, INSTANCE_HOURS, OffsetDateTime.now(Clock.systemUTC()).minusDays(10), 42);
 
   private static final BillableUsageAggregate BASILISK_STORAGE_GIB_MONTHS_RECORD =
       createAggregate(
@@ -295,7 +294,7 @@ class BillableUsageConsumerTest {
   void shouldThrowSubscriptionNotFoundException() throws ApiException {
     Errors errors = new Errors();
     Error error = new Error();
-    error.setStatus(Status.NOT_FOUND.toString());
+    error.setStatus("404");
     errors.setErrors(List.of(error));
     var response = Response.serverError().entity(errors).build();
     var exception = new DefaultApiException(response, errors);
