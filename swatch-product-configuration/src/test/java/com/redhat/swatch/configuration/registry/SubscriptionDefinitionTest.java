@@ -304,10 +304,7 @@ class SubscriptionDefinitionTest {
     var expected = List.of("rosa");
 
     var actual =
-        Variant.filterVariantsByProductName(productName, false)
-            .filter(v -> v.getSubscription().isPaygEligible())
-            .map(Variant::getTag)
-            .toList();
+        Variant.filterVariantsByProductName(productName, false, true).map(Variant::getTag).toList();
     assertEquals(expected, actual);
   }
 }

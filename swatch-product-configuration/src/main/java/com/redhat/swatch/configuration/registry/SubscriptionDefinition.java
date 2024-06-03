@@ -185,47 +185,40 @@ public class SubscriptionDefinition {
     Set<String> productTags = new HashSet<>();
     if (!isNullOrEmpty(role)) {
       productTags.addAll(
-          Variant.findByRole(role, is3rdPartyMigration).stream()
-              .filter(variant -> variant.getSubscription().isPaygEligible() == isMetered)
+          Variant.findByRole(role, is3rdPartyMigration, isMetered).stream()
               .map(Variant::getTag)
               .collect(Collectors.toSet()));
     }
 
     if (Objects.nonNull(engIds) && !engIds.isEmpty()) {
-      Set<String> ignoredSubscriptionIds = getIgnoredSubscriptionIds(engIds);
 
-      engIds.stream()
-          .map(Object::toString)
-          .forEach(
-              engId ->
-                  productTags.addAll(
-                      Variant.findByEngProductId(engId, is3rdPartyMigration).stream()
-                          .filter(
-                              variant -> variant.getSubscription().isPaygEligible() == isMetered)
-                          .filter(
-                              variant ->
-                                  !ignoredSubscriptionIds.contains(
-                                      variant.getSubscription().getId()))
-                          .map(Variant::getTag)
-                          .collect(Collectors.toSet())));
+      Set<String> ignoredSubscriptionIds =
+          engIds.stream()
+              .flatMap(
+                  id ->
+                      SubscriptionDefinition.lookupSubscriptionByEngId(String.valueOf(id)).stream())
+              .flatMap(sub -> sub.getIncludedSubscriptions().stream())
+              .collect(Collectors.toSet());
+
+      engIds.forEach(
+          id ->
+              productTags.addAll(
+                  Variant.findByEngProductId(id.toString(), is3rdPartyMigration, isMetered).stream()
+                      .filter(
+                          variant ->
+                              !ignoredSubscriptionIds.contains(variant.getSubscription().getId()))
+                      .map(Variant::getTag)
+                      .collect(Collectors.toSet())));
     }
     // if not found, let's use the product name
     if ((productTags.isEmpty()) && !isNullOrEmpty(productName)) {
       productTags.addAll(
-          Variant.filterVariantsByProductName(productName, is3rdPartyMigration)
+          Variant.filterVariantsByProductName(productName, is3rdPartyMigration, isMetered)
               .filter(v -> v.getSubscription().isPaygEligible() == isMetered)
               .map(Variant::getTag)
               .collect(Collectors.toSet()));
     }
     return productTags;
-  }
-
-  private static Set<String> getIgnoredSubscriptionIds(Collection<?> engIds) {
-    return engIds.stream()
-        .flatMap(
-            id -> SubscriptionDefinition.lookupSubscriptionByEngId(String.valueOf(id)).stream())
-        .flatMap(sub -> sub.getIncludedSubscriptions().stream())
-        .collect(Collectors.toSet());
   }
 
   /**

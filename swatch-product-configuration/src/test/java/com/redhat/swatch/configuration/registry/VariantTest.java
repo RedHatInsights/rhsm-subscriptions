@@ -35,14 +35,14 @@ class VariantTest {
 
   @Test
   void testMigrationProductFlagTrueWithRole() {
-    var variant = Variant.findByRole("Red Hat Enterprise Linux Server", true);
+    var variant = Variant.findByRole("Red Hat Enterprise Linux Server", true, false);
 
     assertTrue(variant.isEmpty());
   }
 
   @Test
   void testMigrationProductFlagFalseWithRole() {
-    var variant = Variant.findByRole("Red Hat Enterprise Linux Server", false);
+    var variant = Variant.findByRole("Red Hat Enterprise Linux Server", false, false);
 
     assertEquals(1, variant.size());
 
@@ -58,7 +58,7 @@ class VariantTest {
     var expected = Set.of("rhel-for-x86-els-unconverted");
 
     var actual =
-        Variant.findByEngProductId("204", false).stream()
+        Variant.findByEngProductId("204", false, false).stream()
             .map(Variant::getTag)
             .collect(Collectors.toSet());
 
@@ -67,10 +67,10 @@ class VariantTest {
 
   @Test
   void testMigrationProductFlagTrueWithEngIds() {
-    var expected = Set.of("rhel-for-x86-els-payg", "rhel-for-x86-els-converted");
+    var expected = Set.of("rhel-for-x86-els-payg");
 
     var variant =
-        Variant.findByEngProductId("204", true).stream()
+        Variant.findByEngProductId("204", true, true).stream()
             .map(Variant::getTag)
             .collect(Collectors.toSet());
 
@@ -79,7 +79,7 @@ class VariantTest {
 
   @Test
   void testGetParentSubscription() {
-    var variant = Variant.findByRole("Red Hat Enterprise Linux Compute Node", false);
+    var variant = Variant.findByRole("Red Hat Enterprise Linux Compute Node", false, false);
     var expected = "rhel-for-x86";
 
     assertEquals(1, variant.size());
@@ -91,7 +91,7 @@ class VariantTest {
   @Test
   void testFindByEngineeringId() {
 
-    var actual = Variant.findByEngProductId("69", false);
+    var actual = Variant.findByEngProductId("69", false, false);
 
     assertEquals(1, actual.size());
 
