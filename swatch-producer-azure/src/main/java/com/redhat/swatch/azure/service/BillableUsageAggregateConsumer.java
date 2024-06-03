@@ -45,7 +45,6 @@ import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.ProcessingException;
-import jakarta.ws.rs.core.Response.Status;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -138,7 +137,7 @@ public class BillableUsageAggregateConsumer {
                     billableUsageDeadLetterTopicProducer.send(billableUsage);
                     log.warn(
                         "Skipping billable usage with id={} orgId={} because the subscription was not found. Will retry again after one hour.",
-                        billableUsageAggregate.getAggregateId(),
+                        billableUsage.getUuid(),
                         billableUsageAggregate.getAggregateKey().getOrgId());
                   });
         } else {
@@ -231,7 +230,7 @@ public class BillableUsageAggregateConsumer {
           billableUsageAggregate.getAggregateKey().getProductId(),
           billableUsageAggregate.getAggregateKey().getOrgId(),
           billableUsageAggregate.getAggregateKey().getSla(),
-          billableUsageAggregate.getAggregateKey().getMetricId(),
+          billableUsageAggregate.getAggregateKey().getUsage(),
           billableUsageAggregate.getAggregateKey().getBillingAccountId());
     } catch (DefaultApiException e) {
       var optionalErrors = Optional.ofNullable(e.getErrors());
@@ -244,7 +243,7 @@ public class BillableUsageAggregateConsumer {
         }
         var isNotFound =
             optionalErrors.get().getErrors().stream()
-                .anyMatch(error -> (Status.NOT_FOUND.toString()).equals(error.getStatus()));
+                .anyMatch(error -> ("404").equals(error.getStatus()));
         if (isNotFound) {
           throw new SubscriptionCanNotBeDeterminedException(e);
         }

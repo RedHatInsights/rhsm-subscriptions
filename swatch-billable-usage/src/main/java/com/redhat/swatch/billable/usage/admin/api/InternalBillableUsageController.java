@@ -70,6 +70,7 @@ public class InternalBillableUsageController {
     return new BillableUsage()
         .withOrgId(remittance.getOrgId())
         .withId(remittance.getTallyId())
+        .withUuid(remittance.getUuid())
         .withSnapshotDate(remittance.getRemittancePendingDate())
         .withProductId(remittance.getProductId())
         .withSla(BillableUsage.Sla.fromValue(remittance.getSla()))
