@@ -346,79 +346,21 @@ class InternalSubscriptionResourceTest {
   }
 
   @Test
-  void shouldThrowSubscriptionsExceptionForAmbiguousAzureBillingAccountId() {
-    Subscription sub1 = new Subscription();
-    sub1.setBillingProviderId("resourceId;planId;offerId");
-    sub1.setBillingAccountId("azureTenantId");
-    sub1.setEndDate(OffsetDateTime.now());
-    Subscription sub2 = new Subscription();
-    sub2.setBillingProviderId("resourceId2;planId;offerId");
-    sub2.setBillingAccountId("azureTenantId");
-    sub2.setEndDate(OffsetDateTime.now());
-    when(syncController.findSubscriptions(any(), any(), any(), any()))
-        .thenReturn(List.of(sub1, sub2));
-
-    var lookupDate = OffsetDateTime.now().minusMinutes(30);
-    var exception =
-        assertThrows(
-            SubscriptionsException.class,
-            () -> {
-              resource.getAzureMarketplaceContext(
-                  lookupDate,
-                  "rosa",
-                  "org123",
-                  "Premium",
-                  "Production",
-                  "azureTenantId;azureSubscriptionId");
-            });
-
-    assertEquals(
-        ErrorCode.SUBSCRIPTION_CANNOT_BE_DETERMINED.getDescription(),
-        exception.getCode().getDescription());
-  }
-
-  @Test
-  void testShouldReturnSubscriptionWithPartialBillingAccountIdMatch() {
-    Subscription sub1 = new Subscription();
-    sub1.setBillingProviderId("resourceId1;planId;offerId");
-    sub1.setBillingAccountId("azureTenantId");
-    sub1.setEndDate(OffsetDateTime.now());
-    Subscription sub2 = new Subscription();
-    sub2.setBillingProviderId("resourceId2;planId;offerId");
-    sub2.setBillingAccountId("azureTenantId;azureSubscriptionId2");
-    sub2.setEndDate(OffsetDateTime.now());
-    when(syncController.findSubscriptions(any(), any(), any(), any()))
-        .thenReturn(List.of(sub1, sub2));
-
-    var lookupDate = OffsetDateTime.now().minusMinutes(30);
-    var azureUsageContext =
-        resource.getAzureMarketplaceContext(
-            lookupDate, "BASILISK", "org123", "Premium", "Production", "azureTenantId");
-    assertEquals("resourceId1", azureUsageContext.getAzureResourceId());
-  }
-
-  @Test
   void testShouldReturnSubscriptionWithExactBillingAccountIdMatch() {
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("resourceId1;planId;offerId");
-    sub1.setBillingAccountId("azureTenantId");
+    sub1.setBillingAccountId("azureSubscriptionId1");
     sub1.setEndDate(OffsetDateTime.now());
     Subscription sub2 = new Subscription();
     sub2.setBillingProviderId("resourceId2;planId;offerId");
-    sub2.setBillingAccountId("azureTenantId;azureSubscriptionId2");
+    sub2.setBillingAccountId("azureSubscriptionId2");
     sub2.setEndDate(OffsetDateTime.now());
-    when(syncController.findSubscriptions(any(), any(), any(), any()))
-        .thenReturn(List.of(sub1, sub2));
+    when(syncController.findSubscriptions(any(), any(), any(), any())).thenReturn(List.of(sub2));
 
     var lookupDate = OffsetDateTime.now().minusMinutes(30);
     var azureUsageContext =
         resource.getAzureMarketplaceContext(
-            lookupDate,
-            "BASILISK",
-            "org123",
-            "Premium",
-            "Production",
-            "azureTenantId;azureSubscriptionId2");
+            lookupDate, "BASILISK", "org123", "Premium", "Production", "azureSubscriptionId2");
     assertEquals("resourceId2", azureUsageContext.getAzureResourceId());
   }
 }

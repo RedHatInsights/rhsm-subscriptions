@@ -155,6 +155,7 @@
     <include file="/liquibase/202404301614-terminate-duplicate-azure-subscriptions.xml"/>
     <include file="/liquibase/202405080950-copy-uom-to-metric-id-events-table.xml"/>
     <include file="/liquibase/202405061230-remove-duplicated-hosts.xml"/>
+    <include file="/liquibase/202405151547-update-events-azure-billable-account-id.xml"/>
     <include file="/liquibase/202405160950-add-subscription-capacity-view.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
