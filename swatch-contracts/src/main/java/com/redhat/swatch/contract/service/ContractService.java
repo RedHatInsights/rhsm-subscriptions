@@ -316,6 +316,20 @@ public class ContractService {
   }
 
   @Transactional
+  public StatusResponse syncSubscriptionsForContractsByOrg(String orgId) {
+    StatusResponse statusResponse = new StatusResponse();
+
+    contractRepository
+        .findContracts(ContractEntity.orgIdEquals(orgId))
+        // we only want to update existing subscriptions, so we don't need to provide the
+        // subscriptionId here.
+        .forEach(contract -> syncSubscriptionForContract(contract, null));
+
+    statusResponse.setStatus(SUCCESS_MESSAGE);
+    return statusResponse;
+  }
+
+  @Transactional
   public StatusResponse deleteContractsByOrgId(String orgId) {
     StatusResponse statusResponse = new StatusResponse();
 
@@ -367,6 +381,8 @@ public class ContractService {
   private ContractMessageProcessingResult updateContractRecord(
       ContractEntity existingContract, ContractEntity entity, String subscriptionId) {
     if (Objects.equals(entity, existingContract)) {
+      syncSubscriptionForContract(existingContract, subscriptionId);
+
       log.info(
           "Duplicate contract found that matches the record for uuid {}",
           existingContract.getUuid());
@@ -396,13 +412,19 @@ public class ContractService {
       // updated).
       contractEntityMapper.updateContract(existingContract, entity);
       persistContract(existingContract, OffsetDateTime.now());
-      if (existingContract.getSubscriptionNumber() != null) {
-        SubscriptionEntity subscription =
-            createOrUpdateSubscription(existingContract, subscriptionId);
-        subscriptionRepository.persist(subscription);
-      }
+      syncSubscriptionForContract(existingContract, subscriptionId);
       log.info("Contract metadata updated");
       return ContractMessageProcessingResult.METADATA_UPDATED.withContract(existingContract);
+    }
+  }
+
+  private void syncSubscriptionForContract(ContractEntity existingContract, String subscriptionId) {
+    if (existingContract.getSubscriptionNumber() != null) {
+
+      log.debug("Synchronizing the subscription for contract {}", existingContract);
+      SubscriptionEntity subscription =
+          createOrUpdateSubscription(existingContract, subscriptionId);
+      subscriptionRepository.persist(subscription);
     }
   }
 

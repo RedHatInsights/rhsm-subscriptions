@@ -201,6 +201,7 @@ class ContractServiceTest extends BaseUnitTest {
 
     StatusResponse statusResponse = contractService.createPartnerContract(request);
     assertEquals("Redundant message ignored", statusResponse.getMessage());
+    verify(subscriptionRepository, times(2)).persist(any(SubscriptionEntity.class));
   }
 
   @Test
@@ -342,6 +343,14 @@ class ContractServiceTest extends BaseUnitTest {
     contractService.deleteContractsByOrgId(ORG_ID);
     verify(contractRepository).delete(any());
     verify(subscriptionRepository).delete(any());
+  }
+
+  @Test
+  void testSyncSubscriptionsForContractsByOrg() {
+    givenExistingContract();
+    var expectedSubscription = givenExistingSubscription();
+    contractService.syncSubscriptionsForContractsByOrg(ORG_ID);
+    verify(subscriptionRepository).persist(expectedSubscription);
   }
 
   private static PartnerEntitlementV1 givenContractWithoutRequiredData() {

@@ -261,6 +261,33 @@ paths:
         - support: []
         - test: []
       operationId: syncContractsByOrg
+  /api/swatch-contracts/internal/rpc/sync/contracts/{org_id}/subscriptions:
+    description: "Trigger a subscription sync for all contracts of a given Org ID"
+    post:
+      parameters:
+        - name: org_id
+          description: ""
+          schema:
+            type: string
+          in: path
+          required: true
+      summary: "Sync subscriptions for all contracts for given org_id."
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+              examples:
+                status response:
+                  value:
+                    status: 'Success'
+                    message: "Subscriptions Synced for given org_id"
+          description: success
+      security:
+        - support: [ ]
+        - test: [ ]
+      operationId: syncSubscriptionsForContractsByOrg
   /api/swatch-contracts/internal/rpc/reset/contracts/{org_id}:
     description: "Clear all contracts for a given org ID. "
     delete:
