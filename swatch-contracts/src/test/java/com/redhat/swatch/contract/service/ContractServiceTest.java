@@ -39,7 +39,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.DimensionV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1;
-import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1.SourcePartnerEnum;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1EntitlementDates;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlements;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerIdentityV1;
@@ -51,6 +50,7 @@ import com.redhat.swatch.clients.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.subscription.api.resources.SearchApi;
 import com.redhat.swatch.contract.BaseUnitTest;
 import com.redhat.swatch.contract.exception.ContractValidationFailedException;
+import com.redhat.swatch.contract.model.ContractSourcePartnerEnum;
 import com.redhat.swatch.contract.model.MeasurementMetricIdTransformer;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.ContractRequest;
@@ -201,6 +201,7 @@ class ContractServiceTest extends BaseUnitTest {
 
     StatusResponse statusResponse = contractService.createPartnerContract(request);
     assertEquals("Redundant message ignored", statusResponse.getMessage());
+    verify(subscriptionRepository, times(2)).persist(any(SubscriptionEntity.class));
   }
 
   @Test
@@ -245,9 +246,8 @@ class ContractServiceTest extends BaseUnitTest {
         List.of(new Dimension().dimensionName("vCPU").dimensionValue("4")));
     contract.setCloudIdentifiers(
         new PartnerEntitlementContractCloudIdentifiers()
-            .partner(SourcePartnerEnum.AZURE_MARKETPLACE.value())
+            .partner(ContractSourcePartnerEnum.AZURE.getCode())
             .azureResourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
-            .azureTenantId("64dc69e4-d083-49fc-9569-ebece1dd1408")
             .azureOfferId("azureProductCode")
             .planId("rh-rhel-sub-1yr"));
 
@@ -276,9 +276,8 @@ class ContractServiceTest extends BaseUnitTest {
         List.of(new Dimension().dimensionName("vCPU").dimensionValue("4")));
     contract.setCloudIdentifiers(
         new PartnerEntitlementContractCloudIdentifiers()
-            .partner(SourcePartnerEnum.AZURE_MARKETPLACE.value())
+            .partner(ContractSourcePartnerEnum.AZURE.getCode())
             .azureResourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
-            .azureTenantId("64dc69e4-d083-49fc-9569-ebece1dd1408")
             .azureOfferId("azureProductCode")
             .planId("rh-rhel-sub-1yr"));
 
@@ -304,9 +303,8 @@ class ContractServiceTest extends BaseUnitTest {
         List.of(new Dimension().dimensionName("vCPU").dimensionValue("4")));
     contract.setCloudIdentifiers(
         new PartnerEntitlementContractCloudIdentifiers()
-            .partner(SourcePartnerEnum.AZURE_MARKETPLACE.value())
+            .partner(ContractSourcePartnerEnum.AZURE.getCode())
             .azureResourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
-            .azureTenantId("64dc69e4-d083-49fc-9569-ebece1dd1408")
             .azureOfferId("azureProductCode")
             .planId("rh-rhel-sub-1yr"));
 
@@ -347,11 +345,19 @@ class ContractServiceTest extends BaseUnitTest {
     verify(subscriptionRepository).delete(any());
   }
 
+  @Test
+  void testSyncSubscriptionsForContractsByOrg() {
+    givenExistingContract();
+    var expectedSubscription = givenExistingSubscription();
+    contractService.syncSubscriptionsForContractsByOrg(ORG_ID);
+    verify(subscriptionRepository).persist(expectedSubscription);
+  }
+
   private static PartnerEntitlementV1 givenContractWithoutRequiredData() {
     PartnerEntitlementV1 entitlement = new PartnerEntitlementV1();
     entitlement.setRhAccountId(ORG_ID);
     entitlement.setPartnerIdentities(new PartnerIdentityV1());
-    entitlement.setSourcePartner(SourcePartnerEnum.AWS_MARKETPLACE);
+    entitlement.setSourcePartner(ContractSourcePartnerEnum.AWS.getCode());
     entitlement.setPurchase(new PurchaseV1());
     entitlement.getPurchase().setContracts(new ArrayList<>());
     return entitlement;
@@ -382,9 +388,8 @@ class ContractServiceTest extends BaseUnitTest {
         List.of(new Dimension().dimensionName("vCPU").dimensionValue("4")));
     contract.setCloudIdentifiers(
         new PartnerEntitlementContractCloudIdentifiers()
-            .partner(SourcePartnerEnum.AZURE_MARKETPLACE.value())
+            .partner(ContractSourcePartnerEnum.AZURE.getCode())
             .azureResourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
-            .azureTenantId("64dc69e4-d083-49fc-9569-ebece1dd1408")
             .azureOfferId("azureProductCode")
             .planId("rh-rhel-sub-1yr"));
     return contract;
@@ -444,7 +449,7 @@ class ContractServiceTest extends BaseUnitTest {
         .getEntitlementDates()
         .setStartDate(OffsetDateTime.parse("2023-03-17T12:29:48.569Z"));
     entitlement.getEntitlementDates().setEndDate(OffsetDateTime.parse("2024-03-17T12:29:48.569Z"));
-    entitlement.setSourcePartner(SourcePartnerEnum.AWS_MARKETPLACE);
+    entitlement.setSourcePartner(ContractSourcePartnerEnum.AWS.getCode());
     rhEntitlement.setSku(SKU);
     purchase.setVendorProductCode("1234567890abcdefghijklmno");
     cloudIdentifiers.setProductCode("1234567890abcdefghijklmno");
@@ -492,11 +497,10 @@ class ContractServiceTest extends BaseUnitTest {
                     .startDate(OffsetDateTime.parse("2023-03-17T12:29:48.569Z"))
                     .endDate(OffsetDateTime.parse("2024-03-17T12:29:48.569Z")))
             .rhAccountId("7186626")
-            .sourcePartner(SourcePartnerEnum.AZURE_MARKETPLACE)
+            .sourcePartner(ContractSourcePartnerEnum.AZURE.getCode())
             .partnerIdentities(
                 new PartnerIdentityV1()
                     .azureSubscriptionId("fa650050-dedd-4958-b901-d8e5118c0a5f")
-                    .azureTenantId("64dc69e4-d083-49fc-9569-ebece1dd1408")
                     .azureCustomerId("eadf26ee-6fbc-4295-9a9e-25d4fea8951d_2019-05-31"))
             .rhEntitlements(List.of(new RhEntitlementV1().sku(SKU).subscriptionNumber("testSubId")))
             .purchase(

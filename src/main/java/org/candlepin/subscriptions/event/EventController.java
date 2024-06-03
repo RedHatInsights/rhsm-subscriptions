@@ -47,7 +47,6 @@ import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.json.Event;
-import org.candlepin.subscriptions.json.Event.BillingProvider;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.util.TransactionHandler;
@@ -255,19 +254,11 @@ public class EventController {
       ensureOptIn(eventToProcess.getOrgId());
     }
 
-    if (BillingProvider.AZURE.equals(eventToProcess.getBillingProvider())) {
-      setAzureBillingAccountId(eventToProcess);
+    Optional<String> azureSubscriptionId = eventToProcess.getAzureSubscriptionId();
+    if (azureSubscriptionId != null && azureSubscriptionId.isPresent()) { // NOSONAR
+      eventToProcess.setBillingAccountId(eventToProcess.getAzureSubscriptionId());
     }
     return Optional.of(eventToProcess);
-  }
-
-  private void setAzureBillingAccountId(Event event) {
-    if (event.getAzureTenantId().isPresent() && event.getAzureSubscriptionId().isPresent()) {
-      String billingAccountId =
-          String.format(
-              "%s;%s", event.getAzureTenantId().get(), event.getAzureSubscriptionId().get());
-      event.setBillingAccountId(Optional.of(billingAccountId));
-    }
   }
 
   public boolean validateServiceInstanceEvent(Event event) {
