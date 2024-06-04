@@ -45,6 +45,7 @@ import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.ProcessingException;
+import jakarta.ws.rs.core.Response.Status;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -243,7 +244,10 @@ public class BillableUsageAggregateConsumer {
         }
         var isNotFound =
             optionalErrors.get().getErrors().stream()
-                .anyMatch(error -> ("404").equals(error.getStatus()));
+                .anyMatch(
+                    error ->
+                        (Integer.toString(Status.NOT_FOUND.getStatusCode()))
+                            .equals(error.getStatus()));
         if (isNotFound) {
           throw new SubscriptionCanNotBeDeterminedException(e);
         }
