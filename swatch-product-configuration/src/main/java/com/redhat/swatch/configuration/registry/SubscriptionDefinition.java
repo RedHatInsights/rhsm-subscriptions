@@ -191,12 +191,37 @@ public class SubscriptionDefinition {
     }
 
     if (Objects.nonNull(engIds) && !engIds.isEmpty()) {
-      engIds.forEach(
-          id ->
-              productTags.addAll(
-                  Variant.findByEngProductId(id.toString(), is3rdPartyMigration, isMetered).stream()
-                      .map(Variant::getTag)
-                      .collect(Collectors.toSet())));
+      engIds.stream()
+          .map(Objects::toString)
+          .collect(Collectors.toSet())
+          .forEach(
+              engId -> {
+                Set<Variant> matchingVariants =
+                    Variant.findByEngProductId(engId, is3rdPartyMigration, isMetered);
+
+                // Add the variant that the fingerprint matches
+                Set<String> tags =
+                    new HashSet<>(matchingVariants.stream().map(Variant::getTag).toList());
+
+                // Add additional tags as defined by config (to force that RHEL for x86 which
+                // wouldn't match otherwise because there that definition isn't metered)
+                for (String additionalTag :
+                    matchingVariants.stream()
+                        .flatMap(variant -> variant.getAdditionalTags().stream())
+                        .toList()) {
+
+                  // Only force the tag if it has an engineering match id....this is so 204 doesn't
+                  // incorrectly map to 204,479 (mabye we don't need this?)
+                  Optional<Variant> maybeVariant = Variant.findByTag(additionalTag);
+                  if (maybeVariant.isPresent()
+                      && maybeVariant.get().getEngineeringIds().stream()
+                          .anyMatch(engIds::contains)) {
+                    tags.add(additionalTag);
+                  }
+                }
+
+                productTags.addAll(tags);
+              });
     }
     // if not found, let's use the product name
     if ((productTags.isEmpty()) && !isNullOrEmpty(productName)) {
