@@ -295,7 +295,14 @@ class SubscriptionDefinitionTest {
             Set.of(generalRhel, els),
             isMetered,
             is3rdPartyConverted,
-            Set.of("rhel-for-x86-els-payg")));
+            Set.of("rhel-for-x86-els-payg")),
+        Arguments.of(
+            Set.of(generalRhel, els),
+            isMetered,
+            !is3rdPartyConverted,
+            Set.of("rhel-for-x86-els-payg-addon", "RHEL for x86")),
+        Arguments.of(
+            Set.of(els), isMetered, !is3rdPartyConverted, Set.of("rhel-for-x86-els-payg-addon")));
   }
 
   @Test

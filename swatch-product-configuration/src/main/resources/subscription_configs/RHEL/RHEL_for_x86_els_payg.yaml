@@ -10,6 +10,11 @@ variants:
     isMigrationProduct: true
     engineeringIds:
       - 204
+  - tag: rhel-for-x86-els-payg-addon
+    isMigrationProduct: false
+    engineeringIds:
+      - 204
+    additionalTags: [ "RHEL for x86" ]
 
 defaults:
   variant: rhel-for-x86-els-payg
