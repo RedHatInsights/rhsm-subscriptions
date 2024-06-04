@@ -20,15 +20,11 @@
  */
 package org.candlepin.subscriptions.tally.facts;
 
-import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
-import com.redhat.swatch.configuration.registry.Variant;
 import java.time.OffsetDateTime;
-import java.util.Collection;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
@@ -51,10 +47,13 @@ public class FactNormalizer {
 
   private final ApplicationClock clock;
   private final ApplicationProperties props;
+  private final ProductNormalizer productNormalizer;
 
-  public FactNormalizer(ApplicationProperties props, ApplicationClock clock) {
+  public FactNormalizer(
+      ApplicationProperties props, ApplicationClock clock, ProductNormalizer productNormalizer) {
     this.clock = clock;
     this.props = props;
+    this.productNormalizer = productNormalizer;
     log.info("rhsm-conduit stale threshold: {}", props.getHostLastSyncThreshold());
   }
 
@@ -72,17 +71,34 @@ public class FactNormalizer {
    */
   public NormalizedFacts normalize(
       InventoryHostFacts hostFacts, OrgHostsData guestData, boolean isMetered) {
+
+    // If the host hasn't been seen by rhsm-conduit, consider the host as unregistered, and do not
+    // apply this host's facts.
+    // NOTE: This logic is applied since currently the inventory service does not prune inventory
+    // records once a host no longer exists.
+    var syncTimestampOptional = Optional.ofNullable(hostFacts.getSyncTimestamp());
+    boolean skipRhsmFacts =
+        syncTimestampOptional
+            .map(
+                syncTimestamp ->
+                    StringUtils.hasText(syncTimestamp)
+                        && hostUnregistered(OffsetDateTime.parse(syncTimestamp)))
+            .orElse(false);
+
     NormalizedFacts normalizedFacts = new NormalizedFacts();
+
+    normalizedFacts.setProducts(
+        productNormalizer.normalizeProducts(hostFacts, isMetered, skipRhsmFacts));
+
     normalizeClassification(normalizedFacts, hostFacts, guestData);
     normalizeHardwareType(normalizedFacts, hostFacts);
-    normalizeSystemProfileFacts(normalizedFacts, hostFacts, isMetered);
+    normalizeSystemProfileFacts(normalizedFacts, hostFacts);
     normalizeSatelliteFacts(normalizedFacts, hostFacts);
-    normalizeRhsmFacts(normalizedFacts, hostFacts, isMetered);
-    normalizeQpcFacts(normalizedFacts, hostFacts);
+    if (!skipRhsmFacts) {
+      normalizeRhsmFacts(normalizedFacts, hostFacts);
+    }
     normalizeSocketCount(normalizedFacts, hostFacts);
     normalizeMarketplace(normalizedFacts, hostFacts);
-    normalizeConflictingOrMissingRhelVariants(normalizedFacts);
-    pruneProducts(normalizedFacts);
     normalizeNullSocketsAndCores(normalizedFacts, hostFacts);
     normalizeUnits(normalizedFacts, hostFacts);
     return normalizedFacts;
@@ -90,7 +106,7 @@ public class FactNormalizer {
 
   private void normalizeSatelliteFacts(
       NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
-    handleRole(normalizedFacts, hostFacts.getSatelliteRole());
+
     handleSla(normalizedFacts, hostFacts, hostFacts.getSatelliteSla());
     handleUsage(normalizedFacts, hostFacts, hostFacts.getSatelliteUsage());
   }
@@ -160,21 +176,6 @@ public class FactNormalizer {
     normalizedFacts.setHardwareType(hardwareType);
   }
 
-  @SuppressWarnings("indentation")
-  private void pruneProducts(NormalizedFacts normalizedFacts) {
-    var exclusions =
-        normalizedFacts.getProducts().stream()
-            .map(SubscriptionDefinition::lookupSubscriptionByTag)
-            .filter(Optional::isPresent)
-            .flatMap(s -> s.get().getIncludedSubscriptions().stream())
-            // map productId to product tag
-            .flatMap(
-                productId ->
-                    SubscriptionDefinition.getAllProductTagsByProductId(productId).stream())
-            .collect(Collectors.toSet());
-    normalizedFacts.getProducts().removeIf(exclusions::contains);
-  }
-
   private void normalizeSocketCount(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
     // modulo-2 rounding only applied to physical or hypervisors
     if (normalizedFacts.isHypervisor() || !isVirtual(hostFacts)) {
@@ -199,19 +200,8 @@ public class FactNormalizer {
     }
   }
 
-  private void normalizeConflictingOrMissingRhelVariants(NormalizedFacts normalizedFacts) {
-    long variantCount =
-        normalizedFacts.getProducts().stream().filter(FactNormalizer::isRhelVariant).count();
-
-    boolean hasRhel = normalizedFacts.getProducts().contains("RHEL");
-
-    if ((variantCount == 0 && hasRhel) || variantCount > 1) {
-      normalizedFacts.addProduct("RHEL Ungrouped");
-    }
-  }
-
   private void normalizeSystemProfileFacts(
-      NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts, boolean isMetered) {
+      NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
     String cloudProvider = hostFacts.getCloudProvider();
     if (HardwareMeasurementType.isSupportedCloudProvider(cloudProvider)) {
       normalizedFacts.setCloudProviderType(HardwareMeasurementType.fromString(cloudProvider));
@@ -227,15 +217,6 @@ public class FactNormalizer {
           hostFacts.getSystemProfileCoresPerSocket() * hostFacts.getSystemProfileSockets());
     }
 
-    // To be handled during SWATCH-2360
-    boolean is3rdPartyMigrated = false;
-
-    normalizedFacts
-        .getProducts()
-        .addAll(
-            getProductsFromProductIds(
-                hostFacts.getSystemProfileProductIds(), isMetered, is3rdPartyMigrated));
-
     if ("x86_64".equals(hostFacts.getSystemProfileArch())
         && HardwareMeasurementType.VIRTUAL
             .toString()
@@ -246,13 +227,13 @@ public class FactNormalizer {
   }
 
   private void normalizeMarketplace(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
-    if (!hostFacts.isMarketplace()) {
-      return;
-    }
+    boolean isMarketplace = hostFacts.isMarketplace();
+    normalizedFacts.setMarketplace(isMarketplace);
 
-    normalizedFacts.setMarketplace(true);
-    normalizedFacts.setCores(0);
-    normalizedFacts.setSockets(0);
+    if (isMarketplace) {
+      normalizedFacts.setCores(0);
+      normalizedFacts.setSockets(0);
+    }
   }
 
   private void normalizeNullSocketsAndCores(
@@ -308,73 +289,12 @@ public class FactNormalizer {
     return (int) Math.ceil(cpu / threadsPerCore);
   }
 
-  private Set<String> getProductsFromProductIds(
-      Collection<String> productIds, boolean isMetered, boolean is3rdPartyMigrated) {
-    if (productIds == null) {
-      return Set.of();
-    }
+  private void normalizeRhsmFacts(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
 
-    return isMetered
-        ? SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
-            null, productIds, null, is3rdPartyMigrated)
-        : SubscriptionDefinition.getAllProductTagsWithNonPaygEligibleByRoleOrEngIds(
-            null, productIds, null, is3rdPartyMigrated);
-  }
-
-  private void normalizeRhsmFacts(
-      NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts, boolean isMetered) {
-    // If the host hasn't been seen by rhsm-conduit, consider the host as unregistered, and do not
-    // apply this host's facts.
-    //
-    // NOTE: This logic is applied since currently the inventory service does not prune inventory
-    //       records once a host no longer exists.
-    var syncTimestampOptional = Optional.ofNullable(hostFacts.getSyncTimestamp());
-    boolean skipRhsmFacts =
-        syncTimestampOptional
-            .map(
-                syncTimestamp ->
-                    StringUtils.hasText(syncTimestamp)
-                        && hostUnregistered(OffsetDateTime.parse(syncTimestamp)))
-            .orElse(false);
-    if (!skipRhsmFacts) {
-
-      // To be handled during SWATCH-2360
-      boolean is3rdPartyMigrated = false;
-
-      normalizedFacts
-          .getProducts()
-          .addAll(
-              isMetered
-                  ? SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
-                      hostFacts.getSyspurposeRole(),
-                      hostFacts.getProducts(),
-                      null,
-                      is3rdPartyMigrated)
-                  : SubscriptionDefinition.getAllProductTagsWithNonPaygEligibleByRoleOrEngIds(
-                      hostFacts.getSyspurposeRole(),
-                      hostFacts.getProducts(),
-                      null,
-                      is3rdPartyMigrated));
-
-      // Check for cores and sockets. If not included, default to 0.
-      normalizedFacts.setOrgId(hostFacts.getOrgId());
-      handleSla(normalizedFacts, hostFacts, hostFacts.getSyspurposeSla());
-      handleUsage(normalizedFacts, hostFacts, hostFacts.getSyspurposeUsage());
-    }
-  }
-
-  private void handleRole(NormalizedFacts normalizedFacts, String role) {
-    if (role != null) {
-      normalizedFacts.getProducts().removeIf(FactNormalizer::isRhelVariant);
-
-      var subscription = SubscriptionDefinition.lookupSubscriptionByRole(role);
-      if (subscription.isPresent()) {
-        // To be handled during SWATCH-2360
-        boolean is3rdPartyMigrated = false;
-        var variant = Variant.findByRole(role, is3rdPartyMigrated);
-        variant.ifPresent(v -> normalizedFacts.getProducts().add(v.getTag()));
-      }
-    }
+    // Check for cores and sockets. If not included, default to 0.
+    normalizedFacts.setOrgId(hostFacts.getOrgId());
+    handleSla(normalizedFacts, hostFacts, hostFacts.getSyspurposeSla());
+    handleUsage(normalizedFacts, hostFacts, hostFacts.getSyspurposeUsage());
   }
 
   private void handleUsage(
@@ -409,29 +329,6 @@ public class FactNormalizer {
     }
   }
 
-  private void normalizeQpcFacts(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
-    // Check if this is a RHEL host and set product.
-    if (hostFacts.getQpcProducts() != null && hostFacts.getQpcProducts().contains("RHEL")) {
-      if (hostFacts.getSystemProfileArch() != null
-          && CollectionUtils.isEmpty(hostFacts.getSystemProfileProductIds())) {
-        switch (hostFacts.getSystemProfileArch()) {
-          case "x86_64", "i686", "i386":
-            normalizedFacts.addProduct("RHEL for x86");
-            break;
-          case "aarch64":
-            normalizedFacts.addProduct("RHEL for ARM");
-            break;
-          case "ppc64le":
-            normalizedFacts.addProduct("RHEL for IBM Power");
-            break;
-          default:
-            break;
-        }
-      }
-      normalizedFacts.addProduct("RHEL");
-    }
-  }
-
   /**
    * A host is considered unregistered if the last time it was synced passes the configured number
    * of hours.
@@ -452,12 +349,6 @@ public class FactNormalizer {
   }
 
   private boolean isGreaterThanZero(Integer... values) {
-    for (Integer value : values) {
-      if (value == null || value == 0) {
-        return false;
-      }
-    }
-
-    return true;
+    return Arrays.stream(values).allMatch(value -> value != null && value > 0);
   }
 }

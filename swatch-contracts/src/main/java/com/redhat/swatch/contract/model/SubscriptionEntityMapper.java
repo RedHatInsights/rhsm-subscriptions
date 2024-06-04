@@ -36,14 +36,15 @@ import org.mapstruct.Named;
 @Mapper(
     componentModel = "cdi",
     collectionMappingStrategy = CollectionMappingStrategy.ADDER_PREFERRED,
-    builder = @Builder(disableBuilder = true),
-    uses = {ContractOfferingMapper.class})
+    builder = @Builder(disableBuilder = true))
 public interface SubscriptionEntityMapper {
 
   @Mapping(target = "subscriptionId", ignore = true)
   @Mapping(target = "quantity", constant = "1L")
-  @Mapping(target = "offering", source = ".")
-  @Mapping(target = "subscriptionProductIds", source = ".")
+  @Mapping(
+      target = "subscriptionProductIds",
+      source = "offering.productTags",
+      qualifiedByName = "buildSubscriptionProductId")
   @Mapping(target = "subscriptionMeasurements", source = "metrics")
   @Mapping(
       target = "billingProvider",
@@ -56,10 +57,6 @@ public interface SubscriptionEntityMapper {
       @MappingTarget SubscriptionEntity subscription, ContractEntity contract);
 
   @Mapping(target = "subscription", ignore = true)
-  @Mapping(target = "productId", source = "productId")
-  SubscriptionProductIdEntity contractEntityToSubscriptionProductIdEntity(ContractEntity contract);
-
-  @Mapping(target = "subscription", ignore = true)
   @Mapping(target = "measurementType", constant = "PHYSICAL")
   SubscriptionMeasurementEntity contractMetricEntityToSubscriptionMeasurementEntity(
       ContractMetricEntity contractMetric);
@@ -67,5 +64,12 @@ public interface SubscriptionEntityMapper {
   @Named("extractBillingProvider")
   default BillingProvider extractBillingProvider(String value) {
     return BillingProvider.fromString(value);
+  }
+
+  @Named("buildSubscriptionProductId")
+  default SubscriptionProductIdEntity buildSubscriptionProductId(String productTag) {
+    var entity = new SubscriptionProductIdEntity();
+    entity.setProductId(productTag);
+    return entity;
   }
 }

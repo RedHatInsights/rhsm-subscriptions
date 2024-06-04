@@ -20,18 +20,25 @@
  */
 package org.candlepin.subscriptions.capacity;
 
+import static org.candlepin.subscriptions.resource.CapacityResource.HYPERVISOR;
+import static org.candlepin.subscriptions.resource.CapacityResource.PHYSICAL;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
@@ -39,7 +46,7 @@ import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionMeasurementKey;
 import org.candlepin.subscriptions.resource.ResourceUtils;
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -54,189 +61,100 @@ import org.springframework.test.context.ActiveProfiles;
 class CapacityReconciliationControllerTest {
   private static final String SOCKETS = "Sockets";
   private static final String CORES = "Cores";
+  private static final String SUBSCRIPTION_ID = "456";
+  private static final String SKU = "MCT3718";
+  private static final String ROSA = "rosa";
+  private static final String RHEL = "RHEL";
+  private static final String RHEL_WORKSTATION = "RHEL Workstation";
+  private static final Map<String, Integer> PRODUCTS =
+      Map.of(RHEL, 45, "RHEL Workstation", 25, ROSA, 1066);
 
   private static final OffsetDateTime NOW = OffsetDateTime.now();
 
   @Autowired CapacityReconciliationController capacityReconciliationController;
 
-  @MockBean ProductDenylist denylist;
-
+  @MockBean ProductDenylist denyList;
   @MockBean OfferingRepository offeringRepository;
-
   @MockBean SubscriptionRepository subscriptionRepository;
 
   @MockBean
   KafkaTemplate<String, ReconcileCapacityByOfferingTask> reconcileCapacityByOfferingKafkaTemplate;
 
-  @AfterEach
-  void afterEach() {
-    reset(subscriptionRepository, offeringRepository, denylist);
-  }
+  private Subscription subscription;
 
-  private static Map<SubscriptionMeasurementKey, Double> createMeasurement(
-      Subscription newSubscription, String measurementType, String metricId, double value) {
-    var m = new HashMap<SubscriptionMeasurementKey, Double>();
-
-    SubscriptionMeasurementKey mk =
-        SubscriptionMeasurementKey.builder()
-            .measurementType(measurementType)
-            .metricId(metricId)
-            .build();
-
-    m.put(mk, value);
-
-    return m;
+  @BeforeEach
+  void setup() {
+    subscription = createSubscription();
+    when(denyList.productIdMatches(any())).thenReturn(false);
   }
 
   @Test
   void shouldAddNewMeasurementsAndProductIdsIfNotAlreadyExisting() {
-    Set<String> productIds = Set.of("RHEL");
-    Offering offering =
-        Offering.builder()
-            .productIds(Set.of(45))
-            .cores(42)
-            .hypervisorCores(43)
-            .sockets(44)
-            .hypervisorSockets(45)
-            .sku("MCT3718")
-            .productTags(productIds)
-            .build();
+    int expectedCores = 42;
+    int expectedHypervisorCores = 43;
+    int expectedSockets = 44;
+    int expectedHypervisorSockets = 45;
 
-    Subscription newSubscription = createSubscription("456", 10);
-    newSubscription.setOffering(offering);
+    givenOffering(
+        expectedCores, expectedHypervisorCores, expectedSockets, expectedHypervisorSockets, RHEL);
 
-    when(denylist.productIdMatches(any())).thenReturn(false);
+    whenReconcileCapacityForSubscription();
 
-    capacityReconciliationController.reconcileCapacityForSubscription(newSubscription);
-
-    var measurements = newSubscription.getSubscriptionMeasurements();
-
-    Map<SubscriptionMeasurementKey, Double> expectedMeasurements = new HashMap<>();
-
-    expectedMeasurements.putAll(createMeasurement(newSubscription, "PHYSICAL", CORES, 420.0));
-    expectedMeasurements.putAll(createMeasurement(newSubscription, "HYPERVISOR", CORES, 430.0));
-    expectedMeasurements.putAll(createMeasurement(newSubscription, "PHYSICAL", SOCKETS, 440.0));
-    expectedMeasurements.putAll(createMeasurement(newSubscription, "HYPERVISOR", SOCKETS, 450.0));
-
-    assertEquals(expectedMeasurements, measurements);
-
-    assertThat(newSubscription.getSubscriptionProductIds(), containsInAnyOrder("RHEL"));
+    thenSubscriptionMeasurementsContains(PHYSICAL, CORES, expectedCores);
+    thenSubscriptionMeasurementsContains(HYPERVISOR, CORES, expectedHypervisorCores);
+    thenSubscriptionMeasurementsContains(PHYSICAL, SOCKETS, expectedSockets);
+    thenSubscriptionMeasurementsContains(HYPERVISOR, SOCKETS, expectedHypervisorSockets);
+    assertThat(subscription.getSubscriptionProductIds(), containsInAnyOrder(RHEL));
   }
 
   @Test
   void shouldUpdateCapacitiesIfThereAreChanges() {
+    givenSubscriptionMeasurement(PHYSICAL, SOCKETS, 15.0);
+    givenSubscriptionMeasurement(PHYSICAL, CORES, 10);
+    givenSubscriptionProduct(RHEL);
+    int expectedCores = 20;
+    int expectedSockets = 40;
+    givenOffering(expectedCores, expectedSockets, RHEL, RHEL_WORKSTATION);
 
-    Set<String> productIds = Set.of("RHEL", "RHEL Workstation");
-    Offering updatedOffering =
-        Offering.builder()
-            .productIds(Set.of(45, 25))
-            .sku("MCT3718")
-            .cores(20)
-            .sockets(40)
-            .productTags(productIds)
-            .build();
+    whenReconcileCapacityForSubscription();
 
-    Subscription updatedSubscription = createSubscription("456", 10);
-
-    var measurements = new HashMap<>(updatedSubscription.getSubscriptionMeasurements());
-
-    measurements.putAll(createMeasurement(updatedSubscription, "PHYSICAL", SOCKETS, 15.0));
-    measurements.putAll(createMeasurement(updatedSubscription, "PHYSICAL", CORES, 10.0));
-
-    updatedSubscription.setSubscriptionMeasurements(measurements);
-
-    var updatedProductIds = new HashSet<>(updatedSubscription.getSubscriptionProductIds());
-    updatedProductIds.add("RHEL");
-    updatedSubscription.setSubscriptionProductIds(updatedProductIds);
-    updatedSubscription.setOffering(updatedOffering);
-
-    when(denylist.productIdMatches(any())).thenReturn(false);
-
-    capacityReconciliationController.reconcileCapacityForSubscription(updatedSubscription);
-
-    var expectedMeasurements = new HashMap<>();
-    expectedMeasurements.putAll(createMeasurement(updatedSubscription, "PHYSICAL", SOCKETS, 400.0));
-    expectedMeasurements.putAll(createMeasurement(updatedSubscription, "PHYSICAL", CORES, 200.0));
-
-    assertEquals(updatedSubscription.getSubscriptionMeasurements(), expectedMeasurements);
-    assertEquals(updatedSubscription.getSubscriptionProductIds(), productIds);
+    thenSubscriptionMeasurementsContains(PHYSICAL, CORES, expectedCores);
+    thenSubscriptionMeasurementsContains(PHYSICAL, SOCKETS, expectedSockets);
+    assertEquals(subscription.getSubscriptionProductIds(), Set.of(RHEL, RHEL_WORKSTATION));
   }
 
   @Test
-  void shouldRemoveAllCapacitiesWhenProductIsOnDenylist() {
-    Set<String> productIds = Set.of("RHEL", "RHEL Workstation");
-    Offering updatedOffering =
-        Offering.builder()
-            .productIds(Set.of(45, 25))
-            .sku("MCT3718")
-            .cores(20)
-            .sockets(40)
-            .productTags(productIds)
-            .build();
+  void shouldRemoveAllCapacitiesWhenProductIsOnDenyList() {
+    givenOffering(RHEL);
+    givenSubscriptionMeasurement(PHYSICAL, SOCKETS, 15.0);
+    givenSubscriptionMeasurement(HYPERVISOR, CORES, 10);
+    givenSubscriptionProduct(RHEL);
 
-    Subscription updatedSubscription = createSubscription("456", 10);
+    when(denyList.productIdMatches(any())).thenReturn(true);
+    whenReconcileCapacityForSubscription();
 
-    var newMeasurements = new HashMap<>(updatedSubscription.getSubscriptionMeasurements());
-
-    newMeasurements.putAll(createMeasurement(updatedSubscription, "PHYSICAL", SOCKETS, 15.0));
-    newMeasurements.putAll(createMeasurement(updatedSubscription, "PHYSICAL", CORES, 10.0));
-
-    updatedSubscription.setSubscriptionMeasurements(newMeasurements);
-
-    var newProductIds = new HashSet<>(updatedSubscription.getSubscriptionProductIds());
-    newProductIds.add("RHEL");
-
-    updatedSubscription.setSubscriptionProductIds(newProductIds);
-    updatedSubscription.setOffering(updatedOffering);
-
-    when(denylist.productIdMatches(any())).thenReturn(true);
-
-    capacityReconciliationController.reconcileCapacityForSubscription(updatedSubscription);
-
-    assertTrue(updatedSubscription.getSubscriptionMeasurements().isEmpty());
-    assertTrue(updatedSubscription.getSubscriptionProductIds().isEmpty());
+    assertTrue(subscription.getSubscriptionMeasurements().isEmpty());
+    assertTrue(subscription.getSubscriptionProductIds().isEmpty());
   }
 
   @Test
   void shouldAddNewCapacitiesAndRemoveAllStaleCapacities() {
-    Set<String> productIds = Set.of("RHEL");
-    Offering offering =
-        Offering.builder()
-            .productIds(Set.of(45))
-            .sku("MCT3718")
-            .cores(42)
-            .productTags(productIds)
-            .build();
-    Subscription subscription = createSubscription("456", 10);
-    Set<String> staleProductIds = Set.of("STALE RHEL", "STALE RHEL Workstation");
+    int expectedCores = 20;
+    givenOffering(expectedCores, RHEL);
+    givenSubscriptionProduct("STALE RHEL");
+    givenSubscriptionProduct("STALE RHEL Workstation");
+    givenSubscriptionMeasurement(HYPERVISOR, CORES, 10);
+    givenSubscriptionMeasurement(PHYSICAL, SOCKETS, 15.0);
 
-    var newSubscriptionProductIds = new HashSet<>(subscription.getSubscriptionProductIds());
-    newSubscriptionProductIds.addAll(staleProductIds);
+    whenReconcileCapacityForSubscription();
 
-    subscription.setSubscriptionProductIds(newSubscriptionProductIds);
-
-    var newSubscriptionMeasurements = new HashMap<>(subscription.getSubscriptionMeasurements());
-
-    newSubscriptionMeasurements.putAll(createMeasurement(subscription, "PHYSICAL", CORES, 10.0));
-    newSubscriptionMeasurements.putAll(createMeasurement(subscription, "PHYSICAL", SOCKETS, 15.0));
-
-    subscription.setSubscriptionMeasurements(newSubscriptionMeasurements);
-    subscription.setOffering(offering);
-
-    when(denylist.productIdMatches(any())).thenReturn(false);
-
-    capacityReconciliationController.reconcileCapacityForSubscription(subscription);
-
-    var expectedMeasurements =
-        new HashMap<>(createMeasurement(subscription, "PHYSICAL", CORES, 420.0));
-    assertEquals(expectedMeasurements, subscription.getSubscriptionMeasurements());
-    assertEquals(Set.of("RHEL"), subscription.getSubscriptionProductIds());
+    thenSubscriptionMeasurementsOnlyContains(PHYSICAL, CORES, expectedCores);
+    assertEquals(subscription.getSubscriptionProductIds(), Set.of(RHEL));
   }
 
   @Test
   void shouldReconcileCapacityWithinLimitForOrgAndQueueTaskForNext() {
-
-    Offering offering = Offering.builder().productIds(Set.of(45)).sku("MCT3718").build();
+    Offering offering = Offering.builder().productIds(Set.of(45)).sku(SKU).build();
 
     Page<Subscription> subscriptions = mock(Page.class);
     when(subscriptions.hasNext()).thenReturn(true);
@@ -248,7 +166,7 @@ class CapacityReconciliationControllerTest {
     verify(reconcileCapacityByOfferingKafkaTemplate)
         .send(
             "platform.rhsm-subscriptions.capacity-reconcile",
-            ReconcileCapacityByOfferingTask.builder().sku("MCT3718").offset(2).limit(2).build());
+            ReconcileCapacityByOfferingTask.builder().sku(SKU).offset(2).limit(2).build());
   }
 
   @Test
@@ -256,50 +174,119 @@ class CapacityReconciliationControllerTest {
     // Some clients (example, OfferingSyncController) should not wait for capacities to reconcile.
     // In that case, the client should be able to enqueue the first capacity reconciliation page,
     // rather than have it be worked on immediately.
-    capacityReconciliationController.enqueueReconcileCapacityForOffering("MCT3718");
+    capacityReconciliationController.enqueueReconcileCapacityForOffering(SKU);
     verify(reconcileCapacityByOfferingKafkaTemplate)
         .send(
             "platform.rhsm-subscriptions.capacity-reconcile",
-            ReconcileCapacityByOfferingTask.builder().sku("MCT3718").offset(0).limit(100).build());
+            ReconcileCapacityByOfferingTask.builder().sku(SKU).offset(0).limit(100).build());
     verifyNoInteractions(subscriptionRepository);
   }
 
   @Test
   void shouldNotAttemptToCreateDuplicateMeasurementsWhenNoChanges() {
-    Set<String> productIds = Set.of("RHEL");
-    Offering offering =
-        Offering.builder()
-            .productIds(Set.of(45))
-            .sku("MCT3718")
-            .cores(42)
-            .productTags(productIds)
-            .build();
-    Subscription subscription = createSubscription("456", 1);
+    int expectedCores = 42;
+    givenOffering(expectedCores, RHEL);
+    givenSubscriptionMeasurement(PHYSICAL, CORES, expectedCores);
 
-    var newMeasurements = new HashMap<>(subscription.getSubscriptionMeasurements());
+    whenReconcileCapacityForSubscription();
 
-    newMeasurements.putAll(createMeasurement(subscription, "PHYSICAL", CORES, 42.0));
-    subscription.setSubscriptionMeasurements(newMeasurements);
-
-    subscription.setOffering(offering);
-
-    when(denylist.productIdMatches(any())).thenReturn(false);
-
-    capacityReconciliationController.reconcileCapacityForSubscription(subscription);
-
-    var expectedMeasurements =
-        new HashMap<>(createMeasurement(subscription, "PHYSICAL", CORES, 42.0));
-
-    assertEquals(subscription.getSubscriptionMeasurements(), expectedMeasurements);
+    thenSubscriptionMeasurementsOnlyContains(PHYSICAL, CORES, expectedCores);
   }
 
-  private Subscription createSubscription(String subId, int quantity) {
+  @Test
+  void shouldNotRemoveMeasurementsWhenOfferingIsMeteredAndHasNoCoresOrSockets() {
+    givenMeteredOffering();
+    givenSubscriptionMeasurement(PHYSICAL, CORES, 40);
+
+    whenReconcileCapacityForSubscription();
+
+    thenSubscriptionMeasurementsOnlyContains(PHYSICAL, CORES, 40);
+  }
+
+  private void givenMeteredOffering() {
+    givenOffering(0, ROSA);
+    subscription.getOffering().setMetered(true);
+  }
+
+  private void givenOffering(String... products) {
+    givenOffering(10, products);
+  }
+
+  private void givenOffering(int expectedCores, String... products) {
+    givenOffering(expectedCores, 0, 0, 0, products);
+  }
+
+  private void givenOffering(int expectedCores, int expectedSockets, String... products) {
+    givenOffering(expectedCores, 0, expectedSockets, 0, products);
+  }
+
+  private void givenOffering(
+      int expectedCores,
+      int expectedHypervisorCores,
+      int expectedSockets,
+      int expectedHypervisorSockets,
+      String... products) {
+    Set<String> productIds = Set.of(products);
+    Offering offering =
+        Offering.builder()
+            .productIds(productIds.stream().map(PRODUCTS::get).collect(Collectors.toSet()))
+            .cores(expectedCores)
+            .hypervisorCores(expectedHypervisorCores)
+            .sockets(expectedSockets)
+            .hypervisorSockets(expectedHypervisorSockets)
+            .sku(SKU)
+            .productTags(productIds)
+            .build();
+
+    subscription.setOffering(offering);
+  }
+
+  private void givenSubscriptionMeasurement(String measurementType, String metricId, double value) {
+    subscription
+        .getSubscriptionMeasurements()
+        .put(
+            SubscriptionMeasurementKey.builder()
+                .measurementType(measurementType)
+                .metricId(metricId)
+                .build(),
+            value * subscription.getQuantity());
+  }
+
+  private void givenSubscriptionProduct(String product) {
+    subscription.getSubscriptionProductIds().add(product);
+  }
+
+  private void whenReconcileCapacityForSubscription() {
+    capacityReconciliationController.reconcileCapacityForSubscription(subscription);
+  }
+
+  private void thenSubscriptionMeasurementsOnlyContains(
+      String measurementType, String metricId, int value) {
+    thenSubscriptionMeasurementsContains(measurementType, metricId, value);
+    assertEquals(1, subscription.getSubscriptionMeasurements().size());
+  }
+
+  private void thenSubscriptionMeasurementsContains(
+      String measurementType, String metricId, int value) {
+    SubscriptionMeasurementKey key =
+        SubscriptionMeasurementKey.builder()
+            .measurementType(measurementType)
+            .metricId(metricId)
+            .build();
+    Double actualValue = subscription.getSubscriptionMeasurements().get(key);
+    assertNotNull(actualValue, "measurement not found: " + key);
+    assertEquals(value * subscription.getQuantity(), actualValue);
+  }
+
+  private Subscription createSubscription() {
     return Subscription.builder()
         .orgId("123")
-        .subscriptionId(subId)
-        .quantity(quantity)
+        .subscriptionId(SUBSCRIPTION_ID)
+        .quantity(10)
         .startDate(NOW)
         .endDate(NOW.plusDays(30))
+        .subscriptionMeasurements(new HashMap<>())
+        .subscriptionProductIds(new HashSet<>())
         .build();
   }
 }

@@ -28,12 +28,10 @@ import com.redhat.swatch.contract.exception.ErrorCode;
 import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
-import com.redhat.swatch.contract.repository.SubscriptionMeasurementEntity;
 import com.redhat.swatch.contract.repository.SubscriptionProductIdEntity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.ProcessingException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -99,34 +97,40 @@ public class MeasurementMetricIdTransformer {
    * @param contract contract w/ measurements in the cloud-provider-specific dimensions
    */
   public void resolveConflictingMetrics(ContractEntity contract) {
+    if (contract.getOffering() == null) {
+      // do nothing if the sku was missing from the contract.
+      return;
+    }
+
     // resolve contract measurements with the correct metrics from sync service
     // this will keep subscriptions and contract metrics consistent with its dimension to SWATCH UOM
     log.debug(
         "Resolving conflicting metrics between subscription & contract  for {}",
         contract.getOrgId());
     try {
-      var metrics =
-          internalSubscriptionsApi.getMetrics(contract.getProductId()).stream()
-              .map(Metric::getAwsDimension)
-              .collect(Collectors.toSet());
-      contract
-          .getMetrics()
-          .removeIf(
-              metric -> {
-                if (!metrics.contains(metric.getMetricId())) {
-                  log.warn(
-                      "Removing unsupported metric '{}' from contract using the product '{}'. "
-                          + "List of supported metrics in the product are: {}",
-                      metric.getMetricId(),
-                      contract.getProductId(),
-                      metrics);
+      for (String productTag : contract.getOffering().getProductTags()) {
+        var metrics =
+            internalSubscriptionsApi.getMetrics(productTag).stream()
+                .map(Metric::getAwsDimension)
+                .collect(Collectors.toSet());
+        contract
+            .getMetrics()
+            .removeIf(
+                metric -> {
+                  if (!metrics.contains(metric.getMetricId())) {
+                    log.warn(
+                        "Removing unsupported metric '{}' from contract using the product '{}'. "
+                            + "List of supported metrics in the product are: {}",
+                        metric.getMetricId(),
+                        productTag,
+                        metrics);
 
-                  return true;
-                }
+                    return true;
+                  }
 
-                return false;
-              });
-
+                  return false;
+                });
+      }
     } catch (ProcessingException | ApiException e) {
       log.error("Error resolving dimensions for contract metrics", e);
       throw new ContractsException(ErrorCode.UNHANDLED_EXCEPTION, e.getMessage());
@@ -138,14 +142,9 @@ public class MeasurementMetricIdTransformer {
       // Will check for correct metrics before translating awsDimension to Metrics UOM
       log.debug("Checking for unsupported metricIds");
       var supportedSet = metrics.stream().map(Metric::getAwsDimension).collect(Collectors.toSet());
-      List<SubscriptionMeasurementEntity> supportedMeasurements = new ArrayList<>();
-      // compare set of metric.awsDimension to measurements.metricId (pre Transformation state)
-      for (SubscriptionMeasurementEntity sub : subscription.getSubscriptionMeasurements()) {
-        if (supportedSet.contains(sub.getMetricId())) {
-          supportedMeasurements.add(sub);
-        }
-      }
-      subscription.setSubscriptionMeasurements(supportedMeasurements);
+      subscription
+          .getSubscriptionMeasurements()
+          .removeIf(m -> !supportedSet.contains(m.getMetricId()));
     }
   }
 }

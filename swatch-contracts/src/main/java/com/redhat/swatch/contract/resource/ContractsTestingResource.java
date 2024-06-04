@@ -88,7 +88,7 @@ public class ContractsTestingResource implements DefaultApi {
    * Get a list of saved contracts based on URL query parameters
    *
    * @param orgId
-   * @param productId
+   * @param productTag
    * @param billingProvider
    * @param billingAccountId
    * @return List<Contract> dtos
@@ -99,14 +99,14 @@ public class ContractsTestingResource implements DefaultApi {
   @RolesAllowed({"test", "support", "service"})
   public List<Contract> getContract(
       String orgId,
-      String productId,
+      String productTag,
       String vendorProductCode,
       String billingProvider,
       String billingAccountId,
       OffsetDateTime timestamp)
       throws ProcessingException {
     return service.getContracts(
-        orgId, productId, billingProvider, billingAccountId, vendorProductCode, timestamp);
+        orgId, productTag, billingProvider, billingAccountId, vendorProductCode, timestamp);
   }
 
   @Override
@@ -129,6 +129,13 @@ public class ContractsTestingResource implements DefaultApi {
   public StatusResponse syncContractsByOrg(String orgId, Boolean isPreCleanup)
       throws ProcessingException {
     return service.syncContractByOrgId(orgId, isPreCleanup);
+  }
+
+  @Override
+  @RolesAllowed({"test", "support"})
+  public StatusResponse syncSubscriptionsForContractsByOrg(String orgId)
+      throws ProcessingException {
+    return service.syncSubscriptionsForContractsByOrg(orgId);
   }
 
   @Override

@@ -41,6 +41,7 @@ import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.product.ProductConfiguration;
 import org.candlepin.subscriptions.tally.billing.BillingProducerConfiguration;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
+import org.candlepin.subscriptions.tally.facts.ProductNormalizer;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.queue.TaskConsumer;
 import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
@@ -119,8 +120,10 @@ public class TallyWorkerConfiguration {
 
   @Bean
   public FactNormalizer factNormalizer(
-      ApplicationProperties applicationProperties, ApplicationClock clock) {
-    return new FactNormalizer(applicationProperties, clock);
+      ApplicationProperties applicationProperties,
+      ApplicationClock clock,
+      ProductNormalizer productNormalizer) {
+    return new FactNormalizer(applicationProperties, clock, productNormalizer);
   }
 
   @Bean(name = "collectorRetryTemplate")

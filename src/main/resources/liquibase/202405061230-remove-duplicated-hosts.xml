@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+
+  <!--
+  To know more about the pattern we're using to delete duplicate records, go to: https://wiki.postgresql.org/wiki/Deleting_duplicates
+  -->
+  <changeSet id="202405061230-1" author="jcarvaja" dbms="postgresql">
+    <comment>Remove the duplicated hosts by inventory_id based on the billing_account_id and the more recent last_seen and add the unique constraint</comment>
+    <delete tableName="hosts">
+      <where>
+        id in (select d.id from (
+          select h.id, row_number() over (partition by h.org_id, h.inventory_id order by h.billing_account_id desc nulls last, last_seen desc) as duplicated_row_number
+          from hosts h
+          inner join (
+            select count(*) as duplicated, org_id, inventory_id
+            from hosts
+            group by org_id,inventory_id
+          ) d on d.org_id=h.org_id and d.inventory_id=h.inventory_id and d.duplicated > 1
+        ) d
+        where d.duplicated_row_number > 1)
+      </where>
+    </delete>
+    <addUniqueConstraint columnNames="org_id, inventory_id"
+                         constraintName="hosts_org_id_inventory_id_unique" tableName="hosts"/>
+    <rollback>
+      <dropUniqueConstraint tableName="hosts" constraintName="hosts_org_id_inventory_id_unique"/>
+    </rollback>
+  </changeSet>
+
+  <!--
+  To know more about the pattern we're using to delete duplicate records, go to: https://wiki.postgresql.org/wiki/Deleting_duplicates
+  -->
+  <changeSet id="202405061230-2" author="jcarvaja" dbms="postgresql">
+    <comment>Remove the duplicated hosts by instance_id based on the billing_account_id and the more recent last_seen and add the unique constraint</comment>
+    <delete tableName="hosts">
+      <where>
+        id in (select d.id from (
+          select h.id, row_number() over (partition by h.org_id, h.instance_id order by h.billing_account_id desc nulls last, last_seen desc) as duplicated_row_number
+          from hosts h
+          inner join (
+            select count(*) as duplicated, org_id, instance_id
+            from hosts
+            group by org_id,instance_id
+            ) d on d.org_id=h.org_id and d.instance_id=h.instance_id and d.duplicated > 1
+          ) d
+          where d.duplicated_row_number > 1)
+      </where>
+    </delete>
+    <addUniqueConstraint columnNames="org_id, instance_id"
+                         constraintName="hosts_org_id_instance_id_unique" tableName="hosts"/>
+    <rollback>
+      <dropUniqueConstraint tableName="hosts" constraintName="hosts_org_id_instance_id_unique"/>
+    </rollback>
+  </changeSet>
+
+</databaseChangeLog>

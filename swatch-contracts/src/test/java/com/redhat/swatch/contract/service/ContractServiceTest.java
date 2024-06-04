@@ -24,10 +24,11 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
@@ -38,7 +39,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.DimensionV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1;
-import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1.SourcePartnerEnum;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1EntitlementDates;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlements;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerIdentityV1;
@@ -49,12 +49,13 @@ import com.redhat.swatch.clients.subscription.api.model.Subscription;
 import com.redhat.swatch.clients.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.subscription.api.resources.SearchApi;
 import com.redhat.swatch.contract.BaseUnitTest;
+import com.redhat.swatch.contract.exception.ContractValidationFailedException;
+import com.redhat.swatch.contract.model.ContractSourcePartnerEnum;
 import com.redhat.swatch.contract.model.MeasurementMetricIdTransformer;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.ContractRequest;
 import com.redhat.swatch.contract.openapi.model.ContractResponse;
 import com.redhat.swatch.contract.openapi.model.Dimension;
-import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContractCloudIdentifiers;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
@@ -73,8 +74,10 @@ import io.quarkus.test.junit.mockito.InjectSpy;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.BeforeEach;
@@ -88,16 +91,15 @@ import org.mockito.ArgumentCaptor;
 class ContractServiceTest extends BaseUnitTest {
 
   private static final String ORG_ID = "org123";
-  private static final String PRODUCT_ID = "MH123";
+  private static final String SKU = "RH000000";
+  private static final String PRODUCT_TAG = "MH123";
   private static final String SUBSCRIPTION_NUMBER = "subs123";
 
   @Inject ContractService contractService;
   @Inject ObjectMapper objectMapper;
   @InjectSpy ContractRepository contractRepository;
-  @InjectMock OfferingRepository offeringRepository;
+  @Inject OfferingRepository offeringRepository;
   @InjectMock SubscriptionRepository subscriptionRepository;
-
-  @InjectMock SubscriptionSyncService syncService;
 
   @InjectMock @RestClient SearchApi subscriptionApi;
   @InjectMock MeasurementMetricIdTransformer measurementMetricIdTransformer;
@@ -105,18 +107,12 @@ class ContractServiceTest extends BaseUnitTest {
   @Transactional
   @BeforeEach
   public void setup() {
-    when(offeringRepository.findById(anyString()))
-        .thenAnswer(
-            invocation -> {
-              Object[] args = invocation.getArguments();
-              var offering = new OfferingEntity();
-              offering.setSku((String) args[0]);
-              return offering;
-            });
-
+    OfferingEntity offering = new OfferingEntity();
+    offering.setSku(SKU);
+    offering.setProductTags(Set.of(PRODUCT_TAG));
+    offeringRepository.persist(offering);
     contractRepository.deleteAll();
     mockSubscriptionServiceSubscription();
-    mockOfferingProductTagsToReturn(List.of("MH123"));
   }
 
   @Test
@@ -126,9 +122,17 @@ class ContractServiceTest extends BaseUnitTest {
 
     ContractEntity entity = contractRepository.findById(UUID.fromString(response.getUuid()));
     assertEquals(
-        request.getPartnerEntitlement().getRhEntitlements().get(0).getSku(), entity.getSku());
+        request.getPartnerEntitlement().getRhEntitlements().get(0).getSku(),
+        entity.getOffering().getSku());
     assertEquals(response.getUuid(), entity.getUuid().toString());
-    verify(subscriptionRepository).persist(any(SubscriptionEntity.class));
+    ArgumentCaptor<SubscriptionEntity> subscriptionCaptor =
+        ArgumentCaptor.forClass(SubscriptionEntity.class);
+    verify(subscriptionRepository).persist(subscriptionCaptor.capture());
+    var subscription = subscriptionCaptor.getValue();
+    assertNotNull(subscription.getSubscriptionProductIds());
+    assertTrue(
+        subscription.getSubscriptionProductIds().stream()
+            .anyMatch(p -> PRODUCT_TAG.equals(p.getProductId())));
     verify(measurementMetricIdTransformer).translateContractMetricIdsToSubscriptionMetricIds(any());
   }
 
@@ -136,7 +140,7 @@ class ContractServiceTest extends BaseUnitTest {
   void testGetContracts() {
     givenExistingContract();
     List<Contract> contractList =
-        contractService.getContracts(ORG_ID, PRODUCT_ID, null, null, null, null);
+        contractService.getContracts(ORG_ID, PRODUCT_TAG, null, null, null, null);
     assertEquals(1, contractList.size());
     assertEquals(2, contractList.get(0).getMetrics().size());
   }
@@ -151,11 +155,11 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   @Test
-  void createPartnerContract_WhenNullEntityThrowError() {
-    mockOfferingProductTagsToReturn(null);
-    var contract = givenPartnerEntitlementContractRequest();
-    StatusResponse statusResponse = contractService.createPartnerContract(contract);
-    assertEquals("Empty value in non-null fields", statusResponse.getMessage());
+  void upsertPartnerContract_WhenNullEntityThrowError() {
+    PartnerEntitlementV1 contract = givenContractWithoutRequiredData();
+    assertThrows(
+        ContractValidationFailedException.class,
+        () -> contractService.upsertPartnerContract(contract, null));
   }
 
   @Test
@@ -197,6 +201,7 @@ class ContractServiceTest extends BaseUnitTest {
 
     StatusResponse statusResponse = contractService.createPartnerContract(request);
     assertEquals("Redundant message ignored", statusResponse.getMessage());
+    verify(subscriptionRepository, times(2)).persist(any(SubscriptionEntity.class));
   }
 
   @Test
@@ -241,9 +246,8 @@ class ContractServiceTest extends BaseUnitTest {
         List.of(new Dimension().dimensionName("vCPU").dimensionValue("4")));
     contract.setCloudIdentifiers(
         new PartnerEntitlementContractCloudIdentifiers()
-            .partner(SourcePartnerEnum.AZURE_MARKETPLACE.value())
+            .partner(ContractSourcePartnerEnum.AZURE.getCode())
             .azureResourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
-            .azureTenantId("64dc69e4-d083-49fc-9569-ebece1dd1408")
             .azureOfferId("azureProductCode")
             .planId("rh-rhel-sub-1yr"));
 
@@ -272,9 +276,8 @@ class ContractServiceTest extends BaseUnitTest {
         List.of(new Dimension().dimensionName("vCPU").dimensionValue("4")));
     contract.setCloudIdentifiers(
         new PartnerEntitlementContractCloudIdentifiers()
-            .partner(SourcePartnerEnum.AZURE_MARKETPLACE.value())
+            .partner(ContractSourcePartnerEnum.AZURE.getCode())
             .azureResourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
-            .azureTenantId("64dc69e4-d083-49fc-9569-ebece1dd1408")
             .azureOfferId("azureProductCode")
             .planId("rh-rhel-sub-1yr"));
 
@@ -300,9 +303,8 @@ class ContractServiceTest extends BaseUnitTest {
         List.of(new Dimension().dimensionName("vCPU").dimensionValue("4")));
     contract.setCloudIdentifiers(
         new PartnerEntitlementContractCloudIdentifiers()
-            .partner(SourcePartnerEnum.AZURE_MARKETPLACE.value())
+            .partner(ContractSourcePartnerEnum.AZURE.getCode())
             .azureResourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
-            .azureTenantId("64dc69e4-d083-49fc-9569-ebece1dd1408")
             .azureOfferId("azureProductCode")
             .planId("rh-rhel-sub-1yr"));
 
@@ -343,6 +345,24 @@ class ContractServiceTest extends BaseUnitTest {
     verify(subscriptionRepository).delete(any());
   }
 
+  @Test
+  void testSyncSubscriptionsForContractsByOrg() {
+    givenExistingContract();
+    var expectedSubscription = givenExistingSubscription();
+    contractService.syncSubscriptionsForContractsByOrg(ORG_ID);
+    verify(subscriptionRepository).persist(expectedSubscription);
+  }
+
+  private static PartnerEntitlementV1 givenContractWithoutRequiredData() {
+    PartnerEntitlementV1 entitlement = new PartnerEntitlementV1();
+    entitlement.setRhAccountId(ORG_ID);
+    entitlement.setPartnerIdentities(new PartnerIdentityV1());
+    entitlement.setSourcePartner(ContractSourcePartnerEnum.AWS.getCode());
+    entitlement.setPurchase(new PurchaseV1());
+    entitlement.getPurchase().setContracts(new ArrayList<>());
+    return entitlement;
+  }
+
   private static PartnerEntitlementContract givenPartnerEntitlementContractWithoutProductCode() {
     var contract = givenPartnerEntitlementContractRequest();
     contract.getCloudIdentifiers().setProductCode(null);
@@ -368,9 +388,8 @@ class ContractServiceTest extends BaseUnitTest {
         List.of(new Dimension().dimensionName("vCPU").dimensionValue("4")));
     contract.setCloudIdentifiers(
         new PartnerEntitlementContractCloudIdentifiers()
-            .partner(SourcePartnerEnum.AZURE_MARKETPLACE.value())
+            .partner(ContractSourcePartnerEnum.AZURE.getCode())
             .azureResourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
-            .azureTenantId("64dc69e4-d083-49fc-9569-ebece1dd1408")
             .azureOfferId("azureProductCode")
             .planId("rh-rhel-sub-1yr"));
     return contract;
@@ -430,8 +449,8 @@ class ContractServiceTest extends BaseUnitTest {
         .getEntitlementDates()
         .setStartDate(OffsetDateTime.parse("2023-03-17T12:29:48.569Z"));
     entitlement.getEntitlementDates().setEndDate(OffsetDateTime.parse("2024-03-17T12:29:48.569Z"));
-    entitlement.setSourcePartner(SourcePartnerEnum.AWS_MARKETPLACE);
-    rhEntitlement.setSku("BAS123");
+    entitlement.setSourcePartner(ContractSourcePartnerEnum.AWS.getCode());
+    rhEntitlement.setSku(SKU);
     purchase.setVendorProductCode("1234567890abcdefghijklmno");
     cloudIdentifiers.setProductCode("1234567890abcdefghijklmno");
     entitlement.setRhAccountId(ORG_ID);
@@ -470,12 +489,6 @@ class ContractServiceTest extends BaseUnitTest {
     }
   }
 
-  private void mockOfferingProductTagsToReturn(List<String> data) {
-    OfferingProductTags productTags = new OfferingProductTags();
-    productTags.data(data);
-    when(syncService.getOfferingProductTags(any())).thenReturn(productTags);
-  }
-
   private void mockPartnerApi() throws Exception {
     var entitlement =
         new PartnerEntitlementV1()
@@ -484,14 +497,12 @@ class ContractServiceTest extends BaseUnitTest {
                     .startDate(OffsetDateTime.parse("2023-03-17T12:29:48.569Z"))
                     .endDate(OffsetDateTime.parse("2024-03-17T12:29:48.569Z")))
             .rhAccountId("7186626")
-            .sourcePartner(SourcePartnerEnum.AZURE_MARKETPLACE)
+            .sourcePartner(ContractSourcePartnerEnum.AZURE.getCode())
             .partnerIdentities(
                 new PartnerIdentityV1()
                     .azureSubscriptionId("fa650050-dedd-4958-b901-d8e5118c0a5f")
-                    .azureTenantId("64dc69e4-d083-49fc-9569-ebece1dd1408")
                     .azureCustomerId("eadf26ee-6fbc-4295-9a9e-25d4fea8951d_2019-05-31"))
-            .rhEntitlements(
-                List.of(new RhEntitlementV1().sku("MCT4249").subscriptionNumber("testSubId")))
+            .rhEntitlements(List.of(new RhEntitlementV1().sku(SKU).subscriptionNumber("testSubId")))
             .purchase(
                 new PurchaseV1()
                     .vendorProductCode("azureProductCode")
@@ -504,9 +515,6 @@ class ContractServiceTest extends BaseUnitTest {
                                 .dimensions(List.of(new DimensionV1().name("vCPU").value("4"))))));
 
     var azureQuery = new PartnerEntitlements().content(List.of(entitlement));
-    OfferingProductTags productTags = new OfferingProductTags();
-    productTags.data(List.of("MCT4249"));
-    when(syncService.getOfferingProductTags(any())).thenReturn(productTags);
     stubFor(
         WireMock.any(urlMatching("/mock/partnerApi/v1/partnerSubscriptions"))
             .willReturn(

@@ -184,12 +184,11 @@ public class WireMockResource
                                                          "sourcePartner": "azure_marketplace",
                                                          "partnerIdentities": {
                                                              "azureSubscriptionId": "fa650050-dedd-4958-b901-d8e5118c0a5f",
-                                                             "azureTenantId": "64dc69e4-d083-49fc-9569-ebece1dd1408",
                                                              "azureCustomerId": "eadf26ee-6fbc-4295-9a9e-25d4fea8951d_2019-05-31"
                                                          },
                                                          "rhEntitlements": [
                                                              {
-                                                                 "sku": "BASILISK",
+                                                                 "sku": "RH000000",
                                                                  "subscriptionNumber": "13294886"
                                                              }
                                                          ],
@@ -262,6 +261,7 @@ public class WireMockResource
   @Override
   public void stop() {
     wireMockServer.stop();
+    wireMockServer.resetAll();
   }
 
   @Override

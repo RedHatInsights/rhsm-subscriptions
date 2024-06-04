@@ -488,6 +488,35 @@ class BillableUsageControllerTest {
         false);
   }
 
+  @Test
+  // See SWATCH-2494
+  void testGetTotalRemittedConsidersAllStatuses() {
+    record RemittanceTuple(double value, RemittanceStatus status, OffsetDateTime date) {}
+    ;
+
+    OffsetDateTime startOfUsage = CLOCK.startOfCurrentMonth().plusDays(4);
+    var t1 = new RemittanceTuple(1.0, RemittanceStatus.SUCCEEDED, startOfUsage);
+    var t2 = new RemittanceTuple(5.0, RemittanceStatus.PENDING, startOfUsage.plusDays(2));
+    var t3 = new RemittanceTuple(10.0, RemittanceStatus.FAILED, startOfUsage.plusDays(4));
+    var t4 = new RemittanceTuple(20.0, null, startOfUsage.plusDays(4));
+
+    List<RemittanceSummaryProjection> summaries = new ArrayList<>();
+    for (var tuple : List.of(t1, t2, t3, t4)) {
+      summaries.add(
+          RemittanceSummaryProjection.builder()
+              .totalRemittedPendingValue(tuple.value)
+              .status(tuple.status)
+              .remittancePendingDate(tuple.date)
+              .build());
+    }
+
+    when(remittanceRepo.getRemittanceSummaries(any())).thenReturn(summaries);
+
+    BillableUsage usage = billable(CLOCK.endOfCurrentMonth(), 0.0);
+    var result = controller.getTotalRemitted(usage);
+    assertEquals(36.0, result);
+  }
+
   static Stream<Arguments> remittanceBillingFactorParameters() {
     OffsetDateTime startOfUsage = CLOCK.startOfCurrentMonth().plusDays(4);
     return Stream.of(

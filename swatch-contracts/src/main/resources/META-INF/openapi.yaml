@@ -158,7 +158,7 @@ paths:
         - examples:
             product_id:
               value: BASILISK
-          name: product_id
+          name: product_tag
           description: ""
           schema:
             type: string
@@ -261,6 +261,33 @@ paths:
         - support: []
         - test: []
       operationId: syncContractsByOrg
+  /api/swatch-contracts/internal/rpc/sync/contracts/{org_id}/subscriptions:
+    description: "Trigger a subscription sync for all contracts of a given Org ID"
+    post:
+      parameters:
+        - name: org_id
+          description: ""
+          schema:
+            type: string
+          in: path
+          required: true
+      summary: "Sync subscriptions for all contracts for given org_id."
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+              examples:
+                status response:
+                  value:
+                    status: 'Success'
+                    message: "Subscriptions Synced for given org_id"
+          description: success
+      security:
+        - support: [ ]
+        - test: [ ]
+      operationId: syncSubscriptionsForContractsByOrg
   /api/swatch-contracts/internal/rpc/reset/contracts/{org_id}:
     description: "Clear all contracts for a given org ID. "
     delete:
@@ -914,7 +941,7 @@ components:
         - org_id
         - billing_provider
         - billing_account_id
-        - product_id
+        - product_tags
         - metrics
         - sku
         - vendor_product_code
@@ -957,10 +984,12 @@ components:
           description: AWS billing account ids are 12 digits
           type: string
           example: "123456789101"
-        product_id:
+        product_tags:
           description: ""
-          type: string
-          example: BASILISK
+          type: array
+          items:
+            type: string
+          example: "[\"BASILISK\"]"
         vendor_product_code:
           description: ""
           type: string
@@ -979,7 +1008,7 @@ components:
         org_id: some text
         billing_provider: aws
         billing_account_id: some text
-        product_id: some text
+        product_tags: ["some text"]
         metrics:
           - metric_id: some text
             value: 3.57
