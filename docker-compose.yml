@@ -84,6 +84,21 @@ services:
       - "127.0.0.1:3030:8000"
     depends_on:
       - kafka-rest
+  kafka-bridge:
+    image: quay.io/strimzi/kafka-bridge:latest
+    entrypoint: /opt/strimzi/bin/kafka_bridge_run.sh
+    command: --config-file=config/application-kafka-bridge.properties
+    ports:
+      - "127.0.0.1:9080:8080"
+    volumes:
+      - ./config/application-kafka-bridge.properties:/opt/strimzi/config/application-kafka-bridge.properties:Z
+    networks:
+      - swatch-network
+    user: root
+    depends_on:
+      kafka:
+        condition: service_healthy
+
   inventory:
     image: quay.io/cloudservices/insights-inventory
     entrypoint: /bin/bash -c
