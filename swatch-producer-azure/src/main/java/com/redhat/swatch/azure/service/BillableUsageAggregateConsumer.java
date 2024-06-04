@@ -138,7 +138,7 @@ public class BillableUsageAggregateConsumer {
                     log.warn(
                         "Skipping billable usage with id={} orgId={} because the subscription was not found. Will retry again after one hour.",
                         billableUsage.getUuid(),
-                        billableUsageAggregate.getAggregateKey().getOrgId());
+                        billableUsage.getOrgId());
                   });
         } else {
           log.warn("No billable usage remittance UUIDs available to retry for.");
