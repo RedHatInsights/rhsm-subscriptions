@@ -251,7 +251,7 @@ class SubscriptionDefinitionTest {
   @SuppressWarnings({"linelength", "indentation"})
   @ParameterizedTest(
       name =
-          "Signature [engineeringIds: {0}, isMetered: {1}, is3rdPartyConverted {2}] returns swatch product tags {3}")
+          "[engineeringIds: {0}, isMetered: {1}, is3rdPartyConverted {2}] matches product tags {3}")
   @MethodSource("elsAndGeneralRhelCombos")
   void testElsDetectionByEngineeringIds(
       Set<String> engineeringIds,

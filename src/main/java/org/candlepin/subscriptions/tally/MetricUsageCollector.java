@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.tally;
 
 import com.google.common.collect.MoreCollectors;
 import com.google.common.collect.Sets;
+import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
@@ -374,13 +375,20 @@ public class MetricUsageCollector {
           event
               .getMeasurements()
               .forEach(
-                  m ->
+                  measurement -> {
+                    if (Variant.getMetricsForTag(productId).stream()
+                        .map(Metric::getId)
+                        .anyMatch(
+                            definedMetricId -> definedMetricId.equals(measurement.getMetricId()))) {
                       calc.addUsage(
                           usageKey,
                           hardwareMeasurementType,
                           MetricId.fromString(
-                              !StringUtils.isEmpty(m.getMetricId()) ? m.getMetricId() : m.getUom()),
-                          m.getValue()));
+                              Optional.ofNullable(measurement.getMetricId())
+                                  .orElse(measurement.getUom())),
+                          measurement.getValue());
+                    }
+                  });
         });
   }
 

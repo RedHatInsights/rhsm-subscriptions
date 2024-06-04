@@ -239,7 +239,7 @@ public class InventoryAccountUsageCollector {
         Optional.ofNullable(hbiSystem).map(InventoryHostFacts::getInventoryId),
         Optional.ofNullable(swatchSystem).map(Host::getInventoryId),
         Optional.ofNullable(swatchSystem).map(Host::getInstanceId));
-    boolean isMetered = swatchSystem != null && swatchSystem.isMetered();
+    boolean isMetered = orgHostsData.isMetered();
     if (hbiSystem == null && swatchSystem == null) {
       log.debug("Unexpected, both HBI & Swatch system records are empty");
     } else if (hbiSystem == null

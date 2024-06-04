@@ -115,6 +115,18 @@ public class InventorySwatchDataCollator {
     counts and tally buckets, between iterations.
      */
     OrgHostsData orgHostsData = new OrgHostsData("placeholder"); // orgId not used
+
+    boolean hasMeteredSwatchHost = false;
+
+    while (swatchDataIterator.hasNext()) {
+      Host nextSwatchHost = peekOrNull(swatchDataIterator);
+      if (nextSwatchHost == null || nextSwatchHost.isMetered()) {
+        hasMeteredSwatchHost = nextSwatchHost != null;
+        break;
+      }
+    }
+
+    orgHostsData.setMetered(hasMeteredSwatchHost);
     String previousInstanceId = null;
     int iterationCount = 0;
 
