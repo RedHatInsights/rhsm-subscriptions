@@ -261,6 +261,7 @@ public class WireMockResource
   @Override
   public void stop() {
     wireMockServer.stop();
+    wireMockServer.resetAll();
   }
 
   @Override

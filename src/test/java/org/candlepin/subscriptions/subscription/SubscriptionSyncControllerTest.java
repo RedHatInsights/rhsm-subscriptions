@@ -111,6 +111,8 @@ class SubscriptionSyncControllerTest {
 
   @Captor ArgumentCaptor<Iterable<Subscription>> subscriptionsCaptor;
 
+  @Captor ArgumentCaptor<Subscription> subscriptionCaptor;
+
   private OffsetDateTime rangeStart = OffsetDateTime.now().minusDays(5);
   private OffsetDateTime rangeEnd = OffsetDateTime.now().plusDays(5);
 
@@ -195,7 +197,7 @@ class SubscriptionSyncControllerTest {
   }
 
   @Test
-  void shouldSkipSyncIfMeteredOfferingIsMissingBillingProvider() {
+  void shouldSkipSyncIfMeteredOfferingSubscriptionNotAlreadyCreatedByContractService() {
     Mockito.when(offeringRepository.existsById(SKU)).thenReturn(true);
     Offering offering = Offering.builder().sku(SKU).metered(true).build();
     when(offeringRepository.getReferenceById(SKU)).thenReturn(offering);
@@ -289,6 +291,31 @@ class SubscriptionSyncControllerTest {
     verifyNoInteractions(denylist, offeringRepository);
     verify(subscriptionRepository, times(0)).save(any());
     verify(subscriptionRepository, times(0)).saveAll(any());
+  }
+
+  @Test
+  void shouldUpdateSubscriptionForMatchingSubscriptionNumber() {
+    when(denylist.productIdMatches(any())).thenReturn(false);
+    Mockito.when(offeringRepository.existsById(any())).thenReturn(true);
+    Mockito.when(offeringRepository.getReferenceById(SKU))
+        .thenReturn(Offering.builder().sku(SKU).build());
+
+    var dto = createDto("456", 10);
+    Mockito.when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(dto));
+    var existingSub = this.convertDto(dto);
+    // Contract provided subscription will have different start time and should be updated
+    existingSub.setStartDate(existingSub.getStartDate().plusHours(3));
+    dto.setExternalReferences(
+        Map.of(
+            SubscriptionDtoUtil.AWS_MARKETPLACE,
+            new ExternalReference().customerAccountID("new1BillingAccountId")));
+    Mockito.when(subscriptionRepository.findBySubscriptionNumber(dto.getSubscriptionNumber()))
+        .thenReturn(List.of(existingSub));
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("100", false);
+    verify(subscriptionService).getSubscriptionsByOrgId("100");
+    verify(subscriptionRepository, times(1)).save(subscriptionCaptor.capture());
+    assertEquals(existingSub.getStartDate(), subscriptionCaptor.getValue().getStartDate());
+    assertEquals("new1BillingAccountId", subscriptionCaptor.getValue().getBillingAccountId());
   }
 
   @Test
@@ -792,6 +819,7 @@ class SubscriptionSyncControllerTest {
 
   private org.candlepin.subscriptions.db.model.Subscription convertDto(
       org.candlepin.subscriptions.subscription.api.model.Subscription subscription) {
+    Offering offering = Offering.builder().metered(true).build();
 
     return org.candlepin.subscriptions.db.model.Subscription.builder()
         .subscriptionId(String.valueOf(subscription.getId()))
@@ -801,6 +829,7 @@ class SubscriptionSyncControllerTest {
         .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
         .billingProviderId(SubscriptionDtoUtil.extractBillingProviderId(subscription))
         .billingProvider(SubscriptionDtoUtil.populateBillingProvider(subscription))
+        .offering(offering)
         .build();
   }
 
