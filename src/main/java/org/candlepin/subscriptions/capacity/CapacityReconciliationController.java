@@ -156,7 +156,8 @@ public class CapacityReconciliationController {
     return Optional.empty();
   }
 
-  private void reconcileSubscriptionProductIds(Subscription subscription) {
+  @Transactional
+  public void reconcileSubscriptionProductIds(Subscription subscription) {
     Offering offering = subscription.getOffering();
 
     Set<String> expectedProducts = offering.getProductTags();
