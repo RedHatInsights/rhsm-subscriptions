@@ -158,5 +158,6 @@
     <include file="/liquibase/202405151547-update-events-azure-billable-account-id.xml"/>
     <include file="/liquibase/202405160950-add-subscription-capacity-view.xml"/>
     <include file="/liquibase/202406030700-drop-unique-constraints-in-hosts.xml"/>
+    <include file="/liquibase/202405081325-delete-duplicate-aws-subscriptions.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

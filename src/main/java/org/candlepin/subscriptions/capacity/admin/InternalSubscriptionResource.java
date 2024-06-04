@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.capacity.admin;
 
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.redhat.swatch.configuration.registry.Variant;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.persistence.EntityNotFoundException;
@@ -37,6 +38,8 @@ import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.security.SecurityProperties;
 import org.candlepin.subscriptions.subscription.SubscriptionPruneController;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
+import org.candlepin.subscriptions.umb.CanonicalMessage;
+import org.candlepin.subscriptions.umb.UmbSubscription;
 import org.candlepin.subscriptions.util.OfferingProductTagLookupService;
 import org.candlepin.subscriptions.utilization.admin.api.InternalApi;
 import org.candlepin.subscriptions.utilization.admin.api.model.AwsUsageContext;
@@ -70,6 +73,7 @@ public class InternalSubscriptionResource implements InternalApi {
   private final UsageContextSubscriptionProvider rhmSubscriptionProvider;
   private final UsageContextSubscriptionProvider azureSubscriptionProvider;
   private final MetricMapper metricMapper;
+  private final XmlMapper xmlMapper;
 
   private final ApplicationProperties applicationProperties;
   private final OfferingProductTagLookupService offeringProductTagLookupService;
@@ -112,6 +116,7 @@ public class InternalSubscriptionResource implements InternalApi {
     this.metricMapper = metricMapper;
     this.applicationProperties = applicationProperties;
     this.offeringProductTagLookupService = offeringProductTagLookupService;
+    this.xmlMapper = CanonicalMessage.createMapper();
   }
 
   /**
@@ -332,5 +337,35 @@ public class InternalSubscriptionResource implements InternalApi {
       throw new NotFoundException(
           "Subscription " + subscriptionId + " either does not exist or is already terminated");
     }
+  }
+
+  /**
+   * Sync a UMB subscription manually.
+   *
+   * @param subscriptionXml
+   */
+  @Override
+  public SubscriptionResponse syncUmbSubscription(String subscriptionXml) {
+    var response = new SubscriptionResponse();
+    if (!properties.isManualSubscriptionEditingEnabled()) {
+      response.setDetail(FEATURE_NOT_ENABLED_MESSAGE);
+      return response;
+    }
+    try {
+      Object principal = ResourceUtils.getPrincipal();
+      log.info(
+          "Sync of new UMB subscription {} triggered over internal API by {}",
+          subscriptionXml,
+          principal);
+      CanonicalMessage subscriptionMessage =
+          xmlMapper.readValue(subscriptionXml, CanonicalMessage.class);
+      UmbSubscription subscription = subscriptionMessage.getPayload().getSync().getSubscription();
+      subscriptionSyncController.saveUmbSubscription(subscription);
+      response.setDetail(SUCCESS_STATUS);
+    } catch (Exception e) {
+      log.error("Error syncing UMB subscription", e);
+      response.setDetail("Error syncing UMB subscription.");
+    }
+    return response;
   }
 }
