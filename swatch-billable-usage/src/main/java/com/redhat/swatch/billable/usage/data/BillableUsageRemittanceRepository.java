@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.billable.usage.data;
 
-import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.panache.PanacheSpecificationSupport;
 import com.redhat.swatch.panache.Specification;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -32,20 +31,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import org.candlepin.subscriptions.billable.usage.BillableUsage;
 
 @ApplicationScoped
 public class BillableUsageRemittanceRepository
     implements PanacheSpecificationSupport<BillableUsageRemittanceEntity, UUID> {
-
-  public boolean existsBillableUsage(BillableUsage usage) {
-    return count(
-            "tallyId = ?1 AND hardwareMeasurementType = ?2 AND metricId = ?3",
-            usage.getId(),
-            usage.getHardwareMeasurementType(),
-            MetricId.fromString(usage.getMetricId()).getValue())
-        > 0;
-  }
 
   public Optional<BillableUsageRemittanceEntity> findOne(BillableUsageRemittanceFilter filter) {
     return findOne(BillableUsageRemittanceEntity.class, buildSearchSpecification(filter));

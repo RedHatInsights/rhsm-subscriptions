@@ -26,9 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
@@ -61,7 +58,6 @@ import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 @QuarkusTest
 @QuarkusTestResource(
@@ -110,37 +106,6 @@ class TallySummaryMessageConsumerTest {
     // 48 because the contract limit was 32, so 80 - 32 = 48.
     thenRemittanceIsCreatedWithPendingValue(48.0);
     thenRemittanceIsEmitted();
-  }
-
-  @Test
-  void testRemittanceFailsToBeSent() {
-    // the billing factor for the Cores metric is 0.25, so the effective value is 32 (8/0.25)
-    givenValidContractWithMetric(8);
-    givenSnapshotWithUsages(80);
-    givenExceptionWhenProduceUsage();
-
-    whenSendSnapshots();
-
-    // 48 because the contract limit was 32, so 80 - 32 = 48.
-    thenRemittanceIsCreatedWithPendingValue(48.0);
-    thenRemittanceIsNotEmitted();
-
-    // reset repository
-    reset(usageRemittanceRepository);
-
-    // the message will be retried automatically by the `@RetryWithExponentialBackoff` annotation
-    givenNoExceptionWhenProduceUsage();
-    thenRemittanceIsEmitted();
-    // verify that the repository was not used after retrying the same message
-    verify(usageRemittanceRepository, times(0)).getRemittanceSummaries(any());
-  }
-
-  private void givenExceptionWhenProduceUsage() {
-    Mockito.doThrow(new RuntimeException("Test exception!")).when(billingProducer).produce(any());
-  }
-
-  private void givenNoExceptionWhenProduceUsage() {
-    Mockito.reset(billingProducer);
   }
 
   private void givenSnapshotWithUsages(double... usages) {
@@ -215,9 +180,5 @@ class TallySummaryMessageConsumerTest {
 
   private void thenRemittanceIsEmitted() {
     Awaitility.await().untilAsserted(() -> assertEquals(1, target.received().size()));
-  }
-
-  private void thenRemittanceIsNotEmitted() {
-    assertEquals(0, target.received().size());
   }
 }

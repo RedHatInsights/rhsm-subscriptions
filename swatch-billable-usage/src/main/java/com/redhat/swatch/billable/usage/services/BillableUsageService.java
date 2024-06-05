@@ -64,12 +64,6 @@ public class BillableUsageService {
 
   @Transactional
   public BillableUsage produceMonthlyBillable(BillableUsage usage) {
-    if (usage.getId() != null && billableUsageRemittanceRepository.existsBillableUsage(usage)) {
-      log.warn("Skipping usage {} because it's already stored", usage);
-      // usage was already stored, so moving forward.
-      return usage;
-    }
-
     log.info(
         "Processing monthly billable usage for orgId={} productId={} metric={} provider={}, billingAccountId={} snapshotDate={}",
         usage.getOrgId(),
