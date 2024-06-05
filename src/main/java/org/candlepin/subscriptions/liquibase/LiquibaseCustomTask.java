@@ -21,11 +21,11 @@
 package org.candlepin.subscriptions.liquibase;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -57,8 +57,9 @@ public abstract class LiquibaseCustomTask
     this.preparedStatements = new HashMap<>();
   }
 
+  @SuppressWarnings("java:S112")
   @Override
-  public void close() throws IOException {
+  public void close() {
     try {
       for (PreparedStatement statement : this.preparedStatements.values()) {
         statement.close();
@@ -66,7 +67,7 @@ public abstract class LiquibaseCustomTask
 
       this.preparedStatements.clear();
     } catch (SQLException e) {
-      throw new IOException(e);
+      throw new RuntimeException(e);
     }
   }
 
@@ -156,7 +157,7 @@ public abstract class LiquibaseCustomTask
   }
 
   /**
-   * Executes the given SQL update/insert.
+   * Executes the given SQL update/insert/delete
    *
    * @param sql The SQL to execute. The given SQL may be parameterized.
    * @param argv The arguments to use when executing the given update.
@@ -188,9 +189,11 @@ public abstract class LiquibaseCustomTask
    * Executes this liquibase upgrade task.
    *
    * @throws DatabaseException if an error occurs while performing a database operation
+   * @throws CustomChangeException if an error occurs with changeset expectations
    * @throws SQLException if an error occurs while executing an SQL statement
    */
-  public abstract void executeTask(Database database) throws DatabaseException, SQLException;
+  public abstract void executeTask(Database database)
+      throws DatabaseException, SQLException, CustomChangeException;
 
   @Override
   public void execute(Database database) throws CustomChangeException {
@@ -222,7 +225,13 @@ public abstract class LiquibaseCustomTask
       } catch (DatabaseException e) {
         logger.severe("Could not reset autocommit");
       }
+      close();
     }
+  }
+
+  // Courtesy https://stackoverflow.com/a/2861510
+  public String preparePlaceHolders(int length) {
+    return String.join(",", Collections.nCopies(length, "?"));
   }
 
   @Override
