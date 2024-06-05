@@ -242,17 +242,10 @@ public class BillableUsageAggregateConsumer {
         if (isRecentlyTerminatedError) {
           throw new SubscriptionRecentlyTerminatedException(e);
         }
-        var isNotFound =
-            optionalErrors.get().getErrors().stream()
-                .anyMatch(
-                    error ->
-                        (Integer.toString(Status.NOT_FOUND.getStatusCode()))
-                            .equals(error.getStatus()));
-        if (isNotFound) {
-          throw new SubscriptionCanNotBeDeterminedException(e);
-        }
       }
-
+      if (Status.NOT_FOUND.getStatusCode() == e.getResponse().getStatus()) {
+        throw new SubscriptionCanNotBeDeterminedException(e);
+      }
       throw new AzureUsageContextLookupException(e);
     } catch (ProcessingException | ApiException e) {
       throw new AzureUsageContextLookupException(e);

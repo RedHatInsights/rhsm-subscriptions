@@ -57,6 +57,7 @@ import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.OffsetDateTime;
@@ -288,12 +289,8 @@ class BillableUsageConsumerTest {
 
   @Test
   void shouldThrowSubscriptionNotFoundException() throws ApiException {
-    Errors errors = new Errors();
-    Error error = new Error();
-    error.setStatus("404");
-    errors.setErrors(List.of(error));
-    var response = Response.serverError().entity(errors).build();
-    var exception = new DefaultApiException(response, errors);
+    var response = Response.status(Status.NOT_FOUND.getStatusCode()).build();
+    var exception = new DefaultApiException(response, null);
     when(internalSubscriptionsApi.getAzureMarketplaceContext(
             any(), any(), any(), any(), any(), any()))
         .thenThrow(exception);
