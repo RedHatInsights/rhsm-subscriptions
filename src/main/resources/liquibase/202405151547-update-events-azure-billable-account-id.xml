@@ -81,6 +81,18 @@
     <comment>
       Update billing_account_id field for azure billing account change
     </comment>
+    <!-- Prevent unique constraint violation -->
+    <sql dbms="postgresql">
+      delete from host_tally_buckets r
+      using host_tally_buckets l
+      where r.billing_provider='azure' and l.billing_provider='azure'
+      and r.billing_account_id like '%;%' and l.billing_account_id=regexp_replace(r.billing_account_id,'.*;(.*)', '\1')
+      and r.host_id = l.host_id
+      and r."usage" = l."usage"
+      and r.product_id = l.product_id
+      and r.sla = l.sla
+      and r.as_hypervisor = l.as_hypervisor
+    </sql>
     <sql dbms="postgresql">
       update host_tally_buckets
       set billing_account_id = regexp_replace(billing_account_id,'.*;(.*)', '\1')
