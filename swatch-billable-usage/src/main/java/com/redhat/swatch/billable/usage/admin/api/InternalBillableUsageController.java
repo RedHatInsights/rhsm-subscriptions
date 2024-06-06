@@ -21,13 +21,19 @@
 package com.redhat.swatch.billable.usage.admin.api;
 
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceEntity;
+import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceFilter;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
+import com.redhat.swatch.billable.usage.data.RemittanceSummaryProjection;
+import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
 import com.redhat.swatch.billable.usage.services.BillingProducer;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
@@ -38,6 +44,35 @@ import org.candlepin.subscriptions.billable.usage.BillableUsage;
 public class InternalBillableUsageController {
   private final BillableUsageRemittanceRepository remittanceRepository;
   private final BillingProducer billingProducer;
+
+  public List<MonthlyRemittance> getRemittances(BillableUsageRemittanceFilter filter) {
+    if (filter.getOrgId() == null) {
+      log.debug("Must provide orgId in query");
+      return Collections.emptyList();
+    }
+    MonthlyRemittance emptyRemittance =
+        new MonthlyRemittance()
+            .orgId(filter.getOrgId())
+            .productId(filter.getProductId())
+            .metricId(filter.getMetricId())
+            .billingProvider(filter.getBillingProvider())
+            .billingAccountId(filter.getBillingAccountId())
+            .remittedValue(0.0);
+    var summaries = remittanceRepository.getRemittanceSummaries(filter);
+    List<MonthlyRemittance> accountRemittanceList = transformUsageToMonthlyRemittance(summaries);
+    if (accountRemittanceList.isEmpty()) {
+      log.debug("This Account Remittance could not be found.");
+      return List.of(emptyRemittance);
+    }
+    log.debug("Found {} matches for Org Id: {}", accountRemittanceList.size(), filter.getOrgId());
+    return accountRemittanceList;
+  }
+
+  @Transactional
+  public int resetBillableUsageRemittance(
+      String productId, OffsetDateTime start, OffsetDateTime end, Set<String> orgIds) {
+    return remittanceRepository.resetBillableUsageRemittance(productId, start, end, orgIds);
+  }
 
   @Transactional
   public void deleteDataForOrg(String orgId) {
@@ -82,5 +117,34 @@ public class InternalBillableUsageController {
         .withValue(remittance.getRemittedPendingValue())
         .withHardwareMeasurementType(remittance.getHardwareMeasurementType())
         .withStatus(remittanceStatus);
+  }
+
+  private List<MonthlyRemittance> transformUsageToMonthlyRemittance(
+      List<RemittanceSummaryProjection> remittanceSummaryProjections) {
+    List<MonthlyRemittance> remittances = new ArrayList<>();
+    if (remittanceSummaryProjections.isEmpty()) {
+      return Collections.emptyList();
+    }
+
+    for (RemittanceSummaryProjection entity : remittanceSummaryProjections) {
+      // Remove this null assignment once we start adding statuses in prod
+      // https://issues.redhat.com/browse/SWATCH-2289
+      var remittanceStatus =
+          Objects.nonNull(entity.getStatus()) ? entity.getStatus().getValue() : "null";
+      MonthlyRemittance accountRemittance =
+          new MonthlyRemittance()
+              .orgId(entity.getOrgId())
+              .productId(entity.getProductId())
+              .metricId(entity.getMetricId())
+              .billingProvider(entity.getBillingProvider())
+              .billingAccountId(entity.getBillingAccountId())
+              .remittedValue(entity.getTotalRemittedPendingValue())
+              .remittanceDate(entity.getRemittancePendingDate())
+              .accumulationPeriod(entity.getAccumulationPeriod())
+              .remittanceStatus(remittanceStatus);
+      remittances.add(accountRemittance);
+    }
+    log.debug("Found {} remittances for this account", remittances.size());
+    return remittances;
   }
 }

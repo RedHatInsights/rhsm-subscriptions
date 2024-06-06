@@ -41,7 +41,7 @@ import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.tally.AccountResetService;
 import org.candlepin.subscriptions.tally.TallySnapshotController;
 import org.candlepin.subscriptions.tally.billing.BillableUsageController;
-import org.candlepin.subscriptions.tally.billing.ContractsController;
+import org.candlepin.subscriptions.tally.contracts.ContractsController;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfig;
 import org.springframework.stereotype.Component;

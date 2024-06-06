@@ -1,7 +1,5 @@
 TASKS_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.tasks".name:platform.rhsm-subscriptions.tasks}
 TALLY_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.tally".name:platform.rhsm-subscriptions.tally}
-BILLABLE_USAGE_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.billable-usage".name:platform.rhsm-subscriptions.billable-usage}
-BILLABLE_USAGE_DEAD_LETTER_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.billable-usage.dlt".name:platform.rhsm-subscriptions.billable-usage.dlt}
 SERVICE_INSTANCE_INGRESS_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.service-instance-ingress".name:platform.rhsm-subscriptions.service-instance-ingress}
 SERVICE_INSTANCE_INGRESS_DEAD_LETTER_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.service-instance-ingress.dlt".name:platform.rhsm-subscriptions.service-instance-ingress.dlt}
 ENABLED_ORGS_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.enabled-orgs-for-tasks".name:platform.rhsm-subscriptions.enabled-orgs-for-tasks}
@@ -59,19 +57,8 @@ rhsm-subscriptions:
   service-instance-ingress-dead-letter:
     outgoing:
       topic: ${SERVICE_INSTANCE_INGRESS_DEAD_LETTER_TOPIC}
-  billing-producer:
-    back-off-initial-interval: ${BILLING_PRODUCER_BACK_OFF_INITIAL_INTERVAL:1s}
-    back-off-max-interval: ${BILLING_PRODUCER_BACK_OFF_MAX_INTERVAL:1m}
-    back-off-multiplier: ${BILLING_PRODUCER_BACK_OFF_MULTIPLIER:2}
-    max-attempts: ${BILLING_PRODUCER_MAX_ATTEMPTS:1}
-    incoming:
-      topic: ${TALLY_TOPIC}
-      kafka-group-id: swatch-producer-billing
-      seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
-      seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
-    outgoing:
-      topic: ${BILLABLE_USAGE_TOPIC}
-    contracts:
+  contracts:
+    client:
       use-stub: ${CONTRACT_USE_STUB:false}
       back-off-initial-interval: ${CONTRACT_CLIENT_BACK_OFF_INITIAL_INTERVAL_MILLIS:1000}
       back-off-max-interval: ${CONTRACT_CLIENT_BACK_OFF_MAX_INTERVAL_MILLIS:64000}
@@ -93,12 +80,6 @@ rhsm-subscriptions:
       truststore-password: ${clowder.endpoints.swatch-billable-usage-service.trust-store-password}
       truststore-type: ${clowder.endpoints.swatch-billable-usage-service.trust-store-type}
       psk: ${SWATCH_SELF_PSK:placeholder}
-  billable-usage-dead-letter:
-    incoming:
-      topic: ${BILLABLE_USAGE_DEAD_LETTER_TOPIC}
-      kafka-group-id: swatch-producer-billing-dead-letter
-      seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
-      seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
   tasks:
     topic: ${TASKS_TOPIC}
     kafka-group-id: ${KAFKA_GROUP_ID:rhsm-subscriptions-task-processor}
