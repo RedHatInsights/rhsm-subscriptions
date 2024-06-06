@@ -741,7 +741,7 @@ Links to Swagger UI and API specs:
 * [Customer-facing API][customer-api]
   ([source](api/rhsm-subscriptions-api-spec.yaml))
 * [Internal Billing Producer API][billing-api]
-  ([source](src/main/spec/internal-billing-api-spec.yaml))
+  ([source](swatch-billable-usage/src/main/resources/META-INF/openapi.yaml))
 * [Internal Metering API][metering-api]
   ([source](src/main/spec/internal-metering-api-spec.yaml))
 * [Internal Subscriptions API][subscriptions-api]
@@ -783,7 +783,7 @@ Service that syncs system data from Hosted Candlepin into HBI.
 |                  | platform.inventory.host-ingress                      | swatch-system-conduit               |
 | worker           | platform.rhsm-subscriptions.tasks                    | swatch-tally                        |
 | worker           | platform.rhsm-subscriptions.tally                    | swatch-tally                        |
-| worker           | platform.rhsm-subscriptions.billable-usage           | swatch-tally                        |
+|                  | platform.rhsm-subscriptions.billable-usage           | swatch-billable-usage               |
 | worker           | platform.rhsm-subscriptions.service-instance-ingress | swatch-tally                        |
 | purge-snapshots  |                                                      |                                     |
 | rh-marketplace   | platform.rhsm-subscriptions.billable-usage           | swatch-producer-red-hat-marketplace |

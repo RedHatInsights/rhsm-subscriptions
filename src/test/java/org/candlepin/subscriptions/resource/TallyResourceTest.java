@@ -42,7 +42,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.candlepin.clock.ApplicationClock;
-import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
@@ -91,7 +90,6 @@ class TallyResourceTest {
   private static final MetricId METRIC_ID_SOCKETS = MetricId.fromString("Sockets");
 
   @MockBean TallySnapshotRepository repository;
-  @MockBean BillableUsageRemittanceRepository remittanceRepository;
   @MockBean PageLinkCreator pageLinkCreator;
   @MockBean OrgConfigRepository orgConfigRepository;
   @MockBean CapacityApi capacityApi;

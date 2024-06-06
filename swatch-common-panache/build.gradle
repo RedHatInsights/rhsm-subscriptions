@@ -1,0 +1,10 @@
+plugins {
+    id 'swatch.java-library-conventions'
+}
+
+dependencies {
+    implementation enforcedPlatform(libraries["quarkus-bom"])
+    api("io.quarkus:quarkus-hibernate-orm-panache")
+}
+
+description = 'Shared panache logic for swatch services'

@@ -21,14 +21,20 @@
 package com.redhat.swatch.billable.usage.admin.api;
 
 import com.redhat.swatch.billable.usage.configuration.ApplicationConfiguration;
+import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceFilter;
 import com.redhat.swatch.billable.usage.kafka.streams.FlushTopicService;
 import com.redhat.swatch.billable.usage.openapi.model.DefaultResponse;
+import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
 import com.redhat.swatch.billable.usage.openapi.resource.DefaultApi;
 import com.redhat.swatch.billable.usage.services.EnabledOrgsProducer;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.ProcessingException;
 import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
@@ -46,6 +52,58 @@ public class InternalBillableUsageResource implements DefaultApi {
   private final EnabledOrgsProducer enabledOrgsProducer;
   private final ApplicationConfiguration configuration;
   private final ApplicationClock clock;
+
+  @Override
+  public List<MonthlyRemittance> getRemittances(
+      String productId,
+      String orgId,
+      String metricId,
+      String billingProvider,
+      String billingAccountId,
+      OffsetDateTime beginning,
+      OffsetDateTime ending) {
+
+    if (Objects.isNull(orgId)) {
+      throw new BadRequestException("Must provide 'orgId' query parameters.");
+    }
+
+    if (Objects.nonNull(beginning) && Objects.nonNull(ending) && beginning.isAfter(ending)) {
+      throw new BadRequestException("Query parameter 'beginning' must be before 'ending'.");
+    }
+
+    BillableUsageRemittanceFilter filter =
+        BillableUsageRemittanceFilter.builder()
+            .orgId(orgId)
+            .productId(productId)
+            .metricId(metricId)
+            .billingProvider(billingProvider)
+            .billingAccountId(billingAccountId)
+            .beginning(beginning)
+            .ending(ending)
+            .build();
+    return billingController.getRemittances(filter);
+  }
+
+  @Override
+  public DefaultResponse resetBillableUsageRemittance(
+      Set<String> orgIds, String productId, OffsetDateTime start, OffsetDateTime end) {
+    int updatedRemittance = 0;
+    try {
+      updatedRemittance =
+          billingController.resetBillableUsageRemittance(productId, start, end, orgIds);
+    } catch (Exception e) {
+      log.warn("Billable usage remittance update failed.", e);
+      return getDefaultResponse(REJECTED_STATUS);
+    }
+    if (updatedRemittance > 0) {
+      return getDefaultResponse(SUCCESS_STATUS);
+    } else {
+      throw new BadRequestException(
+          String.format(
+              "No record found for billable usage remittance for productId %s and between start %s and end date %s and orgIds %s",
+              productId, start, end, orgIds));
+    }
+  }
 
   @Override
   public DefaultResponse flushBillableUsageAggregationTopic() throws ProcessingException {

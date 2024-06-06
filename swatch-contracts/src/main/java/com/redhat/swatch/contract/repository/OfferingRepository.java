@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.contract.repository;
 
+import com.redhat.swatch.panache.PanacheSpecificationSupport;
 import jakarta.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
