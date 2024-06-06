@@ -41,7 +41,7 @@ import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.candlepin.subscriptions.umb.CanonicalMessage;
 import org.candlepin.subscriptions.umb.UmbSubscription;
 import org.candlepin.subscriptions.util.OfferingProductTagLookupService;
-import org.candlepin.subscriptions.utilization.admin.api.InternalApi;
+import org.candlepin.subscriptions.utilization.admin.api.InternalSubscriptionsApi;
 import org.candlepin.subscriptions.utilization.admin.api.model.AwsUsageContext;
 import org.candlepin.subscriptions.utilization.admin.api.model.AzureUsageContext;
 import org.candlepin.subscriptions.utilization.admin.api.model.Metric;
@@ -58,7 +58,7 @@ import org.springframework.stereotype.Component;
 /** Subscriptions Table API implementation. */
 @Slf4j
 @Component
-public class InternalSubscriptionResource implements InternalApi {
+public class InternalSubscriptionResource implements InternalSubscriptionsApi {
 
   public static final String FEATURE_NOT_ENABLED_MESSAGE = "This feature is not currently enabled.";
   private static final String SUCCESS_STATUS = "Success";

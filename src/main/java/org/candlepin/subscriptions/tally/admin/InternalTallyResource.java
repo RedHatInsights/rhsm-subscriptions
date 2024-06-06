@@ -34,7 +34,7 @@ import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.retention.TallyRetentionController;
 import org.candlepin.subscriptions.security.SecurityProperties;
 import org.candlepin.subscriptions.tally.MarketplaceResendTallyController;
-import org.candlepin.subscriptions.tally.admin.api.InternalApi;
+import org.candlepin.subscriptions.tally.admin.api.InternalTallyApi;
 import org.candlepin.subscriptions.tally.admin.api.model.DefaultResponse;
 import org.candlepin.subscriptions.tally.admin.api.model.EventsResponse;
 import org.candlepin.subscriptions.tally.admin.api.model.OptInResponse;
@@ -52,7 +52,7 @@ import org.springframework.stereotype.Component;
 /** This resource is for exposing administrator REST endpoints for Tally. */
 @Component
 @Slf4j
-public class InternalTallyResource implements InternalApi {
+public class InternalTallyResource implements InternalTallyApi {
 
   public static final String FEATURE_NOT_ENABLED_MESSSAGE =
       "This feature is not currently enabled.";

@@ -21,7 +21,7 @@ rhsm-subscriptions:
         seek-override-end: ${RH_MARKETPLACE_BILLABLE_USAGE_KAFKA_SEEK_OVERRIDE_END:false}
         seek-override-timestamp: ${RH_MARKETPLACE_BILLABLE_USAGE_KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
     usage-context-lookup:
-      url: ${clowder.endpoints.swatch-subscription-sync-service.url:http://localhost:8000}/api/rhsm-subscriptions/v1
+      url: ${clowder.endpoints.swatch-subscription-sync-service.url:http://localhost:8000}/api/rhsm-subscriptions
       truststore: ${clowder.endpoints.swatch-subscription-sync-service.trust-store-path}
       truststore-password: ${clowder.endpoints.swatch-subscription-sync-service.trust-store-password}
       truststore-type: ${clowder.endpoints.swatch-subscription-sync-service.trust-store-type}

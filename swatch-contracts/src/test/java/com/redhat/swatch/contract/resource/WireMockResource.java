@@ -228,7 +228,7 @@ public class WireMockResource
 
   private void stubForInternalSubscriptionService(WireMockServer wireMockServer) {
     wireMockServer.stubFor(
-        get(urlMatching("/mock/internalSubs/internal/tags/.*/metrics"))
+        get(urlMatching("/mock/internalSubs/v1/internal/tags/.*/metrics"))
             .willReturn(
                 aResponse()
                     .withHeader("Content-Type", "application/json")
@@ -248,7 +248,7 @@ public class WireMockResource
                                             ]
                                             """)));
     wireMockServer.stubFor(
-        any(urlMatching("/mock/internalSubs/internal/offerings/.*/product_tags"))
+        any(urlMatching("/mock/internalSubs/v1/internal/offerings/.*/product_tags"))
             .willReturn(
                 aResponse()
                     .withHeader("Content-Type", "application/json")
