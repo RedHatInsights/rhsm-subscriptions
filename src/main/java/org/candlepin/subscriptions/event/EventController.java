@@ -222,7 +222,8 @@ public class EventController {
     LinkedHashMap<String, Integer> eventIndexMap = mapEventsToBatchIndex(eventJsonList);
     for (Entry<String, Integer> eventIndex : eventIndexMap.entrySet()) {
       try {
-        Event eventToProcess = objectMapper.readValue(eventIndex.getKey(), Event.class);
+        Event eventToProcess =
+            normalizeEvent(objectMapper.readValue(eventIndex.getKey(), Event.class));
         if (!EXCLUDE_LOG_FOR_EVENT_SOURCES.contains(eventToProcess.getEventSource())) {
           log.info("Event processing in batch: " + eventIndex.getKey());
         }
@@ -328,6 +329,20 @@ public class EventController {
     } catch (Exception e) {
       log.error("Error while attempting to automatically opt-in for orgId={} ", orgId, e);
     }
+  }
+
+  public Event normalizeEvent(Event event) {
+    // normalize UOM to metric_id
+    event
+        .getMeasurements()
+        .forEach(
+            measurement -> {
+              if (measurement.getUom() != null) {
+                measurement.setMetricId(measurement.getUom());
+                measurement.setUom(null);
+              }
+            });
+    return event;
   }
 
   private static class ServiceInstancesResult {
