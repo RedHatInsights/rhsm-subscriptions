@@ -4101,7 +4101,8 @@ data:
                 "type": "prometheus",
                 "uid": "${datasource}"
               },
-              "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.rhsm-subscriptions.tally\", group=\"swatch-producer-billing\"}) by (group, partition)",
+              "editorMode": "code",
+              "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.rhsm-subscriptions.tally\", group=\"swatch-billable-usage\"}) by (group, partition)",
               "format": "time_series",
               "instant": false,
               "interval": "",
