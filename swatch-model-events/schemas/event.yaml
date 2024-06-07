@@ -87,12 +87,13 @@ properties:
         uom:
           description: Metric ID for the measurement. (e.g. Cores, Sockets)
           type: string
-          required: true
+          required: false
           deprecated: true
           deprecationMessage: Use 'metric_id' instead.
         metric_id:
           description: Metric ID for the measurement. (e.g. Cores, Sockets)
           type: string
+          required: true
     required: false
   cloud_provider:
     description: Identifier for the cloud provider of the subject.
