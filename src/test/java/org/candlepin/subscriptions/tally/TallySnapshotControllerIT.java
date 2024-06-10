@@ -160,7 +160,6 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
     InventoryHostFacts host = new InventoryHostFacts();
     host.setOrgId(ORG_ID);
     host.setInventoryId(inventoryId);
-    host.setInstanceId(UUID.randomUUID().toString());
     host.setSystemProfileSockets(2);
     host.setSystemProfileCoresPerSocket(4);
     host.setSystemProfileProductIds(String.join(",", productIds));

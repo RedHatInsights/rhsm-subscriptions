@@ -74,7 +74,7 @@ import lombok.Setter;
             @ColumnResult(name = "guest_id"),
             @ColumnResult(name = "subscription_manager_id"),
             @ColumnResult(name = "insights_id"),
-            @ColumnResult(name = "instance_id"),
+            @ColumnResult(name = "provider_id"),
             @ColumnResult(name = "cloud_provider"),
             @ColumnResult(name = "stale_timestamp", type = OffsetDateTime.class),
             @ColumnResult(name = "hardware_subman_id")
@@ -122,13 +122,7 @@ import lombok.Setter;
         h.system_profile_facts->>'is_marketplace' as is_marketplace,
         h.canonical_facts->>'subscription_manager_id' as subscription_manager_id,
         h.canonical_facts->>'insights_id' as insights_id,
-        coalesce(
-            h.canonical_facts->>'provider_id',
-            -- fallback logic to set the instance ID if and only if the instanceId is not set yet:
-            -- We assume that the instance ID for any given HBI host record is the inventory ID; compare
-            -- to an OpenShift Cluster from Prometheus data, where we use the cluster ID.
-            cast(h.id as text)
-        ) as instance_id,
+        h.canonical_facts->>'provider_id' as provider_id,
         rhsm_products.products,
         qpc_prods.qpc_products,
         system_profile.system_profile_product_ids,
@@ -156,7 +150,7 @@ import lombok.Setter;
            and (h.system_profile_facts->>'host_type' IS NULL OR h.system_profile_facts->>'host_type' <> 'edge')
            and NOW() < stale_timestamp + make_interval(days => :culledOffsetDays)
         -- NOTE: ordering is crucial for correct streaming reconciliation of HBI data
-        order by instance_id, hardware_subman_id, any_hypervisor_uuid, inventory_id
+        order by hardware_subman_id, any_hypervisor_uuid, inventory_id
     """,
     resultSetMapping = "inventoryHostFactsMapping")
 @Getter
