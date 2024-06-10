@@ -23,13 +23,13 @@ package org.candlepin.subscriptions.rhmarketplace.api.admin;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.rhmarketplace.ApiException;
 import org.candlepin.subscriptions.rhmarketplace.RhMarketplaceService;
-import org.candlepin.subscriptions.rhmarketplace.admin.api.InternalApi;
+import org.candlepin.subscriptions.rhmarketplace.admin.api.InternalRhMarketplaceApi;
 import org.candlepin.subscriptions.rhmarketplace.admin.api.model.StatusResponse;
 import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
-public class InternalRhMarkeplaceResource implements InternalApi {
+public class InternalRhMarkeplaceResource implements InternalRhMarketplaceApi {
   private final RhMarketplaceService rhMarketplaceService;
 
   private final StatusResponseMapper statusResponseMapper;

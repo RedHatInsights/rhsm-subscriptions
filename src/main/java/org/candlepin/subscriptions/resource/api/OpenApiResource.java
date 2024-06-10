@@ -20,14 +20,20 @@
  */
 package org.candlepin.subscriptions.resource.api;
 
-import org.candlepin.subscriptions.utilization.api.resources.OpenapiYamlApi;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
+import org.candlepin.subscriptions.utilization.api.resources.RootApi;
 import org.springframework.stereotype.Component;
 
-/** Serves the OpenAPI spec as /openapi.yaml. */
+/** Serves the OpenAPI spec as /openapi.json. */
 @Component
-public class OpenApiYamlResource implements OpenapiYamlApi {
-  @Autowired ApiSpecController controller;
+@AllArgsConstructor
+public class OpenApiResource implements RootApi {
+  private final ApiSpecController controller;
+
+  @Override
+  public String getOpenApiJson() {
+    return controller.getOpenApiJson();
+  }
 
   @Override
   public String getOpenApiYaml() {

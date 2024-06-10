@@ -20,21 +20,23 @@
  */
 package org.candlepin.subscriptions.resource.api;
 
-import org.candlepin.subscriptions.rhmarketplace.admin.api.InternalSwatchProducerRedHatMarketplaceOpenapiJsonApi;
+import lombok.AllArgsConstructor;
+import org.candlepin.subscriptions.utilization.api.resources.RootApi;
 import org.springframework.stereotype.Component;
 
+/** Serves the OpenAPI json for the internal subscription sync API */
 @Component
-public class InternalProducerRedHatMarketplaceApiJsonResource
-    implements InternalSwatchProducerRedHatMarketplaceOpenapiJsonApi {
-
-  private ApiSpecController controller;
-
-  public InternalProducerRedHatMarketplaceApiJsonResource(ApiSpecController controller) {
-    this.controller = controller;
-  }
+@AllArgsConstructor
+public class InternalSubscriptionSyncApiResource implements RootApi {
+  private final ApiSpecController controller;
 
   @Override
   public String getOpenApiJson() {
-    return controller.getInternalProducerRHMApiJson();
+    return controller.getInternalSubSyncApiJson();
+  }
+
+  @Override
+  public String getOpenApiYaml() {
+    return controller.getInternalSubSyncApiYaml();
   }
 }
