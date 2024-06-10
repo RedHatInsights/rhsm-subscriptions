@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.event;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -414,6 +415,48 @@ class EventControllerTest {
     assertEquals(batchSize, finalBatchCount.get(1));
     assertEquals(batchSize, finalBatchCount.get(2));
     assertEquals(1, finalBatchCount.get(3));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void testPersistedEventHaveMetricIdNormalized() {
+    List<String> eventRecords = new ArrayList<>();
+
+    var azureEventRecord1 =
+        """
+                {
+                   "sla": "Premium",
+                   "role": "osd",
+                   "org_id": "7",
+                   "timestamp": "2023-05-02T00:00:00Z",
+                   "event_type": "snapshot",
+                   "expiration": "2023-05-02T01:00:00Z",
+                   "instance_id": "e3a62bd1-fd00-405c-9401-f2288808588d",
+                   "display_name": "automation_osd_cluster_e3a62bd1-fd00-405c-9401-f2288808588d",
+                   "event_source": "cost-management",
+                   "measurements": [
+                     {
+                       "uom": "vCPUs",
+                       "value": 1.0
+                     }
+                   ],
+                   "service_type": "RHEL System",
+                   "billing_provider": "azure",
+                   "azure_tenant_id": "TestAzureTenantId",
+                   "azure_subscription_id": "TestAzureSubscriptionId"
+                }
+        """;
+    eventRecords.add(azureEventRecord1);
+    eventController.persistServiceInstances(eventRecords);
+    ArgumentCaptor<List<EventRecord>> captor = ArgumentCaptor.forClass(List.class);
+    verify(eventRecordRepository).saveAll(captor.capture());
+    var records = captor.getAllValues().get(0);
+    assertEquals(1, records.size());
+    var eventRecord = records.get(0);
+    assertEquals(1, eventRecord.getEvent().getMeasurements().size());
+    var measurement = eventRecord.getEvent().getMeasurements().get(0);
+    assertEquals("vCPUs", measurement.getMetricId());
+    assertNull(measurement.getUom());
   }
 
   private class BatchedEventCounter {
