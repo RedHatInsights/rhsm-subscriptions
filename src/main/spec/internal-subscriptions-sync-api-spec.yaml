@@ -5,13 +5,13 @@ info:
   version: 1.0.0
 
 servers:
-  - url: /{PATH_PREFIX}/{APP_NAME}/v1
+  - url: /{PATH_PREFIX}/{APP_NAME}
     variables:
       PATH_PREFIX:
         default: api
       APP_NAME:
         default: rhsm-subscriptions
-  - url: https://{HOSTNAME}/{PATH_PREFIX}/{APP_NAME}/v1
+  - url: https://{HOSTNAME}/{PATH_PREFIX}/{APP_NAME}
     variables:
       HOSTNAME:
         enum:
@@ -26,7 +26,7 @@ servers:
         default: rhsm-subscriptions
 
 paths:
-  /internal/subscriptions:
+  /v1/internal/subscriptions:
     description: Save subscriptions manually. Supported only in dev-mode.
     post:
       operationId: saveSubscriptions
@@ -89,7 +89,7 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
-  /internal/subscriptions/umb:
+  /v1/internal/subscriptions/umb:
     description: Save UMB subscription manually.
     post:
       operationId: syncUmbSubscription
@@ -198,7 +198,7 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
-  /internal/rpc/subscriptions/sync:
+  /v1/internal/rpc/subscriptions/sync:
     description: Enqueue all sync-enabled orgs to sync their subscriptions with upstream
     put:
       summary: Enqueue all sync-enabled orgs to sync their subscriptions with upstream
@@ -227,7 +227,7 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
-  /internal/subscriptions/sync/org/{org_id}:
+  /v1/internal/subscriptions/sync/org/{org_id}:
     description: "Force sync of subscriptions for given org_id."
     parameters:
       - name: org_id
@@ -256,7 +256,7 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
-  /internal/subscriptions/prune:
+  /v1/internal/subscriptions/prune:
     description: Remove subscription and capacity records that are in the denylist.
     delete:
       summary: Remove subscription and capacity records that are in the denylist.
@@ -279,7 +279,7 @@ paths:
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
 
-  /internal/subscriptions/rhmUsageContext:
+  /v1/internal/subscriptions/rhmUsageContext:
     description: "Get the Red Hat Marketplace usage context."
     parameters:
       - name: orgId
@@ -327,7 +327,7 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - internalSubscriptions
-  /internal/subscriptions/awsUsageContext:
+  /v1/internal/subscriptions/awsUsageContext:
     description: "Get AWS usage context."
     parameters:
       - name: orgId
@@ -381,7 +381,7 @@ paths:
       tags:
         - internalSubscriptions
 
-  /internal/subscriptions/azureUsageContext:
+  /v1/internal/subscriptions/azureUsageContext:
     get:
       operationId: getAzureMarketplaceContext
       summary: Lookup necessary info to submit a usage record to Azure
@@ -442,7 +442,7 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
-  /internal/offerings/{sku}/product_tags:
+  /v1/internal/offerings/{sku}/product_tags:
     description: "Mapping sku to product tags."
     parameters:
       - name: sku
@@ -474,7 +474,7 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - internalSubscriptions
-  /internal/tags/{tag}/metrics:
+  /v1/internal/tags/{tag}/metrics:
     description: "Mapping sku to product tags."
     parameters:
       - name: tag
@@ -512,7 +512,7 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - internalSubscriptions
-  /internal/rpc/offerings/sync/{sku}:
+  /v1/internal/rpc/offerings/sync/{sku}:
     description: Sync an offering from the upstream source.
     parameters:
       - name: sku
@@ -540,7 +540,7 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - internalSubscriptions
-  /internal/rpc/offerings/sync:
+  /v1/internal/rpc/offerings/sync:
     description: Syncs all offerings not listed in deny list from the upstream source.
     put:
       summary: Syncs all offerings not listed in deny list from the upstream source.
@@ -562,7 +562,7 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
-  /internal/rpc/offerings/reconcile/{sku}:
+  /v1/internal/rpc/offerings/reconcile/{sku}:
     description: Reconcile capacity for an offering from the upstream source.
     parameters:
       - name: sku
@@ -590,7 +590,7 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - internalSubscriptions
-  /internal/subscriptions/terminate/{subscription_id}:
+  /v1/internal/subscriptions/terminate/{subscription_id}:
     description: "Terminate a subscription with a given end date."
     parameters:
       - name: subscription_id

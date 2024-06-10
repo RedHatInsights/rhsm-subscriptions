@@ -18,23 +18,15 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource.api;
+package org.candlepin.subscriptions.db;
 
-import org.candlepin.subscriptions.rhmarketplace.admin.api.InternalSwatchProducerRedHatMarketplaceOpenapiYamlApi;
-import org.springframework.stereotype.Component;
+import java.util.UUID;
+import org.candlepin.subscriptions.db.model.TallyInstancePaygView;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-@Component
-public class InternalProducerRedHatMarketplaceApiYamlResource
-    implements InternalSwatchProducerRedHatMarketplaceOpenapiYamlApi {
-
-  private ApiSpecController controller;
-
-  public InternalProducerRedHatMarketplaceApiYamlResource(ApiSpecController controller) {
-    this.controller = controller;
-  }
-
-  @Override
-  public String getOpenApiYaml() {
-    return controller.getInternalProducerRHMApiYaml();
-  }
-}
+/** Provides access to TallyInstanceView database entities. */
+@SuppressWarnings({"linelength", "indentation"})
+public interface TallyInstancePaygViewRepository
+    extends JpaRepository<TallyInstancePaygView, UUID>,
+        JpaSpecificationExecutor<TallyInstancePaygView> {}

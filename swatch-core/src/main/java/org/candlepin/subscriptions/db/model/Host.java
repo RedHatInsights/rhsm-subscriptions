@@ -246,18 +246,18 @@ public class Host implements Serializable {
   }
 
   public Double getMonthlyTotal(String monthId, MetricId metricId) {
-    var key = new InstanceMonthlyTotalKey(monthId, metricId.getValue());
+    var key = new InstanceMonthlyTotalKey(monthId, metricId);
     return monthlyTotals.get(key);
   }
 
   public void addToMonthlyTotal(String monthId, MetricId metricId, Double value) {
-    var key = new InstanceMonthlyTotalKey(monthId, metricId.toString());
+    var key = new InstanceMonthlyTotalKey(monthId, metricId);
     Double currentValue = monthlyTotals.getOrDefault(key, 0.0);
     monthlyTotals.put(key, currentValue + value);
   }
 
   public void addToMonthlyTotal(OffsetDateTime timestamp, MetricId metricId, Double value) {
-    var key = new InstanceMonthlyTotalKey(timestamp, metricId.toString());
+    var key = new InstanceMonthlyTotalKey(timestamp, metricId);
     Double currentValue = monthlyTotals.getOrDefault(key, 0.0);
     monthlyTotals.put(key, currentValue + value);
   }

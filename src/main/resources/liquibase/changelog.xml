@@ -159,5 +159,6 @@
     <include file="/liquibase/202405160950-add-subscription-capacity-view.xml"/>
     <include file="/liquibase/202406030700-drop-unique-constraints-in-hosts.xml"/>
     <include file="/liquibase/202405081325-delete-duplicate-aws-subscriptions.xml"/>
+    <include file="/liquibase/202405300830-split-instance-view-to-payg-and-non-payg-versions.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

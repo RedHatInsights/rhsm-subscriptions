@@ -30,10 +30,10 @@ import static org.mockito.Mockito.when;
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.core.UriInfo;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -44,8 +44,8 @@ import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.HostHardwareType;
-import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
-import org.candlepin.subscriptions.db.model.TallyInstanceView;
+import org.candlepin.subscriptions.db.model.TallyInstanceNonPaygView;
+import org.candlepin.subscriptions.db.model.TallyInstancePaygView;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
@@ -78,6 +78,7 @@ class InstancesResourceTest {
   @MockBean HostRepository hostRepository;
   @MockBean PageLinkCreator pageLinkCreator;
   @MockBean OrgConfigRepository orgConfigRepository;
+  @MockBean UriInfo uriInfo;
   @Autowired InstancesResource resource;
 
   @BeforeEach
@@ -92,7 +93,7 @@ class InstancesResourceTest {
     double expectedCoresValue = 45.0;
     double expectedInstanceHoursValue = 0.0;
 
-    var tallyInstanceView = new TallyInstanceView();
+    var tallyInstanceView = new TallyInstanceNonPaygView();
     tallyInstanceView.setId("testHostId");
     tallyInstanceView.setDisplayName("rhv.example.com");
     tallyInstanceView.setNumOfGuests(3);
@@ -107,6 +108,7 @@ class InstancesResourceTest {
 
     Mockito.when(
             repository.findAllBy(
+                eq(true),
                 eq("owner123456"),
                 any(),
                 any(),
@@ -122,7 +124,7 @@ class InstancesResourceTest {
                 any()))
         .thenReturn(new PageImpl<>(List.of(tallyInstanceView)));
 
-    var expectUom = List.of("Cores", "Instance-hours");
+    var expectedMetrics = List.of("Cores", "Instance-hours");
     List<Double> expectedMeasurement = List.of(expectedCoresValue, expectedInstanceHoursValue);
     var data = new InstanceData();
     data.setId("testHostId");
@@ -141,7 +143,7 @@ class InstancesResourceTest {
     meta.setProduct(ROSA.toString());
     meta.setServiceLevel(ServiceLevelType.PREMIUM);
     meta.setUsage(UsageType.PRODUCTION);
-    meta.setMeasurements(expectUom);
+    meta.setMeasurements(expectedMetrics);
     meta.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
 
     var expected = new InstanceResponse();
@@ -174,7 +176,7 @@ class InstancesResourceTest {
   void testShouldPopulateInstanceResponseWithHypervisorAndPhysical() {
     BillingProvider expectedBillingProvider = BillingProvider.RED_HAT;
 
-    var tallyInstanceViewPhysical = new TallyInstanceView();
+    var tallyInstanceViewPhysical = new TallyInstanceNonPaygView();
     tallyInstanceViewPhysical.setDisplayName("rhv.example.com");
     tallyInstanceViewPhysical.setNumOfGuests(3);
     tallyInstanceViewPhysical.setLastSeen(OffsetDateTime.now());
@@ -185,7 +187,7 @@ class InstancesResourceTest {
     // Measurement should come from sockets value
     tallyInstanceViewPhysical.setSockets(2);
 
-    var tallyInstanceViewHypervisor = new TallyInstanceView();
+    var tallyInstanceViewHypervisor = new TallyInstanceNonPaygView();
     tallyInstanceViewHypervisor.setDisplayName("rhv.example.com");
     tallyInstanceViewHypervisor.setNumOfGuests(3);
     tallyInstanceViewHypervisor.setLastSeen(OffsetDateTime.now());
@@ -198,6 +200,7 @@ class InstancesResourceTest {
 
     Mockito.when(
             repository.findAllBy(
+                eq(false),
                 eq("owner123456"),
                 any(),
                 any(),
@@ -270,25 +273,19 @@ class InstancesResourceTest {
   void testShouldPopulateCategoryWithCloud() {
     BillingProvider expectedBillingProvider = BillingProvider.AWS;
 
-    var tallyInstanceView = new TallyInstanceView();
+    var tallyInstanceView = new TallyInstancePaygView();
     tallyInstanceView.setDisplayName("rhv.example.com");
     tallyInstanceView.setNumOfGuests(3);
     tallyInstanceView.setLastSeen(OffsetDateTime.now());
     tallyInstanceView.getKey().setInstanceId("d6214a0b-b344-4778-831c-d53dcacb2da3");
     tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.AWS);
-    tallyInstanceView.setMetrics(Map.of(MetricIdUtils.getCores(), 8.0));
-
-    String month = InstanceMonthlyTotalKey.formatMonthId(tallyInstanceView.getLastSeen());
-
-    // Measurement should come from instance_monthly_totals
-    var monthlyTotalMap = new HashMap<InstanceMonthlyTotalKey, Double>();
-    monthlyTotalMap.put(
-        new InstanceMonthlyTotalKey(month, MetricIdUtils.getInstanceHours().toString()), 5.0);
-    tallyInstanceView.setMonthlyTotals(monthlyTotalMap);
+    tallyInstanceView.setMetrics(
+        Map.of(MetricIdUtils.getCores(), 8.0, MetricIdUtils.getInstanceHours(), 5.0));
 
     Mockito.when(
             repository.findAllBy(
+                eq(true),
                 eq("owner123456"),
                 any(),
                 any(),
@@ -310,7 +307,7 @@ class InstancesResourceTest {
     data.setDisplayName(tallyInstanceView.getDisplayName());
     data.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
     data.setLastSeen(tallyInstanceView.getLastSeen());
-    data.setMeasurements(List.of(0.0, 5.0));
+    data.setMeasurements(List.of(8.0, 5.0));
     data.setNumberOfGuests(tallyInstanceView.getNumOfGuests());
     data.setCloudProvider(CloudProvider.AWS);
     data.setCategory(ReportCategory.CLOUD);
@@ -366,7 +363,7 @@ class InstancesResourceTest {
   void testCallRepoWithNullMonthForNonPAYGProduct() {
     BillingProvider expectedBillingProvider = BillingProvider.RED_HAT;
 
-    var tallyInstanceView = new TallyInstanceView();
+    var tallyInstanceView = new TallyInstanceNonPaygView();
     tallyInstanceView.setDisplayName("rhv.example.com");
     tallyInstanceView.setNumOfGuests(3);
     tallyInstanceView.setLastSeen(OffsetDateTime.now());
@@ -378,6 +375,7 @@ class InstancesResourceTest {
 
     Mockito.when(
             repository.findAllBy(
+                eq(false),
                 eq("owner123456"),
                 any(),
                 any(),
@@ -412,6 +410,7 @@ class InstancesResourceTest {
 
     Mockito.when(
             repository.findAllBy(
+                eq(false),
                 eq("owner123456"),
                 any(),
                 any(),
@@ -429,6 +428,7 @@ class InstancesResourceTest {
 
     verify(repository)
         .findAllBy(
+            eq(false),
             eq("owner123456"),
             any(),
             any(),
@@ -467,7 +467,7 @@ class InstancesResourceTest {
   void testMinCoresZeroWhenUomIsCores() {
     BillingProvider expectedBillingProvider = BillingProvider.RED_HAT;
 
-    var tallyInstanceView = new TallyInstanceView();
+    var tallyInstanceView = new TallyInstanceNonPaygView();
     tallyInstanceView.setDisplayName("rhv.example.com");
     tallyInstanceView.setNumOfGuests(3);
     tallyInstanceView.setLastSeen(OffsetDateTime.now());
@@ -479,6 +479,7 @@ class InstancesResourceTest {
 
     Mockito.when(
             repository.findAllBy(
+                eq(false),
                 eq("owner123456"),
                 any(),
                 any(),
@@ -513,6 +514,7 @@ class InstancesResourceTest {
 
     verify(repository)
         .findAllBy(
+            eq(false),
             eq("owner123456"),
             any(),
             any(),
@@ -533,7 +535,7 @@ class InstancesResourceTest {
   void testMinCoresZeroWhenMetricIdIsCores() {
     BillingProvider expectedBillingProvider = BillingProvider.RED_HAT;
 
-    var tallyInstanceView = new TallyInstanceView();
+    var tallyInstanceView = new TallyInstanceNonPaygView();
     tallyInstanceView.setDisplayName("rhv.example.com");
     tallyInstanceView.setNumOfGuests(3);
     tallyInstanceView.setLastSeen(OffsetDateTime.now());
@@ -545,6 +547,7 @@ class InstancesResourceTest {
 
     Mockito.when(
             repository.findAllBy(
+                eq(false),
                 eq("owner123456"),
                 any(),
                 any(),
@@ -579,6 +582,7 @@ class InstancesResourceTest {
 
     verify(repository)
         .findAllBy(
+            eq(false),
             eq("owner123456"),
             any(),
             any(),
@@ -599,7 +603,7 @@ class InstancesResourceTest {
   void testMinSocketsZeroWhenUomIsSockets() {
     BillingProvider expectedBillingProvider = BillingProvider.RED_HAT;
 
-    var tallyInstanceView = new TallyInstanceView();
+    var tallyInstanceView = new TallyInstanceNonPaygView();
     tallyInstanceView.setDisplayName("rhv.example.com");
     tallyInstanceView.setNumOfGuests(3);
     tallyInstanceView.setLastSeen(OffsetDateTime.now());
@@ -611,6 +615,7 @@ class InstancesResourceTest {
 
     Mockito.when(
             repository.findAllBy(
+                eq(false),
                 eq("owner123456"),
                 any(),
                 any(),
@@ -645,6 +650,7 @@ class InstancesResourceTest {
 
     verify(repository)
         .findAllBy(
+            eq(false),
             eq("owner123456"),
             any(),
             any(),
@@ -665,7 +671,7 @@ class InstancesResourceTest {
   void testMinSocketsZeroWhenMetricIdIsSockets() {
     BillingProvider expectedBillingProvider = BillingProvider.RED_HAT;
 
-    var tallyInstanceView = new TallyInstanceView();
+    var tallyInstanceView = new TallyInstanceNonPaygView();
     tallyInstanceView.setDisplayName("rhv.example.com");
     tallyInstanceView.setNumOfGuests(3);
     tallyInstanceView.setLastSeen(OffsetDateTime.now());
@@ -677,6 +683,7 @@ class InstancesResourceTest {
 
     Mockito.when(
             repository.findAllBy(
+                eq(false),
                 eq("owner123456"),
                 any(),
                 any(),
@@ -711,6 +718,7 @@ class InstancesResourceTest {
 
     verify(repository)
         .findAllBy(
+            eq(false),
             eq("owner123456"),
             any(),
             any(),

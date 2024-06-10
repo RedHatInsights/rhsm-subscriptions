@@ -18,20 +18,34 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource.api;
+package org.candlepin.subscriptions.db.model;
 
-import org.candlepin.subscriptions.utilization.admin.api.InternalSubscriptionSyncOpenapiJsonApi;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import static java.util.Optional.ofNullable;
 
-/** Serves the OpenAPI json for the internal subscription sync API */
-@Component
-public class InternalSubscriptionSyncApiJsonResource
-    implements InternalSubscriptionSyncOpenapiJsonApi {
-  @Autowired ApiSpecController controller;
+import com.redhat.swatch.configuration.registry.MetricId;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.data.annotation.Immutable;
+
+@Setter
+@Getter
+@Entity
+@Immutable
+@Table(name = "tally_instance_payg_view")
+public class TallyInstancePaygView extends TallyInstanceView {
+
+  @Column(name = "month")
+  private String month;
 
   @Override
-  public String getOpenApiJson() {
-    return controller.getInternalSubSyncApiJson();
+  public double getMetricValue(MetricId metricId) {
+    if (getMetrics().containsKey(metricId)) {
+      return ofNullable(getMetrics().get(metricId)).orElse(0.0);
+    }
+
+    return 0;
   }
 }

@@ -82,7 +82,7 @@ class ConsumerApiSpecEqualityTest {
   @ParameterizedTest
   @MethodSource(value = "getCustomerApiPaths")
   void testCustomerApiDefinitionsEquivalentToMonolithSpec(String servicePath) throws IOException {
-    var monolithPath = servicePath.replace("api/rhsm-subscriptions/v1/", "");
+    var monolithPath = servicePath.replace("api/rhsm-subscriptions/", "");
     var monolithPathItem = monolithSpec.getPaths().getPathItem(monolithPath);
     var servicePathItem = serviceSpec.getPaths().getPathItem(servicePath);
     for (var pathItem : Set.of(monolithPathItem, servicePathItem)) {

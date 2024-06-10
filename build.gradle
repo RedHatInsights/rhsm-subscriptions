@@ -163,6 +163,7 @@ tasks.register("buildApiTally", GenerateTask) {
         generatePom: "false",
         dateLibrary: "java8",
         useJakartaEe: "true",
+        useTags: "true"
     ]
 }
 
@@ -176,6 +177,7 @@ tasks.register("buildApiSubSync", GenerateTask) {
             generatePom: "false",
             dateLibrary: "java8",
             useJakartaEe: "true",
+            useTags: "true"
     ]
 }
 
@@ -189,6 +191,7 @@ tasks.register("buildApiProducerRHM", GenerateTask) {
             generatePom: "false",
             dateLibrary: "java8",
             useJakartaEe: "true",
+            useTags: "true"
     ]
 }
 
@@ -315,6 +318,7 @@ project(":api") {
             generatePom: "false",
             dateLibrary: "java8",
             useJakartaEe: "true",
+            useTags: "true"
         ]
         importMappings = [
             "MetricId": "com.redhat.swatch.configuration.registry.MetricId",

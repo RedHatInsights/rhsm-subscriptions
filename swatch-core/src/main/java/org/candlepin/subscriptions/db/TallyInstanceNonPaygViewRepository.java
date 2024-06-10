@@ -18,19 +18,15 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource.api;
+package org.candlepin.subscriptions.db;
 
-import org.candlepin.subscriptions.tally.admin.api.InternalTallyOpenapiYamlApi;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import java.util.UUID;
+import org.candlepin.subscriptions.db.model.TallyInstanceNonPaygView;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-/** Serves the OpenAPI yaml for the internal tally API */
-@Component
-public class InternalTallyApiYamlResource implements InternalTallyOpenapiYamlApi {
-  @Autowired ApiSpecController controller;
-
-  @Override
-  public String getOpenApiYaml() {
-    return controller.getInternalTallyApiYaml();
-  }
-}
+/** Provides access to TallyInstanceView database entities. */
+@SuppressWarnings({"linelength", "indentation"})
+public interface TallyInstanceNonPaygViewRepository
+    extends JpaRepository<TallyInstanceNonPaygView, UUID>,
+        JpaSpecificationExecutor<TallyInstanceNonPaygView> {}

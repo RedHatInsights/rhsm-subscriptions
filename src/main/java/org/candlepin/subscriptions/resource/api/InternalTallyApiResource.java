@@ -20,17 +20,23 @@
  */
 package org.candlepin.subscriptions.resource.api;
 
-import org.candlepin.subscriptions.utilization.api.resources.OpenapiJsonApi;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
+import org.candlepin.subscriptions.tally.admin.api.RootApi;
 import org.springframework.stereotype.Component;
 
-/** Serves the OpenAPI spec as /openapi.json. */
+/** Serves the OpenAPI json for the internal tally API */
 @Component
-public class OpenApiJsonResource implements OpenapiJsonApi {
-  @Autowired ApiSpecController controller;
+@AllArgsConstructor
+public class InternalTallyApiResource implements RootApi {
+  private final ApiSpecController controller;
 
   @Override
   public String getOpenApiJson() {
-    return controller.getOpenApiJson();
+    return controller.getInternalTallyApiJson();
+  }
+
+  @Override
+  public String getOpenApiYaml() {
+    return controller.getInternalTallyApiYaml();
   }
 }
