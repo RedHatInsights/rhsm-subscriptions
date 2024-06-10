@@ -70,7 +70,8 @@ public interface HostRepository
       left join fetch h.buckets
       left join fetch h.monthlyTotals
       where h.orgId=:orgId
-      order by h.instanceId, coalesce(h.hypervisorUuid, h.subscriptionManagerId), h.hypervisorUuid, h.inventoryId, h.id
+        and h.instanceType='HBI_HOST'
+      order by coalesce(h.hypervisorUuid, h.subscriptionManagerId), h.hypervisorUuid, h.inventoryId, h.id
           """)
   @QueryHints(value = {@QueryHint(name = HINT_FETCH_SIZE, value = "1024")})
   Stream<Host> streamHbiHostsByOrgId(@Param("orgId") String orgId);
@@ -282,6 +283,15 @@ public interface HostRepository
     } else {
       query.orderBy(criteriaBuilder.desc(root.get(order.getProperty())));
     }
+  }
+
+  static <T> Join<Host, T> findJoin(Root<Host> root, String alias) {
+    for (Join<Host, ?> join : root.getJoins()) {
+      if (join.getAlias().equals(alias)) {
+        return (Join<Host, T>) join;
+      }
+    }
+    throw new IllegalArgumentException("Cannot find join w/ alias: " + alias);
   }
 
   static <T, S, U> MapJoin<T, S, U> findMapJoin(Root<Host> root, String alias) {
