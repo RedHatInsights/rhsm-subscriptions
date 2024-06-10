@@ -33,6 +33,7 @@ import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceEntity;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
 import com.redhat.swatch.billable.usage.kafka.InMemoryMessageBrokerKafkaResource;
 import com.redhat.swatch.billable.usage.model.EnabledOrgsRequest;
+import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
@@ -75,13 +76,60 @@ class InternalBillableUsageResourceTest {
   }
 
   @Test
+  void testGetRemittancesReturnsBadRequestWhenNoOrgId() {
+    given()
+        .queryParam("productId", PRODUCT_ID)
+        .get("/api/swatch-billable-usage/internal/remittance/accountRemittances")
+        .then()
+        .statusCode(HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
+  void testGetRemittancesReturnsBadRequestWhenWrongDates() {
+    given()
+        .queryParam("productId", PRODUCT_ID)
+        .queryParam("orgId", ORG_ID)
+        .queryParam("beginning", OffsetDateTime.now().toString())
+        .queryParam("ending", OffsetDateTime.now().minusDays(5).toString())
+        .get("/api/swatch-billable-usage/internal/remittance/accountRemittances")
+        .then()
+        .statusCode(HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
+  void testGetRemittances() {
+    givenRemittanceForOrgId(ORG_ID);
+    MonthlyRemittance[] remittances =
+        given()
+            .queryParam("productId", PRODUCT_ID)
+            .queryParam("orgId", ORG_ID)
+            .get("/api/swatch-billable-usage/internal/remittance/accountRemittances")
+            .as(MonthlyRemittance[].class);
+    assertEquals(1, remittances.length);
+    assertEquals(ORG_ID, remittances[0].getOrgId());
+  }
+
+  @Test
+  void testResetBillableUsageRemittance() {
+    givenRemittanceForOrgId(ORG_ID);
+    given()
+        .queryParam("product_id", PRODUCT_ID)
+        .queryParam("org_id", ORG_ID)
+        .queryParam("start", OffsetDateTime.now().minusDays(5).toString())
+        .queryParam("end", OffsetDateTime.now().plusDays(5).toString())
+        .put("/api/swatch-billable-usage/internal/rpc/remittance/reset_billable_usage_remittance")
+        .then()
+        .statusCode(HttpStatus.SC_OK);
+  }
+
+  @Test
   void testProcessRetries() {
     var entity = givenRemittanceForOrgId(ORG_ID);
     given()
         .post("/api/swatch-billable-usage/internal/rpc/remittance/processRetries")
         .then()
         .statusCode(HttpStatus.SC_OK);
-    Awaitility.await().untilAsserted(() -> assertEquals(1, billableUsageSink.received().size()));
+    Awaitility.await().untilAsserted(() -> assertEquals(2, billableUsageSink.received().size()));
     assertNull(remittanceRepository.findById(entity.getUuid()).getRetryAfter());
   }
 

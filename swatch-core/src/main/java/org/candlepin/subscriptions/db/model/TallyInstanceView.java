@@ -21,15 +21,10 @@
 package org.candlepin.subscriptions.db.model;
 
 import com.redhat.swatch.configuration.registry.MetricId;
-import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
-import jakarta.persistence.ElementCollection;
 import jakarta.persistence.EmbeddedId;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Table;
+import jakarta.persistence.MappedSuperclass;
 import jakarta.validation.constraints.NotNull;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
@@ -38,14 +33,11 @@ import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
 import org.candlepin.subscriptions.db.model.converters.TallyInstanceViewMetricsConverter;
-import org.springframework.data.annotation.Immutable;
 
 @Setter
 @Getter
-@Entity
-@Immutable
-@Table(name = "tally_instance_view")
-public class TallyInstanceView implements Serializable {
+@MappedSuperclass
+public abstract class TallyInstanceView implements Serializable {
 
   @EmbeddedId private TallyInstanceViewKey key = new TallyInstanceViewKey();
 
@@ -89,15 +81,5 @@ public class TallyInstanceView implements Serializable {
   @Column(name = "inventory_id")
   private String inventoryId;
 
-  @ElementCollection(fetch = FetchType.LAZY)
-  @CollectionTable(
-      name = "instance_monthly_totals",
-      joinColumns = @JoinColumn(name = "host_id", referencedColumnName = "id"))
-  @Column(name = "value", insertable = false, updatable = false)
-  private Map<InstanceMonthlyTotalKey, Double> monthlyTotals = new HashMap<>();
-
-  public Double getMonthlyTotal(String monthId, MetricId metricId) {
-    var totalKey = new InstanceMonthlyTotalKey(monthId, metricId.toString());
-    return monthlyTotals.get(totalKey);
-  }
+  public abstract double getMetricValue(MetricId metricId);
 }

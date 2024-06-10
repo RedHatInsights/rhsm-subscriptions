@@ -148,9 +148,6 @@ ext {
     sub_sync_api_spec_file = "${internal_spec_dir}/internal-subscriptions-sync-api-spec.yaml"
     sub_sync_config_file = "${internal_spec_dir}/internal-subscriptions-sync-api-config.json"
 
-    billing_api_spec_file = "${internal_spec_dir}/internal-billing-api-spec.yaml"
-    billing_config_file = "${internal_spec_dir}/internal-billing-api-config.json"
-
     swatch_producer_rhm_api_spec_file = "${internal_spec_dir}/internal-swatch-producer-red-hat-marketplace-api-spec.yaml"
     swatch_producer_rhm_config_spec_file = "${internal_spec_dir}/internal-swatch-producer-red-hat-marketplace-api-config.json"
 
@@ -166,6 +163,7 @@ tasks.register("buildApiTally", GenerateTask) {
         generatePom: "false",
         dateLibrary: "java8",
         useJakartaEe: "true",
+        useTags: "true"
     ]
 }
 
@@ -179,19 +177,7 @@ tasks.register("buildApiSubSync", GenerateTask) {
             generatePom: "false",
             dateLibrary: "java8",
             useJakartaEe: "true",
-    ]
-}
-
-tasks.register("buildApiBilling", GenerateTask) {
-    generatorName = "jaxrs-spec"
-    inputSpec = billing_api_spec_file
-    configFile = billing_config_file
-    outputDir = "$buildDir/generated/billing"
-    configOptions = [
-            interfaceOnly: "true",
-            generatePom: "false",
-            dateLibrary: "java8",
-            useJakartaEe: "true",
+            useTags: "true"
     ]
 }
 
@@ -205,6 +191,7 @@ tasks.register("buildApiProducerRHM", GenerateTask) {
             generatePom: "false",
             dateLibrary: "java8",
             useJakartaEe: "true",
+            useTags: "true"
     ]
 }
 
@@ -220,10 +207,6 @@ tasks.register("validateApiTally", ValidateTask) {
 
 tasks.register("validateApiSubSync", ValidateTask) {
     inputSpec = sub_sync_api_spec_file
-}
-
-tasks.register("validateApiBilling", ValidateTask) {
-    inputSpec = billing_api_spec_file
 }
 
 tasks.register("apiValidate") {
@@ -244,14 +227,6 @@ tasks.register("generateApiDocsSubSync", GenerateTask) {
     generatorName = "html"
     inputSpec = sub_sync_api_spec_file
     outputDir = "$buildDir/internal-subscription-sync-docs"
-    generateModelTests = false
-    generateApiTests = false
-}
-
-tasks.register("generateApiDocsBilling", GenerateTask) {
-    generatorName = "html"
-    inputSpec = billing_api_spec_file
-    outputDir = "$buildDir/internal-billing-docs"
     generateModelTests = false
     generateApiTests = false
 }
@@ -280,18 +255,6 @@ tasks.register("generateOpenApiJsonSubSync", GenerateTask) {
     ]
 }
 
-tasks.register("generateOpenApiJsonBilling", GenerateTask) {
-    generatorName = "openapi"
-    inputSpec = billing_api_spec_file
-    outputDir = "$buildDir/openapijson"
-    generateModelTests = false
-    generateApiTests = false
-    configOptions = [
-            outputFileName: "internal-billing-openapi.json",
-            useJakartaEe: "true",
-    ]
-}
-
 tasks.register("generateOpenApiJsonProducerRhM", GenerateTask) {
     generatorName = "openapi"
     inputSpec = swatch_producer_rhm_api_spec_file
@@ -305,14 +268,13 @@ tasks.register("generateOpenApiJsonProducerRhM", GenerateTask) {
 }
 
 processResources {
-    from tasks.generateOpenApiJsonTally, tasks.generateOpenApiJsonSubSync, tasks.generateOpenApiJsonBilling, tasks.generateOpenApiJsonProducerRhM
-    from tally_api_spec_file, sub_sync_api_spec_file, billing_api_spec_file, swatch_producer_rhm_api_spec_file
+    from tasks.generateOpenApiJsonTally, tasks.generateOpenApiJsonSubSync, tasks.generateOpenApiJsonProducerRhM
+    from tally_api_spec_file, sub_sync_api_spec_file, swatch_producer_rhm_api_spec_file
 }
 
 sourceSets.main.java.srcDirs += [
     "${buildDir}/generated/tally/src/gen/java",
     "${buildDir}/generated/sub-sync/src/gen/java",
-    "${buildDir}/generated/billing/src/gen/java",
     "${buildDir}/generated/metering/src/gen/java",
     "${buildDir}/generated/rhm/src/gen/java"
 ]
@@ -356,6 +318,7 @@ project(":api") {
             generatePom: "false",
             dateLibrary: "java8",
             useJakartaEe: "true",
+            useTags: "true"
         ]
         importMappings = [
             "MetricId": "com.redhat.swatch.configuration.registry.MetricId",

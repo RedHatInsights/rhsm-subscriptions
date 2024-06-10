@@ -4,13 +4,13 @@ info:
   version: 1.0.0
 
 servers:
-  - url: /{PATH_PREFIX}/{APP_NAME}/v1
+  - url: /{PATH_PREFIX}/{APP_NAME}
     variables:
       PATH_PREFIX:
         default: api
       APP_NAME:
         default: rhsm-subscriptions
-  - url: https://{HOSTNAME}/{PATH_PREFIX}/{APP_NAME}/v1
+  - url: https://{HOSTNAME}/{PATH_PREFIX}/{APP_NAME}
     variables:
       HOSTNAME:
         enum:
@@ -25,7 +25,7 @@ servers:
         default: rhsm-subscriptions
 
 paths:
-  /internal/rhm/status/{batch_id}:
+  /v1/internal/rhm/status/{batch_id}:
     parameters:
       - name: batch_id
         in: path
@@ -35,6 +35,8 @@ paths:
     get:
       summary: "Fetch a usage event status for a given batch"
       operationId: getUsageEventStatus
+      tags:
+        - internalRhMarketplace
       responses:
         '200':
           description: "Found a batch matching the id and was able to retrieve it's status"

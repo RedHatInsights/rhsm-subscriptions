@@ -54,10 +54,6 @@ public class NormalizedFacts {
     products = new HashSet<>();
   }
 
-  public void addProduct(String product) {
-    products.add(product);
-  }
-
   /**
    * Get the Subscription-manager ID (UUID) of the hypervisor for this system, if it's a guest and
    * its hypervisor is known.

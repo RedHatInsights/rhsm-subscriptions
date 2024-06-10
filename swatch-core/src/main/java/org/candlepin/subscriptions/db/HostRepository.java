@@ -70,8 +70,7 @@ public interface HostRepository
       left join fetch h.buckets
       left join fetch h.monthlyTotals
       where h.orgId=:orgId
-        and h.instanceType='HBI_HOST'
-      order by coalesce(h.hypervisorUuid, h.subscriptionManagerId), h.hypervisorUuid, h.inventoryId, h.id
+      order by h.instanceId, coalesce(h.hypervisorUuid, h.subscriptionManagerId), h.hypervisorUuid, h.inventoryId, h.id
           """)
   @QueryHints(value = {@QueryHint(name = HINT_FETCH_SIZE, value = "1024")})
   Stream<Host> streamHbiHostsByOrgId(@Param("orgId") String orgId);
@@ -285,15 +284,6 @@ public interface HostRepository
     }
   }
 
-  static <T> Join<Host, T> findJoin(Root<Host> root, String alias) {
-    for (Join<Host, ?> join : root.getJoins()) {
-      if (join.getAlias().equals(alias)) {
-        return (Join<Host, T>) join;
-      }
-    }
-    throw new IllegalArgumentException("Cannot find join w/ alias: " + alias);
-  }
-
   static <T, S, U> MapJoin<T, S, U> findMapJoin(Root<Host> root, String alias) {
     for (Join<Host, ?> join : root.getJoins()) {
       if (join.getAlias().equals(alias)) {
@@ -443,12 +433,12 @@ public interface HostRepository
         monthlyTotalCoresJoin.on(
             builder.equal(
                 monthlyTotalCoresJoin.key(),
-                new InstanceMonthlyTotalKey(month, MetricIdUtils.getCores().toString())));
+                new InstanceMonthlyTotalKey(month, MetricIdUtils.getCores())));
         var monthlyTotalInstanceHoursJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_INSTANCE_HOURS);
         monthlyTotalInstanceHoursJoin.on(
             builder.equal(
                 monthlyTotalInstanceHoursJoin.key(),
-                new InstanceMonthlyTotalKey(month, MetricIdUtils.getInstanceHours().toString())));
+                new InstanceMonthlyTotalKey(month, MetricIdUtils.getInstanceHours())));
       }
       return null;
     };
@@ -480,8 +470,7 @@ public interface HostRepository
           Optional.ofNullable(referenceUom).orElse(getDefaultMetricIdForProduct(productId));
       if (Objects.nonNull(effectiveUom)) {
         searchCriteria =
-            searchCriteria.and(
-                monthlyKeyEquals(new InstanceMonthlyTotalKey(month, effectiveUom.toString())));
+            searchCriteria.and(monthlyKeyEquals(new InstanceMonthlyTotalKey(month, effectiveUom)));
       }
     }
 

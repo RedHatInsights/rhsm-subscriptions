@@ -297,7 +297,7 @@ class CombiningRollupSnapshotStrategyTest {
   }
 
   @Test
-  void testFinestGranularitySnapsZeroOutOldMeasurementsWhenDataNoLongerFound() {
+  void testFinestGranularitySnapsDoesNotUpdateMeasurementsWhenNotIncludedInTotals() {
     TallySnapshot noonSnapshot =
         createTallySnapshot(Granularity.HOURLY, "2021-02-25T12:00:00Z", 4.0);
     TallySnapshot afternoonSnapshot =
@@ -336,23 +336,22 @@ class CombiningRollupSnapshotStrategyTest {
         Double::sum);
 
     ArgumentCaptor<TallySnapshot> tallySaveCapture = ArgumentCaptor.forClass(TallySnapshot.class);
-    // 1 - noon snapshot that was reset
     // 1 - afternoonSnapshot that was updated.
     // 1 - daily snapshot that was updated.
-    verify(repo, times(3)).save(tallySaveCapture.capture());
+    verify(repo, times(2)).save(tallySaveCapture.capture());
 
     List<TallySnapshot> talliesSaved = tallySaveCapture.getAllValues();
-    assertThat(talliesSaved, containsInAnyOrder(noonSnapshot, afternoonSnapshot, dailySnapshot));
+    assertThat(talliesSaved, containsInAnyOrder(afternoonSnapshot, dailySnapshot));
 
-    // Any hourly tallies that were not represented by a calculation should have been reset.
-    noonSnapshot.getTallyMeasurements().values().forEach(v -> assertEquals(0.0, v));
+    // Any hourly tallies that were not represented by a calculation should NOT have been reset.
+    noonSnapshot.getTallyMeasurements().values().forEach(v -> assertEquals(4.0, v));
 
     // Afternoon snapshot measurements should reflect the calculation.
     afternoonSnapshot.getTallyMeasurements().values().forEach(v -> assertEquals(3.0, v));
 
     // Daily snapshot should total only the after noon tally since we did not include
     // the afternoon tally in the calculation.
-    dailySnapshot.getTallyMeasurements().values().forEach(v -> assertEquals(3.0, v));
+    dailySnapshot.getTallyMeasurements().values().forEach(v -> assertEquals(7.0, v));
   }
 
   @Test
@@ -390,13 +389,6 @@ class CombiningRollupSnapshotStrategyTest {
             any(), any(), eq(Granularity.DAILY), any(), any()))
         .thenReturn(Stream.of(existingDailySnapshot1, existingDailySnapshot2));
 
-    UsageCalculation.Key usageKey =
-        new UsageCalculation.Key(
-            OPEN_SHIFT_HOURLY,
-            ServiceLevel.PREMIUM,
-            Usage.PRODUCTION,
-            BillingProvider.AWS,
-            "awsAccount1");
     UsageCalculation.Key snapUsageKey1 =
         UsageCalculation.Key.fromTallySnapshot(existingHourlySnapshot1);
     UsageCalculation.Key snapUsageKey2 =
@@ -418,7 +410,6 @@ class CombiningRollupSnapshotStrategyTest {
         Granularity.HOURLY,
         Double::sum);
 
-    // Daily rolled snaphot
     TallySnapshot expectedHourly1 =
         createTallySnapshot(Granularity.HOURLY, "2021-02-25T12:00:00Z", 1.0);
     expectedHourly1.setId(existingHourlySnapshot1.getId());
@@ -431,25 +422,17 @@ class CombiningRollupSnapshotStrategyTest {
     expectedHourly2.setId(existingHourlySnapshot2.getId());
     expectedHourly2.setBillingProvider(existingHourlySnapshot2.getBillingProvider());
 
-    TallySnapshot expectedHourly3 =
-        createTallySnapshot(Granularity.HOURLY, "2021-02-25T13:00:00Z", 0.0);
-    // Was not included in update, so tally measurements should be cleared.
-    expectedHourly3.getTallyMeasurements().clear();
-    expectedHourly3.setId(existingHourlySnapshot3.getId());
-    expectedHourly3.setBillingProvider(existingHourlySnapshot3.getBillingProvider());
-
     TallySnapshot expectedDaily2 =
         createTallySnapshot(Granularity.DAILY, "2021-02-25T00:00:00Z", 2.0);
     expectedDaily2.setBillingProvider(existingDailySnapshot2.getBillingProvider());
     expectedDaily2.setId(existingDailySnapshot2.getId());
 
     ArgumentCaptor<TallySnapshot> talliesSavedCaptor = ArgumentCaptor.forClass(TallySnapshot.class);
-    verify(repo, times(5)).save(talliesSavedCaptor.capture());
+    verify(repo, times(4)).save(talliesSavedCaptor.capture());
     List<TallySnapshot> talliesSaved = talliesSavedCaptor.getAllValues();
     assertThat(
         talliesSaved,
-        containsInAnyOrder(
-            expectedHourly1, expectedHourly2, expectedHourly3, expectedDaily1, expectedDaily2));
+        containsInAnyOrder(expectedHourly1, expectedHourly2, expectedDaily1, expectedDaily2));
   }
 
   @Test
@@ -542,23 +525,32 @@ class CombiningRollupSnapshotStrategyTest {
   }
 
   @Test
-  void testFinestGranularitySnapshotClearedWhenUsageNotPresent() {
+  void testFinestGranularitySnapshotUnmodifiedWhenUsageNotPresent() {
     TallySnapshot existingSnapshot =
         createTallySnapshot(Granularity.HOURLY, "2022-10-24T13:00:00Z", 4.0);
     when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), any(), any(), any()))
         .then(invocation -> Stream.of(existingSnapshot));
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
-    combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
-        "org123",
-        new DateRange(
-            OffsetDateTime.parse("2022-10-24T13:00:00Z"),
-            OffsetDateTime.parse("2022-10-24T14:00:00Z")),
-        tagsWithPrometheusEnabled,
-        Map.of(),
-        Granularity.HOURLY,
-        Double::sum);
-    assertTrue(existingSnapshot.getTallyMeasurements().isEmpty());
+    Map<String, List<TallySnapshot>> snaps =
+        combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
+            "org123",
+            new DateRange(
+                OffsetDateTime.parse("2022-10-24T13:00:00Z"),
+                OffsetDateTime.parse("2022-10-24T14:00:00Z")),
+            tagsWithPrometheusEnabled,
+            Map.of(),
+            Granularity.HOURLY,
+            Double::sum);
+    assertTrue(snaps.isEmpty());
+    assertFalse(existingSnapshot.getTallyMeasurements().isEmpty());
+    assertEquals(2, existingSnapshot.getTallyMeasurements().size());
+    assertEquals(
+        4.0,
+        existingSnapshot.getMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores()));
+    assertEquals(
+        4.0,
+        existingSnapshot.getMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores()));
   }
 
   private AccountUsageCalculation createAccountUsageCalculation(

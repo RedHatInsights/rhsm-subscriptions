@@ -1,0 +1,15 @@
+plugins {
+    id 'swatch.java-library-conventions'
+    id 'swatch.quarkus-conventions'
+}
+
+dependencies {
+    implementation enforcedPlatform(libraries["quarkus-bom"])
+    api("io.quarkus:quarkus-smallrye-fault-tolerance")
+
+    testImplementation 'io.quarkus:quarkus-junit5'
+}
+
+quarkusDependenciesBuild.dependsOn('jandex')
+
+description = 'Shared smallrye fault tolerance logic for swatch services'

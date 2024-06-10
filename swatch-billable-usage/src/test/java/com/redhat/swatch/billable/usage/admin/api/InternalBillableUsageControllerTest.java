@@ -20,23 +20,30 @@
  */
 package com.redhat.swatch.billable.usage.admin.api;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceEntity;
+import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceFilter;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
 import com.redhat.swatch.billable.usage.data.RemittanceStatus;
+import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
 import com.redhat.swatch.billable.usage.services.BillingProducer;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Set;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.billable.usage.AccumulationPeriodFormatter;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
@@ -48,6 +55,215 @@ class InternalBillableUsageControllerTest {
   @Inject ApplicationClock clock;
   @InjectMock BillingProducer billingProducer;
   @Inject InternalBillableUsageController controller;
+
+  @Transactional
+  @BeforeEach
+  void setup() {
+    BillableUsageRemittanceEntity remittance1 =
+        remittance(
+            "111",
+            "product1",
+            BillableUsage.BillingProvider.AWS,
+            24.0,
+            clock.startOfCurrentMonth(),
+            RemittanceStatus.SUCCEEDED);
+    BillableUsageRemittanceEntity remittance2 =
+        remittance(
+            "org123",
+            "product1",
+            BillableUsage.BillingProvider.AWS,
+            12.0,
+            clock.endOfCurrentQuarter(),
+            RemittanceStatus.PENDING);
+    BillableUsageRemittanceEntity remittance3 =
+        remittance(
+            "org123",
+            "product1",
+            BillableUsage.BillingProvider.RED_HAT,
+            12.0,
+            clock.startOfCurrentMonth(),
+            RemittanceStatus.PENDING);
+    remittance3.setMetricId("Transfer-gibibytes");
+    BillableUsageRemittanceEntity remittance4 =
+        remittance(
+            "org345",
+            "product2",
+            BillableUsage.BillingProvider.RED_HAT,
+            8.0,
+            clock.startOfCurrentMonth(),
+            RemittanceStatus.PENDING);
+    BillableUsageRemittanceEntity remittance5 =
+        remittance(
+            "org345",
+            "product3",
+            BillableUsage.BillingProvider.AZURE,
+            4.0,
+            clock.startOfCurrentMonth(),
+            RemittanceStatus.FAILED);
+    BillableUsageRemittanceEntity remittance6 =
+        remittance(
+            "1234",
+            "rosa",
+            BillableUsage.BillingProvider.AWS,
+            24.0,
+            clock.startOfCurrentMonth(),
+            RemittanceStatus.PENDING);
+    BillableUsageRemittanceEntity remittance7 =
+        remittance(
+            "5678",
+            "rosa",
+            BillableUsage.BillingProvider.AWS,
+            24.0,
+            clock.startOfCurrentMonth(),
+            RemittanceStatus.PENDING);
+    remittanceRepo.persist(
+        List.of(
+            remittance1,
+            remittance2,
+            remittance3,
+            remittance4,
+            remittance5,
+            remittance6,
+            remittance7));
+    remittanceRepo.flush();
+  }
+
+  @Transactional
+  @AfterEach
+  public void tearDown() {
+    remittanceRepo.deleteAll();
+  }
+
+  @Test
+  void ifAccountNotFoundDisplayEmptyAccountRemittance() {
+    var response =
+        controller.getRemittances(
+            BillableUsageRemittanceFilter.builder()
+                .orgId("not_found")
+                .productId("product1")
+                .build());
+    assertFalse(response.isEmpty());
+    assertEquals(0.0, response.get(0).getRemittedValue());
+  }
+
+  @Test
+  void testFilterByOrgId() {
+    var response =
+        controller.getRemittances(
+            BillableUsageRemittanceFilter.builder().productId("product1").orgId("111").build());
+    assertFalse(response.isEmpty());
+    assertEquals(24.0, response.get(0).getRemittedValue());
+    assertEquals("Instance-hours", response.get(0).getMetricId());
+    assertEquals(BillableUsage.Status.SUCCEEDED.value(), response.get(0).getRemittanceStatus());
+  }
+
+  @Test
+  void testFilterByAccountAndProduct() {
+    var response =
+        controller.getRemittances(
+            BillableUsageRemittanceFilter.builder().orgId("org123").productId("product1").build());
+    assertFalse(response.isEmpty());
+    assertEquals(2, response.size());
+    assertEquals(24.0, response.get(0).getRemittedValue() + response.get(1).getRemittedValue());
+    assertEquals(BillableUsage.Status.PENDING.value(), response.get(0).getRemittanceStatus());
+  }
+
+  @Test
+  void testFilterByAccountAndProductAndMetricId() {
+    var response =
+        controller.getRemittances(
+            BillableUsageRemittanceFilter.builder()
+                .orgId("org123")
+                .productId("product1")
+                .metricId("Transfer-gibibytes")
+                .build());
+
+    assertFalse(response.isEmpty());
+    assertEquals(1, response.size());
+    assertEquals(12.0, response.get(0).getRemittedValue());
+    assertEquals("Transfer-gibibytes", response.get(0).getMetricId());
+  }
+
+  @Test
+  void testFilterByOrgIdAndProductAndMetricId() {
+    var response =
+        controller.getRemittances(
+            BillableUsageRemittanceFilter.builder()
+                .orgId("org123")
+                .productId("product1")
+                .metricId("Instance-hours")
+                .build());
+    assertEquals(1, response.size());
+    MonthlyRemittance result = response.get(0);
+    assertEquals("product1", result.getProductId());
+    assertEquals("org123", result.getOrgId());
+    assertEquals("Instance-hours", result.getMetricId());
+    assertEquals(12, result.getRemittedValue());
+    assertEquals(BillableUsage.BillingProvider.AWS.value(), result.getBillingProvider());
+  }
+
+  @Test
+  void testAccountAndOrgIdShouldReturnEmpty() {
+    var response =
+        controller.getRemittances(
+            BillableUsageRemittanceFilter.builder()
+                .productId("product1")
+                .metricId("Instance-hours")
+                .build());
+    assertTrue(response.isEmpty());
+  }
+
+  @Test
+  void testFilterByBillingProviderAndOrgId() {
+    var response =
+        controller.getRemittances(
+            BillableUsageRemittanceFilter.builder()
+                .orgId("org123")
+                .billingProvider(BillableUsage.BillingProvider.RED_HAT.value())
+                .build());
+    assertFalse(response.isEmpty());
+    assertEquals(1, response.size());
+    MonthlyRemittance result = response.get(0);
+    assertEquals(BillableUsage.BillingProvider.RED_HAT.value(), result.getBillingProvider());
+    assertEquals("org123", result.getOrgId());
+    assertEquals(12, result.getRemittedValue());
+  }
+
+  @Test
+  void testFilterByBillingAccountIdAndOrgId() {
+    var response =
+        controller.getRemittances(
+            BillableUsageRemittanceFilter.builder()
+                .orgId("org345")
+                .billingAccountId("org345_product3_ba")
+                .build());
+    assertFalse(response.isEmpty());
+    assertEquals(1, response.size());
+    MonthlyRemittance result = response.get(0);
+    assertEquals("org345_product3_ba", result.getBillingAccountId());
+    assertEquals("org345", result.getOrgId());
+    assertEquals(BillableUsage.BillingProvider.AZURE.value(), result.getBillingProvider());
+    assertEquals(4, result.getRemittedValue());
+    assertEquals(BillableUsage.Status.FAILED.value(), result.getRemittanceStatus());
+  }
+
+  @Test
+  void testResetRemittanceValueForCriteria() {
+    int remittancePresent =
+        controller.resetBillableUsageRemittance(
+            "rosa",
+            clock.startOfCurrentMonth().minusDays(1),
+            clock.startOfCurrentMonth().plusDays(1),
+            Set.of("1234", "5678"));
+    int remittanceNotPresent =
+        controller.resetBillableUsageRemittance(
+            "rosa",
+            clock.startOfCurrentMonth().plusDays(1),
+            clock.startOfCurrentMonth().plusDays(2),
+            Set.of("1234"));
+    assertEquals(2, remittancePresent);
+    assertEquals(0, remittanceNotPresent);
+  }
 
   @Transactional
   @Test
@@ -80,7 +296,12 @@ class InternalBillableUsageControllerTest {
   void givenRemittanceWithOldRetryAfter(String orgId) {
     var remittance =
         remittance(
-            orgId, "product", "azure", 4.0, clock.startOfCurrentMonth(), RemittanceStatus.PENDING);
+            orgId,
+            "product",
+            BillableUsage.BillingProvider.AZURE,
+            4.0,
+            clock.startOfCurrentMonth(),
+            RemittanceStatus.PENDING);
     remittance.setRetryAfter(clock.now().minusMonths(30));
     remittanceRepo.persistAndFlush(remittance);
   }
@@ -104,14 +325,14 @@ class InternalBillableUsageControllerTest {
   private BillableUsageRemittanceEntity remittance(
       String orgId,
       String productId,
-      String billingProvider,
+      BillableUsage.BillingProvider billingProvider,
       Double value,
       OffsetDateTime remittanceDate,
       RemittanceStatus remittanceStatus) {
     return BillableUsageRemittanceEntity.builder()
         .usage(BillableUsage.Usage.PRODUCTION.value())
         .orgId(orgId)
-        .billingProvider(billingProvider)
+        .billingProvider(billingProvider.value())
         .billingAccountId(String.format("%s_%s_ba", orgId, productId))
         .productId(productId)
         .sla(BillableUsage.Sla.PREMIUM.value())

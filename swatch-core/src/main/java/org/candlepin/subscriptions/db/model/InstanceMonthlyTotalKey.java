@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import com.redhat.swatch.configuration.util.MetricIdUtils;
+import com.redhat.swatch.configuration.registry.MetricId;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import java.io.Serializable;
@@ -48,13 +48,12 @@ public class InstanceMonthlyTotalKey implements Serializable {
     return reference.format(MONTH_ID_FORMATTER);
   }
 
-  public InstanceMonthlyTotalKey(String month, String metricId) {
-    this.month = month;
-    this.metricId = MetricIdUtils.toUpperCaseFormatted(metricId);
+  public InstanceMonthlyTotalKey(OffsetDateTime reference, MetricId metricId) {
+    this(formatMonthId(reference), metricId);
   }
 
-  public InstanceMonthlyTotalKey(OffsetDateTime reference, String metricId) {
-    this.month = formatMonthId(reference);
-    this.metricId = MetricIdUtils.toUpperCaseFormatted(metricId);
+  public InstanceMonthlyTotalKey(String month, MetricId metricId) {
+    this.month = month;
+    this.metricId = metricId.toUpperCaseFormatted();
   }
 }

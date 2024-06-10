@@ -53,9 +53,8 @@ class ContractEntityMapperTest {
     entitlement.getPurchase().addContractsItem(contract);
     entitlement.getPurchase().azureResourceId("azure_resource_id_placeholder");
     entitlement.setPartnerIdentities(new PartnerIdentityV1());
-    entitlement.getPartnerIdentities().azureTenantId("azure_tenant_id_placeholder");
     entitlement.getPartnerIdentities().azureCustomerId("azure_customer_id_placeholder");
-    entitlement.sourcePartner(PartnerEntitlementV1.SourcePartnerEnum.AZURE_MARKETPLACE);
+    entitlement.sourcePartner(ContractSourcePartnerEnum.AZURE.getCode());
     contract.planId("vcpu-hours");
 
     contract.addDimensionsItem(new DimensionV1().name(metricId).value("0"));

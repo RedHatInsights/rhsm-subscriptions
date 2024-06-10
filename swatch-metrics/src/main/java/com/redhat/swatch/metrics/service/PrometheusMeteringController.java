@@ -242,8 +242,8 @@ public class PrometheusMeteringController {
     boolean is3rdPartyMigrated = Boolean.parseBoolean(labels.get("conversions_success"));
 
     var matchingTags =
-        SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
-            role, productIds, null, is3rdPartyMigrated);
+        SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
+            role, productIds, null, true, is3rdPartyMigrated);
 
     if (matchingTags.size() != 1) {
       log.warn(
@@ -267,10 +267,9 @@ public class PrometheusMeteringController {
     String billingAccountId;
 
     // extract azure IDs
-    String azureTenantId = labels.get("azure_tenant_id");
     String azureSubscriptionId = labels.get("azure_subscription_id");
-    if (StringUtils.isNotEmpty(azureTenantId) && StringUtils.isNotEmpty(azureSubscriptionId)) {
-      billingAccountId = String.format("%s;%s", azureTenantId, azureSubscriptionId);
+    if (StringUtils.isNotEmpty(azureSubscriptionId)) {
+      billingAccountId = azureSubscriptionId;
     } else {
       billingAccountId = labels.get("billing_marketplace_account");
     }

@@ -51,7 +51,11 @@ import lombok.*;
     subgraphs = {
       @NamedSubgraph(
           name = "subgraph.offering",
-          attributeNodes = {@NamedAttributeNode("childSkus"), @NamedAttributeNode("productIds")})
+          attributeNodes = {
+            @NamedAttributeNode("childSkus"),
+            @NamedAttributeNode("productIds"),
+            @NamedAttributeNode("productTags")
+          })
     })
 public class Subscription implements Serializable {
 

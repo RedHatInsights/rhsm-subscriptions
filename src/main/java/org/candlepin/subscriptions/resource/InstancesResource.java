@@ -187,7 +187,7 @@ public class InstancesResource implements InstancesApi {
         getHardwareMeasurementTypesFromCategory(reportCategory);
 
     List<InstanceData> payload;
-    Page<TallyInstanceView> instances;
+    Page<? extends TallyInstanceView> instances;
 
     Pageable page = ResourceUtils.getPageable(offset, limit, toSort(sort, dir));
 
@@ -205,17 +205,11 @@ public class InstancesResource implements InstancesApi {
 
     boolean isPAYG = isPayg(variant);
     String month = isPAYG ? InstanceMonthlyTotalKey.formatMonthId(start) : null;
-    // We depend on a "reference MetricId" in order to filter out instances that were not active in
-    // the selected month. This is also used for sorting purposes (same join). See
-    // org.candlepin.subscriptions.db.TallyInstanceViewSpecification#toPredicate and
-    // org.candlepin.subscriptions.db.TallyInstanceViewRepository#findAllBy.
     MetricId referenceMetricId = metricIdOptional.orElse(null);
-    if (referenceMetricId == null && sort != null && METRICS_TO_SORT.contains(sort)) {
-      referenceMetricId = MetricId.fromString(sort);
-    }
 
     instances =
         repository.findAllBy(
+            isPAYG,
             orgId,
             productId.toString(),
             sanitizedSla,
@@ -231,9 +225,7 @@ public class InstancesResource implements InstancesApi {
             page);
     payload =
         instances.getContent().stream()
-            .map(
-                tallyInstanceView ->
-                    asTallyHostViewApiInstance(tallyInstanceView, month, measurements, isPAYG))
+            .map(tallyInstanceView -> asTallyHostViewApiInstance(tallyInstanceView, measurements))
             .toList();
 
     PageLinks links;
@@ -266,6 +258,8 @@ public class InstancesResource implements InstancesApi {
     if (sort != null && FIELD_SORT_PARAM_MAPPING.containsKey(sort)) {
       String column = FIELD_SORT_PARAM_MAPPING.get(sort);
       Sort.Order userDefinedOrder = new Sort.Order(dirValue, column);
+      userDefinedOrder =
+          dirValue.isAscending() ? userDefinedOrder.nullsFirst() : userDefinedOrder.nullsLast();
       sortValue = Sort.by(userDefinedOrder, IMPLICIT_ORDER_TO_SORT);
     } else {
       sortValue = Sort.by(IMPLICIT_ORDER_TO_SORT);
@@ -295,10 +289,7 @@ public class InstancesResource implements InstancesApi {
   }
 
   private InstanceData asTallyHostViewApiInstance(
-      TallyInstanceView tallyInstanceView,
-      String monthId,
-      List<String> measurements,
-      boolean isPAYG) {
+      TallyInstanceView tallyInstanceView, List<String> measurements) {
     var instance = new InstanceData();
     instance.setId(tallyInstanceView.getId());
     instance.setInstanceId(tallyInstanceView.getKey().getInstanceId());
@@ -311,8 +302,7 @@ public class InstancesResource implements InstancesApi {
     instance.setCloudProvider(
         getCloudProviderByMeasurementType(tallyInstanceView.getKey().getMeasurementType()));
     instance.setBillingAccountId(tallyInstanceView.getHostBillingAccountId());
-    instance.setMeasurements(
-        getInstanceMeasurements(tallyInstanceView, monthId, measurements, isPAYG));
+    instance.setMeasurements(getInstanceMeasurements(tallyInstanceView, measurements));
     instance.setLastSeen(tallyInstanceView.getLastSeen());
     instance.setLastAppliedEventRecordDate(tallyInstanceView.getLastAppliedEventRecordDate());
     instance.setNumberOfGuests(tallyInstanceView.getNumOfGuests());
@@ -322,23 +312,11 @@ public class InstancesResource implements InstancesApi {
   }
 
   private static List<Double> getInstanceMeasurements(
-      TallyInstanceView tallyInstanceView,
-      String monthId,
-      List<String> measurements,
-      boolean isPAYG) {
+      TallyInstanceView tallyInstanceView, List<String> measurements) {
     List<Double> measurementList = new ArrayList<>();
     for (String metric : measurements) {
       MetricId metricId = MetricId.fromString(metric);
-      if (MetricIdUtils.getSockets().equals(metricId)) {
-        measurementList.add(Double.valueOf(ofNullable(tallyInstanceView.getSockets()).orElse(0)));
-      } else if (MetricIdUtils.getCores().equals(metricId)) {
-        measurementList.add(Double.valueOf(ofNullable(tallyInstanceView.getCores()).orElse(0)));
-      } else if (!isPAYG && tallyInstanceView.getMetrics().containsKey(metricId)) {
-        measurementList.add(ofNullable(tallyInstanceView.getMetrics().get(metricId)).orElse(0.0));
-      } else {
-        measurementList.add(
-            ofNullable(tallyInstanceView.getMonthlyTotal(monthId, metricId)).orElse(0.0));
-      }
+      measurementList.add(ofNullable(tallyInstanceView.getMetricValue(metricId)).orElse(0.0));
     }
     return measurementList;
   }

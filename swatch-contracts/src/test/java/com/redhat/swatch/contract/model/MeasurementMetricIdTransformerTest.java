@@ -30,6 +30,7 @@ import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.Inte
 import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
+import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionMeasurementEntity;
 import com.redhat.swatch.contract.repository.SubscriptionProductIdEntity;
@@ -167,7 +168,8 @@ class MeasurementMetricIdTransformerTest {
     contract.addMetric(wrongDimension);
     contract.addMetric(unknown);
 
-    contract.setProductId("rosa");
+    contract.setOffering(new OfferingEntity());
+    contract.getOffering().setProductTags(Set.of("rosa"));
 
     when(internalSubscriptionsApi.getMetrics("rosa"))
         .thenReturn(

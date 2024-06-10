@@ -20,62 +20,74 @@
  */
 package org.candlepin.subscriptions.subscription.export;
 
+import static org.candlepin.subscriptions.resource.ResourceUtils.ANY;
+
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
-import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import jakarta.ws.rs.core.Response;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.BiConsumer;
+import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.HypervisorReportCategory;
-import org.candlepin.subscriptions.db.SubscriptionRepository;
+import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
-import org.candlepin.subscriptions.db.model.DbReportCriteria;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.Subscription;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacityViewMetric;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacityView_;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ExportServiceException;
 import org.candlepin.subscriptions.export.DataExporterService;
 import org.candlepin.subscriptions.export.DataMapperService;
 import org.candlepin.subscriptions.export.ExportServiceRequest;
+import org.candlepin.subscriptions.json.SubscriptionsExportJsonMeasurement;
 import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
 import org.springframework.context.annotation.Profile;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
 @Profile("capacity-ingress")
 @AllArgsConstructor
-public class SubscriptionDataExporterService implements DataExporterService<Subscription> {
+public class SubscriptionDataExporterService
+    implements DataExporterService<SubscriptionCapacityView> {
   static final String SUBSCRIPTIONS_DATA = "subscriptions";
   static final String PRODUCT_ID = "product_id";
-  private static final Map<String, BiConsumer<DbReportCriteria.DbReportCriteriaBuilder, String>>
+  static final String METRIC_ID = "metric_id";
+  static final String CATEGORY = "category";
+  static final String PHYSICAL = "PHYSICAL";
+  static final String HYPERVISOR = "HYPERVISOR";
+  private static final Map<String, Function<String, Specification<SubscriptionCapacityView>>>
       FILTERS =
           Map.of(
               PRODUCT_ID,
               SubscriptionDataExporterService::handleProductIdFilter,
               "usage",
               SubscriptionDataExporterService::handleUsageFilter,
-              "category",
+              CATEGORY,
               SubscriptionDataExporterService::handleCategoryFilter,
               "sla",
               SubscriptionDataExporterService::handleSlaFilter,
-              "metric_id",
+              METRIC_ID,
               SubscriptionDataExporterService::handleMetricIdFilter,
               "billing_provider",
               SubscriptionDataExporterService::handleBillingProviderFilter,
               "billing_account_id",
               SubscriptionDataExporterService::handleBillingAccountIdFilter);
 
-  private final SubscriptionRepository subscriptionRepository;
+  private final SubscriptionCapacityViewRepository repository;
   private final SubscriptionJsonDataMapperService jsonDataMapperService;
   private final SubscriptionCsvDataMapperService csvDataMapperService;
-  private final ApplicationClock clock;
 
   @Override
   public boolean handles(ExportServiceRequest request) {
@@ -83,26 +95,22 @@ public class SubscriptionDataExporterService implements DataExporterService<Subs
   }
 
   @Override
-  public Stream<Subscription> fetchData(ExportServiceRequest request) {
+  public Stream<SubscriptionCapacityView> fetchData(ExportServiceRequest request) {
     log.debug("Fetching data for {}", request.getOrgId());
-    var reportCriteria = extractExportFilter(request);
-    return subscriptionRepository.streamBy(reportCriteria);
+    return repository.streamBy(extractExportFilter(request));
   }
 
   @Override
-  public DataMapperService<Subscription> getMapper(ExportServiceRequest request) {
+  public DataMapperService<SubscriptionCapacityView> getMapper(ExportServiceRequest request) {
     return switch (request.getFormat()) {
       case JSON -> jsonDataMapperService;
       case CSV -> csvDataMapperService;
     };
   }
 
-  private DbReportCriteria extractExportFilter(ExportServiceRequest request) {
-    var report =
-        DbReportCriteria.builder()
-            .orgId(request.getOrgId())
-            .beginning(clock.now())
-            .ending(clock.now());
+  private Specification<SubscriptionCapacityView> extractExportFilter(
+      ExportServiceRequest request) {
+    Specification<SubscriptionCapacityView> criteria = Specification.where(null);
     if (request.getFilters() != null) {
       var filters = request.getFilters().entrySet();
       try {
@@ -111,7 +119,10 @@ public class SubscriptionDataExporterService implements DataExporterService<Subs
           if (filterHandler == null) {
             log.warn("Filter '{}' isn't currently supported. Ignoring.", entry.getKey());
           } else if (entry.getValue() != null) {
-            filterHandler.accept(report, entry.getValue().toString());
+            var condition = filterHandler.apply(entry.getValue().toString());
+            if (condition != null) {
+              criteria = criteria.and(condition);
+            }
           }
         }
 
@@ -122,63 +133,177 @@ public class SubscriptionDataExporterService implements DataExporterService<Subs
       }
     }
 
-    return report.build();
+    return criteria;
   }
 
-  private static void handleProductIdFilter(
-      DbReportCriteria.DbReportCriteriaBuilder builder, String value) {
+  private static Specification<SubscriptionCapacityView> handleProductIdFilter(String value) {
     var productId = ProductId.fromString(value).getValue();
-    if (SubscriptionDefinition.isPrometheusEnabled(productId)) {
-      builder.productTag(productId);
-    } else {
-      builder.productId(productId);
-    }
+    return (root, query, builder) ->
+        builder.equal(root.get(SubscriptionCapacityView_.productTag), productId);
   }
 
-  private static void handleUsageFilter(
-      DbReportCriteria.DbReportCriteriaBuilder builder, String value) {
+  private static Specification<SubscriptionCapacityView> handleUsageFilter(String value) {
     Usage usage = Usage.fromString(value);
     if (value.equalsIgnoreCase(usage.getValue())) {
-      builder.usage(usage);
+      if (!Usage._ANY.equals(usage)) {
+        return (root, query, builder) ->
+            builder.equal(root.get(SubscriptionCapacityView_.usage), usage.getValue());
+      }
     } else {
       throw new IllegalArgumentException(String.format("usage: %s not supported", value));
     }
+
+    return null;
   }
 
-  private static void handleCategoryFilter(
-      DbReportCriteria.DbReportCriteriaBuilder builder, String value) {
-    builder.hypervisorReportCategory(
-        HypervisorReportCategory.mapCategory(ReportCategory.fromString(value)));
-  }
-
-  private static void handleSlaFilter(
-      DbReportCriteria.DbReportCriteriaBuilder builder, String value) {
+  private static Specification<SubscriptionCapacityView> handleSlaFilter(String value) {
     ServiceLevel serviceLevel = ServiceLevel.fromString(value);
     if (value.equalsIgnoreCase(serviceLevel.getValue())) {
-      builder.serviceLevel(serviceLevel);
+      if (!ServiceLevel._ANY.equals(serviceLevel)) {
+        return (root, query, builder) ->
+            builder.equal(
+                root.get(SubscriptionCapacityView_.serviceLevel), serviceLevel.getValue());
+      }
     } else {
       throw new IllegalArgumentException(String.format("sla: %s not supported", value));
     }
+
+    return null;
   }
 
-  private static void handleMetricIdFilter(
-      DbReportCriteria.DbReportCriteriaBuilder builder, String value) {
-    builder.metricId(MetricId.fromString(value).toString());
+  private static Specification<SubscriptionCapacityView> handleCategoryFilter(String value) {
+    String measurementType = getMeasurementTypeFromCategory(value);
+    if (measurementType != null) {
+      return handleMetricsFilter("measurement_type", measurementType);
+    }
+
+    return null;
   }
 
-  private static void handleBillingProviderFilter(
-      DbReportCriteria.DbReportCriteriaBuilder builder, String value) {
+  private static Specification<SubscriptionCapacityView> handleMetricIdFilter(String value) {
+    return handleMetricsFilter(METRIC_ID, MetricId.fromString(value).toString());
+  }
+
+  private static Specification<SubscriptionCapacityView> handleMetricsFilter(
+      String key, String value) {
+    return (root, query, builder) ->
+        builder.isTrue(
+            builder.function(
+                "jsonb_path_exists",
+                Boolean.class,
+                root.get("metrics"),
+                builder.literal("$[*] ? (@." + key + " == \"" + value + "\")")));
+  }
+
+  private static Specification<SubscriptionCapacityView> handleBillingProviderFilter(String value) {
     BillingProvider billingProvider = BillingProvider.fromString(value);
     if (value.equalsIgnoreCase(billingProvider.getValue())) {
-      builder.billingProvider(billingProvider);
+      if (!BillingProvider._ANY.equals(billingProvider)) {
+        return (root, query, builder) ->
+            builder.equal(root.get(SubscriptionCapacityView_.billingProvider), billingProvider);
+      }
     } else {
       throw new IllegalArgumentException(
           String.format("billing_provider: %s not supported", value));
     }
+
+    return null;
   }
 
-  private static void handleBillingAccountIdFilter(
-      DbReportCriteria.DbReportCriteriaBuilder builder, String value) {
-    builder.billingAccountId(value);
+  private static Specification<SubscriptionCapacityView> handleBillingAccountIdFilter(
+      String value) {
+    if (!ANY.equalsIgnoreCase(value)) {
+      return (root, query, builder) ->
+          builder.like(root.get(SubscriptionCapacityView_.billingAccountId), value + "%");
+    }
+
+    return null;
+  }
+
+  protected static List<SubscriptionsExportJsonMeasurement> groupMetrics(
+      SubscriptionCapacityView dataItem, ExportServiceRequest request) {
+    Map<MetricKey, SubscriptionsExportJsonMeasurement> metrics = new HashMap<>();
+
+    // metric filters: metric_id and measurement_type
+    String filterByMetricId = getMetricIdFilter(request);
+    String filterByMeasurementType = getMeasurementTypeFilter(request);
+
+    for (var metric : dataItem.getMetrics()) {
+      if (metric.getMetricId() != null
+          && isFilterByMetricId(metric, filterByMetricId)
+          && isFilterByMeasurementType(metric, filterByMeasurementType)) {
+        var measurement = getOrCreateMeasurement(metrics, metric);
+        measurement.setCapacity(measurement.getCapacity() + metric.getCapacity());
+      }
+    }
+
+    return new ArrayList<>(metrics.values());
+  }
+
+  private static boolean isFilterByMetricId(SubscriptionCapacityViewMetric metric, String filter) {
+    return filter == null || filter.equalsIgnoreCase(metric.getMetricId());
+  }
+
+  private static boolean isFilterByMeasurementType(
+      SubscriptionCapacityViewMetric metric, String filter) {
+    return filter == null || filter.equalsIgnoreCase(metric.getMeasurementType());
+  }
+
+  private static String getMetricIdFilter(ExportServiceRequest request) {
+    if (request == null || request.getFilters() == null) {
+      return null;
+    }
+
+    return Optional.ofNullable(request.getFilters().get(METRIC_ID))
+        .map(String.class::cast)
+        .orElse(null);
+  }
+
+  private static String getMeasurementTypeFilter(ExportServiceRequest request) {
+    if (request != null
+        && request.getFilters() != null
+        && request.getFilters().get(CATEGORY) instanceof String value) {
+      return getMeasurementTypeFromCategory(value);
+    }
+
+    return null;
+  }
+
+  private static String getMeasurementTypeFromCategory(String value) {
+    var category = HypervisorReportCategory.mapCategory(ReportCategory.fromString(value));
+    if (category != null) {
+      return switch (category) {
+        case NON_HYPERVISOR -> PHYSICAL;
+        case HYPERVISOR -> HYPERVISOR;
+      };
+    }
+    return null;
+  }
+
+  private static SubscriptionsExportJsonMeasurement getOrCreateMeasurement(
+      Map<MetricKey, SubscriptionsExportJsonMeasurement> metrics,
+      SubscriptionCapacityViewMetric metric) {
+
+    MetricKey key = MetricKey.of(metric);
+    return metrics.computeIfAbsent(
+        key,
+        k -> {
+          var m = new SubscriptionsExportJsonMeasurement();
+          m.setMetricId(k.metricId);
+          m.setMeasurementType(k.measurementType);
+          m.setCapacity(0.0);
+          return m;
+        });
+  }
+
+  @AllArgsConstructor
+  @EqualsAndHashCode
+  private static class MetricKey {
+    final String metricId;
+    final String measurementType;
+
+    public static MetricKey of(SubscriptionCapacityViewMetric metric) {
+      return new MetricKey(metric.getMetricId(), metric.getMeasurementType());
+    }
   }
 }
