@@ -433,12 +433,12 @@ public interface HostRepository
         monthlyTotalCoresJoin.on(
             builder.equal(
                 monthlyTotalCoresJoin.key(),
-                new InstanceMonthlyTotalKey(month, MetricIdUtils.getCores().toString())));
+                new InstanceMonthlyTotalKey(month, MetricIdUtils.getCores())));
         var monthlyTotalInstanceHoursJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_INSTANCE_HOURS);
         monthlyTotalInstanceHoursJoin.on(
             builder.equal(
                 monthlyTotalInstanceHoursJoin.key(),
-                new InstanceMonthlyTotalKey(month, MetricIdUtils.getInstanceHours().toString())));
+                new InstanceMonthlyTotalKey(month, MetricIdUtils.getInstanceHours())));
       }
       return null;
     };
@@ -470,8 +470,7 @@ public interface HostRepository
           Optional.ofNullable(referenceUom).orElse(getDefaultMetricIdForProduct(productId));
       if (Objects.nonNull(effectiveUom)) {
         searchCriteria =
-            searchCriteria.and(
-                monthlyKeyEquals(new InstanceMonthlyTotalKey(month, effectiveUom.toString())));
+            searchCriteria.and(monthlyKeyEquals(new InstanceMonthlyTotalKey(month, effectiveUom)));
       }
     }
 
