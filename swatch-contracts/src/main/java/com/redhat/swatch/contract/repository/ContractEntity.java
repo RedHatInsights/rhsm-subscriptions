@@ -95,9 +95,8 @@ public class ContractEntity extends PanacheEntityBase {
   @Column(name = "billing_provider_id")
   private String billingProviderId;
 
-  @NotNull
   @Basic
-  @Column(name = "billing_account_id", nullable = false)
+  @Column(name = "billing_account_id")
   private String billingAccountId;
 
   @Basic
