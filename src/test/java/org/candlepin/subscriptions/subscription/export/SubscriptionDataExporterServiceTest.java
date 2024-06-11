@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.subscription.export;
 
+import static org.candlepin.subscriptions.export.ExportSubscriptionListener.MISSING_PERMISSIONS;
 import static org.candlepin.subscriptions.subscription.export.SubscriptionDataExporterService.PRODUCT_ID;
 
 import com.redhat.cloud.event.apps.exportservice.v1.Format;
@@ -72,7 +73,7 @@ class SubscriptionDataExporterServiceTest extends BaseDataExporterServiceTest {
   void testRequestWithoutPermissions() {
     givenExportRequestWithoutPermissions();
     whenReceiveExportRequest();
-    verifyRequestWasSentToExportServiceWithError(request);
+    verifyRequestWasSentToExportServiceWithError(request, MISSING_PERMISSIONS);
   }
 
   @Test
