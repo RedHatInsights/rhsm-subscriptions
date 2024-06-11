@@ -55,6 +55,7 @@ services:
       start_period: 10s
     ports:
       - "127.0.0.1:9092:9092"
+      - "[::1]:9092:9092"
       # Port 9093 is used by the Kraft configuration
       - "127.0.0.1:9094:9094"
       - "127.0.0.1:29092:29092"
@@ -104,6 +105,7 @@ services:
         condition: service_healthy
       unleash:
         condition: service_healthy
+    restart: unless-stopped
     ports:
       - "127.0.0.1:8050:8000"
     user: root

@@ -89,10 +89,15 @@ public class InternalTallyDataController {
     try {
       events =
           objectMapper.readValue(jsonListOfEvents, new TypeReference<List<Event>>() {}).stream()
+              .map(eventController::normalizeEvent)
               .filter(
                   e -> {
-                    log.warn("Invalid event in batch: {}", e);
-                    return eventController.validateServiceInstanceEvent(e);
+                    if (eventController.validateServiceInstanceEvent(e)) {
+                      return true;
+                    } else {
+                      log.warn("Invalid event in batch: {}", e);
+                      return false;
+                    }
                   })
               .toList();
     } catch (Exception e) {
