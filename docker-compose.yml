@@ -75,6 +75,17 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+  kafka-setup:
+    image: quay.io/strimzi/kafka:latest-kafka-3.1.0
+    command: |
+      /bin/bash -c "
+        bin/kafka-topics.sh --bootstrap-server=kafka:29092 --create --if-not-exists --partitions 1 --replication-factor 1 --topic platform.inventory.host-ingress
+        bin/kafka-topics.sh --bootstrap-server=kafka:29092 --create --if-not-exists --partitions 1 --replication-factor 1 --topic platform.inventory.events
+        bin/kafka-topics.sh --bootstrap-server=kafka:29092 --create --if-not-exists --partitions 1 --replication-factor 1 --topic platform.notifications.ingress
+      "
+    depends_on:
+      kafka:
+        condition: service_healthy
   kafka-topics-ui:
     image: docker.io/landoop/kafka-topics-ui
     environment:
@@ -82,6 +93,7 @@ services:
       - PROXY=true
     ports:
       - "127.0.0.1:3030:8000"
+    restart: on-failure
     depends_on:
       - kafka-rest
   kafka-bridge:
@@ -130,7 +142,7 @@ services:
     command: ["make run_inv_mq_service"]
     environment:
       - INVENTORY_LOG_LEVEL=DEBUG
-      - INVENTORY_DB_HOST=127.0.0.1
+      - INVENTORY_DB_HOST=db
       - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - prometheus_multiproc_dir=/tmp
       - BYPASS_RBAC=true
@@ -142,6 +154,10 @@ services:
       kafka:
         condition: service_healthy
       db:
+        condition: service_healthy
+      kafka-setup:
+        condition: service_healthy
+      inventory:  # main inventory deployment runs the db migrations
         condition: service_healthy
     user: root
   unleash:
