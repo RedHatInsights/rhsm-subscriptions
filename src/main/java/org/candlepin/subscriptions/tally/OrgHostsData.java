@@ -46,7 +46,6 @@ import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 public class OrgHostsData {
 
   @NonNull private final String orgId;
-  private boolean isMetered = false;
 
   private Map<String, String> hypervisorMapping = new HashMap<>();
   private Map<String, Set<UsageCalculation.Key>> hypervisorKeys = new HashMap<>();
