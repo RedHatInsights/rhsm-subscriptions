@@ -29,6 +29,7 @@ public final class Channels {
   public static final String BILLABLE_USAGE_DLT = "billable-usage-dlt";
   public static final String BILLABLE_USAGE_AGGREGATION_OUT =
       "billable-usage-aggregation-repartition-out";
+  public static final String BILLABLE_USAGE_STATUS = "billable-usage-status-in";
 
   private Channels() {}
 }

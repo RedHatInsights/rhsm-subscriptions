@@ -96,6 +96,20 @@ public class BillableUsageRemittanceRepository
     delete("orgId = ?1", orgId);
   }
 
+  @Transactional
+  public void updateStatusByIdIn(
+      List<String> uuids,
+      RemittanceStatus status,
+      OffsetDateTime billedOn,
+      RemittanceErrorCode errorCode) {
+    update(
+        "status = ?1, billedOn=?2, errorCode=?3 where uuid in (?4)",
+        status,
+        billedOn,
+        errorCode,
+        uuids);
+  }
+
   public int resetBillableUsageRemittance(
       String productId, OffsetDateTime start, OffsetDateTime end, Set<String> orgIds) {
     return update(
