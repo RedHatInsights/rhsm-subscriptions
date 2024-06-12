@@ -376,17 +376,15 @@ public class MetricUsageCollector {
               .getMeasurements()
               .forEach(
                   measurement -> {
+                    var metricId =
+                        MetricId.fromString(
+                            Optional.ofNullable(measurement.getMetricId())
+                                .orElse(measurement.getUom()));
                     if (Variant.getMetricsForTag(productId).stream()
                         .map(Metric::getId)
-                        .anyMatch(
-                            definedMetricId -> definedMetricId.equals(measurement.getMetricId()))) {
+                        .anyMatch(definedMetricId -> definedMetricId.equals(metricId.toString()))) {
                       calc.addUsage(
-                          usageKey,
-                          hardwareMeasurementType,
-                          MetricId.fromString(
-                              Optional.ofNullable(measurement.getMetricId())
-                                  .orElse(measurement.getUom())),
-                          measurement.getValue());
+                          usageKey, hardwareMeasurementType, metricId, measurement.getValue());
                     }
                   });
         });
