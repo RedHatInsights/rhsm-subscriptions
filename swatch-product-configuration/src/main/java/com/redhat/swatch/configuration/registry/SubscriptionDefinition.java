@@ -185,47 +185,56 @@ public class SubscriptionDefinition {
     Set<String> productTags = new HashSet<>();
     if (!isNullOrEmpty(role)) {
       productTags.addAll(
-          Variant.findByRole(role, is3rdPartyMigration).stream()
-              .filter(variant -> variant.getSubscription().isPaygEligible() == isMetered)
+          Variant.findByRole(role, is3rdPartyMigration, isMetered).stream()
               .map(Variant::getTag)
               .collect(Collectors.toSet()));
     }
 
     if (Objects.nonNull(engIds) && !engIds.isEmpty()) {
-      Set<String> ignoredSubscriptionIds = getIgnoredSubscriptionIds(engIds);
-
       engIds.stream()
-          .map(Object::toString)
+          .map(Objects::toString)
+          .collect(Collectors.toSet())
           .forEach(
-              engId ->
-                  productTags.addAll(
-                      Variant.findByEngProductId(engId, is3rdPartyMigration).stream()
-                          .filter(
-                              variant -> variant.getSubscription().isPaygEligible() == isMetered)
-                          .filter(
-                              variant ->
-                                  !ignoredSubscriptionIds.contains(
-                                      variant.getSubscription().getId()))
-                          .map(Variant::getTag)
-                          .collect(Collectors.toSet())));
+              engId -> {
+                Set<Variant> matchingVariants =
+                    Variant.findByEngProductId(engId, is3rdPartyMigration, isMetered);
+
+                // Add the variant that the fingerprint matches
+                Set<String> tags =
+                    new HashSet<>(matchingVariants.stream().map(Variant::getTag).toList());
+
+                // Add additional tags as defined by config (to force that RHEL for x86 which
+                // wouldn't match otherwise because there that definition isn't metered)
+                for (String additionalTag :
+                    matchingVariants.stream()
+                        .flatMap(variant -> variant.getAdditionalTags().stream())
+                        .toList()) {
+
+                  // Only force the tag if it has an engineering match id....this is so 204 doesn't
+                  // incorrectly map to 204,479 (mabye we don't need this?)
+                  Optional<Variant> maybeVariant = Variant.findByTag(additionalTag);
+                  if (maybeVariant.isPresent()
+                      && maybeVariant.get().getEngineeringIds().stream()
+                          .anyMatch(engIds::contains)) {
+                    tags.add(additionalTag);
+                  }
+                }
+
+                productTags.addAll(tags);
+              });
     }
     // if not found, let's use the product name
     if ((productTags.isEmpty()) && !isNullOrEmpty(productName)) {
       productTags.addAll(
-          Variant.filterVariantsByProductName(productName, is3rdPartyMigration)
+          Variant.filterVariantsByProductName(productName, is3rdPartyMigration, isMetered)
               .filter(v -> v.getSubscription().isPaygEligible() == isMetered)
               .map(Variant::getTag)
               .collect(Collectors.toSet()));
     }
-    return productTags;
-  }
 
-  private static Set<String> getIgnoredSubscriptionIds(Collection<?> engIds) {
-    return engIds.stream()
-        .flatMap(
-            id -> SubscriptionDefinition.lookupSubscriptionByEngId(String.valueOf(id)).stream())
-        .flatMap(sub -> sub.getIncludedSubscriptions().stream())
-        .collect(Collectors.toSet());
+    SubscriptionDefinition.pruneIncludedProducts(productTags);
+
+    return productTags;
   }
 
   /**
@@ -321,5 +330,19 @@ public class SubscriptionDefinition {
 
   private static boolean isNullOrEmpty(String str) {
     return str == null || str.isEmpty();
+  }
+
+  public static void pruneIncludedProducts(Set<String> productTags) {
+    Set<String> exclusions =
+        productTags.stream()
+            .map(SubscriptionDefinition::lookupSubscriptionByTag)
+            .filter(Optional::isPresent)
+            .flatMap(s -> s.get().getIncludedSubscriptions().stream())
+            .flatMap(
+                productId ->
+                    SubscriptionDefinition.getAllProductTagsByProductId(productId).stream())
+            .collect(Collectors.toSet());
+
+    productTags.removeIf(exclusions::contains);
   }
 }

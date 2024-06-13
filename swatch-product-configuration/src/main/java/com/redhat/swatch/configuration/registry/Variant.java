@@ -52,15 +52,18 @@ public class Variant {
   @Builder.Default private List<String> roles = new ArrayList<>();
   @Builder.Default private List<String> engineeringIds = new ArrayList<>();
   @Builder.Default private List<String> productNames = new ArrayList<>();
+  @Builder.Default private List<String> additionalTags = new ArrayList<>();
 
-  protected static Set<Variant> findByRole(String role, boolean isMigrationProduct) {
+  protected static Set<Variant> findByRole(
+      String role, boolean isMigrationProduct, boolean isMetered) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .flatMap(subscription -> subscription.getVariants().stream())
         .filter(
             variant ->
                 !variant.getRoles().isEmpty()
                     && variant.getRoles().contains(role)
-                    && Objects.equals(variant.isMigrationProduct, isMigrationProduct))
+                    && Objects.equals(variant.isMigrationProduct, isMigrationProduct)
+                    && Objects.equals(variant.subscription.isPaygEligible(), isMetered))
         .collect(Collectors.toSet());
   }
 
@@ -74,14 +77,15 @@ public class Variant {
    * @return Optional<Variant>
    */
   protected static Set<Variant> findByEngProductId(
-      String engProductId, boolean isMigrationProduct) {
+      String engProductId, boolean isMigrationProduct, boolean isMetered) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .flatMap(subscription -> subscription.getVariants().stream())
         .filter(
             variant ->
                 !variant.getEngineeringIds().isEmpty()
                     && variant.getEngineeringIds().contains(engProductId)
-                    && Objects.equals(variant.isMigrationProduct, isMigrationProduct))
+                    && Objects.equals(variant.isMigrationProduct, isMigrationProduct)
+                    && Objects.equals(variant.subscription.isPaygEligible(), isMetered))
         .collect(Collectors.toSet());
   }
 
@@ -103,14 +107,15 @@ public class Variant {
   }
 
   protected static Stream<Variant> filterVariantsByProductName(
-      String productName, boolean isMigrationProduct) {
+      String productName, boolean isMigrationProduct, boolean isMetered) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .map(SubscriptionDefinition::getVariants)
         .flatMap(List::stream)
         .filter(
             v ->
                 v.getProductNames().contains(productName)
-                    && Objects.equals(v.isMigrationProduct, isMigrationProduct));
+                    && Objects.equals(v.isMigrationProduct, isMigrationProduct)
+                    && Objects.equals(v.subscription.isPaygEligible(), isMetered));
   }
 
   public static boolean isValidProductTag(String productId) {
