@@ -314,8 +314,8 @@ public class EventController {
         isValid = false;
       } else {
         log.debug("matching payg product tags for event={}: {}", event, matchingProductTags);
-        log.info("event.product_tags={}", event.getProductTag());
         event.setProductTag(matchingProductTags);
+        log.info("event.product_tags={}", event.getProductTag());
       }
     }
 
