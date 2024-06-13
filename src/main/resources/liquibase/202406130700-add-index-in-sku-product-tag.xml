@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+
+  <changeSet id="202406130700-1" author="karshah">
+    <comment>Create an index on sku for sku_product_tag</comment>
+    <createIndex indexName="sku_idx" tableName="sku_product_tag"
+                 unique="false">
+      <column name="sku"/>
+    </createIndex>
+  </changeSet>
+</databaseChangeLog>
