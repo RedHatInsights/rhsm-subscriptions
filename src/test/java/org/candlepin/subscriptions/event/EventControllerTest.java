@@ -544,7 +544,7 @@ class EventControllerTest {
     event.setConversion(false);
 
     var expected = Set.of("rhel-for-x86-els-payg-addon");
-    var actual = eventController.filterOnApplicableTags(event, null);
+    var actual = eventController.filterOnApplicableTags(event);
 
     assertEquals(expected, actual);
   }
