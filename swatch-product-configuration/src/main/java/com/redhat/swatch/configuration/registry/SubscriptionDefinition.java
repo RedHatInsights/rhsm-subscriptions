@@ -161,13 +161,21 @@ public class SubscriptionDefinition {
             });
   }
 
-  public static Set<String> getAllNonPaygTags() {
+  /**
+   * @param isPaygEligible
+   * @return Set<String> variant tags
+   */
+  public static Set<String> getAllTags(boolean isPaygEligible) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
-        .filter(subscriptionDefinition -> !subscriptionDefinition.isPaygEligible())
+        .filter(subscriptionDefinition -> subscriptionDefinition.isPaygEligible() == isPaygEligible)
         .map(SubscriptionDefinition::getVariants)
         .flatMap(Collection::stream)
         .map(Variant::getTag)
         .collect(Collectors.toUnmodifiableSet());
+  }
+
+  public static Set<String> getAllNonPaygTags() {
+    return getAllTags(false);
   }
 
   public static Set<String> getAllProductTagsByProductId(String id) {

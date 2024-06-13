@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.json.Event;
@@ -469,5 +470,17 @@ class EventControllerTest {
     List<Integer> getCounts() {
       return counts;
     }
+  }
+
+  @Test
+  void testFilterOnApplicableTags() {
+    Event event = new Event();
+    event.setProductIds(List.of("204", "479"));
+    event.setConversion(false);
+
+    var expected = Set.of("rhel-for-x86-els-payg-addon");
+    var actual = eventController.filterOnApplicableTags(event, null);
+
+    assertEquals(expected, actual);
   }
 }

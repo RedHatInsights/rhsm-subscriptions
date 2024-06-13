@@ -283,9 +283,12 @@ public class EventController {
     // flow, and we don't have a way to distinguish between payg and non-payg through events.
     String role = event.getRole() != null ? event.getRole().toString() : null;
 
-    Set<String> matchingProductTags =
-        SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
-            role, event.getProductIds(), null, true, event.getConversion());
+    Set<String> matchingProductTags = filterOnApplicableTags(event, role);
+
+    if (matchingProductTags.isEmpty()) {
+      log.warn("Event data doesn't match configured product tags in swatch. event={}", event);
+      return false;
+    }
 
     log.info(
         "matching payg product tags for role={}, productIds={}, productName={}, conversion={}: {}",
@@ -295,18 +298,21 @@ public class EventController {
         event.getConversion(),
         matchingProductTags);
     log.info("event.product_tags={}", event.getProductTag());
-
-    if (matchingProductTags.isEmpty()
-        || (event.getProductTag() != null
-            && !event.getProductTag().isEmpty()
-            && !matchingProductTags.containsAll(event.getProductTag()))) {
-      log.warn("Event doesn't match configured product tags in swatch");
-
-      return false;
-    }
-
     event.setProductTag(matchingProductTags);
     return true;
+  }
+
+  protected Set<String> filterOnApplicableTags(Event event, String role) {
+    Set<String> matchingProductTags =
+        SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
+            role, event.getProductIds(), null, true, event.getConversion());
+
+    Set<String> applicableProducts = SubscriptionDefinition.getAllTags(true);
+
+    // Filter out tags in matchingProductTags that do not appear in applicableProducts.  This is
+    // what's going to prevent creating traditional snapshots during an hourly tally
+    matchingProductTags.retainAll(applicableProducts);
+    return matchingProductTags;
   }
 
   /**
