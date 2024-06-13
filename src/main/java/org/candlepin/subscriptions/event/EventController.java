@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.event;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.registry.Variant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -263,10 +264,22 @@ public class EventController {
   }
 
   public boolean validateServiceInstanceEvent(Event event) {
+    return isValidInstanceId(event) && isValidMeasurement(event) && isValidProductTag(event);
+  }
+
+  private boolean isValidInstanceId(Event event) {
+    boolean isValid = true;
+
     if (Objects.isNull(event.getInstanceId())) {
       log.warn("Event.instanceId must not be null. event={}", event);
-      return false;
+      isValid = false;
     }
+
+    return isValid;
+  }
+
+  private boolean isValidMeasurement(Event event) {
+    boolean isValid = true;
 
     List<Measurement> invalidMeasurements =
         Optional.ofNullable(event.getMeasurements()).orElse(Collections.emptyList()).stream()
@@ -275,38 +288,55 @@ public class EventController {
 
     if (!invalidMeasurements.isEmpty()) {
       log.warn("Event measurement value(s) must be >= 0. event={}", event);
-      return false;
+      isValid = false;
     }
 
-    // Determine whether the product is payg or non-payg, and then add the appropriate tag in
-    // SWATCH-1993. We are only checking for payg at this time because we only support payg in this
-    // flow, and we don't have a way to distinguish between payg and non-payg through events.
-    String role = event.getRole() != null ? event.getRole().toString() : null;
+    return isValid;
+  }
 
+  private boolean isValidProductTag(Event event) {
+    boolean isValid = true;
+
+    // If product tag is already present in the event then verify whether it is present in our
+    // config
+    if (Objects.nonNull(event.getProductTag()) && !event.getProductTag().isEmpty()) {
+      isValid =
+          event.getProductTag().stream().findFirst().map(Variant::isValidProductTag).orElse(false);
+      if (!isValid) {
+        log.warn("Product tag {} is invalid.", event.getProductTag().stream().findFirst());
+      }
+    } else {
+
+      Set<String> matchingProductTags = filterOnApplicableTags(event);
+
+      if (matchingProductTags.isEmpty()) {
+        log.warn("Event data doesn't match configured product tags in swatch. event={}", event);
+        isValid = false;
+      } else {
+        log.debug("matching payg product tags for event={}: {}", event, matchingProductTags);
+        event.setProductTag(matchingProductTags);
+        log.info("event.product_tags={}", event.getProductTag());
+      }
+    }
+
+    return isValid;
+  }
+
+  protected Set<String> filterOnApplicableTags(Event event) {
+    // Determine whether the product is payg or non-payg, and then add the appropriate tag in
+    // SWATCH-1993.  We are only checking for payg at this time because we only support payg in
+    // this flow, and we don't have a way to distinguish between payg and non-payg through events.
+    String role = event.getRole() != null ? event.getRole().toString() : null;
     Set<String> matchingProductTags =
         SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
             role, event.getProductIds(), null, true, event.getConversion());
 
-    log.info(
-        "matching payg product tags for role={}, productIds={}, productName={}, conversion={}: {}",
-        role,
-        event.getProductIds(),
-        null,
-        event.getConversion(),
-        matchingProductTags);
-    log.info("event.product_tags={}", event.getProductTag());
+    Set<String> applicableProducts = SubscriptionDefinition.getAllTags(true);
 
-    if (matchingProductTags.isEmpty()
-        || (event.getProductTag() != null
-            && !event.getProductTag().isEmpty()
-            && !matchingProductTags.containsAll(event.getProductTag()))) {
-      log.warn("Event doesn't match configured product tags in swatch");
-
-      return false;
-    }
-
-    event.setProductTag(matchingProductTags);
-    return true;
+    // Filter out tags in matchingProductTags that do not appear in applicableProducts.  This is
+    // what's going to prevent creating traditional snapshots during an hourly tally
+    matchingProductTags.retainAll(applicableProducts);
+    return matchingProductTags;
   }
 
   /**

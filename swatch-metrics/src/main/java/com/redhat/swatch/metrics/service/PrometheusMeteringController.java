@@ -25,6 +25,7 @@ import com.redhat.swatch.clients.prometheus.api.model.StatusType;
 import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.kafka.EmitterService;
 import com.redhat.swatch.metrics.configuration.MetricProperties;
 import com.redhat.swatch.metrics.exception.MeteringException;
@@ -241,27 +242,43 @@ public class PrometheusMeteringController {
 
     boolean is3rdPartyMigrated = Boolean.parseBoolean(labels.get("conversions_success"));
 
+    // Since the promql is shared by all tags in a configuration file, conversions_success isn't
+    // filtered on during promql.  This means that we end up running the same promql twice and would
+    // end up with duplicate events for a system.  EventReconciliation on ingestion will handle
+    // this, but we don't want to extraneously store and process events for performance reasons.  If
+    // conversions_success doesn't match the isMigrated attribute for the tag whose context we're
+    // currently working in, skip creating an event.
+
+    if (Boolean.TRUE.equals(Variant.findByTag(productTag).get().getIsMigrationProduct())
+        != is3rdPartyMigrated) {
+
+      var msg =
+          """
+          Ignoring extraneous data returned from promql.  Skipping event creation.
+          product tag we're collecting data for={}. Data from metric productIds={}, role={}, isMigrated {}
+          """;
+
+      log.debug(msg, productTag, productIds, role, is3rdPartyMigrated);
+      return;
+    }
+
     var matchingTags =
         SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
             role, productIds, null, true, is3rdPartyMigrated);
 
-    if (matchingTags.size() != 1) {
+    if (!matchingTags.contains(productTag)) {
+      // Warn that the event doesn't match the context of the product tag we're currently working
+      // in.
       log.warn(
-          "Data does not uniquely match a swatch-product-configuration product-tag, skipping Event creation");
-      log.debug("Data: {}", labels);
-      return;
-    }
-
-    var derivedProductTag = matchingTags.iterator().next();
-
-    if (!Objects.equals(productTag, derivedProductTag)) {
-      log.warn(
-          "Starting product tag {} does not match derived product tag {} based on data contents",
+          "Starting product tag {} does not match derived product tags {} based on data contents. Skipping event creation.",
           productTag,
-          derivedProductTag);
+          matchingTags);
+      // Clear the product tag before producing Event message to force Event ingestion to determine
+      // a product tag during normalization
+      productTag = null;
     }
 
-    log.info("Creating Event for product {}", derivedProductTag);
+    log.info("Creating Event for product {}", productTag);
 
     String billingProvider = labels.get("billing_marketplace");
     String billingAccountId;
@@ -301,7 +318,7 @@ public class PrometheusMeteringController {
               billingAccountId,
               MetricId.fromString(tagMetric.getId()),
               value,
-              derivedProductTag,
+              productTag,
               meteringBatchId,
               productIds,
               displayName,

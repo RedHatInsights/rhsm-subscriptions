@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.json.Event;
@@ -387,6 +388,71 @@ class EventControllerTest {
   }
 
   @Test
+  void testPersistServiceInstances_WhenProductTagExists() {
+    List<String> eventRecords = new ArrayList<>();
+
+    var invalidProductTagEventRecord1 =
+        """
+                    {
+                     "sla":"Premium",
+                     "org_id":"111111111",
+                     "timestamp":"2024-06-10T10:00:00Z",
+                     "conversion":false,
+                     "event_type":"snapshot_rhel-for-x86-els-payg-addon_vCPUs",
+                     "expiration":"2024-06-10T11:00:00Z",
+                     "instance_id":"d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                     "product_tag":[
+                        "dummy"
+                     ],
+                     "display_name":"automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                     "event_source":"Premium",
+                     "measurements":[
+                        {
+                           "uom":"vCPUs",
+                           "value":4.0,
+                           "metric_id":"vCPUs"
+                        }
+                     ],
+                     "service_type":"RHEL System"
+                  }
+            """;
+
+    var validProductTagEventRecord1 =
+        """
+                    {
+                     "sla":"Premium",
+                     "org_id":"111111111",
+                     "timestamp":"2024-06-10T10:00:00Z",
+                     "conversion":false,
+                     "event_type":"snapshot_rhel-for-x86-els-payg-addon_vCPUs",
+                     "expiration":"2024-06-10T11:00:00Z",
+                     "instance_id":"d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                     "product_tag":[
+                        "rhel-for-x86-els-payg-addon"
+                     ],
+                     "display_name":"automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                     "event_source":"Premium",
+                     "measurements":[
+                        {
+                           "uom":"vCPUs",
+                           "value":4.0,
+                           "metric_id":"vCPUs"
+                        }
+                     ],
+                     "service_type":"RHEL System"
+                  }
+            """;
+    eventRecords.add(validProductTagEventRecord1);
+    eventRecords.add(invalidProductTagEventRecord1);
+    eventController.persistServiceInstances(eventRecords);
+    when(eventRecordRepository.saveAll(any())).thenReturn(new ArrayList<>());
+
+    verify(eventRecordRepository).saveAll(eventsSaved.capture());
+    List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
+    assertEquals(1, events.size());
+  }
+
+  @Test
   void testProcessEventsInBatches_processesAllEvents() {
     List<EventRecord> all = new LinkedList<>();
     for (int i = 0; i < 10; i++) {
@@ -469,5 +535,17 @@ class EventControllerTest {
     List<Integer> getCounts() {
       return counts;
     }
+  }
+
+  @Test
+  void testFilterOnApplicableTags() {
+    Event event = new Event();
+    event.setProductIds(List.of("204", "479"));
+    event.setConversion(false);
+
+    var expected = Set.of("rhel-for-x86-els-payg-addon");
+    var actual = eventController.filterOnApplicableTags(event);
+
+    assertEquals(expected, actual);
   }
 }
