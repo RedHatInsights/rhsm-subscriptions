@@ -5,10 +5,18 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
   <changeSet id="202406051539-01" author="awood" dbms="postgresql">
+    <createIndex tableName="subscription" indexName="subscription_start_date_idx">
+        <column name="start_date"/>
+    </createIndex>
+  </changeSet>
+  <changeSet id="202406051539-02" author="awood" dbms="postgresql">
     <comment>
       See SWATCH-2579.  Quantity changes on a subscription were resulting in the
       creation of a new subscription for that quantity after every subscription sync
     </comment>
     <customChange class="org.candlepin.subscriptions.liquibase.RemoveIncorrectlySegmentedSubscriptions"/>
+  </changeSet>
+  <changeSet id="202406051539-03" author="awood" dbms="postgresql">
+    <dropIndex tableName="subscription" indexName="subscription_start_date_idx"/>
   </changeSet>
 </databaseChangeLog>

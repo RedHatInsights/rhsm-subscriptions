@@ -46,78 +46,44 @@ public class RemoveIncorrectlySegmentedSubscriptions extends LiquibaseCustomTask
       ORDER BY s2.subscription_id, s2.start_date ASC;
       """;
 
-  // language=PostgreSQL
-  public static final String DELETE_DEPENDENT_MEASUREMENTS =
-      """
-      DELETE
-      FROM subscription_measurements sm
-      WHERE (sm.subscription_id, sm.start_date) NOT IN
-          (
-              SELECT subscription_id, start_date
-              FROM subscription
-              WHERE subscription_id = ?
-              ORDER BY start_date ASC
-              LIMIT 2
-          )
-        AND sm.subscription_id = ?;
-      """;
-
-  // Possibly these statements could be improved using anti-joins (LEFT JOIN ... WHERE
-  // l.subscription_id IS NULL)
-  // but using the IN clause has pretty good performance
-
-  // language=PostgreSQL
-  public static final String DELETE_DEPENDENT_PRODUCT_IDS =
-      """
-      DELETE
-      FROM subscription_product_ids spi
-      WHERE (spi.subscription_id, spi.start_date) NOT IN
-          (
-              SELECT subscription_id, start_date
-              FROM subscription
-              WHERE subscription_id = ?
-              ORDER BY start_date ASC
-              LIMIT 2
-          )
-        AND spi.subscription_id = ?;
-      """;
-
   // Delete all segments except for the initial subscription and first
-  // segment swatch created
+  // segment after a quantity change
   // language=PostgreSQL
-  public static final String DELETE_ALL_BUT_TWO_SEGMENTS =
+  public static final String DELETE_INCORRECT_SEGMENTS =
       """
-      DELETE
-      FROM subscription
-      WHERE (subscription_id, start_date) NOT IN
-          (
-              SELECT subscription_id, start_date
+      DELETE FROM %s s
+      USING (
+          SELECT subscription_id, start_date
+          FROM (
+              SELECT subscription_id,
+                  start_date,
+                  quantity,
+                  ROW_NUMBER() OVER (
+                      PARTITION BY subscription_id, quantity ORDER BY subscription_id, start_date DESC
+                  ) AS duplicated_row_number
               FROM subscription
               WHERE subscription_id = ?
-              ORDER BY start_date ASC
-              LIMIT 2
-          )
-      AND subscription_id = ?
+          ) windowed
+          WHERE duplicated_row_number != 1
+      ) d
+      WHERE s.subscription_id = d.subscription_id
+      AND s.start_date = d.start_date;
       """;
 
-  // Set the end date of segment 1 to the start date of segment 2
+  // Set the end date of segment n to the start date of segment n+1
   // language=PostgreSQL
   public static final String UPDATE_SEGMENT =
       """
       UPDATE subscription
-      SET end_date=subquery.start_date
+      SET end_date = next_end
       FROM (
-          SELECT s1.start_date FROM subscription s1 WHERE s1.subscription_id = ? ORDER BY s1.start_date DESC LIMIT 1
-      ) subquery
-      WHERE (subscription.subscription_id, subscription.start_date) IN
-          (
-              SELECT s2.subscription_id, s2.start_date
-              FROM subscription s2
-              WHERE s2.subscription_id = ?
-              ORDER BY s2.start_date ASC
-              LIMIT 1
-          )
-        AND subscription_id = ?
+          SELECT subscription_id, quantity, start_date, LAG(start_date) OVER (ORDER BY start_date DESC) next_end
+          FROM subscription
+          WHERE subscription_id = ?
+      ) d
+      WHERE subscription.start_date = d.start_date
+          AND d.next_end IS NOT NULL
+          AND d.subscription_id = ?;
       """;
 
   public static final String LOG_PREFIX = "SWATCH-2579: ";
@@ -151,12 +117,12 @@ public class RemoveIncorrectlySegmentedSubscriptions extends LiquibaseCustomTask
         LOG_PREFIX + qualifyingSubscriptions.size() + " subscriptions qualify for migration");
 
     for (String s : qualifyingSubscriptions) {
-      executeUpdate(DELETE_DEPENDENT_MEASUREMENTS, s, s);
-      executeUpdate(DELETE_DEPENDENT_PRODUCT_IDS, s, s);
-      int r = executeUpdate(DELETE_ALL_BUT_TWO_SEGMENTS, s, s);
+      executeUpdate(DELETE_INCORRECT_SEGMENTS.formatted("subscription_measurements"), s);
+      executeUpdate(DELETE_INCORRECT_SEGMENTS.formatted("subscription_product_ids"), s);
+      int r = executeUpdate(DELETE_INCORRECT_SEGMENTS.formatted("subscription"), s);
       logger.info(LOG_PREFIX + r + " duplicate records removed for subscription ID " + s);
 
-      executeUpdate(UPDATE_SEGMENT, s, s, s);
+      executeUpdate(UPDATE_SEGMENT, s, s);
     }
   }
 
@@ -183,9 +149,8 @@ public class RemoveIncorrectlySegmentedSubscriptions extends LiquibaseCustomTask
         SubscriptionRecord r2 = records.get(iterator.nextIndex());
         long delta = r2.startDate.getEpochSecond() - r1.startDate.getEpochSecond();
         // if r2's start is more than 28 hours ahead of r1's, then this collection of duplicates
-        // isn't a result
-        // of daily syncing.  I picked 28 hours to give a bit of a buffer around the vagaries of
-        // sync timing
+        // isn't a result of daily syncing.  I picked 28 hours to give a bit of a buffer around
+        // the vagaries of sync timing
         eligible &= delta < (28 * 60 * 60);
       }
     }
