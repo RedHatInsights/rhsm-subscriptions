@@ -262,9 +262,10 @@ public class PrometheusMeteringController {
       return;
     }
 
+    var includePaygTags = true;
     var matchingTags =
-        SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
-            role, productIds, null, true, is3rdPartyMigrated);
+        SubscriptionDefinition.getAllProductTags(
+            productIds, role, null, Set.of(tagMetric.getId()), includePaygTags, is3rdPartyMigrated);
 
     if (!matchingTags.contains(productTag)) {
       // Warn that the event doesn't match the context of the product tag we're currently working

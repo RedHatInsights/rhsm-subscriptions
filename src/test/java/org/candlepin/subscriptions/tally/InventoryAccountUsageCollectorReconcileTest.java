@@ -26,9 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -85,7 +83,7 @@ class InventoryAccountUsageCollectorReconcileTest {
 
     when(props.getHbiReconciliationFlushInterval()).thenReturn(2L);
     when(collator.collateData(any(), anyInt(), captor.capture())).thenReturn(5);
-    when(factNormalizer.normalize(any(), any(), anyBoolean())).thenReturn(new NormalizedFacts());
+    when(factNormalizer.normalize(any(), any())).thenReturn(new NormalizedFacts());
 
     var collector = setupCollector();
     collector.reconcileSystemDataWithHbi("org123", Set.of("RHEL for x86"));
@@ -102,7 +100,7 @@ class InventoryAccountUsageCollectorReconcileTest {
 
   @Test
   void testCreate() {
-    when(factNormalizer.normalize(any(), any(), anyBoolean())).thenReturn(new NormalizedFacts());
+    when(factNormalizer.normalize(any(), any())).thenReturn(new NormalizedFacts());
     var collector = setupCollector();
     InventoryHostFacts hbiSystem = InventoryHostFactTestHelper.createHypervisor("org123", 1);
     collector.reconcileHbiSystemWithSwatchSystem(
@@ -112,7 +110,7 @@ class InventoryAccountUsageCollectorReconcileTest {
 
   @Test
   void testUpdate() {
-    when(factNormalizer.normalize(any(), any(), anyBoolean())).thenReturn(new NormalizedFacts());
+    when(factNormalizer.normalize(any(), any())).thenReturn(new NormalizedFacts());
 
     var collector = setupCollector();
     InventoryHostFacts hbiSystem = InventoryHostFactTestHelper.createHypervisor("org123", 1);
@@ -128,8 +126,7 @@ class InventoryAccountUsageCollectorReconcileTest {
 
   @Test
   void testIsMeteredUpdate() {
-    when(factNormalizer.normalize(any(), any(), eq(Boolean.TRUE)))
-        .thenReturn(new NormalizedFacts());
+    when(factNormalizer.normalize(any(), any())).thenReturn(new NormalizedFacts());
 
     var collector = setupCollector();
     InventoryHostFacts hbiSystem = InventoryHostFactTestHelper.createHypervisor("org123", 1);
@@ -156,7 +153,7 @@ class InventoryAccountUsageCollectorReconcileTest {
     guestFacts.setHardwareType(HostHardwareType.VIRTUALIZED);
     guestFacts.setHypervisorUnknown(false);
     guestFacts.setHypervisorUuid("123e4567-e89b-12d3-a456-426614174000");
-    when(factNormalizer.normalize(any(), any(), anyBoolean())).thenReturn(guestFacts);
+    when(factNormalizer.normalize(any(), any())).thenReturn(guestFacts);
 
     var collector = setupCollector();
     var hbiSystem = new InventoryHostFacts();
@@ -205,7 +202,7 @@ class InventoryAccountUsageCollectorReconcileTest {
     hypervisorFacts.setHardwareType(HostHardwareType.PHYSICAL);
     hypervisorFacts.setSockets(4);
     hypervisorFacts.setCores(8);
-    when(factNormalizer.normalize(any(), any(), anyBoolean())).thenReturn(hypervisorFacts);
+    when(factNormalizer.normalize(any(), any())).thenReturn(hypervisorFacts);
 
     var collector = setupCollector();
     var hbiSystem = new InventoryHostFacts();
@@ -243,7 +240,7 @@ class InventoryAccountUsageCollectorReconcileTest {
     hypervisorFacts.setHardwareType(HostHardwareType.PHYSICAL);
     hypervisorFacts.setSockets(4);
     hypervisorFacts.setCores(8);
-    when(factNormalizer.normalize(any(), any(), anyBoolean())).thenReturn(hypervisorFacts);
+    when(factNormalizer.normalize(any(), any())).thenReturn(hypervisorFacts);
 
     var collector = setupCollector();
     var hbiSystem = new InventoryHostFacts();
@@ -283,7 +280,7 @@ class InventoryAccountUsageCollectorReconcileTest {
     NormalizedFacts normalizedFacts = new NormalizedFacts();
     normalizedFacts.setProducts(Set.of("RHEL for x86"));
     normalizedFacts.setHardwareType(HostHardwareType.PHYSICAL);
-    when(factNormalizer.normalize(any(), any(), anyBoolean())).thenReturn(normalizedFacts);
+    when(factNormalizer.normalize(any(), any())).thenReturn(normalizedFacts);
 
     var collector = setupCollector();
     var hbiSystem = new InventoryHostFacts();
@@ -323,7 +320,7 @@ class InventoryAccountUsageCollectorReconcileTest {
   void testNonHypervisorStaleBucketsRemoved() {
     NormalizedFacts normalizedFacts = new NormalizedFacts();
     normalizedFacts.setHardwareType(HostHardwareType.PHYSICAL);
-    when(factNormalizer.normalize(any(), any(), anyBoolean())).thenReturn(normalizedFacts);
+    when(factNormalizer.normalize(any(), any())).thenReturn(normalizedFacts);
 
     var collector = setupCollector();
     var hbiSystem = new InventoryHostFacts();
@@ -358,7 +355,7 @@ class InventoryAccountUsageCollectorReconcileTest {
   void testSystemNoLongerMarkedAsHypervisorHasHypervisorBucketsRemoved() {
     NormalizedFacts normalizedFacts = new NormalizedFacts();
     normalizedFacts.setHardwareType(HostHardwareType.PHYSICAL);
-    when(factNormalizer.normalize(any(), any(), anyBoolean())).thenReturn(normalizedFacts);
+    when(factNormalizer.normalize(any(), any())).thenReturn(normalizedFacts);
 
     var collector = setupCollector();
     var hbiSystem = new InventoryHostFacts();
@@ -395,7 +392,7 @@ class InventoryAccountUsageCollectorReconcileTest {
     hypervisorFacts.setHardwareType(HostHardwareType.PHYSICAL);
     hypervisorFacts.setSockets(4);
     hypervisorFacts.setCores(8);
-    when(factNormalizer.normalize(any(), any(), anyBoolean())).thenReturn(hypervisorFacts);
+    when(factNormalizer.normalize(any(), any())).thenReturn(hypervisorFacts);
 
     var collector = setupCollector();
     var hbiSystem = new InventoryHostFacts();
