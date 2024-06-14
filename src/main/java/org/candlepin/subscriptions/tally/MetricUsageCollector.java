@@ -376,6 +376,8 @@ public class MetricUsageCollector {
               .getMeasurements()
               .forEach(
                   measurement -> {
+                    // TODO see if i can get rid of this now since product tag should have already
+                    // applied filtering based on relevant metric ids
                     var metricId =
                         MetricId.fromString(
                             Optional.ofNullable(measurement.getMetricId())

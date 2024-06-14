@@ -307,14 +307,4 @@ class SubscriptionDefinitionTest {
         Arguments.of(
             Set.of(els), isMetered, !is3rdPartyConverted, Set.of("rhel-for-x86-els-payg-addon")));
   }
-
-  @Test
-  void testFetchProductTagsWhenProductNameProvided() {
-    var productName = "OpenShift Online";
-    var expected = List.of("rosa");
-
-    var actual =
-        Variant.filterVariantsByProductName(productName, false, true).map(Variant::getTag).toList();
-    assertEquals(expected, actual);
-  }
 }

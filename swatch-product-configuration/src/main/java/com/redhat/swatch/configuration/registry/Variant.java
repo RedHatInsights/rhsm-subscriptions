@@ -52,7 +52,6 @@ public class Variant {
   @Builder.Default private List<String> roles = new ArrayList<>();
   @Builder.Default private List<String> engineeringIds = new ArrayList<>();
   @Builder.Default private List<String> productNames = new ArrayList<>();
-  @Builder.Default private List<String> additionalTags = new ArrayList<>();
   private String level2;
 
   protected static Set<Variant> findByRole(

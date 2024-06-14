@@ -62,11 +62,9 @@ public class FactNormalizer {
    *
    * @param hostFacts the collection of facts to normalize.
    * @param guestData
-   * @param isMetered
    * @return a normalized version of the host's facts.
    */
-  public NormalizedFacts normalize(
-      InventoryHostFacts hostFacts, OrgHostsData guestData, boolean isMetered) {
+  public NormalizedFacts normalize(InventoryHostFacts hostFacts, OrgHostsData guestData) {
 
     // If the host hasn't been seen by rhsm-conduit, consider the host as unregistered, and do not
     // apply this host's facts.
@@ -86,8 +84,7 @@ public class FactNormalizer {
             .orElse(false);
 
     normalizedFacts.setProducts(
-        productNormalizer.normalizeProducts(
-            hostFacts, isMetered, is3rdPartyMigrated, skipRhsmFacts));
+        productNormalizer.normalizeProducts(hostFacts, is3rdPartyMigrated, skipRhsmFacts));
 
     normalizeClassification(normalizedFacts, hostFacts, guestData);
     normalizeHardwareType(normalizedFacts, hostFacts);
