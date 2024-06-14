@@ -36,14 +36,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.candlepin.subscriptions.db.model.BillingProvider;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
-import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
-import org.candlepin.subscriptions.tally.UsageCalculation;
-import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -93,10 +89,12 @@ class UsageContextSubscriptionProviderTest {
     Subscription sub1 = new Subscription();
     sub1.setSubscriptionId("SUB1");
     sub1.setBillingProviderId("foo1;foo2;foo3");
+    sub1.setBillingAccountId("123");
     sub1.setEndDate(defaultEndDate);
     Subscription sub2 = new Subscription();
     sub2.setSubscriptionId("SUB2");
     sub2.setBillingProviderId("bar1;bar2;bar3");
+    sub2.setBillingAccountId("123");
     sub2.setEndDate(defaultEndDate);
 
     when(syncController.findSubscriptions(any(), any(), any(), any()))
@@ -117,6 +115,7 @@ class UsageContextSubscriptionProviderTest {
     var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
+    sub1.setBillingAccountId("123");
     sub1.setEndDate(endDate);
     when(syncController.findSubscriptions(any(), any(), any(), any())).thenReturn(List.of(sub1));
 
@@ -139,9 +138,11 @@ class UsageContextSubscriptionProviderTest {
     var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
+    sub1.setBillingAccountId("123");
     sub1.setEndDate(endDate);
     Subscription sub2 = new Subscription();
     sub2.setBillingProviderId("bar1;bar2;bar3");
+    sub2.setBillingAccountId("123");
     sub2.setEndDate(endDate.plusMinutes(45));
 
     when(syncController.findSubscriptions(any(), any(), any(), any()))
@@ -151,39 +152,6 @@ class UsageContextSubscriptionProviderTest {
     Optional<Subscription> subscription =
         provider.getSubscription("org123", "rosa", "Premium", "Production", "123", lookupDate);
     assertTrue(subscription.isPresent());
-    assertEquals(sub2, subscription.get());
-  }
-
-  @Test
-  void testShouldReturnSubscriptionWithPartialMatchingBillingAccountId() {
-    var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
-    Subscription sub1 = new Subscription();
-    sub1.setBillingAccountId("marketplaceTenantId1;marketplaceSubscriptionId1");
-    sub1.setEndDate(endDate);
-    Subscription sub2 = new Subscription();
-    sub2.setBillingAccountId("marketplaceTenantId1;marketplaceSubscriptionId2");
-    sub2.setEndDate(endDate.plusMinutes(45));
-    Subscription sub3 = new Subscription();
-    sub3.setBillingAccountId("marketplaceTenantId1");
-    sub3.setEndDate(endDate.plusMinutes(60));
-
-    Key usageKey =
-        new UsageCalculation.Key(
-            "rosa",
-            ServiceLevel.PREMIUM,
-            Usage.PRODUCTION,
-            BillingProvider.AWS,
-            "marketplaceTenantId1");
-
-    var lookupDate = endDate.plusMinutes(30);
-
-    when(syncController.findSubscriptions(
-            Optional.of("org123"), usageKey, lookupDate.minusHours(1), lookupDate))
-        .thenReturn(List.of(sub1, sub2, sub3));
-
-    Optional<Subscription> subscription =
-        provider.getSubscription(
-            "org123", "rosa", "Premium", "Production", "marketplaceTenantId1", lookupDate);
     assertEquals(sub2, subscription.get());
   }
 }

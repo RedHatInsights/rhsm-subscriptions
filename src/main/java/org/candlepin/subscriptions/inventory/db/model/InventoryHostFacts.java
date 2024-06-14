@@ -46,6 +46,7 @@ public class InventoryHostFacts {
   private Integer systemProfileThreadsPerCore;
   private String systemProfileArch;
   private boolean isMarketplace;
+  private boolean conversionsActivity;
   private boolean isVirtual;
   private String hypervisorUuid;
   private String satelliteHypervisorUuid;
@@ -55,7 +56,7 @@ public class InventoryHostFacts {
   private String guestId;
   private String subscriptionManagerId;
   private String insightsId;
-  private String instanceId;
+  private String providerId;
   private Set<String> qpcProducts;
   private Set<String> systemProfileProductIds;
   private String syspurposeRole;
@@ -91,6 +92,7 @@ public class InventoryHostFacts {
       String systemProfileThreadsPerCore,
       String systemProfileArch,
       String isMarketplace,
+      String conversionsActivity,
       String qpcProducts,
       String systemProfileProductIds,
       String syspurposeRole,
@@ -107,7 +109,7 @@ public class InventoryHostFacts {
       String guestId,
       String subscriptionManagerId,
       String insightsId,
-      String instanceId,
+      String providerId,
       String cloudProvider,
       OffsetDateTime staleTimestamp,
       String hardwareSubmanId) {
@@ -126,6 +128,7 @@ public class InventoryHostFacts {
     this.systemProfileThreadsPerCore = asInt(systemProfileThreadsPerCore);
     this.systemProfileArch = systemProfileArch;
     this.isMarketplace = asBoolean(isMarketplace);
+    this.conversionsActivity = asBoolean(conversionsActivity);
     this.systemProfileProductIds = asStringSet(systemProfileProductIds);
     this.syspurposeRole = syspurposeRole;
     this.syspurposeSla = syspurposeSla;
@@ -140,7 +143,7 @@ public class InventoryHostFacts {
     this.guestId = guestId;
     this.subscriptionManagerId = subscriptionManagerId;
     this.insightsId = insightsId;
-    this.instanceId = instanceId;
+    this.providerId = providerId;
     this.billingModel = billingModel;
     this.cloudProvider = cloudProvider;
     this.staleTimestamp = staleTimestamp;

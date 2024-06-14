@@ -124,6 +124,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
     }
     Page<TallyInstanceView> results =
         repo.findAllBy(
+            true,
             DEFAULT_ORG_ID,
             OPENSHIFT_CONTAINER_PLATFORM,
             ServiceLevel._ANY,
@@ -139,12 +140,6 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
             page);
 
     assertEquals(2, results.getTotalElements());
-
-    if (sortValue.equals("monthlyTotals")) {
-      List<TallyInstanceView> payload = results.toList();
-      assertEquals(0.0, payload.get(0).getMonthlyTotals().get(0));
-      assertEquals(100.0, payload.get(1).getMonthlyTotals().get(0));
-    }
   }
 
   @Test
@@ -206,6 +201,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
 
     Page<TallyInstanceView> results =
         repo.findAllBy(
+            false,
             "a1",
             COOL_PROD,
             ServiceLevel.PREMIUM,
@@ -224,6 +220,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
 
     Page<TallyInstanceView> allResults =
         repo.findAllBy(
+            false,
             "a1",
             COOL_PROD,
             ServiceLevel.PREMIUM,
@@ -335,6 +332,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
 
     Page<TallyInstanceView> results =
         repo.findAllBy(
+            false,
             "a1",
             COOL_PROD,
             ServiceLevel.PREMIUM,
@@ -393,6 +391,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
 
     Page<TallyInstanceView> results =
         repo.findAllBy(
+            false,
             "a1",
             COOL_PROD,
             ServiceLevel.PREMIUM,
@@ -412,6 +411,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
 
     Page<TallyInstanceView> allResults =
         repo.findAllBy(
+            false,
             "a1",
             COOL_PROD,
             ServiceLevel.PREMIUM,
@@ -462,6 +462,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
 
     Page<TallyInstanceView> results =
         repo.findAllBy(
+            false,
             "a1",
             COOL_PROD,
             ServiceLevel.PREMIUM,
@@ -527,6 +528,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
 
     Page<TallyInstanceView> results =
         repo.findAllBy(
+            false,
             "a1",
             COOL_PROD,
             ServiceLevel.PREMIUM,
@@ -602,6 +604,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
 
     Page<TallyInstanceView> coresResults =
         repo.findAllBy(
+            false,
             "a1",
             COOL_PROD,
             ServiceLevel.PREMIUM,
@@ -622,6 +625,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
 
     Page<TallyInstanceView> socketsResults =
         repo.findAllBy(
+            false,
             "a1",
             COOL_PROD,
             ServiceLevel.PREMIUM,
@@ -646,6 +650,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
   void testWithoutAnyFilterForMetricId() {
     Page<TallyInstanceView> results =
         repo.findAllBy(
+            false,
             DEFAULT_ORG_ID,
             OPENSHIFT_CONTAINER_PLATFORM,
             ServiceLevel._ANY,

@@ -5,14 +5,16 @@ id: rhel-for-x86-els-payg
 
 vdcType: true
 
-#includedSubscriptions:
-#  - rhel-for-x86
-
 variants:
   - tag: rhel-for-x86-els-payg
     isMigrationProduct: true
     engineeringIds:
       - 204
+  - tag: rhel-for-x86-els-payg-addon
+    isMigrationProduct: false
+    engineeringIds:
+      - 204
+    additionalTags: [ "RHEL for x86" ]
 
 defaults:
   variant: rhel-for-x86-els-payg

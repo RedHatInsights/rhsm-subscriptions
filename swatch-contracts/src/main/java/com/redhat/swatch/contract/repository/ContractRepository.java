@@ -20,6 +20,8 @@
  */
 package com.redhat.swatch.contract.repository;
 
+import com.redhat.swatch.panache.PanacheSpecificationSupport;
+import com.redhat.swatch.panache.Specification;
 import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.List;

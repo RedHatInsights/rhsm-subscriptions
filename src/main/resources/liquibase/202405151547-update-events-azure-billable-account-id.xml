@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+  <changeSet id="202405151547-01" author="wpoteat">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="events"/>
+    </preConditions>
+    <comment>
+      Copy data from azure_subscription_id field to billing_account_id field
+    </comment>
+    <sql dbms="postgresql">
+      update events
+      set data = jsonb_set(data::jsonb, '{"billing_account_id"}', data -> 'azure_subscription_id')
+      where jsonb_path_exists(data -> 'billing_provider', '$.** ? (@ == "azure")')
+      and data -> 'azure_subscription_id' is not null
+    </sql>
+    <rollback>empty</rollback>
+  </changeSet>
+  <changeSet id="202405151547-02" author="wpoteat">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="tally_snapshots"/>
+    </preConditions>
+    <comment>
+      Update billing_account_id field for azure billable account change
+    </comment>
+    <sql dbms="postgresql">
+      update tally_snapshots
+      set billing_account_id = regexp_replace(billing_account_id,'.*;(.*)', '\1')
+      where billing_provider='azure'
+    </sql>
+  </changeSet>
+  <changeSet id="202405151547-03" author="wpoteat">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="subscription"/>
+    </preConditions>
+    <comment>
+      Update billing_account_id field for azure billable account change
+    </comment>
+    <sql dbms="postgresql">
+      update subscription
+      set billing_account_id = regexp_replace(billing_account_id,'.*;(.*)', '\1')
+      where billing_provider='azure'
+    </sql>
+    <rollback>empty</rollback>
+  </changeSet>
+  <changeSet id="202405151547-04" author="wpoteat">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="contracts"/>
+    </preConditions>
+    <comment>
+      Update billing_account_id field for azure billable account change
+    </comment>
+    <sql dbms="postgresql">
+      update contracts
+      set billing_account_id = regexp_replace(billing_account_id,'.*;(.*)', '\1')
+      where billing_provider='azure'
+    </sql>
+    <rollback>empty</rollback>
+  </changeSet>
+  <changeSet id="202405151547-05" author="wpoteat">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="billing_usage_remittance"/>
+    </preConditions>
+    <comment>
+      Update billing_account_id field for azure billable account change
+    </comment>
+    <sql dbms="postgresql">
+      update billing_usage_remittance
+      set billing_account_id = regexp_replace(billing_account_id,'.*;(.*)', '\1')
+      where billing_provider='azure'
+    </sql>
+    <rollback>empty</rollback>
+  </changeSet>
+  <changeSet id="202405151547-06" author="wpoteat">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="host_tally_buckets"/>
+    </preConditions>
+    <comment>
+      Update billing_account_id field for azure billing account change
+    </comment>
+    <!-- Prevent unique constraint violation -->
+    <sql dbms="postgresql">
+      delete from host_tally_buckets r
+      using host_tally_buckets l
+      where r.billing_provider='azure' and l.billing_provider='azure'
+      and r.billing_account_id like '%;%' and l.billing_account_id=regexp_replace(r.billing_account_id,'.*;(.*)', '\1')
+      and r.host_id = l.host_id
+      and r."usage" = l."usage"
+      and r.product_id = l.product_id
+      and r.sla = l.sla
+      and r.as_hypervisor = l.as_hypervisor
+    </sql>
+    <sql dbms="postgresql">
+      update host_tally_buckets
+      set billing_account_id = regexp_replace(billing_account_id,'.*;(.*)', '\1')
+      where billing_provider='azure'
+    </sql>
+    <rollback>empty</rollback>
+  </changeSet>
+  <changeSet id="202405151547-07" author="wpoteat">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="hosts"/>
+    </preConditions>
+    <comment>
+      Update billing_account_id field for azure billing account change
+    </comment>
+    <sql dbms="postgresql">
+      update hosts
+      set billing_account_id = regexp_replace(billing_account_id,'.*;(.*)', '\1')
+      where billing_provider='azure'
+    </sql>
+    <rollback>empty</rollback>
+  </changeSet>
+</databaseChangeLog>

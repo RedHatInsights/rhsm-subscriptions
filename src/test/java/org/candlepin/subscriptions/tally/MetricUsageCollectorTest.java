@@ -626,17 +626,17 @@ class MetricUsageCollectorTest {
 
   @Test
   void productsAreIncludedInBucketsWhenEngIdIsSetOnEventWhileCalculating() {
-    Measurement measurement =
-        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
+    Measurement measurement = new Measurement().withMetricId("vCPUs").withValue(42.0);
     Event event =
         createEvent()
             .withEventId(UUID.randomUUID())
-            .withServiceType(SERVICE_TYPE)
+            .withServiceType("RHEL System")
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withMeasurements(Collections.singletonList(measurement))
             .withUsage(Event.Usage.PRODUCTION)
             .withBillingProvider(Event.BillingProvider.RED_HAT)
             .withProductIds(List.of(RHEL_ENG_ID, RHEL_ELS_PAYG_ENG_ID))
+            .withConversion(true)
             .withProductTag(Set.of(RHEL_FOR_X86_ELS_PAYG));
 
     AccountUsageCalculationCache cache = new AccountUsageCalculationCache();
@@ -665,7 +665,7 @@ class MetricUsageCollectorTest {
         accountUsageCalculation
             .getCalculation(engIdKey)
             .getTotals(HardwareMeasurementType.PHYSICAL)
-            .getMeasurement(MetricIdUtils.getCores()));
+            .getMeasurement(MetricId.fromString("vCPUs")));
 
     // Not defined on the event, should not exist.
     List.of(RHEL_WORKSTATION_SWATCH_PRODUCT_ID, RHEL_COMPUTE_NODE_SWATCH_PRODUCT_ID)
@@ -728,9 +728,7 @@ class MetricUsageCollectorTest {
 
   private static Stream<Arguments> generateDuplicateEventTestData() {
     return Stream.of(
-        Arguments.of(MetricIdUtils.getCores()),
-        Arguments.of(MetricIdUtils.getInstanceHours()),
-        Arguments.of(MetricIdUtils.getSockets()));
+        Arguments.of(MetricIdUtils.getCores()), Arguments.of(MetricIdUtils.getInstanceHours()));
   }
 
   @Test

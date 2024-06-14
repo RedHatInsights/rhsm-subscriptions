@@ -25,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -111,36 +110,6 @@ class InventorySwatchDataCollatorTest {
 
     verify(processor).accept(hbiSystem, swatchSystem, new OrgHostsData("placeholder"), 1);
     assertEquals(1, iterations);
-  }
-
-  @Test
-  void testCollatorProcessesHostsInSeveralIterations() {
-    InventoryHostFacts first = new InventoryHostFacts();
-    first.setInventoryId(UUID.randomUUID());
-    first.setInstanceId("i1");
-
-    InventoryHostFacts second = new InventoryHostFacts();
-    second.setInventoryId(UUID.randomUUID());
-    second.setInstanceId("i2");
-    when(inventoryRepository.streamFacts(any(), any())).thenReturn(Stream.of(first, second));
-
-    Host swatchSystemForSecond = new Host();
-    swatchSystemForSecond.setInventoryId(second.getInventoryId().toString());
-    swatchSystemForSecond.setInstanceId(second.getInstanceId());
-
-    Host swatchSystemOrphan = new Host();
-    swatchSystemOrphan.setInventoryId(second.getInventoryId().toString());
-
-    when(hostRepository.streamHbiHostsByOrgId(any()))
-        .thenReturn(Stream.of(swatchSystemForSecond, swatchSystemOrphan));
-
-    InventorySwatchDataCollator collator =
-        new InventorySwatchDataCollator(inventoryRepository, hostRepository);
-    collator.collateData("foo", 7, processor);
-
-    verify(processor).accept(eq(first), isNull(), any(), eq(1));
-    verify(processor).accept(eq(second), eq(swatchSystemForSecond), any(), eq(2));
-    verify(processor).accept(isNull(), eq(swatchSystemOrphan), any(), eq(3));
   }
 
   @Test

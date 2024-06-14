@@ -92,9 +92,6 @@ components:
         sourcePartner:
           description: Where the entitlement/contract came from (e.g. aws_marketplace)
           type: string
-          enum:
-            - aws_marketplace
-            - azure_marketplace
         partnerIdentities:
           $ref: '#/components/schemas/PartnerIdentityV1'
         rhEntitlements:

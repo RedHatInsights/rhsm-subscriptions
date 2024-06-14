@@ -14,7 +14,6 @@ dependencies {
     implementation 'io.quarkus:quarkus-kafka-streams'
     implementation 'io.quarkus:quarkus-smallrye-openapi'
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka'
-    implementation 'io.quarkus:quarkus-hibernate-orm-panache'
     implementation 'jakarta.validation:jakarta.validation-api'
     implementation("io.quarkus:quarkus-jdbc-postgresql")
     implementation project(':clients:swatch-internal-subscription-client')
@@ -22,12 +21,16 @@ dependencies {
     implementation project(':swatch-common-config-workaround')
     implementation project(':swatch-common-resteasy-client')
     implementation project(':swatch-common-clock')
+    implementation project(':swatch-common-panache')
+    implementation project(':swatch-common-kafka')
+    implementation project(':swatch-common-smallrye-fault-tolerance')
     implementation libraries["clowder-quarkus-config-source"]
     implementation libraries["quarkus-logging-splunk"]
     implementation libraries["splunk-library-javalogging"]
     implementation project(':swatch-product-configuration')
     implementation project(":swatch-model-billable-usage")
     annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
+    annotationProcessor "org.hibernate.orm:hibernate-jpamodelgen"
     testImplementation libraries["junit-jupiter"]
     testImplementation "org.apache.kafka:kafka-streams-test-utils"
     testImplementation 'io.smallrye.reactive:smallrye-reactive-messaging-in-memory'

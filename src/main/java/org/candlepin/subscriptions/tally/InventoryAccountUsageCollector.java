@@ -180,10 +180,22 @@ public class InventoryAccountUsageCollector {
   public static void populateHostFieldsFromHbi(
       Host host, InventoryHostFacts inventoryHostFacts, NormalizedFacts normalizedFacts) {
 
-    host.setInstanceId(inventoryHostFacts.getInstanceId());
+    if (inventoryHostFacts.getProviderId() != null) {
+      // will use the provider ID from HBI
+      host.setInstanceId(inventoryHostFacts.getProviderId());
+    }
+
     if (inventoryHostFacts.getInventoryId() != null) {
       host.setInventoryId(inventoryHostFacts.getInventoryId().toString());
+
+      // fallback logic to set the instance ID if and only if the instanceId is not set yet:
+      if (host.getInstanceId() == null) {
+        // We assume that the instance ID for any given HBI host record is the inventory ID; compare
+        // to an OpenShift Cluster from Prometheus data, where we use the cluster ID.
+        host.setInstanceId(inventoryHostFacts.getInventoryId().toString());
+      }
     }
+
     host.setInsightsId(inventoryHostFacts.getInsightsId());
     host.setOrgId(inventoryHostFacts.getOrgId());
     host.setDisplayName(inventoryHostFacts.getDisplayName());
@@ -235,48 +247,44 @@ public class InventoryAccountUsageCollector {
       Set<String> applicableProducts,
       List<Host> hosts) {
     log.debug(
-        "Reconciling HBI inventoryId={} & swatch inventoryId={} & swatch instanceId={}",
+        "Reconciling HBI inventoryId={} & swatch inventoryId={}",
         Optional.ofNullable(hbiSystem).map(InventoryHostFacts::getInventoryId),
-        Optional.ofNullable(swatchSystem).map(Host::getInventoryId),
-        Optional.ofNullable(swatchSystem).map(Host::getInstanceId));
+        Optional.ofNullable(swatchSystem).map(Host::getInventoryId));
     boolean isMetered = swatchSystem != null && swatchSystem.isMetered();
     if (hbiSystem == null && swatchSystem == null) {
       log.debug("Unexpected, both HBI & Swatch system records are empty");
-    } else if (hbiSystem == null
-        && HBI_INSTANCE_TYPE.equalsIgnoreCase(swatchSystem.getInstanceType())) {
+    } else if (hbiSystem == null) {
       if (!isMetered) {
-        log.info(
-            "Deleting system w/ inventoryId={} and instanceId={}",
-            swatchSystem.getInventoryId(),
-            swatchSystem.getInstanceId());
+        log.info("Deleting system w/ inventoryId={}", swatchSystem.getInventoryId());
         hostRepository.delete(swatchSystem);
       }
-    } else if (hbiSystem != null) {
+    } else {
       NormalizedFacts normalizedFacts =
           factNormalizer.normalize(hbiSystem, orgHostsData, isMetered);
       Set<Key> usageKeys = createHostUsageKeys(applicableProducts, normalizedFacts);
       if (swatchSystem != null) {
-        log.debug(
-            "Updating system w/ inventoryId={} and instanceId={}",
-            hbiSystem.getInventoryId(),
-            hbiSystem.getInstanceId());
+        log.debug("Updating system w/ inventoryId={}", hbiSystem.getInventoryId());
         Host updatedSwatchSystem =
-            updateSwatchSystem(hbiSystem, normalizedFacts, swatchSystem, usageKeys);
+            updateSwatchSystem(
+                hbiSystem, normalizedFacts, swatchSystem, usageKeys, applicableProducts);
         hosts.add(updatedSwatchSystem);
       } else {
-        log.debug(
-            "Creating system w/ inventoryId={} and instanceId={}",
-            hbiSystem.getInventoryId(),
-            hbiSystem.getInstanceId());
-        swatchSystem = createSwatchSystem(hbiSystem, normalizedFacts, usageKeys);
+        log.debug("Creating system w/ inventoryId={}", hbiSystem.getInventoryId());
+        swatchSystem =
+            createSwatchSystem(hbiSystem, normalizedFacts, usageKeys, applicableProducts);
         hosts.add(swatchSystem);
       }
-      reconcileHypervisorData(normalizedFacts, swatchSystem, orgHostsData, usageKeys);
+      reconcileHypervisorData(
+          normalizedFacts, swatchSystem, orgHostsData, usageKeys, applicableProducts);
     }
   }
 
   private void reconcileHypervisorData(
-      NormalizedFacts normalizedFacts, Host system, OrgHostsData orgHostsData, Set<Key> usageKeys) {
+      NormalizedFacts normalizedFacts,
+      Host system,
+      OrgHostsData orgHostsData,
+      Set<Key> usageKeys,
+      Set<String> applicableProducts) {
     Set<HostBucketKey> seenBucketKeys = new HashSet<>();
     if (system.getHypervisorUuid() != null
         && orgHostsData.hasHypervisorUuid(system.getHypervisorUuid())) {
@@ -315,15 +323,22 @@ public class InventoryAccountUsageCollector {
     // subscription requirements (i.e. the bucket was populated from a guest).
     system
         .getBuckets()
-        .removeIf(b -> b.getKey().getAsHypervisor() && !seenBucketKeys.contains(b.getKey()));
+        .removeIf(
+            b ->
+                b.getKey().getAsHypervisor()
+                    && !seenBucketKeys.contains(b.getKey())
+                    && applicableProducts.contains(b.getKey().getProductId()));
   }
 
   private Host createSwatchSystem(
-      InventoryHostFacts inventoryHostFacts, NormalizedFacts normalizedFacts, Set<Key> usageKeys) {
+      InventoryHostFacts inventoryHostFacts,
+      NormalizedFacts normalizedFacts,
+      Set<Key> usageKeys,
+      Set<String> applicableProducts) {
     Host host = new Host();
     host.setInstanceType(HBI_INSTANCE_TYPE);
     populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
-    applyNonHypervisorBuckets(host, normalizedFacts, usageKeys);
+    applyNonHypervisorBuckets(host, normalizedFacts, usageKeys, applicableProducts);
     entityManager.persist(host);
     return host;
   }
@@ -337,7 +352,8 @@ public class InventoryAccountUsageCollector {
         Set.of("_ANY"));
   }
 
-  private void applyNonHypervisorBuckets(Host host, NormalizedFacts facts, Set<Key> usageKeys) {
+  private void applyNonHypervisorBuckets(
+      Host host, NormalizedFacts facts, Set<Key> usageKeys, Set<String> applicableProducts) {
     Set<HostBucketKey> seenBucketKeys = new HashSet<>();
 
     // Calculate for each UsageKey
@@ -364,16 +380,21 @@ public class InventoryAccountUsageCollector {
     // NOTE: asHypervisor=false is used to operate solely on buckets for this system (filtering out
     // those added for a guest system).
     host.getBuckets()
-        .removeIf(b -> !b.getKey().getAsHypervisor() && !seenBucketKeys.contains(b.getKey()));
+        .removeIf(
+            b ->
+                !b.getKey().getAsHypervisor()
+                    && !seenBucketKeys.contains(b.getKey())
+                    && applicableProducts.contains(b.getKey().getProductId()));
   }
 
   private Host updateSwatchSystem(
       InventoryHostFacts inventoryHostFacts,
       NormalizedFacts normalizedFacts,
       Host host,
-      Set<Key> usageKeys) {
+      Set<Key> usageKeys,
+      Set<String> applicableProducts) {
     populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
-    applyNonHypervisorBuckets(host, normalizedFacts, usageKeys);
+    applyNonHypervisorBuckets(host, normalizedFacts, usageKeys, applicableProducts);
     return entityManager.merge(host);
   }
 }

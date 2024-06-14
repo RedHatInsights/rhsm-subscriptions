@@ -26,7 +26,7 @@ import org.springframework.stereotype.Component;
 
 /** Bootstrapper for RESTEasy. */
 @Component
-@ApplicationPath("/api/rhsm-subscriptions/v1")
+@ApplicationPath("/api/rhsm-subscriptions")
 public class JaxrsApplication extends Application {
   /* Intentionally left empty */
 }

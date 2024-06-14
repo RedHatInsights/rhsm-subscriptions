@@ -45,6 +45,10 @@ parameters:
     value: '3'
   - name: KAFKA_REMITTANCES_PURGE_TASK_PARTITIONS
     value: '3'
+  - name: KAFKA_TALLY_REPLICAS
+    value: '3'
+  - name: KAFKA_TALLY_PARTITIONS
+    value: '3'
   - name: QUARKUS_PROFILE
     value: prod
   - name: CURL_CRON_IMAGE
@@ -65,6 +69,14 @@ parameters:
     value: 0 3 * * *
   - name: RETRY_REMITTANCE_SCHEDULE
     value: '@hourly'
+  - name: BILLING_PRODUCER_BACK_OFF_INITIAL_INTERVAL
+    value: '1000ms'
+  - name: BILLING_PRODUCER_BACK_OFF_MAX_INTERVAL
+    value: '60s'
+  - name: BILLING_PRODUCER_BACK_OFF_MULTIPLIER
+    value: '2'
+  - name: BILLING_PRODUCER_MAX_ATTEMPTS
+    value: '1'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -88,6 +100,12 @@ objects:
         topicName: platform.rhsm-subscriptions.billable-usage
       - replicas: ${{KAFKA_BILLABLE_USAGE_REPLICAS}}
         partitions: ${{KAFKA_BILLABLE_USAGE_PARTITIONS}}
+        topicName: platform.rhsm-subscriptions.billable-usage.status
+      - replicas: ${{KAFKA_BILLABLE_USAGE_REPLICAS}}
+        partitions: ${{KAFKA_BILLABLE_USAGE_PARTITIONS}}
+        topicName: platform.rhsm-subscriptions.billable-usage.dlt
+      - replicas: ${{KAFKA_BILLABLE_USAGE_REPLICAS}}
+        partitions: ${{KAFKA_BILLABLE_USAGE_PARTITIONS}}
         topicName: platform.rhsm-subscriptions.billable-usage-hourly-aggregate
       - replicas: ${{KAFKA_BILLABLE_USAGE_REPLICAS}}
         partitions: ${{KAFKA_BILLABLE_USAGE_PARTITIONS}}
@@ -101,6 +119,9 @@ objects:
       - replicas: ${{KAFKA_REMITTANCES_PURGE_TASK_REPLICAS}}
         partitions: ${{KAFKA_REMITTANCES_PURGE_TASK_PARTITIONS}}
         topicName: platform.rhsm-subscriptions.remittances-purge-task
+      - replicas: ${{KAFKA_TALLY_REPLICAS}}
+        partitions: ${{KAFKA_TALLY_PARTITIONS}}
+        topicName: platform.rhsm-subscriptions.tally
 
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
@@ -175,6 +196,22 @@ objects:
               value: ${QUARKUS_PROFILE}
             - name: KAFKA_BILLABLE_USAGE_PARTITIONS
               value: ${KAFKA_BILLABLE_USAGE_PARTITIONS}
+            - name: CONTRACT_CLIENT_BACK_OFF_INITIAL_INTERVAL_MILLIS
+              value: '1000ms'
+            - name: CONTRACT_CLIENT_BACK_OFF_MAX_INTERVAL_MILLIS
+              value: '64s'
+            - name: CONTRACT_CLIENT_BACK_OFF_MULTIPLIER
+              value: '2'
+            - name: CONTRACT_CLIENT_MAX_ATTEMPTS
+              value: '1'
+            - name: BILLING_PRODUCER_BACK_OFF_INITIAL_INTERVAL
+              value: ${BILLING_PRODUCER_BACK_OFF_INITIAL_INTERVAL}
+            - name: BILLING_PRODUCER_BACK_OFF_MAX_INTERVAL
+              value: ${BILLING_PRODUCER_BACK_OFF_MAX_INTERVAL}
+            - name: BILLING_PRODUCER_BACK_OFF_MULTIPLIER
+              value: ${BILLING_PRODUCER_BACK_OFF_MULTIPLIER}
+            - name: BILLING_PRODUCER_MAX_ATTEMPTS
+              value: ${BILLING_PRODUCER_MAX_ATTEMPTS}
           volumeMounts:
             - name: logs
               mountPath: /logs

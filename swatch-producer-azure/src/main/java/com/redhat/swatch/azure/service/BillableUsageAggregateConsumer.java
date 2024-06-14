@@ -45,6 +45,7 @@ import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.ProcessingException;
+import jakarta.ws.rs.core.Response.Status;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -137,8 +138,8 @@ public class BillableUsageAggregateConsumer {
                     billableUsageDeadLetterTopicProducer.send(billableUsage);
                     log.warn(
                         "Skipping billable usage with id={} orgId={} because the subscription was not found. Will retry again after one hour.",
-                        billableUsageAggregate.getAggregateId(),
-                        billableUsageAggregate.getAggregateKey().getOrgId());
+                        billableUsage.getUuid(),
+                        billableUsage.getOrgId());
                   });
         } else {
           log.warn("No billable usage remittance UUIDs available to retry for.");
@@ -169,7 +170,8 @@ public class BillableUsageAggregateConsumer {
     OffsetDateTime startOfCurrentHour =
         OffsetDateTime.now(Clock.systemUTC()).truncatedTo(ChronoUnit.HOURS);
     OffsetDateTime cutoff = startOfCurrentHour.minus(azureUsageWindow);
-    return !aggregate.getWindowTimestamp().isBefore(cutoff);
+    var earliestSnapshotDate = aggregate.getSnapshotDates().stream().sorted().findFirst();
+    return !earliestSnapshotDate.map(date -> date.isBefore(cutoff)).orElse(false);
   }
 
   private void transformAndSend(
@@ -229,7 +231,7 @@ public class BillableUsageAggregateConsumer {
           billableUsageAggregate.getAggregateKey().getProductId(),
           billableUsageAggregate.getAggregateKey().getOrgId(),
           billableUsageAggregate.getAggregateKey().getSla(),
-          billableUsageAggregate.getAggregateKey().getMetricId(),
+          billableUsageAggregate.getAggregateKey().getUsage(),
           billableUsageAggregate.getAggregateKey().getBillingAccountId());
     } catch (DefaultApiException e) {
       var optionalErrors = Optional.ofNullable(e.getErrors());
@@ -240,14 +242,10 @@ public class BillableUsageAggregateConsumer {
         if (isRecentlyTerminatedError) {
           throw new SubscriptionRecentlyTerminatedException(e);
         }
-        var isSubscriptionCannotBeDeterminedError =
-            optionalErrors.get().getErrors().stream()
-                .anyMatch(error -> ("SUBSCRIPTIONS1006").equals(error.getCode()));
-        if (isSubscriptionCannotBeDeterminedError) {
-          throw new SubscriptionCanNotBeDeterminedException(e);
-        }
       }
-
+      if (Status.NOT_FOUND.getStatusCode() == e.getResponse().getStatus()) {
+        throw new SubscriptionCanNotBeDeterminedException(e);
+      }
       throw new AzureUsageContextLookupException(e);
     } catch (ProcessingException | ApiException e) {
       throw new AzureUsageContextLookupException(e);

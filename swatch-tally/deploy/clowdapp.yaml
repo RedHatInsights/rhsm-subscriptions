@@ -258,9 +258,6 @@ objects:
       - replicas: ${{KAFKA_SUBSCRIPTIONS_TASKS_REPLICAS}}
         partitions: ${{KAFKA_SUBSCRIPTIONS_TASKS_PARTITIONS}}
         topicName: platform.rhsm-subscriptions.tasks
-      - replicas: ${{KAFKA_BILLABLE_USAGE_REPLICAS}}
-        partitions: ${{KAFKA_BILLABLE_USAGE_PARTITIONS}}
-        topicName: platform.rhsm-subscriptions.billable-usage
       - replicas: ${{KAFKA_SERVICE_INSTANCE_REPLICAS}}
         partitions: ${{KAFKA_SERVICE_INSTANCE_PARTITIONS}}
         topicName: platform.rhsm-subscriptions.service-instance-ingress
@@ -740,3 +737,20 @@ objects:
           ('CORES', 'Cores'),
           ('INSTANCE_HOURS', 'Instance-hours')
         ) as metric_id_normalized(value, normalized) on subscription_measurements.metric_id=metric_id_normalized.value
+    - prefix: swatch/ocp_cluster_data
+      query: >-
+        select
+          org_id,
+          subscription_manager_id as cluster_id,
+          display_name,
+          last_seen,
+          usage,
+          sla,
+          product_id,
+          cores,
+          sockets
+        from hosts h
+        join host_tally_buckets b on h.id = b.host_id
+        where product_id='OpenShift Container Platform'
+        and usage!='_ANY'
+        and sla!='_ANY'

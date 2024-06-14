@@ -87,12 +87,13 @@ properties:
         uom:
           description: Metric ID for the measurement. (e.g. Cores, Sockets)
           type: string
-          required: true
+          required: false
           deprecated: true
           deprecationMessage: Use 'metric_id' instead.
         metric_id:
           description: Metric ID for the measurement. (e.g. Cores, Sockets)
           type: string
+          required: true
     required: false
   cloud_provider:
     description: Identifier for the cloud provider of the subject.
@@ -179,6 +180,7 @@ properties:
     type: string
     existingJavaType: java.util.Optional<String>
     required: false
+    deprecationMessage: This field is no longer used in billing logic
   azure_resource_id:
     description: The azure resource ID used for billing
     type: string

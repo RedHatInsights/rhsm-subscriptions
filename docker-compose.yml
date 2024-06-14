@@ -55,6 +55,7 @@ services:
       start_period: 10s
     ports:
       - "127.0.0.1:9092:9092"
+      - "[::1]:9092:9092"
       # Port 9093 is used by the Kraft configuration
       - "127.0.0.1:9094:9094"
       - "127.0.0.1:29092:29092"
@@ -74,6 +75,17 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+  kafka-setup:
+    image: quay.io/strimzi/kafka:latest-kafka-3.1.0
+    command: |
+      /bin/bash -c "
+        bin/kafka-topics.sh --bootstrap-server=kafka:29092 --create --if-not-exists --partitions 1 --replication-factor 1 --topic platform.inventory.host-ingress
+        bin/kafka-topics.sh --bootstrap-server=kafka:29092 --create --if-not-exists --partitions 1 --replication-factor 1 --topic platform.inventory.events
+        bin/kafka-topics.sh --bootstrap-server=kafka:29092 --create --if-not-exists --partitions 1 --replication-factor 1 --topic platform.notifications.ingress
+      "
+    depends_on:
+      kafka:
+        condition: service_healthy
   kafka-topics-ui:
     image: docker.io/landoop/kafka-topics-ui
     environment:
@@ -81,8 +93,24 @@ services:
       - PROXY=true
     ports:
       - "127.0.0.1:3030:8000"
+    restart: on-failure
     depends_on:
       - kafka-rest
+  kafka-bridge:
+    image: quay.io/strimzi/kafka-bridge:latest
+    entrypoint: /opt/strimzi/bin/kafka_bridge_run.sh
+    command: --config-file=config/application-kafka-bridge.properties
+    ports:
+      - "127.0.0.1:9080:8080"
+    volumes:
+      - ./config/application-kafka-bridge.properties:/opt/strimzi/config/application-kafka-bridge.properties:Z
+    networks:
+      - swatch-network
+    user: root
+    depends_on:
+      kafka:
+        condition: service_healthy
+
   inventory:
     image: quay.io/cloudservices/insights-inventory
     entrypoint: /bin/bash -c
@@ -104,6 +132,7 @@ services:
         condition: service_healthy
       unleash:
         condition: service_healthy
+    restart: unless-stopped
     ports:
       - "127.0.0.1:8050:8000"
     user: root
@@ -113,7 +142,7 @@ services:
     command: ["make run_inv_mq_service"]
     environment:
       - INVENTORY_LOG_LEVEL=DEBUG
-      - INVENTORY_DB_HOST=127.0.0.1
+      - INVENTORY_DB_HOST=db
       - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - prometheus_multiproc_dir=/tmp
       - BYPASS_RBAC=true
@@ -125,6 +154,10 @@ services:
       kafka:
         condition: service_healthy
       db:
+        condition: service_healthy
+      kafka-setup:
+        condition: service_healthy
+      inventory:  # main inventory deployment runs the db migrations
         condition: service_healthy
     user: root
   unleash:

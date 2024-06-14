@@ -1,6 +1,0 @@
-{
-  "invokerPackage": "org.candlepin.subscriptions.billing.admin",
-  "apiPackage": "org.candlepin.subscriptions.billing.admin.api",
-  "modelPackage": "org.candlepin.subscriptions.billing.admin.api.model",
-  "groupId": "org.candlepin"
-}

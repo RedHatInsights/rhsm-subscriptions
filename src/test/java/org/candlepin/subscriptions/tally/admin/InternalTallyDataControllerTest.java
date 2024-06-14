@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.tally.admin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 
@@ -36,7 +37,7 @@ import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.tally.AccountResetService;
 import org.candlepin.subscriptions.tally.TallySnapshotController;
 import org.candlepin.subscriptions.tally.billing.BillableUsageController;
-import org.candlepin.subscriptions.tally.billing.ContractsController;
+import org.candlepin.subscriptions.tally.contracts.ContractsController;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.junit.jupiter.api.Test;
@@ -156,5 +157,33 @@ class InternalTallyDataControllerTest {
     List<EventRecord> savedEvents = eventRecordCaptor.getValue();
     assertEquals(1, savedEvents.size());
     assertEquals(new EventRecord(event), savedEvents.get(0));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void testSavedEventsHavingUomAreNormalizedToMetricId() throws JsonProcessingException {
+    Event event =
+        new Event()
+            .withConversion(true)
+            .withProductIds(List.of("204"))
+            .withEventType("test-event")
+            .withOrgId("org123")
+            .withEventSource("TEST_SOURCE")
+            .withInstanceId("1234")
+            .withTimestamp(CLOCK.now())
+            .withMeasurements(List.of(new Measurement().withUom("Cores").withValue(1.0)));
+
+    ArgumentCaptor<List<EventRecord>> eventRecordCaptor = ArgumentCaptor.forClass(List.class);
+    String json = mapper.writeValueAsString(List.of(event));
+    assertEquals("Events saved", controller.saveEvents(json));
+
+    verify(eventRepo).saveAll(eventRecordCaptor.capture());
+    List<EventRecord> savedEvents = eventRecordCaptor.getValue();
+    assertEquals(1, savedEvents.size());
+    var actual = savedEvents.get(0);
+    assertEquals(1, actual.getEvent().getMeasurements().size());
+    var actualMeasurement = actual.getEvent().getMeasurements().get(0);
+    assertNull(actualMeasurement.getUom());
+    assertEquals("Cores", actualMeasurement.getMetricId());
   }
 }
