@@ -5,8 +5,8 @@ id: ansible-aap-managed
 
 variants:
   - tag: ansible-aap-managed
-    productNames:
-      - Ansible Automation Platform Managed App
+    level2:
+      - Ansible Automation Platform
 
 defaults:
   variant: ansible-aap-managed

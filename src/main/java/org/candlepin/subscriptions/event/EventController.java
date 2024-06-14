@@ -274,7 +274,7 @@ public class EventController {
       log.warn("Event.instanceId must not be null. event={}", event);
       isValid = false;
     }
-    
+
     return isValid;
   }
 
@@ -318,7 +318,7 @@ public class EventController {
         log.info("event.product_tags={}", event.getProductTag());
       }
     }
-  
+
     return isValid;
   }
 
