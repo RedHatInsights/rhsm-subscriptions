@@ -256,7 +256,7 @@ objects:
               - name: PRODUCT_URL
                 value: ${PRODUCT_URL}
               - name: PRODUCT_DENYLIST_RESOURCE_LOCATION
-                value: file:/capacity-denylist/product-denylist.txt
+                value: file:/denylist/product-denylist.txt
               - name: SUBSCRIPTION_SYNC_ENABLED
                 value: ${SUBSCRIPTION_SYNC_ENABLED}
             volumeMounts:
