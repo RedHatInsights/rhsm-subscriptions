@@ -167,7 +167,7 @@ class PrometheusMeteringControllerTest {
         List.of(
             MeteringEventFactory.createMetricEvent(
                 externalOrganization,
-                clusterId,
+                billingMarketplaceInstanceId,
                 expectedSla,
                 expectedUsage,
                 null,
@@ -186,7 +186,7 @@ class PrometheusMeteringControllerTest {
                 is3rdPartyMigrationFlag),
             MeteringEventFactory.createMetricEvent(
                 externalOrganization,
-                clusterId,
+                billingMarketplaceInstanceId,
                 expectedSla,
                 expectedUsage,
                 null,
