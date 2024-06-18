@@ -13,7 +13,6 @@ variants:
   - tag: rhel-for-x86-eus
     engineeringIds:
       - 70 # Red Hat Enterprise Linux For EUS
-      - 323 # Red Hat Enterprise Linux for SAP Applications for x86_64 - EUS
 
 defaults:
   variant: rhel-for-x86-eus
