@@ -117,27 +117,58 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
 
   @SuppressWarnings("java:S107") // repository method has a lot of params, deal with it
   @Query(
-      "select coalesce(sum(VALUE(m)), 0.0) from TallySnapshot s "
-          + "left join s.tallyMeasurements m on key(m) = :measurementKey "
-          + "where s.orgId = :orgId and "
-          + "s.productId = :productId and "
-          + "s.granularity = :granularity and "
-          + "s.serviceLevel = :serviceLevel and "
-          + "s.usage = :usage and "
-          + "s.billingProvider = :billingProvider and "
-          + "s.billingAccountId = :billingAcctId and "
-          + "s.snapshotDate >= :beginning and s.snapshotDate <= :ending")
+      value =
+          "select coalesce(sum(m.value), 0.0) from tally_snapshots s "
+              + "left join tally_measurements m on s.id = m.snapshot_id "
+              + "where s.org_id = :orgId and "
+              + "s.product_id = :productId and "
+              + "s.granularity = :granularity and "
+              + "s.sla = :serviceLevel and "
+              + "s.usage = :usage and "
+              + "s.billing_provider = :billingProvider and "
+              + "s.billing_account_id = :billingAcctId and "
+              + "m.measurement_type != 'TOTAL' and "
+              + "m.metric_id = :metricId and "
+              + "s.snapshot_date >= :beginning and s.snapshot_date <= :ending",
+      nativeQuery = true)
   Double sumMeasurementValueForPeriod(
       @Param("orgId") String orgId,
       @Param("productId") String productId,
-      @Param("granularity") Granularity granularity,
-      @Param("serviceLevel") ServiceLevel serviceLevel,
-      @Param("usage") Usage usage,
-      @Param("billingProvider") BillingProvider billingProvider,
+      @Param("granularity") String granularity,
+      @Param("serviceLevel") String serviceLevel,
+      @Param("usage") String usage,
+      @Param("billingProvider") String billingProvider,
       @Param("billingAcctId") String billingAccountId,
       @Param("beginning") OffsetDateTime beginning,
       @Param("ending") OffsetDateTime ending,
-      @Param("measurementKey") TallyMeasurementKey measurementKey);
+      @Param("metricId") String metricId);
+
+  @SuppressWarnings("java:S107")
+  default Double sumMeasurementValueForPeriod(
+      String orgId,
+      String productId,
+      Granularity granularity,
+      ServiceLevel serviceLevel,
+      Usage usage,
+      BillingProvider billingProvider,
+      String billingAccountId,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      TallyMeasurementKey measurementKey) {
+    // NOTE(khowell) it's a mess with enums, some use .getValue() and some use .name()
+    // Correct combination found by trial/error
+    return sumMeasurementValueForPeriod(
+        orgId,
+        productId,
+        granularity.name(),
+        serviceLevel.getValue(),
+        usage.getValue(),
+        billingProvider.name(),
+        billingAccountId,
+        beginning,
+        ending,
+        measurementKey.getMetricId());
+  }
 
   @SuppressWarnings("java:S107")
   @QueryHints(
