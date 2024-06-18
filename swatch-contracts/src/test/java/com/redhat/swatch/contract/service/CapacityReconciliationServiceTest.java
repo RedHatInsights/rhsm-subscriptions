@@ -18,42 +18,46 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.capacity;
+package com.redhat.swatch.contract.service;
 
-import static org.candlepin.subscriptions.resource.api.v1.CapacityResource.HYPERVISOR;
-import static org.candlepin.subscriptions.resource.api.v1.CapacityResource.PHYSICAL;
+import static com.redhat.swatch.contract.service.CapacityReconciliationService.CORES;
+import static com.redhat.swatch.contract.service.CapacityReconciliationService.HYPERVISOR;
+import static com.redhat.swatch.contract.service.CapacityReconciliationService.PHYSICAL;
+import static com.redhat.swatch.contract.service.CapacityReconciliationService.SOCKETS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.contract.config.Channels;
+import com.redhat.swatch.contract.config.ProductDenylist;
+import com.redhat.swatch.contract.model.ReconcileCapacityByOfferingTask;
+import com.redhat.swatch.contract.repository.OfferingEntity;
+import com.redhat.swatch.contract.repository.SubscriptionEntity;
+import com.redhat.swatch.contract.repository.SubscriptionMeasurementEntity;
+import com.redhat.swatch.contract.repository.SubscriptionRepository;
+import com.redhat.swatch.contract.test.resources.InMemoryMessageBrokerKafkaResource;
+import io.quarkus.test.InjectMock;
+import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.junit.QuarkusTest;
+import io.smallrye.reactive.messaging.memory.InMemoryConnector;
+import io.smallrye.reactive.messaging.memory.InMemorySink;
+import jakarta.enterprise.inject.Any;
+import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.candlepin.subscriptions.capacity.files.ProductDenylist;
-import org.candlepin.subscriptions.db.OfferingRepository;
-import org.candlepin.subscriptions.db.SubscriptionRepository;
-import org.candlepin.subscriptions.db.model.Offering;
-import org.candlepin.subscriptions.db.model.Subscription;
-import org.candlepin.subscriptions.db.model.SubscriptionMeasurementKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest
-@ActiveProfiles({"capacity-ingress", "test"})
-class CapacityReconciliationControllerTest {
-  private static final String SOCKETS = "Sockets";
-  private static final String CORES = "Cores";
+@QuarkusTest
+@QuarkusTestResource(
+    value = InMemoryMessageBrokerKafkaResource.class,
+    restrictToAnnotatedClass = true)
+class CapacityReconciliationServiceTest {
   private static final String SUBSCRIPTION_ID = "456";
   private static final String SKU = "MCT3718";
   private static final String ROSA = "rosa";
@@ -64,19 +68,19 @@ class CapacityReconciliationControllerTest {
 
   private static final OffsetDateTime NOW = OffsetDateTime.now();
 
-  @Autowired CapacityReconciliationController capacityReconciliationController;
+  @Inject CapacityReconciliationService capacityReconciliationController;
 
-  @MockBean ProductDenylist denyList;
-  @MockBean OfferingRepository offeringRepository;
-  @MockBean SubscriptionRepository subscriptionRepository;
+  @InjectMock ProductDenylist denyList;
+  @InjectMock SubscriptionRepository subscriptionRepository;
+  @Inject @Any InMemoryConnector connector;
 
-  @MockBean
-  KafkaTemplate<String, ReconcileCapacityByOfferingTask> reconcileCapacityByOfferingKafkaTemplate;
+  InMemorySink<ReconcileCapacityByOfferingTask> reconcileCapacityByOfferingSink;
 
-  private Subscription subscription;
+  private SubscriptionEntity subscription;
 
   @BeforeEach
   void setup() {
+    reconcileCapacityByOfferingSink = connector.sink(Channels.CAPACITY_RECONCILE);
     subscription = createSubscription();
     when(denyList.productIdMatches(any())).thenReturn(false);
   }
@@ -138,16 +142,20 @@ class CapacityReconciliationControllerTest {
   }
 
   @Test
-  void enqueueShouldOnlyCreateKafkaMessage() {
-    // Some clients (example, OfferingSyncController) should not wait for capacities to reconcile.
-    // In that case, the client should be able to enqueue the first capacity reconciliation page,
-    // rather than have it be worked on immediately.
-    capacityReconciliationController.enqueueReconcileCapacityForOffering(SKU);
-    verify(reconcileCapacityByOfferingKafkaTemplate)
-        .send(
-            "platform.rhsm-subscriptions.capacity-reconcile",
-            ReconcileCapacityByOfferingTask.builder().sku(SKU).offset(0).limit(100).build());
-    verifyNoInteractions(subscriptionRepository);
+  void shouldReconcileCapacityWithinLimitForOrgAndQueueTaskForNext() {
+    OfferingEntity offering = OfferingEntity.builder().productIds(Set.of(45)).sku(SKU).build();
+
+    List<SubscriptionEntity> subscriptions = new ArrayList<>();
+    // add 2 subscriptions because the limit is 2, so the logic will trigger another event.
+    subscriptions.add(SubscriptionEntity.builder().offering(offering).build());
+    subscriptions.add(SubscriptionEntity.builder().offering(offering).build());
+    when(subscriptionRepository.findByOfferingSku("MCT3718", 0, 2)).thenReturn(subscriptions);
+    capacityReconciliationController.reconcileCapacityForOffering(offering.getSku(), 0, 2);
+    assertEquals(1, reconcileCapacityByOfferingSink.received().size());
+    var task = reconcileCapacityByOfferingSink.received().get(0).getPayload();
+    assertEquals(SKU, task.getSku());
+    assertEquals(2, task.getOffset());
+    assertEquals(2, task.getLimit());
   }
 
   @Test
@@ -195,8 +203,8 @@ class CapacityReconciliationControllerTest {
       int expectedHypervisorSockets,
       String... products) {
     Set<String> productIds = Set.of(products);
-    Offering offering =
-        Offering.builder()
+    OfferingEntity offering =
+        OfferingEntity.builder()
             .productIds(productIds.stream().map(PRODUCTS::get).collect(Collectors.toSet()))
             .cores(expectedCores)
             .hypervisorCores(expectedHypervisorCores)
@@ -212,12 +220,13 @@ class CapacityReconciliationControllerTest {
   private void givenSubscriptionMeasurement(String measurementType, String metricId, double value) {
     subscription
         .getSubscriptionMeasurements()
-        .put(
-            SubscriptionMeasurementKey.builder()
+        .add(
+            SubscriptionMeasurementEntity.builder()
                 .measurementType(measurementType)
                 .metricId(metricId)
-                .build(),
-            value * subscription.getQuantity());
+                .value(value * subscription.getQuantity())
+                .subscription(subscription)
+                .build());
   }
 
   private void whenReconcileCapacityForSubscription() {
@@ -232,24 +241,19 @@ class CapacityReconciliationControllerTest {
 
   private void thenSubscriptionMeasurementsContains(
       String measurementType, String metricId, int value) {
-    SubscriptionMeasurementKey key =
-        SubscriptionMeasurementKey.builder()
-            .measurementType(measurementType)
-            .metricId(metricId)
-            .build();
-    Double actualValue = subscription.getSubscriptionMeasurements().get(key);
-    assertNotNull(actualValue, "measurement not found: " + key);
-    assertEquals(value * subscription.getQuantity(), actualValue);
+    var existing = subscription.getSubscriptionMeasurement(metricId, measurementType);
+    assertTrue(existing.isPresent(), "measurement not found: " + metricId);
+    assertEquals(value * subscription.getQuantity(), existing.get().getValue());
   }
 
-  private Subscription createSubscription() {
-    return Subscription.builder()
+  private SubscriptionEntity createSubscription() {
+    return SubscriptionEntity.builder()
         .orgId("123")
         .subscriptionId(SUBSCRIPTION_ID)
         .quantity(10)
         .startDate(NOW)
         .endDate(NOW.plusDays(30))
-        .subscriptionMeasurements(new HashMap<>())
+        .subscriptionMeasurements(new ArrayList<>())
         .build();
   }
 }

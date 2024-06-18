@@ -36,6 +36,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -97,6 +98,14 @@ public class SubscriptionEntity implements Serializable {
   @Builder.Default
   @ToString.Exclude // Excluded to prevent fetching a lazy-loaded collection
   private List<SubscriptionMeasurementEntity> subscriptionMeasurements = new ArrayList<>();
+
+  public Optional<SubscriptionMeasurementEntity> getSubscriptionMeasurement(
+      String metricId, String measurementType) {
+    return subscriptionMeasurements.stream()
+        .filter(
+            m -> m.getMeasurementType().equals(measurementType) && m.getMetricId().equals(metricId))
+        .findFirst();
+  }
 
   @Override
   public boolean equals(Object o) {

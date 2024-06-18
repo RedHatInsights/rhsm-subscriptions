@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.contract.service;
 
+import static com.redhat.swatch.contract.config.Channels.SUBSCRIPTION_SYNC_TASK;
 import static org.mockito.Mockito.verify;
 
 import com.redhat.swatch.contract.model.EnabledOrgsResponse;
@@ -49,7 +50,7 @@ class SubscriptionSyncTaskConsumerTest {
 
   @BeforeEach
   void setup() {
-    source = connector.source("subscription-sync-task");
+    source = connector.source(SUBSCRIPTION_SYNC_TASK);
   }
 
   @Test

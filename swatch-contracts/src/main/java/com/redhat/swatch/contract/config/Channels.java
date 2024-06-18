@@ -18,21 +18,15 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.service;
+package com.redhat.swatch.contract.config;
 
-import static com.redhat.swatch.contract.config.Channels.SUBSCRIPTION_SYNC_TASK;
+public final class Channels {
 
-import com.redhat.swatch.contract.model.EnabledOrgsResponse;
-import jakarta.enterprise.context.ApplicationScoped;
-import lombok.extern.slf4j.Slf4j;
-import org.eclipse.microprofile.reactive.messaging.Incoming;
+  public static final String CAPACITY_RECONCILE = "capacity-reconcile";
+  public static final String CAPACITY_RECONCILE_TASK = "capacity-reconcile-task";
+  public static final String ENABLED_ORGS = "enabled-orgs";
+  public static final String SUBSCRIPTION_PRUNE_TASK = "subscription-prune-task";
+  public static final String SUBSCRIPTION_SYNC_TASK = "subscription-sync-task";
 
-@Slf4j
-@ApplicationScoped
-public class SubscriptionSyncTaskConsumer {
-  @Incoming(SUBSCRIPTION_SYNC_TASK)
-  public void consume(EnabledOrgsResponse message) {
-    log.info("Received task for subscription sync with org ID: {}", message.getOrgId());
-    // Implementation will be done as part of SWATCH-2281
-  }
+  private Channels() {}
 }

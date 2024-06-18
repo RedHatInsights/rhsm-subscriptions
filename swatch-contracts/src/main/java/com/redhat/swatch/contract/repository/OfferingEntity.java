@@ -167,6 +167,10 @@ public class OfferingEntity implements Serializable {
     return hasUnlimitedUsage;
   }
 
+  public boolean isMetered() {
+    return metered != null && metered;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {

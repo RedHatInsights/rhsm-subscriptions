@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.contract.service;
 
+import static com.redhat.swatch.contract.config.Channels.SUBSCRIPTION_PRUNE_TASK;
 import static org.mockito.Mockito.verify;
 
 import com.redhat.swatch.contract.model.EnabledOrgsResponse;
@@ -49,7 +50,7 @@ class SubscriptionPruneTaskConsumerTest {
 
   @BeforeEach
   void setup() {
-    source = connector.source("subscription-prune-task");
+    source = connector.source(SUBSCRIPTION_PRUNE_TASK);
   }
 
   @Test

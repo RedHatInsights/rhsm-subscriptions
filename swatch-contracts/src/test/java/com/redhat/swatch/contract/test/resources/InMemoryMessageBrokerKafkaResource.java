@@ -20,6 +20,12 @@
  */
 package com.redhat.swatch.contract.test.resources;
 
+import static com.redhat.swatch.contract.config.Channels.CAPACITY_RECONCILE;
+import static com.redhat.swatch.contract.config.Channels.CAPACITY_RECONCILE_TASK;
+import static com.redhat.swatch.contract.config.Channels.ENABLED_ORGS;
+import static com.redhat.swatch.contract.config.Channels.SUBSCRIPTION_PRUNE_TASK;
+import static com.redhat.swatch.contract.config.Channels.SUBSCRIPTION_SYNC_TASK;
+
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import java.util.HashMap;
@@ -30,9 +36,11 @@ public class InMemoryMessageBrokerKafkaResource implements QuarkusTestResourceLi
   @Override
   public Map<String, String> start() {
     Map<String, String> env = new HashMap<>();
-    env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory("subscription-prune-task"));
-    env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory("subscription-sync-task"));
-    env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory("enabled-orgs"));
+    env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory(SUBSCRIPTION_PRUNE_TASK));
+    env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory(SUBSCRIPTION_SYNC_TASK));
+    env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory(ENABLED_ORGS));
+    env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory(CAPACITY_RECONCILE_TASK));
+    env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory(CAPACITY_RECONCILE));
     return env;
   }
 

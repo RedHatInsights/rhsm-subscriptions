@@ -42,7 +42,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -248,35 +247,6 @@ class SubscriptionRepositoryTest {
 
     var result = subscriptionRepo.findByCriteria(criteria, Sort.unsorted());
     assertEquals(5, result.size());
-  }
-
-  @Transactional
-  @Test
-  void findsAllSubscriptionsForAGivenSku() {
-    Offering mct3718 = createOffering("MCT3718", "rosa", 1066, null, null, null);
-    Offering rh00798 = createOffering("RH00798", "rosa", 1512, null, null, null);
-    offeringRepo.saveAllAndFlush(List.of(mct3718, rh00798));
-
-    for (int i = 0; i < 5; i++) {
-      Subscription subscription1 =
-          createSubscription("1", String.valueOf(new Random().nextInt()), "sellerAcctId");
-      subscription1.setOffering(mct3718);
-
-      Subscription subscription2 =
-          createSubscription("1", String.valueOf(new Random().nextInt()), "sellerAcctId");
-      subscription2.setOffering(rh00798);
-
-      Subscription subscription3 =
-          createSubscription("2", String.valueOf(new Random().nextInt()), "sellerAcctId");
-      subscription3.setOffering(mct3718);
-      subscriptionRepo.saveAll(List.of(subscription1, subscription2, subscription3));
-    }
-
-    var result = subscriptionRepo.findByOfferingSku("MCT3718", Pageable.ofSize(5));
-    assertEquals(5, result.stream().count());
-
-    result = subscriptionRepo.findByOfferingSku("MCT3718", Pageable.unpaged());
-    assertEquals(10, result.stream().count());
   }
 
   @Transactional
