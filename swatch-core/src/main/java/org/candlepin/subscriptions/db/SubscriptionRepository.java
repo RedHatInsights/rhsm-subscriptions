@@ -126,9 +126,6 @@ public interface SubscriptionRepository
     if (!ObjectUtils.isEmpty(dbReportCriteria.getProductTag())) {
       searchCriteria = searchCriteria.and(productTagEquals(dbReportCriteria.getProductTag()));
     }
-    if (Objects.nonNull(dbReportCriteria.getProductId())) {
-      searchCriteria = searchCriteria.and(productIdEquals(dbReportCriteria.getProductId()));
-    }
     if (Objects.nonNull(dbReportCriteria.getServiceLevel())
         && !dbReportCriteria.getServiceLevel().equals(ServiceLevel._ANY)) {
       searchCriteria = searchCriteria.and(slaEquals(dbReportCriteria.getServiceLevel()));
@@ -190,13 +187,6 @@ public interface SubscriptionRepository
     return (root, query, builder) -> {
       var offeringRoot = root.get(Subscription_.offering);
       return builder.isMember(productTag, offeringRoot.get(Offering_.productTags));
-    };
-  }
-
-  private static Specification<Subscription> productIdEquals(String productId) {
-    return (root, query, builder) -> {
-      var productIdsPath = root.join(Subscription_.subscriptionProductIds);
-      return builder.equal(productIdsPath, productId);
     };
   }
 

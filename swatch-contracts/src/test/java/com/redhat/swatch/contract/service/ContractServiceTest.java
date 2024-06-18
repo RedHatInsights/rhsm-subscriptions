@@ -24,7 +24,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -125,14 +124,7 @@ class ContractServiceTest extends BaseUnitTest {
         request.getPartnerEntitlement().getRhEntitlements().get(0).getSku(),
         entity.getOffering().getSku());
     assertEquals(response.getUuid(), entity.getUuid().toString());
-    ArgumentCaptor<SubscriptionEntity> subscriptionCaptor =
-        ArgumentCaptor.forClass(SubscriptionEntity.class);
-    verify(subscriptionRepository).persist(subscriptionCaptor.capture());
-    var subscription = subscriptionCaptor.getValue();
-    assertNotNull(subscription.getSubscriptionProductIds());
-    assertTrue(
-        subscription.getSubscriptionProductIds().stream()
-            .anyMatch(p -> PRODUCT_TAG.equals(p.getProductId())));
+    verify(subscriptionRepository).persist(any(SubscriptionEntity.class));
     verify(measurementMetricIdTransformer).translateContractMetricIdsToSubscriptionMetricIds(any());
   }
 

@@ -59,7 +59,7 @@ class SubscriptionMeasurementRepositoryTest {
   @Autowired private SubscriptionRepository subscriptionRepository;
   @Autowired private OfferingRepository offeringRepository;
   private Subscription subscription;
-  private SubscriptionMeasurementKey physicalCores =
+  private final SubscriptionMeasurementKey physicalCores =
       createMeasurementKey("PHYSICAL", MetricId.fromString(CORES));
 
   private Subscription createTestSubscription(String subscriptionId) {
@@ -69,6 +69,7 @@ class SubscriptionMeasurementRepositoryTest {
             .sku("premiumproduction")
             .serviceLevel(ServiceLevel.PREMIUM)
             .usage(Usage.PRODUCTION)
+            .productTags(new HashSet<>(List.of("RHEL")))
             .build();
 
     var subscription =
@@ -83,7 +84,6 @@ class SubscriptionMeasurementRepositoryTest {
             .endDate(END)
             .build();
 
-    subscription.setSubscriptionProductIds(new HashSet<>(List.of("RHEL")));
     subscription.getSubscriptionMeasurements().put(physicalCores, 42.0);
     subscription.setOffering(offering);
 
@@ -112,10 +112,6 @@ class SubscriptionMeasurementRepositoryTest {
             .startDate(START.plusMonths(1))
             .endDate(START.plusYears(1))
             .build();
-
-    var productIds = new HashSet<>(List.of("RHEL"));
-    wrongOrgId.setSubscriptionProductIds(productIds);
-
     wrongOrgId.getSubscriptionMeasurements().put(physicalCores, 8.0);
 
     subscriptionRepository.saveAndFlush(wrongOrgId);
@@ -123,7 +119,7 @@ class SubscriptionMeasurementRepositoryTest {
     var criteria =
         DbReportCriteria.builder()
             .orgId("org123")
-            .productId("RHEL")
+            .productTag("RHEL")
             .beginning(START.minusYears(2))
             .ending(START.plusYears(2))
             .build();

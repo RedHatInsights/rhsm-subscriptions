@@ -28,7 +28,6 @@ import com.redhat.swatch.contract.exception.ErrorCode;
 import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
-import com.redhat.swatch.contract.repository.SubscriptionProductIdEntity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.ProcessingException;
@@ -51,35 +50,40 @@ public class MeasurementMetricIdTransformer {
    * @param subscription subscription w/ measurements in the cloud-provider units
    */
   public void translateContractMetricIdsToSubscriptionMetricIds(SubscriptionEntity subscription) {
+    if (subscription.getOffering() == null) {
+      log.warn(
+          "Offering is not set for subscription {}. Skipping the translation of contract metrics",
+          subscription);
+      return;
+    }
+
     try {
       if (subscription.getBillingProvider() == BillingProvider.AWS) {
-        var tag =
-            subscription.getSubscriptionProductIds().stream()
-                .findFirst()
-                .map(SubscriptionProductIdEntity::getProductId)
-                .orElseThrow();
-        var metrics = internalSubscriptionsApi.getMetrics(tag);
-        // the metricId currently set here is actually the aws Dimension and get translated to the
-        // metric uom after calculation
-        checkForUnsupportedMetrics(metrics, subscription);
-        subscription
-            .getSubscriptionMeasurements()
-            .forEach(
-                measurement ->
-                    metrics.stream()
-                        .filter(
-                            metric ->
-                                Objects.equals(metric.getAwsDimension(), measurement.getMetricId()))
-                        .findFirst()
-                        .ifPresent(
-                            metric -> {
-                              if (metric.getBillingFactor() != null
-                                  && measurement.getValue() != null) {
-                                measurement.setValue(
-                                    measurement.getValue() / metric.getBillingFactor());
-                              }
-                              measurement.setMetricId(metric.getUom());
-                            }));
+        for (String tag : subscription.getOffering().getProductTags()) {
+          var metrics = internalSubscriptionsApi.getMetrics(tag);
+          // the metricId currently set here is actually the aws Dimension and get translated to the
+          // metric uom after calculation
+          checkForUnsupportedMetrics(metrics, subscription);
+          subscription
+              .getSubscriptionMeasurements()
+              .forEach(
+                  measurement ->
+                      metrics.stream()
+                          .filter(
+                              metric ->
+                                  Objects.equals(
+                                      metric.getAwsDimension(), measurement.getMetricId()))
+                          .findFirst()
+                          .ifPresent(
+                              metric -> {
+                                if (metric.getBillingFactor() != null
+                                    && measurement.getValue() != null) {
+                                  measurement.setValue(
+                                      measurement.getValue() / metric.getBillingFactor());
+                                }
+                                measurement.setMetricId(metric.getUom());
+                              }));
+        }
       }
     } catch (ProcessingException | ApiException e) {
       log.error("Error looking up dimension for metrics", e);
