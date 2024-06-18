@@ -89,19 +89,12 @@ class CapacityResourceTest {
   }
 
   private static Subscription datedSubscription(OffsetDateTime start, OffsetDateTime end) {
-    Subscription s =
-        Subscription.builder()
-            .subscriptionId("subscription123")
-            .startDate(start)
-            .endDate(end)
-            .orgId("owner123456")
-            .build();
-
-    var newProductIds = s.getSubscriptionProductIds();
-    newProductIds.add(RHEL_FOR_ARM.toString());
-    s.setSubscriptionProductIds(newProductIds);
-
-    return s;
+    return Subscription.builder()
+        .subscriptionId("subscription123")
+        .startDate(start)
+        .endDate(end)
+        .orgId("owner123456")
+        .build();
   }
 
   private static Subscription enhancedSubscription(
@@ -139,7 +132,7 @@ class CapacityResourceTest {
     var dbReportCriteria =
         DbReportCriteria.builder()
             .orgId("owner123456")
-            .productId(RHEL_FOR_ARM.toString())
+            .productTag(RHEL_FOR_ARM.toString())
             .serviceLevel(ServiceLevel._ANY)
             .usage(Usage._ANY)
             .beginning(min)
@@ -176,7 +169,7 @@ class CapacityResourceTest {
     var dbReportCriteria =
         DbReportCriteria.builder()
             .orgId("owner123456")
-            .productId(RHEL_FOR_ARM.toString())
+            .productTag(RHEL_FOR_ARM.toString())
             .serviceLevel(ServiceLevel.PREMIUM)
             .usage(Usage._ANY)
             .beginning(min)
@@ -212,7 +205,7 @@ class CapacityResourceTest {
     var dbReportCriteria =
         DbReportCriteria.builder()
             .orgId("owner123456")
-            .productId(RHEL_FOR_ARM.toString())
+            .productTag(RHEL_FOR_ARM.toString())
             .serviceLevel(ServiceLevel._ANY)
             .usage(Usage.PRODUCTION)
             .beginning(min)
@@ -248,7 +241,7 @@ class CapacityResourceTest {
     var dbReportCriteria =
         DbReportCriteria.builder()
             .orgId("owner123456")
-            .productId(RHEL_FOR_ARM.toString())
+            .productTag(RHEL_FOR_ARM.toString())
             .serviceLevel(ServiceLevel._ANY)
             .usage(Usage._ANY)
             .beginning(min)
@@ -284,7 +277,7 @@ class CapacityResourceTest {
     var dbReportCriteria =
         DbReportCriteria.builder()
             .orgId("owner123456")
-            .productId(RHEL_FOR_ARM.toString())
+            .productTag(RHEL_FOR_ARM.toString())
             .serviceLevel(ServiceLevel._ANY)
             .usage(Usage._ANY)
             .beginning(min)
@@ -331,23 +324,19 @@ class CapacityResourceTest {
     var subs =
         Stream.of(sock1, sock2, cores1, cores2, hypSock1, hypSock2, hypCore1, hypCore2)
             .map(
-                m -> {
-                  var s =
-                      Subscription.builder()
-                          .startDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1))
-                          .endDate(max.truncatedTo(ChronoUnit.DAYS).minusSeconds(1))
-                          .orgId("owner123456")
-                          .build();
-                  s.getSubscriptionProductIds().add(RHEL_FOR_ARM.toString());
-                  s.getSubscriptionMeasurements().putAll(m);
-                  return s;
-                })
+                m ->
+                    Subscription.builder()
+                        .startDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1))
+                        .endDate(max.truncatedTo(ChronoUnit.DAYS).minusSeconds(1))
+                        .orgId("owner123456")
+                        .subscriptionMeasurements(m)
+                        .build())
             .toList();
 
     var dbReportCriteria =
         DbReportCriteria.builder()
             .orgId("owner123456")
-            .productId(RHEL_FOR_ARM.toString())
+            .productTag(RHEL_FOR_ARM.toString())
             .serviceLevel(null)
             .usage(null)
             .beginning(min)
@@ -384,23 +373,19 @@ class CapacityResourceTest {
     var subs =
         Stream.of(hypSock, hypCore, sock, cores)
             .map(
-                m -> {
-                  var s =
-                      Subscription.builder()
-                          .startDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1))
-                          .endDate(max.truncatedTo(ChronoUnit.DAYS).minusSeconds(1))
-                          .orgId("owner123456")
-                          .build();
-                  s.getSubscriptionProductIds().add(RHEL_FOR_ARM.toString());
-                  s.getSubscriptionMeasurements().putAll(m);
-                  return s;
-                })
+                m ->
+                    Subscription.builder()
+                        .startDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1))
+                        .endDate(max.truncatedTo(ChronoUnit.DAYS).minusSeconds(1))
+                        .orgId("owner123456")
+                        .subscriptionMeasurements(m)
+                        .build())
             .toList();
 
     var dbReportCriteria =
         DbReportCriteria.builder()
             .orgId("owner123456")
-            .productId(RHEL_FOR_ARM.toString())
+            .productTag(RHEL_FOR_ARM.toString())
             .serviceLevel(null)
             .usage(null)
             .beginning(min)
@@ -443,7 +428,7 @@ class CapacityResourceTest {
     var dbReportCriteria =
         DbReportCriteria.builder()
             .orgId("owner123456")
-            .productId(RHEL_FOR_ARM.toString())
+            .productTag(RHEL_FOR_ARM.toString())
             .serviceLevel(null)
             .usage(null)
             .beginning(min)
@@ -521,7 +506,7 @@ class CapacityResourceTest {
     var dbReportCriteria =
         DbReportCriteria.builder()
             .orgId("owner123456")
-            .productId(RHEL_FOR_ARM.toString())
+            .productTag(RHEL_FOR_ARM.toString())
             .serviceLevel(null)
             .usage(null)
             .beginning(min)
@@ -565,7 +550,7 @@ class CapacityResourceTest {
     var dbReportCriteria =
         DbReportCriteria.builder()
             .orgId("owner123456")
-            .productId(RHEL_FOR_ARM.toString())
+            .productTag(RHEL_FOR_ARM.toString())
             .serviceLevel(null)
             .usage(null)
             .beginning(min)
@@ -610,7 +595,7 @@ class CapacityResourceTest {
     var dbReportCriteria =
         DbReportCriteria.builder()
             .orgId("owner123456")
-            .productId(RHEL_FOR_ARM.toString())
+            .productTag(RHEL_FOR_ARM.toString())
             .serviceLevel(null)
             .usage(null)
             .beginning(min)
@@ -666,7 +651,7 @@ class CapacityResourceTest {
     var dbReportCriteria =
         DbReportCriteria.builder()
             .orgId("owner123456")
-            .productId(RHEL_FOR_ARM.toString())
+            .productTag(RHEL_FOR_ARM.toString())
             .serviceLevel(ServiceLevel._ANY)
             .usage(Usage._ANY)
             .beginning(min)
@@ -741,7 +726,7 @@ class CapacityResourceTest {
     var dbReportCriteria =
         DbReportCriteria.builder()
             .orgId("owner123456")
-            .productId(RHEL_FOR_ARM.toString())
+            .productTag(RHEL_FOR_ARM.toString())
             .serviceLevel(ServiceLevel._ANY)
             .usage(Usage.PRODUCTION)
             .beginning(min)
@@ -791,7 +776,7 @@ class CapacityResourceTest {
     var dbReportCriteria =
         DbReportCriteria.builder()
             .orgId("owner123456")
-            .productId(RHEL_FOR_ARM.toString())
+            .productTag(RHEL_FOR_ARM.toString())
             .serviceLevel(null)
             .usage(null)
             .beginning(min)
@@ -805,7 +790,7 @@ class CapacityResourceTest {
     var criteria =
         DbReportCriteria.builder()
             .orgId("owner123456")
-            .productId(RHEL_FOR_ARM.toString())
+            .productTag(RHEL_FOR_ARM.toString())
             .beginning(min)
             .ending(max)
             .build();

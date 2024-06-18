@@ -29,8 +29,6 @@ import jakarta.transaction.Transactional;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
@@ -83,12 +81,10 @@ public class CapacityReconciliationController {
   public void reconcileCapacityForSubscription(Subscription subscription) {
     if (productDenylist.productIdMatches(subscription.getOffering().getSku())) {
       subscription.getSubscriptionMeasurements().clear();
-      subscription.getSubscriptionProductIds().clear();
       return;
     }
 
     reconcileSubscriptionCapacities(subscription);
-    reconcileSubscriptionProductIds(subscription);
   }
 
   @Transactional
@@ -154,24 +150,5 @@ public class CapacityReconciliationController {
       return Optional.of(key);
     }
     return Optional.empty();
-  }
-
-  @Transactional
-  public void reconcileSubscriptionProductIds(Subscription subscription) {
-    Offering offering = subscription.getOffering();
-
-    Set<String> expectedProducts = offering.getProductTags();
-    var toBeRemoved =
-        subscription.getSubscriptionProductIds().stream()
-            .filter(p -> !expectedProducts.contains(p))
-            .collect(Collectors.toSet());
-    subscription.getSubscriptionProductIds().removeAll(toBeRemoved);
-    subscription.getSubscriptionProductIds().addAll(expectedProducts);
-    if (!toBeRemoved.isEmpty()) {
-      log.info(
-          "Update for subscription ID {} removed {} products.",
-          subscription.getSubscriptionId(),
-          toBeRemoved.size());
-    }
   }
 }

@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.subscription;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.MoreCollectors;
 import com.redhat.swatch.configuration.registry.Variant;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -38,7 +37,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -55,6 +53,7 @@ import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.DbReportCriteria;
+import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription.SubscriptionCompoundId;
 import org.candlepin.subscriptions.db.model.Subscription_;
@@ -476,8 +475,7 @@ public class SubscriptionSyncController {
     return org.candlepin.subscriptions.db.model.Subscription.builder()
         .subscriptionId(String.valueOf(subscription.getId()))
         .subscriptionNumber(subscription.getSubscriptionNumber())
-        .subscriptionProductIds(
-            new HashSet<>(Collections.singleton(SubscriptionDtoUtil.extractSku(subscription))))
+        .offering(Offering.builder().sku(SubscriptionDtoUtil.extractSku(subscription)).build())
         .orgId(subscription.getWebCustomerId().toString())
         .quantity(subscription.getQuantity())
         .startDate(clock.dateFromMilliseconds(subscription.getEffectiveStartDate()))
@@ -565,17 +563,15 @@ public class SubscriptionSyncController {
 
   private void determineSubscriptionOffering(
       org.candlepin.subscriptions.db.model.Subscription subscription) {
-    // should look up the offering and set it before additional processing
-    var offer =
-        offeringRepository.findOfferingBySku(
-            subscription.getSubscriptionProductIds().stream()
-                .collect(MoreCollectors.toOptional())
-                .orElse(null));
-    if (Objects.nonNull(offer)) {
-      // should only be one offering per subscription
-      subscription.setOffering(offer);
-    } else {
-      throw new BadRequestException("Error offering doesn't exist");
+    if (subscription.getOffering().getSku() != null) {
+      // should look up the offering and set it before additional processing
+      var offer = offeringRepository.findOfferingBySku(subscription.getOffering().getSku());
+      if (Objects.nonNull(offer)) {
+        // should only be one offering per subscription
+        subscription.setOffering(offer);
+      } else {
+        throw new BadRequestException("Error offering doesn't exist");
+      }
     }
   }
 

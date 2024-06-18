@@ -67,7 +67,6 @@ class SubscriptionEntityMapperTest {
     assertEquals(contract.getBillingProvider(), subscription.getBillingProvider().getValue());
     assertEquals(contract.getBillingAccountId(), subscription.getBillingAccountId());
     assertEquals(contract.getOrgId(), subscription.getOrgId());
-    assertEquals(1, subscription.getSubscriptionProductIds().size());
     var measurement = subscription.getSubscriptionMeasurements().get(0);
     assertEquals(metric.getMetricId(), measurement.getMetricId());
     assertEquals(metric.getValue(), measurement.getValue());
