@@ -104,7 +104,7 @@ class BillableUsageConsumerTest {
   Counter acceptedCounter;
   Counter rejectedCounter;
   Counter ignoredCounter;
-  @Inject BillableUsageAggregateConsumer consumer;
+  @Inject AzureBillableUsageAggregateConsumer consumer;
   @Inject BillableUsageDeadLetterTopicProducer deadLetterTopicProducer;
 
   @Inject
@@ -237,8 +237,8 @@ class BillableUsageConsumerTest {
 
   @Test
   void shouldNotMakeAzureUsageRequestWhenDryRunEnabled() throws ApiException {
-    BillableUsageAggregateConsumer consumer =
-        new BillableUsageAggregateConsumer(
+    AzureBillableUsageAggregateConsumer consumer =
+        new AzureBillableUsageAggregateConsumer(
             meterRegistry,
             internalSubscriptionsApi,
             marketplaceService,

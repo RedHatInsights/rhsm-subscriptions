@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.aws.processors;
+package com.redhat.swatch.aws.service;
 
 import com.redhat.swatch.aws.exception.AwsMissingCredentialsException;
 import com.redhat.swatch.aws.exception.AwsUnprocessedRecordsException;
@@ -61,7 +61,7 @@ import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResu
 
 @Slf4j
 @ApplicationScoped
-public class BillableUsageAggregateProcessor {
+public class AwsBillableUsageAggregateConsumer {
   private final Counter acceptedCounter;
   private final Counter rejectedCounter;
   private final Counter ignoreCounter;
@@ -70,7 +70,7 @@ public class BillableUsageAggregateProcessor {
   private final Optional<Boolean> isDryRun;
   private final Duration awsUsageWindow;
 
-  public BillableUsageAggregateProcessor(
+  public AwsBillableUsageAggregateConsumer(
       MeterRegistry meterRegistry,
       @RestClient InternalSubscriptionsApi internalSubscriptionsApi,
       AwsMarketplaceMeteringClientFactory awsMarketplaceMeteringClientFactory,
@@ -100,8 +100,13 @@ public class BillableUsageAggregateProcessor {
     Optional<Metric> metric =
         validateUsageAndLookupMetric(billableUsageAggregate.getAggregateKey());
     if (metric.isEmpty()) {
-      log.debug("Skipping billable usage because it is not applicable: {}", billableUsageAggregate);
+      log.debug(
+          "Skipping billable usage because it is not applicable for this service: {}",
+          billableUsageAggregate);
       return;
+    } else {
+
+      log.info("Processing billable usage message: {}", billableUsageAggregate);
     }
 
     AwsUsageContext context;

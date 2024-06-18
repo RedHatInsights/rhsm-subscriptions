@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.aws.processors;
+package com.redhat.swatch.aws.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -78,7 +78,7 @@ import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResu
 @QuarkusTestResource(
     value = InMemoryMessageBrokerKafkaResource.class,
     restrictToAnnotatedClass = true)
-class BillableUsageAggregateProcessorTest {
+class AwsBillableUsageAggregateConsumerTest {
 
   private static final String INSTANCE_HOURS = "INSTANCE_HOURS";
   private static final String CORES = "CORES";
@@ -119,7 +119,7 @@ class BillableUsageAggregateProcessorTest {
   Counter acceptedCounter;
   Counter rejectedCounter;
   Counter ignoredCounter;
-  @Inject BillableUsageAggregateProcessor processor;
+  @Inject AwsBillableUsageAggregateConsumer consumer;
 
   @ConfigProperty(name = "AWS_MARKETPLACE_USAGE_WINDOW")
   Duration maxAgeDuration;
@@ -145,7 +145,7 @@ class BillableUsageAggregateProcessorTest {
             BillableUsage.BillingProvider.RED_HAT.value(),
             "testBillingAccountId");
     aggregate.setAggregateKey(key);
-    processor.process(aggregate);
+    consumer.process(aggregate);
     verifyNoInteractions(internalSubscriptionsApi, clientFactory);
   }
 
@@ -153,7 +153,7 @@ class BillableUsageAggregateProcessorTest {
   void shouldLookupAwsContextOnApplicableSnapshot() throws ApiException {
     when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
         .thenReturn(new AwsUsageContext());
-    processor.process(ROSA_INSTANCE_HOURS_RECORD);
+    consumer.process(ROSA_INSTANCE_HOURS_RECORD);
     verify(internalSubscriptionsApi).getAwsUsageContext(any(), any(), any(), any(), any(), any());
   }
 
@@ -162,7 +162,7 @@ class BillableUsageAggregateProcessorTest {
     when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
-    processor.process(ROSA_INSTANCE_HOURS_RECORD);
+    consumer.process(ROSA_INSTANCE_HOURS_RECORD);
     verify(meteringClient).batchMeterUsage(any(BatchMeterUsageRequest.class));
   }
 
@@ -172,7 +172,7 @@ class BillableUsageAggregateProcessorTest {
         createAggregate("rosa", INSTANCE_HOURS, OffsetDateTime.now(), 42.0);
     when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
         .thenThrow(AwsUsageContextLookupException.class);
-    processor.process(aggregate);
+    consumer.process(aggregate);
     verifyNoInteractions(meteringClient);
   }
 
@@ -180,7 +180,7 @@ class BillableUsageAggregateProcessorTest {
   void shouldSkipMessageIfUnknownAwsDimensionCannotBeLookedUp() {
     BillableUsageAggregate aggregate =
         createAggregate("foobar", INSTANCE_HOURS, OffsetDateTime.now(), 42.0);
-    processor.process(aggregate);
+    consumer.process(aggregate);
     verifyNoInteractions(internalSubscriptionsApi, meteringClient);
   }
 
@@ -188,7 +188,7 @@ class BillableUsageAggregateProcessorTest {
   void shouldFindStorageAwsDimension() throws ApiException {
     when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
         .thenReturn(new AwsUsageContext());
-    processor.process(ROSA_STORAGE_CORES_RECORD);
+    consumer.process(ROSA_STORAGE_CORES_RECORD);
     verify(internalSubscriptionsApi).getAwsUsageContext(any(), any(), any(), any(), any(), any());
   }
 
@@ -199,7 +199,7 @@ class BillableUsageAggregateProcessorTest {
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
     when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
         .thenReturn(BATCH_METER_USAGE_SUCCESS_RESPONSE);
-    processor.process(ROSA_INSTANCE_HOURS_RECORD);
+    consumer.process(ROSA_INSTANCE_HOURS_RECORD);
     assertEquals(1.0, acceptedCounter.count());
   }
 
@@ -214,7 +214,7 @@ class BillableUsageAggregateProcessorTest {
             BatchMeterUsageResponse.builder()
                 .unprocessedRecords(UsageRecord.builder().build())
                 .build());
-    processor.process(ROSA_INSTANCE_HOURS_RECORD);
+    consumer.process(ROSA_INSTANCE_HOURS_RECORD);
     assertEquals(current + 1, rejectedCounter.count());
   }
 
@@ -226,14 +226,14 @@ class BillableUsageAggregateProcessorTest {
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
     when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
         .thenThrow(MarketplaceMeteringException.class);
-    processor.process(ROSA_INSTANCE_HOURS_RECORD);
+    consumer.process(ROSA_INSTANCE_HOURS_RECORD);
     assertEquals(current + 1, rejectedCounter.count());
   }
 
   @Test
   void shouldNotMakeAwsUsageRequestWhenDryRunEnabled() throws ApiException {
-    BillableUsageAggregateProcessor processor =
-        new BillableUsageAggregateProcessor(
+    AwsBillableUsageAggregateConsumer processor =
+        new AwsBillableUsageAggregateConsumer(
             meterRegistry,
             internalSubscriptionsApi,
             clientFactory,
@@ -259,7 +259,7 @@ class BillableUsageAggregateProcessorTest {
     assertThrows(
         SubscriptionRecentlyTerminatedException.class,
         () -> {
-          processor.lookupAwsUsageContext(ROSA_INSTANCE_HOURS_RECORD);
+          consumer.lookupAwsUsageContext(ROSA_INSTANCE_HOURS_RECORD);
         });
   }
 
@@ -274,7 +274,7 @@ class BillableUsageAggregateProcessorTest {
     when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
         .thenThrow(exception);
 
-    processor.process(ROSA_INSTANCE_HOURS_RECORD);
+    consumer.process(ROSA_INSTANCE_HOURS_RECORD);
     verifyNoInteractions(meteringClient);
   }
 
@@ -286,7 +286,7 @@ class BillableUsageAggregateProcessorTest {
     BillableUsageAggregate aggregate =
         createAggregate(
             "rosa", INSTANCE_HOURS, OffsetDateTime.now(Clock.systemUTC()).minusHours(8), 42.0);
-    processor.process(aggregate);
+    consumer.process(aggregate);
     verifyNoInteractions(meteringClient);
     assertEquals(currentIgnored + 1, ignoredCounter.count());
   }
@@ -309,7 +309,7 @@ class BillableUsageAggregateProcessorTest {
     // 6h
     BillableUsageAggregate aggregate = createAggregate("rosa", INSTANCE_HOURS, date, 42.0);
     assertEquals(21600, maxAgeDuration.getSeconds());
-    assertEquals(isValid, processor.isUsageDateValid(clock, aggregate));
+    assertEquals(isValid, consumer.isUsageDateValid(clock, aggregate));
   }
 
   private static BillableUsageAggregate createAggregate(
