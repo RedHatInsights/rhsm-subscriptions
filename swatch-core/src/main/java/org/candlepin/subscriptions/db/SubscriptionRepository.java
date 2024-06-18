@@ -63,7 +63,7 @@ public interface SubscriptionRepository
         SELECT s FROM Subscription s
         WHERE (s.endDate IS NULL OR s.endDate > CURRENT_TIMESTAMP)
           AND s.subscriptionId = :subscriptionId
-        ORDER BY s.subscriptionId, s.startDate
+        ORDER BY s.subscriptionId, s.startDate DESC
       """)
   @EntityGraph(value = "graph.SubscriptionSync")
   List<Subscription> findActiveSubscription(@Param("subscriptionId") String subscriptionId);
@@ -71,19 +71,21 @@ public interface SubscriptionRepository
   @EntityGraph(value = "graph.SubscriptionSync")
   // Added an order by clause to avoid Hibernate issue HHH-17040
   @Query(
-      "SELECT s FROM Subscription s WHERE s.subscriptionNumber = :subscriptionNumber ORDER BY s.subscriptionId, s.startDate")
+      "SELECT s FROM Subscription s WHERE s.subscriptionNumber = :subscriptionNumber"
+          + " ORDER BY s.subscriptionId, s.startDate DESC")
   List<Subscription> findBySubscriptionNumber(String subscriptionNumber);
 
   // Added an order by clause to avoid Hibernate issue HHH-17040
   @Query(
-      "SELECT s FROM Subscription s LEFT JOIN FETCH s.offering o WHERE o.sku = :sku ORDER BY s.subscriptionId, s.startDate")
+      "SELECT s FROM Subscription s LEFT JOIN FETCH s.offering o WHERE o.sku = :sku"
+          + " ORDER BY s.subscriptionId, s.startDate DESC")
   Page<Subscription> findByOfferingSku(String sku, Pageable pageable);
 
   @QueryHints(value = {@QueryHint(name = HINT_FETCH_SIZE, value = "1024")})
   @EntityGraph(value = "graph.SubscriptionSync")
   // Added an order by clause to avoid Hibernate issue HHH-17040
   @Query(
-      "SELECT s FROM Subscription s WHERE s.orgId = :orgId ORDER BY s.subscriptionId, s.startDate")
+      "SELECT s FROM Subscription s WHERE s.orgId = :orgId ORDER BY s.subscriptionId, s.startDate DESC")
   Stream<Subscription> findByOrgId(String orgId);
 
   default Stream<Subscription> streamBy(DbReportCriteria dbReportCriteria) {

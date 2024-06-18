@@ -67,6 +67,10 @@ public enum BillingProvider implements StringValueEnum<BillingProviderType> {
     return openApiEnum;
   }
 
+  public boolean nonEmptyBillingProvider() {
+    return this != EMPTY;
+  }
+
   /** JPA converter for BillingProvider */
   @Converter(autoApply = true)
   public static class EnumConverter implements AttributeConverter<BillingProvider, String> {

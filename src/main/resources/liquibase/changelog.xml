@@ -161,5 +161,6 @@
     <include file="/liquibase/202405081325-delete-duplicate-aws-subscriptions.xml"/>
     <include file="/liquibase/202405300830-split-instance-view-to-payg-and-non-payg-versions.xml"/>
     <include file="/liquibase/202406130700-add-index-in-sku-product-tag.xml"/>
+    <include file="/liquibase/202406051539-remove-erroneously-duplicated-subscriptions.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

@@ -42,7 +42,7 @@ dependencies {
     annotationProcessor libraries["lombok-mapstruct-binding"]
 }
 
-compileJava.dependsOn tasks.openApiGenerate
+compileJava.dependsOn tasks.openApiGenerate, tasks.compileQuarkusGeneratedSourcesJava
 
 openApiGenerate {
     generatorName = "java"
