@@ -674,9 +674,9 @@ paths:
           $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - subscriptions
-  /openapi.json:
+  /v1/openapi.json:
     $ref: "../spec/openapi-paths.yaml#/openapi-json"
-  /openapi.yaml:
+  /v1/openapi.yaml:
     $ref: "../spec/openapi-paths.yaml#/openapi-yaml"
 
 components:
