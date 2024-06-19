@@ -22,7 +22,7 @@ package org.candlepin.subscriptions.exception.mapper;
 
 import jakarta.ws.rs.ext.Provider;
 import org.candlepin.subscriptions.exception.MissingOfferingException;
-import org.candlepin.subscriptions.utilization.api.model.Error;
+import org.candlepin.subscriptions.utilization.api.v1.model.Error;
 import org.springframework.stereotype.Component;
 
 /** An exception mapper used to map all MissingOfferingException to an error response. */

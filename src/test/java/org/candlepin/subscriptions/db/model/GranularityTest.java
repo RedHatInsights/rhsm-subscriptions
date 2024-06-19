@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.google.common.collect.Sets;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.candlepin.subscriptions.utilization.api.model.GranularityType;
+import org.candlepin.subscriptions.utilization.api.v1.model.GranularityType;
 import org.junit.jupiter.api.Test;
 
 class GranularityTest {

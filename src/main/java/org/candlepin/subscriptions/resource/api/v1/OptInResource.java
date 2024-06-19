@@ -18,14 +18,15 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource;
+package org.candlepin.subscriptions.resource.api.v1;
 
 import jakarta.ws.rs.BadRequestException;
 import org.candlepin.subscriptions.db.model.config.OptInType;
+import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.security.auth.SubscriptionWatchAdminOnly;
-import org.candlepin.subscriptions.utilization.api.model.OptInConfig;
-import org.candlepin.subscriptions.utilization.api.resources.OptInApi;
+import org.candlepin.subscriptions.utilization.api.v1.model.OptInConfig;
+import org.candlepin.subscriptions.utilization.api.v1.resources.OptInApi;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 

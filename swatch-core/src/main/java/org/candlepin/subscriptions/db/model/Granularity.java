@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.db.model;
 
 import java.util.Map;
-import org.candlepin.subscriptions.utilization.api.model.GranularityType;
+import org.candlepin.subscriptions.utilization.api.v1.model.GranularityType;
 
 /**
  * Granularity of a given snapshot.

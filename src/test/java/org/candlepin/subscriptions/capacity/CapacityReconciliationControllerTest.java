@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.capacity;
 
-import static org.candlepin.subscriptions.resource.CapacityResource.HYPERVISOR;
-import static org.candlepin.subscriptions.resource.CapacityResource.PHYSICAL;
+import static org.candlepin.subscriptions.resource.api.v1.CapacityResource.HYPERVISOR;
+import static org.candlepin.subscriptions.resource.api.v1.CapacityResource.PHYSICAL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;

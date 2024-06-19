@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.tally.filler;
 
 import java.time.OffsetDateTime;
-import org.candlepin.subscriptions.utilization.api.model.TallyReportDataPoint;
+import org.candlepin.subscriptions.utilization.api.v1.model.TallyReportDataPoint;
 
 public record UnroundedTallyReportDataPoint(OffsetDateTime date, Double value, Boolean hasData) {
   public TallyReportDataPoint toRoundedDataPoint() {

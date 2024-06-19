@@ -24,7 +24,7 @@ import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 import java.util.Map;
 import java.util.Objects;
-import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
+import org.candlepin.subscriptions.utilization.api.v1.model.BillingProviderType;
 
 /** Billing provider associated with a host. */
 public enum BillingProvider implements StringValueEnum<BillingProviderType> {
