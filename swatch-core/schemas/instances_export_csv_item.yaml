@@ -14,16 +14,10 @@ properties:
   measurement_cores:
     type: number
     format: double
-  measurement_instances:
-    type: number
-    format: double
   measurement_instance_hours:
     type: number
     format: double
   measurement_sockets:
-    type: number
-    format: double
-  measurement_storage_gibibytes:
     type: number
     format: double
   measurement_storage_gibibyte_months:

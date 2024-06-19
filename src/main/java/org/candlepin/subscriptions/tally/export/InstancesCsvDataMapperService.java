@@ -26,18 +26,29 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
+import java.util.function.ObjDoubleConsumer;
 import lombok.AllArgsConstructor;
 import org.candlepin.subscriptions.db.model.TallyInstanceView;
 import org.candlepin.subscriptions.export.DataMapperService;
 import org.candlepin.subscriptions.export.ExportServiceRequest;
 import org.candlepin.subscriptions.json.InstancesExportCsvItem;
-import org.candlepin.subscriptions.json.InstancesExportJsonMetric;
 import org.springframework.stereotype.Service;
 
 @Service
 @AllArgsConstructor
 public class InstancesCsvDataMapperService implements DataMapperService<TallyInstanceView> {
+
+  public static final Map<MetricId, ObjDoubleConsumer<InstancesExportCsvItem>> METRIC_MAPPER =
+      Map.of(
+          MetricIdUtils.getCores(), InstancesExportCsvItem::setMeasurementCores,
+          MetricIdUtils.getInstanceHours(), InstancesExportCsvItem::setMeasurementInstanceHours,
+          MetricIdUtils.getSockets(), InstancesExportCsvItem::setMeasurementSockets,
+          MetricIdUtils.getStorageGibibyteMonths(),
+              InstancesExportCsvItem::setMeasurementStorageGibibyteMonths,
+          MetricIdUtils.getTransferGibibytes(),
+              InstancesExportCsvItem::setMeasurementTransferGibibytes,
+          MetricIdUtils.getVCpus(), InstancesExportCsvItem::setMeasurementVcpus);
 
   @Override
   public List<Object> mapDataItem(TallyInstanceView item, ExportServiceRequest request) {
@@ -48,53 +59,23 @@ public class InstancesCsvDataMapperService implements DataMapperService<TallyIns
     if (item.getHostBillingProvider() != null) {
       instance.setBillingProvider(item.getHostBillingProvider().getValue());
     }
-    var category = getCategoryByMeasurementType(item.getKey().getMeasurementType());
-    if (category != null) {
-      instance.setCategory(category.toString());
-    }
-
     instance.setBillingAccountId(item.getHostBillingAccountId());
     var variant = Variant.findByTag(item.getKey().getProductId());
     var metrics = MetricIdUtils.getMetricIdsFromConfigForVariant(variant.orElse(null)).toList();
     for (var metric : metrics) {
-      poplulateMetric(
-          instance,
-          toInstanceExportMetric(
-              metric, Optional.ofNullable(item.getMetricValue(metric)).orElse(0.0)));
+      var setter = METRIC_MAPPER.get(metric);
+      if (setter != null) {
+        setter.accept(instance, item.getMetricValue(metric));
+      }
+    }
+
+    var category = getCategoryByMeasurementType(item.getKey().getMeasurementType());
+    if (category != null) {
+      instance.setCategory(category.toString());
     }
     instance.setLastSeen(item.getLastSeen());
+    // instance.setHypervisorUuid(item.getHypervisorUuid());
     return List.of(instance);
-  }
-
-  private static void poplulateMetric(
-      InstancesExportCsvItem instance, InstancesExportJsonMetric metric) {
-    switch (metric.getMetricId().toLowerCase().replace('-', '_')) {
-      case ("cores"):
-        instance.setMeasurementCores(metric.getValue());
-        break;
-      case ("instances"):
-        instance.setMeasurementInstances(metric.getValue());
-        break;
-      case ("instance_hours"):
-        instance.setMeasurementInstanceHours(metric.getValue());
-        break;
-      case ("sockets"):
-        instance.setMeasurementSockets(metric.getValue());
-        break;
-      case ("storage_gibibytes"):
-        instance.setMeasurementStorageGibibytes(metric.getValue());
-        break;
-      case ("storage_gibibyte_months"):
-        instance.setMeasurementStorageGibibyteMonths(metric.getValue());
-        break;
-      case ("transfer_gibibytes"):
-        instance.setMeasurementTransferGibibytes(metric.getValue());
-        break;
-      case ("vcpus"):
-        instance.setMeasurementVcpus(metric.getValue());
-        break;
-      default:
-    }
   }
 
   @Override
@@ -105,9 +86,5 @@ public class InstancesCsvDataMapperService implements DataMapperService<TallyIns
   @Override
   public Class<?> getExportItemClass() {
     return InstancesExportCsvItem.class;
-  }
-
-  private static InstancesExportJsonMetric toInstanceExportMetric(MetricId metric, double value) {
-    return new InstancesExportJsonMetric().withMetricId(metric.toString()).withValue(value);
   }
 }
