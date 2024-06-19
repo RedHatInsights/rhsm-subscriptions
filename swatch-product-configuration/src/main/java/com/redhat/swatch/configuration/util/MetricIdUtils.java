@@ -46,6 +46,18 @@ public class MetricIdUtils {
     return MetricId.fromString("Instance-hours");
   }
 
+  public static MetricId getVCpus() {
+    return MetricId.fromString("vCPUs");
+  }
+
+  public static MetricId getStorageGibibyteMonths() {
+    return MetricId.fromString("Storage-gibibyte-months");
+  }
+
+  public static MetricId getTransferGibibytes() {
+    return MetricId.fromString("Transfer-gibibytes");
+  }
+
   public static Stream<MetricId> getMetricIdsFromConfigForTag(String tag) {
     return getMetricIdsFromConfigForVariant(Variant.findByTag(tag).orElse(null));
   }
