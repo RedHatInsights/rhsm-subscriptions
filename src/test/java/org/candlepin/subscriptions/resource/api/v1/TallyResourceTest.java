@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
@@ -79,15 +80,11 @@ class TallyResourceTest {
   public static final OffsetDateTime TEST_DATE =
       OffsetDateTime.ofInstant(MID_MONTH_INSTANT, ZoneOffset.UTC);
 
-  private final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
-  private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
-
   public static final ProductId RHEL_PRODUCT_ID = ProductId.fromString("RHEL for x86");
   public static final ProductId OPENSHIFT_DEDICATED_METRICS =
       ProductId.fromString("OpenShift-dedicated-metrics");
   public static final ProductId RHEL_FOR_X86 = RHEL_PRODUCT_ID;
-  private static final MetricId METRIC_ID_CORES = MetricId.fromString("Cores");
-  private static final MetricId METRIC_ID_SOCKETS = MetricId.fromString("Sockets");
+  private static final MetricId METRIC_ID_CORES = MetricIdUtils.getCores();
 
   @MockBean TallySnapshotRepository repository;
   @MockBean PageLinkCreator pageLinkCreator;
@@ -108,7 +105,7 @@ class TallyResourceTest {
     var begin = applicationClock.startOfMonth(TEST_DATE);
     var end = applicationClock.endOfMonth(TEST_DATE);
     List<TallySnapshot> snapshots =
-        List.of(1, 2, 8).stream()
+        Stream.of(1, 2, 8)
             .map(
                 i -> {
                   var snapshot = new TallySnapshot();
@@ -195,7 +192,6 @@ class TallyResourceTest {
   void testTallyReportDataTotalUsingHardwareMeasurements() {
     TallySnapshot snapshot = new TallySnapshot();
     snapshot.setOrgId("org123");
-    ;
     snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
     snapshot.setMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), 4.0);
     when(repository.findSnapshot(
@@ -249,7 +245,7 @@ class TallyResourceTest {
         4.0, response.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum());
   }
 
-  @EnumSource
+  @EnumSource(names = "CLOUD", mode = EnumSource.Mode.EXCLUDE)
   @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
   void testTallyReportDataCategoriesUsingHardwareMeasurements(ReportCategory category) {
     TallySnapshot snapshot = new TallySnapshot();
@@ -267,38 +263,7 @@ class TallyResourceTest {
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-10-01T00:00Z"),
             OffsetDateTime.parse("2021-10-30T00:00Z"),
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            false,
-            null);
-    assertEquals(
-        4.0, response.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum());
-  }
-
-  @EnumSource
-  @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
-  void testTallyReportDataCategoriesUsingTallyMeasurements(ReportCategory category) {
-    TallySnapshot snapshot = new TallySnapshot();
-    snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
-    for (HardwareMeasurementType hardwareMeasurementType : HardwareMeasurementType.values()) {
-      snapshot.setMeasurement(hardwareMeasurementType, MetricIdUtils.getCores(), 4.0);
-    }
-    when(repository.findSnapshot(
-            any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
-        .thenReturn(new PageImpl<>(List.of(snapshot)));
-    TallyReportData response =
-        resource.getTallyReportData(
-            RHEL_FOR_X86,
-            METRIC_ID_CORES,
-            GranularityType.DAILY,
-            OffsetDateTime.parse("2021-10-01T00:00Z"),
-            OffsetDateTime.parse("2021-10-30T00:00Z"),
-            null,
+            category,
             null,
             null,
             null,
@@ -514,7 +479,7 @@ class TallyResourceTest {
   @Test
   void testRunningTotalFormatUsedForNewerTallyAPI() {
     List<TallySnapshot> snapshots =
-        List.of(1, 2, 8).stream()
+        Stream.of(1, 2, 8)
             .map(
                 i -> {
                   var snapshot = new TallySnapshot();
@@ -573,7 +538,7 @@ class TallyResourceTest {
   @Test
   void testMonthlyTotalsRoundedUpToNearestInteger() {
     List<TallySnapshot> snapshots =
-        List.of(1, 2).stream()
+        Stream.of(1, 2)
             .map(
                 i -> {
                   var snapshot = new TallySnapshot();
@@ -794,9 +759,6 @@ class TallyResourceTest {
             snap3Date, 200,
             snap4Date, 500,
             snap5Date, 500));
-
-    TallyReportDataPoint expectedTotalMonthly =
-        new TallyReportDataPoint().date(snap5Date).value(500).hasData(true);
 
     TallyReportData report =
         resource.getTallyReportData(
