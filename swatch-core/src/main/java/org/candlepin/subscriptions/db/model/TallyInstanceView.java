@@ -81,5 +81,8 @@ public abstract class TallyInstanceView implements Serializable {
   @Column(name = "inventory_id")
   private String inventoryId;
 
+  @Column(name = "hypervisor_uuid")
+  private String hypervisorUuid;
+
   public abstract double getMetricValue(MetricId metricId);
 }
