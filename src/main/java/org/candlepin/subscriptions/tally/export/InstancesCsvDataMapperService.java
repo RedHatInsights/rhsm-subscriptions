@@ -74,7 +74,7 @@ public class InstancesCsvDataMapperService implements DataMapperService<TallyIns
       instance.setCategory(category.toString());
     }
     instance.setLastSeen(item.getLastSeen());
-    // instance.setHypervisorUuid(item.getHypervisorUuid());
+    instance.setHypervisorUuid(item.getHypervisorUuid());
     return List.of(instance);
   }
 
