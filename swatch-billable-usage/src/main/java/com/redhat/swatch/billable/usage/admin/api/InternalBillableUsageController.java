@@ -104,7 +104,7 @@ public class InternalBillableUsageController {
             : null;
     return new BillableUsage()
         .withOrgId(remittance.getOrgId())
-        .withId(remittance.getTallyId())
+        .withTallyId(remittance.getTallyId())
         .withUuid(remittance.getUuid())
         .withSnapshotDate(remittance.getRemittancePendingDate())
         .withProductId(remittance.getProductId())

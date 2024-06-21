@@ -102,7 +102,7 @@ public class BillableUsageMapper {
       TallyMeasurement measurement, TallySummary summary, TallySnapshot snapshot) {
     return new BillableUsage()
         .withOrgId(summary.getOrgId())
-        .withId(snapshot.getId())
+        .withTallyId(snapshot.getId())
         .withSnapshotDate(snapshot.getSnapshotDate())
         .withProductId(snapshot.getProductId())
         .withSla(BillableUsage.Sla.fromValue(snapshot.getSla().value()))

@@ -140,7 +140,7 @@ class BillableUsageServiceTest {
         remittance(usage, usage.getSnapshotDate(), 1.0);
     BillableUsage expectedUsage =
         billable(usage.getSnapshotDate(), 1.0, usage.getCurrentTotal()).withUuid(usage.getUuid());
-    expectedUsage.setId(usage.getId()); // Id will be regenerated above.
+    expectedUsage.setTallyId(usage.getTallyId()); // Id will be regenerated above.
     verify(remittanceRepo).persistAndFlush(expectedRemittance);
     verify(producer).produce(expectedUsage);
   }
@@ -159,7 +159,7 @@ class BillableUsageServiceTest {
     BillableUsageRemittanceEntity expectedRemittance =
         remittance(usage, usage.getSnapshotDate(), 2.0);
     BillableUsage expectedUsage = billable(usage.getSnapshotDate(), 2.0, usage.getCurrentTotal());
-    expectedUsage.setId(usage.getId()); // Id will be regenerated above.
+    expectedUsage.setTallyId(usage.getTallyId()); // Id will be regenerated above.
     verify(remittanceRepo).persistAndFlush(expectedRemittance);
     verify(producer).produce(expectedUsage);
   }
@@ -183,7 +183,7 @@ class BillableUsageServiceTest {
     BillableUsageRemittanceEntity expectedRemittance =
         remittance(usage, usage.getSnapshotDate(), 72.0);
     BillableUsage expectedUsage = billable(usage.getSnapshotDate(), 18.0, usage.getCurrentTotal());
-    expectedUsage.setId(usage.getId()); // Id will be regenerated above.
+    expectedUsage.setTallyId(usage.getTallyId()); // Id will be regenerated above.
     expectedUsage.setProductId("osd");
     expectedUsage.setMetricId(MetricIdUtils.getCores().getValue());
     expectedUsage.setBillingFactor(0.25);
@@ -203,7 +203,7 @@ class BillableUsageServiceTest {
 
     BillableUsage expectedUsage =
         billable(usage.getSnapshotDate(), 0.0, usage.getCurrentTotal()); // Nothing billed
-    expectedUsage.setId(usage.getId()); // Id will be regenerated above.
+    expectedUsage.setTallyId(usage.getTallyId()); // Id will be regenerated above.
     verify(producer).produce(expectedUsage);
   }
 
@@ -225,7 +225,7 @@ class BillableUsageServiceTest {
         remittance(usage, usage.getSnapshotDate(), 12.0);
     BillableUsage expectedUsage =
         billable(usage.getSnapshotDate(), usage.getValue(), usage.getCurrentTotal());
-    expectedUsage.setId(usage.getId()); // Id will be regenerated above.
+    expectedUsage.setTallyId(usage.getTallyId()); // Id will be regenerated above.
     expectedUsage.setProductId("osd");
     expectedUsage.setMetricId(usage.getMetricId());
     expectedUsage.setBillingFactor(0.25);
@@ -252,7 +252,7 @@ class BillableUsageServiceTest {
         remittance(usage, usage.getSnapshotDate(), 28.00);
     BillableUsage expectedUsage =
         billable(usage.getSnapshotDate(), usage.getValue(), usage.getCurrentTotal());
-    expectedUsage.setId(usage.getId()); // Id will be regenerated above.
+    expectedUsage.setTallyId(usage.getTallyId()); // Id will be regenerated above.
     expectedUsage.setProductId("osd");
     expectedUsage.setMetricId(usage.getMetricId());
     expectedUsage.setBillingFactor(0.25);
@@ -534,7 +534,7 @@ class BillableUsageServiceTest {
   private BillableUsage billable(OffsetDateTime date, Double value, Double currentTotal) {
     return new BillableUsage()
         .withUsage(BillableUsage.Usage.PRODUCTION)
-        .withId(UUID.randomUUID())
+        .withTallyId(UUID.randomUUID())
         .withBillingAccountId("aws-account1")
         .withBillingFactor(1.0)
         .withBillingProvider(BillableUsage.BillingProvider.AWS)
@@ -561,7 +561,7 @@ class BillableUsageServiceTest {
         .accumulationPeriod(AccumulationPeriodFormatter.toMonthId(usage.getSnapshotDate()))
         .remittancePendingDate(remittedDate)
         .remittedPendingValue(value)
-        .tallyId(usage.getId())
+        .tallyId(usage.getTallyId())
         .hardwareMeasurementType(usage.getHardwareMeasurementType())
         .status(RemittanceStatus.PENDING)
         .build();
@@ -626,7 +626,7 @@ class BillableUsageServiceTest {
 
     BillableUsage expectedUsage =
         billable(usage.getSnapshotDate(), expectedBilledValue, usage.getCurrentTotal());
-    expectedUsage.setId(usage.getId());
+    expectedUsage.setTallyId(usage.getTallyId());
     expectedUsage.setBillingFactor(billingFactor);
     ArgumentCaptor<BillableUsage> usageCaptor = ArgumentCaptor.forClass(BillableUsage.class);
     verify(producer).produce(usageCaptor.capture());
