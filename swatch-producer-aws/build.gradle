@@ -48,6 +48,7 @@ openApiGenerate {
     modelPackage = "com.redhat.swatch.aws.openapi.model"
     invokerPackage = "com.redhat.swatch.aws.openapi"
     groupId = "com.redhat.swatch.aws"
+    ignoreFileOverride = "${projectDir}/.openapi-generator-ignore"
     configOptions = [
             sourceFolder         : "src/gen/java",
             interfaceOnly        : "true",
