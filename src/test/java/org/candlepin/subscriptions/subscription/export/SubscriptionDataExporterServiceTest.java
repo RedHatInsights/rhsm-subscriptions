@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.subscription.export;
 
+import static org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository.orgIdEquals;
 import static org.candlepin.subscriptions.export.ExportSubscriptionListener.MISSING_PERMISSIONS;
 import static org.candlepin.subscriptions.subscription.export.SubscriptionDataExporterService.PRODUCT_ID;
 
@@ -168,11 +169,21 @@ class SubscriptionDataExporterServiceTest extends BaseDataExporterServiceTest {
     verifyRequestWasSentToExportServiceWithError(request);
   }
 
+  @Test
+  void testRequestShouldFilterByOrgId() {
+    givenSubscriptionWithMeasurementForAnotherOrgId(RHEL_FOR_X86);
+    givenSubscriptionWithMeasurement(RHEL_FOR_X86);
+    givenExportRequestWithPermissions(Format.JSON);
+    whenReceiveExportRequest();
+    verifyRequestWasSentToExportService();
+  }
+
   @Override
   protected void verifyRequestWasSentToExportService() {
     boolean isCsvFormat = request.getData().getResourceRequest().getFormat() == Format.CSV;
     List<Object> data = new ArrayList<>();
-    for (SubscriptionCapacityView subscription : subscriptionCapacityViewRepository.findAll()) {
+    for (SubscriptionCapacityView subscription :
+        subscriptionCapacityViewRepository.findAll(orgIdEquals(ORG_ID))) {
       if (isCsvFormat) {
         data.addAll(csvDataMapperService.mapDataItem(subscription, null));
       } else {
@@ -197,14 +208,22 @@ class SubscriptionDataExporterServiceTest extends BaseDataExporterServiceTest {
     verifyRequestWasSentToExportServiceWithUploadData(request, toJson(data));
   }
 
+  private void givenSubscriptionWithMeasurementForAnotherOrgId(String productId) {
+    givenSubscriptionWithMeasurement(UUID.randomUUID().toString(), productId);
+  }
+
   private void givenSubscriptionWithMeasurement(String productId) {
+    givenSubscriptionWithMeasurement(ORG_ID, productId);
+  }
+
+  private void givenSubscriptionWithMeasurement(String orgId, String productId) {
     Subscription subscription = new Subscription();
     subscription.setSubscriptionId(UUID.randomUUID().toString());
     subscription.setSubscriptionNumber(UUID.randomUUID().toString());
     subscription.setStartDate(OffsetDateTime.parse("2024-04-23T11:48:15.888129Z"));
     subscription.setEndDate(OffsetDateTime.parse("2028-05-23T11:48:15.888129Z"));
     subscription.setOffering(offering);
-    subscription.setOrgId(ORG_ID);
+    subscription.setOrgId(orgId);
     subscription.setBillingProvider(BillingProvider.AWS);
     offering.getProductTags().clear();
     offering.getProductTags().add(productId);

@@ -21,15 +21,26 @@
 package com.redhat.swatch.configuration.registry;
 
 import java.util.Collection;
-import lombok.AccessLevel;
+import java.util.Optional;
 import lombok.Data;
-import lombok.RequiredArgsConstructor;
 
 @Data
-// constructor is private so that the factory method is the only way to get a MetricId
-@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class ProductId {
   private final String value;
+  private final boolean isPayg;
+  private final boolean isPrometheusEnabled;
+
+  private ProductId(Variant variant) {
+    this.value = variant.getTag();
+    this.isPayg =
+        Optional.ofNullable(variant.getSubscription())
+            .map(SubscriptionDefinition::isPaygEligible)
+            .orElse(false);
+    this.isPrometheusEnabled =
+        Optional.ofNullable(variant.getSubscription())
+            .map(SubscriptionDefinition::isPrometheusEnabled)
+            .orElse(false);
+  }
 
   /**
    * Creates a ProductId from a String.
@@ -43,8 +54,7 @@ public class ProductId {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .map(SubscriptionDefinition::getVariants)
         .flatMap(Collection::stream)
-        .map(Variant::getTag)
-        .filter(productId -> productId.equalsIgnoreCase(value))
+        .filter(variant -> variant.getTag().equalsIgnoreCase(value))
         .findFirst()
         .map(ProductId::new)
         .orElseThrow(
