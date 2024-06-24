@@ -45,6 +45,7 @@ public class BillableUsageRemittanceFilter {
   private String metricId;
   private String billingProvider;
   private String billingAccountId;
+  private String hardwareMeasurementType;
   private OffsetDateTime beginning;
   private OffsetDateTime ending;
   private String accumulationPeriod;
@@ -59,6 +60,7 @@ public class BillableUsageRemittanceFilter {
         .productId(usage.getProductId())
         .sla(usage.getSla().value())
         .usage(usage.getUsage().value())
+        .hardwareMeasurementType(usage.getHardwareMeasurementType())
         .build();
   }
 }

@@ -25,7 +25,6 @@ import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionMeasurementEntity;
-import com.redhat.swatch.contract.repository.SubscriptionProductIdEntity;
 import org.mapstruct.Builder;
 import org.mapstruct.CollectionMappingStrategy;
 import org.mapstruct.Mapper;
@@ -41,10 +40,6 @@ public interface SubscriptionEntityMapper {
 
   @Mapping(target = "subscriptionId", ignore = true)
   @Mapping(target = "quantity", constant = "1L")
-  @Mapping(
-      target = "subscriptionProductIds",
-      source = "offering.productTags",
-      qualifiedByName = "buildSubscriptionProductId")
   @Mapping(target = "subscriptionMeasurements", source = "metrics")
   @Mapping(
       target = "billingProvider",
@@ -64,12 +59,5 @@ public interface SubscriptionEntityMapper {
   @Named("extractBillingProvider")
   default BillingProvider extractBillingProvider(String value) {
     return BillingProvider.fromString(value);
-  }
-
-  @Named("buildSubscriptionProductId")
-  default SubscriptionProductIdEntity buildSubscriptionProductId(String productTag) {
-    var entity = new SubscriptionProductIdEntity();
-    entity.setProductId(productTag);
-    return entity;
   }
 }

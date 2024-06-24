@@ -47,7 +47,6 @@ public class PopulateSubscriptionMeasurements extends LiquibaseCustomTask {
 
   @Override
   public void executeTask(Database database) throws DatabaseException, SQLException {
-
     int total = 0;
 
     ResultSet socketsSet =

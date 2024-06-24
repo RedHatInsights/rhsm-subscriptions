@@ -29,7 +29,6 @@ import com.redhat.cloud.event.apps.exportservice.v1.Format;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.time.Duration;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.model.BillingProvider;
@@ -97,7 +96,9 @@ class PerformanceSubscriptionDataExporterServiceIT extends BaseDataExporterServi
     subscription.setOffering(offering);
     subscription.setOrgId(ORG_ID);
     subscription.setBillingProvider(BillingProvider.AWS);
-    subscription.setSubscriptionProductIds(Set.of("RHEL for x86"));
+    offering.getProductTags().clear();
+    offering.getProductTags().add(RHEL_FOR_X86);
+    updateOffering();
     subscription.setBillingAccountId("123");
     subscription.setSubscriptionMeasurements(
         Map.of(

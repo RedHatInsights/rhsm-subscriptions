@@ -22,12 +22,10 @@ package org.candlepin.subscriptions.tally.export;
 
 import static org.candlepin.subscriptions.db.TallyInstanceViewRepository.buildSearchSpecification;
 import static org.candlepin.subscriptions.resource.InstancesResource.getHardwareMeasurementTypesFromCategory;
-import static org.candlepin.subscriptions.resource.InstancesResource.isPayg;
 import static org.candlepin.subscriptions.resource.ResourceUtils.ANY;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
-import com.redhat.swatch.configuration.registry.Variant;
 import jakarta.ws.rs.core.Response;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -106,7 +104,7 @@ public class InstancesDataExporterService implements DataExporterService<TallyIn
   public Stream<TallyInstanceView> fetchData(ExportServiceRequest request) {
     log.debug("Fetching data for {}", request.getOrgId());
     var reportCriteria = extractExportFilter(request);
-    boolean isPayg = isPayg(Variant.findByTag(reportCriteria.getProductId()));
+    boolean isPayg = ProductId.fromString(reportCriteria.getProductId()).isPayg();
     var repository = isPayg ? paygViewRepository : nonPaygViewRepository;
     return repository
         .findBy(buildSearchSpecification(reportCriteria), FluentQuery.FetchableFluentQuery::stream)
@@ -157,7 +155,7 @@ public class InstancesDataExporterService implements DataExporterService<TallyIn
     }
 
     // special handling of the month for non payg products
-    if (!isPayg(Variant.findByTag(report.build().getProductId()))) {
+    if (!ProductId.fromString(report.build().getProductId()).isPayg()) {
       report.month(null);
     }
 

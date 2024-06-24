@@ -34,4 +34,4 @@ metrics:
       queryParams:
         productLabelRegex: .*(^|,)(204)($|,).* # this regex is used to fetch metrics for the product label that contains the product/engineering ID 204. the number here needs to map to a tag defined in the variant section of this file
         metric: system_cpu_logical_count
-        instanceKey: _id
+        instanceKey: billing_marketplace_instance_id

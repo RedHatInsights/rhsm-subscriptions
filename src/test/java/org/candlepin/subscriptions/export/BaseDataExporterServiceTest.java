@@ -110,11 +110,7 @@ public abstract class BaseDataExporterServiceTest
     offering.setServiceLevel(ServiceLevel.PREMIUM);
     offeringRepository.save(offering);
 
-    accountServiceInventory = new AccountServiceInventory();
-    accountServiceInventory.setId(new AccountServiceInventoryId());
-    accountServiceInventory.getId().setServiceType(INSTANCE_TYPE);
-    accountServiceInventory.getId().setOrgId(ORG_ID);
-    accountServiceInventoryRepository.save(accountServiceInventory);
+    accountServiceInventory = givenHostInAccountServices(ORG_ID);
   }
 
   protected abstract String resourceType();
@@ -168,6 +164,15 @@ public abstract class BaseDataExporterServiceTest
     } catch (RbacApiException e) {
       Assertions.fail("Failed to call the get permissions method", e);
     }
+  }
+
+  protected AccountServiceInventory givenHostInAccountServices(String orgId) {
+    AccountServiceInventory inventory = new AccountServiceInventory();
+    inventory.setId(new AccountServiceInventoryId());
+    inventory.getId().setServiceType(INSTANCE_TYPE);
+    inventory.getId().setOrgId(orgId);
+    accountServiceInventoryRepository.save(inventory);
+    return inventory;
   }
 
   protected void whenReceiveExportRequest() {

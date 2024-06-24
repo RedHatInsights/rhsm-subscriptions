@@ -20,12 +20,14 @@
  */
 package org.candlepin.subscriptions.subscription.export;
 
-import static org.candlepin.subscriptions.subscription.export.SubscriptionDataExporterService.PHYSICAL;
+import static org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository.PHYSICAL;
 import static org.candlepin.subscriptions.subscription.export.SubscriptionDataExporterService.groupMetrics;
 
 import java.util.List;
 import java.util.Optional;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.export.DataMapperService;
 import org.candlepin.subscriptions.export.ExportServiceRequest;
 import org.candlepin.subscriptions.json.SubscriptionsExportCsvItem;
@@ -59,8 +61,12 @@ public class SubscriptionCsvDataMapperService
 
               // map offering
               item.setSku(dataItem.getSku());
-              Optional.ofNullable(dataItem.getUsage()).ifPresent(item::setUsage);
-              Optional.ofNullable(dataItem.getServiceLevel()).ifPresent(item::setServiceLevel);
+              Optional.ofNullable(dataItem.getUsage())
+                  .map(Usage::getValue)
+                  .ifPresent(item::setUsage);
+              Optional.ofNullable(dataItem.getServiceLevel())
+                  .map(ServiceLevel::getValue)
+                  .ifPresent(item::setServiceLevel);
               item.setProductName(dataItem.getProductName());
               return (Object) item;
             })

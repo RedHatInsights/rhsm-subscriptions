@@ -99,6 +99,9 @@ public class EventConflictResolver {
           // Include the incoming event since this event will be the new value.
           resolvedEvents.add(new EventRecord(event));
         });
+
+    log.info("Resolved {} events", resolvedEvents.size());
+
     return resolvedEvents;
   }
 

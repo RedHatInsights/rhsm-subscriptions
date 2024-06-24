@@ -187,7 +187,7 @@ public class CapacityResource implements CapacityApi {
   @SuppressWarnings("java:S107")
   protected List<CapacitySnapshotByMetricId> getCapacitiesByMetricId(
       String orgId,
-      ProductId productId,
+      ProductId product,
       MetricId metricId,
       HypervisorReportCategory hypervisorReportCategory,
       ServiceLevel sla,
@@ -200,12 +200,12 @@ public class CapacityResource implements CapacityApi {
      * supported by the product.  The reports created would be technically accurate, but would convey the
      * false impression that we have capacity information at that fine of a granularity.  This decision is
      * on of personal judgment and it may be appropriate to reverse it at a later date. */
-    validateGranularity(productId, granularity);
+    validateGranularity(product, granularity);
 
     var dbReportCriteria =
         DbReportCriteria.builder()
             .orgId(orgId)
-            .productId(productId.toString())
+            .productTag(product.toString())
             .serviceLevel(sla)
             .usage(usage)
             .beginning(reportBegin)
