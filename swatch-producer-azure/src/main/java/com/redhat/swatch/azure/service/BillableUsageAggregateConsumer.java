@@ -115,16 +115,18 @@ public class BillableUsageAggregateConsumer {
       context = lookupAzureUsageContext(billableUsageAggregate);
     } catch (SubscriptionRecentlyTerminatedException e) {
       log.info(
-          "Subscription recently terminated for billableUsageAggregateId={} orgId={}",
+          "Subscription recently terminated for billableUsageAggregateId={} orgId={} remittanceUUIDs={}",
           billableUsageAggregate.getAggregateId(),
-          billableUsageAggregate.getAggregateKey().getOrgId());
+          billableUsageAggregate.getAggregateKey().getOrgId(),
+          billableUsageAggregate.getRemittanceUuids());
       return;
     } catch (SubscriptionCanNotBeDeterminedException e) {
       if (!isUsageDateValid(billableUsageAggregate)) {
         log.warn(
-            "Skipping billable usage with id={} orgId={} because the subscription was not found and the snapshot '{}' is past the azure time window of '{}'",
+            "Skipping billable usage with id={} orgId={} remittanceUUIDs={} because the subscription was not found and the snapshot '{}' is past the azure time window of '{}'",
             billableUsageAggregate.getAggregateId(),
             billableUsageAggregate.getAggregateKey().getOrgId(),
+            billableUsageAggregate.getRemittanceUuids(),
             billableUsageAggregate.getWindowTimestamp(),
             azureUsageWindow);
       } else {
@@ -148,9 +150,10 @@ public class BillableUsageAggregateConsumer {
       return;
     } catch (AzureUsageContextLookupException e) {
       log.error(
-          "Error looking up usage context for aggregateId={} orgId={}",
+          "Error looking up usage context for aggregateId={} orgId={} remittanceUUIDs={}",
           billableUsageAggregate.getAggregateId(),
           billableUsageAggregate.getAggregateKey().getOrgId(),
+          billableUsageAggregate.getRemittanceUuids(),
           e);
       return;
     }
@@ -158,10 +161,11 @@ public class BillableUsageAggregateConsumer {
       transformAndSend(context, billableUsageAggregate, metric.get());
     } catch (Exception e) {
       log.error(
-          "Error sending usage for aggregateId={} azureResourceId={} orgId={}",
+          "Error sending azure usage for aggregateId={} azureResourceId={} orgId={} remittanceUUIDs={}",
           billableUsageAggregate.getAggregateId(),
           context.getAzureResourceId(),
           billableUsageAggregate.getAggregateKey().getOrgId(),
+          billableUsageAggregate.getRemittanceUuids(),
           e);
     }
   }
@@ -180,16 +184,18 @@ public class BillableUsageAggregateConsumer {
     var usageEvent = transformToAzureUsage(context, billableUsageAggregate, metric);
     if (isDryRun.isPresent() && Boolean.TRUE.equals(isDryRun.get())) {
       log.info(
-          "[DRY RUN] Sending usage request to Azure: {}, organization={}, product_id={}",
+          "[DRY RUN] Sending usage request to Azure: {}, organization={}, remittanceUUIDs={}, product_id={}",
           usageEvent,
           billableUsageAggregate.getAggregateKey().getOrgId(),
+          billableUsageAggregate.getRemittanceUuids(),
           billableUsageAggregate.getAggregateKey().getProductId());
       return;
     } else {
       log.info(
-          "Sending usage request to Azure: {}, organization={}, product_id={}",
+          "Sending usage request to Azure: {}, organization={}, remittanceUUIDs={}, product_id={}",
           usageEvent,
           billableUsageAggregate.getAggregateKey().getOrgId(),
+          billableUsageAggregate.getRemittanceUuids(),
           billableUsageAggregate.getAggregateKey().getProductId());
     }
 
@@ -198,10 +204,16 @@ public class BillableUsageAggregateConsumer {
       log.debug("{}", response);
       if (response.getStatus() != UsageEventStatusEnum.ACCEPTED) {
         log.warn(
-            "{}, organization={}", response, billableUsageAggregate.getAggregateKey().getOrgId());
+            "{}, organization={}, remittanceUUIDs={}",
+            response,
+            billableUsageAggregate.getAggregateKey().getOrgId(),
+            billableUsageAggregate.getRemittanceUuids());
       } else {
         log.info(
-            "{}, organization={},", response, billableUsageAggregate.getAggregateKey().getOrgId());
+            "{}, organization={}, remittanceUUIDs={},",
+            response,
+            billableUsageAggregate.getAggregateKey().getOrgId(),
+            billableUsageAggregate.getRemittanceUuids());
         acceptedCounter.increment();
       }
     } catch (AzureMarketplaceRequestFailedException e) {
