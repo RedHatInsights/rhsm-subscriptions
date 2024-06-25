@@ -52,6 +52,7 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
 
   public static final String ADMIN_ROLE = ":*:*";
   public static final String SWATCH_APP = "subscriptions";
+  public static final String MISSING_PERMISSIONS = "Insufficient permission";
   private static final String REPORT_READER = ":reports:read";
 
   private final ExportApi exportApi;
@@ -95,35 +96,46 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
             "Cloud event doesn't have any Export data: " + request.getId());
       }
       if (request.isRequestForApplication(SWATCH_APP)) {
-        exporterServices.stream()
-            .filter(s -> s.handles(request))
-            .findFirst()
-            .ifPresent(
-                exporterService -> {
-                  log.info(
-                      "Processing event: '{}' from application: '{}'",
-                      request.getId(),
-                      request.getSource());
-                  checkRbac(request);
-                  uploadData(exporterService, request);
+        for (var service : exporterServices) {
+          if (service.handles(request)) {
+            log.info(
+                "Processing event: '{}' from application: '{}'",
+                request.getId(),
+                request.getSource());
+            if (checkRbac(request)) {
+              uploadData(service, request);
+            } else {
+              sendMissingPermissionsError(request);
+            }
 
-                  log.info(
-                      "Event processed: '{}' from application: '{}'",
-                      request.getId(),
-                      request.getSource());
-                });
+            break;
+          }
+        }
       }
     } catch (ExportServiceException e) {
       log.error(
           "Error thrown for event: '{}' sending ErrorRequest: '{}'",
           request.getId(),
           e.getMessage());
-      exportApi.downloadExportError(
-          request.getExportRequestUUID(),
-          request.getApplication(),
-          request.getRequest().getUUID(),
-          new DownloadExportErrorRequest().error(e.getStatus()).message(e.getMessage()));
+      sendExportError(request, e.getStatus(), e.getMessage());
     }
+  }
+
+  private void sendMissingPermissionsError(ExportServiceRequest request) throws ApiException {
+    log.warn(
+        "Rejecting request because missing permissions for event: '{}' from application: '{}'",
+        request.getId(),
+        request.getSource());
+    sendExportError(request, Status.FORBIDDEN.getStatusCode(), MISSING_PERMISSIONS);
+  }
+
+  private void sendExportError(ExportServiceRequest request, Integer error, String message)
+      throws ApiException {
+    exportApi.downloadExportError(
+        request.getExportRequestUUID(),
+        request.getApplication(),
+        request.getRequest().getUUID(),
+        new DownloadExportErrorRequest().error(error).message(message));
   }
 
   private void uploadData(DataExporterService<?> exporterService, ExportServiceRequest request) {
@@ -131,6 +143,7 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
     File file = createTemporalFile(request);
     getFileWriter(request).write(file, exporterService.getMapper(request), data, request);
     upload(file, request);
+    log.info("Event processed: '{}' from application: '{}'", request.getId(), request.getSource());
   }
 
   private ExportFileWriter getFileWriter(ExportServiceRequest request) {
@@ -159,7 +172,7 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
     }
   }
 
-  private void checkRbac(ExportServiceRequest request) {
+  private boolean checkRbac(ExportServiceRequest request) {
     // role base access control, service check for correct permissions
     // two permissions for rbac check for "subscriptions:*:*" or subscriptions:reports:read
     log.debug("Verifying identity: {}", request.getXRhIdentity());
@@ -170,11 +183,7 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
       throw new ExportServiceException(Status.NOT_FOUND.getStatusCode(), e.getMessage());
     }
 
-    if (access.contains(SWATCH_APP + ADMIN_ROLE) || access.contains(SWATCH_APP + REPORT_READER)) {
-      // allow the app to fetch and upload data once permissions are verified
-      return;
-    }
-    throw new ExportServiceException(Status.FORBIDDEN.getStatusCode(), "Insufficient permission");
+    return access.contains(SWATCH_APP + ADMIN_ROLE) || access.contains(SWATCH_APP + REPORT_READER);
   }
 
   private static File createTemporalFile(ExportServiceRequest request) {

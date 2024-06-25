@@ -20,6 +20,14 @@
  */
 package com.redhat.swatch.billable.usage.kafka;
 
+import static com.redhat.swatch.billable.usage.configuration.Channels.BILLABLE_USAGE_AGGREGATION_OUT;
+import static com.redhat.swatch.billable.usage.configuration.Channels.BILLABLE_USAGE_DLT;
+import static com.redhat.swatch.billable.usage.configuration.Channels.BILLABLE_USAGE_OUT;
+import static com.redhat.swatch.billable.usage.configuration.Channels.BILLABLE_USAGE_STATUS;
+import static com.redhat.swatch.billable.usage.configuration.Channels.ENABLED_ORGS;
+import static com.redhat.swatch.billable.usage.configuration.Channels.REMITTANCES_PURGE_TASK;
+import static com.redhat.swatch.billable.usage.configuration.Channels.TALLY_SUMMARY;
+
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import java.util.HashMap;
@@ -30,9 +38,13 @@ public class InMemoryMessageBrokerKafkaResource implements QuarkusTestResourceLi
   @Override
   public Map<String, String> start() {
     Map<String, String> env = new HashMap<>();
-    env.putAll(
-        InMemoryConnector.switchOutgoingChannelsToInMemory(
-            "billable-usage-aggregation-repartition-out"));
+    env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory(ENABLED_ORGS));
+    env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory(REMITTANCES_PURGE_TASK));
+    env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory(TALLY_SUMMARY));
+    env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory(BILLABLE_USAGE_DLT));
+    env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory(BILLABLE_USAGE_AGGREGATION_OUT));
+    env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory(BILLABLE_USAGE_OUT));
+    env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory(BILLABLE_USAGE_STATUS));
     return env;
   }
 

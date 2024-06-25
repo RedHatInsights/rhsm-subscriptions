@@ -59,16 +59,14 @@ public class OfferingProductTagLookupService {
   }
 
   private static void processProductTagsBySku(Offering offering, OfferingProductTags productTags) {
-    if (offering.isMetered()) {
-      // lookup product tags by either role or eng IDs
-      SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
-              offering.getRole(), offering.getProductIds(), offering.getProductName())
-          .forEach(productTags::addDataItem);
-    } else {
-      SubscriptionDefinition.getAllProductTagsWithNonPaygEligibleByRoleOrEngIds(
-              offering.getRole(), offering.getProductIds(), offering.getProductName())
-          .forEach(productTags::addDataItem);
-    }
+    // lookup product tags by either role or eng IDs
+    SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
+            offering.getRole(),
+            offering.getProductIds(),
+            offering.getProductName(),
+            offering.isMetered(),
+            offering.isMigrationOffering())
+        .forEach(productTags::addDataItem);
   }
 
   public OfferingProductTags findPersistedProductTagsBySku(String sku) {

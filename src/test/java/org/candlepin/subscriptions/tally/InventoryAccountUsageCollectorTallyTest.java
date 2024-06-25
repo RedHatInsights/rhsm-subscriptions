@@ -78,6 +78,7 @@ import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollectorFactory;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
+import org.candlepin.subscriptions.tally.facts.ProductNormalizer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -112,6 +113,7 @@ class InventoryAccountUsageCollectorTallyTest {
   @InjectMocks private InventoryAccountUsageCollector collector;
   @InjectMocks private InventoryDatabaseOperations inventory;
   @InjectMocks private FactNormalizer factNormalizer;
+  @Spy private ProductNormalizer productNormalizer;
 
   @Test
   void hypervisorCountsIgnoredForNonRhelProduct() {
@@ -886,7 +888,7 @@ class InventoryAccountUsageCollectorTallyTest {
         orgId,
         props.getCullingOffsetDays(),
         hostFacts -> {
-          NormalizedFacts facts = factNormalizer.normalize(hostFacts, orgHostsData);
+          NormalizedFacts facts = factNormalizer.normalize(hostFacts, orgHostsData, false);
           Host existingHost = inventoryHostMap.remove(hostFacts.getInventoryId().toString());
           Host host;
 

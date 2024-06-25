@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.event;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.registry.Variant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -45,8 +46,8 @@ import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.db.model.config.OptInType;
+import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.json.Event;
-import org.candlepin.subscriptions.json.Event.BillingProvider;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.util.TransactionHandler;
@@ -222,7 +223,8 @@ public class EventController {
     LinkedHashMap<String, Integer> eventIndexMap = mapEventsToBatchIndex(eventJsonList);
     for (Entry<String, Integer> eventIndex : eventIndexMap.entrySet()) {
       try {
-        Event eventToProcess = objectMapper.readValue(eventIndex.getKey(), Event.class);
+        Event eventToProcess =
+            normalizeEvent(objectMapper.readValue(eventIndex.getKey(), Event.class));
         if (!EXCLUDE_LOG_FOR_EVENT_SOURCES.contains(eventToProcess.getEventSource())) {
           log.info("Event processing in batch: " + eventIndex.getKey());
         }
@@ -244,9 +246,7 @@ public class EventController {
 
   private Optional<Event> processEvent(Event eventToProcess) {
     if (!validateServiceInstanceEvent(eventToProcess)) {
-      log.warn(
-          "An invalid service instance event was encountered and will be skipped. {}",
-          eventToProcess);
+      log.warn(ErrorCode.INVALID_EVENT_CONSUMER_ERROR.toString(), eventToProcess);
       return Optional.empty();
     }
 
@@ -256,27 +256,30 @@ public class EventController {
       ensureOptIn(eventToProcess.getOrgId());
     }
 
-    if (BillingProvider.AZURE.equals(eventToProcess.getBillingProvider())) {
-      setAzureBillingAccountId(eventToProcess);
+    Optional<String> azureSubscriptionId = eventToProcess.getAzureSubscriptionId();
+    if (azureSubscriptionId != null && azureSubscriptionId.isPresent()) { // NOSONAR
+      eventToProcess.setBillingAccountId(eventToProcess.getAzureSubscriptionId());
     }
-    enrichServiceInstanceFromIncomingFeed(eventToProcess);
     return Optional.of(eventToProcess);
   }
 
-  private void setAzureBillingAccountId(Event event) {
-    if (event.getAzureTenantId().isPresent() && event.getAzureSubscriptionId().isPresent()) {
-      String billingAccountId =
-          String.format(
-              "%s;%s", event.getAzureTenantId().get(), event.getAzureSubscriptionId().get());
-      event.setBillingAccountId(Optional.of(billingAccountId));
-    }
+  public boolean validateServiceInstanceEvent(Event event) {
+    return isValidInstanceId(event) && isValidMeasurement(event) && isValidProductTag(event);
   }
 
-  public boolean validateServiceInstanceEvent(Event event) {
+  private boolean isValidInstanceId(Event event) {
+    boolean isValid = true;
+
     if (Objects.isNull(event.getInstanceId())) {
       log.warn("Event.instanceId must not be null. event={}", event);
-      return false;
+      isValid = false;
     }
+
+    return isValid;
+  }
+
+  private boolean isValidMeasurement(Event event) {
+    boolean isValid = true;
 
     List<Measurement> invalidMeasurements =
         Optional.ofNullable(event.getMeasurements()).orElse(Collections.emptyList()).stream()
@@ -285,19 +288,55 @@ public class EventController {
 
     if (!invalidMeasurements.isEmpty()) {
       log.warn("Event measurement value(s) must be >= 0. event={}", event);
-      return false;
+      isValid = false;
     }
-    return true;
+
+    return isValid;
   }
 
-  private void enrichServiceInstanceFromIncomingFeed(Event event) {
+  private boolean isValidProductTag(Event event) {
+    boolean isValid = true;
+
+    // If product tag is already present in the event then verify whether it is present in our
+    // config
+    if (Objects.nonNull(event.getProductTag()) && !event.getProductTag().isEmpty()) {
+      isValid =
+          event.getProductTag().stream().findFirst().map(Variant::isValidProductTag).orElse(false);
+      if (!isValid) {
+        log.warn("Product tag {} is invalid.", event.getProductTag().stream().findFirst());
+      }
+    } else {
+
+      Set<String> matchingProductTags = filterOnApplicableTags(event);
+
+      if (matchingProductTags.isEmpty()) {
+        log.warn("Event data doesn't match configured product tags in swatch. event={}", event);
+        isValid = false;
+      } else {
+        log.debug("matching payg product tags for event={}: {}", event, matchingProductTags);
+        event.setProductTag(matchingProductTags);
+        log.info("event.product_tags={}", event.getProductTag());
+      }
+    }
+
+    return isValid;
+  }
+
+  protected Set<String> filterOnApplicableTags(Event event) {
     // Determine whether the product is payg or non-payg, and then add the appropriate tag in
-    // SWATCH-1993. We are only checking for payg at this time because we only support payg in this
-    // flow, and we don't have a way to distinguish between payg and non-payg through events.
-    String role = Optional.ofNullable(event.getRole()).map(Object::toString).orElse(null);
-    event.setProductTag(
-        SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
-            role, event.getProductIds(), null));
+    // SWATCH-1993.  We are only checking for payg at this time because we only support payg in
+    // this flow, and we don't have a way to distinguish between payg and non-payg through events.
+    String role = event.getRole() != null ? event.getRole().toString() : null;
+    Set<String> matchingProductTags =
+        SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
+            role, event.getProductIds(), null, true, event.getConversion());
+
+    Set<String> applicableProducts = SubscriptionDefinition.getAllTags(true);
+
+    // Filter out tags in matchingProductTags that do not appear in applicableProducts.  This is
+    // what's going to prevent creating traditional snapshots during an hourly tally
+    matchingProductTags.retainAll(applicableProducts);
+    return matchingProductTags;
   }
 
   /**
@@ -320,6 +359,20 @@ public class EventController {
     } catch (Exception e) {
       log.error("Error while attempting to automatically opt-in for orgId={} ", orgId, e);
     }
+  }
+
+  public Event normalizeEvent(Event event) {
+    // normalize UOM to metric_id
+    event
+        .getMeasurements()
+        .forEach(
+            measurement -> {
+              if (measurement.getUom() != null) {
+                measurement.setMetricId(measurement.getUom());
+                measurement.setUom(null);
+              }
+            });
+    return event;
   }
 
   private static class ServiceInstancesResult {

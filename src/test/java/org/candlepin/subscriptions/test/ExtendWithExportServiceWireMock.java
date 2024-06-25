@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.test;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
@@ -65,16 +66,22 @@ public interface ExtendWithExportServiceWireMock {
 
   default void verifyRequestWasSentToExportServiceWithError(
       GenericConsoleCloudEvent<ResourceRequest> request) {
+    verifyRequestWasSentToExportServiceWithError(request, "");
+  }
+
+  default void verifyRequestWasSentToExportServiceWithError(
+      GenericConsoleCloudEvent<ResourceRequest> request, String message) {
     Awaitility.await()
         .untilAsserted(
             () ->
                 EXPORT_SERVICE_WIRE_MOCK_SERVER.verify(
                     postRequestedFor(
-                        urlEqualTo(
-                            String.format(
-                                "/app/export/v1/%s/subscriptions/%s/error",
-                                request.getData().getResourceRequest().getExportRequestUUID(),
-                                request.getData().getResourceRequest().getUUID())))));
+                            urlEqualTo(
+                                String.format(
+                                    "/app/export/v1/%s/subscriptions/%s/error",
+                                    request.getData().getResourceRequest().getExportRequestUUID(),
+                                    request.getData().getResourceRequest().getUUID())))
+                        .withRequestBody(containing(message))));
   }
 
   default void verifyNoRequestsWereSentToExportServiceWithUploadData(

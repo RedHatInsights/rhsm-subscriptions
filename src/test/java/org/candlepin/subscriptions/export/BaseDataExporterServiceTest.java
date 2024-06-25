@@ -55,6 +55,7 @@ import org.candlepin.subscriptions.rbac.RbacService;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.test.ExtendWithEmbeddedKafka;
 import org.candlepin.subscriptions.test.ExtendWithExportServiceWireMock;
+import org.candlepin.subscriptions.test.ExtendWithSwatchDatabase;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,7 +68,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 
 @SpringBootTest
 public abstract class BaseDataExporterServiceTest
-    implements ExtendWithExportServiceWireMock, ExtendWithEmbeddedKafka {
+    implements ExtendWithExportServiceWireMock, ExtendWithEmbeddedKafka, ExtendWithSwatchDatabase {
 
   protected static final String RHEL_FOR_X86 = "RHEL for x86";
   protected static final String ROSA = "rosa";
@@ -109,11 +110,7 @@ public abstract class BaseDataExporterServiceTest
     offering.setServiceLevel(ServiceLevel.PREMIUM);
     offeringRepository.save(offering);
 
-    accountServiceInventory = new AccountServiceInventory();
-    accountServiceInventory.setId(new AccountServiceInventoryId());
-    accountServiceInventory.getId().setServiceType(INSTANCE_TYPE);
-    accountServiceInventory.getId().setOrgId(ORG_ID);
-    accountServiceInventoryRepository.save(accountServiceInventory);
+    accountServiceInventory = givenHostInAccountServices(ORG_ID);
   }
 
   protected abstract String resourceType();
@@ -167,6 +164,15 @@ public abstract class BaseDataExporterServiceTest
     } catch (RbacApiException e) {
       Assertions.fail("Failed to call the get permissions method", e);
     }
+  }
+
+  protected AccountServiceInventory givenHostInAccountServices(String orgId) {
+    AccountServiceInventory inventory = new AccountServiceInventory();
+    inventory.setId(new AccountServiceInventoryId());
+    inventory.getId().setServiceType(INSTANCE_TYPE);
+    inventory.getId().setOrgId(orgId);
+    accountServiceInventoryRepository.save(inventory);
+    return inventory;
   }
 
   protected void whenReceiveExportRequest() {

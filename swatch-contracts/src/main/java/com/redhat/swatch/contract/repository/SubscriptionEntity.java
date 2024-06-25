@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.contract.repository;
 
+import com.redhat.swatch.panache.Specification;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -33,11 +34,8 @@ import jakarta.persistence.Table;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -93,15 +91,6 @@ public class SubscriptionEntity implements Serializable {
 
   @OneToMany(
       mappedBy = "subscription",
-      fetch = FetchType.EAGER,
-      cascade = CascadeType.ALL,
-      orphanRemoval = true)
-  @Builder.Default
-  @ToString.Exclude
-  private Set<SubscriptionProductIdEntity> subscriptionProductIds = new HashSet<>();
-
-  @OneToMany(
-      mappedBy = "subscription",
       fetch = FetchType.LAZY,
       cascade = CascadeType.ALL,
       orphanRemoval = true)
@@ -118,13 +107,6 @@ public class SubscriptionEntity implements Serializable {
       return false;
     }
 
-    var ourProductIds =
-        subscriptionProductIds.stream().map(SubscriptionProductIdEntity::getProductId).toList();
-    var otherProductIds =
-        sub.getSubscriptionProductIds().stream()
-            .map(SubscriptionProductIdEntity::getProductId)
-            .toList();
-
     return Objects.equals(subscriptionId, sub.getSubscriptionId())
         && Objects.equals(subscriptionNumber, sub.getSubscriptionNumber())
         && Objects.equals(orgId, sub.getOrgId())
@@ -134,13 +116,11 @@ public class SubscriptionEntity implements Serializable {
         && Objects.equals(billingProviderId, sub.getBillingProviderId())
         && Objects.equals(billingAccountId, sub.getBillingAccountId())
         && Objects.equals(billingProvider, sub.getBillingProvider())
-        && Objects.equals(ourProductIds, otherProductIds);
+        && Objects.equals(offering, sub.getOffering());
   }
 
   @Override
   public int hashCode() {
-    var ourProductIds =
-        subscriptionProductIds.stream().map(SubscriptionProductIdEntity::getProductId).toList();
     return Objects.hash(
         subscriptionId,
         subscriptionNumber,
@@ -151,7 +131,7 @@ public class SubscriptionEntity implements Serializable {
         billingProviderId,
         billingAccountId,
         billingProvider,
-        ourProductIds);
+        offering);
   }
 
   /** Composite ID class for SubscriptionEntity entities. */
@@ -189,31 +169,9 @@ public class SubscriptionEntity implements Serializable {
     }
   }
 
-  public void endSubscription() {
-    endDate = OffsetDateTime.now();
-  }
-
-  public boolean quantityHasChanged(long newQuantity) {
-    return this.getQuantity() != newQuantity;
-  }
-
-  // TODO: https://issues.redhat.com/browse/ENT-4030 //NOSONAR
-
-  public void addSubscriptionProductId(SubscriptionProductIdEntity spi) {
-    spi.setSubscription(this);
-    subscriptionProductIds.add(spi);
-  }
-
   public void addSubscriptionMeasurement(SubscriptionMeasurementEntity sm) {
     sm.setSubscription(this);
     subscriptionMeasurements.add(sm);
-  }
-
-  public void addSubscriptionMeasurements(Collection<SubscriptionMeasurementEntity> measurements) {
-    for (SubscriptionMeasurementEntity measurement : measurements) {
-      measurement.setSubscription(this);
-      subscriptionMeasurements.add(measurement);
-    }
   }
 
   public static Specification<SubscriptionEntity> forContract(ContractEntity contract) {

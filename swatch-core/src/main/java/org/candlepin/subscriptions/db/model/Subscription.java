@@ -20,15 +20,31 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.IdClass;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.NamedAttributeNode;
+import jakarta.persistence.NamedEntityGraph;
+import jakarta.persistence.NamedSubgraph;
+import jakarta.persistence.Table;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 /** Subscription entities represent data from a Candlepin Pool */
 @Entity
@@ -45,13 +61,16 @@ import lombok.*;
     name = "graph.SubscriptionSync",
     attributeNodes = {
       @NamedAttributeNode(value = "offering", subgraph = "subgraph.offering"),
-      @NamedAttributeNode("subscriptionMeasurements"),
-      @NamedAttributeNode("subscriptionProductIds")
+      @NamedAttributeNode("subscriptionMeasurements")
     },
     subgraphs = {
       @NamedSubgraph(
           name = "subgraph.offering",
-          attributeNodes = {@NamedAttributeNode("childSkus"), @NamedAttributeNode("productIds")})
+          attributeNodes = {
+            @NamedAttributeNode("childSkus"),
+            @NamedAttributeNode("productIds"),
+            @NamedAttributeNode("productTags")
+          })
     })
 public class Subscription implements Serializable {
 
@@ -88,18 +107,6 @@ public class Subscription implements Serializable {
   @Column(name = "billing_provider")
   private BillingProvider billingProvider;
 
-  @ElementCollection
-  @CollectionTable(
-      name = "subscription_product_ids",
-      joinColumns = {
-        @JoinColumn(name = "subscription_id", referencedColumnName = "subscription_id"),
-        @JoinColumn(name = "start_date", referencedColumnName = "start_date")
-      })
-  @Column(name = "product_id")
-  @Builder.Default
-  @ToString.Exclude
-  private Set<String> subscriptionProductIds = new HashSet<>();
-
   @Builder.Default
   @ElementCollection
   @CollectionTable(
@@ -130,7 +137,7 @@ public class Subscription implements Serializable {
         && Objects.equals(billingProviderId, sub.getBillingProviderId())
         && Objects.equals(billingAccountId, sub.getBillingAccountId())
         && Objects.equals(billingProvider, sub.getBillingProvider())
-        && Objects.equals(subscriptionProductIds, sub.getSubscriptionProductIds());
+        && Objects.equals(offering, sub.getOffering());
   }
 
   @Override
@@ -145,7 +152,7 @@ public class Subscription implements Serializable {
         billingProviderId,
         billingAccountId,
         billingProvider,
-        subscriptionProductIds);
+        offering);
   }
 
   /** Composite ID class for Subscription entities. */

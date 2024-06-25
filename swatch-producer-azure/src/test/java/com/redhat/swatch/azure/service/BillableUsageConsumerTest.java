@@ -35,6 +35,7 @@ import com.redhat.swatch.azure.exception.AzureUsageContextLookupException;
 import com.redhat.swatch.azure.exception.DefaultApiException;
 import com.redhat.swatch.azure.exception.SubscriptionCanNotBeDeterminedException;
 import com.redhat.swatch.azure.exception.SubscriptionRecentlyTerminatedException;
+import com.redhat.swatch.azure.openapi.model.BillableUsage;
 import com.redhat.swatch.azure.openapi.model.BillableUsage.BillingProviderEnum;
 import com.redhat.swatch.azure.openapi.model.BillableUsage.SlaEnum;
 import com.redhat.swatch.azure.test.resources.InMemoryMessageBrokerKafkaResource;
@@ -56,12 +57,14 @@ import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
@@ -84,18 +87,14 @@ class BillableUsageConsumerTest {
 
   private static final BillableUsageAggregate BASILISK_INSTANCE_HOURS_RECORD_OLD =
       createAggregate(
-          BASILISK, INSTANCE_HOURS, OffsetDateTime.now(Clock.systemUTC()).minusHours(73), 42);
+          BASILISK, INSTANCE_HOURS, OffsetDateTime.now(Clock.systemUTC()).minusDays(10), 42);
 
   private static final BillableUsageAggregate BASILISK_STORAGE_GIB_MONTHS_RECORD =
       createAggregate(
           BASILISK, STORAGE_GIB_MONTHS, OffsetDateTime.now(Clock.systemUTC()).minusHours(73), 42);
 
   public static final AzureUsageContext MOCK_AZURE_USAGE_CONTEXT =
-      new AzureUsageContext()
-          .azureResourceId("id")
-          .azureTenantId("tenant")
-          .offerId("product")
-          .planId("plan");
+      new AzureUsageContext().azureResourceId("id").offerId("product").planId("plan");
   public static final UsageEventOkResponse USAGE_EVENT_RESPONSE = getDefaultUsageEventResponse();
 
   @InjectMock @RestClient InternalSubscriptionsApi internalSubscriptionsApi;
@@ -167,8 +166,10 @@ class BillableUsageConsumerTest {
     consumer.process(BASILISK_INSTANCE_HOURS_RECORD);
     assertEquals(1, dlq.received().size());
     var metadata = dlq.received().get(0).getMetadata(OutgoingKafkaRecordMetadata.class);
+    BillableUsage data = (BillableUsage) dlq.received().get(0).getPayload();
     assertTrue(metadata.isPresent());
     assertNotNull(metadata.get().getHeaders().lastHeader(RETRY_AFTER_HEADER));
+    assertNotNull(data.getUuid());
   }
 
   @Test
@@ -288,12 +289,8 @@ class BillableUsageConsumerTest {
 
   @Test
   void shouldThrowSubscriptionNotFoundException() throws ApiException {
-    Errors errors = new Errors();
-    Error error = new Error();
-    error.setCode("SUBSCRIPTIONS1006");
-    errors.setErrors(List.of(error));
-    var response = Response.serverError().entity(errors).build();
-    var exception = new DefaultApiException(response, errors);
+    var response = Response.status(Status.NOT_FOUND.getStatusCode()).build();
+    var exception = new DefaultApiException(response, null);
     when(internalSubscriptionsApi.getAzureMarketplaceContext(
             any(), any(), any(), any(), any(), any()))
         .thenThrow(exception);
@@ -315,8 +312,9 @@ class BillableUsageConsumerTest {
       String productId, String metricId, OffsetDateTime timestamp, double totalValue) {
     var aggregate = new BillableUsageAggregate();
     aggregate.setWindowTimestamp(timestamp);
+    aggregate.setSnapshotDates(Set.of(timestamp, timestamp.plusDays(5)));
     aggregate.setTotalValue(new BigDecimal(totalValue));
-    aggregate.setSnapshotDates(Set.of(timestamp));
+    aggregate.setRemittanceUuids(List.of(UUID.randomUUID().toString()));
     var key =
         new BillableUsageAggregateKey(
             "testOrg",

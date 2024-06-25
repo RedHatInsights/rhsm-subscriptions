@@ -3,6 +3,8 @@ platform: RHEL
 
 id: rhel-for-ibm-power
 
+vdcType: true
+
 variants:
   - tag: RHEL for IBM Power
     engineeringIds:

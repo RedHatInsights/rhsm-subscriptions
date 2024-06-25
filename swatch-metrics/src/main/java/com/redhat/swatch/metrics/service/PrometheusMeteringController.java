@@ -25,6 +25,7 @@ import com.redhat.swatch.clients.prometheus.api.model.StatusType;
 import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.kafka.EmitterService;
 import com.redhat.swatch.metrics.configuration.MetricProperties;
 import com.redhat.swatch.metrics.exception.MeteringException;
@@ -239,14 +240,53 @@ public class PrometheusMeteringController {
       role = null;
     }
 
+    boolean is3rdPartyMigrated = Boolean.parseBoolean(labels.get("conversions_success"));
+
+    // Since the promql is shared by all tags in a configuration file, conversions_success isn't
+    // filtered on during promql.  This means that we end up running the same promql twice and would
+    // end up with duplicate events for a system.  EventReconciliation on ingestion will handle
+    // this, but we don't want to extraneously store and process events for performance reasons.  If
+    // conversions_success doesn't match the isMigrated attribute for the tag whose context we're
+    // currently working in, skip creating an event.
+
+    if (Boolean.TRUE.equals(Variant.findByTag(productTag).get().getIsMigrationProduct())
+        != is3rdPartyMigrated) {
+
+      var msg =
+          """
+          Ignoring extraneous data returned from promql.  Skipping event creation.
+          product tag we're collecting data for={}. Data from metric productIds={}, role={}, isMigrated {}
+          """;
+
+      log.debug(msg, productTag, productIds, role, is3rdPartyMigrated);
+      return;
+    }
+
+    var matchingTags =
+        SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
+            role, productIds, null, true, is3rdPartyMigrated);
+
+    if (!matchingTags.contains(productTag)) {
+      // Warn that the event doesn't match the context of the product tag we're currently working
+      // in.
+      log.warn(
+          "Starting product tag {} does not match derived product tags {} based on data contents. Skipping event creation.",
+          productTag,
+          matchingTags);
+      // Clear the product tag before producing Event message to force Event ingestion to determine
+      // a product tag during normalization
+      productTag = null;
+    }
+
+    log.info("Creating Event for product {}", productTag);
+
     String billingProvider = labels.get("billing_marketplace");
     String billingAccountId;
 
     // extract azure IDs
-    String azureTenantId = labels.get("azure_tenant_id");
     String azureSubscriptionId = labels.get("azure_subscription_id");
-    if (StringUtils.isNotEmpty(azureTenantId) && StringUtils.isNotEmpty(azureSubscriptionId)) {
-      billingAccountId = String.format("%s;%s", azureTenantId, azureSubscriptionId);
+    if (StringUtils.isNotEmpty(azureSubscriptionId)) {
+      billingAccountId = azureSubscriptionId;
     } else {
       billingAccountId = labels.get("billing_marketplace_account");
     }
@@ -281,7 +321,8 @@ public class PrometheusMeteringController {
               productTag,
               meteringBatchId,
               productIds,
-              displayName);
+              displayName,
+              is3rdPartyMigrated);
       // Send if and only if it has not been sent yet.
       // Related to https://github.com/RedHatInsights/rhsm-subscriptions/pull/374.
       if (eventsSent.add(EventKey.fromEvent(event))) {
@@ -307,7 +348,8 @@ public class PrometheusMeteringController {
       String productTag,
       UUID meteringBatchId,
       List<String> productIds,
-      String displayName) {
+      String displayName,
+      boolean is3rdPartyMigrated) {
     Event event = new Event();
     MeteringEventFactory.updateMetricEvent(
         event,
@@ -327,7 +369,8 @@ public class PrometheusMeteringController {
         productTag,
         meteringBatchId,
         productIds,
-        displayName);
+        displayName,
+        is3rdPartyMigrated);
     return event;
   }
 

@@ -20,21 +20,23 @@
  */
 package org.candlepin.subscriptions.subscription.export;
 
+import static org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository.orgIdEquals;
+import static org.candlepin.subscriptions.export.ExportSubscriptionListener.MISSING_PERMISSIONS;
 import static org.candlepin.subscriptions.subscription.export.SubscriptionDataExporterService.PRODUCT_ID;
 
 import com.redhat.cloud.event.apps.exportservice.v1.Format;
-import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Subscription;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
 import org.candlepin.subscriptions.db.model.SubscriptionMeasurementKey;
 import org.candlepin.subscriptions.export.BaseDataExporterServiceTest;
 import org.candlepin.subscriptions.json.SubscriptionsExportCsvItem;
@@ -43,19 +45,19 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ActiveProfiles;
 
-@ActiveProfiles(value = {"kafka-queue", "test", "capacity-ingress"})
+@ActiveProfiles(value = {"kafka-queue", "test-inventory", "capacity-ingress"})
 class SubscriptionDataExporterServiceTest extends BaseDataExporterServiceTest {
 
   @Autowired SubscriptionRepository subscriptionRepository;
+  @Autowired SubscriptionCapacityViewRepository subscriptionCapacityViewRepository;
   @Autowired ApplicationClock clock;
   @Autowired SubscriptionCsvDataMapperService csvDataMapperService;
   @Autowired SubscriptionJsonDataMapperService jsonDataMapperService;
-
-  protected List<Subscription> itemsToBeExported = new ArrayList<>();
 
   @AfterEach
   public void tearDown() {
@@ -71,7 +73,7 @@ class SubscriptionDataExporterServiceTest extends BaseDataExporterServiceTest {
   void testRequestWithoutPermissions() {
     givenExportRequestWithoutPermissions();
     whenReceiveExportRequest();
-    verifyRequestWasSentToExportServiceWithError(request);
+    verifyRequestWasSentToExportServiceWithError(request, MISSING_PERMISSIONS);
   }
 
   @Test
@@ -102,6 +104,16 @@ class SubscriptionDataExporterServiceTest extends BaseDataExporterServiceTest {
   void testRequestShouldBeUploadedWithSubscriptionsAsCsv() {
     givenSubscriptionWithMeasurement(RHEL_FOR_X86);
     givenExportRequestWithPermissions(Format.CSV);
+    whenReceiveExportRequest();
+    verifyRequestWasSentToExportService();
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = Format.class)
+  void testGivenDuplicateSubscriptionsThenItReturnsOnlyOneRecordAndCapacityIsSum(Format format) {
+    givenSubscriptionWithMeasurement(RHEL_FOR_X86);
+    givenSameSubscriptionWithOtherMeasurement();
+    givenExportRequestWithPermissions(format);
     whenReceiveExportRequest();
     verifyRequestWasSentToExportService();
   }
@@ -157,11 +169,21 @@ class SubscriptionDataExporterServiceTest extends BaseDataExporterServiceTest {
     verifyRequestWasSentToExportServiceWithError(request);
   }
 
+  @Test
+  void testRequestShouldFilterByOrgId() {
+    givenSubscriptionWithMeasurementForAnotherOrgId(RHEL_FOR_X86);
+    givenSubscriptionWithMeasurement(RHEL_FOR_X86);
+    givenExportRequestWithPermissions(Format.JSON);
+    whenReceiveExportRequest();
+    verifyRequestWasSentToExportService();
+  }
+
   @Override
   protected void verifyRequestWasSentToExportService() {
     boolean isCsvFormat = request.getData().getResourceRequest().getFormat() == Format.CSV;
     List<Object> data = new ArrayList<>();
-    for (Subscription subscription : itemsToBeExported) {
+    for (SubscriptionCapacityView subscription :
+        subscriptionCapacityViewRepository.findAll(orgIdEquals(ORG_ID))) {
       if (isCsvFormat) {
         data.addAll(csvDataMapperService.mapDataItem(subscription, null));
       } else {
@@ -186,31 +208,55 @@ class SubscriptionDataExporterServiceTest extends BaseDataExporterServiceTest {
     verifyRequestWasSentToExportServiceWithUploadData(request, toJson(data));
   }
 
+  private void givenSubscriptionWithMeasurementForAnotherOrgId(String productId) {
+    givenSubscriptionWithMeasurement(UUID.randomUUID().toString(), productId);
+  }
+
   private void givenSubscriptionWithMeasurement(String productId) {
+    givenSubscriptionWithMeasurement(ORG_ID, productId);
+  }
+
+  private void givenSubscriptionWithMeasurement(String orgId, String productId) {
     Subscription subscription = new Subscription();
     subscription.setSubscriptionId(UUID.randomUUID().toString());
     subscription.setSubscriptionNumber(UUID.randomUUID().toString());
     subscription.setStartDate(OffsetDateTime.parse("2024-04-23T11:48:15.888129Z"));
-    subscription.setEndDate(OffsetDateTime.parse("2024-05-23T11:48:15.888129Z"));
+    subscription.setEndDate(OffsetDateTime.parse("2028-05-23T11:48:15.888129Z"));
     subscription.setOffering(offering);
-    subscription.setOrgId(ORG_ID);
+    subscription.setOrgId(orgId);
     subscription.setBillingProvider(BillingProvider.AWS);
-    if (SubscriptionDefinition.isPrometheusEnabled(productId)) {
-      // for products with prometheus enabled, the product IDs are linked via the offering
-      offering.getProductTags().add(productId);
-      updateOffering();
-    } else {
-      // for products without prometheus enabled, the product IDs are defined via subscription
-      // product IDs
-      subscription.setSubscriptionProductIds(Set.of(productId));
-    }
-
+    offering.getProductTags().clear();
+    offering.getProductTags().add(productId);
+    updateOffering();
     subscription.setBillingAccountId("123");
     subscription.setSubscriptionMeasurements(
         Map.of(
             new SubscriptionMeasurementKey(MetricIdUtils.getCores().toString(), "HYPERVISOR"),
             5.0));
     subscriptionRepository.save(subscription);
-    itemsToBeExported.add(subscription);
+  }
+
+  private void givenSameSubscriptionWithOtherMeasurement() {
+    var subscriptions = subscriptionRepository.findAll();
+    if (subscriptions.isEmpty()) {
+      throw new RuntimeException(
+          "No subscriptions found. Use 'givenSubscriptionWithMeasurement' to add one.");
+    }
+
+    var existing = subscriptions.get(0);
+    Subscription subscription = new Subscription();
+    subscription.setSubscriptionId(existing.getSubscriptionId());
+    subscription.setSubscriptionNumber(existing.getSubscriptionNumber());
+    subscription.setStartDate(OffsetDateTime.parse("2024-05-23T11:48:15.888129Z"));
+    subscription.setEndDate(OffsetDateTime.parse("2024-06-23T11:48:15.888129Z"));
+    subscription.setOffering(offering);
+    subscription.setOrgId(ORG_ID);
+    subscription.setBillingProvider(BillingProvider.AWS);
+    subscription.setBillingAccountId(existing.getBillingAccountId());
+    subscription.setSubscriptionMeasurements(
+        Map.of(
+            new SubscriptionMeasurementKey(MetricIdUtils.getCores().toString(), "HYPERVISOR"),
+            10.0));
+    subscriptionRepository.save(subscription);
   }
 }

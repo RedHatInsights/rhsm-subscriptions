@@ -23,10 +23,10 @@ package com.redhat.swatch.contract;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1.SourcePartnerEnum;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.QueryPartnerEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.ApiException;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.PartnerApi;
+import com.redhat.swatch.contract.model.ContractSourcePartnerEnum;
 import com.redhat.swatch.contract.resource.WireMockResource;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
@@ -50,7 +50,7 @@ class RhPartnerClientIntegrationTest {
     assertEquals(2, partnerEntitlements.size());
     var entitlement = partnerEntitlements.get(0);
     assertEquals("org123", entitlement.getRhAccountId());
-    assertEquals(SourcePartnerEnum.AWS_MARKETPLACE, entitlement.getSourcePartner());
+    assertEquals(ContractSourcePartnerEnum.AWS.getCode(), entitlement.getSourcePartner());
 
     var rhEntitlements = entitlement.getRhEntitlements();
     assertNotNull(rhEntitlements);

@@ -45,4 +45,16 @@ public enum ContractSourcePartnerEnum {
     }
     return null;
   }
+
+  public static boolean isAwsMarketplace(String sourcePartner) {
+    return ContractSourcePartnerEnum.AWS.code.equals(sourcePartner);
+  }
+
+  public static boolean isAzureMarketplace(String sourcePartner) {
+    return ContractSourcePartnerEnum.AZURE.code.equals(sourcePartner);
+  }
+
+  public static boolean isSupported(String sourcePartner) {
+    return getByCode(sourcePartner) != null;
+  }
 }

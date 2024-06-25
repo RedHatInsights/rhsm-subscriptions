@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.resource;
 
+import static org.candlepin.subscriptions.resource.CapacityResource.HYPERVISOR;
+import static org.candlepin.subscriptions.resource.CapacityResource.PHYSICAL;
 import static org.candlepin.subscriptions.resource.ResourceUtils.*;
 
 import com.redhat.swatch.configuration.registry.ProductId;
@@ -130,7 +132,7 @@ public class SubscriptionTableController {
     var reportCriteria =
         DbReportCriteria.builder()
             .orgId(orgId)
-            .productId(productId.toString())
+            .productTag(productId.toString())
             .serviceLevel(sanitizedServiceLevel)
             .usage(sanitizedUsage)
             .beginning(reportStart)
@@ -377,39 +379,29 @@ public class SubscriptionTableController {
 
     var metric = key.getMetricId();
     var type = key.getMeasurementType();
-
-    var sockets =
-        (SOCKETS.equalsIgnoreCase(metric) && "PHYSICAL".equals(type)) ? value.intValue() : 0;
-    var cores = (CORES.equalsIgnoreCase(metric) && "PHYSICAL".equals(type)) ? value.intValue() : 0;
-
-    var hypervisorSockets =
-        (SOCKETS.equalsIgnoreCase(metric) && "HYPERVISOR".equals(type)) ? value.intValue() : 0;
-    var hypervisorCores =
-        (CORES.equalsIgnoreCase(metric) && "HYPERVISOR".equals(type)) ? value.intValue() : 0;
-
-    if (skuCapacity.getUom() == Uom.SOCKETS || SOCKETS.equals(skuCapacity.getMetricId())) {
-      skuCapacity.setCapacity(skuCapacity.getCapacity() + sockets);
-      skuCapacity.setHypervisorCapacity(skuCapacity.getHypervisorCapacity() + hypervisorSockets);
-    } else if (skuCapacity.getUom() == Uom.CORES || CORES.equals(skuCapacity.getMetricId())) {
-      skuCapacity.setCapacity(skuCapacity.getCapacity() + cores);
-      skuCapacity.setHypervisorCapacity(skuCapacity.getHypervisorCapacity() + hypervisorCores);
-    } else if (sockets != 0 || hypervisorSockets != 0) {
-      skuCapacity.setCapacity(skuCapacity.getCapacity() + sockets);
-      skuCapacity.setHypervisorCapacity(skuCapacity.getHypervisorCapacity() + hypervisorSockets);
-      if (skuCapacity.getUom() == null) {
-        skuCapacity.setUom(Uom.SOCKETS);
-      }
+    // we only initialize the metric for measurements with a value higher than zero.
+    if (value > 0) {
+      // initialize metric ID using the current metric if it's not set
       if (skuCapacity.getMetricId() == null) {
-        skuCapacity.setMetricId(SOCKETS);
+        skuCapacity.setMetricId(metric);
       }
-    } else if (cores != 0 || hypervisorCores != 0) {
-      skuCapacity.setCapacity(skuCapacity.getCapacity() + cores);
-      skuCapacity.setHypervisorCapacity(skuCapacity.getHypervisorCapacity() + hypervisorCores);
+      // initialize uom using the current metric if it's not set
       if (skuCapacity.getUom() == null) {
-        skuCapacity.setUom(Uom.CORES);
+        if (SOCKETS.equalsIgnoreCase(metric)) {
+          skuCapacity.setUom(Uom.SOCKETS);
+        } else if (CORES.equalsIgnoreCase(metric)) {
+          skuCapacity.setUom(Uom.CORES);
+        }
       }
-      if (skuCapacity.getMetricId() == null) {
-        skuCapacity.setMetricId(CORES);
+    }
+
+    // accumulate the value
+    if ((skuCapacity.getUom() != null && skuCapacity.getUom().toString().equalsIgnoreCase(metric))
+        || metric.equals(skuCapacity.getMetricId())) {
+      if (PHYSICAL.equals(type)) {
+        skuCapacity.setCapacity(skuCapacity.getCapacity() + value.intValue());
+      } else if (HYPERVISOR.equals(type)) {
+        skuCapacity.setHypervisorCapacity(skuCapacity.getHypervisorCapacity() + value.intValue());
       }
     }
 

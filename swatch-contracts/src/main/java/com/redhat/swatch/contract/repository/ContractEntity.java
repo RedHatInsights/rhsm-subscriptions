@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.contract.repository;
 
+import com.redhat.swatch.panache.Specification;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
@@ -27,6 +28,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
@@ -79,9 +82,9 @@ public class ContractEntity extends PanacheEntityBase {
   private String orgId;
 
   @NotNull
-  @Basic
-  @Column(name = "sku", nullable = false)
-  private String sku;
+  @ManyToOne(fetch = FetchType.EAGER)
+  @JoinColumn(name = "sku")
+  private OfferingEntity offering;
 
   @NotNull
   @Basic
@@ -92,15 +95,9 @@ public class ContractEntity extends PanacheEntityBase {
   @Column(name = "billing_provider_id")
   private String billingProviderId;
 
-  @NotNull
   @Basic
-  @Column(name = "billing_account_id", nullable = false)
+  @Column(name = "billing_account_id")
   private String billingAccountId;
-
-  @NotNull
-  @Basic
-  @Column(name = "product_id", nullable = false)
-  private String productId;
 
   @Basic
   @Column(name = "vendor_product_code", nullable = false)
@@ -137,10 +134,9 @@ public class ContractEntity extends PanacheEntityBase {
     ContractEntity that = (ContractEntity) o;
     return Objects.equals(subscriptionNumber, that.subscriptionNumber)
         && Objects.equals(orgId, that.orgId)
-        && Objects.equals(sku, that.sku)
+        && Objects.equals(offering.getSku(), that.offering.getSku())
         && Objects.equals(billingProvider, that.billingProvider)
         && Objects.equals(billingAccountId, that.billingAccountId)
-        && Objects.equals(productId, that.productId)
         && Objects.equals(metrics, that.metrics)
         && Objects.equals(vendorProductCode, that.vendorProductCode);
   }
@@ -150,10 +146,9 @@ public class ContractEntity extends PanacheEntityBase {
     return Objects.hash(
         subscriptionNumber,
         orgId,
-        sku,
+        offering.getSku(),
         billingProvider,
         billingAccountId,
-        productId,
         metrics,
         vendorProductCode);
   }
@@ -169,8 +164,11 @@ public class ContractEntity extends PanacheEntityBase {
     return (root, query, builder) -> builder.equal(root.get(ContractEntity_.orgId), orgId);
   }
 
-  public static Specification<ContractEntity> productIdEquals(String productId) {
-    return (root, query, builder) -> builder.equal(root.get(ContractEntity_.productId), productId);
+  public static Specification<ContractEntity> productTagEquals(String productTag) {
+    return (root, query, builder) -> {
+      var offering = root.join(ContractEntity_.offering);
+      return builder.equal(offering.join(OfferingEntity_.productTags), productTag);
+    };
   }
 
   public static Specification<ContractEntity> metricIdEquals(String metricId) {

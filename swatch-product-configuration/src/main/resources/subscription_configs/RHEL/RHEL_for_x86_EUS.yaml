@@ -2,6 +2,9 @@
 platform: RHEL
 
 id: rhel-for-x86-eus
+
+vdcType: true
+
 # TODO: https://issues.redhat.com/browse/SWATCH-1692 keep this commented out until UI updates are in place.
 #includedSubscriptions:
 #  - rhel-for-x86
@@ -10,6 +13,7 @@ variants:
   - tag: rhel-for-x86-eus
     engineeringIds:
       - 70 # Red Hat Enterprise Linux For EUS
+      - 323 # Red Hat Enterprise Linux for SAP Applications for x86_64 - EUS
 
 defaults:
   variant: rhel-for-x86-eus

@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.event;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -35,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.json.Event;
@@ -65,7 +67,6 @@ class EventControllerTest {
   String eventRecord3;
   String eventRecord4;
   String eventRecord5;
-  String azureEventRecord1;
   String eventRecordNegativeMeasurement;
 
   @BeforeEach
@@ -176,30 +177,6 @@ class EventControllerTest {
                  }
                 """;
 
-    azureEventRecord1 =
-        """
-                {
-                   "sla": "Premium",
-                   "role": "Red Hat Enterprise Linux Server",
-                   "org_id": "7",
-                   "timestamp": "2023-05-02T00:00:00Z",
-                   "event_type": "snapshot",
-                   "expiration": "2023-05-02T01:00:00Z",
-                   "instance_id": "e3a62bd1-fd00-405c-9401-f2288808588d",
-                   "display_name": "automation_osd_cluster_e3a62bd1-fd00-405c-9401-f2288808588d",
-                   "event_source": "cost-management",
-                   "measurements": [
-                     {
-                       "uom": "vCPUs",
-                       "value": 1.0
-                     }
-                   ],
-                   "service_type": "RHEL System",
-                   "billing_provider": "azure",
-                   "azure_tenant_id": "TestAzureTenantId",
-                   "azure_subscription_id": "TestAzureSubscriptionId"
-                }
-        """;
     eventRecordNegativeMeasurement =
         """
                 {
@@ -375,6 +352,31 @@ class EventControllerTest {
   @Test
   void testPersistServiceInstances_AzureBillingAccountIdSet() {
     List<String> eventRecords = new ArrayList<>();
+
+    var azureEventRecord1 =
+        """
+                {
+                   "sla": "Premium",
+                   "role": "osd",
+                   "org_id": "7",
+                   "timestamp": "2023-05-02T00:00:00Z",
+                   "event_type": "snapshot",
+                   "expiration": "2023-05-02T01:00:00Z",
+                   "instance_id": "e3a62bd1-fd00-405c-9401-f2288808588d",
+                   "display_name": "automation_osd_cluster_e3a62bd1-fd00-405c-9401-f2288808588d",
+                   "event_source": "cost-management",
+                   "measurements": [
+                     {
+                       "uom": "vCPUs",
+                       "value": 1.0
+                     }
+                   ],
+                   "service_type": "RHEL System",
+                   "billing_provider": "azure",
+                   "azure_tenant_id": "TestAzureTenantId",
+                   "azure_subscription_id": "TestAzureSubscriptionId"
+                }
+        """;
     eventRecords.add(azureEventRecord1);
     eventController.persistServiceInstances(eventRecords);
     when(eventRecordRepository.saveAll(any())).thenReturn(new ArrayList<>());
@@ -382,9 +384,72 @@ class EventControllerTest {
     verify(eventRecordRepository).saveAll(eventsSaved.capture());
     List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
     assertEquals(1, events.size());
-    assertEquals(
-        "TestAzureTenantId;TestAzureSubscriptionId",
-        events.get(0).getEvent().getBillingAccountId().get());
+    assertEquals("TestAzureSubscriptionId", events.get(0).getEvent().getBillingAccountId().get());
+  }
+
+  @Test
+  void testPersistServiceInstances_WhenProductTagExists() {
+    List<String> eventRecords = new ArrayList<>();
+
+    var invalidProductTagEventRecord1 =
+        """
+                    {
+                     "sla":"Premium",
+                     "org_id":"111111111",
+                     "timestamp":"2024-06-10T10:00:00Z",
+                     "conversion":false,
+                     "event_type":"snapshot_rhel-for-x86-els-payg-addon_vCPUs",
+                     "expiration":"2024-06-10T11:00:00Z",
+                     "instance_id":"d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                     "product_tag":[
+                        "dummy"
+                     ],
+                     "display_name":"automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                     "event_source":"Premium",
+                     "measurements":[
+                        {
+                           "uom":"vCPUs",
+                           "value":4.0,
+                           "metric_id":"vCPUs"
+                        }
+                     ],
+                     "service_type":"RHEL System"
+                  }
+            """;
+
+    var validProductTagEventRecord1 =
+        """
+                    {
+                     "sla":"Premium",
+                     "org_id":"111111111",
+                     "timestamp":"2024-06-10T10:00:00Z",
+                     "conversion":false,
+                     "event_type":"snapshot_rhel-for-x86-els-payg-addon_vCPUs",
+                     "expiration":"2024-06-10T11:00:00Z",
+                     "instance_id":"d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                     "product_tag":[
+                        "rhel-for-x86-els-payg-addon"
+                     ],
+                     "display_name":"automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                     "event_source":"Premium",
+                     "measurements":[
+                        {
+                           "uom":"vCPUs",
+                           "value":4.0,
+                           "metric_id":"vCPUs"
+                        }
+                     ],
+                     "service_type":"RHEL System"
+                  }
+            """;
+    eventRecords.add(validProductTagEventRecord1);
+    eventRecords.add(invalidProductTagEventRecord1);
+    eventController.persistServiceInstances(eventRecords);
+    when(eventRecordRepository.saveAll(any())).thenReturn(new ArrayList<>());
+
+    verify(eventRecordRepository).saveAll(eventsSaved.capture());
+    List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
+    assertEquals(1, events.size());
   }
 
   @Test
@@ -418,6 +483,48 @@ class EventControllerTest {
     assertEquals(1, finalBatchCount.get(3));
   }
 
+  @Test
+  @SuppressWarnings("unchecked")
+  void testPersistedEventHaveMetricIdNormalized() {
+    List<String> eventRecords = new ArrayList<>();
+
+    var azureEventRecord1 =
+        """
+                {
+                   "sla": "Premium",
+                   "role": "osd",
+                   "org_id": "7",
+                   "timestamp": "2023-05-02T00:00:00Z",
+                   "event_type": "snapshot",
+                   "expiration": "2023-05-02T01:00:00Z",
+                   "instance_id": "e3a62bd1-fd00-405c-9401-f2288808588d",
+                   "display_name": "automation_osd_cluster_e3a62bd1-fd00-405c-9401-f2288808588d",
+                   "event_source": "cost-management",
+                   "measurements": [
+                     {
+                       "uom": "vCPUs",
+                       "value": 1.0
+                     }
+                   ],
+                   "service_type": "RHEL System",
+                   "billing_provider": "azure",
+                   "azure_tenant_id": "TestAzureTenantId",
+                   "azure_subscription_id": "TestAzureSubscriptionId"
+                }
+        """;
+    eventRecords.add(azureEventRecord1);
+    eventController.persistServiceInstances(eventRecords);
+    ArgumentCaptor<List<EventRecord>> captor = ArgumentCaptor.forClass(List.class);
+    verify(eventRecordRepository).saveAll(captor.capture());
+    var records = captor.getAllValues().get(0);
+    assertEquals(1, records.size());
+    var eventRecord = records.get(0);
+    assertEquals(1, eventRecord.getEvent().getMeasurements().size());
+    var measurement = eventRecord.getEvent().getMeasurements().get(0);
+    assertEquals("vCPUs", measurement.getMetricId());
+    assertNull(measurement.getUom());
+  }
+
   private class BatchedEventCounter {
     private final List<Integer> counts = new LinkedList<>();
 
@@ -428,5 +535,17 @@ class EventControllerTest {
     List<Integer> getCounts() {
       return counts;
     }
+  }
+
+  @Test
+  void testFilterOnApplicableTags() {
+    Event event = new Event();
+    event.setProductIds(List.of("204", "479"));
+    event.setConversion(false);
+
+    var expected = Set.of("rhel-for-x86-els-payg-addon");
+    var actual = eventController.filterOnApplicableTags(event);
+
+    assertEquals(expected, actual);
   }
 }

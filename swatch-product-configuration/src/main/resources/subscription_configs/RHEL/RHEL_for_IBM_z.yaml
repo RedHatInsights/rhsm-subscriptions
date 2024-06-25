@@ -3,6 +3,8 @@ platform: RHEL
 
 id: rhel-for-ibm-z
 
+vdcType: true
+
 variants:
   - tag: RHEL for IBM z
     engineeringIds:

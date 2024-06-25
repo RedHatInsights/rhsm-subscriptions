@@ -20,13 +20,12 @@
  */
 package org.candlepin.subscriptions.tally.export;
 
+import static org.candlepin.subscriptions.db.TallyInstanceViewRepository.buildSearchSpecification;
 import static org.candlepin.subscriptions.resource.InstancesResource.getHardwareMeasurementTypesFromCategory;
-import static org.candlepin.subscriptions.resource.InstancesResource.isPayg;
 import static org.candlepin.subscriptions.resource.ResourceUtils.ANY;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
-import com.redhat.swatch.configuration.registry.Variant;
 import jakarta.ws.rs.core.Response;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -38,7 +37,8 @@ import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.db.TallyInstanceViewRepository;
+import org.candlepin.subscriptions.db.TallyInstanceNonPaygViewRepository;
+import org.candlepin.subscriptions.db.TallyInstancePaygViewRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -51,6 +51,7 @@ import org.candlepin.subscriptions.export.DataMapperService;
 import org.candlepin.subscriptions.export.ExportServiceRequest;
 import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
 import org.springframework.context.annotation.Profile;
+import org.springframework.data.repository.query.FluentQuery;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -90,7 +91,8 @@ public class InstancesDataExporterService implements DataExporterService<TallyIn
 
   private static final List<String> MANDATORY_FILTERS = List.of(PRODUCT_ID);
 
-  private final TallyInstanceViewRepository tallyViewRepository;
+  private final TallyInstancePaygViewRepository paygViewRepository;
+  private final TallyInstanceNonPaygViewRepository nonPaygViewRepository;
   private final InstancesJsonDataMapperService jsonDataMapperService;
 
   @Override
@@ -102,7 +104,11 @@ public class InstancesDataExporterService implements DataExporterService<TallyIn
   public Stream<TallyInstanceView> fetchData(ExportServiceRequest request) {
     log.debug("Fetching data for {}", request.getOrgId());
     var reportCriteria = extractExportFilter(request);
-    return tallyViewRepository.streamBy(reportCriteria);
+    boolean isPayg = ProductId.fromString(reportCriteria.getProductId()).isPayg();
+    var repository = isPayg ? paygViewRepository : nonPaygViewRepository;
+    return repository
+        .findBy(buildSearchSpecification(reportCriteria), FluentQuery.FetchableFluentQuery::stream)
+        .map(TallyInstanceView.class::cast);
   }
 
   @Override
@@ -149,7 +155,7 @@ public class InstancesDataExporterService implements DataExporterService<TallyIn
     }
 
     // special handling of the month for non payg products
-    if (!isPayg(Variant.findByTag(report.build().getProductId()))) {
+    if (!ProductId.fromString(report.build().getProductId()).isPayg()) {
       report.month(null);
     }
 

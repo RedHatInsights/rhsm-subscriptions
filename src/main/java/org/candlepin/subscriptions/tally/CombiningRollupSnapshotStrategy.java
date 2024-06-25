@@ -298,14 +298,6 @@ public class CombiningRollupSnapshotStrategy {
           }
         });
 
-    // Reset remaining snaps, as they didn't have any calculations/events
-    affectedSnaps
-        .values()
-        .forEach(
-            snapshot -> {
-              snapshot.getTallyMeasurements().clear();
-              toSave.add(tallyRepo.save(snapshot));
-            });
     return toSave;
   }
 

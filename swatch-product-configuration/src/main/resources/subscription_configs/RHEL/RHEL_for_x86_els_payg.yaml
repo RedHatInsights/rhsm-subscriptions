@@ -3,13 +3,18 @@ platform: RHEL
 
 id: rhel-for-x86-els-payg
 
-#includedSubscriptions:
-#  - rhel-for-x86
+vdcType: true
 
 variants:
   - tag: rhel-for-x86-els-payg
+    isMigrationProduct: true
     engineeringIds:
       - 204
+  - tag: rhel-for-x86-els-payg-addon
+    isMigrationProduct: false
+    engineeringIds:
+      - 204
+    additionalTags: [ "RHEL for x86" ]
 
 defaults:
   variant: rhel-for-x86-els-payg
@@ -29,4 +34,4 @@ metrics:
       queryParams:
         productLabelRegex: .*(^|,)(204)($|,).* # this regex is used to fetch metrics for the product label that contains the product/engineering ID 204. the number here needs to map to a tag defined in the variant section of this file
         metric: system_cpu_logical_count
-        instanceKey: _id
+        instanceKey: billing_marketplace_instance_id

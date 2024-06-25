@@ -47,15 +47,12 @@ public class NormalizedFacts {
   private boolean isHypervisor;
   private boolean isHypervisorUnknown;
   private boolean isMarketplace;
+  private boolean is3rdPartyConversion;
   private HostHardwareType hardwareType;
   private HardwareMeasurementType cloudProviderType;
 
   public NormalizedFacts() {
     products = new HashSet<>();
-  }
-
-  public void addProduct(String product) {
-    products.add(product);
   }
 
   /**

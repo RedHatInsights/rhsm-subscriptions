@@ -23,7 +23,9 @@ package org.candlepin.subscriptions.conduit.inventory;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import org.candlepin.subscriptions.conduit.json.inventory.HbiNetworkInterface;
 import org.candlepin.subscriptions.utilization.api.model.ConsumerInventory;
@@ -34,6 +36,7 @@ import org.hibernate.validator.constraints.Length;
 /** POJO that validates all facts scoped for collection by the conduit. */
 public class ConduitFacts extends ConsumerInventory {
   private List<HbiNetworkInterface> networkInterfaces;
+  private Map<String, String> originalFacts = new HashMap<>();
 
   // Reusing systemprofile for network interfaces in Inventory Service
   public void setNetworkInterfaces(List<HbiNetworkInterface> networkInterfaces) {
@@ -42,6 +45,14 @@ public class ConduitFacts extends ConsumerInventory {
 
   public List<HbiNetworkInterface> getNetworkInterfaces() {
     return networkInterfaces;
+  }
+
+  public void addOriginalFact(String key, String value) {
+    originalFacts.put(key, value);
+  }
+
+  public Map<String, String> getOriginalFacts() {
+    return new HashMap<>(originalFacts);
   }
 
   @Length(min = 1, max = 255)

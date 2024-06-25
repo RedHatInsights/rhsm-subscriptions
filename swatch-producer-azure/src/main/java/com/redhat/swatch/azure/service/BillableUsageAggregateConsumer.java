@@ -45,12 +45,14 @@ import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.ProcessingException;
+import jakarta.ws.rs.core.Response.Status;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
@@ -113,39 +115,45 @@ public class BillableUsageAggregateConsumer {
       context = lookupAzureUsageContext(billableUsageAggregate);
     } catch (SubscriptionRecentlyTerminatedException e) {
       log.info(
-          "Subscription recently terminated for billableUsageAggregateId={} orgId={}",
+          "Subscription recently terminated for billableUsageAggregateId={} orgId={} remittanceUUIDs={}",
           billableUsageAggregate.getAggregateId(),
-          billableUsageAggregate.getAggregateKey().getOrgId());
+          billableUsageAggregate.getAggregateKey().getOrgId(),
+          billableUsageAggregate.getRemittanceUuids());
       return;
     } catch (SubscriptionCanNotBeDeterminedException e) {
       if (!isUsageDateValid(billableUsageAggregate)) {
         log.warn(
-            "Skipping billable usage with id={} orgId={} because the subscription was not found and the snapshot '{}' is past the azure time window of '{}'",
+            "Skipping billable usage with id={} orgId={} remittanceUUIDs={} because the subscription was not found and the snapshot '{}' is past the azure time window of '{}'",
             billableUsageAggregate.getAggregateId(),
             billableUsageAggregate.getAggregateKey().getOrgId(),
+            billableUsageAggregate.getRemittanceUuids(),
             billableUsageAggregate.getWindowTimestamp(),
             azureUsageWindow);
       } else {
-        billableUsageAggregate.getSnapshotDates().stream()
-            .map(
-                snapshotDate ->
-                    billableUsageFromAggregateKey(
-                        billableUsageAggregate.getAggregateKey(), snapshotDate))
-            .forEach(
-                billableUsage -> {
-                  billableUsageDeadLetterTopicProducer.send(billableUsage);
-                  log.warn(
-                      "Skipping billable usage with id={} orgId={} because the subscription was not found. Will retry again after one hour.",
-                      billableUsageAggregate.getAggregateId(),
-                      billableUsageAggregate.getAggregateKey().getOrgId());
-                });
+        if (Objects.nonNull(billableUsageAggregate.getRemittanceUuids())) {
+          billableUsageAggregate.getRemittanceUuids().stream()
+              .map(
+                  uuid ->
+                      billableUsageFromAggregateKey(billableUsageAggregate.getAggregateKey(), uuid))
+              .forEach(
+                  billableUsage -> {
+                    billableUsageDeadLetterTopicProducer.send(billableUsage);
+                    log.warn(
+                        "Skipping billable usage with id={} orgId={} because the subscription was not found. Will retry again after one hour.",
+                        billableUsage.getUuid(),
+                        billableUsage.getOrgId());
+                  });
+        } else {
+          log.warn("No billable usage remittance UUIDs available to retry for.");
+        }
       }
       return;
     } catch (AzureUsageContextLookupException e) {
       log.error(
-          "Error looking up usage context for aggregateId={} orgId={}",
+          "Error looking up usage context for aggregateId={} orgId={} remittanceUUIDs={}",
           billableUsageAggregate.getAggregateId(),
           billableUsageAggregate.getAggregateKey().getOrgId(),
+          billableUsageAggregate.getRemittanceUuids(),
           e);
       return;
     }
@@ -153,10 +161,11 @@ public class BillableUsageAggregateConsumer {
       transformAndSend(context, billableUsageAggregate, metric.get());
     } catch (Exception e) {
       log.error(
-          "Error sending usage for aggregateId={} azureResourceId={} orgId={}",
+          "Error sending azure usage for aggregateId={} azureResourceId={} orgId={} remittanceUUIDs={}",
           billableUsageAggregate.getAggregateId(),
           context.getAzureResourceId(),
           billableUsageAggregate.getAggregateKey().getOrgId(),
+          billableUsageAggregate.getRemittanceUuids(),
           e);
     }
   }
@@ -165,7 +174,8 @@ public class BillableUsageAggregateConsumer {
     OffsetDateTime startOfCurrentHour =
         OffsetDateTime.now(Clock.systemUTC()).truncatedTo(ChronoUnit.HOURS);
     OffsetDateTime cutoff = startOfCurrentHour.minus(azureUsageWindow);
-    return !aggregate.getWindowTimestamp().isBefore(cutoff);
+    var earliestSnapshotDate = aggregate.getSnapshotDates().stream().sorted().findFirst();
+    return !earliestSnapshotDate.map(date -> date.isBefore(cutoff)).orElse(false);
   }
 
   private void transformAndSend(
@@ -174,16 +184,18 @@ public class BillableUsageAggregateConsumer {
     var usageEvent = transformToAzureUsage(context, billableUsageAggregate, metric);
     if (isDryRun.isPresent() && Boolean.TRUE.equals(isDryRun.get())) {
       log.info(
-          "[DRY RUN] Sending usage request to Azure: {}, organization={}, product_id={}",
+          "[DRY RUN] Sending usage request to Azure: {}, organization={}, remittanceUUIDs={}, product_id={}",
           usageEvent,
           billableUsageAggregate.getAggregateKey().getOrgId(),
+          billableUsageAggregate.getRemittanceUuids(),
           billableUsageAggregate.getAggregateKey().getProductId());
       return;
     } else {
       log.info(
-          "Sending usage request to Azure: {}, organization={}, product_id={}",
+          "Sending usage request to Azure: {}, organization={}, remittanceUUIDs={}, product_id={}",
           usageEvent,
           billableUsageAggregate.getAggregateKey().getOrgId(),
+          billableUsageAggregate.getRemittanceUuids(),
           billableUsageAggregate.getAggregateKey().getProductId());
     }
 
@@ -192,10 +204,16 @@ public class BillableUsageAggregateConsumer {
       log.debug("{}", response);
       if (response.getStatus() != UsageEventStatusEnum.ACCEPTED) {
         log.warn(
-            "{}, organization={}", response, billableUsageAggregate.getAggregateKey().getOrgId());
+            "{}, organization={}, remittanceUUIDs={}",
+            response,
+            billableUsageAggregate.getAggregateKey().getOrgId(),
+            billableUsageAggregate.getRemittanceUuids());
       } else {
         log.info(
-            "{}, organization={},", response, billableUsageAggregate.getAggregateKey().getOrgId());
+            "{}, organization={}, remittanceUUIDs={},",
+            response,
+            billableUsageAggregate.getAggregateKey().getOrgId(),
+            billableUsageAggregate.getRemittanceUuids());
         acceptedCounter.increment();
       }
     } catch (AzureMarketplaceRequestFailedException e) {
@@ -225,7 +243,7 @@ public class BillableUsageAggregateConsumer {
           billableUsageAggregate.getAggregateKey().getProductId(),
           billableUsageAggregate.getAggregateKey().getOrgId(),
           billableUsageAggregate.getAggregateKey().getSla(),
-          billableUsageAggregate.getAggregateKey().getMetricId(),
+          billableUsageAggregate.getAggregateKey().getUsage(),
           billableUsageAggregate.getAggregateKey().getBillingAccountId());
     } catch (DefaultApiException e) {
       var optionalErrors = Optional.ofNullable(e.getErrors());
@@ -236,14 +254,10 @@ public class BillableUsageAggregateConsumer {
         if (isRecentlyTerminatedError) {
           throw new SubscriptionRecentlyTerminatedException(e);
         }
-        var isSubscriptionCannotBeDeterminedError =
-            optionalErrors.get().getErrors().stream()
-                .anyMatch(error -> ("SUBSCRIPTIONS1006").equals(error.getCode()));
-        if (isSubscriptionCannotBeDeterminedError) {
-          throw new SubscriptionCanNotBeDeterminedException(e);
-        }
       }
-
+      if (Status.NOT_FOUND.getStatusCode() == e.getResponse().getStatus()) {
+        throw new SubscriptionCanNotBeDeterminedException(e);
+      }
       throw new AzureUsageContextLookupException(e);
     } catch (ProcessingException | ApiException e) {
       throw new AzureUsageContextLookupException(e);
@@ -279,8 +293,7 @@ public class BillableUsageAggregateConsumer {
     return metric;
   }
 
-  private BillableUsage billableUsageFromAggregateKey(
-      BillableUsageAggregateKey key, OffsetDateTime snapshotDate) {
+  private BillableUsage billableUsageFromAggregateKey(BillableUsageAggregateKey key, String uuid) {
     var billableUsage = new BillableUsage();
     billableUsage.setUsage(UsageEnum.fromValue(key.getUsage()));
     billableUsage.setBillingAccountId(key.getBillingAccountId());
@@ -289,7 +302,7 @@ public class BillableUsageAggregateConsumer {
     billableUsage.setProductId(key.getProductId());
     billableUsage.setMetricId(key.getMetricId());
     billableUsage.setSla(SlaEnum.fromValue(key.getSla()));
-    billableUsage.setSnapshotDate(snapshotDate);
+    billableUsage.setUuid(UUID.fromString(uuid));
     return billableUsage;
   }
 }

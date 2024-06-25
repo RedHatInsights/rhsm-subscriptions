@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+  <changeSet id="202405160950-01" author="jcarvaja" dbms="postgresql">
+    <comment>
+      Add subscription_capacity_view that aggregates all the capacities by sku
+    </comment>
+    <dropView viewName="subscription_capacity_view" />
+    <createView
+            replaceIfExists="true"
+            viewName="subscription_capacity_view">
+        <![CDATA[with active_subscriptions as
+                        (
+                          select subscription_id, MAX(start_date) as start_date
+                          from "subscription"
+                          where start_date <= now() and (end_date is null or end_date >= now())
+                          group by subscription_id
+                        )
+                 select s.subscription_id,
+                        s.subscription_number,
+                        s.sku,
+                        o.has_unlimited_usage,
+                        o.product_name,
+                        coalesce(o.sla, '') as service_level,
+                        coalesce(o."usage", '') as "usage",
+                        s.org_id,
+                        s.billing_provider,
+                        s.billing_provider_id,
+                        s.billing_account_id,
+                        s.start_date,
+                        s.end_date,
+                        jsonb_agg(jsonb_build_object('metric_id',sm.metric_id,'value', sm.value, 'measurement_type', sm.measurement_type)) as metrics,
+                        spt.product_tag,
+                        s.quantity as quantity
+                 from active_subscriptions a
+                 inner join "subscription" s on a.subscription_id=s.subscription_id and a.start_date=s.start_date
+                 inner join offering o on s.sku=o.sku
+                 inner join sku_product_tag spt on s.sku = spt.sku
+                 left join subscription_measurements sm on s.subscription_id = sm.subscription_id
+                 group by s.subscription_id, s.subscription_number, s.sku, o.has_unlimited_usage, o.product_name, o.sla, o."usage" , s.org_id, s.billing_provider, s.billing_provider_id, s.billing_account_id, spt.product_tag,s.quantity,s.start_date,s.end_date
+        ]]>
+    </createView>
+    <rollback>
+      <createView
+              replaceIfExists="true"
+              viewName="subscription_capacity_view">
+        <![CDATA[select s.subscription_id,
+               s.subscription_number,
+               s.sku,
+               o.product_name,
+               coalesce(o.sla, '') as service_level,
+               coalesce(o."usage", '') as "usage",
+               s.org_id,
+               s.billing_provider,
+               s.billing_account_id,
+               s.start_date,
+               s.end_date,
+               jsonb_agg(jsonb_build_object('metric_id',sm.metric_id,'value', sm.value, 'measurement_type', sm.measurement_type)) as metrics,
+               spt.product_tag,
+               s.quantity as quantity
+        from (select org_id,
+                     subscription_id,
+                     subscription_number,
+                     sku,
+                     billing_provider,
+                     billing_account_id,
+                     start_date,
+                     end_date,
+                     quantity,
+                     row_number() over (partition by subscription_id order by start_date asc) as duplicated_sub_id
+              from "subscription") s
+        inner join offering o on s.sku=o.sku
+        inner join sku_product_tag spt on s.sku = spt.sku
+        left join subscription_measurements sm on s.subscription_id = sm.subscription_id
+        where s.start_date <= now() and (s.end_date is null or s.end_date >= now()) and duplicated_sub_id=1
+        group by s.subscription_id, s.subscription_number, s.sku, o.product_name, o.sla, o."usage" , s.org_id, s.billing_provider, s.billing_account_id, spt.product_tag,s.quantity,s.start_date,s.end_date
+        order by s.subscription_id asc
+        ]]>
+      </createView>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202405160950-02" author="jcarvaja" dbms="hsqldb">
+    <comment>
+      Add subscription_capacity_view that aggregates all the capacities by sku (test version)
+    </comment>
+    <dropView viewName="subscription_capacity_view" />
+    <createView
+            replaceIfExists="true"
+            viewName="subscription_capacity_view">
+        <![CDATA[select s.subscription_id,
+                        s.subscription_number,
+                        s.sku,
+                        o.has_unlimited_usage,
+                        o.product_name,
+                        o.sla as service_level,
+                        o.usage,
+                        s.org_id,
+                        s.billing_provider,
+                        s.billing_provider_id,
+                        s.billing_account_id,
+                        s.start_date,
+                        s.end_date,
+                        CONCAT('[{"metric_id":"', sm.metric_id, '","value":',sm.value, '","measurement_type":',sm.measurement_type , '}]') as metrics,
+                        spt.product_tag,
+                        s.quantity as quantity
+                 from subscription s
+                 inner join offering o on s.sku=o.sku
+                 inner join sku_product_tag spt on s.sku = spt.sku
+                 left join subscription_measurements sm on s.subscription_id = sm.subscription_id and s.start_date=sm.start_date
+                 where s.start_date <= now() and (s.end_date is null or s.end_date >= now())
+                 group by s.subscription_id, s.subscription_number, s.sku, o.has_unlimited_usage, o.product_name, o.sla, o.usage , s.org_id, s.billing_provider, s.billing_provider_id, s.billing_account_id, spt.product_tag,s.quantity, sm.metric_id, sm.value, sm.measurement_type, s.start_date, s.end_date
+                 order by s.subscription_id asc
+      ]]>
+    </createView>
+    <rollback>
+      <createView
+              replaceIfExists="true"
+              viewName="subscription_capacity_view">
+        <![CDATA[select s.subscription_id,
+                        s.subscription_number,
+                        s.sku,
+                        o.product_name,
+                        o.sla as service_level,
+                        o.usage,
+                        s.org_id,
+                        s.billing_provider,
+                        s.billing_account_id,
+                        s.start_date,
+                        s.end_date,
+                        CONCAT('[{"metric_id":"', sm.metric_id, '","value":',sm.value, '","measurement_type":',sm.measurement_type , '}]') as metrics,
+                        spt.product_tag,
+                        s.quantity as quantity
+                 from subscription s
+                 inner join offering o on s.sku=o.sku
+                 inner join sku_product_tag spt on s.sku = spt.sku
+                 left join subscription_measurements sm on s.subscription_id = sm.subscription_id and s.start_date=sm.start_date
+                 where s.start_date <= now() and (s.end_date is null or s.end_date >= now())
+                 group by s.subscription_id, s.subscription_number, s.sku, o.product_name, o.sla, o.usage , s.org_id, s.billing_provider, s.billing_account_id, spt.product_tag,s.quantity, sm.metric_id, sm.value, sm.measurement_type, s.start_date, s.end_date
+                 order by s.subscription_id asc
+      ]]>
+      </createView>
+    </rollback>
+  </changeSet>
+</databaseChangeLog>

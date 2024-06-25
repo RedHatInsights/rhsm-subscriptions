@@ -54,6 +54,7 @@ public class CsvExportFileWriter implements ExportFileWriter {
                   handleIOException(item, request, e);
                 }
               });
+      writer.close();
     } catch (IOException e) {
       log.error("Error writing the CSV payload for request {}", request.getExportRequestUUID(), e);
       throw new ExportServiceException(

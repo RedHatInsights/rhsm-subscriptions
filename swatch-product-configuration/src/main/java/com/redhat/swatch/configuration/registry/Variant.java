@@ -26,6 +26,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.*;
 
@@ -45,20 +47,24 @@ public class Variant {
   @ToString.Exclude @EqualsAndHashCode.Exclude @NotNull private SubscriptionDefinition subscription;
 
   @NotNull @NotEmpty private String tag; // required
+  @Builder.Default private Boolean isMigrationProduct = false;
 
   @Builder.Default private List<String> roles = new ArrayList<>();
   @Builder.Default private List<String> engineeringIds = new ArrayList<>();
   @Builder.Default private List<String> productNames = new ArrayList<>();
+  @Builder.Default private List<String> additionalTags = new ArrayList<>();
 
-  public static Optional<Variant> findByRole(String role) {
-    return SubscriptionDefinition.lookupSubscriptionByRole(role)
-        .flatMap(
-            subscription ->
-                subscription.getVariants().stream()
-                    .filter(
-                        variant ->
-                            !variant.getRoles().isEmpty() && variant.getRoles().contains(role))
-                    .findFirst());
+  protected static Set<Variant> findByRole(
+      String role, boolean isMigrationProduct, boolean isMetered) {
+    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
+        .flatMap(subscription -> subscription.getVariants().stream())
+        .filter(
+            variant ->
+                !variant.getRoles().isEmpty()
+                    && variant.getRoles().contains(role)
+                    && Objects.equals(variant.isMigrationProduct, isMigrationProduct)
+                    && Objects.equals(variant.subscription.isPaygEligible(), isMetered))
+        .collect(Collectors.toSet());
   }
 
   /**
@@ -67,13 +73,20 @@ public class Variant {
    * return the Variant that's designated to be the default in the Subscription.defaults property
    *
    * @param engProductId
+   * @param isMigrationProduct
    * @return Optional<Variant>
    */
-  public static Optional<Variant> findByEngProductId(String engProductId) {
+  protected static Set<Variant> findByEngProductId(
+      String engProductId, boolean isMigrationProduct, boolean isMetered) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .flatMap(subscription -> subscription.getVariants().stream())
-        .filter(variant -> variant.getEngineeringIds().contains(engProductId))
-        .findFirst();
+        .filter(
+            variant ->
+                !variant.getEngineeringIds().isEmpty()
+                    && variant.getEngineeringIds().contains(engProductId)
+                    && Objects.equals(variant.isMigrationProduct, isMigrationProduct)
+                    && Objects.equals(variant.subscription.isPaygEligible(), isMetered))
+        .collect(Collectors.toSet());
   }
 
   public static Optional<Variant> findByTag(String defaultVariantTag) {
@@ -93,11 +106,16 @@ public class Variant {
                 subscriptionDefinition.getSupportedGranularity().contains(granularity));
   }
 
-  public static Stream<Variant> filterVariantsByProductName(String productName) {
+  protected static Stream<Variant> filterVariantsByProductName(
+      String productName, boolean isMigrationProduct, boolean isMetered) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .map(SubscriptionDefinition::getVariants)
         .flatMap(List::stream)
-        .filter(v -> v.getProductNames().contains(productName));
+        .filter(
+            v ->
+                v.getProductNames().contains(productName)
+                    && Objects.equals(v.isMigrationProduct, isMigrationProduct)
+                    && Objects.equals(v.subscription.isPaygEligible(), isMetered));
   }
 
   public static boolean isValidProductTag(String productId) {

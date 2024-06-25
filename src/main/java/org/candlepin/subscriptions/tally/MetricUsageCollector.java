@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.tally;
 
 import com.google.common.collect.MoreCollectors;
 import com.google.common.collect.Sets;
+import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
@@ -36,6 +37,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.commons.lang3.StringUtils;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostRepository;
@@ -164,12 +166,19 @@ public class MetricUsageCollector {
         .forEach(
             measurement -> {
               if (!isUsageAlreadyApplied(instance, event)) {
-                instance.setMeasurement(measurement.getUom(), measurement.getValue());
+                instance.setMeasurement(
+                    !StringUtils.isEmpty(measurement.getMetricId())
+                        ? measurement.getMetricId()
+                        : measurement.getUom(),
+                    measurement.getValue());
               }
               // Every event should be applied to the totals.
               instance.addToMonthlyTotal(
                   event.getTimestamp(),
-                  MetricId.fromString(measurement.getUom()),
+                  MetricId.fromString(
+                      !StringUtils.isEmpty(measurement.getMetricId())
+                          ? measurement.getMetricId()
+                          : measurement.getUom()),
                   measurement.getValue());
             });
     addBucketsFromEvent(instance, event);
@@ -366,12 +375,18 @@ public class MetricUsageCollector {
           event
               .getMeasurements()
               .forEach(
-                  m ->
+                  measurement -> {
+                    var metricId =
+                        MetricId.fromString(
+                            Optional.ofNullable(measurement.getMetricId())
+                                .orElse(measurement.getUom()));
+                    if (Variant.getMetricsForTag(productId).stream()
+                        .map(Metric::getId)
+                        .anyMatch(definedMetricId -> definedMetricId.equals(metricId.toString()))) {
                       calc.addUsage(
-                          usageKey,
-                          hardwareMeasurementType,
-                          MetricId.fromString(m.getUom()),
-                          m.getValue()));
+                          usageKey, hardwareMeasurementType, metricId, measurement.getValue());
+                    }
+                  });
         });
   }
 
@@ -430,8 +445,9 @@ public class MetricUsageCollector {
 
     // remain old logic
     String role = Optional.ofNullable(event.getRole()).map(Object::toString).orElse(null);
-    return SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
-        role, event.getProductIds(), null);
+
+    return SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
+        role, event.getProductIds(), null, true, event.getConversion());
   }
 
   private Set<String> getBillingAccountIds(String billingAcctId) {

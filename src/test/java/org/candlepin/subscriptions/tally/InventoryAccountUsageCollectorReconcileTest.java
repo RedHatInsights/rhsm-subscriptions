@@ -26,7 +26,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -82,10 +85,10 @@ class InventoryAccountUsageCollectorReconcileTest {
 
     when(props.getHbiReconciliationFlushInterval()).thenReturn(2L);
     when(collator.collateData(any(), anyInt(), captor.capture())).thenReturn(5);
-    when(factNormalizer.normalize(any(), any())).thenReturn(new NormalizedFacts());
+    when(factNormalizer.normalize(any(), any(), anyBoolean())).thenReturn(new NormalizedFacts());
 
     var collector = setupCollector();
-    collector.reconcileSystemDataWithHbi("org123", Set.of("RHEL"));
+    collector.reconcileSystemDataWithHbi("org123", Set.of("RHEL for x86"));
     // at this point, the iterations haven't actually run, since we're mocking the collator.
     var processor = captor.getValue();
     var mockHbiSystem = InventoryHostFactTestHelper.createHypervisor("org", 1);
@@ -99,21 +102,39 @@ class InventoryAccountUsageCollectorReconcileTest {
 
   @Test
   void testCreate() {
-    when(factNormalizer.normalize(any(), any())).thenReturn(new NormalizedFacts());
+    when(factNormalizer.normalize(any(), any(), anyBoolean())).thenReturn(new NormalizedFacts());
     var collector = setupCollector();
     InventoryHostFacts hbiSystem = InventoryHostFactTestHelper.createHypervisor("org123", 1);
     collector.reconcileHbiSystemWithSwatchSystem(
-        hbiSystem, null, new OrgHostsData("org123"), Set.of("RHEL"), new ArrayList<>());
+        hbiSystem, null, new OrgHostsData("org123"), Set.of("RHEL for x86"), new ArrayList<>());
     verify(entityManager).persist(any());
   }
 
   @Test
   void testUpdate() {
-    when(factNormalizer.normalize(any(), any())).thenReturn(new NormalizedFacts());
+    when(factNormalizer.normalize(any(), any(), anyBoolean())).thenReturn(new NormalizedFacts());
 
     var collector = setupCollector();
     InventoryHostFacts hbiSystem = InventoryHostFactTestHelper.createHypervisor("org123", 1);
     Host swatchSystem = new Host();
+    collector.reconcileHbiSystemWithSwatchSystem(
+        hbiSystem,
+        swatchSystem,
+        new OrgHostsData("org123"),
+        Set.of("RHEL for x86"),
+        new ArrayList<>());
+    verify(entityManager).merge(swatchSystem);
+  }
+
+  @Test
+  void testIsMeteredUpdate() {
+    when(factNormalizer.normalize(any(), any(), eq(Boolean.TRUE)))
+        .thenReturn(new NormalizedFacts());
+
+    var collector = setupCollector();
+    InventoryHostFacts hbiSystem = InventoryHostFactTestHelper.createHypervisor("org123", 1);
+    Host swatchSystem = mock(Host.class);
+    when(swatchSystem.isMetered()).thenReturn(true);
     collector.reconcileHbiSystemWithSwatchSystem(
         hbiSystem, swatchSystem, new OrgHostsData("org123"), Set.of("RHEL"), new ArrayList<>());
     verify(entityManager).merge(swatchSystem);
@@ -124,18 +145,18 @@ class InventoryAccountUsageCollectorReconcileTest {
     var collector = setupCollector();
     Host swatchSystem = new Host();
     collector.reconcileHbiSystemWithSwatchSystem(
-        null, swatchSystem, new OrgHostsData("org123"), Set.of("RHEL"), new ArrayList<>());
+        null, swatchSystem, new OrgHostsData("org123"), Set.of("RHEL for x86"), new ArrayList<>());
     verify(hostRepository).delete(swatchSystem);
   }
 
   @Test
   void testGuestBucketsTracked() {
     NormalizedFacts guestFacts = new NormalizedFacts();
-    guestFacts.setProducts(Set.of("RHEL"));
+    guestFacts.setProducts(Set.of("RHEL for x86"));
     guestFacts.setHardwareType(HostHardwareType.VIRTUALIZED);
     guestFacts.setHypervisorUnknown(false);
     guestFacts.setHypervisorUuid("123e4567-e89b-12d3-a456-426614174000");
-    when(factNormalizer.normalize(any(), any())).thenReturn(guestFacts);
+    when(factNormalizer.normalize(any(), any(), anyBoolean())).thenReturn(guestFacts);
 
     var collector = setupCollector();
     var hbiSystem = new InventoryHostFacts();
@@ -147,11 +168,11 @@ class InventoryAccountUsageCollectorReconcileTest {
         "123e4567-e89b-12d3-a456-426614174000", "123e4567-e89b-12d3-a456-426614174000");
     orgHostsData.addHypervisorFacts("123e4567-e89b-12d3-a456-426614174000", new NormalizedFacts());
     collector.reconcileHbiSystemWithSwatchSystem(
-        hbiSystem, swatchSystem, orgHostsData, Set.of("RHEL"), new ArrayList<>());
+        hbiSystem, swatchSystem, orgHostsData, Set.of("RHEL for x86"), new ArrayList<>());
     HostTallyBucket expectedEmptyBucket =
         new HostTallyBucket(
             swatchSystem,
-            "RHEL",
+            "RHEL for x86",
             ServiceLevel.EMPTY,
             Usage.EMPTY,
             BillingProvider._ANY,
@@ -163,7 +184,7 @@ class InventoryAccountUsageCollectorReconcileTest {
     HostTallyBucket expectedAnyBucket =
         new HostTallyBucket(
             swatchSystem,
-            "RHEL",
+            "RHEL for x86",
             ServiceLevel._ANY,
             Usage._ANY,
             BillingProvider._ANY,
@@ -180,11 +201,11 @@ class InventoryAccountUsageCollectorReconcileTest {
   @Test
   void testHypervisorBucketsApplied() {
     NormalizedFacts hypervisorFacts = new NormalizedFacts();
-    hypervisorFacts.setProducts(Set.of("RHEL"));
+    hypervisorFacts.setProducts(Set.of("RHEL for x86"));
     hypervisorFacts.setHardwareType(HostHardwareType.PHYSICAL);
     hypervisorFacts.setSockets(4);
     hypervisorFacts.setCores(8);
-    when(factNormalizer.normalize(any(), any())).thenReturn(hypervisorFacts);
+    when(factNormalizer.normalize(any(), any(), anyBoolean())).thenReturn(hypervisorFacts);
 
     var collector = setupCollector();
     var hbiSystem = new InventoryHostFacts();
@@ -210,7 +231,7 @@ class InventoryAccountUsageCollectorReconcileTest {
         "123e4567-e89b-12d3-a456-426614174000", "123e4567-e89b-12d3-a456-426614174000");
     orgHostsData.addHypervisorFacts("123e4567-e89b-12d3-a456-426614174000", new NormalizedFacts());
     collector.reconcileHbiSystemWithSwatchSystem(
-        hbiSystem, swatchSystem, orgHostsData, Set.of("RHEL"), new ArrayList<>());
+        hbiSystem, swatchSystem, orgHostsData, Set.of("RHEL for x86"), new ArrayList<>());
     assertThat(expectedBucket, in(swatchSystem.getBuckets()));
     assertEquals(4, expectedBucket.getSockets());
     assertEquals(8, expectedBucket.getCores());
@@ -222,7 +243,7 @@ class InventoryAccountUsageCollectorReconcileTest {
     hypervisorFacts.setHardwareType(HostHardwareType.PHYSICAL);
     hypervisorFacts.setSockets(4);
     hypervisorFacts.setCores(8);
-    when(factNormalizer.normalize(any(), any())).thenReturn(hypervisorFacts);
+    when(factNormalizer.normalize(any(), any(), anyBoolean())).thenReturn(hypervisorFacts);
 
     var collector = setupCollector();
     var hbiSystem = new InventoryHostFacts();
@@ -230,10 +251,14 @@ class InventoryAccountUsageCollectorReconcileTest {
     Host swatchSystem = new Host();
     OrgHostsData orgHostsData = new OrgHostsData("org123");
     Host placeholder = new Host();
+
+    String staleProductTag = "stale";
+    Set<String> applicableProductTags = Set.of("RHEL for x86", staleProductTag);
+
     HostTallyBucket staleBucket =
         new HostTallyBucket(
             swatchSystem,
-            "stale",
+            staleProductTag,
             ServiceLevel._ANY,
             Usage._ANY,
             BillingProvider._ANY,
@@ -247,28 +272,29 @@ class InventoryAccountUsageCollectorReconcileTest {
     orgHostsData.addHostMapping(
         "123e4567-e89b-12d3-a456-426614174000", "123e4567-e89b-12d3-a456-426614174000");
     orgHostsData.addHypervisorFacts("123e4567-e89b-12d3-a456-426614174000", new NormalizedFacts());
+
     collector.reconcileHbiSystemWithSwatchSystem(
-        hbiSystem, swatchSystem, orgHostsData, Set.of("RHEL"), new ArrayList<>());
+        hbiSystem, swatchSystem, orgHostsData, applicableProductTags, new ArrayList<>());
     assertTrue(swatchSystem.getBuckets().isEmpty());
   }
 
   @Test
   void testNonHypervisorBucketsApplied() {
     NormalizedFacts normalizedFacts = new NormalizedFacts();
-    normalizedFacts.setProducts(Set.of("RHEL"));
+    normalizedFacts.setProducts(Set.of("RHEL for x86"));
     normalizedFacts.setHardwareType(HostHardwareType.PHYSICAL);
-    when(factNormalizer.normalize(any(), any())).thenReturn(normalizedFacts);
+    when(factNormalizer.normalize(any(), any(), anyBoolean())).thenReturn(normalizedFacts);
 
     var collector = setupCollector();
     var hbiSystem = new InventoryHostFacts();
     Host swatchSystem = new Host();
     OrgHostsData orgHostsData = new OrgHostsData("org123");
     collector.reconcileHbiSystemWithSwatchSystem(
-        hbiSystem, swatchSystem, orgHostsData, Set.of("RHEL"), new ArrayList<>());
+        hbiSystem, swatchSystem, orgHostsData, Set.of("RHEL for x86"), new ArrayList<>());
     HostTallyBucket expectedEmptyBucket =
         new HostTallyBucket(
             swatchSystem,
-            "RHEL",
+            "RHEL for x86",
             ServiceLevel.EMPTY,
             Usage.EMPTY,
             BillingProvider._ANY,
@@ -280,7 +306,7 @@ class InventoryAccountUsageCollectorReconcileTest {
     HostTallyBucket expectedAnyBucket =
         new HostTallyBucket(
             swatchSystem,
-            "RHEL",
+            "RHEL for x86",
             ServiceLevel._ANY,
             Usage._ANY,
             BillingProvider._ANY,
@@ -297,18 +323,23 @@ class InventoryAccountUsageCollectorReconcileTest {
   void testNonHypervisorStaleBucketsRemoved() {
     NormalizedFacts normalizedFacts = new NormalizedFacts();
     normalizedFacts.setHardwareType(HostHardwareType.PHYSICAL);
-    when(factNormalizer.normalize(any(), any())).thenReturn(normalizedFacts);
+    when(factNormalizer.normalize(any(), any(), anyBoolean())).thenReturn(normalizedFacts);
 
     var collector = setupCollector();
     var hbiSystem = new InventoryHostFacts();
     Host swatchSystem = new Host();
     OrgHostsData orgHostsData = new OrgHostsData("org123");
+
+    String staleProductTag = "stale";
+    Set<String> applicableProductTags = Set.of("RHEL for x86", staleProductTag);
+
     collector.reconcileHbiSystemWithSwatchSystem(
-        hbiSystem, swatchSystem, orgHostsData, Set.of("RHEL"), new ArrayList<>());
+        hbiSystem, swatchSystem, orgHostsData, applicableProductTags, new ArrayList<>());
+
     HostTallyBucket staleBucket =
         new HostTallyBucket(
             swatchSystem,
-            "stale",
+            staleProductTag,
             ServiceLevel._ANY,
             Usage._ANY,
             BillingProvider._ANY,
@@ -319,7 +350,7 @@ class InventoryAccountUsageCollectorReconcileTest {
             HardwareMeasurementType.PHYSICAL);
     swatchSystem.addBucket(staleBucket);
     collector.reconcileHbiSystemWithSwatchSystem(
-        hbiSystem, swatchSystem, orgHostsData, Set.of("RHEL"), new ArrayList<>());
+        hbiSystem, swatchSystem, orgHostsData, applicableProductTags, new ArrayList<>());
     assertTrue(swatchSystem.getBuckets().isEmpty());
   }
 
@@ -327,18 +358,22 @@ class InventoryAccountUsageCollectorReconcileTest {
   void testSystemNoLongerMarkedAsHypervisorHasHypervisorBucketsRemoved() {
     NormalizedFacts normalizedFacts = new NormalizedFacts();
     normalizedFacts.setHardwareType(HostHardwareType.PHYSICAL);
-    when(factNormalizer.normalize(any(), any())).thenReturn(normalizedFacts);
+    when(factNormalizer.normalize(any(), any(), anyBoolean())).thenReturn(normalizedFacts);
 
     var collector = setupCollector();
     var hbiSystem = new InventoryHostFacts();
     Host swatchSystem = new Host();
     OrgHostsData orgHostsData = new OrgHostsData("org123");
+
+    String staleProductTag = "stale";
+    Set<String> applicableProductTags = Set.of("RHEL for x86", staleProductTag);
+
     collector.reconcileHbiSystemWithSwatchSystem(
-        hbiSystem, swatchSystem, orgHostsData, Set.of("RHEL"), new ArrayList<>());
+        hbiSystem, swatchSystem, orgHostsData, applicableProductTags, new ArrayList<>());
     HostTallyBucket staleBucket =
         new HostTallyBucket(
             swatchSystem,
-            "stale",
+            staleProductTag,
             ServiceLevel._ANY,
             Usage._ANY,
             BillingProvider._ANY,
@@ -349,7 +384,7 @@ class InventoryAccountUsageCollectorReconcileTest {
             HardwareMeasurementType.HYPERVISOR);
     swatchSystem.addBucket(staleBucket);
     collector.reconcileHbiSystemWithSwatchSystem(
-        hbiSystem, swatchSystem, orgHostsData, Set.of("RHEL"), new ArrayList<>());
+        hbiSystem, swatchSystem, orgHostsData, applicableProductTags, new ArrayList<>());
     assertTrue(swatchSystem.getBuckets().isEmpty());
   }
 
@@ -360,7 +395,7 @@ class InventoryAccountUsageCollectorReconcileTest {
     hypervisorFacts.setHardwareType(HostHardwareType.PHYSICAL);
     hypervisorFacts.setSockets(4);
     hypervisorFacts.setCores(8);
-    when(factNormalizer.normalize(any(), any())).thenReturn(hypervisorFacts);
+    when(factNormalizer.normalize(any(), any(), anyBoolean())).thenReturn(hypervisorFacts);
 
     var collector = setupCollector();
     var hbiSystem = new InventoryHostFacts();
@@ -387,11 +422,11 @@ class InventoryAccountUsageCollectorReconcileTest {
         "123e4567-e89b-12d3-a456-426614174000", "123e4567-e89b-12d3-a456-426614174000");
     orgHostsData.addHypervisorFacts("123e4567-e89b-12d3-a456-426614174000", new NormalizedFacts());
     collector.reconcileHbiSystemWithSwatchSystem(
-        hbiSystem, hypervisorCopy0, orgHostsData, Set.of("RHEL"), new ArrayList<>());
+        hbiSystem, hypervisorCopy0, orgHostsData, Set.of("RHEL for x86"), new ArrayList<>());
     assertTrue(orgHostsData.hypervisorHostMap().isEmpty(), "placeholder was not consumed");
     assertFalse(hypervisorCopy0.getBuckets().isEmpty(), "no buckets added to hypervisor");
     collector.reconcileHbiSystemWithSwatchSystem(
-        hbiSystem, hypervisorCopy1, orgHostsData, Set.of("RHEL"), new ArrayList<>());
+        hbiSystem, hypervisorCopy1, orgHostsData, Set.of("RHEL for x86"), new ArrayList<>());
     assertTrue(hypervisorCopy1.getBuckets().isEmpty(), "buckets added to hypervisor copy");
   }
 }

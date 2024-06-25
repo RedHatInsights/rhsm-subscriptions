@@ -24,6 +24,7 @@ import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
@@ -115,7 +116,7 @@ public class OfferingEntity implements Serializable {
 
   /** Product tags related to a sku */
   @Builder.Default
-  @ElementCollection
+  @ElementCollection(fetch = FetchType.EAGER)
   @CollectionTable(name = "sku_product_tag", joinColumns = @JoinColumn(name = "sku"))
   @Column(name = "product_tag")
   private Set<String> productTags = new HashSet<>();
@@ -159,6 +160,9 @@ public class OfferingEntity implements Serializable {
   @Column(name = "metered")
   private Boolean metered;
 
+  @Column(name = "special_pricing_flag")
+  private String specialPricingFlag;
+
   public Boolean getHasUnlimitedUsage() {
     return hasUnlimitedUsage;
   }
@@ -186,7 +190,8 @@ public class OfferingEntity implements Serializable {
         && Objects.equals(hasUnlimitedUsage, offering.hasUnlimitedUsage)
         && Objects.equals(derivedSku, offering.derivedSku)
         && Objects.equals(metered, offering.metered)
-        && Objects.equals(productTags, offering.productTags);
+        && Objects.equals(productTags, offering.productTags)
+        && Objects.equals(specialPricingFlag, offering.specialPricingFlag);
   }
 
   @Override
@@ -206,6 +211,7 @@ public class OfferingEntity implements Serializable {
         hasUnlimitedUsage,
         derivedSku,
         metered,
-        productTags);
+        productTags,
+        specialPricingFlag);
   }
 }

@@ -300,6 +300,8 @@ components:
         provider_type:
           type: string
           enum: [ aws, azure, gcp ]
+        conversions_activity:
+          type: boolean
     DefaultResponse:
       properties:
         status:

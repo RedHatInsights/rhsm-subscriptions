@@ -31,7 +31,6 @@ dependencies {
     implementation 'io.quarkus:quarkus-smallrye-openapi'
     implementation("io.quarkus:quarkus-liquibase")
     implementation("io.quarkus:quarkus-jdbc-postgresql")
-    implementation("io.quarkus:quarkus-hibernate-orm-panache")
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-amqp'
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka'
     implementation 'io.smallrye.reactive:smallrye-reactive-messaging-in-memory'
@@ -40,6 +39,7 @@ dependencies {
     implementation project(':swatch-common-config-workaround')
     implementation project(':swatch-common-kafka')
     implementation project(':swatch-common-resteasy')
+    implementation project(':swatch-common-panache')
     implementation project(':clients:quarkus:rbac-client')
     implementation project(':clients:quarkus:product-client')
     implementation project(':swatch-product-configuration')

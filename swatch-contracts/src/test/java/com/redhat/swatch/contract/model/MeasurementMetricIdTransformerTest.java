@@ -30,28 +30,22 @@ import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.Inte
 import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
+import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionMeasurementEntity;
-import com.redhat.swatch.contract.repository.SubscriptionProductIdEntity;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class MeasurementMetricIdTransformerTest {
   @Mock InternalSubscriptionsApi internalSubscriptionsApi;
-  private MeasurementMetricIdTransformer transformer;
-
-  @BeforeEach
-  void setup() {
-    transformer = new MeasurementMetricIdTransformer();
-    transformer.internalSubscriptionsApi = internalSubscriptionsApi;
-  }
+  @InjectMocks MeasurementMetricIdTransformer transformer;
 
   @Test
   void testMapsAwsDimensionToMetricId() throws ApiException, RuntimeException {
@@ -64,9 +58,8 @@ class MeasurementMetricIdTransformerTest {
     measurement2.setValue(100.0);
     subscription.addSubscriptionMeasurement(measurement1);
     subscription.addSubscriptionMeasurement(measurement2);
-    SubscriptionProductIdEntity productId = new SubscriptionProductIdEntity();
-    productId.setProductId("hello");
-    subscription.addSubscriptionProductId(productId);
+    subscription.setOffering(new OfferingEntity());
+    subscription.getOffering().setProductTags(Set.of("hello"));
 
     when(internalSubscriptionsApi.getMetrics("hello"))
         .thenReturn(
@@ -89,7 +82,7 @@ class MeasurementMetricIdTransformerTest {
   }
 
   @Test
-  void testNoMappingAttemptedForMissingBillingProvider() throws ApiException, RuntimeException {
+  void testNoMappingAttemptedForMissingBillingProvider() throws RuntimeException {
     var subscription = new SubscriptionEntity();
     var measurement1 = new SubscriptionMeasurementEntity();
     measurement1.setMetricId("bar");
@@ -97,9 +90,8 @@ class MeasurementMetricIdTransformerTest {
     measurement2.setMetricId("foo");
     subscription.addSubscriptionMeasurement(measurement1);
     subscription.addSubscriptionMeasurement(measurement2);
-    SubscriptionProductIdEntity productId = new SubscriptionProductIdEntity();
-    productId.setProductId("hello");
-    subscription.addSubscriptionProductId(productId);
+    subscription.setOffering(new OfferingEntity());
+    subscription.getOffering().setProductTags(Set.of("hello"));
 
     transformer.translateContractMetricIdsToSubscriptionMetricIds(subscription);
     verifyNoInteractions(internalSubscriptionsApi);
@@ -125,9 +117,8 @@ class MeasurementMetricIdTransformerTest {
     subscription.addSubscriptionMeasurement(unknown);
     subscription.addSubscriptionMeasurement(cores);
 
-    SubscriptionProductIdEntity productId = new SubscriptionProductIdEntity();
-    productId.setProductId("rosa");
-    subscription.addSubscriptionProductId(productId);
+    subscription.setOffering(new OfferingEntity());
+    subscription.getOffering().setProductTags(Set.of("rosa"));
 
     when(internalSubscriptionsApi.getMetrics("rosa"))
         .thenReturn(
@@ -167,7 +158,8 @@ class MeasurementMetricIdTransformerTest {
     contract.addMetric(wrongDimension);
     contract.addMetric(unknown);
 
-    contract.setProductId("rosa");
+    contract.setOffering(new OfferingEntity());
+    contract.getOffering().setProductTags(Set.of("rosa"));
 
     when(internalSubscriptionsApi.getMetrics("rosa"))
         .thenReturn(

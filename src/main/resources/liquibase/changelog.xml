@@ -148,9 +148,20 @@
     <include file="/liquibase/202401080920-remove-uniqueness-constraint-on-events.xml" />
     <include file="/liquibase/202401161133-update-instance-view-to-include-last-applied-event-record-date.xml" />
     <include file="/liquibase/202403260830-update-instance-view-to-include-inventory-id.xml" />
+    <include file="/liquibase/202404080930-add-special_pricing_flag-to-offering.xml" />
     <include file="/liquibase/202404051233-fix-bad-tally-state-and-event-data.xml"/>
     <include file="/liquibase/202404121601-add-new-columns-billable-usage-remittance.xml"/>
     <include file="/liquibase/202404240830-update-instance-view-to-aggregate-metrics.xml"/>
     <include file="/liquibase/202404301614-terminate-duplicate-azure-subscriptions.xml"/>
+    <include file="/liquibase/202405080950-copy-uom-to-metric-id-events-table.xml"/>
+    <include file="/liquibase/202405061230-remove-duplicated-hosts.xml"/>
+    <include file="/liquibase/202405151547-update-events-azure-billable-account-id.xml"/>
+    <include file="/liquibase/202405160950-add-subscription-capacity-view.xml"/>
+    <include file="/liquibase/202406030700-drop-unique-constraints-in-hosts.xml"/>
+    <include file="/liquibase/202405081325-delete-duplicate-aws-subscriptions.xml"/>
+    <include file="/liquibase/202405300830-split-instance-view-to-payg-and-non-payg-versions.xml"/>
+    <include file="/liquibase/202406130700-add-index-in-sku-product-tag.xml"/>
+    <include file="/liquibase/202406051539-remove-erroneously-duplicated-subscriptions.xml"/>
+    <include file="/liquibase/202406120950-update-subscription-capacity-view.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

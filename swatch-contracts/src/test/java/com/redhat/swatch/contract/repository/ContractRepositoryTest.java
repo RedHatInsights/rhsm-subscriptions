@@ -30,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import com.redhat.swatch.contract.QuarkusTransactionalTest;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -48,6 +49,7 @@ class ContractRepositoryTest {
   final OffsetDateTime END = OffsetDateTime.parse("2024-01-01T00:00Z");
 
   @Inject ContractRepository contractRepository;
+  @Inject OfferingRepository offeringRepository;
 
   ContractEntity actualContract1;
 
@@ -65,8 +67,7 @@ class ContractRepositoryTest {
     actualContract1.setStartDate(BEGIN);
     actualContract1.setEndDate(END);
     actualContract1.setBillingProvider("test123");
-    actualContract1.setSku("BAS123");
-    actualContract1.setProductId("BASILISK123");
+    actualContract1.setOffering(offering("BAS123", "BASILISK123"));
     actualContract1.setOrgId("org123");
     actualContract1.setLastUpdated(OffsetDateTime.now());
     actualContract1.setSubscriptionNumber("test");
@@ -92,8 +93,7 @@ class ContractRepositoryTest {
     actualContract2.setStartDate(BEGIN);
     actualContract2.setEndDate(null);
     actualContract2.setBillingProvider("test456");
-    actualContract2.setSku("BAS456");
-    actualContract2.setProductId("BASILISK456");
+    actualContract2.setOffering(offering("BAS456", "BASILISK456"));
     actualContract2.setOrgId("org456");
     actualContract2.setLastUpdated(OffsetDateTime.now());
     actualContract2.setSubscriptionNumber("test");
@@ -164,14 +164,14 @@ class ContractRepositoryTest {
   void whenGetContractWithCorrectParam_thenReturnAllContracts() {
     var spec =
         ContractEntity.metricIdEquals("instance-hours")
-            .and(ContractEntity.productIdEquals("BASILISK123"));
+            .and(ContractEntity.productTagEquals("BASILISK123"));
     List<ContractEntity> allContracts = contractRepository.getContracts(spec);
     assertEquals(allContracts.get(0).getUuid(), contractList.get(0).getUuid());
   }
 
   @Test
   void whenGetContractWithMissingMetricIdParam_thenReturnAllContracts() {
-    var spec = ContractEntity.productIdEquals("BASILISK123");
+    var spec = ContractEntity.productTagEquals("BASILISK123");
     List<ContractEntity> allContracts = contractRepository.getContracts(spec);
     assertEquals(allContracts.get(0).getUuid(), contractList.get(0).getUuid());
   }
@@ -233,5 +233,14 @@ class ContractRepositoryTest {
   @AfterAll
   public void cleanupTestData() {
     contractRepository.deleteAll();
+  }
+
+  @Transactional
+  OfferingEntity offering(String sku, String productTag) {
+    OfferingEntity offeringEntity = new OfferingEntity();
+    offeringEntity.setSku(sku);
+    offeringEntity.setProductTags(Set.of(productTag));
+    offeringRepository.persist(offeringEntity);
+    return offeringEntity;
   }
 }

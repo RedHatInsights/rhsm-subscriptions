@@ -14,8 +14,8 @@ buildscript {
 
 ext {
     quarkusVersion='3.9.2'
-    springVersion='3.2.5'
-    resteasyVersion='6.2.8.Final'
+    springVersion='3.3.1'
+    resteasyVersion='6.2.9.Final'
     libraries = [:]
     plugins = []
 }
@@ -25,7 +25,7 @@ ext {
 ext.plugins = [
         "com.adarshr:gradle-test-logger-plugin:4.0.0",
         "com.diffplug.spotless:spotless-plugin-gradle:6.25.0",
-        "com.netflix.nebula:nebula-release-plugin:19.0.6",
+        "com.netflix.nebula:nebula-release-plugin:19.0.9",
         "io.quarkus:gradle-application-plugin:${quarkusVersion}",
         // swagger-parser manually upgraded for compatibility with snakeyaml 2.0
         // see https://github.com/OpenAPITools/openapi-generator/issues/15876
@@ -33,7 +33,7 @@ ext.plugins = [
         "org.jsonschema2pojo:jsonschema2pojo-gradle-plugin:1.2.1",
         "org.liquibase:liquibase-gradle-plugin:2.2.2",
         "org.kordamp.gradle:jandex-gradle-plugin:1.1.0",
-        "org.openapitools:openapi-generator-gradle-plugin:7.5.0",
+        "org.openapitools:openapi-generator-gradle-plugin:7.6.0",
         "org.springframework.boot:spring-boot-gradle-plugin:${springVersion}",
         "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:4.4.1.3373",
 ]
@@ -44,15 +44,15 @@ libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-de
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:3.0.0"
-libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.25.46"
+libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.26.7"
 libraries["clowder-quarkus-config-source"] = "com.redhat.cloud.common:clowder-quarkus-config-source:2.6.1"
-libraries["guava"] = "com.google.guava:guava:33.2.0-jre"
+libraries["guava"] = "com.google.guava:guava:33.2.1-jre"
 libraries["commons-lang3"] = "org.apache.commons:commons-lang3:3.14.0"
 libraries["hamcrest-all"] = "org.hamcrest:hamcrest-all:1.3"
 libraries["jackson-databind-nullable"] = "org.openapitools:jackson-databind-nullable:0.2.6"
 libraries["janino"] = "org.codehaus.janino:janino:3.1.12"
 libraries["jakarta-ws-rs"] = "jakarta.ws.rs:jakarta.ws.rs-api:4.0.0"
-libraries["jgit"] = "org.eclipse.jgit:org.eclipse.jgit:6.9.0.202403050737-r"
+libraries["jgit"] = "org.eclipse.jgit:org.eclipse.jgit:6.10.0.202406032230-r"
 libraries["jsr305"] = "com.google.code.findbugs:jsr305:3.0.2"
 libraries["junit-jupiter"] = "org.junit.jupiter:junit-jupiter:5.10.2"
 libraries["lombok"] = "org.projectlombok:lombok:1.18.32"
@@ -61,25 +61,27 @@ libraries["mapstruct"] = "org.mapstruct:mapstruct:1.5.5.Final"
 libraries["mapstruct-processor"] = "org.mapstruct:mapstruct-processor:1.5.5.Final"
 libraries["event-schemas"] = "com.redhat.cloud.event:event-schemas:1.4.11"
 // overridden to address CVE-2023-44487
-libraries["netty-codec-http2"] = "io.netty:netty-codec-http2:4.1.109.Final"
+libraries["netty-codec-http2"] = "io.netty:netty-codec-http2:4.1.111.Final"
 libraries["quarkus-logging-logback"] = "io.quarkiverse.logging.logback:quarkus-logging-logback:1.1.2"
 libraries["quarkus-logging-splunk"] = "io.quarkiverse.logging.splunk:quarkus-logging-splunk:3.1.3"
 libraries["resilience4j-spring-boot2"] = "io.github.resilience4j:resilience4j-spring-boot2:2.2.0"
 libraries["resteasy-jackson2-provider"] = "org.jboss.resteasy:resteasy-jackson2-provider:${resteasyVersion}"
 libraries["jackson-annotations"] = "com.fasterxml.jackson.core:jackson-annotations:2.17.1"
-libraries["jakarta-validation-api"] = "jakarta.validation:jakarta.validation-api:3.0.2"
+libraries["jakarta-validation-api"] = "jakarta.validation:jakarta.validation-api:3.1.0"
 libraries["resteasy-client"] = "org.jboss.resteasy:resteasy-client:${resteasyVersion}"
 libraries["resteasy-multipart-provider"] = "org.jboss.resteasy:resteasy-multipart-provider:${resteasyVersion}"
 libraries["resteasy-spring-boot-starter"] = "org.jboss.resteasy:resteasy-servlet-spring-boot-starter:6.1.1.Final"
 libraries["resteasy-validator-provider"] = "org.jboss.resteasy:resteasy-validator-provider:${resteasyVersion}"
 libraries["splunk-library-javalogging"] = "com.splunk.logging:splunk-library-javalogging:1.11.8"
 libraries["swagger-annotations"] = "io.swagger:swagger-annotations:1.6.14"
-libraries["swagger-ui"] = "org.webjars:swagger-ui:5.17.2"
+libraries["swagger-ui"] = "org.webjars:swagger-ui:5.17.14"
 libraries["webjars-locator"] = "org.webjars:webjars-locator:0.52"
 libraries["wiremock"] = "com.github.tomakehurst:wiremock-standalone:3.0.1"
 libraries["awaitility"] = "org.awaitility:awaitility:4.2.1"
-libraries["splunk-otel-agent"] = 'com.splunk:splunk-otel-javaagent:1.32.0'
-libraries["testcontainers-postgresql"] = 'org.testcontainers:postgresql:1.19.7'
+libraries["splunk-otel-agent"] = 'com.splunk:splunk-otel-javaagent:1.32.2'
+libraries["testcontainers-postgresql"] = 'org.testcontainers:postgresql:1.19.8'
 libraries["kafka-streams-test-utils"] = "org.apache.kafka:kafka-streams-test-utils:3.7.0"
 libraries["slf4j-api"] = "org.slf4j:slf4j-api:2.0.13"
 libraries["snakeyaml"] = "org.yaml:snakeyaml:2.2"
+libraries["unleash-spring-boot-starter"] = "io.getunleash:springboot-unleash-starter:1.1.0"
+libraries["unleash-quarkus"] = "io.quarkiverse.unleash:quarkus-unleash:1.6.0"

@@ -34,13 +34,14 @@ import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.export.ExportSubscriptionConfiguration;
 import org.candlepin.subscriptions.inventory.db.InventoryDataSourceConfiguration;
-import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.EnabledOrgsRequest;
 import org.candlepin.subscriptions.json.EnabledOrgsResponse;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.product.ProductConfiguration;
-import org.candlepin.subscriptions.tally.billing.BillingProducerConfiguration;
+import org.candlepin.subscriptions.tally.billing.BillableUsageConfiguration;
+import org.candlepin.subscriptions.tally.contracts.ContractsConfiguration;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
+import org.candlepin.subscriptions.tally.facts.ProductNormalizer;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.queue.TaskConsumer;
 import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
@@ -91,7 +92,8 @@ import org.springframework.util.backoff.FixedBackOff;
 @Import({
   TallyTaskQueueConfiguration.class,
   TaskConsumerConfiguration.class,
-  BillingProducerConfiguration.class,
+  BillableUsageConfiguration.class,
+  ContractsConfiguration.class,
   InventoryDataSourceConfiguration.class,
   ProductConfiguration.class,
   ExportSubscriptionConfiguration.class
@@ -119,8 +121,10 @@ public class TallyWorkerConfiguration {
 
   @Bean
   public FactNormalizer factNormalizer(
-      ApplicationProperties applicationProperties, ApplicationClock clock) {
-    return new FactNormalizer(applicationProperties, clock);
+      ApplicationProperties applicationProperties,
+      ApplicationClock clock,
+      ProductNormalizer productNormalizer) {
+    return new FactNormalizer(applicationProperties, clock, productNormalizer);
   }
 
   @Bean(name = "collectorRetryTemplate")
@@ -302,13 +306,6 @@ public class TallyWorkerConfiguration {
   }
 
   @Bean
-  @Qualifier("billableUsageDeadLetterTopicProperties")
-  @ConfigurationProperties(prefix = "rhsm-subscriptions.billable-usage-dead-letter.incoming")
-  public TaskQueueProperties billableUsageDeadLetterTopicProperties() {
-    return new TaskQueueProperties();
-  }
-
-  @Bean
   @Qualifier(ENABLED_ORGS_TOPIC_PROPERTIES_BEAN)
   @ConfigurationProperties(prefix = "rhsm-subscriptions.enabled-orgs.incoming")
   public TaskQueueProperties enabledOrgsTopicProperties() {
@@ -361,60 +358,5 @@ public class TallyWorkerConfiguration {
     // hack to track the Kafka consumers, so SeekableKafkaConsumer can commit when needed
     factory.getContainerProperties().setConsumerRebalanceListener(registry);
     return factory;
-  }
-
-  @Bean
-  public JsonDeserializer<BillableUsage> billableUsageJsonDeserializer(ObjectMapper objectMapper) {
-    return new JsonDeserializer<>(BillableUsage.class, objectMapper, false);
-  }
-
-  @Bean
-  @Qualifier("billableUsageDeadLetterConsumerFactory")
-  ConsumerFactory<String, BillableUsage> billableUsageDeadLetterConsumerFactory(
-      JsonDeserializer<BillableUsage> jsonDeserializer,
-      KafkaProperties kafkaProperties,
-      @Qualifier("billableUsageDeadLetterTopicProperties")
-          TaskQueueProperties taskQueueProperties) {
-    var props = kafkaProperties.buildConsumerProperties(null);
-    props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, taskQueueProperties.getMaxPollRecords());
-    var factory =
-        new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), jsonDeserializer);
-    factory.setValueDeserializer(jsonDeserializer);
-    return factory;
-  }
-
-  @Bean
-  ConcurrentKafkaListenerContainerFactory<String, BillableUsage>
-      kafkaBillableUsageDeadLetterListenerContainerFactory(
-          @Qualifier("billableUsageDeadLetterConsumerFactory")
-              ConsumerFactory<String, BillableUsage> consumerFactory,
-          KafkaProperties kafkaProperties,
-          KafkaConsumerRegistry registry) {
-
-    var factory = new ConcurrentKafkaListenerContainerFactory<String, BillableUsage>();
-    factory.setConsumerFactory(consumerFactory);
-    factory.setBatchListener(true);
-    // Concurrency should be set to the number of partitions for the target topic.
-    factory.setConcurrency(kafkaProperties.getListener().getConcurrency());
-    if (kafkaProperties.getListener().getIdleEventInterval() != null) {
-      factory
-          .getContainerProperties()
-          .setIdleEventInterval(kafkaProperties.getListener().getIdleEventInterval().toMillis());
-    }
-    // hack to track the Kafka consumers, so SeekableKafkaConsumer can commit when needed
-    factory.getContainerProperties().setConsumerRebalanceListener(registry);
-    return factory;
-  }
-
-  @Bean(name = "purgeRemittancesJobExecutor")
-  public Executor getPurgeRemittancesJobExecutor() {
-    ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-    executor.setThreadNamePrefix("purge-remittances-");
-    // Ensure that we can only have one task running.
-    executor.setCorePoolSize(1);
-    executor.setMaxPoolSize(1);
-    executor.setQueueCapacity(0);
-    executor.initialize();
-    return executor;
   }
 }

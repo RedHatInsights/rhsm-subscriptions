@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.db.model;
 
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
@@ -162,6 +163,25 @@ public class Host implements Serializable {
     this.subscriptionManagerId = subManId;
   }
 
+  public boolean isMetered() {
+    boolean metered = false;
+    Set<HostTallyBucket> bucketSet = this.getBuckets();
+    if (bucketSet == null || bucketSet.isEmpty()) {
+      return false;
+    }
+    for (HostTallyBucket bucket : bucketSet) {
+      if (bucket.getKey() != null) {
+        Optional<SubscriptionDefinition> subscriptionDefinition =
+            SubscriptionDefinition.lookupSubscriptionByTag(bucket.getKey().getProductId());
+        metered =
+            metered
+                || subscriptionDefinition.isPresent()
+                    && subscriptionDefinition.get().isPaygEligible();
+      }
+    }
+    return metered;
+  }
+
   public Double getMeasurement(String metricId) {
     return measurements.get(MetricIdUtils.toUpperCaseFormatted(metricId));
   }
@@ -220,18 +240,18 @@ public class Host implements Serializable {
   }
 
   public Double getMonthlyTotal(String monthId, MetricId metricId) {
-    var key = new InstanceMonthlyTotalKey(monthId, metricId.getValue());
+    var key = new InstanceMonthlyTotalKey(monthId, metricId);
     return monthlyTotals.get(key);
   }
 
   public void addToMonthlyTotal(String monthId, MetricId metricId, Double value) {
-    var key = new InstanceMonthlyTotalKey(monthId, metricId.toString());
+    var key = new InstanceMonthlyTotalKey(monthId, metricId);
     Double currentValue = monthlyTotals.getOrDefault(key, 0.0);
     monthlyTotals.put(key, currentValue + value);
   }
 
   public void addToMonthlyTotal(OffsetDateTime timestamp, MetricId metricId, Double value) {
-    var key = new InstanceMonthlyTotalKey(timestamp, metricId.toString());
+    var key = new InstanceMonthlyTotalKey(timestamp, metricId);
     Double currentValue = monthlyTotals.getOrDefault(key, 0.0);
     monthlyTotals.put(key, currentValue + value);
   }

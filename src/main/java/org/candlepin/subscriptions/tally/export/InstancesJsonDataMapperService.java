@@ -22,13 +22,10 @@ package org.candlepin.subscriptions.tally.export;
 
 import static org.candlepin.subscriptions.resource.InstancesResource.getCategoryByMeasurementType;
 import static org.candlepin.subscriptions.resource.InstancesResource.getCloudProviderByMeasurementType;
-import static org.candlepin.subscriptions.resource.InstancesResource.isPayg;
-import static org.candlepin.subscriptions.tally.export.InstancesDataExporterService.BEGINNING;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -37,7 +34,6 @@ import java.util.Set;
 import lombok.AllArgsConstructor;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.Host;
-import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.TallyInstanceView;
 import org.candlepin.subscriptions.export.DataMapperService;
 import org.candlepin.subscriptions.export.ExportServiceRequest;
@@ -79,13 +75,13 @@ public class InstancesJsonDataMapperService implements DataMapperService<TallyIn
     instance.setBillingAccountId(item.getHostBillingAccountId());
     instance.setMeasurements(new ArrayList<>());
     var variant = Variant.findByTag(item.getKey().getProductId());
-    boolean isPayg = isPayg(variant);
-    String month = isPayg ? getMonthFromFiltersOrUseNow(request) : null;
     var metrics = MetricIdUtils.getMetricIdsFromConfigForVariant(variant.orElse(null)).toList();
     for (var metric : metrics) {
       instance
           .getMeasurements()
-          .add(toInstanceExportMetric(metric, resolveMetricValue(item, metric, month, isPayg)));
+          .add(
+              toInstanceExportMetric(
+                  metric, Optional.ofNullable(item.getMetricValue(metric)).orElse(0.0)));
     }
 
     instance.setLastSeen(item.getLastSeen());
@@ -144,30 +140,5 @@ public class InstancesJsonDataMapperService implements DataMapperService<TallyIn
 
   private static InstancesExportJsonMetric toInstanceExportMetric(MetricId metric, double value) {
     return new InstancesExportJsonMetric().withMetricId(metric.toString()).withValue(value);
-  }
-
-  private static double resolveMetricValue(
-      TallyInstanceView item, MetricId metricId, String month, boolean isPayg) {
-    if (metricId.equals(MetricIdUtils.getSockets())) {
-      return item.getSockets();
-    } else if (metricId.equals(MetricIdUtils.getCores())) {
-      return item.getCores();
-    } else if (!isPayg && item.getMetrics().containsKey(metricId)) {
-      return item.getMetrics().get(metricId);
-    }
-
-    return Optional.ofNullable(item.getMonthlyTotal(month, metricId)).orElse(0.0);
-  }
-
-  private static String getMonthFromFiltersOrUseNow(ExportServiceRequest request) {
-    OffsetDateTime beginning = OffsetDateTime.now();
-    if (request.getFilters() != null) {
-      Object value = request.getFilters().get(BEGINNING);
-      if (value instanceof String str) {
-        beginning = OffsetDateTime.parse(str);
-      }
-    }
-
-    return InstanceMonthlyTotalKey.formatMonthId(beginning);
   }
 }

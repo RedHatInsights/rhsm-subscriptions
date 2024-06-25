@@ -22,7 +22,6 @@ package com.redhat.swatch.metrics.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.clients.prometheus.api.model.QueryResult;
@@ -76,14 +75,12 @@ class PrometheusMeteringControllerTest {
   private final String expectedClusterId = "C1";
   private final String expectedSla = "Premium";
   private final String expectedUsage = "Production";
-  private final String expectedRole = "ocm";
-  private final String expectedServiceType = "OpenShift Cluster";
   private final String expectedBillingProvider = "red hat";
   private final String expectedBillingAccountId = "mktp-account";
   private final String expectedDisplayName = "display name";
-  private final MetricId expectedMetricId = MetricIdUtils.getCores();
   private final String expectedProductTag = "OpenShift-metrics";
   private final UUID expectedSpanId = UUID.randomUUID();
+
   @Inject PrometheusMeteringController controller;
 
   @Inject MetricProperties metricProperties;
@@ -106,6 +103,324 @@ class PrometheusMeteringControllerTest {
     results.clear();
     queries = new QueryHelper(queryBuilder);
     when(spanGenerator.generate()).thenReturn(expectedSpanId);
+  }
+
+  @Test
+  void testProductLabelAsEngineeringIds() {
+    var productTag = "rhel-for-x86-els-payg";
+    var metricId = "vCPUs";
+    var serviceType = "RHEL System";
+
+    var clusterId = UUID.randomUUID().toString();
+    var billingProvider = "aws";
+    var billingMarketplaceAccount = UUID.randomUUID().toString();
+    var billingMarketplaceInstanceId = UUID.randomUUID().toString();
+    var billingModel = "marketplace";
+    var displayName = "rhel-metering";
+    var externalOrganization = "18078360";
+    var products = "204,317,69";
+    var receive = true;
+    var socketCount = 1;
+    var tenantId = UUID.randomUUID().toString();
+    var is3rdPartyMigrationFlag = true;
+
+    QueryResultDataResultInner dataResult =
+        new QueryResultDataResultInner()
+            .putMetricItem("_id", clusterId)
+            .putMetricItem("support", expectedSla)
+            .putMetricItem("usage", expectedUsage)
+            .putMetricItem("external_organization", externalOrganization)
+            .putMetricItem("billing_marketplace", billingProvider)
+            .putMetricItem("billing_marketplace_account", billingMarketplaceAccount)
+            .putMetricItem("display_name", displayName)
+            .putMetricItem("billing_marketplace_instance_id", billingMarketplaceInstanceId)
+            .putMetricItem("billing_marketplace_model", billingModel)
+            .putMetricItem("product", products)
+            .putMetricItem("receive", String.valueOf(receive))
+            .putMetricItem("socket_count", String.valueOf(socketCount))
+            .putMetricItem("tenant_id", tenantId)
+            .putMetricItem("conversions_success", String.valueOf(is3rdPartyMigrationFlag));
+    ;
+
+    BigDecimal time1 = BigDecimal.valueOf(123456.234);
+    BigDecimal val1 = BigDecimal.valueOf(100L);
+    BigDecimal time2 = BigDecimal.valueOf(222222.222);
+    BigDecimal val2 = BigDecimal.valueOf(120L);
+
+    var timeValueTuples = List.of(List.of(time1, val1), List.of(time2, val2));
+    timeValueTuples.forEach(dataResult::addValuesItem);
+
+    var data =
+        new QueryResult()
+            .status(StatusType.SUCCESS)
+            .data(new QueryResultData().resultType(ResultType.MATRIX).addResultItem(dataResult));
+
+    prometheusServer.stubQueryRange(data);
+
+    OffsetDateTime start = clock.startOfCurrentHour();
+    OffsetDateTime end = start.plusDays(1);
+
+    whenCollectMetrics(externalOrganization, productTag, MetricId.fromString(metricId), start, end);
+
+    var actual = results.received().stream().map(Message::getPayload).toList();
+    assertEquals(
+        List.of(
+            MeteringEventFactory.createMetricEvent(
+                externalOrganization,
+                billingMarketplaceInstanceId,
+                expectedSla,
+                expectedUsage,
+                null,
+                PROMETHEUS, // this would actually be "rhelemeter" set by an env var
+                clock.dateFromUnix(time1).minusSeconds(metricProperties.step()),
+                clock.dateFromUnix(time1),
+                serviceType,
+                billingProvider,
+                billingMarketplaceAccount,
+                MetricId.fromString(metricId),
+                val1.doubleValue(),
+                productTag,
+                expectedSpanId,
+                controller.extractProductIdsFromProductLabel(products),
+                displayName,
+                is3rdPartyMigrationFlag),
+            MeteringEventFactory.createMetricEvent(
+                externalOrganization,
+                billingMarketplaceInstanceId,
+                expectedSla,
+                expectedUsage,
+                null,
+                PROMETHEUS, // this would actually be "rhelemeter" set by an env var
+                clock.dateFromUnix(time2).minusSeconds(metricProperties.step()),
+                clock.dateFromUnix(time2),
+                serviceType,
+                billingProvider,
+                billingMarketplaceAccount,
+                MetricId.fromString(metricId),
+                val2.doubleValue(),
+                productTag,
+                expectedSpanId,
+                controller.extractProductIdsFromProductLabel(products),
+                displayName,
+                is3rdPartyMigrationFlag)),
+        actual);
+  }
+
+  @Test
+  void testProductLabelNonProductIds() {
+    var productTag = "rosa";
+    var metricId = "Instance-hours";
+    var serviceType = "rosa Instance";
+    var clusterId = UUID.randomUUID().toString();
+    var billingProvider = "aws";
+    var billingMarketplaceAccount = UUID.randomUUID().toString();
+    var billingMarketplaceInstanceId = UUID.randomUUID().toString();
+    var billingModel = "marketplace";
+    var displayName = "rhel-metering";
+    var externalOrganization = "18078360";
+    var product = "moa-hostedcontrolplane";
+    var receive = true;
+    var socketCount = 1;
+    var tenantId = UUID.randomUUID().toString();
+    var is3rdPartyMigrationFlag = false;
+
+    QueryResultDataResultInner dataResult =
+        new QueryResultDataResultInner()
+            .putMetricItem("_id", clusterId)
+            .putMetricItem("support", expectedSla)
+            .putMetricItem("usage", expectedUsage)
+            .putMetricItem("external_organization", externalOrganization)
+            .putMetricItem("billing_marketplace", billingProvider)
+            .putMetricItem("billing_marketplace_account", billingMarketplaceAccount)
+            .putMetricItem("display_name", displayName)
+            .putMetricItem("billing_marketplace_instance_id", billingMarketplaceInstanceId)
+            .putMetricItem("billing_marketplace_model", billingModel)
+            .putMetricItem("product", product)
+            .putMetricItem("receive", String.valueOf(receive))
+            .putMetricItem("socket_count", String.valueOf(socketCount))
+            .putMetricItem("tenant_id", tenantId)
+            .putMetricItem("conversions_success", String.valueOf(is3rdPartyMigrationFlag));
+
+    BigDecimal time1 = BigDecimal.valueOf(123456.234);
+    BigDecimal val1 = BigDecimal.valueOf(100L);
+
+    var timeValueTuples = List.of(List.of(time1, val1));
+    timeValueTuples.forEach(dataResult::addValuesItem);
+
+    var data =
+        new QueryResult()
+            .status(StatusType.SUCCESS)
+            .data(new QueryResultData().resultType(ResultType.MATRIX).addResultItem(dataResult));
+
+    prometheusServer.stubQueryRange(data);
+
+    OffsetDateTime start = clock.startOfCurrentHour();
+    OffsetDateTime end = start.plusDays(1);
+
+    whenCollectMetrics(externalOrganization, productTag, MetricId.fromString(metricId), start, end);
+
+    var actual = results.received().stream().map(Message::getPayload).toList();
+    assertEquals(
+        List.of(
+            MeteringEventFactory.createMetricEvent(
+                externalOrganization,
+                clusterId,
+                expectedSla,
+                expectedUsage,
+                product,
+                PROMETHEUS,
+                clock.dateFromUnix(time1).minusSeconds(metricProperties.step()),
+                clock.dateFromUnix(time1),
+                serviceType,
+                billingProvider,
+                billingMarketplaceAccount,
+                MetricId.fromString(metricId),
+                val1.doubleValue(),
+                productTag,
+                expectedSpanId,
+                List.of(),
+                displayName,
+                is3rdPartyMigrationFlag)),
+        actual);
+  }
+
+  @Test
+  void testWhenProductTagNotFound() {
+
+    var clusterId = UUID.randomUUID().toString();
+    var billingProvider = "aws";
+    var billingMarketplaceAccount = UUID.randomUUID().toString();
+    var billingMarketplaceInstanceId = UUID.randomUUID().toString();
+    var billingModel = "marketplace";
+    var displayName = "rhel-metering";
+    var externalOrganization = "18078360";
+    var products = "204,317,69";
+    var receive = true;
+    var socketCount = 1;
+    var tenantId = UUID.randomUUID().toString();
+    var is3rdPartyMigrationFlag = false;
+
+    QueryResultDataResultInner dataResult =
+        new QueryResultDataResultInner()
+            .putMetricItem("_id", clusterId)
+            .putMetricItem("support", expectedSla)
+            .putMetricItem("usage", expectedUsage)
+            .putMetricItem("external_organization", externalOrganization)
+            .putMetricItem("billing_marketplace", billingProvider)
+            .putMetricItem("billing_marketplace_account", billingMarketplaceAccount)
+            .putMetricItem("display_name", displayName)
+            .putMetricItem("billing_marketplace_instance_id", billingMarketplaceInstanceId)
+            .putMetricItem("billing_marketplace_model", billingModel)
+            .putMetricItem("product", products)
+            .putMetricItem("receive", String.valueOf(receive))
+            .putMetricItem("socket_count", String.valueOf(socketCount))
+            .putMetricItem("tenant_id", tenantId)
+            .putMetricItem("conversions_success", String.valueOf(is3rdPartyMigrationFlag));
+    ;
+
+    BigDecimal time1 = BigDecimal.valueOf(123456.234);
+    BigDecimal val1 = BigDecimal.valueOf(100L);
+
+    var timeValueTuples = List.of(List.of(time1, val1));
+    timeValueTuples.forEach(dataResult::addValuesItem);
+
+    var data =
+        new QueryResult()
+            .status(StatusType.SUCCESS)
+            .data(new QueryResultData().resultType(ResultType.MATRIX).addResultItem(dataResult));
+
+    prometheusServer.stubQueryRange(data);
+
+    OffsetDateTime start = clock.startOfCurrentHour();
+    OffsetDateTime end = start.plusDays(1);
+
+    String productTag = "rhel-for-x86-els-payg";
+    whenCollectMetrics(externalOrganization, productTag, MetricId.fromString("vCPUs"), start, end);
+
+    var actual = results.received().stream().map(Message::getPayload).toList();
+    assertEquals(List.of(), actual);
+  }
+
+  @Test
+  void testResourceNameLabelAsRole() {
+
+    var clusterId = UUID.randomUUID().toString();
+    var billingProvider = "aws";
+    var billingMarketplaceAccount = UUID.randomUUID().toString();
+    var billingMarketplaceInstanceId = UUID.randomUUID().toString();
+    var billingModel = "marketplace";
+    var displayName = "rhel-metering";
+    var externalOrganization = "18078360";
+    var resourceName = "addon-open-data-hub";
+    var receive = true;
+    var socketCount = 1;
+    var tenantId = UUID.randomUUID().toString();
+    var is3rdPartyMigrationFlag = false;
+
+    QueryResultDataResultInner dataResult =
+        new QueryResultDataResultInner()
+            .putMetricItem("_id", clusterId)
+            .putMetricItem("support", expectedSla)
+            .putMetricItem("usage", expectedUsage)
+            .putMetricItem("external_organization", externalOrganization)
+            .putMetricItem("billing_marketplace", billingProvider)
+            .putMetricItem("billing_marketplace_account", billingMarketplaceAccount)
+            .putMetricItem("display_name", displayName)
+            .putMetricItem("billing_marketplace_instance_id", billingMarketplaceInstanceId)
+            .putMetricItem("billing_marketplace_model", billingModel)
+            .putMetricItem("resource_name", resourceName)
+            .putMetricItem("receive", String.valueOf(receive))
+            .putMetricItem("socket_count", String.valueOf(socketCount))
+            .putMetricItem("tenant_id", tenantId)
+            .putMetricItem("conversions_success", String.valueOf(is3rdPartyMigrationFlag));
+    ;
+
+    BigDecimal time1 = BigDecimal.valueOf(123456.234);
+    BigDecimal val1 = BigDecimal.valueOf(100L);
+
+    var timeValueTuples = List.of(List.of(time1, val1));
+    timeValueTuples.forEach(dataResult::addValuesItem);
+
+    var data =
+        new QueryResult()
+            .status(StatusType.SUCCESS)
+            .data(new QueryResultData().resultType(ResultType.MATRIX).addResultItem(dataResult));
+
+    prometheusServer.stubQueryRange(data);
+
+    OffsetDateTime start = clock.startOfCurrentHour();
+    OffsetDateTime end = start.plusDays(1);
+
+    String productTag = "rhods";
+    String metricId = "Cores";
+    String serviceType = "Rhods Cluster";
+
+    whenCollectMetrics(externalOrganization, productTag, MetricId.fromString(metricId), start, end);
+
+    var actual = results.received().stream().map(Message::getPayload).toList();
+
+    assertEquals(
+        List.of(
+            MeteringEventFactory.createMetricEvent(
+                externalOrganization,
+                clusterId,
+                expectedSla,
+                expectedUsage,
+                resourceName,
+                PROMETHEUS,
+                clock.dateFromUnix(time1).minusSeconds(metricProperties.step()),
+                clock.dateFromUnix(time1),
+                serviceType,
+                billingProvider,
+                billingMarketplaceAccount,
+                MetricId.fromString(metricId),
+                val1.doubleValue(),
+                productTag,
+                expectedSpanId,
+                List.of(),
+                displayName,
+                is3rdPartyMigrationFlag)),
+        actual);
   }
 
   @ParameterizedTest
@@ -183,280 +498,6 @@ class PrometheusMeteringControllerTest {
     verifyQueryRange(clock.startOfHour(start), end);
   }
 
-  @Test
-  @SuppressWarnings("indentation")
-  void testCollectOpenShiftMetricsWillPersistEvents() {
-    BigDecimal time1 = BigDecimal.valueOf(123456.234);
-    BigDecimal val1 = BigDecimal.valueOf(100L);
-    BigDecimal time2 = BigDecimal.valueOf(222222.222);
-    BigDecimal val2 = BigDecimal.valueOf(120L);
-
-    QueryResult data =
-        buildOpenShiftClusterQueryResult(
-            expectedOrgId,
-            expectedClusterId,
-            expectedSla,
-            expectedUsage,
-            expectedBillingProvider,
-            expectedBillingAccountId,
-            expectedDisplayName,
-            List.of(List.of(time1, val1), List.of(time2, val2)));
-    prometheusServer.stubQueryRange(data);
-
-    OffsetDateTime start = clock.startOfCurrentHour();
-    OffsetDateTime end = start.plusDays(1);
-
-    List<Event> expectedEvents =
-        List.of(
-            MeteringEventFactory.createMetricEvent(
-                expectedOrgId,
-                expectedClusterId,
-                expectedSla,
-                expectedUsage,
-                expectedRole,
-                PROMETHEUS,
-                clock.dateFromUnix(time1).minusSeconds(metricProperties.step()),
-                clock.dateFromUnix(time1),
-                expectedServiceType,
-                expectedBillingProvider,
-                expectedBillingAccountId,
-                expectedMetricId,
-                val1.doubleValue(),
-                expectedProductTag,
-                expectedSpanId,
-                List.of(),
-                expectedDisplayName),
-            MeteringEventFactory.createMetricEvent(
-                expectedOrgId,
-                expectedClusterId,
-                expectedSla,
-                expectedUsage,
-                expectedRole,
-                PROMETHEUS,
-                clock.dateFromUnix(time2).minusSeconds(metricProperties.step()),
-                clock.dateFromUnix(time2),
-                expectedServiceType,
-                expectedBillingProvider,
-                expectedBillingAccountId,
-                expectedMetricId,
-                val2.doubleValue(),
-                expectedProductTag,
-                expectedSpanId,
-                List.of(),
-                expectedDisplayName));
-
-    whenCollectMetrics(start, end);
-
-    assertEquals(expectedEvents.size(), results.received().size());
-    verifyQueryRange(start, end);
-    assertTrue(
-        results.received().stream().map(Message::getPayload).allMatch(expectedEvents::contains));
-  }
-
-  @Test
-  void testVerifyExistingEventsAreUpdatedWhenReportedByPrometheusAndDeletedIfStale() {
-    BigDecimal time1 = BigDecimal.valueOf(123456.234);
-    BigDecimal val1 = BigDecimal.valueOf(100L);
-    BigDecimal time2 = BigDecimal.valueOf(222222.222);
-    BigDecimal val2 = BigDecimal.valueOf(120L);
-
-    QueryResult data =
-        buildOpenShiftClusterQueryResult(
-            expectedOrgId,
-            expectedClusterId,
-            expectedSla,
-            expectedUsage,
-            expectedBillingProvider,
-            expectedBillingAccountId,
-            expectedDisplayName,
-            List.of(List.of(time1, val1), List.of(time2, val2)));
-    prometheusServer.stubQueryRange(data);
-
-    OffsetDateTime start = clock.startOfCurrentHour();
-    OffsetDateTime end = start.plusDays(1);
-
-    Event updatedEvent =
-        MeteringEventFactory.createMetricEvent(
-            expectedOrgId,
-            expectedClusterId,
-            expectedSla,
-            expectedUsage,
-            expectedRole,
-            PROMETHEUS,
-            clock.dateFromUnix(time1).minusSeconds(metricProperties.step()),
-            clock.dateFromUnix(time1),
-            expectedServiceType,
-            expectedBillingProvider,
-            expectedBillingAccountId,
-            expectedMetricId,
-            val1.doubleValue(),
-            expectedProductTag,
-            expectedSpanId,
-            List.of(),
-            expectedDisplayName);
-
-    List<Event> expectedEvents =
-        List.of(
-            updatedEvent,
-            MeteringEventFactory.createMetricEvent(
-                expectedOrgId,
-                expectedClusterId,
-                expectedSla,
-                expectedUsage,
-                expectedRole,
-                PROMETHEUS,
-                clock.dateFromUnix(time2).minusSeconds(metricProperties.step()),
-                clock.dateFromUnix(time2),
-                expectedServiceType,
-                expectedBillingProvider,
-                expectedBillingAccountId,
-                expectedMetricId,
-                val2.doubleValue(),
-                expectedProductTag,
-                expectedSpanId,
-                List.of(),
-                expectedDisplayName));
-
-    whenCollectMetrics(start, end);
-    assertEquals(expectedEvents.size(), results.received().size());
-    verifyQueryRange(start, end);
-    assertTrue(
-        results.received().stream().map(Message::getPayload).allMatch(expectedEvents::contains));
-  }
-
-  @Test
-  void testVerifyConflictingSlaCausesSavesFirstValue() {
-    QueryResultDataResultInner standardResultItem =
-        new QueryResultDataResultInner()
-            .putMetricItem("_id", expectedClusterId)
-            .putMetricItem("support", "Standard")
-            .putMetricItem("usage", "Production")
-            .putMetricItem("role", "osd")
-            .putMetricItem("external_organization", expectedOrgId)
-            .putMetricItem("billing_marketplace", "red hat")
-            .putMetricItem("billing_marketplace_account", expectedBillingAccountId)
-            .addValuesItem(List.of(BigDecimal.valueOf(1616787308L), BigDecimal.valueOf(4.0)));
-    QueryResultDataResultInner premiumResultItem =
-        new QueryResultDataResultInner()
-            .putMetricItem("_id", expectedClusterId)
-            .putMetricItem("support", "Standard")
-            .putMetricItem("usage", "Production")
-            .putMetricItem("role", "osd")
-            .putMetricItem("external_organization", expectedOrgId)
-            .putMetricItem("billing_marketplace", "red hat")
-            .putMetricItem("billing_marketplace_account", expectedBillingAccountId)
-            .addValuesItem(List.of(BigDecimal.valueOf(1616787308L), BigDecimal.valueOf(4.0)));
-    QueryResultData queryResultData =
-        new QueryResultData().addResultItem(standardResultItem).addResultItem(premiumResultItem);
-    QueryResult data = new QueryResult().data(queryResultData).status(StatusType.SUCCESS);
-
-    prometheusServer.stubQueryRange(data);
-
-    OffsetDateTime start = clock.startOfCurrentHour();
-    OffsetDateTime end = clock.endOfHour(start.plusDays(1));
-
-    Event updatedEvent =
-        MeteringEventFactory.createMetricEvent(
-            expectedOrgId,
-            expectedClusterId,
-            "Standard",
-            expectedUsage,
-            expectedRole,
-            PROMETHEUS,
-            clock.dateFromUnix(1616787308L).minusSeconds(metricProperties.step()),
-            clock.dateFromUnix(1616787308L),
-            expectedServiceType,
-            expectedBillingProvider,
-            expectedBillingAccountId,
-            expectedMetricId,
-            4.0,
-            expectedProductTag,
-            expectedSpanId,
-            List.of(),
-            expectedClusterId);
-
-    List<Event> expectedEvents = List.of(updatedEvent);
-    whenCollectMetrics(start, end);
-    assertEquals(expectedEvents.size(), results.received().size());
-
-    verifyQueryRange(start, end);
-    assertTrue(
-        results.received().stream().map(Message::getPayload).allMatch(expectedEvents::contains));
-  }
-
-  @Test
-  @SuppressWarnings("indentation")
-  void testCollectAzureOpenShiftMetricsWillPersistCorrectBillingAccountId() {
-    BigDecimal time1 = BigDecimal.valueOf(123456.234);
-    BigDecimal val1 = BigDecimal.valueOf(100L);
-    BigDecimal time2 = BigDecimal.valueOf(222222.222);
-    BigDecimal val2 = BigDecimal.valueOf(120L);
-    var expectedAzureTenantId = "testTenantId";
-    var expectedAzureSubscriptionId = "testSubscriptionId";
-    var expectedAzureBillingAccountId = "testTenantId;testSubscriptionId";
-
-    QueryResult data =
-        buildAzureOpenShiftClusterQueryResult(
-            expectedOrgId,
-            expectedClusterId,
-            expectedSla,
-            expectedUsage,
-            expectedBillingProvider,
-            expectedAzureTenantId,
-            expectedAzureSubscriptionId,
-            List.of(List.of(time1, val1), List.of(time2, val2)));
-    prometheusServer.stubQueryRange(data);
-
-    OffsetDateTime start = clock.startOfCurrentHour();
-    OffsetDateTime end = start.plusDays(1);
-
-    List<Event> expectedEvents =
-        List.of(
-            MeteringEventFactory.createMetricEvent(
-                expectedOrgId,
-                expectedClusterId,
-                expectedSla,
-                expectedUsage,
-                expectedRole,
-                PROMETHEUS,
-                clock.dateFromUnix(time1).minusSeconds(metricProperties.step()),
-                clock.dateFromUnix(time1),
-                expectedServiceType,
-                expectedBillingProvider,
-                expectedAzureBillingAccountId,
-                expectedMetricId,
-                val1.doubleValue(),
-                expectedProductTag,
-                expectedSpanId,
-                List.of(),
-                expectedClusterId),
-            MeteringEventFactory.createMetricEvent(
-                expectedOrgId,
-                expectedClusterId,
-                expectedSla,
-                expectedUsage,
-                expectedRole,
-                PROMETHEUS,
-                clock.dateFromUnix(time2).minusSeconds(metricProperties.step()),
-                clock.dateFromUnix(time2),
-                expectedServiceType,
-                expectedBillingProvider,
-                expectedAzureBillingAccountId,
-                expectedMetricId,
-                val2.doubleValue(),
-                expectedProductTag,
-                expectedSpanId,
-                List.of(),
-                expectedClusterId));
-
-    whenCollectMetrics(start, end);
-
-    assertEquals(expectedEvents.size(), results.received().size());
-    verifyQueryRange(start, end);
-    assertTrue(
-        results.received().stream().map(Message::getPayload).allMatch(expectedEvents::contains));
-  }
-
   private void whenCollectMetrics(OffsetDateTime start, OffsetDateTime end) {
     whenCollectMetrics(expectedOrgId, start, end);
   }
@@ -464,6 +505,15 @@ class PrometheusMeteringControllerTest {
   private void whenCollectMetrics(String expectedOrgId, OffsetDateTime start, OffsetDateTime end) {
     controller.collectMetrics(
         expectedProductTag, MetricIdUtils.getCores(), expectedOrgId, start, end);
+  }
+
+  private void whenCollectMetrics(
+      String expectedOrgId,
+      String productTag,
+      MetricId metricId,
+      OffsetDateTime start,
+      OffsetDateTime end) {
+    controller.collectMetrics(productTag, metricId, expectedOrgId, start, end);
   }
 
   private void verifyQueryRange(OffsetDateTime start, OffsetDateTime end) {
@@ -492,34 +542,9 @@ class PrometheusMeteringControllerTest {
             .putMetricItem("external_organization", orgId)
             .putMetricItem("billing_marketplace", billingProvider)
             .putMetricItem("billing_marketplace_account", billingAccountId)
-            .putMetricItem("display_name", displayName);
-
-    // NOTE: A tuple is [unix_time,value]
-    timeValueTuples.forEach(dataResult::addValuesItem);
-
-    return new QueryResult()
-        .status(StatusType.SUCCESS)
-        .data(new QueryResultData().resultType(ResultType.MATRIX).addResultItem(dataResult));
-  }
-
-  private QueryResult buildAzureOpenShiftClusterQueryResult(
-      String orgId,
-      String clusterId,
-      String sla,
-      String usage,
-      String billingProvider,
-      String azureTenantId,
-      String azureSubscriptionId,
-      List<List<BigDecimal>> timeValueTuples) {
-    QueryResultDataResultInner dataResult =
-        new QueryResultDataResultInner()
-            .putMetricItem("_id", clusterId)
-            .putMetricItem("support", sla)
-            .putMetricItem("usage", usage)
-            .putMetricItem("external_organization", orgId)
-            .putMetricItem("billing_marketplace", billingProvider)
-            .putMetricItem("azure_tenant_id", azureTenantId)
-            .putMetricItem("azure_subscription_id", azureSubscriptionId);
+            .putMetricItem("display_name", displayName)
+            .putMetricItem("conversions_success", "true")
+            .putMetricItem("product", "204,317,69");
 
     // NOTE: A tuple is [unix_time,value]
     timeValueTuples.forEach(dataResult::addValuesItem);

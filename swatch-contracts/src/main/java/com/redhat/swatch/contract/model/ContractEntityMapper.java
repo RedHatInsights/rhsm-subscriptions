@@ -20,9 +20,11 @@
  */
 package com.redhat.swatch.contract.model;
 
+import static com.redhat.swatch.contract.model.ContractSourcePartnerEnum.isAwsMarketplace;
+import static com.redhat.swatch.contract.model.ContractSourcePartnerEnum.isAzureMarketplace;
+
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.DimensionV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1;
-import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1.SourcePartnerEnum;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerIdentityV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.RhEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.SaasContractV1;
@@ -44,7 +46,8 @@ import org.mapstruct.Named;
 @Mapper(
     componentModel = "cdi",
     collectionMappingStrategy = CollectionMappingStrategy.ADDER_PREFERRED,
-    builder = @Builder(disableBuilder = true))
+    builder = @Builder(disableBuilder = true),
+    uses = {ContractOfferingMapper.class})
 public interface ContractEntityMapper {
 
   @Mapping(
@@ -52,7 +55,7 @@ public interface ContractEntityMapper {
       source = "entitlement.rhEntitlements",
       qualifiedByName = "subscriptionNumber")
   @Mapping(target = "orgId", source = "entitlement.rhAccountId")
-  @Mapping(target = "sku", source = "entitlement.rhEntitlements", qualifiedByName = "sku")
+  @Mapping(target = "offering", source = "entitlement.rhEntitlements", qualifiedByName = "offering")
   @Mapping(target = "startDate", source = "entitlementDates.startDate")
   @Mapping(target = "endDate", source = "entitlementDates.endDate")
   @Mapping(target = "vendorProductCode", source = "entitlement.purchase.vendorProductCode")
@@ -97,22 +100,14 @@ public interface ContractEntityMapper {
             .collect(Collectors.toSet()));
   }
 
-  @Named("sku")
-  default String extractSku(List<RhEntitlementV1> rhEntitlements) {
-    return extractValueFromRhEntitlements(rhEntitlements, RhEntitlementV1::getSku);
-  }
-
   // this method is to properly map value from entitlement partnerIdentities
   // as these fields are populated differently based on the marketplace
   @Named("billingAccountId")
   default String extractBillingAccountId(PartnerIdentityV1 accountId) {
     if (accountId.getCustomerAwsAccountId() != null) {
       return accountId.getCustomerAwsAccountId();
-    } else if (accountId.getAzureTenantId() != null && accountId.getAzureSubscriptionId() != null) {
-      return String.format(
-          "%s;%s", accountId.getAzureTenantId(), accountId.getAzureSubscriptionId());
-    } else if (accountId.getAzureTenantId() != null) {
-      return accountId.getAzureTenantId();
+    } else if (accountId.getAzureSubscriptionId() != null) {
+      return accountId.getAzureSubscriptionId();
     }
     return null;
   }
@@ -121,13 +116,13 @@ public interface ContractEntityMapper {
   @Named("billingProviderId")
   default String extractBillingProviderId(PartnerEntitlementV1 entitlement) {
     var partner = entitlement.getSourcePartner();
-    if (partner == SourcePartnerEnum.AWS_MARKETPLACE) {
+    if (isAwsMarketplace(partner)) {
       return String.format(
           "%s;%s;%s",
           entitlement.getPurchase().getVendorProductCode(),
           entitlement.getPartnerIdentities().getAwsCustomerId(),
           entitlement.getPartnerIdentities().getSellerAccountId());
-    } else if (partner == SourcePartnerEnum.AZURE_MARKETPLACE) {
+    } else if (isAzureMarketplace(partner)) {
       var azurePlanId =
           entitlement.getPurchase().getContracts().stream()
               .map(SaasContractV1::getPlanId)
@@ -143,8 +138,8 @@ public interface ContractEntityMapper {
   }
 
   @Named("billingProvider")
-  default String extractBillingProvider(SourcePartnerEnum sourcePartner) {
-    return ContractSourcePartnerEnum.getByCode(sourcePartner.value());
+  default String extractBillingProvider(String sourcePartner) {
+    return ContractSourcePartnerEnum.getByCode(sourcePartner);
   }
 
   default String extractValueFromRhEntitlements(

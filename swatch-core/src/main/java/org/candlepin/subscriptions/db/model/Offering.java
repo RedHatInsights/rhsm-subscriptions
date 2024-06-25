@@ -66,6 +66,8 @@ import lombok.ToString;
     })
 public class Offering implements Serializable {
 
+  private static final String MIGRATION_OFFERING = "MIGRATION_OFFERING";
+
   /**
    * Unique identifier for the Offering.
    *
@@ -171,6 +173,9 @@ public class Offering implements Serializable {
   @Column(name = "metered")
   private Boolean metered;
 
+  @Column(name = "special_pricing_flag")
+  private String specialPricingFlag;
+
   public boolean isMetered() {
     return metered != null && metered;
   }
@@ -181,6 +186,10 @@ public class Offering implements Serializable {
 
   public List<String> getProductIdsAsStrings() {
     return getProductIds().stream().map(String::valueOf).collect(Collectors.toList());
+  }
+
+  public boolean isMigrationOffering() {
+    return MIGRATION_OFFERING.equals(specialPricingFlag);
   }
 
   @Override
@@ -206,7 +215,8 @@ public class Offering implements Serializable {
         && Objects.equals(hasUnlimitedUsage, offering.hasUnlimitedUsage)
         && Objects.equals(derivedSku, offering.derivedSku)
         && Objects.equals(metered, offering.metered)
-        && Objects.equals(productTags, offering.productTags);
+        && Objects.equals(productTags, offering.productTags)
+        && Objects.equals(specialPricingFlag, offering.specialPricingFlag);
   }
 
   @Override
@@ -226,6 +236,7 @@ public class Offering implements Serializable {
         hasUnlimitedUsage,
         derivedSku,
         metered,
-        productTags);
+        productTags,
+        specialPricingFlag);
   }
 }

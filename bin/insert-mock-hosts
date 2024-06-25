@@ -13,8 +13,8 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
                   subscription_manager_id=None, cores=None, sockets=None, is_guest=None, hypervisor_uuid=None,
                   hardware_type=None, measurement_type=None, num_of_guests=None, last_seen=None, product=None,
                   sla=None, usage=None, is_unmapped_guest=None, is_hypervisor=None, cloud_provider=None,
-                  skip_buckets=False, is_hbi=False, is_marketplace=False, host_type=None, billing_provider=None,
-                  billing_account_id=None, uom=None):
+                  skip_buckets=False, is_hbi=False, is_marketplace=False, conversions_activity=None, host_type=None,
+                  billing_provider=None, billing_account_id=None, uom=None):
     account = account_number or "account123"
     org = org_id or "org123"
     host_id = uuid.uuid4()
@@ -23,6 +23,21 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
 
     if not is_guest:
         hypervisor_uuid = None
+
+
+    system_profile_facts = {
+      'installed_products': convert_to_installed_products(product or '204'),
+      'infrastructure_type': hardware_type or 'PHYSICAL',
+      'cores_per_socket': cores // sockets,
+      'number_of_sockets': sockets,
+      'cloud_provider': cloud_provider,
+      'is_marketplace': is_marketplace,
+      'host_type': host_type,
+      'virtual_host_uuid': str(hypervisor_uuid) if hypervisor_uuid else None,
+    }
+
+    if conversions_activity is not None:
+      system_profile_facts["conversions"] = {"activity": conversions_activity}
 
     if is_hbi:
         host_fields = {
@@ -42,16 +57,7 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
                 'subscription_manager_id': subscription_manager_id or str(uuid.uuid4()),
                 'insights_id': str(insights_id),
             }),
-            'system_profile_facts': json.dumps({
-                'installed_products': [{'id': '72'}],
-                'infrastructure_type': hardware_type or 'PHYSICAL',
-                'cores_per_socket': cores // sockets,
-                'number_of_sockets': sockets,
-                'cloud_provider': cloud_provider,
-                'is_marketplace': is_marketplace,
-                'host_type': host_type,
-                'virtual_host_uuid': str(hypervisor_uuid) if hypervisor_uuid else None,
-            }),
+            'system_profile_facts': json.dumps(system_profile_facts),
             'stale_timestamp': '2030-01-01',
             'reporter': 'rhsm-conduit',
             'groups': '1',
@@ -87,6 +93,10 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
         billing_provider=billing_provider, billing_account_id=billing_account_id)
     return host_fields
 
+def convert_to_installed_products(product_string):
+  product_ids = product_string.split(',')
+  installed_products = [{'id': product_id.strip()} for product_id in product_ids]
+  return installed_products
 
 def db_repr(value):
     if value is None:
@@ -202,7 +212,7 @@ parser.add_argument('--num-accounts', type=int, default=1,
 parser.add_argument('--hypervisor-id',
                     help='Set the hypervisor id for any hypervisors or guests inserted')
 parser.add_argument('--product',
-                    help='Set the product for the inserted hosts')
+                    help='Set the product for the inserted hosts. When using in conjuction with is_hbi, this should be a comma-separated list of engineering ids. Default for hbi is "72".  Default otherwise is "RHEL".')
 parser.add_argument('--sla',
                     help='Set the sla for the inserted hosts')
 parser.add_argument('--usage',
@@ -220,6 +230,9 @@ parser.add_argument('--clear', action='store_true',
                     help='Clear data in the hosts table and related tables')
 parser.add_argument('--marketplace', action='store_true', dest='is_marketplace',
                     help='Set a system as a Marketplace instance')
+parser.add_argument('--conversions-activity',  nargs='?',const=True, default=None, type=lambda x: (str(x).lower() == 'true'), dest='conversions_activity',
+                    help='Indicate a system was third-party converted',
+                    )
 parser.add_argument('--host-type',
                     default=None,
                     help='Set host type of the system to be inserted')
@@ -275,15 +288,15 @@ for i in range(args.num_accounts):
         generate_host(account_number=account, org_id=args.org, hardware_type='VIRTUALIZED', measurement_type='AWS',
                       product=args.product, sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets,
                       is_hbi=args.is_hbi, num_of_guests=args.num_guests,
-                      cloud_provider='AWS', is_marketplace=args.is_marketplace, host_type=args.host_type,
-                      billing_provider=args.billing_provider, billing_account_id=args.billing_account_id,
+                      cloud_provider='AWS', is_marketplace=args.is_marketplace, conversions_activity=args.conversions_activity,
+                      host_type=args.host_type, billing_provider=args.billing_provider, billing_account_id=args.billing_account_id,
                       uom=args.uom)
 
     for i in range(args.num_gcp):
         generate_host(account_number=account, org_id=args.org, hardware_type='VIRTUALIZED', measurement_type='GOOGLE',
                       product=args.product, sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets,
                       is_hbi=args.is_hbi, num_of_guests=args.num_guests,
-                      cloud_provider='GCP', is_marketplace=args.is_marketplace, host_type=args.host_type,
+                      cloud_provider='GCP', is_marketplace=args.is_marketplace, conversions_activity=args.conversions_activity, host_type=args.host_type,
                       billing_provider=args.billing_provider, billing_account_id=args.billing_account_id,
                       uom=args.uom)
 
@@ -291,7 +304,7 @@ for i in range(args.num_accounts):
         generate_host(account_number=account, org_id=args.org, hardware_type='PHYSICAL', measurement_type='PHYSICAL',
                       product=args.product, sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets,
                       is_hbi=args.is_hbi, num_of_guests=args.num_guests,
-                      is_marketplace=args.is_marketplace,
+                      is_marketplace=args.is_marketplace, conversions_activity=args.conversions_activity,
                       host_type=args.host_type,
                       billing_provider=args.billing_provider, billing_account_id=args.billing_account_id,
                       uom=args.uom)
@@ -302,7 +315,7 @@ for i in range(args.num_accounts):
                                    product=args.product,
                                    sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets,
                                    is_hypervisor=True, is_hbi=args.is_hbi,
-                                   is_marketplace=args.is_marketplace,
+                                   is_marketplace=args.is_marketplace, conversions_activity=args.conversions_activity,
                                    host_type=args.host_type,
                                    billing_provider=args.billing_provider, billing_account_id=args.billing_account_id,
                                    uom=args.uom)
@@ -312,7 +325,7 @@ for i in range(args.num_accounts):
                           product=args.product,
                           sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets, is_hypervisor=True,
                           is_hbi=args.is_hbi,
-                          is_marketplace=args.is_marketplace,
+                          is_marketplace=args.is_marketplace, conversions_activity=args.conversions_activity,
                           host_type=args.host_type,
                           billing_provider=args.billing_provider, billing_account_id=args.billing_account_id, uom=args.uom)
 
@@ -334,7 +347,8 @@ for i in range(args.num_accounts):
                       product=args.product, sla=args.sla, usage=args.usage, hypervisor_uuid=hypervisor_uuid,
                       cores=args.cores, sockets=args.sockets, is_unmapped_guest=create_unmapped,
                       skip_buckets=skip_buckets, is_hbi=args.is_hbi,
-                      is_marketplace=args.is_marketplace, host_type=args.host_type,
+                      is_marketplace=args.is_marketplace,  conversions_activity=args.conversions_activity,
+                      host_type=args.host_type,
                       billing_provider=args.billing_provider, billing_account_id=args.billing_account_id,
                       uom=args.uom)
 

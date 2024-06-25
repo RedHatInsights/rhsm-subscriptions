@@ -8,13 +8,114 @@ info:
     name: SWATCH Dev
     url: https://github.com/RedHatInsights/rhsm-subscriptions
 paths:
+  /api/swatch-billable-usage/internal/remittance/accountRemittances:
+    description: 'Operations to get specific account remittances'
+    parameters:
+      - name: productId
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: orgId
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: metricId
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: billingProvider
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: billingAccountId
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: beginning
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: ending
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+    get:
+      operationId: getRemittances
+      summary: "Get all monthly remittances for an account"
+      responses:
+        '200':
+          description: "Found Account Remittances."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountRemittances"
+        '400':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+  /api/swatch-billable-usage/internal/rpc/remittance/reset_billable_usage_remittance:
+    put:
+      description: Reset remittance_pending_value in Billable Usage Remittance table when it matches certain criteria
+      summary: Update billable usage remittance records.
+      operationId: resetBillableUsageRemittance
+      parameters:
+        - in: query
+          name: org_id
+          schema:
+            type: array
+            uniqueItems: true
+            items:
+              $ref: "#/components/schemas/OrgIds"
+          required: true
+          allowEmptyValue: false
+        - name: product_id
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: start
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+            description: "The start date timestamp for remittance pending date."
+        - name: end
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+            description: "The end date timestamp for remittance pending date."
+      responses:
+        '200':
+          description: Updated billable usage remittance for the orgs.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
+        '400':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
   /api/swatch-billable-usage/internal/rpc/topics/flush:
     description: Flush the billable usage aggregation topic to force publish aggregations that are stuck from low traffic.
     put:
       summary: Publishes messages to the billable-usage-aggregation-repartition topic for every partition in order to flush out stuck aggregations.
       operationId: flushBillableUsageAggregationTopic
-      tags:
-        - internalBillableUsage
       responses:
         '200':
           description: Topic successfully flushed.
@@ -24,8 +125,103 @@ paths:
                 $ref: "#/components/schemas/DefaultResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
+  /api/swatch-billable-usage/internal/rpc/remittance/{org_id}:
+    description: Clear remittance usages for a given org ID.
+    delete:
+      operationId: deleteRemittancesAssociatedWithOrg
+      parameters:
+        - in: path
+          name: org_id
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Finished deleting data associated with organization
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
+        '400':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+
+  /api/swatch-billable-usage/internal/rpc/remittance/purge:
+    post:
+      operationId: purgeRemittances
+      summary: 'Purge existing remittances matching the configured retention policy.'
+      responses:
+        '201':
+          description: 'The process for purging remittances was started.'
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
+        '401':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/Unauthorized"
+        '500':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+
+  /api/swatch-billable-usage/internal/rpc/remittance/processRetries:
+    post:
+      operationId: processRetries
+      summary: Trigger retry of reprocessing billable usages
+      description: Reprocess billable usages with as_of parameter AFTER billable_usage_remittance.retry_after column.
+      parameters:
+        - examples:
+            this_century:
+              value: 2000-01-01T00:00Z
+          name: as_of
+          description: Defaults to current timestamp if left empty
+          schema:
+            format: date-time
+            type: string
+          in: query
+          required: false
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
+          description: Accepted request to retry billable usage remittance
 components:
   schemas:
+    AccountRemittances:
+      type: array
+      items:
+        $ref: "#/components/schemas/MonthlyRemittance"
+    MonthlyRemittance:
+      description: Encapsulates all Monthly remittance
+      properties:
+        orgId:
+          type: string
+        productId:
+          type: string
+        metricId:
+          type: string
+        billingProvider:
+          type: string
+        billingAccountId:
+          type: string
+        remittedValue:
+          type: number
+          format: double
+        accumulationPeriod:
+          type: string
+        remittanceDate:
+          type: string
+          format: date-time
+        remittanceStatus:
+          type: string
+    OrgIds:
+      type: string
+      properties:
+        orgIds:
+          type: string
     Error:
       required:
         - status

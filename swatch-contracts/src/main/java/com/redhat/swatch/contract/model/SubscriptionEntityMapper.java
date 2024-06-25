@@ -25,7 +25,6 @@ import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionMeasurementEntity;
-import com.redhat.swatch.contract.repository.SubscriptionProductIdEntity;
 import org.mapstruct.Builder;
 import org.mapstruct.CollectionMappingStrategy;
 import org.mapstruct.Mapper;
@@ -36,14 +35,11 @@ import org.mapstruct.Named;
 @Mapper(
     componentModel = "cdi",
     collectionMappingStrategy = CollectionMappingStrategy.ADDER_PREFERRED,
-    builder = @Builder(disableBuilder = true),
-    uses = {ContractOfferingMapper.class})
+    builder = @Builder(disableBuilder = true))
 public interface SubscriptionEntityMapper {
 
   @Mapping(target = "subscriptionId", ignore = true)
   @Mapping(target = "quantity", constant = "1L")
-  @Mapping(target = "offering", source = ".")
-  @Mapping(target = "subscriptionProductIds", source = ".")
   @Mapping(target = "subscriptionMeasurements", source = "metrics")
   @Mapping(
       target = "billingProvider",
@@ -54,10 +50,6 @@ public interface SubscriptionEntityMapper {
   @Mapping(target = "startDate", ignore = true)
   void mapSubscriptionEntityFromContractEntity(
       @MappingTarget SubscriptionEntity subscription, ContractEntity contract);
-
-  @Mapping(target = "subscription", ignore = true)
-  @Mapping(target = "productId", source = "productId")
-  SubscriptionProductIdEntity contractEntityToSubscriptionProductIdEntity(ContractEntity contract);
 
   @Mapping(target = "subscription", ignore = true)
   @Mapping(target = "measurementType", constant = "PHYSICAL")

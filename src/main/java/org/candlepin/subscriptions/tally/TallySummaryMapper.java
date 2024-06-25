@@ -95,6 +95,7 @@ public class TallySummaryMapper {
 
   private Double getCurrentlyMeasuredTotal(
       TallySnapshot snapshot, TallyMeasurementKey measurementKey) {
+
     return snapshotRepository.sumMeasurementValueForPeriod(
         snapshot.getOrgId(),
         snapshot.getProductId(),
