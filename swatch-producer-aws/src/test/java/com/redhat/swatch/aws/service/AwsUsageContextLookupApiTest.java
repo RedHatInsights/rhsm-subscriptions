@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.aws.processors;
+package com.redhat.swatch.aws.service;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
@@ -39,7 +39,7 @@ import org.junit.jupiter.api.Test;
 @QuarkusTest
 @QuarkusTestResource(value = WireMockResource.class)
 class AwsUsageContextLookupApiTest {
-  @Inject BillableUsageAggregateProcessor processor;
+  @Inject AwsBillableUsageAggregateConsumer consumer;
 
   @Test
   void testParameterOrderGetAwsUsageContext() {
@@ -57,7 +57,7 @@ class AwsUsageContextLookupApiTest {
             "billingAccountId");
     aggregate.setAggregateKey(key);
     try {
-      processor.lookupAwsUsageContext(aggregate);
+      consumer.lookupAwsUsageContext(aggregate);
     } catch (Exception e) {
       // intentionally ignoring the exception
     }
