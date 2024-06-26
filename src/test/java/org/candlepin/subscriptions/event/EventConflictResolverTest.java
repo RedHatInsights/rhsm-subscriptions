@@ -225,6 +225,15 @@ class EventConflictResolverTest {
                 new EventArgument(Map.of("cores", 12.0)))),
         Arguments.of(
             List.of(new EventArgument(Map.of("cores", 10.0, "instance-hours", 2.0))),
+            List.of(new EventArgument(Map.of("cores", 12.0, "instance-hours", 5.0))),
+            List.of(
+                new EventArgument(Map.of("cores", -10.0))
+                    .withAmendmentType(AmendmentType.DEDUCTION),
+                new EventArgument(Map.of("instance-hours", -2.0))
+                    .withAmendmentType(AmendmentType.DEDUCTION),
+                new EventArgument(Map.of("cores", 12.0, "instance-hours", 5.0)))),
+        Arguments.of(
+            List.of(new EventArgument(Map.of("cores", 10.0, "instance-hours", 2.0))),
             List.of(
                 new EventArgument(Map.of("cores", 12.0)),
                 new EventArgument(Map.of("cores", 20.0, "instance-hours", 40.0))),
@@ -351,6 +360,16 @@ class EventConflictResolverTest {
                 new EventArgument(Set.of("T2"), Map.of("cores", -10.0))
                     .withAmendmentType(AmendmentType.DEDUCTION),
                 new EventArgument(Set.of("T1", "T2"), Map.of("cores", 4.0)))),
+        // Derived event is created when a measurement of the incoming event was
+        // already covered by an existing event with a different tag set. In this
+        // case, the incoming event is normalized into derived events with the
+        // appropriate tag.
+        Arguments.of(
+            List.of(new EventArgument(Set.of("T1"), Map.of("cores", 6.0))),
+            List.of(new EventArgument(Set.of("T1", "T2"), Map.of("cores", 6.0))),
+            List.of(
+                new EventArgument(Set.of("T2"), Map.of("cores", 6.0))
+                    .withAmendmentType(AmendmentType.DERIVED))),
         Arguments.of(
             List.of(new EventArgument(Set.of("T1", "T2", "T3"), Map.of("cores", 6.0))),
             List.of(new EventArgument(Set.of("T1"), Map.of("cores", 16.0))),
@@ -425,6 +444,16 @@ class EventConflictResolverTest {
                 new EventArgument(
                     Set.of("T1", "T2"), Map.of("cores", 20.0, "instance-hours", 40.0)))),
         Arguments.of(
+            List.of(new EventArgument(Set.of("T1"), Map.of("cores", 10.0, "instance-hours", 4.0))),
+            List.of(
+                new EventArgument(
+                    Set.of("T1", "T2"), Map.of("cores", 10.0, "instance-hours", 4.0))),
+            List.of(
+                new EventArgument(Set.of("T2"), Map.of("cores", 10.0))
+                    .withAmendmentType(AmendmentType.DERIVED),
+                new EventArgument(Set.of("T2"), Map.of("instance-hours", 4.0))
+                    .withAmendmentType(AmendmentType.DERIVED))),
+        Arguments.of(
             List.of(new EventArgument(Set.of("T1"), Map.of("cores", 10.0, "instance-hours", 20.0))),
             List.of(new EventArgument(Set.of("T1"), Map.of("cores", 20.0, "instance-hours", 40.0))),
             List.of(
@@ -481,7 +510,24 @@ class EventConflictResolverTest {
                     .withAmendmentType(AmendmentType.DEDUCTION),
                 new EventArgument(Set.of("T2"), Map.of("instance-hours", -20.0))
                     .withAmendmentType(AmendmentType.DEDUCTION),
-                new EventArgument(Set.of("T1", "T2"), Map.of("instance-hours", 40.0)))));
+                new EventArgument(Set.of("T1", "T2"), Map.of("instance-hours", 40.0))
+                    .withAmendmentType(AmendmentType.DERIVED))),
+        Arguments.of(
+            List.of(
+                new EventArgument(
+                    Set.of("T1", "T2"), Map.of("cores", 10.0, "instance-hours", 20.0))),
+            List.of(
+                new EventArgument(
+                    Set.of("T1", "T2", "T3"), Map.of("cores", 10.0, "instance-hours", 40.0))),
+            List.of(
+                new EventArgument(Set.of("T1"), Map.of("instance-hours", -20.0))
+                    .withAmendmentType(AmendmentType.DEDUCTION),
+                new EventArgument(Set.of("T2"), Map.of("instance-hours", -20.0))
+                    .withAmendmentType(AmendmentType.DEDUCTION),
+                new EventArgument(Set.of("T1", "T2", "T3"), Map.of("instance-hours", 40.0))
+                    .withAmendmentType(AmendmentType.DERIVED),
+                new EventArgument(Set.of("T3"), Map.of("cores", 10.0))
+                    .withAmendmentType(AmendmentType.DERIVED))));
   }
 
   @ParameterizedTest
