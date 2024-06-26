@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.event;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
+import com.redhat.swatch.configuration.util.ProductTagLookupParams;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -306,24 +307,23 @@ public class EventController {
         log.warn("Product tag {} is invalid.", event.getProductTag().stream().findFirst());
       }
     } else {
-      // Determine whether the product is payg or non-payg, and then add the appropriate tag in
-      // SWATCH-1993.  We are only checking for payg at this time because we only support payg in
-      // this flow, and we don't have a way to distinguish between payg and non-payg through events.
       String role = event.getRole() != null ? event.getRole().toString() : null;
 
-      var includePaygTags = true;
+      var lookupParams =
+          ProductTagLookupParams.builder()
+              .engIds(event.getProductIds())
+              .role(role)
+              .metricIds(
+                  event.getMeasurements().stream()
+                      .map(Measurement::getMetricId)
+                      .map(Object::toString)
+                      .collect(Collectors.toSet()))
+              // Swatch currently considers all Events as being for metered/payg
+              .isPaygEligibleProduct(true)
+              .is3rdPartyMigration(event.getConversion())
+              .build();
 
-      var matchingProductTags =
-          SubscriptionDefinition.getAllProductTags(
-              event.getProductIds(),
-              role,
-              null,
-              event.getMeasurements().stream()
-                  .map(Measurement::getMetricId)
-                  .map(Object::toString)
-                  .collect(Collectors.toSet()),
-              includePaygTags,
-              event.getConversion());
+      var matchingProductTags = SubscriptionDefinition.getAllProductTags(lookupParams);
 
       if (matchingProductTags.isEmpty()) {
         log.warn("Event data doesn't match configured product tags in swatch. event={}", event);

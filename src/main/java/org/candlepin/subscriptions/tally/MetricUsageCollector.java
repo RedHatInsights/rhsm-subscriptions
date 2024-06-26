@@ -27,6 +27,7 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import com.redhat.swatch.configuration.util.ProductTagLookupParams;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -448,8 +449,15 @@ public class MetricUsageCollector {
     // remain old logic
     String role = Optional.ofNullable(event.getRole()).map(Object::toString).orElse(null);
 
-    return SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
-        role, event.getProductIds(), null, true, event.getConversion());
+    var lookupParams =
+        ProductTagLookupParams.builder()
+            .role(role)
+            .engIds(event.getProductIds())
+            .isPaygEligibleProduct(true)
+            .is3rdPartyMigration(event.getConversion())
+            .build();
+
+    return SubscriptionDefinition.getAllProductTags(lookupParams);
   }
 
   private Set<String> getBillingAccountIds(String billingAcctId) {

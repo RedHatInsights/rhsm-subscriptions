@@ -23,6 +23,7 @@ package com.redhat.swatch.configuration.registry;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.redhat.swatch.configuration.util.ProductTagLookupParams;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -249,19 +250,12 @@ class SubscriptionDefinitionTest {
   }
 
   @SuppressWarnings({"linelength", "indentation"})
-  @ParameterizedTest(
-      name =
-          "[engineeringIds: {0}, isMetered: {1}, is3rdPartyConverted {2}] matches product tags {3}")
+  @ParameterizedTest
   @MethodSource("elsAndGeneralRhelCombos")
   void testElsDetectionByEngineeringIds(
-      Set<String> engineeringIds,
-      boolean isMetered,
-      boolean is3rdPartyConverted,
-      Set<String> expectedProductTags) {
+      ProductTagLookupParams params, Set<String> expectedProductTags) {
 
-    var actual =
-        SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
-            null, engineeringIds, null, isMetered, is3rdPartyConverted);
+    var actual = SubscriptionDefinition.getAllProductTags(params);
 
     assertEquals(expectedProductTags, actual);
   }
@@ -275,33 +269,75 @@ class SubscriptionDefinitionTest {
     var els = "204";
 
     return Stream.of(
-        Arguments.of(Set.of(generalRhel), !isMetered, !is3rdPartyConverted, Set.of("RHEL for x86")),
         Arguments.of(
-            Set.of(generalRhel, els),
-            !isMetered,
-            !is3rdPartyConverted,
+            ProductTagLookupParams.builder()
+                .engIds(Set.of(generalRhel))
+                .isPaygEligibleProduct(true)
+                .is3rdPartyMigration(true)
+                .build(),
+            Set.of("RHEL for x86")),
+        Arguments.of(
+            ProductTagLookupParams.builder()
+                .engIds(Set.of(generalRhel, els))
+                .isPaygEligibleProduct(false)
+                .is3rdPartyMigration(false)
+                .build(),
             Set.of("RHEL for x86", "rhel-for-x86-els-unconverted")),
-        Arguments.of(Set.of(generalRhel), !isMetered, is3rdPartyConverted, Set.of()),
         Arguments.of(
-            Set.of(generalRhel, els),
-            !isMetered,
-            is3rdPartyConverted,
+            ProductTagLookupParams.builder()
+                .engIds(Set.of(generalRhel))
+                .isPaygEligibleProduct(false)
+                .is3rdPartyMigration(true)
+                .build(),
+            Set.of()),
+        Arguments.of(
+            ProductTagLookupParams.builder()
+                .engIds(Set.of(generalRhel, els))
+                .isPaygEligibleProduct(false)
+                .is3rdPartyMigration(true)
+                .build(),
             Set.of("rhel-for-x86-els-converted")),
         Arguments.of(
-            Set.of(els), !isMetered, is3rdPartyConverted, Set.of("rhel-for-x86-els-converted")),
-        Arguments.of(Set.of(generalRhel), isMetered, !is3rdPartyConverted, Set.of()),
-        Arguments.of(Set.of(generalRhel), isMetered, is3rdPartyConverted, Set.of()),
+            ProductTagLookupParams.builder()
+                .engIds(Set.of(els))
+                .isPaygEligibleProduct(false)
+                .is3rdPartyMigration(true)
+                .build(),
+            Set.of("rhel-for-x86-els-converted")),
         Arguments.of(
-            Set.of(generalRhel, els),
-            isMetered,
-            is3rdPartyConverted,
+            ProductTagLookupParams.builder()
+                .engIds(Set.of(generalRhel))
+                .isPaygEligibleProduct(true)
+                .is3rdPartyMigration(false)
+                .build(),
+            Set.of()),
+        Arguments.of(
+            ProductTagLookupParams.builder()
+                .engIds(Set.of(generalRhel))
+                .isPaygEligibleProduct(true)
+                .is3rdPartyMigration(true)
+                .build(),
+            Set.of()),
+        Arguments.of(
+            ProductTagLookupParams.builder()
+                .engIds(Set.of(generalRhel, els))
+                .isPaygEligibleProduct(true)
+                .is3rdPartyMigration(true)
+                .build(),
             Set.of("rhel-for-x86-els-payg")),
         Arguments.of(
-            Set.of(generalRhel, els),
-            isMetered,
-            !is3rdPartyConverted,
+            ProductTagLookupParams.builder()
+                .engIds(Set.of(generalRhel, els))
+                .isPaygEligibleProduct(true)
+                .is3rdPartyMigration(false)
+                .build(),
             Set.of("rhel-for-x86-els-payg-addon", "RHEL for x86")),
         Arguments.of(
-            Set.of(els), isMetered, !is3rdPartyConverted, Set.of("rhel-for-x86-els-payg-addon")));
+            ProductTagLookupParams.builder()
+                .engIds(Set.of(els))
+                .isPaygEligibleProduct(true)
+                .is3rdPartyMigration(false)
+                .build(),
+            Set.of("rhel-for-x86-els-payg-addon")));
   }
 }

@@ -21,11 +21,11 @@
 package com.redhat.swatch.configuration.registry;
 
 import com.google.common.collect.MoreCollectors;
+import com.redhat.swatch.configuration.util.ProductTagLookupParams;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -48,8 +48,8 @@ import lombok.extern.slf4j.Slf4j;
 @AllArgsConstructor
 @NoArgsConstructor
 public class SubscriptionDefinition {
-  public static final List<String> ORDERED_GRANULARITY =
-      List.of("HOURLY", "DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY");
+  public static final Set<String> ORDERED_GRANULARITY =
+      Set.of("HOURLY", "DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY");
 
   /**
    * A family of solutions that is logically related, having one or more subscriptions distinguished
@@ -185,63 +185,86 @@ public class SubscriptionDefinition {
         .orElse(Set.of());
   }
 
-  public static Set<String> getAllProductTags(
-      Collection<?> engIds,
-      String role,
-      String productName,
-      Set<String> metricIds,
-      boolean isMetered,
-      boolean is3rdPartyMigration) {
+  public static Set<String> getAllProductTags(ProductTagLookupParams params) {
 
     Predicate<Variant> metricIdsPredicate =
-        metricIds.isEmpty()
+        params.getMetricIds().isEmpty()
             ? variant -> true
             : variant ->
-                metricIds.stream().anyMatch(variant.getSubscription().getMetricIds()::contains);
+                params.getMetricIds().stream()
+                    .anyMatch(variant.getSubscription().getMetricIds()::contains);
 
-    Predicate<Variant> primaryIdentifyingPredicate = variant -> true;
-    if (!isNullOrEmpty(role)) {
-      primaryIdentifyingPredicate = variant -> variant.getRoles().contains(role);
-    } else if (Objects.nonNull(engIds) && !engIds.isEmpty()) {
+    Predicate<Variant> primaryIdentifyingPredicate;
+    if (!isNullOrEmpty(params.getRole())) {
+      primaryIdentifyingPredicate = variant -> variant.getRoles().contains(params.getRole());
+    } else if (Objects.nonNull(params.getEngIds()) && !params.getEngIds().isEmpty()) {
       primaryIdentifyingPredicate =
-          variant -> engIds.stream().anyMatch(variant.getEngineeringIds()::contains);
-    } else if (!isNullOrEmpty(productName)) {
-      primaryIdentifyingPredicate = v -> v.getProductNames().contains(productName);
+          variant -> params.getEngIds().stream().anyMatch(variant.getEngineeringIds()::contains);
+    } else if (!isNullOrEmpty(params.getProductName())) {
+      primaryIdentifyingPredicate = v -> v.getProductNames().contains(params.getProductName());
     } else {
+      primaryIdentifyingPredicate = variant -> true;
       log.warn(
           "Did not send engineering id, role, or product name to filter on when looking up product tags");
     }
 
     Predicate<Variant> meteredPredicate =
-        variant -> variant.getSubscription().isPaygEligible() == isMetered;
+        variant -> variant.getSubscription().isPaygEligible() == params.isPaygEligibleProduct();
 
     Predicate<Variant> conversionPredicate =
-        variant -> variant.getIsMigrationProduct() == is3rdPartyMigration;
+        variant -> variant.getIsMigrationProduct() == params.is3rdPartyMigration();
 
     Set<String> productTags =
-        new HashSet<>(
-            SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
-                .flatMap(subscription -> subscription.getVariants().stream())
-                .filter(primaryIdentifyingPredicate)
-                .filter(metricIdsPredicate)
-                .filter(conversionPredicate)
-                .filter(meteredPredicate)
-                .map(Variant::getTag)
-                .collect(Collectors.toSet()));
+        SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
+            .flatMap(subscription -> subscription.getVariants().stream())
+            .filter(
+                variant -> {
+                  boolean result = primaryIdentifyingPredicate.test(variant);
+                  if (!result) {
+                    System.out.println(
+                        "Variant tag = "
+                            + variant.getTag()
+                            + " filtered out by primaryIdentifyingPredicate");
+                  }
+                  return result;
+                })
+            .filter(
+                variant -> {
+                  boolean result = metricIdsPredicate.test(variant);
+                  if (!result) {
+                    System.out.println(
+                        "Variant tag = "
+                            + variant.getTag()
+                            + " filtered out by metricIdsPredicate");
+                  }
+                  return result;
+                })
+            .filter(
+                variant -> {
+                  boolean result = conversionPredicate.test(variant);
+                  if (!result) {
+                    System.out.println(
+                        "Variant tag = "
+                            + variant.getTag()
+                            + " filtered out by conversionPredicate");
+                  }
+                  return result;
+                })
+            .filter(
+                variant -> {
+                  boolean result = meteredPredicate.test(variant);
+                  if (!result) {
+                    System.out.println(
+                        "Variant tag = " + variant.getTag() + " filtered out by meteredPredicate");
+                  }
+                  return result;
+                })
+            .map(Variant::getTag)
+            .collect(Collectors.toSet());
 
     SubscriptionDefinition.pruneIncludedProducts(productTags);
 
     return productTags;
-  }
-
-  public static Set<String> getAllProductTagsByRoleOrEngIds(
-      String role,
-      Collection<?> engIds,
-      String productName,
-      boolean isMetered,
-      boolean is3rdPartyMigration) {
-
-    return getAllProductTags(engIds, role, productName, Set.of(), isMetered, is3rdPartyMigration);
   }
 
   /**

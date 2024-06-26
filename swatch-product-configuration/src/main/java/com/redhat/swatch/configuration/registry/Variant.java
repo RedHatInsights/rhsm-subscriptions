@@ -22,7 +22,7 @@ package com.redhat.swatch.configuration.registry;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -49,9 +49,9 @@ public class Variant {
   @NotNull @NotEmpty private String tag; // required
   @Builder.Default private Boolean isMigrationProduct = false;
 
-  @Builder.Default private List<String> roles = new ArrayList<>();
-  @Builder.Default private List<String> engineeringIds = new ArrayList<>();
-  @Builder.Default private List<String> productNames = new ArrayList<>();
+  @Builder.Default private Set<String> roles = new HashSet<>();
+  @Builder.Default private Set<String> engineeringIds = new HashSet<>();
+  @Builder.Default private Set<String> productNames = new HashSet<>();
 
   protected static Set<Variant> findByRole(
       String role, boolean isMigrationProduct, boolean isMetered) {
