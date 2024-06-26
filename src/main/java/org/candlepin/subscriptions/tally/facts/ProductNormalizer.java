@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.tally.facts;
 
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import com.redhat.swatch.configuration.util.ProductTagLookupParams;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -37,19 +38,20 @@ public class ProductNormalizer {
   private static final Set<String> APPLICABLE_METRIC_IDS =
       Set.of(MetricIdUtils.getCores().toString(), MetricIdUtils.getSockets().toString());
 
-  private static final boolean INCLUDE_PAYG_TAGS = false;
-
   private Set<String> getSystemProfileProducts(
       InventoryHostFacts hostFacts, boolean is3rdPartyMigrated) {
     Collection<String> systemProfileProductIds = hostFacts.getSystemProfileProductIds();
     if (systemProfileProductIds != null) {
-      return SubscriptionDefinition.getAllProductTags(
-          systemProfileProductIds,
-          null,
-          null,
-          APPLICABLE_METRIC_IDS,
-          INCLUDE_PAYG_TAGS,
-          is3rdPartyMigrated);
+
+      var lookupParams =
+          ProductTagLookupParams.builder()
+              .engIds(systemProfileProductIds)
+              .metricIds(APPLICABLE_METRIC_IDS)
+              .is3rdPartyMigration(is3rdPartyMigrated)
+              .isPaygEligibleProduct(false)
+              .build();
+
+      return SubscriptionDefinition.getAllProductTags(lookupParams);
     }
     return Set.of();
   }
@@ -58,13 +60,16 @@ public class ProductNormalizer {
       InventoryHostFacts hostFacts, boolean is3rdPartyMigrated) {
     String satelliteRole = hostFacts.getSatelliteRole();
     if (satelliteRole != null) {
-      return SubscriptionDefinition.getAllProductTags(
-          Set.of(),
-          satelliteRole,
-          null,
-          APPLICABLE_METRIC_IDS,
-          INCLUDE_PAYG_TAGS,
-          is3rdPartyMigrated);
+
+      var lookupParams =
+          ProductTagLookupParams.builder()
+              .role(satelliteRole)
+              .metricIds(APPLICABLE_METRIC_IDS)
+              .is3rdPartyMigration(is3rdPartyMigrated)
+              .isPaygEligibleProduct(false)
+              .build();
+
+      return SubscriptionDefinition.getAllProductTags(lookupParams);
     }
     return Set.of();
   }
@@ -72,13 +77,17 @@ public class ProductNormalizer {
   private Set<String> getRhsmProducts(InventoryHostFacts hostFacts, boolean is3rdPartyMigrated) {
     String syspurposeRole = hostFacts.getSyspurposeRole();
     Set<String> products = hostFacts.getProducts();
-    return SubscriptionDefinition.getAllProductTags(
-        products,
-        syspurposeRole,
-        null,
-        APPLICABLE_METRIC_IDS,
-        INCLUDE_PAYG_TAGS,
-        is3rdPartyMigrated);
+
+    var lookupParams =
+        ProductTagLookupParams.builder()
+            .engIds(products)
+            .role(syspurposeRole)
+            .metricIds(APPLICABLE_METRIC_IDS)
+            .is3rdPartyMigration(is3rdPartyMigrated)
+            .isPaygEligibleProduct(false)
+            .build();
+
+    return SubscriptionDefinition.getAllProductTags(lookupParams);
   }
 
   private void addQpcProducts(Set<String> products, InventoryHostFacts hostFacts) {

@@ -26,6 +26,7 @@ import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
+import com.redhat.swatch.configuration.util.ProductTagLookupParams;
 import com.redhat.swatch.kafka.EmitterService;
 import com.redhat.swatch.metrics.configuration.MetricProperties;
 import com.redhat.swatch.metrics.exception.MeteringException;
@@ -262,10 +263,15 @@ public class PrometheusMeteringController {
       return;
     }
 
-    var includePaygTags = true;
     var matchingTags =
         SubscriptionDefinition.getAllProductTags(
-            productIds, role, null, Set.of(tagMetric.getId()), includePaygTags, is3rdPartyMigrated);
+            ProductTagLookupParams.builder()
+                .engIds(productIds)
+                .role(role)
+                .metricIds(Set.of(tagMetric.getId()))
+                .isPaygEligibleProduct(true)
+                .is3rdPartyMigration(is3rdPartyMigrated)
+                .build());
 
     if (!matchingTags.contains(productTag)) {
       // Warn that the event doesn't match the context of the product tag we're currently working

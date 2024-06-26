@@ -252,19 +252,6 @@ public class InventoryAccountUsageCollector {
         Optional.ofNullable(swatchSystem).map(Host::getInventoryId));
     boolean isMetered = swatchSystem != null && swatchSystem.isMetered();
 
-    if (!isMetered) {
-      // we're good to just keep saying
-
-      var includePayg = isMetered;
-    } else {
-
-      // if the metered host buckets are for vCPU and HBI is reporting sockets right now, we want
-
-      // if isMetered, check the bucket again for measurment before deciding isMetered = true or
-      // isMetered = false
-
-    }
-
     if (hbiSystem == null && swatchSystem == null) {
       log.debug("Unexpected, both HBI & Swatch system records are empty");
     } else if (hbiSystem == null) {
