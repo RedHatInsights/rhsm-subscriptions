@@ -38,8 +38,6 @@ public class ProductNormalizer {
   private static final Set<String> APPLICABLE_METRIC_IDS =
       Set.of(MetricIdUtils.getCores().toString(), MetricIdUtils.getSockets().toString());
 
-  private static final boolean INCLUDE_PAYG_TAGS = false;
-
   private Set<String> getSystemProfileProducts(
       InventoryHostFacts hostFacts, boolean is3rdPartyMigrated) {
     Collection<String> systemProfileProductIds = hostFacts.getSystemProfileProductIds();
@@ -50,7 +48,7 @@ public class ProductNormalizer {
               .engIds(systemProfileProductIds)
               .metricIds(APPLICABLE_METRIC_IDS)
               .is3rdPartyMigration(is3rdPartyMigrated)
-              .isPaygEligibleProduct(INCLUDE_PAYG_TAGS)
+              .isPaygEligibleProduct(false)
               .build();
 
       return SubscriptionDefinition.getAllProductTags(lookupParams);
@@ -68,7 +66,7 @@ public class ProductNormalizer {
               .role(satelliteRole)
               .metricIds(APPLICABLE_METRIC_IDS)
               .is3rdPartyMigration(is3rdPartyMigrated)
-              .isPaygEligibleProduct(INCLUDE_PAYG_TAGS)
+              .isPaygEligibleProduct(false)
               .build();
 
       return SubscriptionDefinition.getAllProductTags(lookupParams);
@@ -86,7 +84,7 @@ public class ProductNormalizer {
             .role(syspurposeRole)
             .metricIds(APPLICABLE_METRIC_IDS)
             .is3rdPartyMigration(is3rdPartyMigrated)
-            .isPaygEligibleProduct(INCLUDE_PAYG_TAGS)
+            .isPaygEligibleProduct(false)
             .build();
 
     return SubscriptionDefinition.getAllProductTags(lookupParams);

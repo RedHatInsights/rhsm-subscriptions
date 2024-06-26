@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.configuration.registry;
 
-import com.redhat.swatch.configuration.util.ProductTagLookupParams;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.HashSet;
