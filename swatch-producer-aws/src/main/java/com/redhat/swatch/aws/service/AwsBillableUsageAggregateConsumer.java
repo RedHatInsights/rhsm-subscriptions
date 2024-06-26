@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.aws.processors;
+package com.redhat.swatch.aws.service;
 
 import com.redhat.swatch.aws.exception.AwsMissingCredentialsException;
 import com.redhat.swatch.aws.exception.AwsUnprocessedRecordsException;
@@ -61,7 +61,7 @@ import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResu
 
 @Slf4j
 @ApplicationScoped
-public class BillableUsageAggregateProcessor {
+public class AwsBillableUsageAggregateConsumer {
   private final Counter acceptedCounter;
   private final Counter rejectedCounter;
   private final Counter ignoreCounter;
@@ -70,7 +70,7 @@ public class BillableUsageAggregateProcessor {
   private final Optional<Boolean> isDryRun;
   private final Duration awsUsageWindow;
 
-  public BillableUsageAggregateProcessor(
+  public AwsBillableUsageAggregateConsumer(
       MeterRegistry meterRegistry,
       @RestClient InternalSubscriptionsApi internalSubscriptionsApi,
       AwsMarketplaceMeteringClientFactory awsMarketplaceMeteringClientFactory,
@@ -88,7 +88,7 @@ public class BillableUsageAggregateProcessor {
   @Incoming("billable-usage-hourly-aggregate-in")
   @Blocking
   public void process(BillableUsageAggregate billableUsageAggregate) {
-    log.debug("Picked up billable usage message {} to process", billableUsageAggregate);
+    log.info("Picked up billable usage message {} to process", billableUsageAggregate);
     if (billableUsageAggregate == null || billableUsageAggregate.getAggregateKey() == null) {
       log.warn("Skipping null billable usage: deserialization failure?");
       return;
@@ -100,8 +100,13 @@ public class BillableUsageAggregateProcessor {
     Optional<Metric> metric =
         validateUsageAndLookupMetric(billableUsageAggregate.getAggregateKey());
     if (metric.isEmpty()) {
-      log.debug("Skipping billable usage because it is not applicable: {}", billableUsageAggregate);
+      log.debug(
+          "Skipping billable usage because it is not applicable for this service: {}",
+          billableUsageAggregate);
       return;
+    } else {
+
+      log.info("Processing billable usage message: {}", billableUsageAggregate);
     }
 
     AwsUsageContext context;
@@ -109,15 +114,17 @@ public class BillableUsageAggregateProcessor {
       context = lookupAwsUsageContext(billableUsageAggregate);
     } catch (SubscriptionRecentlyTerminatedException e) {
       log.info(
-          "Subscription recently terminated for billableUsageAggregateId={} orgId={}",
+          "Subscription recently terminated for billableUsageAggregateId={} orgId={} remittanceUUIDs={}",
           billableUsageAggregate.getAggregateId(),
-          billableUsageAggregate.getAggregateKey().getOrgId());
+          billableUsageAggregate.getAggregateKey().getOrgId(),
+          billableUsageAggregate.getRemittanceUuids());
       return;
     } catch (AwsUsageContextLookupException e) {
       log.error(
-          "Error looking up usage context for tallySnapshotId={} orgId={}",
+          "Error looking up aws usage context for aggregateId={} orgId={} remittanceUUIDs={}",
           billableUsageAggregate.getAggregateId(),
           billableUsageAggregate.getAggregateKey().getOrgId(),
+          billableUsageAggregate.getRemittanceUuids(),
           e);
       return;
     }
@@ -125,9 +132,10 @@ public class BillableUsageAggregateProcessor {
       transformAndSend(context, billableUsageAggregate, metric.get());
     } catch (UsageTimestampOutOfBoundsException e) {
       log.warn(
-          "{} orgId={} aggregateId={} productId={} windowTimestamp={} rhSubscriptionId={} awsCustomerId={} awsProductCode={} subscriptionStartDate={} value={}",
+          "{} orgId={} remittanceUUIDs={} aggregateId={} productId={} windowTimestamp={} rhSubscriptionId={} awsCustomerId={} awsProductCode={} subscriptionStartDate={} value={}",
           e.getMessage(),
           billableUsageAggregate.getAggregateKey().getOrgId(),
+          billableUsageAggregate.getRemittanceUuids(),
           billableUsageAggregate.getAggregateId(),
           billableUsageAggregate.getAggregateKey().getProductId(),
           billableUsageAggregate.getWindowTimestamp(),
@@ -139,12 +147,13 @@ public class BillableUsageAggregateProcessor {
       ignoreCounter.increment();
     } catch (Exception e) {
       log.error(
-          "Error sending usage for rhSubscriptionId={} aggregateId={} awsCustomerId={} awsProductCode={} orgId={}",
+          "Error sending aws usage for rhSubscriptionId={} aggregateId={} awsCustomerId={} awsProductCode={} orgId={} remittanceUUIDs={}",
           context.getRhSubscriptionId(),
           billableUsageAggregate.getAggregateId(),
           context.getCustomerId(),
           context.getProductCode(),
           billableUsageAggregate.getAggregateKey().getOrgId(),
+          billableUsageAggregate.getRemittanceUuids(),
           e);
     }
   }
@@ -187,16 +196,18 @@ public class BillableUsageAggregateProcessor {
 
     if (isDryRun.isPresent() && Boolean.TRUE.equals(isDryRun.get())) {
       log.info(
-          "[DRY RUN] Sending usage request to AWS: {}, organization={}, product_id={}",
+          "[DRY RUN] Sending usage request to AWS: {}, organization={}, remittanceUUIDs={}, product_id={}",
           request,
           billableUsageAggregate.getAggregateKey().getOrgId(),
+          billableUsageAggregate.getRemittanceUuids(),
           billableUsageAggregate.getAggregateKey().getProductId());
       return;
     } else {
       log.info(
-          "Sending usage request to AWS: {}, organization={}, product_id={}",
+          "Sending usage request to AWS: {}, organization={}, remittanceUUIDs={}, product_id={}",
           request,
           billableUsageAggregate.getAggregateKey().getOrgId(),
+          billableUsageAggregate.getRemittanceUuids(),
           billableUsageAggregate.getAggregateKey().getProductId());
     }
 
@@ -211,20 +222,23 @@ public class BillableUsageAggregateProcessor {
               result -> {
                 if (result.status() == UsageRecordResultStatus.CUSTOMER_NOT_SUBSCRIBED) {
                   log.warn(
-                      "No subscription found for organization={}, product_id={}, result={}",
+                      "No subscription found for organization={}, remittanceUUIDs={} product_id={}, result={}",
                       billableUsageAggregate.getAggregateKey().getOrgId(),
+                      billableUsageAggregate.getRemittanceUuids(),
                       billableUsageAggregate.getAggregateKey().getProductId(),
                       result);
                 } else if (result.status() != UsageRecordResultStatus.SUCCESS) {
                   log.warn(
-                      "{}, organization={}",
+                      "{}, organization={} remittanceUUIDs={}",
                       result,
-                      billableUsageAggregate.getAggregateKey().getOrgId());
+                      billableUsageAggregate.getAggregateKey().getOrgId(),
+                      billableUsageAggregate.getRemittanceUuids());
                 } else {
                   log.info(
-                      "{}, organization={},",
+                      "{}, organization={}, remittanceUUIDs={},",
                       result,
-                      billableUsageAggregate.getAggregateKey().getOrgId());
+                      billableUsageAggregate.getAggregateKey().getOrgId(),
+                      billableUsageAggregate.getRemittanceUuids());
                   acceptedCounter.increment(response.results().size());
                 }
               });
@@ -237,9 +251,10 @@ public class BillableUsageAggregateProcessor {
       throw new AwsUnprocessedRecordsException(request.usageRecords().size(), e);
     } catch (AwsMissingCredentialsException e) {
       log.warn(
-          "{} for organization={}, awsCustomerId={}",
+          "{} for organization={}, remittanceUUIDs={}, awsCustomerId={}",
           e.getMessage(),
           billableUsageAggregate.getAggregateKey().getOrgId(),
+          billableUsageAggregate.getRemittanceUuids(),
           context.getCustomerId());
     }
   }

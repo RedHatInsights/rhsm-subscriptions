@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.configuration.registry;
 
+import com.redhat.swatch.configuration.util.ProductTagLookupParams;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.HashSet;
@@ -48,10 +49,10 @@ public class Variant {
 
   @NotNull @NotEmpty private String tag; // required
   @Builder.Default private Boolean isMigrationProduct = false;
-
   @Builder.Default private Set<String> roles = new HashSet<>();
   @Builder.Default private Set<String> engineeringIds = new HashSet<>();
   @Builder.Default private Set<String> productNames = new HashSet<>();
+  private String level2;
 
   protected static Set<Variant> findByRole(
       String role, boolean isMigrationProduct, boolean isMetered) {

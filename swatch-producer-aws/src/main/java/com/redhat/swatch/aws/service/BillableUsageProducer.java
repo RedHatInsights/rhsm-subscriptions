@@ -18,18 +18,27 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.aws.files;
+package com.redhat.swatch.aws.service;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.context.Dependent;
-import jakarta.enterprise.inject.Produces;
-import software.amazon.awssdk.profiles.ProfileFile;
+import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.billable.usage.BillableUsage;
+import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Emitter;
 
-@Dependent
-public class ProfileFileConfiguration {
-  @ApplicationScoped
-  @Produces
-  public ProfileFile defaultProfileFile() {
-    return ProfileFile.defaultProfileFile();
+@Slf4j
+@ApplicationScoped
+public class BillableUsageProducer {
+
+  private final Emitter<BillableUsage> emitter;
+
+  public BillableUsageProducer(@Channel("tally-out") Emitter<BillableUsage> emitter) {
+    this.emitter = emitter;
+  }
+
+  public void queueBillableUsage(BillableUsage billableUsage) {
+    emitter.send(billableUsage);
+
+    log.info("Queued up a BillableUsage object to the billable-usage topic");
   }
 }

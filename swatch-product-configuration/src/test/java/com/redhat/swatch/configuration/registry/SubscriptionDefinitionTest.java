@@ -62,7 +62,9 @@ class SubscriptionDefinitionTest {
             "Rhacs Cluster",
             "Rhods Cluster",
             "rosa Instance",
-            "RHEL System");
+            "RHEL System",
+            "Ansible Managed Node");
+
     var actual = SubscriptionDefinition.getAllServiceTypes();
 
     assertThat(actual, Matchers.containsInAnyOrder(expected.toArray()));
