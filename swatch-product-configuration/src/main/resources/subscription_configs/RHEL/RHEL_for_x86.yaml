@@ -12,6 +12,13 @@ variants:
       - 479 # RHEL for x86 catch-all
     roles:
       - Red Hat Enterprise Linux Server
+  - tag: RHEL for x86
+    isMigrationProduct: true
+    engineeringIds:
+      - 69 # Red Hat Enterprise Linux Server
+      - 479 # RHEL for x86 catch-all
+    roles:
+      - Red Hat Enterprise Linux Server
 
   - tag: RHEL Workstation
     engineeringIds:

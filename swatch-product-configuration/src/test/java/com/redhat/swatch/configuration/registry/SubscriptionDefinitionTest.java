@@ -257,29 +257,27 @@ class SubscriptionDefinitionTest {
 
   @ParameterizedTest(
       name =
-          "isNightlyTally: {0}, isConverted: {1}, metricIds: {2}, productIds: {3} match productTags {4}")
+          "isMetered: {0}, isConverted: {1}, metricIds: {2}, productIds: {3} match productTags {4}")
   @CsvSource({
-    "true, false, 'Sockets', '204,479', 'RHEL for x86,rhel-for-x86-els-unconverted'",
-    "true, false, 'Sockets,vCPUs', '204,479', 'RHEL for x86,rhel-for-x86-els-unconverted'",
-    "true, false, 'vCPUs', '204,479', ''",
-    "true, true, 'Sockets','204,479', 'rhel-for-x86-els-converted'",
-    "true, true, 'Sockets,vCPUs','204,479', 'rhel-for-x86-els-converted'",
-    "true, true, 'vCPUs','204,479', ''",
-    "false, false, 'Sockets','204,479', ''",
-    "false, false, 'Sockets,vCPUs','204,479', 'rhel-for-x86-els-payg-addon'",
-    "false, false, 'vCPUs','204,479', 'rhel-for-x86-els-payg-addon'",
-    "false, true, 'Sockets','204,479', ''",
-    "false, true, 'Sockets,vCPUs','204,479', 'rhel-for-x86-els-payg'",
-    "false, true, 'vCPUs','204,479', 'rhel-for-x86-els-payg'",
+    "false, false, 'Sockets', '204,479', 'RHEL for x86,rhel-for-x86-els-unconverted'",
+    "false, false, 'Sockets,vCPUs', '204,479', 'RHEL for x86,rhel-for-x86-els-unconverted'",
+    "false, false, 'vCPUs', '204,479', ''",
+    "false, true, 'Sockets','204,479', 'RHEL for x86,rhel-for-x86-els-unconverted'",
+    "false, true, 'Sockets,vCPUs','204,479', 'RHEL for x86,rhel-for-x86-els-unconverted'",
+    "false, true, 'vCPUs','204,479', ''",
+    "true, false, 'Sockets','204,479', ''",
+    "true, false, 'Sockets,vCPUs','204,479', 'rhel-for-x86-els-payg-addon'",
+    "true, false, 'vCPUs','204,479', 'rhel-for-x86-els-payg-addon'",
+    "true, true, 'Sockets','204,479', ''",
+    "true, true, 'Sockets,vCPUs','204,479', 'rhel-for-x86-els-payg'",
+    "true, true, 'vCPUs','204,479', 'rhel-for-x86-els-payg'",
   })
   void testPaygElsDetectionByEngineeringIds(
-      boolean isNightlyTally,
+      boolean isMetered,
       boolean is3rdPartyMigration,
       String metricIdsCsv,
       String engIdsCsv,
       String expectedProductTagsCsv) {
-
-    boolean isMetered = !isNightlyTally;
 
     Set<String> engIds = Arrays.stream(engIdsCsv.split(",")).collect(Collectors.toSet());
     Set<String> metricIds =
