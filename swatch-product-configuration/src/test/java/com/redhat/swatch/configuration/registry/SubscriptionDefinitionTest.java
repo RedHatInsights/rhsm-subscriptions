@@ -272,7 +272,7 @@ class SubscriptionDefinitionTest {
     "true, true, 'Sockets,vCPUs','204,479', 'rhel-for-x86-els-payg'",
     "true, true, 'vCPUs','204,479', 'rhel-for-x86-els-payg'",
   })
-  void testPaygElsDetectionByEngineeringIds(
+  void testElsDetectionByEngineeringIds(
       boolean isMetered,
       boolean is3rdPartyMigration,
       String metricIdsCsv,
