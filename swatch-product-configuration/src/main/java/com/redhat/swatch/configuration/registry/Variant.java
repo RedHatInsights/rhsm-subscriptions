@@ -53,41 +53,6 @@ public class Variant {
   @Builder.Default private Set<String> productNames = new HashSet<>();
   private String level2;
 
-  protected static Set<Variant> findByRole(
-      String role, boolean isMigrationProduct, boolean isMetered) {
-    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
-        .flatMap(subscription -> subscription.getVariants().stream())
-        .filter(
-            variant ->
-                !variant.getRoles().isEmpty()
-                    && variant.getRoles().contains(role)
-                    && Objects.equals(variant.isMigrationProduct, isMigrationProduct)
-                    && Objects.equals(variant.subscription.isPaygEligible(), isMetered))
-        .collect(Collectors.toSet());
-  }
-
-  /**
-   * Look up a variant by an engineering product id. Engineering product IDs can be found either in
-   * a Subscription.Variant or Subscription.Fingerprint. In the event it matches a fingerprint,
-   * return the Variant that's designated to be the default in the Subscription.defaults property
-   *
-   * @param engProductId
-   * @param isMigrationProduct
-   * @return Optional<Variant>
-   */
-  protected static Set<Variant> findByEngProductId(
-      String engProductId, boolean isMigrationProduct, boolean isMetered) {
-    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
-        .flatMap(subscription -> subscription.getVariants().stream())
-        .filter(
-            variant ->
-                !variant.getEngineeringIds().isEmpty()
-                    && variant.getEngineeringIds().contains(engProductId)
-                    && Objects.equals(variant.isMigrationProduct, isMigrationProduct)
-                    && Objects.equals(variant.subscription.isPaygEligible(), isMetered))
-        .collect(Collectors.toSet());
-  }
-
   public static Optional<Variant> findByTag(String defaultVariantTag) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .filter(subscription -> !subscription.getVariants().isEmpty())

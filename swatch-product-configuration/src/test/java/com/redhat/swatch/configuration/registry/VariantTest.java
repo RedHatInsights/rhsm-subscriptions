@@ -33,24 +33,6 @@ class VariantTest {
     assertTrue(true);
   }
 
-  @Test
-  void testMigrationProductFlagTrueWithRole() {
-    var variant = Variant.findByRole("Red Hat Enterprise Linux Server", true, false);
-
-    assertTrue(variant.isEmpty());
-  }
-
-  @Test
-  void testMigrationProductFlagFalseWithRole() {
-    var variant = Variant.findByRole("Red Hat Enterprise Linux Server", false, false);
-
-    assertEquals(1, variant.size());
-
-    var expected = "RHEL for x86";
-    var actual = variant.iterator().next().getTag();
-
-    assertEquals(expected, actual);
-  }
 
   @Test
   void testMigrationProductFlagWithEngIds() {
@@ -65,38 +47,6 @@ class VariantTest {
     assertEquals(expected, actual);
   }
 
-  @Test
-  void testMigrationProductFlagTrueWithEngIds() {
-    var expected = Set.of("rhel-for-x86-els-payg");
-
-    var variant =
-        Variant.findByEngProductId("204", true, true).stream()
-            .map(Variant::getTag)
-            .collect(Collectors.toSet());
-
-    assertEquals(expected, variant);
-  }
-
-  @Test
-  void testGetParentSubscription() {
-    var variant = Variant.findByRole("Red Hat Enterprise Linux Compute Node", false, false);
-    var expected = "rhel-for-x86";
-
-    assertEquals(1, variant.size());
-
-    var actual = variant.iterator().next().getSubscription().getId();
-    assertEquals(expected, actual);
-  }
-
-  @Test
-  void testFindByEngineeringId() {
-
-    var actual = Variant.findByEngProductId("69", false, false);
-
-    assertEquals(1, actual.size());
-
-    assertEquals("RHEL for x86", actual.iterator().next().getTag());
-  }
 
   @Test
   void testGranularityCompatibility() {

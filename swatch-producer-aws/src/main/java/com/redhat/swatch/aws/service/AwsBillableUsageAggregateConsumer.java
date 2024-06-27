@@ -33,6 +33,7 @@ import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.Inte
 import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.Variant;
+import com.redhat.swatch.configuration.util.ProductTagLookupParams;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.smallrye.reactive.messaging.annotations.Blocking;

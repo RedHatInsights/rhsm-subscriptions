@@ -30,6 +30,7 @@ import lombok.Data;
 @Builder
 public class ProductTagLookupParams {
 
+  String tag;
   @Builder.Default Collection<?> engIds = new HashSet<>();
   String role;
   String productName;

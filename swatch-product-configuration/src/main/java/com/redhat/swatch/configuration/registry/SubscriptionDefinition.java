@@ -32,6 +32,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -187,6 +188,11 @@ public class SubscriptionDefinition {
 
   public static Set<String> getAllProductTags(ProductTagLookupParams params) {
 
+    Predicate<Variant> tagPredicate =
+        (params.getTag() == null)
+            ? variant -> true
+            : variant -> variant.getTag().equals(params.getTag());
+
     Predicate<Variant> metricIdsPredicate =
         params.getMetricIds().isEmpty()
             ? variant -> true
@@ -215,56 +221,26 @@ public class SubscriptionDefinition {
         variant -> variant.getIsMigrationProduct() == params.is3rdPartyMigration();
 
     Set<String> productTags =
-        SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
-            .flatMap(subscription -> subscription.getVariants().stream())
-            .filter(
-                variant -> {
-                  boolean result = primaryIdentifyingPredicate.test(variant);
-                  if (!result) {
-                    System.out.println(
-                        "Variant tag = "
-                            + variant.getTag()
-                            + " filtered out by primaryIdentifyingPredicate");
-                  }
-                  return result;
-                })
-            .filter(
-                variant -> {
-                  boolean result = metricIdsPredicate.test(variant);
-                  if (!result) {
-                    System.out.println(
-                        "Variant tag = "
-                            + variant.getTag()
-                            + " filtered out by metricIdsPredicate");
-                  }
-                  return result;
-                })
-            .filter(
-                variant -> {
-                  boolean result = conversionPredicate.test(variant);
-                  if (!result) {
-                    System.out.println(
-                        "Variant tag = "
-                            + variant.getTag()
-                            + " filtered out by conversionPredicate");
-                  }
-                  return result;
-                })
-            .filter(
-                variant -> {
-                  boolean result = meteredPredicate.test(variant);
-                  if (!result) {
-                    System.out.println(
-                        "Variant tag = " + variant.getTag() + " filtered out by meteredPredicate");
-                  }
-                  return result;
-                })
+        filterTags(
+                primaryIdentifyingPredicate,
+                meteredPredicate,
+                conversionPredicate,
+                tagPredicate,
+                metricIdsPredicate)
+            .stream()
             .map(Variant::getTag)
             .collect(Collectors.toSet());
 
     SubscriptionDefinition.pruneIncludedProducts(productTags);
 
     return productTags;
+  }
+
+  private static Set<Variant> filterTags(Predicate<Variant>... predicates) {
+    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
+        .flatMap(subscription -> subscription.getVariants().stream())
+        .filter(variant -> Stream.of(predicates).allMatch(predicate -> predicate.test(variant)))
+        .collect(Collectors.toSet());
   }
 
   /**
