@@ -18,9 +18,9 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.aws.processors;
+package com.redhat.swatch.aws.service;
 
-import com.redhat.swatch.aws.files.AwsCredentialsLookup;
+import com.redhat.swatch.aws.file.AwsCredentialsLookup;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AwsUsageContext;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.net.URI;

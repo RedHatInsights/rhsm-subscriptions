@@ -301,7 +301,12 @@ public class SubscriptionSyncController {
   private void enrichMissingFields(
       org.candlepin.subscriptions.db.model.Subscription subscription,
       Optional<org.candlepin.subscriptions.db.model.Subscription> optionalSubscription) {
-    if (subscription.getSubscriptionId() != null) {
+    // We need to pass through existing azure billing info since SearchApi will not have it
+    var isAzureSubscription =
+        optionalSubscription
+            .map(existingSub -> BillingProvider.AZURE.equals(existingSub.getBillingProvider()))
+            .orElse(false);
+    if (subscription.getSubscriptionId() != null && !isAzureSubscription) {
       // Subscription object already has needed data
       return;
     }

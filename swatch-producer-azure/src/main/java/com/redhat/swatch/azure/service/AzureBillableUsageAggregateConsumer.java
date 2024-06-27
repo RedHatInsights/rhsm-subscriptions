@@ -64,9 +64,8 @@ import org.slf4j.MDC;
 
 @Slf4j
 @ApplicationScoped
-public class BillableUsageAggregateConsumer {
+public class AzureBillableUsageAggregateConsumer {
   private final BillableUsageDeadLetterTopicProducer billableUsageDeadLetterTopicProducer;
-
   private final Counter acceptedCounter;
   private final Counter rejectedCounter;
   private final InternalSubscriptionsApi internalSubscriptionsApi;
@@ -75,7 +74,7 @@ public class BillableUsageAggregateConsumer {
   private final AzureMarketplaceService azureMarketplaceService;
 
   @Inject
-  public BillableUsageAggregateConsumer(
+  public AzureBillableUsageAggregateConsumer(
       MeterRegistry meterRegistry,
       @RestClient InternalSubscriptionsApi internalSubscriptionsApi,
       AzureMarketplaceService azureMarketplaceService,
@@ -91,10 +90,11 @@ public class BillableUsageAggregateConsumer {
     this.azureUsageWindow = azureUsageWindow;
   }
 
+  @SuppressWarnings("java:S3776")
   @Incoming("billable-usage-hourly-aggregate-in")
   @Blocking
   public void process(BillableUsageAggregate billableUsageAggregate) {
-    log.info("Picked up billable usage message {} to process", billableUsageAggregate);
+    log.info("Received billable usage message {}", billableUsageAggregate);
     if (billableUsageAggregate == null || billableUsageAggregate.getAggregateKey() == null) {
       log.warn("Skipping null billable usage: deserialization failure?");
       return;
@@ -108,8 +108,12 @@ public class BillableUsageAggregateConsumer {
 
     AzureUsageContext context;
     if (metric.isEmpty()) {
-      log.debug("Skipping billable usage because it is not applicable: {}", billableUsageAggregate);
+      log.debug(
+          "Skipping billable usage because it is not applicable for this service: {}",
+          billableUsageAggregate);
       return;
+    } else {
+      log.info("Processing billable usage message: {}", billableUsageAggregate);
     }
     try {
       context = lookupAzureUsageContext(billableUsageAggregate);

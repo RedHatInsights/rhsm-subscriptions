@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.aws.files;
+package com.redhat.swatch.aws.file;
 
 import com.redhat.swatch.aws.exception.AwsMissingCredentialsException;
 import jakarta.enterprise.context.ApplicationScoped;

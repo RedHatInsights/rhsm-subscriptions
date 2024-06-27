@@ -22,7 +22,7 @@ package com.redhat.swatch.aws.resource;
 
 import com.redhat.swatch.aws.exception.AwsManualSubmissionDisabledException;
 import com.redhat.swatch.aws.openapi.resource.DefaultApi;
-import com.redhat.swatch.aws.processors.BillableUsageProducer;
+import com.redhat.swatch.aws.service.BillableUsageProducer;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
