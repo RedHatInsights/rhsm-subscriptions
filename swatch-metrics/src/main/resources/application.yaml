@@ -203,6 +203,9 @@ rhsm-subscriptions:
           rhelemeter: >-
             group(min_over_time({product=~'#{metric.prometheus.queryParams[productLabelRegex]}', external_organization != '', billing_model='marketplace'}[1h]))
             by (external_organization)
+          rosa: >-
+            group(min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{product=~'#{metric.prometheus.queryParams[productLabelRegex]}', external_organization != '', billing_model='marketplace'}[1h]))
+            by (external_organization)
         queryTemplates:
           default: >-
             max(#{metric.prometheus.queryParams[metric]}) by (#{metric.prometheus.queryParams[instanceKey]})
@@ -231,6 +234,9 @@ rhsm-subscriptions:
                 )
               )
             )
+          rosa: max(#{metric.prometheus.queryParams[metric]}) by (#{metric.prometheus.queryParams[instanceKey]})
+            * on(#{metric.prometheus.queryParams[instanceKey]}) group_right
+            min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{product=~"#{metric.prometheus.queryParams[productLabelRegex]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}[1h])
         maxAttempts: ${OPENSHIFT_MAX_ATTEMPTS:50}
         backOffMaxInterval: ${OPENSHIFT_BACK_OFF_MAX_INTERVAL:50000}
         backOffInitialInterval: ${OPENSHIFT_BACK_OFF_INITIAL_INTERVAL:1000}

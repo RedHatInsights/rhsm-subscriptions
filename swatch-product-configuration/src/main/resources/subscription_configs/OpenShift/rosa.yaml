@@ -7,6 +7,7 @@ variants:
   - tag: rosa
     roles:
       - moa-hostedcontrolplane
+      - moa
     productNames:
       - OpenShift Online
 
@@ -24,10 +25,10 @@ metrics:
     awsDimension: control_plane
     azureDimension: control_plane
     prometheus:
-      queryKey: default
+      queryKey: rosa
       queryParams:
         instanceKey: _id
-        product: moa-hostedcontrolplane
+        productLabelRegex: (moa-hostedcontrolplane|moa)
         metric: cluster:usage:workload:capacity_physical_instance_hours
         metadataMetric: ocm_subscription
   - id: Cores
@@ -35,9 +36,9 @@ metrics:
     azureDimension: four_vcpu_hour
     billingFactor: 0.25
     prometheus:
-      queryKey: default
+      queryKey: rosa
       queryParams:
         instanceKey: _id
-        product: moa-hostedcontrolplane
+        productLabelRegex: (moa-hostedcontrolplane|moa)
         metric: cluster:usage:workload:capacity_virtual_cpu_hours
         metadataMetric: ocm_subscription
