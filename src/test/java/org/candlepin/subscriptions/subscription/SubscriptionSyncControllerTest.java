@@ -810,6 +810,25 @@ class SubscriptionSyncControllerTest {
     assertFalse(subscriptionsCaptor.getValue().iterator().hasNext());
   }
 
+  @Test
+  void shouldMaintainAzureBillingInfoDuringSync() {
+    Mockito.when(offeringRepository.existsById(SKU)).thenReturn(true);
+    Offering offering = Offering.builder().sku(SKU).metered(true).build();
+    when(offeringRepository.getReferenceById(SKU)).thenReturn(offering);
+    when(denylist.productIdMatches(any())).thenReturn(false);
+    var existingSubscription = createSubscription();
+    existingSubscription.setBillingProvider(BillingProvider.AZURE);
+    existingSubscription.setBillingProviderId("testProviderId");
+    existingSubscription.setBillingAccountId("testAccountId");
+    existingSubscription.setQuantity(10);
+    var dto = createDto("456", 10);
+    subscriptionSyncController.syncSubscription(dto, Optional.of(existingSubscription));
+    verify(subscriptionRepository, Mockito.times(1)).save(subscriptionCaptor.capture());
+    assertEquals("testAccountId", subscriptionCaptor.getValue().getBillingAccountId());
+    assertEquals("testProviderId", subscriptionCaptor.getValue().getBillingProviderId());
+    assertEquals(BillingProvider.AZURE, subscriptionCaptor.getValue().getBillingProvider());
+  }
+
   private Offering givenOfferingWithProductIds(Integer... productIds) {
     Offering offering = new Offering();
     offering.setSku(SKU);
