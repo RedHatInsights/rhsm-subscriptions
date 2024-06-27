@@ -7,6 +7,7 @@ variants:
   - tag: rosa
     roles:
       - moa-hostedcontrolplane
+      - moa
     productNames:
       - OpenShift Online
 
@@ -20,6 +21,7 @@ serviceType: rosa Instance
 contractEnabled: true
 
 metrics:
+  # ROSA Classic (moa) does not bill control plane hours, so we don't look for it on Instance-hours
   - id: Instance-hours
     type: counter
     awsDimension: control_plane
@@ -37,9 +39,9 @@ metrics:
     azureDimension: four_vcpu_hour
     billingFactor: 0.25
     prometheus:
-      queryKey: default
+      queryKey: rosa
       queryParams:
         instanceKey: _id
-        product: moa-hostedcontrolplane
+        productLabelRegex: (moa-hostedcontrolplane|moa)
         metric: cluster:usage:workload:capacity_virtual_cpu_hours
         metadataMetric: ocm_subscription
