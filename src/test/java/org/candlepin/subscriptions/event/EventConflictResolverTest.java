@@ -54,7 +54,7 @@ class EventConflictResolverTest {
 
   @BeforeEach
   void setupTest() {
-    this.resolver = new EventConflictResolver(repo, Mappers.getMapper(ResolvedEventMapper.class));
+    this.resolver = new EventConflictResolver(repo, Mappers.getMapper(EventMapper.class));
   }
 
   @Test

@@ -26,10 +26,10 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
-public interface ResolvedEventMapper {
+public interface EventMapper {
 
   @Mapping(target = "measurements", ignore = true)
   @Mapping(target = "eventId", ignore = true)
   @Mapping(target = "recordDate", ignore = true)
-  void update(@MappingTarget Event dest, Event source);
+  void toUnpersistedWithoutMeasurements(@MappingTarget Event dest, Event source);
 }

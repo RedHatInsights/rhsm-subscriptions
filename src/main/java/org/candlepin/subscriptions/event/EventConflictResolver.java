@@ -64,11 +64,11 @@ import org.springframework.stereotype.Component;
 public class EventConflictResolver {
 
   private final EventRecordRepository eventRecordRepository;
-  private final ResolvedEventMapper resolvedEventMapper;
+  private final EventMapper resolvedEventMapper;
 
   @Autowired
   public EventConflictResolver(
-      EventRecordRepository eventRecordRepository, ResolvedEventMapper resolvedEventMapper) {
+      EventRecordRepository eventRecordRepository, EventMapper resolvedEventMapper) {
     this.eventRecordRepository = eventRecordRepository;
     this.resolvedEventMapper = resolvedEventMapper;
   }
@@ -184,7 +184,7 @@ public class EventConflictResolver {
 
   private Event createRecordFrom(Event from) {
     Event target = new Event();
-    resolvedEventMapper.update(target, from);
+    resolvedEventMapper.toUnpersistedWithoutMeasurements(target, from);
     return target;
   }
 }

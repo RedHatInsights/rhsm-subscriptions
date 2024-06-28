@@ -33,13 +33,13 @@ import org.mapstruct.factory.Mappers;
 
 class ResolvedEventMapperTest {
 
-  private final ResolvedEventMapper mapper = Mappers.getMapper(ResolvedEventMapper.class);
+  private final EventMapper mapper = Mappers.getMapper(EventMapper.class);
 
   @Test
   void testMapperIgnoresFieldsWeDoNotWantToCopyFields() {
     Event dest = new Event();
     Event target = createEvent();
-    mapper.update(dest, target);
+    mapper.toUnpersistedWithoutMeasurements(dest, target);
 
     assertNull(dest.getEventId());
     assertNull(dest.getRecordDate());
