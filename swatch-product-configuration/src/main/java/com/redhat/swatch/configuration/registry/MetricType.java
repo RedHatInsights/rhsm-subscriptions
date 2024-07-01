@@ -20,21 +20,7 @@
  */
 package com.redhat.swatch.configuration.registry;
 
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import lombok.*;
-
-@Data
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
-public class Metric {
-
-  @NotNull @NotEmpty private String id; // required
-  @NotNull private MetricType type;
-  private String rhmMetricId;
-  private String awsDimension;
-  private String azureDimension;
-  private PrometheusMetric prometheus;
-  private Double billingFactor;
+public enum MetricType {
+  GAUGE,
+  COUNTER
 }

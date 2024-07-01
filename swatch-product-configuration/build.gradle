@@ -10,6 +10,8 @@ dependencies {
 
     testImplementation libraries["junit-jupiter"]
     testImplementation libraries["hamcrest-all"]
+    testImplementation libraries["hibernate-validator"]
+    testImplementation libraries["jakarta-el-impl"]
 }
 
 tasks.register("generateYamlIndex") {
