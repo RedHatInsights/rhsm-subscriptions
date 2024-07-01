@@ -51,7 +51,9 @@ public class SubscriptionDefinitionRegistry {
 
   SubscriptionDefinitionRegistry() {
     subscriptions = new ArrayList<>();
-    Constructor constructor = new Constructor(SubscriptionDefinition.class, new LoaderOptions());
+    var options = new LoaderOptions();
+    options.setEnumCaseSensitive(false);
+    Constructor constructor = new Constructor(SubscriptionDefinition.class, options);
     constructor.getPropertyUtils().setSkipMissingProperties(true);
 
     Yaml yaml = new Yaml(constructor);

@@ -27,6 +27,7 @@ contractEnabled: false #There is no need to generate an AWS contract listing bec
 
 metrics:
   - id: vCPUs
+    type: counter
     awsDimension: vCPU_hours
     azureDimension: vcpu_hours
     prometheus:

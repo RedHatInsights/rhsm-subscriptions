@@ -15,3 +15,4 @@ defaults:
 
 metrics:
   - id: Sockets
+    type: gauge
