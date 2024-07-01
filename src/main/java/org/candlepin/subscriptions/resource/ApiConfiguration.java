@@ -20,16 +20,11 @@
  */
 package org.candlepin.subscriptions.resource;
 
-import com.redhat.swatch.contracts.client.CapacityApiFactory;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
-import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.resteasy.ResteasyConfiguration;
 import org.candlepin.subscriptions.tally.TallyWorkerConfiguration;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
 import org.springframework.boot.context.TypeExcludeFilter;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
@@ -57,18 +52,4 @@ import org.springframework.context.annotation.Profile;
   RhsmSubscriptionsDataSourceConfiguration.class,
   TallyWorkerConfiguration.class
 })
-public class ApiConfiguration {
-
-  @Qualifier("apiCapacityClientProperties")
-  @ConfigurationProperties(prefix = "rhsm-subscriptions.api.capacity.client")
-  @Bean
-  HttpClientProperties capacityHttpClientProperties() {
-    return new HttpClientProperties();
-  }
-
-  @Bean
-  CapacityApiFactory capacityApiFactory(
-      @Qualifier("apiCapacityClientProperties") HttpClientProperties httpClientProperties) {
-    return new CapacityApiFactory(httpClientProperties, ResourceUtils::getCurrentIdentityHeader);
-  }
-}
+public class ApiConfiguration {}
