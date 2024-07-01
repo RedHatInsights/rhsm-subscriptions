@@ -12,7 +12,8 @@ dependencies {
     implementation libraries["jackson-annotations"] // for json generated models
     implementation libraries["jakarta-validation-api"] // for validation API in generated models
     implementation "com.fasterxml.jackson.core:jackson-databind"
-
+    implementation libraries["commons-lang3"]
+    implementation libraries["mapstruct"]
     testImplementation libraries["junit-jupiter"]
 }
 

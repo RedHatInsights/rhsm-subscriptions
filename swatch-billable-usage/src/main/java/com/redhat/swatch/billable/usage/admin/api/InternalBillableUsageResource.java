@@ -38,11 +38,17 @@ import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.billable.usage.UsageInfoMapper;
+import org.candlepin.subscriptions.billable.usage.configuration.UsageInfoPrefixedLogger;
 
-@Slf4j
+
 @ApplicationScoped
 @AllArgsConstructor
 public class InternalBillableUsageResource implements DefaultApi {
+
+
+  private static final UsageInfoPrefixedLogger log =
+      new UsageInfoPrefixedLogger(InternalBillableUsageResource.class);
 
   private static final String SUCCESS_STATUS = "Success";
   private static final String REJECTED_STATUS = "Rejected";
@@ -92,6 +98,7 @@ public class InternalBillableUsageResource implements DefaultApi {
       updatedRemittance =
           billingController.resetBillableUsageRemittance(productId, start, end, orgIds);
     } catch (Exception e) {
+
       log.warn("Billable usage remittance update failed.", e);
       return getDefaultResponse(REJECTED_STATUS);
     }

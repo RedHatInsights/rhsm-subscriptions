@@ -20,15 +20,18 @@
  */
 package com.redhat.swatch.aws.service;
 
+import com.redhat.swatch.aws.configuration.UsageInfoPrefixedLogger;
 import jakarta.enterprise.context.ApplicationScoped;
-import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
+import org.candlepin.subscriptions.billable.usage.UsageInfoMapper;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 
-@Slf4j
 @ApplicationScoped
 public class BillableUsageProducer {
+
+  private static final UsageInfoPrefixedLogger log =
+      new UsageInfoPrefixedLogger(BillableUsageProducer.class);
 
   private final Emitter<BillableUsage> emitter;
 
@@ -39,6 +42,8 @@ public class BillableUsageProducer {
   public void queueBillableUsage(BillableUsage billableUsage) {
     emitter.send(billableUsage);
 
-    log.info("Queued up a BillableUsage object to the billable-usage topic");
+    var tracebackInfoPrefix = UsageInfoMapper.INSTANCE.toUsageInfo(billableUsage);
+
+    log.info(tracebackInfoPrefix, "Queued up a BillableUsage object to the billable-usage topic");
   }
 }

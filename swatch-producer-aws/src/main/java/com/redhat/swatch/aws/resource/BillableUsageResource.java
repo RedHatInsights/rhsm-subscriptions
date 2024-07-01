@@ -44,7 +44,7 @@ public class BillableUsageResource implements DefaultApi {
     if (!manualSubmissionEnabled) {
       throw new AwsManualSubmissionDisabledException();
     }
-    log.info("{}", billableUsage);
+    log.info("Queuing billable usage: {}", billableUsage);
 
     tallySummaryProducer.queueBillableUsage(billableUsage);
   }
