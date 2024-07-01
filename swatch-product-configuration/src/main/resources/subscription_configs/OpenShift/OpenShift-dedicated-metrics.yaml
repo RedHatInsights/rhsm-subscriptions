@@ -19,6 +19,7 @@ serviceType: OpenShift Cluster
 
 metrics:
   - id: Cores
+    type: counter
     rhmMetricId: redhat.com:openshift_dedicated:4cpu_hour
     billingFactor: 0.25
     prometheus:
@@ -29,6 +30,7 @@ metrics:
         metric: cluster:usage:workload:capacity_physical_cpu_hours
         metadataMetric: ocm_subscription
   - id: Instance-hours
+    type: counter
     rhmMetricId: redhat.com:openshift_dedicated:cluster_hour
     prometheus:
       queryKey: default

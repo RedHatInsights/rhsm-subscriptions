@@ -24,7 +24,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.ws.rs.ext.Provider;
 import org.candlepin.subscriptions.security.RestAccessDeniedHandler;
-import org.candlepin.subscriptions.utilization.api.model.Error;
+import org.candlepin.subscriptions.utilization.api.v1.model.Error;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 

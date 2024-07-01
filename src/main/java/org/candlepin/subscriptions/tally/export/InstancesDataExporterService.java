@@ -21,8 +21,8 @@
 package org.candlepin.subscriptions.tally.export;
 
 import static org.candlepin.subscriptions.db.TallyInstanceViewRepository.buildSearchSpecification;
-import static org.candlepin.subscriptions.resource.InstancesResource.getHardwareMeasurementTypesFromCategory;
 import static org.candlepin.subscriptions.resource.ResourceUtils.ANY;
+import static org.candlepin.subscriptions.resource.api.v1.InstancesResource.getHardwareMeasurementTypesFromCategory;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
@@ -49,7 +49,7 @@ import org.candlepin.subscriptions.exception.ExportServiceException;
 import org.candlepin.subscriptions.export.DataExporterService;
 import org.candlepin.subscriptions.export.DataMapperService;
 import org.candlepin.subscriptions.export.ExportServiceRequest;
-import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
+import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.repository.query.FluentQuery;
 import org.springframework.stereotype.Component;

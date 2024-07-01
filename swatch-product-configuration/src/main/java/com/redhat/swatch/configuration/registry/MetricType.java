@@ -18,25 +18,9 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource.api;
+package com.redhat.swatch.configuration.registry;
 
-import lombok.AllArgsConstructor;
-import org.candlepin.subscriptions.utilization.api.resources.RootApi;
-import org.springframework.stereotype.Component;
-
-/** Serves the OpenAPI spec as /openapi.json. */
-@Component
-@AllArgsConstructor
-public class OpenApiResource implements RootApi {
-  private final ApiSpecController controller;
-
-  @Override
-  public String getOpenApiJson() {
-    return controller.getOpenApiJson();
-  }
-
-  @Override
-  public String getOpenApiYaml() {
-    return controller.getOpenApiYaml();
-  }
+public enum MetricType {
+  GAUGE,
+  COUNTER
 }

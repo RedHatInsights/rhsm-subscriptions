@@ -303,56 +303,61 @@ project(":api") {
     apply plugin: "swatch.spring-boot-dependencies-conventions"
     apply plugin: "org.openapi.generator"
 
-    ext {
-        api_spec_file = "${projectDir}/rhsm-subscriptions-api-spec.yaml"
-        config_file = "${projectDir}/rhsm-subscriptions-api-config.json"
-    }
+    def public_apis = ["v1"]
 
-    openApiGenerate {
-        generatorName = "jaxrs-spec"
-        inputSpec = api_spec_file
-        configFile = config_file
-        outputDir = "$buildDir/generated"
-        configOptions = [
-            interfaceOnly: "true",
-            generatePom: "false",
-            dateLibrary: "java8",
-            useJakartaEe: "true",
-            useTags: "true"
-        ]
-        importMappings = [
-            "MetricId": "com.redhat.swatch.configuration.registry.MetricId",
-            "ProductId": "com.redhat.swatch.configuration.registry.ProductId",
-        ]
-        typeMappings = [
-            "string+MetricId": "MetricId",
-            "string+ProductId": "ProductId",
-        ]
-    }
+    for(api in public_apis) {
+        def spec = "${projectDir}/rhsm-subscriptions-api-" + api + "-spec.yaml"
+        def config = "${projectDir}/rhsm-subscriptions-api-" + api + "-config.json"
 
-    tasks.register("validateApiSpec", ValidateTask) {
-        inputSpec = api_spec_file
-    }
+        openApiGenerate {
+            generatorName = "jaxrs-spec"
+            inputSpec = spec
+            configFile = config
+            outputDir = "$buildDir/generated"
+            configOptions = [
+                    interfaceOnly: "true",
+                    generatePom: "false",
+                    dateLibrary: "java8",
+                    useJakartaEe: "true",
+                    useTags: "true"
+            ]
+            importMappings = [
+                    "MetricId": "com.redhat.swatch.configuration.registry.MetricId",
+                    "ProductId": "com.redhat.swatch.configuration.registry.ProductId",
+            ]
+            typeMappings = [
+                    "string+MetricId": "MetricId",
+                    "string+ProductId": "ProductId",
+            ]
+        }
 
-    tasks.register("generateApiDocs", GenerateTask) {
-        generatorName = "html"
-        inputSpec = api_spec_file
-        outputDir = "$buildDir/docs"
-        generateModelTests = false
-        generateApiTests = false
-    }
+        tasks.register("validateApiSpec" + api, ValidateTask) {
+            inputSpec = spec
+        }
 
-    tasks.register("generateOpenApiJson", GenerateTask) {
-        generatorName = "openapi"
-        inputSpec = api_spec_file
-        outputDir = "$buildDir/openapijson"
-        generateModelTests = false
-        generateApiTests = false
-    }
+        tasks.register("generateApiDocs" + api, GenerateTask) {
+            generatorName = "html"
+            inputSpec = config
+            outputDir = "$buildDir/docs"
+            generateModelTests = false
+            generateApiTests = false
+        }
 
-    processResources {
-        from tasks.generateOpenApiJson
-        from api_spec_file
+        tasks.register("generateOpenApiJson" + api, GenerateTask) {
+            generatorName = "openapi"
+            inputSpec = spec
+            outputDir = "$buildDir/openapijson"
+            generateModelTests = false
+            generateApiTests = false
+            configOptions = [
+                    outputFileName: "rhsm-subscriptions-api-" + api + "-openapi.json"
+            ]
+        }
+
+        processResources {
+            from tasks['generateOpenApiJson' + api]
+            from spec
+        }
     }
 
     dependencies {

@@ -22,7 +22,7 @@ package org.candlepin.subscriptions.exception;
 
 import jakarta.ws.rs.core.Response.Status;
 import lombok.Getter;
-import org.candlepin.subscriptions.utilization.api.model.Error;
+import org.candlepin.subscriptions.utilization.api.v1.model.Error;
 
 /**
  * Application's base exception class. Provides a means to create an Error object that should be

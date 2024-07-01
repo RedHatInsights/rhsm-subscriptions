@@ -275,8 +275,8 @@ public class Host implements Serializable {
         .forEach(key -> monthlyTotals.put(key, 0.0));
   }
 
-  public org.candlepin.subscriptions.utilization.api.model.Host asApiHost() {
-    return new org.candlepin.subscriptions.utilization.api.model.Host()
+  public org.candlepin.subscriptions.utilization.api.v1.model.Host asApiHost() {
+    return new org.candlepin.subscriptions.utilization.api.v1.model.Host()
         .cores(
             Optional.ofNullable(getMeasurement(MetricIdUtils.getCores().getValue()))
                 .map(Double::intValue)
@@ -348,9 +348,9 @@ public class Host implements Serializable {
         billingAccountId);
   }
 
-  public org.candlepin.subscriptions.utilization.api.model.Host asTallyHostViewApiHost(
+  public org.candlepin.subscriptions.utilization.api.v1.model.Host asTallyHostViewApiHost(
       String monthId) {
-    var host = new org.candlepin.subscriptions.utilization.api.model.Host();
+    var host = new org.candlepin.subscriptions.utilization.api.v1.model.Host();
 
     host.inventoryId(getInventoryId());
     host.insightsId(getInsightsId());

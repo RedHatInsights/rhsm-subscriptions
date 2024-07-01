@@ -28,8 +28,8 @@ import jakarta.validation.ConstraintViolationException;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import java.util.HashSet;
-import org.candlepin.subscriptions.utilization.api.model.Error;
-import org.candlepin.subscriptions.utilization.api.model.Errors;
+import org.candlepin.subscriptions.utilization.api.v1.model.Error;
+import org.candlepin.subscriptions.utilization.api.v1.model.Errors;
 import org.junit.jupiter.api.Test;
 
 class ConstraintViolationExceptionMapperTest {

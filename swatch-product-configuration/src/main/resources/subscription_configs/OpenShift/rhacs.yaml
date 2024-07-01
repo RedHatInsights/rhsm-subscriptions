@@ -18,6 +18,7 @@ serviceType: Rhacs Cluster
 
 metrics:
   - id: Cores
+    type: counter
     rhmMetricId: redhat.com:rhacs:cpu_hour
     awsDimension: vCPU_Hour
     azureDimension: vcpu_hour

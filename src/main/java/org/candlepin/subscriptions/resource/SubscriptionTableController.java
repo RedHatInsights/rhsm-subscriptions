@@ -20,9 +20,9 @@
  */
 package org.candlepin.subscriptions.resource;
 
-import static org.candlepin.subscriptions.resource.CapacityResource.HYPERVISOR;
-import static org.candlepin.subscriptions.resource.CapacityResource.PHYSICAL;
 import static org.candlepin.subscriptions.resource.ResourceUtils.*;
+import static org.candlepin.subscriptions.resource.api.v1.CapacityResource.HYPERVISOR;
+import static org.candlepin.subscriptions.resource.api.v1.CapacityResource.PHYSICAL;
 
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
@@ -48,7 +48,7 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionMeasurementKey;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.utilization.api.model.*;
+import org.candlepin.subscriptions.utilization.api.v1.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;

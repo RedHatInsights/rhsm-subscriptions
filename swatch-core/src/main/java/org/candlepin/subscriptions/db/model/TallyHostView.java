@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.db.model;
 
 import java.time.OffsetDateTime;
-import org.candlepin.subscriptions.utilization.api.model.Host;
+import org.candlepin.subscriptions.utilization.api.v1.model.Host;
 import org.springframework.beans.factory.annotation.Value;
 
 /**

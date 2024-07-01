@@ -51,7 +51,7 @@ import org.yaml.snakeyaml.Yaml;
  */
 class ConsumerApiSpecEqualityTest {
   private static final OpenAPI monolithSpec =
-      loadOpenApiDefinition("../api/rhsm-subscriptions-api-spec.yaml");
+      loadOpenApiDefinition("../api/rhsm-subscriptions-api-v1-spec.yaml");
   private static final OpenAPI serviceSpec =
       loadOpenApiDefinition("src/main/resources/META-INF/openapi.yaml");
   private static final ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory());

@@ -21,9 +21,9 @@
 package org.candlepin.subscriptions.tally.export;
 
 import static org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey.formatMonthId;
-import static org.candlepin.subscriptions.resource.InstancesResource.getCategoryByMeasurementType;
-import static org.candlepin.subscriptions.resource.InstancesResource.getCloudProviderByMeasurementType;
 import static org.candlepin.subscriptions.resource.ResourceUtils.ANY;
+import static org.candlepin.subscriptions.resource.api.v1.InstancesResource.getCategoryByMeasurementType;
+import static org.candlepin.subscriptions.resource.api.v1.InstancesResource.getCloudProviderByMeasurementType;
 import static org.candlepin.subscriptions.tally.export.InstancesDataExporterService.BEGINNING;
 import static org.candlepin.subscriptions.tally.export.InstancesDataExporterService.PRODUCT_ID;
 

@@ -19,4 +19,5 @@ contractEnabled: true
 
 metrics:
   - id: Managed-nodes
+    type: counter
     awsDimension: managed_nodes

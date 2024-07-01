@@ -24,7 +24,7 @@ import jakarta.validation.ConstraintViolationException;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.ext.Provider;
 import org.candlepin.subscriptions.exception.ErrorCode;
-import org.candlepin.subscriptions.utilization.api.model.Error;
+import org.candlepin.subscriptions.utilization.api.v1.model.Error;
 import org.springframework.stereotype.Component;
 
 /** Exception mapper for calls to a resource method that fail to pass validation. */

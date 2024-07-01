@@ -95,6 +95,7 @@ class SubscriptionDefinitionTest {
 
     var metric = new Metric();
     metric.setId("Instance-hours");
+    metric.setType(MetricType.COUNTER);
     metric.setRhmMetricId("redhat.com:BASILISK:cluster_hour");
     metric.setAwsDimension("cluster_hour");
     metric.setAzureDimension("cluster_hour");

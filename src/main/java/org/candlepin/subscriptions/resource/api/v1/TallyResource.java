@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource;
+package org.candlepin.subscriptions.resource.api.v1;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
@@ -46,21 +46,23 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.*;
+import org.candlepin.subscriptions.resource.ReportCriteria;
+import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.tally.filler.ReportFiller;
 import org.candlepin.subscriptions.tally.filler.ReportFillerFactory;
 import org.candlepin.subscriptions.tally.filler.UnroundedTallyReportDataPoint;
-import org.candlepin.subscriptions.utilization.api.model.BillingCategory;
-import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
-import org.candlepin.subscriptions.utilization.api.model.GranularityType;
-import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
-import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
-import org.candlepin.subscriptions.utilization.api.model.TallyReportData;
-import org.candlepin.subscriptions.utilization.api.model.TallyReportDataMeta;
-import org.candlepin.subscriptions.utilization.api.model.TallyReportTotalMonthly;
-import org.candlepin.subscriptions.utilization.api.model.UsageType;
-import org.candlepin.subscriptions.utilization.api.resources.TallyApi;
+import org.candlepin.subscriptions.utilization.api.v1.model.BillingCategory;
+import org.candlepin.subscriptions.utilization.api.v1.model.BillingProviderType;
+import org.candlepin.subscriptions.utilization.api.v1.model.GranularityType;
+import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
+import org.candlepin.subscriptions.utilization.api.v1.model.ServiceLevelType;
+import org.candlepin.subscriptions.utilization.api.v1.model.TallyReportData;
+import org.candlepin.subscriptions.utilization.api.v1.model.TallyReportDataMeta;
+import org.candlepin.subscriptions.utilization.api.v1.model.TallyReportTotalMonthly;
+import org.candlepin.subscriptions.utilization.api.v1.model.UsageType;
+import org.candlepin.subscriptions.utilization.api.v1.resources.TallyApi;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;

@@ -18,19 +18,26 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.exception.mapper;
+package org.candlepin.subscriptions.resource.api.v1;
 
-import jakarta.ws.rs.ext.Provider;
-import org.candlepin.subscriptions.exception.MissingOfferingException;
-import org.candlepin.subscriptions.utilization.api.v1.model.Error;
+import lombok.AllArgsConstructor;
+import org.candlepin.subscriptions.resource.api.ApiSpecController;
+import org.candlepin.subscriptions.utilization.api.v1.resources.RootApi;
 import org.springframework.stereotype.Component;
 
-/** An exception mapper used to map all MissingOfferingException to an error response. */
+/** Serves the OpenAPI spec as /openapi.json. */
 @Component
-@Provider
-public class OfferingExceptionMapper extends BaseExceptionMapper<MissingOfferingException> {
+@AllArgsConstructor
+public class OpenApiResource implements RootApi {
+  private final ApiSpecController controller;
+
   @Override
-  protected Error buildError(MissingOfferingException exception) {
-    return exception.error();
+  public String getOpenApiJson() {
+    return controller.getOpenApiV1Json();
+  }
+
+  @Override
+  public String getOpenApiYaml() {
+    return controller.getOpenApiV1Yaml();
   }
 }

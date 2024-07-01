@@ -19,6 +19,7 @@ serviceType: Rhods Cluster
 
 metrics:
   - id: Cores
+    type: counter
     rhmMetricId: redhat.com:openshift_data_science:cpu_hours
     awsDimension: cluster_cpu_hour
     azureDimension: cluster_cpu_hour

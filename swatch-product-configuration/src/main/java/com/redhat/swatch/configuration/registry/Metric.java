@@ -31,6 +31,7 @@ import lombok.*;
 public class Metric {
 
   @NotNull @NotEmpty private String id; // required
+  @NotNull private MetricType type;
   private String rhmMetricId;
   private String awsDimension;
   private String azureDimension;

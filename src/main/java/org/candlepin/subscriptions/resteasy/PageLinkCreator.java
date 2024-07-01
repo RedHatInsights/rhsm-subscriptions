@@ -26,7 +26,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
-import org.candlepin.subscriptions.utilization.api.model.PageLinks;
+import org.candlepin.subscriptions.utilization.api.v1.model.PageLinks;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
