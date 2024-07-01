@@ -11,5 +11,11 @@
       columnName="instance_id"
       newDataType="text"
       tableName="events"/>
+    <rollback>
+      <modifyDataType
+        columnName="instance_id"
+        newDataType="varchar(60)"
+        tableName="events"/>
+    </rollback>
   </changeSet>
 </databaseChangeLog>
