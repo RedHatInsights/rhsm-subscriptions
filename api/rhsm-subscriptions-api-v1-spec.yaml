@@ -140,7 +140,7 @@ paths:
       - name: category
         in: query
         schema:
-          $ref: '#/components/schemas/ReportCategory'
+          $ref: './model/report_category.yaml'
         description: 'The category to fetch graph data for (optional)'
       - name: granularity
         in: query
@@ -151,17 +151,17 @@ paths:
       - name: sla
         in: query
         schema:
-          $ref: '#/components/schemas/ServiceLevelType'
+          $ref: './model/service_level_type.yaml'
         description: "Include only report data matching the specified service level."
       - name: usage
         in: query
         schema:
-          $ref: '#/components/schemas/UsageType'
+          $ref: './model/usage_type.yaml'
         description: "Include only report data matching the specified usage."
       - name: billing_provider
         in: query
         schema:
-          $ref: '#/components/schemas/BillingProviderType'
+          $ref: './model/billing_provider_type.yaml'
         description: "Include only report data matching the specified billing provider"
       - name:  billing_account_id
         in: query
@@ -279,17 +279,17 @@ paths:
         - name: category
           in: query
           schema:
-            $ref: '#/components/schemas/ReportCategory'
+            $ref: './model/report_category.yaml'
           description: 'The category to fetch data for'
         - name: sla
           in: query
           schema:
-            $ref: '#/components/schemas/ServiceLevelType'
+            $ref: './model/service_level_type.yaml'
           description: "Include only capacity for the specified service level."
         - name: usage
           in: query
           schema:
-            $ref: '#/components/schemas/UsageType'
+            $ref: './model/usage_type.yaml'
           description: "Include only capacity for the specified usage level."
         - name: beginning
           in: query
@@ -435,12 +435,12 @@ paths:
         - name: sla
           in: query
           schema:
-            $ref: '#/components/schemas/ServiceLevelType'
+            $ref: './model/service_level_type.yaml'
           description: "Include only hosts for the specified service level."
         - name: usage
           in: query
           schema:
-            $ref: '#/components/schemas/UsageType'
+            $ref: './model/usage_type.yaml'
           description: "Include only hosts for the specified usage level."
         - name: uom
           in: query
@@ -456,7 +456,7 @@ paths:
         - name: billing_provider
           in: query
           schema:
-            $ref: '#/components/schemas/BillingProviderType'
+            $ref: './model/billing_provider_type.yaml'
           description: "Include only hosts for the specified billing provider."
         - name: billing_account_id
           description: Include only hosts containing the specified billing account ID.
@@ -473,7 +473,7 @@ paths:
         - name: category
           in: query
           schema:
-            $ref: '#/components/schemas/ReportCategory'
+            $ref: './model/report_category.yaml'
           description: "Include only hosts for the specified category."
         - name: beginning
           in: query
@@ -502,7 +502,7 @@ paths:
         - name: dir
           in: query
           schema:
-            $ref: "#/components/schemas/SortDirection"
+            $ref: './model/sort_direction.yaml'
           description: "Which direction to sort by (default: asc)"
       tags:
         - instances
@@ -542,22 +542,22 @@ paths:
         - name: category
           in: query
           schema:
-            $ref: '#/components/schemas/ReportCategory'
+            $ref: './model/report_category.yaml'
           description: 'The category to fetch data for'
         - name: sla
           in: query
           schema:
-            $ref: '#/components/schemas/ServiceLevelType'
+            $ref: './model/service_level_type.yaml'
           description: "Include only capacity for the specified service level."
         - name: usage
           in: query
           schema:
-            $ref: '#/components/schemas/UsageType'
+            $ref: './model/usage_type.yaml'
           description: "Include only capacity for the specified usage level."
         - name: billing_provider
           in: query
           schema:
-            $ref: '#/components/schemas/BillingProviderType'
+            $ref: './model/billing_provider_type.yaml'
           description: "Include only report data matching the specified billing provider"
         - name: billing_account_id
           in: query
@@ -597,7 +597,7 @@ paths:
         - name: dir
           in: query
           schema:
-            $ref: "#/components/schemas/SortDirection"
+            $ref: './model/sort_direction.yaml'
           description: "Which direction to sort by (default: asc)"
       responses:
         '200':
@@ -713,26 +713,6 @@ components:
           of a seven day period."
       type: string
       enum: [ Hourly, Daily, Weekly, Monthly, Quarterly, Yearly ]
-    ServiceLevelType:
-      description: "Describes the service level that the report was made against. Not set if it
-          wasn't specified as a query parameter."
-      type: string
-      enum: [ "", Premium, Standard, Self-Support, _ANY ]
-    UsageType:
-      description: "Describes the usage that the report was made against. Not set if it wasn't
-          specified as a query parameter."
-      type: string
-      enum: [ "", Production, Development/Test, Disaster Recovery, _ANY ]
-    BillingProviderType:
-      type: string
-      enum: [ "", red hat, aws, gcp, azure, oracle, _ANY ]
-    ReportCategory:
-      type: string
-      enum:
-        - physical
-        - virtual
-        - cloud
-        - hypervisor
     CloudProvider:
       type: string
       enum:
@@ -754,11 +734,6 @@ components:
       enum:
         - prepaid
         - on-demand
-    SortDirection:
-      type: string
-      enum:
-        - asc
-        - desc
     VersionInfo:
       properties:
         build:
@@ -830,22 +805,6 @@ components:
                 last_updated:
                   type: string
                   format: date-time
-    # If we need additional responses, look at
-    # https://swagger.io/docs/specification/data-models/inheritance-and-polymorphism/ to reduce
-    # redundancy
-    PageLinks:
-      properties:
-        first:
-          type: string
-        last:
-          type: string
-        previous:
-          type: string
-        next:
-          type: string
-      required:
-        - first
-        - last
     TallyReportData:
       properties:
         data:
@@ -853,7 +812,7 @@ components:
           items:
             $ref: "#/components/schemas/TallyReportDataPoint"
         links:
-          $ref: "#/components/schemas/PageLinks"
+          $ref: "./model/page_links.yaml"
         meta:
           type: object
           properties:
@@ -866,13 +825,13 @@ components:
             metric_id:
               type: string
             service_level:
-              $ref: '#/components/schemas/ServiceLevelType'
+              $ref: './model/service_level_type.yaml'
             usage:
-              $ref: '#/components/schemas/UsageType'
+              $ref: './model/usage_type.yaml'
             granularity:
               $ref: '#/components/schemas/GranularityType'
             billing_provider:
-              $ref: '#/components/schemas/BillingProviderType'
+              $ref: './model/billing_provider_type.yaml'
             billing_acount_id:
               type: string
           required:
@@ -917,7 +876,7 @@ components:
           items:
             $ref: "#/components/schemas/CapacitySnapshotByMetricId"
         links:
-          $ref: "#/components/schemas/PageLinks"
+          $ref: "./model/page_links.yaml"
         meta:
           type: object
           properties:
@@ -930,11 +889,11 @@ components:
             granularity:
               $ref: '#/components/schemas/GranularityType'
             service_level:
-              $ref: '#/components/schemas/ServiceLevelType'
+              $ref: './model/service_level_type.yaml'
             usage:
-              $ref: '#/components/schemas/UsageType'
+              $ref: './model/usage_type.yaml'
             category:
-              $ref: '#/components/schemas/ReportCategory'
+              $ref: './model/report_category.yaml'
           required:
             - count
             - product
@@ -967,7 +926,7 @@ components:
           items:
             $ref: "#/components/schemas/Host"
         links:
-          $ref: "#/components/schemas/PageLinks"
+          $ref: "./model/page_links.yaml"
         meta:
           $ref: "#/components/schemas/MetaCount"
     Host:
@@ -1028,7 +987,7 @@ components:
           description: If applicable, the cloud provider for this host.
           type: string
         billing_provider:
-          $ref: '#/components/schemas/BillingProviderType'
+          $ref: './model/billing_provider_type.yaml'
         billing_account_id:
           type: string
     InstanceMeta:
@@ -1042,11 +1001,11 @@ components:
         product:
           type: string
         service_level:
-          $ref: '#/components/schemas/ServiceLevelType'
+          $ref: './model/service_level_type.yaml'
         usage:
-          $ref: '#/components/schemas/UsageType'
+          $ref: './model/usage_type.yaml'
         billing_provider:
-          $ref: '#/components/schemas/BillingProviderType'
+          $ref: './model/billing_provider_type.yaml'
         billing_account_id:
           type: string
         measurements:
@@ -1072,7 +1031,7 @@ components:
           items:
             $ref: '#/components/schemas/InstanceData'
         links:
-          $ref: '#/components/schemas/PageLinks'
+          $ref: "./model/page_links.yaml"
         meta:
           $ref: '#/components/schemas/InstanceMeta'
       example:
@@ -1117,7 +1076,7 @@ components:
         display_name:
           type: string
         billing_provider:
-          $ref: '#/components/schemas/BillingProviderType'
+          $ref: './model/billing_provider_type.yaml'
         billing_account_id:
           type: string
         measurements:
@@ -1141,7 +1100,7 @@ components:
         number_of_guests:
           type: integer
         category:
-          $ref: '#/components/schemas/ReportCategory'
+          $ref: './model/report_category.yaml'
         cloud_provider:
           $ref: '#/components/schemas/CloudProvider'
         subscription_manager_id:
@@ -1206,26 +1165,6 @@ components:
         productId:
           type: string
 
-    SubscriptionType:
-      type: string
-      enum:
-        - On-demand
-        - Annual
-
-    SubscriptionEventType:
-      description: "The most immediate subscription event, such as a subscription beginning or ending."
-      type: string
-      enum:
-        - Subscription Start
-        - Subscription End
-
-    SkuCapacitySubscription:
-      properties:
-        id:
-          type: string
-        number:
-          type: string
-
     SkuCapacity:
       properties:
         sku:
@@ -1235,22 +1174,22 @@ components:
           description: "The offering name."
           type: string
         service_level:
-          $ref: "#/components/schemas/ServiceLevelType"
+          $ref: './model/service_level_type.yaml'
         usage:
-          $ref: "#/components/schemas/UsageType"
+          $ref: './model/usage_type.yaml'
         subscriptions:
           description: "List of active subscriptions that contribute to the quantity and capacity totals."
           type: array
           items:
-            $ref: "#/components/schemas/SkuCapacitySubscription"
+            $ref: './model/sku_capacity_subscription.yaml'
         billing_provider:
-          $ref: '#/components/schemas/BillingProviderType'
+          $ref: './model/billing_provider_type.yaml'
         next_event_date:
           description: "The most immediate date for a subscription event."
           type: string
           format: date-time
         next_event_type:
-          $ref: "#/components/schemas/SubscriptionEventType"
+          $ref: './model/subscription_event_type.yaml'
         quantity:
           description: "The summed subscription quantities across the active subscriptions for the offering."
           type: integer
@@ -1293,7 +1232,7 @@ components:
           items:
             $ref: '#/components/schemas/SkuCapacity'
         links:
-          $ref: "#/components/schemas/PageLinks"
+          $ref: "./model/page_links.yaml"
         meta:
           type: object
           properties:
@@ -1302,15 +1241,15 @@ components:
             product:
               type: string
             service_level:
-              $ref: '#/components/schemas/ServiceLevelType'
+              $ref: './model/service_level_type.yaml'
             usage:
-              $ref: '#/components/schemas/UsageType'
+              $ref: './model/usage_type.yaml'
             uom:
               $ref: '#/components/schemas/Uom'
             subscription_type:
-              $ref: '#/components/schemas/SubscriptionType'
+              $ref: './model/subscription_type.yaml'
             report_category:
-              $ref: '#/components/schemas/ReportCategory'
+              $ref: './model/report_category.yaml'
           required:
             - count
             - product

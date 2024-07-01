@@ -24,7 +24,7 @@ import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 import java.util.Map;
 import java.util.Objects;
-import org.candlepin.subscriptions.utilization.api.v1.model.ServiceLevelType;
+import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 
 /**
  * System purpose service level
@@ -33,11 +33,11 @@ import org.candlepin.subscriptions.utilization.api.v1.model.ServiceLevelType;
  * attribute on a system to associate it with a specific SLA requirement.
  */
 public enum ServiceLevel implements StringValueEnum<ServiceLevelType> {
-  EMPTY("", ServiceLevelType.EMPTY),
+  EMPTY("", ServiceLevelType.__EMPTY__),
   PREMIUM("Premium", ServiceLevelType.PREMIUM),
   STANDARD("Standard", ServiceLevelType.STANDARD),
   SELF_SUPPORT("Self-Support", ServiceLevelType.SELF_SUPPORT),
-  _ANY("_ANY", ServiceLevelType._ANY); // NOSONAR
+  _ANY("_ANY", ServiceLevelType.ANY); // NOSONAR
 
   private static final Map<String, ServiceLevel> VALUE_ENUM_MAP =
       StringValueEnum.initializeImmutableMap(ServiceLevel.class);

@@ -24,17 +24,17 @@ import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 import java.util.Map;
 import java.util.Objects;
-import org.candlepin.subscriptions.utilization.api.v1.model.BillingProviderType;
+import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
 
 /** Billing provider associated with a host. */
 public enum BillingProvider implements StringValueEnum<BillingProviderType> {
-  EMPTY("", BillingProviderType.EMPTY),
+  EMPTY("", BillingProviderType.__EMPTY__),
   RED_HAT("red hat", BillingProviderType.RED_HAT),
   AWS("aws", BillingProviderType.AWS),
   GCP("gcp", BillingProviderType.GCP),
   AZURE("azure", BillingProviderType.AZURE),
   ORACLE("oracle", BillingProviderType.ORACLE),
-  _ANY("_ANY", BillingProviderType._ANY); // NOSONAR
+  _ANY("_ANY", BillingProviderType.ANY); // NOSONAR
 
   private static final Map<String, BillingProvider> VALUE_ENUM_MAP =
       StringValueEnum.initializeImmutableMap(BillingProvider.class);

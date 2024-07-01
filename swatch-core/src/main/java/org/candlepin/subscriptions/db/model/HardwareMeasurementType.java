@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.db.model;
 
 import java.util.Arrays;
 import java.util.List;
+import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
 
 /** Enum to capture the various types of measurements in the hardware_measurements table */
 public enum HardwareMeasurementType {
@@ -47,6 +48,18 @@ public enum HardwareMeasurementType {
 
   HardwareMeasurementType(String... aliases) {
     this.aliases = aliases;
+  }
+
+  public ReportCategory toReportCategory() {
+    if (isSupportedCloudProvider(name())) {
+      return ReportCategory.CLOUD;
+    }
+    return switch (this) {
+      case VIRTUAL -> ReportCategory.VIRTUAL;
+      case PHYSICAL -> ReportCategory.PHYSICAL;
+      case HYPERVISOR -> ReportCategory.HYPERVISOR;
+      default -> null;
+    };
   }
 
   public static boolean isSupportedCloudProvider(String name) {

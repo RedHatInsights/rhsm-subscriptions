@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource.api.v1;
+package org.candlepin.subscriptions.resource.api.v2;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
@@ -28,7 +28,7 @@ import java.time.OffsetDateTime;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.utilization.api.model.UsageType;
-import org.candlepin.subscriptions.utilization.api.v1.model.SkuCapacityReportSort;
+import org.candlepin.subscriptions.utilization.api.v2.model.SkuCapacityReportSort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,7 +71,6 @@ class SubscriptionResourceTest {
                 min,
                 max,
                 null,
-                null,
                 SkuCapacityReportSort.SKU,
                 null));
   }
@@ -95,7 +94,6 @@ class SubscriptionResourceTest {
                 null,
                 min,
                 max,
-                null,
                 null,
                 SkuCapacityReportSort.SKU,
                 null));

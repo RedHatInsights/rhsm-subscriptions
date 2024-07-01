@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.tally.export;
 
-import static org.candlepin.subscriptions.resource.api.v1.InstancesResource.getCategoryByMeasurementType;
 import static org.candlepin.subscriptions.resource.api.v1.InstancesResource.getCloudProviderByMeasurementType;
 
 import com.redhat.swatch.configuration.registry.MetricId;
@@ -62,7 +61,7 @@ public class InstancesJsonDataMapperService implements DataMapperService<TallyIn
     if (item.getHostBillingProvider() != null) {
       instance.setBillingProvider(item.getHostBillingProvider().getValue());
     }
-    var category = getCategoryByMeasurementType(item.getKey().getMeasurementType());
+    var category = item.getKey().getMeasurementType().toReportCategory();
     if (category != null) {
       instance.setCategory(category.toString());
     }
