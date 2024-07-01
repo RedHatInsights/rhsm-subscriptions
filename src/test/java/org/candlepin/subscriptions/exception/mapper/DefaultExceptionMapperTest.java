@@ -24,8 +24,8 @@ import static org.hamcrest.MatcherAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import jakarta.ws.rs.core.Response;
-import org.candlepin.subscriptions.utilization.api.model.Error;
-import org.candlepin.subscriptions.utilization.api.model.Errors;
+import org.candlepin.subscriptions.utilization.api.v1.model.Error;
+import org.candlepin.subscriptions.utilization.api.v1.model.Errors;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 

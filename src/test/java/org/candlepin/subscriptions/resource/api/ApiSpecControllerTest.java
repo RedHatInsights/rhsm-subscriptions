@@ -35,14 +35,14 @@ class ApiSpecControllerTest {
   @Test
   void testOpenApiJson() {
     /* Tests that we receive a successful non-empty response */
-    String json = controller.getOpenApiJson();
+    String json = controller.getOpenApiV1Json();
     assertNotEquals(0, json.length());
   }
 
   @Test
   void testOpenApiYaml() {
     /* Tests that we receive a successful non-empty response */
-    String yaml = controller.getOpenApiYaml();
+    String yaml = controller.getOpenApiV1Yaml();
     assertNotEquals(0, yaml.length());
   }
 
@@ -57,7 +57,7 @@ class ApiSpecControllerTest {
   }
 
   @Test
-  void testIntenralOpenApiYaml() {
+  void testInternalOpenApiYaml() {
     /* Tests that we receive a successful non-empty response */
     String yaml = controller.getInternalSubSyncApiYaml();
     assertNotEquals(0, yaml.length());

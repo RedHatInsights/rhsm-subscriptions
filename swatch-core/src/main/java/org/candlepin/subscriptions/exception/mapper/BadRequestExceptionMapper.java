@@ -23,7 +23,7 @@ package org.candlepin.subscriptions.exception.mapper;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
 import org.candlepin.subscriptions.exception.ErrorCode;
-import org.candlepin.subscriptions.utilization.api.model.Error;
+import org.candlepin.subscriptions.utilization.api.v1.model.Error;
 import org.jboss.resteasy.spi.BadRequestException;
 import org.springframework.stereotype.Component;
 

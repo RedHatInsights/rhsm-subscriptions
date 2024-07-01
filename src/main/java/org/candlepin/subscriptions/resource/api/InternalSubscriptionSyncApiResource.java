@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.resource.api;
 
 import lombok.AllArgsConstructor;
-import org.candlepin.subscriptions.utilization.api.resources.RootApi;
+import org.candlepin.subscriptions.utilization.api.v1.resources.RootApi;
 import org.springframework.stereotype.Component;
 
 /** Serves the OpenAPI json for the internal subscription sync API */

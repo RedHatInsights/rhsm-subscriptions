@@ -18,10 +18,11 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource.api;
+package org.candlepin.subscriptions.resource.api.v1;
 
 import lombok.AllArgsConstructor;
-import org.candlepin.subscriptions.utilization.api.resources.RootApi;
+import org.candlepin.subscriptions.resource.api.ApiSpecController;
+import org.candlepin.subscriptions.utilization.api.v1.resources.RootApi;
 import org.springframework.stereotype.Component;
 
 /** Serves the OpenAPI spec as /openapi.json. */
@@ -32,11 +33,11 @@ public class OpenApiResource implements RootApi {
 
   @Override
   public String getOpenApiJson() {
-    return controller.getOpenApiJson();
+    return controller.getOpenApiV1Json();
   }
 
   @Override
   public String getOpenApiYaml() {
-    return controller.getOpenApiYaml();
+    return controller.getOpenApiV1Yaml();
   }
 }

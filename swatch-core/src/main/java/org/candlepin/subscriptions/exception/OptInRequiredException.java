@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.exception;
 
 import jakarta.ws.rs.core.Response.Status;
-import org.candlepin.subscriptions.utilization.api.model.Error;
+import org.candlepin.subscriptions.utilization.api.v1.model.Error;
 import org.springframework.security.access.AccessDeniedException;
 
 /**

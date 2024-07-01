@@ -49,8 +49,8 @@ public class HostApiProjection {
   private BillingProvider billingProvider;
   private String billingAccountId;
 
-  public org.candlepin.subscriptions.utilization.api.model.Host asTallyHostViewApiHost() {
-    var host = new org.candlepin.subscriptions.utilization.api.model.Host();
+  public org.candlepin.subscriptions.utilization.api.v1.model.Host asTallyHostViewApiHost() {
+    var host = new org.candlepin.subscriptions.utilization.api.v1.model.Host();
 
     host.inventoryId(getInventoryId());
     host.insightsId(getInsightsId());
