@@ -20,12 +20,12 @@
  */
 package com.redhat.swatch.azure.service;
 
-import com.redhat.swatch.azure.openapi.model.BillableUsage;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import org.apache.kafka.common.header.internals.RecordHeaders;
+import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;

@@ -26,7 +26,6 @@ import com.redhat.swatch.aws.exception.AwsUsageContextLookupException;
 import com.redhat.swatch.aws.exception.DefaultApiException;
 import com.redhat.swatch.aws.exception.SubscriptionRecentlyTerminatedException;
 import com.redhat.swatch.aws.exception.UsageTimestampOutOfBoundsException;
-import com.redhat.swatch.aws.openapi.model.BillableUsage.BillingProviderEnum;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AwsUsageContext;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
@@ -45,6 +44,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -291,7 +291,8 @@ public class AwsBillableUsageAggregateConsumer {
   }
 
   private Optional<Metric> validateUsageAndLookupMetric(BillableUsageAggregateKey aggregationKey) {
-    if (!Objects.equals(aggregationKey.getBillingProvider(), BillingProviderEnum.AWS.value())) {
+    if (!Objects.equals(
+        aggregationKey.getBillingProvider(), BillableUsage.BillingProvider.AWS.value())) {
       log.debug("Snapshot not applicable because billingProvider is not AWS");
       return Optional.empty();
     }

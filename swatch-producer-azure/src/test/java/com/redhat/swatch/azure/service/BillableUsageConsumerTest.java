@@ -35,9 +35,6 @@ import com.redhat.swatch.azure.exception.AzureUsageContextLookupException;
 import com.redhat.swatch.azure.exception.DefaultApiException;
 import com.redhat.swatch.azure.exception.SubscriptionCanNotBeDeterminedException;
 import com.redhat.swatch.azure.exception.SubscriptionRecentlyTerminatedException;
-import com.redhat.swatch.azure.openapi.model.BillableUsage;
-import com.redhat.swatch.azure.openapi.model.BillableUsage.BillingProviderEnum;
-import com.redhat.swatch.azure.openapi.model.BillableUsage.SlaEnum;
 import com.redhat.swatch.azure.test.resources.InMemoryMessageBrokerKafkaResource;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEvent;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEventOkResponse;
@@ -65,6 +62,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
@@ -128,9 +126,9 @@ class BillableUsageConsumerTest {
             "testOrg",
             BASILISK,
             INSTANCE_HOURS,
-            SlaEnum.PREMIUM.value(),
+            BillableUsage.Sla.PREMIUM.value(),
             Usage.PRODUCTION.getValue(),
-            BillingProviderEnum.RED_HAT.value(),
+            BillableUsage.BillingProvider.RED_HAT.value(),
             "testBillingAccountId");
     aggregate.setAggregateKey(key);
     consumer.process(aggregate);
@@ -320,9 +318,9 @@ class BillableUsageConsumerTest {
             "testOrg",
             productId,
             metricId,
-            SlaEnum.PREMIUM.value(),
+            BillableUsage.Sla.PREMIUM.value(),
             Usage.PRODUCTION.getValue(),
-            BillingProviderEnum.AZURE.value(),
+            BillableUsage.BillingProvider.AZURE.value(),
             "testBillingAccountId");
     aggregate.setAggregateKey(key);
     return aggregate;

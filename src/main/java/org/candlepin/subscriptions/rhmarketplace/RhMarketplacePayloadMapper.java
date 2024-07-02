@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.json.BillableUsage;
@@ -99,7 +100,7 @@ public class RhMarketplacePayloadMapper {
     }
 
     OffsetDateTime snapshotDate = billableUsage.getSnapshotDate();
-    String eventId = billableUsage.getId().toString();
+    String eventId = getTallyIdFromUsage(billableUsage).toString();
 
     /*
     This will need to be updated if we expand the criteria defined in the
@@ -185,6 +186,10 @@ public class RhMarketplacePayloadMapper {
         && billableUsage.getBillingProvider() != null
         && billableUsage.getBillingAccountId() != null
         && billableUsage.getSnapshotDate() != null
-        && billableUsage.getId() != null;
+        && getTallyIdFromUsage(billableUsage) != null;
+  }
+
+  private UUID getTallyIdFromUsage(BillableUsage usage) {
+    return Optional.ofNullable(usage.getTallyId()).orElse(usage.getId());
   }
 }
