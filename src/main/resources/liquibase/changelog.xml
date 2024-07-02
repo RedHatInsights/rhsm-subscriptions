@@ -164,5 +164,6 @@
     <include file="/liquibase/202406051539-remove-erroneously-duplicated-subscriptions.xml"/>
     <include file="/liquibase/202406120950-update-subscription-capacity-view.xml"/>
     <include file="/liquibase/202406240700-add-subscription-number-index.xml" />
+    <include file="/liquibase/202406261514-alter-event-instance-id-length.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
