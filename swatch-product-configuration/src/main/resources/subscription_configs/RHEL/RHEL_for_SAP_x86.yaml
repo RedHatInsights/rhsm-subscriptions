@@ -12,6 +12,7 @@ variants:
       - 389 # Red Hat Enterprise Linux for SAP Solutions for x86_64 - Update Services for SAP Solutions
       - 241 # Red Hat Enterprise Linux 8 for x86_64 - SAP Solutions
       - 146 # Red Hat Enterprise Linux for SAP
+      - 323 # Red Hat Enterprise Linux for SAP Applications for x86_64 - EUS
 
 defaults:
   variant: rhel-for-sap-x86
