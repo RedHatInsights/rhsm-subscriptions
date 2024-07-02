@@ -10,33 +10,3 @@ updates:
     schedule:
       interval: "daily"
     target-branch: "main"
-  - package-ecosystem: "docker"
-    directory: "/"
-    schedule:
-      interval: "daily"
-    target-branch: "main"
-  - package-ecosystem: "docker"
-    directory: "swatch-producer-aws/src/main/docker"
-    schedule:
-      interval: "daily"
-    target-branch: "main"
-  - package-ecosystem: "docker"
-    directory: "swatch-contracts/src/main/docker"
-    schedule:
-      interval: "daily"
-    target-branch: "main"
-  - package-ecosystem: "docker"
-    directory: "swatch-system-conduit"
-    schedule:
-      interval: "daily"
-    target-branch: "main"
-  - package-ecosystem: "docker"
-    directory: "swatch-producer-azure/src/main/docker"
-    schedule:
-      interval: "daily"
-    target-branch: "main"
-  - package-ecosystem: "docker"
-    directory: "swatch-billable-usage/src/main/docker"
-    schedule:
-      interval: "daily"
-    target-branch: "main"
