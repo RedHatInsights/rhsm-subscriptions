@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.azure.resource;
 
+import com.redhat.swatch.azure.configuration.UsageInfoPrefixedLogger;
 import com.redhat.swatch.azure.exception.AzureManualSubmissionDisabledException;
 import com.redhat.swatch.azure.openapi.resource.ApiException;
 import com.redhat.swatch.azure.openapi.resource.DefaultApi;
@@ -28,10 +29,14 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.ProcessingException;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
+import org.candlepin.subscriptions.billable.usage.UsageInfoMapper;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
-@Slf4j
 public class BillableUsageResource implements DefaultApi {
+
+  private static final UsageInfoPrefixedLogger log =
+      new UsageInfoPrefixedLogger(BillableUsageResource.class);
+
   @ConfigProperty(name = "AZURE_MANUAL_SUBMISSION_ENABLED")
   boolean manualSubmissionEnabled;
 
@@ -43,7 +48,10 @@ public class BillableUsageResource implements DefaultApi {
     if (!manualSubmissionEnabled) {
       throw new AzureManualSubmissionDisabledException();
     }
-    log.info("{}", billableUsage);
+
     billableUsageProducer.queueBillableUsage(billableUsage);
+    var tracebackInfoPrefix = UsageInfoMapper.INSTANCE.toUsageInfo(billableUsage);
+
+    log.info(tracebackInfoPrefix, "Queued up a BillableUsage object to the billable-usage topic");
   }
 }

@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.azure.service;
 
+import com.redhat.swatch.azure.configuration.UsageInfoPrefixedLogger;
 import com.redhat.swatch.azure.exception.AzureMarketplaceRequestFailedException;
 import com.redhat.swatch.azure.exception.AzureUnprocessedRecordsException;
 import com.redhat.swatch.azure.exception.AzureUsageContextLookupException;
@@ -53,18 +54,22 @@ import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
+import org.candlepin.subscriptions.billable.usage.UsageInfo;
+import org.candlepin.subscriptions.billable.usage.UsageInfoMapper;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.slf4j.MDC;
 
-@Slf4j
 @ApplicationScoped
 public class AzureBillableUsageAggregateConsumer {
+
+  private static final UsageInfoPrefixedLogger log =
+      new UsageInfoPrefixedLogger(AzureBillableUsageAggregateConsumer.class);
+
   private final BillableUsageDeadLetterTopicProducer billableUsageDeadLetterTopicProducer;
   private final Counter acceptedCounter;
   private final Counter rejectedCounter;
@@ -94,14 +99,20 @@ public class AzureBillableUsageAggregateConsumer {
   @Incoming("billable-usage-hourly-aggregate-in")
   @Blocking
   public void process(BillableUsageAggregate billableUsageAggregate) {
-    log.info("Received billable usage message {}", billableUsageAggregate);
+
+    var tracebackInfoPrefix = new UsageInfo();
+
+    log.info(tracebackInfoPrefix, "Received billable usage message {}", billableUsageAggregate);
     if (billableUsageAggregate == null || billableUsageAggregate.getAggregateKey() == null) {
-      log.warn("Skipping null billable usage: deserialization failure?");
+      log.warn(tracebackInfoPrefix, "Skipping null billable usage: deserialization failure?");
       return;
     }
     if (billableUsageAggregate.getAggregateKey().getOrgId() != null) {
       MDC.put("org_id", billableUsageAggregate.getAggregateKey().getOrgId());
     }
+
+    tracebackInfoPrefix =
+        UsageInfoMapper.INSTANCE.toUsageInfo(billableUsageAggregate.getAggregateKey());
 
     Optional<Metric> metric =
         validateUsageAndLookupMetric(billableUsageAggregate.getAggregateKey());
@@ -109,32 +120,35 @@ public class AzureBillableUsageAggregateConsumer {
     AzureUsageContext context;
     if (metric.isEmpty()) {
       log.debug(
+          tracebackInfoPrefix,
           "Skipping billable usage because it is not applicable for this service: {}",
           billableUsageAggregate);
       return;
     } else {
-      log.info("Processing billable usage message: {}", billableUsageAggregate);
+      log.info(
+          tracebackInfoPrefix, "Processing billable usage message: {}", billableUsageAggregate);
     }
     try {
       context = lookupAzureUsageContext(billableUsageAggregate);
     } catch (SubscriptionRecentlyTerminatedException e) {
       log.info(
-          "Subscription recently terminated for billableUsageAggregateId={} orgId={} remittanceUUIDs={}",
+          tracebackInfoPrefix,
+          "Subscription recently terminated for billableUsageAggregateId={} remittanceUUIDs={}",
           billableUsageAggregate.getAggregateId(),
-          billableUsageAggregate.getAggregateKey().getOrgId(),
           billableUsageAggregate.getRemittanceUuids());
       return;
     } catch (SubscriptionCanNotBeDeterminedException e) {
       if (!isUsageDateValid(billableUsageAggregate)) {
         log.warn(
-            "Skipping billable usage with id={} orgId={} remittanceUUIDs={} because the subscription was not found and the snapshot '{}' is past the azure time window of '{}'",
+            tracebackInfoPrefix,
+            "Skipping billable usage with id={} remittanceUUIDs={} because the subscription was not found and the snapshot '{}' is past the azure time window of '{}'",
             billableUsageAggregate.getAggregateId(),
-            billableUsageAggregate.getAggregateKey().getOrgId(),
             billableUsageAggregate.getRemittanceUuids(),
             billableUsageAggregate.getWindowTimestamp(),
             azureUsageWindow);
       } else {
         if (Objects.nonNull(billableUsageAggregate.getRemittanceUuids())) {
+          UsageInfo finalTracebackInfoPrefix = tracebackInfoPrefix;
           billableUsageAggregate.getRemittanceUuids().stream()
               .map(
                   uuid ->
@@ -143,20 +157,21 @@ public class AzureBillableUsageAggregateConsumer {
                   billableUsage -> {
                     billableUsageDeadLetterTopicProducer.send(billableUsage);
                     log.warn(
-                        "Skipping billable usage with id={} orgId={} because the subscription was not found. Will retry again after one hour.",
-                        billableUsage.getUuid(),
-                        billableUsage.getOrgId());
+                        finalTracebackInfoPrefix,
+                        "Skipping billable usage with id={} because the subscription was not found. Will retry again after one hour.",
+                        billableUsage.getUuid());
                   });
         } else {
-          log.warn("No billable usage remittance UUIDs available to retry for.");
+          log.warn(
+              tracebackInfoPrefix, "No billable usage remittance UUIDs available to retry for.");
         }
       }
       return;
     } catch (AzureUsageContextLookupException e) {
       log.error(
-          "Error looking up usage context for aggregateId={} orgId={} remittanceUUIDs={}",
+          tracebackInfoPrefix,
+          "Error looking up usage context for aggregateId={} remittanceUUIDs={}",
           billableUsageAggregate.getAggregateId(),
-          billableUsageAggregate.getAggregateKey().getOrgId(),
           billableUsageAggregate.getRemittanceUuids(),
           e);
       return;
@@ -165,10 +180,10 @@ public class AzureBillableUsageAggregateConsumer {
       transformAndSend(context, billableUsageAggregate, metric.get());
     } catch (Exception e) {
       log.error(
-          "Error sending azure usage for aggregateId={} azureResourceId={} orgId={} remittanceUUIDs={}",
+          tracebackInfoPrefix,
+          "Error sending azure usage for aggregateId={} azureResourceId={} remittanceUUIDs={}",
           billableUsageAggregate.getAggregateId(),
           context.getAzureResourceId(),
-          billableUsageAggregate.getAggregateKey().getOrgId(),
           billableUsageAggregate.getRemittanceUuids(),
           e);
     }
@@ -186,37 +201,39 @@ public class AzureBillableUsageAggregateConsumer {
       AzureUsageContext context, BillableUsageAggregate billableUsageAggregate, Metric metric)
       throws AzureUnprocessedRecordsException, UsageTimestampOutOfBoundsException {
     var usageEvent = transformToAzureUsage(context, billableUsageAggregate, metric);
+
+    UsageInfo tracebackInfoPrefix =
+        UsageInfoMapper.INSTANCE.toUsageInfo(billableUsageAggregate.getAggregateKey());
+
     if (isDryRun.isPresent() && Boolean.TRUE.equals(isDryRun.get())) {
       log.info(
-          "[DRY RUN] Sending usage request to Azure: {}, organization={}, remittanceUUIDs={}, product_id={}",
+          tracebackInfoPrefix,
+          "[DRY RUN] Sending usage request to Azure: {}, remittanceUUIDs={}}",
           usageEvent,
-          billableUsageAggregate.getAggregateKey().getOrgId(),
-          billableUsageAggregate.getRemittanceUuids(),
-          billableUsageAggregate.getAggregateKey().getProductId());
+          billableUsageAggregate.getRemittanceUuids());
       return;
     } else {
       log.info(
-          "Sending usage request to Azure: {}, organization={}, remittanceUUIDs={}, product_id={}",
+          tracebackInfoPrefix,
+          "Sending usage request to Azure: {}, remittanceUUIDs={}",
           usageEvent,
-          billableUsageAggregate.getAggregateKey().getOrgId(),
-          billableUsageAggregate.getRemittanceUuids(),
-          billableUsageAggregate.getAggregateKey().getProductId());
+          billableUsageAggregate.getRemittanceUuids());
     }
 
     try {
       var response = azureMarketplaceService.sendUsageEventToAzureMarketplace(usageEvent);
-      log.debug("{}", response);
+      log.debug(tracebackInfoPrefix, "{}", response);
       if (response.getStatus() != UsageEventStatusEnum.ACCEPTED) {
         log.warn(
-            "{}, organization={}, remittanceUUIDs={}",
+            tracebackInfoPrefix,
+            "{}, remittanceUUIDs={}",
             response,
-            billableUsageAggregate.getAggregateKey().getOrgId(),
             billableUsageAggregate.getRemittanceUuids());
       } else {
         log.info(
-            "{}, organization={}, remittanceUUIDs={},",
+            tracebackInfoPrefix,
+            "{}, remittanceUUIDs={},",
             response,
-            billableUsageAggregate.getAggregateKey().getOrgId(),
             billableUsageAggregate.getRemittanceUuids());
         acceptedCounter.increment();
       }
@@ -269,13 +286,18 @@ public class AzureBillableUsageAggregateConsumer {
   }
 
   private Optional<Metric> validateUsageAndLookupMetric(BillableUsageAggregateKey aggregationKey) {
+
+    UsageInfo tracebackInfoPrefix = UsageInfoMapper.INSTANCE.toUsageInfo(aggregationKey);
+
     if (!Objects.equals(aggregationKey.getBillingProvider(), BillingProviderEnum.AZURE.value())) {
-      log.debug("Snapshot not applicable because billingProvider is not Azure");
+
+      log.debug(
+          tracebackInfoPrefix, "Snapshot not applicable because billingProvider is not Azure");
       return Optional.empty();
     }
 
     if (aggregationKey.getMetricId() == null) {
-      log.debug("Snapshot not applicable because billable metric id is empty");
+      log.debug(tracebackInfoPrefix, "Snapshot not applicable because billable metric id is empty");
       return Optional.empty();
     }
 
@@ -291,6 +313,7 @@ public class AzureBillableUsageAggregateConsumer {
 
     if (metric.isEmpty()) {
       log.debug(
+          tracebackInfoPrefix,
           "Snapshot not applicable because productId and/or metric id is not configured for Azure");
     }
 

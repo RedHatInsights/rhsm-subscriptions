@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.aws.service;
 
+import com.redhat.swatch.aws.configuration.UsageInfoPrefixedLogger;
 import com.redhat.swatch.aws.exception.AwsMissingCredentialsException;
 import com.redhat.swatch.aws.exception.AwsUnprocessedRecordsException;
 import com.redhat.swatch.aws.exception.AwsUsageContextLookupException;
@@ -42,11 +43,13 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
+import org.candlepin.subscriptions.billable.usage.UsageInfo;
+import org.candlepin.subscriptions.billable.usage.UsageInfoMapper;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -59,9 +62,12 @@ import software.amazon.awssdk.services.marketplacemetering.model.MarketplaceMete
 import software.amazon.awssdk.services.marketplacemetering.model.UsageRecord;
 import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResultStatus;
 
-@Slf4j
 @ApplicationScoped
 public class AwsBillableUsageAggregateConsumer {
+
+  private static final UsageInfoPrefixedLogger log =
+      new UsageInfoPrefixedLogger(AwsBillableUsageAggregateConsumer.class);
+
   private final Counter acceptedCounter;
   private final Counter rejectedCounter;
   private final Counter ignoreCounter;
@@ -88,25 +94,38 @@ public class AwsBillableUsageAggregateConsumer {
   @Incoming("billable-usage-hourly-aggregate-in")
   @Blocking
   public void process(BillableUsageAggregate billableUsageAggregate) {
-    log.info("Picked up billable usage message {} to process", billableUsageAggregate);
+
+    var tracebackInfoPrefix = new UsageInfo();
+
+    log.info(
+        tracebackInfoPrefix,
+        "Picked up billable usage message {} to process",
+        billableUsageAggregate);
     if (billableUsageAggregate == null || billableUsageAggregate.getAggregateKey() == null) {
-      log.warn("Skipping null billable usage: deserialization failure?");
+      log.warn(tracebackInfoPrefix, "Skipping null billable usage: deserialization failure?");
       return;
     }
-    if (billableUsageAggregate.getAggregateKey().getOrgId() != null) {
-      MDC.put("org_id", billableUsageAggregate.getAggregateKey().getOrgId());
+
+    String orgId = billableUsageAggregate.getAggregateKey().getOrgId();
+
+    tracebackInfoPrefix =
+        UsageInfoMapper.INSTANCE.toUsageInfo(billableUsageAggregate.getAggregateKey());
+    if (orgId != null) {
+      MDC.put("org_id", orgId);
     }
 
     Optional<Metric> metric =
         validateUsageAndLookupMetric(billableUsageAggregate.getAggregateKey());
     if (metric.isEmpty()) {
       log.debug(
+          tracebackInfoPrefix,
           "Skipping billable usage because it is not applicable for this service: {}",
           billableUsageAggregate);
       return;
     } else {
 
-      log.info("Processing billable usage message: {}", billableUsageAggregate);
+      log.info(
+          tracebackInfoPrefix, "Processing billable usage message: {}", billableUsageAggregate);
     }
 
     AwsUsageContext context;
@@ -114,16 +133,18 @@ public class AwsBillableUsageAggregateConsumer {
       context = lookupAwsUsageContext(billableUsageAggregate);
     } catch (SubscriptionRecentlyTerminatedException e) {
       log.info(
+          tracebackInfoPrefix,
           "Subscription recently terminated for billableUsageAggregateId={} orgId={} remittanceUUIDs={}",
           billableUsageAggregate.getAggregateId(),
-          billableUsageAggregate.getAggregateKey().getOrgId(),
+          orgId,
           billableUsageAggregate.getRemittanceUuids());
       return;
     } catch (AwsUsageContextLookupException e) {
       log.error(
+          tracebackInfoPrefix,
           "Error looking up aws usage context for aggregateId={} orgId={} remittanceUUIDs={}",
           billableUsageAggregate.getAggregateId(),
-          billableUsageAggregate.getAggregateKey().getOrgId(),
+          orgId,
           billableUsageAggregate.getRemittanceUuids(),
           e);
       return;
@@ -132,12 +153,11 @@ public class AwsBillableUsageAggregateConsumer {
       transformAndSend(context, billableUsageAggregate, metric.get());
     } catch (UsageTimestampOutOfBoundsException e) {
       log.warn(
-          "{} orgId={} remittanceUUIDs={} aggregateId={} productId={} windowTimestamp={} rhSubscriptionId={} awsCustomerId={} awsProductCode={} subscriptionStartDate={} value={}",
+          tracebackInfoPrefix,
+          "{} remittanceUUIDs={} aggregateId={} windowTimestamp={} rhSubscriptionId={} awsCustomerId={} awsProductCode={} subscriptionStartDate={} value={}",
           e.getMessage(),
-          billableUsageAggregate.getAggregateKey().getOrgId(),
           billableUsageAggregate.getRemittanceUuids(),
           billableUsageAggregate.getAggregateId(),
-          billableUsageAggregate.getAggregateKey().getProductId(),
           billableUsageAggregate.getWindowTimestamp(),
           context.getRhSubscriptionId(),
           context.getCustomerId(),
@@ -147,12 +167,13 @@ public class AwsBillableUsageAggregateConsumer {
       ignoreCounter.increment();
     } catch (Exception e) {
       log.error(
+          tracebackInfoPrefix,
           "Error sending aws usage for rhSubscriptionId={} aggregateId={} awsCustomerId={} awsProductCode={} orgId={} remittanceUUIDs={}",
           context.getRhSubscriptionId(),
           billableUsageAggregate.getAggregateId(),
           context.getCustomerId(),
           context.getProductCode(),
-          billableUsageAggregate.getAggregateKey().getOrgId(),
+          orgId,
           billableUsageAggregate.getRemittanceUuids(),
           e);
     }
@@ -194,51 +215,44 @@ public class AwsBillableUsageAggregateConsumer {
             .usageRecords(transformToAwsUsage(context, billableUsageAggregate, metric))
             .build();
 
+    UsageInfo tracebackInfoPrefix =
+        UsageInfoMapper.INSTANCE.toUsageInfo(billableUsageAggregate.getAggregateKey());
+
+    List<String> remittanceUuids = billableUsageAggregate.getRemittanceUuids();
     if (isDryRun.isPresent() && Boolean.TRUE.equals(isDryRun.get())) {
       log.info(
-          "[DRY RUN] Sending usage request to AWS: {}, organization={}, remittanceUUIDs={}, product_id={}",
+          tracebackInfoPrefix,
+          "[DRY RUN] Sending usage request to AWS: {}, remittanceUUIDs={}",
           request,
-          billableUsageAggregate.getAggregateKey().getOrgId(),
-          billableUsageAggregate.getRemittanceUuids(),
-          billableUsageAggregate.getAggregateKey().getProductId());
+          remittanceUuids);
       return;
     } else {
       log.info(
-          "Sending usage request to AWS: {}, organization={}, remittanceUUIDs={}, product_id={}",
+          tracebackInfoPrefix,
+          "Sending usage request to AWS: {}, remittanceUUIDs={}",
           request,
-          billableUsageAggregate.getAggregateKey().getOrgId(),
-          billableUsageAggregate.getRemittanceUuids(),
-          billableUsageAggregate.getAggregateKey().getProductId());
+          remittanceUuids);
     }
 
     try {
       MarketplaceMeteringClient marketplaceMeteringClient =
           awsMarketplaceMeteringClientFactory.buildMarketplaceMeteringClient(context);
       BatchMeterUsageResponse response = send(marketplaceMeteringClient, request);
-      log.debug("{}", response);
+      log.debug(tracebackInfoPrefix, "{}", response);
       response
           .results()
           .forEach(
               result -> {
                 if (result.status() == UsageRecordResultStatus.CUSTOMER_NOT_SUBSCRIBED) {
                   log.warn(
-                      "No subscription found for organization={}, remittanceUUIDs={} product_id={}, result={}",
-                      billableUsageAggregate.getAggregateKey().getOrgId(),
-                      billableUsageAggregate.getRemittanceUuids(),
-                      billableUsageAggregate.getAggregateKey().getProductId(),
+                      tracebackInfoPrefix,
+                      "No subscription found for remittanceUUIDs={}, result={}",
+                      remittanceUuids,
                       result);
                 } else if (result.status() != UsageRecordResultStatus.SUCCESS) {
-                  log.warn(
-                      "{}, organization={} remittanceUUIDs={}",
-                      result,
-                      billableUsageAggregate.getAggregateKey().getOrgId(),
-                      billableUsageAggregate.getRemittanceUuids());
+                  log.warn(tracebackInfoPrefix, "{}, remittanceUUIDs={}", result, remittanceUuids);
                 } else {
-                  log.info(
-                      "{}, organization={}, remittanceUUIDs={},",
-                      result,
-                      billableUsageAggregate.getAggregateKey().getOrgId(),
-                      billableUsageAggregate.getRemittanceUuids());
+                  log.info(tracebackInfoPrefix, "{}, remittanceUUIDs={}", result, remittanceUuids);
                   acceptedCounter.increment(response.results().size());
                 }
               });
@@ -251,10 +265,10 @@ public class AwsBillableUsageAggregateConsumer {
       throw new AwsUnprocessedRecordsException(request.usageRecords().size(), e);
     } catch (AwsMissingCredentialsException e) {
       log.warn(
-          "{} for organization={}, remittanceUUIDs={}, awsCustomerId={}",
+          tracebackInfoPrefix,
+          "{} for remittanceUUIDs={}, awsCustomerId={}",
           e.getMessage(),
-          billableUsageAggregate.getAggregateKey().getOrgId(),
-          billableUsageAggregate.getRemittanceUuids(),
+          remittanceUuids,
           context.getCustomerId());
     }
   }
@@ -268,6 +282,10 @@ public class AwsBillableUsageAggregateConsumer {
   private UsageRecord transformToAwsUsage(
       AwsUsageContext context, BillableUsageAggregate billableUsageAggregate, Metric metric)
       throws UsageTimestampOutOfBoundsException {
+
+    UsageInfo traceBackInfo =
+        UsageInfoMapper.INSTANCE.toUsageInfo(billableUsageAggregate.getAggregateKey());
+
     OffsetDateTime effectiveTimestamp = billableUsageAggregate.getWindowTimestamp();
     if (effectiveTimestamp.isBefore(context.getSubscriptionStartDate())) {
       // Because swatch doesn't store a precise timestamp for beginning of usage, we'll fall back to
@@ -279,7 +297,8 @@ public class AwsBillableUsageAggregateConsumer {
     // https://docs.aws.amazon.com/marketplacemetering/latest/APIReference/API_UsageRecord.html
     if (!isUsageDateValid(Clock.systemUTC(), billableUsageAggregate)) {
       throw new UsageTimestampOutOfBoundsException(
-          "Unable to send usage since it is outside of the AWS processing window");
+          traceBackInfo
+              + ", Unable to send usage since it is outside of the AWS processing window");
     }
 
     return UsageRecord.builder()
@@ -291,13 +310,16 @@ public class AwsBillableUsageAggregateConsumer {
   }
 
   private Optional<Metric> validateUsageAndLookupMetric(BillableUsageAggregateKey aggregationKey) {
+
+    UsageInfo tracebackInfoPrefix = UsageInfoMapper.INSTANCE.toUsageInfo(aggregationKey);
+
     if (!Objects.equals(aggregationKey.getBillingProvider(), BillingProviderEnum.AWS.value())) {
-      log.debug("Snapshot not applicable because billingProvider is not AWS");
+      log.debug(tracebackInfoPrefix, "Snapshot not applicable because billingProvider is not AWS");
       return Optional.empty();
     }
 
     if (aggregationKey.getMetricId() == null) {
-      log.debug("Snapshot not applicable because billable metric is empty");
+      log.debug(tracebackInfoPrefix, "Snapshot not applicable because billable metric is empty");
       return Optional.empty();
     }
 
@@ -313,7 +335,8 @@ public class AwsBillableUsageAggregateConsumer {
 
     if (metric.isEmpty()) {
       log.debug(
-          "Snapshot not applicable because productId and/or metric is not configured for AWS");
+          tracebackInfoPrefix,
+          "Snapshot not applicable because metricId/productId combination is not configured for AWS.");
     }
 
     return metric;
