@@ -6,10 +6,6 @@ id: rhel-for-x86-els
 vdcType: true
 
 variants:
-  - tag: rhel-for-x86-els-converted
-    isMigrationProduct: true
-    engineeringIds:
-      - 204
   - tag: rhel-for-x86-els-unconverted
     isMigrationProduct: false
     engineeringIds:
