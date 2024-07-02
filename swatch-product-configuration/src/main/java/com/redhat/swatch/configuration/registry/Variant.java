@@ -55,7 +55,7 @@ public class Variant {
   @Builder.Default private List<String> additionalTags = new ArrayList<>();
   private String level2;
 
-  protected static Set<Variant> findByRole(
+  public static Set<Variant> findByRole(
       String role, boolean isMigrationProduct, boolean isMetered) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .flatMap(subscription -> subscription.getVariants().stream())
@@ -77,8 +77,8 @@ public class Variant {
    * @param isMigrationProduct
    * @return Optional<Variant>
    */
-  protected static Set<Variant> findByEngProductId(
-      String engProductId, boolean isMigrationProduct, boolean isMetered) {
+  public static Set<Variant> findByEngProductId(
+          String engProductId, boolean isMigrationProduct, boolean isMetered) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .flatMap(subscription -> subscription.getVariants().stream())
         .filter(
@@ -107,7 +107,7 @@ public class Variant {
                 subscriptionDefinition.getSupportedGranularity().contains(granularity));
   }
 
-  protected static Stream<Variant> filterVariantsByProductName(
+  public static Stream<Variant> filterVariantsByProductName(
       String productName, boolean isMigrationProduct, boolean isMetered) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .map(SubscriptionDefinition::getVariants)

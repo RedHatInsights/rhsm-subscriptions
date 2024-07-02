@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.util;
 
-import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import jakarta.ws.rs.core.Response;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +27,7 @@ import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.MissingOfferingException;
+import org.candlepin.subscriptions.subscription.OfferingProductTagIdentifier;
 import org.candlepin.subscriptions.utilization.admin.api.model.OfferingProductTags;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -60,13 +60,8 @@ public class OfferingProductTagLookupService {
 
   private static void processProductTagsBySku(Offering offering, OfferingProductTags productTags) {
     // lookup product tags by either role or eng IDs
-    SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
-            offering.getRole(),
-            offering.getProductIds(),
-            offering.getProductName(),
-            offering.isMetered(),
-            offering.isMigrationOffering())
-        .forEach(productTags::addDataItem);
+    OfferingProductTagIdentifier identifier = new OfferingProductTagIdentifier(offering);
+    identifier.fetchProductTagsByFilters().forEach(productTags::addDataItem);
   }
 
   public OfferingProductTags findPersistedProductTagsBySku(String sku) {

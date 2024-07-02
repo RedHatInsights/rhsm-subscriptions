@@ -27,6 +27,7 @@ import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
+import org.candlepin.subscriptions.tally.events.ServiceInstanceProductTagIdentifier;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -55,10 +56,9 @@ public class ProductNormalizer {
 
   private Set<String> getRhsmProducts(
       InventoryHostFacts hostFacts, boolean isMetered, boolean is3rdPartyMigrated) {
-    String syspurposeRole = hostFacts.getSyspurposeRole();
-    Set<String> products = hostFacts.getProducts();
-    return SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
-        syspurposeRole, products, null, isMetered, is3rdPartyMigrated);
+    ServiceInstanceProductTagIdentifier identifier =
+        new ServiceInstanceProductTagIdentifier(hostFacts, isMetered, is3rdPartyMigrated);
+    return identifier.fetchProductTagsByFilters();
   }
 
   private void addQpcProducts(Set<String> products, InventoryHostFacts hostFacts) {

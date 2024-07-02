@@ -50,6 +50,7 @@ import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.security.OptInController;
+import org.candlepin.subscriptions.tally.events.ServiceInstanceProductTagIdentifier;
 import org.candlepin.subscriptions.util.TransactionHandler;
 import org.springframework.kafka.listener.BatchListenerFailedException;
 import org.springframework.stereotype.Service;
@@ -326,10 +327,11 @@ public class EventController {
     // Determine whether the product is payg or non-payg, and then add the appropriate tag in
     // SWATCH-1993.  We are only checking for payg at this time because we only support payg in
     // this flow, and we don't have a way to distinguish between payg and non-payg through events.
-    String role = event.getRole() != null ? event.getRole().toString() : null;
-    Set<String> matchingProductTags =
-        SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
-            role, event.getProductIds(), null, true, event.getConversion());
+    boolean isMetered = true;
+
+    ServiceInstanceProductTagIdentifier identifier =
+        new ServiceInstanceProductTagIdentifier(event, isMetered);
+    Set<String> matchingProductTags = identifier.fetchProductTagsByFilters();
 
     Set<String> applicableProducts = SubscriptionDefinition.getAllTags(true);
 
