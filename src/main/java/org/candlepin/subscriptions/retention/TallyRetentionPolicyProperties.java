@@ -20,16 +20,19 @@
  */
 package org.candlepin.subscriptions.retention;
 
+import jakarta.validation.constraints.Positive;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
+import org.springframework.validation.annotation.Validated;
 
 /** Retention policies for supported granularities. */
 @Component
 @Getter
 @Setter
 @ConfigurationProperties(prefix = "rhsm-subscriptions.tally-retention-policy")
+@Validated
 public class TallyRetentionPolicyProperties {
   /**
    * Number of historic hourly snapshots to keep. Actual number kept will include an additional hour
@@ -66,4 +69,6 @@ public class TallyRetentionPolicyProperties {
    * year (the current incomplete year).
    */
   private Integer yearly;
+
+  @Positive private long snapshotsToDeleteInBatches;
 }
