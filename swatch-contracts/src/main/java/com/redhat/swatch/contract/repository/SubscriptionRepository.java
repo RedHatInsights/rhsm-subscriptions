@@ -21,11 +21,23 @@
 package com.redhat.swatch.contract.repository;
 
 import com.redhat.swatch.panache.PanacheSpecificationSupport;
+import io.quarkus.hibernate.orm.panache.PanacheQuery;
+import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
+import java.util.List;
 
 @ApplicationScoped
 public class SubscriptionRepository
     implements PanacheSpecificationSupport<
         SubscriptionEntity, SubscriptionEntity.SubscriptionCompoundId> {
-  /* intentionally empty */
+
+  public List<SubscriptionEntity> findByOfferingSku(String sku, int offset, int limit) {
+    PanacheQuery<SubscriptionEntity> query =
+        find(
+            "offering.sku = ?1",
+            Sort.by("subscriptionId").and("startDate", Sort.Direction.Descending),
+            sku);
+    query.range(offset, offset + limit - 1);
+    return query.list();
+  }
 }

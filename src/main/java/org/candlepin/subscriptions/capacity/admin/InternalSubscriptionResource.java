@@ -29,7 +29,6 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.product.OfferingSyncController;
@@ -66,7 +65,6 @@ public class InternalSubscriptionResource implements InternalSubscriptionsApi {
   private final SubscriptionSyncController subscriptionSyncController;
   private final SubscriptionPruneController subscriptionPruneController;
   private final OfferingSyncController offeringSync;
-  private final CapacityReconciliationController capacityReconciliationController;
   private final SecurityProperties properties;
   private final MeterRegistry meterRegistry;
   private final UsageContextSubscriptionProvider awsSubscriptionProvider;
@@ -85,7 +83,6 @@ public class InternalSubscriptionResource implements InternalSubscriptionsApi {
       SecurityProperties properties,
       SubscriptionPruneController subscriptionPruneController,
       OfferingSyncController offeringSync,
-      CapacityReconciliationController capacityReconciliationController,
       MetricMapper metricMapper,
       ApplicationProperties applicationProperties,
       OfferingProductTagLookupService offeringProductTagLookupService) {
@@ -112,7 +109,6 @@ public class InternalSubscriptionResource implements InternalSubscriptionsApi {
             BillingProvider.AZURE);
     this.subscriptionPruneController = subscriptionPruneController;
     this.offeringSync = offeringSync;
-    this.capacityReconciliationController = capacityReconciliationController;
     this.metricMapper = metricMapper;
     this.applicationProperties = applicationProperties;
     this.offeringProductTagLookupService = offeringProductTagLookupService;
@@ -300,26 +296,6 @@ public class InternalSubscriptionResource implements InternalSubscriptionsApi {
     } catch (RuntimeException e) {
       log.error("Error enqueueing offerings to be synced. See log for details.", e);
       response.setDetail("Error enqueueing offerings to be synced");
-    }
-    return response;
-  }
-
-  /**
-   * Reconcile capacity for an offering from the upstream source.
-   *
-   * @param sku A marketing SKU
-   */
-  @Override
-  public OfferingResponse forceReconcileOffering(String sku) {
-    var response = new OfferingResponse();
-    try {
-      Object principal = ResourceUtils.getPrincipal();
-      log.info("Capacity Reconciliation for sku {} triggered by {}", sku, principal);
-      capacityReconciliationController.reconcileCapacityForOffering(sku, 0, 100);
-      response.setDetail(SUCCESS_STATUS);
-    } catch (Exception e) {
-      log.error("Error reconciling offering", e);
-      response.setDetail("Error reconciling offering.");
     }
     return response;
   }

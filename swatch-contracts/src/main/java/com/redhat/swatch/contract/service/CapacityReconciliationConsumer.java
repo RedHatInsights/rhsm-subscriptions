@@ -20,19 +20,31 @@
  */
 package com.redhat.swatch.contract.service;
 
-import static com.redhat.swatch.contract.config.Channels.SUBSCRIPTION_SYNC_TASK;
+import static com.redhat.swatch.contract.config.Channels.CAPACITY_RECONCILE_TASK;
 
-import com.redhat.swatch.contract.model.EnabledOrgsResponse;
+import com.redhat.swatch.contract.model.ReconcileCapacityByOfferingTask;
+import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 
 @Slf4j
 @ApplicationScoped
-public class SubscriptionSyncTaskConsumer {
-  @Incoming(SUBSCRIPTION_SYNC_TASK)
-  public void consume(EnabledOrgsResponse message) {
-    log.info("Received task for subscription sync with org ID: {}", message.getOrgId());
-    // Implementation will be done as part of SWATCH-2281
+@AllArgsConstructor
+public class CapacityReconciliationConsumer {
+
+  private final CapacityReconciliationService service;
+
+  @Blocking
+  @Incoming(CAPACITY_RECONCILE_TASK)
+  public void consume(ReconcileCapacityByOfferingTask reconcileCapacityByOfferingTask) {
+    log.info(
+        "Capacity Reconciliation Worker is reconciling capacity for offering with values: {} ",
+        reconcileCapacityByOfferingTask.toString());
+    service.reconcileCapacityForOffering(
+        reconcileCapacityByOfferingTask.getSku(),
+        reconcileCapacityByOfferingTask.getOffset(),
+        reconcileCapacityByOfferingTask.getLimit());
   }
 }

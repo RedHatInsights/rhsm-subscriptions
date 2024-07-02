@@ -37,7 +37,6 @@ import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -82,7 +81,6 @@ class InternalSubscriptionResourceTest {
 
   @MockBean OfferingSyncController offeringSync;
 
-  @MockBean CapacityReconciliationController capacityReconciliationController;
   @MockBean MetricMapper metricMapper;
   @MockBean OfferingProductTagLookupService offeringProductTagLookupService;
   @Autowired SecurityProperties properties;
@@ -117,7 +115,6 @@ class InternalSubscriptionResourceTest {
             properties,
             subscriptionPruneController,
             offeringSync,
-            capacityReconciliationController,
             metricMapper,
             applicationProperties,
             offeringProductTagLookupService);
@@ -142,7 +139,6 @@ class InternalSubscriptionResourceTest {
             properties,
             subscriptionPruneController,
             offeringSync,
-            capacityReconciliationController,
             metricMapper,
             applicationProperties,
             offeringProductTagLookupService);
@@ -167,7 +163,6 @@ class InternalSubscriptionResourceTest {
             properties,
             subscriptionPruneController,
             offeringSync,
-            capacityReconciliationController,
             metricMapper,
             applicationProperties,
             offeringProductTagLookupService);
@@ -282,7 +277,6 @@ class InternalSubscriptionResourceTest {
             properties,
             subscriptionPruneController,
             offeringSync,
-            capacityReconciliationController,
             metricMapper,
             applicationProperties,
             offeringProductTagLookupService);
@@ -313,7 +307,6 @@ class InternalSubscriptionResourceTest {
             properties,
             subscriptionPruneController,
             offeringSync,
-            capacityReconciliationController,
             metricMapper,
             applicationProperties,
             offeringProductTagLookupService);

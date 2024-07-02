@@ -125,10 +125,6 @@ parameters:
     value: '3'
   - name: KAFKA_SUBSCRIPTIONS_SYNC_PARTITIONS
     value: '3'
-  - name: KAFKA_CAPACITY_RECONCILE_REPLICAS
-    value: '3'
-  - name: KAFKA_CAPACITY_RECONCILE_PARTITIONS
-    value: '3'
   - name: KAFKA_OFFERING_SYNC_REPLICAS
     value: '3'
   - name: KAFKA_OFFERING_SYNC_PARTITIONS
@@ -182,9 +178,6 @@ objects:
         - replicas: ${{KAFKA_SUBSCRIPTIONS_SYNC_REPLICAS}}
           partitions: ${{KAFKA_SUBSCRIPTIONS_SYNC_PARTITIONS}}
           topicName: platform.rhsm-subscriptions.subscription-sync
-        - replicas: ${{KAFKA_CAPACITY_RECONCILE_REPLICAS}}
-          partitions: ${{KAFKA_CAPACITY_RECONCILE_PARTITIONS}}
-          topicName: platform.rhsm-subscriptions.capacity-reconcile
         - replicas: ${{KAFKA_OFFERING_SYNC_REPLICAS}}
           partitions: ${{KAFKA_OFFERING_SYNC_PARTITIONS}}
           topicName: platform.rhsm-subscriptions.offering-sync

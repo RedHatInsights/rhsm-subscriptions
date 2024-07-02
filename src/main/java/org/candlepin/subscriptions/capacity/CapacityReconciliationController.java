@@ -31,16 +31,12 @@ import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
-import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionMeasurementKey;
-import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Sort;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
@@ -50,7 +46,6 @@ public class CapacityReconciliationController {
   private static final String SOCKETS = "Sockets";
   private static final String CORES = "Cores";
 
-  private final SubscriptionRepository subscriptionRepository;
   private final KafkaTemplate<String, ReconcileCapacityByOfferingTask>
       reconcileCapacityByOfferingKafkaTemplate;
   private final ProductDenylist productDenylist;
@@ -62,13 +57,11 @@ public class CapacityReconciliationController {
 
   @Autowired
   public CapacityReconciliationController(
-      SubscriptionRepository subscriptionRepository,
       ProductDenylist productDenylist,
       MeterRegistry meterRegistry,
       KafkaTemplate<String, ReconcileCapacityByOfferingTask>
           reconcileCapacityByOfferingKafkaTemplate,
       @Qualifier("reconcileCapacityTasks") TaskQueueProperties props) {
-    this.subscriptionRepository = subscriptionRepository;
     this.productDenylist = productDenylist;
     this.reconcileCapacityByOfferingKafkaTemplate = reconcileCapacityByOfferingKafkaTemplate;
     this.reconcileCapacityTopic = props.getTopic();
@@ -77,6 +70,7 @@ public class CapacityReconciliationController {
     measurementsDeleted = meterRegistry.counter("rhsm-subscriptions.capacity.measurements_deleted");
   }
 
+  /** To be removed when SWATCH-2281 is done. */
   @Transactional
   public void reconcileCapacityForSubscription(Subscription subscription) {
     if (productDenylist.productIdMatches(subscription.getOffering().getSku())) {
@@ -87,20 +81,7 @@ public class CapacityReconciliationController {
     reconcileSubscriptionCapacities(subscription);
   }
 
-  @Transactional
-  public void reconcileCapacityForOffering(String sku, int offset, int limit) {
-    Page<Subscription> subscriptions =
-        subscriptionRepository.findByOfferingSku(
-            sku, ResourceUtils.getPageable(offset, limit, Sort.by("subscriptionId")));
-    subscriptions.forEach(this::reconcileCapacityForSubscription);
-    if (subscriptions.hasNext()) {
-      offset = offset + limit;
-      reconcileCapacityByOfferingKafkaTemplate.send(
-          reconcileCapacityTopic,
-          ReconcileCapacityByOfferingTask.builder().sku(sku).offset(offset).limit(limit).build());
-    }
-  }
-
+  /** To be removed when SWATCH-2280 is done. */
   public void enqueueReconcileCapacityForOffering(String sku) {
     reconcileCapacityByOfferingKafkaTemplate.send(
         reconcileCapacityTopic,

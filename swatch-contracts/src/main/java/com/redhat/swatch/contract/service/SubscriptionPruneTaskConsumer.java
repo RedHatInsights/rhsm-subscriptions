@@ -20,6 +20,8 @@
  */
 package com.redhat.swatch.contract.service;
 
+import static com.redhat.swatch.contract.config.Channels.SUBSCRIPTION_PRUNE_TASK;
+
 import com.redhat.swatch.contract.model.EnabledOrgsResponse;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +30,7 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 @Slf4j
 @ApplicationScoped
 public class SubscriptionPruneTaskConsumer {
-  @Incoming("subscription-prune-task")
+  @Incoming(SUBSCRIPTION_PRUNE_TASK)
   public void consume(EnabledOrgsResponse message) {
     log.info("Received task for subscription prune with org ID: {}", message.getOrgId());
     // Implementation will be done as part of SWATCH-2281

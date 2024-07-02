@@ -18,21 +18,24 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.service;
+package com.redhat.swatch.contract.model;
 
-import static com.redhat.swatch.contract.config.Channels.SUBSCRIPTION_SYNC_TASK;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
-import com.redhat.swatch.contract.model.EnabledOrgsResponse;
-import jakarta.enterprise.context.ApplicationScoped;
-import lombok.extern.slf4j.Slf4j;
-import org.eclipse.microprofile.reactive.messaging.Incoming;
-
-@Slf4j
-@ApplicationScoped
-public class SubscriptionSyncTaskConsumer {
-  @Incoming(SUBSCRIPTION_SYNC_TASK)
-  public void consume(EnabledOrgsResponse message) {
-    log.info("Received task for subscription sync with org ID: {}", message.getOrgId());
-    // Implementation will be done as part of SWATCH-2281
-  }
+@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+@Getter
+@ToString
+@EqualsAndHashCode
+public class ReconcileCapacityByOfferingTask {
+  private String sku;
+  private int offset;
+  private int limit;
 }

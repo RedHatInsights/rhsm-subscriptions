@@ -38,6 +38,7 @@ import com.redhat.swatch.contract.openapi.model.TerminationRequest;
 import com.redhat.swatch.contract.openapi.resource.ApiException;
 import com.redhat.swatch.contract.openapi.resource.DefaultApi;
 import com.redhat.swatch.contract.repository.ContractEntity;
+import com.redhat.swatch.contract.service.CapacityReconciliationService;
 import com.redhat.swatch.contract.service.ContractService;
 import com.redhat.swatch.contract.service.EnabledOrgsProducer;
 import jakarta.annotation.security.RolesAllowed;
@@ -56,10 +57,12 @@ import org.jboss.resteasy.reactive.common.NotImplementedYet;
 public class ContractsTestingResource implements DefaultApi {
 
   public static final String FEATURE_NOT_ENABLED_MESSAGE = "This feature is not currently enabled.";
+  private static final String SUCCESS_STATUS = "Success";
 
   private final ContractService service;
   private final EnabledOrgsProducer enabledOrgsProducer;
   private final ApplicationConfiguration applicationConfiguration;
+  private final CapacityReconciliationService capacityReconciliationService;
 
   /**
    * Create contract record in database from provided contract dto payload
@@ -154,7 +157,16 @@ public class ContractsTestingResource implements DefaultApi {
   @Override
   @RolesAllowed({"test", "support", "service"})
   public OfferingResponse forceReconcileOffering(String sku) throws ProcessingException {
-    throw new NotImplementedYet();
+    var response = new OfferingResponse();
+    try {
+      log.info("Capacity Reconciliation for sku {} triggered", sku);
+      capacityReconciliationService.reconcileCapacityForOffering(sku, 0, 100);
+      response.setDetail(SUCCESS_STATUS);
+    } catch (Exception e) {
+      log.error("Error reconciling offering", e);
+      response.setDetail("Error reconciling offering.");
+    }
+    return response;
   }
 
   @Override

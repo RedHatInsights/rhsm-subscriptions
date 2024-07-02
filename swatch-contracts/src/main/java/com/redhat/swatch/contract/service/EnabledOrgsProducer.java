@@ -20,6 +20,8 @@
  */
 package com.redhat.swatch.contract.service;
 
+import static com.redhat.swatch.contract.config.Channels.ENABLED_ORGS;
+
 import com.redhat.swatch.contract.model.EnabledOrgsRequest;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -39,7 +41,7 @@ public class EnabledOrgsProducer {
   private final String subscriptionPruneTaskTopic;
 
   public EnabledOrgsProducer(
-      @Channel("enabled-orgs") Emitter<EnabledOrgsRequest> emitter,
+      @Channel(ENABLED_ORGS) Emitter<EnabledOrgsRequest> emitter,
       @ConfigProperty(name = SUBSCRIPTION_SYNC_TASK_TOPIC) String subscriptionSyncTaskTopic,
       @ConfigProperty(name = SUBSCRIPTION_PRUNE_TASK_TOPIC) String subscriptionPruneTaskTopic) {
     this.emitter = emitter;
