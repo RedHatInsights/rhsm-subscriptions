@@ -94,6 +94,7 @@ public class InstancesDataExporterService implements DataExporterService<TallyIn
   private final TallyInstancePaygViewRepository paygViewRepository;
   private final TallyInstanceNonPaygViewRepository nonPaygViewRepository;
   private final InstancesJsonDataMapperService jsonDataMapperService;
+  private final InstancesCsvDataMapperService csvDataMapperService;
 
   @Override
   public boolean handles(ExportServiceRequest request) {
@@ -115,7 +116,7 @@ public class InstancesDataExporterService implements DataExporterService<TallyIn
   public DataMapperService<TallyInstanceView> getMapper(ExportServiceRequest request) {
     return switch (request.getFormat()) {
       case JSON -> jsonDataMapperService;
-      case CSV -> throw new UnsupportedOperationException("CSV is not supported yet for instances");
+      case CSV -> csvDataMapperService;
     };
   }
 
