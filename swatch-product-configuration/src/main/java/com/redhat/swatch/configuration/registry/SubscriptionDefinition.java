@@ -213,8 +213,11 @@ public class SubscriptionDefinition {
     Predicate<Variant> meteredPredicate =
         variant -> variant.getSubscription().isPaygEligible() == params.isPaygEligibleProduct();
 
+    // Only consider conversion flag for payg products
     Predicate<Variant> conversionPredicate =
-        variant -> variant.getIsMigrationProduct() == params.is3rdPartyMigration();
+        params.isPaygEligibleProduct()
+            ? variant -> variant.getIsMigrationProduct() == params.is3rdPartyMigration()
+            : variant -> true;
 
     Set<String> productTags =
         filterTags(
