@@ -38,25 +38,12 @@ import org.candlepin.subscriptions.json.Event;
 public class EventKey implements Serializable {
 
   private String orgId;
-  private String eventType;
-  private String eventSource;
   private String instanceId;
   private OffsetDateTime timestamp;
 
-  public EventKey(
-      String orgId,
-      String eventSource,
-      String eventType,
-      String instanceId,
-      OffsetDateTime timestamp) {
+  public EventKey(String orgId, String instanceId, OffsetDateTime timestamp) {
     Objects.requireNonNull(orgId, "EventKey requires a non null 'orgId'.");
     this.orgId = orgId;
-
-    Objects.requireNonNull(eventType, "EventKey requires a non null 'eventType'.");
-    this.eventType = eventType;
-
-    Objects.requireNonNull(eventSource, "EventKey requires a non null 'eventSource'.");
-    this.eventSource = eventSource;
 
     Objects.requireNonNull(instanceId, "EventKey requires a non null 'instanceId'.");
     this.instanceId = instanceId;
@@ -66,11 +53,6 @@ public class EventKey implements Serializable {
   }
 
   public static EventKey fromEvent(Event event) {
-    return new EventKey(
-        event.getOrgId(),
-        event.getEventSource(),
-        event.getEventType(),
-        event.getInstanceId(),
-        event.getTimestamp());
+    return new EventKey(event.getOrgId(), event.getInstanceId(), event.getTimestamp());
   }
 }

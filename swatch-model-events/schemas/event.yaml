@@ -203,6 +203,7 @@ properties:
     type: string
     enum:
       - deduction
+      - derived
     required: false
   conversion:
     description: > 

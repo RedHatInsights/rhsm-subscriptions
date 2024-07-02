@@ -28,11 +28,8 @@ import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.event.EventController;
@@ -106,11 +103,7 @@ public class InternalTallyDataController {
     }
 
     try {
-      saved =
-          eventController.saveAllEventRecords(
-              eventController.resolveEventConflicts(
-                  events.stream()
-                      .collect(Collectors.toMap(EventKey::fromEvent, Function.identity()))));
+      saved = eventController.saveAllEventRecords(eventController.resolveEventConflicts(events));
     } catch (Exception e) {
       log.error("Error saving events, {}", e.getMessage());
       return "Error saving events";
