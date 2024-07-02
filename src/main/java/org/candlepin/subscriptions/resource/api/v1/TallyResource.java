@@ -24,10 +24,7 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinitionGranularity;
 import com.redhat.swatch.configuration.registry.Variant;
-import com.redhat.swatch.contracts.api.resources.CapacityApi;
-import com.redhat.swatch.contracts.client.ApiException;
 import jakarta.ws.rs.BadRequestException;
-import jakarta.ws.rs.InternalServerErrorException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.UriInfo;
 import java.time.OffsetDateTime;
@@ -45,7 +42,11 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.*;
+import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resource.ReportCriteria;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
@@ -53,15 +54,16 @@ import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.tally.filler.ReportFiller;
 import org.candlepin.subscriptions.tally.filler.ReportFillerFactory;
 import org.candlepin.subscriptions.tally.filler.UnroundedTallyReportDataPoint;
+import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
+import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
+import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
+import org.candlepin.subscriptions.utilization.api.model.UsageType;
 import org.candlepin.subscriptions.utilization.api.v1.model.BillingCategory;
-import org.candlepin.subscriptions.utilization.api.v1.model.BillingProviderType;
+import org.candlepin.subscriptions.utilization.api.v1.model.CapacitySnapshotByMetricId;
 import org.candlepin.subscriptions.utilization.api.v1.model.GranularityType;
-import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
-import org.candlepin.subscriptions.utilization.api.v1.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.v1.model.TallyReportData;
 import org.candlepin.subscriptions.utilization.api.v1.model.TallyReportDataMeta;
 import org.candlepin.subscriptions.utilization.api.v1.model.TallyReportTotalMonthly;
-import org.candlepin.subscriptions.utilization.api.v1.model.UsageType;
 import org.candlepin.subscriptions.utilization.api.v1.resources.TallyApi;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,7 +85,7 @@ public class TallyResource implements TallyApi {
   private final TallySnapshotRepository repository;
   private final PageLinkCreator pageLinkCreator;
   private final ApplicationClock clock;
-  private final CapacityApi capacityApi;
+  private final CapacityResource capacityResource;
 
   @Context private UriInfo uriInfo;
 
@@ -92,11 +94,11 @@ public class TallyResource implements TallyApi {
       TallySnapshotRepository repository,
       PageLinkCreator pageLinkCreator,
       ApplicationClock clock,
-      CapacityApi capacityApi) {
+      CapacityResource capacityResource) {
     this.repository = repository;
     this.pageLinkCreator = pageLinkCreator;
     this.clock = clock;
-    this.capacityApi = capacityApi;
+    this.capacityResource = capacityResource;
   }
 
   @Override
@@ -264,35 +266,22 @@ public class TallyResource implements TallyApi {
       ServiceLevelType sla,
       UsageType usageType) {
 
-    com.redhat.swatch.contracts.api.model.CapacityReportByMetricId capacityReportByMetricId;
-    try {
-      capacityReportByMetricId =
-          capacityApi.getCapacityReportByMetricId(
-              productId.toString(),
-              metricId.getValue(),
-              com.redhat.swatch.contracts.api.model.GranularityType.valueOf(granularityType.name()),
-              beginning,
-              ending,
-              offset,
-              limit,
-              Optional.ofNullable(category)
-                  .map(c -> com.redhat.swatch.contracts.api.model.ReportCategory.valueOf(c.name()))
-                  .orElse(null),
-              Optional.ofNullable(sla)
-                  .map(
-                      s -> com.redhat.swatch.contracts.api.model.ServiceLevelType.valueOf(s.name()))
-                  .orElse(null),
-              Optional.ofNullable(usageType)
-                  .map(ut -> com.redhat.swatch.contracts.api.model.UsageType.valueOf(ut.name()))
-                  .orElse(null));
-      return capacityReportByMetricId.getData().stream()
-          .collect(
-              Collectors.toMap(
-                  com.redhat.swatch.contracts.api.model.CapacitySnapshotByMetricId::getDate,
-                  com.redhat.swatch.contracts.api.model.CapacitySnapshotByMetricId::getValue));
-    } catch (ApiException e) {
-      throw new InternalServerErrorException("Unable to retrieve capacity for tally report.", e);
-    }
+    var capacityReportByMetricId =
+        capacityResource.getCapacityReportByMetricId(
+            productId,
+            metricId,
+            GranularityType.valueOf(granularityType.name()),
+            beginning,
+            ending,
+            offset,
+            limit,
+            Optional.ofNullable(category).map(c -> ReportCategory.valueOf(c.name())).orElse(null),
+            Optional.ofNullable(sla).map(s -> ServiceLevelType.valueOf(s.name())).orElse(null),
+            Optional.ofNullable(usageType).map(ut -> UsageType.valueOf(ut.name())).orElse(null));
+    return capacityReportByMetricId.getData().stream()
+        .collect(
+            Collectors.toMap(
+                CapacitySnapshotByMetricId::getDate, CapacitySnapshotByMetricId::getValue));
   }
 
   /** Validate and extract report criteria */

@@ -24,7 +24,7 @@ import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 import java.util.Map;
 import java.util.Objects;
-import org.candlepin.subscriptions.utilization.api.v1.model.UsageType;
+import org.candlepin.subscriptions.utilization.api.model.UsageType;
 
 /**
  * System purpose usage
@@ -32,11 +32,11 @@ import org.candlepin.subscriptions.utilization.api.v1.model.UsageType;
  * <p>Usage represents the class of usage for a given system or subscription.
  */
 public enum Usage implements StringValueEnum<UsageType> {
-  EMPTY("", UsageType.EMPTY),
+  EMPTY("", UsageType.__EMPTY__),
   PRODUCTION("Production", UsageType.PRODUCTION),
   DEVELOPMENT_TEST("Development/Test", UsageType.DEVELOPMENT_TEST),
   DISASTER_RECOVERY("Disaster Recovery", UsageType.DISASTER_RECOVERY),
-  _ANY("_ANY", UsageType._ANY); // NOSONAR
+  _ANY("_ANY", UsageType.ANY); // NOSONAR
 
   private static final Map<String, Usage> VALUE_ENUM_MAP =
       StringValueEnum.initializeImmutableMap(Usage.class);

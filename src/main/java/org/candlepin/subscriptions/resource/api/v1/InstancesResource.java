@@ -53,18 +53,18 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
-import org.candlepin.subscriptions.utilization.api.v1.model.BillingProviderType;
+import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
+import org.candlepin.subscriptions.utilization.api.model.PageLinks;
+import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
+import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
+import org.candlepin.subscriptions.utilization.api.model.SortDirection;
+import org.candlepin.subscriptions.utilization.api.model.UsageType;
 import org.candlepin.subscriptions.utilization.api.v1.model.CloudProvider;
 import org.candlepin.subscriptions.utilization.api.v1.model.InstanceData;
 import org.candlepin.subscriptions.utilization.api.v1.model.InstanceGuestReport;
 import org.candlepin.subscriptions.utilization.api.v1.model.InstanceMeta;
 import org.candlepin.subscriptions.utilization.api.v1.model.InstanceResponse;
 import org.candlepin.subscriptions.utilization.api.v1.model.MetaCount;
-import org.candlepin.subscriptions.utilization.api.v1.model.PageLinks;
-import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
-import org.candlepin.subscriptions.utilization.api.v1.model.ServiceLevelType;
-import org.candlepin.subscriptions.utilization.api.v1.model.SortDirection;
-import org.candlepin.subscriptions.utilization.api.v1.model.UsageType;
 import org.candlepin.subscriptions.utilization.api.v1.resources.InstancesApi;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -298,8 +298,7 @@ public class InstancesResource implements InstancesApi {
     if (Objects.nonNull(tallyInstanceView.getHostBillingProvider())) {
       instance.setBillingProvider(tallyInstanceView.getHostBillingProvider().asOpenApiEnum());
     }
-    instance.setCategory(
-        getCategoryByMeasurementType(tallyInstanceView.getKey().getMeasurementType()));
+    instance.setCategory(tallyInstanceView.getKey().getMeasurementType().toReportCategory());
     instance.setCloudProvider(
         getCloudProviderByMeasurementType(tallyInstanceView.getKey().getMeasurementType()));
     instance.setBillingAccountId(tallyInstanceView.getHostBillingAccountId());
@@ -329,19 +328,6 @@ public class InstancesResource implements InstancesApi {
     } else {
       return CATEGORY_MAP.get(reportCategory);
     }
-  }
-
-  public static ReportCategory getCategoryByMeasurementType(
-      HardwareMeasurementType measurementType) {
-    if (HardwareMeasurementType.isSupportedCloudProvider(measurementType.name())) {
-      return ReportCategory.CLOUD;
-    }
-    return switch (measurementType) {
-      case VIRTUAL -> ReportCategory.VIRTUAL;
-      case PHYSICAL -> ReportCategory.PHYSICAL;
-      case HYPERVISOR -> ReportCategory.HYPERVISOR;
-      default -> null;
-    };
   }
 
   public static CloudProvider getCloudProviderByMeasurementType(
