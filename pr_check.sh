@@ -63,6 +63,9 @@ for EXTRA_COMPONENT_NAME in $EXTRA_COMPONENTS; do
   export EXTRA_DEPLOY_ARGS="${EXTRA_DEPLOY_ARGS} --set-template-ref ${EXTRA_COMPONENT_NAME}=${GIT_COMMIT}"
 done
 
+# temporary to test bonfire updates
+pip install --pre --upgrade crc-bonfire
+
 # Deploy to an ephemeral namespace for testing
 source deploy_ephemeral_env.sh
 
