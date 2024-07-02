@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.util;
 
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.util.ProductTagLookupParams;
 import jakarta.ws.rs.core.Response;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -59,14 +60,16 @@ public class OfferingProductTagLookupService {
   }
 
   private static void processProductTagsBySku(Offering offering, OfferingProductTags productTags) {
-    // lookup product tags by either role or eng IDs
-    SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
-            offering.getRole(),
-            offering.getProductIds(),
-            offering.getProductName(),
-            offering.isMetered(),
-            offering.isMigrationOffering())
-        .forEach(productTags::addDataItem);
+    var lookupParams =
+        ProductTagLookupParams.builder()
+            .role(offering.getRole())
+            .engIds(offering.getProductIds())
+            .productName(offering.getProductName())
+            .isPaygEligibleProduct(offering.isMetered())
+            .is3rdPartyMigration(offering.isMigrationOffering())
+            .build();
+
+    SubscriptionDefinition.getAllProductTags(lookupParams).forEach(productTags::addDataItem);
   }
 
   public OfferingProductTags findPersistedProductTagsBySku(String sku) {

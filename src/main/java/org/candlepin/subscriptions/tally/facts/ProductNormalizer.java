@@ -21,6 +21,8 @@
 package org.candlepin.subscriptions.tally.facts;
 
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
+import com.redhat.swatch.configuration.util.ProductTagLookupParams;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -33,32 +35,59 @@ import org.springframework.stereotype.Component;
 @Component
 public class ProductNormalizer {
 
+  private static final Set<String> APPLICABLE_METRIC_IDS =
+      Set.of(MetricIdUtils.getCores().toString(), MetricIdUtils.getSockets().toString());
+
   private Set<String> getSystemProfileProducts(
-      InventoryHostFacts hostFacts, boolean isMetered, boolean is3rdPartyMigrated) {
+      InventoryHostFacts hostFacts, boolean is3rdPartyMigrated) {
     Collection<String> systemProfileProductIds = hostFacts.getSystemProfileProductIds();
     if (systemProfileProductIds != null) {
-      return SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
-          null, systemProfileProductIds, null, isMetered, is3rdPartyMigrated);
+
+      var lookupParams =
+          ProductTagLookupParams.builder()
+              .engIds(systemProfileProductIds)
+              .metricIds(APPLICABLE_METRIC_IDS)
+              .is3rdPartyMigration(is3rdPartyMigrated)
+              .isPaygEligibleProduct(false)
+              .build();
+
+      return SubscriptionDefinition.getAllProductTags(lookupParams);
     }
     return Set.of();
   }
 
   private Set<String> getSatelliteRoleProducts(
-      InventoryHostFacts hostFacts, boolean isMetered, boolean is3rdPartyMigrated) {
+      InventoryHostFacts hostFacts, boolean is3rdPartyMigrated) {
     String satelliteRole = hostFacts.getSatelliteRole();
     if (satelliteRole != null) {
-      return SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
-          satelliteRole, Set.of(), null, isMetered, is3rdPartyMigrated);
+
+      var lookupParams =
+          ProductTagLookupParams.builder()
+              .role(satelliteRole)
+              .metricIds(APPLICABLE_METRIC_IDS)
+              .is3rdPartyMigration(is3rdPartyMigrated)
+              .isPaygEligibleProduct(false)
+              .build();
+
+      return SubscriptionDefinition.getAllProductTags(lookupParams);
     }
     return Set.of();
   }
 
-  private Set<String> getRhsmProducts(
-      InventoryHostFacts hostFacts, boolean isMetered, boolean is3rdPartyMigrated) {
+  private Set<String> getRhsmProducts(InventoryHostFacts hostFacts, boolean is3rdPartyMigrated) {
     String syspurposeRole = hostFacts.getSyspurposeRole();
     Set<String> products = hostFacts.getProducts();
-    return SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
-        syspurposeRole, products, null, isMetered, is3rdPartyMigrated);
+
+    var lookupParams =
+        ProductTagLookupParams.builder()
+            .engIds(products)
+            .role(syspurposeRole)
+            .metricIds(APPLICABLE_METRIC_IDS)
+            .is3rdPartyMigration(is3rdPartyMigrated)
+            .isPaygEligibleProduct(false)
+            .build();
+
+    return SubscriptionDefinition.getAllProductTags(lookupParams);
   }
 
   private void addQpcProducts(Set<String> products, InventoryHostFacts hostFacts) {
@@ -93,22 +122,20 @@ public class ProductNormalizer {
   }
 
   public Set<String> normalizeProducts(
-      InventoryHostFacts hostFacts,
-      boolean isMetered,
-      boolean is3rdPartyMigrated,
-      boolean skipRhsmFacts) {
+      InventoryHostFacts hostFacts, boolean is3rdPartyMigrated, boolean skipRhsmFacts) {
 
     Set<String> productTags = new HashSet<>();
 
-    productTags.addAll(getSystemProfileProducts(hostFacts, isMetered, is3rdPartyMigrated));
-    productTags.addAll(getSatelliteRoleProducts(hostFacts, isMetered, is3rdPartyMigrated));
+    productTags.addAll(getSystemProfileProducts(hostFacts, is3rdPartyMigrated));
+    productTags.addAll(getSatelliteRoleProducts(hostFacts, is3rdPartyMigrated));
 
     if (!skipRhsmFacts) {
-      productTags.addAll(getRhsmProducts(hostFacts, isMetered, is3rdPartyMigrated));
+      productTags.addAll(getRhsmProducts(hostFacts, is3rdPartyMigrated));
     }
 
     addQpcProducts(productTags, hostFacts);
     normalizeRhelVariants(productTags);
+
     SubscriptionDefinition.pruneIncludedProducts(productTags);
 
     return productTags;

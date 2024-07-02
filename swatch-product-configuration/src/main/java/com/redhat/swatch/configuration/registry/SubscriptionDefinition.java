@@ -21,17 +21,19 @@
 package com.redhat.swatch.configuration.registry;
 
 import com.google.common.collect.MoreCollectors;
+import com.redhat.swatch.configuration.util.ProductTagLookupParams;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -48,8 +50,8 @@ import lombok.extern.slf4j.Slf4j;
 @AllArgsConstructor
 @NoArgsConstructor
 public class SubscriptionDefinition {
-  public static final List<String> ORDERED_GRANULARITY =
-      List.of("HOURLY", "DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY");
+  public static final Set<String> ORDERED_GRANULARITY =
+      Set.of("HOURLY", "DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY");
 
   /**
    * A family of solutions that is logically related, having one or more subscriptions distinguished
@@ -185,65 +187,55 @@ public class SubscriptionDefinition {
         .orElse(Set.of());
   }
 
-  public static Set<String> getAllProductTagsByRoleOrEngIds(
-      String role,
-      Collection<?> engIds,
-      String productName,
-      boolean isMetered,
-      boolean is3rdPartyMigration) {
-    Set<String> productTags = new HashSet<>();
-    if (!isNullOrEmpty(role)) {
-      productTags.addAll(
-          Variant.findByRole(role, is3rdPartyMigration, isMetered).stream()
-              .map(Variant::getTag)
-              .collect(Collectors.toSet()));
+  public static Set<String> getAllProductTags(ProductTagLookupParams params) {
+
+    Predicate<Variant> metricIdsPredicate =
+        params.getMetricIds().isEmpty()
+            ? variant -> true
+            : variant ->
+                params.getMetricIds().stream()
+                    .anyMatch(variant.getSubscription().getMetricIds()::contains);
+
+    Predicate<Variant> primaryIdentifyingPredicate;
+    if (!isNullOrEmpty(params.getRole())) {
+      primaryIdentifyingPredicate = variant -> variant.getRoles().contains(params.getRole());
+    } else if (Objects.nonNull(params.getEngIds()) && !params.getEngIds().isEmpty()) {
+      primaryIdentifyingPredicate =
+          variant -> params.getEngIds().stream().anyMatch(variant.getEngineeringIds()::contains);
+    } else if (!isNullOrEmpty(params.getProductName())) {
+      primaryIdentifyingPredicate = v -> v.getProductNames().contains(params.getProductName());
+    } else {
+      primaryIdentifyingPredicate = variant -> true;
+      log.warn(
+          "Did not send engineering id, role, or product name to filter on when looking up product tags");
     }
 
-    if (Objects.nonNull(engIds) && !engIds.isEmpty()) {
-      engIds.stream()
-          .map(Objects::toString)
-          .collect(Collectors.toSet())
-          .forEach(
-              engId -> {
-                Set<Variant> matchingVariants =
-                    Variant.findByEngProductId(engId, is3rdPartyMigration, isMetered);
+    Predicate<Variant> meteredPredicate =
+        variant -> variant.getSubscription().isPaygEligible() == params.isPaygEligibleProduct();
 
-                // Add the variant that the fingerprint matches
-                Set<String> tags =
-                    new HashSet<>(matchingVariants.stream().map(Variant::getTag).toList());
+    Predicate<Variant> conversionPredicate =
+        variant -> variant.getIsMigrationProduct() == params.is3rdPartyMigration();
 
-                // Add additional tags as defined by config (to force that RHEL for x86 which
-                // wouldn't match otherwise because there that definition isn't metered)
-                for (String additionalTag :
-                    matchingVariants.stream()
-                        .flatMap(variant -> variant.getAdditionalTags().stream())
-                        .toList()) {
-
-                  // Only force the tag if it has an engineering match id....this is so 204 doesn't
-                  // incorrectly map to 204,479 (mabye we don't need this?)
-                  Optional<Variant> maybeVariant = Variant.findByTag(additionalTag);
-                  if (maybeVariant.isPresent()
-                      && maybeVariant.get().getEngineeringIds().stream()
-                          .anyMatch(engIds::contains)) {
-                    tags.add(additionalTag);
-                  }
-                }
-
-                productTags.addAll(tags);
-              });
-    }
-    // if not found, let's use the product name
-    if ((productTags.isEmpty()) && !isNullOrEmpty(productName)) {
-      productTags.addAll(
-          Variant.filterVariantsByProductName(productName, is3rdPartyMigration, isMetered)
-              .filter(v -> v.getSubscription().isPaygEligible() == isMetered)
-              .map(Variant::getTag)
-              .collect(Collectors.toSet()));
-    }
+    Set<String> productTags =
+        filterTags(
+                primaryIdentifyingPredicate,
+                meteredPredicate,
+                conversionPredicate,
+                metricIdsPredicate)
+            .stream()
+            .map(Variant::getTag)
+            .collect(Collectors.toSet());
 
     SubscriptionDefinition.pruneIncludedProducts(productTags);
 
     return productTags;
+  }
+
+  private static Set<Variant> filterTags(Predicate<Variant>... predicates) {
+    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
+        .flatMap(subscription -> subscription.getVariants().stream())
+        .filter(variant -> Stream.of(predicates).allMatch(predicate -> predicate.test(variant)))
+        .collect(Collectors.toSet());
   }
 
   /**

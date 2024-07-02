@@ -888,7 +888,7 @@ class InventoryAccountUsageCollectorTallyTest {
         orgId,
         props.getCullingOffsetDays(),
         hostFacts -> {
-          NormalizedFacts facts = factNormalizer.normalize(hostFacts, orgHostsData, false);
+          NormalizedFacts facts = factNormalizer.normalize(hostFacts, orgHostsData);
           Host existingHost = inventoryHostMap.remove(hostFacts.getInventoryId().toString());
           Host host;
 
