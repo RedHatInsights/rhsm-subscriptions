@@ -71,7 +71,6 @@ public class CapacityReconciliationController {
   }
 
   /** To be removed when SWATCH-2281 is done. */
-  @Deprecated(forRemoval = true)
   @Transactional
   public void reconcileCapacityForSubscription(Subscription subscription) {
     if (productDenylist.productIdMatches(subscription.getOffering().getSku())) {
@@ -83,7 +82,6 @@ public class CapacityReconciliationController {
   }
 
   /** To be removed when SWATCH-2280 is done. */
-  @Deprecated(forRemoval = true)
   public void enqueueReconcileCapacityForOffering(String sku) {
     reconcileCapacityByOfferingKafkaTemplate.send(
         reconcileCapacityTopic,
