@@ -92,7 +92,7 @@ class RhMarketplacePayloadMapperTest {
     String orgId = "org123";
     var usage =
         new BillableUsage()
-            .withId(UUID.fromString("c204074d-626f-4272-aa05-b6d69d6de16a"))
+            .withTallyId(UUID.fromString("c204074d-626f-4272-aa05-b6d69d6de16a"))
             .withOrgId(orgId)
             .withProductId("OpenShift-metrics")
             .withSnapshotDate(snapshotDate)
@@ -141,7 +141,7 @@ class RhMarketplacePayloadMapperTest {
     String orgId = "org123";
     var usage =
         new BillableUsage()
-            .withId(UUID.fromString("c204074d-626f-4272-aa05-b6d69d6de16a"))
+            .withTallyId(UUID.fromString("c204074d-626f-4272-aa05-b6d69d6de16a"))
             .withProductId("OpenShift-metrics")
             .withOrgId(orgId)
             .withSnapshotDate(snapshotDate)

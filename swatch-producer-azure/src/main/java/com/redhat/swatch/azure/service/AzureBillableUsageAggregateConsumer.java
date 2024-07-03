@@ -27,10 +27,6 @@ import com.redhat.swatch.azure.exception.DefaultApiException;
 import com.redhat.swatch.azure.exception.SubscriptionCanNotBeDeterminedException;
 import com.redhat.swatch.azure.exception.SubscriptionRecentlyTerminatedException;
 import com.redhat.swatch.azure.exception.UsageTimestampOutOfBoundsException;
-import com.redhat.swatch.azure.openapi.model.BillableUsage;
-import com.redhat.swatch.azure.openapi.model.BillableUsage.BillingProviderEnum;
-import com.redhat.swatch.azure.openapi.model.BillableUsage.SlaEnum;
-import com.redhat.swatch.azure.openapi.model.BillableUsage.UsageEnum;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEvent;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEventStatusEnum;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AzureUsageContext;
@@ -54,6 +50,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -269,7 +266,8 @@ public class AzureBillableUsageAggregateConsumer {
   }
 
   private Optional<Metric> validateUsageAndLookupMetric(BillableUsageAggregateKey aggregationKey) {
-    if (!Objects.equals(aggregationKey.getBillingProvider(), BillingProviderEnum.AZURE.value())) {
+    if (!Objects.equals(
+        aggregationKey.getBillingProvider(), BillableUsage.BillingProvider.AZURE.value())) {
       log.debug("Snapshot not applicable because billingProvider is not Azure");
       return Optional.empty();
     }
@@ -299,13 +297,14 @@ public class AzureBillableUsageAggregateConsumer {
 
   private BillableUsage billableUsageFromAggregateKey(BillableUsageAggregateKey key, String uuid) {
     var billableUsage = new BillableUsage();
-    billableUsage.setUsage(UsageEnum.fromValue(key.getUsage()));
+    billableUsage.setUsage(BillableUsage.Usage.fromValue(key.getUsage()));
     billableUsage.setBillingAccountId(key.getBillingAccountId());
-    billableUsage.setBillingProvider(BillingProviderEnum.fromValue(key.getBillingProvider()));
+    billableUsage.setBillingProvider(
+        BillableUsage.BillingProvider.fromValue(key.getBillingProvider()));
     billableUsage.setOrgId(key.getOrgId());
     billableUsage.setProductId(key.getProductId());
     billableUsage.setMetricId(key.getMetricId());
-    billableUsage.setSla(SlaEnum.fromValue(key.getSla()));
+    billableUsage.setSla(BillableUsage.Sla.fromValue(key.getSla()));
     billableUsage.setUuid(UUID.fromString(uuid));
     return billableUsage;
   }
