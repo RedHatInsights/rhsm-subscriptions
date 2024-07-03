@@ -25,6 +25,7 @@ import java.time.OffsetDateTime;
 import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
+import lombok.AllArgsConstructor;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.springframework.stereotype.Component;
@@ -37,16 +38,11 @@ import org.springframework.stereotype.Component;
  * addition to the current incomplete month.
  */
 @Component
+@AllArgsConstructor
 public class TallyRetentionPolicy {
 
   private final ApplicationClock applicationClock;
   private final TallyRetentionPolicyProperties config;
-
-  public TallyRetentionPolicy(
-      ApplicationClock applicationClock, TallyRetentionPolicyProperties config) {
-    this.applicationClock = applicationClock;
-    this.config = config;
-  }
 
   /**
    * Get the cutoff date for the passed granularity.
@@ -102,5 +98,9 @@ public class TallyRetentionPolicy {
         throw new IllegalArgumentException(
             String.format("Unsupported granularity: %s", granularity));
     }
+  }
+
+  public long getSnapshotsToDeleteInBatches() {
+    return config.getSnapshotsToDeleteInBatches();
   }
 }
