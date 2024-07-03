@@ -29,13 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -126,13 +120,107 @@ class SubscriptionSyncControllerTest {
   void shouldCreateNewRecordOnQuantityChange() {
     Mockito.when(offeringRepository.existsById(SKU)).thenReturn(true);
     Offering offering = Offering.builder().sku(SKU).build();
+    var dto = createDto("456", 10);
+    var subscription = createSubscription();
     when(offeringRepository.getReferenceById(SKU)).thenReturn(offering);
     when(denylist.productIdMatches(any())).thenReturn(false);
-    var dto = createDto("456", 10);
-    subscriptionSyncController.syncSubscription(dto, Optional.of(createSubscription()));
+    subscriptionSyncController.syncSubscription(dto, Optional.of(subscription));
     verify(subscriptionRepository, Mockito.times(2)).save(Mockito.any(Subscription.class));
     verify(capacityReconciliationController, Mockito.times(2))
         .reconcileCapacityForSubscription(Mockito.any(Subscription.class));
+  }
+
+  /** Test for SWATCH-2579 */
+  @Test
+  void shouldSegmentSubscriptionOnQuantityChangeOnlyOnce() {
+    var initialSub = createSubscription();
+    // Change quantity from 4 to 10
+    var dto = createDto("456", 10);
+
+    var aWeekAgo = toEpochMillis(NOW.minusDays(7L));
+    var twoDaysAgo = NOW.minusDays(2L);
+    dto.setEffectiveStartDate(aWeekAgo);
+    initialSub.setStartDate(clock.dateFromMilliseconds(aWeekAgo));
+    initialSub.setEndDate(twoDaysAgo);
+
+    // Simulate the brief delay between when a subscription is terminated and when the
+    // continuation subscription is written to the database.  In reality, this should be just a
+    // millisecond or less
+    var continuationStartTime = twoDaysAgo.plusSeconds(1L);
+
+    // This simulates a subscription that has been segmented due to quantity change
+    var quantityChangedSub =
+        Subscription.builder()
+            .subscriptionId(initialSub.getSubscriptionId())
+            .subscriptionNumber(initialSub.getSubscriptionNumber())
+            .orgId(initialSub.getOrgId())
+            .quantity(10) // same as DTO quantity
+            .offering(initialSub.getOffering())
+            .startDate(continuationStartTime)
+            .endDate(initialSub.getEndDate())
+            .build();
+
+    // Order the subscriptions by start date descending as the database does
+    var initialSubSpy = spy(initialSub);
+    var subscriptions = List.of(quantityChangedSub, initialSubSpy);
+
+    // Subscription watch should not perform any termination since the quantity has not changed
+    // from the value in the quantityChangedSub.
+    when(denylist.productIdMatches(any())).thenReturn(false);
+    when(subscriptionService.getSubscriptionsByOrgId("123")).thenReturn(List.of(dto));
+    when(subscriptionRepository.findByOrgId("123")).thenReturn(subscriptions.stream());
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("123", false);
+
+    verify(initialSubSpy, never()).endSubscription();
+  }
+
+  @Test
+  void shouldHandleMultipleQuantityChanges() {
+    var initialSub = createSubscription();
+    // Change quantity from 4 to 10
+    var dto = createDto("456", 10);
+
+    var aWeekAgo = toEpochMillis(NOW.minusDays(7L));
+    var twoDaysAgo = NOW.minusDays(2L);
+    dto.setEffectiveStartDate(aWeekAgo);
+    initialSub.setStartDate(clock.dateFromMilliseconds(aWeekAgo));
+    initialSub.setEndDate(twoDaysAgo);
+
+    // Simulate the brief delay between when a subscription is terminated and when the
+    // continuation subscription is written to the database.  In reality, this should be just a
+    // millisecond or less
+    var firstContinuationStartTime = twoDaysAgo.plusSeconds(1L);
+
+    var firstQuantityChangedSub =
+        Subscription.builder()
+            .subscriptionId(initialSub.getSubscriptionId())
+            .subscriptionNumber(initialSub.getSubscriptionNumber())
+            .orgId(initialSub.getOrgId())
+            .quantity(10) // same as DTO quantity
+            .offering(initialSub.getOffering())
+            .startDate(firstContinuationStartTime)
+            .endDate(initialSub.getEndDate())
+            .build();
+
+    // Order the subscriptions by start date descending as the database does
+    var initialSubSpy = spy(initialSub);
+    var firstQuantityChangedSubSpy = spy(firstQuantityChangedSub);
+    var subscriptions = List.of(firstQuantityChangedSubSpy, initialSubSpy);
+
+    // Change the quantity AGAIN
+    dto.setQuantity(20);
+
+    // Subscription watch should terminate firstQuantityChangedSub and create a new segment since
+    // the quantity has changed for a second time
+    when(denylist.productIdMatches(any())).thenReturn(false);
+    when(subscriptionService.getSubscriptionsByOrgId("123")).thenReturn(List.of(dto));
+    when(subscriptionRepository.findByOrgId("123")).thenReturn(subscriptions.stream());
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("123", false);
+
+    // We don't want to modify the original subscription that has already been ended.  We want to
+    // end the current operative subscription and create a new segment.
+    verify(initialSubSpy, never()).endSubscription();
+    verify(firstQuantityChangedSubSpy, times(1)).endSubscription();
   }
 
   @Test
@@ -209,7 +297,7 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void shouldUpdateSubscriptionWhenUpdateProductIds() {
-    var dto = createDto(123, "456", 4);
+    var dto = createDto(123, "456", "890", 4);
     givenOfferingWithProductIds(290);
     subscriptionSyncController.syncSubscription(dto, Optional.empty());
     verify(subscriptionRepository).save(any());
@@ -384,28 +472,6 @@ class SubscriptionSyncControllerTest {
   }
 
   @Test
-  void shouldForceSubscriptionSyncForOrgWithSameIdButDifferentStartDates() {
-    var dto1 = createDto("234", 3);
-    var dto2 = createDto("234", 3);
-    dto2.setEffectiveStartDate(dto1.getEffectiveStartDate() - (24 * 60 * 60 * 1000));
-
-    var dtoList = Arrays.asList(dto1, dto2);
-    var subList = dtoList.stream().map(this::convertDto).toList();
-    subList.forEach(
-        x -> {
-          x.setQuantity(9999L);
-          x.setOffering(new Offering());
-        }); // Change the quantity so the sync will actually do something
-
-    when(subscriptionService.getSubscriptionsByOrgId("123")).thenReturn(dtoList);
-    when(subscriptionRepository.findByOrgId(anyString())).thenReturn(subList.stream());
-    when(denylist.productIdMatches(any())).thenReturn(false);
-    when(offeringRepository.existsById(any())).thenReturn(true);
-    subscriptionSyncController.forceSyncSubscriptionsForOrg("123", false);
-    verify(subscriptionRepository, times(4)).save(any());
-  }
-
-  @Test
   void shouldForcePAYGSubscriptionsOnlySyncForOrg() {
     var dto1 = createDto("234", 3);
     var dto2 = createDto("345", 3);
@@ -477,7 +543,7 @@ class SubscriptionSyncControllerTest {
             Usage.PRODUCTION,
             BillingProvider.RED_HAT,
             "xyz");
-    Subscription s = createSubscription("org123", "sku", "foo");
+    Subscription s = createSubscription("org123", "sku", "foo", "890");
     s.setStartDate(OffsetDateTime.now().minusDays(7));
     s.setEndDate(OffsetDateTime.now().plusDays(7));
     s.setBillingProvider(BillingProvider.RED_HAT);
@@ -502,7 +568,7 @@ class SubscriptionSyncControllerTest {
             Usage.PRODUCTION,
             BillingProvider.RED_HAT,
             "xyz");
-    Subscription s = createSubscription("org123", "sku", "foo");
+    Subscription s = createSubscription("org123", "sku", "foo", "890");
     s.setStartDate(OffsetDateTime.now().minusDays(7));
     s.setEndDate(OffsetDateTime.now().plusDays(7));
     s.setBillingProvider(BillingProvider.RED_HAT);
@@ -570,7 +636,7 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void testSubscriptionEnrichedFromSubscriptionServiceWhenDbRecordAbsentAndSubscriptionIdMissing() {
-    Subscription incoming = createConvertedDtoSubscription("123", null);
+    Subscription incoming = createConvertedDtoSubscription("123", null, null);
     incoming.setSubscriptionNumber("subnum");
     var serviceResponse = createDto("456", 1);
     serviceResponse.setExternalReferences(
@@ -600,7 +666,7 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void testSubscriptionEnrichedFromDbWhenSubscriptionIdMissing() {
-    Subscription incoming = createConvertedDtoSubscription("123", null);
+    Subscription incoming = createConvertedDtoSubscription("123", null, null);
     Subscription existing = createSubscription();
     existing.setBillingAccountId("billingAccountId");
     existing.setBillingProvider(BillingProvider.RED_HAT);
@@ -622,7 +688,7 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void testSubscriptionNotEnrichedWhenSubscriptionIdPresent() {
-    Subscription incoming = createConvertedDtoSubscription("123", "456");
+    Subscription incoming = createConvertedDtoSubscription("123", "456", "890");
     Subscription existing = createSubscription();
     existing.setBillingAccountId("billingAccountId");
 
@@ -638,7 +704,7 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void testBillingFieldsUpdatedOnChange() {
-    Subscription incoming = createConvertedDtoSubscription("123", "456");
+    Subscription incoming = createConvertedDtoSubscription("123", "456", "890");
     incoming.setBillingProvider(BillingProvider.RED_HAT);
     incoming.setBillingProviderId("newBillingProviderId");
     incoming.setBillingAccountId("newBillingAccountId");
@@ -663,7 +729,7 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void testOfferingSyncedWhenMissing() {
-    Subscription incoming = createConvertedDtoSubscription("123", "456");
+    Subscription incoming = createConvertedDtoSubscription("123", "456", "890");
 
     when(denylist.productIdMatches(any())).thenReturn(false);
     when(offeringRepository.existsById(SKU)).thenReturn(false);
@@ -680,7 +746,7 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void testOfferingSyncFailsAndProcessingStops() {
-    Subscription incoming = createConvertedDtoSubscription("123", "456");
+    Subscription incoming = createConvertedDtoSubscription("123", "456", "890");
 
     when(denylist.productIdMatches(any())).thenReturn(false);
     when(offeringRepository.existsById(SKU)).thenReturn(false);
@@ -723,7 +789,7 @@ class SubscriptionSyncControllerTest {
     when(subscriptionRepository.findByOrgId(any())).thenReturn(Stream.of(subscription));
     when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(subServiceSub));
     when(denylist.productIdMatches(any())).thenReturn(false);
-    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123", false);
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org124", false);
     verify(subscriptionRepository).deleteAll(subscriptionsCaptor.capture());
     assertFalse(subscriptionsCaptor.getValue().iterator().hasNext());
   }
@@ -744,6 +810,25 @@ class SubscriptionSyncControllerTest {
     assertFalse(subscriptionsCaptor.getValue().iterator().hasNext());
   }
 
+  @Test
+  void shouldMaintainAzureBillingInfoDuringSync() {
+    Mockito.when(offeringRepository.existsById(SKU)).thenReturn(true);
+    Offering offering = Offering.builder().sku(SKU).metered(true).build();
+    when(offeringRepository.getReferenceById(SKU)).thenReturn(offering);
+    when(denylist.productIdMatches(any())).thenReturn(false);
+    var existingSubscription = createSubscription();
+    existingSubscription.setBillingProvider(BillingProvider.AZURE);
+    existingSubscription.setBillingProviderId("testProviderId");
+    existingSubscription.setBillingAccountId("testAccountId");
+    existingSubscription.setQuantity(10);
+    var dto = createDto("456", 10);
+    subscriptionSyncController.syncSubscription(dto, Optional.of(existingSubscription));
+    verify(subscriptionRepository, Mockito.times(1)).save(subscriptionCaptor.capture());
+    assertEquals("testAccountId", subscriptionCaptor.getValue().getBillingAccountId());
+    assertEquals("testProviderId", subscriptionCaptor.getValue().getBillingProviderId());
+    assertEquals(BillingProvider.AZURE, subscriptionCaptor.getValue().getBillingProvider());
+  }
+
   private Offering givenOfferingWithProductIds(Integer... productIds) {
     Offering offering = new Offering();
     offering.setSku(SKU);
@@ -754,15 +839,15 @@ class SubscriptionSyncControllerTest {
   }
 
   private Subscription createSubscription() {
-    return createSubscription("123", SKU, "456");
+    return createSubscription("123", SKU, "456", "890");
   }
 
   private Subscription createSubscriptionFrom(
       Offering offering, org.candlepin.subscriptions.subscription.api.model.Subscription dto) {
     return Subscription.builder()
-        .subscriptionId("" + dto.getId())
+        .subscriptionId(dto.getId().toString())
         .subscriptionNumber(dto.getSubscriptionNumber())
-        .orgId("" + dto.getWebCustomerId())
+        .orgId(dto.getWebCustomerId().toString())
         .quantity(dto.getQuantity())
         .offering(offering)
         .startDate(clock.dateFromMilliseconds(dto.getEffectiveStartDate()))
@@ -770,11 +855,12 @@ class SubscriptionSyncControllerTest {
         .build();
   }
 
-  private Subscription createSubscription(String orgId, String sku, String subId) {
+  private Subscription createSubscription(String orgId, String sku, String subId, String subNum) {
     Offering offering = Offering.builder().sku(sku).build();
 
     return Subscription.builder()
         .subscriptionId(subId)
+        .subscriptionNumber(subNum)
         .orgId(orgId)
         .quantity(4L)
         .offering(offering)
@@ -783,29 +869,36 @@ class SubscriptionSyncControllerTest {
         .build();
   }
 
+  private OffsetDateTime toMillisecondPrecision(OffsetDateTime time) {
+    return clock.dateFromMilliseconds(toEpochMillis(time));
+  }
+
   /** Converted DTOs will not have an offering set */
-  private Subscription createConvertedDtoSubscription(String orgId, String subId) {
+  private Subscription createConvertedDtoSubscription(String orgId, String subId, String subNum) {
     return Subscription.builder()
         .subscriptionId(subId)
+        .subscriptionNumber(subNum)
         .orgId(orgId)
         .quantity(4L)
-        .startDate(NOW)
-        .endDate(NOW.plusDays(30))
+        // Converted DTOs will only ever have millisecond precision because that's what we get from
+        // the subscription service
+        .startDate(toMillisecondPrecision(NOW))
+        .endDate(toMillisecondPrecision(NOW.plusDays(30)))
         .build();
   }
 
   private org.candlepin.subscriptions.subscription.api.model.Subscription createDto(
       String subId, int quantity) {
 
-    return createDto(1234, subId, quantity);
+    return createDto(123, subId, "890", quantity);
   }
 
   private org.candlepin.subscriptions.subscription.api.model.Subscription createDto(
-      Integer orgId, String subId, int quantity) {
+      Integer orgId, String subId, String subNum, int quantity) {
     final var dto = new org.candlepin.subscriptions.subscription.api.model.Subscription();
     dto.setQuantity(quantity);
     dto.setId(Integer.valueOf(subId));
-    dto.setSubscriptionNumber("123");
+    dto.setSubscriptionNumber(subNum);
     dto.setEffectiveStartDate(toEpochMillis(NOW));
     dto.setEffectiveEndDate(toEpochMillis(NOW.plusDays(30)));
     dto.setWebCustomerId(orgId);

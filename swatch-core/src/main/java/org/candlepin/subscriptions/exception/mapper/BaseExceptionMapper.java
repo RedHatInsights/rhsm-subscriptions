@@ -27,7 +27,7 @@ import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.Response.Status.Family;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import org.candlepin.subscriptions.exception.ExceptionUtil;
-import org.candlepin.subscriptions.utilization.api.model.Error;
+import org.candlepin.subscriptions.utilization.api.v1.model.Error;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;

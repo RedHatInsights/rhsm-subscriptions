@@ -21,6 +21,7 @@
 package com.redhat.swatch.configuration.registry;
 
 import com.google.common.collect.MoreCollectors;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
@@ -70,9 +71,9 @@ public class SubscriptionDefinition {
    */
   @Builder.Default private List<String> includedSubscriptions = new ArrayList<>();
 
-  @Builder.Default private List<Variant> variants = new ArrayList<>();
+  @Valid @Builder.Default private List<Variant> variants = new ArrayList<>();
   private String serviceType;
-  @Builder.Default private List<Metric> metrics = new ArrayList<>();
+  @Valid @Builder.Default private List<Metric> metrics = new ArrayList<>();
   private Defaults defaults;
   private boolean contractEnabled;
   private boolean vdcType;

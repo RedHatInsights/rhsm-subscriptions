@@ -26,8 +26,8 @@ import static org.mockito.Mockito.*;
 
 import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.exception.OptInRequiredException;
-import org.candlepin.subscriptions.utilization.api.model.OptInConfig;
-import org.candlepin.subscriptions.utilization.api.model.OptInConfigData;
+import org.candlepin.subscriptions.utilization.api.v1.model.OptInConfig;
+import org.candlepin.subscriptions.utilization.api.v1.model.OptInConfigData;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

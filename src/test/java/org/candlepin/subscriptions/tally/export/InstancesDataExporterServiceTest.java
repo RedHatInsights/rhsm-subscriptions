@@ -21,9 +21,9 @@
 package org.candlepin.subscriptions.tally.export;
 
 import static org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey.formatMonthId;
-import static org.candlepin.subscriptions.resource.InstancesResource.getCategoryByMeasurementType;
-import static org.candlepin.subscriptions.resource.InstancesResource.getCloudProviderByMeasurementType;
 import static org.candlepin.subscriptions.resource.ResourceUtils.ANY;
+import static org.candlepin.subscriptions.resource.api.v1.InstancesResource.getCategoryByMeasurementType;
+import static org.candlepin.subscriptions.resource.api.v1.InstancesResource.getCloudProviderByMeasurementType;
 import static org.candlepin.subscriptions.tally.export.InstancesDataExporterService.BEGINNING;
 import static org.candlepin.subscriptions.tally.export.InstancesDataExporterService.PRODUCT_ID;
 
@@ -197,6 +197,16 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
     verifyRequestWasSentToExportServiceWithError(request);
   }
 
+  @Test
+  void testRequestShouldFilterByOrgId() {
+    givenInstanceWithMetricsForAnotherOrgId(RHEL_FOR_X86);
+    givenInstanceWithMetrics(RHEL_FOR_X86);
+    givenExportRequestWithPermissions(Format.JSON);
+    givenFilterInExportRequest(PRODUCT_ID, RHEL_FOR_X86);
+    whenReceiveExportRequest();
+    verifyRequestWasSentToExportService();
+  }
+
   @Override
   protected void verifyRequestWasSentToExportService() {
     var expected = new InstancesExportJson();
@@ -261,9 +271,20 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
     verifyRequestWasSentToExportServiceWithUploadData(request, toJson(expected));
   }
 
+  private void givenInstanceWithMetricsForAnotherOrgId(String productId) {
+    var account = givenHostInAccountServices(UUID.randomUUID().toString());
+    HostWithGuests instance = givenInstanceWithMetrics(account.getOrgId(), productId);
+    // removing it as we don't expect this host from being exported.
+    itemsToBeExported.remove(instance);
+  }
+
   private void givenInstanceWithMetrics(String productId) {
+    givenInstanceWithMetrics(ORG_ID, productId);
+  }
+
+  private HostWithGuests givenInstanceWithMetrics(String orgId, String productId) {
     Host guest = new Host();
-    guest.setOrgId(ORG_ID);
+    guest.setOrgId(orgId);
     guest.setDisplayName("this is the guest");
     guest.setLastSeen(OffsetDateTime.parse(APRIL));
     guest.setHardwareType(HostHardwareType.PHYSICAL);
@@ -273,7 +294,7 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
     repository.save(guest);
 
     Host instance = new Host();
-    instance.setOrgId(ORG_ID);
+    instance.setOrgId(orgId);
     instance.setNumOfGuests(1);
     instance.setInstanceId("456");
     instance.setDisplayName("my host");
@@ -320,6 +341,7 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
     item.guests = List.of(guest);
     item.usePaygProduct = isPayg;
     itemsToBeExported.add(item);
+    return item;
   }
 
   private static double resolveMetricValue(HostWithGuests item, MetricId metricId) {

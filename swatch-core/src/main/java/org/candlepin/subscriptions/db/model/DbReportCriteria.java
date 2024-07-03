@@ -31,7 +31,6 @@ import org.candlepin.subscriptions.db.HypervisorReportCategory;
 public class DbReportCriteria {
   private String orgId;
   private String productTag;
-  private String productId;
   private ServiceLevel serviceLevel;
   private Usage usage;
   private BillingProvider billingProvider;

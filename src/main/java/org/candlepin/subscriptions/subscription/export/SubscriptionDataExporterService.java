@@ -20,6 +20,15 @@
  */
 package org.candlepin.subscriptions.subscription.export;
 
+import static org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository.billingAccountIdStartsWith;
+import static org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository.billingProviderEquals;
+import static org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository.buildSearchSpecification;
+import static org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository.getMeasurementTypeFromCategory;
+import static org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository.hasCategory;
+import static org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository.hasMetricId;
+import static org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository.productIdEquals;
+import static org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository.slaEquals;
+import static org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository.usageEquals;
 import static org.candlepin.subscriptions.resource.ResourceUtils.ANY;
 
 import com.redhat.swatch.configuration.registry.MetricId;
@@ -37,20 +46,18 @@ import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.db.HypervisorReportCategory;
 import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityViewMetric;
-import org.candlepin.subscriptions.db.model.SubscriptionCapacityView_;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ExportServiceException;
 import org.candlepin.subscriptions.export.DataExporterService;
 import org.candlepin.subscriptions.export.DataMapperService;
 import org.candlepin.subscriptions.export.ExportServiceRequest;
 import org.candlepin.subscriptions.json.SubscriptionsExportJsonMeasurement;
-import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
+import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
@@ -65,8 +72,6 @@ public class SubscriptionDataExporterService
   static final String PRODUCT_ID = "product_id";
   static final String METRIC_ID = "metric_id";
   static final String CATEGORY = "category";
-  static final String PHYSICAL = "PHYSICAL";
-  static final String HYPERVISOR = "HYPERVISOR";
   private static final Map<String, Function<String, Specification<SubscriptionCapacityView>>>
       FILTERS =
           Map.of(
@@ -110,7 +115,7 @@ public class SubscriptionDataExporterService
 
   private Specification<SubscriptionCapacityView> extractExportFilter(
       ExportServiceRequest request) {
-    Specification<SubscriptionCapacityView> criteria = Specification.where(null);
+    Specification<SubscriptionCapacityView> criteria = buildSearchSpecification(request.getOrgId());
     if (request.getFilters() != null) {
       var filters = request.getFilters().entrySet();
       try {
@@ -137,17 +142,14 @@ public class SubscriptionDataExporterService
   }
 
   private static Specification<SubscriptionCapacityView> handleProductIdFilter(String value) {
-    var productId = ProductId.fromString(value).getValue();
-    return (root, query, builder) ->
-        builder.equal(root.get(SubscriptionCapacityView_.productTag), productId);
+    return productIdEquals(ProductId.fromString(value));
   }
 
   private static Specification<SubscriptionCapacityView> handleUsageFilter(String value) {
     Usage usage = Usage.fromString(value);
     if (value.equalsIgnoreCase(usage.getValue())) {
       if (!Usage._ANY.equals(usage)) {
-        return (root, query, builder) ->
-            builder.equal(root.get(SubscriptionCapacityView_.usage), usage.getValue());
+        return usageEquals(usage);
       }
     } else {
       throw new IllegalArgumentException(String.format("usage: %s not supported", value));
@@ -160,9 +162,7 @@ public class SubscriptionDataExporterService
     ServiceLevel serviceLevel = ServiceLevel.fromString(value);
     if (value.equalsIgnoreCase(serviceLevel.getValue())) {
       if (!ServiceLevel._ANY.equals(serviceLevel)) {
-        return (root, query, builder) ->
-            builder.equal(
-                root.get(SubscriptionCapacityView_.serviceLevel), serviceLevel.getValue());
+        return slaEquals(serviceLevel);
       }
     } else {
       throw new IllegalArgumentException(String.format("sla: %s not supported", value));
@@ -172,35 +172,18 @@ public class SubscriptionDataExporterService
   }
 
   private static Specification<SubscriptionCapacityView> handleCategoryFilter(String value) {
-    String measurementType = getMeasurementTypeFromCategory(value);
-    if (measurementType != null) {
-      return handleMetricsFilter("measurement_type", measurementType);
-    }
-
-    return null;
+    return hasCategory(ReportCategory.fromValue(value));
   }
 
   private static Specification<SubscriptionCapacityView> handleMetricIdFilter(String value) {
-    return handleMetricsFilter(METRIC_ID, MetricId.fromString(value).toString());
-  }
-
-  private static Specification<SubscriptionCapacityView> handleMetricsFilter(
-      String key, String value) {
-    return (root, query, builder) ->
-        builder.isTrue(
-            builder.function(
-                "jsonb_path_exists",
-                Boolean.class,
-                root.get("metrics"),
-                builder.literal("$[*] ? (@." + key + " == \"" + value + "\")")));
+    return hasMetricId(MetricId.fromString(value).toString());
   }
 
   private static Specification<SubscriptionCapacityView> handleBillingProviderFilter(String value) {
     BillingProvider billingProvider = BillingProvider.fromString(value);
     if (value.equalsIgnoreCase(billingProvider.getValue())) {
       if (!BillingProvider._ANY.equals(billingProvider)) {
-        return (root, query, builder) ->
-            builder.equal(root.get(SubscriptionCapacityView_.billingProvider), billingProvider);
+        return billingProviderEquals(billingProvider);
       }
     } else {
       throw new IllegalArgumentException(
@@ -213,8 +196,7 @@ public class SubscriptionDataExporterService
   private static Specification<SubscriptionCapacityView> handleBillingAccountIdFilter(
       String value) {
     if (!ANY.equalsIgnoreCase(value)) {
-      return (root, query, builder) ->
-          builder.like(root.get(SubscriptionCapacityView_.billingAccountId), value + "%");
+      return billingAccountIdStartsWith(value);
     }
 
     return null;
@@ -263,20 +245,9 @@ public class SubscriptionDataExporterService
     if (request != null
         && request.getFilters() != null
         && request.getFilters().get(CATEGORY) instanceof String value) {
-      return getMeasurementTypeFromCategory(value);
+      return getMeasurementTypeFromCategory(ReportCategory.fromValue(value));
     }
 
-    return null;
-  }
-
-  private static String getMeasurementTypeFromCategory(String value) {
-    var category = HypervisorReportCategory.mapCategory(ReportCategory.fromString(value));
-    if (category != null) {
-      return switch (category) {
-        case NON_HYPERVISOR -> PHYSICAL;
-        case HYPERVISOR -> HYPERVISOR;
-      };
-    }
     return null;
   }
 

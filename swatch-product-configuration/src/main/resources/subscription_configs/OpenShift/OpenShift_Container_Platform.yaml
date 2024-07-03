@@ -21,4 +21,6 @@ defaults:
 
 metrics:
   - id: Sockets
+    type: gauge
   - id: Cores
+    type: gauge

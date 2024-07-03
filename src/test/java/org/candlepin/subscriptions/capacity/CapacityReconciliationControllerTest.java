@@ -20,10 +20,8 @@
  */
 package org.candlepin.subscriptions.capacity;
 
-import static org.candlepin.subscriptions.resource.CapacityResource.HYPERVISOR;
-import static org.candlepin.subscriptions.resource.CapacityResource.PHYSICAL;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.candlepin.subscriptions.resource.api.v1.CapacityResource.HYPERVISOR;
+import static org.candlepin.subscriptions.resource.api.v1.CapacityResource.PHYSICAL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -35,7 +33,6 @@ import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -104,14 +101,12 @@ class CapacityReconciliationControllerTest {
     thenSubscriptionMeasurementsContains(HYPERVISOR, CORES, expectedHypervisorCores);
     thenSubscriptionMeasurementsContains(PHYSICAL, SOCKETS, expectedSockets);
     thenSubscriptionMeasurementsContains(HYPERVISOR, SOCKETS, expectedHypervisorSockets);
-    assertThat(subscription.getSubscriptionProductIds(), containsInAnyOrder(RHEL));
   }
 
   @Test
   void shouldUpdateCapacitiesIfThereAreChanges() {
     givenSubscriptionMeasurement(PHYSICAL, SOCKETS, 15.0);
     givenSubscriptionMeasurement(PHYSICAL, CORES, 10);
-    givenSubscriptionProduct(RHEL);
     int expectedCores = 20;
     int expectedSockets = 40;
     givenOffering(expectedCores, expectedSockets, RHEL, RHEL_WORKSTATION);
@@ -120,7 +115,6 @@ class CapacityReconciliationControllerTest {
 
     thenSubscriptionMeasurementsContains(PHYSICAL, CORES, expectedCores);
     thenSubscriptionMeasurementsContains(PHYSICAL, SOCKETS, expectedSockets);
-    assertEquals(subscription.getSubscriptionProductIds(), Set.of(RHEL, RHEL_WORKSTATION));
   }
 
   @Test
@@ -128,28 +122,23 @@ class CapacityReconciliationControllerTest {
     givenOffering(RHEL);
     givenSubscriptionMeasurement(PHYSICAL, SOCKETS, 15.0);
     givenSubscriptionMeasurement(HYPERVISOR, CORES, 10);
-    givenSubscriptionProduct(RHEL);
 
     when(denyList.productIdMatches(any())).thenReturn(true);
     whenReconcileCapacityForSubscription();
 
     assertTrue(subscription.getSubscriptionMeasurements().isEmpty());
-    assertTrue(subscription.getSubscriptionProductIds().isEmpty());
   }
 
   @Test
   void shouldAddNewCapacitiesAndRemoveAllStaleCapacities() {
     int expectedCores = 20;
     givenOffering(expectedCores, RHEL);
-    givenSubscriptionProduct("STALE RHEL");
-    givenSubscriptionProduct("STALE RHEL Workstation");
     givenSubscriptionMeasurement(HYPERVISOR, CORES, 10);
     givenSubscriptionMeasurement(PHYSICAL, SOCKETS, 15.0);
 
     whenReconcileCapacityForSubscription();
 
     thenSubscriptionMeasurementsOnlyContains(PHYSICAL, CORES, expectedCores);
-    assertEquals(subscription.getSubscriptionProductIds(), Set.of(RHEL));
   }
 
   @Test
@@ -252,10 +241,6 @@ class CapacityReconciliationControllerTest {
             value * subscription.getQuantity());
   }
 
-  private void givenSubscriptionProduct(String product) {
-    subscription.getSubscriptionProductIds().add(product);
-  }
-
   private void whenReconcileCapacityForSubscription() {
     capacityReconciliationController.reconcileCapacityForSubscription(subscription);
   }
@@ -286,7 +271,6 @@ class CapacityReconciliationControllerTest {
         .startDate(NOW)
         .endDate(NOW.plusDays(30))
         .subscriptionMeasurements(new HashMap<>())
-        .subscriptionProductIds(new HashSet<>())
         .build();
   }
 }

@@ -21,6 +21,7 @@ contractEnabled: true
 
 metrics:
   - id: Transfer-gibibytes
+    type: counter
     rhmMetricId: redhat.com:BASILISK:transfer_gb
     awsDimension: transfer_gb
     azureDimension: transfer_gb
@@ -32,6 +33,7 @@ metrics:
         metric: kafka_id:haproxy_server_bytes_in_out_total:rate1h_gibibytes
         metadataMetric: ocm_subscription
   - id: Instance-hours
+    type: counter
     rhmMetricId: redhat.com:BASILISK:cluster_hour
     awsDimension: cluster_hour
     azureDimension: cluster_hour
@@ -43,6 +45,7 @@ metrics:
         metric: kafka_id:strimzi_resource_state:max_over_time1h
         metadataMetric: ocm_subscription
   - id: Storage-gibibyte-months
+    type: counter
     rhmMetricId: redhat.com:BASILISK:storage_gib_months
     awsDimension: storage_gb
     azureDimension: storage_gb

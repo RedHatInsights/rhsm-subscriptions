@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.tally.export;
 
-import static org.candlepin.subscriptions.resource.InstancesResource.getCategoryByMeasurementType;
-import static org.candlepin.subscriptions.resource.InstancesResource.getCloudProviderByMeasurementType;
+import static org.candlepin.subscriptions.resource.api.v1.InstancesResource.getCategoryByMeasurementType;
+import static org.candlepin.subscriptions.resource.api.v1.InstancesResource.getCloudProviderByMeasurementType;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.Variant;

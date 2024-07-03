@@ -31,7 +31,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExceptionUtil;
-import org.candlepin.subscriptions.utilization.api.model.Error;
+import org.candlepin.subscriptions.utilization.api.v1.model.Error;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.AuthenticationException;

@@ -24,6 +24,7 @@ import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
@@ -115,7 +116,7 @@ public class OfferingEntity implements Serializable {
 
   /** Product tags related to a sku */
   @Builder.Default
-  @ElementCollection
+  @ElementCollection(fetch = FetchType.EAGER)
   @CollectionTable(name = "sku_product_tag", joinColumns = @JoinColumn(name = "sku"))
   @Column(name = "product_tag")
   private Set<String> productTags = new HashSet<>();

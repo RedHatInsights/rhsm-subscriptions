@@ -1,0 +1,1326 @@
+openapi: "3.0.2"
+info:
+  title: "rhsm-subscriptions-api"
+  description: "REST interface for the rhsm-subscriptions service. Please note any deprecated APIs. Our current deprecation policy is to keep deprecated APIs around for at least 6 months."
+  version: 1.0.0
+
+servers:
+  - url: /{PATH_PREFIX}/{APP_NAME}
+    variables:
+      PATH_PREFIX:
+        default: api
+      APP_NAME:
+        default: rhsm-subscriptions
+  - url: https://{HOSTNAME}/{PATH_PREFIX}/{APP_NAME}
+    variables:
+      HOSTNAME:
+        enum:
+          - ci.cloud.redhat.com
+          - qa.cloud.redhat.com
+          - stage.cloud.redhat.com
+          - cloud.redhat.com
+        default: ci.cloud.redhat.com
+      PATH_PREFIX:
+        default: api
+      APP_NAME:
+        default: rhsm-subscriptions
+
+paths:
+  /v1/version:
+    description: "Provides version and build information about the deployed application."
+    get:
+      summary: "Request version and build information about the deployed application."
+      operationId: getVersion
+      tags:
+        - version
+      responses:
+        '200':
+          description: 'The request for version information was successful.'
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/VersionInfo"
+        '500':
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
+  /v1/opt-in:
+    description: "Endpoint for opting into subscription watch."
+    get:
+      summary: "Get the opt-in configuration for the current account."
+      operationId: getOptInConfig
+      tags:
+        - opt-in
+      responses:
+        '200':
+          description: "The request for the account's opt-in configuration was successful."
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/OptInConfig"
+              example:
+                data:
+                  opt_in_complete: true
+                  org:
+                    org_id: 1111
+                    opt_in_type: 'API'
+                    created: '2017-08-04T17:32:05Z'
+                    last_updated: '2017-08-04T17:32:05Z'
+                meta:
+                  org_id: 1111
+        '400':
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
+    put:
+      summary: "Create/Update an account's opt-in configuration. Org ID are defined by the
+                identity header."
+      operationId: putOptInConfig
+      tags:
+        - opt-in
+      responses:
+        '200':
+          description: "The request for the account's opt-in configuration was successful."
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/OptInConfig"
+              example:
+                data:
+                  opt_in_complete: true
+                  org:
+                    org_id: 1111
+                    opt_in_type: 'API'
+                    created: '2017-08-04T17:32:05Z'
+                    last_updated: '2017-08-04T17:32:05Z'
+                meta:
+                  org_id: 1111
+        '400':
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
+    delete:
+      summary: "Delete an opt-in config for the associated org. The org ID are
+                pulled from the identity header."
+      operationId: deleteOptInConfig
+      tags:
+        - opt-in
+      responses:
+        '204':
+          description: "Successfully deleted the opt-in configuration for the accociated org"
+        '400':
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
+  /v1/tally/products/{product_id}/{metric_id}:
+    description: "Operations on a data set of a given tally report."
+    parameters:
+      - name: product_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/ProductId'
+        description: "The product to fetch graph data for"
+      - name: metric_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/MetricId'
+        description: "The metric ID to fetch graph data for"
+      - name: category
+        in: query
+        schema:
+          $ref: '#/components/schemas/ReportCategory'
+        description: 'The category to fetch graph data for (optional)'
+      - name: granularity
+        in: query
+        required: true
+        schema:
+          $ref: '#/components/schemas/GranularityType'
+        description: "Include only report data matching the specified granularity."
+      - name: sla
+        in: query
+        schema:
+          $ref: '#/components/schemas/ServiceLevelType'
+        description: "Include only report data matching the specified service level."
+      - name: usage
+        in: query
+        schema:
+          $ref: '#/components/schemas/UsageType'
+        description: "Include only report data matching the specified usage."
+      - name: billing_provider
+        in: query
+        schema:
+          $ref: '#/components/schemas/BillingProviderType'
+        description: "Include only report data matching the specified billing provider"
+      - name:  billing_account_id
+        in: query
+        schema:
+          $ref: '#/components/schemas/BillingAccountId'
+        description: "Include only report data matching the specified billing account"
+      - name: beginning
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+        description: "Defines the start of the report period. Dates should be provided in ISO 8601
+          format but the only accepted offset is UTC. E.g. 2017-07-21T17:32:28Z"
+      - name: ending
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+        description: "Defines the end of the report period.  Defaults to the current time. Dates should
+            be provided in UTC."
+      - name: offset
+        in: query
+        schema:
+          type: integer
+        description: "The number of items to skip before starting to collect the result set"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+        description: "The numbers of items to return"
+      - name: use_running_totals_format
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default:
+            false
+        description: "Whether to report the total for each temporal unit of the report period 
+            individually or as a running total since the beginning of the report period."
+      - name: billing_category
+        in: query
+        schema:
+          $ref: '#/components/schemas/BillingCategory'
+        description: "Include only report data matching the specified billing_category."
+    get:
+      summary: "Fetch tally report data for an account and product."
+      description: "If the report is requested in a running total format, each temporal unit of 
+          the report period (days, hours, etc.) will give the running total since the start of the 
+          report period and set the has_data field as true, whether or not there is data that lands
+          in that specific temporal unit.  However, if the report period stretches into the 
+          future, temporal units in the future will have a value of zero and have has_data set to
+          false.
+
+          For example, if we have daily values of 0, 1, 0, 3, 0 and request a running total report 
+          ending two days from now, we'll get back '(0, true), (1, true), (1, true), (4, true), (4, 
+          true), (0, false), (0, false)'.
+      "
+      operationId: getTallyReportData
+      responses:
+        '200':
+          description: 'The request for a tally report was successful.'
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/TallyReportData"
+        '400':
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags:
+        - tally
+  /v1/capacity/products/{product_id}/{metric_id}:
+    description: 'Operations for capacity report for a given account and product'
+    parameters:
+      - name: product_id
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProductId"
+        description: "The ID for the product we wish to query"
+      - name: metric_id
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/MetricId"
+        description: "The metric ID for the product we wish to query"
+      - name: offset
+        in: query
+        schema:
+          type: integer
+        description: "The number of items to skip before starting to collect the result set"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+        description: "The numbers of items to return"
+    get:
+      summary: "Fetch a capacity report for an account and product."
+      operationId: getCapacityReportByMetricId
+      parameters:
+        - name: granularity
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/GranularityType'
+          description: "The level of granularity to return."
+        - name: category
+          in: query
+          schema:
+            $ref: '#/components/schemas/ReportCategory'
+          description: 'The category to fetch data for'
+        - name: sla
+          in: query
+          schema:
+            $ref: '#/components/schemas/ServiceLevelType'
+          description: "Include only capacity for the specified service level."
+        - name: usage
+          in: query
+          schema:
+            $ref: '#/components/schemas/UsageType'
+          description: "Include only capacity for the specified usage level."
+        - name: beginning
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          description: "Defines the start of the report period. Dates should be provided in ISO 8601
+            format but the only accepted offset is UTC. E.g. 2017-07-21T17:32:28Z"
+        - name: ending
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          description: "Defines the end of the report period.  Defaults to the current time. Dates should
+            be provided in UTC."
+      responses:
+        '200':
+          description: 'The request for a capacity report was successful.'
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/CapacityReportByMetricId"
+              example:
+                data:
+                  - date: '2017-08-01T17:32:05Z'
+                    has_data: true
+                    value: 100.0
+                  - date: '2017-08-02T17:31:04Z'
+                    has_data: false
+                    value: 0.0
+                  - date: '2017-08-03T17:31:04Z'
+                    has_data: false
+                    value: 0.0
+                  - date: '2017-08-04T17:31:04Z'
+                    has_data: false
+                    value: 0.0
+                  - date: '2017-08-05T17:31:04Z'
+                    has_data: false
+                    value: 0.0
+                links:
+                  first: '/api/rhsm-subscriptions/v1/capacity/RHEL%20for%20x86/Sockets?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=0&limit=5'
+                  last: '/api/rhsm-subscriptions/v1/capacity/RHEL%20for%20x86/Sockets?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
+                  previous: null
+                  next: '/api/rhsm-subscriptions/v1/capacity/RHEL%20for%20x86/Sockets?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
+                meta:
+                  count: 10
+                  product: RHEL Server
+                  granularity: Daily
+                  service_level: Premium
+        '400':
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags:
+        - capacity
+  /v1/instances/{id}/guests:
+    description: 'Operations for instance-id mappings.'
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: "The instance ID we wish to query"
+      - name: offset
+        in: query
+        schema:
+          type: integer
+        description: "The number of items to skip before starting to collect the result set"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+        description: "The numbers of items to return"
+    get:
+      summary: "Fetch guests for the instance id."
+      operationId: getInstanceGuests
+      responses:
+        '200':
+          description: 'The request for a capacity report was successful.'
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/InstanceGuestReport"
+              example:
+                data:
+                  - inventory_id: d6214a0b-b344-4778-831c-d53dcacb2da3
+                    display_name: guest01.example.com
+                    subscription_manager_id: adafd9d5-5b00-42fa-a6c9-75801d45cc6d
+                    last_seen: 2020-01-01T00:00:00Z
+                  - inventory_id: 9358e312-1c9f-42f4-8910-dcef6e970852
+                    display_name: guest02.example.com
+                    subscription_manager_id: b101a72f-1859-4489-acb8-d6d31c2578c4
+                    last_seen: 2020-01-01T00:00:00Z
+                links:
+                  first: '/api/rhsm-subscriptions/v1/instances/c5mu16smf1c22rn8e730/guests?offset=0&limit=5'
+                  last: '/api/rhsm-subscriptions/v1/instances/c5mu16smf1c22rn8e730/guests?offset=5&limit=5'
+                  previous: null
+                  next: '/api/rhsm-subscriptions/v1/instances/c5mu16smf1c22rn8e730/guests?offset=5&limit=5'
+                meta:
+                  count: 10
+        '400':
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags:
+        - instances
+  /v1/instances/products/{product_id}:
+    parameters:
+      - name: product_id
+        description: The ID for the product we wish to query
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProductId"
+      - name: offset
+        in: query
+        schema:
+          type: integer
+        description: "The number of items to skip before starting to collect the result set"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+        description: "The numbers of items to return"
+    get:
+      operationId: getInstancesByProduct
+      parameters:
+        - name: sla
+          in: query
+          schema:
+            $ref: '#/components/schemas/ServiceLevelType'
+          description: "Include only hosts for the specified service level."
+        - name: usage
+          in: query
+          schema:
+            $ref: '#/components/schemas/UsageType'
+          description: "Include only hosts for the specified usage level."
+        - name: uom
+          in: query
+          deprecated: true
+          schema:
+            type: string
+          description: "Include only hosts with a specific unit of measure. Deprecated: use 'metric_id' instead. "
+        - name: metric_id
+          in: query
+          schema:
+            type: string
+          description: "Include only hosts with a specific unit of measure"
+        - name: billing_provider
+          in: query
+          schema:
+            $ref: '#/components/schemas/BillingProviderType'
+          description: "Include only hosts for the specified billing provider."
+        - name: billing_account_id
+          description: Include only hosts containing the specified billing account ID.
+          schema:
+            type: string
+          in: query
+        - name: display_name_contains
+          description: Include only hosts containing the specified display name. Passing an empty string behaves the same way as passing null
+          schema:
+            type: string
+            #Default to empty string to prevent complex jpql statement later
+            default: ''
+          in: query
+        - name: category
+          in: query
+          schema:
+            $ref: '#/components/schemas/ReportCategory'
+          description: "Include only hosts for the specified category."
+        - name: beginning
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: "Defines the start of the report period. Dates should be provided in ISO 8601
+                     format but the only accepted offset is UTC. E.g. 2017-07-21T17:32:28Z.
+                     Only applicable for OpenShift-dedicated-metrics and OpenShift-metrics products"
+        - name: ending
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: "Defines the end of the report period. Dates should be provided in ISO 8601
+                     format but the only accepted offset is UTC. E.g. 2017-07-21T17:32:28Z.
+                     Only applicable for OpenShift-dedicated-metrics and OpenShift-metrics products"
+        - name: sort
+          in: query
+          schema:
+            type: string
+          description: "What property to sort by. Options are: display_name, last_seen, billing_provider, 
+                     number_of_guests, category, or by a metric ID. (optional)"
+        - name: dir
+          in: query
+          schema:
+            $ref: "#/components/schemas/SortDirection"
+          description: "Which direction to sort by (default: asc)"
+      tags:
+        - instances
+      responses:
+        '200':
+          description: The request for instances was successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstanceResponse'
+  /v1/subscriptions/products/{product_id}:
+    description: "Operations for total capacity by SKU for all of the org's active subscriptions for given Swatch product ID."
+    parameters:
+      - name: product_id
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProductId"
+        description: "The ID for the product we wish to query"
+      - name: offset
+        in: query
+        schema:
+          type: integer
+          minimum: 0
+        description: "The number of items to skip before starting to collect the result set"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+        description: "The numbers of items to return"
+    get:
+      summary: "Returns the total capacity by SKU for all of the org's active subscriptions for given Swatch product ID."
+      operationId: getSkuCapacityReport
+      deprecated: true
+      parameters:
+        - name: category
+          in: query
+          schema:
+            $ref: '#/components/schemas/ReportCategory'
+          description: 'The category to fetch data for'
+        - name: sla
+          in: query
+          schema:
+            $ref: '#/components/schemas/ServiceLevelType'
+          description: "Include only capacity for the specified service level."
+        - name: usage
+          in: query
+          schema:
+            $ref: '#/components/schemas/UsageType'
+          description: "Include only capacity for the specified usage level."
+        - name: billing_provider
+          in: query
+          schema:
+            $ref: '#/components/schemas/BillingProviderType'
+          description: "Include only report data matching the specified billing provider"
+        - name: billing_account_id
+          in: query
+          schema:
+            $ref: '#/components/schemas/BillingAccountId'
+          description: "Include only report data matching the specified billing account"
+        - name: beginning
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: "Defines the start of the report period. Dates should be provided in ISO 8601
+             format but the only accepted offset is UTC. E.g. 2017-07-21T17:32:28Z"
+        - name: ending
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: "Defines the end of the report period.  Defaults to the current time. Dates should
+             be provided in UTC."
+        - name: uom
+          in: query
+          deprecated: true
+          schema:
+            $ref: '#/components/schemas/Uom'
+          description: "Filter subscriptions to those that contribute to a specific unit of measure. Deprecated: use 'metric_id' instead."
+        - name: metric_id
+          in: query
+          schema:
+            type: string
+          description: "Filter subscriptions to those that contribute to a specific unit of measure"
+        - name: sort
+          in: query
+          schema:
+            $ref: "#/components/schemas/SkuCapacityReportSort"
+          description: "What property to sort by (optional)"
+        - name: dir
+          in: query
+          schema:
+            $ref: "#/components/schemas/SortDirection"
+          description: "Which direction to sort by (default: asc)"
+      responses:
+        '200':
+          description: "The request for the account's subscription capacities was successful."
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/SkuCapacityReport"
+              example:
+                data:
+                  - sku: RH00011
+                    product_name: "Red Hat Enterprise Linux Server, Premium (Physical and 4 Virtual Nodes)(L3 Only)"
+                    service_level: Premium
+                    usage: Production
+                    subscriptions:
+                      - id: "1234567890"
+                        number: "1234567891"
+                      - id: "1234567892"
+                        number: "1234567893"
+                      - id: "1234567894"
+                        number: "1234567895"
+                    next_event_date: "2020-04-01T00:00:00Z"
+                    next_event_type: Subscription Begin
+                    quantity: 3
+                    capacity: 3
+                    hypervisor_capacity: 3
+                    total_capacity: 6
+                    metricId: Sockets
+                  - sku: RH00010
+                    product_name: "Red Hat Enterprise Linux Server"
+                    service_level: Self-Support
+                    usage: Production
+                    subscriptions:
+                      - id: "1234567896"
+                        number: "1234567897"
+                      - id: "1234567898"
+                        number: "1234567899"
+                      - id: "1234567900"
+                        number: "1234567901"
+                    next_event_date: "2020-04-02T00:00:00Z"
+                    next_event_type: Subscription Begin
+                    quantity: 3
+                    capacity: 3
+                    hypervisor_capacity: 3
+                    total_capacity": 6
+                    metricId: Sockets
+                  - sku: RH00009
+                    product_name: "Red Hat Enterprise Linux Server, Premium"
+                    service_level: Premium
+                    usage: Production
+                    subscriptions:
+                      - id: "1234567902"
+                        number: "1234567903"
+                      - id: "1234567904"
+                        number: "1234567905"
+                      - id: "1234567906"
+                        number: "1234567907"
+                    next_event_date: "2020-04-01T00:00:00Z"
+                    next_event_type: Subscription End
+                    quantity: 3
+                    capacity: 6
+                    hypervisor_capacity: 6
+                    total_capacity: 12
+                    metricId: Cores
+                meta:
+                  count: 3
+        '400':
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags:
+        - subscriptions
+  /v1/openapi.json:
+    $ref: "../spec/openapi-paths.yaml#/openapi-json"
+  /v1/openapi.yaml:
+    $ref: "../spec/openapi-paths.yaml#/openapi-yaml"
+
+components:
+  securitySchemes:
+    3ScaleIdentity:
+      type: apiKey
+      in: header
+      name: x-rh-identity
+      description: |
+        Base64-encoded JSON identity header provided by 3Scale. Contains an
+        account number of the user issuing the request. Format of the JSON:
+        ```
+        {
+            "identity": {
+                "account_number": "account123",
+                "type": "User",
+                "user" : {
+                    "is_org_admin": true
+                },
+                "internal" : {
+                    "org_id": "org123"
+                }
+            }
+        }
+        ```
+        Encoded (via `base64 -w0`):
+        `eyJpZGVudGl0eSI6eyJhY2NvdW50X251bWJlciI6ImFjY291bnQxMjMiLCJ0eXBlIjoiVXNlciIsInVzZXIiOnsiaXNfb3JnX2FkbWluIjp0cnVlfSwiaW50ZXJuYWwiOnsib3JnX2lkIjoib3JnMTIzIn19fQo=`
+
+  schemas:
+    # Schemas ending in "Type" are intentionally named to prevent naming conflicts with db model classes
+    GranularityType:
+      description: "Describes the significance of each date in the snapshot list. For example if the
+          granularity is set to 'weekly', the dates in the snapshot list will represent the start
+          of a seven day period."
+      type: string
+      enum: [ Hourly, Daily, Weekly, Monthly, Quarterly, Yearly ]
+    ServiceLevelType:
+      description: "Describes the service level that the report was made against. Not set if it
+          wasn't specified as a query parameter."
+      type: string
+      enum: [ "", Premium, Standard, Self-Support, _ANY ]
+    UsageType:
+      description: "Describes the usage that the report was made against. Not set if it wasn't
+          specified as a query parameter."
+      type: string
+      enum: [ "", Production, Development/Test, Disaster Recovery, _ANY ]
+    BillingProviderType:
+      type: string
+      enum: [ "", red hat, aws, gcp, azure, oracle, _ANY ]
+    ReportCategory:
+      type: string
+      enum:
+        - physical
+        - virtual
+        - cloud
+        - hypervisor
+    CloudProvider:
+      type: string
+      enum:
+        - aws
+        - gcp
+        - azure
+        - alibaba
+    BillingAccountId:
+      type: string
+    Uom:
+      description: "The unit-of-measure for the capacity. Deprecated: use 'metric_id' instead."
+      type: string
+      deprecated: true
+      enum:
+        - cores
+        - sockets
+    BillingCategory:
+      type: string
+      enum:
+        - prepaid
+        - on-demand
+    SortDirection:
+      type: string
+      enum:
+        - asc
+        - desc
+    VersionInfo:
+      properties:
+        build:
+          type: object
+          properties:
+            version:
+              type: string
+            artifact:
+              type: string
+            name:
+              type: string
+            group:
+              type: string
+    MetaCount:
+      required:
+        - count
+      properties:
+        count:
+          type: integer
+    OptInConfig:
+      required:
+        - meta
+        - data
+      properties:
+        meta:
+          type: object
+          required:
+            - org_id
+          properties:
+            org_id:
+              type: string
+        data:
+          type: object
+          required:
+            - opt_in_complete
+          properties:
+            opt_in_complete:
+              type: boolean
+            account:
+              type: object
+              required:
+                - opt_in_type
+                - created
+                - last_updated
+              properties:
+                opt_in_type:
+                  type: string
+                created:
+                  type: string
+                  format: date-time
+                last_updated:
+                  type: string
+                  format: date-time
+            org:
+              type: object
+              required:
+                - org_id
+                - opt_in_type
+                - created
+                - last_updated
+              properties:
+                org_id:
+                  type: string
+                opt_in_type:
+                  type: string
+                created:
+                  type: string
+                  format: date-time
+                last_updated:
+                  type: string
+                  format: date-time
+    # If we need additional responses, look at
+    # https://swagger.io/docs/specification/data-models/inheritance-and-polymorphism/ to reduce
+    # redundancy
+    PageLinks:
+      properties:
+        first:
+          type: string
+        last:
+          type: string
+        previous:
+          type: string
+        next:
+          type: string
+      required:
+        - first
+        - last
+    TallyReportData:
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/TallyReportDataPoint"
+        links:
+          $ref: "#/components/schemas/PageLinks"
+        meta:
+          type: object
+          properties:
+            count:
+              type: integer
+            total_monthly:
+              $ref: "#/components/schemas/TallyReportTotalMonthly"
+            product:
+              type: string
+            metric_id:
+              type: string
+            service_level:
+              $ref: '#/components/schemas/ServiceLevelType'
+            usage:
+              $ref: '#/components/schemas/UsageType'
+            granularity:
+              $ref: '#/components/schemas/GranularityType'
+            billing_provider:
+              $ref: '#/components/schemas/BillingProviderType'
+            billing_acount_id:
+              type: string
+          required:
+            - count
+            - product
+            - metric_id
+            - granularity
+    TallyReportDataPoint:
+      description: "Data point for a given tally report."
+      required:
+        - date
+        - value
+      properties:
+        date:
+          description: "The date for this datapoint."
+          type: string
+          format: date-time
+        value:
+          type: integer
+          format: int32
+        has_data:
+          type: boolean
+    TallyReportTotalMonthly:
+      description: "Tally report monthly summary."
+      required:
+        - value
+      properties:
+        date:
+          description: "Date of the tally report."
+          type: string
+          format: date-time
+          nullable: true
+        value:
+          type: integer
+          format: int32
+        has_data:
+          type: boolean
+    CapacityReportByMetricId:
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CapacitySnapshotByMetricId"
+        links:
+          $ref: "#/components/schemas/PageLinks"
+        meta:
+          type: object
+          properties:
+            count:
+              type: integer
+            product:
+              type: string
+            metric_id:
+              type: string
+            granularity:
+              $ref: '#/components/schemas/GranularityType'
+            service_level:
+              $ref: '#/components/schemas/ServiceLevelType'
+            usage:
+              $ref: '#/components/schemas/UsageType'
+            category:
+              $ref: '#/components/schemas/ReportCategory'
+          required:
+            - count
+            - product
+            - granularity
+    CapacitySnapshotByMetricId:
+      required:
+        - date
+        - has_data
+        - value
+      properties:
+        date:
+          type: string
+          format: date-time
+          description: "The start date for this snapshot entry. Dates are returned in UTC. Clients must
+            consult the 'granularity' field in the CapacityReport to determine the length of time each
+            CapacitySnapshot covers."
+        has_data:
+          type: boolean
+        value:
+          description: "Capacity value"
+          type: integer
+          format: int32
+          minimum: 0
+        has_infinite_quantity:
+          type: boolean
+    InstanceGuestReport:
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Host"
+        links:
+          $ref: "#/components/schemas/PageLinks"
+        meta:
+          $ref: "#/components/schemas/MetaCount"
+    Host:
+      required:
+        - display_name
+        - hardware_type
+        - last_seen
+      properties:
+        inventory_id:
+          description: The HBI identifier for this host.
+          type: string
+        insights_id:
+          description: The insights identifier for this host, used as ID on cloud.redhat.com.
+          type: string
+        display_name:
+          description: The display name for this host on cloud.redhat.com.
+          type: string
+        subscription_manager_id:
+          description: The subscription-manager ID for this host, from `subscription-manager identity`.
+          type: string
+        sockets:
+          description: Number of effective sockets counted for this host by Subscription Watch.
+          type: integer
+          format: int32
+          minimum: 0
+        cores:
+          description: Number of effective cores counted for this host by Subscription Watch.
+          type: integer
+          format: int32
+          minimum: 0
+        core_hours:
+          type: number
+          format: double
+        instance_hours:
+          type: number
+          format: double
+        hardware_type:
+          description: What the type of the host is (e.g. hypervisor, physical, etc.).
+          type: string
+        measurement_type:
+          description: What was the applied measurement type (e.g. hypervisor, physical, aws, etc ).
+          type: string
+        number_of_guests:
+          description: Number of guests if this host is a hypervisor.
+          type: integer
+          format: int32
+        last_seen:
+          description: Latest timestamp that Subscription Watch has for this host.
+          type: string
+          format: date-time
+        is_unmapped_guest:
+          description: Is this host an unmapped guest (not reported by virt-who)?
+          type: boolean
+        is_hypervisor:
+          description: Is this host a hypervisor?
+          type: boolean
+        cloud_provider:
+          description: If applicable, the cloud provider for this host.
+          type: string
+        billing_provider:
+          $ref: '#/components/schemas/BillingProviderType'
+        billing_account_id:
+          type: string
+    InstanceMeta:
+      title: Root Type for InstanceMeta
+      description: The details of the entire list of InstanceData
+      type: object
+      properties:
+        count:
+          format: int32
+          type: integer
+        product:
+          type: string
+        service_level:
+          $ref: '#/components/schemas/ServiceLevelType'
+        usage:
+          $ref: '#/components/schemas/UsageType'
+        billing_provider:
+          $ref: '#/components/schemas/BillingProviderType'
+        billing_account_id:
+          type: string
+        measurements:
+          type: array
+          items:
+            type: string
+      example:
+        count: 10
+        product: RHEL Server
+        service_level: Premium
+        usage: Production
+        measurements:
+          - Instance-Hours
+          - Storage-Gibibytes
+          - Transfer-Gibibytes
+    InstanceResponse:
+      title: Root Type for InstanceResponse
+      description: The output data of a product instance metrics
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/InstanceData'
+        links:
+          $ref: '#/components/schemas/PageLinks'
+        meta:
+          $ref: '#/components/schemas/InstanceMeta'
+      example:
+        data:
+          - id: d6214a0b-b344-4778-831c-d53dcacb2da3
+            instance_id: 879180f3-76a4-46d5-8fff-7fb32067340b
+            display_name: rhv.example.com
+            billing_provider: red hat
+            billing_account_id: e460fbca-a351-4c6a-a36a-18fdbfbc5a20
+            measurements:
+              - 42
+              - null
+              - 1
+            last_seen: '2020-01-01T00:00:00Z'
+            number_of_guests: 4
+            category: HYPERVISOR
+          - id: 70b6f70b-0c38-46a3-8b9b-7c1703e2d74f
+            instance_id: f273515a-e168-4c00-b7bd-86be9994fb8b
+            display_name: rhv.example.com
+            billing_provider: red hat
+            billing_account_id: e460fbca-a351-4c6a-a36a-18fdbfbc5a20
+            measurements:
+              - 2
+            last_seen: '2020-01-01T00:00:00Z'
+            number_of_guests: 1
+        links:
+          first: string
+          last: string
+          next: string
+        meta:
+          count: 10
+    InstanceData:
+      title: Root Type for Instance
+      description: The representation of a product cluster data
+      type: object
+      properties:
+        id:
+          type: string
+          description: ID of the host record
+        instance_id:
+          type: string
+        display_name:
+          type: string
+        billing_provider:
+          $ref: '#/components/schemas/BillingProviderType'
+        billing_account_id:
+          type: string
+        measurements:
+          description: >-
+            Must be in the same order as "measurements" in the meta. (i.e. in the example
+            instance.measurements[0] is the instance-hours, measurements[1] is storage-gibibytes,
+            and measurements[2] is the transfer-gibibytes.
+          type: array
+          items:
+            format: double
+            type: number
+        last_seen:
+          format: date-time
+          type: string
+        last_applied_event_record_date:
+          description: >-
+            The record_date of the latest Event that was last applied to the Host. This date
+            is different from the last_seen date, in that, last seen is the Event's timestamp.
+          format: date-time
+          type: string
+        number_of_guests:
+          type: integer
+        category:
+          $ref: '#/components/schemas/ReportCategory'
+        cloud_provider:
+          $ref: '#/components/schemas/CloudProvider'
+        subscription_manager_id:
+          type: string
+        inventory_id:
+          type: string
+      example:
+        id: d6214a0b-b344-4778-831c-d53dcacb2da3
+        instance_id: i-vvqwfvrcnrzoujhwa
+        display_name: rhv.example.com
+        billing_provider: red hat
+        billing_account_id: e460fbca-a351-4c6a-a36a-18fdbfbc5a20
+        inventory_id: 879180f3-76a4-46d5-8fff-7fb32067340b
+        measurements:
+          - 42
+          - null
+          - 1
+        last_seen: '2020-01-01T00:00:00Z'
+        cloud_provider: aws
+        category: cloud
+        number_of_guests: 4
+    CandlepinPool:
+      description: Subset of Candlepin pool data that rhsm-subscriptions understands.
+      properties:
+        activeSubscription:
+          type: boolean
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        quantity:
+          type: integer
+          format: int64
+        productId:
+          type: string
+        productAttributes:
+          type: array
+          items:
+            $ref: "#/components/schemas/CandlepinProductAttribute"
+        providedProducts:
+          type: array
+          items:
+            $ref: "#/components/schemas/CandlepinProvidedProduct"
+        derivedProvidedProducts:
+          type: array
+          items:
+            $ref: "#/components/schemas/CandlepinProvidedProduct"
+        subscriptionId:
+          type: string
+        type:
+          type: string
+    CandlepinProductAttribute:
+      properties:
+        name:
+          type: string
+        value:
+          type: string
+    CandlepinProvidedProduct:
+      properties:
+        productId:
+          type: string
+
+    SubscriptionType:
+      type: string
+      enum:
+        - On-demand
+        - Annual
+
+    SubscriptionEventType:
+      description: "The most immediate subscription event, such as a subscription beginning or ending."
+      type: string
+      enum:
+        - Subscription Start
+        - Subscription End
+
+    SkuCapacitySubscription:
+      properties:
+        id:
+          type: string
+        number:
+          type: string
+
+    SkuCapacity:
+      properties:
+        sku:
+          description: "The identifier for the offering."
+          type: string
+        product_name:
+          description: "The offering name."
+          type: string
+        service_level:
+          $ref: "#/components/schemas/ServiceLevelType"
+        usage:
+          $ref: "#/components/schemas/UsageType"
+        subscriptions:
+          description: "List of active subscriptions that contribute to the quantity and capacity totals."
+          type: array
+          items:
+            $ref: "#/components/schemas/SkuCapacitySubscription"
+        billing_provider:
+          $ref: '#/components/schemas/BillingProviderType'
+        next_event_date:
+          description: "The most immediate date for a subscription event."
+          type: string
+          format: date-time
+        next_event_type:
+          $ref: "#/components/schemas/SubscriptionEventType"
+        quantity:
+          description: "The summed subscription quantities across the active subscriptions for the offering."
+          type: integer
+          format: int32
+        capacity:
+          description: "The summed standard capacity of the unit-of-measure of the active subscriptions for the offering."
+          type: integer
+          format: int32
+        hypervisor_capacity:
+          description: "The summed hypervisor capacity of the unit-of-measure of the active subscriptions for the offering."
+          type: integer
+          format: int32
+        total_capacity:
+          description: "The combined (standard and hypervisor) capacity for the offering."
+          type: integer
+          format: int32
+        has_infinite_quantity:
+          description: "Denotes unlimited capacity for the offering when true."
+          type: boolean
+        uom:
+          $ref: "#/components/schemas/Uom"
+        metric_id:
+          type: string
+    SkuCapacityReportSort:
+      type: string
+      enum:
+        - sku
+        - service_level
+        - usage
+        - next_event_date
+        - next_event_type
+        - quantity
+        - total_capacity
+        - product_name
+
+    SkuCapacityReport:
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkuCapacity'
+        links:
+          $ref: "#/components/schemas/PageLinks"
+        meta:
+          type: object
+          properties:
+            count:
+              type: integer
+            product:
+              type: string
+            service_level:
+              $ref: '#/components/schemas/ServiceLevelType'
+            usage:
+              $ref: '#/components/schemas/UsageType'
+            uom:
+              $ref: '#/components/schemas/Uom'
+            subscription_type:
+              $ref: '#/components/schemas/SubscriptionType'
+            report_category:
+              $ref: '#/components/schemas/ReportCategory'
+          required:
+            - count
+            - product
+            - subscription_type
+    ProductId:
+      type: string
+      format: ProductId
+    MetricId:
+      type: string
+      format: MetricId
+
+security:
+  - 3ScaleIdentity: []

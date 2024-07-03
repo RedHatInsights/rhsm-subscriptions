@@ -33,12 +33,15 @@ import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import java.util.TimeZone;
+import java.util.UUID;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.billable.usage.AccumulationPeriodFormatter;
+import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -64,6 +67,7 @@ class BillableUsageRemittanceRepositoryTest {
     BillableUsageRemittanceEntity remittance =
         remittance("org123", "product1", BILLING_PROVIDER_AWS, 12.0, clock.startOfCurrentMonth());
     repository.persist(remittance);
+
     Optional<BillableUsageRemittanceEntity> fetched =
         repository.findOne(billableUsageRemittanceFilterFromEntity(remittance));
     assertTrue(fetched.isPresent());
@@ -131,6 +135,7 @@ class BillableUsageRemittanceRepositoryTest {
         .accumulationPeriod(AccumulationPeriodFormatter.toMonthId(remittanceDate))
         .remittancePendingDate(remittanceDate)
         .remittedPendingValue(value)
+        .hardwareMeasurementType("AWS")
         .build();
   }
 
@@ -330,6 +335,7 @@ class BillableUsageRemittanceRepositoryTest {
             .totalRemittedPendingValue(24.0)
             .sla(remittance1.getSla())
             .usage(remittance1.getUsage())
+            .hardwareMeasurementType("AWS")
             .build();
 
     var expectedSummary2 =
@@ -344,11 +350,110 @@ class BillableUsageRemittanceRepositoryTest {
             .totalRemittedPendingValue(15.0)
             .sla(remittance3.getSla())
             .usage(remittance3.getUsage())
+            .hardwareMeasurementType("AWS")
             .build();
 
     List<RemittanceSummaryProjection> results = repository.getRemittanceSummaries(filter1);
     assertEquals(2, results.size());
     assertTrue(results.containsAll(List.of(expectedSummary1, expectedSummary2)));
+  }
+
+  @Test
+  void testRemittanceFilterUsedByBillableUsageService() {
+
+    // billable usage
+    String orgId = "123456";
+    String productTag = "rhel-for-x86-els-payg";
+    String metricId = "vCPUs";
+    String sla = "Premium";
+    String usage = "Production";
+    String billingProvider = "aws";
+    String billingAccountId = "ba123456789";
+    String remittancePendingDateStr = "2024-06-19T16:52:17.526219+00:00";
+    String hardwareMeasurementType = "AWS";
+
+    var billableUsageRemittanceFromCost =
+        BillableUsageRemittanceEntity.builder()
+            .orgId(orgId)
+            .productId(productTag)
+            .metricId(metricId)
+            .accumulationPeriod("2024-06")
+            .sla(sla)
+            .usage(usage)
+            .billingProvider(billingProvider)
+            .billingAccountId(billingAccountId)
+            .remittedPendingValue(1.0)
+            .remittancePendingDate(
+                OffsetDateTime.parse(
+                    remittancePendingDateStr, DateTimeFormatter.ISO_OFFSET_DATE_TIME))
+            .tallyId(UUID.randomUUID())
+            .hardwareMeasurementType(hardwareMeasurementType)
+            .status(RemittanceStatus.PENDING)
+            .build();
+
+    double expectedRemittedPendingValue = 10.0;
+    var billableUsageRemittanceFromRhelemeter =
+        BillableUsageRemittanceEntity.builder()
+            .orgId(orgId)
+            .productId(productTag)
+            .metricId(metricId)
+            .accumulationPeriod("2024-06")
+            .sla(sla)
+            .usage(usage)
+            .billingProvider(billingProvider)
+            .billingAccountId(billingAccountId)
+            .remittedPendingValue(expectedRemittedPendingValue)
+            .remittancePendingDate(
+                OffsetDateTime.parse(
+                    remittancePendingDateStr, DateTimeFormatter.ISO_OFFSET_DATE_TIME))
+            .tallyId(UUID.randomUUID())
+            .hardwareMeasurementType("PHYSICAL")
+            .status(RemittanceStatus.PENDING)
+            .build();
+    repository.persist(
+        List.of(billableUsageRemittanceFromCost, billableUsageRemittanceFromRhelemeter));
+
+    BillableUsage incomingUsage = new BillableUsage();
+    incomingUsage
+        .withOrgId(orgId)
+        .withBillingAccountId(billingAccountId)
+        .withBillingProvider(BillableUsage.BillingProvider.AWS)
+        .withSnapshotDate(
+            OffsetDateTime.parse(
+                "2024-06-16T00:00:00.000000+00:00", DateTimeFormatter.ISO_OFFSET_DATE_TIME))
+        .withMetricId(metricId)
+        .withProductId(productTag)
+        .withUsage(BillableUsage.Usage.PRODUCTION)
+        .withSla(BillableUsage.Sla.PREMIUM)
+        .withHardwareMeasurementType("PHYSICAL");
+
+    // Build the filter the same way that we do in the billable usage in the service.
+    var filter = BillableUsageRemittanceFilter.fromUsage(incomingUsage);
+
+    List<RemittanceSummaryProjection> remittanceSummaries =
+        repository.getRemittanceSummaries(filter);
+    assertEquals(1, remittanceSummaries.size());
+
+    var expectedSummary =
+        RemittanceSummaryProjection.builder()
+            .accumulationPeriod(
+                getAccumulationPeriod(
+                    billableUsageRemittanceFromRhelemeter.getRemittancePendingDate()))
+            .billingAccountId(billableUsageRemittanceFromRhelemeter.getBillingAccountId())
+            .billingProvider(billableUsageRemittanceFromRhelemeter.getBillingProvider())
+            .orgId(billableUsageRemittanceFromRhelemeter.getOrgId())
+            .productId(billableUsageRemittanceFromRhelemeter.getProductId())
+            .remittancePendingDate(billableUsageRemittanceFromRhelemeter.getRemittancePendingDate())
+            .metricId(billableUsageRemittanceFromRhelemeter.getMetricId())
+            .totalRemittedPendingValue(expectedRemittedPendingValue)
+            .sla(billableUsageRemittanceFromRhelemeter.getSla())
+            .usage(billableUsageRemittanceFromRhelemeter.getUsage())
+            .hardwareMeasurementType(
+                billableUsageRemittanceFromRhelemeter.getHardwareMeasurementType())
+            .status(RemittanceStatus.PENDING)
+            .build();
+
+    assertEquals(expectedSummary, remittanceSummaries.get(0));
   }
 
   @Test

@@ -21,8 +21,8 @@
 package org.candlepin.subscriptions.subscription;
 
 import static java.util.Arrays.asList;
-import static org.candlepin.subscriptions.resource.CapacityResource.HYPERVISOR;
-import static org.candlepin.subscriptions.resource.CapacityResource.PHYSICAL;
+import static org.candlepin.subscriptions.resource.api.v1.CapacityResource.HYPERVISOR;
+import static org.candlepin.subscriptions.resource.api.v1.CapacityResource.PHYSICAL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -39,9 +39,9 @@ import jakarta.ws.rs.core.Response;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.HypervisorReportCategory;
@@ -56,18 +56,18 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.resource.SubscriptionTableController;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
-import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
-import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
-import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
-import org.candlepin.subscriptions.utilization.api.model.SkuCapacity;
-import org.candlepin.subscriptions.utilization.api.model.SkuCapacityReport;
-import org.candlepin.subscriptions.utilization.api.model.SkuCapacityReportSort;
-import org.candlepin.subscriptions.utilization.api.model.SkuCapacitySubscription;
-import org.candlepin.subscriptions.utilization.api.model.SortDirection;
-import org.candlepin.subscriptions.utilization.api.model.SubscriptionEventType;
-import org.candlepin.subscriptions.utilization.api.model.SubscriptionType;
-import org.candlepin.subscriptions.utilization.api.model.Uom;
-import org.candlepin.subscriptions.utilization.api.model.UsageType;
+import org.candlepin.subscriptions.utilization.api.v1.model.BillingProviderType;
+import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
+import org.candlepin.subscriptions.utilization.api.v1.model.ServiceLevelType;
+import org.candlepin.subscriptions.utilization.api.v1.model.SkuCapacity;
+import org.candlepin.subscriptions.utilization.api.v1.model.SkuCapacityReport;
+import org.candlepin.subscriptions.utilization.api.v1.model.SkuCapacityReportSort;
+import org.candlepin.subscriptions.utilization.api.v1.model.SkuCapacitySubscription;
+import org.candlepin.subscriptions.utilization.api.v1.model.SortDirection;
+import org.candlepin.subscriptions.utilization.api.v1.model.SubscriptionEventType;
+import org.candlepin.subscriptions.utilization.api.v1.model.SubscriptionType;
+import org.candlepin.subscriptions.utilization.api.v1.model.Uom;
+import org.candlepin.subscriptions.utilization.api.v1.model.UsageType;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -394,7 +394,7 @@ class SubscriptionTableControllerTest {
     var criteria =
         DbReportCriteria.builder()
             .orgId("owner123456")
-            .productId(RHEL_FOR_X86.toString())
+            .productTag(RHEL_FOR_X86.toString())
             .serviceLevel(ServiceLevel.PREMIUM)
             .usage(Usage.PRODUCTION)
             .metricId("Cores")
@@ -414,7 +414,7 @@ class SubscriptionTableControllerTest {
             argThat(
                 x ->
                     x.getOrgId().equals(criteria.getOrgId())
-                        && x.getProductId().equals(criteria.getProductId())
+                        && x.getProductTag().equals(criteria.getProductTag())
                         && x.getServiceLevel().equals(criteria.getServiceLevel())
                         && x.getUsage().equals(criteria.getUsage())
                         && x.getMetricId().equals(criteria.getMetricId())
@@ -1131,7 +1131,12 @@ class SubscriptionTableControllerTest {
         subscription = stubSubscription("sub123", "number123", 1);
       }
 
-      var offering = Offering.builder().sku(sku).hasUnlimitedUsage(hasUnlimitedUsage).build();
+      var offering =
+          Offering.builder()
+              .sku(sku)
+              .hasUnlimitedUsage(hasUnlimitedUsage)
+              .productTags(Set.of(productId.toString()))
+              .build();
 
       subscription.setOffering(offering);
       subscription.setOrgId(org.orgId);
@@ -1156,11 +1161,6 @@ class SubscriptionTableControllerTest {
                 MetricId.fromString(otherMetric.getKey()),
                 totalCapacity(otherMetric.getValue(), quantity)));
       }
-
-      var productIds = new HashSet<>(subscription.getSubscriptionProductIds());
-      productIds.add(productId.toString());
-
-      subscription.setSubscriptionProductIds(productIds);
       subscription.setSubscriptionMeasurements(measurements);
 
       return measurements;

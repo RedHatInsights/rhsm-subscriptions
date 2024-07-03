@@ -40,11 +40,11 @@ import org.springframework.stereotype.Component;
 public class ApiSpecController {
   // The name these files are served as is controlled by the corresponding Resource
   // implementation (and ultimately in the openAPI spec itself)
-  @Value("classpath:rhsm-subscriptions-api-spec.yaml")
-  private Resource openApiYaml;
+  @Value("classpath:rhsm-subscriptions-api-v1-spec.yaml")
+  private Resource openApiV1Yaml;
 
-  @Value("classpath:openapi.json")
-  private Resource openApiJson;
+  @Value("classpath:rhsm-subscriptions-api-v1-openapi.json")
+  private Resource openApiV1Json;
 
   @Value("classpath:internal-subscriptions-sync-api-spec.yaml")
   private Resource internalSubSyncApiYaml;
@@ -82,12 +82,12 @@ public class ApiSpecController {
     }
   }
 
-  public String getOpenApiJson() {
-    return getResourceAsString(openApiJson);
+  public String getOpenApiV1Json() {
+    return getResourceAsString(openApiV1Json);
   }
 
-  public String getOpenApiYaml() {
-    return getResourceAsString(openApiYaml);
+  public String getOpenApiV1Yaml() {
+    return getResourceAsString(openApiV1Yaml);
   }
 
   public String getInternalSubSyncApiYaml() {

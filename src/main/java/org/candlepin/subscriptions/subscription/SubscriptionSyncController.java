@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.subscription;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.MoreCollectors;
 import com.redhat.swatch.configuration.registry.Variant;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -55,8 +54,8 @@ import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.DbReportCriteria;
+import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.Subscription.SubscriptionCompoundId;
 import org.candlepin.subscriptions.db.model.Subscription_;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
@@ -145,6 +144,7 @@ public class SubscriptionSyncController {
    * @param subscriptionOptional optional existing Subscription. Managed in the persistence context.
    */
   @Transactional
+  @SuppressWarnings("java:S3776")
   public void syncSubscription(
       String sku,
       org.candlepin.subscriptions.db.model.Subscription newOrUpdated,
@@ -203,8 +203,10 @@ public class SubscriptionSyncController {
       final org.candlepin.subscriptions.db.model.Subscription existingSubscription =
           subscriptionOptional.get();
       log.debug("Existing subscription in DB={}", existingSubscription);
-      if (Objects.nonNull(existingSubscription.getBillingProvider())
-          && !existingSubscription.getSubscriptionMeasurements().isEmpty()) {
+      BillingProvider billingProvider = existingSubscription.getBillingProvider();
+      boolean hasBillingProvider =
+          Objects.nonNull(billingProvider) && billingProvider.nonEmptyBillingProvider();
+      if (hasBillingProvider && !existingSubscription.getSubscriptionMeasurements().isEmpty()) {
         // NOTE(khowell): longer term, we should query the partnerEntitlement service for this
         // subscription on any attempt to sync, but for now we rely on UMB messages from the IT
         // Partner Entitlement service to update this record outside this process.
@@ -216,6 +218,15 @@ public class SubscriptionSyncController {
       if (existingSubscription.equals(newOrUpdated)) {
         return; // we have nothing to do as the DB and the subs service have the same info
       }
+
+      /* If the quantity on a subscription has changed, we need to terminate that subscription
+       * and create a new subscription with the updated quantity that begins now and ends when
+       * the previous subscription used to end.  In the case that the quantity changes multiple
+       * times (which should be very rare), we always need to build the new subscription segment
+       * off of the current segment.  E.g. If we have A -> A' and the quantity changes again, we
+       * need to update A' not A.  We do this via the DESC sort on subscription start date for
+       * findByOrgId
+       */
       if (existingSubscription.quantityHasChanged(newOrUpdated.getQuantity())) {
         existingSubscription.endSubscription();
         subscriptionRepository.save(existingSubscription);
@@ -257,9 +268,10 @@ public class SubscriptionSyncController {
 
   private void checkForMissingRequiredBillingProvider(
       org.candlepin.subscriptions.db.model.Subscription subscription) {
-    if ((subscription.getBillingProvider() == null
-            || subscription.getBillingProvider().equals(BillingProvider.EMPTY))
-        && subscription.getOffering().isMetered()) {
+    BillingProvider billingProvider = subscription.getBillingProvider();
+    boolean noBillingProvider =
+        Objects.isNull(billingProvider) || !billingProvider.nonEmptyBillingProvider();
+    if (noBillingProvider && subscription.getOffering().isMetered()) {
       log.warn(
           "PAYG eligible subscription with subscriptionId:{} and subscription_number:{} has no billing provider.",
           subscription.getSubscriptionId(),
@@ -289,7 +301,12 @@ public class SubscriptionSyncController {
   private void enrichMissingFields(
       org.candlepin.subscriptions.db.model.Subscription subscription,
       Optional<org.candlepin.subscriptions.db.model.Subscription> optionalSubscription) {
-    if (subscription.getSubscriptionId() != null) {
+    // We need to pass through existing azure billing info since SearchApi will not have it
+    var isAzureSubscription =
+        optionalSubscription
+            .map(existingSub -> BillingProvider.AZURE.equals(existingSub.getBillingProvider()))
+            .orElse(false);
+    if (subscription.getSubscriptionId() != null && !isAzureSubscription) {
       // Subscription object already has needed data
       return;
     }
@@ -334,26 +351,18 @@ public class SubscriptionSyncController {
               subscription -> SubscriptionDtoUtil.extractBillingProviderId(subscription) != null);
     }
 
-    var subCompoundIdToDtoMap =
+    var subIdToDtoMap =
         dtos.filter(this::shouldSyncSub)
             .collect(
                 Collectors.toMap(
-                    dto -> {
-                      OffsetDateTime startDate =
-                          clock.dateFromMilliseconds(dto.getEffectiveStartDate());
-
-                      return new SubscriptionCompoundId(dto.getId().toString(), startDate);
-                    },
+                    dto -> dto.getId().toString(),
                     Function.identity(),
                     (firstMatch, secondMatch) -> firstMatch));
 
     List<org.candlepin.subscriptions.db.model.Subscription> subEntitiesForDeletion =
         new ArrayList<>();
 
-    Set<String> seenIds =
-        subCompoundIdToDtoMap.keySet().stream()
-            .map(SubscriptionCompoundId::getSubscriptionId)
-            .collect(Collectors.toSet());
+    Set<String> seenIds = new HashSet<>(subIdToDtoMap.keySet());
 
     var batchSize = 1024;
     CustomBatchIterator.batchStreamOf(subscriptionRepository.findByOrgId(orgId), batchSize)
@@ -361,12 +370,8 @@ public class SubscriptionSyncController {
             batch -> {
               batch.forEach(
                   subEntity -> {
-                    var startDate = subEntity.getStartDate();
                     var subId = subEntity.getSubscriptionId();
-
-                    var key = new SubscriptionCompoundId(subId, startDate);
-
-                    var dto = subCompoundIdToDtoMap.remove(key);
+                    var dto = subIdToDtoMap.remove(subId);
 
                     // delete from swatch because it didn't appear in the latest list from the
                     // subscription service, or it's in the denylist
@@ -388,7 +393,7 @@ public class SubscriptionSyncController {
             });
 
     // These are additional subs that should be sync'd but weren't previously in the database
-    Stream<Subscription> stream = subCompoundIdToDtoMap.values().stream();
+    Stream<Subscription> stream = subIdToDtoMap.values().stream();
 
     CustomBatchIterator.batchStreamOf(stream, batchSize)
         .forEach(
@@ -476,8 +481,7 @@ public class SubscriptionSyncController {
     return org.candlepin.subscriptions.db.model.Subscription.builder()
         .subscriptionId(String.valueOf(subscription.getId()))
         .subscriptionNumber(subscription.getSubscriptionNumber())
-        .subscriptionProductIds(
-            new HashSet<>(Collections.singleton(SubscriptionDtoUtil.extractSku(subscription))))
+        .offering(Offering.builder().sku(SubscriptionDtoUtil.extractSku(subscription)).build())
         .orgId(subscription.getWebCustomerId().toString())
         .quantity(subscription.getQuantity())
         .startDate(clock.dateFromMilliseconds(subscription.getEffectiveStartDate()))
@@ -565,17 +569,15 @@ public class SubscriptionSyncController {
 
   private void determineSubscriptionOffering(
       org.candlepin.subscriptions.db.model.Subscription subscription) {
-    // should look up the offering and set it before additional processing
-    var offer =
-        offeringRepository.findOfferingBySku(
-            subscription.getSubscriptionProductIds().stream()
-                .collect(MoreCollectors.toOptional())
-                .orElse(null));
-    if (Objects.nonNull(offer)) {
-      // should only be one offering per subscription
-      subscription.setOffering(offer);
-    } else {
-      throw new BadRequestException("Error offering doesn't exist");
+    if (subscription.getOffering().getSku() != null) {
+      // should look up the offering and set it before additional processing
+      var offer = offeringRepository.findOfferingBySku(subscription.getOffering().getSku());
+      if (Objects.nonNull(offer)) {
+        // should only be one offering per subscription
+        subscription.setOffering(offer);
+      } else {
+        throw new BadRequestException("Error offering doesn't exist");
+      }
     }
   }
 

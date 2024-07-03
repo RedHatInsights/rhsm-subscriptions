@@ -22,6 +22,8 @@ package com.redhat.swatch.configuration.registry;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import jakarta.validation.Validation;
+import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -38,15 +40,23 @@ class SubscriptionDefinitionRegistryTest {
   }
 
   @Test
-  void sanityCheck() {
-    assertTrue(true);
+  void testValidations() {
+    try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
+      var validator = factory.getValidator();
+      for (var definition : subscriptionDefinitionRegistry.getSubscriptions()) {
+        var violations = validator.validate(definition);
+        assertTrue(
+            violations.isEmpty(),
+            "Found the following violations in " + definition + ":" + violations);
+      }
+    }
   }
 
   @Test
   void testLoadAllTheThings() {
 
     var actual = subscriptionDefinitionRegistry.getSubscriptions().size();
-    var expected = 19;
+    var expected = 20;
 
     assertEquals(expected, actual);
   }

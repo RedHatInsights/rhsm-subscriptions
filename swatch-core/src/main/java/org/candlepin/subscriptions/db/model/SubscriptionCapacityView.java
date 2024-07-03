@@ -57,20 +57,26 @@ public class SubscriptionCapacityView implements Serializable {
   @Column(name = "sku")
   private String sku;
 
+  @Column(name = "has_unlimited_usage")
+  private Boolean hasUnlimitedUsage;
+
   @Column(name = "product_name")
   private String productName;
 
   @Column(name = "service_level")
-  private String serviceLevel;
+  private ServiceLevel serviceLevel;
 
   @Column(name = "usage")
-  private String usage;
+  private Usage usage;
 
   @Column(name = "org_id")
   private String orgId;
 
   @Column(name = "billing_provider")
   private BillingProvider billingProvider;
+
+  @Column(name = "billing_provider_id")
+  private BillingProvider billingProviderId;
 
   @Column(name = "billing_account_id")
   private String billingAccountId;
