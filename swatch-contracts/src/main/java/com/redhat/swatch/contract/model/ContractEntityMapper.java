@@ -30,10 +30,12 @@ import com.redhat.swatch.clients.rh.partner.gateway.api.model.RhEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.SaasContractV1;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.mapstruct.AfterMapping;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Builder;
@@ -95,8 +97,12 @@ public interface ContractEntityMapper {
     entity.setMetrics(
         entitlement.getPurchase().getContracts().stream()
             .filter(contract -> Objects.nonNull(contract.getDimensions()))
-            .flatMap(contract -> contract.getDimensions().stream())
-            .map(this::mapDimensionToContractMetricEntity)
+            .sorted(Comparator.comparing(SaasContractV1::getStartDate).reversed())
+            .findFirst()
+            .map(
+                contract ->
+                    contract.getDimensions().stream().map(this::mapDimensionToContractMetricEntity))
+            .orElse(Stream.empty())
             .collect(Collectors.toSet()));
   }
 
