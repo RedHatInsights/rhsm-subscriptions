@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource;
+package org.candlepin.subscriptions.resource.api.v1;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -48,14 +48,14 @@ import org.candlepin.subscriptions.db.model.TallyInstanceNonPaygView;
 import org.candlepin.subscriptions.db.model.TallyInstancePaygView;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
-import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
-import org.candlepin.subscriptions.utilization.api.model.CloudProvider;
-import org.candlepin.subscriptions.utilization.api.model.InstanceData;
-import org.candlepin.subscriptions.utilization.api.model.InstanceMeta;
-import org.candlepin.subscriptions.utilization.api.model.InstanceResponse;
-import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
-import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
-import org.candlepin.subscriptions.utilization.api.model.UsageType;
+import org.candlepin.subscriptions.utilization.api.v1.model.BillingProviderType;
+import org.candlepin.subscriptions.utilization.api.v1.model.CloudProvider;
+import org.candlepin.subscriptions.utilization.api.v1.model.InstanceData;
+import org.candlepin.subscriptions.utilization.api.v1.model.InstanceMeta;
+import org.candlepin.subscriptions.utilization.api.v1.model.InstanceResponse;
+import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
+import org.candlepin.subscriptions.utilization.api.v1.model.ServiceLevelType;
+import org.candlepin.subscriptions.utilization.api.v1.model.UsageType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;

@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource;
+package org.candlepin.subscriptions.resource.api.v1;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;

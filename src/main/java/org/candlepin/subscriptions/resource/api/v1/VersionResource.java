@@ -18,11 +18,11 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource;
+package org.candlepin.subscriptions.resource.api.v1;
 
-import org.candlepin.subscriptions.utilization.api.model.VersionInfo;
-import org.candlepin.subscriptions.utilization.api.model.VersionInfoBuild;
-import org.candlepin.subscriptions.utilization.api.resources.VersionApi;
+import org.candlepin.subscriptions.utilization.api.v1.model.VersionInfo;
+import org.candlepin.subscriptions.utilization.api.v1.model.VersionInfoBuild;
+import org.candlepin.subscriptions.utilization.api.v1.resources.VersionApi;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.stereotype.Component;
 

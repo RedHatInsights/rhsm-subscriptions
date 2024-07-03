@@ -18,14 +18,15 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource;
+package org.candlepin.subscriptions.resource.api.v1;
 
 import com.redhat.swatch.configuration.registry.ProductId;
 import jakarta.validation.constraints.Min;
 import java.time.OffsetDateTime;
+import org.candlepin.subscriptions.resource.SubscriptionTableController;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
-import org.candlepin.subscriptions.utilization.api.model.*;
-import org.candlepin.subscriptions.utilization.api.resources.SubscriptionsApi;
+import org.candlepin.subscriptions.utilization.api.v1.model.*;
+import org.candlepin.subscriptions.utilization.api.v1.resources.SubscriptionsApi;
 import org.springframework.stereotype.Component;
 
 /** Subscriptions Table API implementation. */

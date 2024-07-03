@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.capacity;
 
-import static org.candlepin.subscriptions.resource.CapacityResource.HYPERVISOR;
-import static org.candlepin.subscriptions.resource.CapacityResource.PHYSICAL;
+import static org.candlepin.subscriptions.resource.api.v1.CapacityResource.HYPERVISOR;
+import static org.candlepin.subscriptions.resource.api.v1.CapacityResource.PHYSICAL;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;

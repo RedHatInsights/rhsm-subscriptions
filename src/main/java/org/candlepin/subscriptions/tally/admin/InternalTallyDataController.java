@@ -43,7 +43,7 @@ import org.candlepin.subscriptions.tally.TallySnapshotController;
 import org.candlepin.subscriptions.tally.billing.BillableUsageController;
 import org.candlepin.subscriptions.tally.contracts.ContractsController;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
-import org.candlepin.subscriptions.utilization.api.model.OptInConfig;
+import org.candlepin.subscriptions.utilization.api.v1.model.OptInConfig;
 import org.springframework.stereotype.Component;
 
 @Component

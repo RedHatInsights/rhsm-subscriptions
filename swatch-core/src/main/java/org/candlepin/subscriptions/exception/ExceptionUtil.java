@@ -23,8 +23,8 @@ package org.candlepin.subscriptions.exception;
 import jakarta.ws.rs.core.Response;
 import java.util.ArrayList;
 import java.util.Collections;
-import org.candlepin.subscriptions.utilization.api.model.Error;
-import org.candlepin.subscriptions.utilization.api.model.Errors;
+import org.candlepin.subscriptions.utilization.api.v1.model.Error;
+import org.candlepin.subscriptions.utilization.api.v1.model.Errors;
 
 /** Utility class for constructing the JSON responses to send when exceptions are thrown. */
 public class ExceptionUtil {

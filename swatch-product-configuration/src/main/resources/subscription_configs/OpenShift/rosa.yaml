@@ -21,6 +21,7 @@ contractEnabled: true
 
 metrics:
   - id: Instance-hours
+    type: counter
     awsDimension: control_plane
     azureDimension: control_plane
     prometheus:
@@ -31,6 +32,7 @@ metrics:
         metric: cluster:usage:workload:capacity_physical_instance_hours
         metadataMetric: ocm_subscription
   - id: Cores
+    type: counter
     awsDimension: four_vcpu_hour
     azureDimension: four_vcpu_hour
     billingFactor: 0.25
