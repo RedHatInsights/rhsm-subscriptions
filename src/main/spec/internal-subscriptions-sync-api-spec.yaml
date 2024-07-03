@@ -562,34 +562,6 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
-  /v1/internal/rpc/offerings/reconcile/{sku}:
-    description: Reconcile capacity for an offering from the upstream source.
-    parameters:
-      - name: sku
-        in: path
-        required: true
-        schema:
-          type: string
-    put:
-      summary: Reconcile capacity for an offering from the upstream source.
-      operationId: forceReconcileOffering
-      responses:
-        '200':
-          description: Capacity Reconciliation for offering sku successful
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OfferingResponse"
-        '400':
-          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
-        '403':
-          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
-        '404':
-          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
-        '500':
-          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
-      tags:
-        - internalSubscriptions
   /v1/internal/subscriptions/terminate/{subscription_id}:
     description: "Terminate a subscription with a given end date."
     parameters:

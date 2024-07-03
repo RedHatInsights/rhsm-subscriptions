@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.contract.service;
 
+import static com.redhat.swatch.contract.config.Channels.ENABLED_ORGS;
 import static com.redhat.swatch.contract.service.EnabledOrgsProducer.SUBSCRIPTION_PRUNE_TASK_TOPIC;
 import static com.redhat.swatch.contract.service.EnabledOrgsProducer.SUBSCRIPTION_SYNC_TASK_TOPIC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -42,8 +43,6 @@ import org.junit.jupiter.api.Test;
     restrictToAnnotatedClass = true)
 class EnabledOrgsProducerTest {
 
-  private static final String ENABLED_ORGS_CHANNEL = "enabled-orgs";
-
   @ConfigProperty(name = SUBSCRIPTION_SYNC_TASK_TOPIC)
   String subscriptionSyncTaskTopic;
 
@@ -57,7 +56,7 @@ class EnabledOrgsProducerTest {
 
   @BeforeEach
   void setup() {
-    sink = connector.sink(ENABLED_ORGS_CHANNEL);
+    sink = connector.sink(ENABLED_ORGS);
     sink.clear();
   }
 

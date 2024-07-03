@@ -72,6 +72,10 @@ parameters:
     value: '3'
   - name: KAFKA_SUBSCRIPTION_SYNC_TASK_PARTITIONS
     value: '3'
+  - name: KAFKA_CAPACITY_RECONCILE_REPLICAS
+    value: '3'
+  - name: KAFKA_CAPACITY_RECONCILE_PARTITIONS
+    value: '3'
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -103,6 +107,9 @@ objects:
         - replicas: ${{KAFKA_SUBSCRIPTION_SYNC_TASK_REPLICAS}}
           partitions: ${{KAFKA_SUBSCRIPTION_SYNC_TASK_PARTITIONS}}
           topicName: platform.rhsm-subscriptions.subscription-sync-task
+        - replicas: ${{KAFKA_CAPACITY_RECONCILE_REPLICAS}}
+          partitions: ${{KAFKA_CAPACITY_RECONCILE_PARTITIONS}}
+          topicName: platform.rhsm-subscriptions.capacity-reconcile
 
       # Creates a database if local mode, or uses RDS in production
       # database:
@@ -249,7 +256,7 @@ objects:
               - name: PRODUCT_URL
                 value: ${PRODUCT_URL}
               - name: PRODUCT_DENYLIST_RESOURCE_LOCATION
-                value: file:/capacity-denylist/product-denylist.txt
+                value: file:/denylist/product-denylist.txt
               - name: SUBSCRIPTION_SYNC_ENABLED
                 value: ${SUBSCRIPTION_SYNC_ENABLED}
             volumeMounts:

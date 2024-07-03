@@ -39,8 +39,6 @@ import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionMeasurementKey_;
 import org.candlepin.subscriptions.db.model.Subscription_;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -74,12 +72,6 @@ public interface SubscriptionRepository
       "SELECT s FROM Subscription s WHERE s.subscriptionNumber = :subscriptionNumber"
           + " ORDER BY s.subscriptionId, s.startDate DESC")
   List<Subscription> findBySubscriptionNumber(String subscriptionNumber);
-
-  // Added an order by clause to avoid Hibernate issue HHH-17040
-  @Query(
-      "SELECT s FROM Subscription s LEFT JOIN FETCH s.offering o WHERE o.sku = :sku"
-          + " ORDER BY s.subscriptionId, s.startDate DESC")
-  Page<Subscription> findByOfferingSku(String sku, Pageable pageable);
 
   @QueryHints(value = {@QueryHint(name = HINT_FETCH_SIZE, value = "1024")})
   @EntityGraph(value = "graph.SubscriptionSync")

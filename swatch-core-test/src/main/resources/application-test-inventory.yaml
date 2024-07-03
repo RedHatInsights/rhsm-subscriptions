@@ -13,10 +13,6 @@ rhsm-subscriptions:
       topic: platform.rhsm-subscriptions.subscription-sync
       kafka-group-id: subscription-worker
     enable-payg-subscription-force-sync: true
-  capacity:
-    tasks:
-      topic: platform.rhsm-subscriptions.capacity-reconcile
-      kafka-group-id: capacity-reconciliation-worker
   user-service:
     use-stub: true
   product:
