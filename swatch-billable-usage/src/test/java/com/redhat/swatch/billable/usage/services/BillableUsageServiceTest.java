@@ -32,7 +32,6 @@ import static org.mockito.Mockito.when;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceEntity;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
 import com.redhat.swatch.billable.usage.data.RemittanceStatus;
-import com.redhat.swatch.billable.usage.kafka.InMemoryMessageBrokerKafkaResource;
 import com.redhat.swatch.clients.contracts.api.model.Contract;
 import com.redhat.swatch.clients.contracts.api.model.Metric;
 import com.redhat.swatch.clients.contracts.api.resources.ApiException;
@@ -43,7 +42,6 @@ import com.redhat.swatch.configuration.registry.SubscriptionDefinitionRegistry;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import io.quarkus.test.InjectMock;
-import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectSpy;
 import jakarta.inject.Inject;
@@ -72,9 +70,6 @@ import org.mockito.Mockito;
 
 @Slf4j
 @QuarkusTest
-@QuarkusTestResource(
-    value = InMemoryMessageBrokerKafkaResource.class,
-    restrictToAnnotatedClass = true)
 class BillableUsageServiceTest {
   private static final ApplicationClock CLOCK =
       new ApplicationClock(
@@ -88,7 +83,7 @@ class BillableUsageServiceTest {
 
   private static SubscriptionDefinitionRegistry originalReference;
 
-  @InjectSpy BillingProducer producer;
+  @InjectMock BillingProducer producer;
   @InjectSpy BillableUsageRemittanceRepository remittanceRepo;
   @InjectMock @RestClient DefaultApi contractsApi;
 
@@ -402,7 +397,16 @@ class BillableUsageServiceTest {
     BillableUsage usage = givenInstanceHoursUsageForRosa(0.0);
     givenExistingRemittanceForUsage(usage, startOfUsage, 1.0, RemittanceStatus.SUCCEEDED);
     givenExistingRemittanceForUsage(usage, startOfUsage.plusDays(2), 5.0, RemittanceStatus.PENDING);
-    givenExistingRemittanceForUsage(usage, startOfUsage.plusDays(4), 10.0, RemittanceStatus.FAILED);
+    // failures with retry after not-null should still be included
+    givenExistingRemittanceForUsage(
+        usage,
+        startOfUsage.plusDays(4),
+        10.0,
+        RemittanceStatus.FAILED,
+        OffsetDateTime.now().plusHours(1));
+    // failures with retry after null should be filtered out
+    givenExistingRemittanceForUsage(
+        usage, startOfUsage.plusDays(4), 30.0, RemittanceStatus.FAILED, null);
     givenExistingRemittanceForUsage(usage, startOfUsage.plusDays(4), 20.0, null);
 
     var result = service.getTotalRemitted(usage);
@@ -561,6 +565,17 @@ class BillableUsageServiceTest {
       OffsetDateTime remittancePendingDate,
       double remittedPendingValue,
       RemittanceStatus status) {
+    givenExistingRemittanceForUsage(
+        usage, remittancePendingDate, remittedPendingValue, status, null);
+  }
+
+  @Transactional
+  void givenExistingRemittanceForUsage(
+      BillableUsage usage,
+      OffsetDateTime remittancePendingDate,
+      double remittedPendingValue,
+      RemittanceStatus status,
+      OffsetDateTime retryAfter) {
     var newRemittance =
         BillableUsageRemittanceEntity.builder()
             .orgId(usage.getOrgId())
@@ -575,6 +590,7 @@ class BillableUsageServiceTest {
             .tallyId(usage.getId())
             .hardwareMeasurementType(usage.getHardwareMeasurementType())
             .status(status)
+            .retryAfter(retryAfter)
             .build();
     // Remitted value should be set to usages metric_value rather than billing_value
     newRemittance.setRemittedPendingValue(remittedPendingValue);
