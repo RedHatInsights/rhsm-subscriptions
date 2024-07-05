@@ -40,4 +40,9 @@ public class SubscriptionRepository
     query.range(offset, offset + limit - 1);
     return query.list();
   }
+
+  public List<SubscriptionEntity> findBySubscriptionNumber(String subscriptionNumber) {
+    PanacheQuery<SubscriptionEntity> query = find("subscriptionNumber = ?1", subscriptionNumber);
+    return query.list();
+  }
 }

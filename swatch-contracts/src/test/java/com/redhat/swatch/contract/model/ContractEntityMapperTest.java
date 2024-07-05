@@ -59,7 +59,7 @@ class ContractEntityMapperTest {
     contract.planId("vcpu-hours");
     contract.addDimensionsItem(new DimensionV1().name(metricId).value("0"));
 
-    var entity = mapper.mapEntitlementToContractEntity(entitlement);
+    var entity = mapper.mapEntitlementToContractEntity(entitlement, contract);
 
     var expectedMetricEntity = ContractMetricEntity.builder().metricId(metricId).value(0.0).build();
     assertEquals(Set.of(expectedMetricEntity), entity.getMetrics());
@@ -87,7 +87,7 @@ class ContractEntityMapperTest {
     entitlement.getPurchase().addContractsItem(oldContract);
     entitlement.getPurchase().addContractsItem(newContract);
 
-    var entity = mapper.mapEntitlementToContractEntity(entitlement);
+    var entity = mapper.mapEntitlementToContractEntity(entitlement, newContract);
 
     var expectedMetricEntity =
         ContractMetricEntity.builder().metricId(metricId).value(10.0).build();
