@@ -261,7 +261,7 @@ public class ContractService {
 
     Map<OffsetDateTime, ContractEntity> contractStartDateMap =
         entities.stream()
-            .collect(Collectors.toMap(ContractEntity::getStartDate, Function.identity()));
+            .collect(Collectors.toMap(ContractEntity::getStartDate, Function.identity(), (contract1, contract2) -> contract1));
     List<ContractEntity> existingContractRecords = findExistingContractRecords(latestContract);
     Set<ContractEntity> contractsToPersist = new HashSet<>();
 
@@ -299,7 +299,7 @@ public class ContractService {
         });
 
     if (latestContract.getSubscriptionNumber() != null) {
-      syncExistingSubscriptionWithUpdatedContract(entities, subscriptionId);
+      syncExistingSubscriptionsWithUpdatedContracts(entities, subscriptionId);
     }
 
     if (existingContractRecords.contains(latestContract)) {
@@ -308,7 +308,7 @@ public class ContractService {
     return NEW_CONTRACT_CREATED.withContract(latestContract);
   }
 
-  private void syncExistingSubscriptionWithUpdatedContract(
+  private void syncExistingSubscriptionsWithUpdatedContracts(
       List<ContractEntity> contractEntities, String subscriptionId) {
     List<SubscriptionEntity> updatedSubscriptions =
         contractEntities.stream()
@@ -317,7 +317,7 @@ public class ContractService {
     Set<SubscriptionEntity> subscriptionsToPersist = new HashSet<>();
     Map<OffsetDateTime, SubscriptionEntity> subscriptionStartDateMap =
         updatedSubscriptions.stream()
-            .collect(Collectors.toMap(SubscriptionEntity::getStartDate, Function.identity()));
+            .collect(Collectors.toMap(SubscriptionEntity::getStartDate, Function.identity(),(sub1, sub2) -> sub1));
     var existingSubscriptionRecords =
         subscriptionRepository.findBySubscriptionNumber(
             contractEntities.get(0).getSubscriptionNumber());
@@ -521,7 +521,7 @@ public class ContractService {
    * @return existing contract record, or null
    */
   private List<ContractEntity> findExistingContractRecords(ContractEntity contract) {
-    Specification specification;
+    Specification<ContractEntity> specification;
     if (contract.getBillingProvider().startsWith("aws")) {
       specification = ContractEntity.billingProviderIdEquals(contract.getBillingProviderId());
     } else if (contract.getBillingProvider().startsWith("azure")) {
@@ -557,7 +557,7 @@ public class ContractService {
     }
 
     contractEntities.forEach(
-        contractEntity -> measurementMetricIdTransformer.resolveConflictingMetrics(contractEntity));
+        measurementMetricIdTransformer::resolveConflictingMetrics);
 
     return contractEntities;
   }
