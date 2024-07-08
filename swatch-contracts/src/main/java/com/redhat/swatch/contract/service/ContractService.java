@@ -261,7 +261,11 @@ public class ContractService {
 
     Map<OffsetDateTime, ContractEntity> contractStartDateMap =
         entities.stream()
-            .collect(Collectors.toMap(ContractEntity::getStartDate, Function.identity(), (contract1, contract2) -> contract1));
+            .collect(
+                Collectors.toMap(
+                    ContractEntity::getStartDate,
+                    Function.identity(),
+                    (contract1, contract2) -> contract1));
     List<ContractEntity> existingContractRecords = findExistingContractRecords(latestContract);
     Set<ContractEntity> contractsToPersist = new HashSet<>();
 
@@ -281,6 +285,8 @@ public class ContractService {
                   matchingUpdatedContract);
               contractEntityMapper.updateContract(existingContract, matchingUpdatedContract);
               contractsToPersist.add(matchingUpdatedContract);
+            } else {
+              log.debug("No change in contract: {}", existingContract);
             }
           }
           // Delete contracts that do not align with partner data start_dates
@@ -317,7 +323,9 @@ public class ContractService {
     Set<SubscriptionEntity> subscriptionsToPersist = new HashSet<>();
     Map<OffsetDateTime, SubscriptionEntity> subscriptionStartDateMap =
         updatedSubscriptions.stream()
-            .collect(Collectors.toMap(SubscriptionEntity::getStartDate, Function.identity(),(sub1, sub2) -> sub1));
+            .collect(
+                Collectors.toMap(
+                    SubscriptionEntity::getStartDate, Function.identity(), (sub1, sub2) -> sub1));
     var existingSubscriptionRecords =
         subscriptionRepository.findBySubscriptionNumber(
             contractEntities.get(0).getSubscriptionNumber());
@@ -334,6 +342,8 @@ public class ContractService {
               subscriptionEntityMapper.updateSubscription(
                   existingSubscription, matchingUpdatedSubscription);
               subscriptionsToPersist.add(existingSubscription);
+            } else {
+              log.debug("No change in subscription: {}", existingSubscription);
             }
           } else {
             // Delete subscriptions that do not align with partner data start_dates
@@ -556,8 +566,7 @@ public class ContractService {
           contractEntity -> contractEntity.setBillingProviderId(billingProviderId));
     }
 
-    contractEntities.forEach(
-        measurementMetricIdTransformer::resolveConflictingMetrics);
+    contractEntities.forEach(measurementMetricIdTransformer::resolveConflictingMetrics);
 
     return contractEntities;
   }
