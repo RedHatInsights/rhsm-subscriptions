@@ -345,6 +345,56 @@ class ContractServiceTest extends BaseUnitTest {
     verify(subscriptionRepository).persist(expectedSubscription);
   }
 
+  @Test
+  void testExistingSubscriptionSyncedWithITGatewayResponse() throws Exception {
+    var subscription = new SubscriptionEntity();
+    subscription.setStartDate(OffsetDateTime.parse("2023-06-09T13:59:43.035365Z"));
+    when(subscriptionRepository.findBySubscriptionNumber(any())).thenReturn(List.of(subscription));
+    when(subscriptionRepository.findOne(any(), any())).thenReturn(Optional.of(subscription));
+    var contract = givenAzurePartnerEntitlementContract();
+    mockPartnerApi();
+    StatusResponse statusResponse = contractService.createPartnerContract(contract);
+    assertEquals("New contract created", statusResponse.getMessage());
+    verify(subscriptionRepository).persist(any(Set.class));
+    verify(subscriptionRepository, times(0)).delete(any());
+  }
+
+  @Test
+  void testExistingSubscriptionNotInITGatewayResponseIsDeleted() throws Exception {
+    var subscription = new SubscriptionEntity();
+    subscription.setStartDate(OffsetDateTime.parse("2023-06-09T04:00:00.035365Z"));
+    when(subscriptionRepository.findBySubscriptionNumber(any())).thenReturn(List.of(subscription));
+    when(subscriptionRepository.findOne(any(), any())).thenReturn(Optional.of(subscription));
+    var contract = givenAzurePartnerEntitlementContract();
+    mockPartnerApi();
+    StatusResponse statusResponse = contractService.createPartnerContract(contract);
+    assertEquals("New contract created", statusResponse.getMessage());
+    verify(subscriptionRepository).persist(any(Set.class));
+    verify(subscriptionRepository, times(1)).delete(subscription);
+  }
+
+  @Test
+  @Transactional
+  void testExistingContractNotInITGatewayResponseIsDeleted() throws Exception {
+    var existingContract = new ContractEntity();
+    existingContract.setBillingProviderId("1234567890abcdefghijklmno;HSwCpt6sqkC;568056954830");
+    existingContract.setStartDate(OffsetDateTime.parse("2023-06-09T04:00:00.035365Z"));
+    existingContract.setLastUpdated(OffsetDateTime.now());
+    existingContract.setOrgId(ORG_ID);
+    existingContract.setBillingProvider("aws");
+    existingContract.setVendorProductCode("any");
+    existingContract.setUuid(UUID.randomUUID());
+    OfferingEntity offering = new OfferingEntity();
+    offering.setSku(SKU);
+    offering.setProductTags(Set.of(PRODUCT_TAG));
+    existingContract.setOffering(offering);
+    contractRepository.persist(existingContract);
+    var request = givenPartnerEntitlementContractRequest();
+    StatusResponse statusResponse = contractService.createPartnerContract(request);
+    assertEquals("New contract created", statusResponse.getMessage());
+    verify(contractRepository).delete(existingContract);
+  }
+
   private static PartnerEntitlementV1 givenContractWithoutRequiredData() {
     PartnerEntitlementV1 entitlement = new PartnerEntitlementV1();
     entitlement.setRhAccountId(ORG_ID);
