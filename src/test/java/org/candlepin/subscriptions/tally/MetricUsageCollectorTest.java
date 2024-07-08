@@ -454,6 +454,7 @@ class MetricUsageCollectorTest {
             .withProductTag(Set.of(RHEL_FOR_X86_ELS_PAYG))
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType("RHEL System")
+            .withHardwareType(HardwareType.VIRTUAL)
             .withMeasurements(Collections.singletonList(measurement))
             .withSla(Event.Sla.PREMIUM)
             .withBillingProvider(Event.BillingProvider.RED_HAT)
@@ -491,6 +492,7 @@ class MetricUsageCollectorTest {
           bucket.setKey(key);
           bucket.setCores(measurement.getValue().intValue());
           bucket.setHost(instance);
+          bucket.setMeasurementType(HardwareMeasurementType.VIRTUAL);
           expected.add(bucket);
         });
     assertEquals(expected, new HashSet<>(instance.getBuckets()));

@@ -319,6 +319,12 @@ public class MetricUsageCollector {
 
   private void addBucketsFromEvent(Host host, Event event) {
     Set<List<Object>> bucketTuples = buildBucketTuples(event);
+
+    HardwareMeasurementType hardwareMeasurementType =
+        getHardwareMeasurementType(
+            getHostHardwareType(event.getHardwareType()),
+            getCloudProviderAsString(event.getCloudProvider()));
+
     Set<HostBucketKey> activeHostBucketKeys = new HashSet<>();
     bucketTuples.forEach(
         tuple -> {
@@ -347,7 +353,9 @@ public class MetricUsageCollector {
                   billingProvider,
                   billingAccountId,
                   false);
+
           bucket.setKey(key);
+          bucket.setMeasurementType(hardwareMeasurementType);
           activeHostBucketKeys.add(key);
           bucket.setCores(cores);
           bucket.setSockets(sockets);

@@ -166,5 +166,6 @@
     <include file="/liquibase/202406240700-add-subscription-number-index.xml" />
     <include file="/liquibase/202406261514-alter-event-instance-id-length.xml"/>
     <include file="/liquibase/202406191500-add-hypervisor_uuid-to-tally-instance-view.xml"/>
+    <include file="/liquibase/202407091543-set-default-bucket-measurement-type.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
