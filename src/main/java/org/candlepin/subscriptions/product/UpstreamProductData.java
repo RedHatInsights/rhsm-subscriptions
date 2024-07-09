@@ -230,10 +230,11 @@ class UpstreamProductData {
     return data;
   }
 
+  @SuppressWarnings("java:S3776")
   private static UpstreamProductData createFromOffering(Offering offering) {
     UpstreamProductData data = new UpstreamProductData(offering.getSku());
     data.children.addAll(offering.getChildSkus());
-    data.engOids.addAll(offering.getProductIds());
+    data.engOids.addAll(offering.getProductIds().stream().map(Integer::valueOf).toList());
     if (StringUtils.hasText(offering.getRole())) {
       data.attrs.put(Attr.X_ROLE, offering.getRole());
     }
@@ -342,8 +343,8 @@ class UpstreamProductData {
    *
    * <p>It is unclear if derived SKUs <b>should</b> have the attributes merged and the derived SKUs
    * listed as children in the longer term. For now though, this simplification fits with how we
-   * present offerings to the user. See:
-   * https://docs.google.com/document/d/1t5OlyWanEpwXOA7ysPKuZW61cvYnIScwRMl--hmajXY/edit#heading=h.3aq1apsnbb0o
+   * present offerings to the user. See: <a
+   * href="https://docs.google.com/document/d/1t5OlyWanEpwXOA7ysPKuZW61cvYnIScwRMl--hmajXY/edit#heading=h.3aq1apsnbb0o">...</a>
    *
    * @param productDataSource the upstream datasource to fetch the derived product from
    * @return this UpstreamProductData (not the derived product), for chaining.
@@ -500,16 +501,14 @@ class UpstreamProductData {
    *
    * @param key key with which the specified value is to be associated value
    * @param val value to be associated with the specified key
-   * @return previous value if already associated with a value, or null if value was set.
    */
-  private String putIfNoConflict(Attr key, String val) {
+  private void putIfNoConflict(Attr key, String val) {
     String old = attrs.putIfAbsent(key, val);
 
     if (Objects.nonNull(old) && !Objects.equals(old, val)) {
       var msg = String.format(MSG_TEMPLATE, sku, key, old, val);
       conflicts.add(msg);
     }
-    return old;
   }
 
   private void mapAttributes(OperationalProduct opProd) {

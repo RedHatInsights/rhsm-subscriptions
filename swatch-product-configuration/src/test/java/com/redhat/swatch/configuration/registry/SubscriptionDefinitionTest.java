@@ -23,10 +23,15 @@ package com.redhat.swatch.configuration.registry;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.redhat.swatch.configuration.util.ProductTagLookupParams;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
@@ -38,7 +43,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 class SubscriptionDefinitionTest {
   @Test
   void testFindServiceTypeMatch() {
-    var rosaSub = SubscriptionDefinition.findByServiceType("rosa Instance").get(0);
+    var rosaSub = SubscriptionDefinition.findByServiceType("rosa Instance").iterator().next();
 
     var expected = "rosa";
     var actual = rosaSub.getId();
@@ -251,70 +256,53 @@ class SubscriptionDefinitionTest {
         "cluster_hour", SubscriptionDefinition.getAzureDimension("BASILISK", "Instance-hours"));
   }
 
-  @SuppressWarnings({"linelength", "indentation"})
   @ParameterizedTest(
       name =
-          "[engineeringIds: {0}, isMetered: {1}, is3rdPartyConverted {2}] matches product tags {3}")
-  @MethodSource("elsAndGeneralRhelCombos")
+          "isMetered: {0}, isConverted: {1}, metricIds: {2}, productIds: {3} match productTags {4}")
+  @CsvSource({
+    "false, false, 'Sockets', '204,479', 'RHEL for x86,rhel-for-x86-els-unconverted'",
+    "false, false, 'Sockets,vCPUs', '204,479', 'RHEL for x86,rhel-for-x86-els-unconverted'",
+    "false, false, 'vCPUs', '204,479', ''",
+    "false, true, 'Sockets','204,479', 'rhel-for-x86-els-converted'",
+    "false, true, 'Sockets,vCPUs','204,479', 'rhel-for-x86-els-converted'",
+    "false, true, 'vCPUs','204,479', ''",
+    "true, false, 'Sockets','204,479', ''",
+    "true, false, 'Sockets,vCPUs','204,479', 'rhel-for-x86-els-payg-addon'",
+    "true, false, 'vCPUs','204,479', 'rhel-for-x86-els-payg-addon'",
+    "true, true, 'Sockets','204,479', ''",
+    "true, true, 'Sockets,vCPUs','204,479', 'rhel-for-x86-els-payg'",
+    "true, true, 'vCPUs','204,479', 'rhel-for-x86-els-payg'",
+  })
   void testElsDetectionByEngineeringIds(
-      Set<String> engineeringIds,
       boolean isMetered,
-      boolean is3rdPartyConverted,
-      Set<String> expectedProductTags) {
+      boolean is3rdPartyMigration,
+      String metricIdsCsv,
+      String engIdsCsv,
+      String expectedProductTagsCsv) {
 
-    var actual =
-        SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
-            null, engineeringIds, null, isMetered, is3rdPartyConverted);
+    Set<String> engIds = Arrays.stream(engIdsCsv.split(",")).collect(Collectors.toSet());
+    Set<String> metricIds =
+        Objects.nonNull(metricIdsCsv)
+            ? Arrays.stream(metricIdsCsv.split(",")).collect(Collectors.toSet())
+            : Set.of();
 
-    assertEquals(expectedProductTags, actual);
-  }
+    Set<String> expectedProductTags = new HashSet<>();
+    if (!expectedProductTagsCsv.isEmpty()) {
+      expectedProductTags =
+          Arrays.stream(expectedProductTagsCsv.split(",")).collect(Collectors.toSet());
+    }
 
-  @SuppressWarnings({"linelength", "indentation"})
-  private static Stream<Arguments> elsAndGeneralRhelCombos() {
-    var isMetered = true;
-    var is3rdPartyConverted = true;
+    ProductTagLookupParams params =
+        ProductTagLookupParams.builder()
+            .isPaygEligibleProduct(isMetered)
+            .is3rdPartyMigration(is3rdPartyMigration)
+            .metricIds(metricIds)
+            .engIds(engIds)
+            .build();
 
-    var generalRhel = "479";
-    var els = "204";
+    var expected = expectedProductTags;
+    var actual = SubscriptionDefinition.getAllProductTags(params);
 
-    return Stream.of(
-        Arguments.of(Set.of(generalRhel), !isMetered, !is3rdPartyConverted, Set.of("RHEL for x86")),
-        Arguments.of(
-            Set.of(generalRhel, els),
-            !isMetered,
-            !is3rdPartyConverted,
-            Set.of("RHEL for x86", "rhel-for-x86-els-unconverted")),
-        Arguments.of(Set.of(generalRhel), !isMetered, is3rdPartyConverted, Set.of()),
-        Arguments.of(
-            Set.of(generalRhel, els),
-            !isMetered,
-            is3rdPartyConverted,
-            Set.of("rhel-for-x86-els-converted")),
-        Arguments.of(
-            Set.of(els), !isMetered, is3rdPartyConverted, Set.of("rhel-for-x86-els-converted")),
-        Arguments.of(Set.of(generalRhel), isMetered, !is3rdPartyConverted, Set.of()),
-        Arguments.of(Set.of(generalRhel), isMetered, is3rdPartyConverted, Set.of()),
-        Arguments.of(
-            Set.of(generalRhel, els),
-            isMetered,
-            is3rdPartyConverted,
-            Set.of("rhel-for-x86-els-payg")),
-        Arguments.of(
-            Set.of(generalRhel, els),
-            isMetered,
-            !is3rdPartyConverted,
-            Set.of("rhel-for-x86-els-payg-addon", "RHEL for x86")),
-        Arguments.of(
-            Set.of(els), isMetered, !is3rdPartyConverted, Set.of("rhel-for-x86-els-payg-addon")));
-  }
-
-  @Test
-  void testFetchProductTagsWhenProductNameProvided() {
-    var productName = "OpenShift Online";
-    var expected = List.of("rosa");
-
-    var actual =
-        Variant.filterVariantsByProductName(productName, false, true).map(Variant::getTag).toList();
     assertEquals(expected, actual);
   }
 }

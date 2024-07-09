@@ -23,18 +23,19 @@ package org.candlepin.subscriptions.db.model;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
 class OfferingTest {
 
   @Test
-  void veriftySimpleGetSetTest() {
+  void verifySimpleGetSetTest() {
     final Set<String> skus = Set.of("childsku1", "childsku2");
-    final Set<Integer> productIds = Set.of(1, 2);
+    final Set<String> productIds = Set.of("1", "2");
     final Offering offering = new Offering();
     offering.setSku("testsku");
     offering.setChildSkus(skus);
-    offering.setProductIds(productIds);
+    offering.setProductIds(productIds.stream().map(Integer::valueOf).collect(Collectors.toSet()));
     offering.setUsage(Usage.DEVELOPMENT_TEST);
     offering.setServiceLevel(ServiceLevel.PREMIUM);
     offering.setRole("testrole");
