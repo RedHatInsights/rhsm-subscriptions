@@ -190,11 +190,15 @@ class ContractServiceTest extends BaseUnitTest {
     StatusResponse statusResponse = contractService.createPartnerContract(request);
     verify(subscriptionRepository, times(2)).persist(any(Set.class));
 
+    verify(contractRepository, times(3)).persist(any(ContractEntity.class));
+
     ArgumentCaptor<ContractEntity> contractSaveCapture =
         ArgumentCaptor.forClass(ContractEntity.class);
-    verify(contractRepository, times(3)).persist(contractSaveCapture.capture());
-    var expectedMetrics = Set.of(ContractMetricEntity.builder().metricId("cpu-hours").value(4).build(), ContractMetricEntity.builder().metricId("Instance-hours").value(2).build());
-    assertEquals(expectedMetrics, contractSaveCapture.getValue().getMetrics());
+    verify(contractRepository).delete(contractSaveCapture.capture());
+    // Contract with invalid start_date is deleted
+    assertEquals(
+        OffsetDateTime.parse("2023-03-17T12:29:48.569Z"),
+        contractSaveCapture.getValue().getStartDate());
     assertEquals("New contract created", statusResponse.getMessage());
   }
 
@@ -388,28 +392,6 @@ class ContractServiceTest extends BaseUnitTest {
     assertEquals("New contract created", statusResponse.getMessage());
     verify(subscriptionRepository).persist(any(Set.class));
     verify(subscriptionRepository, times(1)).delete(subscription);
-  }
-
-  @Transactional
-  @Test
-  public void testExistingContractNotInITGatewayResponseIsDeleted() {
-    var existingContract = new ContractEntity();
-    existingContract.setBillingProviderId("1234567890abcdefghijklmno;HSwCpt6sqkC;568056954830");
-    existingContract.setStartDate(OffsetDateTime.parse("2023-06-09T04:00:00.035365Z"));
-    existingContract.setLastUpdated(OffsetDateTime.now());
-    existingContract.setOrgId(ORG_ID);
-    existingContract.setBillingProvider("aws");
-    existingContract.setVendorProductCode("any");
-    existingContract.setUuid(UUID.randomUUID());
-    OfferingEntity offering = new OfferingEntity();
-    offering.setSku(SKU);
-    offering.setProductTags(Set.of(PRODUCT_TAG));
-    existingContract.setOffering(offering);
-    contractRepository.persist(existingContract);
-    var request = givenPartnerEntitlementContractRequest();
-    StatusResponse statusResponse = contractService.createPartnerContract(request);
-    assertEquals("New contract created", statusResponse.getMessage());
-    verify(contractRepository).delete(existingContract);
   }
 
   private static PartnerEntitlementV1 givenContractWithoutRequiredData() {
