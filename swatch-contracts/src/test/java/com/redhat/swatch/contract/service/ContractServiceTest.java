@@ -93,6 +93,10 @@ class ContractServiceTest extends BaseUnitTest {
   private static final String SKU = "RH000000";
   private static final String PRODUCT_TAG = "MH123";
   private static final String SUBSCRIPTION_NUMBER = "subs123";
+  private static final OffsetDateTime DEFAULT_START_DATE =
+      OffsetDateTime.parse("2023-06-09T13:59:43.035365Z");
+  private static final OffsetDateTime DEFAULT_END_DATE =
+      OffsetDateTime.parse("2026-02-15T13:59:43.035365Z");
 
   @Inject ContractService contractService;
   @Inject ObjectMapper objectMapper;
@@ -152,7 +156,7 @@ class ContractServiceTest extends BaseUnitTest {
     PartnerEntitlementV1 contract = givenContractWithoutRequiredData();
     assertThrows(
         ContractValidationFailedException.class,
-        () -> contractService.upsertPartnerContract(contract, null));
+        () -> contractService.upsertPartnerContracts(contract, null));
   }
 
   @Test
@@ -183,6 +187,12 @@ class ContractServiceTest extends BaseUnitTest {
 
     StatusResponse statusResponse = contractService.createPartnerContract(request);
     verify(subscriptionRepository, times(2)).persist(any(Set.class));
+
+    ArgumentCaptor<ContractEntity> contractSaveCapture =
+        ArgumentCaptor.forClass(ContractEntity.class);
+    verify(contractRepository, times(3)).persist(contractSaveCapture.capture());
+    var expectedMetrics = Set.of(ContractMetricEntity.builder().metricId("cpu-hours").value(4).build(), ContractMetricEntity.builder().metricId("Instance-hours").value(2).build());
+    assertEquals(expectedMetrics, contractSaveCapture.getValue().getMetrics());
     assertEquals("New contract created", statusResponse.getMessage());
   }
 
@@ -192,7 +202,7 @@ class ContractServiceTest extends BaseUnitTest {
     contractService.createPartnerContract(request);
 
     StatusResponse statusResponse = contractService.createPartnerContract(request);
-    assertEquals("Redundant message ignored", statusResponse.getMessage());
+    assertEquals("Existing contracts and subscriptions updated", statusResponse.getMessage());
     verify(subscriptionRepository, times(2)).persist(any(Set.class));
   }
 
@@ -348,14 +358,19 @@ class ContractServiceTest extends BaseUnitTest {
   @Test
   void testExistingSubscriptionSyncedWithITGatewayResponse() throws Exception {
     var subscription = new SubscriptionEntity();
-    subscription.setStartDate(OffsetDateTime.parse("2023-06-09T13:59:43.035365Z"));
+    subscription.setStartDate(DEFAULT_START_DATE);
     when(subscriptionRepository.findBySubscriptionNumber(any())).thenReturn(List.of(subscription));
     when(subscriptionRepository.findOne(any(), any())).thenReturn(Optional.of(subscription));
     var contract = givenAzurePartnerEntitlementContract();
     mockPartnerApi();
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
+    ArgumentCaptor<Set<SubscriptionEntity>> subscriptionsSaveCapture =
+        ArgumentCaptor.forClass(Set.class);
     assertEquals("New contract created", statusResponse.getMessage());
-    verify(subscriptionRepository).persist(any(Set.class));
+    verify(subscriptionRepository).persist(subscriptionsSaveCapture.capture());
+    var persistedSubscriptions = subscriptionsSaveCapture.getValue();
+    assertEquals(1, persistedSubscriptions.size());
+    assertEquals(DEFAULT_END_DATE, persistedSubscriptions.iterator().next().getEndDate());
     verify(subscriptionRepository, times(0)).delete(any());
   }
 
@@ -373,9 +388,9 @@ class ContractServiceTest extends BaseUnitTest {
     verify(subscriptionRepository, times(1)).delete(subscription);
   }
 
-  @Test
   @Transactional
-  void testExistingContractNotInITGatewayResponseIsDeleted() throws Exception {
+  @Test
+  public void testExistingContractNotInITGatewayResponseIsDeleted() {
     var existingContract = new ContractEntity();
     existingContract.setBillingProviderId("1234567890abcdefghijklmno;HSwCpt6sqkC;568056954830");
     existingContract.setStartDate(OffsetDateTime.parse("2023-06-09T04:00:00.035365Z"));
@@ -553,7 +568,8 @@ class ContractServiceTest extends BaseUnitTest {
                     .contracts(
                         List.of(
                             new SaasContractV1()
-                                .startDate(OffsetDateTime.parse("2023-06-09T13:59:43.035365Z"))
+                                .startDate(DEFAULT_START_DATE)
+                                .endDate(DEFAULT_END_DATE)
                                 .planId("rh-rhel-sub-1yr")
                                 .dimensions(List.of(new DimensionV1().name("vCPU").value("4"))))));
 

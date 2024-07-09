@@ -118,7 +118,7 @@ public class ContractService {
 
     try {
       var result =
-          upsertPartnerContract(request.getPartnerEntitlement(), request.getSubscriptionId());
+          upsertPartnerContracts(request.getPartnerEntitlement(), request.getSubscriptionId());
       response.setStatus(result.toStatus());
       if (result.isValid() && result.getEntity() != null) {
         response.setContract(contractDtoMapper.contractEntityToDto(result.getEntity()));
@@ -226,114 +226,139 @@ public class ContractService {
           lookupSubscriptionId(
               Optional.ofNullable(findSubscriptionNumber(entitlement))
                   .orElse(request.getRedHatSubscriptionNumber()));
-      return upsertPartnerContract(entitlement, subscriptionId).toStatus();
+      return upsertPartnerContracts(entitlement, subscriptionId).toStatus();
     } catch (ContractNotAssociatedToOrgException e) {
       return ContractMessageProcessingResult.RH_ORG_NOT_ASSOCIATED.toStatus();
     }
   }
 
+  /**
+   * Update or create contract and subscription database records for each Contract in the
+   * PartnerEntitlement. Updates are made when the database records have matching start_dates,
+   * otherwise a new record will be created. If no matching PartnerEntitlement Contract is found
+   * then the existing record is deleted.
+   */
   @Transactional
-  public ContractMessageProcessingResult upsertPartnerContract(
+  public ContractMessageProcessingResult upsertPartnerContracts(
       PartnerEntitlementV1 entitlement, String subscriptionId)
       throws ContractNotAssociatedToOrgException, ContractValidationFailedException {
     List<ContractEntity> entities;
+
     try {
       entities = mapUpstreamContractToContractEntities(entitlement);
-      for (ContractEntity entity : entities) {
-        if (entity.getOrgId() == null) {
-          throw new ContractNotAssociatedToOrgException();
-        }
-        var violations = validator.validate(entity);
-        if (!violations.isEmpty()) {
-          throw new ContractValidationFailedException(entity, violations);
-        }
-      }
     } catch (NumberFormatException e) {
       log.error(e.getMessage());
       return INVALID_MESSAGE_UNPROCESSED;
     }
 
-    var latestContract =
-        entities.stream()
-            .sorted(Comparator.comparing(ContractEntity::getStartDate).reversed())
-            .findFirst()
-            .orElseThrow(() -> new ContractValidationFailedException(null, null));
+    var latestContract = getLatestContract(entities);
 
-    Map<OffsetDateTime, ContractEntity> contractStartDateMap =
-        entities.stream()
-            .collect(
-                Collectors.toMap(
-                    ContractEntity::getStartDate,
-                    Function.identity(),
-                    (contract1, contract2) -> contract1));
     List<ContractEntity> existingContractRecords = findExistingContractRecords(latestContract);
-    Set<ContractEntity> contractsToPersist = new HashSet<>();
 
     if (existingContractRecords.equals(entities)) {
       return ContractMessageProcessingResult.REDUNDANT_MESSAGE_IGNORED.withContract(latestContract);
     }
 
-    existingContractRecords.forEach(
+    mergeWithExistingContractRecords(entities, existingContractRecords);
+
+    if (latestContract.getSubscriptionNumber() != null) {
+      mergeWithExistingSubscriptionRecords(entities, subscriptionId);
+    }
+
+    if (existingContractRecords.contains(latestContract)) {
+      return ContractMessageProcessingResult.EXISTING_CONTRACTS_SYNCED.withContract(latestContract);
+    }
+
+    return NEW_CONTRACT_CREATED.withContract(latestContract);
+  }
+
+  private void mergeWithExistingContractRecords(
+      List<ContractEntity> unsavedContracts, List<ContractEntity> existingContracts) {
+    Set<ContractEntity> contractsToPersist = new HashSet<>();
+
+    // Determine matching contracts based on start_date
+    Map<OffsetDateTime, ContractEntity> contractStartDateMap =
+        unsavedContracts.stream()
+            .collect(
+                Collectors.toMap(
+                    ContractEntity::getStartDate,
+                    Function.identity(),
+                    (contract1, contract2) -> {
+                      log.warn("Duplicate contracts found. Skipping contract: {}", contract2);
+                      return contract1;
+                    }));
+
+    existingContracts.forEach(
         existingContract -> {
           var matchingUpdatedContract =
               contractStartDateMap.remove(existingContract.getStartDate());
-          if (matchingUpdatedContract != null) {
+
+          if (matchingUpdatedContract == null) {
+            log.info(
+                "Deleting contract that does not align to IT partner gateway: {}",
+                existingContract);
+            contractRepository.delete(existingContract);
+          } else {
             if (!matchingUpdatedContract.equals(existingContract)) {
               log.info(
                   "Contract updated. Old values: {} New values: {}",
                   existingContract,
                   matchingUpdatedContract);
               contractEntityMapper.updateContract(existingContract, matchingUpdatedContract);
-              contractsToPersist.add(matchingUpdatedContract);
+              contractsToPersist.add(existingContract);
             } else {
               log.debug("No change in contract: {}", existingContract);
             }
           }
-          // Delete contracts that do not align with partner data start_dates
-          else {
-            log.info(
-                "Deleting contract that does not align to IT partner gateway: {}",
-                existingContract);
-            contractRepository.delete(existingContract);
-          }
         });
+
+    // If not found in existing Contracts then create new ones.
     contractsToPersist.addAll(contractStartDateMap.values());
+
     contractsToPersist.forEach(
         contractEntity -> {
           log.info("Updating or creating contract: {}", contractEntity);
           persistContract(contractEntity, OffsetDateTime.now());
         });
-
-    if (latestContract.getSubscriptionNumber() != null) {
-      syncExistingSubscriptionsWithUpdatedContracts(entities, subscriptionId);
-    }
-
-    if (existingContractRecords.contains(latestContract)) {
-      return ContractMessageProcessingResult.REDUNDANT_MESSAGE_IGNORED.withContract(latestContract);
-    }
-    return NEW_CONTRACT_CREATED.withContract(latestContract);
   }
 
-  private void syncExistingSubscriptionsWithUpdatedContracts(
+  private void mergeWithExistingSubscriptionRecords(
       List<ContractEntity> contractEntities, String subscriptionId) {
+
     List<SubscriptionEntity> updatedSubscriptions =
         contractEntities.stream()
             .map(entity -> createSubscriptionForContract(entity, subscriptionId))
             .toList();
+
     Set<SubscriptionEntity> subscriptionsToPersist = new HashSet<>();
+
+    // Determine matching subscription based on start_date
     Map<OffsetDateTime, SubscriptionEntity> subscriptionStartDateMap =
         updatedSubscriptions.stream()
             .collect(
                 Collectors.toMap(
-                    SubscriptionEntity::getStartDate, Function.identity(), (sub1, sub2) -> sub1));
+                    SubscriptionEntity::getStartDate,
+                    Function.identity(),
+                    (sub1, sub2) -> {
+                      log.warn("Duplicate contracts found. Skipping subscription: {}", sub2);
+                      return sub1;
+                    }));
+
     var existingSubscriptionRecords =
         subscriptionRepository.findBySubscriptionNumber(
             contractEntities.get(0).getSubscriptionNumber());
+
     existingSubscriptionRecords.forEach(
         existingSubscription -> {
           var matchingUpdatedSubscription =
               subscriptionStartDateMap.remove(existingSubscription.getStartDate());
-          if (matchingUpdatedSubscription != null) {
+
+          if (matchingUpdatedSubscription == null) {
+            log.info(
+                "Deleting subscription that does not align to IT partner gateway: {}",
+                existingSubscription);
+            subscriptionRepository.delete(existingSubscription);
+          } else {
             if (!matchingUpdatedSubscription.equals(existingSubscription)) {
               log.info(
                   "Subscription updated. Old values: {} New values: {}",
@@ -345,18 +370,21 @@ public class ContractService {
             } else {
               log.debug("No change in subscription: {}", existingSubscription);
             }
-          } else {
-            // Delete subscriptions that do not align with partner data start_dates
-            log.info(
-                "Deleting subscription that does not align to IT partner gateway: {}",
-                existingSubscription);
-            subscriptionRepository.delete(existingSubscription);
           }
         });
+
+    // If not found in existing subscriptions then create new ones.
     subscriptionsToPersist.addAll(subscriptionStartDateMap.values());
-    subscriptionsToPersist.forEach(
-        subscriptionEntity -> log.info("Persisting subscription: {}", subscriptionEntity));
+
+    log.info("Persisting subscriptions: {}", subscriptionsToPersist);
     subscriptionRepository.persist(subscriptionsToPersist);
+  }
+
+  private ContractEntity getLatestContract(List<ContractEntity> contracts)
+      throws ContractValidationFailedException {
+    return contracts.stream()
+        .max(Comparator.comparing(ContractEntity::getStartDate))
+        .orElseThrow(() -> new ContractValidationFailedException(null, null));
   }
 
   @Transactional
@@ -435,7 +463,7 @@ public class ContractService {
   private void tryUpsertPartnerContract(PartnerEntitlementV1 entitlement) {
     var subscriptionId = lookupSubscriptionId(findSubscriptionNumber(entitlement));
     try {
-      upsertPartnerContract(entitlement, subscriptionId);
+      upsertPartnerContracts(entitlement, subscriptionId);
     } catch (ContractNotAssociatedToOrgException | ContractValidationFailedException e) {
       log.error(
           "Error synchronising the contract {}. Caused by: {}", entitlement, e.getMessage(), e);
@@ -548,13 +576,15 @@ public class ContractService {
   }
 
   private List<ContractEntity> mapUpstreamContractToContractEntities(
-      PartnerEntitlementV1 entitlement) {
+      PartnerEntitlementV1 entitlement)
+      throws ContractNotAssociatedToOrgException, ContractValidationFailedException {
     var contractEntities =
         entitlement.getPurchase().getContracts().stream()
             .map(
                 contract ->
                     contractEntityMapper.mapEntitlementToContractEntity(entitlement, contract))
             .toList();
+
     if (isAwsMarketplace(entitlement.getSourcePartner())) {
       var billingProviderId =
           String.format(
@@ -568,6 +598,15 @@ public class ContractService {
 
     contractEntities.forEach(measurementMetricIdTransformer::resolveConflictingMetrics);
 
+    for (ContractEntity entity : contractEntities) {
+      if (entity.getOrgId() == null) {
+        throw new ContractNotAssociatedToOrgException();
+      }
+      var violations = validator.validate(entity);
+      if (!violations.isEmpty()) {
+        throw new ContractValidationFailedException(entity, violations);
+      }
+    }
     return contractEntities;
   }
 
