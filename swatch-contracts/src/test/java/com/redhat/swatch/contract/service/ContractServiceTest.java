@@ -106,11 +106,13 @@ class ContractServiceTest extends BaseUnitTest {
   @Transactional
   @BeforeEach
   public void setup() {
+    contractRepository.deleteAll();
+    offeringRepository.deleteAll();
+
     OfferingEntity offering = new OfferingEntity();
     offering.setSku(SKU);
     offering.setProductTags(Set.of(PRODUCT_TAG));
     offeringRepository.persist(offering);
-    contractRepository.deleteAll();
     mockSubscriptionServiceSubscription();
   }
 
