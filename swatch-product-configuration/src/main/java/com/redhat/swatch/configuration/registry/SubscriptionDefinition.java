@@ -195,6 +195,7 @@ public class SubscriptionDefinition {
 
     List<Predicate<Variant>> sequentialPredicates =
         List.of(
+            createLevelPredicate(params),
             createRolePredicate(params),
             createEngIdPredicate(params),
             createProductNamePredicate(params));
@@ -209,6 +210,7 @@ public class SubscriptionDefinition {
     }
 
     if (filteredVariants.isEmpty()) {
+      log.warn("No variants found to uniquely identify a product: {}", sequentialPredicates);
       return Set.of();
     }
 
@@ -383,6 +385,28 @@ public class SubscriptionDefinition {
       return isNullOrEmpty(paramMetricIds)
           || paramMetricIds.stream().anyMatch(variantMetricIds::contains);
     };
+  }
+
+  private static Predicate<Variant> createLevelPredicate(ProductTagLookupParams params) {
+    Predicate<Variant> level1Predicate =
+        variant -> {
+          String paramLevel1 = params.getLevel1();
+          String variantLevel1 = variant.getLevel1();
+          return !isNullOrEmpty(paramLevel1)
+              && !isNullOrEmpty(variantLevel1)
+              && Objects.equals(paramLevel1, variantLevel1);
+        };
+
+    Predicate<Variant> level2Predicate =
+        variant -> {
+          String paramLevel2 = params.getLevel2();
+          String variantLevel2 = variant.getLevel2();
+          return !isNullOrEmpty(paramLevel2)
+              && !isNullOrEmpty(variantLevel2)
+              && Objects.equals(paramLevel2, variantLevel2);
+        };
+
+    return level1Predicate.and(level2Predicate);
   }
 
   private static boolean isNullOrEmpty(Collection<?> collection) {
