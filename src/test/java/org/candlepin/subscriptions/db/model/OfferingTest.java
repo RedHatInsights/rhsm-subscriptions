@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 class OfferingTest {
 
   @Test
-  void veriftySimpleGetSetTest() {
+  void verifySimpleGetSetTest() {
     final Set<String> skus = Set.of("childsku1", "childsku2");
     final Set<Integer> productIds = Set.of(1, 2);
     final Offering offering = new Offering();

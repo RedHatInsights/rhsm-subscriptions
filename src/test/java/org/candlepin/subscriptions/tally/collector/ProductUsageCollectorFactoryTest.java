@@ -26,7 +26,7 @@ import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinitionRegistry;
 import com.redhat.swatch.configuration.registry.Variant;
 import java.awt.*;
-import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class ProductUsageCollectorFactoryTest {
@@ -37,7 +37,7 @@ class ProductUsageCollectorFactoryTest {
     testDef.setVdcType(true);
     Variant testVariant = new Variant();
     testVariant.setTag("testProd1");
-    testDef.setVariants(List.of(testVariant));
+    testDef.setVariants(Set.of(testVariant));
     SubscriptionDefinitionRegistry.getInstance().getSubscriptions().add(testDef);
     assertThat(ProductUsageCollectorFactory.get("testProd1") instanceof RHELProductUsageCollector);
   }
@@ -48,7 +48,7 @@ class ProductUsageCollectorFactoryTest {
     testDef.setVdcType(false);
     Variant testVariant = new Variant();
     testVariant.setTag("testProd2");
-    testDef.setVariants(List.of(testVariant));
+    testDef.setVariants(Set.of(testVariant));
     SubscriptionDefinitionRegistry.getInstance().getSubscriptions().add(testDef);
     assertThat(
         ProductUsageCollectorFactory.get("testProd2") instanceof DefaultProductUsageCollector);
@@ -60,7 +60,7 @@ class ProductUsageCollectorFactoryTest {
     // vdcType is null in testDef
     Variant testVariant = new Variant();
     testVariant.setTag("testProd3");
-    testDef.setVariants(List.of(testVariant));
+    testDef.setVariants(Set.of(testVariant));
     SubscriptionDefinitionRegistry.getInstance().getSubscriptions().add(testDef);
     assertThat(
         ProductUsageCollectorFactory.get("testProd3") instanceof DefaultProductUsageCollector);

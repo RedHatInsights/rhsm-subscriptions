@@ -36,7 +36,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.json.Event;
@@ -85,7 +84,7 @@ class EventControllerTest {
                    "event_source": "prometheus",
                    "measurements": [
                      {
-                       "uom": "Instance-hours",
+                       "metric_id": "Instance-hours",
                        "value": 1
                      }
                    ],
@@ -106,7 +105,7 @@ class EventControllerTest {
                    "event_source": "prometheus",
                    "measurements": [
                      {
-                       "uom": "Instance-hours",
+                       "metric_id": "Instance-hours",
                        "value": 1
                      }
                    ],
@@ -127,7 +126,7 @@ class EventControllerTest {
                    "event_source": "prometheus",
                    "measurements": [
                      {
-                       "uom": "Instance-hours",
+                       "metric_id": "Instance-hours",
                        "value": 1
                      }
                    ],
@@ -148,7 +147,7 @@ class EventControllerTest {
                    "event_source": "prometheus",
                    "measurements": [
                      {
-                       "uom": "Instance-hours",
+                       "metric_id": "Instance-hours",
                        "value": 1
                      }
                    ],
@@ -169,7 +168,7 @@ class EventControllerTest {
                    "event_source": "prometheus",
                    "measurements": [
                      {
-                       "uom": "Instance-hours",
+                       "metric_id": "Instance-hours",
                        "value": 1
                      }
                    ],
@@ -191,7 +190,7 @@ class EventControllerTest {
                    "event_source": "prometheus",
                    "measurements": [
                      {
-                       "uom": "Instance-hours",
+                       "metric_id": "Instance-hours",
                        "value": -1
                      }
                    ],
@@ -367,13 +366,12 @@ class EventControllerTest {
                    "event_source": "cost-management",
                    "measurements": [
                      {
-                       "uom": "vCPUs",
+                       "metric_id": "Instance-hours",
                        "value": 1.0
                      }
                    ],
                    "service_type": "RHEL System",
                    "billing_provider": "azure",
-                   "azure_tenant_id": "TestAzureTenantId",
                    "azure_subscription_id": "TestAzureSubscriptionId"
                 }
         """;
@@ -408,7 +406,6 @@ class EventControllerTest {
                      "event_source":"Premium",
                      "measurements":[
                         {
-                           "uom":"vCPUs",
                            "value":4.0,
                            "metric_id":"vCPUs"
                         }
@@ -434,7 +431,6 @@ class EventControllerTest {
                      "event_source":"Premium",
                      "measurements":[
                         {
-                           "uom":"vCPUs",
                            "value":4.0,
                            "metric_id":"vCPUs"
                         }
@@ -502,13 +498,12 @@ class EventControllerTest {
                    "event_source": "cost-management",
                    "measurements": [
                      {
-                       "uom": "vCPUs",
+                       "uom": "Instance-hours",
                        "value": 1.0
                      }
                    ],
                    "service_type": "RHEL System",
                    "billing_provider": "azure",
-                   "azure_tenant_id": "TestAzureTenantId",
                    "azure_subscription_id": "TestAzureSubscriptionId"
                 }
         """;
@@ -521,7 +516,7 @@ class EventControllerTest {
     var eventRecord = records.get(0);
     assertEquals(1, eventRecord.getEvent().getMeasurements().size());
     var measurement = eventRecord.getEvent().getMeasurements().get(0);
-    assertEquals("vCPUs", measurement.getMetricId());
+    assertEquals("Instance-hours", measurement.getMetricId());
     assertNull(measurement.getUom());
   }
 
@@ -535,17 +530,5 @@ class EventControllerTest {
     List<Integer> getCounts() {
       return counts;
     }
-  }
-
-  @Test
-  void testFilterOnApplicableTags() {
-    Event event = new Event();
-    event.setProductIds(List.of("204", "479"));
-    event.setConversion(false);
-
-    var expected = Set.of("rhel-for-x86-els-payg-addon");
-    var actual = eventController.filterOnApplicableTags(event);
-
-    assertEquals(expected, actual);
   }
 }

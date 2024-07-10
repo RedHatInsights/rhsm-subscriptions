@@ -21,6 +21,7 @@
 package com.redhat.swatch.configuration.registry;
 
 import com.google.common.collect.MoreCollectors;
+import com.redhat.swatch.configuration.util.ProductTagLookupParams;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -31,9 +32,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Builder.Default;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,8 +52,8 @@ import lombok.extern.slf4j.Slf4j;
 @AllArgsConstructor
 @NoArgsConstructor
 public class SubscriptionDefinition {
-  public static final List<String> ORDERED_GRANULARITY =
-      List.of("HOURLY", "DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY");
+  public static final Set<String> ORDERED_GRANULARITY =
+      Set.of("HOURLY", "DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY");
 
   /**
    * A family of solutions that is logically related, having one or more subscriptions distinguished
@@ -69,11 +73,11 @@ public class SubscriptionDefinition {
    * defines an "in-the-box" subscription. Considered included from both usage and capacity
    * perspectives.
    */
-  @Builder.Default private List<String> includedSubscriptions = new ArrayList<>();
+  @Default private Set<String> includedSubscriptions = new HashSet<>();
 
-  @Valid @Builder.Default private List<Variant> variants = new ArrayList<>();
+  @Valid @Default private Set<Variant> variants = new HashSet<>();
   private String serviceType;
-  @Valid @Builder.Default private List<Metric> metrics = new ArrayList<>();
+  @Valid @Default private Set<Metric> metrics = new HashSet<>();
   private Defaults defaults;
   private boolean contractEnabled;
   private boolean vdcType;
@@ -82,17 +86,17 @@ public class SubscriptionDefinition {
    * @param serviceType
    * @return Optional<Subscription>
    */
-  public static List<SubscriptionDefinition> findByServiceType(String serviceType) {
+  public static Set<SubscriptionDefinition> findByServiceType(String serviceType) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .filter(subscription -> Objects.equals(subscription.getServiceType(), serviceType))
-        .toList();
+        .collect(Collectors.toSet());
   }
 
-  public List<String> getMetricIds() {
+  public Set<String> getMetricIds() {
     return this.getMetrics().stream()
         .map(Metric::getId)
         .filter(Objects::nonNull)
-        .collect(Collectors.toList());
+        .collect(Collectors.toSet());
   }
 
   public Optional<Metric> getMetric(String metricId) {
@@ -108,7 +112,7 @@ public class SubscriptionDefinition {
   }
 
   /**
-   * @return List<String> serviceTypes
+   * @return Set<String> serviceTypes
    */
   public static Set<String> getAllServiceTypes() {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
@@ -162,21 +166,18 @@ public class SubscriptionDefinition {
             });
   }
 
-  /**
-   * @param isPaygEligible
-   * @return Set<String> variant tags
-   */
-  public static Set<String> getAllTags(boolean isPaygEligible) {
-    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
-        .filter(subscriptionDefinition -> subscriptionDefinition.isPaygEligible() == isPaygEligible)
-        .map(SubscriptionDefinition::getVariants)
-        .flatMap(Collection::stream)
-        .map(Variant::getTag)
-        .collect(Collectors.toUnmodifiableSet());
-  }
+  @SafeVarargs
+  public static Set<Variant> filterVariants(Predicate<Variant>... predicates) {
+    Set<Variant> variants =
+        SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
+            .flatMap(subscription -> subscription.getVariants().stream())
+            .collect(Collectors.toSet());
 
-  public static Set<String> getAllNonPaygTags() {
-    return getAllTags(false);
+    // Combine all predicates into a single predicate using reduce
+    Predicate<Variant> combinedPredicate =
+        Stream.of(predicates).reduce(predicate -> true, Predicate::and);
+
+    return variants.stream().filter(combinedPredicate).collect(Collectors.toSet());
   }
 
   public static Set<String> getAllProductTagsByProductId(String id) {
@@ -185,65 +186,40 @@ public class SubscriptionDefinition {
         .orElse(Set.of());
   }
 
-  public static Set<String> getAllProductTagsByRoleOrEngIds(
-      String role,
-      Collection<?> engIds,
-      String productName,
-      boolean isMetered,
-      boolean is3rdPartyMigration) {
-    Set<String> productTags = new HashSet<>();
-    if (!isNullOrEmpty(role)) {
-      productTags.addAll(
-          Variant.findByRole(role, is3rdPartyMigration, isMetered).stream()
-              .map(Variant::getTag)
-              .collect(Collectors.toSet()));
+  public static Set<String> getAllProductTags(ProductTagLookupParams params) {
+
+    var variants =
+        SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
+            .flatMap(subscription -> subscription.getVariants().stream())
+            .collect(Collectors.toSet());
+
+    List<Predicate<Variant>> sequentialPredicates =
+        List.of(
+            createRolePredicate(params),
+            createEngIdPredicate(params),
+            createProductNamePredicate(params));
+
+    Set<Variant> filteredVariants = new HashSet<>();
+
+    for (Predicate<Variant> predicate : sequentialPredicates) {
+      filteredVariants = variants.stream().filter(predicate).collect(Collectors.toSet());
+      if (!filteredVariants.isEmpty()) {
+        break;
+      }
     }
 
-    if (Objects.nonNull(engIds) && !engIds.isEmpty()) {
-      engIds.stream()
-          .map(Objects::toString)
-          .collect(Collectors.toSet())
-          .forEach(
-              engId -> {
-                Set<Variant> matchingVariants =
-                    Variant.findByEngProductId(engId, is3rdPartyMigration, isMetered);
-
-                // Add the variant that the fingerprint matches
-                Set<String> tags =
-                    new HashSet<>(matchingVariants.stream().map(Variant::getTag).toList());
-
-                // Add additional tags as defined by config (to force that RHEL for x86 which
-                // wouldn't match otherwise because there that definition isn't metered)
-                for (String additionalTag :
-                    matchingVariants.stream()
-                        .flatMap(variant -> variant.getAdditionalTags().stream())
-                        .toList()) {
-
-                  // Only force the tag if it has an engineering match id....this is so 204 doesn't
-                  // incorrectly map to 204,479 (mabye we don't need this?)
-                  Optional<Variant> maybeVariant = Variant.findByTag(additionalTag);
-                  if (maybeVariant.isPresent()
-                      && maybeVariant.get().getEngineeringIds().stream()
-                          .anyMatch(engIds::contains)) {
-                    tags.add(additionalTag);
-                  }
-                }
-
-                productTags.addAll(tags);
-              });
-    }
-    // if not found, let's use the product name
-    if ((productTags.isEmpty()) && !isNullOrEmpty(productName)) {
-      productTags.addAll(
-          Variant.filterVariantsByProductName(productName, is3rdPartyMigration, isMetered)
-              .filter(v -> v.getSubscription().isPaygEligible() == isMetered)
-              .map(Variant::getTag)
-              .collect(Collectors.toSet()));
+    if (filteredVariants.isEmpty()) {
+      return Set.of();
     }
 
-    SubscriptionDefinition.pruneIncludedProducts(productTags);
+    Set<Variant> productTags =
+        filteredVariants.stream()
+            .filter(createMeteredPredicate(params))
+            .filter(createConversionPredicate(params))
+            .filter(createMetricIdsPredicate(params))
+            .collect(Collectors.toSet());
 
-    return productTags;
+    return productTags.stream().map(Variant::getTag).collect(Collectors.toSet());
   }
 
   /**
@@ -312,33 +288,29 @@ public class SubscriptionDefinition {
         .anyMatch(metric -> metric.getRhmMetricId() != null || metric.getAwsDimension() != null);
   }
 
-  public static String getAwsDimension(String productId, String metricId) {
-    return lookupSubscriptionByTag(productId)
+  public static String getAwsDimension(String productTag, String metricId) {
+    return lookupSubscriptionByTag(productTag)
         .flatMap(subscriptionDefinition -> subscriptionDefinition.getMetric(metricId))
-        .map(com.redhat.swatch.configuration.registry.Metric::getAwsDimension)
+        .map(Metric::getAwsDimension)
         .orElse(null);
   }
 
   public static String getAzureDimension(String productId, String metricId) {
     return lookupSubscriptionByTag(productId)
         .flatMap(subscriptionDefinition -> subscriptionDefinition.getMetric(metricId))
-        .map(com.redhat.swatch.configuration.registry.Metric::getAzureDimension)
+        .map(Metric::getAzureDimension)
         .orElse(null);
   }
 
   public static String getRhmMetricId(String productId, String metricId) {
     return lookupSubscriptionByTag(productId)
         .flatMap(subscriptionDefinition -> subscriptionDefinition.getMetric(metricId))
-        .map(com.redhat.swatch.configuration.registry.Metric::getRhmMetricId)
+        .map(Metric::getRhmMetricId)
         .orElse(null);
   }
 
   public static List<SubscriptionDefinition> getSubscriptionDefinitions() {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions();
-  }
-
-  private static boolean isNullOrEmpty(String str) {
-    return str == null || str.isEmpty();
   }
 
   public static void pruneIncludedProducts(Set<String> productTags) {
@@ -353,5 +325,71 @@ public class SubscriptionDefinition {
             .collect(Collectors.toSet());
 
     productTags.removeIf(exclusions::contains);
+  }
+
+  private static Predicate<Variant> createEngIdPredicate(ProductTagLookupParams params) {
+    return variant -> {
+      var paramEngIds = params.getEngIds();
+      Set<Integer> variantEngIds = variant.getEngineeringIds();
+      return !isNullOrEmpty(paramEngIds)
+          && !isNullOrEmpty(variantEngIds)
+          && paramEngIds.stream().anyMatch(variantEngIds::contains);
+    };
+  }
+
+  private static Predicate<Variant> createRolePredicate(ProductTagLookupParams params) {
+    return variant -> {
+      String paramRole = params.getRole();
+      Set<String> variantRoles = variant.getRoles();
+      return !isNullOrEmpty(paramRole)
+          && !isNullOrEmpty(variantRoles)
+          && variantRoles.contains(paramRole);
+    };
+  }
+
+  private static Predicate<Variant> createProductNamePredicate(ProductTagLookupParams params) {
+    return variant -> {
+      String paramProductName = params.getProductName();
+      Set<String> variantProductNames = variant.getProductNames();
+      return !isNullOrEmpty(paramProductName)
+          && !isNullOrEmpty(variantProductNames)
+          && variantProductNames.contains(paramProductName);
+    };
+  }
+
+  private static Predicate<Variant> createMeteredPredicate(ProductTagLookupParams params) {
+    return variant -> {
+      Boolean paramsIsPaygEligible = params.getIsPaygEligibleProduct();
+      Boolean variantIsPaygEligible =
+          variant.getSubscription() != null ? variant.getSubscription().isPaygEligible() : null;
+      return paramsIsPaygEligible == null
+          || Objects.equals(variantIsPaygEligible, paramsIsPaygEligible);
+    };
+  }
+
+  private static Predicate<Variant> createConversionPredicate(ProductTagLookupParams params) {
+    return variant -> {
+      Boolean isVariantConverted = variant.getIsMigrationProduct();
+      Boolean isParamConverted = params.getIs3rdPartyMigration();
+      return isParamConverted == null || Objects.equals(isVariantConverted, isParamConverted);
+    };
+  }
+
+  private static Predicate<Variant> createMetricIdsPredicate(ProductTagLookupParams params) {
+    return variant -> {
+      Set<String> paramMetricIds = params.getMetricIds();
+      Set<String> variantMetricIds =
+          variant.getSubscription() != null ? variant.getSubscription().getMetricIds() : Set.of();
+      return isNullOrEmpty(paramMetricIds)
+          || paramMetricIds.stream().anyMatch(variantMetricIds::contains);
+    };
+  }
+
+  private static boolean isNullOrEmpty(Collection<?> collection) {
+    return collection == null || collection.isEmpty();
+  }
+
+  private static boolean isNullOrEmpty(String str) {
+    return str == null || str.isEmpty();
   }
 }

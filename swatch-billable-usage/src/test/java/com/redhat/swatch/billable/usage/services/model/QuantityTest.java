@@ -30,6 +30,7 @@ import com.redhat.swatch.configuration.registry.SubscriptionDefinitionRegistry;
 import com.redhat.swatch.configuration.registry.Variant;
 import java.lang.reflect.Field;
 import java.util.List;
+import java.util.Set;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -84,8 +85,8 @@ class QuantityTest {
             .build();
     var subscriptionDefinition =
         SubscriptionDefinition.builder()
-            .variants(List.of(variant))
-            .metrics(List.of(awsMetric))
+            .variants(Set.of(variant))
+            .metrics(Set.of(awsMetric))
             .build();
     variant.setSubscription(subscriptionDefinition);
     when(subscriptionDefinitionRegistry.getSubscriptions())

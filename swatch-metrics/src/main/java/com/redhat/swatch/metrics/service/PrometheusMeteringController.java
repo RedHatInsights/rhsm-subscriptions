@@ -26,6 +26,7 @@ import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
+import com.redhat.swatch.configuration.util.ProductTagLookupParams;
 import com.redhat.swatch.kafka.EmitterService;
 import com.redhat.swatch.metrics.configuration.MetricProperties;
 import com.redhat.swatch.metrics.exception.MeteringException;
@@ -45,7 +46,6 @@ import jakarta.ws.rs.BadRequestException;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -55,6 +55,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.candlepin.clock.ApplicationClock;
@@ -234,7 +235,7 @@ public class PrometheusMeteringController {
     // library.
     String role = product == null ? resourceName : product;
 
-    List<String> productIds = extractProductIdsFromProductLabel(product);
+    Set<Integer> productIds = extractProductIdsFromProductLabel(product);
     if (!productIds.isEmpty()) {
       // Force lookup of productTag later to use productIds instead of role
       role = null;
@@ -263,8 +264,14 @@ public class PrometheusMeteringController {
     }
 
     var matchingTags =
-        SubscriptionDefinition.getAllProductTagsByRoleOrEngIds(
-            role, productIds, null, true, is3rdPartyMigrated);
+        SubscriptionDefinition.getAllProductTags(
+            ProductTagLookupParams.builder()
+                .engIds(productIds)
+                .role(role)
+                .metricIds(Set.of(tagMetric.getId()))
+                .isPaygEligibleProduct(true)
+                .is3rdPartyMigration(is3rdPartyMigrated)
+                .build());
 
     if (!matchingTags.contains(productTag)) {
       // Warn that the event doesn't match the context of the product tag we're currently working
@@ -320,7 +327,7 @@ public class PrometheusMeteringController {
               value,
               productTag,
               meteringBatchId,
-              productIds,
+              productIds.stream().map(String::valueOf).collect(Collectors.toList()),
               displayName,
               is3rdPartyMigrated);
       // Send if and only if it has not been sent yet.
@@ -404,8 +411,8 @@ public class PrometheusMeteringController {
     return instanceKey;
   }
 
-  protected List<String> extractProductIdsFromProductLabel(String product) {
-    List<String> productIds = new ArrayList<>();
+  protected Set<Integer> extractProductIdsFromProductLabel(String product) {
+    Set<Integer> productIds = new HashSet<>();
 
     /*
       The regular expression pattern matches a sequence of numbers separated by commas with optional spaces in between.
@@ -433,7 +440,8 @@ public class PrometheusMeteringController {
     boolean isEngIdList = product != null && product.matches(pattern);
 
     if (isEngIdList) {
-      productIds = Arrays.asList(product.split(","));
+      productIds =
+          Arrays.stream(product.split(",")).map(Integer::parseInt).collect(Collectors.toSet());
     }
     return productIds;
   }
