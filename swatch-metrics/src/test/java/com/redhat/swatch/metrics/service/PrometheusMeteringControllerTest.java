@@ -51,7 +51,9 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.json.Event;
@@ -181,7 +183,9 @@ class PrometheusMeteringControllerTest {
                 val1.doubleValue(),
                 productTag,
                 expectedSpanId,
-                controller.extractProductIdsFromProductLabel(products),
+                controller.extractProductIdsFromProductLabel(products).stream()
+                    .map(String::valueOf)
+                    .collect(Collectors.toList()),
                 displayName,
                 is3rdPartyMigrationFlag),
             MeteringEventFactory.createMetricEvent(
@@ -200,7 +204,9 @@ class PrometheusMeteringControllerTest {
                 val2.doubleValue(),
                 productTag,
                 expectedSpanId,
-                controller.extractProductIdsFromProductLabel(products),
+                controller.extractProductIdsFromProductLabel(products).stream()
+                    .map(String::valueOf)
+                    .collect(Collectors.toList()),
                 displayName,
                 is3rdPartyMigrationFlag)),
         actual);
@@ -425,7 +431,7 @@ class PrometheusMeteringControllerTest {
 
   @ParameterizedTest
   @MethodSource("productLabelsToProductIdList")
-  void testExtractProductIdsFromProductLabel(String productLabel, List<String> expectedResult) {
+  void testExtractProductIdsFromProductLabel(String productLabel, Set<Integer> expectedResult) {
     var actual = controller.extractProductIdsFromProductLabel(productLabel);
 
     assertEquals(actual, expectedResult);
@@ -433,15 +439,15 @@ class PrometheusMeteringControllerTest {
 
   static Stream<Arguments> productLabelsToProductIdList() {
     return Stream.of(
-        Arguments.of(null, List.of()),
-        Arguments.of("", List.of()),
-        Arguments.of("asdf", List.of()),
-        Arguments.of("asdf,1", List.of()),
-        Arguments.of("1", List.of("1")),
-        Arguments.of("1,2", List.of("1", "2")),
-        Arguments.of("-1", List.of()),
-        Arguments.of("-1,88", List.of()),
-        Arguments.of("204,5,6", List.of("204", "5", "6")));
+        Arguments.of(null, Set.of()),
+        Arguments.of("", Set.of()),
+        Arguments.of("asdf", Set.of()),
+        Arguments.of("asdf,1", Set.of()),
+        Arguments.of("1", Set.of(1)),
+        Arguments.of("1,2", Set.of(1, 2)),
+        Arguments.of("-1", Set.of()),
+        Arguments.of("-1,88", Set.of()),
+        Arguments.of("204,5,6", Set.of(204, 5, 6)));
   }
 
   @Test

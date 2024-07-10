@@ -234,7 +234,7 @@ class UpstreamProductData {
   private static UpstreamProductData createFromOffering(Offering offering) {
     UpstreamProductData data = new UpstreamProductData(offering.getSku());
     data.children.addAll(offering.getChildSkus());
-    data.engOids.addAll(offering.getProductIds().stream().map(Integer::valueOf).toList());
+    data.engOids.addAll(offering.getProductIds());
     if (StringUtils.hasText(offering.getRole())) {
       data.attrs.put(Attr.X_ROLE, offering.getRole());
     }

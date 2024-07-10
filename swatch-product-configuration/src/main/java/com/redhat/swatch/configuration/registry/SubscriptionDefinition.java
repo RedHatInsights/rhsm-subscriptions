@@ -330,7 +330,7 @@ public class SubscriptionDefinition {
   private static Predicate<Variant> createEngIdPredicate(ProductTagLookupParams params) {
     return variant -> {
       var paramEngIds = params.getEngIds();
-      Set<String> variantEngIds = variant.getEngineeringIds();
+      Set<Integer> variantEngIds = variant.getEngineeringIds();
       return !isNullOrEmpty(paramEngIds)
           && !isNullOrEmpty(variantEngIds)
           && paramEngIds.stream().anyMatch(variantEngIds::contains);

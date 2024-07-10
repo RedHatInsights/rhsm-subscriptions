@@ -280,7 +280,8 @@ class SubscriptionDefinitionTest {
       String engIdsCsv,
       String expectedProductTagsCsv) {
 
-    Set<String> engIds = Arrays.stream(engIdsCsv.split(",")).collect(Collectors.toSet());
+    Set<Integer> engIds =
+        Arrays.stream(engIdsCsv.split(",")).map(Integer::parseInt).collect(Collectors.toSet());
     Set<String> metricIds =
         Objects.nonNull(metricIdsCsv)
             ? Arrays.stream(metricIdsCsv.split(",")).collect(Collectors.toSet())

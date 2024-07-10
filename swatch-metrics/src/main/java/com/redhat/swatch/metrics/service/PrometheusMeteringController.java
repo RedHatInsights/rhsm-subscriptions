@@ -46,7 +46,6 @@ import jakarta.ws.rs.BadRequestException;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -56,6 +55,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.candlepin.clock.ApplicationClock;
@@ -235,7 +235,7 @@ public class PrometheusMeteringController {
     // library.
     String role = product == null ? resourceName : product;
 
-    List<String> productIds = extractProductIdsFromProductLabel(product);
+    Set<Integer> productIds = extractProductIdsFromProductLabel(product);
     if (!productIds.isEmpty()) {
       // Force lookup of productTag later to use productIds instead of role
       role = null;
@@ -327,7 +327,7 @@ public class PrometheusMeteringController {
               value,
               productTag,
               meteringBatchId,
-              productIds,
+              productIds.stream().map(String::valueOf).collect(Collectors.toList()),
               displayName,
               is3rdPartyMigrated);
       // Send if and only if it has not been sent yet.
@@ -411,8 +411,8 @@ public class PrometheusMeteringController {
     return instanceKey;
   }
 
-  protected List<String> extractProductIdsFromProductLabel(String product) {
-    List<String> productIds = new ArrayList<>();
+  protected Set<Integer> extractProductIdsFromProductLabel(String product) {
+    Set<Integer> productIds = new HashSet<>();
 
     /*
       The regular expression pattern matches a sequence of numbers separated by commas with optional spaces in between.
@@ -440,7 +440,8 @@ public class PrometheusMeteringController {
     boolean isEngIdList = product != null && product.matches(pattern);
 
     if (isEngIdList) {
-      productIds = Arrays.asList(product.split(","));
+      productIds =
+          Arrays.stream(product.split(",")).map(Integer::parseInt).collect(Collectors.toSet());
     }
     return productIds;
   }
