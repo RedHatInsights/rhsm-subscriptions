@@ -186,6 +186,7 @@ public class SubscriptionDefinition {
         .orElse(Set.of());
   }
 
+  @SuppressWarnings("java:S3864")
   public static Set<String> getAllProductTags(ProductTagLookupParams params) {
 
     // First identify variants by one of the required product identifiers
@@ -237,6 +238,18 @@ public class SubscriptionDefinition {
     } else {
       return filteredVariants;
     }
+
+    Set<Variant> productTags =
+        filteredVariants.stream()
+            .filter(createMeteredPredicate(params))
+            .peek(x -> log.debug("After meteredPredicate: {}", x))
+            .filter(createConversionPredicate(params))
+            .peek(x -> log.debug("After conversionPredicate: {}", x))
+            .filter(createMetricIdsPredicate(params))
+            .peek(x -> log.debug("After metricIdsPredicate: {}", x))
+            .collect(Collectors.toSet());
+
+    return productTags.stream().map(Variant::getTag).collect(Collectors.toSet());
   }
 
   /**
@@ -454,7 +467,15 @@ public class SubscriptionDefinition {
     return variant -> {
       Boolean isVariantConverted = variant.getIsMigrationProduct();
       Boolean isParamConverted = params.getIs3rdPartyMigration();
-      return isParamConverted == null || Objects.equals(isVariantConverted, isParamConverted);
+
+      // We want to this filter to be a no-op (variant -> true) if we're talking about a traditional
+      // subscription.  There's no supported converted traditional products
+
+      if (Boolean.FALSE.equals(params.getIsPaygEligibleProduct())) {
+        return true;
+      } else {
+        return isParamConverted == null || Objects.equals(isVariantConverted, isParamConverted);
+      }
     };
   }
 
