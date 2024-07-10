@@ -397,10 +397,36 @@ class ContractServiceTest extends BaseUnitTest {
   @Test
   void testContractSyncedWhenNoContractDimensionsExist() throws Exception {
     var contract = givenAzurePartnerEntitlementContract();
-    mockPartnerApiNoContractDimensions();
+    mockPartnerApi(createPartnerApiResponseNoContractDimensions());
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
     assertEquals("New contract created", statusResponse.getMessage());
     verify(subscriptionRepository).persist(any(Set.class));
+  }
+
+  @Test
+  void testContractMetricValueUpdated() throws Exception {
+    var contract = givenAzurePartnerEntitlementContract();
+    mockPartnerApi();
+    contractService.createPartnerContract(contract);
+    var updatedApiResponse = createPartnerApiResponse();
+    updatedApiResponse
+        .getContent()
+        .get(0)
+        .getPurchase()
+        .getContracts()
+        .get(0)
+        .getDimensions()
+        .get(0)
+        .setValue("999");
+    mockPartnerApi(updatedApiResponse);
+    contractService.createPartnerContract(contract);
+    var contracts = contractRepository.findAll();
+    var persistedContract =
+        contracts.stream()
+            .filter(entity -> entity.getStartDate().equals(DEFAULT_START_DATE))
+            .findFirst()
+            .get();
+    assertEquals(999, persistedContract.getMetrics().iterator().next().getValue());
   }
 
   private static PartnerEntitlementV1 givenContractWithoutRequiredData() {
@@ -541,6 +567,19 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   private void mockPartnerApi() throws Exception {
+    mockPartnerApi(createPartnerApiResponse());
+  }
+
+  private void mockPartnerApi(PartnerEntitlements response) throws Exception {
+    stubFor(
+        WireMock.any(urlMatching("/mock/partnerApi/v1/partnerSubscriptions"))
+            .willReturn(
+                aResponse()
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(objectMapper.writeValueAsString(response))));
+  }
+
+  private PartnerEntitlements createPartnerApiResponse() {
     var entitlement =
         new PartnerEntitlementV1()
             .entitlementDates(
@@ -566,16 +605,10 @@ class ContractServiceTest extends BaseUnitTest {
                                 .planId("rh-rhel-sub-1yr")
                                 .dimensions(List.of(new DimensionV1().name("vCPU").value("4"))))));
 
-    var azureQuery = new PartnerEntitlements().content(List.of(entitlement));
-    stubFor(
-        WireMock.any(urlMatching("/mock/partnerApi/v1/partnerSubscriptions"))
-            .willReturn(
-                aResponse()
-                    .withHeader("Content-Type", "application/json")
-                    .withBody(objectMapper.writeValueAsString(azureQuery))));
+    return new PartnerEntitlements().content(List.of(entitlement));
   }
 
-  private void mockPartnerApiNoContractDimensions() throws Exception {
+  private PartnerEntitlements createPartnerApiResponseNoContractDimensions() throws Exception {
     var entitlement =
         new PartnerEntitlementV1()
             .entitlementDates(
@@ -595,12 +628,6 @@ class ContractServiceTest extends BaseUnitTest {
                     .azureResourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
                     .contracts(new ArrayList<>()));
 
-    var azureQuery = new PartnerEntitlements().content(List.of(entitlement));
-    stubFor(
-        WireMock.any(urlMatching("/mock/partnerApi/v1/partnerSubscriptions"))
-            .willReturn(
-                aResponse()
-                    .withHeader("Content-Type", "application/json")
-                    .withBody(objectMapper.writeValueAsString(azureQuery))));
+    return new PartnerEntitlements().content(List.of(entitlement));
   }
 }

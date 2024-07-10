@@ -125,6 +125,7 @@ public class ContractEntity extends PanacheEntityBase {
   public void removeMetric(ContractMetricEntity metric) {
     metrics.remove(metric);
     metric.setContract(null);
+    metric.setContractUuid(null);
   }
 
   @Override

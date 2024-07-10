@@ -47,6 +47,8 @@ import com.redhat.swatch.contract.openapi.model.ContractResponse;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.repository.ContractEntity;
+import com.redhat.swatch.contract.repository.ContractMetricEntity;
+import com.redhat.swatch.contract.repository.ContractMetricRepository;
 import com.redhat.swatch.contract.repository.ContractRepository;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
@@ -84,6 +86,7 @@ public class ContractService {
   public static final String FAILURE_MESSAGE = "FAILED";
 
   private final ContractRepository contractRepository;
+  private final ContractMetricRepository contractMetricRepository;
   private final SubscriptionRepository subscriptionRepository;
   private final MeasurementMetricIdTransformer measurementMetricIdTransformer;
   @Inject ContractEntityMapper contractEntityMapper;
@@ -96,11 +99,13 @@ public class ContractService {
 
   ContractService(
       ContractRepository contractRepository,
+      ContractMetricRepository contractMetricRepository,
       SubscriptionRepository subscriptionRepository,
       MeasurementMetricIdTransformer measurementMetricIdTransformer,
       AwsPartnerEntitlementsProvider awsPartnerEntitlementsProvider,
       AzurePartnerEntitlementsProvider azurePartnerEntitlementsProvider) {
     this.contractRepository = contractRepository;
+    this.contractMetricRepository = contractMetricRepository;
     this.subscriptionRepository = subscriptionRepository;
     this.measurementMetricIdTransformer = measurementMetricIdTransformer;
     this.partnerEntitlementsProviders =
@@ -304,6 +309,13 @@ public class ContractService {
                   "Contract updated. Old values: {} New values: {}",
                   existingContract,
                   matchingUpdatedContract);
+              if (existingContract.getMetrics() != matchingUpdatedContract.getMetrics()) {
+                var metrics =
+                    existingContract.getMetrics().stream()
+                        .filter(metric -> !matchingUpdatedContract.getMetrics().contains(metric))
+                        .toList();
+                metrics.forEach(metric -> deleteContractMetric(existingContract, metric));
+              }
               contractEntityMapper.updateContract(existingContract, matchingUpdatedContract);
               contractsToPersist.add(existingContract);
             } else {
@@ -385,6 +397,14 @@ public class ContractService {
     return contracts.stream()
         .max(Comparator.comparing(ContractEntity::getStartDate))
         .orElseThrow(() -> new ContractValidationFailedException(null, null));
+  }
+
+  private void deleteContractMetric(
+      ContractEntity contractEntity, ContractMetricEntity contractMetricEntity) {
+    log.info("Deleting contract_metric: {} on contract: {}", contractMetricEntity, contractEntity);
+    contractMetricRepository.delete(contractMetricEntity);
+    contractEntity.removeMetric(contractMetricEntity);
+    contractMetricRepository.flush();
   }
 
   @Transactional
