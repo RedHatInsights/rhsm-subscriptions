@@ -1,18 +1,19 @@
 ---
 platform: RHEL
 
-id: rhel-for-x86-els-payg
+id: rhel-for-x86-els-payg-addon
 
 vdcType: true
 
 variants:
-  - tag: rhel-for-x86-els-payg
-    isMigrationProduct: true
+  - tag: rhel-for-x86-els-payg-addon
+    isMigrationProduct: false
     engineeringIds:
       - 204
+    additionalTags: [ "RHEL for x86" ]
 
 defaults:
-  variant: rhel-for-x86-els-payg
+  variant: rhel-for-x86-els-payg-addon
   sla: PREMIUM
   usage: PRODUCTION
 
@@ -23,7 +24,7 @@ contractEnabled: false #There is no need to generate an AWS contract listing bec
 metrics:
   - id: vCPUs
     type: counter
-    awsDimension: vCPU_hours
+    awsDimension: vcpu_hourly
     azureDimension: vcpu_hours
     prometheus:
       queryKey: rhelemeter
