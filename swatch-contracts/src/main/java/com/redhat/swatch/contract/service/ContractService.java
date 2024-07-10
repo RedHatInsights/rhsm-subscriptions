@@ -585,6 +585,11 @@ public class ContractService {
                     contractEntityMapper.mapEntitlementToContractEntity(entitlement, contract))
             .toList();
 
+    if (contractEntities.isEmpty()) {
+      contractEntities =
+          List.of(contractEntityMapper.mapEntitlementToContractEntity(entitlement, null));
+    }
+
     if (isAwsMarketplace(entitlement.getSourcePartner())) {
       var billingProviderId =
           String.format(

@@ -394,6 +394,15 @@ class ContractServiceTest extends BaseUnitTest {
     verify(subscriptionRepository, times(1)).delete(subscription);
   }
 
+  @Test
+  void testContractSyncedWhenNoContractDimensionsExist() throws Exception {
+    var contract = givenAzurePartnerEntitlementContract();
+    mockPartnerApiNoContractDimensions();
+    StatusResponse statusResponse = contractService.createPartnerContract(contract);
+    assertEquals("New contract created", statusResponse.getMessage());
+    verify(subscriptionRepository).persist(any(Set.class));
+  }
+
   private static PartnerEntitlementV1 givenContractWithoutRequiredData() {
     PartnerEntitlementV1 entitlement = new PartnerEntitlementV1();
     entitlement.setRhAccountId(ORG_ID);
@@ -556,6 +565,35 @@ class ContractServiceTest extends BaseUnitTest {
                                 .endDate(DEFAULT_END_DATE)
                                 .planId("rh-rhel-sub-1yr")
                                 .dimensions(List.of(new DimensionV1().name("vCPU").value("4"))))));
+
+    var azureQuery = new PartnerEntitlements().content(List.of(entitlement));
+    stubFor(
+        WireMock.any(urlMatching("/mock/partnerApi/v1/partnerSubscriptions"))
+            .willReturn(
+                aResponse()
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(objectMapper.writeValueAsString(azureQuery))));
+  }
+
+  private void mockPartnerApiNoContractDimensions() throws Exception {
+    var entitlement =
+        new PartnerEntitlementV1()
+            .entitlementDates(
+                new PartnerEntitlementV1EntitlementDates()
+                    .startDate(OffsetDateTime.parse("2023-03-17T12:29:48.569Z"))
+                    .endDate(OffsetDateTime.parse("2024-03-17T12:29:48.569Z")))
+            .rhAccountId("7186626")
+            .sourcePartner(ContractSourcePartnerEnum.AZURE.getCode())
+            .partnerIdentities(
+                new PartnerIdentityV1()
+                    .azureSubscriptionId("fa650050-dedd-4958-b901-d8e5118c0a5f")
+                    .azureCustomerId("eadf26ee-6fbc-4295-9a9e-25d4fea8951d_2019-05-31"))
+            .rhEntitlements(List.of(new RhEntitlementV1().sku(SKU).subscriptionNumber("testSubId")))
+            .purchase(
+                new PurchaseV1()
+                    .vendorProductCode("azureProductCode")
+                    .azureResourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
+                    .contracts(new ArrayList<>()));
 
     var azureQuery = new PartnerEntitlements().content(List.of(entitlement));
     stubFor(
