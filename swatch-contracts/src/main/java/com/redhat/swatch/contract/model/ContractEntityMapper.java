@@ -30,6 +30,7 @@ import com.redhat.swatch.clients.rh.partner.gateway.api.model.RhEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.SaasContractV1;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
@@ -54,8 +55,6 @@ public interface ContractEntityMapper {
       qualifiedByName = "subscriptionNumber")
   @Mapping(target = "orgId", source = "entitlement.rhAccountId")
   @Mapping(target = "offering", source = "entitlement.rhEntitlements", qualifiedByName = "offering")
-  @Mapping(target = "startDate", source = "contract.startDate")
-  @Mapping(target = "endDate", source = "contract.endDate")
   @Mapping(target = "vendorProductCode", source = "entitlement.purchase.vendorProductCode")
   @Mapping(
       target = "billingAccountId",
@@ -69,6 +68,8 @@ public interface ContractEntityMapper {
       target = "billingProvider",
       source = "entitlement.sourcePartner",
       qualifiedByName = "billingProvider")
+  @Mapping(target = "startDate", expression = "java(extractStartDate(entitlement, contract))")
+  @Mapping(target = "endDate", expression = "java(extractEndDate(entitlement, contract))")
   @Mapping(target = "metrics", source = "contract.dimensions", qualifiedByName = "metrics")
   @BeanMapping(ignoreByDefault = true)
   ContractEntity mapEntitlementToContractEntity(
@@ -139,5 +140,29 @@ public interface ContractEntityMapper {
     }
 
     return rhEntitlements.stream().map(extractor).filter(Objects::nonNull).findFirst().orElse(null);
+  }
+
+  @Named("startDate")
+  default OffsetDateTime extractStartDate(
+      PartnerEntitlementV1 entitlement, SaasContractV1 contract) {
+    if (contract != null && contract.getStartDate() != null) {
+      return contract.getStartDate();
+    }
+    if (entitlement.getEntitlementDates() != null) {
+      return entitlement.getEntitlementDates().getStartDate();
+    }
+    return null;
+  }
+
+  @Named("endDate")
+  default OffsetDateTime extractEndDate(PartnerEntitlementV1 entitlement, SaasContractV1 contract) {
+    // If the start_date is populated then take end_date from the contract
+    if (contract != null && contract.getStartDate() != null) {
+      return contract.getEndDate();
+    }
+    if (entitlement.getEntitlementDates() != null) {
+      return entitlement.getEntitlementDates().getEndDate();
+    }
+    return null;
   }
 }
