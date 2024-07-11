@@ -397,7 +397,7 @@ public class ContractService {
       throws ContractValidationFailedException {
     return contracts.stream()
         .max(Comparator.comparing(ContractEntity::getStartDate))
-        .orElseThrow(() -> new ContractValidationFailedException(null, null));
+        .orElseThrow(() -> new ContractValidationFailedException());
   }
 
   private void deleteContractMetric(
@@ -602,7 +602,12 @@ public class ContractService {
 
     List<ContractEntity> contractEntities = new ArrayList<>();
 
-    if (entitlement.getPurchase() != null && entitlement.getPurchase().getContracts() != null) {
+    if (entitlement.getPurchase() == null) {
+      log.warn("Entitlement purchase is null for {}", entitlement);
+      throw new ContractValidationFailedException();
+    }
+
+    if (entitlement.getPurchase().getContracts() != null) {
       contractEntities =
           entitlement.getPurchase().getContracts().stream()
               .map(

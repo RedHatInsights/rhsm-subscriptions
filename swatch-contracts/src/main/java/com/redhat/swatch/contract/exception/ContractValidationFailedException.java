@@ -22,6 +22,7 @@ package com.redhat.swatch.contract.exception;
 
 import com.redhat.swatch.contract.repository.ContractEntity;
 import jakarta.validation.ConstraintViolation;
+import java.util.HashSet;
 import java.util.Set;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -31,4 +32,15 @@ import lombok.EqualsAndHashCode;
 public class ContractValidationFailedException extends Exception {
   private final transient ContractEntity entity;
   private final transient Set<ConstraintViolation<ContractEntity>> violations;
+
+  public ContractValidationFailedException(
+      ContractEntity entity, Set<ConstraintViolation<ContractEntity>> violations) {
+    this.entity = entity;
+    this.violations = violations;
+  }
+
+  public ContractValidationFailedException() {
+    this.entity = null;
+    this.violations = new HashSet<>();
+  }
 }

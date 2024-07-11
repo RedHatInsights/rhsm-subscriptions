@@ -36,6 +36,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.DimensionV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1EntitlementDates;
@@ -112,7 +113,6 @@ class ContractServiceTest extends BaseUnitTest {
   public void setup() {
     contractRepository.deleteAll();
     offeringRepository.deleteAll();
-
     OfferingEntity offering = new OfferingEntity();
     offering.setSku(SKU);
     offering.setProductTags(Set.of(PRODUCT_TAG));
@@ -397,10 +397,22 @@ class ContractServiceTest extends BaseUnitTest {
   @Test
   void testContractSyncedWhenNoContractDimensionsExist() throws Exception {
     var contract = givenAzurePartnerEntitlementContract();
-    mockPartnerApi(createPartnerApiResponseNoContractDimensions());
+    var stub = mockPartnerApi(createPartnerApiResponseNoContractDimensions());
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
     assertEquals("New contract created", statusResponse.getMessage());
     verify(subscriptionRepository).persist(any(Set.class));
+    WireMock.removeStub(stub);
+  }
+
+  @Test
+  void testContractSyncedWhenNoPurchaseExist() throws Exception {
+    var contract = givenAzurePartnerEntitlementContract();
+    var response = createPartnerApiResponseNoContractDimensions();
+    response.getContent().get(0).setPurchase(null);
+    var stubMapping = mockPartnerApi(response);
+    StatusResponse statusResponse = contractService.createPartnerContract(contract);
+    assertEquals("Empty value in non-null fields", statusResponse.getMessage());
+    WireMock.removeStub(stubMapping);
   }
 
   @Test
@@ -418,7 +430,7 @@ class ContractServiceTest extends BaseUnitTest {
         .getDimensions()
         .get(0)
         .setValue("999");
-    mockPartnerApi(updatedApiResponse);
+    var stubMapping = mockPartnerApi(updatedApiResponse);
     contractService.createPartnerContract(contract);
     var contracts = contractRepository.findAll();
     var persistedContract =
@@ -427,6 +439,7 @@ class ContractServiceTest extends BaseUnitTest {
             .findFirst()
             .get();
     assertEquals(999, persistedContract.getMetrics().iterator().next().getValue());
+    WireMock.removeStub(stubMapping);
   }
 
   private static PartnerEntitlementV1 givenContractWithoutRequiredData() {
@@ -570,8 +583,8 @@ class ContractServiceTest extends BaseUnitTest {
     mockPartnerApi(createPartnerApiResponse());
   }
 
-  private void mockPartnerApi(PartnerEntitlements response) throws Exception {
-    stubFor(
+  private StubMapping mockPartnerApi(PartnerEntitlements response) throws Exception {
+    return stubFor(
         WireMock.any(urlMatching("/mock/partnerApi/v1/partnerSubscriptions"))
             .willReturn(
                 aResponse()
