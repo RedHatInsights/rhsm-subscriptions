@@ -41,6 +41,7 @@ rhsm-subscriptions:
     # Five years' worth
     quarterly: ${TALLY_RETENTION_QUARTERLY:20}
     yearly: ${TALLY_RETENTION_YEARLY:5}
+    snapshots-to-delete-in-batches: 1000000
   tally-summary-producer:
     back-off-initial-interval: ${TALLY_SUMMARY_PRODUCER_BACK_OFF_INITIAL_INTERVAL:1s}
     back-off-max-interval: ${TALLY_SUMMARY_PRODUCER_BACK_OFF_MAX_INTERVAL:1m}
