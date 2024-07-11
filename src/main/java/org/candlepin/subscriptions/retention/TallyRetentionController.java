@@ -22,27 +22,21 @@ package org.candlepin.subscriptions.retention;
 
 import io.micrometer.core.annotation.Timed;
 import java.time.OffsetDateTime;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 /** Cleans up stale tally snapshots for an account. */
 @Slf4j
 @Component
+@AllArgsConstructor
 public class TallyRetentionController {
 
   private final TallySnapshotRepository tallySnapshotRepository;
   private final TallyRetentionPolicy policy;
-
-  @Autowired
-  public TallyRetentionController(
-      TallySnapshotRepository tallySnapshotRepository, TallyRetentionPolicy policy) {
-    this.tallySnapshotRepository = tallySnapshotRepository;
-    this.policy = policy;
-  }
 
   @Timed("rhsm-subscriptions.snapshots.purge")
   @Async("purgeTallySnapshotsJobExecutor")
@@ -54,8 +48,15 @@ public class TallyRetentionController {
         if (cutoffDate == null) {
           continue;
         }
-        tallySnapshotRepository.deleteAllByGranularityAndSnapshotDateBefore(
-            granularity, cutoffDate);
+
+        long count =
+            tallySnapshotRepository.countAllByGranularityAndSnapshotDateBefore(
+                granularity, cutoffDate);
+        while (count > 0) {
+          tallySnapshotRepository.deleteAllByGranularityAndSnapshotDateBefore(
+              granularity.name(), cutoffDate, policy.getSnapshotsToDeleteInBatches());
+          count -= policy.getSnapshotsToDeleteInBatches();
+        }
       }
       log.info("Tally snapshot purge completed successfully.");
     } catch (Exception e) {
