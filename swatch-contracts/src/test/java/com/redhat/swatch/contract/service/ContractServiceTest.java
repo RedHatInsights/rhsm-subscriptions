@@ -608,7 +608,7 @@ class ContractServiceTest extends BaseUnitTest {
     return new PartnerEntitlements().content(List.of(entitlement));
   }
 
-  private PartnerEntitlements createPartnerApiResponseNoContractDimensions() throws Exception {
+  private PartnerEntitlements createPartnerApiResponseNoContractDimensions() {
     var entitlement =
         new PartnerEntitlementV1()
             .entitlementDates(
