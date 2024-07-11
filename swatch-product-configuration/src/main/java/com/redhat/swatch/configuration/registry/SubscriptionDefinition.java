@@ -196,8 +196,11 @@ public class SubscriptionDefinition {
     Set<Variant> productTags =
         filteredVariants.stream()
             .filter(createOptionalMeteredPredicate(params))
+            .peek(x -> log.debug("After meteredPredicate: {}", x))
             .filter(createOptionalConversionPredicate(params))
+            .peek(x -> log.debug("After conversionPredicate: {}", x))
             .filter(createOptionalMetricIdsPredicate(params))
+            .peek(x -> log.debug("After metricIdsPredicate: {}", x))
             .collect(Collectors.toSet());
 
     return productTags.stream().map(Variant::getTag).collect(Collectors.toSet());
@@ -238,51 +241,6 @@ public class SubscriptionDefinition {
     } else {
       return filteredVariants;
     }
-
-    Set<Variant> productTags =
-        filteredVariants.stream()
-            .filter(createMeteredPredicate(params))
-            .peek(x -> log.debug("After meteredPredicate: {}", x))
-            .filter(createConversionPredicate(params))
-            .peek(x -> log.debug("After conversionPredicate: {}", x))
-            .filter(createMetricIdsPredicate(params))
-            .peek(x -> log.debug("After metricIdsPredicate: {}", x))
-            .collect(Collectors.toSet());
-
-    return productTags.stream().map(Variant::getTag).collect(Collectors.toSet());
-  }
-
-  /**
-   * An engineering id can be found in either a fingerprint or variant. Check the variant first. If
-   * not found, check the fingerprint.
-   *
-   * @param engProductId
-   * @return Optional<Subscription> subscription
-   */
-  public static Set<SubscriptionDefinition> lookupSubscriptionByEngId(String engProductId) {
-    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
-        .filter(subscription -> !subscription.getVariants().isEmpty())
-        .filter(
-            subscription ->
-                subscription.getVariants().stream()
-                    .anyMatch(variant -> variant.getEngineeringIds().contains(engProductId)))
-        .collect(Collectors.toUnmodifiableSet());
-  }
-
-  /**
-   * Looks for role matching a variant
-   *
-   * @param role
-   * @return Optional<Subscription>
-   */
-  public static Optional<SubscriptionDefinition> lookupSubscriptionByRole(String role) {
-    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
-        .filter(subscription -> !subscription.getVariants().isEmpty())
-        .filter(
-            subscription ->
-                subscription.getVariants().stream()
-                    .anyMatch(variant -> variant.getRoles().contains(role)))
-        .collect(MoreCollectors.toOptional());
   }
 
   /**

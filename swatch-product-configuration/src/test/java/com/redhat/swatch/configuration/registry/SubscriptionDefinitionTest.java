@@ -202,37 +202,6 @@ class SubscriptionDefinitionTest {
   }
 
   @Test
-  void testFingerprintEngIdLookup() {
-    var satelliteCapsule = SubscriptionDefinition.lookupSubscriptionByEngId("269");
-
-    var expected = "satellite-capsule";
-    var actual = satelliteCapsule.stream().findFirst();
-    actual.ifPresent(
-        subscriptionDefinition -> assertEquals(expected, subscriptionDefinition.getId()));
-  }
-
-  @Test
-  void testVariantEngIdLookup() {
-    var rhelForX86 = SubscriptionDefinition.lookupSubscriptionByEngId("76");
-
-    var expected = "rhel-for-x86";
-    var actual = rhelForX86.stream().findFirst();
-
-    actual.ifPresent(
-        subscriptionDefinition -> assertEquals(expected, subscriptionDefinition.getId()));
-  }
-
-  @Test
-  void testVariantRoleLookup() {
-    var rosa = SubscriptionDefinition.lookupSubscriptionByRole("moa-hostedcontrolplane");
-
-    var expected = "rosa";
-    var actual = rosa.orElseThrow().getId();
-
-    assertEquals(expected, actual);
-  }
-
-  @Test
   void testLookupSubscriptionByTag() {
     assertNotNull(SubscriptionDefinition.lookupSubscriptionByTag("BASILISK"));
   }
