@@ -162,7 +162,7 @@ public class TallySnapshotController {
           Set<String> tags =
               SubscriptionDefinition.findByServiceType(serviceType).stream()
                   .map(SubscriptionDefinition::getVariants)
-                  .flatMap(List::stream)
+                  .flatMap(Set::stream)
                   .map(Variant::getTag)
                   .collect(Collectors.toSet());
 
@@ -203,7 +203,12 @@ public class TallySnapshotController {
     retryTemplate.execute(
         context -> {
           usageCollector.reconcileSystemDataWithHbi(
-              orgId, SubscriptionDefinition.getAllNonPaygTags());
+              orgId,
+              SubscriptionDefinition.filterVariants(
+                      variant -> !variant.getSubscription().isPaygEligible())
+                  .stream()
+                  .map(Variant::getTag)
+                  .collect(Collectors.toUnmodifiableSet()));
           return null;
         });
     return usageCollector.tally(orgId);

@@ -26,7 +26,6 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.configuration.util.MetricIdUtils;
@@ -34,6 +33,7 @@ import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.awaitility.Awaitility;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
@@ -46,37 +46,56 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
-@ActiveProfiles("test")
+@ActiveProfiles({"worker", "test"})
 class TallyRetentionControllerTest {
-  @TestConfiguration
-  @ComponentScan(basePackages = "org.candlepin.subscriptions.retention")
-  public static class RetentionConfiguration {
-    /* Intentionally empty */
-  }
 
-  @MockBean private TallyRetentionPolicy policy;
-  @SpyBean private TallySnapshotRepository repository;
-  @Autowired private OrgConfigRepository orgConfigRepository;
-  @Autowired private TallyRetentionController controller;
+  private static final long BATCHES = 10;
+
+  @MockBean TallyRetentionPolicy policy;
+  @SpyBean TallySnapshotRepository repository;
+  @Autowired OrgConfigRepository orgConfigRepository;
+  TallyRetentionController controller;
 
   @BeforeEach
   void setup() {
     reset(repository);
+    when(policy.getSnapshotsToDeleteInBatches()).thenReturn(BATCHES);
+    controller = new TallyRetentionController(repository, policy);
+  }
+
+  @Test
+  void retentionControllerShouldDoNothingWhenThereAreNoSnapshots() {
+    OffsetDateTime cutoff = givenCutoffDateForGranularity(Granularity.DAILY);
+    // given 0 existing snapshots
+    givenExistingSnapshotsFor(Granularity.DAILY, cutoff, 0);
+    controller.purgeSnapshotsAsync();
+    verify(repository, times(0))
+        .deleteAllByGranularityAndSnapshotDateBefore(
+            Granularity.DAILY.name(), cutoff, policy.getSnapshotsToDeleteInBatches());
   }
 
   @Test
   void retentionControllerShouldRemoveSnapshotsForGranularitiesConfigured() {
     OffsetDateTime cutoff = givenCutoffDateForGranularity(Granularity.DAILY);
+    // given 9 existing snapshots
+    givenExistingSnapshotsFor(Granularity.DAILY, cutoff, 9);
     controller.purgeSnapshotsAsync();
-    verify(repository).deleteAllByGranularityAndSnapshotDateBefore(Granularity.DAILY, cutoff);
-    verifyNoMoreInteractions(repository);
+    verify(repository, times(1))
+        .deleteAllByGranularityAndSnapshotDateBefore(
+            Granularity.DAILY.name(), cutoff, policy.getSnapshotsToDeleteInBatches());
+
+    reset(repository);
+    // given 11 existing snapshots, then we expect 2 iterations because the limit is 10.
+    givenExistingSnapshotsFor(Granularity.DAILY, cutoff, 11);
+    controller.purgeSnapshotsAsync();
+    verify(repository, times(2))
+        .deleteAllByGranularityAndSnapshotDateBefore(
+            Granularity.DAILY.name(), cutoff, policy.getSnapshotsToDeleteInBatches());
   }
 
   @Test
@@ -94,9 +113,13 @@ class TallyRetentionControllerTest {
     givenSnapshotForOrganization("1");
     givenSnapshotForOrganization("3");
     controller.purgeSnapshotsAsync();
-    assertEquals(0, repository.count());
-    verify(repository, times(Granularity.values().length))
-        .deleteAllByGranularityAndSnapshotDateBefore(any(), any());
+    Awaitility.await().untilAsserted(() -> assertEquals(0, repository.count()));
+  }
+
+  private void givenExistingSnapshotsFor(
+      Granularity granularity, OffsetDateTime cutoff, long expected) {
+    when(repository.countAllByGranularityAndSnapshotDateBefore(granularity, cutoff))
+        .thenReturn(expected);
   }
 
   private void givenCutoffDateForAllGranularity() {
@@ -124,7 +147,7 @@ class TallyRetentionControllerTest {
     for (var granularity : Granularity.values()) {
       snapshot.setId(UUID.randomUUID());
       snapshot.setGranularity(granularity);
-      repository.save(snapshot);
+      repository.saveAndFlush(snapshot);
     }
   }
 

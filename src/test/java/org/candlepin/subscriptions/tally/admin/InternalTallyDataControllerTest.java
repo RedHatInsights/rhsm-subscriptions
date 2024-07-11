@@ -136,7 +136,7 @@ class InternalTallyDataControllerTest {
             .withEventSource("TEST_SOURCE")
             .withInstanceId("1234")
             .withTimestamp(CLOCK.now())
-            .withMeasurements(List.of(new Measurement().withMetricId("Cores").withValue(1.0)));
+            .withMeasurements(List.of(new Measurement().withMetricId("vCPUs").withValue(1.0)));
 
     Event invalidEvent =
         new Event()
@@ -171,7 +171,7 @@ class InternalTallyDataControllerTest {
             .withEventSource("TEST_SOURCE")
             .withInstanceId("1234")
             .withTimestamp(CLOCK.now())
-            .withMeasurements(List.of(new Measurement().withUom("Cores").withValue(1.0)));
+            .withMeasurements(List.of(new Measurement().withUom("vCPUs").withValue(1.0)));
 
     ArgumentCaptor<List<EventRecord>> eventRecordCaptor = ArgumentCaptor.forClass(List.class);
     String json = mapper.writeValueAsString(List.of(event));
@@ -184,6 +184,6 @@ class InternalTallyDataControllerTest {
     assertEquals(1, actual.getEvent().getMeasurements().size());
     var actualMeasurement = actual.getEvent().getMeasurements().get(0);
     assertNull(actualMeasurement.getUom());
-    assertEquals("Cores", actualMeasurement.getMetricId());
+    assertEquals("vCPUs", actualMeasurement.getMetricId());
   }
 }

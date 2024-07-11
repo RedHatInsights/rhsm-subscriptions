@@ -51,6 +51,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
@@ -695,8 +696,8 @@ class BillableUsageServiceTest {
     var subscriptionDefinition =
         SubscriptionDefinition.builder()
             .contractEnabled(contractEnabled)
-            .variants(List.of(variant))
-            .metrics(List.of(awsMetric))
+            .variants(Set.of(variant))
+            .metrics(Set.of(awsMetric))
             .build();
     variant.setSubscription(subscriptionDefinition);
     when(subscriptionDefinitionRegistry.getSubscriptions())

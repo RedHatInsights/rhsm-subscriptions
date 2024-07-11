@@ -47,13 +47,11 @@ class ProductNormalizerTest {
   void testQpcSystemArchProduct(String arch, String expectedProduct) {
     var inventoryHostFacts = createQpcHost("RHEL", arch, OffsetDateTime.now(Clock.systemUTC()));
 
-    var isMetered = false;
     boolean is3rdPartyMigrated = false;
 
     var skipRhsm = false;
     assertThat(
-        productNormalizer.normalizeProducts(
-            inventoryHostFacts, isMetered, is3rdPartyMigrated, skipRhsm),
+        productNormalizer.normalizeProducts(inventoryHostFacts, is3rdPartyMigrated, skipRhsm),
         Matchers.hasItem(expectedProduct));
   }
 
@@ -73,12 +71,10 @@ class ProductNormalizerTest {
     var host = createQpcHost("RHEL", "Test", OffsetDateTime.now(Clock.systemUTC()));
     host.setSystemProfileProductIds("69");
 
-    var isMetered = false;
     boolean is3rdPartyMigrated = false;
-
     var skipRhsm = false;
 
-    var actual = productNormalizer.normalizeProducts(host, isMetered, is3rdPartyMigrated, skipRhsm);
+    var actual = productNormalizer.normalizeProducts(host, is3rdPartyMigrated, skipRhsm);
     var expected = Set.of("RHEL Ungrouped", "RHEL for x86", "RHEL");
     assertEquals(expected, actual);
   }

@@ -31,10 +31,8 @@ import jakarta.persistence.NamedEntityGraph;
 import jakarta.persistence.Table;
 import java.io.Serializable;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -182,10 +180,6 @@ public class Offering implements Serializable {
 
   public boolean isHasUnlimitedUsage() {
     return hasUnlimitedUsage != null && hasUnlimitedUsage;
-  }
-
-  public List<String> getProductIdsAsStrings() {
-    return getProductIds().stream().map(String::valueOf).collect(Collectors.toList());
   }
 
   public boolean isMigrationOffering() {
