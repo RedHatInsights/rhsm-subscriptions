@@ -27,6 +27,9 @@ tasks.register("generateYamlIndex") {
     }
 }
 
+// Provide a hint to gradle that the yaml index must be rebuilt when any change happens in src/main/resources
+tasks.generateYamlIndex.inputs.dir(layout.projectDirectory.dir("src/main/resources"))
+
 processResources {
     from tasks.generateYamlIndex
 }

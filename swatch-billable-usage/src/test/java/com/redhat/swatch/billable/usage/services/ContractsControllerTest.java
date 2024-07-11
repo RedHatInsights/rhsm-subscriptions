@@ -45,6 +45,7 @@ import java.lang.reflect.Field;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
@@ -198,8 +199,8 @@ class ContractsControllerTest {
     var subscriptionDefinition =
         SubscriptionDefinition.builder()
             .contractEnabled(true)
-            .variants(List.of(variant))
-            .metrics(List.of(metric))
+            .variants(Set.of(variant))
+            .metrics(Set.of(metric))
             .build();
     variant.setSubscription(subscriptionDefinition);
     when(subscriptionDefinitionRegistry.getSubscriptions())
@@ -403,8 +404,8 @@ class ContractsControllerTest {
     var subscriptionDefinition =
         SubscriptionDefinition.builder()
             .contractEnabled(contractEnabled)
-            .variants(List.of(variant))
-            .metrics(List.of(awsMetric))
+            .variants(Set.of(variant))
+            .metrics(Set.of(awsMetric))
             .build();
     variant.setSubscription(subscriptionDefinition);
     when(subscriptionDefinitionRegistry.getSubscriptions())

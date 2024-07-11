@@ -228,7 +228,7 @@ public class InternalSubscriptionResource implements InternalSubscriptionsApi {
 
   @Override
   public List<Metric> getMetrics(String tag) {
-    return metricMapper.mapMetrics(Variant.getMetricsForTag(tag));
+    return metricMapper.mapMetrics(Variant.getMetricsForTag(tag).stream().toList());
   }
 
   private AwsUsageContext buildAwsUsageContext(Subscription subscription) {
