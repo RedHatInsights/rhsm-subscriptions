@@ -60,6 +60,7 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.Validator;
 import jakarta.ws.rs.ProcessingException;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -598,12 +599,17 @@ public class ContractService {
   private List<ContractEntity> mapUpstreamContractToContractEntities(
       PartnerEntitlementV1 entitlement)
       throws ContractNotAssociatedToOrgException, ContractValidationFailedException {
-    var contractEntities =
-        entitlement.getPurchase().getContracts().stream()
-            .map(
-                contract ->
-                    contractEntityMapper.mapEntitlementToContractEntity(entitlement, contract))
-            .toList();
+
+    List<ContractEntity> contractEntities = new ArrayList<>();
+
+    if (entitlement.getPurchase() != null && entitlement.getPurchase().getContracts() != null) {
+      contractEntities =
+          entitlement.getPurchase().getContracts().stream()
+              .map(
+                  contract ->
+                      contractEntityMapper.mapEntitlementToContractEntity(entitlement, contract))
+              .toList();
+    }
 
     if (contractEntities.isEmpty()) {
       contractEntities =

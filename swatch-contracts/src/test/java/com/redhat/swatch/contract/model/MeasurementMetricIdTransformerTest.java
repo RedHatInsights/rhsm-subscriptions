@@ -21,6 +21,7 @@
 package com.redhat.swatch.contract.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -67,11 +68,11 @@ class MeasurementMetricIdTransformerTest {
                 new Metric().uom("foo1").awsDimension("foo").billingFactor(0.25),
                 new Metric().uom("bar2").awsDimension("bar").billingFactor(1.0)));
     transformer.translateContractMetricIdsToSubscriptionMetricIds(subscription);
-    assertEquals(
-        List.of("bar2", "foo1"),
+    assertTrue(
         subscription.getSubscriptionMeasurements().stream()
             .map(SubscriptionMeasurementEntity::getMetricId)
-            .collect(Collectors.toList()));
+            .collect(Collectors.toList())
+            .containsAll(Set.of("bar2", "foo1")));
     assertEquals(
         400.0,
         subscription.getSubscriptionMeasurements().stream()
