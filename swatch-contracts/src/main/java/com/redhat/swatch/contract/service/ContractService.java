@@ -397,7 +397,7 @@ public class ContractService {
       throws ContractValidationFailedException {
     return contracts.stream()
         .max(Comparator.comparing(ContractEntity::getStartDate))
-        .orElseThrow(() -> new ContractValidationFailedException());
+        .orElseThrow(ContractValidationFailedException::new);
   }
 
   private void deleteContractMetric(
