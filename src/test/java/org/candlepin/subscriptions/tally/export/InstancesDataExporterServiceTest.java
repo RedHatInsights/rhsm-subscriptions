@@ -24,6 +24,7 @@ import static org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey.forma
 import static org.candlepin.subscriptions.resource.ResourceUtils.ANY;
 import static org.candlepin.subscriptions.resource.api.v1.InstancesResource.getCategoryByMeasurementType;
 import static org.candlepin.subscriptions.resource.api.v1.InstancesResource.getCloudProviderByMeasurementType;
+import static org.candlepin.subscriptions.tally.export.InstancesCsvDataMapperService.METRIC_MAPPER;
 import static org.candlepin.subscriptions.tally.export.InstancesDataExporterService.BEGINNING;
 import static org.candlepin.subscriptions.tally.export.InstancesDataExporterService.PRODUCT_ID;
 
@@ -47,6 +48,7 @@ import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.export.BaseDataExporterServiceTest;
+import org.candlepin.subscriptions.json.InstancesExportCsvItem;
 import org.candlepin.subscriptions.json.InstancesExportJson;
 import org.candlepin.subscriptions.json.InstancesExportJsonGuest;
 import org.candlepin.subscriptions.json.InstancesExportJsonItem;
@@ -138,9 +140,9 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
   void testRequestShouldBeUploadedWithInstancesAsCsv() {
     givenInstanceWithMetrics(RHEL_FOR_X86);
     givenExportRequestWithPermissions(Format.CSV);
+    givenFilterInExportRequest(PRODUCT_ID, RHEL_FOR_X86);
     whenReceiveExportRequest();
-    // Since this is not implemented yet, we send an error:
-    verifyRequestWasSentToExportServiceWithError(request);
+    verifyRequestWasSentToExportService();
   }
 
   @ParameterizedTest
@@ -209,6 +211,47 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
 
   @Override
   protected void verifyRequestWasSentToExportService() {
+    boolean isCsvFormat = request.getData().getResourceRequest().getFormat() == Format.CSV;
+    String expected = isCsvFormat ? parseExpectedAsCsv() : parseExpectedAsJson();
+    verifyRequestWasSentToExportServiceWithUploadData(request, expected);
+  }
+
+  private String parseExpectedAsCsv() {
+    List<Object> data = new ArrayList<>();
+    for (HostWithGuests item : itemsToBeExported) {
+      Host host = item.host;
+      var instance = new InstancesExportCsvItem();
+      instance.setId(host.getId().toString());
+      instance.setInstanceId(host.getInstanceId());
+      instance.setDisplayName(host.getDisplayName());
+      if (host.getBillingProvider() != null) {
+        instance.setBillingProvider(host.getBillingProvider().getValue());
+      }
+      var bucket = host.getBuckets().iterator().next();
+      var category = getCategoryByMeasurementType(bucket.getMeasurementType());
+      if (category != null) {
+        instance.setCategory(category.toString());
+      }
+
+      instance.setBillingAccountId(host.getBillingAccountId());
+      var variant = Variant.findByTag(bucket.getKey().getProductId());
+      var metrics = MetricIdUtils.getMetricIdsFromConfigForVariant(variant.orElse(null)).toList();
+      for (var metric : metrics) {
+        var setter = METRIC_MAPPER.get(metric);
+        if (setter != null) {
+          setter.accept(instance, resolveMetricValue(item, metric));
+        }
+      }
+
+      instance.setLastSeen(host.getLastSeen());
+      instance.setHypervisorUuid(host.getHypervisorUuid());
+      data.add(instance);
+    }
+
+    return toCsv(data, InstancesExportCsvItem.class);
+  }
+
+  private String parseExpectedAsJson() {
     var expected = new InstancesExportJson();
     expected.setData(new ArrayList<>());
     for (HostWithGuests item : itemsToBeExported) {
@@ -268,7 +311,7 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
       expected.getData().add(instance);
     }
 
-    verifyRequestWasSentToExportServiceWithUploadData(request, toJson(expected));
+    return toJson(expected);
   }
 
   private void givenInstanceWithMetricsForAnotherOrgId(String productId) {

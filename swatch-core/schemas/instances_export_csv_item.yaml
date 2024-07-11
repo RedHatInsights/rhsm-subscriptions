@@ -1,0 +1,38 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: InstancesExportCsvItem
+properties:
+  id:
+    type: string
+  instance_id:
+    type: string
+  display_name:
+    type: string
+  billing_provider:
+    type: string
+  billing_account_id:
+    type: string
+  measurement_cores:
+    type: number
+    format: double
+  measurement_instance_hours:
+    type: number
+    format: double
+  measurement_sockets:
+    type: number
+    format: double
+  measurement_storage_gibibyte_months:
+    type: number
+    format: double
+  measurement_transfer_gibibytes:
+    type: number
+    format: double
+  measurement_vcpus:
+    type: number
+    format: double
+  category:
+    type: string
+  last_seen:
+    format: date-time
+    type: string
+  hypervisor_uuid:
+    type: string
