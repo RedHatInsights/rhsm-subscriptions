@@ -1,0 +1,6 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: ServiceLevelType
+description: "Describes the service level that the report was made against. Not set if it
+        wasn't specified as a query parameter."
+type: string
+enum: [ "", Premium, Standard, Self-Support, _ANY ]

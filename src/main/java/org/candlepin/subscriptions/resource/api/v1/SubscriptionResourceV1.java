@@ -23,19 +23,25 @@ package org.candlepin.subscriptions.resource.api.v1;
 import com.redhat.swatch.configuration.registry.ProductId;
 import jakarta.validation.constraints.Min;
 import java.time.OffsetDateTime;
-import org.candlepin.subscriptions.resource.SubscriptionTableController;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
-import org.candlepin.subscriptions.utilization.api.v1.model.*;
+import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
+import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
+import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
+import org.candlepin.subscriptions.utilization.api.model.SortDirection;
+import org.candlepin.subscriptions.utilization.api.model.UsageType;
+import org.candlepin.subscriptions.utilization.api.v1.model.SkuCapacityReport;
+import org.candlepin.subscriptions.utilization.api.v1.model.SkuCapacityReportSort;
+import org.candlepin.subscriptions.utilization.api.v1.model.Uom;
 import org.candlepin.subscriptions.utilization.api.v1.resources.SubscriptionsApi;
 import org.springframework.stereotype.Component;
 
 /** Subscriptions Table API implementation. */
 @Component
-public class SubscriptionResource implements SubscriptionsApi {
+public class SubscriptionResourceV1 implements SubscriptionsApi {
 
   private final SubscriptionTableController subscriptionTableController;
 
-  public SubscriptionResource(SubscriptionTableController subscriptionTableController) {
+  public SubscriptionResourceV1(SubscriptionTableController subscriptionTableController) {
     this.subscriptionTableController = subscriptionTableController;
   }
 

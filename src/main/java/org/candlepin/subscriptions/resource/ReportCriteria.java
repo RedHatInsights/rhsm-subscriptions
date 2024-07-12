@@ -27,8 +27,8 @@ import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
 import org.candlepin.subscriptions.utilization.api.v1.model.BillingCategory;
-import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
 import org.springframework.data.domain.Pageable;
 
 @Data

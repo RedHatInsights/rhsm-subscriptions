@@ -1,0 +1,6 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: UsageType
+description: "Describes the usage that the report was made against. Not set if it wasn't
+        specified as a query parameter."
+type: string
+enum: [ "", Production, Development/Test, Disaster Recovery, _ANY ]

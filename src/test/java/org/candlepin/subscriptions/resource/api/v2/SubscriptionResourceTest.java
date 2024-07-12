@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource.api.v1;
+package org.candlepin.subscriptions.resource.api.v2;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
@@ -27,8 +27,8 @@ import com.redhat.swatch.configuration.registry.ProductId;
 import java.time.OffsetDateTime;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
-import org.candlepin.subscriptions.utilization.api.v1.model.SkuCapacityReportSort;
-import org.candlepin.subscriptions.utilization.api.v1.model.UsageType;
+import org.candlepin.subscriptions.utilization.api.model.UsageType;
+import org.candlepin.subscriptions.utilization.api.v2.model.SkuCapacityReportSort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +45,7 @@ class SubscriptionResourceTest {
   private final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
   private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
 
-  @Autowired SubscriptionResource subscriptionResource;
+  @Autowired SubscriptionResourceV2 subscriptionResourceV2;
   @MockBean OrgConfigRepository orgConfigRepository;
 
   @BeforeEach
@@ -59,7 +59,7 @@ class SubscriptionResourceTest {
     assertThrows(
         AccessDeniedException.class,
         () ->
-            subscriptionResource.getSkuCapacityReport(
+            subscriptionResourceV2.getSkuCapacityReport(
                 RHEL_FOR_X86,
                 0,
                 10,
@@ -70,7 +70,6 @@ class SubscriptionResourceTest {
                 null,
                 min,
                 max,
-                null,
                 null,
                 SkuCapacityReportSort.SKU,
                 null));
@@ -84,7 +83,7 @@ class SubscriptionResourceTest {
     assertThrows(
         AccessDeniedException.class,
         () ->
-            subscriptionResource.getSkuCapacityReport(
+            subscriptionResourceV2.getSkuCapacityReport(
                 RHEL_FOR_X86,
                 0,
                 10,
@@ -95,7 +94,6 @@ class SubscriptionResourceTest {
                 null,
                 min,
                 max,
-                null,
                 null,
                 SkuCapacityReportSort.SKU,
                 null));

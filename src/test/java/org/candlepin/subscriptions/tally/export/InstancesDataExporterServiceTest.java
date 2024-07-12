@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.tally.export;
 
 import static org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey.formatMonthId;
 import static org.candlepin.subscriptions.resource.ResourceUtils.ANY;
-import static org.candlepin.subscriptions.resource.api.v1.InstancesResource.getCategoryByMeasurementType;
 import static org.candlepin.subscriptions.resource.api.v1.InstancesResource.getCloudProviderByMeasurementType;
 import static org.candlepin.subscriptions.tally.export.InstancesCsvDataMapperService.METRIC_MAPPER;
 import static org.candlepin.subscriptions.tally.export.InstancesDataExporterService.BEGINNING;
@@ -228,7 +227,7 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
         instance.setBillingProvider(host.getBillingProvider().getValue());
       }
       var bucket = host.getBuckets().iterator().next();
-      var category = getCategoryByMeasurementType(bucket.getMeasurementType());
+      var category = bucket.getMeasurementType().toReportCategory();
       if (category != null) {
         instance.setCategory(category.toString());
       }
@@ -264,7 +263,7 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
         instance.setBillingProvider(host.getBillingProvider().getValue());
       }
       var bucket = host.getBuckets().iterator().next();
-      var category = getCategoryByMeasurementType(bucket.getMeasurementType());
+      var category = bucket.getMeasurementType().toReportCategory();
       if (category != null) {
         instance.setCategory(category.toString());
       }

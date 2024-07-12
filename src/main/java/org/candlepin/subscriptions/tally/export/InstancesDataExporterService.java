@@ -49,7 +49,7 @@ import org.candlepin.subscriptions.exception.ExportServiceException;
 import org.candlepin.subscriptions.export.DataExporterService;
 import org.candlepin.subscriptions.export.DataMapperService;
 import org.candlepin.subscriptions.export.ExportServiceRequest;
-import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
+import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.repository.query.FluentQuery;
 import org.springframework.stereotype.Component;
@@ -222,7 +222,7 @@ public class InstancesDataExporterService implements DataExporterService<TallyIn
   private static void handleCategoryFilter(
       TallyInstancesDbReportCriteria.TallyInstancesDbReportCriteriaBuilder builder, String value) {
     builder.hardwareMeasurementTypes(
-        getHardwareMeasurementTypesFromCategory(ReportCategory.fromString(value)));
+        getHardwareMeasurementTypesFromCategory(ReportCategory.fromValue(value)));
   }
 
   private static void handleDisplayNameContainsFilter(

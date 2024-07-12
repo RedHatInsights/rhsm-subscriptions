@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource;
+package org.candlepin.subscriptions.resource.api.v1;
 
 import static org.candlepin.subscriptions.resource.ResourceUtils.*;
 import static org.candlepin.subscriptions.resource.api.v1.CapacityResource.HYPERVISOR;
@@ -48,6 +48,15 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionMeasurementKey;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.resource.ResourceUtils;
+import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
+import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
+import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
+import org.candlepin.subscriptions.utilization.api.model.SkuCapacitySubscription;
+import org.candlepin.subscriptions.utilization.api.model.SortDirection;
+import org.candlepin.subscriptions.utilization.api.model.SubscriptionEventType;
+import org.candlepin.subscriptions.utilization.api.model.SubscriptionType;
+import org.candlepin.subscriptions.utilization.api.model.UsageType;
 import org.candlepin.subscriptions.utilization.api.v1.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
@@ -332,7 +341,7 @@ public class SubscriptionTableController {
         && (nearestEventDate == null || subEnd.isBefore(nearestEventDate))) {
       nearestEventDate = subEnd;
       skuCapacity.setNextEventDate(nearestEventDate);
-      skuCapacity.setNextEventType(SubscriptionEventType.END);
+      skuCapacity.setNextEventType(SubscriptionEventType.SUBSCRIPTION_END);
     }
   }
 
@@ -348,7 +357,7 @@ public class SubscriptionTableController {
     if (subEnd != null && (nearestEventDate == null || subEnd.isBefore(nearestEventDate))) {
       nearestEventDate = subEnd;
       skuCapacity.setNextEventDate(nearestEventDate);
-      skuCapacity.setNextEventType(SubscriptionEventType.END);
+      skuCapacity.setNextEventType(SubscriptionEventType.SUBSCRIPTION_END);
     }
   }
 

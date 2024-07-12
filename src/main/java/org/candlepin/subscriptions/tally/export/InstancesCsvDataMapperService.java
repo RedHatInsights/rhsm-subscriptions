@@ -20,8 +20,6 @@
  */
 package org.candlepin.subscriptions.tally.export;
 
-import static org.candlepin.subscriptions.resource.api.v1.InstancesResource.getCategoryByMeasurementType;
-
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
@@ -69,7 +67,7 @@ public class InstancesCsvDataMapperService implements DataMapperService<TallyIns
       }
     }
 
-    var category = getCategoryByMeasurementType(item.getKey().getMeasurementType());
+    var category = item.getKey().getMeasurementType().toReportCategory();
     if (category != null) {
       instance.setCategory(category.toString());
     }

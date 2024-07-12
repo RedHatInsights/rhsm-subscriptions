@@ -1,0 +1,7 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: SubscriptionEventType
+description: "The most immediate subscription event, such as a subscription beginning or ending."
+type: string
+enum:
+  - Subscription Start
+  - Subscription End

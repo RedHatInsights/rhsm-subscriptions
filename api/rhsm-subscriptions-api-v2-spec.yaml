@@ -1,0 +1,272 @@
+openapi: "3.0.2"
+info:
+  title: "rhsm-subscriptions-api"
+  description: "REST interface for the rhsm-subscriptions service. Please note any deprecated APIs. Our current deprecation policy is to keep deprecated APIs around for at least 6 months."
+  version: 2.0.0
+
+servers:
+  - url: /{PATH_PREFIX}/{APP_NAME}
+    variables:
+      PATH_PREFIX:
+        default: api
+      APP_NAME:
+        default: rhsm-subscriptions
+  - url: https://{HOSTNAME}/{PATH_PREFIX}/{APP_NAME}
+    variables:
+      HOSTNAME:
+        enum:
+          - ci.cloud.redhat.com
+          - qa.cloud.redhat.com
+          - stage.cloud.redhat.com
+          - cloud.redhat.com
+        default: ci.cloud.redhat.com
+      PATH_PREFIX:
+        default: api
+      APP_NAME:
+        default: rhsm-subscriptions
+
+paths:
+  /v2/subscriptions/products/{product_id}:
+    description: "Operations for total capacity by SKU for all of the org's active subscriptions for given Swatch product ID."
+    parameters:
+      - name: product_id
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProductId"
+        description: "The ID for the product we wish to query"
+      - name: offset
+        in: query
+        schema:
+          type: integer
+          minimum: 0
+        description: "The number of items to skip before starting to collect the result set"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+        description: "The numbers of items to return"
+    get:
+      summary: "Returns the total capacity by SKU for all of the org's active subscriptions for given Swatch product ID."
+      operationId: getSkuCapacityReport
+      parameters:
+        - name: category
+          in: query
+          schema:
+            $ref: './model/report_category.yaml'
+          description: 'The category to fetch data for'
+        - name: sla
+          in: query
+          schema:
+            $ref: './model/service_level_type.yaml'
+          description: "Include only capacity for the specified service level."
+        - name: usage
+          in: query
+          schema:
+            $ref: './model/usage_type.yaml'
+          description: "Include only capacity for the specified usage level."
+        - name: billing_provider
+          in: query
+          schema:
+            $ref: './model/billing_provider_type.yaml'
+          description: "Include only report data matching the specified billing provider"
+        - name: billing_account_id
+          in: query
+          schema:
+            $ref: '#/components/schemas/BillingAccountId'
+          description: "Include only report data matching the specified billing account"
+        - name: beginning
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: "Defines the start of the report period. Dates should be provided in ISO 8601
+                 format but the only accepted offset is UTC. E.g. 2017-07-21T17:32:28Z"
+        - name: ending
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: "Defines the end of the report period.  Defaults to the current time. Dates should
+                 be provided in UTC."
+        - name: metric_id
+          in: query
+          schema:
+            type: string
+          description: "Filter subscriptions to those that contribute to a specific unit of measure"
+        - name: sort
+          in: query
+          schema:
+            $ref: "#/components/schemas/SkuCapacityReportSort"
+          description: "What property to sort by (optional)"
+        - name: dir
+          in: query
+          schema:
+            $ref: './model/sort_direction.yaml'
+          description: "Which direction to sort by (default: asc)"
+      responses:
+        '200':
+          description: "The request for the account's subscription capacities was successful."
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/SkuCapacityReport"
+              example:
+                data:
+                  - sku: RH00011
+                    product_name: "Red Hat Enterprise Linux Server, Premium (Physical and 4 Virtual Nodes)(L3 Only)"
+                    service_level: Premium
+                    usage: Production
+                    subscriptions:
+                      - id: "1234567890"
+                        number: "1234567891"
+                      - id: "1234567892"
+                        number: "1234567893"
+                      - id: "1234567894"
+                        number: "1234567895"
+                    next_event_date: "2020-04-01T00:00:00Z"
+                    next_event_type: Subscription Begin
+                    quantity: 3
+                    measurements:
+                      - 42
+                      - null
+                      - 1
+                    category: HYPERVISOR
+                meta:
+                  count: 1
+                  measurements: [ "Cores", "Sockets", "Instance-hours" ]
+        '400':
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags:
+        - subscriptions
+  /v2/openapi.json:
+    $ref: "../spec/openapi-paths.yaml#/openapi-json"
+  /v2/openapi.yaml:
+    $ref: "../spec/openapi-paths.yaml#/openapi-yaml"
+
+components:
+  securitySchemes:
+    3ScaleIdentity:
+      type: apiKey
+      in: header
+      name: x-rh-identity
+      description: |
+        Base64-encoded JSON identity header provided by 3Scale. Contains an
+        account number of the user issuing the request. Format of the JSON:
+        ```
+        {
+            "identity": {
+                "account_number": "account123",
+                "type": "User",
+                "user" : {
+                    "is_org_admin": true
+                },
+                "internal" : {
+                    "org_id": "org123"
+                }
+            }
+        }
+        ```
+        Encoded (via `base64 -w0`):
+        `eyJpZGVudGl0eSI6eyJhY2NvdW50X251bWJlciI6ImFjY291bnQxMjMiLCJ0eXBlIjoiVXNlciIsInVzZXIiOnsiaXNfb3JnX2FkbWluIjp0cnVlfSwiaW50ZXJuYWwiOnsib3JnX2lkIjoib3JnMTIzIn19fQo=`
+
+  schemas:
+    BillingAccountId:
+      type: string
+
+    SkuCapacity:
+      properties:
+        sku:
+          description: "The identifier for the offering."
+          type: string
+        product_name:
+          description: "The offering name."
+          type: string
+        service_level:
+          $ref: './model/service_level_type.yaml'
+        usage:
+          $ref: './model/usage_type.yaml'
+        subscriptions:
+          description: "List of active subscriptions that contribute to the quantity and capacity totals."
+          type: array
+          items:
+            $ref: './model/sku_capacity_subscription.yaml'
+        billing_provider:
+          $ref: './model/billing_provider_type.yaml'
+        next_event_date:
+          description: "The most immediate date for a subscription event."
+          type: string
+          format: date-time
+        next_event_type:
+          $ref: './model/subscription_event_type.yaml'
+        quantity:
+          description: "The summed subscription quantities across the active subscriptions for the offering."
+          type: integer
+          format: int32
+        measurements:
+          description: >-
+            The summed standard capacity of the unit-of-measure of the active subscriptions for the offering. 
+            Must be in the same order as "measurements" in the meta.
+          type: array
+          items:
+            format: double
+            type: number
+        category:
+          $ref: './model/report_category.yaml'
+        has_infinite_quantity:
+          description: "Denotes unlimited capacity for the offering when true."
+          type: boolean
+    SkuCapacityReportSort:
+      type: string
+      enum:
+        - sku
+        - service_level
+        - usage
+        - next_event_date
+        - next_event_type
+        - quantity
+        - product_name
+    SkuCapacityReport:
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkuCapacity'
+        links:
+          $ref: "./model/page_links.yaml"
+        meta:
+          type: object
+          properties:
+            count:
+              type: integer
+            product:
+              type: string
+            measurements:
+              type: array
+              items:
+                type: string
+            service_level:
+              $ref: './model/service_level_type.yaml'
+            usage:
+              $ref: './model/usage_type.yaml'
+            subscription_type:
+              $ref: './model/subscription_type.yaml'
+            report_category:
+              $ref: './model/report_category.yaml'
+          required:
+            - count
+            - product
+            - subscription_type
+    ProductId:
+      type: string
+      format: ProductId
+
+security:
+  - 3ScaleIdentity: []
