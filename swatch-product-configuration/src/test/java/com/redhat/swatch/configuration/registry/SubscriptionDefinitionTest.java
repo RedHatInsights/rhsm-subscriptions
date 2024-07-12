@@ -307,6 +307,36 @@ class SubscriptionDefinitionTest {
     assertEquals(expected, actual);
   }
 
+  @ParameterizedTest(
+      name = "[{index}] level1={0}, level2={1}, productName={2}, expectedProductTagsCsv={3}")
+  @CsvSource({
+    "Ansible,Ansible Automation Platform,'',ansible-aap-managed",
+    "'','',OpenShift Online,rosa"
+  })
+  void testLevelLookupWithProductName(
+      String level1, String level2, String productName, String expectedProductTagsCsv) {
+
+    ProductTagLookupParams params =
+        ProductTagLookupParams.builder()
+            .level1(level1)
+            .level2(level2)
+            .productName(productName)
+            .isPaygEligibleProduct(true)
+            .build();
+
+    Set<String> expectedProductTags = new HashSet<>();
+
+    if (!expectedProductTagsCsv.isEmpty()) {
+      expectedProductTags =
+          Arrays.stream(expectedProductTagsCsv.split(",")).collect(Collectors.toSet());
+    }
+
+    var expected = expectedProductTags;
+    var actual = SubscriptionDefinition.getAllProductTags(params);
+
+    assertEquals(expected, actual);
+  }
+
   @ParameterizedTest(name = "[{index}] level1={0}, level2={1}, expectedProductTagsCsv={2}")
   @CsvSource({
     "'', '', ''",

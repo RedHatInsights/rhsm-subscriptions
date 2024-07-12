@@ -188,6 +188,28 @@ public class SubscriptionDefinition {
 
   public static Set<String> getAllProductTags(ProductTagLookupParams params) {
 
+    // First identify variants by one of the required product identifiers
+    Set<Variant> filteredVariants = getVariantsMatchingRequiredIdentifier(params);
+
+    // Then filter down further with more criteria
+    Set<Variant> productTags =
+        filteredVariants.stream()
+            .filter(createOptionalMeteredPredicate(params))
+            .filter(createOptionalConversionPredicate(params))
+            .filter(createOptionalMetricIdsPredicate(params))
+            .collect(Collectors.toSet());
+
+    return productTags.stream().map(Variant::getTag).collect(Collectors.toSet());
+  }
+
+  /**
+   * In order to get a product tag, you must supply either level, role, engId, or productName data.
+   *
+   * @param params
+   * @return Set<Variant>
+   */
+  private static Set<Variant> getVariantsMatchingRequiredIdentifier(ProductTagLookupParams params) {
+
     var variants =
         SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
             .flatMap(subscription -> subscription.getVariants().stream())
@@ -212,16 +234,9 @@ public class SubscriptionDefinition {
     if (filteredVariants.isEmpty()) {
       log.warn("No variants found to uniquely identify a product: {}", sequentialPredicates);
       return Set.of();
+    } else {
+      return filteredVariants;
     }
-
-    Set<Variant> productTags =
-        filteredVariants.stream()
-            .filter(createMeteredPredicate(params))
-            .filter(createConversionPredicate(params))
-            .filter(createMetricIdsPredicate(params))
-            .collect(Collectors.toSet());
-
-    return productTags.stream().map(Variant::getTag).collect(Collectors.toSet());
   }
 
   /**
@@ -329,64 +344,13 @@ public class SubscriptionDefinition {
     productTags.removeIf(exclusions::contains);
   }
 
-  private static Predicate<Variant> createEngIdPredicate(ProductTagLookupParams params) {
-    return variant -> {
-      var paramEngIds = params.getEngIds();
-      Set<Integer> variantEngIds = variant.getEngineeringIds();
-      return !isNullOrEmpty(paramEngIds)
-          && !isNullOrEmpty(variantEngIds)
-          && paramEngIds.stream().anyMatch(variantEngIds::contains);
-    };
-  }
-
-  private static Predicate<Variant> createRolePredicate(ProductTagLookupParams params) {
-    return variant -> {
-      String paramRole = params.getRole();
-      Set<String> variantRoles = variant.getRoles();
-      return !isNullOrEmpty(paramRole)
-          && !isNullOrEmpty(variantRoles)
-          && variantRoles.contains(paramRole);
-    };
-  }
-
-  private static Predicate<Variant> createProductNamePredicate(ProductTagLookupParams params) {
-    return variant -> {
-      String paramProductName = params.getProductName();
-      Set<String> variantProductNames = variant.getProductNames();
-      return !isNullOrEmpty(paramProductName)
-          && !isNullOrEmpty(variantProductNames)
-          && variantProductNames.contains(paramProductName);
-    };
-  }
-
-  private static Predicate<Variant> createMeteredPredicate(ProductTagLookupParams params) {
-    return variant -> {
-      Boolean paramsIsPaygEligible = params.getIsPaygEligibleProduct();
-      Boolean variantIsPaygEligible =
-          variant.getSubscription() != null ? variant.getSubscription().isPaygEligible() : null;
-      return paramsIsPaygEligible == null
-          || Objects.equals(variantIsPaygEligible, paramsIsPaygEligible);
-    };
-  }
-
-  private static Predicate<Variant> createConversionPredicate(ProductTagLookupParams params) {
-    return variant -> {
-      Boolean isVariantConverted = variant.getIsMigrationProduct();
-      Boolean isParamConverted = params.getIs3rdPartyMigration();
-      return isParamConverted == null || Objects.equals(isVariantConverted, isParamConverted);
-    };
-  }
-
-  private static Predicate<Variant> createMetricIdsPredicate(ProductTagLookupParams params) {
-    return variant -> {
-      Set<String> paramMetricIds = params.getMetricIds();
-      Set<String> variantMetricIds =
-          variant.getSubscription() != null ? variant.getSubscription().getMetricIds() : Set.of();
-      return isNullOrEmpty(paramMetricIds)
-          || paramMetricIds.stream().anyMatch(variantMetricIds::contains);
-    };
-  }
-
+  /**
+   * Returns a predicate that only evaluates to true if Level1 AND Level2 parameters are specified
+   * AND both match the same Variant.
+   *
+   * @param params ProductTagLookupParams
+   * @return Predicate<Variant>
+   */
   private static Predicate<Variant> createLevelPredicate(ProductTagLookupParams params) {
     Predicate<Variant> level1Predicate =
         variant -> {
@@ -407,6 +371,111 @@ public class SubscriptionDefinition {
         };
 
     return level1Predicate.and(level2Predicate);
+  }
+
+  /**
+   * Returns a predicate that only evaluates to true if engIds parameter is specified and matches a
+   * variant
+   *
+   * @param params ProductTagLookupParams
+   * @return Predicate<Variant>
+   */
+  private static Predicate<Variant> createEngIdPredicate(ProductTagLookupParams params) {
+    return variant -> {
+      var paramEngIds = params.getEngIds();
+      Set<Integer> variantEngIds = variant.getEngineeringIds();
+      return !isNullOrEmpty(paramEngIds)
+          && !isNullOrEmpty(variantEngIds)
+          && paramEngIds.stream().anyMatch(variantEngIds::contains);
+    };
+  }
+
+  /**
+   * Returns a predicate that only evaluates to true if role parameter is specified and matches a
+   * variant
+   *
+   * @param params ProductTagLookupParams
+   * @return Predicate<Variant>
+   */
+  private static Predicate<Variant> createRolePredicate(ProductTagLookupParams params) {
+    return variant -> {
+      String paramRole = params.getRole();
+      Set<String> variantRoles = variant.getRoles();
+      return !isNullOrEmpty(paramRole)
+          && !isNullOrEmpty(variantRoles)
+          && variantRoles.contains(paramRole);
+    };
+  }
+
+  /**
+   * Returns a predicate that only evaluates to true if product name parameter is specified and
+   * matches a variant
+   *
+   * @param params ProductTagLookupParams
+   * @return Predicate<Variant>
+   */
+  private static Predicate<Variant> createProductNamePredicate(ProductTagLookupParams params) {
+    return variant -> {
+      String paramProductName = params.getProductName();
+      Set<String> variantProductNames = variant.getProductNames();
+      return !isNullOrEmpty(paramProductName)
+          && !isNullOrEmpty(variantProductNames)
+          && variantProductNames.contains(paramProductName);
+    };
+  }
+
+  /**
+   * Returns a predicate only considering the isPaygEligible status if it's specified.
+   *
+   * @param params ProductTagLookupParams
+   * @return a predicate that always evaluates to 'true' if the isPaygEligible param is not
+   *     specified, resulting in nothing being filtered out. Otherwise a predicate that will include
+   *     Variants where the isPaygEligible values match
+   */
+  private static Predicate<Variant> createOptionalMeteredPredicate(ProductTagLookupParams params) {
+    return variant -> {
+      Boolean paramsIsPaygEligible = params.getIsPaygEligibleProduct();
+      Boolean variantIsPaygEligible =
+          variant.getSubscription() != null ? variant.getSubscription().isPaygEligible() : null;
+      return paramsIsPaygEligible == null
+          || Objects.equals(variantIsPaygEligible, paramsIsPaygEligible);
+    };
+  }
+
+  /**
+   * Returns a predicate only considering the third-party migration conversion status if it's
+   * specified.
+   *
+   * @param params ProductTagLookupParams
+   * @return Predicate<Variant>
+   */
+  private static Predicate<Variant> createOptionalConversionPredicate(
+      ProductTagLookupParams params) {
+    return variant -> {
+      Boolean isVariantConverted = variant.getIsMigrationProduct();
+      Boolean isParamConverted = params.getIs3rdPartyMigration();
+      return isParamConverted == null || Objects.equals(isVariantConverted, isParamConverted);
+    };
+  }
+
+  /**
+   * Returns a predicate only considering configured metric ids if it's specified. Helpful for only
+   * getting relevant product tags (i.e. if you're doing a nightly tally and have a system with
+   * engId 204 and measurements for Sockets, you won't get a els-payg tag, since vCPUs are only
+   * relevant for those tags.)
+   *
+   * @param params ProductTagLookupParams
+   * @return Predicate<Variant>
+   */
+  private static Predicate<Variant> createOptionalMetricIdsPredicate(
+      ProductTagLookupParams params) {
+    return variant -> {
+      Set<String> paramMetricIds = params.getMetricIds();
+      Set<String> variantMetricIds =
+          variant.getSubscription() != null ? variant.getSubscription().getMetricIds() : Set.of();
+      return isNullOrEmpty(paramMetricIds)
+          || paramMetricIds.stream().anyMatch(variantMetricIds::contains);
+    };
   }
 
   private static boolean isNullOrEmpty(Collection<?> collection) {
