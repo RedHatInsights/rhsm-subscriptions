@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+  <changeSet id="202407091543-01" author="mstead">
+    <comment>Update NULL bucket measurement_type to PHYSICAL.</comment>
+    <update tableName="host_tally_buckets">
+      <column name="measurement_type" value="PHYSICAL" />
+      <where>measurement_type IS NULL</where>
+    </update>
+    <rollback>
+      <!-- Unable to roll back this change since we can not identify the records we have updated. -->
+    </rollback>
+  </changeSet>
+  <changeSet id="202407091543-02" author="mstead">
+    <comment>Set the default value for host_tally_buckets.measurement_type.</comment>
+    <addDefaultValue tableName="host_tally_buckets" columnName="measurement_type" defaultValue="PHYSICAL" />
+    <rollback>
+      <dropDefaultValue tableName="host_tally_buckets" columnName="measurement_type" />
+    </rollback>
+  </changeSet>
+</databaseChangeLog>
