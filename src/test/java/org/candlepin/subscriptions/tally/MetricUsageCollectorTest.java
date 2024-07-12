@@ -64,6 +64,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -1096,6 +1097,39 @@ class MetricUsageCollectorTest {
               .collect(Collectors.toSet());
       assertEquals(expectedBillingAccountIds, hostBucketBillingAccountIds);
     }
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    // InstanceType not updated since it was already set.
+    "HBI_HOST,RHEL Server,HBI_HOST",
+    // Instance Type updated since it was null.
+    ",HBI_HOST,HBI_HOST",
+    // Instance type updated since it was empty.
+    "'',HBI_HOST,HBI_HOST",
+    // Instance type updated since it had no text.
+    "' ',HBI_HOST,HBI_HOST"
+  })
+  void testInstanceTypeUpdate(
+      String hostInstanceType, String eventInstanceType, String expectedInstanceType) {
+    var host = new Host();
+    host.setInstanceId("instance1");
+    host.setInstanceType(hostInstanceType);
+
+    when(hostRepository.findAllByOrgIdAndInstanceIdIn(any(), any()))
+        .thenAnswer(i -> Stream.of(host));
+
+    Event event =
+        createEvent()
+            .withEventId(UUID.randomUUID())
+            .withInstanceId(host.getInstanceId())
+            .withRole(Event.Role.OSD)
+            .withProductTag(Set.of(OSD_PRODUCT_TAG))
+            .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
+            .withServiceType(eventInstanceType);
+
+    metricUsageCollector.updateHosts("org123", "serviceType", List.of(event));
+    assertEquals(expectedInstanceType, host.getInstanceType());
   }
 
   private static Event createEvent() {

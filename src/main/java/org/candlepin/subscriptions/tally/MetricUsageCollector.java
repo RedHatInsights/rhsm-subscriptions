@@ -160,6 +160,13 @@ public class MetricUsageCollector {
   }
 
   private void updateInstanceFromEvent(Event event, Host instance) {
+    // Only update the instance type if it hasn't already been set (new host)
+    // so that if the host originated from a different source (HBI) it does
+    // not change.
+    if (StringUtils.isBlank(instance.getInstanceType())) {
+      instance.setInstanceType(event.getServiceType());
+    }
+
     // Always process buckets, measurements and set the lastAppliedEventRecordDate
     // on the host.
     Optional.ofNullable(event.getMeasurements())
@@ -182,6 +189,7 @@ public class MetricUsageCollector {
                           : measurement.getUom()),
                   measurement.getValue());
             });
+
     addBucketsFromEvent(instance, event);
     instance.setLastAppliedEventRecordDate(event.getRecordDate());
 
@@ -194,7 +202,6 @@ public class MetricUsageCollector {
 
     // Update the Host instance's meta-data
     instance.setOrgId(event.getOrgId());
-    instance.setInstanceType(event.getServiceType());
     instance.setInstanceId(event.getInstanceId());
     instance.setDisplayName(event.getInstanceId()); // may be overridden later
     instance.setGuest(instance.getHardwareType() == HostHardwareType.VIRTUALIZED);
