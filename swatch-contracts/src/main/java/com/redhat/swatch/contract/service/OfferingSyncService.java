@@ -168,7 +168,8 @@ public class OfferingSyncService {
 
     // Update to the new entry or create it.
     try {
-      offeringRepository.persistAndFlush(newState);
+      offeringRepository.saveOrUpdate(newState);
+      offeringRepository.flush();
     } catch (PersistenceException ex) {
       log.debug(
           "Failed to insert offering: {} because of constraint violation. Checking again if it already exists.",

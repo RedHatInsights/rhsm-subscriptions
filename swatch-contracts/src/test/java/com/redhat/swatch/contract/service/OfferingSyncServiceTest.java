@@ -108,7 +108,7 @@ class OfferingSyncServiceTest {
 
     // Then the Offering should be persisted and capacities reconciled.
     assertEquals(SyncResult.FETCHED_AND_SYNCED, result);
-    verify(repo).persistAndFlush(any(OfferingEntity.class));
+    verify(repo).saveOrUpdate(any(OfferingEntity.class));
     verify(capController).enqueueReconcileCapacityForOffering("MW01485");
   }
 
@@ -133,7 +133,7 @@ class OfferingSyncServiceTest {
 
     // Then the Offering should be persisted and capacities reconciled.
     assertEquals(SyncResult.FETCHED_AND_SYNCED, result);
-    verify(repo).persistAndFlush(any(OfferingEntity.class));
+    verify(repo).saveOrUpdate(any(OfferingEntity.class));
     verify(capController).enqueueReconcileCapacityForOffering("MW01485");
   }
 
@@ -163,7 +163,7 @@ class OfferingSyncServiceTest {
 
     // Then no persisting or capacity reconciliation should happen.
     assertEquals(SyncResult.SKIPPED_MATCHING, result);
-    verify(repo, never()).persistAndFlush(any(OfferingEntity.class));
+    verify(repo, never()).saveOrUpdate(any(OfferingEntity.class));
     verifyNoInteractions(capController);
   }
 
@@ -180,7 +180,7 @@ class OfferingSyncServiceTest {
 
     // Then it should still persist, since there are Offerings that we need that have no eng prods,
     assertEquals(SyncResult.FETCHED_AND_SYNCED, result);
-    verify(repo).persistAndFlush(any(OfferingEntity.class));
+    verify(repo).saveOrUpdate(any(OfferingEntity.class));
     // and it should still reconcile capacities.
     verify(capController).enqueueReconcileCapacityForOffering("MW01484");
   }
@@ -258,7 +258,7 @@ class OfferingSyncServiceTest {
     when(repo.findByIdOptional(any())).thenReturn(Optional.empty());
     subject.syncUmbProductFromXml(read("mocked-product-message.xml"));
     var actual = ArgumentCaptor.forClass(OfferingEntity.class);
-    verify(repo).persistAndFlush(actual.capture());
+    verify(repo).saveOrUpdate(actual.capture());
     // this shows that the eng ids were derived from the product service's definition of the SVC sku
     assertEquals(30, actual.getValue().getProductIds().size());
     assertTrue(actual.getValue().isMetered());
@@ -289,7 +289,7 @@ class OfferingSyncServiceTest {
     when(repo.findByIdOptional(any())).thenReturn(Optional.of(testOffering));
     subject.syncUmbProductFromXml(read("mocked-product-message.xml"));
     var actual = ArgumentCaptor.forClass(OfferingEntity.class);
-    verify(repo).persistAndFlush(actual.capture());
+    verify(repo).saveOrUpdate(actual.capture());
     // this shows that the eng ids were derived from the product service's definition of the SVC sku
     assertEquals(30, actual.getValue().getProductIds().size());
   }
@@ -301,7 +301,7 @@ class OfferingSyncServiceTest {
     when(repo.findByIdOptional(any())).thenReturn(Optional.of(testOffering));
     subject.syncUmbProductFromXml(read("mocked-product-message.xml"));
     var actual = ArgumentCaptor.forClass(OfferingEntity.class);
-    verify(repo).persistAndFlush(actual.capture());
+    verify(repo).saveOrUpdate(actual.capture());
     // this shows that the eng ids were derived from the product service's definition of the SVC sku
     assertEquals(30, actual.getValue().getProductIds().size());
   }
@@ -313,7 +313,7 @@ class OfferingSyncServiceTest {
     subject.syncUmbProductFromXml(
         read("mocked-product-message.xml").replace("PRODUCT_NAME", "PLACEHOLDER"));
     var actual = ArgumentCaptor.forClass(OfferingEntity.class);
-    verify(repo).persistAndFlush(actual.capture());
+    verify(repo).saveOrUpdate(actual.capture());
     // this shows that the eng ids were derived from the product service's definition of the SVC sku
     assertEquals(30, actual.getValue().getProductIds().size());
   }
@@ -325,7 +325,7 @@ class OfferingSyncServiceTest {
     when(repo.findByIdOptional(any())).thenReturn(Optional.of(testOffering));
     subject.syncUmbProductFromXml(read("mocked-product-message.xml"));
     var actual = ArgumentCaptor.forClass(OfferingEntity.class);
-    verify(repo).persistAndFlush(actual.capture());
+    verify(repo).saveOrUpdate(actual.capture());
     // this shows that the eng ids were not derived from the product service's definition of the SVC
     // sku
     assertTrue(actual.getValue().getProductIds().isEmpty());
@@ -353,7 +353,7 @@ class OfferingSyncServiceTest {
     when(repo.findByIdOptional(anyString()))
         .thenReturn(Optional.empty())
         .thenReturn(Optional.of(createStubProductApiOffering()));
-    Mockito.doThrow(new PersistenceException()).when(repo).persistAndFlush(any());
+    Mockito.doThrow(new PersistenceException()).when(repo).saveOrUpdate(any());
     String sku = "MW01485";
 
     // When syncing the Offering
@@ -369,7 +369,7 @@ class OfferingSyncServiceTest {
     when(repo.findByIdOptional(anyString()))
         .thenReturn(Optional.empty())
         .thenReturn(Optional.of(new OfferingEntity()));
-    Mockito.doThrow(new PersistenceException()).when(repo).persistAndFlush(any());
+    Mockito.doThrow(new PersistenceException()).when(repo).saveOrUpdate(any());
     String sku = "MW01485";
 
     // When syncing the Offering an exception is thrown
@@ -383,7 +383,7 @@ class OfferingSyncServiceTest {
     // When getting the upstream Offering,
     var actual = subject.syncOffering(sku);
     assertEquals(SyncResult.FETCHED_AND_SYNCED, actual);
-    verify(repo).persistAndFlush(argThat(o -> o.getSku().equals(sku) && o.isMigrationOffering()));
+    verify(repo).saveOrUpdate(argThat(o -> o.getSku().equals(sku) && o.isMigrationOffering()));
   }
 
   private OfferingEntity createStubProductApiOffering() {
