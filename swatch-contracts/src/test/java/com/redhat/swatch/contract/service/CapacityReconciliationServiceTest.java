@@ -46,6 +46,7 @@ import jakarta.enterprise.inject.Any;
 import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -253,7 +254,7 @@ class CapacityReconciliationServiceTest {
         .quantity(10)
         .startDate(NOW)
         .endDate(NOW.plusDays(30))
-        .subscriptionMeasurements(new ArrayList<>())
+        .subscriptionMeasurements(new HashSet<>())
         .build();
   }
 }

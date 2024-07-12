@@ -60,4 +60,7 @@ public interface SubscriptionEntityMapper {
   default BillingProvider extractBillingProvider(String value) {
     return BillingProvider.fromString(value);
   }
+
+  void updateSubscription(
+      @MappingTarget SubscriptionEntity existingSubscription, SubscriptionEntity entity);
 }

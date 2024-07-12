@@ -47,6 +47,8 @@ import com.redhat.swatch.contract.openapi.model.ContractResponse;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.repository.ContractEntity;
+import com.redhat.swatch.contract.repository.ContractMetricEntity;
+import com.redhat.swatch.contract.repository.ContractMetricRepository;
 import com.redhat.swatch.contract.repository.ContractRepository;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
@@ -58,10 +60,17 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.Validator;
 import jakarta.ws.rs.ProcessingException;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
@@ -78,6 +87,7 @@ public class ContractService {
   public static final String FAILURE_MESSAGE = "FAILED";
 
   private final ContractRepository contractRepository;
+  private final ContractMetricRepository contractMetricRepository;
   private final SubscriptionRepository subscriptionRepository;
   private final MeasurementMetricIdTransformer measurementMetricIdTransformer;
   @Inject ContractEntityMapper contractEntityMapper;
@@ -90,11 +100,13 @@ public class ContractService {
 
   ContractService(
       ContractRepository contractRepository,
+      ContractMetricRepository contractMetricRepository,
       SubscriptionRepository subscriptionRepository,
       MeasurementMetricIdTransformer measurementMetricIdTransformer,
       AwsPartnerEntitlementsProvider awsPartnerEntitlementsProvider,
       AzurePartnerEntitlementsProvider azurePartnerEntitlementsProvider) {
     this.contractRepository = contractRepository;
+    this.contractMetricRepository = contractMetricRepository;
     this.subscriptionRepository = subscriptionRepository;
     this.measurementMetricIdTransformer = measurementMetricIdTransformer;
     this.partnerEntitlementsProviders =
@@ -112,7 +124,7 @@ public class ContractService {
 
     try {
       var result =
-          upsertPartnerContract(request.getPartnerEntitlement(), request.getSubscriptionId());
+          upsertPartnerContracts(request.getPartnerEntitlement(), request.getSubscriptionId());
       response.setStatus(result.toStatus());
       if (result.isValid() && result.getEntity() != null) {
         response.setContract(contractDtoMapper.contractEntityToDto(result.getEntity()));
@@ -220,51 +232,180 @@ public class ContractService {
           lookupSubscriptionId(
               Optional.ofNullable(findSubscriptionNumber(entitlement))
                   .orElse(request.getRedHatSubscriptionNumber()));
-      return upsertPartnerContract(entitlement, subscriptionId).toStatus();
+      return upsertPartnerContracts(entitlement, subscriptionId).toStatus();
     } catch (ContractNotAssociatedToOrgException e) {
       return ContractMessageProcessingResult.RH_ORG_NOT_ASSOCIATED.toStatus();
     }
   }
 
+  /**
+   * Update or create contract and subscription database records for each Contract in the
+   * PartnerEntitlement. Updates are made when the database records have matching start_dates,
+   * otherwise a new record will be created. If no matching PartnerEntitlement Contract is found
+   * then the existing record is deleted.
+   */
   @Transactional
-  public ContractMessageProcessingResult upsertPartnerContract(
+  public ContractMessageProcessingResult upsertPartnerContracts(
       PartnerEntitlementV1 entitlement, String subscriptionId)
       throws ContractNotAssociatedToOrgException, ContractValidationFailedException {
-    ContractEntity entity;
+    List<ContractEntity> entities;
+
     try {
-      entity = mapUpstreamContractToContractEntity(entitlement);
-
-      if (entity.getOrgId() == null) {
-        throw new ContractNotAssociatedToOrgException();
-      }
-      var violations = validator.validate(entity);
-      if (!violations.isEmpty()) {
-        throw new ContractValidationFailedException(entity, violations);
-      }
-
+      entities = mapUpstreamContractToContractEntities(entitlement);
     } catch (NumberFormatException e) {
       log.error(e.getMessage());
       return INVALID_MESSAGE_UNPROCESSED;
     }
 
-    List<ContractEntity> existingContractRecords = findExistingContractRecords(entity);
-    // There may be multiple "versions" of a contract, e.g. if a contract quantity changes.
-    // We should make updates as necessary to each, it's possible to update both the metadata and
-    // the quantity at once.
-    var statuses =
-        existingContractRecords.stream()
-            .map(existing -> updateContractRecord(existing, entity, subscriptionId))
-            .toList();
-    if (!statuses.isEmpty()) {
-      return combineStatuses(statuses);
-    } else {
-      // New contract
-      if (entity.getSubscriptionNumber() != null) {
-        persistSubscription(createSubscriptionForContract(entity, subscriptionId));
-      }
-      persistContract(entity, OffsetDateTime.now());
-      return NEW_CONTRACT_CREATED.withContract(entity);
+    var latestContract = getLatestContract(entities);
+
+    List<ContractEntity> existingContractRecords = findExistingContractRecords(latestContract);
+
+    if (existingContractRecords.equals(entities)) {
+      return ContractMessageProcessingResult.REDUNDANT_MESSAGE_IGNORED.withContract(latestContract);
     }
+
+    mergeWithExistingContractRecords(entities, existingContractRecords);
+
+    if (latestContract.getSubscriptionNumber() != null) {
+      mergeWithExistingSubscriptionRecords(entities, subscriptionId);
+    }
+
+    if (existingContractRecords.contains(latestContract)) {
+      return ContractMessageProcessingResult.EXISTING_CONTRACTS_SYNCED.withContract(latestContract);
+    }
+
+    return NEW_CONTRACT_CREATED.withContract(latestContract);
+  }
+
+  private void mergeWithExistingContractRecords(
+      List<ContractEntity> unsavedContracts, List<ContractEntity> existingContracts) {
+    Set<ContractEntity> contractsToPersist = new HashSet<>();
+
+    // Determine matching contracts based on start_date
+    Map<OffsetDateTime, ContractEntity> contractStartDateMap =
+        unsavedContracts.stream()
+            .collect(
+                Collectors.toMap(
+                    ContractEntity::getStartDate,
+                    Function.identity(),
+                    (contract1, contract2) -> {
+                      log.warn("Duplicate contracts found. Skipping contract: {}", contract2);
+                      return contract1;
+                    }));
+
+    existingContracts.forEach(
+        existingContract -> {
+          var matchingUpdatedContract =
+              contractStartDateMap.remove(existingContract.getStartDate());
+
+          if (matchingUpdatedContract == null) {
+            log.info(
+                "Deleting contract that does not align to IT partner gateway: {}",
+                existingContract);
+            contractRepository.delete(existingContract);
+          } else {
+            if (!matchingUpdatedContract.equals(existingContract)) {
+              log.info(
+                  "Contract updated. Old values: {} New values: {}",
+                  existingContract,
+                  matchingUpdatedContract);
+              if (existingContract.getMetrics() != matchingUpdatedContract.getMetrics()) {
+                var metrics =
+                    existingContract.getMetrics().stream()
+                        .filter(metric -> !matchingUpdatedContract.getMetrics().contains(metric))
+                        .toList();
+                metrics.forEach(metric -> deleteContractMetric(existingContract, metric));
+              }
+              contractEntityMapper.updateContract(existingContract, matchingUpdatedContract);
+              contractsToPersist.add(existingContract);
+            } else {
+              log.debug("No change in contract: {}", existingContract);
+            }
+          }
+        });
+
+    // If not found in existing Contracts then create new ones.
+    contractsToPersist.addAll(contractStartDateMap.values());
+
+    contractsToPersist.forEach(
+        contractEntity -> {
+          log.info("Updating or creating contract: {}", contractEntity);
+          persistContract(contractEntity, OffsetDateTime.now());
+        });
+  }
+
+  private void mergeWithExistingSubscriptionRecords(
+      List<ContractEntity> contractEntities, String subscriptionId) {
+
+    List<SubscriptionEntity> updatedSubscriptions =
+        contractEntities.stream()
+            .map(entity -> createSubscriptionForContract(entity, subscriptionId))
+            .toList();
+
+    Set<SubscriptionEntity> subscriptionsToPersist = new HashSet<>();
+
+    // Determine matching subscription based on start_date
+    Map<OffsetDateTime, SubscriptionEntity> subscriptionStartDateMap =
+        updatedSubscriptions.stream()
+            .collect(
+                Collectors.toMap(
+                    SubscriptionEntity::getStartDate,
+                    Function.identity(),
+                    (sub1, sub2) -> {
+                      log.warn("Duplicate contracts found. Skipping subscription: {}", sub2);
+                      return sub1;
+                    }));
+
+    var existingSubscriptionRecords =
+        subscriptionRepository.findBySubscriptionNumber(
+            contractEntities.get(0).getSubscriptionNumber());
+
+    existingSubscriptionRecords.forEach(
+        existingSubscription -> {
+          var matchingUpdatedSubscription =
+              subscriptionStartDateMap.remove(existingSubscription.getStartDate());
+
+          if (matchingUpdatedSubscription == null) {
+            log.info(
+                "Deleting subscription that does not align to IT partner gateway: {}",
+                existingSubscription);
+            subscriptionRepository.delete(existingSubscription);
+          } else {
+            if (!matchingUpdatedSubscription.equals(existingSubscription)) {
+              log.info(
+                  "Subscription updated. Old values: {} New values: {}",
+                  existingSubscription,
+                  matchingUpdatedSubscription);
+              subscriptionEntityMapper.updateSubscription(
+                  existingSubscription, matchingUpdatedSubscription);
+              subscriptionsToPersist.add(existingSubscription);
+            } else {
+              log.debug("No change in subscription: {}", existingSubscription);
+            }
+          }
+        });
+
+    // If not found in existing subscriptions then create new ones.
+    subscriptionsToPersist.addAll(subscriptionStartDateMap.values());
+
+    log.info("Persisting subscriptions: {}", subscriptionsToPersist);
+    subscriptionRepository.persist(subscriptionsToPersist);
+  }
+
+  private ContractEntity getLatestContract(List<ContractEntity> contracts)
+      throws ContractValidationFailedException {
+    return contracts.stream()
+        .max(Comparator.comparing(ContractEntity::getStartDate))
+        .orElseThrow(ContractValidationFailedException::new);
+  }
+
+  private void deleteContractMetric(
+      ContractEntity contractEntity, ContractMetricEntity contractMetricEntity) {
+    log.info("Deleting contract_metric: {} on contract: {}", contractMetricEntity, contractEntity);
+    contractMetricRepository.delete(contractMetricEntity);
+    contractEntity.removeMetric(contractMetricEntity);
+    contractMetricRepository.flush();
   }
 
   @Transactional
@@ -343,7 +484,7 @@ public class ContractService {
   private void tryUpsertPartnerContract(PartnerEntitlementV1 entitlement) {
     var subscriptionId = lookupSubscriptionId(findSubscriptionNumber(entitlement));
     try {
-      upsertPartnerContract(entitlement, subscriptionId);
+      upsertPartnerContracts(entitlement, subscriptionId);
     } catch (ContractNotAssociatedToOrgException | ContractValidationFailedException e) {
       log.error(
           "Error synchronising the contract {}. Caused by: {}", entitlement, e.getMessage(), e);
@@ -361,63 +502,6 @@ public class ContractService {
     return null;
   }
 
-  private ContractMessageProcessingResult combineStatuses(
-      List<ContractMessageProcessingResult> results) {
-    // Different things happen to the contract records during processing...
-    // Elevate some specific results, logging will have further details of all that happened during
-    // message processing
-    for (var result :
-        List.of(
-            ContractMessageProcessingResult.CONTRACT_SPLIT_DUE_TO_CAPACITY_UPDATE,
-            ContractMessageProcessingResult.METADATA_UPDATED)) {
-      if (results.contains(result)) {
-        return result;
-      }
-    }
-    // Otherwise, just return the first result
-    return results.get(0);
-  }
-
-  private ContractMessageProcessingResult updateContractRecord(
-      ContractEntity existingContract, ContractEntity entity, String subscriptionId) {
-    if (Objects.equals(entity, existingContract)) {
-      syncSubscriptionForContract(existingContract, subscriptionId);
-
-      log.info(
-          "Duplicate contract found that matches the record for uuid {}",
-          existingContract.getUuid());
-      return ContractMessageProcessingResult.REDUNDANT_MESSAGE_IGNORED.withContract(entity);
-    } else if (isContractQuantityChanged(entity, existingContract)) {
-      // Record found in contract table but the contract quantities or dates have changed
-      if (!Objects.equals(entity.getEndDate(), existingContract.getEndDate())) {
-        // Skip this particular record because it's already been terminated for a quantity change.
-        return ContractMessageProcessingResult.REDUNDANT_MESSAGE_IGNORED.withContract(entity);
-      }
-      var now = OffsetDateTime.now();
-      if (existingContract.getSubscriptionNumber() != null) {
-        persistExistingSubscription(
-            existingContract, now, subscriptionId); // end current subscription
-        var newSubscription = createSubscriptionForContract(entity, subscriptionId);
-        newSubscription.setStartDate(now);
-        persistSubscription(newSubscription);
-      }
-      persistExistingContract(existingContract, now); // Persist previous contract
-      entity.setStartDate(now);
-      persistContract(entity, now); // Persist new contract
-      log.info("Previous contract archived and new contract created");
-      return ContractMessageProcessingResult.CONTRACT_SPLIT_DUE_TO_CAPACITY_UPDATE.withContract(
-          entity);
-    } else {
-      // Record found in contract table but a non-quantity change occurred (e.g. an identifier was
-      // updated).
-      contractEntityMapper.updateContract(existingContract, entity);
-      persistContract(existingContract, OffsetDateTime.now());
-      syncSubscriptionForContract(existingContract, subscriptionId);
-      log.info("Contract metadata updated");
-      return ContractMessageProcessingResult.METADATA_UPDATED.withContract(existingContract);
-    }
-  }
-
   private void syncSubscriptionForContract(ContractEntity existingContract, String subscriptionId) {
     if (existingContract.getSubscriptionNumber() != null) {
 
@@ -426,21 +510,6 @@ public class ContractService {
           createOrUpdateSubscription(existingContract, subscriptionId);
       subscriptionRepository.persist(subscription);
     }
-  }
-
-  private boolean isContractQuantityChanged(
-      ContractEntity entity, ContractEntity existingContract) {
-    return !Objects.equals(entity.getMetrics(), existingContract.getMetrics());
-  }
-
-  private void persistExistingSubscription(
-      ContractEntity contract, OffsetDateTime now, String subscriptionId) {
-    var subscription =
-        subscriptionRepository
-            .findOne(SubscriptionEntity.class, SubscriptionEntity.forContract(contract))
-            .orElseGet(() -> createSubscriptionForContract(contract, subscriptionId));
-    subscription.setEndDate(now);
-    subscriptionRepository.persist(subscription);
   }
 
   private SubscriptionEntity createOrUpdateSubscription(
@@ -493,16 +562,6 @@ public class ContractService {
     }
   }
 
-  private void persistExistingContract(ContractEntity existingContract, OffsetDateTime now) {
-    existingContract.setEndDate(now);
-    existingContract.setLastUpdated(now);
-    contractRepository.persist(existingContract);
-  }
-
-  private void persistSubscription(SubscriptionEntity subscription) {
-    subscriptionRepository.persist(subscription);
-  }
-
   private void persistContract(ContractEntity entity, OffsetDateTime now) {
     if (entity.getUuid() == null) {
       entity.setUuid(UUID.randomUUID());
@@ -521,14 +580,11 @@ public class ContractService {
    * @return existing contract record, or null
    */
   private List<ContractEntity> findExistingContractRecords(ContractEntity contract) {
-    var specification = ContractEntity.activeDuringTimeRange(contract);
+    Specification<ContractEntity> specification;
     if (contract.getBillingProvider().startsWith("aws")) {
-      specification =
-          specification.and(
-              ContractEntity.billingProviderIdEquals(contract.getBillingProviderId()));
+      specification = ContractEntity.billingProviderIdEquals(contract.getBillingProviderId());
     } else if (contract.getBillingProvider().startsWith("azure")) {
-      specification =
-          specification.and(ContractEntity.azureResourceIdEquals(contract.getAzureResourceId()));
+      specification = ContractEntity.azureResourceIdEquals(contract.getAzureResourceId());
     } else {
       throw new UnsupportedOperationException(
           String.format("Billing provider %s not implemented", contract.getBillingProvider()));
@@ -540,20 +596,54 @@ public class ContractService {
     return contractRepository.deleteContractsByOrgIdForEmptyValues(orgId);
   }
 
-  private ContractEntity mapUpstreamContractToContractEntity(PartnerEntitlementV1 entitlement) {
-    ContractEntity entity = contractEntityMapper.mapEntitlementToContractEntity(entitlement);
+  private List<ContractEntity> mapUpstreamContractToContractEntities(
+      PartnerEntitlementV1 entitlement)
+      throws ContractNotAssociatedToOrgException, ContractValidationFailedException {
+
+    List<ContractEntity> contractEntities = new ArrayList<>();
+
+    if (entitlement.getPurchase() == null) {
+      log.warn("Entitlement purchase is null for {}", entitlement);
+      throw new ContractValidationFailedException();
+    }
+
+    if (entitlement.getPurchase().getContracts() != null) {
+      contractEntities =
+          entitlement.getPurchase().getContracts().stream()
+              .map(
+                  contract ->
+                      contractEntityMapper.mapEntitlementToContractEntity(entitlement, contract))
+              .toList();
+    }
+
+    if (contractEntities.isEmpty()) {
+      contractEntities =
+          List.of(contractEntityMapper.mapEntitlementToContractEntity(entitlement, null));
+    }
+
     if (isAwsMarketplace(entitlement.getSourcePartner())) {
-      entity.setBillingProviderId(
+      var billingProviderId =
           String.format(
               "%s;%s;%s",
               entitlement.getPurchase().getVendorProductCode(),
               entitlement.getPartnerIdentities().getAwsCustomerId(),
-              entitlement.getPartnerIdentities().getSellerAccountId()));
+              entitlement.getPartnerIdentities().getSellerAccountId());
+      contractEntities.forEach(
+          contractEntity -> contractEntity.setBillingProviderId(billingProviderId));
     }
 
-    measurementMetricIdTransformer.resolveConflictingMetrics(entity);
+    contractEntities.forEach(measurementMetricIdTransformer::resolveConflictingMetrics);
 
-    return entity;
+    for (ContractEntity entity : contractEntities) {
+      if (entity.getOrgId() == null) {
+        throw new ContractNotAssociatedToOrgException();
+      }
+      var violations = validator.validate(entity);
+      if (!violations.isEmpty()) {
+        throw new ContractValidationFailedException(entity, violations);
+      }
+    }
+    return contractEntities;
   }
 
   private String lookupSubscriptionId(String subscriptionNumber) {

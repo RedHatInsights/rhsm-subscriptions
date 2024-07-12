@@ -36,6 +36,7 @@ public enum ContractMessageProcessingResult {
   METADATA_UPDATED("Contract metadata updated", true),
   CONTRACT_SPLIT_DUE_TO_CAPACITY_UPDATE(
       "Previous contract archived and new contract created", true),
+  EXISTING_CONTRACTS_SYNCED("Existing contracts and subscriptions updated", true),
   NEW_CONTRACT_CREATED("New contract created", true);
 
   private final String message;

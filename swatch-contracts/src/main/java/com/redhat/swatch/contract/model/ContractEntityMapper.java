@@ -30,11 +30,10 @@ import com.redhat.swatch.clients.rh.partner.gateway.api.model.RhEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.SaasContractV1;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import org.mapstruct.AfterMapping;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Builder;
 import org.mapstruct.CollectionMappingStrategy;
@@ -56,8 +55,6 @@ public interface ContractEntityMapper {
       qualifiedByName = "subscriptionNumber")
   @Mapping(target = "orgId", source = "entitlement.rhAccountId")
   @Mapping(target = "offering", source = "entitlement.rhEntitlements", qualifiedByName = "offering")
-  @Mapping(target = "startDate", source = "entitlementDates.startDate")
-  @Mapping(target = "endDate", source = "entitlementDates.endDate")
   @Mapping(target = "vendorProductCode", source = "entitlement.purchase.vendorProductCode")
   @Mapping(
       target = "billingAccountId",
@@ -71,12 +68,17 @@ public interface ContractEntityMapper {
       target = "billingProvider",
       source = "entitlement.sourcePartner",
       qualifiedByName = "billingProvider")
+  @Mapping(target = "startDate", expression = "java(extractStartDate(entitlement, contract))")
+  @Mapping(target = "endDate", expression = "java(extractEndDate(entitlement, contract))")
+  @Mapping(target = "metrics", source = "contract.dimensions", qualifiedByName = "metrics")
   @BeanMapping(ignoreByDefault = true)
-  ContractEntity mapEntitlementToContractEntity(PartnerEntitlementV1 entitlement);
+  ContractEntity mapEntitlementToContractEntity(
+      PartnerEntitlementV1 entitlement, SaasContractV1 contract);
 
   @Mapping(target = "metricId", source = "name")
   @Mapping(target = "value", source = "value")
   @BeanMapping(ignoreByDefault = true)
+  @Named("metrics")
   ContractMetricEntity mapDimensionToContractMetricEntity(DimensionV1 dimension);
 
   @Mapping(target = "uuid", ignore = true)
@@ -87,17 +89,6 @@ public interface ContractEntityMapper {
   @Named("subscriptionNumber")
   default String extractSubscriptionNumber(List<RhEntitlementV1> rhEntitlements) {
     return extractValueFromRhEntitlements(rhEntitlements, RhEntitlementV1::getSubscriptionNumber);
-  }
-
-  @AfterMapping
-  default void populateMetricsFromEntitlement(
-      PartnerEntitlementV1 entitlement, @MappingTarget ContractEntity entity) {
-    entity.setMetrics(
-        entitlement.getPurchase().getContracts().stream()
-            .filter(contract -> Objects.nonNull(contract.getDimensions()))
-            .flatMap(contract -> contract.getDimensions().stream())
-            .map(this::mapDimensionToContractMetricEntity)
-            .collect(Collectors.toSet()));
   }
 
   // this method is to properly map value from entitlement partnerIdentities
@@ -149,5 +140,29 @@ public interface ContractEntityMapper {
     }
 
     return rhEntitlements.stream().map(extractor).filter(Objects::nonNull).findFirst().orElse(null);
+  }
+
+  @Named("startDate")
+  default OffsetDateTime extractStartDate(
+      PartnerEntitlementV1 entitlement, SaasContractV1 contract) {
+    if (contract != null && contract.getStartDate() != null) {
+      return contract.getStartDate();
+    }
+    if (entitlement.getEntitlementDates() != null) {
+      return entitlement.getEntitlementDates().getStartDate();
+    }
+    return null;
+  }
+
+  @Named("endDate")
+  default OffsetDateTime extractEndDate(PartnerEntitlementV1 entitlement, SaasContractV1 contract) {
+    // If the start_date is populated then take end_date from the contract
+    if (contract != null && contract.getStartDate() != null) {
+      return contract.getEndDate();
+    }
+    if (entitlement.getEntitlementDates() != null) {
+      return entitlement.getEntitlementDates().getEndDate();
+    }
+    return null;
   }
 }

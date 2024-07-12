@@ -18,29 +18,13 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.exception;
+package com.redhat.swatch.contract.repository;
 
-import com.redhat.swatch.contract.repository.ContractEntity;
-import jakarta.validation.ConstraintViolation;
-import java.util.HashSet;
-import java.util.Set;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import com.redhat.swatch.panache.PanacheSpecificationSupport;
+import jakarta.enterprise.context.ApplicationScoped;
+import lombok.extern.slf4j.Slf4j;
 
-@Data
-@EqualsAndHashCode(callSuper = true)
-public class ContractValidationFailedException extends Exception {
-  private final transient ContractEntity entity;
-  private final transient Set<ConstraintViolation<ContractEntity>> violations;
-
-  public ContractValidationFailedException(
-      ContractEntity entity, Set<ConstraintViolation<ContractEntity>> violations) {
-    this.entity = entity;
-    this.violations = violations;
-  }
-
-  public ContractValidationFailedException() {
-    this.entity = null;
-    this.violations = new HashSet<>();
-  }
-}
+@Slf4j
+@ApplicationScoped
+public class ContractMetricRepository
+    implements PanacheSpecificationSupport<ContractMetricEntity, ContractMetricEmbeddableId> {}

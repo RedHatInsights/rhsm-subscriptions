@@ -125,6 +125,7 @@ public class ContractEntity extends PanacheEntityBase {
   public void removeMetric(ContractMetricEntity metric) {
     metrics.remove(metric);
     metric.setContract(null);
+    metric.setContractUuid(null);
   }
 
   @Override
@@ -138,6 +139,8 @@ public class ContractEntity extends PanacheEntityBase {
         && Objects.equals(billingProvider, that.billingProvider)
         && Objects.equals(billingAccountId, that.billingAccountId)
         && Objects.equals(metrics, that.metrics)
+        && Objects.equals(startDate, that.startDate)
+        && Objects.equals(endDate, that.endDate)
         && Objects.equals(vendorProductCode, that.vendorProductCode);
   }
 

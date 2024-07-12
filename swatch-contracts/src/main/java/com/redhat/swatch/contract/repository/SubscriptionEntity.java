@@ -33,10 +33,10 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -97,7 +97,7 @@ public class SubscriptionEntity implements Serializable {
       orphanRemoval = true)
   @Builder.Default
   @ToString.Exclude // Excluded to prevent fetching a lazy-loaded collection
-  private List<SubscriptionMeasurementEntity> subscriptionMeasurements = new ArrayList<>();
+  private Set<SubscriptionMeasurementEntity> subscriptionMeasurements = new HashSet<>();
 
   public Optional<SubscriptionMeasurementEntity> getSubscriptionMeasurement(
       String metricId, String measurementType) {

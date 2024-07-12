@@ -36,6 +36,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.DimensionV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1EntitlementDates;
@@ -93,6 +94,10 @@ class ContractServiceTest extends BaseUnitTest {
   private static final String SKU = "RH000000";
   private static final String PRODUCT_TAG = "MH123";
   private static final String SUBSCRIPTION_NUMBER = "subs123";
+  private static final OffsetDateTime DEFAULT_START_DATE =
+      OffsetDateTime.parse("2023-06-09T13:59:43.035365Z");
+  private static final OffsetDateTime DEFAULT_END_DATE =
+      OffsetDateTime.parse("2026-02-15T13:59:43.035365Z");
 
   @Inject ContractService contractService;
   @Inject ObjectMapper objectMapper;
@@ -106,11 +111,12 @@ class ContractServiceTest extends BaseUnitTest {
   @Transactional
   @BeforeEach
   public void setup() {
+    contractRepository.deleteAll();
+    offeringRepository.deleteAll();
     OfferingEntity offering = new OfferingEntity();
     offering.setSku(SKU);
     offering.setProductTags(Set.of(PRODUCT_TAG));
     offeringRepository.persist(offering);
-    contractRepository.deleteAll();
     mockSubscriptionServiceSubscription();
   }
 
@@ -124,7 +130,7 @@ class ContractServiceTest extends BaseUnitTest {
         request.getPartnerEntitlement().getRhEntitlements().get(0).getSku(),
         entity.getOffering().getSku());
     assertEquals(response.getUuid(), entity.getUuid().toString());
-    verify(subscriptionRepository).persist(any(SubscriptionEntity.class));
+    verify(subscriptionRepository).persist(any(Set.class));
     verify(measurementMetricIdTransformer).translateContractMetricIdsToSubscriptionMetricIds(any());
   }
 
@@ -142,8 +148,9 @@ class ContractServiceTest extends BaseUnitTest {
     var contract = givenPartnerEntitlementContractRequest();
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
     assertEquals("New contract created", statusResponse.getMessage());
-    verify(subscriptionRepository).persist(any(SubscriptionEntity.class));
-    verify(measurementMetricIdTransformer).translateContractMetricIdsToSubscriptionMetricIds(any());
+    verify(subscriptionRepository).persist(any(Set.class));
+    verify(measurementMetricIdTransformer, times(2))
+        .translateContractMetricIdsToSubscriptionMetricIds(any());
   }
 
   @Test
@@ -151,7 +158,7 @@ class ContractServiceTest extends BaseUnitTest {
     PartnerEntitlementV1 contract = givenContractWithoutRequiredData();
     assertThrows(
         ContractValidationFailedException.class,
-        () -> contractService.upsertPartnerContract(contract, null));
+        () -> contractService.upsertPartnerContracts(contract, null));
   }
 
   @Test
@@ -169,9 +176,8 @@ class ContractServiceTest extends BaseUnitTest {
     PartnerEntitlementContract request = givenPartnerEntitlementContractRequest();
 
     StatusResponse statusResponse = contractService.createPartnerContract(request);
-    verify(subscriptionRepository, times(3)).persist(any(SubscriptionEntity.class));
-    assertEquals(
-        "Previous contract archived and new contract created", statusResponse.getMessage());
+    verify(subscriptionRepository, times(2)).persist(any(Set.class));
+    assertEquals("New contract created", statusResponse.getMessage());
   }
 
   @Test
@@ -182,8 +188,18 @@ class ContractServiceTest extends BaseUnitTest {
     PartnerEntitlementContract request = givenPartnerEntitlementContractRequest();
 
     StatusResponse statusResponse = contractService.createPartnerContract(request);
-    verify(subscriptionRepository, times(2)).persist(any(SubscriptionEntity.class));
-    assertEquals("Contract metadata updated", statusResponse.getMessage());
+    verify(subscriptionRepository, times(2)).persist(any(Set.class));
+
+    verify(contractRepository, times(3)).persist(any(ContractEntity.class));
+
+    ArgumentCaptor<ContractEntity> contractSaveCapture =
+        ArgumentCaptor.forClass(ContractEntity.class);
+    verify(contractRepository).delete(contractSaveCapture.capture());
+    // Contract with invalid start_date is deleted
+    assertEquals(
+        OffsetDateTime.parse("2023-03-17T12:29:48.569Z"),
+        contractSaveCapture.getValue().getStartDate());
+    assertEquals("New contract created", statusResponse.getMessage());
   }
 
   @Test
@@ -192,8 +208,8 @@ class ContractServiceTest extends BaseUnitTest {
     contractService.createPartnerContract(request);
 
     StatusResponse statusResponse = contractService.createPartnerContract(request);
-    assertEquals("Redundant message ignored", statusResponse.getMessage());
-    verify(subscriptionRepository, times(2)).persist(any(SubscriptionEntity.class));
+    assertEquals("Existing contracts and subscriptions updated", statusResponse.getMessage());
+    verify(subscriptionRepository, times(2)).persist(any(Set.class));
   }
 
   @Test
@@ -219,7 +235,7 @@ class ContractServiceTest extends BaseUnitTest {
     assertEquals("Contracts Synced for " + ORG_ID, statusResponse.getMessage());
     // 2 instances of subscription are created, one for the original contract, and one for the
     // update
-    verify(subscriptionRepository, times(4)).persist(any(SubscriptionEntity.class));
+    verify(subscriptionRepository, times(3)).persist(any(Set.class));
     verify(measurementMetricIdTransformer, times(4))
         .translateContractMetricIdsToSubscriptionMetricIds(any());
   }
@@ -302,14 +318,14 @@ class ContractServiceTest extends BaseUnitTest {
 
     mockPartnerApi();
 
-    ArgumentCaptor<SubscriptionEntity> subscriptionSaveCapture =
-        ArgumentCaptor.forClass(SubscriptionEntity.class);
+    ArgumentCaptor<Set<SubscriptionEntity>> subscriptionSaveCapture =
+        ArgumentCaptor.forClass(Set.class);
     contractService.createPartnerContract(contract);
     verify(subscriptionRepository).persist(subscriptionSaveCapture.capture());
     subscriptionSaveCapture.getValue();
     assertEquals(
         "a69ff71c-aa8b-43d9-dea8-822fab4bbb86;rh-rhel-sub-1yr;azureProductCode;eadf26ee-6fbc-4295-9a9e-25d4fea8951d_2019-05-31",
-        subscriptionSaveCapture.getValue().getBillingProviderId());
+        subscriptionSaveCapture.getValue().iterator().next().getBillingProviderId());
   }
 
   @Test
@@ -343,6 +359,87 @@ class ContractServiceTest extends BaseUnitTest {
     var expectedSubscription = givenExistingSubscription();
     contractService.syncSubscriptionsForContractsByOrg(ORG_ID);
     verify(subscriptionRepository).persist(expectedSubscription);
+  }
+
+  @Test
+  void testExistingSubscriptionSyncedWithITGatewayResponse() throws Exception {
+    var subscription = new SubscriptionEntity();
+    subscription.setStartDate(DEFAULT_START_DATE);
+    when(subscriptionRepository.findBySubscriptionNumber(any())).thenReturn(List.of(subscription));
+    when(subscriptionRepository.findOne(any(), any())).thenReturn(Optional.of(subscription));
+    var contract = givenAzurePartnerEntitlementContract();
+    mockPartnerApi();
+    StatusResponse statusResponse = contractService.createPartnerContract(contract);
+    ArgumentCaptor<Set<SubscriptionEntity>> subscriptionsSaveCapture =
+        ArgumentCaptor.forClass(Set.class);
+    assertEquals("New contract created", statusResponse.getMessage());
+    verify(subscriptionRepository).persist(subscriptionsSaveCapture.capture());
+    var persistedSubscriptions = subscriptionsSaveCapture.getValue();
+    assertEquals(1, persistedSubscriptions.size());
+    assertEquals(DEFAULT_END_DATE, persistedSubscriptions.iterator().next().getEndDate());
+    verify(subscriptionRepository, times(0)).delete(any());
+  }
+
+  @Test
+  void testExistingSubscriptionNotInITGatewayResponseIsDeleted() throws Exception {
+    var subscription = new SubscriptionEntity();
+    subscription.setStartDate(OffsetDateTime.parse("2023-06-09T04:00:00.035365Z"));
+    when(subscriptionRepository.findBySubscriptionNumber(any())).thenReturn(List.of(subscription));
+    when(subscriptionRepository.findOne(any(), any())).thenReturn(Optional.of(subscription));
+    var contract = givenAzurePartnerEntitlementContract();
+    mockPartnerApi();
+    StatusResponse statusResponse = contractService.createPartnerContract(contract);
+    assertEquals("New contract created", statusResponse.getMessage());
+    verify(subscriptionRepository).persist(any(Set.class));
+    verify(subscriptionRepository, times(1)).delete(subscription);
+  }
+
+  @Test
+  void testContractSyncedWhenNoContractDimensionsExist() throws Exception {
+    var contract = givenAzurePartnerEntitlementContract();
+    var stub = mockPartnerApi(createPartnerApiResponseNoContractDimensions());
+    StatusResponse statusResponse = contractService.createPartnerContract(contract);
+    assertEquals("New contract created", statusResponse.getMessage());
+    verify(subscriptionRepository).persist(any(Set.class));
+    WireMock.removeStub(stub);
+  }
+
+  @Test
+  void testContractSyncedWhenNoPurchaseExist() throws Exception {
+    var contract = givenAzurePartnerEntitlementContract();
+    var response = createPartnerApiResponseNoContractDimensions();
+    response.getContent().get(0).setPurchase(null);
+    var stubMapping = mockPartnerApi(response);
+    StatusResponse statusResponse = contractService.createPartnerContract(contract);
+    assertEquals("Empty value in non-null fields", statusResponse.getMessage());
+    WireMock.removeStub(stubMapping);
+  }
+
+  @Test
+  void testContractMetricValueUpdated() throws Exception {
+    var contract = givenAzurePartnerEntitlementContract();
+    mockPartnerApi();
+    contractService.createPartnerContract(contract);
+    var updatedApiResponse = createPartnerApiResponse();
+    updatedApiResponse
+        .getContent()
+        .get(0)
+        .getPurchase()
+        .getContracts()
+        .get(0)
+        .getDimensions()
+        .get(0)
+        .setValue("999");
+    var stubMapping = mockPartnerApi(updatedApiResponse);
+    contractService.createPartnerContract(contract);
+    var contracts = contractRepository.findAll();
+    var persistedContract =
+        contracts.stream()
+            .filter(entity -> entity.getStartDate().equals(DEFAULT_START_DATE))
+            .findFirst()
+            .get();
+    assertEquals(999, persistedContract.getMetrics().iterator().next().getValue());
+    WireMock.removeStub(stubMapping);
   }
 
   private static PartnerEntitlementV1 givenContractWithoutRequiredData() {
@@ -460,6 +557,7 @@ class ContractServiceTest extends BaseUnitTest {
     var saasContract = new SaasContractV1();
     purchase.setContracts(List.of(saasContract));
     saasContract.setDimensions(List.of(metric1, metric2));
+    saasContract.setStartDate(entitlement.getEntitlementDates().getStartDate());
     contract.setCloudIdentifiers(cloudIdentifiers);
 
     ContractRequest contractRequest = new ContractRequest();
@@ -482,6 +580,19 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   private void mockPartnerApi() throws Exception {
+    mockPartnerApi(createPartnerApiResponse());
+  }
+
+  private StubMapping mockPartnerApi(PartnerEntitlements response) throws Exception {
+    return stubFor(
+        WireMock.any(urlMatching("/mock/partnerApi/v1/partnerSubscriptions"))
+            .willReturn(
+                aResponse()
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(objectMapper.writeValueAsString(response))));
+  }
+
+  private PartnerEntitlements createPartnerApiResponse() {
     var entitlement =
         new PartnerEntitlementV1()
             .entitlementDates(
@@ -502,16 +613,34 @@ class ContractServiceTest extends BaseUnitTest {
                     .contracts(
                         List.of(
                             new SaasContractV1()
-                                .startDate(OffsetDateTime.parse("2023-06-09T13:59:43.035365Z"))
+                                .startDate(DEFAULT_START_DATE)
+                                .endDate(DEFAULT_END_DATE)
                                 .planId("rh-rhel-sub-1yr")
                                 .dimensions(List.of(new DimensionV1().name("vCPU").value("4"))))));
 
-    var azureQuery = new PartnerEntitlements().content(List.of(entitlement));
-    stubFor(
-        WireMock.any(urlMatching("/mock/partnerApi/v1/partnerSubscriptions"))
-            .willReturn(
-                aResponse()
-                    .withHeader("Content-Type", "application/json")
-                    .withBody(objectMapper.writeValueAsString(azureQuery))));
+    return new PartnerEntitlements().content(List.of(entitlement));
+  }
+
+  private PartnerEntitlements createPartnerApiResponseNoContractDimensions() {
+    var entitlement =
+        new PartnerEntitlementV1()
+            .entitlementDates(
+                new PartnerEntitlementV1EntitlementDates()
+                    .startDate(OffsetDateTime.parse("2023-03-17T12:29:48.569Z"))
+                    .endDate(OffsetDateTime.parse("2024-03-17T12:29:48.569Z")))
+            .rhAccountId("7186626")
+            .sourcePartner(ContractSourcePartnerEnum.AZURE.getCode())
+            .partnerIdentities(
+                new PartnerIdentityV1()
+                    .azureSubscriptionId("fa650050-dedd-4958-b901-d8e5118c0a5f")
+                    .azureCustomerId("eadf26ee-6fbc-4295-9a9e-25d4fea8951d_2019-05-31"))
+            .rhEntitlements(List.of(new RhEntitlementV1().sku(SKU).subscriptionNumber("testSubId")))
+            .purchase(
+                new PurchaseV1()
+                    .vendorProductCode("azureProductCode")
+                    .azureResourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
+                    .contracts(new ArrayList<>()));
+
+    return new PartnerEntitlements().content(List.of(entitlement));
   }
 }

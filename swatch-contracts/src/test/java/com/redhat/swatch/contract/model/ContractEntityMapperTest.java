@@ -24,12 +24,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.DimensionV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1;
+import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1EntitlementDates;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerIdentityV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PurchaseV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.SaasContractV1;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
@@ -56,12 +59,61 @@ class ContractEntityMapperTest {
     entitlement.getPartnerIdentities().azureCustomerId("azure_customer_id_placeholder");
     entitlement.sourcePartner(ContractSourcePartnerEnum.AZURE.getCode());
     contract.planId("vcpu-hours");
-
+    contract.setStartDate(OffsetDateTime.now());
     contract.addDimensionsItem(new DimensionV1().name(metricId).value("0"));
 
-    var entity = mapper.mapEntitlementToContractEntity(entitlement);
+    var entity = mapper.mapEntitlementToContractEntity(entitlement, contract);
 
     var expectedMetricEntity = ContractMetricEntity.builder().metricId(metricId).value(0.0).build();
     assertEquals(Set.of(expectedMetricEntity), entity.getMetrics());
+  }
+
+  @Test
+  void testEntitlementToEntityTakesContractStartAndEndDate() {
+    String metricId = "vcpu_hours";
+
+    var oldContract = new SaasContractV1();
+    var newContract = new SaasContractV1();
+    var entitlement = new PartnerEntitlementV1();
+    entitlement.setPurchase(new PurchaseV1());
+    entitlement.getPurchase().azureResourceId("azure_resource_id_placeholder");
+    entitlement.setPartnerIdentities(new PartnerIdentityV1());
+    entitlement.getPartnerIdentities().azureCustomerId("azure_customer_id_placeholder");
+    entitlement.sourcePartner(ContractSourcePartnerEnum.AZURE.getCode());
+    oldContract.planId("vcpu-hours");
+    oldContract.startDate(OffsetDateTime.parse("2020-01-01T00:00Z"));
+    oldContract.endDate(OffsetDateTime.parse("2021-05-01T00:00Z"));
+    oldContract.addDimensionsItem(new DimensionV1().name(metricId).value("0"));
+    newContract.planId("vcpu-hours");
+    newContract.startDate(OffsetDateTime.parse("2021-05-01T00:00Z"));
+    newContract.addDimensionsItem(new DimensionV1().name(metricId).value("10"));
+    entitlement.getPurchase().addContractsItem(oldContract);
+    entitlement.getPurchase().addContractsItem(newContract);
+
+    var entity = mapper.mapEntitlementToContractEntity(entitlement, newContract);
+
+    var expectedMetricEntity =
+        ContractMetricEntity.builder().metricId(metricId).value(10.0).build();
+    assertEquals(Set.of(expectedMetricEntity), entity.getMetrics());
+  }
+
+  @Test
+  void testEntitlementToEntityTakesPartnerEntitlementDatesWhenNoContract() {
+    var entitlement = new PartnerEntitlementV1();
+    entitlement.setPurchase(new PurchaseV1());
+    entitlement.getPurchase().setContracts(new ArrayList<>());
+    entitlement.getPurchase().azureResourceId("azure_resource_id_placeholder");
+    entitlement.setPartnerIdentities(new PartnerIdentityV1());
+    entitlement.getPartnerIdentities().azureCustomerId("azure_customer_id_placeholder");
+    entitlement.sourcePartner(ContractSourcePartnerEnum.AZURE.getCode());
+    var entitlementDates = new PartnerEntitlementV1EntitlementDates();
+    entitlementDates.setStartDate(OffsetDateTime.parse("2022-01-01T00:00Z"));
+    entitlementDates.setEndDate(OffsetDateTime.parse("2023-01-01T00:00Z"));
+    entitlement.setEntitlementDates(entitlementDates);
+
+    var entity = mapper.mapEntitlementToContractEntity(entitlement, null);
+
+    assertEquals(entitlementDates.getStartDate(), entity.getStartDate());
+    assertEquals(entitlementDates.getEndDate(), entity.getEndDate());
   }
 }
