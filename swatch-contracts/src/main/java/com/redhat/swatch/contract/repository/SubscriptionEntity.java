@@ -99,6 +99,15 @@ public class SubscriptionEntity implements Serializable {
   @ToString.Exclude // Excluded to prevent fetching a lazy-loaded collection
   private Set<SubscriptionMeasurementEntity> subscriptionMeasurements = new HashSet<>();
 
+  @OneToMany(
+      mappedBy = "subscription",
+      fetch = FetchType.LAZY,
+      cascade = CascadeType.ALL,
+      orphanRemoval = true)
+  @Builder.Default
+  @ToString.Exclude // Excluded to prevent fetching a lazy-loaded collection
+  private Set<SubscriptionProductIdEntity> subscriptionProductIds = new HashSet<>();
+
   public Optional<SubscriptionMeasurementEntity> getSubscriptionMeasurement(
       String metricId, String measurementType) {
     return subscriptionMeasurements.stream()

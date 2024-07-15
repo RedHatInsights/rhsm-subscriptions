@@ -372,7 +372,10 @@ public class ContractService {
                 existingSubscription);
             subscriptionRepository.delete(existingSubscription);
           } else {
-            if (!matchingUpdatedSubscription.equals(existingSubscription)) {
+            if (!matchingUpdatedSubscription.equals(existingSubscription)
+                || !Objects.equals(
+                    matchingUpdatedSubscription.getSubscriptionMeasurements(),
+                    existingSubscription.getSubscriptionMeasurements())) {
               log.info(
                   "Subscription updated. Old values: {} New values: {}",
                   existingSubscription,
