@@ -20,31 +20,7 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import java.time.OffsetDateTime;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class HostApiProjection {
-
-  private String inventoryId;
-  private String insightsId;
-  private String displayName;
-  private String subscriptionManagerId;
-  private Double sockets;
-  private Double cores;
-  private Double coreHours;
-  private Double instanceHours;
-  private HostHardwareType hardwareType;
-  private HardwareMeasurementType measurementType;
-  private Integer numberOfGuests;
-  private OffsetDateTime lastSeen;
-  private Boolean isUnmappedGuest;
-  private Boolean isHypervisor;
-  private String cloudProvider;
-  private BillingProvider billingProvider;
-  private String billingAccountId;
+public enum BillingCategory {
+  PREPAID,
+  ON_DEMAND
 }

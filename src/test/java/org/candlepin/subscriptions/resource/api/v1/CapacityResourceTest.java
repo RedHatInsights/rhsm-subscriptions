@@ -49,12 +49,12 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
-import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
-import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
-import org.candlepin.subscriptions.utilization.api.model.UsageType;
 import org.candlepin.subscriptions.utilization.api.v1.model.CapacityReportByMetricId;
 import org.candlepin.subscriptions.utilization.api.v1.model.CapacitySnapshotByMetricId;
 import org.candlepin.subscriptions.utilization.api.v1.model.GranularityType;
+import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
+import org.candlepin.subscriptions.utilization.api.v1.model.ServiceLevelType;
+import org.candlepin.subscriptions.utilization.api.v1.model.UsageType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -268,7 +268,7 @@ class CapacityResourceTest {
             null,
             null,
             null,
-            ServiceLevelType.__EMPTY__,
+            ServiceLevelType.EMPTY,
             null);
 
     assertEquals(9, report.getData().size());
@@ -305,7 +305,7 @@ class CapacityResourceTest {
             null,
             null,
             null,
-            UsageType.__EMPTY__);
+            UsageType.EMPTY);
 
     assertEquals(9, report.getData().size());
   }

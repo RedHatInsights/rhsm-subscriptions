@@ -25,13 +25,13 @@ import jakarta.validation.constraints.Min;
 import java.time.OffsetDateTime;
 import lombok.AllArgsConstructor;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
-import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
-import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
-import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
-import org.candlepin.subscriptions.utilization.api.model.SortDirection;
-import org.candlepin.subscriptions.utilization.api.model.UsageType;
+import org.candlepin.subscriptions.utilization.api.v2.model.BillingProviderType;
+import org.candlepin.subscriptions.utilization.api.v2.model.ReportCategory;
+import org.candlepin.subscriptions.utilization.api.v2.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.v2.model.SkuCapacityReport;
 import org.candlepin.subscriptions.utilization.api.v2.model.SkuCapacityReportSort;
+import org.candlepin.subscriptions.utilization.api.v2.model.SortDirection;
+import org.candlepin.subscriptions.utilization.api.v2.model.UsageType;
 import org.candlepin.subscriptions.utilization.api.v2.resources.SubscriptionsApi;
 import org.springframework.stereotype.Component;
 

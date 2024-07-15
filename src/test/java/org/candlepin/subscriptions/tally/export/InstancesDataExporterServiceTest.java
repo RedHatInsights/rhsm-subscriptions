@@ -52,6 +52,7 @@ import org.candlepin.subscriptions.json.InstancesExportJson;
 import org.candlepin.subscriptions.json.InstancesExportJsonGuest;
 import org.candlepin.subscriptions.json.InstancesExportJsonItem;
 import org.candlepin.subscriptions.json.InstancesExportJsonMetric;
+import org.candlepin.subscriptions.util.ApiModelMapperV1;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -70,6 +71,8 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
   private final List<HostWithGuests> itemsToBeExported = new ArrayList<>();
 
   @Autowired HostRepository repository;
+
+  @Autowired ApiModelMapperV1 mapper;
 
   @AfterEach
   public void tearDown() {
@@ -227,7 +230,7 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
         instance.setBillingProvider(host.getBillingProvider().getValue());
       }
       var bucket = host.getBuckets().iterator().next();
-      var category = bucket.getMeasurementType().toReportCategory();
+      var category = mapper.measurementTypeToReportCategory(bucket.getMeasurementType());
       if (category != null) {
         instance.setCategory(category.toString());
       }
@@ -263,7 +266,7 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
         instance.setBillingProvider(host.getBillingProvider().getValue());
       }
       var bucket = host.getBuckets().iterator().next();
-      var category = bucket.getMeasurementType().toReportCategory();
+      var category = mapper.measurementTypeToReportCategory(bucket.getMeasurementType());
       if (category != null) {
         instance.setCategory(category.toString());
       }

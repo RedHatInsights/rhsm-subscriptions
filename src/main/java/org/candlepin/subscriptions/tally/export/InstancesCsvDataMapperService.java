@@ -31,11 +31,14 @@ import org.candlepin.subscriptions.db.model.TallyInstanceView;
 import org.candlepin.subscriptions.export.DataMapperService;
 import org.candlepin.subscriptions.export.ExportServiceRequest;
 import org.candlepin.subscriptions.json.InstancesExportCsvItem;
+import org.candlepin.subscriptions.util.ApiModelMapperV1;
 import org.springframework.stereotype.Service;
 
 @Service
 @AllArgsConstructor
 public class InstancesCsvDataMapperService implements DataMapperService<TallyInstanceView> {
+
+  private final ApiModelMapperV1 mapper;
 
   public static final Map<MetricId, ObjDoubleConsumer<InstancesExportCsvItem>> METRIC_MAPPER =
       Map.of(
@@ -67,7 +70,7 @@ public class InstancesCsvDataMapperService implements DataMapperService<TallyIns
       }
     }
 
-    var category = item.getKey().getMeasurementType().toReportCategory();
+    var category = mapper.measurementTypeToReportCategory(item.getKey().getMeasurementType());
     if (category != null) {
       instance.setCategory(category.toString());
     }

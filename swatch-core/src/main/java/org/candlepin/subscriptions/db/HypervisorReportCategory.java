@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.db;
 
-import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
+import org.candlepin.subscriptions.db.model.ReportCategory;
 
 public enum HypervisorReportCategory {
   HYPERVISOR,

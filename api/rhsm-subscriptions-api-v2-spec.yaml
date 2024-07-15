@@ -15,11 +15,10 @@ servers:
     variables:
       HOSTNAME:
         enum:
-          - ci.cloud.redhat.com
-          - qa.cloud.redhat.com
-          - stage.cloud.redhat.com
-          - cloud.redhat.com
-        default: ci.cloud.redhat.com
+          - qa.console.redhat.com
+          - stage.console.redhat.com
+          - console.redhat.com
+        default: console.redhat.com
       PATH_PREFIX:
         default: api
       APP_NAME:
@@ -54,22 +53,22 @@ paths:
         - name: category
           in: query
           schema:
-            $ref: './model/report_category.yaml'
+            $ref: '#/components/schemas/ReportCategory'
           description: 'The category to fetch data for'
         - name: sla
           in: query
           schema:
-            $ref: './model/service_level_type.yaml'
+            $ref: '#/components/schemas/ServiceLevelType'
           description: "Include only capacity for the specified service level."
         - name: usage
           in: query
           schema:
-            $ref: './model/usage_type.yaml'
+            $ref: '#/components/schemas/UsageType'
           description: "Include only capacity for the specified usage level."
         - name: billing_provider
           in: query
           schema:
-            $ref: './model/billing_provider_type.yaml'
+            $ref: '#/components/schemas/BillingProviderType'
           description: "Include only report data matching the specified billing provider"
         - name: billing_account_id
           in: query
@@ -103,7 +102,7 @@ paths:
         - name: dir
           in: query
           schema:
-            $ref: './model/sort_direction.yaml'
+            $ref: "#/components/schemas/SortDirection"
           description: "Which direction to sort by (default: asc)"
       responses:
         '200':
@@ -137,21 +136,69 @@ paths:
                   count: 1
                   measurements: [ "Cores", "Sockets", "Instance-hours" ]
         '400':
-          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
+          $ref: "#/components/responses/BadRequest"
         '403':
-          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
+          $ref: "#/components/responses/Forbidden"
         '404':
-          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
+          $ref: "#/components/responses/ResourceNotFound"
         '500':
-          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
+          $ref: "#/components/responses/InternalServerError"
       tags:
         - subscriptions
   /v2/openapi.json:
-    $ref: "../spec/openapi-paths.yaml#/openapi-json"
+    get:
+      summary: "Get the OpenAPI spec in JSON format."
+      operationId: getOpenApiJson
+      tags:
+        - root
+      responses:
+        '200':
+          description: "The request to get the OpenAPI JSON was successful."
+          content:
+            application/json:
+              schema:
+                type: string
   /v2/openapi.yaml:
-    $ref: "../spec/openapi-paths.yaml#/openapi-yaml"
+    get:
+      summary: "Get the OpenAPI spec in YAML format."
+      operationId: getOpenApiYaml
+      tags:
+        - root
+      responses:
+        '200':
+          description: "The request to get the OpenAPI YAML was successful."
+          content:
+            application/x-yaml:
+              schema:
+                type: string
 
 components:
+  responses:
+    BadRequest:
+      description: "The server could could not process the current request."
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    Forbidden:
+      description: "The request was valid, but the request was refused by the server."
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    ResourceNotFound:
+      description: "The requested resource was not found."
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    InternalServerError:
+      description: "An internal server error has occurred and is not recoverable."
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+
   securitySchemes:
     3ScaleIdentity:
       type: apiKey
@@ -178,8 +225,67 @@ components:
         `eyJpZGVudGl0eSI6eyJhY2NvdW50X251bWJlciI6ImFjY291bnQxMjMiLCJ0eXBlIjoiVXNlciIsInVzZXIiOnsiaXNfb3JnX2FkbWluIjp0cnVlfSwiaW50ZXJuYWwiOnsib3JnX2lkIjoib3JnMTIzIn19fQo=`
 
   schemas:
+    # Schemas ending in "Type" are intentionally named to prevent naming conflicts with db model classes
+    ServiceLevelType:
+      description: "Describes the service level that the report was made against. Not set if it
+          wasn't specified as a query parameter."
+      type: string
+      enum: [ "", Premium, Standard, Self-Support, _ANY ]
+    UsageType:
+      description: "Describes the usage that the report was made against. Not set if it wasn't
+          specified as a query parameter."
+      type: string
+      enum: [ "", Production, Development/Test, Disaster Recovery, _ANY ]
+    BillingProviderType:
+      type: string
+      enum: [ "", red hat, aws, gcp, azure, oracle, _ANY ]
+    ReportCategory:
+      type: string
+      enum:
+        - physical
+        - virtual
+        - cloud
+        - hypervisor
     BillingAccountId:
       type: string
+    SortDirection:
+      type: string
+      enum:
+        - asc
+        - desc
+    PageLinks:
+      properties:
+        first:
+          type: string
+        last:
+          type: string
+        previous:
+          type: string
+        next:
+          type: string
+      required:
+        - first
+        - last
+
+    SubscriptionType:
+      type: string
+      enum:
+        - On-demand
+        - Annual
+
+    SubscriptionEventType:
+      description: "The most immediate subscription event, such as a subscription beginning or ending."
+      type: string
+      enum:
+        - Subscription Start
+        - Subscription End
+
+    SkuCapacitySubscription:
+      properties:
+        id:
+          type: string
+        number:
+          type: string
 
     SkuCapacity:
       properties:
@@ -190,22 +296,22 @@ components:
           description: "The offering name."
           type: string
         service_level:
-          $ref: './model/service_level_type.yaml'
+          $ref: "#/components/schemas/ServiceLevelType"
         usage:
-          $ref: './model/usage_type.yaml'
+          $ref: "#/components/schemas/UsageType"
         subscriptions:
           description: "List of active subscriptions that contribute to the quantity and capacity totals."
           type: array
           items:
-            $ref: './model/sku_capacity_subscription.yaml'
+            $ref: "#/components/schemas/SkuCapacitySubscription"
         billing_provider:
-          $ref: './model/billing_provider_type.yaml'
+          $ref: '#/components/schemas/BillingProviderType'
         next_event_date:
           description: "The most immediate date for a subscription event."
           type: string
           format: date-time
         next_event_type:
-          $ref: './model/subscription_event_type.yaml'
+          $ref: "#/components/schemas/SubscriptionEventType"
         quantity:
           description: "The summed subscription quantities across the active subscriptions for the offering."
           type: integer
@@ -219,7 +325,7 @@ components:
             format: double
             type: number
         category:
-          $ref: './model/report_category.yaml'
+          $ref: '#/components/schemas/ReportCategory'
         has_infinite_quantity:
           description: "Denotes unlimited capacity for the offering when true."
           type: boolean
@@ -240,7 +346,7 @@ components:
           items:
             $ref: '#/components/schemas/SkuCapacity'
         links:
-          $ref: "./model/page_links.yaml"
+          $ref: "#/components/schemas/PageLinks"
         meta:
           type: object
           properties:
@@ -253,13 +359,13 @@ components:
               items:
                 type: string
             service_level:
-              $ref: './model/service_level_type.yaml'
+              $ref: '#/components/schemas/ServiceLevelType'
             usage:
-              $ref: './model/usage_type.yaml'
+              $ref: '#/components/schemas/UsageType'
             subscription_type:
-              $ref: './model/subscription_type.yaml'
+              $ref: '#/components/schemas/SubscriptionType'
             report_category:
-              $ref: './model/report_category.yaml'
+              $ref: '#/components/schemas/ReportCategory'
           required:
             - count
             - product
@@ -267,6 +373,26 @@ components:
     ProductId:
       type: string
       format: ProductId
+    Errors:
+      required:
+        - errors
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/Error"
+    Error:
+      required:
+        - status
+        - code
+        - title
+      properties:
+        status:
+          type: string
+        code:
+          type: string
+        title:
+          type: string
 
 security:
   - 3ScaleIdentity: []

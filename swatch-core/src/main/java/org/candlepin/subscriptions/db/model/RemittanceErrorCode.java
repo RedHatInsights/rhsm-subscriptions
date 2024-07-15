@@ -27,9 +27,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
+@AllArgsConstructor
 public enum RemittanceErrorCode {
   INACTIVE("inactive"),
   REDUNDANT("redundant"),
@@ -40,10 +42,6 @@ public enum RemittanceErrorCode {
           .collect(Collectors.toMap(RemittanceErrorCode::getValue, Function.identity()));
 
   private final String value;
-
-  RemittanceErrorCode(String value) {
-    this.value = value;
-  }
 
   /**
    * Parse the RemittanceErrorCode from its string representation

@@ -301,23 +301,7 @@ assemble.dependsOn(tasks.downloadJavaAgent)
 project(":api") {
     apply plugin: "swatch.java-conventions"
     apply plugin: "swatch.spring-boot-dependencies-conventions"
-    apply plugin: "jsonschema2pojo"
     apply plugin: "org.openapi.generator"
-
-    jsonSchema2Pojo {
-        source = files("${projectDir}/model")
-        targetPackage = "org.candlepin.subscriptions.utilization.api.model"
-        targetDirectory = file("${project.buildDir}/generated/src/gen/java")
-        includeAdditionalProperties = false
-        includeJsr303Annotations = true
-        initializeCollections = false
-        dateTimeType = 'java.time.OffsetDateTime'
-        sourceType = 'yamlschema'
-        generateBuilders = true
-        includeGetters = true
-        includeSetters = true
-        useJakartaValidation = true
-    }
 
     def public_apis = ["v1", "v2"]
 
@@ -330,7 +314,6 @@ project(":api") {
             inputSpec = spec
             configFile = config
             outputDir = "$buildDir/generated"
-            ignoreFileOverride = "${projectDir}/.openapi-generator-ignore"
             configOptions = [
                     interfaceOnly: "true",
                     generatePom: "false",
@@ -341,15 +324,6 @@ project(":api") {
             importMappings = [
                     "MetricId": "com.redhat.swatch.configuration.registry.MetricId",
                     "ProductId": "com.redhat.swatch.configuration.registry.ProductId",
-                    "ServiceLevelType": "org.candlepin.subscriptions.utilization.api.model.ServiceLevelType",
-                    "UsageType": "org.candlepin.subscriptions.utilization.api.model.UsageType",
-                    "BillingProviderType": "org.candlepin.subscriptions.utilization.api.model.BillingProviderType",
-                    "ReportCategory": "org.candlepin.subscriptions.utilization.api.model.ReportCategory",
-                    "SubscriptionType": "org.candlepin.subscriptions.utilization.api.model.SubscriptionType",
-                    "SortDirection": "org.candlepin.subscriptions.utilization.api.model.SortDirection",
-                    "PageLinks": "org.candlepin.subscriptions.utilization.api.model.PageLinks",
-                    "SubscriptionEventType": "org.candlepin.subscriptions.utilization.api.model.SubscriptionEventType",
-                    "SkuCapacitySubscription": "org.candlepin.subscriptions.utilization.api.model.SkuCapacitySubscription",
             ]
             typeMappings = [
                     "string+MetricId": "MetricId",

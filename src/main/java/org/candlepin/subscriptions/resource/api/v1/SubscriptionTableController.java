@@ -49,14 +49,7 @@ import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionMeasurementKey;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resource.ResourceUtils;
-import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
-import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
-import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
-import org.candlepin.subscriptions.utilization.api.model.SkuCapacitySubscription;
-import org.candlepin.subscriptions.utilization.api.model.SortDirection;
-import org.candlepin.subscriptions.utilization.api.model.SubscriptionEventType;
-import org.candlepin.subscriptions.utilization.api.model.SubscriptionType;
-import org.candlepin.subscriptions.utilization.api.model.UsageType;
+import org.candlepin.subscriptions.util.ApiModelMapperV1;
 import org.candlepin.subscriptions.utilization.api.v1.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
@@ -71,12 +64,16 @@ public class SubscriptionTableController {
   private static final String SOCKETS = "Sockets";
   private static final Uom NO_UOM = null;
   private static final String NO_METRIC_ID = null;
+  private final ApiModelMapperV1 mapper;
   private final SubscriptionRepository subscriptionRepository;
   private final ApplicationClock clock;
 
   @Autowired
   SubscriptionTableController(
-      SubscriptionRepository subscriptionRepository, ApplicationClock clock) {
+      ApiModelMapperV1 mapper,
+      SubscriptionRepository subscriptionRepository,
+      ApplicationClock clock) {
+    this.mapper = mapper;
     this.subscriptionRepository = subscriptionRepository;
     this.clock = clock;
   }
@@ -107,12 +104,13 @@ public class SubscriptionTableController {
 
     OffsetDateTime reportEnd = clock.now();
     OffsetDateTime reportStart = clock.now();
-    ServiceLevel sanitizedServiceLevel = sanitizeServiceLevel(serviceLevel);
-    Usage sanitizedUsage = sanitizeUsage(usage);
-    BillingProvider sanitizedBillingProvider = sanitizeBillingProvider(billingProviderType);
+    ServiceLevel sanitizedServiceLevel = sanitizeServiceLevel(mapper.map(serviceLevel));
+    Usage sanitizedUsage = sanitizeUsage(mapper.map(usage));
+    BillingProvider sanitizedBillingProvider =
+        sanitizeBillingProvider(mapper.map(billingProviderType));
     String sanitizedBillingAccountId = sanitizeBillingAccountId(billingAccountId);
     HypervisorReportCategory hypervisorReportCategory =
-        HypervisorReportCategory.mapCategory(category);
+        HypervisorReportCategory.mapCategory(mapper.map(category));
 
     var orgId = getOrgId();
     log.info(
@@ -302,7 +300,7 @@ public class SubscriptionTableController {
     return inventories.values();
   }
 
-  public static SkuCapacity initializeSkuCapacity(
+  public SkuCapacity initializeSkuCapacity(
       @Nonnull Subscription sub, @Nullable Uom uom, @Nullable String effectiveMetricId) {
     var offering = sub.getOffering();
     var inventory = new SkuCapacity();
@@ -310,14 +308,11 @@ public class SubscriptionTableController {
     inventory.setSku(offering.getSku());
     inventory.setProductName(offering.getDescription());
     inventory.setServiceLevel(
-        Optional.ofNullable(offering.getServiceLevel()).orElse(ServiceLevel.EMPTY).asOpenApiEnum());
-    inventory.setUsage(
-        Optional.ofNullable(offering.getUsage()).orElse(Usage.EMPTY).asOpenApiEnum());
+        mapper.map(Optional.ofNullable(offering.getServiceLevel()).orElse(ServiceLevel.EMPTY)));
+    inventory.setUsage(mapper.map(Optional.ofNullable(offering.getUsage()).orElse(Usage.EMPTY)));
     inventory.setHasInfiniteQuantity(offering.isHasUnlimitedUsage());
     inventory.setBillingProvider(
-        Optional.ofNullable(sub.getBillingProvider())
-            .orElse(BillingProvider.EMPTY)
-            .asOpenApiEnum());
+        mapper.map(Optional.ofNullable(sub.getBillingProvider()).orElse(BillingProvider.EMPTY)));
     inventory.setQuantity(0);
     inventory.setCapacity(0);
     inventory.setHypervisorCapacity(0);
@@ -341,7 +336,7 @@ public class SubscriptionTableController {
         && (nearestEventDate == null || subEnd.isBefore(nearestEventDate))) {
       nearestEventDate = subEnd;
       skuCapacity.setNextEventDate(nearestEventDate);
-      skuCapacity.setNextEventType(SubscriptionEventType.SUBSCRIPTION_END);
+      skuCapacity.setNextEventType(SubscriptionEventType.END);
     }
   }
 
@@ -357,7 +352,7 @@ public class SubscriptionTableController {
     if (subEnd != null && (nearestEventDate == null || subEnd.isBefore(nearestEventDate))) {
       nearestEventDate = subEnd;
       skuCapacity.setNextEventDate(nearestEventDate);
-      skuCapacity.setNextEventType(SubscriptionEventType.SUBSCRIPTION_END);
+      skuCapacity.setNextEventType(SubscriptionEventType.END);
     }
   }
 

@@ -39,14 +39,14 @@ import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resource.api.v1.SubscriptionTableController;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
-import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
-import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
-import org.candlepin.subscriptions.utilization.api.model.SkuCapacitySubscription;
-import org.candlepin.subscriptions.utilization.api.model.SubscriptionEventType;
-import org.candlepin.subscriptions.utilization.api.model.UsageType;
+import org.candlepin.subscriptions.utilization.api.v1.model.BillingProviderType;
+import org.candlepin.subscriptions.utilization.api.v1.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.v1.model.SkuCapacity;
 import org.candlepin.subscriptions.utilization.api.v1.model.SkuCapacityReport;
 import org.candlepin.subscriptions.utilization.api.v1.model.SkuCapacityReportSort;
+import org.candlepin.subscriptions.utilization.api.v1.model.SkuCapacitySubscription;
+import org.candlepin.subscriptions.utilization.api.v1.model.SubscriptionEventType;
+import org.candlepin.subscriptions.utilization.api.v1.model.UsageType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -401,9 +401,7 @@ class SubscriptionTableControllerOnDemandTest {
 
     // Then the report should contain end date of the contributing subscription
     assertEquals(
-        SubscriptionEventType.SUBSCRIPTION_END,
-        actualItem.getNextEventType(),
-        "Wrong upcoming event type");
+        SubscriptionEventType.END, actualItem.getNextEventType(), "Wrong upcoming event type");
     assertEquals(expectedSub.end, actualItem.getNextEventDate(), "Wrong upcoming event date");
   }
 

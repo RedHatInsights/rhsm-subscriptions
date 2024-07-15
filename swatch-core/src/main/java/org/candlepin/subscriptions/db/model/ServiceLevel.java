@@ -24,7 +24,8 @@ import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 import java.util.Map;
 import java.util.Objects;
-import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 /**
  * System purpose service level
@@ -32,23 +33,19 @@ import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
  * <p>SLA or service level agreement is defined on a given subscription, and can be set as an
  * attribute on a system to associate it with a specific SLA requirement.
  */
-public enum ServiceLevel implements StringValueEnum<ServiceLevelType> {
-  EMPTY("", ServiceLevelType.__EMPTY__),
-  PREMIUM("Premium", ServiceLevelType.PREMIUM),
-  STANDARD("Standard", ServiceLevelType.STANDARD),
-  SELF_SUPPORT("Self-Support", ServiceLevelType.SELF_SUPPORT),
-  _ANY("_ANY", ServiceLevelType.ANY); // NOSONAR
+@Getter
+@AllArgsConstructor
+public enum ServiceLevel implements StringValueEnum {
+  EMPTY(""),
+  PREMIUM("Premium"),
+  STANDARD("Standard"),
+  SELF_SUPPORT("Self-Support"),
+  _ANY("_ANY"); // NOSONAR
 
   private static final Map<String, ServiceLevel> VALUE_ENUM_MAP =
       StringValueEnum.initializeImmutableMap(ServiceLevel.class);
 
   private final String value;
-  private final ServiceLevelType openApiEnum;
-
-  ServiceLevel(String value, ServiceLevelType openApiEnum) {
-    this.value = value;
-    this.openApiEnum = openApiEnum;
-  }
 
   /**
    * Parse the service level from its string representation (excluding special value _ANY).
@@ -61,14 +58,6 @@ public enum ServiceLevel implements StringValueEnum<ServiceLevelType> {
    */
   public static ServiceLevel fromString(String value) {
     return StringValueEnum.getValueOf(ServiceLevel.class, VALUE_ENUM_MAP, value, EMPTY);
-  }
-
-  public String getValue() {
-    return value;
-  }
-
-  public ServiceLevelType asOpenApiEnum() {
-    return openApiEnum;
   }
 
   /** JPA converter for ServiceLevel */

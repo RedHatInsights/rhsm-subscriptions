@@ -50,18 +50,19 @@ import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityViewMetric;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resource.ResourceUtils;
-import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
-import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
-import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
-import org.candlepin.subscriptions.utilization.api.model.SkuCapacitySubscription;
-import org.candlepin.subscriptions.utilization.api.model.SortDirection;
-import org.candlepin.subscriptions.utilization.api.model.SubscriptionEventType;
-import org.candlepin.subscriptions.utilization.api.model.SubscriptionType;
-import org.candlepin.subscriptions.utilization.api.model.UsageType;
+import org.candlepin.subscriptions.util.ApiModelMapperV2;
+import org.candlepin.subscriptions.utilization.api.v2.model.BillingProviderType;
+import org.candlepin.subscriptions.utilization.api.v2.model.ReportCategory;
+import org.candlepin.subscriptions.utilization.api.v2.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.v2.model.SkuCapacity;
 import org.candlepin.subscriptions.utilization.api.v2.model.SkuCapacityReport;
 import org.candlepin.subscriptions.utilization.api.v2.model.SkuCapacityReportMeta;
 import org.candlepin.subscriptions.utilization.api.v2.model.SkuCapacityReportSort;
+import org.candlepin.subscriptions.utilization.api.v2.model.SkuCapacitySubscription;
+import org.candlepin.subscriptions.utilization.api.v2.model.SortDirection;
+import org.candlepin.subscriptions.utilization.api.v2.model.SubscriptionEventType;
+import org.candlepin.subscriptions.utilization.api.v2.model.SubscriptionType;
+import org.candlepin.subscriptions.utilization.api.v2.model.UsageType;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
@@ -70,6 +71,7 @@ import org.springframework.stereotype.Service;
 @AllArgsConstructor
 public class SubscriptionTableController {
 
+  private final ApiModelMapperV2 mapper;
   private final SubscriptionCapacityViewRepository repository;
   private final ApplicationClock clock;
 
@@ -90,10 +92,10 @@ public class SubscriptionTableController {
         SubscriptionCapacityViewRepository.buildSearchSpecification(
             getOrgId(),
             productId,
-            category,
-            serviceLevel,
-            usage,
-            billingProviderType,
+            mapper.map(category),
+            mapper.map(serviceLevel),
+            mapper.map(usage),
+            mapper.map(billingProviderType),
             billingAccountId,
             metricId);
     MetricsMeta metrics = new MetricsMeta(metricId, productId);
@@ -166,7 +168,7 @@ public class SubscriptionTableController {
     if (subEnd != null && (nearestEventDate == null || subEnd.isBefore(nearestEventDate))) {
       nearestEventDate = subEnd;
       skuCapacity.setNextEventDate(nearestEventDate);
-      skuCapacity.setNextEventType(SubscriptionEventType.SUBSCRIPTION_END);
+      skuCapacity.setNextEventType(SubscriptionEventType.END);
     }
   }
 
@@ -193,7 +195,7 @@ public class SubscriptionTableController {
         && (nearestEventDate == null || subEnd.isBefore(nearestEventDate))) {
       nearestEventDate = subEnd;
       skuCapacity.setNextEventDate(nearestEventDate);
-      skuCapacity.setNextEventType(SubscriptionEventType.SUBSCRIPTION_END);
+      skuCapacity.setNextEventType(SubscriptionEventType.END);
     }
   }
 
@@ -230,7 +232,8 @@ public class SubscriptionTableController {
     return m -> {
       if (inventory.getCategory() != null) {
         HardwareMeasurementType type = HardwareMeasurementType.fromString(m.getMeasurementType());
-        return type != null && inventory.getCategory().equals(type.toReportCategory());
+        return type != null
+            && inventory.getCategory().equals(mapper.measurementTypeToReportCategory(type));
       }
 
       return true;
@@ -246,7 +249,7 @@ public class SubscriptionTableController {
     return capacities.subList(offset, lastIndex);
   }
 
-  private static SkuCapacity initializeSkuCapacity(
+  private SkuCapacity initializeSkuCapacity(
       @Nonnull SubscriptionCapacityView sub,
       @Nonnull MetricsMeta metrics,
       ReportCategory category) {
@@ -255,13 +258,11 @@ public class SubscriptionTableController {
     inventory.setSku(sub.getSku());
     inventory.setProductName(sub.getProductName());
     inventory.setServiceLevel(
-        Optional.ofNullable(sub.getServiceLevel()).orElse(ServiceLevel.EMPTY).asOpenApiEnum());
-    inventory.setUsage(Optional.ofNullable(sub.getUsage()).orElse(Usage.EMPTY).asOpenApiEnum());
+        mapper.map(Optional.ofNullable(sub.getServiceLevel()).orElse(ServiceLevel.EMPTY)));
+    inventory.setUsage(mapper.map(Optional.ofNullable(sub.getUsage()).orElse(Usage.EMPTY)));
     inventory.setHasInfiniteQuantity(sub.getHasUnlimitedUsage());
     inventory.setBillingProvider(
-        Optional.ofNullable(sub.getBillingProvider())
-            .orElse(BillingProvider.EMPTY)
-            .asOpenApiEnum());
+        mapper.map(Optional.ofNullable(sub.getBillingProvider()).orElse(BillingProvider.EMPTY)));
     inventory.setQuantity(0);
     inventory.setMeasurements(new ArrayList<>(Collections.nCopies(metrics.size(), 0.0)));
     if (category != null) {
@@ -273,7 +274,7 @@ public class SubscriptionTableController {
               .map(m -> HardwareMeasurementType.fromString(m.getMeasurementType()))
               .filter(Objects::nonNull)
               .findFirst()
-              .map(HardwareMeasurementType::toReportCategory)
+              .map(mapper::measurementTypeToReportCategory)
               .orElse(null));
     }
 

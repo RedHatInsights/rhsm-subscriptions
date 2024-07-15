@@ -48,14 +48,14 @@ import org.candlepin.subscriptions.db.model.SubscriptionCapacityViewMetric;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
-import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
-import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
-import org.candlepin.subscriptions.utilization.api.model.SkuCapacitySubscription;
-import org.candlepin.subscriptions.utilization.api.model.SortDirection;
-import org.candlepin.subscriptions.utilization.api.model.SubscriptionEventType;
-import org.candlepin.subscriptions.utilization.api.model.SubscriptionType;
-import org.candlepin.subscriptions.utilization.api.model.UsageType;
+import org.candlepin.subscriptions.utilization.api.v2.model.ReportCategory;
+import org.candlepin.subscriptions.utilization.api.v2.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.v2.model.SkuCapacityReportSort;
+import org.candlepin.subscriptions.utilization.api.v2.model.SkuCapacitySubscription;
+import org.candlepin.subscriptions.utilization.api.v2.model.SortDirection;
+import org.candlepin.subscriptions.utilization.api.v2.model.SubscriptionEventType;
+import org.candlepin.subscriptions.utilization.api.v2.model.SubscriptionType;
+import org.candlepin.subscriptions.utilization.api.v2.model.UsageType;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -156,9 +156,7 @@ class SubscriptionTableControllerTest {
     assertEquals(8, actualItem.getMeasurements().get(0));
     assertSubscription(expectedSub, actualItem.getSubscriptions().get(0));
     assertEquals(
-        SubscriptionEventType.SUBSCRIPTION_END,
-        actualItem.getNextEventType(),
-        "Wrong upcoming event type");
+        SubscriptionEventType.END, actualItem.getNextEventType(), "Wrong upcoming event type");
     assertEquals(
         expectedSub.getEndDate(), actualItem.getNextEventDate(), "Wrong upcoming event date");
   }
@@ -197,9 +195,7 @@ class SubscriptionTableControllerTest {
     assertEquals(18, actualItem.getMeasurements().get(0), "Wrong Standard Capacity");
     assertEquals(actualItem.getProductName(), actualItem.getProductName());
     assertEquals(
-        SubscriptionEventType.SUBSCRIPTION_END,
-        actualItem.getNextEventType(),
-        "Wrong upcoming event type");
+        SubscriptionEventType.END, actualItem.getNextEventType(), "Wrong upcoming event type");
     assertEquals(
         expectedOlderSub.getEndDate(),
         actualItem.getNextEventDate(),
@@ -260,9 +256,7 @@ class SubscriptionTableControllerTest {
     assertEquals(MetricIdUtils.getSockets().toString(), actual.getMeta().getMeasurements().get(0));
     assertSubscription(expectedOlderSub, actualItem.getSubscriptions().get(0));
     assertEquals(
-        SubscriptionEventType.SUBSCRIPTION_END,
-        actualItem.getNextEventType(),
-        "Wrong upcoming event type");
+        SubscriptionEventType.END, actualItem.getNextEventType(), "Wrong upcoming event type");
     assertEquals(
         expectedOlderSub.getEndDate(), actualItem.getNextEventDate(), "Wrong upcoming event date");
 
@@ -276,9 +270,7 @@ class SubscriptionTableControllerTest {
     assertEquals(MetricIdUtils.getSockets().toString(), actual.getMeta().getMeasurements().get(0));
     assertSubscription(expectedNewerSub, actualItem.getSubscriptions().get(0));
     assertEquals(
-        SubscriptionEventType.SUBSCRIPTION_END,
-        actualItem.getNextEventType(),
-        "Wrong upcoming event type");
+        SubscriptionEventType.END, actualItem.getNextEventType(), "Wrong upcoming event type");
     assertEquals(
         expectedNewerSub.getEndDate(),
         actualItem.getNextEventDate(),

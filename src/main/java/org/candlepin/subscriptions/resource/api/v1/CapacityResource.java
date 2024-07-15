@@ -48,15 +48,16 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
+import org.candlepin.subscriptions.util.ApiModelMapperV1;
 import org.candlepin.subscriptions.util.SnapshotTimeAdjuster;
-import org.candlepin.subscriptions.utilization.api.model.PageLinks;
-import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
-import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
-import org.candlepin.subscriptions.utilization.api.model.UsageType;
 import org.candlepin.subscriptions.utilization.api.v1.model.CapacityReportByMetricId;
 import org.candlepin.subscriptions.utilization.api.v1.model.CapacityReportByMetricIdMeta;
 import org.candlepin.subscriptions.utilization.api.v1.model.CapacitySnapshotByMetricId;
 import org.candlepin.subscriptions.utilization.api.v1.model.GranularityType;
+import org.candlepin.subscriptions.utilization.api.v1.model.PageLinks;
+import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
+import org.candlepin.subscriptions.utilization.api.v1.model.ServiceLevelType;
+import org.candlepin.subscriptions.utilization.api.v1.model.UsageType;
 import org.candlepin.subscriptions.utilization.api.v1.resources.CapacityApi;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -74,6 +75,7 @@ public class CapacityResource implements CapacityApi {
   public static final String PHYSICAL = HardwareMeasurementType.PHYSICAL.toString().toUpperCase();
   public static final String HYPERVISOR =
       HardwareMeasurementType.HYPERVISOR.toString().toUpperCase();
+  private final ApiModelMapperV1 mapper;
   private final SubscriptionRepository subscriptionRepository;
   private final PageLinkCreator pageLinkCreator;
   private final ApplicationClock clock;
@@ -81,9 +83,11 @@ public class CapacityResource implements CapacityApi {
   @Context UriInfo uriInfo;
 
   public CapacityResource(
+      ApiModelMapperV1 apiModelMapper,
       SubscriptionRepository subscriptionRepository,
       PageLinkCreator pageLinkCreator,
       ApplicationClock clock) {
+    this.mapper = apiModelMapper;
 
     this.subscriptionRepository = subscriptionRepository;
     this.pageLinkCreator = pageLinkCreator;
@@ -112,15 +116,15 @@ public class CapacityResource implements CapacityApi {
         ending,
         reportCategory);
     HypervisorReportCategory hypervisorReportCategory =
-        HypervisorReportCategory.mapCategory(reportCategory);
+        HypervisorReportCategory.mapCategory(mapper.map(reportCategory));
 
     // capacity records do not include _ANY rows
-    ServiceLevel sanitizedServiceLevel = ResourceUtils.sanitizeServiceLevel(sla);
+    ServiceLevel sanitizedServiceLevel = ResourceUtils.sanitizeServiceLevel(mapper.map(sla));
     if (sanitizedServiceLevel == ServiceLevel._ANY) {
       sanitizedServiceLevel = null;
     }
 
-    Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
+    Usage sanitizedUsage = ResourceUtils.sanitizeUsage(mapper.map(usage));
     if (sanitizedUsage == Usage._ANY) {
       sanitizedUsage = null;
     }
@@ -146,7 +150,7 @@ public class CapacityResource implements CapacityApi {
       data = paginate(capacities, pageable);
       Page<CapacitySnapshotByMetricId> snapshotPage =
           new PageImpl<>(data, pageable, capacities.size());
-      links = pageLinkCreator.getPaginationLinks(uriInfo, snapshotPage);
+      links = mapper.map(pageLinkCreator.getPaginationLinks(uriInfo, snapshotPage));
     } else {
       data = capacities;
       links = null;
@@ -163,11 +167,11 @@ public class CapacityResource implements CapacityApi {
     meta.setCount(report.getData().size());
 
     if (sanitizedServiceLevel != null) {
-      meta.setServiceLevel(sanitizedServiceLevel.asOpenApiEnum());
+      meta.setServiceLevel(mapper.map(sanitizedServiceLevel));
     }
 
     if (sanitizedUsage != null) {
-      meta.setUsage(sanitizedUsage.asOpenApiEnum());
+      meta.setUsage(mapper.map(sanitizedUsage));
     }
 
     report.setLinks(links);

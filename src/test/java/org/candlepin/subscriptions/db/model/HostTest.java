@@ -33,7 +33,6 @@ import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.time.OffsetDateTime;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
@@ -158,22 +157,6 @@ class HostTest {
     host.clearMonthlyTotals(
         OffsetDateTime.parse("2021-01-01T00:00:00Z"), OffsetDateTime.parse("2021-02-01T00:00:00Z"));
     assertTrue(host.getMonthlyTotals().values().stream().allMatch(v -> v == 0));
-  }
-
-  @Test
-  void testAsTallyHostViewApiHostSetsMonthlyCoreHours() {
-    HostTallyBucket b1 = new HostTallyBucket();
-    b1.setMeasurementType(HardwareMeasurementType.PHYSICAL);
-
-    Host host = new Host();
-    host.setBuckets(Set.of(b1));
-    host.addToMonthlyTotal("2021-01", MetricIdUtils.getCores(), 1.0);
-    host.addToMonthlyTotal("2021-01", MetricIdUtils.getCores(), 1.0);
-    host.addToMonthlyTotal("2021-02", MetricIdUtils.getCores(), 2.0);
-    host.addToMonthlyTotal("2021-02", MetricIdUtils.getCores(), 3.0);
-
-    assertEquals(2.0, host.asTallyHostViewApiHost("2021-01").getCoreHours());
-    assertEquals(5.0, host.asTallyHostViewApiHost("2021-02").getCoreHours());
   }
 
   @Test

@@ -31,14 +31,11 @@ import com.redhat.swatch.configuration.registry.ProductId;
 import java.util.Objects;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.ReportCategory;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView_;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
-import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
-import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
-import org.candlepin.subscriptions.utilization.api.model.UsageType;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -64,14 +61,14 @@ public interface SubscriptionCapacityViewRepository
       String orgId,
       ProductId productId,
       ReportCategory category,
-      ServiceLevelType serviceLevel,
-      UsageType usage,
-      BillingProviderType billingProviderType,
+      ServiceLevel serviceLevel,
+      Usage usage,
+      BillingProvider billingProvider,
       String billingAccountId,
       String metricId) {
     ServiceLevel sanitizedServiceLevel = sanitizeServiceLevel(serviceLevel);
     Usage sanitizedUsage = sanitizeUsage(usage);
-    BillingProvider sanitizedBillingProvider = sanitizeBillingProvider(billingProviderType);
+    BillingProvider sanitizedBillingProvider = sanitizeBillingProvider(billingProvider);
     String sanitizedBillingAccountId = sanitizeBillingAccountId(billingAccountId);
 
     /* The where call allows us to build a Specification object to operate on even if the first

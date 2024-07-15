@@ -25,12 +25,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Interface to reduce duplication of common methods for some enums
- *
- * @param <T>
- */
-public interface StringValueEnum<T> {
+/** Interface to reduce duplication of common methods for some enums */
+public interface StringValueEnum {
 
   static <T> T getValueOf(
       Class<T> className, Map<String, T> valueEnumMap, String value, T defaultEnum) {
@@ -55,12 +51,10 @@ public interface StringValueEnum<T> {
    * @param <T> Subclass of StringValueEnum
    * @return Map where keys are lowercase string value of the given enumClass's value
    */
-  static <T extends StringValueEnum<?>> Map<String, T> initializeImmutableMap(Class<T> enumClass) {
+  static <T extends StringValueEnum> Map<String, T> initializeImmutableMap(Class<T> enumClass) {
     return Arrays.stream(enumClass.getEnumConstants())
         .collect(Collectors.toMap(t -> t.getValue().toLowerCase(), value -> value));
   }
 
   String getValue();
-
-  T asOpenApiEnum();
 }

@@ -18,33 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db.model;
+package org.candlepin.subscriptions.resteasy;
 
-import java.time.OffsetDateTime;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class HostApiProjection {
-
-  private String inventoryId;
-  private String insightsId;
-  private String displayName;
-  private String subscriptionManagerId;
-  private Double sockets;
-  private Double cores;
-  private Double coreHours;
-  private Double instanceHours;
-  private HostHardwareType hardwareType;
-  private HardwareMeasurementType measurementType;
-  private Integer numberOfGuests;
-  private OffsetDateTime lastSeen;
-  private Boolean isUnmappedGuest;
-  private Boolean isHypervisor;
-  private String cloudProvider;
-  private BillingProvider billingProvider;
-  private String billingAccountId;
+public class PageLinks {
+  private String previous;
+  private String next;
+  private String first;
+  private String last;
 }
