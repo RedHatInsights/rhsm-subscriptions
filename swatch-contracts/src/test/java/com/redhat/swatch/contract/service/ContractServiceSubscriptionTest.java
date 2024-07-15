@@ -59,6 +59,7 @@ public class ContractServiceSubscriptionTest extends BaseUnitTest {
   public void setup() {
     contractRepository.deleteAll();
     offeringRepository.deleteAll();
+    subscriptionRepository.deleteAll();
     offeringRepository.persist(offeringEntity);
   }
 
