@@ -34,7 +34,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-public class ContractServiceSubscriptionTest extends BaseUnitTest {
+class ContractServiceSubscriptionTest extends BaseUnitTest {
 
   private static final String ORG_ID = "org123";
   private static final String SKU = "RH000000";
@@ -43,8 +43,6 @@ public class ContractServiceSubscriptionTest extends BaseUnitTest {
   private static final String SUBSCRIPTION_ID = "456";
   private static final OffsetDateTime DEFAULT_START_DATE =
       OffsetDateTime.parse("2023-06-09T13:59:43.035365Z");
-  private static final OffsetDateTime DEFAULT_END_DATE =
-      OffsetDateTime.parse("2026-02-15T13:59:43.035365Z");
 
   @Inject ContractService contractService;
   @Inject ContractRepository contractRepository;
