@@ -118,11 +118,13 @@ public class SubscriptionTableController {
 
               subscription.getMetrics().stream()
                   .filter(m -> m.getCapacity() != null)
+                  .filter(m -> m.getMetricId() != null)
                   .filter(metrics::isSupported)
                   .filter(filterByCategory(inventory))
                   .forEach(
                       entry -> {
-                        int position = metrics.getPosition(entry.getMetricId());
+                        int position =
+                            metrics.getPosition(MetricId.fromString(entry.getMetricId()));
                         inventory
                             .getMeasurements()
                             .set(
@@ -297,7 +299,7 @@ public class SubscriptionTableController {
   private static class MetricsMeta {
 
     private final List<MetricId> metrics;
-    private final Map<String, Integer> positionOfMetrics;
+    private final Map<MetricId, Integer> positionOfMetrics;
 
     MetricsMeta(String metricIdFromRequest, ProductId productId) {
       metrics =
@@ -307,7 +309,7 @@ public class SubscriptionTableController {
               .orElseGet(() -> getMetricsFromProduct(productId));
       positionOfMetrics = new HashMap<>();
       for (int index = 0; index < metrics.size(); index++) {
-        positionOfMetrics.put(metrics.get(index).toUpperCaseFormatted(), index);
+        positionOfMetrics.put(metrics.get(index), index);
       }
     }
 
@@ -324,10 +326,10 @@ public class SubscriptionTableController {
     }
 
     public boolean isSupported(SubscriptionCapacityViewMetric metric) {
-      return positionOfMetrics.containsKey(metric.getMetricId());
+      return positionOfMetrics.containsKey(MetricId.fromString(metric.getMetricId()));
     }
 
-    public int getPosition(String metricId) {
+    public int getPosition(MetricId metricId) {
       return positionOfMetrics.get(metricId);
     }
   }
