@@ -68,6 +68,7 @@ import org.junit.jupiter.api.TestInstance;
 class ContractServiceSubscriptionTest extends BaseUnitTest {
 
   private static final String SKU = "RH000000";
+  private static final String SUBSCRIPTION_NUMBER = "testSubscriptionNumber123";
   private static final String PRODUCT_TAG = "MH123";
   private static final OffsetDateTime DEFAULT_START_DATE =
       OffsetDateTime.parse("2023-06-09T13:59:43.035365Z");
@@ -99,8 +100,10 @@ class ContractServiceSubscriptionTest extends BaseUnitTest {
   @Test
   void testContractMetricValueUpdated() throws Exception {
     var contract = givenAzurePartnerEntitlementContract();
-    mockPartnerApi();
+    var originalPartnerApiMapping = mockPartnerApi();
     contractService.createPartnerContract(contract);
+    WireMock.removeStub(originalPartnerApiMapping);
+
     var updatedApiResponse = createPartnerApiResponse();
     updatedApiResponse
         .getContent()
@@ -111,7 +114,8 @@ class ContractServiceSubscriptionTest extends BaseUnitTest {
         .getDimensions()
         .get(0)
         .setValue("999");
-    var stubMapping = mockPartnerApi(updatedApiResponse);
+
+    var updatedPartnerApiMapping = mockPartnerApi(updatedApiResponse);
 
     contractService.createPartnerContract(contract);
     var contracts = contractRepository.findAll();
@@ -119,14 +123,13 @@ class ContractServiceSubscriptionTest extends BaseUnitTest {
 
     assertEquals(999, persistedContract.getMetrics().iterator().next().getValue());
 
-    var subscriptions =
-        subscriptionRepository.findBySubscriptionNumber(persistedContract.getSubscriptionNumber());
+    var subscriptions = subscriptionRepository.findBySubscriptionNumber(SUBSCRIPTION_NUMBER);
     var persistedSubscription = subscriptions.stream().findFirst().get();
 
     assertEquals(
         999, persistedSubscription.getSubscriptionMeasurement("vCPU", "PHYSICAL").get().getValue());
 
-    WireMock.removeStub(stubMapping);
+    WireMock.removeStub(updatedPartnerApiMapping);
   }
 
   private static PartnerEntitlementContract givenAzurePartnerEntitlementContract() {
@@ -153,8 +156,8 @@ class ContractServiceSubscriptionTest extends BaseUnitTest {
     }
   }
 
-  private void mockPartnerApi() throws Exception {
-    mockPartnerApi(createPartnerApiResponse());
+  private StubMapping mockPartnerApi() throws Exception {
+    return mockPartnerApi(createPartnerApiResponse());
   }
 
   private StubMapping mockPartnerApi(PartnerEntitlements response) throws Exception {
@@ -179,7 +182,8 @@ class ContractServiceSubscriptionTest extends BaseUnitTest {
                 new PartnerIdentityV1()
                     .azureSubscriptionId("fa650050-dedd-4958-b901-d8e5118c0a5f")
                     .azureCustomerId("eadf26ee-6fbc-4295-9a9e-25d4fea8951d_2019-05-31"))
-            .rhEntitlements(List.of(new RhEntitlementV1().sku(SKU).subscriptionNumber("testSubId")))
+            .rhEntitlements(
+                List.of(new RhEntitlementV1().sku(SKU).subscriptionNumber(SUBSCRIPTION_NUMBER)))
             .purchase(
                 new PurchaseV1()
                     .vendorProductCode("azureProductCode")
