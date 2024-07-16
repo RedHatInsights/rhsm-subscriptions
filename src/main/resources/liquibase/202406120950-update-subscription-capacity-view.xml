@@ -4,7 +4,7 @@
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
-  <changeSet id="202405160950-01" author="jcarvaja" dbms="postgresql">
+  <changeSet id="202405160950-01" author="jcarvaja" dbms="postgresql" runOnChange="true">
     <comment>
       Add subscription_capacity_view that aggregates all the capacities by sku
     </comment>
@@ -23,7 +23,7 @@
                         s.subscription_number,
                         s.sku,
                         o.has_unlimited_usage,
-                        o.product_name,
+                        o.description as product_name,
                         coalesce(o.sla, '') as service_level,
                         coalesce(o."usage", '') as "usage",
                         s.org_id,
@@ -40,7 +40,7 @@
                  inner join offering o on s.sku=o.sku
                  inner join sku_product_tag spt on s.sku = spt.sku
                  left join subscription_measurements sm on s.subscription_id = sm.subscription_id
-                 group by s.subscription_id, s.subscription_number, s.sku, o.has_unlimited_usage, o.product_name, o.sla, o."usage" , s.org_id, s.billing_provider, s.billing_provider_id, s.billing_account_id, spt.product_tag,s.quantity,s.start_date,s.end_date
+                 group by s.subscription_id, s.subscription_number, s.sku, o.has_unlimited_usage, o.description, o.sla, o."usage" , s.org_id, s.billing_provider, s.billing_provider_id, s.billing_account_id, spt.product_tag,s.quantity,s.start_date,s.end_date
         ]]>
     </createView>
     <rollback>
@@ -83,7 +83,7 @@
     </rollback>
   </changeSet>
 
-  <changeSet id="202405160950-02" author="jcarvaja" dbms="hsqldb">
+  <changeSet id="202405160950-02" author="jcarvaja" dbms="hsqldb" runOnChange="true">
     <comment>
       Add subscription_capacity_view that aggregates all the capacities by sku (test version)
     </comment>
@@ -95,7 +95,7 @@
                         s.subscription_number,
                         s.sku,
                         o.has_unlimited_usage,
-                        o.product_name,
+                        o.description as product_name,
                         o.sla as service_level,
                         o.usage,
                         s.org_id,
@@ -112,7 +112,7 @@
                  inner join sku_product_tag spt on s.sku = spt.sku
                  left join subscription_measurements sm on s.subscription_id = sm.subscription_id and s.start_date=sm.start_date
                  where s.start_date <= now() and (s.end_date is null or s.end_date >= now())
-                 group by s.subscription_id, s.subscription_number, s.sku, o.has_unlimited_usage, o.product_name, o.sla, o.usage , s.org_id, s.billing_provider, s.billing_provider_id, s.billing_account_id, spt.product_tag,s.quantity, sm.metric_id, sm.value, sm.measurement_type, s.start_date, s.end_date
+                 group by s.subscription_id, s.subscription_number, s.sku, o.has_unlimited_usage, o.description, o.sla, o.usage , s.org_id, s.billing_provider, s.billing_provider_id, s.billing_account_id, spt.product_tag,s.quantity, sm.metric_id, sm.value, sm.measurement_type, s.start_date, s.end_date
                  order by s.subscription_id asc
       ]]>
     </createView>
