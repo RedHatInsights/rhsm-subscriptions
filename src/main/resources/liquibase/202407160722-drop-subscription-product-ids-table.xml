@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+
+  <changeSet id="202407160722-01" author="kflahert">
+    <comment>Drop subscription_product_ids table</comment>
+    <dropTable tableName="subscription_product_ids"/>
+
+    <rollback>
+      <comment>Replace empty subscription_product_ids table.</comment>
+      <createTable tableName="subscription_product_ids">
+        <column name="product_id" type="VARCHAR(32)"/>
+        <column name="subscription_id" type="VARCHAR(255)"/>
+        <column name="start_date" type="TIMESTAMP WITH TIME ZONE"/>
+      </createTable>
+      <addPrimaryKey constraintName="subscription_product_ids_pk"
+                     tableName="subscription_product_ids"
+                     columnNames="product_id, subscription_id, start_date"/>
+      <addForeignKeyConstraint constraintName="subs_product_ids_fk"
+                               baseTableName="subscription_product_ids"
+                               referencedTableName="subscription"
+                               baseColumnNames="subscription_id, start_date"
+                               referencedColumnNames="subscription_id, start_date"/>
+    </rollback>
+  </changeSet>
+
+</databaseChangeLog>
