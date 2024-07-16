@@ -204,8 +204,7 @@ class ContractServiceTest extends BaseUnitTest {
     contractService.createPartnerContract(request);
 
     StatusResponse statusResponse = contractService.createPartnerContract(request);
-    assertEquals("Existing contracts and subscriptions updated", statusResponse.getMessage());
-    verify(subscriptionRepository, times(2)).persist(any(Set.class));
+    assertEquals("Redundant message ignored", statusResponse.getMessage());
   }
 
   @Test
@@ -454,7 +453,7 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   private SubscriptionEntity givenExistingSubscription() {
-    return givenExistingSubscription("aws");
+    return givenExistingSubscription(null);
   }
 
   private SubscriptionEntity givenExistingSubscription(String billingProviderId) {
