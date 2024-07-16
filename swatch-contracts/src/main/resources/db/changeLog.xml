@@ -18,4 +18,5 @@
   <include file="db/202405222240_add_offering_special_product_tag_h2_only.xml"/>
   <include file="db/202405210900_change_product_id_nullable.xml"/>
   <include file="db/202406111405_change_billing_account_id_nullable.xml"/>
+  <include file="db/202407081616-add-level-columns-for-offering-table_h2_only.xml"/>
 </databaseChangeLog>

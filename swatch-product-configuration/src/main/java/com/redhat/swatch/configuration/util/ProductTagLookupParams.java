@@ -39,15 +39,20 @@ public class ProductTagLookupParams {
   Boolean isPaygEligibleProduct;
   Boolean is3rdPartyMigration;
   String productTag;
+  String level1;
+  String level2;
 
-  ProductTagLookupParams(
+  @SuppressWarnings("java:S107")
+  private ProductTagLookupParams(
       Set<Integer> engIds,
       String role,
       String productName,
       Set<String> metricIds,
       Boolean isPaygEligibleProduct,
       Boolean is3rdPartyMigration,
-      String productTag) {
+      String productTag,
+      String level1,
+      String level2) {
     this.engIds = engIds;
     this.role = role;
     this.productName = productName;
@@ -55,6 +60,8 @@ public class ProductTagLookupParams {
     this.isPaygEligibleProduct = isPaygEligibleProduct;
     this.is3rdPartyMigration = is3rdPartyMigration;
     this.productTag = productTag;
+    this.level1 = level1;
+    this.level2 = level2;
   }
 
   public static ProductTagLookupParamsBuilder builder() {
@@ -70,6 +77,8 @@ public class ProductTagLookupParams {
     private Boolean isPaygEligibleProduct;
     private Boolean is3rdPartyMigration;
     private String productTag;
+    String level1;
+    String level2;
 
     ProductTagLookupParamsBuilder() {}
 
@@ -133,8 +142,17 @@ public class ProductTagLookupParams {
       return this;
     }
 
-    public ProductTagLookupParams build() {
+    public ProductTagLookupParamsBuilder level1(String level1) {
+      this.level1 = level1;
+      return this;
+    }
 
+    public ProductTagLookupParamsBuilder level2(String level2) {
+      this.level2 = level2;
+      return this;
+    }
+
+    public ProductTagLookupParams build() {
       return new ProductTagLookupParams(
           this.engIds,
           this.role,
@@ -142,7 +160,9 @@ public class ProductTagLookupParams {
           this.metricIds,
           this.isPaygEligibleProduct,
           this.is3rdPartyMigration,
-          this.productTag);
+          this.productTag,
+          this.level1,
+          this.level2);
     }
   }
 }
