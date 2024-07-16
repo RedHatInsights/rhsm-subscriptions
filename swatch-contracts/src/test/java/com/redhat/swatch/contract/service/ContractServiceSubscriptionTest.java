@@ -49,7 +49,6 @@ import com.redhat.swatch.contract.resource.WireMockResource;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.mockito.InjectSpy;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
@@ -77,9 +76,9 @@ class ContractServiceSubscriptionTest extends BaseUnitTest {
 
   @Inject ContractService contractService;
   @Inject ObjectMapper objectMapper;
-  @InjectSpy ContractRepository contractRepository;
+  @Inject ContractRepository contractRepository;
   @Inject OfferingRepository offeringRepository;
-  @InjectSpy SubscriptionRepository subscriptionRepository;
+  @Inject SubscriptionRepository subscriptionRepository;
   @InjectMock MeasurementMetricIdTransformer measurementMetricIdTransformer;
 
   @InjectMock @RestClient SearchApi subscriptionApi;
@@ -120,7 +119,8 @@ class ContractServiceSubscriptionTest extends BaseUnitTest {
 
     assertEquals(999, persistedContract.getMetrics().iterator().next().getValue());
 
-    var subscriptions = subscriptionRepository.findAll();
+    var subscriptions =
+        subscriptionRepository.findBySubscriptionNumber(persistedContract.getSubscriptionNumber());
     var persistedSubscription = subscriptions.stream().findFirst().get();
 
     assertEquals(
