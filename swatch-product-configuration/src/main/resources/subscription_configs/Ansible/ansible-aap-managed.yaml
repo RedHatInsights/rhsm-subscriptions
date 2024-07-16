@@ -5,6 +5,8 @@ id: ansible-aap-managed
 
 variants:
   - tag: ansible-aap-managed
+    level1:
+      - Ansible
     level2:
       - Ansible Automation Platform
 
