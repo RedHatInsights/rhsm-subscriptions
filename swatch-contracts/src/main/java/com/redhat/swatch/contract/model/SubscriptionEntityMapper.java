@@ -61,6 +61,7 @@ public interface SubscriptionEntityMapper {
     return BillingProvider.fromString(value);
   }
 
+  @Mapping(target = "startDate", ignore = true)
   void updateSubscription(
       @MappingTarget SubscriptionEntity existingSubscription, SubscriptionEntity entity);
 }

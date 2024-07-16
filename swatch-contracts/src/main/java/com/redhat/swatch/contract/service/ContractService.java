@@ -46,12 +46,7 @@ import com.redhat.swatch.contract.openapi.model.ContractRequest;
 import com.redhat.swatch.contract.openapi.model.ContractResponse;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
-import com.redhat.swatch.contract.repository.ContractEntity;
-import com.redhat.swatch.contract.repository.ContractMetricEntity;
-import com.redhat.swatch.contract.repository.ContractMetricRepository;
-import com.redhat.swatch.contract.repository.ContractRepository;
-import com.redhat.swatch.contract.repository.SubscriptionEntity;
-import com.redhat.swatch.contract.repository.SubscriptionRepository;
+import com.redhat.swatch.contract.repository.*;
 import com.redhat.swatch.contract.utils.ContractMessageProcessingResult;
 import com.redhat.swatch.panache.Specification;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -59,6 +54,7 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Validator;
 import jakarta.ws.rs.ProcessingException;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -89,6 +85,7 @@ public class ContractService {
   private final ContractRepository contractRepository;
   private final ContractMetricRepository contractMetricRepository;
   private final SubscriptionRepository subscriptionRepository;
+  private final SubscriptionMeasurementRepository subscriptionMeasurementRepository;
   private final MeasurementMetricIdTransformer measurementMetricIdTransformer;
   @Inject ContractEntityMapper contractEntityMapper;
   @Inject ContractDtoMapper contractDtoMapper;
@@ -102,12 +99,14 @@ public class ContractService {
       ContractRepository contractRepository,
       ContractMetricRepository contractMetricRepository,
       SubscriptionRepository subscriptionRepository,
+      SubscriptionMeasurementRepository subscriptionMeasurementRepository,
       MeasurementMetricIdTransformer measurementMetricIdTransformer,
       AwsPartnerEntitlementsProvider awsPartnerEntitlementsProvider,
       AzurePartnerEntitlementsProvider azurePartnerEntitlementsProvider) {
     this.contractRepository = contractRepository;
     this.contractMetricRepository = contractMetricRepository;
     this.subscriptionRepository = subscriptionRepository;
+    this.subscriptionMeasurementRepository = subscriptionMeasurementRepository;
     this.measurementMetricIdTransformer = measurementMetricIdTransformer;
     this.partnerEntitlementsProviders =
         List.of(awsPartnerEntitlementsProvider, azurePartnerEntitlementsProvider);
@@ -283,11 +282,11 @@ public class ContractService {
     Set<ContractEntity> contractsToPersist = new HashSet<>();
 
     // Determine matching contracts based on start_date
-    Map<OffsetDateTime, ContractEntity> contractStartDateMap =
+    Map<Instant, ContractEntity> contractStartDateMap =
         unsavedContracts.stream()
             .collect(
                 Collectors.toMap(
-                    ContractEntity::getStartDate,
+                    contract -> contract.getStartDate().toInstant(),
                     Function.identity(),
                     (contract1, contract2) -> {
                       log.warn("Duplicate contracts found. Skipping contract: {}", contract2);
@@ -297,7 +296,7 @@ public class ContractService {
     existingContracts.forEach(
         existingContract -> {
           var matchingUpdatedContract =
-              contractStartDateMap.remove(existingContract.getStartDate());
+              contractStartDateMap.remove(existingContract.getStartDate().toInstant());
 
           if (matchingUpdatedContract == null) {
             log.info(
@@ -346,11 +345,11 @@ public class ContractService {
     Set<SubscriptionEntity> subscriptionsToPersist = new HashSet<>();
 
     // Determine matching subscription based on start_date
-    Map<OffsetDateTime, SubscriptionEntity> subscriptionStartDateMap =
+    Map<Instant, SubscriptionEntity> subscriptionStartDateMap =
         updatedSubscriptions.stream()
             .collect(
                 Collectors.toMap(
-                    SubscriptionEntity::getStartDate,
+                    subscriptionEntity -> subscriptionEntity.getStartDate().toInstant(),
                     Function.identity(),
                     (sub1, sub2) -> {
                       log.warn("Duplicate contracts found. Skipping subscription: {}", sub2);
@@ -364,7 +363,7 @@ public class ContractService {
     existingSubscriptionRecords.forEach(
         existingSubscription -> {
           var matchingUpdatedSubscription =
-              subscriptionStartDateMap.remove(existingSubscription.getStartDate());
+              subscriptionStartDateMap.remove(existingSubscription.getStartDate().toInstant());
 
           if (matchingUpdatedSubscription == null) {
             log.info(
@@ -372,11 +371,18 @@ public class ContractService {
                 existingSubscription);
             subscriptionRepository.delete(existingSubscription);
           } else {
-            if (!matchingUpdatedSubscription.equals(existingSubscription)) {
+            if (!matchingUpdatedSubscription.equals(existingSubscription)
+                || !subscriptionMeasurementsEqual(
+                    existingSubscription, matchingUpdatedSubscription)) {
               log.info(
                   "Subscription updated. Old values: {} New values: {}",
                   existingSubscription,
                   matchingUpdatedSubscription);
+              if (!subscriptionMeasurementsEqual(
+                  existingSubscription, matchingUpdatedSubscription)) {
+                deleteMisalignedSubscriptionMeasurements(
+                    existingSubscription, matchingUpdatedSubscription);
+              }
               subscriptionEntityMapper.updateSubscription(
                   existingSubscription, matchingUpdatedSubscription);
               subscriptionsToPersist.add(existingSubscription);
@@ -406,6 +412,38 @@ public class ContractService {
     contractMetricRepository.delete(contractMetricEntity);
     contractEntity.removeMetric(contractMetricEntity);
     contractMetricRepository.flush();
+  }
+
+  private void deleteMisalignedSubscriptionMeasurements(
+      SubscriptionEntity existingSubscription, SubscriptionEntity matchingUpdatedSubscription) {
+    var measurements =
+        existingSubscription.getSubscriptionMeasurements().stream()
+            .filter(
+                measurement ->
+                    !matchingUpdatedSubscription
+                        .getSubscriptionMeasurements()
+                        .contains(measurement))
+            .toList();
+    measurements.forEach(
+        measurement -> deleteSubscriptionMeasurement(existingSubscription, measurement));
+  }
+
+  private void deleteSubscriptionMeasurement(
+      SubscriptionEntity subscriptionEntity,
+      SubscriptionMeasurementEntity subscriptionMeasurementEntity) {
+    log.info(
+        "Deleting subscription_measurement: {} on subscription: {}",
+        subscriptionMeasurementEntity,
+        subscriptionEntity);
+    subscriptionMeasurementRepository.delete(subscriptionMeasurementEntity);
+    subscriptionEntity.removeMeasurement(subscriptionMeasurementEntity);
+    subscriptionMeasurementRepository.flush();
+  }
+
+  private boolean subscriptionMeasurementsEqual(
+      SubscriptionEntity existing, SubscriptionEntity updated) {
+    return Objects.equals(
+        existing.getSubscriptionMeasurements(), updated.getSubscriptionMeasurements());
   }
 
   @Transactional

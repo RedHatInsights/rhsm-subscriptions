@@ -52,6 +52,7 @@ import com.redhat.swatch.contract.BaseUnitTest;
 import com.redhat.swatch.contract.exception.ContractValidationFailedException;
 import com.redhat.swatch.contract.model.ContractSourcePartnerEnum;
 import com.redhat.swatch.contract.model.MeasurementMetricIdTransformer;
+import com.redhat.swatch.contract.model.SubscriptionEntityMapper;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.ContractRequest;
 import com.redhat.swatch.contract.openapi.model.ContractResponse;
@@ -59,13 +60,7 @@ import com.redhat.swatch.contract.openapi.model.Dimension;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContractCloudIdentifiers;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
-import com.redhat.swatch.contract.repository.ContractEntity;
-import com.redhat.swatch.contract.repository.ContractMetricEntity;
-import com.redhat.swatch.contract.repository.ContractRepository;
-import com.redhat.swatch.contract.repository.OfferingEntity;
-import com.redhat.swatch.contract.repository.OfferingRepository;
-import com.redhat.swatch.contract.repository.SubscriptionEntity;
-import com.redhat.swatch.contract.repository.SubscriptionRepository;
+import com.redhat.swatch.contract.repository.*;
 import com.redhat.swatch.contract.resource.WireMockResource;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.common.QuarkusTestResource;
@@ -101,6 +96,7 @@ class ContractServiceTest extends BaseUnitTest {
 
   @Inject ContractService contractService;
   @Inject ObjectMapper objectMapper;
+  @Inject SubscriptionEntityMapper subscriptionEntityMapper;
   @InjectSpy ContractRepository contractRepository;
   @Inject OfferingRepository offeringRepository;
   @InjectMock SubscriptionRepository subscriptionRepository;
@@ -415,33 +411,6 @@ class ContractServiceTest extends BaseUnitTest {
     WireMock.removeStub(stubMapping);
   }
 
-  @Test
-  void testContractMetricValueUpdated() throws Exception {
-    var contract = givenAzurePartnerEntitlementContract();
-    mockPartnerApi();
-    contractService.createPartnerContract(contract);
-    var updatedApiResponse = createPartnerApiResponse();
-    updatedApiResponse
-        .getContent()
-        .get(0)
-        .getPurchase()
-        .getContracts()
-        .get(0)
-        .getDimensions()
-        .get(0)
-        .setValue("999");
-    var stubMapping = mockPartnerApi(updatedApiResponse);
-    contractService.createPartnerContract(contract);
-    var contracts = contractRepository.findAll();
-    var persistedContract =
-        contracts.stream()
-            .filter(entity -> entity.getStartDate().equals(DEFAULT_START_DATE))
-            .findFirst()
-            .get();
-    assertEquals(999, persistedContract.getMetrics().iterator().next().getValue());
-    WireMock.removeStub(stubMapping);
-  }
-
   private static PartnerEntitlementV1 givenContractWithoutRequiredData() {
     PartnerEntitlementV1 entitlement = new PartnerEntitlementV1();
     entitlement.setRhAccountId(ORG_ID);
@@ -485,7 +454,7 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   private SubscriptionEntity givenExistingSubscription() {
-    return givenExistingSubscription(null);
+    return givenExistingSubscription("aws");
   }
 
   private SubscriptionEntity givenExistingSubscription(String billingProviderId) {

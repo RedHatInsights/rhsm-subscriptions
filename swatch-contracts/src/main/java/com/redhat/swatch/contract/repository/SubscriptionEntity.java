@@ -107,6 +107,11 @@ public class SubscriptionEntity implements Serializable {
         .findFirst();
   }
 
+  public void removeMeasurement(SubscriptionMeasurementEntity measurement) {
+    subscriptionMeasurements.remove(measurement);
+    measurement.setSubscription(null);
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
