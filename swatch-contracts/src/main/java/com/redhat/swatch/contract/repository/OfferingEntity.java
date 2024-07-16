@@ -83,6 +83,12 @@ public class OfferingEntity implements Serializable {
   @Column(name = "description")
   private String description;
 
+  @Column(name = "level_1")
+  private String level1;
+
+  @Column(name = "level_2")
+  private String level2;
+
   /**
    * Category for the offering.
    *
@@ -195,7 +201,9 @@ public class OfferingEntity implements Serializable {
         && Objects.equals(derivedSku, offering.derivedSku)
         && Objects.equals(metered, offering.metered)
         && Objects.equals(productTags, offering.productTags)
-        && Objects.equals(specialPricingFlag, offering.specialPricingFlag);
+        && Objects.equals(specialPricingFlag, offering.specialPricingFlag)
+        && Objects.equals(level1, offering.level1)
+        && Objects.equals(level2, offering.level2);
   }
 
   @Override
@@ -216,6 +224,8 @@ public class OfferingEntity implements Serializable {
         derivedSku,
         metered,
         productTags,
-        specialPricingFlag);
+        specialPricingFlag,
+        level1,
+        level2);
   }
 }

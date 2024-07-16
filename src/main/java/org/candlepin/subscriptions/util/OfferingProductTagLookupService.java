@@ -67,6 +67,8 @@ public class OfferingProductTagLookupService {
             .productName(offering.getProductName())
             .isPaygEligibleProduct(offering.isMetered())
             .is3rdPartyMigration(offering.isMigrationOffering())
+            .level1(offering.getLevel1())
+            .level2(offering.getLevel2())
             .build();
 
     SubscriptionDefinition.getAllProductTags(lookupParams).forEach(productTags::addDataItem);

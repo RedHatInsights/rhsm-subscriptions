@@ -63,6 +63,8 @@ class UpstreamProductData {
     IFL,
     SOCKET_LIMIT,
     SERVICE_TYPE,
+    LEVEL_1,
+    LEVEL_2,
     PRODUCT_FAMILY,
     USAGE,
     PRODUCT_NAME,
@@ -271,6 +273,12 @@ class UpstreamProductData {
     if (offering.getServiceLevel() != null && offering.getServiceLevel() != ServiceLevel.EMPTY) {
       data.attrs.put(Attr.SERVICE_TYPE, offering.getServiceLevel().getValue());
     }
+    if (StringUtils.hasText(offering.getLevel1())) {
+      data.attrs.put(Attr.LEVEL_1, offering.getLevel1());
+    }
+    if (StringUtils.hasText(offering.getLevel2())) {
+      data.attrs.put(Attr.LEVEL_2, offering.getLevel2());
+    }
     if (offering.getUsage() != null && offering.getUsage() != Usage.EMPTY) {
       data.attrs.put(Attr.USAGE, offering.getUsage().getValue());
     }
@@ -294,6 +302,8 @@ class UpstreamProductData {
     offering.setProductFamily(attrs.get(Attr.PRODUCT_FAMILY));
     offering.setProductName(attrs.get(Attr.PRODUCT_NAME));
     offering.setDescription(attrs.get(Attr.X_DESCRIPTION));
+    offering.setLevel1(attrs.get(Attr.LEVEL_1));
+    offering.setLevel2(attrs.get(Attr.LEVEL_2));
     offering.setDerivedSku(attrs.get(Attr.DERIVED_SKU));
 
     calcCapacityForOffering(offering);
