@@ -425,13 +425,13 @@ toml = ["tomli"]
 
 [[package]]
 name = "crc-bonfire"
-version = "5.7.2"
+version = "5.10.1"
 description = "A CLI tool used to deploy ephemeral environments for testing cloud.redhat.com applications"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "crc_bonfire-5.7.2-py3-none-any.whl", hash = "sha256:ee04ff4da655e281878ada0ddb1944274403b24e2f2572496c1b9aff3c1081e5"},
-    {file = "crc_bonfire-5.7.2.tar.gz", hash = "sha256:c156f38fc2082eaf14e07a4176acbab426f078400fc5885659a2b24b08721649"},
+    {file = "crc_bonfire-5.10.1-py3-none-any.whl", hash = "sha256:b0c7bce68ad3d7cb5518a93ce0066a22d577a831cf6f42d9233346eebe6cb041"},
+    {file = "crc_bonfire-5.10.1.tar.gz", hash = "sha256:6e23370ceac9962c6a7e62ab7d6be054ed602e13398a2763f6ce53ab1c05f938"},
 ]
 
 [package.dependencies]
@@ -443,6 +443,7 @@ gql = "3.0.0a6"
 junitparser = "*"
 multidict = "*"
 ocviapy = ">=1.2.2"
+packaging = "*"
 python-dotenv = "*"
 PyYAML = "*"
 requests = "*"
@@ -451,7 +452,7 @@ tabulate = "*"
 wait-for = "*"
 
 [package.extras]
-test = ["mock", "pytest", "pytest-mock"]
+test = ["mock", "pytest", "pytest-mock", "requests-mock"]
 
 [[package]]
 name = "cryptography"
