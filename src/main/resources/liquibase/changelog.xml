@@ -168,5 +168,6 @@
     <include file="/liquibase/202406191500-add-hypervisor_uuid-to-tally-instance-view.xml"/>
     <include file="/liquibase/202407091543-set-default-bucket-measurement-type.xml"/>
     <include file="/liquibase/202407030751-add-level-column-for-offering-table.xml"/>
+    <include file="/liquibase/202407160722-drop-subscription-product-ids-table.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
