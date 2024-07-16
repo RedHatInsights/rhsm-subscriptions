@@ -87,6 +87,7 @@ class ContractServiceSubscriptionTest extends BaseUnitTest {
   @Transactional
   @BeforeEach
   public void setup() {
+    WireMock.reset();
     contractRepository.deleteAll();
     offeringRepository.deleteAll();
     subscriptionRepository.deleteAll();
@@ -125,7 +126,6 @@ class ContractServiceSubscriptionTest extends BaseUnitTest {
 
     var subscriptions = subscriptionRepository.findBySubscriptionNumber(SUBSCRIPTION_NUMBER);
     var persistedSubscription = subscriptions.stream().findFirst().get();
-
     assertEquals(
         999, persistedSubscription.getSubscriptionMeasurement("vCPU", "PHYSICAL").get().getValue());
 
