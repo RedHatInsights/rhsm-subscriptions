@@ -120,6 +120,17 @@ class ContractServiceSubscriptionTest {
         999, persistedSubscription.getSubscriptionMeasurement("vCPU", "PHYSICAL").get().getValue());
   }
 
+  @Test
+  @Transactional
+  void createPartnerContract_DuplicateContractThenDoNotPersist() throws Exception {
+    mockPartnerApi();
+    PartnerEntitlementContract request = givenAzurePartnerEntitlementContract();
+    contractService.createPartnerContract(request);
+    StatusResponse statusResponse = contractService.createPartnerContract(request);
+
+    assertEquals("Redundant message ignored", statusResponse.getMessage());
+  }
+
   private static PartnerEntitlementContract givenAzurePartnerEntitlementContract() {
     var contract = new PartnerEntitlementContract();
     contract.setCurrentDimensions(

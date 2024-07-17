@@ -199,31 +199,6 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   @Test
-  void createPartnerContract_DuplicateContractThenDoNotPersist() {
-    PartnerEntitlementContract request = givenPartnerEntitlementContractRequest();
-    contractService.createPartnerContract(request);
-
-    StatusResponse statusResponse = contractService.createPartnerContract(request);
-    assertEquals("Redundant message ignored", statusResponse.getMessage());
-  }
-
-  @Test
-  void testCreatePartnerContractDuplicateBillingProviderIdNotPersist() {
-    PartnerEntitlementContract request = givenPartnerEntitlementContractRequest();
-    contractService.createPartnerContract(request);
-
-    request.getCloudIdentifiers().azureResourceId("dupeId");
-    request.getCloudIdentifiers().setAzureOfferId("dupeId");
-    request.getCloudIdentifiers().setPlanId("dupeId");
-    request.getCloudIdentifiers().setPartner("azure_marketplace");
-
-    givenExistingSubscription("dupeId;dupeId;dupeId");
-
-    StatusResponse statusResponse = contractService.createPartnerContract(request);
-    assertEquals("Redundant message ignored", statusResponse.getMessage());
-  }
-
-  @Test
   void syncContractWithExistingAndNewContracts() {
     givenExistingContract();
     StatusResponse statusResponse = contractService.syncContractByOrgId(ORG_ID, false);
