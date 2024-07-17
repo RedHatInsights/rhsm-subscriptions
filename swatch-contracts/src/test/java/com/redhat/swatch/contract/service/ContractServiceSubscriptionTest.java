@@ -72,6 +72,7 @@ class ContractServiceSubscriptionTest {
   @Inject ContractRepository contractRepository;
   @Inject OfferingRepository offeringRepository;
   @Inject SubscriptionRepository subscriptionRepository;
+  @Inject SubscriptionMeasurementRepository subscriptionMeasurementRepository;
   @InjectMock @RestClient PartnerApi partnerApi;
   @InjectMock MeasurementMetricIdTransformer measurementMetricIdTransformer;
 
@@ -84,6 +85,7 @@ class ContractServiceSubscriptionTest {
     contractRepository.deleteAll();
     offeringRepository.deleteAll();
     subscriptionRepository.deleteAll();
+    subscriptionMeasurementRepository.deleteAll();
     OfferingEntity offering = new OfferingEntity();
     offering.setSku(SKU);
     offering.setProductTags(Set.of(PRODUCT_TAG));
