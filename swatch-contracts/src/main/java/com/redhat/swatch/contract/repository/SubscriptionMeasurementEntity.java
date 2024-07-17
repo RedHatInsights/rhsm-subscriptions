@@ -78,6 +78,7 @@ public class SubscriptionMeasurementEntity implements Serializable {
 
     return Objects.equals(metricId, measurement.getMetricId())
         && Objects.equals(measurementType, measurement.getMeasurementType())
+        && Objects.equals(value, measurement.getValue())
         && Objects.equals(
             subscription.getSubscriptionId(), measurement.getSubscription().getSubscriptionId())
         && Objects.equals(

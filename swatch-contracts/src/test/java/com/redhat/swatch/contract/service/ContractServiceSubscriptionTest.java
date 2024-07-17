@@ -20,13 +20,10 @@
  */
 package com.redhat.swatch.contract.service;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import com.github.tomakehurst.wiremock.client.WireMock;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.*;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.DimensionV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1;
@@ -120,7 +117,7 @@ class ContractServiceSubscriptionTest {
     var subscriptions = subscriptionRepository.findBySubscriptionNumber(SUBSCRIPTION_NUMBER);
     var persistedSubscription = subscriptions.stream().findFirst().get();
     assertEquals(
-        999, persistedSubscription.getSubscriptionMeasurement("vCPU", "PHYSICAL").get().getValue(), "subs:  " + subscriptions + " measurements : " + persistedSubscription.getSubscriptionMeasurements());
+        999, persistedSubscription.getSubscriptionMeasurement("vCPU", "PHYSICAL").get().getValue());
   }
 
   private static PartnerEntitlementContract givenAzurePartnerEntitlementContract() {

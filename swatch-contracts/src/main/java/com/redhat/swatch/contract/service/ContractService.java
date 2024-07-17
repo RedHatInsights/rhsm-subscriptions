@@ -260,14 +260,17 @@ public class ContractService {
 
     List<ContractEntity> existingContractRecords = findExistingContractRecords(latestContract);
 
-    if (existingContractRecords.equals(entities)) {
-      return ContractMessageProcessingResult.REDUNDANT_MESSAGE_IGNORED.withContract(latestContract);
-    }
+    var contractRecordsUpdated = false;
+    var subscriptionRecordsUpdated = false;
 
-    mergeWithExistingContractRecords(entities, existingContractRecords);
+    contractRecordsUpdated = mergeWithExistingContractRecords(entities, existingContractRecords);
 
     if (latestContract.getSubscriptionNumber() != null) {
-      mergeWithExistingSubscriptionRecords(entities, subscriptionId);
+      subscriptionRecordsUpdated = mergeWithExistingSubscriptionRecords(entities, subscriptionId);
+    }
+
+    if (!contractRecordsUpdated && !subscriptionRecordsUpdated) {
+      return ContractMessageProcessingResult.REDUNDANT_MESSAGE_IGNORED.withContract(latestContract);
     }
 
     if (existingContractRecords.contains(latestContract)) {
@@ -277,7 +280,14 @@ public class ContractService {
     return NEW_CONTRACT_CREATED.withContract(latestContract);
   }
 
-  private void mergeWithExistingContractRecords(
+  /**
+   * Update contracts in the database against the new contracts from IT partner gateway
+   *
+   * @param unsavedContracts
+   * @param existingContracts
+   * @return true if records have been updated and false otherwise
+   */
+  private boolean mergeWithExistingContractRecords(
       List<ContractEntity> unsavedContracts, List<ContractEntity> existingContracts) {
     Set<ContractEntity> contractsToPersist = new HashSet<>();
 
@@ -327,14 +337,27 @@ public class ContractService {
     // If not found in existing Contracts then create new ones.
     contractsToPersist.addAll(contractStartDateMap.values());
 
+    if (contractsToPersist.isEmpty()) {
+      return false;
+    }
+
     contractsToPersist.forEach(
         contractEntity -> {
           log.info("Updating or creating contract: {}", contractEntity);
           persistContract(contractEntity, OffsetDateTime.now());
         });
+
+    return true;
   }
 
-  private void mergeWithExistingSubscriptionRecords(
+  /**
+   * Update subscription to match contracts from IT partner gateway
+   *
+   * @param contractEntities
+   * @param subscriptionId
+   * @return true if records have been updated and false otherwise
+   */
+  private boolean mergeWithExistingSubscriptionRecords(
       List<ContractEntity> contractEntities, String subscriptionId) {
 
     List<SubscriptionEntity> updatedSubscriptions =
@@ -352,7 +375,7 @@ public class ContractService {
                     subscriptionEntity -> subscriptionEntity.getStartDate().toInstant(),
                     Function.identity(),
                     (sub1, sub2) -> {
-                      log.warn("Duplicate contracts found. Skipping subscription: {}", sub2);
+                      log.warn("Duplicate subscriptions found. Skipping subscription: {}", sub2);
                       return sub1;
                     }));
 
@@ -371,15 +394,18 @@ public class ContractService {
                 existingSubscription);
             subscriptionRepository.delete(existingSubscription);
           } else {
-            if (!matchingUpdatedSubscription.equals(existingSubscription)
-                || !subscriptionMeasurementsEqual(
-                    existingSubscription, matchingUpdatedSubscription)) {
+            var measurementsEqual =
+                subscriptionMeasurementsEqual(existingSubscription, matchingUpdatedSubscription);
+            if (!matchingUpdatedSubscription.equals(existingSubscription) || !measurementsEqual) {
               log.info(
                   "Subscription updated. Old values: {} New values: {}",
                   existingSubscription,
                   matchingUpdatedSubscription);
-              if (!subscriptionMeasurementsEqual(
-                  existingSubscription, matchingUpdatedSubscription)) {
+              if (!measurementsEqual) {
+                log.info(
+                    "Subscription measurements updated. Old values: {} New values: {}",
+                    existingSubscription.getSubscriptionMeasurements(),
+                    matchingUpdatedSubscription.getSubscriptionMeasurements());
                 deleteMisalignedSubscriptionMeasurements(
                     existingSubscription, matchingUpdatedSubscription);
               }
@@ -395,8 +421,13 @@ public class ContractService {
     // If not found in existing subscriptions then create new ones.
     subscriptionsToPersist.addAll(subscriptionStartDateMap.values());
 
+    if (subscriptionsToPersist.isEmpty()) {
+      return false;
+    }
+
     log.info("Persisting subscriptions: {}", subscriptionsToPersist);
     subscriptionRepository.persist(subscriptionsToPersist);
+    return true;
   }
 
   private ContractEntity getLatestContract(List<ContractEntity> contracts)
