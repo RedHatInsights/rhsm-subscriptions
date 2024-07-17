@@ -68,20 +68,19 @@ class ContractServiceSubscriptionTest {
   private static final OffsetDateTime DEFAULT_END_DATE =
       OffsetDateTime.parse("2026-02-15T13:59:43.035365Z");
 
-  @Inject ContractService contractService;
   @Inject ContractRepository contractRepository;
   @Inject OfferingRepository offeringRepository;
   @Inject SubscriptionRepository subscriptionRepository;
   @Inject SubscriptionMeasurementRepository subscriptionMeasurementRepository;
   @InjectMock @RestClient PartnerApi partnerApi;
   @InjectMock MeasurementMetricIdTransformer measurementMetricIdTransformer;
+  @Inject ContractService contractService;
 
   @InjectMock @RestClient SearchApi subscriptionApi;
 
   @Transactional
   @BeforeEach
   public void setup() {
-    WireMock.reset();
     contractRepository.deleteAll();
     offeringRepository.deleteAll();
     subscriptionRepository.deleteAll();
@@ -121,7 +120,7 @@ class ContractServiceSubscriptionTest {
     var subscriptions = subscriptionRepository.findBySubscriptionNumber(SUBSCRIPTION_NUMBER);
     var persistedSubscription = subscriptions.stream().findFirst().get();
     assertEquals(
-        999, persistedSubscription.getSubscriptionMeasurement("vCPU", "PHYSICAL").get().getValue());
+        999, persistedSubscription.getSubscriptionMeasurement("vCPU", "PHYSICAL").get().getValue(), "subs:  " + subscriptions + " measurements : " + persistedSubscription.getSubscriptionMeasurements());
   }
 
   private static PartnerEntitlementContract givenAzurePartnerEntitlementContract() {
