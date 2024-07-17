@@ -56,15 +56,7 @@ import jakarta.validation.Validator;
 import jakarta.ws.rs.ProcessingException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -473,8 +465,9 @@ public class ContractService {
 
   private boolean subscriptionMeasurementsEqual(
       SubscriptionEntity existing, SubscriptionEntity updated) {
-    return Objects.equals(
-        existing.getSubscriptionMeasurements(), updated.getSubscriptionMeasurements());
+    return Arrays.equals(
+        updated.getSubscriptionMeasurements().toArray(),
+        existing.getSubscriptionMeasurements().toArray());
   }
 
   @Transactional

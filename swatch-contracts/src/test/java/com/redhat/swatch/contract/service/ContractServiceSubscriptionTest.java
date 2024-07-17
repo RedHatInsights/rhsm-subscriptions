@@ -59,6 +59,7 @@ class ContractServiceSubscriptionTest {
 
   private static final String SKU = "RH000000";
   private static final String SUBSCRIPTION_NUMBER = "testSubscriptionNumber123";
+  private static final int SUBSCRIPTION_ID = 7134;
   private static final String PRODUCT_TAG = "MH123";
   private static final OffsetDateTime DEFAULT_START_DATE =
       OffsetDateTime.parse("2023-06-09T13:59:43.035365Z");
@@ -68,6 +69,7 @@ class ContractServiceSubscriptionTest {
   @Inject ContractRepository contractRepository;
   @Inject OfferingRepository offeringRepository;
   @Inject SubscriptionRepository subscriptionRepository;
+  @Inject SubscriptionMeasurementRepository subscriptionMeasurementRepository;
   @InjectMock @RestClient PartnerApi partnerApi;
   @InjectMock MeasurementMetricIdTransformer measurementMetricIdTransformer;
   @Inject ContractService contractService;
@@ -80,6 +82,7 @@ class ContractServiceSubscriptionTest {
     contractRepository.deleteAll();
     offeringRepository.deleteAll();
     subscriptionRepository.deleteAll();
+    subscriptionMeasurementRepository.deleteAll();
     OfferingEntity offering = new OfferingEntity();
     offering.setSku(SKU);
     offering.setProductTags(Set.of(PRODUCT_TAG));
@@ -142,7 +145,7 @@ class ContractServiceSubscriptionTest {
 
   private void mockSubscriptionServiceSubscription() {
     Subscription subscription = new Subscription();
-    subscription.setId(42);
+    subscription.setId(SUBSCRIPTION_ID);
     try {
       when(subscriptionApi.getSubscriptionBySubscriptionNumber(any()))
           .thenReturn(List.of(subscription));
