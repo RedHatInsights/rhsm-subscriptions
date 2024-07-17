@@ -31,13 +31,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.io.Serializable;
 import java.util.Objects;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
 /** Capacity provided by a subscription for a given product. */
 @Entity
@@ -50,6 +44,7 @@ import lombok.ToString;
 @Table(name = "subscription_measurements")
 @IdClass(SubscriptionMeasurementKey.class)
 public class SubscriptionMeasurementEntity implements Serializable {
+
   @Id
   @ManyToOne
   @JoinColumn(name = "subscription_id", referencedColumnName = "subscription_id")
@@ -88,7 +83,11 @@ public class SubscriptionMeasurementEntity implements Serializable {
   @Override
   public int hashCode() {
     return Objects.hash(
-        metricId, measurementType, subscription.getSubscriptionId(), subscription.getStartDate());
+        metricId,
+        measurementType,
+        value,
+        subscription.getSubscriptionId(),
+        subscription.getStartDate());
   }
 
   /** Primary key for a subscription_measurement record */
