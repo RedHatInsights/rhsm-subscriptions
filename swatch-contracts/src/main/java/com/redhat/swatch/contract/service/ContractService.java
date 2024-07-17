@@ -454,10 +454,7 @@ public class ContractService {
   private void deleteSubscriptionMeasurement(
       SubscriptionEntity subscriptionEntity,
       SubscriptionMeasurementEntity subscriptionMeasurementEntity) {
-    log.info(
-        "Deleting subscription_measurement: {} on subscription: {}",
-        subscriptionMeasurementEntity,
-        subscriptionEntity);
+    log.info("Deleting subscription_measurement: {}", subscriptionMeasurementEntity);
     subscriptionMeasurementRepository.delete(subscriptionMeasurementEntity);
     subscriptionEntity.removeMeasurement(subscriptionMeasurementEntity);
     subscriptionMeasurementRepository.flush();
@@ -465,9 +462,13 @@ public class ContractService {
 
   private boolean subscriptionMeasurementsEqual(
       SubscriptionEntity existing, SubscriptionEntity updated) {
-    return Arrays.equals(
-        updated.getSubscriptionMeasurements().toArray(),
-        existing.getSubscriptionMeasurements().toArray());
+    if (existing.getSubscriptionMeasurements().size()
+        != updated.getSubscriptionMeasurements().size()) {
+      return true;
+    }
+    return updated.getSubscriptionMeasurements().stream()
+        .toList()
+        .containsAll(existing.getSubscriptionMeasurements().stream().toList());
   }
 
   @Transactional
