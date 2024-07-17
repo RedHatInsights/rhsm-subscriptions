@@ -26,9 +26,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
-import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.*;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.DimensionV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1;
@@ -37,17 +35,15 @@ import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerIdentityV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PurchaseV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.RhEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.SaasContractV1;
+import com.redhat.swatch.clients.rh.partner.gateway.api.resources.PartnerApi;
 import com.redhat.swatch.clients.subscription.api.model.Subscription;
 import com.redhat.swatch.clients.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.subscription.api.resources.SearchApi;
-import com.redhat.swatch.contract.BaseUnitTest;
 import com.redhat.swatch.contract.model.ContractSourcePartnerEnum;
 import com.redhat.swatch.contract.model.MeasurementMetricIdTransformer;
 import com.redhat.swatch.contract.openapi.model.*;
 import com.redhat.swatch.contract.repository.*;
-import com.redhat.swatch.contract.resource.WireMockResource;
 import io.quarkus.test.InjectMock;
-import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -56,16 +52,13 @@ import java.util.*;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 
 /**
  * Similar to ContractServiceTest but uses real SubscriptionRepository to verify subscription
  * changes.
  */
 @QuarkusTest
-@QuarkusTestResource(value = WireMockResource.class, restrictToAnnotatedClass = true)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class ContractServiceSubscriptionTest extends BaseUnitTest {
+class ContractServiceSubscriptionTest {
 
   private static final String SKU = "RH000000";
   private static final String SUBSCRIPTION_NUMBER = "testSubscriptionNumber123";
@@ -76,10 +69,10 @@ class ContractServiceSubscriptionTest extends BaseUnitTest {
       OffsetDateTime.parse("2026-02-15T13:59:43.035365Z");
 
   @Inject ContractService contractService;
-  @Inject ObjectMapper objectMapper;
   @Inject ContractRepository contractRepository;
   @Inject OfferingRepository offeringRepository;
   @Inject SubscriptionRepository subscriptionRepository;
+  @InjectMock @RestClient PartnerApi partnerApi;
   @InjectMock MeasurementMetricIdTransformer measurementMetricIdTransformer;
 
   @InjectMock @RestClient SearchApi subscriptionApi;
@@ -101,9 +94,8 @@ class ContractServiceSubscriptionTest extends BaseUnitTest {
   @Test
   void testContractMetricValueUpdated() throws Exception {
     var contract = givenAzurePartnerEntitlementContract();
-    var originalPartnerApiMapping = mockPartnerApi();
+    mockPartnerApi();
     contractService.createPartnerContract(contract);
-    WireMock.removeStub(originalPartnerApiMapping);
 
     var updatedApiResponse = createPartnerApiResponse();
     updatedApiResponse
@@ -116,7 +108,7 @@ class ContractServiceSubscriptionTest extends BaseUnitTest {
         .get(0)
         .setValue("999");
 
-    var updatedPartnerApiMapping = mockPartnerApi(updatedApiResponse);
+    mockPartnerApi(updatedApiResponse);
 
     contractService.createPartnerContract(contract);
     var contracts = contractRepository.findAll();
@@ -128,8 +120,6 @@ class ContractServiceSubscriptionTest extends BaseUnitTest {
     var persistedSubscription = subscriptions.stream().findFirst().get();
     assertEquals(
         999, persistedSubscription.getSubscriptionMeasurement("vCPU", "PHYSICAL").get().getValue());
-
-    WireMock.removeStub(updatedPartnerApiMapping);
   }
 
   private static PartnerEntitlementContract givenAzurePartnerEntitlementContract() {
@@ -156,17 +146,12 @@ class ContractServiceSubscriptionTest extends BaseUnitTest {
     }
   }
 
-  private StubMapping mockPartnerApi() throws Exception {
-    return mockPartnerApi(createPartnerApiResponse());
+  private void mockPartnerApi() throws Exception {
+    mockPartnerApi(createPartnerApiResponse());
   }
 
-  private StubMapping mockPartnerApi(PartnerEntitlements response) throws Exception {
-    return stubFor(
-        WireMock.any(urlMatching("/mock/partnerApi/v1/partnerSubscriptions"))
-            .willReturn(
-                aResponse()
-                    .withHeader("Content-Type", "application/json")
-                    .withBody(objectMapper.writeValueAsString(response))));
+  private void mockPartnerApi(PartnerEntitlements response) throws Exception {
+    when(partnerApi.getPartnerEntitlements(any())).thenReturn(response);
   }
 
   private PartnerEntitlements createPartnerApiResponse() {
