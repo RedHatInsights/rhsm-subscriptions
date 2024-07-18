@@ -55,7 +55,7 @@ EXTRA_DEPLOY_ARGS="--timeout 1800 ${IMAGES}"
 OPTIONAL_DEPS_METHOD=none
 
 # set CLI option for --no-remove-resources
-export COMPONENTS_W_RESOURCES="app:rhsm"
+export COMPONENTS_W_RESOURCES="app:rhsm app:export-service"
 
 # NOTE: this ensures that all of the other services end up deployed with the latest template
 export EXTRA_COMPONENTS="rhsm $(find -name clowdapp.yaml -exec dirname {} \; | cut -d'/' -f2 | xargs)"
