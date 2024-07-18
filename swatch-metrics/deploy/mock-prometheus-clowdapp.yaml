@@ -1,0 +1,156 @@
+---
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: swatch-mock-prometheus
+parameters:
+  - name: ENV_NAME
+    value: env-swatch-metrics
+  - name: REPLICAS
+    value: '1'
+  - name: PROMETHEUS_IMAGE
+    value: quay.io/prometheus/prometheus
+  - name: PROMETHEUS_IMAGE_TAG
+    value: latest
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
+  - name: MEMORY_REQUEST
+    value: 400Mi
+  - name: MEMORY_LIMIT
+    value: 800Mi
+  - name: CPU_REQUEST
+    value: 350m
+  - name: CPU_LIMIT
+    value: 1000m
+  - name: LIVENESS_PATH
+    value: /-/healthy
+  - name: READINESS_PATH
+    value: /-/ready
+  - name: PROMETHEUS_PORT
+    value: '9090'
+objects:
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdApp
+    metadata:
+      name: swatch-mock-prometheus
+    spec:
+      # The name of the ClowdEnvironment providing the services
+      envName: ${ENV_NAME}
+
+      pullSecrets:
+        name: ${IMAGE_PULL_SECRET}
+
+      deployments:
+        - name: service
+          webServices:
+            public:
+              enabled: false
+            private:
+              enabled: false
+            metrics:
+              enabled: false
+          replicas: ${{REPLICAS}}
+          podSpec:
+            image: ${PROMETHEUS_IMAGE}:${PROMETHEUS_IMAGE_TAG}
+            args:
+              - --config.file=/etc/prometheus/prometheus.yml
+              - --storage.tsdb.path=/prometheus
+              - --web.console.libraries=/usr/share/prometheus/console_libraries
+              - --web.console.templates=/usr/share/prometheus/consoles
+              - --web.enable-remote-write-receiver
+              - --web.enable-admin-api
+              - --web.listen-address=0.0.0.0:${PROMETHEUS_PORT}
+            livenessProbe:
+              failureThreshold: 3
+              httpGet:
+                path: ${LIVENESS_PATH}
+                port: ${{PROMETHEUS_PORT}}
+                scheme: HTTP
+              initialDelaySeconds: 15
+              periodSeconds: 20
+              successThreshold: 1
+              timeoutSeconds: 5
+            readinessProbe:
+              failureThreshold: 3
+              httpGet:
+                path: ${READINESS_PATH}
+                port: ${{PROMETHEUS_PORT}}
+                scheme: HTTP
+              initialDelaySeconds: 15
+              periodSeconds: 20
+              successThreshold: 1
+              timeoutSeconds: 5
+            resources:
+              requests:
+                cpu: ${CPU_REQUEST}
+                memory: ${MEMORY_REQUEST}
+              limits:
+                cpu: ${CPU_LIMIT}
+                memory: ${MEMORY_LIMIT}
+            volumeMounts:
+              - name: prometheus-conf
+                mountPath: /etc/prometheus/prometheus.yml
+                # NB: when using a ConfigMap as a subPath volume mount changes to the ConfigMap are not reflected
+                # until the pod is restarted.
+                subPath: prometheus.yml
+              - name: prometheus
+                mountPath: /prometheus
+            volumes:
+              - name: prometheus
+                emptyDir:
+              - name: prometheus-conf
+                configMap:
+                  name: prometheus-conf
+
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: swatch-mock-prometheus-service
+      labels:
+        app: swatch-mock-prometheus
+    spec:
+      ports:
+      - name: prometheus-port
+        port: 9090
+        protocol: TCP
+        targetPort: 9090
+      selector:
+        app: swatch-mock-prometheus
+        pod: swatch-mock-prometheus-service
+      sessionAffinity: None
+      type: ClusterIP
+
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: prometheus-conf
+    data:
+      prometheus.yml: |-
+        # Allow 365d days grace on adding out of order records
+        storage:
+          tsdb:
+            out_of_order_time_window: 365d
+
+        global:
+          scrape_interval: 15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+          evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
+          # scrape_timeout is set to the global default (10s).
+
+        # Alertmanager configuration
+        alerting:
+          alertmanagers:
+            - static_configs:
+                - targets:
+                  # - alertmanager:9093
+
+        # A scrape configuration containing exactly one endpoint to scrape:
+        # Here it's Prometheus itself.
+        scrape_configs:
+          # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+          - job_name: "prometheus"
+
+            # metrics_path defaults to '/metrics'
+            # scheme defaults to 'http'.
+
+            static_configs:
+              - targets: ["localhost:${PROMETHEUS_PORT}"]
