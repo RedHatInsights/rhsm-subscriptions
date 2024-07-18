@@ -116,6 +116,13 @@ public class ContractEntity extends PanacheEntityBase {
     metrics.forEach(this::addMetric);
   }
 
+  public ContractMetricEntity getMetric(String metricId) {
+    return metrics.stream()
+        .filter(metric -> metric.getMetricId().equals(metricId))
+        .findFirst()
+        .orElse(null);
+  }
+
   public void addMetric(ContractMetricEntity metric) {
     metrics.add(metric);
     metric.setContract(this);

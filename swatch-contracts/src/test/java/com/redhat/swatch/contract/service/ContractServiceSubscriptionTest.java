@@ -122,6 +122,36 @@ class ContractServiceSubscriptionTest {
   }
 
   @Test
+  void testContractNewMetricAddedToExisting() throws Exception {
+    var contract = givenAzurePartnerEntitlementContract();
+    mockPartnerApi();
+    contractService.createPartnerContract(contract);
+
+    mockPartnerApi(
+        createPartnerApiResponse(
+            List.of(
+                new DimensionV1().name("vCPU").value("4"),
+                new DimensionV1().name("instance-hours").value("99"))));
+
+    contractService.createPartnerContract(contract);
+    var contracts = contractRepository.findAll();
+    var persistedContract = contracts.stream().findFirst().get();
+
+    assertEquals(2, persistedContract.getMetrics().size());
+    assertEquals(99, persistedContract.getMetric("instance-hours").getValue());
+
+    var subscriptions = subscriptionRepository.findBySubscriptionNumber(SUBSCRIPTION_NUMBER);
+    var persistedSubscription = subscriptions.stream().findFirst().get();
+    assertEquals(2, persistedSubscription.getSubscriptionMeasurements().size());
+    assertEquals(
+        99,
+        persistedSubscription
+            .getSubscriptionMeasurement("instance-hours", "PHYSICAL")
+            .get()
+            .getValue());
+  }
+
+  @Test
   void createPartnerContract_DuplicateContractThenDoNotPersist() throws Exception {
     mockPartnerApi();
     PartnerEntitlementContract request = givenAzurePartnerEntitlementContract();
@@ -163,6 +193,10 @@ class ContractServiceSubscriptionTest {
   }
 
   private PartnerEntitlements createPartnerApiResponse() {
+    return createPartnerApiResponse(List.of(new DimensionV1().name("vCPU").value("4")));
+  }
+
+  private PartnerEntitlements createPartnerApiResponse(List<DimensionV1> dimensions) {
     var entitlement =
         new PartnerEntitlementV1()
             .entitlementDates(
@@ -187,7 +221,7 @@ class ContractServiceSubscriptionTest {
                                 .startDate(DEFAULT_START_DATE)
                                 .endDate(DEFAULT_END_DATE)
                                 .planId("rh-rhel-sub-1yr")
-                                .dimensions(List.of(new DimensionV1().name("vCPU").value("4"))))));
+                                .dimensions(dimensions))));
 
     return new PartnerEntitlements().content(List.of(entitlement));
   }

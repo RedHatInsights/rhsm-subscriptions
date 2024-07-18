@@ -464,7 +464,7 @@ public class ContractService {
       SubscriptionEntity existing, SubscriptionEntity updated) {
     if (existing.getSubscriptionMeasurements().size()
         != updated.getSubscriptionMeasurements().size()) {
-      return true;
+      return false;
     }
     return updated.getSubscriptionMeasurements().stream()
         .toList()
