@@ -329,17 +329,15 @@ public class ContractService {
     // If not found in existing Contracts then create new ones.
     contractsToPersist.addAll(contractStartDateMap.values());
 
-    if (contractsToPersist.isEmpty()) {
-      return false;
+    boolean areRecordsUpdated = !contractsToPersist.isEmpty();
+    if (areRecordsUpdated) {
+      contractsToPersist.forEach(
+              contractEntity -> {
+                log.info("Updating or creating contract: {}", contractEntity);
+                persistContract(contractEntity, OffsetDateTime.now());
+              });
     }
-
-    contractsToPersist.forEach(
-        contractEntity -> {
-          log.info("Updating or creating contract: {}", contractEntity);
-          persistContract(contractEntity, OffsetDateTime.now());
-        });
-
-    return true;
+    return areRecordsUpdated;
   }
 
   /**
@@ -413,13 +411,12 @@ public class ContractService {
     // If not found in existing subscriptions then create new ones.
     subscriptionsToPersist.addAll(subscriptionStartDateMap.values());
 
-    if (subscriptionsToPersist.isEmpty()) {
-      return false;
+    boolean areRecordsUpdated = !subscriptionsToPersist.isEmpty();
+    if (areRecordsUpdated) {
+      log.info("Persisting subscriptions: {}", subscriptionsToPersist);
+      subscriptionRepository.persist(subscriptionsToPersist);
     }
-
-    log.info("Persisting subscriptions: {}", subscriptionsToPersist);
-    subscriptionRepository.persist(subscriptionsToPersist);
-    return true;
+    return areRecordsUpdated;
   }
 
   private ContractEntity getLatestContract(List<ContractEntity> contracts)
