@@ -332,10 +332,10 @@ public class ContractService {
     boolean areRecordsUpdated = !contractsToPersist.isEmpty();
     if (areRecordsUpdated) {
       contractsToPersist.forEach(
-              contractEntity -> {
-                log.info("Updating or creating contract: {}", contractEntity);
-                persistContract(contractEntity, OffsetDateTime.now());
-              });
+          contractEntity -> {
+            log.info("Updating or creating contract: {}", contractEntity);
+            persistContract(contractEntity, OffsetDateTime.now());
+          });
     }
     return areRecordsUpdated;
   }
