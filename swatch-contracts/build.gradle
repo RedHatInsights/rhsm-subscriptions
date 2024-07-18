@@ -59,6 +59,7 @@ dependencies {
     testImplementation libraries["wiremock"]
     testImplementation libraries["awaitility"]
     testImplementation("io.quarkus:quarkus-jdbc-h2")
+    testImplementation("io.quarkus:quarkus-test-kafka-companion")
     testAnnotationProcessor libraries["mapstruct-processor"]
     // if you are using mapstruct in test code
     annotationProcessor libraries["lombok-mapstruct-binding"]
