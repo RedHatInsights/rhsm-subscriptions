@@ -14,7 +14,7 @@ buildscript {
 
 ext {
     quarkusVersion='3.9.2'
-    springVersion='3.3.1'
+    springVersion='3.3.2'
     resteasyVersion='6.2.9.Final'
     libraries = [:]
     plugins = []
