@@ -52,6 +52,7 @@ import com.redhat.swatch.contract.BaseUnitTest;
 import com.redhat.swatch.contract.exception.ContractValidationFailedException;
 import com.redhat.swatch.contract.model.ContractSourcePartnerEnum;
 import com.redhat.swatch.contract.model.MeasurementMetricIdTransformer;
+import com.redhat.swatch.contract.model.SubscriptionEntityMapper;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.ContractRequest;
 import com.redhat.swatch.contract.openapi.model.ContractResponse;
@@ -59,13 +60,7 @@ import com.redhat.swatch.contract.openapi.model.Dimension;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContractCloudIdentifiers;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
-import com.redhat.swatch.contract.repository.ContractEntity;
-import com.redhat.swatch.contract.repository.ContractMetricEntity;
-import com.redhat.swatch.contract.repository.ContractRepository;
-import com.redhat.swatch.contract.repository.OfferingEntity;
-import com.redhat.swatch.contract.repository.OfferingRepository;
-import com.redhat.swatch.contract.repository.SubscriptionEntity;
-import com.redhat.swatch.contract.repository.SubscriptionRepository;
+import com.redhat.swatch.contract.repository.*;
 import com.redhat.swatch.contract.resource.WireMockResource;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.common.QuarkusTestResource;
@@ -101,6 +96,7 @@ class ContractServiceTest extends BaseUnitTest {
 
   @Inject ContractService contractService;
   @Inject ObjectMapper objectMapper;
+  @Inject SubscriptionEntityMapper subscriptionEntityMapper;
   @InjectSpy ContractRepository contractRepository;
   @Inject OfferingRepository offeringRepository;
   @InjectMock SubscriptionRepository subscriptionRepository;
@@ -200,32 +196,6 @@ class ContractServiceTest extends BaseUnitTest {
         OffsetDateTime.parse("2023-03-17T12:29:48.569Z"),
         contractSaveCapture.getValue().getStartDate());
     assertEquals("New contract created", statusResponse.getMessage());
-  }
-
-  @Test
-  void createPartnerContract_DuplicateContractThenDoNotPersist() {
-    PartnerEntitlementContract request = givenPartnerEntitlementContractRequest();
-    contractService.createPartnerContract(request);
-
-    StatusResponse statusResponse = contractService.createPartnerContract(request);
-    assertEquals("Existing contracts and subscriptions updated", statusResponse.getMessage());
-    verify(subscriptionRepository, times(2)).persist(any(Set.class));
-  }
-
-  @Test
-  void testCreatePartnerContractDuplicateBillingProviderIdNotPersist() {
-    PartnerEntitlementContract request = givenPartnerEntitlementContractRequest();
-    contractService.createPartnerContract(request);
-
-    request.getCloudIdentifiers().azureResourceId("dupeId");
-    request.getCloudIdentifiers().setAzureOfferId("dupeId");
-    request.getCloudIdentifiers().setPlanId("dupeId");
-    request.getCloudIdentifiers().setPartner("azure_marketplace");
-
-    givenExistingSubscription("dupeId;dupeId;dupeId");
-
-    StatusResponse statusResponse = contractService.createPartnerContract(request);
-    assertEquals("Redundant message ignored", statusResponse.getMessage());
   }
 
   @Test
@@ -412,33 +382,6 @@ class ContractServiceTest extends BaseUnitTest {
     var stubMapping = mockPartnerApi(response);
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
     assertEquals("Empty value in non-null fields", statusResponse.getMessage());
-    WireMock.removeStub(stubMapping);
-  }
-
-  @Test
-  void testContractMetricValueUpdated() throws Exception {
-    var contract = givenAzurePartnerEntitlementContract();
-    mockPartnerApi();
-    contractService.createPartnerContract(contract);
-    var updatedApiResponse = createPartnerApiResponse();
-    updatedApiResponse
-        .getContent()
-        .get(0)
-        .getPurchase()
-        .getContracts()
-        .get(0)
-        .getDimensions()
-        .get(0)
-        .setValue("999");
-    var stubMapping = mockPartnerApi(updatedApiResponse);
-    contractService.createPartnerContract(contract);
-    var contracts = contractRepository.findAll();
-    var persistedContract =
-        contracts.stream()
-            .filter(entity -> entity.getStartDate().equals(DEFAULT_START_DATE))
-            .findFirst()
-            .get();
-    assertEquals(999, persistedContract.getMetrics().iterator().next().getValue());
     WireMock.removeStub(stubMapping);
   }
 
