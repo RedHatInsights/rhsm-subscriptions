@@ -1,8 +1,18 @@
 import click
 import logging
+import sys
+import typing as t
 
-from . import __version__, SwatchContext
+from . import __version__, SwatchContext, invoke_config, console, err
 from .deploy.command import ee
+
+# Trying to avoid some confusion here because otherwise we have invoke.Context
+# calls (from the Invoke library we use for shell commands) and context.Invoke() calls
+# from Click.
+
+from invoke import Context as InvokeContext
+from invoke import UnexpectedExit, Result
+
 
 log = logging.getLogger(__name__)
 
@@ -40,6 +50,19 @@ def cli(ctx, config, verbose):
 
     ctx.obj = SwatchContext(log_level=level)
     log.debug("Verbose logging is enabled.")
+
+    # Create a simple dictionary for commands in this group to communicate over
+    # The SwatchContext will be in the parent context to this one
+    c = InvokeContext(invoke_config)
+    try:
+        result: t.Optional[Result] = c.run("git rev-parse --show-toplevel", hide=True)
+    except UnexpectedExit as e:
+        console.print_exception()
+        err("Could not determine project root")
+        sys.exit(e.result.exited)
+
+    project_root: str = result.stdout.rstrip()
+    ctx.obj["project_root"] = project_root
 
     for key, value in config:
         ctx.obj.set_config(key, value)

@@ -64,16 +64,25 @@ class SwatchContext:
         init_log_level(log_level)
         self.config: t.Dict[str, t.Any] = {}
 
-    def has_config(self, key: str):
-        return key in self.config
+    def __getitem__(self, item):
+        return self.config[item]
 
-    def get_config(self, key: str) -> t.Any:
-        return self.config[key]
-
-    def set_config(self, key: str, value: t.Any):
+    def __setitem__(self, key, value):
         self.config[key] = value
         notice("Config:")
         notice(f"  {key} = {value}")
+
+    def __contains__(self, item):
+        return item in self.config
+
+    def __delitem__(self, key):
+        del self.config[key]
+
+    def __len__(self):
+        return len(self.config)
+
+    def __iter__(self):
+        return iter(self.config)
 
 
 pass_swatch = click.make_pass_decorator(SwatchContext)
@@ -81,5 +90,4 @@ pass_swatch = click.make_pass_decorator(SwatchContext)
 
 class SwatchDogError(Exception):
     """Errors specific to swatchdog"""
-
     pass
