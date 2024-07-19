@@ -16,9 +16,12 @@ LOG_DATEFMT = "%Y-%m-%d %H:%M:%S"
 
 # Rich setup
 console = Console()
+error_console = Console(stderr=True)
+
 install(show_locals=False)
 
 log = logging.getLogger(__name__)
+
 
 def init_log_level(log_level):
     level = getattr(logging, log_level) if log_level else logging.INFO
@@ -39,7 +42,7 @@ def notice(msg):
 
 
 def err(msg):
-    console.print(f"[bold red]{msg}[/bold red]")
+    error_console.print(f"[bold red]{msg}[/bold red]")
 
 
 class SwatchDogInvokeConfig(Config):
@@ -91,4 +94,5 @@ pass_swatch = click.make_pass_decorator(SwatchContext)
 
 class SwatchDogError(Exception):
     """Errors specific to swatchdog"""
+
     pass

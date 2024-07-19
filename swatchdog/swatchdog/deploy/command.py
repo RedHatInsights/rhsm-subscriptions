@@ -71,7 +71,7 @@ class GradleWatcher(StreamWatcher):
 
 @click.group
 def ee():
-    """Create an ee command namespace """
+    """Create an ee command namespace"""
     pass
 
 

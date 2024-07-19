@@ -1,4 +1,3 @@
-import logging
 import os
 import re
 import typing as t
@@ -7,14 +6,111 @@ import yaml
 import json
 
 from urllib.parse import urlencode
-
-from .. import SwatchContext, SwatchDogError
-from .. import console, info, err, invoke_config, pass_swatch
+from .. import console
 
 
 class PromQLWriter:
-    def __init__(self):
-        pass
+    def __init__(
+        self, templates: t.Dict, product: str, metric: str, org: str, url: str
+    ):
+        self.templates = templates
+        self.product = product
+        self.metric = metric
+        self.org = org
+        self.url = url
+        self.seen_products = set()
+
+    def process_yaml(self, product_yaml: t.Dict):
+        config_metrics = product_yaml.get("metrics", [])
+        prometheus_enabled = list(filter(lambda x: x.get("prometheus"), config_metrics))
+        if len(prometheus_enabled) == 0:
+            return
+        if self.product and self.product.lower() != product_yaml["id"].lower():
+            return
+        self.build_metrics(
+            product_yaml["id"],
+            config_metrics,
+        )
+
+    def build_metrics(self, product_id: str, config_metrics: t.List):
+        # Remove metrics we don't care about
+        if self.metric:
+            config_metrics = filter(
+                lambda x: self.metric.lower() == x["id"].lower(), config_metrics
+            )
+        # Ensure a prometheus section
+        config_metrics = filter(lambda x: x["prometheus"], config_metrics)
+
+        for m in config_metrics:
+            prometheus_config = m["prometheus"]
+            query_key = prometheus_config["queryKey"]
+            query_params = prometheus_config["queryParams"]
+            default = self.templates["account_query"]["default"]
+            account_promql = self.template_promql(
+                self.templates["account_query"].get(query_key, default), query_params
+            )
+            metric_promql = self.template_promql(
+                self.templates["query"][query_key], query_params
+            )
+            if product_id not in self.seen_products:
+                console.rule(f"[yellow]{product_id}", align="left")
+                self.seen_products.add(product_id)
+                if not self.metric:
+                    if self.url:
+                        console.print("[green]Accounts:")
+                        console.print(
+                            f"{self.grafana_url(account_promql)}\n", highlight=False
+                        )
+                    else:
+                        console.print("[green]Accounts PromQL:")
+                        console.print(f"{account_promql}\n", highlight=False)
+            if self.url:
+                console.print(f"[green]{m['id']}:")
+                console.print(f"{self.grafana_url(metric_promql)}\n", highlight=False)
+            else:
+                console.print(f"[green]{m['id']} PromQL:")
+                console.print(f"{metric_promql}\n", highlight=False)
+
+    def template_promql(self, template: str, query_params: t.Dict):
+        if template.startswith("${OPENSHIFT_ENABLED_ACCOUNT_PROMQL"):
+            template = template.lstrip("${OPENSHIFT_ENABLED_ACCOUNT_PROMQL:")
+            template = template.rstrip("}")
+        while "metric.prometheus.queryParams" in template:
+            regex = r"\#\{metric.prometheus.queryParams\[([^]]+)\]\}"
+            param = re.search(regex, template).group(1)
+            template = re.sub(regex, query_params.get(param, ""), template, 1)
+        if self.org:
+            template = template.replace(r'="#{runtime[orgId]}"', f'="{self.org}"')
+        else:
+            template = template.replace(r'="#{runtime[orgId]}"', '=~".*"')
+        return template
+
+    def grafana_url(self, promql_expr: str):
+        grafana_params = urlencode(
+            [
+                (
+                    "left",
+                    json.dumps(
+                        {
+                            "queries": [
+                                {
+                                    "refId": "A",
+                                    "editorMode": "code",
+                                    "expr": promql_expr,
+                                    "legendFormat": "__auto",
+                                    "range": True,
+                                    "instant": True,
+                                    "interval": "3600",
+                                }
+                            ],
+                            "range": {"from": "now-12h", "to": "now"},
+                        }
+                    ),
+                )
+            ]
+        )
+
+        return f"{self.url}/explore?orgId=1&" + grafana_params
 
 
 @click.group
@@ -39,7 +135,7 @@ def validate_path(ctx, param, value):
     help="Source for the PromQL templates relative to the project root",
 )
 @click.option(
-    "--product-config",
+    "--product-config-dir",
     default="swatch-product-configuration/src/main/resources/subscription_configs",
     callback=validate_path,
     type=str,
@@ -54,98 +150,22 @@ def validate_path(ctx, param, value):
 @click.option("--metric", type=str, help="Limit to a specific metric")
 @click.option("--org", type=str, help="Limit to a specific org")
 def promql(
-    source: str, product_config: str, url: str, product: str, metric: str, org: str
+    source: str, product_config_dir: str, url: str, product: str, metric: str, org: str
 ):
     with open(source) as config_file:
         config = yaml.safe_load(config_file)
-        query_templates = config["rhsm-subscriptions"]["metering"]["prometheus"]["metric"][
-            "queryTemplates"
-        ]
-        account_query_templates = config["rhsm-subscriptions"]["metering"]["prometheus"][
+        metric_section = config["rhsm-subscriptions"]["metering"]["prometheus"][
             "metric"
-        ]["accountQueryTemplates"]
-
-    for root, dirs, files in os.walk(product_config):
-        seen_products = set()
-        for name in files:
-            if "basilisk" in name:
-                continue
-            with open(os.path.join(root, name)) as config_file:
-                config = yaml.safe_load(config_file)
-                metrics = config.get("metrics", [])
-                if len(list(filter(lambda m: m.get("prometheus"), metrics))) == 0:
-                    continue
-                if product and product.lower() != config["id"].lower():
-                    continue
-                for m in metrics:
-                    prometheus_config = m.get("prometheus")
-                    if metric and metric.lower() != m["id"].lower():
-                        continue
-                    if prometheus_config:
-                        query_key = prometheus_config["queryKey"]
-                        query_params = prometheus_config["queryParams"]
-                        account_promql = template_promql(
-                            account_query_templates.get(
-                                query_key, account_query_templates["default"]
-                            ),
-                            query_params,
-                            org
-                        )
-                        metric_promql = template_promql(query_templates.get(query_key), query_params, org)
-                        if config["id"] not in seen_products:
-                            print()
-                            print(config["id"])
-                            print("-" * len(config["id"]))
-                            seen_products.add(config["id"])
-                            if not metric:
-                                if url:
-                                    print(f"  Accounts: {grafana_url(account_promql, url)}")
-                                else:
-                                    print(f"  Accounts PromQL: {account_promql}")
-                        if url:
-                            print(f'  {m["id"]}: {grafana_url(metric_promql, url)}')
-                        else:
-                            print(f'  {m["id"]} PromQL: {metric_promql}')
-
-
-def template_promql(template, query_params, org):
-    if template.startswith("${OPENSHIFT_ENABLED_ACCOUNT_PROMQL"):
-        template = template.lstrip("${OPENSHIFT_ENABLED_ACCOUNT_PROMQL:")
-        template = template.rstrip("}")
-    while "metric.prometheus.queryParams" in template:
-        regex = r"\#\{metric.prometheus.queryParams\[([^]]+)\]\}"
-        param = re.search(regex, template).group(1)
-        template = re.sub(regex, query_params.get(param, ""), template, 1)
-    if org:
-        template = template.replace(r'="#{runtime[orgId]}"', f'="{org}"')
-    else:
-        template = template.replace(r'="#{runtime[orgId]}"', '=~".*"')
-    return template
-
-
-def grafana_url(promql, url):
-    grafana_params = urlencode(
-        [
-            (
-                "left",
-                json.dumps(
-                    {
-                        "queries": [
-                            {
-                                "refId": "A",
-                                "editorMode": "code",
-                                "expr": promql,
-                                "legendFormat": "__auto",
-                                "range": True,
-                                "instant": True,
-                                "interval": "3600",
-                            }
-                        ],
-                        "range": {"from": "now-12h", "to": "now"},
-                    }
-                ),
-            )
         ]
-    )
+        query_templates = metric_section["queryTemplates"]
+        account_query_templates = metric_section["accountQueryTemplates"]
 
-    return f"{url}/explore?orgId=1&" + grafana_params
+    templates = {"account_query": account_query_templates, "query": query_templates}
+    writer = PromQLWriter(templates, product, metric, org, url)
+
+    for root, dirs, files in os.walk(product_config_dir):
+        files = filter(lambda x: "basilisk" not in x, files)
+        for name in files:
+            with open(os.path.join(root, name)) as product_config_file:
+                config = yaml.safe_load(product_config_file)
+                writer.process_yaml(config)
