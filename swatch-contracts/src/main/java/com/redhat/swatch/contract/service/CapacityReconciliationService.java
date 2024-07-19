@@ -87,7 +87,7 @@ public class CapacityReconciliationService {
                   .build())
           .toCompletableFuture()
           // NOTE(khowell) we wait for the message send to be successful here so asynchronous send
-          // does not propagate the transaction and cause confusing errors;
+          // does not propagate the transaction and cause confusing errors
           // see https://github.com/quarkusio/quarkus/issues/21948#issuecomment-1068845737
           .join();
     }

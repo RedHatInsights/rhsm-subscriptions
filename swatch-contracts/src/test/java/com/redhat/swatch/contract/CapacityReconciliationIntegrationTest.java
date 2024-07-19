@@ -39,11 +39,13 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+@Disabled("Running kafka w/ kubedock broken, see https://github.com/joyrex2001/kubedock/issues/53")
 @QuarkusTest
-@QuarkusTestResource(KafkaCompanionResource.class)
-public class CapacityReconciliationIntegrationTest {
+@QuarkusTestResource(value = KafkaCompanionResource.class, restrictToAnnotatedClass = true)
+class CapacityReconciliationIntegrationTest {
   @InjectKafkaCompanion KafkaCompanion companion;
 
   @Inject CapacityReconciliationService reconciliationService;
