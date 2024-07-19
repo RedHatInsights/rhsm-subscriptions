@@ -142,7 +142,7 @@ rhsm-subscriptions:
     manual-event-editing-enabled: ${DEVTEST_EVENT_EDITING_ENABLED}
     reset-account-enabled: ${ENABLE_ACCOUNT_RESET}
   datasource:
-    url: jdbc:postgresql://${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_DATABASE}?reWriteBatchedInserts=true&stringtype=unspecified&options=-c%20statement_timeout=${POSTGRES_STATEMENT_TIMEOUT}
+    url: jdbc:postgresql://${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_DATABASE}?reWriteBatchedInserts=true&stringtype=unspecified&options=-c%20statement_timeout=${POSTGRES_STATEMENT_TIMEOUT}&ApplicationName=${clowder.metadata.name:swatch-core}
     username: ${DATABASE_USERNAME}
     password: ${DATABASE_PASSWORD}
     driver-class-name: org.postgresql.Driver
