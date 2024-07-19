@@ -3,8 +3,9 @@ import logging
 import sys
 import typing as t
 
-from . import __version__, SwatchContext, invoke_config, console, err
+from . import __version__, SwatchContext, invoke_config, console, err, init_log_level
 from .deploy.command import ee
+from .prometheus.command import prometheus
 
 # Trying to avoid some confusion here because otherwise we have invoke.Context
 # calls (from the Invoke library we use for shell commands) and context.Invoke() calls
@@ -48,7 +49,8 @@ def cli(ctx, config, verbose):
     else:
         level = "INFO"
 
-    ctx.obj = SwatchContext(log_level=level)
+    init_log_level(level)
+    ctx.obj = SwatchContext()
     log.debug("Verbose logging is enabled.")
 
     # Create a simple dictionary for commands in this group to communicate over
@@ -66,9 +68,11 @@ def cli(ctx, config, verbose):
 
     for key, value in config:
         ctx.obj.set_config(key, value)
+    log.debug(ctx.obj)
 
 
 cli.add_command(ee)
+cli.add_command(prometheus)
 
 if __name__ == "__main__":
     cli()

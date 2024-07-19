@@ -18,6 +18,7 @@ LOG_DATEFMT = "%Y-%m-%d %H:%M:%S"
 console = Console()
 install(show_locals=False)
 
+log = logging.getLogger(__name__)
 
 def init_log_level(log_level):
     level = getattr(logging, log_level) if log_level else logging.INFO
@@ -60,17 +61,14 @@ invoke_config = SwatchDogInvokeConfig()
 
 
 class SwatchContext:
-    def __init__(self, *, log_level: str):
-        init_log_level(log_level)
-        self.config: t.Dict[str, t.Any] = {}
+    def __init__(self, **kwargs):
+        self.config: t.Dict[str, t.Any] = dict(**kwargs)
 
     def __getitem__(self, item):
         return self.config[item]
 
     def __setitem__(self, key, value):
         self.config[key] = value
-        notice("Config:")
-        notice(f"  {key} = {value}")
 
     def __contains__(self, item):
         return item in self.config
@@ -83,6 +81,9 @@ class SwatchContext:
 
     def __iter__(self):
         return iter(self.config)
+
+    def __str__(self):
+        return f"SwatchContext: {self.config}"
 
 
 pass_swatch = click.make_pass_decorator(SwatchContext)
