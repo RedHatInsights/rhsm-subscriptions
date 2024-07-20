@@ -29,8 +29,6 @@ import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.BillingProvider;
-import org.candlepin.subscriptions.json.Event.CloudProvider;
-import org.candlepin.subscriptions.json.Event.HardwareType;
 import org.candlepin.subscriptions.json.Event.Role;
 import org.candlepin.subscriptions.json.Event.Sla;
 import org.candlepin.subscriptions.json.Event.Usage;
@@ -125,7 +123,6 @@ public final class MeteringEventFactory {
       List<String> productIds,
       String displayName,
       boolean is3rdPartyMigrated) {
-
     toUpdate
         .withServiceType(serviceType)
         .withTimestamp(measuredTime)
@@ -133,6 +130,7 @@ public final class MeteringEventFactory {
         .withDisplayName(Optional.of(displayName))
         .withSla(getSla(serviceLevel, orgId, instanceId))
         .withUsage(getUsage(usage, orgId, instanceId))
+        .withBillingProvider(getBillingProvider(billingProvider, orgId, instanceId))
         .withBillingAccountId(Optional.ofNullable(billingAccountId))
         .withMeasurements(
             List.of(
@@ -149,25 +147,6 @@ public final class MeteringEventFactory {
         .withProductTag(Set.of(productTag))
         .withProductIds(productIds)
         .withConversion(is3rdPartyMigrated);
-
-    BillingProvider billingProviderEnum = getBillingProvider(billingProvider, orgId, instanceId);
-    toUpdate.withBillingProvider(billingProviderEnum);
-
-    if (billingProviderEnum != null) {
-      var cloudProvider = getCloudProvider(billingProviderEnum);
-      cloudProvider.ifPresent(
-          x -> toUpdate.withHardwareType(HardwareType.CLOUD).withCloudProvider(x));
-    }
-  }
-
-  static Optional<CloudProvider> getCloudProvider(BillingProvider billingProvider) {
-
-    return switch (billingProvider) {
-      case AWS -> Optional.of(CloudProvider.AWS);
-      case GCP -> Optional.of(CloudProvider.GOOGLE);
-      case AZURE -> Optional.of(CloudProvider.AZURE);
-      default -> Optional.empty();
-    };
   }
 
   public static String getEventType(String metricId, String productTag) {
