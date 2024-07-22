@@ -85,7 +85,7 @@ class SwatchContext:
     def __iter__(self):
         return iter(self.config)
 
-    def __str__(self):
+    def __repr__(self):
         return f"SwatchContext: {self.config}"
 
 
