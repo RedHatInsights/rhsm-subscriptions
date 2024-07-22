@@ -48,12 +48,15 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
+import org.eclipse.microprofile.faulttolerance.Asynchronous;
 
 @ApplicationScoped
 @Slf4j
@@ -507,6 +510,12 @@ public class SubscriptionSyncService {
     } else {
       syncSubscription(umbSubscription.getSku(), subscription, subscriptions.stream().findFirst());
     }
+  }
+
+  @Asynchronous
+  @Transactional
+  public CompletionStage<Void> forceSyncSubscriptionsForOrgAsync(String orgId) {
+    return CompletableFuture.runAsync(() -> forceSyncSubscriptionsForOrg(orgId, false));
   }
 
   @Transactional

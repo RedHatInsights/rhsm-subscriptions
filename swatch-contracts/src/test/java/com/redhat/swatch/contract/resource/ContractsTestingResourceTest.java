@@ -38,6 +38,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 @QuarkusTest
 @TestSecurity(
@@ -108,6 +109,9 @@ class ContractsTestingResourceTest {
 
   @Test
   void forceSyncForOrgShouldReturnSuccess() {
+    Mockito.doCallRealMethod()
+        .when(subscriptionSyncService)
+        .forceSyncSubscriptionsForOrgAsync(ORG_ID);
     resource.forceSyncSubscriptionsForOrg(ORG_ID);
     verify(subscriptionSyncService).forceSyncSubscriptionsForOrg(ORG_ID, false);
   }

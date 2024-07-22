@@ -59,6 +59,7 @@ import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.ProcessingException;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jboss.resteasy.reactive.common.NotImplementedYet;
@@ -70,6 +71,7 @@ public class ContractsTestingResource implements DefaultApi {
 
   public static final String FEATURE_NOT_ENABLED_MESSAGE = "This feature is not currently enabled.";
   private static final String SUCCESS_STATUS = "Success";
+  private static final String FAILURE_MESSAGE = "Failed";
   private static final XmlMapper XML_MAPPER = CanonicalMessage.createMapper();
 
   private final ContractService service;
@@ -188,8 +190,19 @@ public class ContractsTestingResource implements DefaultApi {
   @Override
   @RolesAllowed({"test", "support", "service"})
   public RpcResponse forceSyncSubscriptionsForOrg(String orgId) throws ProcessingException {
-    subscriptionSyncService.forceSyncSubscriptionsForOrg(orgId, false);
-    return new RpcResponse();
+    var response = new RpcResponse();
+    try {
+      subscriptionSyncService.forceSyncSubscriptionsForOrgAsync(orgId).toCompletableFuture().get();
+      response.setResult(SUCCESS_STATUS);
+    } catch (InterruptedException | ExecutionException e) {
+      response.setResult(FAILURE_MESSAGE);
+      log.error("Error synchronizing subscriptions for org {}", orgId, e);
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
+    }
+
+    return response;
   }
 
   @Override
