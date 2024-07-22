@@ -62,107 +62,16 @@ public class SubscriptionSyncService {
 
   private static final int SUBSCRIPTION_BATCH_SIZE = 1024;
 
-  private final CapacityReconciliationService capacityReconciliationService;
-  private final OfferingSyncService offeringSyncService;
-  private final SubscriptionService subscriptionService;
   private final SubscriptionRepository subscriptionRepository;
   private final OfferingRepository offeringRepository;
-  private final EntityManager entityManager;
+  private final SubscriptionService subscriptionService;
   private final ApplicationClock clock;
+  private final CapacityReconciliationService capacityReconciliationService;
+  private final OfferingSyncService offeringSyncService;
   private final ApplicationConfiguration properties;
-  private final ProductDenylist productDenylist;
   private final ObjectMapper objectMapper;
-
-  @Transactional
-  @Timed("swatch_subscription_reconcile_org")
-  public void reconcileSubscriptionsWithSubscriptionService(String orgId, boolean paygOnly) {
-    log.info("Syncing subscriptions for orgId={}", orgId);
-
-    var dtos = subscriptionService.getSubscriptionsByOrgId(orgId).stream();
-
-    // Filter out non PAYG subscriptions for faster processing when they are not needed.
-    // Slow processing was causing: https://issues.redhat.com/browse/ENT-5083
-
-    if (paygOnly) {
-      dtos =
-          dtos.filter(
-              subscription -> SubscriptionDtoUtil.extractBillingProviderId(subscription) != null);
-    }
-
-    var subIdToDtoMap =
-        dtos.filter(this::shouldSyncSub)
-            .collect(
-                Collectors.toMap(
-                    dto -> dto.getId().toString(),
-                    Function.identity(),
-                    (firstMatch, secondMatch) -> firstMatch));
-
-    List<SubscriptionEntity> subEntitiesForDeletion = new ArrayList<>();
-
-    Set<String> seenIds = new HashSet<>(subIdToDtoMap.keySet());
-
-    AtomicInteger subscriptionHandled = new AtomicInteger(0);
-    subscriptionRepository
-        .streamByOrgId(orgId)
-        .forEach(
-            subEntity -> {
-              var subId = subEntity.getSubscriptionId();
-              var dto = subIdToDtoMap.remove(subId);
-
-              // delete from swatch because it didn't appear in the latest list from the
-              // subscription service, or it's in the denylist
-              if (!seenIds.contains(subId)
-                  || (productDenylist.productIdMatches(subEntity.getOffering().getSku()))) {
-                subEntitiesForDeletion.add(subEntity);
-                return;
-              }
-
-              // we've seen a newer version of the sub, but this version doesn't need updates
-              if (dto == null) {
-                return;
-              }
-
-              syncSubscription(dto, Optional.of(subEntity));
-              if (subscriptionHandled.incrementAndGet() % SUBSCRIPTION_BATCH_SIZE == 0) {
-                subscriptionRepository.flush();
-                entityManager.clear();
-              }
-            });
-
-    // These are additional subs that should be sync'd but weren't previously in the database
-    subIdToDtoMap
-        .values()
-        .forEach(
-            dto -> {
-              // Contract provided subscriptions will have a different start_date than what is
-              // stored in Subscription SearchAPI
-              var existingSubscription =
-                  subscriptionRepository
-                      .findBySubscriptionNumber(dto.getSubscriptionNumber())
-                      .stream()
-                      .findFirst();
-              syncSubscription(dto, existingSubscription);
-
-              if (subscriptionHandled.incrementAndGet() % SUBSCRIPTION_BATCH_SIZE == 0) {
-                subscriptionRepository.flush();
-                entityManager.clear();
-              }
-            });
-
-    if (paygOnly) {
-      // don't clean up stale subs, because PAYG-only sync discards/ignores too much data to
-      // determine what to delete at this point
-      return;
-    }
-
-    if (!subEntitiesForDeletion.isEmpty()) {
-      log.info("Removing {} stale/incorrect subscription records", subEntitiesForDeletion.size());
-    }
-
-    subEntitiesForDeletion.forEach(subscriptionRepository::delete);
-
-    log.info("Finished syncing subscriptions for orgId {}", orgId);
-  }
+  private final ProductDenylist productDenylist;
+  private final EntityManager entityManager;
 
   @Transactional
   public void syncSubscription(
@@ -290,76 +199,14 @@ public class SubscriptionSyncService {
     }
   }
 
-  public void saveSubscriptions(String subscriptionsJson, boolean reconcileCapacity) {
-    try {
-      Subscription[] subscriptions =
-          objectMapper.readValue(subscriptionsJson, Subscription[].class);
-      Arrays.stream(subscriptions)
-          .map(this::convertDto)
-          .forEach(
-              subscription -> {
-                if (reconcileCapacity) {
-                  determineSubscriptionOffering(subscription);
-                  capacityReconciliationService.reconcileCapacityForSubscription(subscription);
-                }
-                subscriptionRepository.persist(subscription);
-              });
-    } catch (JsonProcessingException e) {
-      throw new IllegalArgumentException("Error parsing subscriptionsJson", e);
+  private boolean ensureOffering(String sku, Optional<SubscriptionEntity> subscriptionOptional) {
+    // NOTE: we do not need to check if the offering exists if there is an existing DB record for
+    // the subscription that uses that offering
+    if (subscriptionOptional.isEmpty() && offeringRepository.findByIdOptional(sku).isEmpty()) {
+      log.debug("Sku={} not in Offering repository, syncing offering.", sku);
+      return SyncResult.isSynced(offeringSyncService.syncOffering(sku));
     }
-  }
-
-  @Transactional
-  public void saveUmbSubscription(UmbSubscription umbSubscription) {
-    SubscriptionEntity subscription = convertDto(umbSubscription);
-    var subscriptions =
-        subscriptionRepository.findBySubscriptionNumber(subscription.getSubscriptionNumber());
-    if (subscriptions.size() > 1) {
-      log.warn(
-          "Skipping UMB message because multiple subscriptions were found for subscriptionNumber={}",
-          subscription.getSubscriptionNumber());
-    } else {
-      syncSubscription(umbSubscription.getSku(), subscription, subscriptions.stream().findFirst());
-    }
-  }
-
-  @Transactional
-  public void forceSyncSubscriptionsForOrg(String orgId, boolean paygOnly) {
-    if (paygOnly && !properties.isEnablePaygSubscriptionForceSync()) {
-      log.info("Force sync of payg subscriptions disabled");
-      return;
-    }
-    log.info("Starting force sync for orgId: {}", orgId);
-    reconcileSubscriptionsWithSubscriptionService(orgId, paygOnly);
-    log.info("Finished force sync for orgId: {}", orgId);
-  }
-
-  /**
-   * Update all subscription fields in an existing SWATCH Subscription that we are allowed to change
-   */
-  private void updateExistingSubscription(
-      SubscriptionEntity newOrUpdated, SubscriptionEntity entity) {
-    if (newOrUpdated.getEndDate() != null) {
-      entity.setEndDate(newOrUpdated.getEndDate());
-    }
-    entity.setSubscriptionNumber(newOrUpdated.getSubscriptionNumber());
-    entity.setBillingProvider(newOrUpdated.getBillingProvider());
-    entity.setBillingAccountId(newOrUpdated.getBillingAccountId());
-    entity.setBillingProviderId(newOrUpdated.getBillingProviderId());
-    entity.setOrgId(newOrUpdated.getOrgId());
-    // recalculate the subscription measurements and product IDs in case those have changed
-    capacityReconciliationService.reconcileCapacityForSubscription(entity);
-  }
-
-  private boolean isNewContractWithoutExistingSubscription(
-      SubscriptionEntity subscription, Optional<SubscriptionEntity> existingSubscription) {
-    if (subscription.getOffering().isMetered() && existingSubscription.isEmpty()) {
-      log.info(
-          "Skipping sync for PAYG eligible subscription to allow contracts service to initialize subscription record. subscription_number: {}",
-          subscription.getSubscriptionNumber());
-      return true;
-    }
-    return false;
+    return true;
   }
 
   private void checkForMissingRequiredBillingProvider(SubscriptionEntity subscription) {
@@ -372,6 +219,17 @@ public class SubscriptionSyncService {
           subscription.getSubscriptionId(),
           subscription.getSubscriptionNumber());
     }
+  }
+
+  private boolean isNewContractWithoutExistingSubscription(
+      SubscriptionEntity subscription, Optional<SubscriptionEntity> existingSubscription) {
+    if (subscription.getOffering().isMetered() && existingSubscription.isEmpty()) {
+      log.info(
+          "Skipping sync for PAYG eligible subscription to allow contracts service to initialize subscription record. subscription_number: {}",
+          subscription.getSubscriptionNumber());
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -416,14 +274,122 @@ public class SubscriptionSyncService {
         convertDto(subscriptionService.getSubscriptionBySubscriptionNumber(subscriptionNumber)));
   }
 
-  private boolean ensureOffering(String sku, Optional<SubscriptionEntity> subscriptionOptional) {
-    // NOTE: we do not need to check if the offering exists if there is an existing DB record for
-    // the subscription that uses that offering
-    if (subscriptionOptional.isEmpty() && offeringRepository.findByIdOptional(sku).isEmpty()) {
-      log.debug("Sku={} not in Offering repository, syncing offering.", sku);
-      return SyncResult.isSynced(offeringSyncService.syncOffering(sku));
+  @Transactional
+  @Timed("swatch_subscription_reconcile_org")
+  public void reconcileSubscriptionsWithSubscriptionService(String orgId, boolean paygOnly) {
+    log.info("Syncing subscriptions for orgId={}", orgId);
+
+    var dtos = subscriptionService.getSubscriptionsByOrgId(orgId).stream();
+
+    // Filter out non PAYG subscriptions for faster processing when they are not needed.
+    // Slow processing was causing: https://issues.redhat.com/browse/ENT-5083
+
+    if (paygOnly) {
+      dtos =
+          dtos.filter(
+              subscription -> SubscriptionDtoUtil.extractBillingProviderId(subscription) != null);
     }
-    return true;
+
+    var subIdToDtoMap =
+        dtos.filter(this::shouldSyncSub)
+            .collect(
+                Collectors.toMap(
+                    dto -> dto.getId().toString(),
+                    Function.identity(),
+                    (firstMatch, secondMatch) -> firstMatch));
+
+    List<SubscriptionEntity> subEntitiesForDeletion = new ArrayList<>();
+
+    Set<String> seenIds = new HashSet<>(subIdToDtoMap.keySet());
+
+    AtomicInteger subscriptionHandled = new AtomicInteger(0);
+    subscriptionRepository
+        .streamByOrgId(orgId)
+        .forEach(
+            subEntity -> {
+              var subId = subEntity.getSubscriptionId();
+              var dto = subIdToDtoMap.remove(subId);
+
+              // delete from swatch because it didn't appear in the latest list from the
+              // subscription service, or it's in the denylist
+              if (!seenIds.contains(subId)
+                  || (productDenylist.productIdMatches(subEntity.getOffering().getSku()))) {
+                subEntitiesForDeletion.add(subEntity);
+                return;
+              }
+
+              // we've seen a newer version of the sub, but this version doesn't need updates
+              if (dto == null) {
+                return;
+              }
+
+              syncSubscription(dto, Optional.of(subEntity));
+              if (subscriptionHandled.incrementAndGet() % SUBSCRIPTION_BATCH_SIZE == 0) {
+                subscriptionRepository.flush();
+                entityManager.clear();
+              }
+            });
+
+    // These are additional subs that should be sync'd but weren't previously in the database
+    subIdToDtoMap
+        .values()
+        .forEach(
+            dto -> {
+              // Contract provided subscriptions will have a different start_date than what is
+              // stored in Subscription SearchAPI
+              var existingSubscription =
+                  subscriptionRepository
+                      .findBySubscriptionNumber(dto.getSubscriptionNumber())
+                      .stream()
+                      .findFirst();
+              syncSubscription(dto, existingSubscription);
+
+              if (subscriptionHandled.incrementAndGet() % SUBSCRIPTION_BATCH_SIZE == 0) {
+                subscriptionRepository.flush();
+                entityManager.clear();
+              }
+            });
+
+    if (paygOnly) {
+      // don't clean up stale subs, because PAYG-only sync discards/ignores too much data to
+      // determine what to delete at this point
+      return;
+    }
+
+    if (!subEntitiesForDeletion.isEmpty()) {
+      log.info("Removing {} stale/incorrect subscription records", subEntitiesForDeletion.size());
+    }
+
+    subEntitiesForDeletion.forEach(subscriptionRepository::delete);
+
+    log.info("Finished syncing subscriptions for orgId {}", orgId);
+  }
+
+  private boolean shouldSyncSub(Subscription sub) {
+    // Reject subs expired long ago, or subs that won't be active quite yet.
+    OffsetDateTime now = clock.now();
+
+    Long startDate = sub.getEffectiveStartDate();
+    Long endDate = sub.getEffectiveEndDate();
+
+    // Consider any sub with a null effective start date as invalid, it could be an upstream data
+    // issue. Log this sub's info and skip it.
+    if (startDate == null) {
+      log.warn(
+          "subscriptionId={} subscriptionNumber={} for orgId={} has effectiveStartDate null (should not be null). Subscription data will need fixing in upstream service. Skipping sync.",
+          sub.getId(),
+          sub.getSubscriptionNumber(),
+          sub.getWebCustomerId());
+      return false;
+    }
+
+    long earliestAllowedFutureStartDate =
+        now.plus(properties.getSubscriptionIgnoreStartingLaterThan()).toInstant().toEpochMilli();
+    long latestAllowedExpiredEndDate =
+        now.minus(properties.getSubscriptionIgnoreExpiredOlderThan()).toInstant().toEpochMilli();
+
+    return startDate < earliestAllowedFutureStartDate
+        && (endDate == null || endDate > latestAllowedExpiredEndDate);
   }
 
   private SubscriptionEntity convertDto(UmbSubscription subscription) {
@@ -480,31 +446,40 @@ public class SubscriptionSyncService {
         .build();
   }
 
-  private boolean shouldSyncSub(Subscription sub) {
-    // Reject subs expired long ago, or subs that won't be active quite yet.
-    OffsetDateTime now = clock.now();
-
-    Long startDate = sub.getEffectiveStartDate();
-    Long endDate = sub.getEffectiveEndDate();
-
-    // Consider any sub with a null effective start date as invalid, it could be an upstream data
-    // issue. Log this sub's info and skip it.
-    if (startDate == null) {
-      log.warn(
-          "subscriptionId={} subscriptionNumber={} for orgId={} has effectiveStartDate null (should not be null). Subscription data will need fixing in upstream service. Skipping sync.",
-          sub.getId(),
-          sub.getSubscriptionNumber(),
-          sub.getWebCustomerId());
-      return false;
+  /**
+   * Update all subscription fields in an existing SWATCH Subscription that we are allowed to change
+   */
+  private void updateExistingSubscription(
+      SubscriptionEntity newOrUpdated, SubscriptionEntity entity) {
+    if (newOrUpdated.getEndDate() != null) {
+      entity.setEndDate(newOrUpdated.getEndDate());
     }
+    entity.setSubscriptionNumber(newOrUpdated.getSubscriptionNumber());
+    entity.setBillingProvider(newOrUpdated.getBillingProvider());
+    entity.setBillingAccountId(newOrUpdated.getBillingAccountId());
+    entity.setBillingProviderId(newOrUpdated.getBillingProviderId());
+    entity.setOrgId(newOrUpdated.getOrgId());
+    // recalculate the subscription measurements and product IDs in case those have changed
+    capacityReconciliationService.reconcileCapacityForSubscription(entity);
+  }
 
-    long earliestAllowedFutureStartDate =
-        now.plus(properties.getSubscriptionIgnoreStartingLaterThan()).toInstant().toEpochMilli();
-    long latestAllowedExpiredEndDate =
-        now.minus(properties.getSubscriptionIgnoreExpiredOlderThan()).toInstant().toEpochMilli();
-
-    return startDate < earliestAllowedFutureStartDate
-        && (endDate == null || endDate > latestAllowedExpiredEndDate);
+  public void saveSubscriptions(String subscriptionsJson, boolean reconcileCapacity) {
+    try {
+      Subscription[] subscriptions =
+          objectMapper.readValue(subscriptionsJson, Subscription[].class);
+      Arrays.stream(subscriptions)
+          .map(this::convertDto)
+          .forEach(
+              subscription -> {
+                if (reconcileCapacity) {
+                  determineSubscriptionOffering(subscription);
+                  capacityReconciliationService.reconcileCapacityForSubscription(subscription);
+                }
+                subscriptionRepository.persist(subscription);
+              });
+    } catch (JsonProcessingException e) {
+      throw new IllegalArgumentException("Error parsing subscriptionsJson", e);
+    }
   }
 
   private void determineSubscriptionOffering(SubscriptionEntity subscription) {
@@ -518,5 +493,30 @@ public class SubscriptionSyncService {
         throw new BadRequestException("Error offering doesn't exist");
       }
     }
+  }
+
+  @Transactional
+  public void saveUmbSubscription(UmbSubscription umbSubscription) {
+    SubscriptionEntity subscription = convertDto(umbSubscription);
+    var subscriptions =
+        subscriptionRepository.findBySubscriptionNumber(subscription.getSubscriptionNumber());
+    if (subscriptions.size() > 1) {
+      log.warn(
+          "Skipping UMB message because multiple subscriptions were found for subscriptionNumber={}",
+          subscription.getSubscriptionNumber());
+    } else {
+      syncSubscription(umbSubscription.getSku(), subscription, subscriptions.stream().findFirst());
+    }
+  }
+
+  @Transactional
+  public void forceSyncSubscriptionsForOrg(String orgId, boolean paygOnly) {
+    if (paygOnly && !properties.isEnablePaygSubscriptionForceSync()) {
+      log.info("Force sync of payg subscriptions disabled");
+      return;
+    }
+    log.info("Starting force sync for orgId: {}", orgId);
+    reconcileSubscriptionsWithSubscriptionService(orgId, paygOnly);
+    log.info("Finished force sync for orgId: {}", orgId);
   }
 }
