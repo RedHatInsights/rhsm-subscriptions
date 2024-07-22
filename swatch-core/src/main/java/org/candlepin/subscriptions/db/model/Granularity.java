@@ -21,7 +21,8 @@
 package org.candlepin.subscriptions.db.model;
 
 import java.util.Map;
-import org.candlepin.subscriptions.utilization.api.v1.model.GranularityType;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 /**
  * Granularity of a given snapshot.
@@ -30,36 +31,24 @@ import org.candlepin.subscriptions.utilization.api.v1.model.GranularityType;
  * across a week represents the maximum tally totals across all days in that week. For example,
  * given a week where daily tallies were 2, 3, 4, 5, 6, 2, 4, the weekly tally snapshot would be 6.
  */
-public enum Granularity implements StringValueEnum<GranularityType> {
+@Getter
+@AllArgsConstructor
+public enum Granularity implements StringValueEnum {
   // NB: These need to be in descending order of length so that comparisons between granularities
   // will work
-  YEARLY("Yearly", GranularityType.YEARLY),
-  QUARTERLY("Quarterly", GranularityType.QUARTERLY),
-  MONTHLY("Monthly", GranularityType.MONTHLY),
-  WEEKLY("Weekly", GranularityType.WEEKLY),
-  DAILY("Daily", GranularityType.DAILY),
-  HOURLY("Hourly", GranularityType.HOURLY);
+  YEARLY("Yearly"),
+  QUARTERLY("Quarterly"),
+  MONTHLY("Monthly"),
+  WEEKLY("Weekly"),
+  DAILY("Daily"),
+  HOURLY("Hourly");
 
   private static final Map<String, Granularity> VALUE_ENUM_MAP =
       StringValueEnum.initializeImmutableMap(Granularity.class);
 
   private final String value;
-  private final GranularityType openApiEnum;
-
-  Granularity(String value, GranularityType openApiEnum) {
-    this.value = value;
-    this.openApiEnum = openApiEnum;
-  }
 
   public static Granularity fromString(String value) {
     return StringValueEnum.getValueOf(Granularity.class, VALUE_ENUM_MAP, value, null);
-  }
-
-  public String getValue() {
-    return value;
-  }
-
-  public GranularityType asOpenApiEnum() {
-    return openApiEnum;
   }
 }

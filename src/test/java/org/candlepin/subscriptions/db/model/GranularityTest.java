@@ -25,7 +25,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.google.common.collect.Sets;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.candlepin.subscriptions.utilization.api.v1.model.GranularityType;
+import org.candlepin.subscriptions.util.ApiModelMapperV1;
+import org.candlepin.subscriptions.util.ApiModelMapperV1Impl;
 import org.junit.jupiter.api.Test;
 
 class GranularityTest {
@@ -64,11 +65,15 @@ class GranularityTest {
   }
 
   @Test
-  void testAsOpenApiEnumValuesMatch() {
-    Set<GranularityType> expected = Sets.newHashSet(GranularityType.class.getEnumConstants());
-    Set<GranularityType> actual =
+  void testOpenApiEnumValuesMatchV1() {
+    ApiModelMapperV1 mapper = new ApiModelMapperV1Impl();
+    Set<org.candlepin.subscriptions.utilization.api.v1.model.GranularityType> expected =
+        Sets.newHashSet(
+            org.candlepin.subscriptions.utilization.api.v1.model.GranularityType.class
+                .getEnumConstants());
+    Set<org.candlepin.subscriptions.utilization.api.v1.model.GranularityType> actual =
         Sets.newHashSet(Granularity.class.getEnumConstants()).stream()
-            .map(Granularity::asOpenApiEnum)
+            .map(mapper::map)
             .collect(Collectors.toSet());
 
     assertEquals(expected, actual);

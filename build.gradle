@@ -303,13 +303,13 @@ project(":api") {
     apply plugin: "swatch.spring-boot-dependencies-conventions"
     apply plugin: "org.openapi.generator"
 
-    def public_apis = ["v1"]
+    def public_apis = ["v1", "v2"]
 
     for(api in public_apis) {
         def spec = "${projectDir}/rhsm-subscriptions-api-" + api + "-spec.yaml"
         def config = "${projectDir}/rhsm-subscriptions-api-" + api + "-config.json"
 
-        openApiGenerate {
+        tasks.register("generateApi" + api, GenerateTask) {
             generatorName = "jaxrs-spec"
             inputSpec = spec
             configFile = config
@@ -358,6 +358,8 @@ project(":api") {
             from tasks['generateOpenApiJson' + api]
             from spec
         }
+
+        compileJava.dependsOn tasks['generateApi' + api]
     }
 
     dependencies {
@@ -372,7 +374,6 @@ project(":api") {
     }
 
     sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
-    compileJava.dependsOn tasks.openApiGenerate
 }
 
 tasks.check.dependsOn tasks.testCodeCoverageReport

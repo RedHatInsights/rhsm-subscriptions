@@ -40,12 +40,12 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @ActiveProfiles({"api", "test", "capacity-ingress"})
 @WithMockRedHatPrincipal("123456")
-class SubscriptionResourceTest {
+class SubscriptionResourceV1Test {
   private static final ProductId RHEL_FOR_X86 = ProductId.fromString("RHEL for x86");
   private final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
   private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
 
-  @Autowired SubscriptionResource subscriptionResource;
+  @Autowired SubscriptionResourceV1 subscriptionResource;
   @MockBean OrgConfigRepository orgConfigRepository;
 
   @BeforeEach

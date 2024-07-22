@@ -29,9 +29,6 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.security.InsightsUserPrincipal;
-import org.candlepin.subscriptions.utilization.api.v1.model.BillingProviderType;
-import org.candlepin.subscriptions.utilization.api.v1.model.ServiceLevelType;
-import org.candlepin.subscriptions.utilization.api.v1.model.UsageType;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -118,38 +115,33 @@ public class ResourceUtils {
   }
 
   /**
-   * Uses Usage.ANY for a null value, otherwise returns db model equivalent of UsageType generated
-   * enum
+   * Uses Usage.ANY for a null value
    *
-   * @param usageType openapi generated equivalent enum for UsageType
+   * @param usageType nullable Usage value
    * @return Usage enum
    */
-  public static Usage sanitizeUsage(UsageType usageType) {
-    return Objects.isNull(usageType) ? Usage._ANY : Usage.fromString(usageType.toString());
+  public static Usage sanitizeUsage(Usage usageType) {
+    return Objects.isNull(usageType) ? Usage._ANY : usageType;
   }
 
   /**
-   * Uses ServiceLevel.ANY for a null value, otherwise returns db model equivalent of
-   * ServiceLevelType generated enum
+   * Uses ServiceLevel.ANY for a null value
    *
-   * @param sla string form of sla
+   * @param sla nullable ServiceLevel
    * @return ServiceLevel enum
    */
-  public static ServiceLevel sanitizeServiceLevel(ServiceLevelType sla) {
-    return Objects.isNull(sla) ? ServiceLevel._ANY : ServiceLevel.fromString(sla.toString());
+  public static ServiceLevel sanitizeServiceLevel(ServiceLevel sla) {
+    return Objects.isNull(sla) ? ServiceLevel._ANY : sla;
   }
 
   /**
-   * Uses BillingProvider.ANY for a null value, otherwise returns db model equivalent of
-   * BillingProviderType generated enum
+   * Uses BillingProvider.ANY for a null value
    *
-   * @param billingProvider string form of billing provider
+   * @param billingProvider nullable billingProvider
    * @return BilligProvider enum
    */
-  public static BillingProvider sanitizeBillingProvider(BillingProviderType billingProvider) {
-    return Objects.isNull(billingProvider)
-        ? BillingProvider._ANY
-        : BillingProvider.fromString(billingProvider.toString());
+  public static BillingProvider sanitizeBillingProvider(BillingProvider billingProvider) {
+    return Objects.isNull(billingProvider) ? BillingProvider._ANY : billingProvider;
   }
 
   public static String sanitizeBillingAccountId(String billingAccountId) {

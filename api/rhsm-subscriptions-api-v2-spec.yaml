@@ -1,0 +1,398 @@
+openapi: "3.0.2"
+info:
+  title: "rhsm-subscriptions-api"
+  description: "REST interface for the rhsm-subscriptions service. Please note any deprecated APIs. Our current deprecation policy is to keep deprecated APIs around for at least 6 months."
+  version: 2.0.0
+
+servers:
+  - url: /{PATH_PREFIX}/{APP_NAME}
+    variables:
+      PATH_PREFIX:
+        default: api
+      APP_NAME:
+        default: rhsm-subscriptions
+  - url: https://{HOSTNAME}/{PATH_PREFIX}/{APP_NAME}
+    variables:
+      HOSTNAME:
+        enum:
+          - qa.console.redhat.com
+          - stage.console.redhat.com
+          - console.redhat.com
+        default: console.redhat.com
+      PATH_PREFIX:
+        default: api
+      APP_NAME:
+        default: rhsm-subscriptions
+
+paths:
+  /v2/subscriptions/products/{product_id}:
+    description: "Operations for total capacity by SKU for all of the org's active subscriptions for given Swatch product ID."
+    parameters:
+      - name: product_id
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProductId"
+        description: "The ID for the product we wish to query"
+      - name: offset
+        in: query
+        schema:
+          type: integer
+          minimum: 0
+        description: "The number of items to skip before starting to collect the result set"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+        description: "The numbers of items to return"
+    get:
+      summary: "Returns the total capacity by SKU for all of the org's active subscriptions for given Swatch product ID."
+      operationId: getSkuCapacityReport
+      parameters:
+        - name: category
+          in: query
+          schema:
+            $ref: '#/components/schemas/ReportCategory'
+          description: 'The category to fetch data for'
+        - name: sla
+          in: query
+          schema:
+            $ref: '#/components/schemas/ServiceLevelType'
+          description: "Include only capacity for the specified service level."
+        - name: usage
+          in: query
+          schema:
+            $ref: '#/components/schemas/UsageType'
+          description: "Include only capacity for the specified usage level."
+        - name: billing_provider
+          in: query
+          schema:
+            $ref: '#/components/schemas/BillingProviderType'
+          description: "Include only report data matching the specified billing provider"
+        - name: billing_account_id
+          in: query
+          schema:
+            $ref: '#/components/schemas/BillingAccountId'
+          description: "Include only report data matching the specified billing account"
+        - name: beginning
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: "Defines the start of the report period. Dates should be provided in ISO 8601
+                 format but the only accepted offset is UTC. E.g. 2017-07-21T17:32:28Z"
+        - name: ending
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: "Defines the end of the report period.  Defaults to the current time. Dates should
+                 be provided in UTC."
+        - name: metric_id
+          in: query
+          schema:
+            type: string
+          description: "Filter subscriptions to those that contribute to a specific unit of measure"
+        - name: sort
+          in: query
+          schema:
+            $ref: "#/components/schemas/SkuCapacityReportSort"
+          description: "What property to sort by (optional)"
+        - name: dir
+          in: query
+          schema:
+            $ref: "#/components/schemas/SortDirection"
+          description: "Which direction to sort by (default: asc)"
+      responses:
+        '200':
+          description: "The request for the account's subscription capacities was successful."
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/SkuCapacityReport"
+              example:
+                data:
+                  - sku: RH00011
+                    product_name: "Red Hat Enterprise Linux Server, Premium (Physical and 4 Virtual Nodes)(L3 Only)"
+                    service_level: Premium
+                    usage: Production
+                    subscriptions:
+                      - id: "1234567890"
+                        number: "1234567891"
+                      - id: "1234567892"
+                        number: "1234567893"
+                      - id: "1234567894"
+                        number: "1234567895"
+                    next_event_date: "2020-04-01T00:00:00Z"
+                    next_event_type: Subscription Begin
+                    quantity: 3
+                    measurements:
+                      - 42
+                      - null
+                      - 1
+                    category: HYPERVISOR
+                meta:
+                  count: 1
+                  measurements: [ "Cores", "Sockets", "Instance-hours" ]
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/ResourceNotFound"
+        '500':
+          $ref: "#/components/responses/InternalServerError"
+      tags:
+        - subscriptions
+  /v2/openapi.json:
+    get:
+      summary: "Get the OpenAPI spec in JSON format."
+      operationId: getOpenApiJson
+      tags:
+        - root
+      responses:
+        '200':
+          description: "The request to get the OpenAPI JSON was successful."
+          content:
+            application/json:
+              schema:
+                type: string
+  /v2/openapi.yaml:
+    get:
+      summary: "Get the OpenAPI spec in YAML format."
+      operationId: getOpenApiYaml
+      tags:
+        - root
+      responses:
+        '200':
+          description: "The request to get the OpenAPI YAML was successful."
+          content:
+            application/x-yaml:
+              schema:
+                type: string
+
+components:
+  responses:
+    BadRequest:
+      description: "The server could could not process the current request."
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    Forbidden:
+      description: "The request was valid, but the request was refused by the server."
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    ResourceNotFound:
+      description: "The requested resource was not found."
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    InternalServerError:
+      description: "An internal server error has occurred and is not recoverable."
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+
+  securitySchemes:
+    3ScaleIdentity:
+      type: apiKey
+      in: header
+      name: x-rh-identity
+      description: |
+        Base64-encoded JSON identity header provided by 3Scale. Contains an
+        account number of the user issuing the request. Format of the JSON:
+        ```
+        {
+            "identity": {
+                "account_number": "account123",
+                "type": "User",
+                "user" : {
+                    "is_org_admin": true
+                },
+                "internal" : {
+                    "org_id": "org123"
+                }
+            }
+        }
+        ```
+        Encoded (via `base64 -w0`):
+        `eyJpZGVudGl0eSI6eyJhY2NvdW50X251bWJlciI6ImFjY291bnQxMjMiLCJ0eXBlIjoiVXNlciIsInVzZXIiOnsiaXNfb3JnX2FkbWluIjp0cnVlfSwiaW50ZXJuYWwiOnsib3JnX2lkIjoib3JnMTIzIn19fQo=`
+
+  schemas:
+    # Schemas ending in "Type" are intentionally named to prevent naming conflicts with db model classes
+    ServiceLevelType:
+      description: "Describes the service level that the report was made against. Not set if it
+          wasn't specified as a query parameter."
+      type: string
+      enum: [ "", Premium, Standard, Self-Support, _ANY ]
+    UsageType:
+      description: "Describes the usage that the report was made against. Not set if it wasn't
+          specified as a query parameter."
+      type: string
+      enum: [ "", Production, Development/Test, Disaster Recovery, _ANY ]
+    BillingProviderType:
+      type: string
+      enum: [ "", red hat, aws, gcp, azure, oracle, _ANY ]
+    ReportCategory:
+      type: string
+      enum:
+        - physical
+        - virtual
+        - cloud
+        - hypervisor
+    BillingAccountId:
+      type: string
+    SortDirection:
+      type: string
+      enum:
+        - asc
+        - desc
+    PageLinks:
+      properties:
+        first:
+          type: string
+        last:
+          type: string
+        previous:
+          type: string
+        next:
+          type: string
+      required:
+        - first
+        - last
+
+    SubscriptionType:
+      type: string
+      enum:
+        - On-demand
+        - Annual
+
+    SubscriptionEventType:
+      description: "The most immediate subscription event, such as a subscription beginning or ending."
+      type: string
+      enum:
+        - Subscription Start
+        - Subscription End
+
+    SkuCapacitySubscription:
+      properties:
+        id:
+          type: string
+        number:
+          type: string
+
+    SkuCapacity:
+      properties:
+        sku:
+          description: "The identifier for the offering."
+          type: string
+        product_name:
+          description: "The offering name."
+          type: string
+        service_level:
+          $ref: "#/components/schemas/ServiceLevelType"
+        usage:
+          $ref: "#/components/schemas/UsageType"
+        subscriptions:
+          description: "List of active subscriptions that contribute to the quantity and capacity totals."
+          type: array
+          items:
+            $ref: "#/components/schemas/SkuCapacitySubscription"
+        billing_provider:
+          $ref: '#/components/schemas/BillingProviderType'
+        next_event_date:
+          description: "The most immediate date for a subscription event."
+          type: string
+          format: date-time
+        next_event_type:
+          $ref: "#/components/schemas/SubscriptionEventType"
+        quantity:
+          description: "The summed subscription quantities across the active subscriptions for the offering."
+          type: integer
+          format: int32
+        measurements:
+          description: >-
+            The summed standard capacity of the unit-of-measure of the active subscriptions for the offering. 
+            Must be in the same order as "measurements" in the meta.
+          type: array
+          items:
+            format: double
+            type: number
+        category:
+          $ref: '#/components/schemas/ReportCategory'
+        has_infinite_quantity:
+          description: "Denotes unlimited capacity for the offering when true."
+          type: boolean
+    SkuCapacityReportSort:
+      type: string
+      enum:
+        - sku
+        - service_level
+        - usage
+        - next_event_date
+        - next_event_type
+        - quantity
+        - product_name
+    SkuCapacityReport:
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkuCapacity'
+        links:
+          $ref: "#/components/schemas/PageLinks"
+        meta:
+          type: object
+          properties:
+            count:
+              type: integer
+            product:
+              type: string
+            measurements:
+              type: array
+              items:
+                type: string
+            service_level:
+              $ref: '#/components/schemas/ServiceLevelType'
+            usage:
+              $ref: '#/components/schemas/UsageType'
+            subscription_type:
+              $ref: '#/components/schemas/SubscriptionType'
+            report_category:
+              $ref: '#/components/schemas/ReportCategory'
+          required:
+            - count
+            - product
+            - subscription_type
+    ProductId:
+      type: string
+      format: ProductId
+    Errors:
+      required:
+        - errors
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/Error"
+    Error:
+      required:
+        - status
+        - code
+        - title
+      properties:
+        status:
+          type: string
+        code:
+          type: string
+        title:
+          type: string
+
+security:
+  - 3ScaleIdentity: []

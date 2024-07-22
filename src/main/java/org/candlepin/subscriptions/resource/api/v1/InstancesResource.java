@@ -53,6 +53,7 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
+import org.candlepin.subscriptions.util.ApiModelMapperV1;
 import org.candlepin.subscriptions.utilization.api.v1.model.BillingProviderType;
 import org.candlepin.subscriptions.utilization.api.v1.model.CloudProvider;
 import org.candlepin.subscriptions.utilization.api.v1.model.InstanceData;
@@ -99,6 +100,7 @@ public class InstancesResource implements InstancesApi {
           ReportCategory.HYPERVISOR, List.of(HardwareMeasurementType.HYPERVISOR),
           ReportCategory.CLOUD, new ArrayList<>(HardwareMeasurementType.getCloudProviderTypes()));
 
+  private final ApiModelMapperV1 mapper;
   private final TallyInstanceViewRepository repository;
   private final HostRepository hostRepository;
   private final PageLinkCreator pageLinkCreator;
@@ -106,9 +108,11 @@ public class InstancesResource implements InstancesApi {
   @Context UriInfo uriInfo;
 
   public InstancesResource(
+      ApiModelMapperV1 mapper,
       TallyInstanceViewRepository tallyInstanceViewRepository,
       HostRepository hostRepository,
       PageLinkCreator pageLinkCreator) {
+    this.mapper = mapper;
     this.repository = tallyInstanceViewRepository;
     this.hostRepository = hostRepository;
     this.pageLinkCreator = pageLinkCreator;
@@ -122,7 +126,7 @@ public class InstancesResource implements InstancesApi {
     Page<Host> guests = hostRepository.getGuestHostsByHypervisorInstanceId(orgId, instanceId, page);
     PageLinks links;
     if (offset != null || limit != null) {
-      links = pageLinkCreator.getPaginationLinks(uriInfo, guests);
+      links = mapper.map(pageLinkCreator.getPaginationLinks(uriInfo, guests));
     } else {
       links = null;
     }
@@ -130,7 +134,7 @@ public class InstancesResource implements InstancesApi {
     return new InstanceGuestReport()
         .links(links)
         .meta(new MetaCount().count((int) guests.getTotalElements()))
-        .data(guests.getContent().stream().map(Host::asApiHost).toList());
+        .data(guests.getContent().stream().map(mapper::map).toList());
   }
 
   @Override
@@ -178,10 +182,10 @@ public class InstancesResource implements InstancesApi {
       minSockets = 0;
     }
 
-    ServiceLevel sanitizedSla = ResourceUtils.sanitizeServiceLevel(sla);
-    Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
+    ServiceLevel sanitizedSla = ResourceUtils.sanitizeServiceLevel(mapper.map(sla));
+    Usage sanitizedUsage = ResourceUtils.sanitizeUsage(mapper.map(usage));
     BillingProvider sanitizedBillingProvider =
-        ResourceUtils.sanitizeBillingProvider(billingProviderType);
+        ResourceUtils.sanitizeBillingProvider(mapper.map(billingProviderType));
     String sanitizedBillingAccountId = ResourceUtils.sanitizeBillingAccountId(billingAccountId);
 
     List<HardwareMeasurementType> hardwareMeasurementTypes =
@@ -231,7 +235,7 @@ public class InstancesResource implements InstancesApi {
 
     PageLinks links;
     if (offset != null || limit != null) {
-      links = pageLinkCreator.getPaginationLinks(uriInfo, instances);
+      links = mapper.map(pageLinkCreator.getPaginationLinks(uriInfo, instances));
     } else {
       links = null;
     }
@@ -296,10 +300,10 @@ public class InstancesResource implements InstancesApi {
     instance.setInstanceId(tallyInstanceView.getKey().getInstanceId());
     instance.setDisplayName(tallyInstanceView.getDisplayName());
     if (Objects.nonNull(tallyInstanceView.getHostBillingProvider())) {
-      instance.setBillingProvider(tallyInstanceView.getHostBillingProvider().asOpenApiEnum());
+      instance.setBillingProvider(mapper.map(tallyInstanceView.getHostBillingProvider()));
     }
     instance.setCategory(
-        getCategoryByMeasurementType(tallyInstanceView.getKey().getMeasurementType()));
+        mapper.measurementTypeToReportCategory(tallyInstanceView.getKey().getMeasurementType()));
     instance.setCloudProvider(
         getCloudProviderByMeasurementType(tallyInstanceView.getKey().getMeasurementType()));
     instance.setBillingAccountId(tallyInstanceView.getHostBillingAccountId());
@@ -329,19 +333,6 @@ public class InstancesResource implements InstancesApi {
     } else {
       return CATEGORY_MAP.get(reportCategory);
     }
-  }
-
-  public static ReportCategory getCategoryByMeasurementType(
-      HardwareMeasurementType measurementType) {
-    if (HardwareMeasurementType.isSupportedCloudProvider(measurementType.name())) {
-      return ReportCategory.CLOUD;
-    }
-    return switch (measurementType) {
-      case VIRTUAL -> ReportCategory.VIRTUAL;
-      case PHYSICAL -> ReportCategory.PHYSICAL;
-      case HYPERVISOR -> ReportCategory.HYPERVISOR;
-      default -> null;
-    };
   }
 
   public static CloudProvider getCloudProviderByMeasurementType(

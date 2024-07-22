@@ -45,7 +45,11 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.*;
+import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resource.ReportCriteria;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
@@ -53,6 +57,7 @@ import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.tally.filler.ReportFiller;
 import org.candlepin.subscriptions.tally.filler.ReportFillerFactory;
 import org.candlepin.subscriptions.tally.filler.UnroundedTallyReportDataPoint;
+import org.candlepin.subscriptions.util.ApiModelMapperV1;
 import org.candlepin.subscriptions.utilization.api.v1.model.BillingCategory;
 import org.candlepin.subscriptions.utilization.api.v1.model.BillingProviderType;
 import org.candlepin.subscriptions.utilization.api.v1.model.GranularityType;
@@ -80,6 +85,7 @@ public class TallyResource implements TallyApi {
           ReportCategory.VIRTUAL, Set.of(HardwareMeasurementType.VIRTUAL),
           ReportCategory.HYPERVISOR, Set.of(HardwareMeasurementType.HYPERVISOR),
           ReportCategory.CLOUD, new HashSet<>(HardwareMeasurementType.getCloudProviderTypes()));
+  private final ApiModelMapperV1 mapper;
   private final TallySnapshotRepository repository;
   private final PageLinkCreator pageLinkCreator;
   private final ApplicationClock clock;
@@ -89,10 +95,12 @@ public class TallyResource implements TallyApi {
 
   @Autowired
   public TallyResource(
+      ApiModelMapperV1 mapper,
       TallySnapshotRepository repository,
       PageLinkCreator pageLinkCreator,
       ApplicationClock clock,
       CapacityApi capacityApi) {
+    this.mapper = mapper;
     this.repository = repository;
     this.pageLinkCreator = pageLinkCreator;
     this.clock = clock;
@@ -176,17 +184,15 @@ public class TallyResource implements TallyApi {
 
     TallyReportData report = new TallyReportData();
     report.setMeta(new TallyReportDataMeta());
-    report.getMeta().setGranularity(reportCriteria.getGranularity().asOpenApiEnum());
+    report.getMeta().setGranularity(mapper.map(reportCriteria.getGranularity()));
     report.getMeta().setProduct(productId.toString());
     report.getMeta().setMetricId(metricId.toString());
     report.getMeta().setServiceLevel(sla);
-    report.getMeta().setUsage(usageType == null ? null : reportCriteria.getUsage().asOpenApiEnum());
+    report.getMeta().setUsage(usageType == null ? null : mapper.map(reportCriteria.getUsage()));
     report
         .getMeta()
         .setBillingProvider(
-            billingProviderType == null
-                ? null
-                : reportCriteria.getBillingProvider().asOpenApiEnum());
+            billingProviderType == null ? null : mapper.map(reportCriteria.getBillingProvider()));
     report.getMeta().setBillingAcountId(billingAcctId);
 
     // NOTE: rather than keep a separate monthly rollup, in order to avoid unnecessary storage and
@@ -223,7 +229,7 @@ public class TallyResource implements TallyApi {
 
     // Only set page links if we are paging (not filling).
     if (reportCriteria.getPageable() != null) {
-      report.setLinks(pageLinkCreator.getPaginationLinks(uriInfo, snapshotPage));
+      report.setLinks(mapper.map(pageLinkCreator.getPaginationLinks(uriInfo, snapshotPage)));
     }
 
     if (Boolean.TRUE.equals(useRunningTotalsFormat)) {
@@ -319,10 +325,11 @@ public class TallyResource implements TallyApi {
     }
 
     // Sanitize null value as _ANY for optional fields to filter through snapshot table.
-    ServiceLevel serviceLevel = ResourceUtils.sanitizeServiceLevel(sla);
-    Usage effectiveUsage = ResourceUtils.sanitizeUsage(usageType);
+    ServiceLevel serviceLevel = ResourceUtils.sanitizeServiceLevel(mapper.map(sla));
+    Usage effectiveUsage = ResourceUtils.sanitizeUsage(mapper.map(usageType));
     Granularity granularityFromValue = Granularity.fromString(granularityType.toString());
-    BillingProvider providerType = ResourceUtils.sanitizeBillingProvider(billingProviderType);
+    BillingProvider providerType =
+        ResourceUtils.sanitizeBillingProvider(mapper.map(billingProviderType));
     String sanitizedBillingAcctId = ResourceUtils.sanitizeBillingAccountId(billingAccountId);
 
     /* Throw an error if we are asked to return reports at a finer grain than what is supported by
@@ -343,12 +350,12 @@ public class TallyResource implements TallyApi {
         .productId(productId.toString())
         .metricId(Optional.ofNullable(metricId).map(MetricId::toString).orElse(null))
         .granularity(granularityFromValue)
-        .reportCategory(category)
+        .reportCategory(mapper.map(category))
         .serviceLevel(serviceLevel)
         .usage(effectiveUsage)
         .billingProvider(providerType)
         .billingAccountId(sanitizedBillingAcctId)
-        .billingCategory(billingCategory)
+        .billingCategory(mapper.map(billingCategory))
         .pageable(pageable)
         .beginning(beginning)
         .ending(ending)

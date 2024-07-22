@@ -26,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import jakarta.ws.rs.core.UriInfo;
 import java.util.Arrays;
 import java.util.Collections;
-import org.candlepin.subscriptions.utilization.api.v1.model.PageLinks;
 import org.jboss.resteasy.specimpl.ResteasyUriBuilderImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

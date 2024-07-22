@@ -46,6 +46,12 @@ public class ApiSpecController {
   @Value("classpath:rhsm-subscriptions-api-v1-openapi.json")
   private Resource openApiV1Json;
 
+  @Value("classpath:rhsm-subscriptions-api-v2-spec.yaml")
+  private Resource openApiV2Yaml;
+
+  @Value("classpath:rhsm-subscriptions-api-v2-openapi.json")
+  private Resource openApiV2Json;
+
   @Value("classpath:internal-subscriptions-sync-api-spec.yaml")
   private Resource internalSubSyncApiYaml;
 
@@ -88,6 +94,14 @@ public class ApiSpecController {
 
   public String getOpenApiV1Yaml() {
     return getResourceAsString(openApiV1Yaml);
+  }
+
+  public String getOpenApiV2Json() {
+    return getResourceAsString(openApiV2Json);
+  }
+
+  public String getOpenApiV2Yaml() {
+    return getResourceAsString(openApiV2Yaml);
   }
 
   public String getInternalSubSyncApiYaml() {

@@ -18,33 +18,26 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db.model;
+package org.candlepin.subscriptions.resource.api.v2;
 
-import java.time.OffsetDateTime;
 import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import org.candlepin.subscriptions.resource.api.ApiSpecController;
+import org.candlepin.subscriptions.utilization.api.v2.resources.RootApi;
+import org.springframework.stereotype.Component;
 
-@Data
+/** Serves the OpenAPI spec as /openapi.json and /openapi.yaml. */
+@Component
 @AllArgsConstructor
-@NoArgsConstructor
-public class HostApiProjection {
+public class OpenApiResourceV2 implements RootApi {
+  private final ApiSpecController controller;
 
-  private String inventoryId;
-  private String insightsId;
-  private String displayName;
-  private String subscriptionManagerId;
-  private Double sockets;
-  private Double cores;
-  private Double coreHours;
-  private Double instanceHours;
-  private HostHardwareType hardwareType;
-  private HardwareMeasurementType measurementType;
-  private Integer numberOfGuests;
-  private OffsetDateTime lastSeen;
-  private Boolean isUnmappedGuest;
-  private Boolean isHypervisor;
-  private String cloudProvider;
-  private BillingProvider billingProvider;
-  private String billingAccountId;
+  @Override
+  public String getOpenApiJson() {
+    return controller.getOpenApiV2Json();
+  }
+
+  @Override
+  public String getOpenApiYaml() {
+    return controller.getOpenApiV2Yaml();
+  }
 }

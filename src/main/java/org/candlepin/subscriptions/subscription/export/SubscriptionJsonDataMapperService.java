@@ -25,17 +25,23 @@ import static org.candlepin.subscriptions.subscription.export.SubscriptionDataEx
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import lombok.AllArgsConstructor;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.export.DataMapperService;
 import org.candlepin.subscriptions.export.ExportServiceRequest;
 import org.candlepin.subscriptions.json.SubscriptionsExportJsonItem;
+import org.candlepin.subscriptions.util.ApiModelMapperV1;
 import org.springframework.stereotype.Service;
 
 @Service
+@AllArgsConstructor
 public class SubscriptionJsonDataMapperService
     implements DataMapperService<SubscriptionCapacityView> {
+
+  private final ApiModelMapperV1 mapper;
+
   @Override
   public List<Object> mapDataItem(SubscriptionCapacityView dataItem, ExportServiceRequest request) {
     var item = new SubscriptionsExportJsonItem();
@@ -53,7 +59,7 @@ public class SubscriptionJsonDataMapperService
     item.setQuantity((double) dataItem.getQuantity());
 
     // aggregate metrics
-    item.setMeasurements(groupMetrics(dataItem, request));
+    item.setMeasurements(groupMetrics(mapper, dataItem, request));
 
     return List.of(item);
   }

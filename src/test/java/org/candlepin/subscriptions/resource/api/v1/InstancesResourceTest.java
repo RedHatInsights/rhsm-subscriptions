@@ -131,7 +131,7 @@ class InstancesResourceTest {
     data.setInstanceId(tallyInstanceView.getKey().getInstanceId());
     data.setInventoryId(tallyInstanceView.getInventoryId());
     data.setDisplayName(tallyInstanceView.getDisplayName());
-    data.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
+    data.setBillingProvider(BillingProviderType.AWS);
     data.setLastSeen(tallyInstanceView.getLastSeen());
     data.setLastAppliedEventRecordDate(tallyInstanceView.getLastAppliedEventRecordDate());
     data.setMeasurements(expectedMeasurement);
@@ -144,7 +144,7 @@ class InstancesResourceTest {
     meta.setServiceLevel(ServiceLevelType.PREMIUM);
     meta.setUsage(UsageType.PRODUCTION);
     meta.setMeasurements(expectedMetrics);
-    meta.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
+    meta.setBillingProvider(BillingProviderType.AWS);
 
     var expected = new InstanceResponse();
     expected.setData(List.of(data));
@@ -159,7 +159,7 @@ class InstancesResourceTest {
             UsageType.PRODUCTION,
             null,
             null,
-            expectedBillingProvider.asOpenApiEnum(),
+            BillingProviderType.AWS,
             null,
             null,
             null,
@@ -220,7 +220,7 @@ class InstancesResourceTest {
     var dataPhysical = new InstanceData();
     dataPhysical.setInstanceId(tallyInstanceViewPhysical.getKey().getInstanceId());
     dataPhysical.setDisplayName(tallyInstanceViewPhysical.getDisplayName());
-    dataPhysical.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
+    dataPhysical.setBillingProvider(BillingProviderType.RED_HAT);
     dataPhysical.setLastSeen(tallyInstanceViewPhysical.getLastSeen());
     dataPhysical.setMeasurements(List.of(2.0));
     dataPhysical.setNumberOfGuests(tallyInstanceViewPhysical.getNumOfGuests());
@@ -229,7 +229,7 @@ class InstancesResourceTest {
     var dataHypervisor = new InstanceData();
     dataHypervisor.setInstanceId(tallyInstanceViewHypervisor.getKey().getInstanceId());
     dataHypervisor.setDisplayName(tallyInstanceViewHypervisor.getDisplayName());
-    dataHypervisor.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
+    dataHypervisor.setBillingProvider(BillingProviderType.RED_HAT);
     dataHypervisor.setLastSeen(tallyInstanceViewHypervisor.getLastSeen());
     dataHypervisor.setMeasurements(List.of(4.0));
     dataHypervisor.setNumberOfGuests(tallyInstanceViewHypervisor.getNumOfGuests());
@@ -240,7 +240,7 @@ class InstancesResourceTest {
     meta.setProduct(RHEL_FOR_X86.toString());
     meta.setServiceLevel(ServiceLevelType.PREMIUM);
     meta.setUsage(UsageType.PRODUCTION);
-    meta.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
+    meta.setBillingProvider(BillingProviderType.RED_HAT);
     meta.setMeasurements(List.of("Sockets"));
 
     var expected = new InstanceResponse();
@@ -256,7 +256,7 @@ class InstancesResourceTest {
             UsageType.PRODUCTION,
             null,
             null,
-            expectedBillingProvider.asOpenApiEnum(),
+            BillingProviderType.RED_HAT,
             null,
             null,
             null,
@@ -305,7 +305,7 @@ class InstancesResourceTest {
     data.setId(tallyInstanceView.getId());
     data.setInstanceId(tallyInstanceView.getKey().getInstanceId());
     data.setDisplayName(tallyInstanceView.getDisplayName());
-    data.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
+    data.setBillingProvider(BillingProviderType.AWS);
     data.setLastSeen(tallyInstanceView.getLastSeen());
     data.setMeasurements(List.of(8.0, 5.0));
     data.setNumberOfGuests(tallyInstanceView.getNumOfGuests());
@@ -318,7 +318,7 @@ class InstancesResourceTest {
     meta.setServiceLevel(ServiceLevelType.PREMIUM);
     meta.setUsage(UsageType.PRODUCTION);
     meta.setMeasurements(List.of("Cores", "Instance-hours"));
-    meta.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
+    meta.setBillingProvider(BillingProviderType.AWS);
 
     var expected = new InstanceResponse();
     expected.setData(List.of(data));
@@ -333,7 +333,7 @@ class InstancesResourceTest {
             UsageType.PRODUCTION,
             null,
             null,
-            expectedBillingProvider.asOpenApiEnum(),
+            BillingProviderType.AWS,
             null,
             null,
             null,
@@ -450,7 +450,7 @@ class InstancesResourceTest {
     var host = new Host();
     host.setOrgId("owner123456");
     host.setInstanceId("instance123");
-    host.setHardwareType(HostHardwareType.CLOUD.PHYSICAL);
+    host.setHardwareType(HostHardwareType.PHYSICAL);
 
     Mockito.when(
             hostRepository.getGuestHostsByHypervisorInstanceId(

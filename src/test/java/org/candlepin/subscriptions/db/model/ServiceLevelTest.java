@@ -25,7 +25,11 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.google.common.collect.Sets;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.candlepin.subscriptions.utilization.api.v1.model.ServiceLevelType;
+import org.candlepin.subscriptions.util.ApiModelMapperV1;
+import org.candlepin.subscriptions.util.ApiModelMapperV1Impl;
+import org.candlepin.subscriptions.util.ApiModelMapperV2;
+import org.candlepin.subscriptions.util.ApiModelMapperV2Impl;
+import org.candlepin.subscriptions.utilization.api.v2.model.ServiceLevelType;
 import org.junit.jupiter.api.Test;
 
 class ServiceLevelTest {
@@ -74,11 +78,27 @@ class ServiceLevelTest {
   }
 
   @Test
-  void testAsOpenApiEnumValuesMatch() {
+  void testOpenApiEnumValuesMatchV2() {
+    ApiModelMapperV2 mapper = new ApiModelMapperV2Impl();
     Set<ServiceLevelType> expected = Sets.newHashSet(ServiceLevelType.class.getEnumConstants());
     Set<ServiceLevelType> actual =
         Sets.newHashSet(ServiceLevel.class.getEnumConstants()).stream()
-            .map(ServiceLevel::asOpenApiEnum)
+            .map(mapper::map)
+            .collect(Collectors.toSet());
+
+    assertEquals(expected, actual);
+  }
+
+  @Test
+  void testOpenApiEnumValuesMatchV1() {
+    ApiModelMapperV1 mapper = new ApiModelMapperV1Impl();
+    Set<org.candlepin.subscriptions.utilization.api.v1.model.ServiceLevelType> expected =
+        Sets.newHashSet(
+            org.candlepin.subscriptions.utilization.api.v1.model.ServiceLevelType.class
+                .getEnumConstants());
+    Set<org.candlepin.subscriptions.utilization.api.v1.model.ServiceLevelType> actual =
+        Sets.newHashSet(ServiceLevel.class.getEnumConstants()).stream()
+            .map(mapper::map)
             .collect(Collectors.toSet());
 
     assertEquals(expected, actual);

@@ -18,26 +18,28 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource.api.v1;
+package org.candlepin.subscriptions.resource.api.v2;
 
 import com.redhat.swatch.configuration.registry.ProductId;
 import jakarta.validation.constraints.Min;
 import java.time.OffsetDateTime;
-import org.candlepin.subscriptions.resource.SubscriptionTableController;
+import lombok.AllArgsConstructor;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
-import org.candlepin.subscriptions.utilization.api.v1.model.*;
-import org.candlepin.subscriptions.utilization.api.v1.resources.SubscriptionsApi;
+import org.candlepin.subscriptions.utilization.api.v2.model.BillingProviderType;
+import org.candlepin.subscriptions.utilization.api.v2.model.ReportCategory;
+import org.candlepin.subscriptions.utilization.api.v2.model.ServiceLevelType;
+import org.candlepin.subscriptions.utilization.api.v2.model.SkuCapacityReport;
+import org.candlepin.subscriptions.utilization.api.v2.model.SkuCapacityReportSort;
+import org.candlepin.subscriptions.utilization.api.v2.model.SortDirection;
+import org.candlepin.subscriptions.utilization.api.v2.model.UsageType;
+import org.candlepin.subscriptions.utilization.api.v2.resources.SubscriptionsApi;
 import org.springframework.stereotype.Component;
 
 /** Subscriptions Table API implementation. */
 @Component
-public class SubscriptionResource implements SubscriptionsApi {
-
+@AllArgsConstructor
+public class SubscriptionResourceV2 implements SubscriptionsApi {
   private final SubscriptionTableController subscriptionTableController;
-
-  public SubscriptionResource(SubscriptionTableController subscriptionTableController) {
-    this.subscriptionTableController = subscriptionTableController;
-  }
 
   @ReportingAccessRequired
   @Override
@@ -52,11 +54,9 @@ public class SubscriptionResource implements SubscriptionsApi {
       String billingAccountId,
       OffsetDateTime beginning,
       OffsetDateTime ending,
-      Uom uom,
       String metricId,
       SkuCapacityReportSort sort,
       SortDirection dir) {
-
     return subscriptionTableController.capacityReportBySku(
         productId,
         offset,
@@ -66,7 +66,6 @@ public class SubscriptionResource implements SubscriptionsApi {
         usage,
         billingProvider,
         billingAccountId,
-        uom,
         metricId,
         sort,
         dir);

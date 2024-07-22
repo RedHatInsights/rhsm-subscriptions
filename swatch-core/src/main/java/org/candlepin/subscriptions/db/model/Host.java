@@ -275,28 +275,6 @@ public class Host implements Serializable {
         .forEach(key -> monthlyTotals.put(key, 0.0));
   }
 
-  public org.candlepin.subscriptions.utilization.api.v1.model.Host asApiHost() {
-    return new org.candlepin.subscriptions.utilization.api.v1.model.Host()
-        .cores(
-            Optional.ofNullable(getMeasurement(MetricIdUtils.getCores().getValue()))
-                .map(Double::intValue)
-                .orElse(null))
-        .sockets(
-            Optional.ofNullable(getMeasurement(MetricIdUtils.getSockets().getValue()))
-                .map(Double::intValue)
-                .orElse(null))
-        .displayName(displayName)
-        .hardwareType(hardwareType == null ? null : hardwareType.toString())
-        .insightsId(insightsId)
-        .inventoryId(inventoryId)
-        .subscriptionManagerId(subscriptionManagerId)
-        .lastSeen(lastSeen)
-        .numberOfGuests(numOfGuests)
-        .isUnmappedGuest(isUnmappedGuest)
-        .isHypervisor(isHypervisor)
-        .cloudProvider(cloudProvider);
-  }
-
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -346,53 +324,5 @@ public class Host implements Serializable {
         instanceId,
         instanceType,
         billingAccountId);
-  }
-
-  public org.candlepin.subscriptions.utilization.api.v1.model.Host asTallyHostViewApiHost(
-      String monthId) {
-    var host = new org.candlepin.subscriptions.utilization.api.v1.model.Host();
-
-    host.inventoryId(getInventoryId());
-    host.insightsId(getInsightsId());
-
-    host.hardwareType(
-        Objects.requireNonNullElse(getHardwareType(), HostHardwareType.PHYSICAL).toString());
-    host.cores(
-        Objects.requireNonNullElse(getMeasurement(MetricIdUtils.getCores().getValue()), 0.0)
-            .intValue());
-    host.sockets(
-        Objects.requireNonNullElse(getMeasurement(MetricIdUtils.getSockets().getValue()), 0.0)
-            .intValue());
-
-    host.displayName(getDisplayName());
-    host.subscriptionManagerId(getSubscriptionManagerId());
-    host.numberOfGuests(getNumOfGuests());
-    host.lastSeen(getLastSeen());
-    host.isUnmappedGuest(isUnmappedGuest());
-    host.cloudProvider(getCloudProvider());
-
-    // These generally come off of the TallyHostBuckets, but it's different for the
-    // OpenShift-metrics
-    // and OpenShift-dedicated-metrics products, since they're not using the deprecated unit of
-    // measure
-    // model.  Note there's no asHypervisor here either.
-
-    host.isHypervisor(isHypervisor());
-
-    HardwareMeasurementType measurementType =
-        buckets.stream().findFirst().orElseThrow().getMeasurementType();
-
-    host.measurementType(
-        Objects.requireNonNullElse(measurementType, HardwareMeasurementType.PHYSICAL).toString());
-
-    // Core Hours is currently only applicable to the OpenShift-metrics OpenShift-dedicated-metrics
-    // ProductIDs, and the UI is only query the host api in one month timeframes.  If the
-    // granularity of that API changes in the future, other work will have to be done first to
-    // capture relationships between hosts & snapshots to derive coreHours within dynamic timeframes
-
-    host.coreHours(getMonthlyTotal(monthId, MetricIdUtils.getCores()));
-    host.instanceHours(getMonthlyTotal(monthId, MetricIdUtils.getInstanceHours()));
-
-    return host;
   }
 }

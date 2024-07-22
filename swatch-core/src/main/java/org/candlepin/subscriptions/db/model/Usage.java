@@ -24,30 +24,27 @@ import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 import java.util.Map;
 import java.util.Objects;
-import org.candlepin.subscriptions.utilization.api.v1.model.UsageType;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 /**
  * System purpose usage
  *
  * <p>Usage represents the class of usage for a given system or subscription.
  */
-public enum Usage implements StringValueEnum<UsageType> {
-  EMPTY("", UsageType.EMPTY),
-  PRODUCTION("Production", UsageType.PRODUCTION),
-  DEVELOPMENT_TEST("Development/Test", UsageType.DEVELOPMENT_TEST),
-  DISASTER_RECOVERY("Disaster Recovery", UsageType.DISASTER_RECOVERY),
-  _ANY("_ANY", UsageType._ANY); // NOSONAR
+@Getter
+@AllArgsConstructor
+public enum Usage implements StringValueEnum {
+  EMPTY(""),
+  PRODUCTION("Production"),
+  DEVELOPMENT_TEST("Development/Test"),
+  DISASTER_RECOVERY("Disaster Recovery"),
+  _ANY("_ANY"); // NOSONAR
 
   private static final Map<String, Usage> VALUE_ENUM_MAP =
       StringValueEnum.initializeImmutableMap(Usage.class);
 
   private final String value;
-  private final UsageType openApiEnum;
-
-  Usage(String value, UsageType openApiEnum) {
-    this.value = value;
-    this.openApiEnum = openApiEnum;
-  }
 
   /**
    * Parse the usage from its string representation
@@ -57,15 +54,6 @@ public enum Usage implements StringValueEnum<UsageType> {
    */
   public static Usage fromString(String value) {
     return StringValueEnum.getValueOf(Usage.class, VALUE_ENUM_MAP, value, EMPTY);
-  }
-
-  public String getValue() {
-    return value;
-  }
-
-  @Override
-  public UsageType asOpenApiEnum() {
-    return openApiEnum;
   }
 
   /** JPA converter for Usage */

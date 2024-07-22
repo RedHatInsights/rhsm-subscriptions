@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.tally.export;
 
-import static org.candlepin.subscriptions.resource.api.v1.InstancesResource.getCategoryByMeasurementType;
 import static org.candlepin.subscriptions.resource.api.v1.InstancesResource.getCloudProviderByMeasurementType;
 
 import com.redhat.swatch.configuration.registry.MetricId;
@@ -40,6 +39,7 @@ import org.candlepin.subscriptions.export.ExportServiceRequest;
 import org.candlepin.subscriptions.json.InstancesExportJsonGuest;
 import org.candlepin.subscriptions.json.InstancesExportJsonItem;
 import org.candlepin.subscriptions.json.InstancesExportJsonMetric;
+import org.candlepin.subscriptions.util.ApiModelMapperV1;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -51,6 +51,7 @@ public class InstancesJsonDataMapperService implements DataMapperService<TallyIn
 
   private static final int MAX_GUESTS_PER_QUERY = 20;
 
+  private final ApiModelMapperV1 mapper;
   private final HostRepository hostRepository;
 
   @Override
@@ -62,7 +63,7 @@ public class InstancesJsonDataMapperService implements DataMapperService<TallyIn
     if (item.getHostBillingProvider() != null) {
       instance.setBillingProvider(item.getHostBillingProvider().getValue());
     }
-    var category = getCategoryByMeasurementType(item.getKey().getMeasurementType());
+    var category = mapper.measurementTypeToReportCategory(item.getKey().getMeasurementType());
     if (category != null) {
       instance.setCategory(category.toString());
     }

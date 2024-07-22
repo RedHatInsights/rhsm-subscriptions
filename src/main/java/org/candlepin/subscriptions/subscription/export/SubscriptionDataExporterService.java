@@ -57,6 +57,8 @@ import org.candlepin.subscriptions.export.DataExporterService;
 import org.candlepin.subscriptions.export.DataMapperService;
 import org.candlepin.subscriptions.export.ExportServiceRequest;
 import org.candlepin.subscriptions.json.SubscriptionsExportJsonMeasurement;
+// NOTE(khowell): this couples our export implementation to the v1 REST API
+import org.candlepin.subscriptions.util.ApiModelMapperV1;
 import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.jpa.domain.Specification;
@@ -72,15 +74,15 @@ public class SubscriptionDataExporterService
   static final String PRODUCT_ID = "product_id";
   static final String METRIC_ID = "metric_id";
   static final String CATEGORY = "category";
-  private static final Map<String, Function<String, Specification<SubscriptionCapacityView>>>
-      FILTERS =
+  private final Map<String, Function<String, Specification<SubscriptionCapacityView>>>
+      filterFuntions =
           Map.of(
               PRODUCT_ID,
               SubscriptionDataExporterService::handleProductIdFilter,
               "usage",
               SubscriptionDataExporterService::handleUsageFilter,
               CATEGORY,
-              SubscriptionDataExporterService::handleCategoryFilter,
+              this::handleCategoryFilter,
               "sla",
               SubscriptionDataExporterService::handleSlaFilter,
               METRIC_ID,
@@ -90,6 +92,7 @@ public class SubscriptionDataExporterService
               "billing_account_id",
               SubscriptionDataExporterService::handleBillingAccountIdFilter);
 
+  private final ApiModelMapperV1 mapper;
   private final SubscriptionCapacityViewRepository repository;
   private final SubscriptionJsonDataMapperService jsonDataMapperService;
   private final SubscriptionCsvDataMapperService csvDataMapperService;
@@ -120,7 +123,7 @@ public class SubscriptionDataExporterService
       var filters = request.getFilters().entrySet();
       try {
         for (var entry : filters) {
-          var filterHandler = FILTERS.get(entry.getKey().toLowerCase(Locale.ROOT));
+          var filterHandler = filterFuntions.get(entry.getKey().toLowerCase(Locale.ROOT));
           if (filterHandler == null) {
             log.warn("Filter '{}' isn't currently supported. Ignoring.", entry.getKey());
           } else if (entry.getValue() != null) {
@@ -171,8 +174,8 @@ public class SubscriptionDataExporterService
     return null;
   }
 
-  private static Specification<SubscriptionCapacityView> handleCategoryFilter(String value) {
-    return hasCategory(ReportCategory.fromValue(value));
+  private Specification<SubscriptionCapacityView> handleCategoryFilter(String value) {
+    return hasCategory(mapper.map(ReportCategory.fromValue(value)));
   }
 
   private static Specification<SubscriptionCapacityView> handleMetricIdFilter(String value) {
@@ -203,12 +206,12 @@ public class SubscriptionDataExporterService
   }
 
   protected static List<SubscriptionsExportJsonMeasurement> groupMetrics(
-      SubscriptionCapacityView dataItem, ExportServiceRequest request) {
+      ApiModelMapperV1 mapper, SubscriptionCapacityView dataItem, ExportServiceRequest request) {
     Map<MetricKey, SubscriptionsExportJsonMeasurement> metrics = new HashMap<>();
 
     // metric filters: metric_id and measurement_type
     String filterByMetricId = getMetricIdFilter(request);
-    String filterByMeasurementType = getMeasurementTypeFilter(request);
+    String filterByMeasurementType = getMeasurementTypeFilter(mapper, request);
 
     for (var metric : dataItem.getMetrics()) {
       if (metric.getMetricId() != null
@@ -241,11 +244,12 @@ public class SubscriptionDataExporterService
         .orElse(null);
   }
 
-  private static String getMeasurementTypeFilter(ExportServiceRequest request) {
+  private static String getMeasurementTypeFilter(
+      ApiModelMapperV1 mapper, ExportServiceRequest request) {
     if (request != null
         && request.getFilters() != null
         && request.getFilters().get(CATEGORY) instanceof String value) {
-      return getMeasurementTypeFromCategory(ReportCategory.fromValue(value));
+      return getMeasurementTypeFromCategory(mapper.map(ReportCategory.fromValue(value)));
     }
 
     return null;

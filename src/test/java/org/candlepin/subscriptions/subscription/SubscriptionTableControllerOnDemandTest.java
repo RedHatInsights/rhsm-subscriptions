@@ -37,7 +37,7 @@ import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.resource.SubscriptionTableController;
+import org.candlepin.subscriptions.resource.api.v1.SubscriptionTableController;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.utilization.api.v1.model.BillingProviderType;
 import org.candlepin.subscriptions.utilization.api.v1.model.ServiceLevelType;
