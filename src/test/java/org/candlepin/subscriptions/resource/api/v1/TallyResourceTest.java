@@ -34,7 +34,6 @@ import static org.mockito.Mockito.when;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
-import com.redhat.swatch.contracts.api.resources.CapacityApi;
 import jakarta.ws.rs.BadRequestException;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -64,6 +63,9 @@ import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.SnapshotTimeAdjuster;
 import org.candlepin.subscriptions.utilization.api.v1.model.BillingCategory;
 import org.candlepin.subscriptions.utilization.api.v1.model.BillingProviderType;
+import org.candlepin.subscriptions.utilization.api.v1.model.CapacityReportByMetricId;
+import org.candlepin.subscriptions.utilization.api.v1.model.CapacityReportByMetricIdMeta;
+import org.candlepin.subscriptions.utilization.api.v1.model.CapacitySnapshotByMetricId;
 import org.candlepin.subscriptions.utilization.api.v1.model.GranularityType;
 import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
 import org.candlepin.subscriptions.utilization.api.v1.model.ServiceLevelType;
@@ -103,7 +105,7 @@ class TallyResourceTest {
   @MockBean TallySnapshotRepository repository;
   @MockBean PageLinkCreator pageLinkCreator;
   @MockBean OrgConfigRepository orgConfigRepository;
-  @MockBean CapacityApi capacityApi;
+  @MockBean CapacityResource capacityResource;
   @Autowired TallyResource resource;
   @Autowired ApplicationClock applicationClock;
 
@@ -654,7 +656,7 @@ class TallyResourceTest {
   }
 
   @Test
-  void testRunningTotalForOnDemand() throws Exception {
+  void testRunningTotalForOnDemand() {
     OffsetDateTime snap1Date = OffsetDateTime.of(2023, 3, 4, 0, 0, 0, 0, ZoneOffset.UTC);
     OffsetDateTime snap2Date = OffsetDateTime.of(2023, 3, 5, 0, 0, 0, 0, ZoneOffset.UTC);
     OffsetDateTime snap3Date = OffsetDateTime.of(2023, 3, 6, 0, 0, 0, 0, ZoneOffset.UTC);
@@ -736,7 +738,7 @@ class TallyResourceTest {
   }
 
   @Test
-  void testRunningTotalForPrePaid() throws Exception {
+  void testRunningTotalForPrePaid() {
     OffsetDateTime snap1Date = OffsetDateTime.of(2023, 3, 4, 0, 0, 0, 0, ZoneOffset.UTC);
     OffsetDateTime snap2Date = OffsetDateTime.of(2023, 3, 5, 0, 0, 0, 0, ZoneOffset.UTC);
     OffsetDateTime snap3Date = OffsetDateTime.of(2023, 3, 6, 0, 0, 0, 0, ZoneOffset.UTC);
@@ -824,26 +826,18 @@ class TallyResourceTest {
       ReportCategory category,
       ServiceLevelType sla,
       UsageType usageType,
-      Map<OffsetDateTime, Integer> result)
-      throws Exception {
-    com.redhat.swatch.contracts.api.model.GranularityType cGranularity =
-        com.redhat.swatch.contracts.api.model.GranularityType.valueOf(granularityType.name());
-    com.redhat.swatch.contracts.api.model.ReportCategory cReportCategory =
-        Optional.ofNullable(category)
-            .map(c -> com.redhat.swatch.contracts.api.model.ReportCategory.valueOf(c.name()))
-            .orElse(null);
-    com.redhat.swatch.contracts.api.model.ServiceLevelType cSla =
-        Optional.ofNullable(sla)
-            .map(s -> com.redhat.swatch.contracts.api.model.ServiceLevelType.valueOf(s.name()))
-            .orElse(null);
-    com.redhat.swatch.contracts.api.model.UsageType cUsage =
-        Optional.ofNullable(usageType)
-            .map(ut -> com.redhat.swatch.contracts.api.model.UsageType.valueOf(ut.name()))
-            .orElse(null);
+      Map<OffsetDateTime, Integer> result) {
+    GranularityType cGranularity = GranularityType.valueOf(granularityType.name());
+    ReportCategory cReportCategory =
+        Optional.ofNullable(category).map(c -> ReportCategory.valueOf(c.name())).orElse(null);
+    ServiceLevelType cSla =
+        Optional.ofNullable(sla).map(s -> ServiceLevelType.valueOf(s.name())).orElse(null);
+    UsageType cUsage =
+        Optional.ofNullable(usageType).map(ut -> UsageType.valueOf(ut.name())).orElse(null);
 
-    when(capacityApi.getCapacityReportByMetricId(
-            eq(productId.getValue()),
-            eq(metricId.getValue()),
+    when(capacityResource.getCapacityReportByMetricId(
+            eq(productId),
+            eq(metricId),
             eq(cGranularity),
             eq(beginning),
             eq(ending),
@@ -864,34 +858,33 @@ class TallyResourceTest {
                 result));
   }
 
-  private com.redhat.swatch.contracts.api.model.CapacityReportByMetricId capacityReport(
+  private CapacityReportByMetricId capacityReport(
       OffsetDateTime start,
       OffsetDateTime end,
       String metricId,
-      com.redhat.swatch.contracts.api.model.ReportCategory category,
-      com.redhat.swatch.contracts.api.model.GranularityType granularity,
-      com.redhat.swatch.contracts.api.model.ServiceLevelType sla,
-      com.redhat.swatch.contracts.api.model.UsageType usage,
+      ReportCategory category,
+      GranularityType granularity,
+      ServiceLevelType sla,
+      UsageType usage,
       Map<OffsetDateTime, Integer> values) {
     var meta =
-        new com.redhat.swatch.contracts.api.model.CapacityReportByMetricIdMeta()
+        new CapacityReportByMetricIdMeta()
             .metricId(metricId)
             .category(category)
             .granularity(granularity)
             .serviceLevel(sla)
             .usage(usage)
             .count(values.size());
-    return new com.redhat.swatch.contracts.api.model.CapacityReportByMetricId()
+    return new CapacityReportByMetricId()
         .meta(meta)
         .data(createCapacitySnapshots(start, end, granularity, values));
   }
 
-  private List<com.redhat.swatch.contracts.api.model.CapacitySnapshotByMetricId>
-      createCapacitySnapshots(
-          OffsetDateTime reportStart,
-          OffsetDateTime reportEnd,
-          com.redhat.swatch.contracts.api.model.GranularityType granularityType,
-          Map<OffsetDateTime, Integer> values) {
+  private List<CapacitySnapshotByMetricId> createCapacitySnapshots(
+      OffsetDateTime reportStart,
+      OffsetDateTime reportEnd,
+      GranularityType granularityType,
+      Map<OffsetDateTime, Integer> values) {
     SnapshotTimeAdjuster timeAdjuster =
         SnapshotTimeAdjuster.getTimeAdjuster(
             applicationClock, Granularity.fromString(granularityType.toString()));
@@ -900,14 +893,13 @@ class TallyResourceTest {
     OffsetDateTime end = timeAdjuster.adjustToPeriodEnd(reportEnd);
     TemporalAmount offset = timeAdjuster.getSnapshotOffset();
 
-    List<com.redhat.swatch.contracts.api.model.CapacitySnapshotByMetricId> result =
-        new ArrayList<>();
+    List<CapacitySnapshotByMetricId> result = new ArrayList<>();
     OffsetDateTime next = OffsetDateTime.from(start);
 
     while (next.isBefore(end) || next.isEqual(end)) {
       Integer value = values.getOrDefault(next, 0);
       result.add(
-          new com.redhat.swatch.contracts.api.model.CapacitySnapshotByMetricId()
+          new CapacitySnapshotByMetricId()
               .hasData(values.containsKey(next))
               .date(next)
               .hasInfiniteQuantity(false)
