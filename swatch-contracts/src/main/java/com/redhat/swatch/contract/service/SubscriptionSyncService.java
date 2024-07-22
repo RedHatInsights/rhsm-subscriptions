@@ -34,6 +34,7 @@ import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.OfferingRepository;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
+import com.redhat.swatch.contract.utils.CustomBatchIterator;
 import com.redhat.swatch.contract.utils.SubscriptionDtoUtil;
 import io.micrometer.core.annotation.Timed;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -50,9 +51,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
@@ -62,8 +63,6 @@ import org.eclipse.microprofile.faulttolerance.Asynchronous;
 @Slf4j
 @AllArgsConstructor
 public class SubscriptionSyncService {
-
-  private static final int SUBSCRIPTION_BATCH_SIZE = 1024;
 
   private final SubscriptionRepository subscriptionRepository;
   private final OfferingRepository offeringRepository;
@@ -305,52 +304,54 @@ public class SubscriptionSyncService {
 
     Set<String> seenIds = new HashSet<>(subIdToDtoMap.keySet());
 
-    AtomicInteger subscriptionHandled = new AtomicInteger(0);
-    subscriptionRepository
-        .streamByOrgId(orgId)
+    var batchSize = 1024;
+    CustomBatchIterator.batchStreamOf(subscriptionRepository.streamByOrgId(orgId), batchSize)
         .forEach(
-            subEntity -> {
-              var subId = subEntity.getSubscriptionId();
-              var dto = subIdToDtoMap.remove(subId);
+            batch -> {
+              batch.forEach(
+                  subEntity -> {
+                    var subId = subEntity.getSubscriptionId();
+                    var dto = subIdToDtoMap.remove(subId);
 
-              // delete from swatch because it didn't appear in the latest list from the
-              // subscription service, or it's in the denylist
-              if (!seenIds.contains(subId)
-                  || (productDenylist.productIdMatches(subEntity.getOffering().getSku()))) {
-                subEntitiesForDeletion.add(subEntity);
-                return;
-              }
+                    // delete from swatch because it didn't appear in the latest list from the
+                    // subscription service, or it's in the denylist
+                    if (!seenIds.contains(subId)
+                        || (productDenylist.productIdMatches(subEntity.getOffering().getSku()))) {
+                      subEntitiesForDeletion.add(subEntity);
+                      return;
+                    }
 
-              // we've seen a newer version of the sub, but this version doesn't need updates
-              if (dto == null) {
-                return;
-              }
+                    // we've seen a newer version of the sub, but this version doesn't need updates
+                    if (dto == null) {
+                      return;
+                    }
 
-              syncSubscription(dto, Optional.of(subEntity));
-              if (subscriptionHandled.incrementAndGet() % SUBSCRIPTION_BATCH_SIZE == 0) {
-                subscriptionRepository.flush();
-                entityManager.clear();
-              }
+                    syncSubscription(dto, Optional.of(subEntity));
+                  });
+              subscriptionRepository.flush();
+              entityManager.clear();
             });
 
     // These are additional subs that should be sync'd but weren't previously in the database
-    subIdToDtoMap
-        .values()
-        .forEach(
-            dto -> {
-              // Contract provided subscriptions will have a different start_date than what is
-              // stored in Subscription SearchAPI
-              var existingSubscription =
-                  subscriptionRepository
-                      .findBySubscriptionNumber(dto.getSubscriptionNumber())
-                      .stream()
-                      .findFirst();
-              syncSubscription(dto, existingSubscription);
+    Stream<Subscription> stream = subIdToDtoMap.values().stream();
 
-              if (subscriptionHandled.incrementAndGet() % SUBSCRIPTION_BATCH_SIZE == 0) {
-                subscriptionRepository.flush();
-                entityManager.clear();
-              }
+    CustomBatchIterator.batchStreamOf(stream, batchSize)
+        .forEach(
+            batch -> {
+              batch.forEach(
+                  dto -> {
+                    // Contract provided subscriptions will have a different start_date than what is
+                    // stored in Subscription SearchAPI
+                    var existingSubscription =
+                        subscriptionRepository
+                            .findBySubscriptionNumber(dto.getSubscriptionNumber())
+                            .stream()
+                            .findFirst();
+                    syncSubscription(dto, existingSubscription);
+                  });
+
+              subscriptionRepository.flush();
+              entityManager.clear();
             });
 
     if (paygOnly) {

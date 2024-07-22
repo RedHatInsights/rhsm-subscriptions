@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.subscription;
+package com.redhat.swatch.contract.utils;
 
 import static java.util.Spliterator.ORDERED;
 
