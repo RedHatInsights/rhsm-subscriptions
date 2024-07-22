@@ -82,5 +82,7 @@ class MockPrometheusWriter:
                 )
             cursor += datetime.timedelta(minutes=5)
         output.append("# EOF")
-        output.append("\n")
+        # Surprisingly, openmetrics doesn't want a newline at the end of the file
+        if self.prometheus_format:
+            output.append("\n")
         return "\n".join(output)
