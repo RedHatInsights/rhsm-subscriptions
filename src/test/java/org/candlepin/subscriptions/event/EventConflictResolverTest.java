@@ -30,14 +30,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.OffsetDateTime;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.EventRecordRepository;
@@ -45,6 +43,7 @@ import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.AmendmentType;
+import org.candlepin.subscriptions.json.Event.HardwareType;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.junit.jupiter.api.BeforeEach;
@@ -93,22 +92,24 @@ class EventConflictResolverTest {
             List.of(
                 event(Map.of("cores", 1.0)).withTimestamp(CLOCK.now()),
                 event(Map.of("cores", 3.0)).withTimestamp(CLOCK.now().plusHours(2)))),
-        // Event conflict with identical measurement is deducted
-        // TODO Make existing and incoming have different hardware type.
+        // Event conflict with identical measurement is deducted. The deducted
+        // event metadata should match the existing event, and the new event
+        // metadata should match the incoming.
         Arguments.of(
-            existing(event(Map.of("cores", 12.0))),
             List.of(event(Map.of("cores", 12.0))),
+            List.of(event(Map.of("cores", 12.0)).withHardwareType(HardwareType.CLOUD)),
             List.of(
-                deduction(Map.of("cores", -12.0)).withAmendmentType(AmendmentType.DEDUCTION),
-                event(Map.of("cores", 12.0)))),
+                deduction(Map.of("cores", -12.0)),
+                event(Map.of("cores", 12.0)).withHardwareType(HardwareType.CLOUD))),
         // Duplicate incoming events results in a single deduction
-        // TODO: Make existing and out different
         Arguments.of(
             List.of(),
-            List.of(event(Map.of("cores", 1.0)), event(Map.of("cores", 1.0))),
             List.of(
-                event(Map.of("cores", 1.0)),
-                deduction(Map.of("cores", -1.0)).withAmendmentType(AmendmentType.DEDUCTION),
+                event(Map.of("cores", 1.0)).withHardwareType(HardwareType.CLOUD),
+                event(Map.of("cores", 1.0))),
+            List.of(
+                event(Map.of("cores", 1.0)).withHardwareType(HardwareType.CLOUD),
+                deduction(Map.of("cores", -1.0)).withHardwareType(HardwareType.CLOUD),
                 event(Map.of("cores", 1.0)))),
         // Duplicate incoming events with incoming conflict is resolved.
         Arguments.of(
@@ -126,12 +127,12 @@ class EventConflictResolverTest {
         // Incoming events with duplicate measurement resolves to single event.
         // Conflict with different measurement value, yields amendment plus incoming value.
         Arguments.of(
-            existing(event(Map.of("cores", 5.0))),
+            List.of(event(Map.of("cores", 5.0))),
             List.of(event(Map.of("cores", 15.0))),
             List.of(deduction(Map.of("cores", -5.0)), event(Map.of("cores", 15.0)))),
         // Event conflict with existing amendment resolves to additional amendment.
         Arguments.of(
-            existing(
+            List.of(
                 event(Map.of("cores", 5.0)),
                 deduction(Map.of("cores", -5.0)),
                 event(Map.of("cores", 15.0))),
@@ -141,7 +142,7 @@ class EventConflictResolverTest {
         // for single instance only. Net new event for other instance.
         Arguments.of(
             // Instance 1
-            existing(event(Map.of("cores", 5.0))),
+            List.of(event(Map.of("cores", 5.0))),
             List.of(
                 // Instance 1
                 event(Map.of("cores", 15.0)),
@@ -154,7 +155,7 @@ class EventConflictResolverTest {
         // Conflict with different measurement value yields amendment plus incoming value
         // for both instance.
         Arguments.of(
-            existing(
+            List.of(
                 event(Map.of("cores", 5.0)),
                 event(Map.of("cores", 5.0)).withInstanceId("instance_2")),
             List.of(
@@ -167,7 +168,7 @@ class EventConflictResolverTest {
                 event(Map.of("cores", 10.0)).withInstanceId("instance_2"))),
         // Events with conflicts with multiple timestamps are resolved.
         Arguments.of(
-            existing(
+            List.of(
                 event(Map.of("cores", 1.0)),
                 event(Map.of("cores", 1.0)).withTimestamp(CLOCK.now().plusHours(2))),
             List.of(
@@ -194,12 +195,12 @@ class EventConflictResolverTest {
         // Multiple existing events with different measurements and single incoming measurement
         // change results in amendment for only one measurement.
         Arguments.of(
-            existing(event(Map.of("cores", 10.0)), event(Map.of("instance-hours", 2.0))),
+            List.of(event(Map.of("cores", 10.0)), event(Map.of("instance-hours", 2.0))),
             List.of(event(Map.of("cores", 12.0))),
             List.of(deduction(Map.of("cores", -10.0)), event(Map.of("cores", 12.0)))),
         // Single incoming event with multiple measurements amend each measurement.
         Arguments.of(
-            existing(event(Map.of("cores", 10.0)), event(Map.of("instance-hours", 2.0))),
+            List.of(event(Map.of("cores", 10.0)), event(Map.of("instance-hours", 2.0))),
             List.of(event(Map.of("cores", 12.0, "instance-hours", 4.0))),
             List.of(
                 deduction(Map.of("cores", -10.0)),
@@ -208,18 +209,18 @@ class EventConflictResolverTest {
                 event(Map.of("cores", 12.0, "instance-hours", 4.0)))),
         // Single measurement amendment when existing conflicting event has multiple measurements.
         Arguments.of(
-            existing(event(Map.of("cores", 10.0, "instance-hours", 2.0))),
+            List.of(event(Map.of("cores", 10.0, "instance-hours", 2.0))),
             List.of(event(Map.of("cores", 12.0))),
             List.of(deduction(Map.of("cores", -10.0)), event(Map.of("cores", 12.0)))),
         Arguments.of(
-            existing(event(Map.of("cores", 10.0, "instance-hours", 2.0))),
+            List.of(event(Map.of("cores", 10.0, "instance-hours", 2.0))),
             List.of(event(Map.of("cores", 12.0, "instance-hours", 5.0))),
             List.of(
                 deduction(Map.of("cores", -10.0)),
                 deduction(Map.of("instance-hours", -2.0)),
                 event(Map.of("cores", 12.0, "instance-hours", 5.0)))),
         Arguments.of(
-            existing(event(Map.of("cores", 10.0, "instance-hours", 2.0))),
+            List.of(event(Map.of("cores", 10.0, "instance-hours", 2.0))),
             List.of(
                 event(Map.of("cores", 12.0)), event(Map.of("cores", 20.0, "instance-hours", 40.0))),
             List.of(
@@ -229,7 +230,7 @@ class EventConflictResolverTest {
                 deduction(Map.of("instance-hours", -2.0)),
                 event(Map.of("cores", 20.0, "instance-hours", 40.0)))),
         Arguments.of(
-            existing(event(Map.of("cores", 4.0, "instance-hours", 1.0))),
+            List.of(event(Map.of("cores", 4.0, "instance-hours", 1.0))),
             List.of(
                 event(Map.of("cores", 4.0, "instance-hours", 1.0)),
                 event(Map.of("cores", 8.0, "instance-hours", 2.0))),
@@ -252,7 +253,7 @@ class EventConflictResolverTest {
   }
 
   @Test
-  void testConflictResolution_WillPreferMetricIdOverUomButSupportsBoth() {
+  void testConflictResolutionWillPreferMetricIdOverUomButSupportsBoth() {
     // NOTE We should never see a case where the metric_id and uom are different
     //      for a single measurement, but will test the edge case just in case.
     OffsetDateTime eventTimestamp = CLOCK.now();
@@ -287,13 +288,13 @@ class EventConflictResolverTest {
   static Stream<Arguments> equalMetricResolutionRequiredScenarios() {
     return Stream.of(
         Arguments.of(
-            existing(event(Set.of("T1"), Map.of("cores", 6.0))),
+            List.of(event(Set.of("T1"), Map.of("cores", 6.0))),
             List.of(event(Set.of("T1"), Map.of("cores", 6.0))),
             List.of(
                 deduction(Set.of("T1"), Map.of("cores", -6.0)),
                 event(Set.of("T1"), Map.of("cores", 6.0)))),
         Arguments.of(
-            existing(event(Set.of("T1", "T2", "T3"), Map.of("cores", 6.0))),
+            List.of(event(Set.of("T1", "T2", "T3"), Map.of("cores", 6.0))),
             List.of(event(Set.of("T1", "T2", "T3"), Map.of("cores", 6.0))),
             List.of(
                 deduction(Set.of("T1"), Map.of("cores", -6.0)),
@@ -368,17 +369,14 @@ class EventConflictResolverTest {
             List.of(event(Set.of("T1"), Map.of("cores", 10.0))),
             List.of(event(Set.of("T1"), Map.of("cores", 4.0))),
             List.of(
-                event(Set.of("T1"), Map.of("cores", -10.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
+                deduction(Set.of("T1"), Map.of("cores", -10.0)),
                 event(Set.of("T1"), Map.of("cores", 4.0)))),
         Arguments.of(
             List.of(event(Set.of("T1", "T2"), Map.of("cores", 10.0))),
             List.of(event(Set.of("T1", "T2"), Map.of("cores", 4.0))),
             List.of(
-                event(Set.of("T1"), Map.of("cores", -10.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
-                event(Set.of("T2"), Map.of("cores", -10.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
+                deduction(Set.of("T1"), Map.of("cores", -10.0)),
+                deduction(Set.of("T2"), Map.of("cores", -10.0)),
                 event(Set.of("T1", "T2"), Map.of("cores", 4.0)))),
         // Derived event is created when a measurement of the incoming event was
         // already covered by an existing event with a different tag set. In this
@@ -388,24 +386,20 @@ class EventConflictResolverTest {
             List.of(event(Set.of("T1"), Map.of("cores", 6.0))),
             List.of(event(Set.of("T1", "T2"), Map.of("cores", 6.0))),
             List.of(
-                event(Set.of("T1"), Map.of("cores", -6.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
+                deduction(Set.of("T1"), Map.of("cores", -6.0)),
                 event(Set.of("T1", "T2"), Map.of("cores", 6.0)))),
         Arguments.of(
             List.of(event(Set.of("T1", "T2", "T3"), Map.of("cores", 6.0))),
             List.of(event(Set.of("T1"), Map.of("cores", 16.0))),
             List.of(
-                event(Set.of("T1"), Map.of("cores", -6.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
+                deduction(Set.of("T1"), Map.of("cores", -6.0)),
                 event(Set.of("T1"), Map.of("cores", 16.0)))),
         Arguments.of(
             List.of(event(Set.of("T1", "T2", "T3"), Map.of("cores", 6.0))),
             List.of(event(Set.of("T1", "T2"), Map.of("cores", 10.0))),
             List.of(
-                event(Set.of("T1"), Map.of("cores", -6.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
-                event(Set.of("T2"), Map.of("cores", -6.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
+                deduction(Set.of("T1"), Map.of("cores", -6.0)),
+                deduction(Set.of("T2"), Map.of("cores", -6.0)),
                 event(Set.of("T1", "T2"), Map.of("cores", 10.0)))),
         Arguments.of(
             List.of(event(Set.of("T1"), Map.of("cores", 6.0))),
@@ -413,11 +407,9 @@ class EventConflictResolverTest {
                 event(Set.of("T1", "T2"), Map.of("cores", 10.0)),
                 event(Set.of("T2"), Map.of("cores", 8.0))),
             List.of(
-                event(Set.of("T1"), Map.of("cores", -6.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
+                deduction(Set.of("T1"), Map.of("cores", -6.0)),
                 event(Set.of("T1", "T2"), Map.of("cores", 10.0)),
-                event(Set.of("T2"), Map.of("cores", -10.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
+                deduction(Set.of("T2"), Map.of("cores", -10.0)),
                 event(Set.of("T2"), Map.of("cores", 8.0)))),
         Arguments.of(
             List.of(event(Set.of("T1"), Map.of("cores", 6.0))),
@@ -425,8 +417,7 @@ class EventConflictResolverTest {
                 event(Set.of("T1", "T2"), Map.of("cores", 10.0)),
                 event(Set.of("T3"), Map.of("cores", 8.0))),
             List.of(
-                event(Set.of("T1"), Map.of("cores", -6.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
+                deduction(Set.of("T1"), Map.of("cores", -6.0)),
                 event(Set.of("T1", "T2"), Map.of("cores", 10.0)),
                 event(Set.of("T3"), Map.of("cores", 8.0)))));
   }
@@ -456,41 +447,31 @@ class EventConflictResolverTest {
                 event(Set.of("T1"), Map.of("instance-hours", 20.0))),
             List.of(event(Set.of("T1", "T2"), Map.of("cores", 20.0, "instance-hours", 40.0))),
             List.of(
-                event(Set.of("T1"), Map.of("cores", -10.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
-                event(Set.of("T1"), Map.of("instance-hours", -20.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
+                deduction(Set.of("T1"), Map.of("cores", -10.0)),
+                deduction(Set.of("T1"), Map.of("instance-hours", -20.0)),
                 event(Set.of("T1", "T2"), Map.of("cores", 20.0, "instance-hours", 40.0)))),
         Arguments.of(
             List.of(event(Set.of("T1"), Map.of("cores", 10.0, "instance-hours", 4.0))),
             List.of(event(Set.of("T1", "T2"), Map.of("cores", 10.0, "instance-hours", 4.0))),
             List.of(
-                event(Set.of("T1"), Map.of("cores", -10.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
-                event(Set.of("T1"), Map.of("instance-hours", -4.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
+                deduction(Set.of("T1"), Map.of("cores", -10.0)),
+                deduction(Set.of("T1"), Map.of("instance-hours", -4.0)),
                 event(Set.of("T1", "T2"), Map.of("cores", 10.0, "instance-hours", 4.0)))),
         Arguments.of(
             List.of(event(Set.of("T1"), Map.of("cores", 10.0, "instance-hours", 20.0))),
             List.of(event(Set.of("T1"), Map.of("cores", 20.0, "instance-hours", 40.0))),
             List.of(
-                event(Set.of("T1"), Map.of("cores", -10.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
-                event(Set.of("T1"), Map.of("instance-hours", -20.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
+                deduction(Set.of("T1"), Map.of("cores", -10.0)),
+                deduction(Set.of("T1"), Map.of("instance-hours", -20.0)),
                 event(Set.of("T1"), Map.of("cores", 20.0, "instance-hours", 40.0)))),
         Arguments.of(
             List.of(event(Set.of("T1", "T2"), Map.of("cores", 10.0, "instance-hours", 20.0))),
             List.of(event(Set.of("T1", "T2"), Map.of("cores", 20.0, "instance-hours", 40.0))),
             List.of(
-                event(Set.of("T1"), Map.of("cores", -10.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
-                event(Set.of("T2"), Map.of("cores", -10.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
-                event(Set.of("T1"), Map.of("instance-hours", -20.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
-                event(Set.of("T2"), Map.of("instance-hours", -20.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
+                deduction(Set.of("T1"), Map.of("cores", -10.0)),
+                deduction(Set.of("T2"), Map.of("cores", -10.0)),
+                deduction(Set.of("T1"), Map.of("instance-hours", -20.0)),
+                deduction(Set.of("T2"), Map.of("instance-hours", -20.0)),
                 event(Set.of("T1", "T2"), Map.of("cores", 20.0, "instance-hours", 40.0)))),
         Arguments.of(
             List.of(event(Set.of("T1", "T2"), Map.of("cores", 10.0, "instance-hours", 20.0))),
@@ -498,41 +479,29 @@ class EventConflictResolverTest {
                 event(Set.of("T1"), Map.of("cores", 20.0, "instance-hours", 40.0)),
                 event(Set.of("T2"), Map.of("cores", 20.0, "instance-hours", 40.0))),
             List.of(
-                event(Set.of("T1"), Map.of("cores", -10.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
-                event(Set.of("T1"), Map.of("instance-hours", -20.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
-                event(Set.of("T2"), Map.of("cores", -10.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
-                event(Set.of("T2"), Map.of("instance-hours", -20.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
+                deduction(Set.of("T1"), Map.of("cores", -10.0)),
+                deduction(Set.of("T1"), Map.of("instance-hours", -20.0)),
+                deduction(Set.of("T2"), Map.of("cores", -10.0)),
+                deduction(Set.of("T2"), Map.of("instance-hours", -20.0)),
                 event(Set.of("T1"), Map.of("cores", 20.0, "instance-hours", 40.0)),
                 event(Set.of("T2"), Map.of("cores", 20.0, "instance-hours", 40.0)))),
         Arguments.of(
             List.of(event(Set.of("T1", "T2"), Map.of("cores", 10.0, "instance-hours", 20.0))),
             List.of(event(Set.of("T1", "T2"), Map.of("cores", 10.0, "instance-hours", 40.0))),
             List.of(
-                event(Set.of("T1"), Map.of("cores", -10.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
-                event(Set.of("T1"), Map.of("instance-hours", -20.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
-                event(Set.of("T2"), Map.of("cores", -10.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
-                event(Set.of("T2"), Map.of("instance-hours", -20.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
+                deduction(Set.of("T1"), Map.of("cores", -10.0)),
+                deduction(Set.of("T1"), Map.of("instance-hours", -20.0)),
+                deduction(Set.of("T2"), Map.of("cores", -10.0)),
+                deduction(Set.of("T2"), Map.of("instance-hours", -20.0)),
                 event(Set.of("T1", "T2"), Map.of("cores", 10.0, "instance-hours", 40.0)))),
         Arguments.of(
             List.of(event(Set.of("T1", "T2"), Map.of("cores", 10.0, "instance-hours", 20.0))),
             List.of(event(Set.of("T1", "T2", "T3"), Map.of("cores", 10.0, "instance-hours", 40.0))),
             List.of(
-                event(Set.of("T1"), Map.of("cores", -10.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
-                event(Set.of("T1"), Map.of("instance-hours", -20.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
-                event(Set.of("T2"), Map.of("cores", -10.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
-                event(Set.of("T2"), Map.of("instance-hours", -20.0))
-                    .withAmendmentType(AmendmentType.DEDUCTION),
+                deduction(Set.of("T1"), Map.of("cores", -10.0)),
+                deduction(Set.of("T1"), Map.of("instance-hours", -20.0)),
+                deduction(Set.of("T2"), Map.of("cores", -10.0)),
+                deduction(Set.of("T2"), Map.of("instance-hours", -20.0)),
                 event(Set.of("T1", "T2", "T3"), Map.of("cores", 10.0, "instance-hours", 40.0)))));
   }
 
@@ -659,10 +628,12 @@ class EventConflictResolverTest {
     private final Set<String> tags;
     private final Map<String, Double> measurements;
     private OffsetDateTime recordDate;
+    private HardwareType hardwareType;
 
     private EventArgument(Set<String> tags, Map<String, Double> measurements) {
       this.tags = tags;
       this.measurements = measurements;
+      this.hardwareType = HardwareType.PHYSICAL;
     }
 
     private EventArgument(Map<String, Double> measurements) {
@@ -685,6 +656,7 @@ class EventConflictResolverTest {
       event.setProductTag(tags);
       event.setAmendmentType(Objects.isNull(amendmentType) ? null : amendmentType);
       event.setRecordDate(recordDate);
+      event.setHardwareType(hardwareType);
       return event;
     }
 
@@ -709,16 +681,10 @@ class EventConflictResolverTest {
       return this;
     }
 
-    EventArgument withRecordDate(OffsetDateTime recordDate) {
-      this.recordDate = recordDate;
+    EventArgument withHardwareType(HardwareType hardwareType) {
+      this.hardwareType = hardwareType;
       return this;
     }
-  }
-
-  static List<EventArgument> existing(EventArgument... args) {
-    IntStream.range(0, args.length)
-        .forEach(i -> args[i].withRecordDate(CLOCK.now().plusSeconds(1 + i)));
-    return Arrays.asList(args);
   }
 
   static EventArgument event(Set<String> tags, Map<String, Double> measurements) {
@@ -727,10 +693,6 @@ class EventConflictResolverTest {
 
   static EventArgument event(Map<String, Double> measurements) {
     return new EventArgument(measurements);
-  }
-
-  static EventArgument resolved(Set<String> tags, Map<String, Double> measurements) {
-    return new EventArgument(tags, measurements);
   }
 
   static EventArgument deduction(Set<String> tags, Map<String, Double> measurements) {

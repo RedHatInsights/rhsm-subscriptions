@@ -31,9 +31,15 @@ import java.util.Set;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement;
 
+/**
+ * Tracks the latest event conflicts based on {@link UsageConflictKey}. Used by the {@link
+ * EventConflictResolver} to track the latest conflicting Event based on {@link UsageConflictKey}. A
+ * set of keys are created based on a tracked event's measurements and tags, and are checked against
+ * the latest event mapped by usage conflict key.
+ */
 public class UsageConflictTracker {
 
-  private Map<UsageConflictKey, Event> keyToLatestEvent;
+  private final Map<UsageConflictKey, Event> keyToLatestEvent;
 
   public UsageConflictTracker(List<Event> events) {
     this.keyToLatestEvent = new HashMap<>();
@@ -61,7 +67,7 @@ public class UsageConflictTracker {
           if (!keyToLatestEvent.containsKey(key)) {
             keyToLatestEvent.put(key, event);
           } else {
-            // If record date is null, we prefer that events. This can happen if a non-persisted
+            // If record date is null, we prefer that event. This can happen if a non-persisted
             // event is tracked (i.e. an incoming event).
             Optional<OffsetDateTime> eventRecordDate = Optional.ofNullable(event.getRecordDate());
             Optional<OffsetDateTime> latestEventRecordDate =

@@ -21,15 +21,11 @@
 package org.candlepin.subscriptions.event;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.EventRecordRepository;
@@ -66,14 +62,12 @@ import org.springframework.stereotype.Component;
  *         new value of 20 cores.
  * Conflicting event with different product tags.
  *  - Amendments are created based on measurement coverage for each included tag.
- *  - An incoming event may be broken down into 'derived' events in the case that a tag
- *    from an incoming event does not yet have measurements.
  *  - e.g. An incoming event has a measurement of 6 cores for tags T1 and T2. An existing
  *         EventRecord, matching the incoming EventKey, has a measurement of 6 cores for
- *         tag T1. Only a single EventRecord (AmendmentType.DERIVED) would be created for
- *         tag T2 with a cores measurement value of 6. In this case, the existing event
- *         already covers the 6 cores for tag T1, so we only need to include the incoming
- *         value for T2.
+ *         tag T1. In this case, since the existing event already has a cores measurement
+ *         for T1, a DEDUCTION event (cores: -6) will be created for T1's cores value, and
+ *         the incoming Event will be persisted as is. This ensure that both T1 and T2's
+ *         cores values will remain at 6.
  * </pre>
  */
 @Slf4j
@@ -101,20 +95,14 @@ public class EventConflictResolver {
             .collect(
                 Collectors.groupingBy(
                     EventKey::fromEvent, LinkedHashMap::new, Collectors.toList()));
-    Map<EventKey, List<EventRecord>> allConflicting =
-        getConflictingEvents(eventsToResolve.keySet());
+    Map<EventKey, List<Event>> allConflicting = getConflictingEvents(eventsToResolve.keySet());
 
     // Resolve any conflicting events.
     List<EventRecord> resolvedEvents = new ArrayList<>();
     eventsToResolve.forEach(
         (key, eventList) -> {
-          // TODO Can we fix up the stream going into the conflict tracker? Maby just pass the
-          // records?
           UsageConflictTracker tracker =
-              new UsageConflictTracker(
-                  allConflicting.getOrDefault(key, List.of()).stream()
-                      .map(EventRecord::getEvent)
-                      .toList());
+              new UsageConflictTracker(allConflicting.getOrDefault(key, List.of()));
           eventList.forEach(
               event -> {
                 Set<UsageConflictKey> conflictKeys = UsageConflictKey.from(event);
@@ -141,18 +129,15 @@ public class EventConflictResolver {
                                 .withValue(conflictingMeasurement.getValue() * -1);
                         deductionEvent.setMeasurements(List.of(measurement));
 
-                        // TODO: Refactor to method
-                        EventRecord deductionRecord = new EventRecord(deductionEvent);
                         allConflicting.putIfAbsent(key, new ArrayList<>());
-                        allConflicting.get(key).add(deductionRecord);
-                        resolvedEvents.add(deductionRecord);
+                        allConflicting.get(key).add(deductionEvent);
+                        resolvedEvents.add(new EventRecord(deductionEvent));
                       }
                     });
 
-                EventRecord newUsageEvent = new EventRecord(event);
                 allConflicting.putIfAbsent(key, new ArrayList<>());
-                allConflicting.get(key).add(newUsageEvent);
-                resolvedEvents.add(newUsageEvent);
+                allConflicting.get(key).add(event);
+                resolvedEvents.add(new EventRecord(event));
                 tracker.track(event);
               });
         });
@@ -163,129 +148,11 @@ public class EventConflictResolver {
     return resolvedEvents;
   }
 
-  /**
-   * Updates the incoming event so that it contains the appropriate tags/measurements based on all
-   * tags that have uncovered measurements.
-   *
-   * @param incoming the incoming Event
-   * @param tagsByUncoveredMeasurements all tags by measurements that have uncovered usage.
-   * @return a normalizes List of Event records.
-   */
-  private List<EventRecord> normalizeIncoming(
-      Event incoming, Map<String, Set<String>> tagsByUncoveredMeasurements) {
-    // If the event's measurements are already fully covered, there's nothing to normalize.
-    if (tagsByUncoveredMeasurements.isEmpty()) {
-      return List.of();
-    }
-
-    Map<String, List<Measurement>> incomingMeasurements =
-        incoming.getMeasurements().stream()
-            .collect(Collectors.groupingBy(UsageConflictKey::getMetricId));
-    List<Measurement> measurementsMatchingIncomingTags = new ArrayList<>();
-    List<Measurement> measurementsNotMatchingIncomingTags = new ArrayList<>();
-    for (Entry<String, Set<String>> entry : tagsByUncoveredMeasurements.entrySet()) {
-      if (entry.getValue().equals(incoming.getProductTag())
-          && incomingMeasurements.containsKey(entry.getKey())) {
-        measurementsMatchingIncomingTags.addAll(incomingMeasurements.get(entry.getKey()));
-      } else {
-        measurementsNotMatchingIncomingTags.addAll(incomingMeasurements.get(entry.getKey()));
-      }
-    }
-
-    List<EventRecord> normalizedEvents = new ArrayList<>();
-    // Update the incoming event to include only the measurements that match the
-    // tags of the incoming event. If there are none, then do not include the incoming
-    // event at all. Measurements will be covered by derived events.
-    if (!measurementsMatchingIncomingTags.isEmpty()) {
-      AmendmentType type =
-          incoming.getMeasurements().size() == measurementsMatchingIncomingTags.size()
-              ? null
-              : AmendmentType.DERIVED;
-      incoming.setAmendmentType(type);
-      incoming.setMeasurements(measurementsMatchingIncomingTags);
-      normalizedEvents.add(new EventRecord(incoming));
-    }
-
-    // Create derived events for each measurement that is not already covered,
-    // and did not match the tags of the incoming event.
-    for (Measurement measurement : measurementsNotMatchingIncomingTags) {
-      Event derived = createRecordFrom(incoming);
-      derived.setAmendmentType(AmendmentType.DERIVED);
-      derived.setProductTag(tagsByUncoveredMeasurements.get(measurement.getMetricId()));
-      derived.setMeasurements(List.of(measurement));
-      normalizedEvents.add(new EventRecord(derived));
-    }
-
-    return normalizedEvents;
-  }
-
-  private Map<String, Double> getMeasurementTotals(String tag, Stream<Event> incomingEventStream) {
-    return getMeasurementTotals(
-        incomingEventStream.filter(toFilter -> toFilter.getProductTag().contains(tag)));
-  }
-
-  private Map<String, Double> getMeasurementTotals(Stream<Event> incomingEventStream) {
-    Map<String, Double> totals = new HashMap<>();
-    incomingEventStream.forEach(
-        event ->
-            event
-                .getMeasurements()
-                .forEach(
-                    m -> {
-                      double currentTotal =
-                          totals.getOrDefault(UsageConflictKey.getMetricId(m), 0.0);
-                      totals.put(UsageConflictKey.getMetricId(m), currentTotal + m.getValue());
-                    }));
-    return totals;
-  }
-
-  private Set<String> getUncoveredMeasurements(
-      Map<String, Double> incoming, Map<String, Double> existing) {
-    Set<String> uncovered = new HashSet<>();
-    for (Map.Entry<String, Double> entry : incoming.entrySet()) {
-      if (!existing.containsKey(entry.getKey())
-          || !existing.get(entry.getKey()).equals(entry.getValue())) {
-        uncovered.add(entry.getKey());
-      }
-    }
-    return uncovered;
-  }
-
-  private List<EventRecord> createAmendments(
-      Event incomingEvent,
-      String applicableTag,
-      Set<String> uncoveredMeasurements,
-      Map<String, Double> existingMeasurementTotals) {
-    List<EventRecord> amendments = new ArrayList<>();
-    incomingEvent
-        .getMeasurements()
-        .forEach(
-            incomingMeasurement -> {
-              String metricId = UsageConflictKey.getMetricId(incomingMeasurement);
-              if (uncoveredMeasurements.contains(metricId)
-                  && existingMeasurementTotals.containsKey(metricId)) {
-                // Only need to create a deduction amendment for measurements that are not
-                // already covered and that already exist.
-                Event deductionEvent = createRecordFrom(incomingEvent);
-                deductionEvent.setProductTag(Set.of(applicableTag));
-                deductionEvent.setAmendmentType(AmendmentType.DEDUCTION);
-                Measurement measurement =
-                    new Measurement()
-                        .withMetricId(metricId)
-                        .withUom(metricId)
-                        .withValue(existingMeasurementTotals.get(metricId) * -1);
-                deductionEvent.setMeasurements(List.of(measurement));
-                amendments.add(new EventRecord(deductionEvent));
-              }
-            });
-    return amendments;
-  }
-
-  private Map<EventKey, List<EventRecord>> getConflictingEvents(Set<EventKey> eventKeys) {
+  private Map<EventKey, List<Event>> getConflictingEvents(Set<EventKey> eventKeys) {
     return eventRecordRepository.findConflictingEvents(eventKeys).stream()
+        .map(EventRecord::getEvent)
         .collect(
-            Collectors.groupingBy(
-                e -> EventKey.fromEvent(e.getEvent()), LinkedHashMap::new, Collectors.toList()));
+            Collectors.groupingBy(EventKey::fromEvent, LinkedHashMap::new, Collectors.toList()));
   }
 
   private Event createRecordFrom(Event from) {

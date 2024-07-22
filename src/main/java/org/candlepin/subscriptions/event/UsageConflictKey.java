@@ -32,6 +32,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement;
 
+/**
+ * A UsageConflictKey represents specific usage shared across multiple Events. Usage conflicts are
+ * based on a product_tag and metric_id combination. This class is used by the {@link
+ * UsageConflictTracker} to track conflicts for a specific host instance while determining which
+ * Events should be amended. See {@link EventConflictResolver}.
+ */
 @Getter
 @Setter
 @EqualsAndHashCode
