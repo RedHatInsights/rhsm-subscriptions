@@ -29,6 +29,7 @@ import com.redhat.swatch.contract.repository.SubscriptionMeasurementEntity;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.smallrye.reactive.messaging.MutinyEmitter;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -38,7 +39,6 @@ import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.reactive.messaging.Channel;
-import org.eclipse.microprofile.reactive.messaging.Emitter;
 
 @ApplicationScoped
 @Slf4j
@@ -49,7 +49,7 @@ public class CapacityReconciliationService {
   public static final String CORES = "Cores";
 
   private final SubscriptionRepository subscriptionRepository;
-  private final Emitter<ReconcileCapacityByOfferingTask> reconcileCapacityByOfferingEmitter;
+  private final MutinyEmitter<ReconcileCapacityByOfferingTask> reconcileCapacityByOfferingEmitter;
   private final ProductDenylist productDenylist;
 
   private final Counter measurementsCreated;
@@ -62,7 +62,7 @@ public class CapacityReconciliationService {
       ProductDenylist productDenylist,
       MeterRegistry meterRegistry,
       @Channel(Channels.CAPACITY_RECONCILE)
-          Emitter<ReconcileCapacityByOfferingTask> reconcileCapacityByOfferingEmitter) {
+          MutinyEmitter<ReconcileCapacityByOfferingTask> reconcileCapacityByOfferingEmitter) {
     this.subscriptionRepository = subscriptionRepository;
     this.productDenylist = productDenylist;
     this.reconcileCapacityByOfferingEmitter = reconcileCapacityByOfferingEmitter;
@@ -78,18 +78,11 @@ public class CapacityReconciliationService {
     subscriptions.forEach(this::reconcileCapacityForSubscription);
     if (subscriptions.size() >= limit) {
       offset = offset + limit;
-      reconcileCapacityByOfferingEmitter
-          .send(
-              ReconcileCapacityByOfferingTask.builder()
-                  .sku(sku)
-                  .offset(offset)
-                  .limit(limit)
-                  .build())
-          .toCompletableFuture()
-          // NOTE(khowell) we wait for the message send to be successful here so asynchronous send
-          // does not propagate the transaction and cause confusing errors
-          // see https://github.com/quarkusio/quarkus/issues/21948#issuecomment-1068845737
-          .join();
+      // NOTE(khowell): we wait for the message send to be successful here so asynchronous send does
+      // not propagate the transaction and cause confusing errors; see
+      // https://github.com/quarkusio/quarkus/issues/21948#issuecomment-1068845737
+      reconcileCapacityByOfferingEmitter.sendAndAwait(
+          ReconcileCapacityByOfferingTask.builder().sku(sku).offset(offset).limit(limit).build());
     }
   }
 
