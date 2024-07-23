@@ -20,13 +20,11 @@
  */
 package com.redhat.swatch.billable.usage.services;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -34,7 +32,6 @@ import static org.mockito.Mockito.when;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceEntity;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
 import com.redhat.swatch.billable.usage.data.RemittanceStatus;
-import com.redhat.swatch.billable.usage.data.RemittanceSummaryProjection;
 import com.redhat.swatch.clients.contracts.api.model.Contract;
 import com.redhat.swatch.clients.contracts.api.model.Metric;
 import com.redhat.swatch.clients.contracts.api.resources.ApiException;
@@ -44,12 +41,16 @@ import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinitionRegistry;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import io.quarkus.test.InjectMock;
+import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.mockito.InjectSpy;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import java.lang.reflect.Field;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -58,39 +59,38 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.billable.usage.AccumulationPeriodFormatter;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
-import org.junit.jupiter.api.AfterAll;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.Mockito;
 
 @Slf4j
-@ExtendWith(MockitoExtension.class)
+@QuarkusTest
 class BillableUsageServiceTest {
-  private static SubscriptionDefinitionRegistry originalReference;
   private static final ApplicationClock CLOCK =
       new ApplicationClock(
           Clock.fixed(
               LocalDateTime.of(2019, 5, 24, 12, 35, 0, 0).toInstant(ZoneOffset.UTC),
               ZoneOffset.UTC));
+
   private static final String AWS_METRIC_ID = "aws_metric";
+  private static final String ROSA = "rosa";
+  private static final String ORG_ID = "org123";
 
-  private static final String CORES = "CORES";
+  private static SubscriptionDefinitionRegistry originalReference;
 
-  @Mock BillingProducer producer;
-  @Mock BillableUsageRemittanceRepository remittanceRepo;
-  @Mock DefaultApi contractsApi;
-  @InjectMocks ContractsController contractsController;
+  @InjectMock BillingProducer producer;
+  @InjectSpy BillableUsageRemittanceRepository remittanceRepo;
+  @InjectMock @RestClient DefaultApi contractsApi;
 
-  private BillableUsageService service;
-  private SubscriptionDefinitionRegistry subscriptionDefinitionRegistry;
+  @Inject BillableUsageService service;
+
+  private final SubscriptionDefinitionRegistry mockSubscriptionDefinitionRegistry =
+      Mockito.mock(SubscriptionDefinitionRegistry.class);
 
   @BeforeAll
   static void setupClass() throws Exception {
@@ -100,165 +100,86 @@ class BillableUsageServiceTest {
         (SubscriptionDefinitionRegistry) instance.get(SubscriptionDefinitionRegistry.class);
   }
 
-  @AfterAll
-  static void tearDown() throws Exception {
-    Field instance = SubscriptionDefinitionRegistry.class.getDeclaredField("instance");
-    instance.setAccessible(true);
-    instance.set(instance, originalReference);
-  }
-
+  @Transactional
   @BeforeEach
   void setup() {
-    service = new BillableUsageService(CLOCK, producer, remittanceRepo, contractsController);
-    subscriptionDefinitionRegistry = mock(SubscriptionDefinitionRegistry.class);
-    setMock(subscriptionDefinitionRegistry);
-    var usage = billable(CLOCK.startOfCurrentMonth(), 0.0);
-    createSubscriptionDefinition(
-        usage.getProductId(), "Storage-gibibytes", usage.getBillingFactor(), false);
-  }
-
-  private void setMock(SubscriptionDefinitionRegistry mock) {
-    try {
-      Field instance = SubscriptionDefinitionRegistry.class.getDeclaredField("instance");
-      instance.setAccessible(true);
-      instance.set(instance, mock);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+    remittanceRepo.deleteAll();
+    // reset original subscription definition registry
+    setSubscriptionDefinitionRegistry(originalReference);
   }
 
   @Test
   void monthlyWindowNoCurrentRemittance() {
-    BillableUsage usage = billable(CLOCK.startOfCurrentMonth(), 0.0003).withUuid(UUID.randomUUID());
-    List<RemittanceSummaryProjection> summaries = new ArrayList<>();
-    summaries.add(RemittanceSummaryProjection.builder().totalRemittedPendingValue(0.0).build());
-
-    when(remittanceRepo.getRemittanceSummaries(any())).thenReturn(summaries);
+    BillableUsage usage = givenInstanceHoursUsageForRosa(0.0003);
+    givenExistingContractForUsage(usage);
 
     service.submitBillableUsage(usage);
 
-    BillableUsageRemittanceEntity expectedRemittance =
-        remittance(usage, usage.getSnapshotDate(), 1.0);
-    BillableUsage expectedUsage =
-        billable(usage.getSnapshotDate(), 1.0, usage.getCurrentTotal()).withUuid(usage.getUuid());
-    expectedUsage.setTallyId(usage.getTallyId()); // Id will be regenerated above.
-    verify(remittanceRepo).persistAndFlush(expectedRemittance);
-    verify(producer).produce(expectedUsage);
+    thenRemittanceIsUpdated(usage, 1.0);
+    thenUsageIsSent(usage, 1.0);
   }
 
   @Test
   void monthlyWindowWithRemittanceUpdate() {
     // currentTotal: from multiple snapshots (2.1, 2.3)
-    BillableUsage usage = billable(CLOCK.startOfCurrentMonth(), 2.3, 4.4);
-    List<RemittanceSummaryProjection> summaries = new ArrayList<>();
-    summaries.add(RemittanceSummaryProjection.builder().totalRemittedPendingValue(3.0).build());
-
-    when(remittanceRepo.getRemittanceSummaries(any())).thenReturn(summaries);
+    BillableUsage usage = givenInstanceHoursUsageForRosa(2.3, 4.4);
+    givenExistingContractForUsage(usage);
+    givenExistingRemittanceForUsage(usage, 3.0);
 
     service.submitBillableUsage(usage);
 
-    BillableUsageRemittanceEntity expectedRemittance =
-        remittance(usage, usage.getSnapshotDate(), 2.0);
-    BillableUsage expectedUsage = billable(usage.getSnapshotDate(), 2.0, usage.getCurrentTotal());
-    expectedUsage.setTallyId(usage.getTallyId()); // Id will be regenerated above.
-    verify(remittanceRepo).persistAndFlush(expectedRemittance);
-    verify(producer).produce(expectedUsage);
+    thenRemittanceIsUpdated(usage, 2.0);
+    thenUsageIsSent(usage, 2.0);
   }
 
   @Test
   void monthlyWindowRemittanceMultipleOfBillingFactor() {
-    BillableUsage usage = billable(CLOCK.startOfCurrentMonth(), 68.103, 1064.104);
-    usage.setProductId("osd");
-    usage.setMetricId(CORES);
-    List<RemittanceSummaryProjection> summaries = new ArrayList<>();
-    summaries.add(RemittanceSummaryProjection.builder().totalRemittedPendingValue(996.0).build());
-
-    when(remittanceRepo.getRemittanceSummaries(any())).thenReturn(summaries);
-
-    createSubscriptionDefinition("osd", usage.getMetricId(), 0.25, false);
+    BillableUsage usage = givenCoresUsageForRosa(68.103, 1064.104);
+    givenExistingContractForUsage(usage);
+    givenExistingRemittanceForUsage(usage, 996.0);
 
     service.submitBillableUsage(usage);
 
     // applicable_usage(68.1) converted to billable_usage as 68.1/4 = 17.025. Rounds to 18. 18 *
     // 4(Billing_factor) = 72
-    BillableUsageRemittanceEntity expectedRemittance =
-        remittance(usage, usage.getSnapshotDate(), 72.0);
-    BillableUsage expectedUsage = billable(usage.getSnapshotDate(), 18.0, usage.getCurrentTotal());
-    expectedUsage.setTallyId(usage.getTallyId()); // Id will be regenerated above.
-    expectedUsage.setProductId("osd");
-    expectedUsage.setMetricId(MetricIdUtils.getCores().getValue());
-    expectedUsage.setBillingFactor(0.25);
-
-    verify(remittanceRepo).persistAndFlush(expectedRemittance);
-    verify(producer).produce(expectedUsage);
+    thenRemittanceIsUpdated(usage, 72.0);
+    thenUsageIsSent(usage, 18.0);
   }
 
   @Test
   void monthlyWindowWithNoRemittanceUpdate() {
     // currentTotal: from multiple snapshots (0.02, 0.03)
-    BillableUsage usage = billable(CLOCK.startOfCurrentMonth(), 0.03, 0.05);
-    List<RemittanceSummaryProjection> summaries = new ArrayList<>();
-    summaries.add(RemittanceSummaryProjection.builder().totalRemittedPendingValue(1.0).build());
-    when(remittanceRepo.getRemittanceSummaries(any())).thenReturn(summaries);
+    BillableUsage usage = givenInstanceHoursUsageForRosa(0.03, 0.05);
+    givenExistingContractForUsage(usage);
+    givenExistingRemittanceForUsage(usage, 1.0);
+
     service.submitBillableUsage(usage);
 
-    BillableUsage expectedUsage =
-        billable(usage.getSnapshotDate(), 0.0, usage.getCurrentTotal()); // Nothing billed
-    expectedUsage.setTallyId(usage.getTallyId()); // Id will be regenerated above.
-    verify(producer).produce(expectedUsage);
+    thenUsageIsSent(usage, 0.0);
   }
 
   @Test
   void billingFactorAppliedInRecalculationEvenNumber() {
-    BillableUsage usage = billable(CLOCK.startOfCurrentMonth(), 8.0, 16.0);
-    usage.setProductId("osd");
-    usage.setMetricId(CORES);
-    List<RemittanceSummaryProjection> summaries = new ArrayList<>();
-    summaries.add(RemittanceSummaryProjection.builder().totalRemittedPendingValue(6.0).build());
-
-    when(remittanceRepo.getRemittanceSummaries(any())).thenReturn(summaries);
-
-    createSubscriptionDefinition("osd", usage.getMetricId(), 0.25, false);
+    BillableUsage usage = givenCoresUsageForRosa(8.0, 16.0);
+    givenExistingContractForUsage(usage);
+    givenExistingRemittanceForUsage(usage, 6.0);
 
     service.submitBillableUsage(usage);
 
-    BillableUsageRemittanceEntity expectedRemittance =
-        remittance(usage, usage.getSnapshotDate(), 12.0);
-    BillableUsage expectedUsage =
-        billable(usage.getSnapshotDate(), usage.getValue(), usage.getCurrentTotal());
-    expectedUsage.setTallyId(usage.getTallyId()); // Id will be regenerated above.
-    expectedUsage.setProductId("osd");
-    expectedUsage.setMetricId(usage.getMetricId());
-    expectedUsage.setBillingFactor(0.25);
-    verify(remittanceRepo).persistAndFlush(expectedRemittance);
-    verify(producer).produce(expectedUsage);
+    thenRemittanceIsUpdated(usage, 12.0);
+    thenUsageIsSent(usage, usage.getValue());
   }
 
   @Test
   void billingFactorAppliedInRecalculation() {
-    BillableUsage usage = billable(CLOCK.startOfCurrentMonth(), 8.0, 32.3);
-    usage.setProductId("osd");
-    usage.setMetricId(CORES);
-
-    List<RemittanceSummaryProjection> summaries = new ArrayList<>();
-    summaries.add(RemittanceSummaryProjection.builder().totalRemittedPendingValue(6.0).build());
-
-    when(remittanceRepo.getRemittanceSummaries(any())).thenReturn(summaries);
-
-    createSubscriptionDefinition("osd", usage.getMetricId(), 0.25, false);
+    BillableUsage usage = givenCoresUsageForRosa(8.0, 32.3);
+    givenExistingContractForUsage(usage);
+    givenExistingRemittanceForUsage(usage, 6.0);
 
     service.submitBillableUsage(usage);
 
-    BillableUsageRemittanceEntity expectedRemittance =
-        remittance(usage, usage.getSnapshotDate(), 28.00);
-    BillableUsage expectedUsage =
-        billable(usage.getSnapshotDate(), usage.getValue(), usage.getCurrentTotal());
-    expectedUsage.setTallyId(usage.getTallyId()); // Id will be regenerated above.
-    expectedUsage.setProductId("osd");
-    expectedUsage.setMetricId(usage.getMetricId());
-    expectedUsage.setBillingFactor(0.25);
-    verify(remittanceRepo).persistAndFlush(expectedRemittance);
-    verify(producer).produce(expectedUsage);
+    thenRemittanceIsUpdated(usage, 28.0);
+    thenUsageIsSent(usage, usage.getValue());
   }
 
   // Simulates progression through contract billing.
@@ -281,7 +202,7 @@ class BillableUsageServiceTest {
         arguments(CLOCK.startOfCurrentMonth().plusMonths(1), 150.0, 0.0, 0.0, 0.0));
   }
 
-  @ParameterizedTest()
+  @ParameterizedTest
   @MethodSource("contractRemittanceParameters")
   void testContractRemittance(
       OffsetDateTime usageDate,
@@ -415,7 +336,7 @@ class BillableUsageServiceTest {
         arguments(CLOCK.startOfCurrentMonth().plusMonths(1), 400.0, 0.0, 0.0, 0.0));
   }
 
-  @ParameterizedTest()
+  @ParameterizedTest
   @MethodSource("contractedRemittanceWithBillingFactorParameters")
   void testContractRemittanceWithBillingFactor(
       OffsetDateTime usageDate,
@@ -449,7 +370,7 @@ class BillableUsageServiceTest {
         arguments(CLOCK.startOfCurrentMonth().plusMonths(1), 2.5, 0.0, 3.0, 3.0));
   }
 
-  @ParameterizedTest()
+  @ParameterizedTest
   @MethodSource("remittanceParameters")
   void testRemittance(
       OffsetDateTime usageDate,
@@ -471,27 +392,23 @@ class BillableUsageServiceTest {
   @Test
   // See SWATCH-2494
   void testGetTotalRemittedConsidersAllStatuses() {
-    record RemittanceTuple(double value, RemittanceStatus status, OffsetDateTime date) {}
-
     OffsetDateTime startOfUsage = CLOCK.startOfCurrentMonth().plusDays(4);
-    var t1 = new RemittanceTuple(1.0, RemittanceStatus.SUCCEEDED, startOfUsage);
-    var t2 = new RemittanceTuple(5.0, RemittanceStatus.PENDING, startOfUsage.plusDays(2));
-    var t3 = new RemittanceTuple(10.0, RemittanceStatus.FAILED, startOfUsage.plusDays(4));
-    var t4 = new RemittanceTuple(20.0, null, startOfUsage.plusDays(4));
 
-    List<RemittanceSummaryProjection> summaries = new ArrayList<>();
-    for (var tuple : List.of(t1, t2, t3, t4)) {
-      summaries.add(
-          RemittanceSummaryProjection.builder()
-              .totalRemittedPendingValue(tuple.value)
-              .status(tuple.status)
-              .remittancePendingDate(tuple.date)
-              .build());
-    }
+    BillableUsage usage = givenInstanceHoursUsageForRosa(0.0);
+    givenExistingRemittanceForUsage(usage, startOfUsage, 1.0, RemittanceStatus.SUCCEEDED);
+    givenExistingRemittanceForUsage(usage, startOfUsage.plusDays(2), 5.0, RemittanceStatus.PENDING);
+    // failures with retry after not-null should still be included
+    givenExistingRemittanceForUsage(
+        usage,
+        startOfUsage.plusDays(4),
+        10.0,
+        RemittanceStatus.FAILED,
+        OffsetDateTime.now().plusHours(1));
+    // failures with retry after null should be filtered out
+    givenExistingRemittanceForUsage(
+        usage, startOfUsage.plusDays(4), 30.0, RemittanceStatus.FAILED, null);
+    givenExistingRemittanceForUsage(usage, startOfUsage.plusDays(4), 20.0, null);
 
-    when(remittanceRepo.getRemittanceSummaries(any())).thenReturn(summaries);
-
-    BillableUsage usage = billable(CLOCK.endOfCurrentMonth(), 0.0);
     var result = service.getTotalRemitted(usage);
     assertEquals(36.0, result);
   }
@@ -528,113 +445,84 @@ class BillableUsageServiceTest {
         false);
   }
 
-  private BillableUsage billable(OffsetDateTime date, Double value) {
-    return billable(date, value, value);
+  @Test
+  void usageIsSentWhenContractIsMissingWithinWindow() throws Exception {
+    BillableUsage usage = givenCoresUsageForRosa(1.0);
+    usage.setSnapshotDate(OffsetDateTime.now());
+    usage.setMetricId(MetricIdUtils.getCores().toUpperCaseFormatted());
+    when(contractsApi.getContract(any(), any(), any(), any(), any(), any())).thenReturn(List.of());
+
+    service.submitBillableUsage(usage);
+    verify(producer).produce(null);
   }
 
-  private BillableUsage billable(OffsetDateTime date, Double value, Double currentTotal) {
+  @Test
+  void noUsageProcessedWhenBillingProviderNotSupportedByContractService() {
+    BillableUsage usage = givenInstanceHoursUsageForRosa(1.0);
+    usage.setSnapshotDate(OffsetDateTime.now());
+    usage.setBillingProvider(BillableUsage.BillingProvider.GCP);
+    service.submitBillableUsage(usage);
+    verify(producer).produce(null);
+  }
+
+  private BillableUsage givenInstanceHoursUsageForRosa(Double value) {
+    return givenInstanceHoursUsageForRosa(value, value);
+  }
+
+  private BillableUsage givenInstanceHoursUsageForRosa(Double value, Double currentTotal) {
+    return givenInstanceHoursUsageForRosa(CLOCK.startOfCurrentMonth(), value, currentTotal);
+  }
+
+  private BillableUsage givenInstanceHoursUsageForRosa(
+      OffsetDateTime date, Double value, Double currentTotal) {
+    return billable(ROSA, MetricIdUtils.getInstanceHours(), date, value, currentTotal);
+  }
+
+  private BillableUsage givenCoresUsageForRosa(Double value) {
+    return givenCoresUsageForRosa(value, value);
+  }
+
+  private BillableUsage givenCoresUsageForRosa(Double value, Double currentTotal) {
+    return billable(
+        ROSA, MetricIdUtils.getCores(), CLOCK.startOfCurrentMonth(), value, currentTotal);
+  }
+
+  private BillableUsage billable(
+      String product, MetricId metricId, OffsetDateTime date, Double value, Double currentTotal) {
     return new BillableUsage()
         .withUsage(BillableUsage.Usage.PRODUCTION)
         .withTallyId(UUID.randomUUID())
         .withBillingAccountId("aws-account1")
         .withBillingFactor(1.0)
         .withBillingProvider(BillableUsage.BillingProvider.AWS)
-        .withOrgId("org123")
-        .withProductId("rosa")
+        .withOrgId(ORG_ID)
+        .withProductId(product)
         .withSla(BillableUsage.Sla.STANDARD)
-        .withMetricId("STORAGE_GIBIBYTES")
+        .withMetricId(metricId.getValue())
         .withSnapshotDate(date)
         .withStatus(BillableUsage.Status.PENDING)
         .withCurrentTotal(currentTotal)
         .withValue(value);
   }
 
-  private BillableUsageRemittanceEntity remittance(
-      BillableUsage usage, OffsetDateTime remittedDate, Double value) {
-    return BillableUsageRemittanceEntity.builder()
-        .usage(usage.getUsage().value())
-        .orgId(usage.getOrgId())
-        .billingProvider(usage.getBillingProvider().value())
-        .billingAccountId(usage.getBillingAccountId())
-        .productId(usage.getProductId())
-        .sla(usage.getSla().value())
-        .metricId(MetricId.fromString(usage.getMetricId()).getValue())
-        .accumulationPeriod(AccumulationPeriodFormatter.toMonthId(usage.getSnapshotDate()))
-        .remittancePendingDate(remittedDate)
-        .remittedPendingValue(value)
-        .tallyId(usage.getTallyId())
-        .hardwareMeasurementType(usage.getHardwareMeasurementType())
-        .status(RemittanceStatus.PENDING)
-        .build();
+  private void givenExistingContractForUsage(BillableUsage usage) {
+    Contract contract = new Contract();
+    contract.setStartDate(usage.getSnapshotDate().minusDays(10));
+    try {
+      when(contractsApi.getContract(
+              usage.getOrgId(),
+              usage.getProductId(),
+              usage.getVendorProductCode(),
+              usage.getBillingProvider().value(),
+              usage.getBillingAccountId(),
+              usage.getSnapshotDate()))
+          .thenReturn(List.of(contract));
+    } catch (ApiException e) {
+      fail(e);
+    }
   }
 
-  private void performRemittanceTesting(
-      OffsetDateTime usageDate,
-      Double currentUsage,
-      Double currentRemittance,
-      Double expectedRemitted,
-      Double expectedBilledValue,
-      Double billingFactor,
-      boolean isContractEnabledTest)
-      throws Exception {
-    BillableUsage usage = billable(usageDate, currentUsage, currentUsage);
-
-    // Enable contracts for the current product.
-
-    BillableUsageRemittanceEntity existingRemittance =
-        remittance(usage, CLOCK.now().minusHours(1), currentRemittance);
-
-    List<RemittanceSummaryProjection> summaries = new ArrayList<>();
-    summaries.add(
-        RemittanceSummaryProjection.builder()
-            .totalRemittedPendingValue(existingRemittance.getRemittedPendingValue())
-            .build());
-
-    when(remittanceRepo.getRemittanceSummaries(any())).thenReturn(summaries);
-
-    // Configure contract data, if defined
-    if (isContractEnabledTest) {
-      createSubscriptionDefinition(usage.getProductId(), usage.getMetricId(), billingFactor, true);
-
-      mockContractCoverage(
-          usage.getOrgId(),
-          usage.getProductId(),
-          AWS_METRIC_ID,
-          usage.getVendorProductCode(),
-          usage.getBillingProvider().value(),
-          usage.getBillingAccountId(),
-          usage.getSnapshotDate());
-    } else {
-      createSubscriptionDefinition(usage.getProductId(), usage.getMetricId(), billingFactor, false);
-    }
-
-    // Remittance should only be saved when it changes.
-    // NOTE: Using argument captors make errors caught by mocks a little easier to debug.
-    BillableUsageRemittanceEntity expectedRemittance =
-        remittance(usage, CLOCK.now(), expectedRemitted);
-
-    service.submitBillableUsage(usage);
-
-    ArgumentCaptor<BillableUsageRemittanceEntity> remitted =
-        ArgumentCaptor.forClass(BillableUsageRemittanceEntity.class);
-    if (expectedRemitted == 0.0) {
-      verify(remittanceRepo, times(0)).persistAndFlush(remitted.capture());
-      assertTrue(remitted.getAllValues().isEmpty());
-    } else {
-      verify(remittanceRepo, times(1)).persistAndFlush(remitted.capture());
-      assertThat(remitted.getAllValues(), containsInAnyOrder(expectedRemittance));
-    }
-
-    BillableUsage expectedUsage =
-        billable(usage.getSnapshotDate(), expectedBilledValue, usage.getCurrentTotal());
-    expectedUsage.setTallyId(usage.getTallyId());
-    expectedUsage.setBillingFactor(billingFactor);
-    ArgumentCaptor<BillableUsage> usageCaptor = ArgumentCaptor.forClass(BillableUsage.class);
-    verify(producer).produce(usageCaptor.capture());
-    assertEquals(expectedUsage, usageCaptor.getValue());
-  }
-
-  private void mockContractCoverage(
+  private void givenExistingContract(
       String orgId,
       String productId,
       String metric,
@@ -661,29 +549,136 @@ class BillableUsageServiceTest {
         .thenReturn(List.of(contract1, updatedContract));
   }
 
-  @Test
-  void usageIsSentWhenContractIsMissingWithinWindow() throws Exception {
-    BillableUsage usage = billable(OffsetDateTime.now(), 1.0);
-    usage.setSnapshotDate(OffsetDateTime.now());
-    usage.setMetricId(CORES);
-    createSubscriptionDefinition(usage.getProductId(), usage.getMetricId(), 1.0, true);
-    when(contractsApi.getContract(any(), any(), any(), any(), any(), any())).thenReturn(List.of());
-
-    service.submitBillableUsage(usage);
-    verify(producer).produce(null);
+  void givenExistingRemittanceForUsage(BillableUsage usage, double remittedPendingValue) {
+    givenExistingRemittanceForUsage(usage, CLOCK.now(), remittedPendingValue);
   }
 
-  @Test
-  void noUsageProcessedWhenBillingProviderNotSupportedByContractService() {
-    BillableUsage usage = billable(OffsetDateTime.now(), 1.0);
-    usage.setSnapshotDate(OffsetDateTime.now());
-    usage.setBillingProvider(BillableUsage.BillingProvider.GCP);
-    createSubscriptionDefinition(usage.getProductId(), usage.getMetricId(), 1.0, true);
-    service.submitBillableUsage(usage);
-    verify(producer).produce(null);
+  void givenExistingRemittanceForUsage(
+      BillableUsage usage, OffsetDateTime remittancePendingDate, double remittedPendingValue) {
+    givenExistingRemittanceForUsage(
+        usage, remittancePendingDate, remittedPendingValue, RemittanceStatus.PENDING);
   }
 
-  private void createSubscriptionDefinition(
+  @Transactional
+  void givenExistingRemittanceForUsage(
+      BillableUsage usage,
+      OffsetDateTime remittancePendingDate,
+      double remittedPendingValue,
+      RemittanceStatus status) {
+    givenExistingRemittanceForUsage(
+        usage, remittancePendingDate, remittedPendingValue, status, null);
+  }
+
+  @Transactional
+  void givenExistingRemittanceForUsage(
+      BillableUsage usage,
+      OffsetDateTime remittancePendingDate,
+      double remittedPendingValue,
+      RemittanceStatus status,
+      OffsetDateTime retryAfter) {
+    var newRemittance =
+        BillableUsageRemittanceEntity.builder()
+            .orgId(usage.getOrgId())
+            .billingAccountId(usage.getBillingAccountId())
+            .billingProvider(usage.getBillingProvider().value())
+            .accumulationPeriod(AccumulationPeriodFormatter.toMonthId(usage.getSnapshotDate()))
+            .metricId(MetricId.fromString(usage.getMetricId()).getValue())
+            .productId(usage.getProductId())
+            .sla(usage.getSla().value())
+            .usage(usage.getUsage().value())
+            .remittancePendingDate(remittancePendingDate)
+            .tallyId(usage.getId())
+            .hardwareMeasurementType(usage.getHardwareMeasurementType())
+            .status(status)
+            .retryAfter(retryAfter)
+            .build();
+    // Remitted value should be set to usages metric_value rather than billing_value
+    newRemittance.setRemittedPendingValue(remittedPendingValue);
+    remittanceRepo.persist(newRemittance);
+  }
+
+  private void performRemittanceTesting(
+      OffsetDateTime usageDate,
+      Double currentUsage,
+      Double currentRemittance,
+      Double expectedRemitted,
+      Double expectedBilledValue,
+      Double billingFactor,
+      boolean isContractEnabledTest)
+      throws Exception {
+    BillableUsage usage = givenInstanceHoursUsageForRosa(usageDate, currentUsage, currentUsage);
+    givenExistingContractForUsage(usage);
+
+    // Enable contracts for the current product.
+    givenExistingRemittanceForUsage(usage, CLOCK.now().minusHours(1), currentRemittance);
+
+    setSubscriptionDefinitionRegistry(mockSubscriptionDefinitionRegistry);
+    stubSubscriptionDefinition(
+        usage.getProductId(), usage.getMetricId(), billingFactor, isContractEnabledTest);
+
+    // Configure contract data, if defined
+    if (isContractEnabledTest) {
+      givenExistingContract(
+          usage.getOrgId(),
+          usage.getProductId(),
+          AWS_METRIC_ID,
+          usage.getVendorProductCode(),
+          usage.getBillingProvider().value(),
+          usage.getBillingAccountId(),
+          usage.getSnapshotDate());
+    }
+
+    service.submitBillableUsage(usage);
+
+    if (expectedRemitted == 0.0) {
+      verify(remittanceRepo, times(0)).persistAndFlush(any());
+    } else {
+      thenRemittanceIsUpdated(usage, usageDate, expectedRemitted);
+    }
+
+    thenUsageIsSent(usage, expectedBilledValue);
+  }
+
+  private void thenUsageIsSent(BillableUsage usage, double expectedValue) {
+    verify(producer)
+        .produce(
+            argThat(
+                output -> {
+                  assertEquals(usage.getUuid(), output.getUuid());
+                  assertEquals(usage.getId(), output.getId());
+                  assertEquals(expectedValue, output.getValue());
+                  assertEquals(usage.getCurrentTotal(), output.getCurrentTotal());
+                  return true;
+                }));
+  }
+
+  private void thenRemittanceIsUpdated(BillableUsage usage, double expectedRemittedPendingValue) {
+    thenRemittanceIsUpdated(usage, CLOCK.now(), expectedRemittedPendingValue);
+  }
+
+  private void thenRemittanceIsUpdated(
+      BillableUsage usage,
+      OffsetDateTime expectedAccumulationPeriodDate,
+      double expectedRemittedPendingValue) {
+    verify(remittanceRepo)
+        .persistAndFlush(
+            argThat(
+                remittance -> {
+                  assertEquals(usage.getTallyId(), remittance.getTallyId());
+                  assertEquals(usage.getProductId(), remittance.getProductId());
+                  assertEquals(
+                      MetricId.fromString(usage.getMetricId()).getValue(),
+                      remittance.getMetricId());
+                  assertEquals(usage.getBillingProvider().value(), remittance.getBillingProvider());
+                  assertEquals(
+                      AccumulationPeriodFormatter.toMonthId(expectedAccumulationPeriodDate),
+                      remittance.getAccumulationPeriod());
+                  assertEquals(expectedRemittedPendingValue, remittance.getRemittedPendingValue());
+                  return true;
+                }));
+  }
+
+  private void stubSubscriptionDefinition(
       String tag, String metricId, double billingFactor, boolean contractEnabled) {
     metricId = metricId.replace('_', '-');
     var variant = Variant.builder().tag(tag).build();
@@ -700,7 +695,17 @@ class BillableUsageServiceTest {
             .metrics(Set.of(awsMetric))
             .build();
     variant.setSubscription(subscriptionDefinition);
-    when(subscriptionDefinitionRegistry.getSubscriptions())
+    when(mockSubscriptionDefinitionRegistry.getSubscriptions())
         .thenReturn(List.of(subscriptionDefinition));
+  }
+
+  private static void setSubscriptionDefinitionRegistry(SubscriptionDefinitionRegistry instance) {
+    try {
+      Field field = SubscriptionDefinitionRegistry.class.getDeclaredField("instance");
+      field.setAccessible(true);
+      field.set(field, instance);
+    } catch (Exception e) {
+      fail(e);
+    }
   }
 }

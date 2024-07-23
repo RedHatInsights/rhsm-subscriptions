@@ -49,6 +49,7 @@ public class BillableUsageRemittanceFilter {
   private OffsetDateTime beginning;
   private OffsetDateTime ending;
   private String accumulationPeriod;
+  private boolean excludeFailures;
 
   public static BillableUsageRemittanceFilter fromUsage(BillableUsage usage) {
     return BillableUsageRemittanceFilter.builder()

@@ -154,12 +154,24 @@ public class BillableUsageRemittanceRepository
     if (Objects.nonNull(filter.getSla())) {
       searchCriteria = searchCriteria.and(matchingSla(filter.getSla()));
     }
-
     if (Objects.nonNull(filter.getHardwareMeasurementType())) {
       searchCriteria =
           searchCriteria.and(matchingHardwareMeasurementType(filter.getHardwareMeasurementType()));
     }
+    if (filter.isExcludeFailures()) {
+      searchCriteria = searchCriteria.and(excludesFailures());
+    }
+
     return searchCriteria;
+  }
+
+  private Specification<BillableUsageRemittanceEntity> excludesFailures() {
+    return (root, query, builder) ->
+        builder.or(
+            builder.isNull(root.get(BillableUsageRemittanceEntity_.status)),
+            builder.notEqual(
+                root.get(BillableUsageRemittanceEntity_.status), RemittanceStatus.FAILED),
+            builder.isNotNull(root.get(BillableUsageRemittanceEntity_.retryAfter)));
   }
 
   private Specification<BillableUsageRemittanceEntity> matchingHardwareMeasurementType(
