@@ -24,9 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -36,40 +33,28 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
-import org.candlepin.subscriptions.product.OfferingSyncController;
-import org.candlepin.subscriptions.security.IdentityHeaderAuthenticationFilterModifyingConfigurer;
 import org.candlepin.subscriptions.security.SecurityProperties;
-import org.candlepin.subscriptions.security.WithMockPskPrincipal;
-import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.subscription.SubscriptionPruneController;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
-import org.candlepin.subscriptions.util.OfferingProductTagLookupService;
 import org.candlepin.subscriptions.utilization.admin.api.model.AwsUsageContext;
 import org.candlepin.subscriptions.utilization.admin.api.model.RhmUsageContext;
-import org.candlepin.subscriptions.utilization.admin.api.model.RpcResponse;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.web.WebAppConfiguration;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 @SpringBootTest
 @WebAppConfiguration
 @ActiveProfiles({"capacity-ingress", "test"})
 class InternalSubscriptionResourceTest {
-
-  private static final String SYNC_ORG_123 = "/internal/subscriptions/sync/org/123";
 
   private final OffsetDateTime defaultEndDate =
       OffsetDateTime.of(2022, 7, 22, 8, 0, 0, 0, ZoneOffset.UTC);
@@ -79,45 +64,18 @@ class InternalSubscriptionResourceTest {
   @MockBean SubscriptionSyncController syncController;
   @MockBean SubscriptionPruneController subscriptionPruneController;
 
-  @MockBean OfferingSyncController offeringSync;
-
   @MockBean MetricMapper metricMapper;
-  @MockBean OfferingProductTagLookupService offeringProductTagLookupService;
   @Autowired SecurityProperties properties;
   @Autowired WebApplicationContext context;
   @Autowired InternalSubscriptionResource resource;
   @Autowired MeterRegistry meterRegistry;
-  @Autowired ApplicationProperties applicationProperties;
-
-  private MockMvc mvc;
-
-  @BeforeEach
-  public void setup() {
-    mvc =
-        MockMvcBuilders.webAppContextSetup(context)
-            .apply(springSecurity())
-            .apply(new IdentityHeaderAuthenticationFilterModifyingConfigurer())
-            .build();
-  }
-
-  @Test
-  void forceSyncForOrgShouldReturnSuccess() {
-    assertEquals(new RpcResponse(), resource.forceSyncSubscriptionsForOrg("123"));
-  }
 
   @Test
   void incrementsMissingCounter_WhenAccountNumberPresent() {
     SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     InternalSubscriptionResource resource =
         new InternalSubscriptionResource(
-            meterRegistry,
-            syncController,
-            properties,
-            subscriptionPruneController,
-            offeringSync,
-            metricMapper,
-            applicationProperties,
-            offeringProductTagLookupService);
+            meterRegistry, syncController, properties, subscriptionPruneController, metricMapper);
     when(syncController.findSubscriptions(any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
     assertThrows(
@@ -134,14 +92,7 @@ class InternalSubscriptionResourceTest {
     SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     InternalSubscriptionResource resource =
         new InternalSubscriptionResource(
-            meterRegistry,
-            syncController,
-            properties,
-            subscriptionPruneController,
-            offeringSync,
-            metricMapper,
-            applicationProperties,
-            offeringProductTagLookupService);
+            meterRegistry, syncController, properties, subscriptionPruneController, metricMapper);
     when(syncController.findSubscriptions(any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
     assertThrows(
@@ -158,14 +109,7 @@ class InternalSubscriptionResourceTest {
     SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     InternalSubscriptionResource resource =
         new InternalSubscriptionResource(
-            meterRegistry,
-            syncController,
-            properties,
-            subscriptionPruneController,
-            offeringSync,
-            metricMapper,
-            applicationProperties,
-            offeringProductTagLookupService);
+            meterRegistry, syncController, properties, subscriptionPruneController, metricMapper);
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
     sub1.setEndDate(defaultEndDate);
@@ -241,45 +185,11 @@ class InternalSubscriptionResourceTest {
   }
 
   @Test
-  @WithMockPskPrincipal
-  void forceSyncForOrgWorksWithPsk() throws Exception {
-    /* Why does this test expect isNotFound()?  Because we are using JAX-RS for our request
-     * mapping. MockMvc only works with Spring's custom RestController standard, but it's really
-     * handy to use for setting up the Spring Security filter chain.  It's a dirty hack, but we
-     * can use MockMvc to test authentication and authorization by looking for a 403 response and
-     * if we get a 404 response, it means everything passed security-wise and we just couldn't
-     * find the matching resource (because there are no matching RestControllers!).
-     */
-    mvc.perform(post(SYNC_ORG_123).header("Origin", "console.redhat.com"))
-        .andExpect(status().isNotFound());
-  }
-
-  @Test
-  void forceSyncForOrgWorksFailsWithNoPrincipal() throws Exception {
-    mvc.perform(post(SYNC_ORG_123).header("Origin", "console.redhat.com"))
-        .andExpect(status().isUnauthorized());
-  }
-
-  @Test
-  @WithMockRedHatPrincipal("123")
-  void forceSyncForOrgWorksFailsWithRhPrincipal() throws Exception {
-    mvc.perform(post(SYNC_ORG_123).header("Origin", "console.redhat.com"))
-        .andExpect(status().isForbidden());
-  }
-
-  @Test
   void incrementsRhmMissingSubscriptionsCounter() {
     SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     InternalSubscriptionResource resource =
         new InternalSubscriptionResource(
-            meterRegistry,
-            syncController,
-            properties,
-            subscriptionPruneController,
-            offeringSync,
-            metricMapper,
-            applicationProperties,
-            offeringProductTagLookupService);
+            meterRegistry, syncController, properties, subscriptionPruneController, metricMapper);
 
     when(syncController.findSubscriptions(any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
@@ -302,14 +212,7 @@ class InternalSubscriptionResourceTest {
     SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     InternalSubscriptionResource resource =
         new InternalSubscriptionResource(
-            meterRegistry,
-            syncController,
-            properties,
-            subscriptionPruneController,
-            offeringSync,
-            metricMapper,
-            applicationProperties,
-            offeringProductTagLookupService);
+            meterRegistry, syncController, properties, subscriptionPruneController, metricMapper);
 
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("account123");

@@ -22,6 +22,7 @@ package com.redhat.swatch.contract.resource;
 
 import static com.redhat.swatch.contract.resource.ContractsTestingResource.FEATURE_NOT_ENABLED_MESSAGE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -29,6 +30,9 @@ import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.contract.config.ApplicationConfiguration;
 import com.redhat.swatch.contract.service.EnabledOrgsProducer;
+import com.redhat.swatch.contract.service.OfferingProductTagLookupService;
+import com.redhat.swatch.contract.service.OfferingSyncService;
+import com.redhat.swatch.contract.service.SubscriptionSyncService;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
@@ -40,8 +44,15 @@ import org.junit.jupiter.api.Test;
     user = "placeholder",
     roles = {"service"})
 class ContractsTestingResourceTest {
+
+  private static final String SKU = "mw123";
+  private static final String ORG_ID = "org123";
+
   @InjectMock ApplicationConfiguration applicationConfiguration;
   @InjectMock EnabledOrgsProducer enabledOrgsProducer;
+  @InjectMock OfferingSyncService offeringSyncService;
+  @InjectMock OfferingProductTagLookupService offeringProductTagLookupService;
+  @InjectMock SubscriptionSyncService subscriptionSyncService;
   @Inject ContractsTestingResource resource;
 
   @Test
@@ -73,5 +84,31 @@ class ContractsTestingResourceTest {
     var result = resource.pruneUnlistedSubscriptions();
     assertNull(result.getResult());
     verify(enabledOrgsProducer).sendTaskForSubscriptionsPrune();
+  }
+
+  @Test
+  void testSyncAllOfferings() {
+    var result = resource.syncAllOfferings();
+    assertNotNull(result);
+    verify(offeringSyncService).syncAllOfferings();
+  }
+
+  @Test
+  void testSyncOffering() {
+    var result = resource.syncOffering(SKU);
+    assertNotNull(result);
+    verify(offeringSyncService).syncOffering(SKU);
+  }
+
+  @Test
+  void testGetSkuProductTags() {
+    resource.getSkuProductTags(SKU);
+    verify(offeringProductTagLookupService).findPersistedProductTagsBySku(SKU);
+  }
+
+  @Test
+  void forceSyncForOrgShouldReturnSuccess() {
+    resource.forceSyncSubscriptionsForOrg(ORG_ID);
+    verify(subscriptionSyncService).forceSyncSubscriptionsForOrg(ORG_ID, false);
   }
 }

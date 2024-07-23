@@ -21,7 +21,6 @@
 package com.redhat.swatch.contract.service;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -35,6 +34,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.DimensionV1;
@@ -60,8 +60,15 @@ import com.redhat.swatch.contract.openapi.model.Dimension;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContractCloudIdentifiers;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
-import com.redhat.swatch.contract.repository.*;
-import com.redhat.swatch.contract.resource.WireMockResource;
+import com.redhat.swatch.contract.repository.ContractEntity;
+import com.redhat.swatch.contract.repository.ContractMetricEntity;
+import com.redhat.swatch.contract.repository.ContractRepository;
+import com.redhat.swatch.contract.repository.OfferingEntity;
+import com.redhat.swatch.contract.repository.OfferingRepository;
+import com.redhat.swatch.contract.repository.SubscriptionEntity;
+import com.redhat.swatch.contract.repository.SubscriptionRepository;
+import com.redhat.swatch.contract.test.resources.InjectWireMock;
+import com.redhat.swatch.contract.test.resources.WireMockResource;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
@@ -77,12 +84,10 @@ import java.util.UUID;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.mockito.ArgumentCaptor;
 
 @QuarkusTest
 @QuarkusTestResource(value = WireMockResource.class, restrictToAnnotatedClass = true)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ContractServiceTest extends BaseUnitTest {
 
   private static final String ORG_ID = "org123";
@@ -100,6 +105,7 @@ class ContractServiceTest extends BaseUnitTest {
   @InjectSpy ContractRepository contractRepository;
   @Inject OfferingRepository offeringRepository;
   @InjectMock SubscriptionRepository subscriptionRepository;
+  @InjectWireMock WireMockServer wireMockServer;
 
   @InjectMock @RestClient SearchApi subscriptionApi;
   @InjectMock MeasurementMetricIdTransformer measurementMetricIdTransformer;
@@ -371,7 +377,7 @@ class ContractServiceTest extends BaseUnitTest {
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
     assertEquals("New contract created", statusResponse.getMessage());
     verify(subscriptionRepository).persist(any(Set.class));
-    WireMock.removeStub(stub);
+    wireMockServer.removeStub(stub);
   }
 
   @Test
@@ -382,7 +388,7 @@ class ContractServiceTest extends BaseUnitTest {
     var stubMapping = mockPartnerApi(response);
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
     assertEquals("Empty value in non-null fields", statusResponse.getMessage());
-    WireMock.removeStub(stubMapping);
+    wireMockServer.removeStub(stubMapping);
   }
 
   private static PartnerEntitlementV1 givenContractWithoutRequiredData() {
@@ -527,7 +533,7 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   private StubMapping mockPartnerApi(PartnerEntitlements response) throws Exception {
-    return stubFor(
+    return wireMockServer.stubFor(
         WireMock.any(urlMatching("/mock/partnerApi/v1/partnerSubscriptions"))
             .willReturn(
                 aResponse()
@@ -560,7 +566,6 @@ class ContractServiceTest extends BaseUnitTest {
                                 .endDate(DEFAULT_END_DATE)
                                 .planId("rh-rhel-sub-1yr")
                                 .dimensions(List.of(new DimensionV1().name("vCPU").value("4"))))));
-
     return new PartnerEntitlements().content(List.of(entitlement));
   }
 

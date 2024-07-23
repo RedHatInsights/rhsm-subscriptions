@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.subscription;
 
-import io.micrometer.core.annotation.Timed;
 import jakarta.ws.rs.core.Response;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -56,61 +55,6 @@ public class SubscriptionService {
     this.searchApi = searchApi;
     this.subscriptionServiceRetryTemplate = subscriptionServiceRetryTemplate;
     this.properties = properties;
-  }
-
-  /**
-   * Object a subscription model by ID.
-   *
-   * @param id the Subscription ID.
-   * @return a subscription model.
-   */
-  public Subscription getSubscriptionById(String id) {
-    Supplier<Subscription> supplier =
-        () -> {
-          try {
-            return searchApi.getSubscriptionById(id);
-          } catch (ApiException e) {
-            log.error(API_EXCEPTION_FROM_SUBSCRIPTION_SERVICE, e.getMessage());
-            throw new ExternalServiceException(
-                ErrorCode.REQUEST_PROCESSING_ERROR,
-                ERROR_DURING_ATTEMPT_TO_REQUEST_SUBSCRIPTION_INFO_MSG,
-                e);
-          }
-        };
-
-    return monoRetryWrapper(supplier);
-  }
-
-  @Timed(
-      description =
-          "Time taken to lookup, via RHIT subscription service, a subscription by subscription number (including retries)",
-      value = "swatch_get_subscriptions_by_subscription_number")
-  public Subscription getSubscriptionBySubscriptionNumber(String subscriptionNumber) {
-    Supplier<Subscription> supplier =
-        () -> {
-          try {
-            List<Subscription> matchingSubscriptions =
-                searchApi.getSubscriptionBySubscriptionNumber(subscriptionNumber);
-            if (matchingSubscriptions.isEmpty()) {
-              throw new SubscriptionNotFoundException(subscriptionNumber);
-            }
-            if (matchingSubscriptions.size() > 1) {
-              throw new ExternalServiceException(
-                  ErrorCode.SUBSCRIPTION_SERVICE_REQUEST_ERROR,
-                  "Multiple subscriptions found for subscriptionNumber=" + subscriptionNumber,
-                  null);
-            }
-            return matchingSubscriptions.get(0);
-          } catch (ApiException e) {
-            log.error(API_EXCEPTION_FROM_SUBSCRIPTION_SERVICE, e.getMessage());
-            throw new ExternalServiceException(
-                ErrorCode.REQUEST_PROCESSING_ERROR,
-                ERROR_DURING_ATTEMPT_TO_REQUEST_SUBSCRIPTION_INFO_MSG,
-                e);
-          }
-        };
-
-    return monoRetryWrapper(supplier);
   }
 
   public List<Subscription> getSubscriptionsByOrgId(String orgId) {
@@ -163,10 +107,6 @@ public class SubscriptionService {
         };
 
     return fluxRetryWrapper(supplier);
-  }
-
-  private Subscription monoRetryWrapper(Supplier<Subscription> getSubscriptionFunction) {
-    return subscriptionServiceRetryTemplate.execute(context -> getSubscriptionFunction.get());
   }
 
   private List<Subscription> fluxRetryWrapper(

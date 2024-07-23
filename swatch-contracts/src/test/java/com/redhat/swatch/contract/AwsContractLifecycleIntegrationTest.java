@@ -22,19 +22,20 @@ package com.redhat.swatch.contract;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.WireMockServer;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.repository.ContractRepository;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.OfferingRepository;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
-import com.redhat.swatch.contract.resource.WireMockResource;
 import com.redhat.swatch.contract.service.ContractService;
+import com.redhat.swatch.contract.test.resources.InjectWireMock;
+import com.redhat.swatch.contract.test.resources.WireMockResource;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
@@ -44,18 +45,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@QuarkusTestResource(value = WireMockResource.class)
+@QuarkusTestResource(value = WireMockResource.class, restrictToAnnotatedClass = true)
 class AwsContractLifecycleIntegrationTest {
 
   @Inject ContractService contractService;
-
   @Inject ObjectMapper objectMapper;
-
   @Inject SubscriptionRepository subscriptionRepository;
-
   @Inject ContractRepository contractRepository;
-
   @Inject OfferingRepository offeringRepository;
+  @InjectWireMock WireMockServer wireMockServer;
 
   static final String AWS_ACCOUNT_ID = "256af912-d792-4dd4-811d-1152375f1f41";
   static final String AWS_CUSTOMER_ID = "aws_customer_id_placeholder";
@@ -170,8 +168,8 @@ class AwsContractLifecycleIntegrationTest {
     assertEquals(1, subscriptionRepository.count());
   }
 
-  private static void stubPartnerSubscriptionApi(String jsonBody) {
-    stubFor(
+  private void stubPartnerSubscriptionApi(String jsonBody) {
+    wireMockServer.stubFor(
         any(urlMatching("/mock/partnerApi/v1/partnerSubscriptions"))
             .willReturn(
                 aResponse().withHeader("Content-Type", "application/json").withBody(jsonBody)));

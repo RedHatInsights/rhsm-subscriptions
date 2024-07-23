@@ -22,8 +22,26 @@ package com.redhat.swatch.contract.repository;
 
 import com.redhat.swatch.panache.PanacheSpecificationSupport;
 import jakarta.enterprise.context.ApplicationScoped;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @ApplicationScoped
 public class OfferingRepository implements PanacheSpecificationSupport<OfferingEntity, String> {
-  /* intentionally empty */
+  public Stream<String> findSkusForChildSku(String sku) {
+    return find("select sku from OfferingEntity where ?1 member of childSkus", sku)
+        .project(String.class)
+        .stream();
+  }
+
+  public Stream<String> findSkusForDerivedSkus(Set<String> derivedSkus) {
+    return find("select sku from OfferingEntity where derivedSku in ?1", derivedSkus)
+        .project(String.class)
+        .stream();
+  }
+
+  public Set<String> findAllDistinctSkus() {
+    return find("select distinct sku from OfferingEntity").project(String.class).stream()
+        .collect(Collectors.toSet());
+  }
 }

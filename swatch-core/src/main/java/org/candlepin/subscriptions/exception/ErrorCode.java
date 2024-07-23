@@ -96,8 +96,6 @@ public enum ErrorCode {
 
   ACCOUNT_MISSING_ERROR(3002, "Account not present according to RH IT services"),
 
-  OFFERING_MISSING_ERROR(3003, "Sku not present in Offering"),
-
   CONTRACT_NOT_AVAILABLE(3004, "Expected contract missing"),
 
   INVALID_EVENT_CONSUMER_ERROR(

@@ -37,9 +37,9 @@ public class ContractsExceptionMapper implements ExceptionMapper<ContractsExcept
     var status =
         switch (exception.getCode()) {
           case CONTRACT_EXISTS -> Status.CONFLICT;
-          case UNHANDLED_EXCEPTION -> Status.INTERNAL_SERVER_ERROR;
           case BAD_UPDATE -> Status.BAD_REQUEST;
           case CONTRACT_DOES_NOT_EXIST -> Status.NOT_FOUND;
+          default -> Status.INTERNAL_SERVER_ERROR;
         };
     return Response.status(status)
         .entity(

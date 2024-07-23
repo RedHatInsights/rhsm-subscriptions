@@ -16,6 +16,7 @@ ext {
     quarkusVersion='3.9.2'
     springVersion='3.3.2'
     resteasyVersion='6.2.9.Final'
+    jacksonVersion='2.17.2'
     libraries = [:]
     plugins = []
 }
@@ -66,7 +67,10 @@ libraries["quarkus-logging-logback"] = "io.quarkiverse.logging.logback:quarkus-l
 libraries["quarkus-logging-splunk"] = "io.quarkiverse.logging.splunk:quarkus-logging-splunk:3.3.0"
 libraries["resilience4j-spring-boot2"] = "io.github.resilience4j:resilience4j-spring-boot2:2.2.0"
 libraries["resteasy-jackson2-provider"] = "org.jboss.resteasy:resteasy-jackson2-provider:${resteasyVersion}"
-libraries["jackson-annotations"] = "com.fasterxml.jackson.core:jackson-annotations:2.17.2"
+libraries["jackson-annotations"] = "com.fasterxml.jackson.core:jackson-annotations:${jacksonVersion}"
+libraries["jackson-dataformat-xml"] = "com.fasterxml.jackson.dataformat:jackson-dataformat-xml:${jacksonVersion}"
+libraries["jackson-module-jakarta-xmlbind-annotations"] = "com.fasterxml.jackson.module:jackson-module-jakarta-xmlbind-annotations:${jacksonVersion}"
+libraries["jackson-datatype-jsr310"] = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${jacksonVersion}"
 libraries["jakarta-validation-api"] = "jakarta.validation:jakarta.validation-api:3.1.0"
 libraries["jakarta-el-impl"] = "org.apache.tomcat.embed:tomcat-embed-el:11.0.0-M22"
 libraries["hibernate-validator"] = "org.hibernate.validator:hibernate-validator:8.0.1.Final"

@@ -1,7 +1,4 @@
-OFFERING_SYNC_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.offering-sync".name:platform.rhsm-subscriptions.offering-sync}
-SUBSCRIPTION_SYNC_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.subscription-sync".name:platform.rhsm-subscriptions.subscription-sync}
 SUBSCRIPTION_PRUNE_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.subscription-prune".name:platform.rhsm-subscriptions.subscription-prune}
-CAPACITY_RECONCILE_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.capacity-reconcile".name:platform.rhsm-subscriptions.capacity-reconcile}
 SUBSCRIPTION_EXPORT_TOPIC: ${clowder.kafka.topics."platform.export.requests".name:platform.export.requests}
 
 
@@ -13,22 +10,10 @@ rhsm-subscriptions:
     truststore-type: ${clowder.privateEndpoints.export-service-service.trust-store-type}
     psk: ${SWATCH_EXPORT_PSK:placeholder}
   subscription-sync-enabled: ${SUBSCRIPTION_SYNC_ENABLED:true}
-  product:
-    tasks:
-      topic: ${OFFERING_SYNC_TOPIC}
-      kafka-group-id: offering-worker
-  subscription:
-    tasks:
-      topic: ${SUBSCRIPTION_SYNC_TOPIC}
-      kafka-group-id: subscription-worker
   subscription-prune:
     tasks:
       topic: ${SUBSCRIPTION_PRUNE_TOPIC}
       kafka-group-id: subscription-prune-worker
-  capacity:
-    tasks:
-      topic: ${CAPACITY_RECONCILE_TOPIC}
-      kafka-group-id: capacity-reconciliation-worker
   export:
     tasks:
       topic: ${SUBSCRIPTION_EXPORT_TOPIC}

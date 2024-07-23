@@ -28,19 +28,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.redhat.swatch.clients.product.ProductClient;
 import com.redhat.swatch.clients.product.api.resources.ApiException;
 import com.redhat.swatch.clients.product.api.resources.ProductApi;
-import io.quarkus.test.common.QuarkusTestResource;
-import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import com.redhat.swatch.contract.test.resources.ProductUseStubService;
 import io.quarkus.test.junit.QuarkusTest;
-import java.util.Map;
+import io.quarkus.test.junit.TestProfile;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@QuarkusTestResource(
-    value = ProductApiConfigurationUsingStubsTest.ProductUseStubService.class,
-    restrictToAnnotatedClass = true)
+@TestProfile(ProductUseStubService.class)
 class ProductApiConfigurationUsingStubsTest {
-
-  private static final String PRODUCT_USE_STUB = "rhsm-subscriptions.product.use-stub";
   private static final String SKU = "SKU00790";
 
   @ProductClient ProductApi productApi;
@@ -78,16 +73,5 @@ class ProductApiConfigurationUsingStubsTest {
                 a ->
                     "PRODUCT_FAMILY".equals(a.getCode())
                         && "OpenShift Enterprise".equals(a.getValue())));
-  }
-
-  public static class ProductUseStubService implements QuarkusTestResourceLifecycleManager {
-
-    @Override
-    public Map<String, String> start() {
-      return Map.of(PRODUCT_USE_STUB, Boolean.TRUE.toString());
-    }
-
-    @Override
-    public void stop() {}
   }
 }

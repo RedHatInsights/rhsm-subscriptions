@@ -105,6 +105,11 @@ public class CapacityReconciliationService {
     reconcileSubscriptionCapacities(subscription);
   }
 
+  public void enqueueReconcileCapacityForOffering(String sku) {
+    reconcileCapacityByOfferingEmitter.sendAndAwait(
+        ReconcileCapacityByOfferingTask.builder().sku(sku).offset(0).limit(100).build());
+  }
+
   private void reconcileSubscriptionCapacities(SubscriptionEntity subscription) {
     OfferingEntity offering = subscription.getOffering();
     var existingKeys = new HashSet<>(subscription.getSubscriptionMeasurements());
