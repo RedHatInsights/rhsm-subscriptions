@@ -27,7 +27,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
@@ -142,12 +141,12 @@ class CapacityReconciliationControllerTest {
     // Some clients (example, OfferingSyncController) should not wait for capacities to reconcile.
     // In that case, the client should be able to enqueue the first capacity reconciliation page,
     // rather than have it be worked on immediately.
+    when(subscriptionRepository.countByOfferingSku(SKU)).thenReturn(1L);
     capacityReconciliationController.enqueueReconcileCapacityForOffering(SKU);
     verify(reconcileCapacityByOfferingKafkaTemplate)
         .send(
             "platform.rhsm-subscriptions.capacity-reconcile",
             ReconcileCapacityByOfferingTask.builder().sku(SKU).offset(0).limit(100).build());
-    verifyNoInteractions(subscriptionRepository);
   }
 
   @Test

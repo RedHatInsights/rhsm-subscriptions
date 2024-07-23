@@ -49,4 +49,13 @@ public class SubscriptionRepository
             subscriptionNumber);
     return query.list();
   }
+
+  public long countByOfferingSku(String sku) {
+    PanacheQuery<SubscriptionEntity> query =
+        find(
+            "offering.sku = ?1",
+            Sort.by("subscriptionId").and("startDate", Sort.Direction.Descending),
+            sku);
+    return query.count();
+  }
 }

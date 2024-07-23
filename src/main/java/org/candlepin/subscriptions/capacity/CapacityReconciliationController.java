@@ -31,6 +31,7 @@ import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
+import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionMeasurementKey;
@@ -54,6 +55,7 @@ public class CapacityReconciliationController {
   private final Counter measurementsUpdated;
   private final Counter measurementsDeleted;
   private final String reconcileCapacityTopic;
+  private final SubscriptionRepository subscriptionRepository;
 
   @Autowired
   public CapacityReconciliationController(
@@ -61,10 +63,12 @@ public class CapacityReconciliationController {
       MeterRegistry meterRegistry,
       KafkaTemplate<String, ReconcileCapacityByOfferingTask>
           reconcileCapacityByOfferingKafkaTemplate,
-      @Qualifier("reconcileCapacityTasks") TaskQueueProperties props) {
+      @Qualifier("reconcileCapacityTasks") TaskQueueProperties props,
+      SubscriptionRepository subscriptionRepository) {
     this.productDenylist = productDenylist;
     this.reconcileCapacityByOfferingKafkaTemplate = reconcileCapacityByOfferingKafkaTemplate;
     this.reconcileCapacityTopic = props.getTopic();
+    this.subscriptionRepository = subscriptionRepository;
     measurementsCreated = meterRegistry.counter("rhsm-subscriptions.capacity.measurements_created");
     measurementsUpdated = meterRegistry.counter("rhsm-subscriptions.capacity.measurements_updated");
     measurementsDeleted = meterRegistry.counter("rhsm-subscriptions.capacity.measurements_deleted");
@@ -83,9 +87,13 @@ public class CapacityReconciliationController {
 
   /** To be removed when SWATCH-2280 is done. */
   public void enqueueReconcileCapacityForOffering(String sku) {
-    reconcileCapacityByOfferingKafkaTemplate.send(
-        reconcileCapacityTopic,
-        ReconcileCapacityByOfferingTask.builder().sku(sku).offset(0).limit(100).build());
+    var subscriptionCount = subscriptionRepository.countByOfferingSku(sku);
+    var pageSize = 100;
+    for (int i = 0; i < subscriptionCount; i += pageSize) {
+      reconcileCapacityByOfferingKafkaTemplate.send(
+          reconcileCapacityTopic,
+          ReconcileCapacityByOfferingTask.builder().sku(sku).offset(i).limit(pageSize).build());
+    }
   }
 
   private void reconcileSubscriptionCapacities(Subscription subscription) {
