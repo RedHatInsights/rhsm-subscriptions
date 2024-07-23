@@ -232,7 +232,7 @@ public class SubscriptionDefinition {
     }
 
     if (filteredVariants.isEmpty()) {
-      log.warn("No variants found to uniquely identify a product: {}", sequentialPredicates);
+      log.info("No variants found to uniquely identify a product based on {}", params);
       return Set.of();
     } else {
       return filteredVariants;
