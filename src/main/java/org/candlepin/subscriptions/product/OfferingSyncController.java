@@ -72,7 +72,6 @@ public class OfferingSyncController {
   private final String offeringSyncTopic;
   private final XmlMapper umbMessageMapper;
   private final OfferingProductTagLookupService offeringProductTagLookupService;
-  private final SubscriptionRepository subscriptionRepository;
 
   @Autowired
   public OfferingSyncController(
@@ -97,7 +96,6 @@ public class OfferingSyncController {
     this.offeringSyncTopic = taskQueueProperties.getTopic();
     this.umbMessageMapper = CanonicalMessage.createMapper();
     this.offeringProductTagLookupService = offeringProductTagLookupService;
-    this.subscriptionRepository = subscriptionRepository;
   }
 
   /**
