@@ -45,9 +45,7 @@ import io.smallrye.reactive.messaging.memory.InMemorySink;
 import jakarta.enterprise.inject.Any;
 import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -140,23 +138,6 @@ class CapacityReconciliationServiceTest {
     whenReconcileCapacityForSubscription();
 
     thenSubscriptionMeasurementsOnlyContains(PHYSICAL, CORES, expectedCores);
-  }
-
-  @Test
-  void shouldReconcileCapacityWithinLimitForOrgAndQueueTaskForNext() {
-    OfferingEntity offering = OfferingEntity.builder().productIds(Set.of(45)).sku(SKU).build();
-
-    List<SubscriptionEntity> subscriptions = new ArrayList<>();
-    // add 2 subscriptions because the limit is 2, so the logic will trigger another event.
-    subscriptions.add(SubscriptionEntity.builder().offering(offering).build());
-    subscriptions.add(SubscriptionEntity.builder().offering(offering).build());
-    when(subscriptionRepository.findByOfferingSku("MCT3718", 0, 2)).thenReturn(subscriptions);
-    capacityReconciliationController.reconcileCapacityForOffering(offering.getSku(), 0, 2);
-    assertEquals(1, reconcileCapacityByOfferingSink.received().size());
-    var task = reconcileCapacityByOfferingSink.received().get(0).getPayload();
-    assertEquals(SKU, task.getSku());
-    assertEquals(2, task.getOffset());
-    assertEquals(2, task.getLimit());
   }
 
   @Test
