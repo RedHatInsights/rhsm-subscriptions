@@ -467,6 +467,7 @@ public class SubscriptionSyncService {
     capacityReconciliationService.reconcileCapacityForSubscription(entity);
   }
 
+  @Transactional
   public void saveSubscriptions(String subscriptionsJson, boolean reconcileCapacity) {
     try {
       Subscription[] subscriptions =
