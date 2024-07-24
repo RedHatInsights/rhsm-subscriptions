@@ -32,9 +32,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
 import org.candlepin.subscriptions.db.OfferingRepository;
+import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.umb.CanonicalMessage;
@@ -50,6 +52,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Update {@link Offering}s from product service responses. */
+@Slf4j
 @Component
 public class OfferingSyncController {
 
@@ -80,7 +83,8 @@ public class OfferingSyncController {
       KafkaTemplate<String, OfferingSyncTask> offeringSyncKafkaTemplate,
       ObjectMapper objectMapper,
       @Qualifier("offeringSyncTasks") TaskQueueProperties taskQueueProperties,
-      OfferingProductTagLookupService offeringProductTagLookupService) {
+      OfferingProductTagLookupService offeringProductTagLookupService,
+      SubscriptionRepository subscriptionRepository) {
     this.offeringRepository = offeringRepository;
     this.productDenylist = productDenylist;
     this.productService = productService;
@@ -156,6 +160,9 @@ public class OfferingSyncController {
     if (alreadySynced(persistedOffering, newState)) {
       return SyncResult.SKIPPED_MATCHING;
     }
+    // NOTE(khowell): we need to do the check before persisting the new state, because hibernate
+    // reconcile differences (make them equivalent) during persist
+    var isCapacityImpacted = offeringChangeImpactsCapacityRecords(newState, persistedOffering);
 
     // Update to the new entry or create it.
     try {
@@ -171,10 +178,33 @@ public class OfferingSyncController {
       }
     }
 
-    // Existing capacities might need updated if certain parts of the offering was changed.
-    capacityReconciliationController.enqueueReconcileCapacityForOffering(newState.getSku());
+    // Existing capacities need to be updated if certain parts of the offering changed.
+    if (isCapacityImpacted) {
+      capacityReconciliationController.enqueueReconcileCapacityForOffering(newState.getSku());
+      log.info(
+          "SKU {} attribute change(s) impact capacity records, reconciliation scheduled",
+          newState.getSku());
+    } else {
+      log.info("SKU {} attribute change(s) did not impact capacity", newState.getSku());
+    }
 
     return SyncResult.FETCHED_AND_SYNCED;
+  }
+
+  private boolean offeringChangeImpactsCapacityRecords(
+      Offering newState, Optional<Offering> persistedOffering) {
+    if (persistedOffering.isEmpty()) {
+      return true;
+    }
+
+    var existingState = persistedOffering.get();
+
+    return !Objects.equals(newState.getCores(), existingState.getCores())
+        || !Objects.equals(newState.getHypervisorCores(), existingState.getHypervisorCores())
+        || !Objects.equals(newState.getSockets(), existingState.getSockets())
+        || !Objects.equals(newState.getHypervisorSockets(), existingState.getHypervisorSockets())
+        || !Objects.equals(newState.isHasUnlimitedUsage(), existingState.isHasUnlimitedUsage())
+        || !Objects.equals(newState.isMetered(), existingState.isMetered());
   }
 
   /**
