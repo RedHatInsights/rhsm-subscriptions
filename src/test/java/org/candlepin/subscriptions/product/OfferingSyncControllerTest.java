@@ -36,6 +36,8 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.ws.rs.ForbiddenException;
+import jakarta.ws.rs.NotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
@@ -214,13 +216,12 @@ class OfferingSyncControllerTest {
     when(denylist.productIdMatches(anyString())).thenReturn(true);
     var sku = "MW01485"; // The SKU would normally be successfully retrieved, but is denied
 
-    // When getting the upstream Offering,
-    var actual = subject.syncOffering(sku);
-
     // Then syncing the offering is rejected, no attempt was made to fetch or store it, and no
     // capacities are reconciled.
-    assertEquals(
-        SyncResult.SKIPPED_DENYLISTED, actual, "A sku in the denylist should not be synced.");
+    ForbiddenException result =
+        assertThrows(ForbiddenException.class, () -> subject.syncOffering(sku));
+    assertEquals(SyncResult.SKIPPED_DENYLISTED.description(), result.getMessage());
+
     verify(denylist).productIdMatches(sku);
     verifyNoInteractions(repo, capController);
   }
@@ -292,10 +293,10 @@ class OfferingSyncControllerTest {
   @Test
   void testDoesNotSyncNewOfferingIfAbsentFromDataSource() throws IOException {
     when(repo.findById(any())).thenReturn(Optional.empty());
-    var result =
-        subject.syncUmbProductFromXml(
-            read("mocked-product-message.xml").replace("RH0180191", "does-not-exist"));
-    assertEquals(SyncResult.SKIPPED_NOT_FOUND, result);
+    String readString = read("mocked-product-message.xml").replace("RH0180191", "does-not-exist");
+    NotFoundException result =
+        assertThrows(NotFoundException.class, () -> subject.syncUmbProductFromXml(readString));
+    assertEquals(SyncResult.SKIPPED_NOT_FOUND.description(), result.getMessage());
   }
 
   @Test

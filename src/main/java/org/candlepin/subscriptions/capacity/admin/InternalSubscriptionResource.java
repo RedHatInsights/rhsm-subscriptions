@@ -24,6 +24,9 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.redhat.swatch.configuration.registry.Variant;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.ForbiddenException;
+import jakarta.ws.rs.InternalServerErrorException;
 import jakarta.ws.rs.NotFoundException;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -31,6 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Subscription;
+import org.candlepin.subscriptions.product.ApiException;
 import org.candlepin.subscriptions.product.OfferingSyncController;
 import org.candlepin.subscriptions.product.SyncResult;
 import org.candlepin.subscriptions.resource.ResourceUtils;
@@ -276,7 +280,20 @@ public class InternalSubscriptionResource implements InternalSubscriptionsApi {
 
       response.setDetail(String.format("%s for offeringSku=\"%s\".", result, sku));
     } catch (Exception e) {
-      log.error("Error syncing offering", e);
+      log.error("Error syncing offering", e.getMessage());
+      if (e.getCause() instanceof ApiException) {
+        ApiException apiException = (ApiException) e.getCause();
+        switch (apiException.getCode()) {
+          case 400:
+            throw new BadRequestException(apiException.getMessage());
+          case 403:
+            throw new ForbiddenException(apiException.getMessage());
+          case 404:
+            throw new NotFoundException(apiException.getMessage());
+          default:
+            throw new InternalServerErrorException(apiException.getMessage());
+        }
+      }
       response.setDetail("Error syncing offering");
     }
     return response;
