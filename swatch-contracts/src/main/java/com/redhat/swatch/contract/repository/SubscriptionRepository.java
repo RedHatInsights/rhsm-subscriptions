@@ -52,11 +52,6 @@ public class SubscriptionRepository
   }
 
   public long countByOfferingSku(String sku) {
-    PanacheQuery<SubscriptionEntity> query =
-        find(
-            "offering.sku = ?1",
-            Sort.by(SubscriptionEntity_.SUBSCRIPTION_ID).and(SubscriptionEntity_.START_DATE, Sort.Direction.Descending),
-            sku);
-    return query.count();
+    return count("offering.sku", sku);
   }
 }
