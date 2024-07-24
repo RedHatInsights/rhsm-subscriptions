@@ -35,7 +35,8 @@ public class SubscriptionRepository
     PanacheQuery<SubscriptionEntity> query =
         find(
             "offering.sku = ?1",
-            Sort.by("subscriptionId").and("startDate", Sort.Direction.Descending),
+            Sort.by(SubscriptionEntity_.SUBSCRIPTION_ID)
+                .and(SubscriptionEntity_.START_DATE, Sort.Direction.Descending),
             sku);
     query.range(offset, offset + limit - 1);
     return query.list();
@@ -45,7 +46,7 @@ public class SubscriptionRepository
     PanacheQuery<SubscriptionEntity> query =
         find(
             "subscriptionNumber = ?1",
-            Sort.by("startDate", Sort.Direction.Descending),
+            Sort.by(SubscriptionEntity_.START_DATE, Sort.Direction.Descending),
             subscriptionNumber);
     return query.list();
   }
@@ -54,7 +55,7 @@ public class SubscriptionRepository
     PanacheQuery<SubscriptionEntity> query =
         find(
             "offering.sku = ?1",
-            Sort.by("subscriptionId").and("startDate", Sort.Direction.Descending),
+            Sort.by(SubscriptionEntity_.SUBSCRIPTION_ID).and(SubscriptionEntity_.START_DATE, Sort.Direction.Descending),
             sku);
     return query.count();
   }
