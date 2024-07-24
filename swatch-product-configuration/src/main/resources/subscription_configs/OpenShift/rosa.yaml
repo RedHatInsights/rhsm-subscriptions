@@ -25,10 +25,10 @@ metrics:
     awsDimension: control_plane
     azureDimension: control_plane
     prometheus:
-      queryKey: rosa
+      queryKey: default
       queryParams:
         instanceKey: _id
-        productLabelRegex: (moa-hostedcontrolplane|moa)
+        product: moa-hostedcontrolplane
         metric: cluster:usage:workload:capacity_physical_instance_hours
         metadataMetric: ocm_subscription
   - id: Cores
