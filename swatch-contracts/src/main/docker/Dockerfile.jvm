@@ -111,7 +111,7 @@ ARG GRADLE_BUILD_ARGS=''
 ARG GRADLE_TASKS='assemble'
 RUN ./gradlew ${GRADLE_TASKS} -x test ${GRADLE_BUILD_ARGS}
 
-FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.20-2.1721231696
+FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.20-2.1721752932
 USER root
 RUN microdnf \
     --disablerepo=* \
