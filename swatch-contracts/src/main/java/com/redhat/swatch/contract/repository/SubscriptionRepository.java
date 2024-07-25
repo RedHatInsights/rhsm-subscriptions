@@ -33,8 +33,8 @@ public class SubscriptionRepository
         SubscriptionEntity, SubscriptionEntity.SubscriptionCompoundId> {
 
   private static final Sort DEFAULT_SORT =
-          Sort.by(SubscriptionEntity_.SUBSCRIPTION_ID)
-                  .and(SubscriptionEntity_.START_DATE, Sort.Direction.Descending);
+      Sort.by(SubscriptionEntity_.SUBSCRIPTION_ID)
+          .and(SubscriptionEntity_.START_DATE, Sort.Direction.Descending);
 
   public List<SubscriptionEntity> findByOfferingSku(String sku, int offset, int limit) {
     PanacheQuery<SubscriptionEntity> query = find("offering.sku = ?1", DEFAULT_SORT, sku);
@@ -43,7 +43,8 @@ public class SubscriptionRepository
   }
 
   public List<SubscriptionEntity> findBySubscriptionNumber(String subscriptionNumber) {
-    PanacheQuery<SubscriptionEntity> query = find("subscriptionNumber = ?1", DEFAULT_SORT, subscriptionNumber);
+    PanacheQuery<SubscriptionEntity> query =
+        find("subscriptionNumber = ?1", DEFAULT_SORT, subscriptionNumber);
     return query.list();
   }
 
