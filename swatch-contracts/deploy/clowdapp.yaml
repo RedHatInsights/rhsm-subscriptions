@@ -64,8 +64,6 @@ parameters:
     value: 2M
   - name: SUBSCRIPTION_IGNORE_STARTING_LATER_THAN
     value: 2M
-  - name: DEVTEST_SUBSCRIPTION_EDITING_ENABLED
-    value: 'false'
   - name: ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC
     value: 'true'
   - name: OFFERING_SYNC_SCHEDULE
@@ -294,8 +292,6 @@ objects:
                 value: ${SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN}
               - name: SUBSCRIPTION_IGNORE_STARTING_LATER_THAN
                 value: ${SUBSCRIPTION_IGNORE_STARTING_LATER_THAN}
-              - name: DEVTEST_SUBSCRIPTION_EDITING_ENABLED
-                value: ${DEVTEST_SUBSCRIPTION_EDITING_ENABLED}
               - name: ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC
                 value: ${ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC}
             volumeMounts:
