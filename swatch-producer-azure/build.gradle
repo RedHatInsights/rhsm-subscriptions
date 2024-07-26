@@ -35,6 +35,7 @@ dependencies {
     testImplementation 'io.quarkus:quarkus-test-security'
     testImplementation libraries["junit-jupiter"]
     testImplementation project(':swatch-common-testcontainers')
+    testImplementation libraries["wiremock"]
     implementation libraries["mapstruct"]
     annotationProcessor libraries["mapstruct-processor"]
     testAnnotationProcessor libraries["mapstruct-processor"]

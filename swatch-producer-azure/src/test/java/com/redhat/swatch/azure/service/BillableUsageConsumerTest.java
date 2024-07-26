@@ -21,6 +21,7 @@
 package com.redhat.swatch.azure.service;
 
 import static com.redhat.swatch.azure.service.BillableUsageDeadLetterTopicProducer.RETRY_AFTER_HEADER;
+import static com.redhat.swatch.azure.test.resources.InMemoryMessageBrokerKafkaResource.IN_MEMORY_CONNECTOR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -106,7 +107,7 @@ class BillableUsageConsumerTest {
   @Inject BillableUsageDeadLetterTopicProducer deadLetterTopicProducer;
 
   @Inject
-  @Connector("smallrye-in-memory")
+  @Connector(IN_MEMORY_CONNECTOR)
   InMemoryConnector connector;
 
   @BeforeEach
