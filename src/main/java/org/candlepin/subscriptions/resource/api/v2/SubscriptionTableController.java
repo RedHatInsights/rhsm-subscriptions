@@ -30,6 +30,7 @@ import jakarta.validation.constraints.Min;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -314,7 +315,9 @@ public class SubscriptionTableController {
     }
 
     private static List<MetricId> getMetricsFromProduct(ProductId productId) {
-      return MetricIdUtils.getMetricIdsFromConfigForTag(productId.toString()).toList();
+      return MetricIdUtils.getMetricIdsFromConfigForTag(productId.toString())
+          .sorted(Comparator.comparing(MetricId::getValue))
+          .toList();
     }
 
     public Stream<MetricId> stream() {
