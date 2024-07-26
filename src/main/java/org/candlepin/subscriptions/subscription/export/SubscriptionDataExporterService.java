@@ -74,23 +74,22 @@ public class SubscriptionDataExporterService
   static final String PRODUCT_ID = "product_id";
   static final String METRIC_ID = "metric_id";
   static final String CATEGORY = "category";
-  private final Map<String, Function<String, Specification<SubscriptionCapacityView>>>
-      filterFuntions =
-          Map.of(
-              PRODUCT_ID,
-              SubscriptionDataExporterService::handleProductIdFilter,
-              "usage",
-              SubscriptionDataExporterService::handleUsageFilter,
-              CATEGORY,
-              this::handleCategoryFilter,
-              "sla",
-              SubscriptionDataExporterService::handleSlaFilter,
-              METRIC_ID,
-              SubscriptionDataExporterService::handleMetricIdFilter,
-              "billing_provider",
-              SubscriptionDataExporterService::handleBillingProviderFilter,
-              "billing_account_id",
-              SubscriptionDataExporterService::handleBillingAccountIdFilter);
+  private final Map<String, Function<String, Specification<SubscriptionCapacityView>>> filters =
+      Map.of(
+          PRODUCT_ID,
+          SubscriptionDataExporterService::handleProductIdFilter,
+          "usage",
+          SubscriptionDataExporterService::handleUsageFilter,
+          CATEGORY,
+          this::handleCategoryFilter,
+          "sla",
+          SubscriptionDataExporterService::handleSlaFilter,
+          METRIC_ID,
+          SubscriptionDataExporterService::handleMetricIdFilter,
+          "billing_provider",
+          SubscriptionDataExporterService::handleBillingProviderFilter,
+          "billing_account_id",
+          SubscriptionDataExporterService::handleBillingAccountIdFilter);
 
   private final ApiModelMapperV1 mapper;
   private final SubscriptionCapacityViewRepository repository;
@@ -120,10 +119,10 @@ public class SubscriptionDataExporterService
       ExportServiceRequest request) {
     Specification<SubscriptionCapacityView> criteria = buildSearchSpecification(request.getOrgId());
     if (request.getFilters() != null) {
-      var filters = request.getFilters().entrySet();
+      var requestedFilters = request.getFilters().entrySet();
       try {
-        for (var entry : filters) {
-          var filterHandler = filterFuntions.get(entry.getKey().toLowerCase(Locale.ROOT));
+        for (var entry : requestedFilters) {
+          var filterHandler = filters.get(entry.getKey().toLowerCase(Locale.ROOT));
           if (filterHandler == null) {
             log.warn("Filter '{}' isn't currently supported. Ignoring.", entry.getKey());
           } else if (entry.getValue() != null) {
