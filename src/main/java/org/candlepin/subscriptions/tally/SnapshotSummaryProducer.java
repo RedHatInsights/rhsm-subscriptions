@@ -25,7 +25,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,19 +65,32 @@ public class SnapshotSummaryProducer {
   public void produceTallySummaryMessages(Map<String, List<TallySnapshot>> newAndUpdatedSnapshots) {
     AtomicInteger totalTallies = new AtomicInteger();
     newAndUpdatedSnapshots.forEach(
-        (orgId, snapshots) ->
-            snapshots.stream()
-                .sorted(Comparator.comparing(TallySnapshot::getSnapshotDate))
-                .map(snapshot -> summaryMapper.mapSnapshots(orgId, List.of(snapshot)))
-                .forEach(
-                    summary -> {
-                      if (validateTallySummary(summary)) {
-                        kafkaRetryTemplate.execute(
-                            ctx ->
-                                tallySummaryKafkaTemplate.send(tallySummaryTopic, orgId, summary));
-                        totalTallies.getAndIncrement();
-                      }
-                    }));
+        (orgId, snapshots) -> {
+          // Filter snapshots, as we only deal with hourly and non Any fields when we transmit the
+          // tally summary message to the BillableUsage component.
+          List<TallySnapshot> filteredSnapshots =
+              snapshots.stream()
+                  .filter(
+                      snapshot ->
+                          snapshot.getGranularity().equals(Granularity.HOURLY)
+                              && !snapshot.getServiceLevel().equals(ServiceLevel._ANY)
+                              && !snapshot.getUsage().equals(Usage._ANY)
+                              && !snapshot.getBillingProvider().equals(BillingProvider._ANY)
+                              && !snapshot.getBillingAccountId().equals("_ANY"))
+                  .sorted(Comparator.comparing(TallySnapshot::getSnapshotDate))
+                  .toList();
+
+          filteredSnapshots.forEach(
+              snapshot -> {
+                TallySummary summary = summaryMapper.mapSnapshots(orgId, List.of(snapshot));
+
+                if (validateTallySummary(summary)) {
+                  kafkaRetryTemplate.execute(
+                      ctx -> tallySummaryKafkaTemplate.send(tallySummaryTopic, orgId, summary));
+                  totalTallies.getAndIncrement();
+                }
+              });
+        });
 
     log.info("Produced {} TallySummary messages", totalTallies);
   }

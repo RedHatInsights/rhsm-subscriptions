@@ -93,6 +93,7 @@ class SnapshotSummaryProducerTest {
                 ServiceLevel.PREMIUM,
                 Usage.PRODUCTION,
                 BillingProvider.RED_HAT,
+                "12345",
                 MetricIdUtils.getCores().getValue(),
                 20.4)));
     updateMap.put(
@@ -105,6 +106,7 @@ class SnapshotSummaryProducerTest {
                 ServiceLevel.PREMIUM,
                 Usage.PRODUCTION,
                 BillingProvider.AWS,
+                "12345",
                 MetricIdUtils.getCores().getValue(),
                 22.2)));
     producer.produceTallySummaryMessages(updateMap);
@@ -178,6 +180,7 @@ class SnapshotSummaryProducerTest {
                 ServiceLevel.PREMIUM,
                 Usage.PRODUCTION,
                 BillingProvider.RED_HAT,
+                "12345",
                 MetricIdUtils.getCores().getValue(),
                 20.4)));
     updateMap.get("a1").get(0).getTallyMeasurements().clear();
@@ -208,6 +211,7 @@ class SnapshotSummaryProducerTest {
       ServiceLevel sla,
       Usage usage,
       BillingProvider billingProvider,
+      String billingAccountId,
       String metricId,
       double val) {
     Map<TallyMeasurementKey, Double> measurements = new HashMap<>();
@@ -222,6 +226,7 @@ class SnapshotSummaryProducerTest {
         .serviceLevel(sla)
         .usage(usage)
         .billingProvider(billingProvider)
+        .billingAccountId(billingAccountId)
         .build();
   }
 }
