@@ -25,6 +25,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import jakarta.ws.rs.ForbiddenException;
+import jakarta.ws.rs.NotFoundException;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Objects;
@@ -111,7 +113,7 @@ public class OfferingSyncController {
       SyncResult result = SyncResult.SKIPPED_DENYLISTED;
       Duration syncDuration = Duration.ofNanos(syncTime.stop(syncTimer));
       LOGGER.info(SYNC_LOG_TEMPLATE, result, sku, syncDuration.toMillis());
-      return result;
+      throw new ForbiddenException(result.description());
     }
 
     try {
@@ -119,6 +121,9 @@ public class OfferingSyncController {
           getUpstreamOffering(sku).map(this::syncOffering).orElse(SyncResult.SKIPPED_NOT_FOUND);
       Duration syncDuration = Duration.ofNanos(syncTime.stop(syncTimer));
       LOGGER.info(SYNC_LOG_TEMPLATE, result, sku, syncDuration.toMillis());
+      if (SyncResult.SKIPPED_NOT_FOUND.equals(result)) {
+        throw new NotFoundException(result.description());
+      }
       return result;
     } catch (RuntimeException ex) {
       SyncResult result = SyncResult.FAILED;
@@ -323,7 +328,7 @@ public class OfferingSyncController {
       LOGGER.warn(
           "Unable to sync offering from UMB message for sku={}, because product service has no records for it",
           umbOperationalProduct.getSku());
-      return SyncResult.SKIPPED_NOT_FOUND;
+      throw new NotFoundException(SyncResult.SKIPPED_NOT_FOUND.description());
     }
   }
 
