@@ -158,12 +158,12 @@ class SnapshotSummaryProducerTest {
     assertEquals(granularity.toString(), snapshot.getGranularity().value().toUpperCase());
     assertEquals(sla.toString(), snapshot.getSla().value().toUpperCase());
     assertEquals(usage.toString(), snapshot.getUsage().value().toUpperCase());
-    assertEquals(2, snapshot.getTallyMeasurements().size());
+    assertEquals(1, snapshot.getTallyMeasurements().size());
 
     Map<String, List<TallyMeasurement>> measurements =
         snapshot.getTallyMeasurements().stream()
             .collect(Collectors.groupingBy(TallyMeasurement::getHardwareMeasurementType));
-    assertMeasurement(measurements, "TOTAL", uom, value);
+    assertTrue(Optional.ofNullable(measurements.get("TOTAL")).isEmpty());
     assertMeasurement(measurements, "PHYSICAL", uom, value);
   }
 
