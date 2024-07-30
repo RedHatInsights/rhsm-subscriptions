@@ -321,14 +321,13 @@ public class ContractsTestingResource implements DefaultApi {
   @RolesAllowed({"test", "support", "service"})
   public OfferingResponse syncOffering(String sku) throws ProcessingException {
     var response = new OfferingResponse();
+    SyncResult result = null;
     try {
       log.info("Sync for offering {}", sku);
-      SyncResult result = offeringSyncService.syncOffering(sku);
+      result = offeringSyncService.syncOffering(sku);
       response.detail(String.format("%s for offeringSku=\"%s\".", result, sku));
-    } catch (Exception e) {
-      log.error("Error syncing offering", e.getMessage());
-      if (e.getCause() instanceof ApiException) {
-        ApiException apiException = (ApiException) e.getCause();
+    } catch (RuntimeException e) {
+      if (e.getCause() instanceof ApiException apiException) {
         switch (apiException.getResponse().getStatus()) {
           case 400:
             throw new BadRequestException(apiException.getMessage());
@@ -340,7 +339,17 @@ public class ContractsTestingResource implements DefaultApi {
             throw new InternalServerErrorException(apiException.getMessage());
         }
       }
-      response.setDetail("Error syncing offering");
+      if (e instanceof NotFoundException
+          || e instanceof BadRequestException
+          || e instanceof ForbiddenException) {
+        throw e;
+      }
+      throw new InternalServerErrorException(e.getMessage());
+    }
+    if (SyncResult.SKIPPED_NOT_FOUND.equals(result)) {
+      throw new NotFoundException(result.description());
+    } else if (SyncResult.SKIPPED_DENYLISTED.equals(result)) {
+      throw new ForbiddenException(result.description());
     }
     return response;
   }
