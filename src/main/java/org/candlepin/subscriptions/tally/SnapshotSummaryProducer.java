@@ -23,10 +23,16 @@ package org.candlepin.subscriptions.tally;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.TallySummary;
+import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,40 +68,61 @@ public class SnapshotSummaryProducer {
     AtomicInteger totalTallies = new AtomicInteger();
     newAndUpdatedSnapshots.forEach(
         (orgId, snapshots) ->
+            /* Filter snapshots, as we only deal with hourly, non Any fields
+            and measurement types other than Total
+            when we transmit the tally summary message to the BillableUsage component. */
             snapshots.stream()
+                .filter(this::filterByHourlyAndNotAnySnapshots)
+                .map(
+                    snapshot -> {
+                      removeTotalMeasurements(snapshot);
+                      return snapshot;
+                    })
                 .sorted(Comparator.comparing(TallySnapshot::getSnapshotDate))
                 .map(snapshot -> summaryMapper.mapSnapshots(orgId, List.of(snapshot)))
                 .forEach(
                     summary -> {
-                      if (validateTallySummary(summary)) {
-                        kafkaRetryTemplate.execute(
-                            ctx ->
-                                tallySummaryKafkaTemplate.send(tallySummaryTopic, orgId, summary));
-                        totalTallies.getAndIncrement();
-                      }
+                      kafkaRetryTemplate.execute(
+                          ctx -> tallySummaryKafkaTemplate.send(tallySummaryTopic, orgId, summary));
+                      totalTallies.getAndIncrement();
                     }));
 
     log.info("Produced {} TallySummary messages", totalTallies);
   }
 
+  private boolean filterByHourlyAndNotAnySnapshots(TallySnapshot snapshot) {
+    return snapshot.getGranularity().equals(Granularity.HOURLY)
+        && !snapshot.getServiceLevel().equals(ServiceLevel._ANY)
+        && !snapshot.getUsage().equals(Usage._ANY)
+        && !snapshot.getBillingProvider().equals(BillingProvider._ANY)
+        && !snapshot.getBillingAccountId().equals(ResourceUtils.ANY)
+        && hasMeasurements(snapshot);
+  }
+
+  private void removeTotalMeasurements(TallySnapshot snapshot) {
+    if (Objects.nonNull(snapshot.getTallyMeasurements())) {
+      snapshot
+          .getTallyMeasurements()
+          .entrySet()
+          .removeIf(
+              entry -> HardwareMeasurementType.TOTAL.equals(entry.getKey().getMeasurementType()));
+    }
+  }
+
   /**
-   * Validates a TallySummary to make sure that it has all the information required by the RH
-   * marketplace API. Any issues will be logged.
+   * Validates TallySnapshot measurements to make sure that it has all the information required by
+   * the RH marketplace API. Any issues will be logged.
    *
-   * @param summary the summary to validate.
-   * @return true if the TallySummary is valid, false otherwise.
+   * @param snapshot the TallySnapshot to validate.
+   * @return true if the TallySnapshot is valid, false otherwise.
    */
-  private boolean validateTallySummary(TallySummary summary) {
-    // RH Marketplace requires at least one measurement be included in the Event
-    Optional<org.candlepin.subscriptions.json.TallySnapshot> invalidDueToMeasurements =
-        summary.getTallySnapshots().stream()
-            .filter(snap -> snap.getTallyMeasurements().isEmpty())
-            .findFirst();
-    if (invalidDueToMeasurements.isPresent()) {
+  private boolean hasMeasurements(TallySnapshot snapshot) {
+    if (!Objects.nonNull(snapshot.getTallyMeasurements())
+        || snapshot.getTallyMeasurements().isEmpty()) {
       log.warn(
-          "One or more tally summary snapshots did not have measurements. "
-              + "No usage will be sent to RH marketplace for this summary.\n{}",
-          summary);
+          "Tally snapshot did not have measurements. "
+              + "No usage will be sent to RH marketplace for this snapshot.\n{}",
+          snapshot);
       return false;
     }
 
