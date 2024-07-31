@@ -67,6 +67,8 @@ parameters:
     value: 'false'
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: 'http://localhost:4317'
+  - name: OTEL_EXPORTER_OTLP_PROTOCOL
+    value: 'grpc'
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -133,6 +135,8 @@ objects:
                         key: db.name
                   - name: OTEL_EXPORTER_OTLP_ENDPOINT
                     value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+                  - name: OTEL_EXPORTER_OTLP_PROTOCOL
+                    value: ${OTEL_EXPORTER_OTLP_PROTOCOL}
                   - name: OTEL_SERVICE_NAME
                     value: ${OTEL_SERVICE_NAME}
                   - name: OTEL_JAVAAGENT_ENABLED
@@ -234,6 +238,8 @@ objects:
                 value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
               - name: OTEL_EXPORTER_OTLP_ENDPOINT
                 value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+              - name: OTEL_EXPORTER_OTLP_PROTOCOL
+                value: ${OTEL_EXPORTER_OTLP_PROTOCOL}
               - name: OTEL_SERVICE_NAME
                 value: ${OTEL_SERVICE_NAME}
               - name: OTEL_JAVAAGENT_ENABLED
@@ -293,6 +299,8 @@ objects:
               value: ${DEV_MODE}
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: ${OTEL_EXPORTER_OTLP_PROTOCOL}
             - name: OTEL_SERVICE_NAME
               value: swatch-api-nginx-proxy
             volumeMounts:

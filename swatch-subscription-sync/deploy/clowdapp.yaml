@@ -155,6 +155,8 @@ parameters:
     value: 'false'
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: 'http://localhost:4317'
+  - name: OTEL_EXPORTER_OTLP_PROTOCOL
+    value: 'grpc'
 
 # allow overriding to support independent deploy with bonfire
   - name: DB_POD
@@ -444,6 +446,8 @@ objects:
                   fieldPath: metadata.namespace
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: ${OTEL_EXPORTER_OTLP_PROTOCOL}
             - name: OTEL_SERVICE_NAME
               value: ${OTEL_SERVICE_NAME}
             - name: OTEL_JAVAAGENT_ENABLED

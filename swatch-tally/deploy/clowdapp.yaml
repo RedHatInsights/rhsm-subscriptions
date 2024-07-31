@@ -216,6 +216,8 @@ parameters:
     value: 'false'
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: 'http://localhost:4317'
+  - name: OTEL_EXPORTER_OTLP_PROTOCOL
+    value: 'grpc'
   - description: database secret name
     name: FLOORIST_DB_SECRET_NAME
     value: swatch-tally-db
@@ -450,6 +452,8 @@ objects:
               value: ${HOST_LAST_SYNC_THRESHOLD}
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: ${OTEL_EXPORTER_OTLP_PROTOCOL}
             - name: OTEL_SERVICE_NAME
               value: ${OTEL_SERVICE_NAME}
             - name: OTEL_JAVAAGENT_ENABLED

@@ -100,7 +100,10 @@ quarkus:
   otel:
     exporter:
       otlp:
-        endpoint: http://splunk-otel-collector:4317
+        endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://splunk-otel-collector:4317}
+        # Metrics and logging are not yet supported - 30 Jul 2024
+        traces:
+          protocol: ${OTEL_EXPORTER_OTLP_PROTOCOL:grpc}
     sdk:
       disabled: true
   kafka:
