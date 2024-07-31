@@ -329,7 +329,7 @@ public class ContractsTestingResource implements DefaultApi {
       log.error("Error syncing offering", e.getMessage());
       if (e.getCause() instanceof ApiException) {
         ApiException apiException = (ApiException) e.getCause();
-        switch (apiException.getCode()) {
+        switch (apiException.getResponse().getStatus()) {
           case 400:
             throw new BadRequestException(apiException.getMessage());
           case 403:
