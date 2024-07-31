@@ -1,8 +1,19 @@
 import click
 import logging
+import sys
+import typing as t
 
-from . import __version__, SwatchContext
+from . import __version__, SwatchContext, invoke_config, console, err, init_log_level
 from .deploy.command import ee
+from .prometheus.command import prometheus
+
+# Trying to avoid some confusion here because otherwise we have invoke.Context
+# calls (from the Invoke library we use for shell commands) and context.Invoke() calls
+# from Click.
+
+from invoke import Context as InvokeContext
+from invoke import UnexpectedExit, Result
+
 
 log = logging.getLogger(__name__)
 
@@ -38,14 +49,30 @@ def cli(ctx, config, verbose):
     else:
         level = "INFO"
 
-    ctx.obj = SwatchContext(log_level=level)
+    init_log_level(level)
+    ctx.obj = SwatchContext()
     log.debug("Verbose logging is enabled.")
+
+    # Create a simple dictionary for commands in this group to communicate over
+    # The SwatchContext will be in the parent context to this one
+    c = InvokeContext(invoke_config)
+    try:
+        result: t.Optional[Result] = c.run("git rev-parse --show-toplevel", hide=True)
+    except UnexpectedExit as e:
+        console.print_exception()
+        err("Could not determine project root")
+        sys.exit(e.result.exited)
+
+    project_root: str = result.stdout.rstrip()
+    ctx.obj["project_root"] = project_root
 
     for key, value in config:
         ctx.obj.set_config(key, value)
+    log.debug(ctx.obj)
 
 
 cli.add_command(ee)
+cli.add_command(prometheus)
 
 if __name__ == "__main__":
     cli()
