@@ -16,7 +16,11 @@ LOG_DATEFMT = "%Y-%m-%d %H:%M:%S"
 
 # Rich setup
 console = Console()
+error_console = Console(stderr=True)
+
 install(show_locals=False)
+
+log = logging.getLogger(__name__)
 
 
 def init_log_level(log_level):
@@ -38,7 +42,7 @@ def notice(msg):
 
 
 def err(msg):
-    console.print(f"[bold red]{msg}[/bold red]")
+    error_console.print(f"[bold red]{msg}[/bold red]")
 
 
 class SwatchDogInvokeConfig(Config):
@@ -60,20 +64,29 @@ invoke_config = SwatchDogInvokeConfig()
 
 
 class SwatchContext:
-    def __init__(self, *, log_level: str):
-        init_log_level(log_level)
-        self.config: t.Dict[str, t.Any] = {}
+    def __init__(self, **kwargs):
+        self.config: t.Dict[str, t.Any] = dict(**kwargs)
 
-    def has_config(self, key: str):
-        return key in self.config
+    def __getitem__(self, item):
+        return self.config[item]
 
-    def get_config(self, key: str) -> t.Any:
-        return self.config[key]
-
-    def set_config(self, key: str, value: t.Any):
+    def __setitem__(self, key, value):
         self.config[key] = value
-        notice("Config:")
-        notice(f"  {key} = {value}")
+
+    def __contains__(self, item):
+        return item in self.config
+
+    def __delitem__(self, key):
+        del self.config[key]
+
+    def __len__(self):
+        return len(self.config)
+
+    def __iter__(self):
+        return iter(self.config)
+
+    def __repr__(self):
+        return f"SwatchContext: {self.config}"
 
 
 pass_swatch = click.make_pass_decorator(SwatchContext)
