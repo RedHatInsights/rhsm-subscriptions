@@ -20,19 +20,58 @@
  */
 package com.redhat.swatch.contract.service;
 
-import static com.redhat.swatch.contract.config.Channels.SUBSCRIPTION_SYNC_TASK;
+import static com.redhat.swatch.contract.config.Channels.SUBSCRIPTION_SYNC_TASK_TOPIC;
+import static com.redhat.swatch.contract.config.Channels.SUBSCRIPTION_SYNC_TASK_UMB;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.redhat.swatch.contract.model.EnabledOrgsResponse;
+import com.redhat.swatch.contract.product.umb.CanonicalMessage;
+import com.redhat.swatch.contract.product.umb.UmbSubscription;
+import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 
 @Slf4j
 @ApplicationScoped
 public class SubscriptionSyncTaskConsumer {
-  @Incoming(SUBSCRIPTION_SYNC_TASK)
-  public void consume(EnabledOrgsResponse message) {
+
+  private final SubscriptionSyncService service;
+  private final boolean umbEnabled;
+  private final XmlMapper xmlMapper;
+
+  public SubscriptionSyncTaskConsumer(
+      SubscriptionSyncService service, @ConfigProperty(name = "UMB_ENABLED") boolean umbEnabled) {
+    this.service = service;
+    this.umbEnabled = umbEnabled;
+    this.xmlMapper = CanonicalMessage.createMapper();
+  }
+
+  @Blocking
+  @Incoming(SUBSCRIPTION_SYNC_TASK_TOPIC)
+  public void consumeFromTopic(EnabledOrgsResponse message) {
     log.info("Received task for subscription sync with org ID: {}", message.getOrgId());
-    // Implementation will be done as part of SWATCH-2281
+    service.reconcileSubscriptionsWithSubscriptionService(message.getOrgId(), false);
+  }
+
+  @Blocking
+  @Incoming(SUBSCRIPTION_SYNC_TASK_UMB)
+  public void consumeFromUmb(String subscriptionMessageXml) throws JsonProcessingException {
+    log.debug("Received message from UMB {}", subscriptionMessageXml);
+    if (!umbEnabled) {
+      return;
+    }
+    CanonicalMessage subscriptionMessage =
+        xmlMapper.readValue(subscriptionMessageXml, CanonicalMessage.class);
+    UmbSubscription subscription = subscriptionMessage.getPayload().getSync().getSubscription();
+    log.info(
+        "Received UMB message for subscriptionNumber={} webCustomerId={} startDate={} endDate={}",
+        subscription.getSubscriptionNumber(),
+        subscription.getWebCustomerId(),
+        subscription.getEffectiveStartDate(),
+        subscription.getEffectiveEndDate());
+    service.saveUmbSubscription(subscription);
   }
 }

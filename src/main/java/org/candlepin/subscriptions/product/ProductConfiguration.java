@@ -20,21 +20,15 @@
  */
 package org.candlepin.subscriptions.product;
 
-import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConfiguration.getProducerProperties;
-
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
-import org.springframework.kafka.core.DefaultKafkaProducerFactory;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.core.ProducerFactory;
 
 /** Configuration class for product package. */
 @Configuration
@@ -62,17 +56,5 @@ public class ProductConfiguration {
   @Bean
   public ProductApiFactory productApiFactory(@Qualifier("product") HttpClientProperties props) {
     return new ProductApiFactory(props);
-  }
-
-  @Bean
-  public ProducerFactory<String, OfferingSyncTask> offeringSyncProducerFactory(
-      KafkaProperties kafkaProperties) {
-    return new DefaultKafkaProducerFactory<>(getProducerProperties(kafkaProperties));
-  }
-
-  @Bean
-  public KafkaTemplate<String, OfferingSyncTask> offeringSyncKafkaTemplate(
-      ProducerFactory<String, OfferingSyncTask> offeringSyncProducerFactory) {
-    return new KafkaTemplate<>(offeringSyncProducerFactory);
   }
 }

@@ -21,6 +21,7 @@
 package com.redhat.swatch.contract.config;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import java.time.Duration;
 import lombok.Getter;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -29,4 +30,21 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 public class ApplicationConfiguration {
   @ConfigProperty(name = "rhsm-subscriptions.subscription-sync-enabled")
   boolean subscriptionSyncEnabled;
+
+  /** Do not sync any subs that have expired longer than this much in the past from now. */
+  @ConfigProperty(name = "SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN", defaultValue = "60d")
+  Duration subscriptionIgnoreExpiredOlderThan;
+
+  /** Do not sync any subs starting later than this much in the future from now. */
+  @ConfigProperty(name = "SUBSCRIPTION_IGNORE_STARTING_LATER_THAN", defaultValue = "60d")
+  Duration subscriptionIgnoreStartingLaterThan;
+
+  @ConfigProperty(name = "SUBSCRIPTION_PAGE_SIZE", defaultValue = "1000")
+  int subscriptionPageSize;
+
+  @ConfigProperty(name = "DEVTEST_SUBSCRIPTION_EDITING_ENABLED", defaultValue = "true")
+  boolean manualSubscriptionEditingEnabled;
+
+  @ConfigProperty(name = "ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC", defaultValue = "false")
+  boolean enablePaygSubscriptionForceSync;
 }

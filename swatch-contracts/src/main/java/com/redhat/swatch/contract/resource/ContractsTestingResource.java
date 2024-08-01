@@ -20,7 +20,9 @@
  */
 package com.redhat.swatch.contract.resource;
 
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.redhat.swatch.contract.config.ApplicationConfiguration;
+import com.redhat.swatch.contract.model.SyncResult;
 import com.redhat.swatch.contract.openapi.model.AwsUsageContext;
 import com.redhat.swatch.contract.openapi.model.AzureUsageContext;
 import com.redhat.swatch.contract.openapi.model.Contract;
@@ -37,16 +39,27 @@ import com.redhat.swatch.contract.openapi.model.SubscriptionResponse;
 import com.redhat.swatch.contract.openapi.model.TerminationRequest;
 import com.redhat.swatch.contract.openapi.resource.ApiException;
 import com.redhat.swatch.contract.openapi.resource.DefaultApi;
+import com.redhat.swatch.contract.product.umb.CanonicalMessage;
+import com.redhat.swatch.contract.product.umb.UmbSubscription;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.service.CapacityReconciliationService;
 import com.redhat.swatch.contract.service.ContractService;
 import com.redhat.swatch.contract.service.EnabledOrgsProducer;
+import com.redhat.swatch.contract.service.OfferingProductTagLookupService;
+import com.redhat.swatch.contract.service.OfferingSyncService;
+import com.redhat.swatch.contract.service.SubscriptionSyncService;
+import io.quarkus.runtime.configuration.ProfileManager;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
+import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.ForbiddenException;
+import jakarta.ws.rs.InternalServerErrorException;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.ProcessingException;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jboss.resteasy.reactive.common.NotImplementedYet;
@@ -58,11 +71,16 @@ public class ContractsTestingResource implements DefaultApi {
 
   public static final String FEATURE_NOT_ENABLED_MESSAGE = "This feature is not currently enabled.";
   private static final String SUCCESS_STATUS = "Success";
+  private static final String FAILURE_MESSAGE = "Failed";
+  private static final XmlMapper XML_MAPPER = CanonicalMessage.createMapper();
 
   private final ContractService service;
   private final EnabledOrgsProducer enabledOrgsProducer;
   private final ApplicationConfiguration applicationConfiguration;
   private final CapacityReconciliationService capacityReconciliationService;
+  private final OfferingSyncService offeringSyncService;
+  private final OfferingProductTagLookupService offeringProductTagLookupService;
+  private final SubscriptionSyncService subscriptionSyncService;
 
   /**
    * Create contract record in database from provided contract dto payload
@@ -172,7 +190,19 @@ public class ContractsTestingResource implements DefaultApi {
   @Override
   @RolesAllowed({"test", "support", "service"})
   public RpcResponse forceSyncSubscriptionsForOrg(String orgId) throws ProcessingException {
-    throw new NotImplementedYet();
+    var response = new RpcResponse();
+    try {
+      subscriptionSyncService.forceSyncSubscriptionsForOrgAsync(orgId).toCompletableFuture().get();
+      response.setResult(SUCCESS_STATUS);
+    } catch (InterruptedException | ExecutionException e) {
+      response.setResult(FAILURE_MESSAGE);
+      log.error("Error synchronizing subscriptions for org {}", orgId, e);
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
+    }
+
+    return response;
   }
 
   @Override
@@ -217,28 +247,60 @@ public class ContractsTestingResource implements DefaultApi {
 
   @Override
   @RolesAllowed({"test", "support", "service"})
-  public OfferingProductTags getSkuProductTags(String sku) throws ProcessingException {
-    throw new NotImplementedYet();
-  }
-
-  @Override
-  @RolesAllowed({"test", "support", "service"})
   public RpcResponse pruneUnlistedSubscriptions() throws ProcessingException {
     enabledOrgsProducer.sendTaskForSubscriptionsPrune();
     return new RpcResponse();
   }
 
+  /**
+   * Save subscriptions manually. Supported only in dev-mode.
+   *
+   * @param reconcileCapacity Invoke reconciliation logic to create capacity? (hint: offering for
+   *     the SKU must be present)
+   * @param body JSON array containing subscriptions to save
+   */
   @Override
   @RolesAllowed({"test", "support", "service"})
   public SubscriptionResponse saveSubscriptions(Boolean reconcileCapacity, String body)
       throws ProcessingException {
-    throw new NotImplementedYet();
+    var response = new SubscriptionResponse();
+    if (!ProfileManager.getLaunchMode().isDevOrTest()
+        && !applicationConfiguration.isManualSubscriptionEditingEnabled()) {
+      response.setDetail(FEATURE_NOT_ENABLED_MESSAGE);
+      return response;
+    }
+    try {
+      log.info("Save of new subscriptions {} triggered over internal API", body);
+      subscriptionSyncService.saveSubscriptions(body, reconcileCapacity);
+      response.setDetail(SUCCESS_STATUS);
+    } catch (Exception e) {
+      log.error("Error saving subscriptions", e);
+      response.setDetail("Error saving subscriptions.");
+    }
+    return response;
   }
 
+  /** Sync a UMB subscription manually. */
   @Override
   @RolesAllowed({"test", "support", "service"})
-  public OfferingResponse syncAllOfferings() throws ProcessingException {
-    throw new NotImplementedYet();
+  public SubscriptionResponse syncUmbSubscription(String subscriptionXml) {
+    var response = new SubscriptionResponse();
+    if (!applicationConfiguration.isManualSubscriptionEditingEnabled()) {
+      response.setDetail(FEATURE_NOT_ENABLED_MESSAGE);
+      return response;
+    }
+    try {
+      log.info("Sync of new UMB subscription {} triggered over internal API", subscriptionXml);
+      CanonicalMessage subscriptionMessage =
+          XML_MAPPER.readValue(subscriptionXml, CanonicalMessage.class);
+      UmbSubscription subscription = subscriptionMessage.getPayload().getSync().getSubscription();
+      subscriptionSyncService.saveUmbSubscription(subscription);
+      response.setDetail(SUCCESS_STATUS);
+    } catch (Exception e) {
+      log.error("Error syncing UMB subscription", e);
+      response.setDetail("Error syncing UMB subscription.");
+    }
+    return response;
   }
 
   @Override
@@ -258,7 +320,52 @@ public class ContractsTestingResource implements DefaultApi {
   @Override
   @RolesAllowed({"test", "support", "service"})
   public OfferingResponse syncOffering(String sku) throws ProcessingException {
-    throw new NotImplementedYet();
+    var response = new OfferingResponse();
+    try {
+      log.info("Sync for offering {}", sku);
+      SyncResult result = offeringSyncService.syncOffering(sku);
+      response.detail(String.format("%s for offeringSku=\"%s\".", result, sku));
+    } catch (Exception e) {
+      log.error("Error syncing offering", e.getMessage());
+      if (e.getCause() instanceof ApiException) {
+        ApiException apiException = (ApiException) e.getCause();
+        switch (apiException.getResponse().getStatus()) {
+          case 400:
+            throw new BadRequestException(apiException.getMessage());
+          case 403:
+            throw new ForbiddenException(apiException.getMessage());
+          case 404:
+            throw new NotFoundException(apiException.getMessage());
+          default:
+            throw new InternalServerErrorException(apiException.getMessage());
+        }
+      }
+      response.setDetail("Error syncing offering");
+    }
+    return response;
+  }
+
+  @Override
+  @RolesAllowed({"test", "support", "service"})
+  public OfferingResponse syncAllOfferings() throws ProcessingException {
+    var response = new OfferingResponse();
+    try {
+      log.info("Sync all offerings triggered");
+      int numProducts = offeringSyncService.syncAllOfferings();
+
+      response.setDetail(
+          String.format("Enqueued %s numProducts offerings to be synced.", numProducts));
+    } catch (RuntimeException e) {
+      log.error("Error enqueueing offerings to be synced. See log for details.", e);
+      response.setDetail("Error enqueueing offerings to be synced");
+    }
+    return response;
+  }
+
+  @Override
+  @RolesAllowed({"test", "support", "service"})
+  public OfferingProductTags getSkuProductTags(String sku) throws ProcessingException {
+    return offeringProductTagLookupService.findPersistedProductTagsBySku(sku);
   }
 
   @Override

@@ -80,6 +80,7 @@ class CapacityReconciliationServiceTest {
   @BeforeEach
   void setup() {
     reconcileCapacityByOfferingSink = connector.sink(Channels.CAPACITY_RECONCILE);
+    reconcileCapacityByOfferingSink.clear();
     subscription = createSubscription();
     when(denyList.productIdMatches(any())).thenReturn(false);
   }
@@ -159,6 +160,15 @@ class CapacityReconciliationServiceTest {
     whenReconcileCapacityForSubscription();
 
     thenSubscriptionMeasurementsOnlyContains(PHYSICAL, CORES, 40);
+  }
+
+  @Test
+  void enqueueShouldOnlyCreateKafkaMessage() {
+    // Some clients (example, OfferingSyncController) should not wait for capacities to reconcile.
+    // In that case, the client should be able to enqueue the first capacity reconciliation page,
+    // rather than have it be worked on immediately.
+    capacityReconciliationController.enqueueReconcileCapacityForOffering(SKU);
+    assertEquals(1, reconcileCapacityByOfferingSink.received().size());
   }
 
   private void givenMeteredOffering() {

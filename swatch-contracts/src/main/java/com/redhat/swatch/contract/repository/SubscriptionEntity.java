@@ -179,6 +179,14 @@ public class SubscriptionEntity implements Serializable {
     subscriptionMeasurements.add(sm);
   }
 
+  public boolean quantityHasChanged(long newQuantity) {
+    return this.getQuantity() != newQuantity;
+  }
+
+  public void endSubscription() {
+    endDate = OffsetDateTime.now();
+  }
+
   public static Specification<SubscriptionEntity> forContract(ContractEntity contract) {
     return (root, query, builder) ->
         builder.and(

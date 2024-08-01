@@ -55,6 +55,8 @@ import lombok.ToString;
 @NoArgsConstructor
 public class OfferingEntity implements Serializable {
 
+  private static final String MIGRATION_OFFERING = "MIGRATION_OFFERING";
+
   /**
    * Unique identifier for the Offering.
    *
@@ -169,12 +171,16 @@ public class OfferingEntity implements Serializable {
   @Column(name = "special_pricing_flag")
   private String specialPricingFlag;
 
-  public Boolean getHasUnlimitedUsage() {
-    return hasUnlimitedUsage;
+  public boolean isHasUnlimitedUsage() {
+    return hasUnlimitedUsage != null && hasUnlimitedUsage;
   }
 
   public boolean isMetered() {
     return metered != null && metered;
+  }
+
+  public boolean isMigrationOffering() {
+    return MIGRATION_OFFERING.equals(specialPricingFlag);
   }
 
   @Override

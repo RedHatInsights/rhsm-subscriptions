@@ -34,7 +34,6 @@ KAFKA_CONSUMER_RECONNECT_BACKOFF_MAX_MS: 10000
 KAFKA_API_RECONNECT_TIMEOUT_MS: 480000
 
 DEV_MODE: false
-DEVTEST_SUBSCRIPTION_EDITING_ENABLED: true
 DEVTEST_EVENT_EDITING_ENABLED: false
 ENABLE_ACCOUNT_RESET: false
 PATH_PREFIX: api
@@ -138,7 +137,6 @@ spring:
 rhsm-subscriptions:
   security:
     dev-mode: ${DEV_MODE}
-    manual-subscription-editing-enabled: ${DEVTEST_SUBSCRIPTION_EDITING_ENABLED}
     manual-event-editing-enabled: ${DEVTEST_EVENT_EDITING_ENABLED}
     reset-account-enabled: ${ENABLE_ACCOUNT_RESET}
   datasource:

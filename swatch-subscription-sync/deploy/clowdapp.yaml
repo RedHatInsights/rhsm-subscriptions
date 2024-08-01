@@ -51,20 +51,10 @@ parameters:
     value: 'true'
   - name: SUBSCRIPTION_PAGE_SIZE
     value: '500'
-  - name: DEVTEST_SUBSCRIPTION_EDITING_ENABLED
-    value: 'false'
   - name: DEVTEST_EVENT_EDITING_ENABLED
     value: 'false'
-  - name: SUBSCRIPTION_SYNC_SCHEDULE
-    value: 0 10 * * *
-  - name: OFFERING_SYNC_SCHEDULE
-    value: 0 2 * * *
   - name: SUBSCRIPTION_URL
     value: https://subscription.stage.api.redhat.com/svcrest/subscription/v5
-  - name: SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN
-    value: 2m
-  - name: SUBSCRIPTION_IGNORE_STARTING_LATER_THAN
-    value: 2m
   - name: PRODUCT_URL
     value: https://product.stage.api.redhat.com/svcrest/product/v3
   - name: SUBSCRIPTION_MAX_CONNECTIONS
@@ -98,8 +88,6 @@ parameters:
     value: 'true'
   - name: UMB_KEYSTORE_PATH
     value: /pinhead/keystore.jks
-  - name: ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC
-    value: 'true'
   - name: ENABLE_SPLUNK_HEC
     value: 'true'
   - name: SPLUNK_SOURCE
@@ -121,14 +109,6 @@ parameters:
     value: 'host-inventory-db'
   - name: INVENTORY_SECRET_KEY_NAME_PREFIX
     value: ''
-  - name: KAFKA_SUBSCRIPTIONS_SYNC_REPLICAS
-    value: '3'
-  - name: KAFKA_SUBSCRIPTIONS_SYNC_PARTITIONS
-    value: '3'
-  - name: KAFKA_OFFERING_SYNC_REPLICAS
-    value: '3'
-  - name: KAFKA_OFFERING_SYNC_PARTITIONS
-    value: '3'
   - name: KAFKA_SUBSCRIPTIONS_PRUNE_REPLICAS
     value: '3'
   - name: KAFKA_SUBSCRIPTIONS_PRUNE_PARTITIONS
@@ -177,12 +157,6 @@ objects:
 #        - rhsm
 
       kafkaTopics:
-        - replicas: ${{KAFKA_SUBSCRIPTIONS_SYNC_REPLICAS}}
-          partitions: ${{KAFKA_SUBSCRIPTIONS_SYNC_PARTITIONS}}
-          topicName: platform.rhsm-subscriptions.subscription-sync
-        - replicas: ${{KAFKA_OFFERING_SYNC_REPLICAS}}
-          partitions: ${{KAFKA_OFFERING_SYNC_PARTITIONS}}
-          topicName: platform.rhsm-subscriptions.offering-sync
         - replicas: ${{KAFKA_SUBSCRIPTIONS_PRUNE_REPLICAS}}
           partitions: ${{KAFKA_SUBSCRIPTIONS_PRUNE_PARTITIONS}}
           topicName: platform.rhsm-subscriptions.subscription-prune
@@ -380,10 +354,6 @@ objects:
               value: ${SUBSCRIPTION_BACK_OFF_MULTIPLIER}
             - name: SUBSCRIPTION_MAX_RETRY_ATTEMPTS
               value: ${SUBSCRIPTION_MAX_RETRY_ATTEMPTS}
-            - name: SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN
-              value: ${SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN}
-            - name: SUBSCRIPTION_IGNORE_STARTING_LATER_THAN
-              value: ${SUBSCRIPTION_IGNORE_STARTING_LATER_THAN}
             - name: PRODUCT_URL
               value: ${PRODUCT_URL}
             - name: SUBSCRIPTION_KEYSTORE_PASSWORD
@@ -437,8 +407,6 @@ objects:
               value: ${UMB_PROCESSING_ENABLED}
             - name: UMB_SERVICE_ACCOUNT_NAME
               value: ${UMB_SERVICE_ACCOUNT_NAME}
-            - name: ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC
-              value: ${ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC}
             - name: UMB_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -495,64 +463,6 @@ objects:
             - name: pinhead
               secret:
                 secretName: pinhead
-      jobs:
-      - name: subscription-sync
-        schedule: ${SUBSCRIPTION_SYNC_SCHEDULE}
-        activeDeadlineSeconds: 1800
-        successfulJobsHistoryLimit: 2
-        restartPolicy: Never
-        podSpec:
-          image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
-          command:
-            - /usr/bin/bash
-            - -c
-            - >
-              /usr/bin/curl --fail -H "Origin: https://swatch-subscription-sync-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-subscription-sync-service:8000/api/rhsm-subscriptions/v1/internal/rpc/subscriptions/sync"
-          env:
-            - name: SWATCH_SELF_PSK
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-psks
-                  key: self
-            # This env property is necessary to pass the test check.
-            - name: SPRING_PROFILES_ACTIVE
-              value: subscription-sync
-          resources:
-            requests:
-              cpu: ${CURL_CRON_CPU_REQUEST}
-              memory: ${CURL_CRON_MEMORY_REQUEST}
-            limits:
-              cpu: ${CURL_CRON_CPU_LIMIT}
-              memory: ${CURL_CRON_MEMORY_LIMIT}
-
-      - name: offering-sync
-        schedule: ${OFFERING_SYNC_SCHEDULE}
-        activeDeadlineSeconds: 1800
-        successfulJobsHistoryLimit: 2
-        restartPolicy: Never
-        podSpec:
-          image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
-          command:
-            - /usr/bin/bash
-            - -c
-            - >
-              /usr/bin/curl --fail -H "Origin: https://swatch-subscription-sync-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-subscription-sync-service:8000/api/rhsm-subscriptions/v1/internal/rpc/offerings/sync"
-          env:
-            - name: SWATCH_SELF_PSK
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-psks
-                  key: self
-            # This env property is necessary to pass the test check.
-            - name: SPRING_PROFILES_ACTIVE
-              value: offering-sync
-          resources:
-            requests:
-              cpu: ${CURL_CRON_CPU_REQUEST}
-              memory: ${CURL_CRON_MEMORY_REQUEST}
-            limits:
-              cpu: ${CURL_CRON_CPU_LIMIT}
-              memory: ${CURL_CRON_MEMORY_LIMIT}
 
   - apiVersion: v1
     kind: Secret

@@ -24,21 +24,21 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.exactly;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
-import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.WireMockServer;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.repository.ContractRepository;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.OfferingRepository;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
-import com.redhat.swatch.contract.resource.WireMockResource;
 import com.redhat.swatch.contract.service.ContractService;
+import com.redhat.swatch.contract.test.resources.InjectWireMock;
+import com.redhat.swatch.contract.test.resources.WireMockResource;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
@@ -52,14 +52,11 @@ import org.junit.jupiter.api.Test;
 class AzureContractLifecycleIntegrationTest {
 
   @Inject ContractService contractService;
-
   @Inject ObjectMapper objectMapper;
-
   @Inject SubscriptionRepository subscriptionRepository;
-
   @Inject ContractRepository contractRepository;
-
   @Inject OfferingRepository offeringRepository;
+  @InjectWireMock WireMockServer wireMockServer;
 
   static String AZURE_CUSTOMER_ID = "azure_customer_id_placeholder";
   static String AZURE_SUBSCRIPTION_ID = "d351b825-7e4b-4bfb-aad3-28441b34b5f1";
@@ -334,7 +331,8 @@ class AzureContractLifecycleIntegrationTest {
     assertEquals(0, contractRepository.count());
     assertEquals(0, subscriptionRepository.count());
     // verifies that no retries are made when org ID is missing from the contract
-    verify(exactly(1), postRequestedFor(urlEqualTo("/mock/partnerApi/v1/partnerSubscriptions")));
+    wireMockServer.verify(
+        exactly(1), postRequestedFor(urlEqualTo("/mock/partnerApi/v1/partnerSubscriptions")));
 
     stubPartnerSubscriptionApi(AZURE_PARTNER_API_RESPONSE_SKU_MISSING);
     status =
@@ -347,7 +345,8 @@ class AzureContractLifecycleIntegrationTest {
     assertEquals(0, subscriptionRepository.count());
     // verifies that 10 retries are made when SKU is missing from the contract (plus 2 original
     // requests)
-    verify(exactly(12), postRequestedFor(urlEqualTo("/mock/partnerApi/v1/partnerSubscriptions")));
+    wireMockServer.verify(
+        exactly(12), postRequestedFor(urlEqualTo("/mock/partnerApi/v1/partnerSubscriptions")));
 
     stubPartnerSubscriptionApi(AZURE_PARTNER_API_RESPONSE_ORG_ASSOCIATED);
     status =
@@ -380,8 +379,8 @@ class AzureContractLifecycleIntegrationTest {
         subscription.getBillingProviderId());
   }
 
-  private static void stubPartnerSubscriptionApi(String jsonBody) {
-    stubFor(
+  private void stubPartnerSubscriptionApi(String jsonBody) {
+    wireMockServer.stubFor(
         any(urlMatching("/mock/partnerApi/v1/partnerSubscriptions"))
             .willReturn(
                 aResponse().withHeader("Content-Type", "application/json").withBody(jsonBody)));

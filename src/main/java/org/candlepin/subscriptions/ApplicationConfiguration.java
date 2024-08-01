@@ -39,13 +39,11 @@ import org.candlepin.subscriptions.capacity.CapacityIngressConfiguration;
 import org.candlepin.subscriptions.clowder.KafkaSslBeanPostProcessor;
 import org.candlepin.subscriptions.clowder.RdsSslBeanPostProcessor;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
-import org.candlepin.subscriptions.product.OfferingWorkerConfiguration;
 import org.candlepin.subscriptions.resource.ApiConfiguration;
 import org.candlepin.subscriptions.rhmarketplace.RhMarketplaceWorkerConfiguration;
 import org.candlepin.subscriptions.security.AuthProperties;
 import org.candlepin.subscriptions.security.SecurityConfiguration;
 import org.candlepin.subscriptions.subscription.SubscriptionServiceConfiguration;
-import org.candlepin.subscriptions.subscription.SubscriptionWorkerConfiguration;
 import org.candlepin.subscriptions.tally.TallyWorkerConfiguration;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.LiquibaseUpdateOnlyConfiguration;
@@ -74,8 +72,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
   LiquibaseUpdateOnlyConfiguration.class,
   TallyWorkerConfiguration.class,
   RhMarketplaceWorkerConfiguration.class,
-  SubscriptionWorkerConfiguration.class,
-  OfferingWorkerConfiguration.class,
   DevModeConfiguration.class,
   SecurityConfiguration.class,
   SubscriptionServiceConfiguration.class,
@@ -90,30 +86,9 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   }
 
   @Bean
-  @Qualifier("syncSubscriptionTasks")
-  @ConfigurationProperties(prefix = "rhsm-subscriptions.subscription.tasks")
-  TaskQueueProperties syncSubscriptionQueueProperties() {
-    return new TaskQueueProperties();
-  }
-
-  @Bean
   @Qualifier
   @ConfigurationProperties(prefix = "rhsm-subscriptions.subscription-prune.tasks")
   TaskQueueProperties pruneSubscriptionTasks() {
-    return new TaskQueueProperties();
-  }
-
-  @Bean
-  @Qualifier("reconcileCapacityTasks")
-  @ConfigurationProperties(prefix = "rhsm-subscriptions.capacity.tasks")
-  TaskQueueProperties reconcileCapacityQueueProperties() {
-    return new TaskQueueProperties();
-  }
-
-  @Bean
-  @Qualifier("offeringSyncTasks")
-  @ConfigurationProperties(prefix = "rhsm-subscriptions.product.tasks")
-  TaskQueueProperties offeringSyncQueueProperties() {
     return new TaskQueueProperties();
   }
 

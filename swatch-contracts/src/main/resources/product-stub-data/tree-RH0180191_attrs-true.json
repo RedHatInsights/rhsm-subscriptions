@@ -1,0 +1,113 @@
+{
+  "products": [
+    {
+      "sku": "RH0180191",
+      "description": "Red Hat Enterprise Linux Server, Standard (1-2 sockets) (Up to 4 guests) with Smart Management",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "USAGE",
+          "value": "Production"
+        },
+        {
+          "code": "PRODUCT_FAMILY",
+          "value": "Red Hat Enterprise Linux"
+        },
+        {
+          "code": "SERVICE_TYPE",
+          "value": "Standard"
+        },
+        {
+          "code": "SOCKET_LIMIT",
+          "value": "2"
+        },
+        {
+          "code": "PRODUCT_NAME",
+          "value": "RHEL Server"
+        },
+        {
+          "code": "METERED",
+          "value": "Y"
+        }
+      ],
+      "roles": [
+        "Red Hat Enterprise Linux Server"
+      ]
+    },
+    {
+      "sku": "SVCRH01",
+      "description": "Red Hat Enterprise Linux Server",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "PRODUCT_FAMILY",
+          "value": "RHEL"
+        },
+        {
+          "code": "CORES",
+          "value": "0"
+        },
+        {
+          "code": "SOCKET_LIMIT",
+          "value": "0"
+        },
+        {
+          "code": "PRODUCT_NAME",
+          "value": "RHEL Server"
+        }
+      ],
+      "roles": []
+    },
+    {
+      "sku": "SVCRH01V4",
+      "description": "Red Hat Enterprise Linux Server (Up to 4 Guests)",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "PRODUCT_FAMILY",
+          "value": "Red Hat Enterprise Linux"
+        },
+        {
+          "code": "PRODUCT_NAME",
+          "value": "RHEL Server"
+        }
+      ],
+      "roles": []
+    },
+    {
+      "sku": "SVCMPV4",
+      "description": "Smart Management (Up to 4 guests)",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "PRODUCT_FAMILY",
+          "value": "Red Hat Enterprise Linux"
+        },
+        {
+          "code": "CORES",
+          "value": "0"
+        },
+        {
+          "code": "SERVICE_TYPE",
+          "value": "Layered"
+        },
+        {
+          "code": "PRODUCT_NAME",
+          "value": "Management Modules"
+        }
+      ],
+      "roles": []
+    }
+  ],
+  "parentMap": [
+    {
+      "child": "SVCRH01"
+    },
+    {
+      "child": "SVCRH01V4"
+    },
+    {
+      "child": "SVCMPV4"
+    }
+  ]
+}
