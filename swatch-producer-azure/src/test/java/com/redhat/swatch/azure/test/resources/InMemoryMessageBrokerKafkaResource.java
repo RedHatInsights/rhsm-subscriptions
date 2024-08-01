@@ -20,6 +20,8 @@
  */
 package com.redhat.swatch.azure.test.resources;
 
+import static com.redhat.swatch.azure.configuration.Channels.BILLABLE_USAGE_HOURLY_AGGREGATE;
+
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import java.util.HashMap;
@@ -27,10 +29,13 @@ import java.util.Map;
 
 public class InMemoryMessageBrokerKafkaResource implements QuarkusTestResourceLifecycleManager {
 
+  public static final String IN_MEMORY_CONNECTOR = "smallrye-in-memory";
+
   @Override
   public Map<String, String> start() {
     Map<String, String> env = new HashMap<>();
     env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory("tally-in"));
+    env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory(BILLABLE_USAGE_HOURLY_AGGREGATE));
     env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory("tally-out"));
     env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory("tally-dlt"));
     return env;

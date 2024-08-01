@@ -8,15 +8,14 @@ import iterfzf
 import openshift
 import typing as t
 
-from .. import SwatchContext, SwatchDogError
-from .. import console, info, err, invoke_config, pass_swatch
+from .. import SwatchDogError, info, err, invoke_config, pass_swatch
 
 # Trying to avoid some confusion here because otherwise we have invoke.Context
 # calls (from the Invoke library we use for shell commands) and context.Invoke() calls
 # from Click.
 
 from invoke import Context as InvokeContext
-from invoke import UnexpectedExit, StreamWatcher, Result
+from invoke import UnexpectedExit, StreamWatcher
 
 
 class GradleWatcher(StreamWatcher):
@@ -71,27 +70,9 @@ class GradleWatcher(StreamWatcher):
 
 
 @click.group
-@click.option("--ee-token", envvar="OCP_CONSOLE_TOKEN", type=str)
-@pass_swatch
-@click.pass_context
-def ee(ctx, swatch: SwatchContext, ee_token: str):
-    ctx.obj = dict()
-    if ee_token is None:
-        ee_token = openshift.whoami("-t")
-    if not swatch.has_config("ee_token"):
-        swatch.set_config("ee_token", ee_token)
-    # Create a simple dictionary for commands in this group to communicate over
-    # The SwatchContext will be in the parent context to this one
-    c = InvokeContext(invoke_config)
-    try:
-        result: t.Optional[Result] = c.run("git rev-parse --show-toplevel", hide=True)
-    except UnexpectedExit as e:
-        console.print_exception()
-        err("Could not determine project root")
-        sys.exit(e.result.exited)
-
-    project_root: str = result.stdout.rstrip()
-    ctx.obj["project_root"] = project_root
+def ee():
+    """Create an ee command namespace"""
+    pass
 
 
 @ee.command()
@@ -99,8 +80,8 @@ def ee(ctx, swatch: SwatchContext, ee_token: str):
 @click.option("--pod-prefix", type=str)
 @click.option("--project", type=str)
 @click.option("--container", type=str)
-@click.pass_context
-def deploy(ctx, clean: bool, pod_prefix: str, project: str, container: str):
+@pass_swatch
+def deploy(swatch_ctx, clean: bool, pod_prefix: str, project: str, container: str):
     try:
         openshift.whoami()
     except Exception as e:
@@ -108,7 +89,7 @@ def deploy(ctx, clean: bool, pod_prefix: str, project: str, container: str):
         err("Could not communicate with Openshift. Are you logged in?")
         sys.exit(1)
 
-    project_root = ctx.obj["project_root"]
+    project_root = swatch_ctx["project_root"]
     project_selection: str = choose_project(project_root, selection=project)
     rsync_dir: str = build_project(project_selection, project_root, clean)
     deployment_selector: openshift.Selector = choose_pods(pod_prefix)

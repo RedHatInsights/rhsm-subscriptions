@@ -17,7 +17,7 @@ rhsm-subscriptions:
   hourlyTallyEventBatchSize: ${HOURLY_TALLY_EVENT_BATCH_SIZE:16000}
   inventory-service:
     datasource:
-      url: jdbc:postgresql://${INVENTORY_DATABASE_HOST:localhost}/${INVENTORY_DATABASE_DATABASE:insights}
+      url: jdbc:postgresql://${INVENTORY_DATABASE_HOST:localhost}/${INVENTORY_DATABASE_DATABASE:insights}?ApplicationName=${clowder.metadata.name:rhsm-subscriptions}
       username: ${INVENTORY_DATABASE_USERNAME:insights}
       password: ${INVENTORY_DATABASE_PASSWORD:insights}
       driver-class-name: org.postgresql.Driver

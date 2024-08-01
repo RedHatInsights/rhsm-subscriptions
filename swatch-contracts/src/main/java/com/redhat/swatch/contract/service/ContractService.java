@@ -30,7 +30,6 @@ import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlement
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.QueryPartnerEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.ApiException;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.PartnerApi;
-import com.redhat.swatch.clients.subscription.api.resources.SearchApi;
 import com.redhat.swatch.contract.exception.ContractNotAssociatedToOrgException;
 import com.redhat.swatch.contract.exception.ContractValidationFailedException;
 import com.redhat.swatch.contract.exception.ContractsException;
@@ -82,8 +81,8 @@ public class ContractService {
   @Inject ContractEntityMapper contractEntityMapper;
   @Inject ContractDtoMapper contractDtoMapper;
   @Inject SubscriptionEntityMapper subscriptionEntityMapper;
+  @Inject SubscriptionService subscriptionService;
   @Inject @RestClient PartnerApi partnerApi;
-  @Inject @RestClient SearchApi subscriptionApi;
   @Inject Validator validator;
   private final List<BasePartnerEntitlementsProvider> partnerEntitlementsProviders;
 
@@ -712,9 +711,8 @@ public class ContractService {
     }
 
     try {
-      return subscriptionApi.getSubscriptionBySubscriptionNumber(subscriptionNumber).stream()
-          .findFirst()
-          .orElseThrow()
+      return subscriptionService
+          .getSubscriptionBySubscriptionNumber(subscriptionNumber)
           .getId()
           .toString();
     } catch (Exception e) {

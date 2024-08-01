@@ -25,28 +25,35 @@ import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.List;
+import java.util.stream.Stream;
 
 @ApplicationScoped
 public class SubscriptionRepository
     implements PanacheSpecificationSupport<
         SubscriptionEntity, SubscriptionEntity.SubscriptionCompoundId> {
 
+  private static final Sort DEFAULT_SORT =
+      Sort.by(SubscriptionEntity_.SUBSCRIPTION_ID)
+          .and(SubscriptionEntity_.START_DATE, Sort.Direction.Descending);
+
   public List<SubscriptionEntity> findByOfferingSku(String sku, int offset, int limit) {
-    PanacheQuery<SubscriptionEntity> query =
-        find(
-            "offering.sku = ?1",
-            Sort.by("subscriptionId").and("startDate", Sort.Direction.Descending),
-            sku);
+    PanacheQuery<SubscriptionEntity> query = find("offering.sku = ?1", DEFAULT_SORT, sku);
     query.range(offset, offset + limit - 1);
     return query.list();
   }
 
   public List<SubscriptionEntity> findBySubscriptionNumber(String subscriptionNumber) {
     PanacheQuery<SubscriptionEntity> query =
-        find(
-            "subscriptionNumber = ?1",
-            Sort.by("startDate", Sort.Direction.Descending),
-            subscriptionNumber);
+        find("subscriptionNumber = ?1", DEFAULT_SORT, subscriptionNumber);
     return query.list();
+  }
+
+  public long countByOfferingSku(String sku) {
+    return count("offering.sku", sku);
+  }
+
+  public Stream<SubscriptionEntity> streamByOrgId(String orgId) {
+    PanacheQuery<SubscriptionEntity> query = find("orgId = ?1", DEFAULT_SORT, orgId);
+    return query.stream();
   }
 }

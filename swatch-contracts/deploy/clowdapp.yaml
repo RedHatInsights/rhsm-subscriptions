@@ -60,6 +60,16 @@ parameters:
     value: https://product.stage.api.redhat.com/svcrest/product/v3
   - name: SUBSCRIPTION_SYNC_ENABLED
     value: 'true'
+  - name: SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN
+    value: 2M
+  - name: SUBSCRIPTION_IGNORE_STARTING_LATER_THAN
+    value: 2M
+  - name: ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC
+    value: 'true'
+  - name: OFFERING_SYNC_SCHEDULE
+    value: 0 2 * * *
+  - name: SUBSCRIPTION_SYNC_SCHEDULE
+    value: 0 10 * * *
   - name: KAFKA_ENABLED_ORGS_REPLICAS
     value: '3'
   - name: KAFKA_ENABLED_ORGS_PARTITIONS
@@ -76,6 +86,22 @@ parameters:
     value: '3'
   - name: KAFKA_CAPACITY_RECONCILE_PARTITIONS
     value: '3'
+  - name: KAFKA_OFFERING_SYNC_REPLICAS
+    value: '3'
+  - name: KAFKA_OFFERING_SYNC_PARTITIONS
+    value: '3'
+  - name: CURL_CRON_IMAGE
+    value: quay.io/app-sre/ubi8-ubi-minimal
+  - name: CURL_CRON_IMAGE_TAG
+    value: latest
+  - name: CURL_CRON_MEMORY_REQUEST
+    value: 500Mi
+  - name: CURL_CRON_MEMORY_LIMIT
+    value: 800Mi
+  - name: CURL_CRON_CPU_REQUEST
+    value: 350m
+  - name: CURL_CRON_CPU_LIMIT
+    value: 500m
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -110,6 +136,9 @@ objects:
         - replicas: ${{KAFKA_CAPACITY_RECONCILE_REPLICAS}}
           partitions: ${{KAFKA_CAPACITY_RECONCILE_PARTITIONS}}
           topicName: platform.rhsm-subscriptions.capacity-reconcile
+        - replicas: ${{KAFKA_OFFERING_SYNC_REPLICAS}}
+          partitions: ${{KAFKA_OFFERING_SYNC_PARTITIONS}}
+          topicName: platform.rhsm-subscriptions.offering-sync
 
       # Creates a database if local mode, or uses RDS in production
       # database:
@@ -259,6 +288,12 @@ objects:
                 value: file:/denylist/product-denylist.txt
               - name: SUBSCRIPTION_SYNC_ENABLED
                 value: ${SUBSCRIPTION_SYNC_ENABLED}
+              - name: SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN
+                value: ${SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN}
+              - name: SUBSCRIPTION_IGNORE_STARTING_LATER_THAN
+                value: ${SUBSCRIPTION_IGNORE_STARTING_LATER_THAN}
+              - name: ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC
+                value: ${ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC}
             volumeMounts:
               - name: logs
                 mountPath: /logs
@@ -275,6 +310,59 @@ objects:
               - name: pinhead
                 secret:
                   secretName: pinhead
+      jobs:
+        - name: subscription-sync
+          schedule: ${SUBSCRIPTION_SYNC_SCHEDULE}
+          activeDeadlineSeconds: 1800
+          successfulJobsHistoryLimit: 2
+          restartPolicy: Never
+          podSpec:
+            image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
+            command:
+              - /usr/bin/bash
+              - -c
+              - >
+                /usr/bin/curl --fail -H "Origin: https://swatch-contracts-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-contracts-service:8000/api/swatch-contracts/internal/rpc/subscriptions/sync"
+            env:
+              - name: SWATCH_SELF_PSK
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-psks
+                    key: self
+            resources:
+              requests:
+                cpu: ${CURL_CRON_CPU_REQUEST}
+                memory: ${CURL_CRON_MEMORY_REQUEST}
+              limits:
+                cpu: ${CURL_CRON_CPU_LIMIT}
+                memory: ${CURL_CRON_MEMORY_LIMIT}
+
+        - name: offering-sync
+          schedule: ${OFFERING_SYNC_SCHEDULE}
+          activeDeadlineSeconds: 1800
+          successfulJobsHistoryLimit: 2
+          restartPolicy: Never
+          podSpec:
+            image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
+            command:
+              - /usr/bin/bash
+              - -c
+              - >
+                /usr/bin/curl --fail -H "Origin: https://swatch-contracts-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-contracts-service:8000/api/swatch-contracts/internal/rpc/offerings/sync"
+            env:
+              - name: SWATCH_SELF_PSK
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-psks
+                    key: self
+            resources:
+              requests:
+                cpu: ${CURL_CRON_CPU_REQUEST}
+                memory: ${CURL_CRON_MEMORY_REQUEST}
+              limits:
+                cpu: ${CURL_CRON_CPU_LIMIT}
+                memory: ${CURL_CRON_MEMORY_LIMIT}
+
 
   - apiVersion: v1
     kind: Secret

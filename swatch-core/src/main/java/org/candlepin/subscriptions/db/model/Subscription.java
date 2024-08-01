@@ -174,13 +174,5 @@ public class Subscription implements Serializable {
     }
   }
 
-  public void endSubscription() {
-    endDate = OffsetDateTime.now();
-  }
-
-  public boolean quantityHasChanged(long newQuantity) {
-    return this.getQuantity() != newQuantity;
-  }
-
   // TODO: https://issues.redhat.com/browse/ENT-4030 //NOSONAR
 }

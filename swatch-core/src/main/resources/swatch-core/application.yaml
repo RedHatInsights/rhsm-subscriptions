@@ -34,7 +34,6 @@ KAFKA_CONSUMER_RECONNECT_BACKOFF_MAX_MS: 10000
 KAFKA_API_RECONNECT_TIMEOUT_MS: 480000
 
 DEV_MODE: false
-DEVTEST_SUBSCRIPTION_EDITING_ENABLED: true
 DEVTEST_EVENT_EDITING_ENABLED: false
 ENABLE_ACCOUNT_RESET: false
 PATH_PREFIX: api
@@ -138,11 +137,10 @@ spring:
 rhsm-subscriptions:
   security:
     dev-mode: ${DEV_MODE}
-    manual-subscription-editing-enabled: ${DEVTEST_SUBSCRIPTION_EDITING_ENABLED}
     manual-event-editing-enabled: ${DEVTEST_EVENT_EDITING_ENABLED}
     reset-account-enabled: ${ENABLE_ACCOUNT_RESET}
   datasource:
-    url: jdbc:postgresql://${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_DATABASE}?reWriteBatchedInserts=true&stringtype=unspecified&options=-c%20statement_timeout=${POSTGRES_STATEMENT_TIMEOUT}
+    url: jdbc:postgresql://${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_DATABASE}?reWriteBatchedInserts=true&stringtype=unspecified&options=-c%20statement_timeout=${POSTGRES_STATEMENT_TIMEOUT}&ApplicationName=${clowder.metadata.name:swatch-core}
     username: ${DATABASE_USERNAME}
     password: ${DATABASE_PASSWORD}
     driver-class-name: org.postgresql.Driver

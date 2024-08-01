@@ -40,9 +40,6 @@ rhsm-subscriptions:
     back-off-initial-interval: ${SUBSCRIPTION_BACK_OFF_INITIAL_INTERVAL:1s}
     back-off-multiplier: ${SUBSCRIPTION_BACK_OFF_MULTIPLIER:2}
     page-size: ${SUBSCRIPTION_PAGE_SIZE:1000}
-    ignore-expired-older-than: ${SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN:2m}
-    ignore-starting-later-than: ${SUBSCRIPTION_IGNORE_STARTING_LATER_THAN:2m}
-    enable-payg-subscription-force-sync: ${ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC:false}
   user-service:
     use-stub: ${USER_USE_STUB:false}
     url: https://${USER_HOST:localhost}:${USER_PORT:443}

@@ -45,9 +45,7 @@ import io.smallrye.reactive.messaging.memory.InMemorySink;
 import jakarta.enterprise.inject.Any;
 import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -82,6 +80,7 @@ class CapacityReconciliationServiceTest {
   @BeforeEach
   void setup() {
     reconcileCapacityByOfferingSink = connector.sink(Channels.CAPACITY_RECONCILE);
+    reconcileCapacityByOfferingSink.clear();
     subscription = createSubscription();
     when(denyList.productIdMatches(any())).thenReturn(false);
   }
@@ -143,23 +142,6 @@ class CapacityReconciliationServiceTest {
   }
 
   @Test
-  void shouldReconcileCapacityWithinLimitForOrgAndQueueTaskForNext() {
-    OfferingEntity offering = OfferingEntity.builder().productIds(Set.of(45)).sku(SKU).build();
-
-    List<SubscriptionEntity> subscriptions = new ArrayList<>();
-    // add 2 subscriptions because the limit is 2, so the logic will trigger another event.
-    subscriptions.add(SubscriptionEntity.builder().offering(offering).build());
-    subscriptions.add(SubscriptionEntity.builder().offering(offering).build());
-    when(subscriptionRepository.findByOfferingSku("MCT3718", 0, 2)).thenReturn(subscriptions);
-    capacityReconciliationController.reconcileCapacityForOffering(offering.getSku(), 0, 2);
-    assertEquals(1, reconcileCapacityByOfferingSink.received().size());
-    var task = reconcileCapacityByOfferingSink.received().get(0).getPayload();
-    assertEquals(SKU, task.getSku());
-    assertEquals(2, task.getOffset());
-    assertEquals(2, task.getLimit());
-  }
-
-  @Test
   void shouldNotAttemptToCreateDuplicateMeasurementsWhenNoChanges() {
     int expectedCores = 42;
     givenOffering(expectedCores, RHEL);
@@ -178,6 +160,15 @@ class CapacityReconciliationServiceTest {
     whenReconcileCapacityForSubscription();
 
     thenSubscriptionMeasurementsOnlyContains(PHYSICAL, CORES, 40);
+  }
+
+  @Test
+  void enqueueShouldOnlyCreateKafkaMessage() {
+    // Some clients (example, OfferingSyncController) should not wait for capacities to reconcile.
+    // In that case, the client should be able to enqueue the first capacity reconciliation page,
+    // rather than have it be worked on immediately.
+    capacityReconciliationController.enqueueReconcileCapacityForOffering(SKU);
+    assertEquals(1, reconcileCapacityByOfferingSink.received().size());
   }
 
   private void givenMeteredOffering() {

@@ -133,9 +133,9 @@ public class InstancesDataExporterService implements DataExporterService<TallyIn
             .month(InstanceMonthlyTotalKey.formatMonthId(OffsetDateTime.now()));
     var mandatoryFilters = new ArrayList<>(MANDATORY_FILTERS);
     if (request.getFilters() != null) {
-      var filters = request.getFilters().entrySet();
+      var requestedFilters = request.getFilters().entrySet();
       try {
-        for (var entry : filters) {
+        for (var entry : requestedFilters) {
           mandatoryFilters.remove(entry.getKey());
           var filterHandler = FILTERS.get(entry.getKey().toLowerCase(Locale.ROOT));
           if (filterHandler == null) {

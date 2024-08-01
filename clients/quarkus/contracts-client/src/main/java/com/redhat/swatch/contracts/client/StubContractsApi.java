@@ -203,6 +203,11 @@ public class StubContractsApi implements DefaultApi {
     return null;
   }
 
+  @Override
+  public SubscriptionResponse syncUmbSubscription(String body) throws ProcessingException {
+    return null;
+  }
+
   private static Contract createContract(
       String orgId,
       String productTag,

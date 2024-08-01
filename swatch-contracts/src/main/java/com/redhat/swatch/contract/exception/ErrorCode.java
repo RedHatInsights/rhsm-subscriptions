@@ -27,8 +27,15 @@ public enum ErrorCode {
   CONTRACT_EXISTS(
       1001, "There's already an active contract for that productId & subscriptionNumber"),
   CONTRACT_DOES_NOT_EXIST(1002, "Contract does not exist"),
+  SUBSCRIPTION_SERVICE_REQUEST_ERROR(3000, "Subscription Service Error"),
+  OFFERING_MISSING_ERROR(3003, "Sku not present in Offering"),
   BAD_UPDATE(4000, "Bad update request"),
-  UNHANDLED_EXCEPTION(5000, "Unhandled exception");
+  UNHANDLED_EXCEPTION(5000, "Unhandled exception"),
+  /**
+   * An exception was thrown by RestEasy while processing a request to the rhsm-conduit API. This
+   * typically means that an HTTP client error has occurred (HTTP 4XX).
+   */
+  REQUEST_PROCESSING_ERROR(5001, "An error occurred while processing a request.");
 
   private static final String CODE_PREFIX = "CONTRACTS";
 

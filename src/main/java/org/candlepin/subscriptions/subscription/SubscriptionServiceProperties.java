@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.subscription;
 
 import java.time.Duration;
-import java.time.Period;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -52,13 +51,4 @@ public class SubscriptionServiceProperties extends HttpClientProperties {
 
   /** Page size for subscription queries */
   private int pageSize = 1000;
-
-  /** Do not sync any subs that have expired longer than this much in the past from now. */
-  private Period ignoreExpiredOlderThan = Period.ofMonths(2);
-
-  /** Do not sync any subs starting later than this much in the future from now. */
-  private Period ignoreStartingLaterThan = Period.ofMonths(2);
-
-  /** Allow force sync of PAYG subscriptions */
-  private boolean enablePaygSubscriptionForceSync;
 }

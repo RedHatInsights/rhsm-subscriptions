@@ -24,6 +24,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -32,9 +33,12 @@ import com.redhat.swatch.azure.file.AzureMarketplaceProperties;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEvent;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEventOkResponse;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEventStatusEnum;
+import com.redhat.swatch.clients.azure.marketplace.api.resources.ApiException;
 import com.redhat.swatch.clients.azure.marketplace.api.resources.AzureMarketplaceApi;
 import jakarta.ws.rs.ProcessingException;
+import jakarta.ws.rs.core.Response;
 import java.util.List;
+import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -46,16 +50,20 @@ class AzureMarketplaceServiceTest {
   AzureMarketplaceClientFactory azureMarketplaceClientFactory;
   AzureMarketplaceApi acceptedClient;
   AzureMarketplaceApi failedClient;
+  AzureMarketplaceApi badRequestClient;
 
   @BeforeEach
   void setup() throws Exception {
     acceptedClient = mock(AzureMarketplaceApi.class);
     failedClient = mock(AzureMarketplaceApi.class);
+    badRequestClient = mock(AzureMarketplaceApi.class);
     azureMarketplaceClientFactory = Mockito.mock(AzureMarketplaceClientFactory.class);
     Mockito.when(acceptedClient.submitUsageEvents(any(), any(), any(), any()))
         .thenReturn(new UsageEventOkResponse().status(UsageEventStatusEnum.ACCEPTED));
     Mockito.when(failedClient.submitUsageEvents(any(), any(), any(), any()))
         .thenThrow(new ProcessingException("error"));
+    Mockito.when(badRequestClient.submitUsageEvents(any(), any(), any(), any()))
+        .thenThrow(new ApiException(Response.status(HttpStatus.SC_BAD_REQUEST).build()));
   }
 
   @Test
@@ -92,5 +100,24 @@ class AzureMarketplaceServiceTest {
     assertThrows(
         AzureMarketplaceRequestFailedException.class,
         () -> service.sendUsageEventToAzureMarketplace(usageEvent));
+  }
+
+  /**
+   * Test to reproduce <a href="https://issues.redhat.com/browse/SWATCH-2726">SWATCH-2726</a>.
+   * According to the Azure API in <a
+   * href="https://learn.microsoft.com/en-us/partner-center/marketplace-offers/marketplace-metering-service-apis">the
+   * official documentation</a>, we might receive the following HTTP code in the response: - 200:
+   * all good - 400: invalid request - 403: forbidden - 409: conflict, the usage event has already
+   * been successfully reported Therefore, we should only retry another marketplace tenant when the
+   * response is 403.
+   */
+  @Test
+  void testStopSendingUsagesWhenMarketplaceRejectsTheRequest() throws ApiException {
+    Mockito.when(azureMarketplaceClientFactory.createClientForEachTenant())
+        .thenReturn(List.of(badRequestClient, acceptedClient));
+    var service =
+        new AzureMarketplaceService(azureMarketplaceProperties, azureMarketplaceClientFactory);
+    service.sendUsageEventToAzureMarketplace(new UsageEvent());
+    verify(acceptedClient, times(0)).submitUsageEvents(any(), any(), any(), any());
   }
 }

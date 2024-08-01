@@ -18,14 +18,14 @@ rhsm-subscriptions:
     tasks:
       topic: platform.rhsm-subscriptions.subscription-sync
       kafka-group-id: subscription-worker
-    enable-payg-subscription-force-sync: true
   user-service:
     use-stub: true
   product:
     use-stub: true
-    tasks:
-      topic: platform.rhsm-subscriptions.offering-sync
-      kafka-group-id: offering-worker
+  contracts:
+    client:
+      use-stub: true
+      psk: placeholder
 logging:
   level:
     org:

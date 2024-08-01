@@ -132,6 +132,8 @@ parameters:
     value: 'false'
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: 'http://localhost:4317'
+  - name: OTEL_EXPORTER_OTLP_PROTOCOL
+    value: 'grpc'
   - name: METRICS_HEALTH_LIVENESS_PATH
     value: /health/live
   - name: METRICS_HEALTH_READY_PATH
@@ -271,6 +273,8 @@ objects:
                 value: ${ENABLE_SYNCHRONOUS_OPERATIONS}
               - name: OTEL_EXPORTER_OTLP_ENDPOINT
                 value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+              - name: OTEL_EXPORTER_OTLP_PROTOCOL
+                value: ${OTEL_EXPORTER_OTLP_PROTOCOL}
               - name: OTEL_SERVICE_NAME
                 value: ${OTEL_SERVICE_NAME}
               - name: OTEL_JAVAAGENT_ENABLED
@@ -468,6 +472,8 @@ objects:
                 value: ${ENABLE_SYNCHRONOUS_OPERATIONS}
               - name: OTEL_EXPORTER_OTLP_ENDPOINT
                 value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+              - name: OTEL_EXPORTER_OTLP_PROTOCOL
+                value: ${OTEL_EXPORTER_OTLP_PROTOCOL}
               - name: OTEL_SERVICE_NAME
                 value: swatch-metrics-rhel
               - name: OTEL_JAVAAGENT_ENABLED

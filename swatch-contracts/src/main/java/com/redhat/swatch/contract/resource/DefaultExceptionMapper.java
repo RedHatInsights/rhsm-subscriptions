@@ -21,6 +21,7 @@
 package com.redhat.swatch.contract.resource;
 
 import com.redhat.swatch.contract.exception.ErrorCode;
+import com.redhat.swatch.contract.exception.ServiceException;
 import com.redhat.swatch.contract.openapi.model.Error;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
@@ -44,6 +45,8 @@ public class DefaultExceptionMapper implements ExceptionMapper<Exception> {
         "Request '{}' failed with error '{}'", info.getPath(), exception.getMessage(), exception);
     if (exception instanceof NotImplementedYet) {
       return Response.status(RestResponse.Status.NOT_IMPLEMENTED).build();
+    } else if (exception instanceof ServiceException e) {
+      return Response.status(e.getStatus()).entity(e.error()).build();
     }
 
     var status = Status.INTERNAL_SERVER_ERROR;

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+  <changeSet id="202407231110-01" author="khowell">
+    <dropIndex indexName="subscription_sku_idx" tableName="subscription"/>
+    <rollback>
+      <createIndex tableName="subscription" indexName="subscription_sku_idx">
+        <column name="sku"/>
+      </createIndex>
+    </rollback>
+  </changeSet>
+  <changeSet id="202407231110-02" author="khowell">
+    <createIndex tableName="subscription" indexName="subscription_sku_subs_id_start_date_idx">
+      <column name="sku"/>
+      <column name="subscription_id"/>
+      <column name="start_date" descending="true"/>
+    </createIndex>
+    <!-- rollback automatically generated -->
+  </changeSet>
+  <changeSet id="202407231110-03" author="khowell">
+    <createIndex tableName="subscription" indexName="subscription_sku_sub_number_start_date_idx">
+      <column name="sku"/>
+      <column name="subscription_number"/>
+      <column name="start_date" descending="true"/>
+    </createIndex>
+    <!-- rollback automatically generated -->
+  </changeSet>
+</databaseChangeLog>

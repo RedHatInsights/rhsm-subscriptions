@@ -89,6 +89,8 @@ public interface SubscriptionRepository
 
   void deleteByOrgId(String orgId);
 
+  long countByOfferingSku(String sku);
+
   static Specification<Subscription> buildSearchSpecification(DbReportCriteria dbReportCriteria) {
     /* The where call allows us to build a Specification object to operate on even if the first
      * specification method we call returns null (which it won't in this case, but it's good

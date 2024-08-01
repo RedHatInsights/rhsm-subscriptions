@@ -20,6 +20,8 @@
  */
 package com.redhat.swatch.azure.service;
 
+import static com.redhat.swatch.azure.configuration.Channels.BILLABLE_USAGE_HOURLY_AGGREGATE;
+
 import com.redhat.swatch.azure.exception.AzureMarketplaceRequestFailedException;
 import com.redhat.swatch.azure.exception.AzureUnprocessedRecordsException;
 import com.redhat.swatch.azure.exception.AzureUsageContextLookupException;
@@ -88,7 +90,7 @@ public class AzureBillableUsageAggregateConsumer {
   }
 
   @SuppressWarnings("java:S3776")
-  @Incoming("billable-usage-hourly-aggregate-in")
+  @Incoming(BILLABLE_USAGE_HOURLY_AGGREGATE)
   @Blocking
   public void process(BillableUsageAggregate billableUsageAggregate) {
     log.info("Received billable usage message {}", billableUsageAggregate);

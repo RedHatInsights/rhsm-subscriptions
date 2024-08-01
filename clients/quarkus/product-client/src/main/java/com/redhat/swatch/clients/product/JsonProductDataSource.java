@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /** Data source for product data that uses static JSON. */
-class JsonProductDataSource implements ProductDataSource {
+public class JsonProductDataSource implements ProductDataSource {
   private final Map<String, RESTProductTree> productTreeMap;
   private final Map<String, RESTProductTree> derivedProductTreeMap;
   private final Map<String, List<EngineeringProduct>> engineeringProductsMap;
