@@ -3,6 +3,10 @@ title: InstancesExportCsvItem
 properties:
   id:
     type: string
+  inventory_id:
+    type: string
+  subscription_manager_id:
+    type: string
   instance_id:
     type: string
   display_name:
@@ -35,4 +39,9 @@ properties:
     format: date-time
     type: string
   hypervisor_uuid:
+    type: string
+  number_of_guests:
+    type: integer
+  hardware_type:
+    description: (Only for guests) What the type of the host is (e.g. hypervisor, physical, etc.).
     type: string

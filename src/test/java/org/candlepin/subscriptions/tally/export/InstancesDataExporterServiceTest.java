@@ -151,7 +151,7 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
   @CsvSource(
       value = {
         "usage,_ANY",
-        "category,physical",
+        "category,hypervisor",
         "sla,_ANY",
         "metric_id,Sockets",
         "billing_provider,_ANY",
@@ -226,6 +226,12 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
       instance.setId(host.getId().toString());
       instance.setInstanceId(host.getInstanceId());
       instance.setDisplayName(host.getDisplayName());
+      instance.setHypervisorUuid(host.getHypervisorUuid());
+      instance.setSubscriptionManagerId(host.getSubscriptionManagerId());
+      instance.setInventoryId(host.getInventoryId());
+      instance.setLastSeen(host.getLastSeen());
+      instance.setNumberOfGuests(host.getNumOfGuests());
+      instance.setBillingAccountId(host.getBillingAccountId());
       if (host.getBillingProvider() != null) {
         instance.setBillingProvider(host.getBillingProvider().getValue());
       }
@@ -235,7 +241,6 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
         instance.setCategory(category.toString());
       }
 
-      instance.setBillingAccountId(host.getBillingAccountId());
       var variant = Variant.findByTag(bucket.getKey().getProductId());
       var metrics = MetricIdUtils.getMetricIdsFromConfigForVariant(variant.orElse(null)).toList();
       for (var metric : metrics) {
@@ -245,9 +250,28 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
         }
       }
 
-      instance.setLastSeen(host.getLastSeen());
-      instance.setHypervisorUuid(host.getHypervisorUuid());
       data.add(instance);
+
+      // map guests
+      if (item.guests != null
+          && host.getNumOfGuests() > 0
+          && RHEL_FOR_X86.equals(bucket.getKey().getProductId())
+          && bucket.getMeasurementType() == HardwareMeasurementType.HYPERVISOR) {
+        data.addAll(
+            item.guests.stream()
+                .map(
+                    g ->
+                        new InstancesExportCsvItem()
+                            .withId(g.getId().toString())
+                            .withHypervisorUuid(g.getHypervisorUuid())
+                            .withDisplayName(g.getDisplayName())
+                            .withInventoryId(g.getInventoryId())
+                            .withHardwareType(g.getHardwareType().toString())
+                            .withInstanceId(g.getInstanceId())
+                            .withSubscriptionManagerId(g.getSubscriptionManagerId())
+                            .withLastSeen(g.getLastSeen()))
+                .toList());
+      }
     }
 
     return toCsv(data, InstancesExportCsvItem.class);
@@ -357,7 +381,7 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
     bucket.getKey().setAsHypervisor(true);
     bucket.getKey().setBillingProvider(BillingProvider._ANY);
     bucket.getKey().setBillingAccountId(ANY);
-    bucket.setMeasurementType(HardwareMeasurementType.PHYSICAL);
+    bucket.setMeasurementType(HardwareMeasurementType.HYPERVISOR);
     // in non-payg products, buckets metrics should be used over the instance measurements
     bucket.setCores(5);
     bucket.setSockets(6);
