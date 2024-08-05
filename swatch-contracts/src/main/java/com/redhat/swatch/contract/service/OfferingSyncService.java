@@ -41,8 +41,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.PersistenceException;
 import jakarta.transaction.Transactional;
-import jakarta.ws.rs.ForbiddenException;
-import jakarta.ws.rs.NotFoundException;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Objects;
@@ -107,7 +105,7 @@ public class OfferingSyncService {
       SyncResult result = SyncResult.SKIPPED_DENYLISTED;
       Duration syncDuration = Duration.ofNanos(syncTime.stop(syncTimer));
       log.info(SYNC_LOG_TEMPLATE, result, sku, syncDuration.toMillis());
-      throw new ForbiddenException(result.description());
+      return result;
     }
 
     try {
@@ -115,9 +113,6 @@ public class OfferingSyncService {
           getUpstreamOffering(sku).map(this::syncOffering).orElse(SyncResult.SKIPPED_NOT_FOUND);
       Duration syncDuration = Duration.ofNanos(syncTime.stop(syncTimer));
       log.info(SYNC_LOG_TEMPLATE, result, sku, syncDuration.toMillis());
-      if (SyncResult.SKIPPED_NOT_FOUND.equals(result)) {
-        throw new NotFoundException(result.description());
-      }
       return result;
     } catch (RuntimeException ex) {
       SyncResult result = SyncResult.FAILED;
@@ -327,7 +322,7 @@ public class OfferingSyncService {
       log.warn(
           "Unable to sync offering from UMB message for sku={}, because product service has no records for it",
           umbOperationalProduct.getSku());
-      throw new NotFoundException(SyncResult.SKIPPED_NOT_FOUND.description());
+      return SyncResult.SKIPPED_NOT_FOUND;
     }
   }
 
