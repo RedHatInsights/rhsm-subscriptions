@@ -587,7 +587,7 @@ class BillableUsageServiceTest {
             .sla(usage.getSla().value())
             .usage(usage.getUsage().value())
             .remittancePendingDate(remittancePendingDate)
-            .tallyId(usage.getId())
+            .tallyId(usage.getTallyId())
             .hardwareMeasurementType(usage.getHardwareMeasurementType())
             .status(status)
             .retryAfter(retryAfter)
@@ -645,7 +645,7 @@ class BillableUsageServiceTest {
             argThat(
                 output -> {
                   assertEquals(usage.getUuid(), output.getUuid());
-                  assertEquals(usage.getId(), output.getId());
+                  assertEquals(usage.getTallyId(), output.getTallyId());
                   assertEquals(expectedValue, output.getValue());
                   assertEquals(usage.getCurrentTotal(), output.getCurrentTotal());
                   return true;
