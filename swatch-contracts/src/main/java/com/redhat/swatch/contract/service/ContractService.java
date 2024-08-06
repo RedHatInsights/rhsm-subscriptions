@@ -413,7 +413,7 @@ public class ContractService {
     boolean areRecordsUpdated = !subscriptionsToPersist.isEmpty();
     if (areRecordsUpdated) {
       log.info("Persisting subscriptions: {}", subscriptionsToPersist);
-      subscriptionRepository.persist(subscriptionsToPersist);
+      subscriptionsToPersist.forEach(subscriptionRepository::saveOrUpdate);
     }
     return areRecordsUpdated;
   }
@@ -567,7 +567,7 @@ public class ContractService {
       log.debug("Synchronizing the subscription for contract {}", existingContract);
       SubscriptionEntity subscription =
           createOrUpdateSubscription(existingContract, subscriptionId);
-      subscriptionRepository.persist(subscription);
+      subscriptionRepository.saveOrUpdate(subscription);
     }
   }
 

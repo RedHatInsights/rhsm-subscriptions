@@ -213,7 +213,7 @@ public class BillableUsageService {
             .sla(usage.getSla().value())
             .usage(usage.getUsage().value())
             .remittancePendingDate(clock.now())
-            .tallyId(Optional.ofNullable(usage.getTallyId()).orElse(usage.getId()))
+            .tallyId(usage.getTallyId())
             .hardwareMeasurementType(usage.getHardwareMeasurementType())
             .status(RemittanceStatus.PENDING)
             .build();

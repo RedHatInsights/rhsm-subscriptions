@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.clients.product.StubProductApi;
+import com.redhat.swatch.clients.subscription.StubSearchApi;
 import io.quarkus.smallrye.openapi.runtime.OpenApiDocumentService;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.openapi.runtime.io.Format;
@@ -57,9 +58,11 @@ import org.junit.jupiter.api.TestFactory;
 
 @QuarkusTest
 class ResourceRolesAllowedTest {
-  Set<Class<? extends Annotation>> HTTP_METHOD_ANNOTATION_CLASSES =
+  private static final Set<Class<? extends Annotation>> HTTP_METHOD_ANNOTATION_CLASSES =
       Set.of(
           DELETE.class, GET.class, HEAD.class, OPTIONS.class, PATCH.class, POST.class, PUT.class);
+  private static final Set<Class<?>> IGNORE_RESOURCES =
+      Set.of(StubProductApi.class, StubSearchApi.class);
 
   @Inject OpenApiDocumentService openApiDocumentService;
 
@@ -153,7 +156,10 @@ class ResourceRolesAllowedTest {
     var allBeans = CDI.current().getBeanManager().getBeans(Object.class);
     return allBeans.stream()
         .filter(this::hasJaxRsAnnotation)
-        .filter(bean -> !bean.getBeanClass().isAssignableFrom(StubProductApi.class))
+        .filter(
+            bean ->
+                IGNORE_RESOURCES.stream()
+                    .noneMatch(clazz -> bean.getBeanClass().isAssignableFrom(clazz)))
         .flatMap(bean -> Arrays.stream(bean.getBeanClass().getDeclaredMethods()))
         .filter(this::hasJaxRsAnnotation)
         .toList();
