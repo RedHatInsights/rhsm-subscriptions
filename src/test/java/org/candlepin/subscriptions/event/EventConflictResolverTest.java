@@ -63,8 +63,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class EventConflictResolverTest {
+
   private static final ApplicationClock CLOCK = new TestClockConfiguration().adjustableClock();
   private static final ObjectMapper MAPPER;
+  public static final String TAG1 = "T1";
+  public static final String TAG2 = "T2";
+  public static final String TAG3 = "T3";
+  public static final String CORES = "cores";
+  public static final String INSTANCE_HOURS = "instance-hours";
+  public static final String INSTANCE_HOURS1 = "Instance-hours";
+  public static final String CORES1 = "Cores";
+  public static final String CORES_IGNORED = "CoresIgnored";
 
   static {
     MAPPER = new ObjectMapper();
@@ -84,43 +93,43 @@ class EventConflictResolverTest {
   static Stream<Arguments> noResolutionRequiredScenarios() {
     return Stream.of(
         Arguments.of(
-            List.of(event(Set.of("T1"), Map.of("cores", 6.0))),
-            List.of(event(Set.of("T1"), Map.of("cores", 6.0))),
+            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0))),
             List.of()),
         Arguments.of(
-            List.of(event(Set.of("T1", "T2", "T3"), Map.of("cores", 6.0))),
-            List.of(event(Set.of("T1", "T2", "T3"), Map.of("cores", 6.0))),
+            List.of(event(Set.of(TAG1, TAG2, TAG3), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(TAG1, TAG2, TAG3), Map.of(CORES, 6.0))),
             List.of()),
         Arguments.of(
-            List.of(event(Set.of("T1", "T2", "T3"), Map.of("cores", 6.0))),
+            List.of(event(Set.of(TAG1, TAG2, TAG3), Map.of(CORES, 6.0))),
             List.of(
-                event(Set.of("T1"), Map.of("cores", 6.0)),
-                event(Set.of("T2"), Map.of("cores", 6.0)),
-                event(Set.of("T3"), Map.of("cores", 6.0))),
-            List.of()),
-        Arguments.of(
-            List.of(
-                event(Set.of("T1"), Map.of("cores", 6.0)),
-                event(Set.of("T2"), Map.of("cores", 6.0)),
-                event(Set.of("T3"), Map.of("cores", 6.0))),
-            List.of(event(Set.of("T1", "T2", "T3"), Map.of("cores", 6.0))),
+                event(Set.of(TAG1), Map.of(CORES, 6.0)),
+                event(Set.of(TAG2), Map.of(CORES, 6.0)),
+                event(Set.of(TAG3), Map.of(CORES, 6.0))),
             List.of()),
         Arguments.of(
             List.of(
-                event(Set.of("T1"), Map.of("cores", 6.0)),
-                event(Set.of("T1"), Map.of("instance-hours", 10.0))),
-            List.of(
-                event(Set.of("T1"), Map.of("cores", 6.0)),
-                event(Set.of("T1"), Map.of("instance-hours", 10.0))),
+                event(Set.of(TAG1), Map.of(CORES, 6.0)),
+                event(Set.of(TAG2), Map.of(CORES, 6.0)),
+                event(Set.of(TAG3), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(TAG1, TAG2, TAG3), Map.of(CORES, 6.0))),
             List.of()),
         Arguments.of(
             List.of(
-                event(Set.of("T1", "T2"), Map.of("cores", 6.0)),
-                event(Set.of("T2"), Map.of("instance-hours", 10.0))),
+                event(Set.of(TAG1), Map.of(CORES, 6.0)),
+                event(Set.of(TAG1), Map.of(INSTANCE_HOURS, 10.0))),
             List.of(
-                event(Set.of("T1"), Map.of("cores", 6.0)),
-                event(Set.of("T2"), Map.of("cores", 6.0)),
-                event(Set.of("T2"), Map.of("instance-hours", 10.0))),
+                event(Set.of(TAG1), Map.of(CORES, 6.0)),
+                event(Set.of(TAG1), Map.of(INSTANCE_HOURS, 10.0))),
+            List.of()),
+        Arguments.of(
+            List.of(
+                event(Set.of(TAG1, TAG2), Map.of(CORES, 6.0)),
+                event(Set.of(TAG2), Map.of(INSTANCE_HOURS, 10.0))),
+            List.of(
+                event(Set.of(TAG1), Map.of(CORES, 6.0)),
+                event(Set.of(TAG2), Map.of(CORES, 6.0)),
+                event(Set.of(TAG2), Map.of(INSTANCE_HOURS, 10.0))),
             List.of()));
   }
 
@@ -137,50 +146,48 @@ class EventConflictResolverTest {
     return Stream.of(
         // Different value triggers amendments
         Arguments.of(
-            List.of(event(Set.of("T1"), Map.of("cores", 6.0))),
-            List.of(event(Set.of("T1"), Map.of("cores", 8.0))),
+            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(TAG1), Map.of(CORES, 8.0))),
             List.of(
-                deduction(Set.of("T1"), Map.of("cores", -6.0)),
-                event(Set.of("T1"), Map.of("cores", 8.0)))),
+                deduction(Set.of(TAG1), Map.of(CORES, -6.0)),
+                event(Set.of(TAG1), Map.of(CORES, 8.0)))),
         // Different hardware type triggers amendments.
         Arguments.of(
-            List.of(event(Set.of("T1"), Map.of("cores", 6.0))),
-            List.of(event(Set.of("T1"), Map.of("cores", 6.0)).withHardwareType(HardwareType.CLOUD)),
+            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0)).withHardwareType(HardwareType.CLOUD)),
             List.of(
-                deduction(Set.of("T1"), Map.of("cores", -6.0)),
-                event(Set.of("T1"), Map.of("cores", 6.0)).withHardwareType(HardwareType.CLOUD))),
+                deduction(Set.of(TAG1), Map.of(CORES, -6.0)),
+                event(Set.of(TAG1), Map.of(CORES, 6.0)).withHardwareType(HardwareType.CLOUD))),
         // Different SLA triggers amendments.
         Arguments.of(
-            List.of(event(Set.of("T1"), Map.of("cores", 6.0))),
-            List.of(event(Set.of("T1"), Map.of("cores", 6.0)).withSla(Sla.SELF_SUPPORT)),
+            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0)).withSla(Sla.SELF_SUPPORT)),
             List.of(
-                deduction(Set.of("T1"), Map.of("cores", -6.0)),
-                event(Set.of("T1"), Map.of("cores", 6.0)).withSla(Sla.SELF_SUPPORT))),
+                deduction(Set.of(TAG1), Map.of(CORES, -6.0)),
+                event(Set.of(TAG1), Map.of(CORES, 6.0)).withSla(Sla.SELF_SUPPORT))),
         // Different Usage triggers amendments.
         Arguments.of(
-            List.of(event(Set.of("T1"), Map.of("cores", 6.0))),
-            List.of(event(Set.of("T1"), Map.of("cores", 6.0)).withUsage(Usage.PRODUCTION)),
+            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0)).withUsage(Usage.PRODUCTION)),
             List.of(
-                deduction(Set.of("T1"), Map.of("cores", -6.0)),
-                event(Set.of("T1"), Map.of("cores", 6.0)).withUsage(Usage.PRODUCTION))),
+                deduction(Set.of(TAG1), Map.of(CORES, -6.0)),
+                event(Set.of(TAG1), Map.of(CORES, 6.0)).withUsage(Usage.PRODUCTION))),
         // Different Billing provider triggers amendments.
         Arguments.of(
-            List.of(event(Set.of("T1"), Map.of("cores", 6.0))),
+            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0))),
             List.of(
-                event(Set.of("T1"), Map.of("cores", 6.0)).withBillingProvider(BillingProvider.GCP)),
+                event(Set.of(TAG1), Map.of(CORES, 6.0)).withBillingProvider(BillingProvider.GCP)),
             List.of(
-                deduction(Set.of("T1"), Map.of("cores", -6.0)),
-                event(Set.of("T1"), Map.of("cores", 6.0))
-                    .withBillingProvider(BillingProvider.GCP))),
+                deduction(Set.of(TAG1), Map.of(CORES, -6.0)),
+                event(Set.of(TAG1), Map.of(CORES, 6.0)).withBillingProvider(BillingProvider.GCP))),
         // Different billing account ID triggers amendment
         Arguments.of(
-            List.of(event(Set.of("T1"), Map.of("cores", 6.0))),
+            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0))),
             List.of(
-                event(Set.of("T1"), Map.of("cores", 6.0)).withBillingProvider(BillingProvider.GCP)),
+                event(Set.of(TAG1), Map.of(CORES, 6.0)).withBillingProvider(BillingProvider.GCP)),
             List.of(
-                deduction(Set.of("T1"), Map.of("cores", -6.0)),
-                event(Set.of("T1"), Map.of("cores", 6.0))
-                    .withBillingProvider(BillingProvider.GCP))));
+                deduction(Set.of(TAG1), Map.of(CORES, -6.0)),
+                event(Set.of(TAG1), Map.of(CORES, 6.0)).withBillingProvider(BillingProvider.GCP))));
   }
 
   @ParameterizedTest
@@ -196,102 +203,97 @@ class EventConflictResolverTest {
     return Stream.of(
         // No event conflicts yields new result.
         Arguments.of(
-            List.of(),
-            List.of(event(Map.of("cores", 12.0))),
-            List.of(event(Map.of("cores", 12.0)))),
+            List.of(), List.of(event(Map.of(CORES, 12.0))), List.of(event(Map.of(CORES, 12.0)))),
         // Events with different timestamps do not conflict.
         Arguments.of(
             List.of(),
             List.of(
-                event(Map.of("cores", 1.0)).withTimestamp(CLOCK.now()),
-                event(Map.of("cores", 3.0)).withTimestamp(CLOCK.now().plusHours(2))),
+                event(Map.of(CORES, 1.0)).withTimestamp(CLOCK.now()),
+                event(Map.of(CORES, 3.0)).withTimestamp(CLOCK.now().plusHours(2))),
             List.of(
-                event(Map.of("cores", 1.0)).withTimestamp(CLOCK.now()),
-                event(Map.of("cores", 3.0)).withTimestamp(CLOCK.now().plusHours(2)))),
+                event(Map.of(CORES, 1.0)).withTimestamp(CLOCK.now()),
+                event(Map.of(CORES, 3.0)).withTimestamp(CLOCK.now().plusHours(2)))),
         // Event conflict with identical measurement is deducted. The deducted
         // event metadata should match the existing event, and the new event
         // metadata should match the incoming.
         Arguments.of(
-            List.of(event(Map.of("cores", 12.0))),
-            List.of(event(Map.of("cores", 12.0)).withHardwareType(HardwareType.CLOUD)),
+            List.of(event(Map.of(CORES, 12.0))),
+            List.of(event(Map.of(CORES, 12.0)).withHardwareType(HardwareType.CLOUD)),
             List.of(
-                deduction(Map.of("cores", -12.0)),
-                event(Map.of("cores", 12.0)).withHardwareType(HardwareType.CLOUD))),
+                deduction(Map.of(CORES, -12.0)),
+                event(Map.of(CORES, 12.0)).withHardwareType(HardwareType.CLOUD))),
         // Duplicate incoming events results in a single deduction
         Arguments.of(
             List.of(),
             List.of(
-                event(Map.of("cores", 1.0)).withHardwareType(HardwareType.CLOUD),
-                event(Map.of("cores", 1.0))),
+                event(Map.of(CORES, 1.0)).withHardwareType(HardwareType.CLOUD),
+                event(Map.of(CORES, 1.0))),
             List.of(
-                event(Map.of("cores", 1.0)).withHardwareType(HardwareType.CLOUD),
-                deduction(Map.of("cores", -1.0)).withHardwareType(HardwareType.CLOUD),
-                event(Map.of("cores", 1.0)))),
+                event(Map.of(CORES, 1.0)).withHardwareType(HardwareType.CLOUD),
+                deduction(Map.of(CORES, -1.0)).withHardwareType(HardwareType.CLOUD),
+                event(Map.of(CORES, 1.0)))),
         // Duplicate incoming events with incoming conflict is resolved.
         Arguments.of(
             List.of(),
             List.of(
-                event(Map.of("cores", 1.0)),
-                event(Map.of("cores", 1.0)),
-                event(Map.of("cores", 5.0))),
+                event(Map.of(CORES, 1.0)), event(Map.of(CORES, 1.0)), event(Map.of(CORES, 5.0))),
             List.of(
-                event(Map.of("cores", 1.0)),
-                deduction(Map.of("cores", -1.0)),
-                event(Map.of("cores", 5.0)))),
+                event(Map.of(CORES, 1.0)),
+                deduction(Map.of(CORES, -1.0)),
+                event(Map.of(CORES, 5.0)))),
         // Conflict with different measurement value, yields amendment plus incoming value.
         Arguments.of(
-            List.of(event(Map.of("cores", 5.0))),
-            List.of(event(Map.of("cores", 15.0))),
-            List.of(deduction(Map.of("cores", -5.0)), event(Map.of("cores", 15.0)))),
+            List.of(event(Map.of(CORES, 5.0))),
+            List.of(event(Map.of(CORES, 15.0))),
+            List.of(deduction(Map.of(CORES, -5.0)), event(Map.of(CORES, 15.0)))),
         // Event conflict with existing amendment resolves to additional amendment.
         Arguments.of(
             List.of(
-                event(Map.of("cores", 5.0)),
-                deduction(Map.of("cores", -5.0)),
-                event(Map.of("cores", 15.0))),
-            List.of(event(Map.of("cores", 20.0))),
-            List.of(deduction(Map.of("cores", -15.0)), event(Map.of("cores", 20.0)))),
+                event(Map.of(CORES, 5.0)),
+                deduction(Map.of(CORES, -5.0)),
+                event(Map.of(CORES, 15.0))),
+            List.of(event(Map.of(CORES, 20.0))),
+            List.of(deduction(Map.of(CORES, -15.0)), event(Map.of(CORES, 20.0)))),
         // Conflict with different measurement value yields amendment plus incoming value
         // for single instance only. Net new event for other instance.
         Arguments.of(
             // Instance 1
-            List.of(event(Map.of("cores", 5.0))),
+            List.of(event(Map.of(CORES, 5.0))),
             List.of(
                 // Instance 1
-                event(Map.of("cores", 15.0)),
+                event(Map.of(CORES, 15.0)),
                 // Instance 2
-                event(Map.of("cores", 5.0)).withInstanceId("instance_2")),
+                event(Map.of(CORES, 5.0)).withInstanceId("instance_2")),
             List.of(
-                deduction(Map.of("cores", -5.0)),
-                event(Map.of("cores", 15.0)),
-                event(Map.of("cores", 5.0)).withInstanceId("instance_2"))),
+                deduction(Map.of(CORES, -5.0)),
+                event(Map.of(CORES, 15.0)),
+                event(Map.of(CORES, 5.0)).withInstanceId("instance_2"))),
         // Conflict with different measurement value yields amendment plus incoming value
         // for both instance.
         Arguments.of(
             List.of(
-                event(Map.of("cores", 5.0)),
-                event(Map.of("cores", 5.0)).withInstanceId("instance_2")),
+                event(Map.of(CORES, 5.0)), event(Map.of(CORES, 5.0)).withInstanceId("instance_2")),
             List.of(
-                event(Map.of("cores", 15.0)),
-                event(Map.of("cores", 10.0)).withInstanceId("instance_2")),
+                event(Map.of(CORES, 15.0)),
+                event(Map.of(CORES, 10.0)).withInstanceId("instance_2")),
             List.of(
-                deduction(Map.of("cores", -5.0)),
-                event(Map.of("cores", 15.0)),
-                deduction(Map.of("cores", -5.0)).withInstanceId("instance_2"),
-                event(Map.of("cores", 10.0)).withInstanceId("instance_2"))),
+                deduction(Map.of(CORES, -5.0)),
+                event(Map.of(CORES, 15.0)),
+                deduction(Map.of(CORES, -5.0)).withInstanceId("instance_2"),
+                event(Map.of(CORES, 10.0)).withInstanceId("instance_2"))),
         // Events with conflicts with multiple timestamps are resolved.
         Arguments.of(
             List.of(
-                event(Map.of("cores", 1.0)),
-                event(Map.of("cores", 1.0)).withTimestamp(CLOCK.now().plusHours(2))),
+                event(Map.of(CORES, 1.0)),
+                event(Map.of(CORES, 1.0)).withTimestamp(CLOCK.now().plusHours(2))),
             List.of(
-                event(Map.of("cores", 2.0)),
-                event(Map.of("cores", 4.0)).withTimestamp(CLOCK.now().plusHours(2))),
+                event(Map.of(CORES, 2.0)),
+                event(Map.of(CORES, 4.0)).withTimestamp(CLOCK.now().plusHours(2))),
             List.of(
-                deduction(Map.of("cores", -1.0)),
-                event(Map.of("cores", 2.0)),
-                deduction(Map.of("cores", -1.0)).withTimestamp(CLOCK.now().plusHours(2)),
-                event(Map.of("cores", 4.0)).withTimestamp(CLOCK.now().plusHours(2)))));
+                deduction(Map.of(CORES, -1.0)),
+                event(Map.of(CORES, 2.0)),
+                deduction(Map.of(CORES, -1.0)).withTimestamp(CLOCK.now().plusHours(2)),
+                event(Map.of(CORES, 4.0)).withTimestamp(CLOCK.now().plusHours(2)))));
   }
 
   @ParameterizedTest
@@ -308,52 +310,51 @@ class EventConflictResolverTest {
         // Multiple existing events with different measurements and single incoming measurement
         // change results in amendment for only one measurement.
         Arguments.of(
-            List.of(event(Map.of("cores", 10.0)), event(Map.of("instance-hours", 2.0))),
-            List.of(event(Map.of("cores", 12.0))),
-            List.of(deduction(Map.of("cores", -10.0)), event(Map.of("cores", 12.0)))),
+            List.of(event(Map.of(CORES, 10.0)), event(Map.of(INSTANCE_HOURS, 2.0))),
+            List.of(event(Map.of(CORES, 12.0))),
+            List.of(deduction(Map.of(CORES, -10.0)), event(Map.of(CORES, 12.0)))),
         // Single incoming event with multiple measurements amend each measurement.
         Arguments.of(
-            List.of(event(Map.of("cores", 10.0)), event(Map.of("instance-hours", 2.0))),
-            List.of(event(Map.of("cores", 12.0, "instance-hours", 4.0))),
+            List.of(event(Map.of(CORES, 10.0)), event(Map.of(INSTANCE_HOURS, 2.0))),
+            List.of(event(Map.of(CORES, 12.0, INSTANCE_HOURS, 4.0))),
             List.of(
-                deduction(Map.of("cores", -10.0)),
-                deduction(Map.of("instance-hours", -2.0)),
-                event(Map.of("cores", 12.0)),
-                event(Map.of("instance-hours", 4.0)))),
+                deduction(Map.of(CORES, -10.0)),
+                deduction(Map.of(INSTANCE_HOURS, -2.0)),
+                event(Map.of(CORES, 12.0)),
+                event(Map.of(INSTANCE_HOURS, 4.0)))),
         // Single measurement amendment when existing conflicting event has multiple measurements.
         Arguments.of(
-            List.of(event(Map.of("cores", 10.0, "instance-hours", 2.0))),
-            List.of(event(Map.of("cores", 12.0))),
-            List.of(deduction(Map.of("cores", -10.0)), event(Map.of("cores", 12.0)))),
+            List.of(event(Map.of(CORES, 10.0, INSTANCE_HOURS, 2.0))),
+            List.of(event(Map.of(CORES, 12.0))),
+            List.of(deduction(Map.of(CORES, -10.0)), event(Map.of(CORES, 12.0)))),
         Arguments.of(
-            List.of(event(Map.of("cores", 10.0, "instance-hours", 2.0))),
-            List.of(event(Map.of("cores", 12.0, "instance-hours", 5.0))),
+            List.of(event(Map.of(CORES, 10.0, INSTANCE_HOURS, 2.0))),
+            List.of(event(Map.of(CORES, 12.0, INSTANCE_HOURS, 5.0))),
             List.of(
-                deduction(Map.of("cores", -10.0)),
-                deduction(Map.of("instance-hours", -2.0)),
-                event(Map.of("cores", 12.0)),
-                event(Map.of("instance-hours", 5.0)))),
+                deduction(Map.of(CORES, -10.0)),
+                deduction(Map.of(INSTANCE_HOURS, -2.0)),
+                event(Map.of(CORES, 12.0)),
+                event(Map.of(INSTANCE_HOURS, 5.0)))),
         Arguments.of(
-            List.of(event(Map.of("cores", 10.0, "instance-hours", 2.0))),
+            List.of(event(Map.of(CORES, 10.0, INSTANCE_HOURS, 2.0))),
+            List.of(event(Map.of(CORES, 12.0)), event(Map.of(CORES, 20.0, INSTANCE_HOURS, 40.0))),
             List.of(
-                event(Map.of("cores", 12.0)), event(Map.of("cores", 20.0, "instance-hours", 40.0))),
-            List.of(
-                deduction(Map.of("cores", -10.0)),
-                event(Map.of("cores", 12.0)),
-                deduction(Map.of("cores", -12.0)),
-                deduction(Map.of("instance-hours", -2.0)),
-                event(Map.of("cores", 20.0)),
-                event(Map.of("instance-hours", 40.0)))),
+                deduction(Map.of(CORES, -10.0)),
+                event(Map.of(CORES, 12.0)),
+                deduction(Map.of(CORES, -12.0)),
+                deduction(Map.of(INSTANCE_HOURS, -2.0)),
+                event(Map.of(CORES, 20.0)),
+                event(Map.of(INSTANCE_HOURS, 40.0)))),
         Arguments.of(
-            List.of(event(Map.of("cores", 4.0, "instance-hours", 1.0))),
+            List.of(event(Map.of(CORES, 4.0, INSTANCE_HOURS, 1.0))),
             List.of(
-                event(Map.of("cores", 4.0, "instance-hours", 1.0)),
-                event(Map.of("cores", 8.0, "instance-hours", 2.0))),
+                event(Map.of(CORES, 4.0, INSTANCE_HOURS, 1.0)),
+                event(Map.of(CORES, 8.0, INSTANCE_HOURS, 2.0))),
             List.of(
-                deduction(Map.of("cores", -4.0)),
-                deduction(Map.of("instance-hours", -1.0)),
-                event(Map.of("cores", 8.0)),
-                event(Map.of("instance-hours", 2.0)))));
+                deduction(Map.of(CORES, -4.0)),
+                deduction(Map.of(INSTANCE_HOURS, -1.0)),
+                event(Map.of(CORES, 8.0)),
+                event(Map.of(INSTANCE_HOURS, 2.0)))));
   }
 
   @ParameterizedTest
@@ -371,13 +372,14 @@ class EventConflictResolverTest {
     //      for a single measurement, but will test the edge case just in case.
     OffsetDateTime eventTimestamp = CLOCK.now();
     String instanceId = "instance1";
+
     EventRecord existingEvent =
         withExistingEvent(
             instanceId,
             eventTimestamp,
             List.of(
-                new Measurement().withUom("CoresIgnored").withMetricId("Cores").withValue(1.0),
-                new Measurement().withMetricId("Instance-hours").withValue(5.0)));
+                new Measurement().withUom(CORES_IGNORED).withMetricId(CORES1).withValue(1.0),
+                new Measurement().withMetricId(INSTANCE_HOURS1).withValue(5.0)));
 
     Event incomingEvent =
         withIncomingEvent(
@@ -385,20 +387,21 @@ class EventConflictResolverTest {
             eventTimestamp,
             List.of(
                 // Should be applied to the existing Cores value.
-                new Measurement().withUom("Cores").withValue(15.0),
-                new Measurement().withUom("Instance-hours").withMetricId("").withValue(30.0)));
+                new Measurement().withUom(CORES1).withValue(15.0),
+                new Measurement().withUom(INSTANCE_HOURS1).withMetricId("").withValue(30.0)));
 
     when(repo.findConflictingEvents(Set.of(EventKey.fromEvent(existingEvent.getEvent()))))
         .thenReturn(List.of(existingEvent));
 
     List<EventRecord> resolved = resolver.resolveIncomingEvents(List.of(incomingEvent));
-    assertEquals(4, resolved.size());
-    assertDeductionEvent(resolved.get(0).getEvent(), instanceId, "Cores", -1.0);
+
+    assertEquals(3, resolved.size());
+    assertDeductionEvent(resolved.get(0).getEvent(), instanceId, CORES1, -1.0);
     assertEquals(
         createEvent(instanceId, eventTimestamp)
             .withMeasurements(List.of(incomingEvent.getMeasurements().get(0))),
         resolved.get(1).getEvent());
-    assertDeductionEvent(resolved.get(2).getEvent(), instanceId, "Instance-hours", -5.0);
+    assertDeductionEvent(resolved.get(2).getEvent(), instanceId, INSTANCE_HOURS1, -5.0);
     assertEquals(
         createEvent(instanceId, eventTimestamp)
             .withMeasurements(List.of(incomingEvent.getMeasurements().get(1))),
@@ -409,58 +412,58 @@ class EventConflictResolverTest {
   static Stream<Arguments> tagResolutionScenarios() {
     return Stream.of(
         Arguments.of(
-            List.of(event(Set.of("T1"), Map.of("cores", 10.0))),
-            List.of(event(Set.of("T1"), Map.of("cores", 4.0))),
+            List.of(event(Set.of(TAG1), Map.of(CORES, 10.0))),
+            List.of(event(Set.of(TAG1), Map.of(CORES, 4.0))),
             List.of(
-                deduction(Set.of("T1"), Map.of("cores", -10.0)),
-                event(Set.of("T1"), Map.of("cores", 4.0)))),
+                deduction(Set.of(TAG1), Map.of(CORES, -10.0)),
+                event(Set.of(TAG1), Map.of(CORES, 4.0)))),
         Arguments.of(
-            List.of(event(Set.of("T1", "T2"), Map.of("cores", 10.0))),
-            List.of(event(Set.of("T1", "T2"), Map.of("cores", 4.0))),
+            List.of(event(Set.of(TAG1, TAG2), Map.of(CORES, 10.0))),
+            List.of(event(Set.of(TAG1, TAG2), Map.of(CORES, 4.0))),
             List.of(
-                deduction(Set.of("T1"), Map.of("cores", -10.0)),
-                deduction(Set.of("T2"), Map.of("cores", -10.0)),
-                event(Set.of("T1"), Map.of("cores", 4.0)),
-                event(Set.of("T2"), Map.of("cores", 4.0)))),
+                deduction(Set.of(TAG1), Map.of(CORES, -10.0)),
+                deduction(Set.of(TAG2), Map.of(CORES, -10.0)),
+                event(Set.of(TAG1), Map.of(CORES, 4.0)),
+                event(Set.of(TAG2), Map.of(CORES, 4.0)))),
         Arguments.of(
-            List.of(event(Set.of("T1"), Map.of("cores", 6.0))),
-            List.of(event(Set.of("T1", "T2"), Map.of("cores", 6.0))),
-            List.of(event(Set.of("T2"), Map.of("cores", 6.0)))),
+            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(TAG1, TAG2), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(TAG2), Map.of(CORES, 6.0)))),
         Arguments.of(
-            List.of(event(Set.of("T1", "T2", "T3"), Map.of("cores", 6.0))),
-            List.of(event(Set.of("T1"), Map.of("cores", 16.0))),
+            List.of(event(Set.of(TAG1, TAG2, TAG3), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(TAG1), Map.of(CORES, 16.0))),
             List.of(
-                deduction(Set.of("T1"), Map.of("cores", -6.0)),
-                event(Set.of("T1"), Map.of("cores", 16.0)))),
+                deduction(Set.of(TAG1), Map.of(CORES, -6.0)),
+                event(Set.of(TAG1), Map.of(CORES, 16.0)))),
         Arguments.of(
-            List.of(event(Set.of("T1", "T2", "T3"), Map.of("cores", 6.0))),
-            List.of(event(Set.of("T1", "T2"), Map.of("cores", 10.0))),
+            List.of(event(Set.of(TAG1, TAG2, TAG3), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(TAG1, TAG2), Map.of(CORES, 10.0))),
             List.of(
-                deduction(Set.of("T1"), Map.of("cores", -6.0)),
-                deduction(Set.of("T2"), Map.of("cores", -6.0)),
-                event(Set.of("T1"), Map.of("cores", 10.0)),
-                event(Set.of("T2"), Map.of("cores", 10.0)))),
+                deduction(Set.of(TAG1), Map.of(CORES, -6.0)),
+                deduction(Set.of(TAG2), Map.of(CORES, -6.0)),
+                event(Set.of(TAG1), Map.of(CORES, 10.0)),
+                event(Set.of(TAG2), Map.of(CORES, 10.0)))),
         Arguments.of(
-            List.of(event(Set.of("T1"), Map.of("cores", 6.0))),
+            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0))),
             List.of(
-                event(Set.of("T1", "T2"), Map.of("cores", 10.0)),
-                event(Set.of("T2"), Map.of("cores", 8.0))),
+                event(Set.of(TAG1, TAG2), Map.of(CORES, 10.0)),
+                event(Set.of(TAG2), Map.of(CORES, 8.0))),
             List.of(
-                deduction(Set.of("T1"), Map.of("cores", -6.0)),
-                event(Set.of("T1"), Map.of("cores", 10.0)),
-                event(Set.of("T2"), Map.of("cores", 10.0)),
-                deduction(Set.of("T2"), Map.of("cores", -10.0)),
-                event(Set.of("T2"), Map.of("cores", 8.0)))),
+                deduction(Set.of(TAG1), Map.of(CORES, -6.0)),
+                event(Set.of(TAG1), Map.of(CORES, 10.0)),
+                event(Set.of(TAG2), Map.of(CORES, 10.0)),
+                deduction(Set.of(TAG2), Map.of(CORES, -10.0)),
+                event(Set.of(TAG2), Map.of(CORES, 8.0)))),
         Arguments.of(
-            List.of(event(Set.of("T1"), Map.of("cores", 6.0))),
+            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0))),
             List.of(
-                event(Set.of("T1", "T2"), Map.of("cores", 10.0)),
-                event(Set.of("T3"), Map.of("cores", 8.0))),
+                event(Set.of(TAG1, TAG2), Map.of(CORES, 10.0)),
+                event(Set.of(TAG3), Map.of(CORES, 8.0))),
             List.of(
-                deduction(Set.of("T1"), Map.of("cores", -6.0)),
-                event(Set.of("T1"), Map.of("cores", 10.0)),
-                event(Set.of("T2"), Map.of("cores", 10.0)),
-                event(Set.of("T3"), Map.of("cores", 8.0)))));
+                deduction(Set.of(TAG1), Map.of(CORES, -6.0)),
+                event(Set.of(TAG1), Map.of(CORES, 10.0)),
+                event(Set.of(TAG2), Map.of(CORES, 10.0)),
+                event(Set.of(TAG3), Map.of(CORES, 8.0)))));
   }
 
   @ParameterizedTest
@@ -477,81 +480,81 @@ class EventConflictResolverTest {
         Arguments.of(
             List.of(),
             List.of(
-                event(Set.of("T1"), Map.of("cores", 10.0)),
-                event(Set.of("T1"), Map.of("instance-hours", 20.0))),
+                event(Set.of(TAG1), Map.of(CORES, 10.0)),
+                event(Set.of(TAG1), Map.of(INSTANCE_HOURS, 20.0))),
             List.of(
-                event(Set.of("T1"), Map.of("cores", 10.0)),
-                event(Set.of("T1"), Map.of("instance-hours", 20.0)))),
+                event(Set.of(TAG1), Map.of(CORES, 10.0)),
+                event(Set.of(TAG1), Map.of(INSTANCE_HOURS, 20.0)))),
         Arguments.of(
             List.of(
-                event(Set.of("T1"), Map.of("cores", 10.0)),
-                event(Set.of("T1"), Map.of("instance-hours", 20.0))),
-            List.of(event(Set.of("T1", "T2"), Map.of("cores", 20.0, "instance-hours", 40.0))),
+                event(Set.of(TAG1), Map.of(CORES, 10.0)),
+                event(Set.of(TAG1), Map.of(INSTANCE_HOURS, 20.0))),
+            List.of(event(Set.of(TAG1, TAG2), Map.of(CORES, 20.0, INSTANCE_HOURS, 40.0))),
             List.of(
-                deduction(Set.of("T1"), Map.of("cores", -10.0)),
-                deduction(Set.of("T1"), Map.of("instance-hours", -20.0)),
-                event(Set.of("T1"), Map.of("cores", 20.0)),
-                event(Set.of("T2"), Map.of("cores", 20.0)),
-                event(Set.of("T1"), Map.of("instance-hours", 40.0)),
-                event(Set.of("T2"), Map.of("instance-hours", 40.0)))),
+                deduction(Set.of(TAG1), Map.of(CORES, -10.0)),
+                deduction(Set.of(TAG1), Map.of(INSTANCE_HOURS, -20.0)),
+                event(Set.of(TAG1), Map.of(CORES, 20.0)),
+                event(Set.of(TAG2), Map.of(CORES, 20.0)),
+                event(Set.of(TAG1), Map.of(INSTANCE_HOURS, 40.0)),
+                event(Set.of(TAG2), Map.of(INSTANCE_HOURS, 40.0)))),
         Arguments.of(
-            List.of(event(Set.of("T1"), Map.of("cores", 10.0, "instance-hours", 4.0))),
-            List.of(event(Set.of("T1", "T2"), Map.of("cores", 10.0, "instance-hours", 4.0))),
+            List.of(event(Set.of(TAG1), Map.of(CORES, 10.0, INSTANCE_HOURS, 4.0))),
+            List.of(event(Set.of(TAG1, TAG2), Map.of(CORES, 10.0, INSTANCE_HOURS, 4.0))),
             List.of(
-                event(Set.of("T2"), Map.of("cores", 10.0)),
-                event(Set.of("T2"), Map.of("instance-hours", 4.0)))),
+                event(Set.of(TAG2), Map.of(CORES, 10.0)),
+                event(Set.of(TAG2), Map.of(INSTANCE_HOURS, 4.0)))),
         Arguments.of(
-            List.of(event(Set.of("T1"), Map.of("cores", 10.0, "instance-hours", 20.0))),
-            List.of(event(Set.of("T1"), Map.of("cores", 20.0, "instance-hours", 40.0))),
+            List.of(event(Set.of(TAG1), Map.of(CORES, 10.0, INSTANCE_HOURS, 20.0))),
+            List.of(event(Set.of(TAG1), Map.of(CORES, 20.0, INSTANCE_HOURS, 40.0))),
             List.of(
-                deduction(Set.of("T1"), Map.of("cores", -10.0)),
-                deduction(Set.of("T1"), Map.of("instance-hours", -20.0)),
-                event(Set.of("T1"), Map.of("cores", 20.0)),
-                event(Set.of("T1"), Map.of("instance-hours", 40.0)))),
+                deduction(Set.of(TAG1), Map.of(CORES, -10.0)),
+                deduction(Set.of(TAG1), Map.of(INSTANCE_HOURS, -20.0)),
+                event(Set.of(TAG1), Map.of(CORES, 20.0)),
+                event(Set.of(TAG1), Map.of(INSTANCE_HOURS, 40.0)))),
         Arguments.of(
-            List.of(event(Set.of("T1", "T2"), Map.of("cores", 10.0, "instance-hours", 20.0))),
-            List.of(event(Set.of("T1", "T2"), Map.of("cores", 20.0, "instance-hours", 40.0))),
+            List.of(event(Set.of(TAG1, TAG2), Map.of(CORES, 10.0, INSTANCE_HOURS, 20.0))),
+            List.of(event(Set.of(TAG1, TAG2), Map.of(CORES, 20.0, INSTANCE_HOURS, 40.0))),
             List.of(
-                deduction(Set.of("T1"), Map.of("cores", -10.0)),
-                deduction(Set.of("T2"), Map.of("cores", -10.0)),
-                deduction(Set.of("T1"), Map.of("instance-hours", -20.0)),
-                deduction(Set.of("T2"), Map.of("instance-hours", -20.0)),
-                event(Set.of("T1"), Map.of("cores", 20.0)),
-                event(Set.of("T2"), Map.of("cores", 20.0)),
-                event(Set.of("T1"), Map.of("instance-hours", 40.0)),
-                event(Set.of("T2"), Map.of("instance-hours", 40.0)))),
+                deduction(Set.of(TAG1), Map.of(CORES, -10.0)),
+                deduction(Set.of(TAG2), Map.of(CORES, -10.0)),
+                deduction(Set.of(TAG1), Map.of(INSTANCE_HOURS, -20.0)),
+                deduction(Set.of(TAG2), Map.of(INSTANCE_HOURS, -20.0)),
+                event(Set.of(TAG1), Map.of(CORES, 20.0)),
+                event(Set.of(TAG2), Map.of(CORES, 20.0)),
+                event(Set.of(TAG1), Map.of(INSTANCE_HOURS, 40.0)),
+                event(Set.of(TAG2), Map.of(INSTANCE_HOURS, 40.0)))),
         Arguments.of(
-            List.of(event(Set.of("T1", "T2"), Map.of("cores", 10.0, "instance-hours", 20.0))),
+            List.of(event(Set.of(TAG1, TAG2), Map.of(CORES, 10.0, INSTANCE_HOURS, 20.0))),
             List.of(
-                event(Set.of("T1"), Map.of("cores", 20.0, "instance-hours", 40.0)),
-                event(Set.of("T2"), Map.of("cores", 20.0, "instance-hours", 40.0))),
+                event(Set.of(TAG1), Map.of(CORES, 20.0, INSTANCE_HOURS, 40.0)),
+                event(Set.of(TAG2), Map.of(CORES, 20.0, INSTANCE_HOURS, 40.0))),
             List.of(
-                deduction(Set.of("T1"), Map.of("cores", -10.0)),
-                deduction(Set.of("T1"), Map.of("instance-hours", -20.0)),
-                deduction(Set.of("T2"), Map.of("cores", -10.0)),
-                deduction(Set.of("T2"), Map.of("instance-hours", -20.0)),
-                event(Set.of("T1"), Map.of("cores", 20.0)),
-                event(Set.of("T1"), Map.of("instance-hours", 40.0)),
-                event(Set.of("T2"), Map.of("cores", 20.0)),
-                event(Set.of("T2"), Map.of("instance-hours", 40.0)))),
+                deduction(Set.of(TAG1), Map.of(CORES, -10.0)),
+                deduction(Set.of(TAG1), Map.of(INSTANCE_HOURS, -20.0)),
+                deduction(Set.of(TAG2), Map.of(CORES, -10.0)),
+                deduction(Set.of(TAG2), Map.of(INSTANCE_HOURS, -20.0)),
+                event(Set.of(TAG1), Map.of(CORES, 20.0)),
+                event(Set.of(TAG1), Map.of(INSTANCE_HOURS, 40.0)),
+                event(Set.of(TAG2), Map.of(CORES, 20.0)),
+                event(Set.of(TAG2), Map.of(INSTANCE_HOURS, 40.0)))),
         Arguments.of(
-            List.of(event(Set.of("T1", "T2"), Map.of("cores", 10.0, "instance-hours", 20.0))),
-            List.of(event(Set.of("T1", "T2"), Map.of("cores", 10.0, "instance-hours", 40.0))),
+            List.of(event(Set.of(TAG1, TAG2), Map.of(CORES, 10.0, INSTANCE_HOURS, 20.0))),
+            List.of(event(Set.of(TAG1, TAG2), Map.of(CORES, 10.0, INSTANCE_HOURS, 40.0))),
             List.of(
-                deduction(Set.of("T1"), Map.of("instance-hours", -20.0)),
-                deduction(Set.of("T2"), Map.of("instance-hours", -20.0)),
-                event(Set.of("T1"), Map.of("instance-hours", 40.0)),
-                event(Set.of("T2"), Map.of("instance-hours", 40.0)))),
+                deduction(Set.of(TAG1), Map.of(INSTANCE_HOURS, -20.0)),
+                deduction(Set.of(TAG2), Map.of(INSTANCE_HOURS, -20.0)),
+                event(Set.of(TAG1), Map.of(INSTANCE_HOURS, 40.0)),
+                event(Set.of(TAG2), Map.of(INSTANCE_HOURS, 40.0)))),
         Arguments.of(
-            List.of(event(Set.of("T1", "T2"), Map.of("cores", 10.0, "instance-hours", 20.0))),
-            List.of(event(Set.of("T1", "T2", "T3"), Map.of("cores", 10.0, "instance-hours", 40.0))),
+            List.of(event(Set.of(TAG1, TAG2), Map.of(CORES, 10.0, INSTANCE_HOURS, 20.0))),
+            List.of(event(Set.of(TAG1, TAG2, TAG3), Map.of(CORES, 10.0, INSTANCE_HOURS, 40.0))),
             List.of(
-                deduction(Set.of("T1"), Map.of("instance-hours", -20.0)),
-                deduction(Set.of("T2"), Map.of("instance-hours", -20.0)),
-                event(Set.of("T1"), Map.of("instance-hours", 40.0)),
-                event(Set.of("T2"), Map.of("instance-hours", 40.0)),
-                event(Set.of("T3"), Map.of("cores", 10.0)),
-                event(Set.of("T3"), Map.of("instance-hours", 40.0)))));
+                deduction(Set.of(TAG1), Map.of(INSTANCE_HOURS, -20.0)),
+                deduction(Set.of(TAG2), Map.of(INSTANCE_HOURS, -20.0)),
+                event(Set.of(TAG1), Map.of(INSTANCE_HOURS, 40.0)),
+                event(Set.of(TAG2), Map.of(INSTANCE_HOURS, 40.0)),
+                event(Set.of(TAG3), Map.of(CORES, 10.0)),
+                event(Set.of(TAG3), Map.of(INSTANCE_HOURS, 40.0)))));
   }
 
   @ParameterizedTest
@@ -690,7 +693,7 @@ class EventConflictResolverTest {
     }
 
     private EventArgument(Map<String, Double> measurements) {
-      this(Set.of("T1"), measurements);
+      this(Set.of(TAG1), measurements);
     }
 
     Event toEvent() {
