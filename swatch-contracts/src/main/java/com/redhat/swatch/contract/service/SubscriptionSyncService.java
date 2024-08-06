@@ -75,7 +75,6 @@ public class SubscriptionSyncService {
   private final ProductDenylist productDenylist;
   private final EntityManager entityManager;
 
-  @Transactional
   public void syncSubscription(
       Subscription subscription, Optional<SubscriptionEntity> subscriptionOptional) {
     final SubscriptionEntity newOrUpdated = convertDto(subscription);
@@ -91,7 +90,6 @@ public class SubscriptionSyncService {
    *     persistence context</strong>
    * @param subscriptionOptional optional existing Subscription. Managed in the persistence context.
    */
-  @Transactional
   @SuppressWarnings("java:S3776")
   public void syncSubscription(
       String sku,
@@ -191,13 +189,13 @@ public class SubscriptionSyncService {
                 .billingProvider(newOrUpdated.getBillingProvider())
                 .build();
         capacityReconciliationService.reconcileCapacityForSubscription(newSub);
-        subscriptionRepository.persist(newSub);
+        subscriptionRepository.saveOrUpdate(newSub);
       } else {
         updateExistingSubscription(newOrUpdated, existingSubscription);
-        subscriptionRepository.persist(existingSubscription);
+        subscriptionRepository.saveOrUpdate(existingSubscription);
       }
     } else {
-      subscriptionRepository.persist(newOrUpdated);
+      subscriptionRepository.saveOrUpdate(newOrUpdated);
     }
   }
 
