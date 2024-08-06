@@ -69,7 +69,6 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
             'instance_id': inventory_id,
             'inventory_id': inventory_id,
             'insights_id': insights_id,
-            'account_number': account,
             'org_id': org,
             'display_name': display_name or insights_id,
             'subscription_manager_id': subscription_manager_id or uuid.uuid4(),
