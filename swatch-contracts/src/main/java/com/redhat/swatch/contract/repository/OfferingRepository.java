@@ -21,7 +21,6 @@
 package com.redhat.swatch.contract.repository;
 
 import com.redhat.swatch.panache.PanacheSpecificationSupport;
-import io.quarkus.hibernate.orm.panache.runtime.JpaOperations;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -44,9 +43,5 @@ public class OfferingRepository implements PanacheSpecificationSupport<OfferingE
   public Set<String> findAllDistinctSkus() {
     return find("select distinct sku from OfferingEntity").project(String.class).stream()
         .collect(Collectors.toSet());
-  }
-
-  public void saveOrUpdate(OfferingEntity offeringEntity) {
-    JpaOperations.INSTANCE.getEntityManager().merge(offeringEntity);
   }
 }
