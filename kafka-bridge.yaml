@@ -1,0 +1,17 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: kafka-bridge
+parameters:
+- name: KAFKA_BOOTSTRAP_SERVERS
+
+objects:
+- apiVersion: kafka.strimzi.io/v1beta2
+  kind: KafkaBridge
+  metadata:
+    name: kafka-bridge
+  spec:
+    bootstrapServers: ${KAFKA_BOOTSTRAP_SERVERS}
+    http:
+      port: 8080
+    replicas: 1

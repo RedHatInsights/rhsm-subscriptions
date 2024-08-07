@@ -21,6 +21,7 @@
 package com.redhat.swatch.panache;
 
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
+import io.quarkus.hibernate.orm.panache.runtime.JpaOperations;
 import io.quarkus.panache.common.Page;
 import jakarta.persistence.TypedQuery;
 import java.util.List;
@@ -66,5 +67,9 @@ public interface PanacheSpecificationSupport<Entity, Id> extends PanacheReposito
 
   default Optional<Entity> findOne(Class<Entity> clazz, Specification<Entity> specification) {
     return query(clazz, specification, Page.of(0, 1)).getResultStream().findFirst();
+  }
+
+  default void saveOrUpdate(Entity entity) {
+    JpaOperations.INSTANCE.getEntityManager().merge(entity);
   }
 }
