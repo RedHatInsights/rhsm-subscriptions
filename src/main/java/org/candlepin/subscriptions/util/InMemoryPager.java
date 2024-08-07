@@ -26,6 +26,10 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
 public class InMemoryPager {
+  private InMemoryPager() {
+    /* intentionally empty */
+  }
+
   public static <T> Page<T> paginate(List<T> items, Pageable pageable) {
     if (pageable == null || pageable.isUnpaged()) {
       return new PageImpl<>(items);
