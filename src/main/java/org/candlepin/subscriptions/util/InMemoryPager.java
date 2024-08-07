@@ -27,7 +27,7 @@ import org.springframework.data.domain.Pageable;
 
 public class InMemoryPager {
   public static <T> Page<T> paginate(List<T> items, Pageable pageable) {
-    if (pageable == null) {
+    if (pageable == null || pageable.isUnpaged()) {
       return new PageImpl<>(items);
     }
     if (pageable.getOffset() > items.size()) {
