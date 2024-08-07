@@ -836,9 +836,7 @@ class CapacityResourceTest {
                     null));
 
     assertEquals(
-        String.format(
-            "%s does not support any granularity finer than %s",
-            RHEL_FOR_ARM, GranularityType.HOURLY),
+        String.format("%s does not support granularity %s", RHEL_FOR_ARM, GranularityType.HOURLY),
         thrownException.getMessage());
   }
 
