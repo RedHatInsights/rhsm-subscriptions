@@ -467,6 +467,13 @@ class SubscriptionSyncServiceTest {
   }
 
   @Test
+  void shouldFailOfferingBuildOnNullSubscriptionSku() {
+    var dto1 = createDto("234", 3);
+    dto1.getSubscriptionProducts().get(0).setSku(null);
+    assertThrows(IllegalStateException.class, () -> SubscriptionDtoUtil.extractSku(dto1));
+  }
+
+  @Test
   void testSubscriptionEnrichedFromSubscriptionServiceWhenDbRecordAbsentAndSubscriptionIdMissing() {
     SubscriptionEntity incoming = createConvertedDtoSubscription("123", null, null);
     incoming.setSubscriptionNumber("subnum");
