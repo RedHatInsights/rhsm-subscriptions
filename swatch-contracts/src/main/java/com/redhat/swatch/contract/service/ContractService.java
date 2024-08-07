@@ -413,7 +413,7 @@ public class ContractService {
     boolean areRecordsUpdated = !subscriptionsToPersist.isEmpty();
     if (areRecordsUpdated) {
       log.info("Persisting subscriptions: {}", subscriptionsToPersist);
-      subscriptionsToPersist.forEach(subscriptionRepository::saveOrUpdate);
+      subscriptionsToPersist.forEach(subscriptionRepository::persist);
     }
     return areRecordsUpdated;
   }
@@ -523,7 +523,7 @@ public class ContractService {
         .findContracts(ContractEntity.orgIdEquals(orgId))
         // we only want to update existing subscriptions, so we don't need to provide the
         // subscriptionId here.
-        .forEach(contract -> syncSubscriptionForContract(contract, null));
+        .forEach(this::syncSubscriptionForContract);
 
     statusResponse.setStatus(SUCCESS_MESSAGE);
     return statusResponse;
@@ -561,25 +561,23 @@ public class ContractService {
     return null;
   }
 
-  private void syncSubscriptionForContract(ContractEntity existingContract, String subscriptionId) {
+  private void syncSubscriptionForContract(ContractEntity existingContract) {
     if (existingContract.getSubscriptionNumber() != null) {
 
       log.debug("Synchronizing the subscription for contract {}", existingContract);
-      SubscriptionEntity subscription =
-          createOrUpdateSubscription(existingContract, subscriptionId);
-      subscriptionRepository.saveOrUpdate(subscription);
+      SubscriptionEntity subscription = createOrUpdateSubscription(existingContract);
+      subscriptionRepository.persist(subscription);
     }
   }
 
-  private SubscriptionEntity createOrUpdateSubscription(
-      ContractEntity contract, String subscriptionId) {
+  private SubscriptionEntity createOrUpdateSubscription(ContractEntity contract) {
     Optional<SubscriptionEntity> existingSubscription =
         subscriptionRepository
             .find(SubscriptionEntity.class, SubscriptionEntity.forContract(contract))
             .stream()
             .findFirst();
     if (existingSubscription.isEmpty()) {
-      return createSubscriptionForContract(contract, subscriptionId);
+      return createSubscriptionForContract(contract, null);
     } else {
       updateSubscriptionForContract(existingSubscription.get(), contract);
       return existingSubscription.get();
