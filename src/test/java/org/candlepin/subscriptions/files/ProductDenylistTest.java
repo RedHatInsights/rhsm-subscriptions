@@ -52,6 +52,7 @@ class ProductDenylistTest {
     assertTrue(denylist.productIdMatches("I3"));
     assertFalse(denylist.productIdMatches("I111"));
     assertFalse(denylist.productIdMatches("I112"));
+    assertFalse(denylist.productIdMatches(null));
   }
 
   @ParameterizedTest

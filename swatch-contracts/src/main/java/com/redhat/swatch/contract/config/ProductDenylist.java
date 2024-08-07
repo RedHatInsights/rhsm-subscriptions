@@ -162,6 +162,9 @@ public class ProductDenylist {
   }
 
   public boolean productIdMatches(String productId) {
+    if (productId == null) {
+      return false;
+    }
     String normalizedSku = removeSuffix(productId);
     boolean isDenylisted = skuSet.contains(normalizedSku);
     if (isDenylisted) {
