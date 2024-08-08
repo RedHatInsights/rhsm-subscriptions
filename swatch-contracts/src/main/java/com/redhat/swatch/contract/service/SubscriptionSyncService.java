@@ -189,13 +189,16 @@ public class SubscriptionSyncService {
                 .billingProvider(newOrUpdated.getBillingProvider())
                 .build();
         capacityReconciliationService.reconcileCapacityForSubscription(newSub);
-        subscriptionRepository.saveOrUpdate(newSub);
+        // merge is needed here because the existing subscription might not be found if we only use
+        // the subscription number (since primary keys are subscription ID and start date).
+        // To be fixed in SWATCH-2801.
+        subscriptionRepository.merge(newSub);
       } else {
         updateExistingSubscription(newOrUpdated, existingSubscription);
-        subscriptionRepository.saveOrUpdate(existingSubscription);
+        subscriptionRepository.persist(existingSubscription);
       }
     } else {
-      subscriptionRepository.saveOrUpdate(newOrUpdated);
+      subscriptionRepository.persist(newOrUpdated);
     }
   }
 

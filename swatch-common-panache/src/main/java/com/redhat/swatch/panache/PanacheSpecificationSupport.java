@@ -69,7 +69,7 @@ public interface PanacheSpecificationSupport<Entity, Id> extends PanacheReposito
     return query(clazz, specification, Page.of(0, 1)).getResultStream().findFirst();
   }
 
-  default void saveOrUpdate(Entity entity) {
-    JpaOperations.INSTANCE.getEntityManager().merge(entity);
+  default Entity merge(Entity entity) {
+    return JpaOperations.INSTANCE.getEntityManager().merge(entity);
   }
 }
