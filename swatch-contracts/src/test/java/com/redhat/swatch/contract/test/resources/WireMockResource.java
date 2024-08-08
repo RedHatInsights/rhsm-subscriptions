@@ -64,6 +64,8 @@ public class WireMockResource implements QuarkusTestResourceLifecycleManager {
     var config = new HashMap<String, String>();
     config.put("KEYSTORE_RESOURCE", String.format("file:%s", CLIENT_KEYSTORE_PATH));
     config.put("KEYSTORE_PASSWORD", STORE_PASSWORD);
+    config.put("SUBSCRIPTION_KEYSTORE", String.format("file:%s", CLIENT_KEYSTORE_PATH));
+    config.put("SUBSCRIPTION_KEYSTORE_PASSWORD", STORE_PASSWORD);
     config.put("TRUSTSTORE_RESOURCE", String.format("file:%s", TRUSTSTORE_PATH));
     config.put("TRUSTSTORE_PASSWORD", STORE_PASSWORD);
     config.put(
