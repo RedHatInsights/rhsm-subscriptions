@@ -18,19 +18,11 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.billable.usage.configuration;
+package com.redhat.swatch.aws.exception;
 
-public final class Channels {
+public class SubscriptionCanNotBeDeterminedException extends AwsProducerException {
 
-  public static final String ENABLED_ORGS = "enabled-orgs";
-  public static final String TALLY_SUMMARY = "tally-summary";
-  public static final String REMITTANCES_PURGE_TASK = "remittances-purge-task";
-  public static final String BILLABLE_USAGE_OUT = "billable-usage-out";
-  public static final String BILLABLE_USAGE_DLT = "billable-usage-dlt";
-  public static final String BILLABLE_USAGE_DLT_OUT = "billable-usage-dlt-out";
-  public static final String BILLABLE_USAGE_AGGREGATION_OUT =
-      "billable-usage-aggregation-repartition-out";
-  public static final String BILLABLE_USAGE_STATUS = "billable-usage-status-in";
-
-  private Channels() {}
+  public SubscriptionCanNotBeDeterminedException(Exception e) {
+    super(ErrorCode.SUBSCRIPTION_CANNOT_BE_DETERMINED, e);
+  }
 }

@@ -30,7 +30,10 @@ public enum ErrorCode {
   AWS_USAGE_CONTEXT_LOOKUP_ERROR(1004, "Error looking up AWS usage context"),
   AWS_MANUAL_SUBMISSION_DISABLED(1005, "Manual submission disabled."),
   SUBSCRIPTION_RECENTLY_TERMINATED(1006, "Subscription recently terminated"),
-  USAGE_TIMESTAMP_OUT_OF_RANGE(1007, "Usage timestamp will not be accepted by AWS");
+  USAGE_TIMESTAMP_OUT_OF_RANGE(1007, "Usage timestamp will not be accepted by AWS"),
+  SUBSCRIPTION_CANNOT_BE_DETERMINED(
+      1010,
+      "Multiple possible matches found. Likely a subscription is missing part of its billingAccountId.");
 
   private static final String CODE_PREFIX = "SWATCHAWS";
 

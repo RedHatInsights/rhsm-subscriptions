@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.billable.usage.services;
 
+import static com.redhat.swatch.billable.usage.kafka.InMemoryMessageBrokerKafkaResource.IN_MEMORY_CONNECTOR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.verify;
@@ -34,8 +35,8 @@ import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectSpy;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
+import io.smallrye.reactive.messaging.memory.InMemorySink;
 import io.smallrye.reactive.messaging.memory.InMemorySource;
-import jakarta.enterprise.inject.Any;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
@@ -44,9 +45,12 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.awaitility.Awaitility;
+import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsage.ErrorCode;
 import org.candlepin.subscriptions.billable.usage.BillableUsage.Status;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
+import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
+import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -56,21 +60,27 @@ import org.junit.jupiter.api.Test;
     restrictToAnnotatedClass = true)
 class BillableUsageStatusConsumerTest {
 
+  private static final String ORG_ID = "org123";
+  private static final OffsetDateTime BILLED_ON =
+      OffsetDateTime.of(2024, 5, 10, 10, 20, 5, 0, ZoneOffset.UTC);
+
   @InjectSpy BillableUsageStatusConsumer consumer;
-  @Inject @Any InMemoryConnector connector;
+
+  @Inject
+  @Connector(IN_MEMORY_CONNECTOR)
+  InMemoryConnector connector;
+
   @InjectSpy BillableUsageRemittanceRepository remittanceRepository;
 
   private InMemorySource<BillableUsageAggregate> source;
-
-  private static final String ORG_ID = "org123";
-
-  private static OffsetDateTime BILLED_ON =
-      OffsetDateTime.of(2024, 5, 10, 10, 20, 5, 0, ZoneOffset.UTC);
+  private InMemorySink<BillableUsage> dlt;
 
   @BeforeEach
   @Transactional
   void setUp() {
     source = connector.source(Channels.BILLABLE_USAGE_STATUS);
+    dlt = connector.sink(Channels.BILLABLE_USAGE_DLT_OUT);
+    dlt.clear();
     remittanceRepository.deleteAll();
   }
 
@@ -101,7 +111,28 @@ class BillableUsageStatusConsumerTest {
             .map(UUID::toString)
             .collect(Collectors.toList()));
     whenSendResponse(message);
-    Awaitility.await().untilAsserted(this::verifyUpdateForFailure);
+    Awaitility.await().untilAsserted(() -> verifyUpdateForFailure(RemittanceErrorCode.INACTIVE));
+    // Since the usage failed with inactive, we should not send the usage to the dlt topic.
+    assertEquals(0, dlt.received().size());
+  }
+
+  @Test
+  void testWhenUsageThatFailedWithSubscriptionNotFoundThenUsageSentToDlt() {
+    var existingRemittances = givenExistingRemittance();
+    var message = new BillableUsageAggregate();
+    message.setAggregateKey(new BillableUsageAggregateKey());
+    message.getAggregateKey().setBillingProvider("aws");
+    message.setStatus(Status.FAILED);
+    message.setErrorCode(ErrorCode.SUBSCRIPTION_NOT_FOUND);
+    message.setRemittanceUuids(
+        existingRemittances.stream()
+            .map(BillableUsageRemittanceEntity::getUuid)
+            .map(UUID::toString)
+            .toList());
+    whenSendResponse(message);
+    Awaitility.await()
+        .untilAsserted(() -> verifyUpdateForFailure(RemittanceErrorCode.SUBSCRIPTION_NOT_FOUND));
+    assertEquals(existingRemittances.size(), dlt.received().size());
   }
 
   @Transactional
@@ -151,13 +182,13 @@ class BillableUsageStatusConsumerTest {
   }
 
   @Transactional
-  void verifyUpdateForFailure() {
-    var results = remittanceRepository.findAll().stream().collect(Collectors.toList());
-    results.stream()
+  void verifyUpdateForFailure(RemittanceErrorCode expected) {
+    remittanceRepository.findAll().stream()
+        .toList()
         .forEach(
             result -> {
               assertEquals(RemittanceStatus.FAILED, result.getStatus());
-              assertEquals(RemittanceErrorCode.INACTIVE, result.getErrorCode());
+              assertEquals(expected, result.getErrorCode());
               assertNull(result.getBilledOn());
             });
   }

@@ -57,6 +57,9 @@ properties:
     enum:
       - inactive
       - redundant
+      - subscription_not_found
+      - subscription_terminated
+      - usage_context_lookup
       - unknown
   billed_on:
     type: string

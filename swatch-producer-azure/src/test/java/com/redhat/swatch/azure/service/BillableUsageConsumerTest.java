@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.azure.service;
 
+import static com.redhat.swatch.azure.configuration.Channels.TALLY_DLT;
 import static com.redhat.swatch.azure.service.BillableUsageDeadLetterTopicProducer.RETRY_AFTER_HEADER;
 import static com.redhat.swatch.azure.test.resources.InMemoryMessageBrokerKafkaResource.IN_MEMORY_CONNECTOR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -157,7 +158,7 @@ class BillableUsageConsumerTest {
 
   @Test
   void shouldSendMessageToDeadLetterQueueIfSubscriptionNotFound() throws ApiException {
-    var dlq = connector.sink("tally-dlt");
+    var dlq = connector.sink(TALLY_DLT);
     dlq.clear();
     when(internalSubscriptionsApi.getAzureMarketplaceContext(
             any(), any(), any(), any(), any(), any()))
@@ -174,7 +175,7 @@ class BillableUsageConsumerTest {
   @Test
   void shouldNotSendMessageToDeadLetterQueueIfSnapshotDateIsOutOfTheTimeWindow()
       throws ApiException {
-    var dlq = connector.sink("tally-dlt");
+    var dlq = connector.sink(TALLY_DLT);
     dlq.clear();
 
     when(internalSubscriptionsApi.getAzureMarketplaceContext(
