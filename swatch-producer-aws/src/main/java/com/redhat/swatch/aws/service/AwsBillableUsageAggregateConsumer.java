@@ -24,6 +24,7 @@ import com.redhat.swatch.aws.exception.AwsMissingCredentialsException;
 import com.redhat.swatch.aws.exception.AwsUnprocessedRecordsException;
 import com.redhat.swatch.aws.exception.AwsUsageContextLookupException;
 import com.redhat.swatch.aws.exception.DefaultApiException;
+import com.redhat.swatch.aws.exception.SubscriptionCanNotBeDeterminedException;
 import com.redhat.swatch.aws.exception.SubscriptionRecentlyTerminatedException;
 import com.redhat.swatch.aws.exception.UsageTimestampOutOfBoundsException;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AwsUsageContext;
@@ -37,6 +38,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.ProcessingException;
+import jakarta.ws.rs.core.Response;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -69,13 +71,15 @@ public class AwsBillableUsageAggregateConsumer {
   private final AwsMarketplaceMeteringClientFactory awsMarketplaceMeteringClientFactory;
   private final Optional<Boolean> isDryRun;
   private final Duration awsUsageWindow;
+  private final BillableUsageStatusProducer billableUsageStatusProducer;
 
   public AwsBillableUsageAggregateConsumer(
       MeterRegistry meterRegistry,
       @RestClient InternalSubscriptionsApi internalSubscriptionsApi,
       AwsMarketplaceMeteringClientFactory awsMarketplaceMeteringClientFactory,
       @ConfigProperty(name = "ENABLE_AWS_DRY_RUN") Optional<Boolean> isDryRun,
-      @ConfigProperty(name = "AWS_MARKETPLACE_USAGE_WINDOW") Duration awsUsageWindow) {
+      @ConfigProperty(name = "AWS_MARKETPLACE_USAGE_WINDOW") Duration awsUsageWindow,
+      BillableUsageStatusProducer billableUsageStatusProducer) {
     acceptedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_accepted_total");
     rejectedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_rejected_total");
     ignoreCounter = meterRegistry.counter("swatch_aws_marketplace_batch_ignored_total");
@@ -83,6 +87,7 @@ public class AwsBillableUsageAggregateConsumer {
     this.awsMarketplaceMeteringClientFactory = awsMarketplaceMeteringClientFactory;
     this.isDryRun = isDryRun;
     this.awsUsageWindow = awsUsageWindow;
+    this.billableUsageStatusProducer = billableUsageStatusProducer;
   }
 
   @Incoming("billable-usage-hourly-aggregate-in")
@@ -105,14 +110,30 @@ public class AwsBillableUsageAggregateConsumer {
           billableUsageAggregate);
       return;
     } else {
-
       log.info("Processing billable usage message: {}", billableUsageAggregate);
     }
 
     AwsUsageContext context;
     try {
       context = lookupAwsUsageContext(billableUsageAggregate);
+    } catch (SubscriptionCanNotBeDeterminedException e) {
+      if (!isUsageDateValid(Clock.systemUTC(), billableUsageAggregate)) {
+        log.warn(
+            "Skipping billable usage with id={} orgId={} remittanceUUIDs={} because the subscription was not found and the snapshot '{}' is past the aws time window of '{}'",
+            billableUsageAggregate.getAggregateId(),
+            billableUsageAggregate.getAggregateKey().getOrgId(),
+            billableUsageAggregate.getRemittanceUuids(),
+            billableUsageAggregate.getWindowTimestamp(),
+            awsUsageWindow);
+        emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.INACTIVE);
+      } else {
+        emitErrorStatusOnUsage(
+            billableUsageAggregate, BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND);
+      }
+      return;
     } catch (SubscriptionRecentlyTerminatedException e) {
+      emitErrorStatusOnUsage(
+          billableUsageAggregate, BillableUsage.ErrorCode.SUBSCRIPTION_TERMINATED);
       log.info(
           "Subscription recently terminated for billableUsageAggregateId={} orgId={} remittanceUUIDs={}",
           billableUsageAggregate.getAggregateId(),
@@ -120,6 +141,7 @@ public class AwsBillableUsageAggregateConsumer {
           billableUsageAggregate.getRemittanceUuids());
       return;
     } catch (AwsUsageContextLookupException e) {
+      emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.USAGE_CONTEXT_LOOKUP);
       log.error(
           "Error looking up aws usage context for aggregateId={} orgId={} remittanceUUIDs={}",
           billableUsageAggregate.getAggregateId(),
@@ -130,7 +152,9 @@ public class AwsBillableUsageAggregateConsumer {
     }
     try {
       transformAndSend(context, billableUsageAggregate, metric.get());
+      emitSuccessfulStatusOnUsage(billableUsageAggregate);
     } catch (UsageTimestampOutOfBoundsException e) {
+      emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.REDUNDANT);
       log.warn(
           "{} orgId={} remittanceUUIDs={} aggregateId={} productId={} windowTimestamp={} rhSubscriptionId={} awsCustomerId={} awsProductCode={} subscriptionStartDate={} value={}",
           e.getMessage(),
@@ -146,6 +170,7 @@ public class AwsBillableUsageAggregateConsumer {
           billableUsageAggregate.getTotalValue());
       ignoreCounter.increment();
     } catch (Exception e) {
+      emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.UNKNOWN);
       log.error(
           "Error sending aws usage for rhSubscriptionId={} aggregateId={} awsCustomerId={} awsProductCode={} orgId={} remittanceUUIDs={}",
           context.getRhSubscriptionId(),
@@ -178,6 +203,9 @@ public class AwsBillableUsageAggregateConsumer {
         if (isRecentlyTerminatedError) {
           throw new SubscriptionRecentlyTerminatedException(e);
         }
+      }
+      if (Response.Status.NOT_FOUND.getStatusCode() == e.getResponse().getStatus()) {
+        throw new SubscriptionCanNotBeDeterminedException(e);
       }
       throw new AwsUsageContextLookupException(e);
     } catch (ProcessingException | ApiException e) {
@@ -318,6 +346,20 @@ public class AwsBillableUsageAggregateConsumer {
     }
 
     return metric;
+  }
+
+  private void emitSuccessfulStatusOnUsage(BillableUsageAggregate usage) {
+    usage.setStatus(BillableUsage.Status.SUCCEEDED);
+    usage.setErrorCode(null);
+    usage.setBilledOn(OffsetDateTime.now());
+    billableUsageStatusProducer.emitStatus(usage);
+  }
+
+  private void emitErrorStatusOnUsage(
+      BillableUsageAggregate usage, BillableUsage.ErrorCode errorCode) {
+    usage.setStatus(BillableUsage.Status.FAILED);
+    usage.setErrorCode(errorCode);
+    billableUsageStatusProducer.emitStatus(usage);
   }
 
   /**

@@ -21,6 +21,7 @@
 package com.redhat.swatch.azure.test.resources;
 
 import static com.redhat.swatch.azure.configuration.Channels.BILLABLE_USAGE_HOURLY_AGGREGATE;
+import static com.redhat.swatch.azure.configuration.Channels.TALLY_DLT;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
@@ -37,7 +38,7 @@ public class InMemoryMessageBrokerKafkaResource implements QuarkusTestResourceLi
     env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory("tally-in"));
     env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory(BILLABLE_USAGE_HOURLY_AGGREGATE));
     env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory("tally-out"));
-    env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory("tally-dlt"));
+    env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory(TALLY_DLT));
     return env;
   }
 

@@ -92,6 +92,9 @@ objects:
       - replicas: ${{KAFKA_BILLABLE_USAGE_REPLICAS}}
         partitions: ${{KAFKA_BILLABLE_USAGE_PARTITIONS}}
         topicName: platform.rhsm-subscriptions.billable-usage-hourly-aggregate
+      - replicas: ${{KAFKA_BILLABLE_USAGE_REPLICAS}}
+        partitions: ${{KAFKA_BILLABLE_USAGE_PARTITIONS}}
+        topicName: platform.rhsm-subscriptions.billable-usage.status
 
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}

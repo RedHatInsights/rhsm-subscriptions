@@ -33,6 +33,9 @@ import lombok.Getter;
 public enum RemittanceErrorCode {
   INACTIVE("inactive"),
   REDUNDANT("redundant"),
+  SUBSCRIPTION_NOT_FOUND("subscription_not_found"),
+  SUBSCRIPTION_TERMINATED("subscription_terminated"),
+  USAGE_CONTEXT_LOOKUP("usage_context_lookup"),
   UNKNOWN("unknown");
 
   private static final Map<String, RemittanceErrorCode> VALUE_ENUM_MAP =
