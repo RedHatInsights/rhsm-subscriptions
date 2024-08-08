@@ -162,7 +162,7 @@ public class OfferingSyncService {
 
     // Update to the new entry or create it.
     try {
-      offeringRepository.saveOrUpdate(newState);
+      newState = offeringRepository.merge(newState);
       offeringRepository.flush();
     } catch (PersistenceException ex) {
       log.debug(

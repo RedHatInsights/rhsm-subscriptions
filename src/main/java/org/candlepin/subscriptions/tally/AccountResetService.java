@@ -58,8 +58,8 @@ public class AccountResetService {
 
   @Transactional
   public void deleteDataForOrg(String orgId) {
-    accountServiceInventoryRepository.deleteByIdOrgId(orgId);
     hostRepo.deleteByOrgId(orgId);
+    accountServiceInventoryRepository.deleteByIdOrgId(orgId);
     eventRecordRepo.deleteByOrgId(orgId);
     tallySnapshotRepository.deleteByOrgId(orgId);
     subscriptionRepository.deleteByOrgId(orgId);
