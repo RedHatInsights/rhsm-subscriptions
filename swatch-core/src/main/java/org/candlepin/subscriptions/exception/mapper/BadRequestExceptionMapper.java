@@ -37,10 +37,16 @@ import org.springframework.stereotype.Component;
 public class BadRequestExceptionMapper extends BaseExceptionMapper<BadRequestException> {
   @Override
   protected Error buildError(BadRequestException exception) {
-    return new Error()
-        .code(ErrorCode.REQUEST_PROCESSING_ERROR.getCode())
-        .status(String.valueOf(Response.Status.BAD_REQUEST.getStatusCode()))
-        .title("Bad Request")
-        .detail(exception.getCause().getMessage());
+    var error =
+        new Error()
+            .code(ErrorCode.REQUEST_PROCESSING_ERROR.getCode())
+            .status(String.valueOf(Response.Status.BAD_REQUEST.getStatusCode()))
+            .title("Bad Request");
+    if (exception.getCause() != null) {
+      error.setDetail(exception.getCause().getMessage());
+    } else {
+      error.setDetail(exception.getMessage());
+    }
+    return error;
   }
 }
