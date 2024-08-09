@@ -26,3 +26,4 @@ metrics:
   - id: Instance-hours
     type: counter
     awsDimension: infrastructure
+    enableGratisUsage: true

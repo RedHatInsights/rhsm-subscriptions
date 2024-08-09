@@ -25,10 +25,12 @@ import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceFilter;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
 import com.redhat.swatch.billable.usage.data.RemittanceStatus;
 import com.redhat.swatch.billable.usage.data.RemittanceSummaryProjection;
+import com.redhat.swatch.billable.usage.exceptions.ContractCoverageException;
 import com.redhat.swatch.billable.usage.exceptions.ContractMissingException;
 import com.redhat.swatch.billable.usage.exceptions.ErrorCode;
 import com.redhat.swatch.billable.usage.services.model.BillableUsageCalculation;
 import com.redhat.swatch.billable.usage.services.model.BillingUnit;
+import com.redhat.swatch.billable.usage.services.model.ContractCoverage;
 import com.redhat.swatch.billable.usage.services.model.MetricUnit;
 import com.redhat.swatch.billable.usage.services.model.Quantity;
 import com.redhat.swatch.configuration.registry.MetricId;
@@ -37,7 +39,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
@@ -49,6 +50,8 @@ import org.candlepin.subscriptions.billable.usage.BillableUsage;
 @AllArgsConstructor
 public class BillableUsageService {
 
+  private static final ContractCoverage DEFAULT_CONTRACT_COVERAGE =
+      ContractCoverage.builder().total(0).gratis(false).build();
   private final ApplicationClock clock;
   private final BillingProducer billingProducer;
   private final BillableUsageRemittanceRepository billableUsageRemittanceRepository;
@@ -56,14 +59,21 @@ public class BillableUsageService {
 
   public void submitBillableUsage(BillableUsage usage) {
     // transaction to store the usage into database
-    usage = produceMonthlyBillable(usage);
+    try {
+      usage = produceMonthlyBillable(usage);
 
-    // transaction to send usage over kafka
-    billingProducer.produce(usage);
+      if (usage != null && usage.getStatus() != BillableUsage.Status.GRATIS) {
+        // transaction to send usage over kafka
+        billingProducer.produce(usage);
+      }
+    } catch (ContractCoverageException exception) {
+      log.debug("Skipping billable usage; see previous errors/warnings.", exception);
+    }
   }
 
   @Transactional
-  public BillableUsage produceMonthlyBillable(BillableUsage usage) {
+  public BillableUsage produceMonthlyBillable(BillableUsage usage)
+      throws ContractCoverageException {
     log.info(
         "Processing monthly billable usage for orgId={} productId={} metric={} provider={}, billingAccountId={} snapshotDate={}",
         usage.getOrgId(),
@@ -74,37 +84,14 @@ public class BillableUsageService {
         usage.getSnapshotDate());
     log.debug("Usage: {}", usage);
 
-    Optional<Double> contractValue = Optional.of(0.0);
+    ContractCoverage contractCoverage = DEFAULT_CONTRACT_COVERAGE;
     if (SubscriptionDefinition.isContractEnabled(usage.getProductId())) {
-      try {
-        contractValue = Optional.of(contractsController.getContractCoverage(usage));
-        log.debug("Adjusting usage based on contracted amount of {}", contractValue);
-      } catch (ContractMissingException ex) {
-        if (usage.getSnapshotDate().isAfter(OffsetDateTime.now().minus(30, ChronoUnit.MINUTES))) {
-          log.warn(
-              "{} - Unable to retrieve contract for usage less than {} minutes old. Usage: {}",
-              ErrorCode.CONTRACT_NOT_AVAILABLE,
-              30,
-              usage);
-        } else {
-          log.error(
-              "{} - Unable to retrieve contract for usage older than {} minutes old. Usage: {}",
-              ErrorCode.CONTRACT_NOT_AVAILABLE,
-              30,
-              usage);
-        }
-        return null;
-      } catch (IllegalStateException ise) {
-        log.error(
-            "Unable to retrieve contract for usage - Usage: {} Reason: {}",
-            usage,
-            ise.getMessage());
-        return null;
-      }
+      contractCoverage = getContractCoverage(usage);
+      log.debug("Adjusting usage based on contracted amount of {}", contractCoverage.getTotal());
     }
 
     Quantity<BillingUnit> contractAmount =
-        Quantity.fromContractCoverage(usage, contractValue.get());
+        Quantity.fromContractCoverage(usage, contractCoverage.getTotal());
     double applicableUsage =
         Quantity.of(usage.getCurrentTotal())
             .subtract(contractAmount)
@@ -128,7 +115,7 @@ public class BillableUsageService {
     usage.setBillingFactor(usageCalc.getBillingFactor());
 
     if (usageCalc.getRemittedValue() > 0) {
-      createRemittance(usage, usageCalc);
+      createRemittance(usage, usageCalc, contractCoverage);
     } else {
       log.debug("Nothing to remit. Remittance record will not be created.");
     }
@@ -146,6 +133,32 @@ public class BillableUsageService {
         usage.getBillingProvider(),
         usage.getSnapshotDate());
     return usage;
+  }
+
+  private ContractCoverage getContractCoverage(BillableUsage usage)
+      throws ContractCoverageException {
+    try {
+      return contractsController.getContractCoverage(usage);
+    } catch (ContractMissingException ex) {
+      if (usage.getSnapshotDate().isAfter(OffsetDateTime.now().minus(30, ChronoUnit.MINUTES))) {
+        log.warn(
+            "{} - Unable to retrieve contract for usage less than {} minutes old. Usage: {}",
+            ErrorCode.CONTRACT_NOT_AVAILABLE,
+            30,
+            usage);
+      } else {
+        log.error(
+            "{} - Unable to retrieve contract for usage older than {} minutes old. Usage: {}",
+            ErrorCode.CONTRACT_NOT_AVAILABLE,
+            30,
+            usage);
+      }
+      throw new ContractCoverageException(ex);
+    } catch (IllegalStateException ise) {
+      log.error(
+          "Unable to retrieve contract for usage - Usage: {} Reason: {}", usage, ise.getMessage());
+      throw new ContractCoverageException(ise);
+    }
   }
 
   protected double getTotalRemitted(BillableUsage billableUsage) {
@@ -201,7 +214,8 @@ public class BillableUsageService {
         .build();
   }
 
-  private void createRemittance(BillableUsage usage, BillableUsageCalculation usageCalc) {
+  private void createRemittance(
+      BillableUsage usage, BillableUsageCalculation usageCalc, ContractCoverage contractCoverage) {
     var newRemittance =
         BillableUsageRemittanceEntity.builder()
             .orgId(usage.getOrgId())
@@ -215,7 +229,8 @@ public class BillableUsageService {
             .remittancePendingDate(clock.now())
             .tallyId(usage.getTallyId())
             .hardwareMeasurementType(usage.getHardwareMeasurementType())
-            .status(RemittanceStatus.PENDING)
+            .status(
+                contractCoverage.isGratis() ? RemittanceStatus.GRATIS : RemittanceStatus.PENDING)
             .build();
     // Remitted value should be set to usages metric_value rather than billing_value
     newRemittance.setRemittedPendingValue(usageCalc.getRemittedValue());
@@ -224,7 +239,8 @@ public class BillableUsageService {
     // using saveAndFlush to validate the entity against the database and raise constraints
     // exception before moving forward.
     billableUsageRemittanceRepository.persistAndFlush(newRemittance);
-    usage.setStatus(BillableUsage.Status.PENDING);
+    usage.setStatus(
+        contractCoverage.isGratis() ? BillableUsage.Status.GRATIS : BillableUsage.Status.PENDING);
     usage.setUuid(newRemittance.getUuid());
   }
 }

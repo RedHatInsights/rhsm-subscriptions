@@ -326,6 +326,13 @@ public class SubscriptionDefinition {
         .orElse(null);
   }
 
+  public static boolean isMetricGratis(String productId, String metricId) {
+    return lookupSubscriptionByTag(productId)
+        .flatMap(subscriptionDefinition -> subscriptionDefinition.getMetric(metricId))
+        .map(m -> Boolean.TRUE.equals(m.getEnableGratisUsage()))
+        .orElse(false);
+  }
+
   public static List<SubscriptionDefinition> getSubscriptionDefinitions() {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions();
   }

@@ -18,24 +18,10 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.configuration.registry;
+package com.redhat.swatch.billable.usage.exceptions;
 
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import lombok.*;
-
-@Data
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
-public class Metric {
-
-  @NotNull @NotEmpty private String id; // required
-  @NotNull private MetricType type;
-  private String rhmMetricId;
-  private String awsDimension;
-  private String azureDimension;
-  private PrometheusMetric prometheus;
-  private Double billingFactor;
-  private Boolean enableGratisUsage;
+public class ContractCoverageException extends Exception {
+  public ContractCoverageException(Throwable cause) {
+    super(cause);
+  }
 }
