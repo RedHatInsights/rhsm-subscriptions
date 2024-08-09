@@ -31,6 +31,8 @@ import static org.mockito.Mockito.when;
 import com.redhat.swatch.billable.usage.configuration.ApplicationConfiguration;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceEntity;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
+import com.redhat.swatch.billable.usage.data.RemittanceErrorCode;
+import com.redhat.swatch.billable.usage.data.RemittanceStatus;
 import com.redhat.swatch.billable.usage.kafka.InMemoryMessageBrokerKafkaResource;
 import com.redhat.swatch.billable.usage.model.EnabledOrgsRequest;
 import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
@@ -107,6 +109,8 @@ class InternalBillableUsageResourceTest {
             .as(MonthlyRemittance[].class);
     assertEquals(1, remittances.length);
     assertEquals(ORG_ID, remittances[0].getOrgId());
+    assertEquals(RemittanceStatus.FAILED.getValue(), remittances[0].getRemittanceStatus());
+    assertEquals(RemittanceErrorCode.UNKNOWN.getValue(), remittances[0].getRemittanceErrorCode());
   }
 
   @Test
@@ -170,6 +174,8 @@ class InternalBillableUsageResourceTest {
             .metricId("Cores")
             .remittancePendingDate(OffsetDateTime.now())
             .remittedPendingValue(2.0)
+            .status(RemittanceStatus.FAILED)
+            .errorCode(RemittanceErrorCode.UNKNOWN)
             .retryAfter(OffsetDateTime.now().minusDays(1))
             .build();
     remittanceRepository.persist(entity);

@@ -217,6 +217,8 @@ components:
           format: date-time
         remittanceStatus:
           type: string
+        remittanceErrorCode:
+          type: string
     OrgIds:
       type: string
       properties:
