@@ -65,7 +65,7 @@ public class ProductDenylist implements ResourceLoaderAware {
   }
 
   public boolean productIdMatches(String productId) {
-    if (source == null) {
+    if (source == null || productId == null) {
       return false;
     }
     try {
