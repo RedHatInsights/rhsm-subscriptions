@@ -20,38 +20,110 @@
  */
 package com.redhat.swatch.contract.service;
 
-import static org.mockito.Mockito.only;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.any;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.redhat.swatch.clients.subscription.api.model.Subscription;
-import com.redhat.swatch.clients.subscription.api.resources.ApiException;
-import com.redhat.swatch.clients.subscription.api.resources.SearchApi;
-import io.quarkus.test.InjectMock;
+import com.github.tomakehurst.wiremock.WireMockServer;
+import com.redhat.swatch.contract.exception.ExternalServiceException;
+import com.redhat.swatch.contract.test.resources.InjectWireMock;
+import com.redhat.swatch.contract.test.resources.WireMockResource;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusTestProfile;
+import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
-import java.util.Collections;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
+import java.util.HashMap;
+import java.util.Map;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
+@TestProfile(SubscriptionServiceTest.ConfigureSearchApiRetry.class)
+@QuarkusTestResource(value = WireMockResource.class, restrictToAnnotatedClass = true)
 class SubscriptionServiceTest {
 
-  @InjectMock @RestClient SearchApi searchApi;
+  @ConfigProperty(name = "SUBSCRIPTION_MAX_RETRY_ATTEMPTS", defaultValue = "4")
+  int maxRetries;
+
+  @InjectWireMock WireMockServer wireMockServer;
 
   @Inject SubscriptionService subject;
 
-  @Test
-  void verifySearchByOrgIdTest() throws ApiException {
-    when(searchApi.searchSubscriptionsByOrgId("123", 0, 1)).thenReturn(Collections.emptyList());
-    subject.getSubscriptionsByOrgId("123", 0, 1);
-    verify(searchApi, only()).searchSubscriptionsByOrgId("123", 0, 1);
+  @BeforeEach
+  void setup() {
+    wireMockServer.resetAll();
   }
 
   @Test
-  void verifyGetByIdTest() throws ApiException {
-    when(searchApi.getSubscriptionById("123")).thenReturn(new Subscription());
+  void verifySearchByOrgIdTest() {
+    givenSearchApiReturnsOk();
+    subject.getSubscriptionsByOrgId("123", 0, 1);
+    wireMockServer.verify(
+        getRequestedFor(urlMatching("/mock/subscription/search.*web_customer_id.*")));
+  }
+
+  @Test
+  void verifySearchByOrgIdRetriesOnExceptions() {
+    givenSearchApiReturnsError();
+    assertThrows(
+        ExternalServiceException.class, () -> subject.getSubscriptionsByOrgId("123", 0, 1));
+    // expected the configured maxRetries plus the first call.
+    wireMockServer.verify(
+        maxRetries + 1,
+        getRequestedFor(urlMatching("/mock/subscription/search.*web_customer_id.*")));
+  }
+
+  @Test
+  void verifyGetByIdTest() {
+    givenSearchApiReturnsOk();
     subject.getSubscriptionById("123");
-    verify(searchApi, only()).getSubscriptionById("123");
+    wireMockServer.verify(getRequestedFor(urlMatching("/mock/subscription/id.*")));
+  }
+
+  private void givenSearchApiReturnsError() {
+    wireMockServer.stubFor(
+        any(urlMatching("/mock/subscription/search.*web_customer_id.*"))
+            .willReturn(aResponse().withStatus(500)));
+  }
+
+  private void givenSearchApiReturnsOk() {
+    wireMockServer.stubFor(
+        any(urlMatching("/mock/subscription/search.*web_customer_id.*"))
+            .willReturn(
+                aResponse()
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(
+                        """
+                                                                [
+                                                                  {
+                                                                    "id": "123456"
+                                                                  }
+                                                                ]
+                                                                """)));
+    wireMockServer.stubFor(
+        any(urlMatching("/mock/subscription/id.*"))
+            .willReturn(
+                aResponse()
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(
+                        """
+                                                                {
+                                                                    "id": "123456"
+                                                                }
+                                                                """)));
+  }
+
+  public static class ConfigureSearchApiRetry implements QuarkusTestProfile {
+    @Override
+    public Map<String, String> getConfigOverrides() {
+      Map<String, String> config = new HashMap<>();
+      config.put("SUBSCRIPTION_MAX_RETRY_ATTEMPTS", "2");
+      config.put("SUBSCRIPTION_BACK_OFF_INITIAL_INTERVAL", "200ms");
+      return config;
+    }
   }
 }
