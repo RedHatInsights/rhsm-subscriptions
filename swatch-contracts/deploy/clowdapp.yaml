@@ -286,6 +286,20 @@ objects:
                 value: ${PRODUCT_URL}
               - name: PRODUCT_DENYLIST_RESOURCE_LOCATION
                 value: file:/denylist/product-denylist.txt
+              - name: PRODUCT_KEYSTORE
+                value: /pinhead/keystore.jks
+              - name: PRODUCT_KEYSTORE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: tls
+                    key: keystore_password
+              - name: SUBSCRIPTION_KEYSTORE
+                value: /pinhead/keystore.jks
+              - name: SUBSCRIPTION_KEYSTORE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: tls
+                    key: keystore_password
               - name: SUBSCRIPTION_SYNC_ENABLED
                 value: ${SUBSCRIPTION_SYNC_ENABLED}
               - name: SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN
