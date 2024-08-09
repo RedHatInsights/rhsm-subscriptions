@@ -23,6 +23,7 @@ package com.redhat.swatch.azure.configuration;
 public class Channels {
 
   public static final String BILLABLE_USAGE_HOURLY_AGGREGATE = "billable-usage-hourly-aggregate-in";
+  public static final String TALLY_DLT = "tally-dlt";
 
   private Channels() {}
 }

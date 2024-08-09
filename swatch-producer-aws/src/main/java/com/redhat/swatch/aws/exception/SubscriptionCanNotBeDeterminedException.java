@@ -18,30 +18,11 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.billable.usage.data;
+package com.redhat.swatch.aws.exception;
 
-import java.time.OffsetDateTime;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+public class SubscriptionCanNotBeDeterminedException extends AwsProducerException {
 
-@Builder
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class RemittanceSummaryProjection {
-  private Double totalRemittedPendingValue;
-  private String orgId;
-  private String productId;
-  private String accumulationPeriod;
-  private String sla;
-  private String usage;
-  private OffsetDateTime remittancePendingDate;
-  private String billingProvider;
-  private String billingAccountId;
-  private String metricId;
-  private String hardwareMeasurementType;
-  private RemittanceStatus status;
-  private RemittanceErrorCode errorCode;
+  public SubscriptionCanNotBeDeterminedException(Exception e) {
+    super(ErrorCode.SUBSCRIPTION_CANNOT_BE_DETERMINED, e);
+  }
 }
