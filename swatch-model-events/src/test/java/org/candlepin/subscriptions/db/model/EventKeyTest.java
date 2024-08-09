@@ -52,16 +52,16 @@ class EventKeyTest {
   @Test
   void testEquality() {
     OffsetDateTime now = OffsetDateTime.now();
-    EventKey ek1 = new EventKey("org", "source", "type", "instance", now);
-    EventKey ek2 = new EventKey("org", "source", "type", "instance", now);
-    EventKey ek3 = new EventKey("org3", "source3", "type3", "instance3", now.minusDays(1));
+    EventKey ek1 = new EventKey("org", "instance", now);
+    EventKey ek2 = new EventKey("org", "instance", now);
+    EventKey ek3 = new EventKey("org3", "instance3", now.minusDays(1));
 
     assertEquals(ek1, ek2);
     assertNotEquals(ek1, ek3);
   }
 
   private EventKey keyForInstanceId(String instanceId, OffsetDateTime timestamp) {
-    return new EventKey("org", "source", "type", instanceId, timestamp);
+    return new EventKey("org", instanceId, timestamp);
   }
 
   private Event eventForInstanceId(String instanceId, OffsetDateTime timestamp) {
@@ -69,7 +69,6 @@ class EventKeyTest {
         .withTimestamp(timestamp)
         .withOrgId("org")
         .withEventType("type")
-        .withEventSource("source")
         .withInstanceId(instanceId);
   }
 }

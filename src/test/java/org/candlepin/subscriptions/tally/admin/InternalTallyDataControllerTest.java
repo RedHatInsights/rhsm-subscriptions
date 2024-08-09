@@ -134,6 +134,7 @@ class InternalTallyDataControllerTest {
             .withEventType("test-event")
             .withOrgId("org123")
             .withEventSource("TEST_SOURCE")
+            .withServiceType("SERVICE_TYPE")
             .withInstanceId("1234")
             .withTimestamp(CLOCK.now())
             .withMeasurements(List.of(new Measurement().withMetricId("vCPUs").withValue(1.0)));
@@ -143,6 +144,7 @@ class InternalTallyDataControllerTest {
             .withEventType("test-event")
             .withOrgId("org123")
             .withEventSource("TEST_SOURCE")
+            .withServiceType("SERVICE_TYPE")
             .withInstanceId("1234")
             .withTimestamp(CLOCK.now())
             .withMeasurements(List.of(new Measurement().withMetricId("Cores").withValue(-1.0)));

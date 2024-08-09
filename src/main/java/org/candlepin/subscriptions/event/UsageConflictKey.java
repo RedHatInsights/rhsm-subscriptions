@@ -20,22 +20,30 @@
  */
 package org.candlepin.subscriptions.event;
 
-import org.candlepin.subscriptions.json.Event;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import org.apache.commons.lang3.StringUtils;
+import org.candlepin.subscriptions.json.Measurement;
 
-@Mapper(componentModel = "spring")
-public interface ResolvedEventMapper {
+/**
+ * A UsageConflictKey represents specific usage shared across multiple Events. Usage conflicts are
+ * based on a product_tag and metric_id combination. This class is used by the {@link
+ * UsageConflictTracker} to track conflicts for a specific host instance while determining which
+ * Events should be amended. See {@link EventConflictResolver}.
+ */
+@Getter
+@Setter
+@EqualsAndHashCode
+@AllArgsConstructor
+public class UsageConflictKey {
+  private String productTag;
+  private String metricId;
 
-  @Mapping(target = "measurements", ignore = true)
-  @Mapping(target = "eventId", ignore = true)
-  @Mapping(target = "recordDate", ignore = true)
-  void update(@MappingTarget Event dest, Event source);
-
-  @Mapping(target = "measurements", ignore = true)
-  @Mapping(target = "eventId", ignore = true)
-  @Mapping(target = "recordDate", ignore = true)
-  @Mapping(target = "productTag", ignore = true)
-  void copy(@MappingTarget Event dest, Event source);
+  public static String getMetricId(Measurement measurement) {
+    return !StringUtils.isEmpty(measurement.getMetricId())
+        ? measurement.getMetricId()
+        : measurement.getUom();
+  }
 }

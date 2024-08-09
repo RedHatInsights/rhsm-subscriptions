@@ -21,13 +21,13 @@
 package org.candlepin.subscriptions.event;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
@@ -40,9 +40,12 @@ import org.springframework.stereotype.Component;
 /**
  * Responsible for resolving conflicting {@link org.candlepin.subscriptions.db.model.EventRecord}s
  * for incoming {@link org.candlepin.subscriptions.json.Event} messages and resolving them. A
- * conflict occurs when an incoming event shares the same lookup hash as existing event records in
- * the DB. Since event records can share the same timestamp, all existing records will be included
- * during resolution.
+ * conflict occurs when an incoming event shares the same {@link EventKey} as existing event records
+ * in the DB. Since event records can share the same org_id, timestamp, and instance_id, all
+ * existing matching records will be included during resolution.
+ *
+ * <p>Event conflict resolution is also done based on product tags since buckets are product_id
+ * (tag) based and measurements apply to each bucket.
  *
  * <pre>
  * Example Conflict/Resolutions:
@@ -54,9 +57,17 @@ import org.springframework.stereotype.Component;
  * Conflicting event with different measurements
  *  - EventRecord added with a negative accumulative measurement value
  *  - e.g. An incoming event has a measurement of 10 cores. An existing EventRecord matching
- *         the lookup hash has a measurement of 20 cores. An EventRecord would be created with
- *         a cores value of -10 and another EventRecord created to apply the new value of 20
- *         cores.
+ *         the incoming event's Event Key has a measurement of 20 cores. An EventRecord would
+ *         be created with a cores value of -10 and another EventRecord created to apply the
+ *         new value of 20 cores.
+ * Conflicting event with different product tags.
+ *  - Amendments are created based on measurement coverage for each included tag.
+ *  - e.g. An incoming event has a measurement of 6 cores for tags T1 and T2. An existing
+ *         EventRecord, matching the incoming EventKey, has a measurement of 6 cores for
+ *         tag T1. In this case, since the existing event already has a cores measurement
+ *         for T1, a DEDUCTION event (cores: -6) will be created for T1's cores value, and
+ *         the incoming Event will be persisted as is. This ensure that both T1 and T2's
+ *         cores values will remain at 6.
  * </pre>
  */
 @Slf4j
@@ -65,126 +76,111 @@ public class EventConflictResolver {
 
   private final EventRecordRepository eventRecordRepository;
   private final ResolvedEventMapper resolvedEventMapper;
+  private final EventNormalizer normalizer;
 
   @Autowired
   public EventConflictResolver(
       EventRecordRepository eventRecordRepository, ResolvedEventMapper resolvedEventMapper) {
     this.eventRecordRepository = eventRecordRepository;
     this.resolvedEventMapper = resolvedEventMapper;
+    this.normalizer = new EventNormalizer(resolvedEventMapper);
   }
 
-  public List<EventRecord> resolveIncomingEvents(Map<EventKey, Event> eventsToResolve) {
+  public List<EventRecord> resolveIncomingEvents(List<Event> incomingEvents) {
     log.info("Resolving existing events for incoming batch.");
-    Map<EventKey, List<EventRecord>> allConflicting = getConflictingEvents(eventsToResolve);
-    // Nothing to resolve
-    if (allConflicting.isEmpty()) {
-      log.info("No conflicting incoming events in batch. Nothing to resolve.");
-      return eventsToResolve.values().stream().map(EventRecord::new).toList();
-    }
+    Map<EventKey, List<Event>> eventsToResolve =
+        incomingEvents.stream()
+            .flatMap(event -> normalizer.normalizeEvent(event).stream())
+            .collect(
+                Collectors.groupingBy(
+                    EventKey::fromEvent, LinkedHashMap::new, Collectors.toList()));
+    Map<EventKey, List<Event>> allConflicting = getConflictingEvents(eventsToResolve.keySet());
 
     // Resolve any conflicting events.
-    List<EventRecord> resolvedEvents = new LinkedList<>();
+    List<EventRecord> resolvedEvents = new ArrayList<>();
     eventsToResolve.forEach(
-        (key, event) -> {
-          if (allConflicting.containsKey(key)) {
-            List<EventRecord> resolvedConflicts =
-                resolveEventConflicts(event, allConflicting.get(key));
-            // When there is a conflict with no resolution, the incoming event is a duplicate
-            // and there is no need to add it as resolved.
-            if (resolvedConflicts.isEmpty()) {
-              return;
-            }
-            resolvedEvents.addAll(resolvedConflicts);
-          }
-          // Include the incoming event since this event will be the new value.
-          resolvedEvents.add(new EventRecord(event));
+        (key, eventList) -> {
+          UsageConflictTracker tracker =
+              new UsageConflictTracker(allConflicting.getOrDefault(key, List.of()));
+          eventList.forEach(
+              event -> {
+                // Each event should only have a single conflict key since events
+                // were normalized by (tag,measurement).
+                UsageConflictKey conflictKey = tracker.getConflictKeyForEvent(event);
+                List<Event> newlyResolvedEvents = new ArrayList<>();
+                if (tracker.contains(conflictKey)) {
+                  Event conflictingEvent = tracker.getLatest(conflictKey);
+                  Measurement conflictingMeasurement =
+                      findMeasurement(conflictingEvent, conflictKey.getMetricId());
+
+                  if (!amendmentRequired(event, conflictingEvent, conflictKey.getMetricId())) {
+                    log.debug(
+                        "The incoming event does require amendments for {}: {}",
+                        conflictKey.getMetricId(),
+                        event);
+                    return;
+                  }
+
+                  Event deductionEvent = createRecordFrom(conflictingEvent);
+                  deductionEvent.setProductTag(Set.of(conflictKey.getProductTag()));
+                  deductionEvent.setAmendmentType(AmendmentType.DEDUCTION);
+                  Measurement measurement =
+                      new Measurement()
+                          .withMetricId(conflictingMeasurement.getMetricId())
+                          .withUom(conflictingMeasurement.getUom())
+                          .withValue(conflictingMeasurement.getValue() * -1);
+                  deductionEvent.setMeasurements(List.of(measurement));
+                  newlyResolvedEvents.add(deductionEvent);
+                }
+
+                newlyResolvedEvents.add(event);
+                allConflicting.putIfAbsent(key, new ArrayList<>());
+                allConflicting.get(key).addAll(newlyResolvedEvents);
+                resolvedEvents.addAll(newlyResolvedEvents.stream().map(EventRecord::new).toList());
+                tracker.track(event);
+              });
         });
-
-    log.info("Resolved {} events", resolvedEvents.size());
-
+    log.info(
+        "Finishing resolving events for incoming batch. In={} Resolved={}",
+        incomingEvents.size(),
+        resolvedEvents.size());
     return resolvedEvents;
   }
 
-  private List<EventRecord> resolveEventConflicts(
-      Event incomingEvent, List<EventRecord> conflictingEvents) {
-    return resolveEventMeasurements(incomingEvent, conflictingEvents);
-  }
-
-  private Map<String, Double> determineMeasurementDeductions(List<EventRecord> conflictingEvents) {
-    Map<String, Double> deductions = new HashMap<>();
-    conflictingEvents.stream()
+  private Map<EventKey, List<Event>> getConflictingEvents(Set<EventKey> eventKeys) {
+    return eventRecordRepository.findConflictingEvents(eventKeys).stream()
         .map(EventRecord::getEvent)
-        .forEach(
-            e ->
-                e.getMeasurements()
-                    .forEach(
-                        m -> {
-                          String metricId = getMetricId(m);
-                          deductions.putIfAbsent(metricId, 0.0);
-                          deductions.put(metricId, deductions.get(metricId) - m.getValue());
-                        }));
-    return deductions;
-  }
-
-  private List<EventRecord> resolveEventMeasurements(
-      Event toResolve, List<EventRecord> conflictingEvents) {
-    Map<String, Measurement> deductionEvents =
-        getDeductionMeasurements(toResolve, determineMeasurementDeductions(conflictingEvents));
-
-    // Create events for each measurement deduction.
-    List<EventRecord> resolved = new ArrayList<>();
-    deductionEvents.forEach(
-        (metricId, measurement) -> {
-          Event deductionEvent = createRecordFrom(toResolve);
-          deductionEvent.setAmendmentType(AmendmentType.DEDUCTION);
-          deductionEvent.setMeasurements(List.of(measurement));
-          resolved.add(new EventRecord(deductionEvent));
-        });
-    return resolved;
-  }
-
-  private Map<String, Measurement> getDeductionMeasurements(
-      final Event toResolve, Map<String, Double> measurementDeductions) {
-    // Measurements need to be resolved individually since conflicting events
-    // could potentially contain different measurement sets.
-    Map<String, Measurement> deductions = new HashMap<>();
-    for (Measurement measurement : toResolve.getMeasurements()) {
-      String metricId = getMetricId(measurement);
-      if (measurementDeductions.containsKey(metricId)) {
-        Double deduction = measurementDeductions.get(metricId);
-        // If we had a conflicting Event, but the measurement value was the same,
-        // there's nothing to resolve as they are considered equal. This will
-        // NOT result in a new EventRecord for the measurement.
-        //
-        // The deduction value is expected to be <= 0, so we compare
-        // by adding the incoming value to it to see if the result is 0.
-        if (deduction + measurement.getValue() == 0.0) {
-          log.debug("Incoming event measurement is a duplicate. Nothing to resolve.");
-          continue;
-        }
-        deductions.put(
-            metricId,
-            new Measurement().withMetricId(metricId).withUom(metricId).withValue(deduction));
-      }
-    }
-    return deductions;
-  }
-
-  private String getMetricId(Measurement measurement) {
-    return !StringUtils.isEmpty(measurement.getMetricId())
-        ? measurement.getMetricId()
-        : measurement.getUom();
-  }
-
-  private Map<EventKey, List<EventRecord>> getConflictingEvents(
-      Map<EventKey, Event> incomingEvents) {
-    return eventRecordRepository.findConflictingEvents(incomingEvents.keySet()).stream()
-        .collect(Collectors.groupingBy(e -> EventKey.fromEvent(e.getEvent())));
+        .flatMap(event -> normalizer.normalizeEvent(event).stream())
+        .collect(
+            Collectors.groupingBy(EventKey::fromEvent, LinkedHashMap::new, Collectors.toList()));
   }
 
   private Event createRecordFrom(Event from) {
     Event target = new Event();
     resolvedEventMapper.update(target, from);
     return target;
+  }
+
+  private boolean amendmentRequired(Event incomingEvent, Event resolvedEvent, String metricId) {
+    UsageDescriptor incomingEventDescriptor = new UsageDescriptor(incomingEvent);
+    UsageDescriptor resolvedEventDescriptor = new UsageDescriptor(resolvedEvent);
+
+    Measurement incomingMeasurement = findMeasurement(incomingEvent, metricId);
+    Measurement conflictingMeasurement = findMeasurement(resolvedEvent, metricId);
+    boolean measurementEqual =
+        Objects.equals(incomingMeasurement.getValue(), conflictingMeasurement.getValue());
+
+    return !measurementEqual || !incomingEventDescriptor.equals(resolvedEventDescriptor);
+  }
+
+  private Measurement findMeasurement(Event event, String metricId) {
+    return event.getMeasurements().stream()
+        .filter(m -> UsageConflictKey.getMetricId(m).equals(metricId))
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new RuntimeException(
+                    String.format(
+                        "Could not find measurement metricId=%s for event=%s", metricId, event)));
   }
 }
