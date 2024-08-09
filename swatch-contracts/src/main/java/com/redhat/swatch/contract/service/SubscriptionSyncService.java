@@ -198,7 +198,10 @@ public class SubscriptionSyncService {
         subscriptionRepository.persist(existingSubscription);
       }
     } else {
-      subscriptionRepository.persist(newOrUpdated);
+      // Same as above, the newOrUpdated entity might not be in the persistence context, so we need
+      // to use the merge operation here as well.
+      // To be fixed in SWATCH-2801.
+      subscriptionRepository.merge(newOrUpdated);
     }
   }
 
