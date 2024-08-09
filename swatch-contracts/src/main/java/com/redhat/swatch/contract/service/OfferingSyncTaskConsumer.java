@@ -50,7 +50,11 @@ public class OfferingSyncTaskConsumer {
     String sku = task.getSku();
     log.info("Sync for offeringSku={} triggered by OfferingSyncTask", sku);
 
-    service.syncOffering(sku);
+    try {
+      service.syncOffering(sku);
+    } catch (Exception e) {
+      log.error("Error syncing offering {}", sku, e);
+    }
   }
 
   @Blocking

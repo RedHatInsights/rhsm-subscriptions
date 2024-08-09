@@ -54,6 +54,12 @@ class OfferingSyncTaskConsumerTest {
   }
 
   @Test
+  void testOfferingSyncFailure() {
+    when(service.syncOffering(anyString())).thenThrow(new RuntimeException());
+    consumer.consumeFromTopic(new OfferingSyncTask("SKU"));
+  }
+
+  @Test
   void testConsumeFromUmb_WhenValidProductTopic() throws JsonProcessingException {
     String productMessageXml =
         "<?xml version=\"1.0\"?> <CanonicalMessage><Payload><Sync><OperationalProduct><Sku>RH0180191</Sku><SkuDescription>Test</SkuDescription><Role>test</Role><ProductRelationship><ParentProduct><Sku>RH0180191</Sku></ParentProduct><ChildProduct><Sku>SVCRH01</Sku></ChildProduct><ChildProduct><Sku>SVCRH01V4</Sku></ChildProduct></ProductRelationship><Attribute><Code>USAGE</Code><Name>Usage</Name><Value>Production</Value></Attribute></OperationalProduct></Sync></Payload></CanonicalMessage>";
