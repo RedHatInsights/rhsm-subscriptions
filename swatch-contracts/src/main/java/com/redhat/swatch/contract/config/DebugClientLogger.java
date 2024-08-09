@@ -39,15 +39,17 @@ public class DebugClientLogger implements ClientLogger {
   @ConfigProperty(name = "rest-client-debug-logging.uri-filter")
   Pattern uriFilterPattern;
 
+  private int bodySize;
+
   @Override
   public void setBodySize(int bodySize) {
-    // intentionally ignored
+    this.bodySize = bodySize;
   }
 
   @Override
   public void logResponse(HttpClientResponse response, boolean redirect) {
     if (uriFilterPattern.matcher(response.request().getURI()).matches()) {
-      response.bodyHandler(body -> log.debug("Response: \n{}", body.toString()));
+      response.bodyHandler(body -> log.debug("Response: \n{}", bodyToString(body)));
     }
   }
 
@@ -55,7 +57,21 @@ public class DebugClientLogger implements ClientLogger {
   public void logRequest(HttpClientRequest request, Buffer body, boolean omitBody) {
     if (uriFilterPattern.matcher(request.getURI()).matches()) {
       log.debug(
-          "Request method={} URI={}: \n{}", request.getMethod(), request.getURI(), body.toString());
+          "Request method={} URI={}: \n{}",
+          request.getMethod(),
+          request.getURI(),
+          bodyToString(body));
+    }
+  }
+
+  private String bodyToString(Buffer body) {
+    if (body == null) {
+      return "";
+    } else if (this.bodySize <= 0) {
+      return body.toString();
+    } else {
+      String bodyAsString = body.toString();
+      return bodyAsString.substring(0, Math.min(this.bodySize, bodyAsString.length()));
     }
   }
 }
