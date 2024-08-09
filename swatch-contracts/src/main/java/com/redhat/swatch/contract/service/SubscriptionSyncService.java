@@ -75,7 +75,6 @@ public class SubscriptionSyncService {
   private final ProductDenylist productDenylist;
   private final EntityManager entityManager;
 
-  @Transactional
   public void syncSubscription(
       Subscription subscription, Optional<SubscriptionEntity> subscriptionOptional) {
     final SubscriptionEntity newOrUpdated = convertDto(subscription);
@@ -91,7 +90,6 @@ public class SubscriptionSyncService {
    *     persistence context</strong>
    * @param subscriptionOptional optional existing Subscription. Managed in the persistence context.
    */
-  @Transactional
   @SuppressWarnings("java:S3776")
   public void syncSubscription(
       String sku,
@@ -191,13 +189,19 @@ public class SubscriptionSyncService {
                 .billingProvider(newOrUpdated.getBillingProvider())
                 .build();
         capacityReconciliationService.reconcileCapacityForSubscription(newSub);
-        subscriptionRepository.persist(newSub);
+        // merge is needed here because the existing subscription might not be found if we only use
+        // the subscription number (since primary keys are subscription ID and start date).
+        // To be fixed in SWATCH-2801.
+        subscriptionRepository.merge(newSub);
       } else {
         updateExistingSubscription(newOrUpdated, existingSubscription);
         subscriptionRepository.persist(existingSubscription);
       }
     } else {
-      subscriptionRepository.persist(newOrUpdated);
+      // Same as above, the newOrUpdated entity might not be in the persistence context, so we need
+      // to use the merge operation here as well.
+      // To be fixed in SWATCH-2801.
+      subscriptionRepository.merge(newOrUpdated);
     }
   }
 

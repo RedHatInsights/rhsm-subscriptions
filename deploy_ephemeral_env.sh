@@ -37,4 +37,5 @@ bonfire deploy \
     ${COMPONENTS_ARG} \
     ${COMPONENTS_RESOURCES_ARG} \
     ${EXTRA_DEPLOY_ARGS}
+./deploy_kafka_bridge.sh
 set +x

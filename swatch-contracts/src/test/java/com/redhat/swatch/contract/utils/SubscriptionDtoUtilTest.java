@@ -18,22 +18,23 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.subscription;
+package com.redhat.swatch.contract.utils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.redhat.swatch.clients.subscription.api.model.ExternalReference;
+import com.redhat.swatch.clients.subscription.api.model.Subscription;
+import com.redhat.swatch.clients.subscription.api.model.SubscriptionProduct;
+import com.redhat.swatch.contract.repository.BillingProvider;
 import java.util.Arrays;
 import java.util.List;
-import org.candlepin.subscriptions.db.model.BillingProvider;
-import org.candlepin.subscriptions.subscription.api.model.ExternalReference;
-import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
 import org.junit.jupiter.api.Test;
 
 class SubscriptionDtoUtilTest {
   @Test
   void testExtractSku() {
-    var dto = new org.candlepin.subscriptions.subscription.api.model.Subscription();
+    var dto = new Subscription();
     SubscriptionProduct product =
         new SubscriptionProduct().parentSubscriptionProductId(null).sku("testSku");
     SubscriptionProduct childSku =
@@ -46,7 +47,7 @@ class SubscriptionDtoUtilTest {
 
   @Test
   void testExtractSkuFailsWithImproperSubscription() {
-    var dto = new org.candlepin.subscriptions.subscription.api.model.Subscription();
+    var dto = new Subscription();
     SubscriptionProduct product =
         new SubscriptionProduct().parentSubscriptionProductId(null).sku("testSku");
     SubscriptionProduct childSku =
@@ -59,7 +60,7 @@ class SubscriptionDtoUtilTest {
 
   @Test
   void testExtractBillingProviderIdRHMarketplace() {
-    var dto = new org.candlepin.subscriptions.subscription.api.model.Subscription();
+    var dto = new Subscription();
 
     ExternalReference extRef = new ExternalReference();
     extRef.setSubscriptionID("test123");
@@ -70,7 +71,7 @@ class SubscriptionDtoUtilTest {
 
   @Test
   void testExtractBillingProviderIdAWSMarketplace() {
-    var dto = new org.candlepin.subscriptions.subscription.api.model.Subscription();
+    var dto = new Subscription();
 
     ExternalReference extRef = new ExternalReference();
     extRef.setProductCode("testProduct456");
@@ -85,7 +86,7 @@ class SubscriptionDtoUtilTest {
 
   @Test
   void testExtractBillingProviderRHMarketplace() {
-    var dto = new org.candlepin.subscriptions.subscription.api.model.Subscription();
+    var dto = new Subscription();
 
     dto.putExternalReferencesItem("ibmmarketplace", new ExternalReference());
 
@@ -94,7 +95,7 @@ class SubscriptionDtoUtilTest {
 
   @Test
   void testExtractBillingProviderAWSMarketplace() {
-    var dto = new org.candlepin.subscriptions.subscription.api.model.Subscription();
+    var dto = new Subscription();
 
     dto.putExternalReferencesItem(SubscriptionDtoUtil.AWS_MARKETPLACE, new ExternalReference());
 
@@ -103,7 +104,7 @@ class SubscriptionDtoUtilTest {
 
   @Test
   void testExtractBillingAccountIdExternalReference() {
-    var dto = new org.candlepin.subscriptions.subscription.api.model.Subscription();
+    var dto = new Subscription();
 
     ExternalReference extRef = new ExternalReference();
     extRef.setCustomerAccountID("123456789123");
@@ -113,7 +114,7 @@ class SubscriptionDtoUtilTest {
 
   @Test
   void testExtractBillingAccountNoAWSExternalReference() {
-    var dto = new org.candlepin.subscriptions.subscription.api.model.Subscription();
+    var dto = new Subscription();
 
     dto.putExternalReferencesItem("ibmmarketplace", new ExternalReference());
 
@@ -122,7 +123,7 @@ class SubscriptionDtoUtilTest {
 
   @Test
   void testExtractBillingAccountNoExternalReferences() {
-    var dto = new org.candlepin.subscriptions.subscription.api.model.Subscription();
+    var dto = new Subscription();
 
     assertEquals(null, SubscriptionDtoUtil.extractBillingAccountId(dto));
   }

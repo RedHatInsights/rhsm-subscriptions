@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.contract.service;
 
+import com.redhat.swatch.clients.subscription.SearchClient;
 import com.redhat.swatch.clients.subscription.api.model.Subscription;
 import com.redhat.swatch.clients.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.subscription.api.resources.SearchApi;
@@ -32,13 +33,13 @@ import com.redhat.swatch.faulttolerance.api.RetryWithExponentialBackoff;
 import io.micrometer.core.annotation.Timed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.ProcessingException;
 import jakarta.ws.rs.core.Response;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 /** The Subscription Service wrapper for all subscription service interfaces. */
 @ApplicationScoped
@@ -49,7 +50,7 @@ public class SubscriptionService {
       "Error during attempt to request subscription info";
   public static final String API_EXCEPTION_FROM_SUBSCRIPTION_SERVICE =
       "Api exception from subscription service: {}";
-  @Inject @RestClient SearchApi subscriptionApi;
+  @Inject @SearchClient SearchApi subscriptionApi;
   @Inject ApplicationConfiguration properties;
 
   /**
@@ -66,7 +67,7 @@ public class SubscriptionService {
   public Subscription getSubscriptionById(String id) {
     try {
       return subscriptionApi.getSubscriptionById(id);
-    } catch (ApiException e) {
+    } catch (ProcessingException | ApiException e) {
       log.error(API_EXCEPTION_FROM_SUBSCRIPTION_SERVICE, e.getMessage());
       throw new ExternalServiceException(
           ErrorCode.REQUEST_PROCESSING_ERROR,
@@ -98,7 +99,7 @@ public class SubscriptionService {
             null);
       }
       return matchingSubscriptions.get(0);
-    } catch (ApiException e) {
+    } catch (ProcessingException | ApiException e) {
       log.error(API_EXCEPTION_FROM_SUBSCRIPTION_SERVICE, e.getMessage());
       throw new ExternalServiceException(
           ErrorCode.REQUEST_PROCESSING_ERROR,
@@ -139,17 +140,19 @@ public class SubscriptionService {
   public List<Subscription> getSubscriptionsByOrgId(String orgId, int index, int pageSize) {
     try {
       return subscriptionApi.searchSubscriptionsByOrgId(orgId, index, pageSize);
-    } catch (ApiException e) {
-      var response = e.getResponse().getEntity();
-      log.error(API_EXCEPTION_FROM_SUBSCRIPTION_SERVICE, response);
-
-      if (response != null && response.toString().contains("NumberFormatException")) {
-        throw new ServiceException(
-            ErrorCode.REQUEST_PROCESSING_ERROR,
-            Response.Status.INTERNAL_SERVER_ERROR,
-            ERROR_DURING_ATTEMPT_TO_REQUEST_SUBSCRIPTION_INFO_MSG,
-            null,
-            e);
+    } catch (Exception e) {
+      log.error(API_EXCEPTION_FROM_SUBSCRIPTION_SERVICE, e.getMessage());
+      ApiException apiException = getApiException(e);
+      if (apiException != null) {
+        var response = apiException.getResponse().getEntity();
+        if (response != null && response.toString().contains("NumberFormatException")) {
+          throw new ServiceException(
+              ErrorCode.REQUEST_PROCESSING_ERROR,
+              Response.Status.INTERNAL_SERVER_ERROR,
+              ERROR_DURING_ATTEMPT_TO_REQUEST_SUBSCRIPTION_INFO_MSG,
+              null,
+              e);
+        }
       }
 
       throw new ExternalServiceException(
@@ -157,5 +160,18 @@ public class SubscriptionService {
           ERROR_DURING_ATTEMPT_TO_REQUEST_SUBSCRIPTION_INFO_MSG,
           e);
     }
+  }
+
+  private ApiException getApiException(Exception e) {
+    Throwable actual = e;
+    if (e instanceof ProcessingException processingException) {
+      actual = processingException.getCause();
+    }
+
+    if (actual instanceof ApiException apiException) {
+      return apiException;
+    }
+
+    return null;
   }
 }

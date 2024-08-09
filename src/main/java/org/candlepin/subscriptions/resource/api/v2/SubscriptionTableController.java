@@ -52,6 +52,7 @@ import org.candlepin.subscriptions.db.model.SubscriptionCapacityViewMetric;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.util.ApiModelMapperV2;
+import org.candlepin.subscriptions.util.InMemoryPager;
 import org.candlepin.subscriptions.utilization.api.v2.model.BillingProviderType;
 import org.candlepin.subscriptions.utilization.api.v2.model.ReportCategory;
 import org.candlepin.subscriptions.utilization.api.v2.model.ServiceLevelType;
@@ -139,12 +140,12 @@ public class SubscriptionTableController {
     // The pagination and sorting of capacities is done in memory and can cause performance
     // issues
     // As an improvement this should be pushed lower into the Repository layer
-    Pageable pageable = ResourceUtils.getPageable(offset, limit);
-    reportItems = paginate(reportItems, pageable);
     sortCapacities(reportItems, sort, dir);
+    Pageable pageable = ResourceUtils.getPageable(offset, limit);
+    var page = InMemoryPager.paginate(reportItems, pageable);
 
     return new SkuCapacityReport()
-        .data(reportItems)
+        .data(page.getContent())
         .meta(
             new SkuCapacityReportMeta()
                 .subscriptionType(
@@ -241,15 +242,6 @@ public class SubscriptionTableController {
 
       return true;
     };
-  }
-
-  private static <T> List<T> paginate(List<T> capacities, Pageable pageable) {
-    if (pageable == null) {
-      return capacities;
-    }
-    int offset = pageable.getPageNumber() * pageable.getPageSize();
-    int lastIndex = Math.min(capacities.size(), offset + pageable.getPageSize());
-    return capacities.subList(offset, lastIndex);
   }
 
   private SkuCapacity initializeSkuCapacity(

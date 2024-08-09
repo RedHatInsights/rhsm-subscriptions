@@ -132,7 +132,7 @@ class ContractServiceTest extends BaseUnitTest {
         request.getPartnerEntitlement().getRhEntitlements().get(0).getSku(),
         entity.getOffering().getSku());
     assertEquals(response.getUuid(), entity.getUuid().toString());
-    verify(subscriptionRepository).persist(any(Set.class));
+    verify(subscriptionRepository).persist(any(SubscriptionEntity.class));
     verify(measurementMetricIdTransformer).translateContractMetricIdsToSubscriptionMetricIds(any());
   }
 
@@ -150,7 +150,7 @@ class ContractServiceTest extends BaseUnitTest {
     var contract = givenPartnerEntitlementContractRequest();
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
     assertEquals("New contract created", statusResponse.getMessage());
-    verify(subscriptionRepository).persist(any(Set.class));
+    verify(subscriptionRepository, times(2)).persist(any(SubscriptionEntity.class));
     verify(measurementMetricIdTransformer, times(2))
         .translateContractMetricIdsToSubscriptionMetricIds(any());
   }
@@ -178,7 +178,7 @@ class ContractServiceTest extends BaseUnitTest {
     PartnerEntitlementContract request = givenPartnerEntitlementContractRequest();
 
     StatusResponse statusResponse = contractService.createPartnerContract(request);
-    verify(subscriptionRepository, times(2)).persist(any(Set.class));
+    verify(subscriptionRepository, times(3)).persist(any(SubscriptionEntity.class));
     assertEquals("New contract created", statusResponse.getMessage());
   }
 
@@ -190,7 +190,7 @@ class ContractServiceTest extends BaseUnitTest {
     PartnerEntitlementContract request = givenPartnerEntitlementContractRequest();
 
     StatusResponse statusResponse = contractService.createPartnerContract(request);
-    verify(subscriptionRepository, times(2)).persist(any(Set.class));
+    verify(subscriptionRepository, times(3)).persist(any(SubscriptionEntity.class));
 
     verify(contractRepository, times(3)).persist(any(ContractEntity.class));
 
@@ -211,7 +211,7 @@ class ContractServiceTest extends BaseUnitTest {
     assertEquals("Contracts Synced for " + ORG_ID, statusResponse.getMessage());
     // 2 instances of subscription are created, one for the original contract, and one for the
     // update
-    verify(subscriptionRepository, times(3)).persist(any(Set.class));
+    verify(subscriptionRepository, times(4)).persist(any(SubscriptionEntity.class));
     verify(measurementMetricIdTransformer, times(4))
         .translateContractMetricIdsToSubscriptionMetricIds(any());
   }
@@ -294,14 +294,14 @@ class ContractServiceTest extends BaseUnitTest {
 
     mockPartnerApi();
 
-    ArgumentCaptor<Set<SubscriptionEntity>> subscriptionSaveCapture =
-        ArgumentCaptor.forClass(Set.class);
+    ArgumentCaptor<SubscriptionEntity> subscriptionSaveCapture =
+        ArgumentCaptor.forClass(SubscriptionEntity.class);
     contractService.createPartnerContract(contract);
     verify(subscriptionRepository).persist(subscriptionSaveCapture.capture());
     subscriptionSaveCapture.getValue();
     assertEquals(
         "a69ff71c-aa8b-43d9-dea8-822fab4bbb86;rh-rhel-sub-1yr;azureProductCode;eadf26ee-6fbc-4295-9a9e-25d4fea8951d_2019-05-31",
-        subscriptionSaveCapture.getValue().iterator().next().getBillingProviderId());
+        subscriptionSaveCapture.getValue().getBillingProviderId());
   }
 
   @Test
@@ -346,13 +346,12 @@ class ContractServiceTest extends BaseUnitTest {
     var contract = givenAzurePartnerEntitlementContract();
     mockPartnerApi();
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
-    ArgumentCaptor<Set<SubscriptionEntity>> subscriptionsSaveCapture =
-        ArgumentCaptor.forClass(Set.class);
+    ArgumentCaptor<SubscriptionEntity> subscriptionsSaveCapture =
+        ArgumentCaptor.forClass(SubscriptionEntity.class);
     assertEquals("New contract created", statusResponse.getMessage());
     verify(subscriptionRepository).persist(subscriptionsSaveCapture.capture());
     var persistedSubscriptions = subscriptionsSaveCapture.getValue();
-    assertEquals(1, persistedSubscriptions.size());
-    assertEquals(DEFAULT_END_DATE, persistedSubscriptions.iterator().next().getEndDate());
+    assertEquals(DEFAULT_END_DATE, persistedSubscriptions.getEndDate());
     verify(subscriptionRepository, times(0)).delete(any());
   }
 
@@ -366,7 +365,7 @@ class ContractServiceTest extends BaseUnitTest {
     mockPartnerApi();
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
     assertEquals("New contract created", statusResponse.getMessage());
-    verify(subscriptionRepository).persist(any(Set.class));
+    verify(subscriptionRepository).persist(any(SubscriptionEntity.class));
     verify(subscriptionRepository, times(1)).delete(subscription);
   }
 
@@ -376,7 +375,7 @@ class ContractServiceTest extends BaseUnitTest {
     var stub = mockPartnerApi(createPartnerApiResponseNoContractDimensions());
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
     assertEquals("New contract created", statusResponse.getMessage());
-    verify(subscriptionRepository).persist(any(Set.class));
+    verify(subscriptionRepository).persist(any(SubscriptionEntity.class));
     wireMockServer.removeStub(stub);
   }
 

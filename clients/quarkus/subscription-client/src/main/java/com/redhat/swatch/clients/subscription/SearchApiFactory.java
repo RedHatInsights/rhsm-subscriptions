@@ -18,30 +18,29 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.repository;
+package com.redhat.swatch.clients.subscription;
 
-import com.redhat.swatch.panache.PanacheSpecificationSupport;
+import com.redhat.swatch.clients.subscription.api.resources.SearchApi;
 import jakarta.enterprise.context.ApplicationScoped;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import jakarta.enterprise.inject.Produces;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 @ApplicationScoped
-public class OfferingRepository implements PanacheSpecificationSupport<OfferingEntity, String> {
-  public Stream<String> findSkusForChildSku(String sku) {
-    return find("select sku from OfferingEntity where ?1 member of childSkus", sku)
-        .project(String.class)
-        .stream();
-  }
+public class SearchApiFactory {
 
-  public Stream<String> findSkusForDerivedSkus(Set<String> derivedSkus) {
-    return find("select sku from OfferingEntity where derivedSku in ?1", derivedSkus)
-        .project(String.class)
-        .stream();
-  }
+  @SearchClient
+  @Produces
+  public SearchApi getApi(
+      @ConfigProperty(
+              name = "rhsm-subscriptions.subscription-client.use-stub",
+              defaultValue = "false")
+          boolean useStub,
+      @RestClient SearchApi searchApi) {
+    if (useStub) {
+      return new StubSearchApi();
+    }
 
-  public Set<String> findAllDistinctSkus() {
-    return find("select distinct sku from OfferingEntity").project(String.class).stream()
-        .collect(Collectors.toSet());
+    return searchApi;
   }
 }

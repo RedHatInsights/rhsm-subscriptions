@@ -8,11 +8,6 @@ properties:
   org_id:
     description: Preferred identifier for the relevant account (if present).
     type: string
-  id:
-    description: Tally snapshot ID that resulted in this billable usage (for tracking) (Deprecated).
-    type: string
-    format: uuid
-    deprecationMessage: Use "tally_id" instead. To be removed in SWATCH-2674.
   tally_id:
     description: Tally snapshot ID that resulted in this billable usage (for tracking).
     type: string

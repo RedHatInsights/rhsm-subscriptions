@@ -59,6 +59,7 @@ import org.springframework.util.StringUtils;
 @Slf4j
 public class EventController {
 
+  private static final String ANSIBLE_INFRASTRUCTURE_HOUR = "Ansible Infrastructure Hour";
   private static final Set<String> EXCLUDE_LOG_FOR_EVENT_SOURCES =
       Set.of("prometheus", "rhelemeter");
   private final EventRecordRepository repo;
@@ -362,6 +363,13 @@ public class EventController {
   }
 
   public Event normalizeEvent(Event event) {
+    // NOTE we will probably remove the below serviceType normalization
+    // after https://issues.redhat.com/browse/SWATCH-2533
+    // placeholder card to remove it in https://issues.redhat.com/browse/SWATCH-2794
+    if (Objects.nonNull(event.getServiceType())
+        && event.getServiceType().equals(ANSIBLE_INFRASTRUCTURE_HOUR)) {
+      event.setServiceType("Ansible Managed Node");
+    }
     // normalize UOM to metric_id
     event
         .getMeasurements()
