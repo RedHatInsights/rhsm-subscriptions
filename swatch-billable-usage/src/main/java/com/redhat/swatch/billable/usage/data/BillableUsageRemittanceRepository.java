@@ -64,7 +64,8 @@ public class BillableUsageRemittanceRepository
           root.get(BillableUsageRemittanceEntity_.ORG_ID),
           root.get(BillableUsageRemittanceEntity_.PRODUCT_ID),
           root.get(BillableUsageRemittanceEntity_.HARDWARE_MEASUREMENT_TYPE),
-          root.get(BillableUsageRemittanceEntity_.STATUS));
+          root.get(BillableUsageRemittanceEntity_.STATUS),
+          root.get(BillableUsageRemittanceEntity_.ERROR_CODE));
     }
     query.select(
         criteriaBuilder.construct(
@@ -80,7 +81,8 @@ public class BillableUsageRemittanceRepository
             root.get(BillableUsageRemittanceEntity_.BILLING_ACCOUNT_ID),
             root.get(BillableUsageRemittanceEntity_.METRIC_ID),
             root.get(BillableUsageRemittanceEntity_.HARDWARE_MEASUREMENT_TYPE),
-            root.get(BillableUsageRemittanceEntity_.STATUS)));
+            root.get(BillableUsageRemittanceEntity_.STATUS),
+            root.get(BillableUsageRemittanceEntity_.ERROR_CODE)));
     return entityManager.createQuery(query).getResultList();
   }
 
