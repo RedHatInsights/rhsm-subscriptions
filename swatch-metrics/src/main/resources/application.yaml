@@ -210,11 +210,11 @@ rhsm-subscriptions:
           default: >-
             max(#{metric.prometheus.queryParams[metric]}) by (#{metric.prometheus.queryParams[instanceKey]})
             * on(#{metric.prometheus.queryParams[instanceKey]}) group_right
-            min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{product="#{metric.prometheus.queryParams[product]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", metered_by_rh!='false', support=~"Premium|Standard|Self-Support|None"}[1h])
+            min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{product="#{metric.prometheus.queryParams[product]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", metered_by_rh!='false'}[1h])
           addonSamples: >-
             max(#{metric.prometheus.queryParams[metric]}) by (#{metric.prometheus.queryParams[instanceKey]})
             * on(#{metric.prometheus.queryParams[instanceKey]}) group_right
-            min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{resource_type="addon",resource_name="#{metric.prometheus.queryParams[resourceName]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", metered_by_rh!='false', support=~"Premium|Standard|Self-Support|None"}[1h])
+            min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{resource_type="addon",resource_name="#{metric.prometheus.queryParams[resourceName]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", metered_by_rh!='false'}[1h])
           rhelemeter: >-
             sum_over_time((max by (#{metric.prometheus.queryParams[instanceKey]}) (#{metric.prometheus.queryParams[metric]}))[1h:10m])
             /
@@ -229,8 +229,7 @@ rhsm-subscriptions:
                   product=~"#{metric.prometheus.queryParams[productLabelRegex]}",
                   external_organization="#{runtime[orgId]}",
                   billing_model="marketplace",
-                  metered_by_rh!='false',
-                  support=~"Premium|Standard|Self-Support|None|"
+                  metered_by_rh!='false'
                   }[1h]
                 )
               )
