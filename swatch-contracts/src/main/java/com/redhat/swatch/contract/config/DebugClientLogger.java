@@ -59,7 +59,7 @@ public class DebugClientLogger implements ClientLogger {
       log.debug(
           "Request method={} URI={}: \n{}",
           request.getMethod(),
-          request.getURI(),
+          request.absoluteURI(),
           bodyToString(body));
     }
   }
