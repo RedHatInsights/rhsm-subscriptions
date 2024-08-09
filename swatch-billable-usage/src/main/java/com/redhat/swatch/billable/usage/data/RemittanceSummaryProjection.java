@@ -43,4 +43,5 @@ public class RemittanceSummaryProjection {
   private String metricId;
   private String hardwareMeasurementType;
   private RemittanceStatus status;
+  private RemittanceErrorCode errorCode;
 }
