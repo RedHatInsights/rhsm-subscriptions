@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.event;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -388,25 +389,30 @@ class EventConflictResolverTest {
             List.of(
                 // Should be applied to the existing Cores value.
                 new Measurement().withUom(CORES1).withValue(15.0),
-                new Measurement().withUom(INSTANCE_HOURS1).withMetricId("").withValue(30.0)));
+                new Measurement().withUom(INSTANCE_HOURS1).withValue(30.0)));
 
     when(repo.findConflictingEvents(Set.of(EventKey.fromEvent(existingEvent.getEvent()))))
         .thenReturn(List.of(existingEvent));
 
     List<EventRecord> resolved = resolver.resolveIncomingEvents(List.of(incomingEvent));
 
-    assertEquals(3, resolved.size());
-    assertDeductionEvent(resolved.get(0).getEvent(), instanceId, CORES1, -1.0);
-    assertEquals(
-        createEvent(instanceId, eventTimestamp)
-            .withMeasurements(List.of(incomingEvent.getMeasurements().get(0))),
-        resolved.get(1).getEvent());
-    assertDeductionEvent(resolved.get(2).getEvent(), instanceId, INSTANCE_HOURS1, -5.0);
-    assertEquals(
-        createEvent(instanceId, eventTimestamp)
-            .withMeasurements(List.of(incomingEvent.getMeasurements().get(1))),
-        resolved.get(3).getEvent());
-    assertEquals(new EventRecord(incomingEvent), resolved.get(2));
+    Measurement expectedDeductionInstanceHours =
+        new Measurement().withValue(-5.0).withUom(null).withMetricId(INSTANCE_HOURS1);
+    Measurement expectedInstanceHours =
+        new Measurement().withValue(30.0).withUom(INSTANCE_HOURS1).withMetricId(null);
+    Measurement expectedDeductionCores =
+        new Measurement().withValue(-1.0).withUom(CORES_IGNORED).withMetricId(CORES1);
+    Measurement expectedCores =
+        new Measurement().withValue(15.0).withUom(CORES1).withMetricId(null);
+
+    assertThat(resolved)
+        .extracting(EventRecord::getEvent)
+        .extracting(Event::getMeasurements)
+        .containsExactlyInAnyOrder(
+            List.of(expectedDeductionInstanceHours),
+            List.of(expectedInstanceHours),
+            List.of(expectedDeductionCores),
+            List.of(expectedCores));
   }
 
   static Stream<Arguments> tagResolutionScenarios() {

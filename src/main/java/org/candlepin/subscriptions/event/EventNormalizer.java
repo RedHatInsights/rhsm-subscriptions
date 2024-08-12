@@ -23,9 +23,11 @@ package org.candlepin.subscriptions.event;
 import com.google.common.collect.Sets;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement;
+import org.springframework.stereotype.Component;
 
 /**
  * Defines the logic for flattening an Event into multiple events based on a (tag,measurement)
@@ -42,7 +44,10 @@ import org.candlepin.subscriptions.json.Measurement;
  *      Event(['tag2'], {instance-hours: 4})
  * </pre>
  */
+@Component
 public class EventNormalizer {
+
+  private static final String ANSIBLE_INFRASTRUCTURE_HOUR = "Ansible Infrastructure Hour";
 
   private final ResolvedEventMapper resolvedEventMapper;
 
@@ -50,12 +55,33 @@ public class EventNormalizer {
     this.resolvedEventMapper = resolvedEventMapper;
   }
 
-  public List<Event> normalizeEvent(Event event) {
+  public List<Event> flattenEventUsage(Event event) {
     Set<String> tags = event.getProductTag();
     Set<Measurement> measurements = new HashSet<>(event.getMeasurements());
     return Sets.cartesianProduct(tags, measurements).stream()
         .map(tuple -> create(event, (String) tuple.get(0), (Measurement) tuple.get(1)))
         .toList();
+  }
+
+  public Event normalizeEvent(Event event) {
+    // NOTE we will probably remove the below serviceType normalization
+    // after https://issues.redhat.com/browse/SWATCH-2533
+    // placeholder card to remove it in https://issues.redhat.com/browse/SWATCH-2794
+    if (Objects.nonNull(event.getServiceType())
+        && event.getServiceType().equals(ANSIBLE_INFRASTRUCTURE_HOUR)) {
+      event.setServiceType("Ansible Managed Node");
+    }
+    // normalize UOM to metric_id
+    event
+        .getMeasurements()
+        .forEach(
+            measurement -> {
+              if (measurement.getUom() != null) {
+                measurement.setMetricId(measurement.getUom());
+                measurement.setUom(null);
+              }
+            });
+    return event;
   }
 
   private Event create(Event from, String tag, Measurement measurement) {

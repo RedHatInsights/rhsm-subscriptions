@@ -90,7 +90,7 @@ public class EventConflictResolver {
     log.info("Resolving existing events for incoming batch.");
     Map<EventKey, List<Event>> eventsToResolve =
         incomingEvents.stream()
-            .flatMap(event -> normalizer.normalizeEvent(event).stream())
+            .flatMap(event -> normalizer.flattenEventUsage(event).stream())
             .collect(
                 Collectors.groupingBy(
                     EventKey::fromEvent, LinkedHashMap::new, Collectors.toList()));
@@ -150,7 +150,7 @@ public class EventConflictResolver {
   private Map<EventKey, List<Event>> getConflictingEvents(Set<EventKey> eventKeys) {
     return eventRecordRepository.findConflictingEvents(eventKeys).stream()
         .map(EventRecord::getEvent)
-        .flatMap(event -> normalizer.normalizeEvent(event).stream())
+        .flatMap(event -> normalizer.flattenEventUsage(event).stream())
         .collect(
             Collectors.groupingBy(EventKey::fromEvent, LinkedHashMap::new, Collectors.toList()));
   }

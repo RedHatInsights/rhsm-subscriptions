@@ -59,7 +59,6 @@ import org.springframework.util.StringUtils;
 @Slf4j
 public class EventController {
 
-  private static final String ANSIBLE_INFRASTRUCTURE_HOUR = "Ansible Infrastructure Hour";
   private static final Set<String> EXCLUDE_LOG_FOR_EVENT_SOURCES =
       Set.of("prometheus", "rhelemeter");
   private final EventRecordRepository repo;
@@ -67,18 +66,21 @@ public class EventController {
   private final OptInController optInController;
   private final TransactionHandler transactionHandler;
   private final EventConflictResolver eventConflictResolver;
+  private final EventNormalizer eventNormalizer;
 
   public EventController(
       EventRecordRepository repo,
       ObjectMapper objectMapper,
       OptInController optInController,
       TransactionHandler transactionHandler,
-      EventConflictResolver eventConflictResolver) {
+      EventConflictResolver eventConflictResolver,
+      EventNormalizer eventNormalizer) {
     this.repo = repo;
     this.objectMapper = objectMapper;
     this.optInController = optInController;
     this.transactionHandler = transactionHandler;
     this.eventConflictResolver = eventConflictResolver;
+    this.eventNormalizer = eventNormalizer;
   }
 
   /**
@@ -227,7 +229,8 @@ public class EventController {
     ServiceInstancesResult result = new ServiceInstancesResult(indexedEventJson.size());
     for (Entry<String, Integer> entry : indexedEventJson.entrySet()) {
       try {
-        Event eventToProcess = normalizeEvent(objectMapper.readValue(entry.getKey(), Event.class));
+        Event eventToProcess =
+            eventNormalizer.normalizeEvent(objectMapper.readValue(entry.getKey(), Event.class));
         if (!EXCLUDE_LOG_FOR_EVENT_SOURCES.contains(eventToProcess.getEventSource())) {
           log.info("Event processing in batch: " + entry.getKey());
         }
@@ -360,27 +363,6 @@ public class EventController {
     } catch (Exception e) {
       log.error("Error while attempting to automatically opt-in for orgId={} ", orgId, e);
     }
-  }
-
-  public Event normalizeEvent(Event event) {
-    // NOTE we will probably remove the below serviceType normalization
-    // after https://issues.redhat.com/browse/SWATCH-2533
-    // placeholder card to remove it in https://issues.redhat.com/browse/SWATCH-2794
-    if (Objects.nonNull(event.getServiceType())
-        && event.getServiceType().equals(ANSIBLE_INFRASTRUCTURE_HOUR)) {
-      event.setServiceType("Ansible Managed Node");
-    }
-    // normalize UOM to metric_id
-    event
-        .getMeasurements()
-        .forEach(
-            measurement -> {
-              if (measurement.getUom() != null) {
-                measurement.setMetricId(measurement.getUom());
-                measurement.setUom(null);
-              }
-            });
-    return event;
   }
 
   private static class ServiceInstancesResult {

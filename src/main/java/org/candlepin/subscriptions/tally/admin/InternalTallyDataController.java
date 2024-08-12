@@ -33,6 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.event.EventController;
+import org.candlepin.subscriptions.event.EventNormalizer;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.tally.AccountResetService;
@@ -55,6 +56,7 @@ public class InternalTallyDataController {
   private final ContractsController contractsController;
   private final BillableUsageController billableUsageController;
   private final TallySnapshotController snapshotController;
+  private final EventNormalizer eventNormalizer;
 
   public void deleteDataAssociatedWithOrg(String orgId) {
     // we first delete the contracts and if it works, we continue with the rest of the data.
@@ -86,7 +88,7 @@ public class InternalTallyDataController {
     try {
       events =
           objectMapper.readValue(jsonListOfEvents, new TypeReference<List<Event>>() {}).stream()
-              .map(eventController::normalizeEvent)
+              .map(eventNormalizer::normalizeEvent)
               .filter(
                   e -> {
                     if (eventController.validateServiceInstanceEvent(e)) {
