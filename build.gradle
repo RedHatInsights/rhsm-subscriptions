@@ -77,6 +77,7 @@ dependencies {
     testImplementation project(':swatch-core-test')
     testImplementation project(':swatch-common-testcontainers')
     testImplementation "org.hsqldb:hsqldb"
+    testImplementation "io.rest-assured:rest-assured"
 
     javaagent  libraries["splunk-otel-agent"]
 
