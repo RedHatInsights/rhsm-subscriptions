@@ -289,9 +289,7 @@ public class CapacityResource implements CapacityApi {
     if (!Variant.isGranularityCompatible(
         productId.toString(), SubscriptionDefinitionGranularity.valueOf(granularity.name()))) {
       throw new BadRequestException(
-          String.format(
-              "%s does not support any granularity finer than %s",
-              productId, granularity.getValue()));
+          String.format("%s does not support granularity %s", productId, granularity.getValue()));
     }
   }
 }
