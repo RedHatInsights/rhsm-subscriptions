@@ -59,7 +59,7 @@ libraries["junit-jupiter"] = "org.junit.jupiter:junit-jupiter:5.10.3"
 libraries["lombok"] = "org.projectlombok:lombok:1.18.34"
 libraries["lombok-mapstruct-binding"] = "org.projectlombok:lombok-mapstruct-binding:0.2.0"
 libraries["mapstruct"] = "org.mapstruct:mapstruct:1.5.5.Final"
-libraries["mapstruct-processor"] = "org.mapstruct:mapstruct-processor:1.5.5.Final"
+libraries["mapstruct-processor"] = "org.mapstruct:mapstruct-processor:1.6.0"
 libraries["event-schemas"] = "com.redhat.cloud.event:event-schemas:1.4.11"
 // overridden to address CVE-2023-44487
 libraries["netty-codec-http2"] = "io.netty:netty-codec-http2:4.1.112.Final"
