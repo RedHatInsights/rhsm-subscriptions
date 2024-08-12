@@ -25,6 +25,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import jakarta.enterprise.context.ApplicationScoped;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -35,6 +36,8 @@ import org.jboss.resteasy.reactive.client.api.ClientLogger;
 @Unremovable
 @ApplicationScoped
 public class DebugClientLogger implements ClientLogger {
+
+  private static final String EMPTY_BODY = "(empty)";
 
   @ConfigProperty(name = "rest-client-debug-logging.uri-filter")
   Pattern uriFilterPattern;
@@ -47,7 +50,7 @@ public class DebugClientLogger implements ClientLogger {
   @Override
   public void logResponse(HttpClientResponse response, boolean redirect) {
     if (uriFilterPattern.matcher(response.request().getURI()).matches()) {
-      response.bodyHandler(body -> log.debug("Response: \n{}", body.toString()));
+      response.bodyHandler(body -> log.debug("Response: \n{}", bodyToString(body)));
     }
   }
 
@@ -55,7 +58,14 @@ public class DebugClientLogger implements ClientLogger {
   public void logRequest(HttpClientRequest request, Buffer body, boolean omitBody) {
     if (uriFilterPattern.matcher(request.getURI()).matches()) {
       log.debug(
-          "Request method={} URI={}: \n{}", request.getMethod(), request.getURI(), body.toString());
+          "Request method={} URI={}: \n{}",
+          request.getMethod(),
+          request.absoluteURI(),
+          bodyToString(body));
     }
+  }
+
+  private String bodyToString(Buffer body) {
+    return Optional.ofNullable(body).map(Buffer::toString).orElse(EMPTY_BODY);
   }
 }

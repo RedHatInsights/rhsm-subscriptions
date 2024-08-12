@@ -49,6 +49,7 @@ import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.util.ApiModelMapperV1;
+import org.candlepin.subscriptions.util.InMemoryPager;
 import org.candlepin.subscriptions.util.SnapshotTimeAdjuster;
 import org.candlepin.subscriptions.utilization.api.v1.model.CapacityReportByMetricId;
 import org.candlepin.subscriptions.utilization.api.v1.model.CapacityReportByMetricIdMeta;
@@ -60,7 +61,6 @@ import org.candlepin.subscriptions.utilization.api.v1.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.v1.model.UsageType;
 import org.candlepin.subscriptions.utilization.api.v1.resources.CapacityApi;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
@@ -143,28 +143,26 @@ public class CapacityResource implements CapacityApi {
             beginning,
             ending);
 
-    List<CapacitySnapshotByMetricId> data;
+    Page<CapacitySnapshotByMetricId> snapshotPage;
     PageLinks links;
     if (offset != null || limit != null) {
       Pageable pageable = ResourceUtils.getPageable(offset, limit);
-      data = paginate(capacities, pageable);
-      Page<CapacitySnapshotByMetricId> snapshotPage =
-          new PageImpl<>(data, pageable, capacities.size());
+      snapshotPage = InMemoryPager.paginate(capacities, pageable);
       links = mapper.map(pageLinkCreator.getPaginationLinks(uriInfo, snapshotPage));
     } else {
-      data = capacities;
+      snapshotPage = InMemoryPager.paginate(capacities, Pageable.unpaged());
       links = null;
     }
 
     CapacityReportByMetricId report = new CapacityReportByMetricId();
-    report.setData(data);
+    report.setData(snapshotPage.getContent());
     report.setMeta(new CapacityReportByMetricIdMeta());
     var meta = report.getMeta();
     meta.setGranularity(granularityType);
     meta.setProduct(productId.toString());
     meta.setMetricId(metricId.toString());
     meta.setCategory(reportCategory);
-    meta.setCount(report.getData().size());
+    meta.setCount(capacities.size());
 
     if (sanitizedServiceLevel != null) {
       meta.setServiceLevel(mapper.map(sanitizedServiceLevel));
@@ -242,15 +240,6 @@ public class CapacityResource implements CapacityApi {
     }
 
     return result;
-  }
-
-  private <T> List<T> paginate(List<T> capacities, Pageable pageable) {
-    if (pageable == null) {
-      return capacities;
-    }
-    int offset = pageable.getPageNumber() * pageable.getPageSize();
-    int lastIndex = Math.min(capacities.size(), offset + pageable.getPageSize());
-    return capacities.subList(offset, lastIndex);
   }
 
   @SuppressWarnings("java:S3776")

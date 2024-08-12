@@ -34,6 +34,7 @@ import com.redhat.swatch.contract.product.umb.CanonicalMessage;
 import com.redhat.swatch.contract.product.umb.UmbOperationalProduct;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.OfferingRepository;
+import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.smallrye.reactive.messaging.MutinyEmitter;
@@ -98,6 +99,7 @@ public class OfferingSyncService {
    * @param sku the identifier of the marketing operational product
    */
   @Transactional
+  @Timed("swatch_contracts_sync_offering")
   public SyncResult syncOffering(String sku) {
     Timer.Sample syncTime = Timer.start();
 
@@ -162,7 +164,7 @@ public class OfferingSyncService {
 
     // Update to the new entry or create it.
     try {
-      offeringRepository.saveOrUpdate(newState);
+      newState = offeringRepository.merge(newState);
       offeringRepository.flush();
     } catch (PersistenceException ex) {
       log.debug(

@@ -21,5 +21,8 @@ contractEnabled: true
 
 metrics:
   - id: Managed-nodes
+    type: gauge
+    awsDimension: managed_node
+  - id: Instance-hours
     type: counter
-    awsDimension: managed_nodes
+    awsDimension: infrastructure
