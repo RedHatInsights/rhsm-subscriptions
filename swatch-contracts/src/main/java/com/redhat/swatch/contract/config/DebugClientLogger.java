@@ -25,6 +25,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import jakarta.enterprise.context.ApplicationScoped;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -36,14 +37,14 @@ import org.jboss.resteasy.reactive.client.api.ClientLogger;
 @ApplicationScoped
 public class DebugClientLogger implements ClientLogger {
 
+  private static final String EMPTY_BODY = "(empty)";
+
   @ConfigProperty(name = "rest-client-debug-logging.uri-filter")
   Pattern uriFilterPattern;
 
-  private int bodySize;
-
   @Override
   public void setBodySize(int bodySize) {
-    this.bodySize = bodySize;
+    // intentionally ignored
   }
 
   @Override
@@ -65,13 +66,6 @@ public class DebugClientLogger implements ClientLogger {
   }
 
   private String bodyToString(Buffer body) {
-    if (body == null) {
-      return "";
-    } else if (this.bodySize <= 0) {
-      return body.toString();
-    } else {
-      String bodyAsString = body.toString();
-      return bodyAsString.substring(0, Math.min(this.bodySize, bodyAsString.length()));
-    }
+    return Optional.ofNullable(body).map(Buffer::toString).orElse(EMPTY_BODY);
   }
 }
