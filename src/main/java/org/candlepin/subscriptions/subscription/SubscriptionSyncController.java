@@ -109,7 +109,7 @@ public class SubscriptionSyncController {
     DbReportCriteria.DbReportCriteriaBuilder reportCriteriaBuilder =
         DbReportCriteria.builder()
             .productTag(productTag)
-            .serviceLevel(usageKey.getSla())
+            .serviceLevel(ServiceLevel._ANY)
             // NOTE(khowell) due to an oversight PAYG SKUs don't currently have a usage set -
             // at some point we should use usageKey.getUsage() instead of "_ANY"
             .usage(Usage._ANY)
