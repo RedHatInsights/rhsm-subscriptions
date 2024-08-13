@@ -34,6 +34,7 @@ import java.security.Principal;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
@@ -46,6 +47,7 @@ public class RbacRolesAugmentor implements SecurityIdentityAugmentor {
   private static final String RBAC_APP_NAME = "subscriptions";
   private static final String RBAC_ADMIN_ROLE = String.format("%s:*:*", RBAC_APP_NAME);
   private static final String RBAC_READER_ROLE = String.format("%s:reports:read", RBAC_APP_NAME);
+  private static final List<String> ALL_ROLES = List.of("test", "support", "service");
 
   @ConfigProperty(name = "RBAC_ENABLED")
   boolean rbacEnabled;
@@ -61,7 +63,17 @@ public class RbacRolesAugmentor implements SecurityIdentityAugmentor {
         && isCustomer(rhIdentityPrincipal)) {
       return context.runBlocking(() -> lookupRbacRoles(identity));
     }
-    return Uni.createFrom().item(identity);
+    return Uni.createFrom().item(buildWithAllRoles(identity));
+  }
+
+  private Supplier<SecurityIdentity> buildWithAllRoles(SecurityIdentity identity) {
+    // create a new builder and copy principal, attributes, credentials and roles from the original
+    // identity
+    QuarkusSecurityIdentity.Builder builder = QuarkusSecurityIdentity.builder(identity);
+
+    // add all the roles here
+    ALL_ROLES.forEach(builder::addRole);
+    return builder::build;
   }
 
   private SecurityIdentity lookupRbacRoles(SecurityIdentity identity) {
