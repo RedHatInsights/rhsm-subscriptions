@@ -65,3 +65,6 @@ logging:
         kafka:
           listener:
             DeadLetterPublishingRecoverer=error:
+
+server:
+  max-http-request-header-size: 96KB

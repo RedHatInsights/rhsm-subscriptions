@@ -20,21 +20,43 @@
  */
 package org.candlepin.subscriptions.deployment;
 
+import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import io.restassured.RestAssured;
+import org.apache.commons.lang3.StringUtils;
 import org.candlepin.subscriptions.resource.ApiConfiguration;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles({"api", "test"})
 class ApiDeploymentTest {
+  @LocalServerPort private int port;
+
+  @BeforeEach
+  public void init() {
+    RestAssured.port = this.port;
+  }
+
   @Autowired ApiConfiguration configuration;
 
   @Test
   void testDeployment() {
     assertNotNull(configuration);
+  }
+
+  @Test
+  void testApiSupportsLargeRequests() {
+    given()
+        .header("X-Correlation-ID", StringUtils.repeat("Z", 20000))
+        .when()
+        .get("/does-not-exist")
+        .then()
+        .statusCode(401);
   }
 }

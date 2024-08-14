@@ -19,8 +19,6 @@ parameters:
     value: quay.io/cloudservices/rhsm-subscriptions
   - name: IMAGE_TAG
     value: latest
-  - name: SERVER_MAX_HTTP_HEADER_SIZE
-    value: '96000'
   - name: LOGGING_LEVEL_ROOT
     value: WARN
   - name: LOGGING_LEVEL
@@ -155,8 +153,6 @@ objects:
                 value: -javaagent:/opt/splunk-otel-javaagent.jar ${JAVA_OPTS_APPEND}
               - name: DEV_MODE
                 value: ${DEV_MODE}
-              - name: SERVER_MAX_HTTP_HEADER_SIZE
-                value: ${SERVER_MAX_HTTP_HEADER_SIZE}
               - name: LOG_FILE
                 value: /logs/server.log
               - name: SPRING_PROFILES_ACTIVE
