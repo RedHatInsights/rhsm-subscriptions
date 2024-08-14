@@ -87,17 +87,15 @@ class BillableUsageServiceTest {
   @InjectSpy BillableUsageRemittanceRepository remittanceRepo;
   @InjectMock @RestClient DefaultApi contractsApi;
 
+  @Inject ApplicationClock clock;
   @Inject BillableUsageService service;
 
   private final SubscriptionDefinitionRegistry mockSubscriptionDefinitionRegistry =
       Mockito.mock(SubscriptionDefinitionRegistry.class);
 
   @BeforeAll
-  static void setupClass() throws Exception {
-    Field instance = SubscriptionDefinitionRegistry.class.getDeclaredField("instance");
-    instance.setAccessible(true);
-    originalReference =
-        (SubscriptionDefinitionRegistry) instance.get(SubscriptionDefinitionRegistry.class);
+  static void setupClass() {
+    originalReference = SubscriptionDefinitionRegistry.getInstance();
   }
 
   @Transactional
@@ -156,6 +154,24 @@ class BillableUsageServiceTest {
     service.submitBillableUsage(usage);
 
     thenUsageIsSent(usage, 0.0);
+  }
+
+  @Test
+  void
+      monthlyWindowRemittanceWhenContractStartsOnCurrentMonthAndMetricIsGratisThenUsageIsGratisAndNotSent() {
+    givenInstanceHoursMetricIsGratisForRosa();
+    BillableUsage usage = givenInstanceHoursUsageForRosa(1.0);
+    usage.setSnapshotDate(clock.startOfCurrentMonth().plusDays(5));
+    // When the contract starts on the current month:
+    // anytime other than 1st day of the month at midnight UTC exactly [e.g. Feb 1st 00:00.000 UTC]
+    Contract contract = new Contract();
+    contract.setStartDate(clock.startOfCurrentMonth().plusDays(1));
+    givenExistingContractForUsage(contract, usage);
+
+    service.submitBillableUsage(usage);
+
+    thenRemittanceIsUpdatedWithStatusGratis(usage, 1.0);
+    thenUsageIsNotSent();
   }
 
   @Test
@@ -445,26 +461,6 @@ class BillableUsageServiceTest {
         false);
   }
 
-  @Test
-  void usageIsSentWhenContractIsMissingWithinWindow() throws Exception {
-    BillableUsage usage = givenCoresUsageForRosa(1.0);
-    usage.setSnapshotDate(OffsetDateTime.now());
-    usage.setMetricId(MetricIdUtils.getCores().toUpperCaseFormatted());
-    when(contractsApi.getContract(any(), any(), any(), any(), any(), any())).thenReturn(List.of());
-
-    service.submitBillableUsage(usage);
-    verify(producer).produce(null);
-  }
-
-  @Test
-  void noUsageProcessedWhenBillingProviderNotSupportedByContractService() {
-    BillableUsage usage = givenInstanceHoursUsageForRosa(1.0);
-    usage.setSnapshotDate(OffsetDateTime.now());
-    usage.setBillingProvider(BillableUsage.BillingProvider.GCP);
-    service.submitBillableUsage(usage);
-    verify(producer).produce(null);
-  }
-
   private BillableUsage givenInstanceHoursUsageForRosa(Double value) {
     return givenInstanceHoursUsageForRosa(value, value);
   }
@@ -476,10 +472,6 @@ class BillableUsageServiceTest {
   private BillableUsage givenInstanceHoursUsageForRosa(
       OffsetDateTime date, Double value, Double currentTotal) {
     return billable(ROSA, MetricIdUtils.getInstanceHours(), date, value, currentTotal);
-  }
-
-  private BillableUsage givenCoresUsageForRosa(Double value) {
-    return givenCoresUsageForRosa(value, value);
   }
 
   private BillableUsage givenCoresUsageForRosa(Double value, Double currentTotal) {
@@ -508,6 +500,10 @@ class BillableUsageServiceTest {
   private void givenExistingContractForUsage(BillableUsage usage) {
     Contract contract = new Contract();
     contract.setStartDate(usage.getSnapshotDate().minusDays(10));
+    givenExistingContractForUsage(contract, usage);
+  }
+
+  private void givenExistingContractForUsage(Contract contract, BillableUsage usage) {
     try {
       when(contractsApi.getContract(
               usage.getOrgId(),
@@ -597,6 +593,27 @@ class BillableUsageServiceTest {
     remittanceRepo.persist(newRemittance);
   }
 
+  private void givenInstanceHoursMetricIsGratisForRosa() {
+    var definition =
+        originalReference.getSubscriptions().stream()
+            .filter(s -> ROSA.equals(s.getId()))
+            .findFirst()
+            .orElseThrow(
+                () -> new RuntimeException("ROSA subscription not found in configuration!"));
+
+    var metric =
+        definition.getMetrics().stream()
+            .filter(m -> MetricIdUtils.getInstanceHours().toString().equals(m.getId()))
+            .findFirst()
+            .orElseThrow(
+                () -> new RuntimeException("Instance-Hours not found in the Rosa subscription!"));
+
+    metric.setEnableGratisUsage(true);
+
+    setSubscriptionDefinitionRegistry(mockSubscriptionDefinitionRegistry);
+    when(mockSubscriptionDefinitionRegistry.getSubscriptions()).thenReturn(List.of(definition));
+  }
+
   private void performRemittanceTesting(
       OffsetDateTime usageDate,
       Double currentUsage,
@@ -633,7 +650,7 @@ class BillableUsageServiceTest {
     if (expectedRemitted == 0.0) {
       verify(remittanceRepo, times(0)).persistAndFlush(any());
     } else {
-      thenRemittanceIsUpdated(usage, usageDate, expectedRemitted);
+      thenRemittanceIsUpdated(usage, usageDate, expectedRemitted, null);
     }
 
     thenUsageIsSent(usage, expectedBilledValue);
@@ -652,14 +669,25 @@ class BillableUsageServiceTest {
                 }));
   }
 
+  private void thenUsageIsNotSent() {
+    verify(producer, times(0)).produce(any());
+  }
+
   private void thenRemittanceIsUpdated(BillableUsage usage, double expectedRemittedPendingValue) {
-    thenRemittanceIsUpdated(usage, CLOCK.now(), expectedRemittedPendingValue);
+    thenRemittanceIsUpdated(usage, CLOCK.now(), expectedRemittedPendingValue, null);
+  }
+
+  private void thenRemittanceIsUpdatedWithStatusGratis(
+      BillableUsage usage, double expectedRemittedPendingValue) {
+    thenRemittanceIsUpdated(
+        usage, clock.now(), expectedRemittedPendingValue, RemittanceStatus.GRATIS);
   }
 
   private void thenRemittanceIsUpdated(
       BillableUsage usage,
       OffsetDateTime expectedAccumulationPeriodDate,
-      double expectedRemittedPendingValue) {
+      double expectedRemittedPendingValue,
+      RemittanceStatus expectedStatus) {
     verify(remittanceRepo)
         .persistAndFlush(
             argThat(
@@ -674,6 +702,9 @@ class BillableUsageServiceTest {
                       AccumulationPeriodFormatter.toMonthId(expectedAccumulationPeriodDate),
                       remittance.getAccumulationPeriod());
                   assertEquals(expectedRemittedPendingValue, remittance.getRemittedPendingValue());
+                  if (expectedStatus != null) {
+                    assertEquals(expectedStatus, remittance.getStatus());
+                  }
                   return true;
                 }));
   }

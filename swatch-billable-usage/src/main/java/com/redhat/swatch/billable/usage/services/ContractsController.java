@@ -23,6 +23,7 @@ package com.redhat.swatch.billable.usage.services;
 import com.redhat.swatch.billable.usage.exceptions.ContractMissingException;
 import com.redhat.swatch.billable.usage.exceptions.ErrorCode;
 import com.redhat.swatch.billable.usage.exceptions.ExternalServiceException;
+import com.redhat.swatch.billable.usage.services.model.ContractCoverage;
 import com.redhat.swatch.clients.contracts.api.model.Contract;
 import com.redhat.swatch.clients.contracts.api.model.Metric;
 import com.redhat.swatch.clients.contracts.api.resources.ApiException;
@@ -32,22 +33,26 @@ import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.contracts.client.ContractsClient;
 import com.redhat.swatch.faulttolerance.api.RetryWithExponentialBackoff;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 
 @Slf4j
 @ApplicationScoped
 public class ContractsController {
   @ContractsClient DefaultApi contractsApi;
+  @Inject ApplicationClock clock;
 
   @RetryWithExponentialBackoff(
       maxRetries = "${CONTRACT_CLIENT_MAX_ATTEMPTS:1}",
       delay = "${CONTRACT_CLIENT_BACK_OFF_INITIAL_INTERVAL_MILLIS:1000ms}",
       maxDelay = "${CONTRACT_CLIENT_BACK_OFF_MAX_INTERVAL_MILLIS:64s}",
       factor = "${CONTRACT_CLIENT_BACK_OFF_MULTIPLIER:2}")
-  public Double getContractCoverage(BillableUsage usage) throws ContractMissingException {
+  public ContractCoverage getContractCoverage(BillableUsage usage) throws ContractMissingException {
     if (!SubscriptionDefinition.isContractEnabled(usage.getProductId())) {
       throw new IllegalStateException(
           String.format("Product %s is not contract enabled.", usage.getProductId()));
@@ -88,18 +93,39 @@ public class ContractsController {
       throw new ContractMissingException(
           String.format("No contract info found for usage! %s", usage));
     }
-    Integer totalUnderContract =
-        contracts.stream()
-            .filter(contract -> isValidContract(contract, usage))
-            .map(
-                c ->
-                    c.getMetrics().stream()
-                        .filter(metric -> metric.getMetricId().equals(contractMetricId))
-                        .map(Metric::getValue)
-                        .reduce(0, Integer::sum))
-            .reduce(0, Integer::sum);
-    log.debug("Total contract coverage is {} for usage {} ", totalUnderContract, usage);
-    return Double.valueOf(totalUnderContract);
+
+    MetricId metricId = MetricId.fromString(usage.getMetricId());
+    boolean isGratisContract =
+        SubscriptionDefinition.isMetricGratis(usage.getProductId(), metricId);
+    double total = 0;
+    for (Contract contract : contracts) {
+      if (isValidContract(contract, usage)) {
+        var value =
+            contract.getMetrics().stream()
+                .filter(metric -> metric.getMetricId().equals(contractMetricId))
+                .map(Metric::getValue)
+                .reduce(0, Integer::sum);
+        isGratisContract &= isContractCompatibleWithGratis(contract);
+        total += value;
+      }
+    }
+
+    log.debug("Total contract coverage is {} for usage {} ", total, usage);
+    return ContractCoverage.builder()
+        .metricId(contractMetricId)
+        .gratis(isGratisContract)
+        .total(total)
+        .build();
+  }
+
+  /**
+   * Check whether contract start date applies the condition for a gratis usage: contract starts on
+   * the current month. See more in <a
+   * href="https://issues.redhat.com/browse/SWATCH-2571">SWATCH-2571</a>.
+   */
+  private boolean isContractCompatibleWithGratis(Contract contract) {
+    OffsetDateTime startDate = contract.getStartDate();
+    return startDate != null && startDate.isAfter(clock.startOfCurrentMonth());
   }
 
   private boolean isValidContract(Contract contract, BillableUsage usage) {

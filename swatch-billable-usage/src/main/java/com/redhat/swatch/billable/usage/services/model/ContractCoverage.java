@@ -18,24 +18,21 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.configuration.registry;
+package com.redhat.swatch.billable.usage.services.model;
 
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import lombok.*;
+import lombok.Builder;
+import lombok.Getter;
 
-@Data
+@Getter
 @Builder
-@AllArgsConstructor
-@NoArgsConstructor
-public class Metric {
+public class ContractCoverage {
+  private final String metricId;
+  private final boolean gratis;
+  private final double total;
 
-  @NotNull @NotEmpty private String id; // required
-  @NotNull private MetricType type;
-  private String rhmMetricId;
-  private String awsDimension;
-  private String azureDimension;
-  private PrometheusMetric prometheus;
-  private Double billingFactor;
-  private Boolean enableGratisUsage;
+  @Override
+  public String toString() {
+    return String.format(
+        "Coverage for metric '%s': %s%s", metricId, total, gratis ? "(Gratis)" : "");
+  }
 }
