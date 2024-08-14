@@ -103,4 +103,8 @@ public class TallyRetentionPolicy {
   public long getSnapshotsToDeleteInBatches() {
     return config.getSnapshotsToDeleteInBatches();
   }
+
+  public int getOrganizationsBatchLimit() {
+    return config.getOrganizationsBatchLimit();
+  }
 }
