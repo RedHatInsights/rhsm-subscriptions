@@ -100,11 +100,6 @@ paths:
   /v1/internal/subscriptions/awsUsageContext:
     description: "Get AWS usage context."
     parameters:
-      - name: orgId
-        in: query
-        schema:
-          type: string
-        description: "Customer's Org Id"
       - name: date
         in: query
         required: true
@@ -116,6 +111,12 @@ paths:
         required: true
         schema:
           type: string
+      - name: orgId
+        in: query
+        required: true
+        schema:
+          type: string
+        description: "Customer's Org Id"
       - name: sla
         in: query
         schema:
@@ -158,12 +159,6 @@ paths:
       tags:
         - internalSubscriptions
       parameters:
-        - name: orgId
-          description: 'Look at subscriptions for this orgId'
-          example: org123
-          schema:
-            type: string
-          in: query
         - name: date
           description: 'Look at subscriptions starting on this date'
           example: 2023-10-31T00:00:00Z
@@ -175,6 +170,13 @@ paths:
         - name: productId
           description: 'This value should correspond to a product variant tag as defined in swatch product configuration'
           example: rhel-for-x86-els-payg
+          schema:
+            type: string
+          in: query
+          required: true
+        - name: orgId
+          description: 'Look at subscriptions for this orgId'
+          example: org123
           schema:
             type: string
           in: query

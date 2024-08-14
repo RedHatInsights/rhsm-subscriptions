@@ -75,8 +75,7 @@ public class UsageContextSubscriptionProvider {
     // Set start date one hour in past to pickup recently terminated subscriptions
     var start = subscriptionDate.minusHours(1);
     List<Subscription> subscriptions =
-        subscriptionSyncController.findSubscriptions(
-            Optional.ofNullable(orgId), usageKey, start, subscriptionDate);
+        subscriptionSyncController.findSubscriptions(orgId, usageKey, start, subscriptionDate);
 
     var existsRecentlyTerminatedSubscription =
         subscriptions.stream()

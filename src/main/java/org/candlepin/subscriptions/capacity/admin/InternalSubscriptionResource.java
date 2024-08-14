@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.capacity.admin;
 import com.redhat.swatch.configuration.registry.Variant;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.NotFoundException;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -120,9 +121,9 @@ public class InternalSubscriptionResource implements InternalSubscriptionsApi {
 
   @Override
   public AwsUsageContext getAwsUsageContext(
-      @jakarta.validation.constraints.NotNull OffsetDateTime date,
-      @jakarta.validation.constraints.NotNull String productId,
-      String orgId,
+      @NotNull OffsetDateTime date,
+      @NotNull String productId,
+      @NotNull String orgId,
       String sla,
       String usage,
       String awsAccountId) {
@@ -135,9 +136,9 @@ public class InternalSubscriptionResource implements InternalSubscriptionsApi {
 
   @Override
   public AzureUsageContext getAzureMarketplaceContext(
-      @jakarta.validation.constraints.NotNull OffsetDateTime date,
-      @jakarta.validation.constraints.NotNull String productId,
-      String orgId,
+      @NotNull OffsetDateTime date,
+      @NotNull String productId,
+      @NotNull String orgId,
       String sla,
       String usage,
       String azureAccountId) {
