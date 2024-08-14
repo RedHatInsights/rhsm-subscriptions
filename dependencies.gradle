@@ -17,6 +17,7 @@ ext {
     springVersion='3.3.2'
     resteasyVersion='6.2.9.Final'
     jacksonVersion='2.17.2'
+    mapstructVersion='1.6.0'
     libraries = [:]
     plugins = []
 }
@@ -45,7 +46,7 @@ libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-de
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:3.0.0"
-libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.27.1"
+libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.27.4"
 libraries["clowder-quarkus-config-source"] = "com.redhat.cloud.common:clowder-quarkus-config-source:2.6.1"
 libraries["guava"] = "com.google.guava:guava:33.2.1-jre"
 libraries["commons-lang3"] = "org.apache.commons:commons-lang3:3.16.0"
@@ -58,8 +59,8 @@ libraries["jsr305"] = "com.google.code.findbugs:jsr305:3.0.2"
 libraries["junit-jupiter"] = "org.junit.jupiter:junit-jupiter:5.10.3"
 libraries["lombok"] = "org.projectlombok:lombok:1.18.34"
 libraries["lombok-mapstruct-binding"] = "org.projectlombok:lombok-mapstruct-binding:0.2.0"
-libraries["mapstruct"] = "org.mapstruct:mapstruct:1.5.5.Final"
-libraries["mapstruct-processor"] = "org.mapstruct:mapstruct-processor:1.5.5.Final"
+libraries["mapstruct"] = "org.mapstruct:mapstruct:${mapstructVersion}"
+libraries["mapstruct-processor"] = "org.mapstruct:mapstruct-processor:${mapstructVersion}"
 libraries["event-schemas"] = "com.redhat.cloud.event:event-schemas:1.4.11"
 // overridden to address CVE-2023-44487
 libraries["netty-codec-http2"] = "io.netty:netty-codec-http2:4.1.112.Final"
@@ -87,7 +88,7 @@ libraries["awaitility"] = "org.awaitility:awaitility:4.2.2"
 libraries["splunk-otel-agent"] = 'com.splunk:splunk-otel-javaagent:2.6.0'
 libraries["testcontainers-postgresql"] = 'org.testcontainers:postgresql:1.20.1'
 libraries["kafka-streams-test-utils"] = "org.apache.kafka:kafka-streams-test-utils:3.8.0"
-libraries["slf4j-api"] = "org.slf4j:slf4j-api:2.0.15"
+libraries["slf4j-api"] = "org.slf4j:slf4j-api:2.0.16"
 libraries["snakeyaml"] = "org.yaml:snakeyaml:2.2"
 libraries["unleash-spring-boot-starter"] = "io.getunleash:springboot-unleash-starter:1.1.0"
 libraries["unleash-quarkus"] = "io.quarkiverse.unleash:quarkus-unleash:1.7.0"

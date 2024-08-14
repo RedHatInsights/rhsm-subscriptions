@@ -40,8 +40,7 @@ sum_over_time((max by (_id) (system_cpu_logical_count))[1h:10m]) / scalar(count_
       system_cpu_logical_count{
       product=~".*(^|,)(69)($|,).*",
       external_organization="11789772",
-      billing_model="marketplace",
-      support=~"Premium|Standard|Self-Support|None|"
+      billing_model="marketplace"
       }[1h]
     )
   )
