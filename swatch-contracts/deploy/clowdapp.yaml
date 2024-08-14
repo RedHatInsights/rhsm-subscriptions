@@ -56,8 +56,6 @@ parameters:
     value: prod
   - name: UMB_KEYSTORE_PATH
     value: /pinhead/keystore.jks
-  - name: PRODUCT_URL
-    value: https://product.stage.api.redhat.com/svcrest/product/v3
   - name: SUBSCRIPTION_SYNC_ENABLED
     value: 'true'
   - name: SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN
@@ -282,8 +280,6 @@ objects:
                   fieldRef:
                     apiVersion: v1
                     fieldPath: metadata.namespace
-              - name: PRODUCT_URL
-                value: ${PRODUCT_URL}
               - name: PRODUCT_DENYLIST_RESOURCE_LOCATION
                 value: file:/denylist/product-denylist.txt
               - name: PRODUCT_KEYSTORE
