@@ -252,8 +252,6 @@ objects:
                     key: self
               - name: QUARKUS_PROFILE
                 value: ${QUARKUS_PROFILE}
-              - name: KEYSTORE_RESOURCE
-                value: file:/pinhead/keystore.jks
               - name: KEYSTORE_PASSWORD
                 valueFrom:
                   secretKeyRef:
@@ -261,6 +259,9 @@ objects:
                     key: keystore_password
               - name: KEYSTORE_PATH
                 value: /pinhead/keystore.jks
+              - name: KEYSTORE_RESOURCE
+                # Note the parenthesis for a dependent variable reference!
+                value: "file:$(KEYSTORE_PATH)"
               - name: UMB_KEYSTORE_PASSWORD
                 valueFrom:
                   secretKeyRef:
@@ -270,6 +271,9 @@ objects:
                 value: ${UMB_KEYSTORE_PATH}
               - name: TRUSTSTORE_PATH
                 value: /pinhead/truststore.jks
+              - name: TRUSTSTORE_RESOURCE
+                # Note the parenthesis for a dependent variable reference!
+                value: "file:$(TRUSTSTORE_PATH)"
               - name: TRUSTSTORE_PASSWORD
                 valueFrom:
                   secretKeyRef:
@@ -282,15 +286,17 @@ objects:
                     fieldPath: metadata.namespace
               - name: PRODUCT_DENYLIST_RESOURCE_LOCATION
                 value: file:/denylist/product-denylist.txt
-              - name: PRODUCT_KEYSTORE
-                value: /pinhead/keystore.jks
+              - name: PRODUCT_KEYSTORE_RESOURCE
+                # Note the parenthesis for a dependent variable reference!
+                value: "$(KEYSTORE_RESOURCE)"
               - name: PRODUCT_KEYSTORE_PASSWORD
                 valueFrom:
                   secretKeyRef:
                     name: tls
                     key: keystore_password
-              - name: SUBSCRIPTION_KEYSTORE
-                value: /pinhead/keystore.jks
+              - name: SUBSCRIPTION_KEYSTORE_RESOURCE
+                # Note the parenthesis for a dependent variable reference!
+                value: "$(KEYSTORE_RESOURCE)"
               - name: SUBSCRIPTION_KEYSTORE_PASSWORD
                 valueFrom:
                   secretKeyRef:
