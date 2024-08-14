@@ -303,6 +303,15 @@ project(":api") {
     apply plugin: "swatch.spring-boot-dependencies-conventions"
     apply plugin: "org.openapi.generator"
 
+    openApiGenerate {
+        // To keep ./gradlew openApiGenerate as a working task, we have to actually configure it.  The
+        // generateApiv{1,2} tasks are the important ones, but it's handy to be able to run openApiGenerate on
+        // the command line and have it work across all the projects.  The below configuration is just an
+        // inconsequential documentation generator but it's enough to let us set a dependsOn
+        generatorName.set("html")
+        inputSpec.set("${projectDir}/rhsm-subscriptions-api-v2-spec.yaml")
+    }
+
     def public_apis = ["v1", "v2"]
 
     for(api in public_apis) {
@@ -359,8 +368,10 @@ project(":api") {
             from spec
         }
 
-        compileJava.dependsOn tasks['generateApi' + api]
+        tasks.openApiGenerate.dependsOn('generateApi' + api)
     }
+
+    compileJava.dependsOn tasks.openApiGenerate
 
     dependencies {
         implementation project(":swatch-product-configuration")
