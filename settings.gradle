@@ -2,6 +2,16 @@ buildscript {
     apply from: "dependencies.gradle"
 }
 
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+        maven { url "https://packages.confluent.io/maven/" }
+        maven { url "https://splunk.jfrog.io/splunk/ext-releases-local" }
+        // Needed for the Quarkus gradle plugin which is only published in the Gradle Plugin portal since Quarkus 3.6.6:
+        gradlePluginPortal()
+    }
+}
+
 rootProject.name = 'rhsm-subscriptions'
 include ':api'
 include ':clients-core'

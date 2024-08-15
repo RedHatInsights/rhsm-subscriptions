@@ -1,17 +1,6 @@
 // By keeping dependencies in this file, they get picked up by dependabot reliably
 // inspired by mockito's gradle structure, which dependabot uses as a test case
 
-// Repeating repositories here allows dependabot to use them to check for updates
-buildscript {
-  repositories {
-      mavenCentral()
-      maven { url "https://packages.confluent.io/maven/" }
-      maven { url "https://splunk.jfrog.io/splunk/ext-releases-local" }
-      // Needed for the Quarkus gradle plugin which is only published in the Gradle Plugin portal since Quarkus 3.6.6:
-      gradlePluginPortal()
-  }
-}
-
 ext {
     quarkusVersion='3.9.2'
     springVersion='3.3.2'
