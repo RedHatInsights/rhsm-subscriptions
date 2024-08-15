@@ -35,13 +35,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class WireMockResource implements QuarkusTestResourceLifecycleManager {
-
   private static final String BASE_KEYSTORE_PATH =
       Paths.get(PathUtils.PROJECT_DIRECTORY, "../clients-core/src/test/resources").toString();
   private static final String SERVER_KEYSTORE_PATH =
       String.format("%s/server.jks", BASE_KEYSTORE_PATH);
   private static final String CLIENT_KEYSTORE_PATH =
       String.format("%s/client.jks", BASE_KEYSTORE_PATH);
+  public static final String CLIENT_KEYSTORE_RESOURCE =
+      String.format("file:%s", CLIENT_KEYSTORE_PATH);
   private static final String TRUSTSTORE_PATH = String.format("%s/test-ca.jks", BASE_KEYSTORE_PATH);
   public static final String STORE_PASSWORD = "password";
   private WireMockServer wireMockServer;
@@ -62,17 +63,15 @@ public class WireMockResource implements QuarkusTestResourceLifecycleManager {
     stubApis();
     wireMockServer.start();
     var config = new HashMap<String, String>();
-    config.put("KEYSTORE_RESOURCE", CLIENT_KEYSTORE_PATH);
+    config.put("KEYSTORE_PATH", CLIENT_KEYSTORE_PATH);
+    config.put("KEYSTORE_RESOURCE", CLIENT_KEYSTORE_RESOURCE);
     config.put("KEYSTORE_PASSWORD", STORE_PASSWORD);
     config.put("TRUSTSTORE_PATH", TRUSTSTORE_PATH);
+    config.put("TRUSTSTORE_RESOURCE", String.format("file:%s", TRUSTSTORE_PATH));
     config.put("TRUSTSTORE_PASSWORD", STORE_PASSWORD);
-    config.put("SUBSCRIPTION_TRUSTSTORE_PATH", TRUSTSTORE_PATH);
-    config.put("SUBSCRIPTION_TRUSTSTORE_PASSWORD", STORE_PASSWORD);
-    config.put("PRODUCT_TRUSTSTORE_PATH", TRUSTSTORE_PATH);
-    config.put("PRODUCT_TRUSTSTORE_PASSWORD", STORE_PASSWORD);
-    config.put("SUBSCRIPTION_KEYSTORE", CLIENT_KEYSTORE_PATH);
+    config.put("SUBSCRIPTION_KEYSTORE_RESOURCE", CLIENT_KEYSTORE_RESOURCE);
     config.put("SUBSCRIPTION_KEYSTORE_PASSWORD", STORE_PASSWORD);
-    config.put("PRODUCT_KEYSTORE", String.format("file:%s", CLIENT_KEYSTORE_PATH));
+    config.put("PRODUCT_KEYSTORE_RESOURCE", CLIENT_KEYSTORE_RESOURCE);
     config.put("PRODUCT_KEYSTORE_PASSWORD", STORE_PASSWORD);
     config.put(
         "ENTITLEMENT_GATEWAY_URL", String.format("%s/mock/partnerApi", wireMockServer.baseUrl()));
@@ -82,7 +81,7 @@ public class WireMockResource implements QuarkusTestResourceLifecycleManager {
         String.format("%s/mock/internalSubs", wireMockServer.baseUrl()));
     config.put(
         "quarkus.rest-client.\"com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi\".key-store",
-        String.format("file:%s", CLIENT_KEYSTORE_PATH));
+        CLIENT_KEYSTORE_RESOURCE);
     config.put(
         "quarkus.rest-client.\"com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi\".key-store-password",
         STORE_PASSWORD);
