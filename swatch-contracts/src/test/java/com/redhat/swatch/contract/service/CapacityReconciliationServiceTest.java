@@ -53,9 +53,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@QuarkusTestResource(
-    value = InMemoryMessageBrokerKafkaResource.class,
-    restrictToAnnotatedClass = true)
+@QuarkusTestResource(InMemoryMessageBrokerKafkaResource.class)
 class CapacityReconciliationServiceTest {
   private static final String SUBSCRIPTION_ID = "456";
   private static final String SKU = "MCT3718";

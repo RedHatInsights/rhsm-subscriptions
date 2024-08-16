@@ -26,8 +26,6 @@ import static com.redhat.swatch.contract.service.EnabledOrgsProducer.SUBSCRIPTIO
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.redhat.swatch.contract.model.EnabledOrgsRequest;
-import com.redhat.swatch.contract.test.resources.InMemoryMessageBrokerKafkaResource;
-import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import io.smallrye.reactive.messaging.memory.InMemorySink;
@@ -38,9 +36,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@QuarkusTestResource(
-    value = InMemoryMessageBrokerKafkaResource.class,
-    restrictToAnnotatedClass = true)
 class EnabledOrgsProducerTest {
 
   @ConfigProperty(name = SUBSCRIPTION_SYNC_TASK_TOPIC)

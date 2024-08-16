@@ -48,10 +48,8 @@ import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.OfferingRepository;
 import com.redhat.swatch.contract.repository.ServiceLevel;
 import com.redhat.swatch.contract.repository.Usage;
-import com.redhat.swatch.contract.test.resources.InMemoryMessageBrokerKafkaResource;
 import com.redhat.swatch.contract.test.resources.ProductUseStubService;
 import io.quarkus.test.InjectMock;
-import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
@@ -72,9 +70,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 @QuarkusTest
-@QuarkusTestResource(
-    value = InMemoryMessageBrokerKafkaResource.class,
-    restrictToAnnotatedClass = true)
 @TestProfile(ProductUseStubService.class)
 class OfferingSyncServiceTest {
 
