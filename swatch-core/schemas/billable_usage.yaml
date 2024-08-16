@@ -50,6 +50,7 @@ properties:
       - pending
       - succeeded
       - failed
+      - gratis
   error_code:
     description: Intended to be used for reporting remittance error code in case of failure
     type: string

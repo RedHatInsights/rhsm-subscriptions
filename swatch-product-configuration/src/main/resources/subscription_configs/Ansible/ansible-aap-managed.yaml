@@ -23,6 +23,7 @@ metrics:
   - id: Managed-nodes
     type: gauge
     awsDimension: managed_node
+    enableGratisUsage: true
   - id: Instance-hours
     type: counter
     awsDimension: infrastructure

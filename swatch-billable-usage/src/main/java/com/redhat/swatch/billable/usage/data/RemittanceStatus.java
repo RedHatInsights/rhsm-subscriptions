@@ -32,6 +32,7 @@ import lombok.Getter;
 @Getter
 public enum RemittanceStatus {
   PENDING("pending"),
+  GRATIS("gratis"),
   FAILED("failed"),
   SUCCEEDED("succeeded");
 
