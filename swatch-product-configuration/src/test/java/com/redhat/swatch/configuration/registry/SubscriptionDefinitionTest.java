@@ -256,6 +256,21 @@ class SubscriptionDefinitionTest {
         "cluster_hour", SubscriptionDefinition.getAzureDimension("BASILISK", "Instance-hours"));
   }
 
+  @Test
+  void testCostManagementRhelElsAddon() {
+    ProductTagLookupParams params =
+        ProductTagLookupParams.builder()
+            .isPaygEligibleProduct(true)
+            .is3rdPartyMigration(false)
+            .role("Red Hat Enterprise Linux Server")
+            .metricIds(Set.of("vCPUs"))
+            .engIds(Set.of("69", "204"))
+            .build();
+
+    var actual = SubscriptionDefinition.getAllProductTags(params);
+    assertEquals(Set.of("rhel-for-x86-els-payg-addon"), actual);
+  }
+
   @ParameterizedTest(
       name =
           "isMetered: {0}, isConverted: {1}, metricIds: {2}, productIds: {3} match productTags {4}")
