@@ -28,7 +28,6 @@ import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.DbReportCriteria;
@@ -96,7 +95,7 @@ public class SubscriptionSyncController {
 
   @Transactional
   public List<org.candlepin.subscriptions.db.model.Subscription> findSubscriptions(
-      Optional<String> orgId, Key usageKey, OffsetDateTime rangeStart, OffsetDateTime rangeEnd) {
+      String orgId, Key usageKey, OffsetDateTime rangeStart, OffsetDateTime rangeEnd) {
     Assert.isTrue(Usage._ANY != usageKey.getUsage(), "Usage cannot be _ANY");
     Assert.isTrue(ServiceLevel._ANY != usageKey.getSla(), "Service Level cannot be _ANY");
 
@@ -117,10 +116,10 @@ public class SubscriptionSyncController {
             .billingAccountId(usageKey.getBillingAccountId())
             .payg(true)
             .beginning(rangeStart)
-            .ending(rangeEnd);
+            .ending(rangeEnd)
+            .orgId(orgId);
 
-    DbReportCriteria subscriptionCriteria =
-        orgId.map(id -> reportCriteriaBuilder.orgId(id).build()).get();
+    DbReportCriteria subscriptionCriteria = reportCriteriaBuilder.build();
 
     List<org.candlepin.subscriptions.db.model.Subscription> result =
         subscriptionRepository.findByCriteria(

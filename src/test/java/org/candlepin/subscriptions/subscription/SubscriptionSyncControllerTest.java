@@ -98,7 +98,7 @@ class SubscriptionSyncControllerTest {
             Usage._ANY,
             BillingProvider._ANY,
             BILLING_ACCOUNT_ID_ANY);
-    Optional<String> orgId = Optional.of("org1000");
+    var orgId = "org1000";
 
     assertThrows(
         IllegalArgumentException.class,
@@ -127,8 +127,7 @@ class SubscriptionSyncControllerTest {
     when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(result);
 
     List<Subscription> actual =
-        subscriptionSyncController.findSubscriptions(
-            Optional.of("org1000"), key, rangeStart, rangeEnd);
+        subscriptionSyncController.findSubscriptions("org1000", key, rangeStart, rangeEnd);
     assertEquals(1, actual.size());
     assertEquals("xyz", actual.get(0).getBillingProviderId());
   }
@@ -148,8 +147,7 @@ class SubscriptionSyncControllerTest {
     s.setBillingProvider(BillingProvider.RED_HAT);
     s.setBillingProviderId("xyz");
     List<Subscription> actual =
-        subscriptionSyncController.findSubscriptions(
-            Optional.of("org1000"), key, rangeStart, rangeEnd);
+        subscriptionSyncController.findSubscriptions("org1000", key, rangeStart, rangeEnd);
     assertEquals(0, actual.size());
   }
 
