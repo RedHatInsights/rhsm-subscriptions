@@ -315,7 +315,7 @@ spec:
         - name: name
           value: sast-snyk-check
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-sast-snyk-check:0.1@sha256:1ef6a3ab9c4ba9e735c6924008714ef2a873597837be9d4d927522d5d733bd07
+          value: quay.io/redhat-appstudio-tekton-catalog/task-sast-snyk-check:0.1@sha256:7cca6199faa8e7ba2c51877753a6853e394f8895816a093088c028f687fa3c59
         - name: kind
           value: task
         resolver: bundles
@@ -345,7 +345,7 @@ spec:
         - name: name
           value: clamav-scan
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-clamav-scan:0.1@sha256:d7c56fa0db73f3840fbfe6ae839ac1e5031274a91c1ac0c6b313e2e156d50743
+          value: quay.io/redhat-appstudio-tekton-catalog/task-clamav-scan:0.1@sha256:4c1a1cd74eecfcd93222903ea28319a8068f2d5c9678e4db14e2c605831ad90c
         - name: kind
           value: task
         resolver: bundles
