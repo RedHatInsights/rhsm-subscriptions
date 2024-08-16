@@ -12,6 +12,7 @@ SPLUNK_HEC_INCLUDE_EX: false
 METRICS_IN_FAIL_ON_DESER_FAILURE: true
 METERING_TASK_TOPIC: platform.rhsm-subscriptions.metering-tasks
 SERVICE_INSTANCE_INGRESS_TOPIC: platform.rhsm-subscriptions.service-instance-ingress
+CORS_ORIGINS: /.+.redhat.com/
 
 # dev-specific defaults; these can still be overridden by env var
 "%dev":
@@ -22,6 +23,7 @@ SERVICE_INSTANCE_INGRESS_TOPIC: platform.rhsm-subscriptions.service-instance-ing
   HOST_NAME: ${USER}@${HOSTNAME}
   SPLUNKMETA_namespace: local
   SPLUNK_HEC_INCLUDE_EX: true
+  CORS_ORIGINS: /.*/
   quarkus:
     log:
       console:
@@ -66,6 +68,9 @@ quarkus:
   http:
     port: ${SERVER_PORT}
     test-port: 0
+    cors:
+      ~: true
+      origins: ${CORS_ORIGINS}
   log:
     level: ${LOGGING_LEVEL_ROOT}
     category:

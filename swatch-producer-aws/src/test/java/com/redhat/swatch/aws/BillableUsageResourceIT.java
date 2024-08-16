@@ -55,4 +55,22 @@ class BillableUsageResourceIT {
         .then()
         .statusCode(HttpStatus.SC_NO_CONTENT);
   }
+
+  @Test
+  void testWhenOriginHeaderIsInvalidThenReturnsForbidden() {
+    given()
+        .header("Origin", "wrong")
+        .contentType(ContentType.JSON)
+        .body(
+            """
+                    {
+                      "sla": "Standard",
+                      "usage": "Development/Test",
+                      "billingProvider": "aws"
+                    }
+                    """)
+        .post("/api/swatch-producer-aws/internal/aws/billable_usage")
+        .then()
+        .statusCode(HttpStatus.SC_FORBIDDEN);
+  }
 }

@@ -104,6 +104,20 @@ class ContractsHttpEndpointTest {
   @TestSecurity(
       user = "placeholder",
       roles = {"test"})
+  void whenOriginHeaderIsInvalid_thenReturnsForbidden() {
+    given()
+        .contentType(ContentType.JSON)
+        .header("Origin", "wrong")
+        .when()
+        .delete("/api/swatch-contracts/internal/contracts/123")
+        .then()
+        .statusCode(HttpStatus.SC_FORBIDDEN);
+  }
+
+  @Test
+  @TestSecurity(
+      user = "placeholder",
+      roles = {"test"})
   void createPartnerEntitlementContract() {
     StatusResponse statusResponse = new StatusResponse();
     statusResponse.setMessage("Contract created successfully");

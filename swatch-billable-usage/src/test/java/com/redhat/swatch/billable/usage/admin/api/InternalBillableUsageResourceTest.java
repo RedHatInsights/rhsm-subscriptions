@@ -85,6 +85,16 @@ class InternalBillableUsageResourceTest {
   }
 
   @Test
+  void testWhenOriginHeaderIsInvalidThenReturnsForbidden() {
+    given()
+        .header("Origin", "wrong")
+        .queryParam("productId", PRODUCT_ID)
+        .get("/api/swatch-billable-usage/internal/remittance/accountRemittances")
+        .then()
+        .statusCode(HttpStatus.SC_FORBIDDEN);
+  }
+
+  @Test
   void testGetRemittancesReturnsBadRequestWhenWrongDates() {
     given()
         .queryParam("productId", PRODUCT_ID)

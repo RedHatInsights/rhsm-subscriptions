@@ -57,13 +57,16 @@ public class RbacRolesAugmentor implements SecurityIdentityAugmentor {
   @Override
   public Uni<SecurityIdentity> augment(
       SecurityIdentity identity, AuthenticationRequestContext context) {
+    if (!rbacEnabled) {
+      return Uni.createFrom().item(buildWithAllRoles(identity));
+    }
+
     Principal principal = identity.getPrincipal();
-    if (rbacEnabled
-        && principal instanceof RhIdentityPrincipal rhIdentityPrincipal
+    if (principal instanceof RhIdentityPrincipal rhIdentityPrincipal
         && isCustomer(rhIdentityPrincipal)) {
       return context.runBlocking(() -> lookupRbacRoles(identity));
     }
-    return Uni.createFrom().item(buildWithAllRoles(identity));
+    return Uni.createFrom().item(identity);
   }
 
   private Supplier<SecurityIdentity> buildWithAllRoles(SecurityIdentity identity) {
