@@ -26,7 +26,7 @@ ext.plugins = [
         "org.kordamp.gradle:jandex-gradle-plugin:1.1.0",
         "org.openapitools:openapi-generator-gradle-plugin:7.7.0",
         "org.springframework.boot:spring-boot-gradle-plugin:${springVersion}",
-        "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:4.4.1.3373",
+        "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:5.1.0.4882",
 ]
 
 // BOMs
