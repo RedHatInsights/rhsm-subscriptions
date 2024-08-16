@@ -87,17 +87,18 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   @Query(
       value =
-          "select count(*) from TallySnapshot where orgId in (select distinct c.orgId from OrgConfig c) and granularity=:granularity and snapshotDate < :cutoffDate")
+          "select count(*) from TallySnapshot where orgId=:orgId and granularity=:granularity and snapshotDate < :cutoffDate")
   long countAllByGranularityAndSnapshotDateBefore(
-      Granularity granularity, OffsetDateTime cutoffDate);
+      String orgId, Granularity granularity, OffsetDateTime cutoffDate);
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   @Modifying
   @Query(
       nativeQuery = true,
       value =
-          "delete from tally_snapshots where id in (select id from tally_snapshots where org_id in (select distinct c.org_id from org_config c) and granularity=:granularity and snapshot_date < :cutoffDate limit :limit)")
+          "delete from tally_snapshots where id in (select id from tally_snapshots where org_id=:orgId and granularity=:granularity and snapshot_date < :cutoffDate limit :limit)")
   void deleteAllByGranularityAndSnapshotDateBefore(
+      @Param("orgId") String orgId,
       @Param("granularity") String granularity,
       @Param("cutoffDate") OffsetDateTime cutoffDate,
       @Param("limit") long limit);

@@ -24,8 +24,12 @@ import io.micrometer.core.annotation.Timed;
 import java.time.OffsetDateTime;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.config.OrgConfig;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
@@ -36,6 +40,7 @@ import org.springframework.stereotype.Component;
 public class TallyRetentionController {
 
   private final TallySnapshotRepository tallySnapshotRepository;
+  private final OrgConfigRepository orgConfigRepository;
   private final TallyRetentionPolicy policy;
 
   @Timed("rhsm-subscriptions.snapshots.purge")
@@ -43,24 +48,37 @@ public class TallyRetentionController {
   public void purgeSnapshotsAsync() {
     try {
       log.info("Starting tally snapshot purge.");
-      for (Granularity granularity : Granularity.values()) {
-        OffsetDateTime cutoffDate = policy.getCutoffDate(granularity);
-        if (cutoffDate == null) {
-          continue;
-        }
+      PageRequest pageRequest = PageRequest.ofSize(policy.getOrganizationsBatchLimit());
+      Page<OrgConfig> page = orgConfigRepository.findAll(pageRequest);
+      while (!page.isEmpty()) {
+        page.getContent().forEach(org -> purgeSnapshotsByOrg(org.getOrgId()));
 
-        long count =
-            tallySnapshotRepository.countAllByGranularityAndSnapshotDateBefore(
-                granularity, cutoffDate);
-        while (count > 0) {
-          tallySnapshotRepository.deleteAllByGranularityAndSnapshotDateBefore(
-              granularity.name(), cutoffDate, policy.getSnapshotsToDeleteInBatches());
-          count -= policy.getSnapshotsToDeleteInBatches();
-        }
+        pageRequest = pageRequest.next();
+        page = orgConfigRepository.findAll(pageRequest);
       }
+
       log.info("Tally snapshot purge completed successfully.");
     } catch (Exception e) {
       log.error("Unable to purge tally snapshots: {}", e.getMessage());
+    }
+  }
+
+  private void purgeSnapshotsByOrg(String orgId) {
+    log.debug("Running tally snapshot purge for orgId {}", orgId);
+    for (Granularity granularity : Granularity.values()) {
+      OffsetDateTime cutoffDate = policy.getCutoffDate(granularity);
+      if (cutoffDate == null) {
+        continue;
+      }
+
+      long count =
+          tallySnapshotRepository.countAllByGranularityAndSnapshotDateBefore(
+              orgId, granularity, cutoffDate);
+      while (count > 0) {
+        tallySnapshotRepository.deleteAllByGranularityAndSnapshotDateBefore(
+            orgId, granularity.name(), cutoffDate, policy.getSnapshotsToDeleteInBatches());
+        count -= policy.getSnapshotsToDeleteInBatches();
+      }
     }
   }
 }

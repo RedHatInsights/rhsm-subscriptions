@@ -44,50 +44,56 @@ import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.db.model.config.OrgConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
 class TallyRetentionControllerTest {
 
-  private static final long BATCHES = 10;
+  private static final long SNAPSHOTS_TO_DELETE_IN_BATCHES = 10;
+  private static final int ORGANIZATION_BATCH_SIZE = 1;
+  private static final String ORG_ID = "org123";
 
   @MockBean TallyRetentionPolicy policy;
   @SpyBean TallySnapshotRepository repository;
-  @Autowired OrgConfigRepository orgConfigRepository;
+  @SpyBean OrgConfigRepository orgConfigRepository;
   TallyRetentionController controller;
 
   @BeforeEach
   void setup() {
-    reset(repository);
-    when(policy.getSnapshotsToDeleteInBatches()).thenReturn(BATCHES);
-    controller = new TallyRetentionController(repository, policy);
+    reset(repository, orgConfigRepository);
+    when(policy.getSnapshotsToDeleteInBatches()).thenReturn(SNAPSHOTS_TO_DELETE_IN_BATCHES);
+    when(policy.getOrganizationsBatchLimit()).thenReturn(ORGANIZATION_BATCH_SIZE);
+    orgConfigRepository.deleteAll();
+    controller = new TallyRetentionController(repository, orgConfigRepository, policy);
   }
 
   @Test
   void retentionControllerShouldDoNothingWhenThereAreNoSnapshots() {
+    givenOrganization(ORG_ID);
     OffsetDateTime cutoff = givenCutoffDateForGranularity(Granularity.DAILY);
     // given 0 existing snapshots
     givenExistingSnapshotsFor(Granularity.DAILY, cutoff, 0);
     controller.purgeSnapshotsAsync();
     verify(repository, times(0))
         .deleteAllByGranularityAndSnapshotDateBefore(
-            Granularity.DAILY.name(), cutoff, policy.getSnapshotsToDeleteInBatches());
+            ORG_ID, Granularity.DAILY.name(), cutoff, policy.getSnapshotsToDeleteInBatches());
   }
 
   @Test
   void retentionControllerShouldRemoveSnapshotsForGranularitiesConfigured() {
+    givenOrganization(ORG_ID);
     OffsetDateTime cutoff = givenCutoffDateForGranularity(Granularity.DAILY);
     // given 9 existing snapshots
     givenExistingSnapshotsFor(Granularity.DAILY, cutoff, 9);
     controller.purgeSnapshotsAsync();
     verify(repository, times(1))
         .deleteAllByGranularityAndSnapshotDateBefore(
-            Granularity.DAILY.name(), cutoff, policy.getSnapshotsToDeleteInBatches());
+            ORG_ID, Granularity.DAILY.name(), cutoff, policy.getSnapshotsToDeleteInBatches());
 
     reset(repository);
     // given 11 existing snapshots, then we expect 2 iterations because the limit is 10.
@@ -95,7 +101,7 @@ class TallyRetentionControllerTest {
     controller.purgeSnapshotsAsync();
     verify(repository, times(2))
         .deleteAllByGranularityAndSnapshotDateBefore(
-            Granularity.DAILY.name(), cutoff, policy.getSnapshotsToDeleteInBatches());
+            ORG_ID, Granularity.DAILY.name(), cutoff, policy.getSnapshotsToDeleteInBatches());
   }
 
   @Test
@@ -114,11 +120,14 @@ class TallyRetentionControllerTest {
     givenSnapshotForOrganization("3");
     controller.purgeSnapshotsAsync();
     Awaitility.await().untilAsserted(() -> assertEquals(0, repository.count()));
+    // expected 4 invocations: 1 for each organization (because the limit in the test is 1),
+    // plus the last one that will retrieve empty results and hence will stop the loop.
+    verify(orgConfigRepository, times(4)).findAll(any(Pageable.class));
   }
 
   private void givenExistingSnapshotsFor(
       Granularity granularity, OffsetDateTime cutoff, long expected) {
-    when(repository.countAllByGranularityAndSnapshotDateBefore(granularity, cutoff))
+    when(repository.countAllByGranularityAndSnapshotDateBefore(ORG_ID, granularity, cutoff))
         .thenReturn(expected);
   }
 

@@ -71,4 +71,5 @@ public class TallyRetentionPolicyProperties {
   private Integer yearly;
 
   @Positive private long snapshotsToDeleteInBatches;
+  @Positive private int organizationsBatchLimit;
 }
