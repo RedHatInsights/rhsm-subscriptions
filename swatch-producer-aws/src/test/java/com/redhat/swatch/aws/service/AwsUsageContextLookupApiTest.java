@@ -43,9 +43,9 @@ class AwsUsageContextLookupApiTest {
 
   @Test
   void testParameterOrderGetAwsUsageContext() {
-    var now = OffsetDateTime.now();
+    var timestamp = OffsetDateTime.parse("2024-08-16T16:32:47.61154261Z");
     var aggregate = new BillableUsageAggregate();
-    aggregate.setWindowTimestamp(now);
+    aggregate.setWindowTimestamp(timestamp);
     var key =
         new BillableUsageAggregateKey(
             "orgId",
@@ -63,7 +63,8 @@ class AwsUsageContextLookupApiTest {
     }
     verify(
         getRequestedFor(urlMatching(".*/awsUsageContext.*"))
-            .withQueryParam("date", equalTo(DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(now)))
+            .withQueryParam(
+                "date", equalTo(DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(timestamp)))
             .withQueryParam("productId", equalTo("productId"))
             .withQueryParam("sla", equalTo("Premium"))
             .withQueryParam("usage", equalTo("Production"))
