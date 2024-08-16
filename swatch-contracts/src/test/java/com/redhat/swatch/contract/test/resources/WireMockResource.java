@@ -259,8 +259,10 @@ public class WireMockResource implements QuarkusTestResourceLifecycleManager {
 
   @Override
   public void stop() {
-    wireMockServer.stop();
-    wireMockServer.resetAll();
+    if (wireMockServer != null) {
+      wireMockServer.stop();
+      wireMockServer = null;
+    }
   }
 
   @Override
