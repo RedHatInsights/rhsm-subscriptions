@@ -28,14 +28,12 @@ import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.event.EventController;
+import org.candlepin.subscriptions.event.EventNormalizer;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.tally.AccountResetService;
@@ -58,6 +56,7 @@ public class InternalTallyDataController {
   private final ContractsController contractsController;
   private final BillableUsageController billableUsageController;
   private final TallySnapshotController snapshotController;
+  private final EventNormalizer eventNormalizer;
 
   public void deleteDataAssociatedWithOrg(String orgId) {
     // we first delete the contracts and if it works, we continue with the rest of the data.
@@ -89,7 +88,7 @@ public class InternalTallyDataController {
     try {
       events =
           objectMapper.readValue(jsonListOfEvents, new TypeReference<List<Event>>() {}).stream()
-              .map(eventController::normalizeEvent)
+              .map(eventNormalizer::normalizeEvent)
               .filter(
                   e -> {
                     if (eventController.validateServiceInstanceEvent(e)) {
@@ -106,11 +105,7 @@ public class InternalTallyDataController {
     }
 
     try {
-      saved =
-          eventController.saveAllEventRecords(
-              eventController.resolveEventConflicts(
-                  events.stream()
-                      .collect(Collectors.toMap(EventKey::fromEvent, Function.identity()))));
+      saved = eventController.saveAllEventRecords(eventController.resolveEventConflicts(events));
     } catch (Exception e) {
       log.error("Error saving events, {}", e.getMessage());
       return "Error saving events";
