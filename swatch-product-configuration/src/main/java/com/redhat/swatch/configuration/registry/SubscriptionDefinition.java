@@ -188,13 +188,12 @@ public class SubscriptionDefinition {
 
   public static Set<String> getAllProductTags(ProductTagLookupParams params) {
 
-    // First identify variants by one of the required product identifiers
-    Set<Variant> filteredVariants = getVariantsMatchingRequiredIdentifier(params);
+    // First identify variants by PAYG status and one of the required product identifiers
+    Set<Variant> filteredVariants = getVariantsMatchingPAYGStatusAndRequiredIdentifier(params);
 
     // Then filter down further with more criteria
     Set<Variant> productTags =
         filteredVariants.stream()
-            .filter(createOptionalMeteredPredicate(params))
             .filter(createOptionalConversionPredicate(params))
             .filter(createOptionalMetricIdsPredicate(params))
             .collect(Collectors.toSet());
@@ -208,10 +207,17 @@ public class SubscriptionDefinition {
    * @param params
    * @return Set<Variant>
    */
-  private static Set<Variant> getVariantsMatchingRequiredIdentifier(ProductTagLookupParams params) {
+  private static Set<Variant> getVariantsMatchingPAYGStatusAndRequiredIdentifier(
+      ProductTagLookupParams params) {
 
     var variants =
         SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
+            // NOTE(khowell): we filter by payg/non-payg early in order to avoid role values from
+            // non-payg (RHEL for x86) from being identified for payg (e.g. rhel-for-x86-els-addon)
+            .filter(
+                s ->
+                    params.getIsPaygEligibleProduct() == null
+                        || Objects.equals(s.isPaygEligible(), params.getIsPaygEligibleProduct()))
             .flatMap(subscription -> subscription.getVariants().stream())
             .collect(Collectors.toSet());
 
@@ -429,24 +435,6 @@ public class SubscriptionDefinition {
       return !isNullOrEmpty(paramProductName)
           && !isNullOrEmpty(variantProductNames)
           && variantProductNames.contains(paramProductName);
-    };
-  }
-
-  /**
-   * Returns a predicate only considering the isPaygEligible status if it's specified.
-   *
-   * @param params ProductTagLookupParams
-   * @return a predicate that always evaluates to 'true' if the isPaygEligible param is not
-   *     specified, resulting in nothing being filtered out. Otherwise a predicate that will include
-   *     Variants where the isPaygEligible values match
-   */
-  private static Predicate<Variant> createOptionalMeteredPredicate(ProductTagLookupParams params) {
-    return variant -> {
-      Boolean paramsIsPaygEligible = params.getIsPaygEligibleProduct();
-      Boolean variantIsPaygEligible =
-          variant.getSubscription() != null ? variant.getSubscription().isPaygEligible() : null;
-      return paramsIsPaygEligible == null
-          || Objects.equals(variantIsPaygEligible, paramsIsPaygEligible);
     };
   }
 
