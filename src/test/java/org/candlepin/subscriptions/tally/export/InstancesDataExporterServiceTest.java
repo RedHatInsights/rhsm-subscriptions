@@ -341,8 +341,8 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
   }
 
   private void givenInstanceWithMetricsForAnotherOrgId(String productId) {
-    var account = givenHostInAccountServices(UUID.randomUUID().toString());
-    HostWithGuests instance = givenInstanceWithMetrics(account.getOrgId(), productId);
+    var host = givenHostInAccountServices(UUID.randomUUID().toString());
+    HostWithGuests instance = givenInstanceWithMetrics(host.getOrgId(), productId);
     // removing it as we don't expect this host from being exported.
     itemsToBeExported.remove(instance);
   }

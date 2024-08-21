@@ -35,7 +35,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.HostTallyBucketRepository;
 import org.candlepin.subscriptions.db.model.*;
@@ -55,7 +54,6 @@ public class InventoryAccountUsageCollector {
   public static final String HBI_INSTANCE_TYPE = "HBI_HOST";
 
   private final FactNormalizer factNormalizer;
-  private final AccountServiceInventoryRepository accountServiceInventoryRepository;
   private final HostTallyBucketRepository tallyBucketRepository;
   private final HostRepository hostRepository;
   private final EntityManager entityManager;
@@ -66,14 +64,12 @@ public class InventoryAccountUsageCollector {
   @Autowired
   public InventoryAccountUsageCollector(
       FactNormalizer factNormalizer,
-      AccountServiceInventoryRepository accountServiceInventoryRepository,
       HostRepository hostRepository,
       EntityManager entityManager,
       HostTallyBucketRepository tallyBucketRepository,
       ApplicationProperties props,
       InventorySwatchDataCollator collator) {
     this.factNormalizer = factNormalizer;
-    this.accountServiceInventoryRepository = accountServiceInventoryRepository;
     this.collator = collator;
     this.hostRepository = hostRepository;
     this.entityManager = entityManager;
@@ -122,7 +118,6 @@ public class InventoryAccountUsageCollector {
   @Transactional
   @Timed("swatch_hbi_system_reconcile")
   public void reconcileSystemDataWithHbi(String orgId, Set<String> applicableProducts) {
-    accountServiceInventoryRepository.saveIfDoesNotExist(orgId, HBI_INSTANCE_TYPE);
     List<Host> detachHosts = new ArrayList<>();
     int systemsUpdatedForOrg =
         collator.collateData(

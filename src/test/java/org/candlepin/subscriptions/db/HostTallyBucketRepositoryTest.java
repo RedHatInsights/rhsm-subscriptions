@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.AccountBucketTally;
-import org.candlepin.subscriptions.db.model.AccountServiceInventory;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
@@ -46,14 +45,12 @@ import org.springframework.transaction.annotation.Transactional;
 @ActiveProfiles("test")
 class HostTallyBucketRepositoryTest {
 
-  @Autowired private AccountServiceInventoryRepository accountRepo;
-
   @Autowired private HostTallyBucketRepository bucketRepo;
+  @Autowired private HostRepository hostRepository;
 
   @Test
   @Transactional
   void testTallyHostBucketsQuery() {
-    AccountServiceInventory account = new AccountServiceInventory("org123", "HBI_HOST");
 
     Host h1 = createHost("inv1", "org123");
     h1.addBucket(
@@ -66,7 +63,6 @@ class HostTallyBucketRepositoryTest {
         1,
         4,
         HardwareMeasurementType.PHYSICAL);
-    account.getServiceInstances().put(h1.getInstanceId(), h1);
 
     Host h2 = createHost("inv2", "org123");
     h2.addBucket(
@@ -79,7 +75,6 @@ class HostTallyBucketRepositoryTest {
         2,
         8,
         HardwareMeasurementType.PHYSICAL);
-    account.getServiceInstances().put(h2.getInstanceId(), h2);
 
     Host h3 = createHost("inv3", "org123");
     h3.addBucket(
@@ -92,14 +87,11 @@ class HostTallyBucketRepositoryTest {
         3,
         6,
         HardwareMeasurementType.PHYSICAL);
-    account.getServiceInstances().put(h3.getInstanceId(), h3);
 
     // Should not be included in instances since there are no buckets assigned to the host.
     Host h4 = createHost("inv4", "org123");
-    account.getServiceInstances().put(h4.getInstanceId(), h4);
 
     // Should be ignored since the instance type is not HBI_INSTANCE.
-    AccountServiceInventory nonHBIServiceAccount = new AccountServiceInventory("org123", "NON_HBI");
     Host h5 = createHost("inv5", "org123");
     h5.setInstanceType("NON_HBI");
     h5.addBucket(
@@ -112,10 +104,11 @@ class HostTallyBucketRepositoryTest {
         3,
         6,
         HardwareMeasurementType.PHYSICAL);
-    nonHBIServiceAccount.getServiceInstances().put(h5.getInstanceId(), h5);
 
-    accountRepo.save(account);
-    accountRepo.flush();
+    hostRepository.saveAll(List.of(h1, h2, h3, h4, h5));
+
+    // TODO
+    hostRepository.flush();
 
     Stream<AccountBucketTally> orgTally =
         bucketRepo.tallyHostBuckets("org123", InventoryAccountUsageCollector.HBI_INSTANCE_TYPE);
@@ -129,7 +122,6 @@ class HostTallyBucketRepositoryTest {
   @Transactional
   @Test
   void testUnsetCoresAndSocketsResultInCountingZerosDuringTally() {
-    AccountServiceInventory account = new AccountServiceInventory("org123", "HBI_HOST");
 
     Host h1 = createHost("inv1", "org123");
     HostTallyBucket bucket = new HostTallyBucket();
@@ -140,10 +132,10 @@ class HostTallyBucketRepositoryTest {
     // Keep cores/sockets as unset
     bucket.setMeasurementType(HardwareMeasurementType.PHYSICAL);
     h1.addBucket(bucket);
-    account.getServiceInstances().put(h1.getInstanceId(), h1);
 
-    accountRepo.save(account);
-    accountRepo.flush();
+    hostRepository.save(h1);
+    // TODO
+    hostRepository.flush();
 
     Stream<AccountBucketTally> orgTally =
         bucketRepo.tallyHostBuckets("org123", InventoryAccountUsageCollector.HBI_INSTANCE_TYPE);

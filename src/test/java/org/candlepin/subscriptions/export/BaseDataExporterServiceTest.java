@@ -42,10 +42,9 @@ import java.util.Map;
 import java.util.UUID;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
+import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.OfferingRepository;
-import org.candlepin.subscriptions.db.model.AccountServiceInventory;
-import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
+import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -85,14 +84,14 @@ public abstract class BaseDataExporterServiceTest
   @Autowired ExportSubscriptionListener listener;
   @Autowired KafkaProperties kafkaProperties;
   @Autowired OfferingRepository offeringRepository;
-  @Autowired AccountServiceInventoryRepository accountServiceInventoryRepository;
   @Autowired DataExporterService<?> dataExporterService;
   @MockBean RbacService rbacService;
 
   protected KafkaTemplate<String, String> kafkaTemplate;
   protected Offering offering;
-  protected AccountServiceInventory accountServiceInventory;
   protected GenericConsoleCloudEvent<ResourceRequest> request;
+
+  @Autowired HostRepository hostRepository;
 
   @Transactional
   @BeforeEach
@@ -109,8 +108,6 @@ public abstract class BaseDataExporterServiceTest
     offering.setUsage(Usage.PRODUCTION);
     offering.setServiceLevel(ServiceLevel.PREMIUM);
     offeringRepository.save(offering);
-
-    accountServiceInventory = givenHostInAccountServices(ORG_ID);
   }
 
   protected abstract String resourceType();
@@ -166,13 +163,12 @@ public abstract class BaseDataExporterServiceTest
     }
   }
 
-  protected AccountServiceInventory givenHostInAccountServices(String orgId) {
-    AccountServiceInventory inventory = new AccountServiceInventory();
-    inventory.setId(new AccountServiceInventoryId());
-    inventory.getId().setServiceType(INSTANCE_TYPE);
-    inventory.getId().setOrgId(orgId);
-    accountServiceInventoryRepository.save(inventory);
-    return inventory;
+  protected Host givenHostInAccountServices(String orgId) {
+
+    Host h1 = new Host();
+    h1.setOrgId(orgId);
+    h1.setInstanceType(INSTANCE_TYPE);
+    return hostRepository.save(h1);
   }
 
   protected void whenReceiveExportRequest() {

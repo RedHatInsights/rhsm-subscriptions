@@ -40,11 +40,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
-import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.EventRecordRepository;
+import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.HostTallyBucketRepository;
 import org.candlepin.subscriptions.db.TallyStateRepository;
-import org.candlepin.subscriptions.db.model.AccountServiceInventory;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
@@ -89,7 +88,6 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   @Autowired EventRecordRepository eventRecordRepository;
   @Autowired OptInResource optInResource;
   @Autowired HostTallyBucketRepository hostTallyBucketRepository;
-  @Autowired AccountServiceInventoryRepository accountServiceInventoryRepository;
   @Autowired TallyStateRepository tallyStateRepository;
 
   @MockBean(answer = Answers.CALLS_REAL_METHODS)
@@ -99,6 +97,7 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   OffsetDateTime end;
   List<Event> events = new ArrayList<>();
   ExpectedReport expectedReport = new ExpectedReport();
+  @Autowired private HostRepository hostRepository;
 
   @BeforeEach
   public void setup() {
@@ -191,9 +190,7 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
     host.setDisplayName("name");
     host.setInstanceType("rosa Instance");
     host.setLastSeen(clock.startOfCurrentMonth().minusMonths(1));
-    AccountServiceInventory service = new AccountServiceInventory(ORG_ID, "rosa Instance");
-    service.getServiceInstances().put(host.getInstanceId(), host);
-    accountServiceInventoryRepository.save(service);
+    hostRepository.save(host);
   }
 
   private void givenEventAtDay(int dayAt, double value) {

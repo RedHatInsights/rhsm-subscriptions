@@ -39,8 +39,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.candlepin.subscriptions.db.model.AccountServiceInventory;
-import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
@@ -77,9 +75,9 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
 
   @Autowired private TallyInstanceViewRepository repo;
   @Autowired private HostRepository hostRepo;
-  @Autowired private AccountServiceInventoryRepository accountServiceInventoryRepository;
 
   private List<Host> defaultHosts;
+  @Autowired private HostRepository hostRepository;
 
   @Transactional
   @BeforeEach
@@ -687,19 +685,11 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
     Arrays.stream(hosts)
         .forEach(
             host -> {
-              AccountServiceInventory accountServiceInventory =
-                  accountServiceInventoryRepository
-                      .findById(
-                          AccountServiceInventoryId.builder()
-                              .orgId(host.getOrgId())
-                              .serviceType("HBI_HOST")
-                              .build())
-                      .orElse(new AccountServiceInventory(host.getOrgId(), "HBI_HOST"));
-              accountServiceInventory.getServiceInstances().put(host.getInstanceId(), host);
-              accountServiceInventoryRepository.save(accountServiceInventory);
-              results.add(accountServiceInventory.getServiceInstances().get(host.getInstanceId()));
+              results.add(hostRepository.save(host));
             });
-    accountServiceInventoryRepository.flush();
+
+    // TODO check
+    hostRepository.flush();
     return results;
   }
 

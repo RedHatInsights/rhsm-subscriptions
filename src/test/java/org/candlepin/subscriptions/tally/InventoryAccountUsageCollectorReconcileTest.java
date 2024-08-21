@@ -36,7 +36,6 @@ import jakarta.persistence.EntityManager;
 import java.util.ArrayList;
 import java.util.Set;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.HostTallyBucketRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
@@ -58,7 +57,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class InventoryAccountUsageCollectorReconcileTest {
   @Mock FactNormalizer factNormalizer;
-  @Mock AccountServiceInventoryRepository accountServiceInventoryRepository;
   @Mock HostRepository hostRepository;
   @Mock EntityManager entityManager;
   @Mock HostTallyBucketRepository tallyBucketRepository;
@@ -67,13 +65,7 @@ class InventoryAccountUsageCollectorReconcileTest {
 
   InventoryAccountUsageCollector setupCollector() {
     return new InventoryAccountUsageCollector(
-        factNormalizer,
-        accountServiceInventoryRepository,
-        hostRepository,
-        entityManager,
-        tallyBucketRepository,
-        props,
-        collator);
+        factNormalizer, hostRepository, entityManager, tallyBucketRepository, props, collator);
   }
 
   @Test

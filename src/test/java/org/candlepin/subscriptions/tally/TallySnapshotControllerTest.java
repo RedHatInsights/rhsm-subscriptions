@@ -41,13 +41,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.TallyStateRepository;
-import org.candlepin.subscriptions.db.model.AccountServiceInventory;
-import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
@@ -90,7 +87,6 @@ class TallySnapshotControllerTest implements ExtendWithEmbeddedKafka {
   @Autowired HostRepository hostRepository;
   @Autowired MetricUsageCollector usageCollector;
   @Autowired TallySnapshotController controller;
-  @Autowired AccountServiceInventoryRepository accountRepo;
 
   @BeforeEach
   void setupTest() {
@@ -161,17 +157,6 @@ class TallySnapshotControllerTest implements ExtendWithEmbeddedKafka {
     ArgumentCaptor<TallySnapshot> snapshotCaptor = ArgumentCaptor.forClass(TallySnapshot.class);
     when(snapshotRepo.save(snapshotCaptor.capture())).thenAnswer(input -> input.getArgument(0));
 
-    AccountServiceInventoryId inventoryId =
-        AccountServiceInventoryId.builder().orgId(ORG_ID).serviceType(SERVICE_TYPE).build();
-    AccountServiceInventoryId inventoryId2 =
-        AccountServiceInventoryId.builder().orgId(ORG_ID).serviceType("RHEL System").build();
-    AccountServiceInventoryId inventoryId3 =
-        AccountServiceInventoryId.builder().orgId(ORG_ID).serviceType("HBI_HOST").build();
-    accountRepo.saveAll(
-        List.of(
-            new AccountServiceInventory(inventoryId),
-            new AccountServiceInventory(inventoryId2),
-            new AccountServiceInventory(inventoryId3)));
     OffsetDateTime instanceDate = firstSnapshotHour.minusDays(1);
     // Cost hourly tally created host from events
     Host activeInstance1 = new Host();

@@ -40,11 +40,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.candlepin.clock.ApplicationClock;
-import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.AccountServiceInventory;
-import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
@@ -66,18 +63,15 @@ public class MetricUsageCollector {
 
   private static final Logger log = LoggerFactory.getLogger(MetricUsageCollector.class);
 
-  private final AccountServiceInventoryRepository accountServiceInventoryRepository;
   private final ApplicationClock clock;
 
   private final HostRepository hostRepository;
   private final TallySnapshotRepository snapshotRepository;
 
   public MetricUsageCollector(
-      AccountServiceInventoryRepository accountServiceInventoryRepository,
       ApplicationClock clock,
       HostRepository hostRepository,
       TallySnapshotRepository snapshotRepository) {
-    this.accountServiceInventoryRepository = accountServiceInventoryRepository;
     this.clock = clock;
     this.hostRepository = hostRepository;
     this.snapshotRepository = snapshotRepository;
@@ -88,12 +82,6 @@ public class MetricUsageCollector {
 
     if (events.isEmpty()) {
       return;
-    }
-
-    AccountServiceInventoryId inventoryId =
-        AccountServiceInventoryId.builder().orgId(orgId).serviceType(serviceType).build();
-    if (!accountServiceInventoryRepository.existsById(inventoryId)) {
-      accountServiceInventoryRepository.save(new AccountServiceInventory(inventoryId));
     }
 
     var hosts =

@@ -41,8 +41,6 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.candlepin.clock.ApplicationClock;
-import org.candlepin.subscriptions.db.model.AccountServiceInventory;
-import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
@@ -84,9 +82,8 @@ class HostRepositoryTest {
 
   @Autowired private HostRepository repo;
   @Autowired private ApplicationClock clock;
-  @Autowired private AccountServiceInventoryRepository accountServiceInventoryRepository;
-
   private Map<String, Host> existingHostsByInventoryId;
+  @Autowired private HostRepository hostRepository;
 
   @Transactional
   @BeforeAll
@@ -141,7 +138,7 @@ class HostRepositoryTest {
   @Transactional
   @AfterAll
   void cleanup() {
-    accountServiceInventoryRepository.deleteAll();
+    hostRepository.deleteAll();
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -154,20 +151,10 @@ class HostRepositoryTest {
     Arrays.stream(hosts)
         .forEach(
             host -> {
-              AccountServiceInventory accountServiceInventory =
-                  accountServiceInventoryRepository
-                      .findById(
-                          AccountServiceInventoryId.builder()
-                              .orgId(host.getOrgId())
-                              .serviceType("HBI_HOST")
-                              .build())
-                      .orElse(new AccountServiceInventory(host.getOrgId(), "HBI_HOST"));
-              accountServiceInventory.getServiceInstances().put(host.getInstanceId(), host);
-              accountServiceInventory =
-                  accountServiceInventoryRepository.save(accountServiceInventory);
-              results.add(accountServiceInventory.getServiceInstances().get(host.getInstanceId()));
+              results.add(hostRepository.save(host));
             });
-    accountServiceInventoryRepository.flush();
+    // TODO
+    hostRepository.flush();
     return results;
   }
 

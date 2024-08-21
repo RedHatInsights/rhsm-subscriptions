@@ -48,7 +48,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
-import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.*;
@@ -58,7 +57,6 @@ import org.candlepin.subscriptions.json.Event.HardwareType;
 import org.candlepin.subscriptions.json.Event.Role;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -76,8 +74,6 @@ class MetricUsageCollectorTest {
   public static final String RHEL_ENG_ID = "69";
   public static final String RHEL_ELS_PAYG_ENG_ID = "204";
   MetricUsageCollector metricUsageCollector;
-
-  @Mock AccountServiceInventoryRepository accountRepo;
 
   @Mock HostRepository hostRepository;
 
@@ -99,44 +95,13 @@ class MetricUsageCollectorTest {
 
   @BeforeEach
   void setup() {
-    metricUsageCollector =
-        new MetricUsageCollector(accountRepo, clock, hostRepository, tallySnapshotRepository);
+    metricUsageCollector = new MetricUsageCollector(clock, hostRepository, tallySnapshotRepository);
   }
 
   @Test
   void updateHosts_noIteractionsWhenNoEventsFound() {
     metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of());
-    verifyNoInteractions(accountRepo, hostRepository, tallySnapshotRepository);
-  }
-
-  @Test
-  void testUpdateHostsCreatesAccountServiceInventoryWhenItDoesNotExist() {
-    Measurement measurement =
-        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
-    Event event =
-        createEvent()
-            .withEventId(UUID.randomUUID())
-            .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
-            .withOrgId(ORG_ID)
-            .withServiceType(SERVICE_TYPE)
-            .withMeasurements(Collections.singletonList(measurement))
-            .withBillingProvider(Event.BillingProvider.RED_HAT)
-            .withBillingAccountId(Optional.of("sellerAcct"));
-    AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
-    when(accountRepo.existsById(accountServiceInventory.getId())).thenReturn(false);
-
-    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(event));
-    ArgumentCaptor<AccountServiceInventory> captor =
-        ArgumentCaptor.forClass(AccountServiceInventory.class);
-    verify(accountRepo, times(1)).save(captor.capture());
-
-    AccountServiceInventory inventory = captor.getValue();
-    assertNotNull(inventory);
-    // NOTE The inventory instance will not have Hosts associated with it after the updateHosts call
-    //      since we use the Host repository directly to persist the Hosts (avoiding the need to
-    //      load all hosts into memory via the AccountServiceInventory.
-    assertEquals(ORG_ID, inventory.getOrgId());
-    assertEquals(SERVICE_TYPE, inventory.getServiceType());
+    verifyNoInteractions(hostRepository, tallySnapshotRepository);
   }
 
   @Test
@@ -152,8 +117,6 @@ class MetricUsageCollectorTest {
             .withMeasurements(Collections.singletonList(measurement))
             .withBillingProvider(Event.BillingProvider.RED_HAT)
             .withBillingAccountId(Optional.of("sellerAcct"));
-    AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
-    when(accountRepo.existsById(accountServiceInventory.getId())).thenReturn(true);
 
     metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(event));
     verify(hostRepository, times(1)).save(any());
@@ -373,15 +336,6 @@ class MetricUsageCollectorTest {
             .getCalculation(usageCalculationKey)
             .getTotals(expectedType)
             .getMeasurement(MetricIdUtils.getCores()));
-  }
-
-  @NotNull
-  private AccountServiceInventory createTestAccountServiceInventory() {
-    AccountServiceInventory accountServiceInventory = new AccountServiceInventory();
-    accountServiceInventory.setAccountNumber("account123");
-    accountServiceInventory.setOrgId("orgId");
-    accountServiceInventory.setServiceType(SERVICE_TYPE);
-    return accountServiceInventory;
   }
 
   static Stream<Arguments> cloudProviderParams() {

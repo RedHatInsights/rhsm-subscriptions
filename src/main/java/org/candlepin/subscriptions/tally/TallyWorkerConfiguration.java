@@ -29,7 +29,6 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.export.ExportSubscriptionConfiguration;
@@ -179,12 +178,10 @@ public class TallyWorkerConfiguration {
 
   @Bean
   public MetricUsageCollector metricUsageCollector(
-      AccountServiceInventoryRepository accountServiceInventoryRepository,
       ApplicationClock clock,
       HostRepository hostRepository,
       TallySnapshotRepository tallySnapshotRepository) {
-    return new MetricUsageCollector(
-        accountServiceInventoryRepository, clock, hostRepository, tallySnapshotRepository);
+    return new MetricUsageCollector(clock, hostRepository, tallySnapshotRepository);
   }
 
   @Bean

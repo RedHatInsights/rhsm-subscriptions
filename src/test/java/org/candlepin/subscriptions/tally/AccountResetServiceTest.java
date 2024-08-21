@@ -26,14 +26,12 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.UUID;
-import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.TallyStateRepository;
-import org.candlepin.subscriptions.db.model.AccountServiceInventory;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.db.model.Granularity;
@@ -60,7 +58,6 @@ class AccountResetServiceTest {
   @Autowired private EventRecordRepository eventRecordRepo;
   @Autowired private HostRepository hostRepo;
   @Autowired private TallySnapshotRepository tallySnapshotRepository;
-  @Autowired private AccountServiceInventoryRepository accountServiceInventoryRepository;
   @Autowired private SubscriptionRepository subscriptionRepository;
   @Autowired private TallyStateRepository tallyStateRepository;
   @Autowired private OfferingRepository offeringRepository;
@@ -69,7 +66,6 @@ class AccountResetServiceTest {
   @BeforeEach
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   void setUp() {
-    accountServiceInventoryRepository.save(new AccountServiceInventory("org123", "HBI_HOST"));
 
     Host host = new Host("inventory123", "insights123", "org123", "subman123");
     host.setDisplayName("host123");
@@ -137,7 +133,6 @@ class AccountResetServiceTest {
   void testReset() {
     assertDoesNotThrow(() -> resetService.deleteDataForOrg("org123"));
     assertEquals(0, hostRepo.findAll().size());
-    assertEquals(0, accountServiceInventoryRepository.findAll().size());
     assertEquals(0, eventRecordRepo.findAll().size());
     assertEquals(0, tallySnapshotRepository.findAll().size());
     assertEquals(0, subscriptionRepository.findAll().size());
