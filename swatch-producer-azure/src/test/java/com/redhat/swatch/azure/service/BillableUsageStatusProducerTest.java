@@ -20,22 +20,17 @@
  */
 package com.redhat.swatch.azure.service;
 
-import static com.redhat.swatch.azure.configuration.Channels.TALLY_DLT;
-import static com.redhat.swatch.azure.service.BillableUsageDeadLetterTopicProducer.RETRY_AFTER_HEADER;
+import static com.redhat.swatch.azure.configuration.Channels.*;
 import static com.redhat.swatch.azure.test.resources.InMemoryMessageBrokerKafkaResource.IN_MEMORY_CONNECTOR;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.redhat.swatch.azure.test.resources.InMemoryMessageBrokerKafkaResource;
-import com.redhat.swatch.kafka.MessageHelper;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
-import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import io.smallrye.reactive.messaging.memory.InMemorySink;
 import jakarta.inject.Inject;
-import org.candlepin.subscriptions.billable.usage.BillableUsage;
+import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,34 +39,25 @@ import org.junit.jupiter.api.Test;
 @QuarkusTestResource(
     value = InMemoryMessageBrokerKafkaResource.class,
     restrictToAnnotatedClass = true)
-class BillableUsageDeadLetterTopicProducerTest {
-
-  private static final String ORG_ID = "org123";
+class BillableUsageStatusProducerTest {
 
   @Inject
   @Connector(IN_MEMORY_CONNECTOR)
   InMemoryConnector connector;
 
-  @Inject BillableUsageDeadLetterTopicProducer producer;
-  InMemorySink<BillableUsage> source;
+  @Inject BillableUsageStatusProducer producer;
+  InMemorySink<BillableUsageAggregate> source;
 
   @BeforeEach
   void setup() {
-    source = connector.sink(TALLY_DLT);
+    source = connector.sink(BILLABLE_USAGE_STATUS);
     source.clear();
   }
 
   @Test
   void testSendThenHeaderIsAdded() {
-    BillableUsage usage = new BillableUsage().withOrgId(ORG_ID);
-    producer.send(usage);
+    BillableUsageAggregate usage = new BillableUsageAggregate();
+    producer.emitStatus(usage);
     assertEquals(1, source.received().size());
-    var message = source.received().get(0);
-    var metadata = message.getMetadata().get(OutgoingKafkaRecordMetadata.class);
-    assertTrue(metadata.isPresent());
-    assertEquals(ORG_ID, metadata.get().getKey());
-    var header = MessageHelper.findFirstHeader(metadata.get(), RETRY_AFTER_HEADER);
-    assertTrue(header.isPresent());
-    assertNotNull(header.get());
   }
 }

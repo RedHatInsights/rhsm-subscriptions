@@ -57,6 +57,7 @@ public class BillableUsageStatusConsumer {
     }
 
     updateStatus(billableUsageAggregate);
+    // NB: statuses like INACTIVE shouldn't go to the DLT since there's nothing we can do about them
     if (billableUsageAggregate.getStatus() == FAILED
         && billableUsageAggregate.getErrorCode() == SUBSCRIPTION_NOT_FOUND) {
       sendToDeadLetterTopic(billableUsageAggregate);
