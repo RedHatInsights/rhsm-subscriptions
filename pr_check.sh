@@ -51,7 +51,7 @@ APP_ROOT=$PWD
 export IQE_IBUTSU_SOURCE="rhsm-ephemeral-${IMAGE_TAG}"
 # NOTE: uncomment the following line to test authenticated kafka
 #NAMESPACE_POOL="managed-kafka"
-EXTRA_DEPLOY_ARGS="--timeout 1800 ${IMAGES}"
+EXTRA_DEPLOY_ARGS="--timeout 3600 ${IMAGES}"
 OPTIONAL_DEPS_METHOD=none
 
 # set CLI option for --no-remove-resources
