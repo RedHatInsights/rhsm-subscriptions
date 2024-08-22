@@ -37,6 +37,7 @@ import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import com.redhat.swatch.contract.utils.CustomBatchIterator;
 import com.redhat.swatch.contract.utils.SubscriptionDtoUtil;
+import io.micrometer.common.util.StringUtils;
 import io.micrometer.core.annotation.Timed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
@@ -122,14 +123,18 @@ public class SubscriptionSyncService {
         () -> newOrUpdated.setOffering(offeringRepository.findById(sku)));
 
     if (newOrUpdated.getOffering().isMetered()) {
-      // Billing provider information is only available when subscription already created by
-      // contract service
-      if (subscriptionOptional.isPresent()) {
+      // New AWS subscriptions may have billing provider info but Azure subscriptions don't
+      if (StringUtils.isNotBlank(newOrUpdated.getBillingAccountId())
+          && StringUtils.isNotBlank(newOrUpdated.getBillingProviderId())) {
+        contractService.createPartnerContract(PartnerEntitlementsRequest.from(newOrUpdated));
+      }
+      // Existing records should have billing provider info already stored
+      else if (subscriptionOptional.isPresent()) {
         contractService.createPartnerContract(
             PartnerEntitlementsRequest.from(subscriptionOptional.get()));
       } else {
         log.info(
-            "Skipping subscription sync for new contract provided subscription, contractUMB should sync: {}",
+            "Skipping subscription sync for new contract provided subscription with no billing_account_id, contractUMB should sync: {}",
             newOrUpdated);
       }
       return;

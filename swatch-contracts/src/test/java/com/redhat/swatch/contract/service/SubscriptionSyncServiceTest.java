@@ -237,7 +237,7 @@ class SubscriptionSyncServiceTest {
   }
 
   @Test
-  void shouldUpdateContractForMeteredOffering() {
+  void shouldUpdateContractForExistingSubscriptionMeteredOffering() {
     OfferingEntity offering = OfferingEntity.builder().sku(SKU).metered(true).build();
     when(offeringRepository.findByIdOptional(SKU)).thenReturn(Optional.of(offering));
     when(offeringRepository.findById(SKU)).thenReturn(offering);
@@ -249,6 +249,17 @@ class SubscriptionSyncServiceTest {
     existingSubscription.setQuantity(10);
     existingSubscription.setOffering(offering);
     var dto = createDto("456", 10);
+    subscriptionSyncService.syncSubscription(dto, Optional.of(existingSubscription));
+    verify(contractService).createPartnerContract(any());
+  }
+
+  @Test
+  void shouldUpdateContractForNewSubscriptionMeteredOfferingWithBillingAccountId() {
+    OfferingEntity offering = OfferingEntity.builder().sku(SKU).metered(true).build();
+    when(offeringRepository.findByIdOptional(SKU)).thenReturn(Optional.of(offering));
+    when(offeringRepository.findById(SKU)).thenReturn(offering);
+    when(denylist.productIdMatches(any())).thenReturn(false);
+    var dto = createDto("456", 10);
     dto.setExternalReferences(
         Map.of(
             SubscriptionDtoUtil.AWS_MARKETPLACE,
@@ -257,8 +268,19 @@ class SubscriptionSyncServiceTest {
                 .productCode("p")
                 .customerID("c")
                 .sellerAccount("s")));
-    subscriptionSyncService.syncSubscription(dto, Optional.of(existingSubscription));
+    subscriptionSyncService.syncSubscription(dto, Optional.empty());
     verify(contractService).createPartnerContract(any());
+  }
+
+  @Test
+  void shouldSkipUpdateContractForNewSubscriptionMeteredOfferingWithNoBillingAccountId() {
+    OfferingEntity offering = OfferingEntity.builder().sku(SKU).metered(true).build();
+    when(offeringRepository.findByIdOptional(SKU)).thenReturn(Optional.of(offering));
+    when(offeringRepository.findById(SKU)).thenReturn(offering);
+    when(denylist.productIdMatches(any())).thenReturn(false);
+    var dto = createDto("456", 10);
+    subscriptionSyncService.syncSubscription(dto, Optional.empty());
+    verifyNoInteractions(contractService);
   }
 
   @Test
