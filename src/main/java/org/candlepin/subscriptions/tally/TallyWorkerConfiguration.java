@@ -36,6 +36,7 @@ import org.candlepin.subscriptions.export.ExportSubscriptionConfiguration;
 import org.candlepin.subscriptions.inventory.db.InventoryDataSourceConfiguration;
 import org.candlepin.subscriptions.json.EnabledOrgsRequest;
 import org.candlepin.subscriptions.json.EnabledOrgsResponse;
+import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.product.ProductConfiguration;
 import org.candlepin.subscriptions.tally.billing.BillableUsageConfiguration;
@@ -204,6 +205,25 @@ public class TallyWorkerConfiguration {
   public KafkaTemplate<String, TallySummary> tallySummaryKafkaTemplate(
       ProducerFactory<String, TallySummary> tallySummaryProducerFactory) {
     return new KafkaTemplate<>(tallySummaryProducerFactory);
+  }
+
+  @Bean
+  public ProducerFactory<String, Event> eventProducerFactory(
+      KafkaProperties kafkaProperties, ObjectMapper objectMapper) {
+    DefaultKafkaProducerFactory<String, Event> factory =
+        new DefaultKafkaProducerFactory<>(getProducerProperties(kafkaProperties));
+    /*
+    Use our customized ObjectMapper. Notably, the spring-kafka default ObjectMapper writes dates as
+    timestamps, which produces messages not compatible with JSON-B deserialization.
+     */
+    factory.setValueSerializer(new JsonSerializer<>(objectMapper));
+    return factory;
+  }
+
+  @Bean
+  public KafkaTemplate<String, Event> eventKafkaTemplate(
+      ProducerFactory<String, Event> eventProducerFactory) {
+    return new KafkaTemplate<>(eventProducerFactory);
   }
 
   @Bean(name = "purgeTallySnapshotsJobExecutor")
