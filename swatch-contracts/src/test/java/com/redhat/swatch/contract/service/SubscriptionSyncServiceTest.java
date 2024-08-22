@@ -73,6 +73,7 @@ class SubscriptionSyncServiceTest {
 
   @InjectMock OfferingRepository offeringRepository;
   @InjectMock SubscriptionRepository subscriptionRepository;
+  @InjectMock ContractService contractService;
   @InjectMock ProductDenylist denylist;
   @InjectMock SubscriptionService subscriptionService;
   @InjectMock CapacityReconciliationService capacityReconciliationService;
@@ -236,32 +237,28 @@ class SubscriptionSyncServiceTest {
   }
 
   @Test
-  void shouldUpdateSubscriptionRecordForMeteredOffering() {
+  void shouldUpdateContractForMeteredOffering() {
     OfferingEntity offering = OfferingEntity.builder().sku(SKU).metered(true).build();
     when(offeringRepository.findByIdOptional(SKU)).thenReturn(Optional.of(offering));
     when(offeringRepository.findById(SKU)).thenReturn(offering);
     when(denylist.productIdMatches(any())).thenReturn(false);
     var existingSubscription = createSubscription();
     existingSubscription.setBillingProvider(BillingProvider.AZURE);
-    existingSubscription.setBillingProviderId("testProviderId");
+    existingSubscription.setBillingProviderId("testId;testId;testId");
     existingSubscription.setBillingAccountId("testAccountId");
     existingSubscription.setQuantity(10);
+    existingSubscription.setOffering(offering);
     var dto = createDto("456", 10);
+    dto.setExternalReferences(
+        Map.of(
+            SubscriptionDtoUtil.AWS_MARKETPLACE,
+            new ExternalReference()
+                .customerAccountID("billingAccountId")
+                .productCode("p")
+                .customerID("c")
+                .sellerAccount("s")));
     subscriptionSyncService.syncSubscription(dto, Optional.of(existingSubscription));
-    verify(subscriptionRepository).persist(any(SubscriptionEntity.class));
-    verify(capacityReconciliationService, Mockito.times(2))
-        .reconcileCapacityForSubscription(any(SubscriptionEntity.class));
-  }
-
-  @Test
-  void shouldSkipSyncIfMeteredOfferingSubscriptionNotAlreadyCreatedByContractService() {
-    OfferingEntity offering = OfferingEntity.builder().sku(SKU).metered(true).build();
-    when(offeringRepository.findByIdOptional(SKU)).thenReturn(Optional.of(offering));
-    when(offeringRepository.findById(SKU)).thenReturn(offering);
-    when(denylist.productIdMatches(any())).thenReturn(false);
-    var dto = createDto("456", 10);
-    subscriptionSyncService.syncSubscription(dto, Optional.empty());
-    verify(subscriptionRepository, never()).persist(any(SubscriptionEntity.class));
+    verify(contractService).createPartnerContract(any());
   }
 
   @Test
@@ -357,6 +354,7 @@ class SubscriptionSyncServiceTest {
     var dto = createDto("456", 10);
     Mockito.when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(dto));
     var existingSub = this.convertDto(dto);
+    existingSub.getOffering().setMetered(false);
     // Contract provided subscription will have different start time and should be updated
     existingSub.setStartDate(existingSub.getStartDate().plusHours(3));
     dto.setExternalReferences(
@@ -739,7 +737,7 @@ class SubscriptionSyncServiceTest {
   }
 
   private SubscriptionEntity convertDto(Subscription subscription) {
-    OfferingEntity offering = OfferingEntity.builder().metered(true).build();
+    OfferingEntity offering = OfferingEntity.builder().metered(false).build();
 
     return SubscriptionEntity.builder()
         .subscriptionId(String.valueOf(subscription.getId()))

@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
+import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.repository.ContractRepository;
 import com.redhat.swatch.contract.repository.OfferingEntity;
@@ -160,8 +161,9 @@ class AwsContractLifecycleIntegrationTest {
     stubPartnerSubscriptionApi(AWS_PARTNER_API_RESPONSE_CONTRACT_CREATED);
     var status =
         contractService.createPartnerContract(
-            objectMapper.readValue(
-                AWS_UMB_MESSAGE_CONTRACT_CREATED, PartnerEntitlementContract.class));
+            PartnerEntitlementsRequest.from(
+                objectMapper.readValue(
+                    AWS_UMB_MESSAGE_CONTRACT_CREATED, PartnerEntitlementContract.class)));
     assertEquals("SUCCESS", status.getStatus());
     assertEquals("New contract created", status.getMessage());
     assertEquals(1, contractRepository.count());

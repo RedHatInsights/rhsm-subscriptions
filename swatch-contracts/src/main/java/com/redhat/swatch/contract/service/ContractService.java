@@ -43,7 +43,6 @@ import com.redhat.swatch.contract.model.SubscriptionEntityMapper;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.ContractRequest;
 import com.redhat.swatch.contract.openapi.model.ContractResponse;
-import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.repository.*;
 import com.redhat.swatch.contract.utils.ContractMessageProcessingResult;
@@ -78,12 +77,12 @@ public class ContractService {
   private final SubscriptionRepository subscriptionRepository;
   private final SubscriptionMeasurementRepository subscriptionMeasurementRepository;
   private final MeasurementMetricIdTransformer measurementMetricIdTransformer;
-  @Inject ContractEntityMapper contractEntityMapper;
-  @Inject ContractDtoMapper contractDtoMapper;
-  @Inject SubscriptionEntityMapper subscriptionEntityMapper;
-  @Inject SubscriptionService subscriptionService;
-  @Inject @RestClient PartnerApi partnerApi;
-  @Inject Validator validator;
+  @Inject protected ContractEntityMapper contractEntityMapper;
+  @Inject protected ContractDtoMapper contractDtoMapper;
+  @Inject protected SubscriptionEntityMapper subscriptionEntityMapper;
+  @Inject protected SubscriptionService subscriptionService;
+  @Inject @RestClient protected PartnerApi partnerApi;
+  @Inject protected Validator validator;
   private final List<BasePartnerEntitlementsProvider> partnerEntitlementsProviders;
 
   ContractService(
@@ -188,11 +187,10 @@ public class ContractService {
   }
 
   @Transactional
-  public StatusResponse createPartnerContract(PartnerEntitlementContract contract) {
-    var request = PartnerEntitlementsRequest.from(contract);
+  public StatusResponse createPartnerContract(PartnerEntitlementsRequest request) {
     var partnerEntitlementsProvider = findPartnerEntitlementsProvider(request);
     if (partnerEntitlementsProvider == null) {
-      log.info("Can't process the contract from UMB: {}", contract);
+      log.info("Can't process the contract from UMB: {}", request);
       return INVALID_MESSAGE_UNPROCESSED.toStatus();
     }
 

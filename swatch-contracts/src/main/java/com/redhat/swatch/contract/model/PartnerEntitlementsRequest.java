@@ -23,6 +23,8 @@ package com.redhat.swatch.contract.model;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.RhEntitlementV1;
 import com.redhat.swatch.contract.openapi.model.ContractRequest;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
+import com.redhat.swatch.contract.repository.BillingProvider;
+import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import java.util.Objects;
 import lombok.Getter;
 import lombok.ToString;
@@ -71,6 +73,24 @@ public class PartnerEntitlementsRequest {
       request.productCode = entitlement.getPurchase().getVendorProductCode();
     }
 
+    return request;
+  }
+
+  public static PartnerEntitlementsRequest from(SubscriptionEntity subscription) {
+    PartnerEntitlementsRequest request = new PartnerEntitlementsRequest();
+    request.redHatSubscriptionNumber = subscription.getSubscriptionNumber();
+    if (subscription.getBillingAccountId() != null) {
+      var billingProviderIds = subscription.getBillingProviderId().split(";");
+      if (subscription.getBillingProvider().equals(BillingProvider.AWS)) {
+        request.awsCustomerId = subscription.getBillingAccountId();
+        request.awsCustomerAccountId = billingProviderIds[1];
+        request.productCode = billingProviderIds[0];
+      }
+      if (subscription.getBillingProvider().equals(BillingProvider.AZURE)) {
+        request.azureResourceId = billingProviderIds[0];
+        request.productCode = billingProviderIds[2];
+      }
+    }
     return request;
   }
 }

@@ -52,6 +52,7 @@ import com.redhat.swatch.contract.BaseUnitTest;
 import com.redhat.swatch.contract.exception.ContractValidationFailedException;
 import com.redhat.swatch.contract.model.ContractSourcePartnerEnum;
 import com.redhat.swatch.contract.model.MeasurementMetricIdTransformer;
+import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
 import com.redhat.swatch.contract.model.SubscriptionEntityMapper;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.ContractRequest;
@@ -175,7 +176,7 @@ class ContractServiceTest extends BaseUnitTest {
     givenExistingContract();
     givenExistingSubscription("1234:agb1:1fa");
 
-    PartnerEntitlementContract request = givenPartnerEntitlementContractRequest();
+    var request = givenPartnerEntitlementContractRequest();
 
     StatusResponse statusResponse = contractService.createPartnerContract(request);
     verify(subscriptionRepository, times(3)).persist(any(SubscriptionEntity.class));
@@ -187,7 +188,7 @@ class ContractServiceTest extends BaseUnitTest {
     givenExistingContractWithExistingMetrics();
     givenExistingSubscription("1234:agb1:1fa");
 
-    PartnerEntitlementContract request = givenPartnerEntitlementContractRequest();
+    var request = givenPartnerEntitlementContractRequest();
 
     StatusResponse statusResponse = contractService.createPartnerContract(request);
     verify(subscriptionRepository, times(3)).persist(any(SubscriptionEntity.class));
@@ -239,7 +240,7 @@ class ContractServiceTest extends BaseUnitTest {
 
     ArgumentCaptor<ContractEntity> contractSaveCapture =
         ArgumentCaptor.forClass(ContractEntity.class);
-    contractService.createPartnerContract(contract);
+    contractService.createPartnerContract(PartnerEntitlementsRequest.from(contract));
     verify(contractRepository).persist(contractSaveCapture.capture());
     var actualContract = contractSaveCapture.getValue();
     var expectedMetric =
@@ -267,7 +268,8 @@ class ContractServiceTest extends BaseUnitTest {
 
     mockPartnerApi();
 
-    StatusResponse statusResponse = contractService.createPartnerContract(contract);
+    StatusResponse statusResponse =
+        contractService.createPartnerContract(PartnerEntitlementsRequest.from(contract));
     assertEquals("New contract created", statusResponse.getMessage());
   }
 
@@ -296,7 +298,7 @@ class ContractServiceTest extends BaseUnitTest {
 
     ArgumentCaptor<SubscriptionEntity> subscriptionSaveCapture =
         ArgumentCaptor.forClass(SubscriptionEntity.class);
-    contractService.createPartnerContract(contract);
+    contractService.createPartnerContract(PartnerEntitlementsRequest.from(contract));
     verify(subscriptionRepository).persist(subscriptionSaveCapture.capture());
     subscriptionSaveCapture.getValue();
     assertEquals(
@@ -400,13 +402,17 @@ class ContractServiceTest extends BaseUnitTest {
     return entitlement;
   }
 
-  private static PartnerEntitlementContract givenPartnerEntitlementContractWithoutProductCode() {
-    var contract = givenPartnerEntitlementContractRequest();
+  private static PartnerEntitlementsRequest givenPartnerEntitlementContractWithoutProductCode() {
+    var contract = createPartnerEntitlementContract();
     contract.getCloudIdentifiers().setProductCode(null);
-    return contract;
+    return PartnerEntitlementsRequest.from(contract);
   }
 
-  private static PartnerEntitlementContract givenPartnerEntitlementContractRequest() {
+  private static PartnerEntitlementsRequest givenPartnerEntitlementContractRequest() {
+    return PartnerEntitlementsRequest.from(createPartnerEntitlementContract());
+  }
+
+  private static PartnerEntitlementContract createPartnerEntitlementContract() {
     var contract = new PartnerEntitlementContract();
     contract.setRedHatSubscriptionNumber(SUBSCRIPTION_NUMBER);
 
@@ -419,7 +425,7 @@ class ContractServiceTest extends BaseUnitTest {
     return contract;
   }
 
-  private static PartnerEntitlementContract givenAzurePartnerEntitlementContract() {
+  private static PartnerEntitlementsRequest givenAzurePartnerEntitlementContract() {
     var contract = new PartnerEntitlementContract();
     contract.setCurrentDimensions(
         List.of(new Dimension().dimensionName("vCPU").dimensionValue("4")));
@@ -429,7 +435,7 @@ class ContractServiceTest extends BaseUnitTest {
             .azureResourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
             .azureOfferId("azureProductCode")
             .planId("rh-rhel-sub-1yr"));
-    return contract;
+    return PartnerEntitlementsRequest.from(contract);
   }
 
   private SubscriptionEntity givenExistingSubscription() {
