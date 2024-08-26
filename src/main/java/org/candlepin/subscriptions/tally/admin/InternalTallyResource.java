@@ -20,16 +20,21 @@
  */
 package org.candlepin.subscriptions.tally.admin;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.annotation.Timed;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.config.OptInType;
+import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.retention.TallyRetentionController;
 import org.candlepin.subscriptions.security.SecurityProperties;
@@ -44,9 +49,12 @@ import org.candlepin.subscriptions.tally.admin.api.model.TallyResponse;
 import org.candlepin.subscriptions.tally.admin.api.model.UuidList;
 import org.candlepin.subscriptions.tally.events.EventRecordsRetentionProperties;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
+import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.LogUtils;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskRejectedException;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 /** This resource is for exposing administrator REST endpoints for Tally. */
@@ -68,6 +76,9 @@ public class InternalTallyResource implements InternalTallyApi {
   private final SecurityProperties properties;
   private final EventRecordRepository eventRecordRepository;
   private final EventRecordsRetentionProperties eventRecordsRetentionProperties;
+  private final KafkaTemplate<String, Event> eventKafkaTemplate;
+  private final ObjectMapper objectMapper;
+  private final String eventTopic;
 
   @SuppressWarnings("java:S107")
   public InternalTallyResource(
@@ -79,7 +90,11 @@ public class InternalTallyResource implements InternalTallyApi {
       InternalTallyDataController internalTallyDataController,
       SecurityProperties properties,
       EventRecordRepository eventRecordRepository,
-      EventRecordsRetentionProperties eventRecordsRetentionProperties) {
+      EventRecordsRetentionProperties eventRecordsRetentionProperties,
+      ObjectMapper objectMapper,
+      KafkaTemplate<String, Event> eventKafkaTemplate,
+      @Qualifier("serviceInstanceTopicProperties")
+          TaskQueueProperties serviceInstanceTopicProperties) {
     this.clock = clock;
     this.applicationProperties = applicationProperties;
     this.resendTallyController = resendTallyController;
@@ -89,6 +104,9 @@ public class InternalTallyResource implements InternalTallyApi {
     this.properties = properties;
     this.eventRecordRepository = eventRecordRepository;
     this.eventRecordsRetentionProperties = eventRecordsRetentionProperties;
+    this.eventKafkaTemplate = eventKafkaTemplate;
+    this.objectMapper = objectMapper;
+    this.eventTopic = serviceInstanceTopicProperties.getTopic();
   }
 
   @Override
@@ -213,8 +231,23 @@ public class InternalTallyResource implements InternalTallyApi {
   @Override
   public EventsResponse saveEvents(String jsonListOfEvents) {
     var response = new EventsResponse();
+    StringBuilder messages = new StringBuilder();
     if (isFeatureEnabled()) {
-      response.setDetail(internalTallyDataController.saveEvents(jsonListOfEvents));
+      try {
+        List<Event> events = objectMapper.readValue(jsonListOfEvents, new TypeReference<>() {});
+        events.stream()
+            .forEach(
+                event -> {
+                  try {
+                    eventKafkaTemplate.send(this.eventTopic, event);
+                  } catch (Exception e) {
+                    messages.append(e.getMessage());
+                  }
+                });
+      } catch (JsonProcessingException e) {
+        messages.append(e.getMessage());
+      }
+      response.setDetail(String.valueOf(messages));
       return response;
 
     } else {
