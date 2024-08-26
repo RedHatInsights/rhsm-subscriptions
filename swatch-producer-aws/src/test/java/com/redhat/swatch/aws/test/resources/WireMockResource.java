@@ -42,7 +42,7 @@ public class WireMockResource
     // setup static wiremock methods to affect this wiremock server
     WireMock.configureFor("localhost", wireMockServer.port());
     var config = new HashMap<String, String>();
-    config.put("SWATCH_INTERNAL_SUBSCRIPTION_ENDPOINT", wireMockServer.baseUrl());
+    config.put("SWATCH_CONTRACTS_ENDPOINT", wireMockServer.baseUrl());
     return config;
   }
 

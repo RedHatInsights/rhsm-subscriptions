@@ -54,7 +54,7 @@ objects:
   spec:
     envName: ${ENV_NAME}
     dependencies:
-      - swatch-subscription-sync
+      - swatch-contracts
       - swatch-billable-usage
 
     kafkaTopics:

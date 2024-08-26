@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.contract.model;
 
+import static com.redhat.swatch.contract.model.MeasurementMetricIdTransformer.MEASUREMENT_TYPE_DEFAULT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.redhat.swatch.contract.repository.ContractEntity;
@@ -45,19 +46,16 @@ class SubscriptionEntityMapperTest {
     offering.setProductTags(Set.of("rosa"));
 
     var subscription = new SubscriptionEntity();
-    var metric = new ContractMetricEntity();
-    metric.setMetricId("Cores");
-    metric.setValue(42.0);
-
     var contract = new ContractEntity();
     contract.setOffering(offering);
-    contract.setMetrics(Set.of(metric));
     contract.setStartDate(OffsetDateTime.parse("2000-01-01T00:00Z"));
     contract.setEndDate(OffsetDateTime.parse("2020-01-01T00:00Z"));
     contract.setSubscriptionNumber("subscriptionNumber");
     contract.setBillingProvider("aws");
     contract.setBillingAccountId("12345678");
     contract.setOrgId("org123");
+    contract.addMetric(
+        ContractMetricEntity.builder().metricId("control_plane").value(42.0).build());
 
     mapper.mapSubscriptionEntityFromContractEntity(subscription, contract);
     assertEquals(contract.getSubscriptionNumber(), subscription.getSubscriptionNumber());
@@ -67,9 +65,10 @@ class SubscriptionEntityMapperTest {
     assertEquals(contract.getBillingProvider(), subscription.getBillingProvider().getValue());
     assertEquals(contract.getBillingAccountId(), subscription.getBillingAccountId());
     assertEquals(contract.getOrgId(), subscription.getOrgId());
-    var measurement = subscription.getSubscriptionMeasurements().iterator().next();
-    assertEquals(metric.getMetricId(), measurement.getMetricId());
-    assertEquals(metric.getValue(), measurement.getValue());
-    assertEquals("PHYSICAL", measurement.getMeasurementType());
+    var measurement =
+        subscription.getSubscriptionMeasurements().entrySet().stream().findFirst().orElseThrow();
+    assertEquals("Instance-hours", measurement.getKey().getMetricId());
+    assertEquals(42.0, measurement.getValue());
+    assertEquals(MEASUREMENT_TYPE_DEFAULT, measurement.getKey().getMeasurementType());
   }
 }

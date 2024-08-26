@@ -69,7 +69,7 @@ class RhPartnerClientIntegrationTest {
     assertNotNull(contract.getDimensions());
     assertEquals(2, contract.getDimensions().size());
     var dimension = contract.getDimensions().get(0);
-    assertEquals("foobar", dimension.getName());
+    assertEquals("control_plane", dimension.getName());
     assertEquals("1000000", dimension.getValue());
   }
 }

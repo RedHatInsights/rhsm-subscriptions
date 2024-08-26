@@ -331,15 +331,8 @@ paths:
                   value: {
                     "detail": "Success"
                   }
-
-        '400':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/BadRequest"
-        '403':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/Forbidden"
-        '404':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
-        '500':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+        default:
+          $ref: '#/components/responses/ErrorResponse'
       security:
         - support: [ ]
         - test: [ ]
@@ -443,14 +436,8 @@ paths:
                   value: {
                     "detail": "Success"
                   }
-        '400':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/BadRequest"
-        '403':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/Forbidden"
-        '404':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
-        '500':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+        default:
+          $ref: '#/components/responses/ErrorResponse'
       security:
         - support: [ ]
         - test: [ ]
@@ -474,14 +461,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RpcResponse"
-        '400':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/BadRequest"
-        '403':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/Forbidden"
-        '404':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
-        '500':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+        default:
+          $ref: '#/components/responses/ErrorResponse'
       security:
         - support: [ ]
         - test: [ ]
@@ -505,14 +486,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RpcResponse"
-        '400':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/BadRequest"
-        '403':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/Forbidden"
-        '404':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
-        '500':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+        default:
+          $ref: '#/components/responses/ErrorResponse'
       security:
         - support: [ ]
         - test: [ ]
@@ -529,14 +504,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RpcResponse"
-        '400':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/BadRequest"
-        '403':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/Forbidden"
-        '404':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
-        '500':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+        default:
+          $ref: '#/components/responses/ErrorResponse'
       security:
         - support: [ ]
         - test: [ ]
@@ -579,14 +548,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RhmUsageContext'
-        '400':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/BadRequest"
-        '403':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/Forbidden"
-        '404':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
-        '500':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+        default:
+          $ref: '#/components/responses/ErrorResponse'
       security:
         - support: [ ]
         - test: [ ]
@@ -634,14 +597,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AwsUsageContext'
-        '400':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/BadRequest"
-        '403':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/Forbidden"
-        '404':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
-        '500':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+        default:
+          $ref: '#/components/responses/ErrorResponse'
       security:
         - support: [ ]
         - test: [ ]
@@ -697,14 +654,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/AzureUsageContext'
           description: Found Azure usage context matching the criteria.
-        '400':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/BadRequest"
-        '403':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/Forbidden"
-        '404':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
-        '500':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+        default:
+          $ref: '#/components/responses/ErrorResponse'
       security:
         - support: [ ]
         - test: [ ]
@@ -731,14 +682,8 @@ paths:
                 data:
                   - Rho one
                   - Rho two
-        '400':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/BadRequest"
-        '403':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/Forbidden"
-        '404':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
-        '500':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+        default:
+          $ref: '#/components/responses/ErrorResponse'
       security:
         - support: [ ]
         - test: [ ]
@@ -771,14 +716,8 @@ paths:
                   - metric_id: bar
                     aws_dimension: bar1
                     billing_factor: 1.0
-        '400':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/BadRequest"
-        '403':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/Forbidden"
-        '404':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
-        '500':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+        default:
+          $ref: '#/components/responses/ErrorResponse'
       security:
         - support: [ ]
         - test: [ ]
@@ -801,14 +740,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OfferingResponse"
-        '400':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/BadRequest"
-        '403':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/Forbidden"
-        '404':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
-        '500':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+        default:
+          $ref: '#/components/responses/ErrorResponse'
       security:
         - support: [ ]
         - test: [ ]
@@ -825,14 +758,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OfferingResponse"
-        '400':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/BadRequest"
-        '403':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/Forbidden"
-        '404':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
-        '500':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+        default:
+          $ref: '#/components/responses/ErrorResponse'
       security:
         - support: [ ]
         - test: [ ]
@@ -855,14 +782,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OfferingResponse"
-        '400':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/BadRequest"
-        '403':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/Forbidden"
-        '404':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
-        '500':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+        default:
+          $ref: '#/components/responses/ErrorResponse'
       security:
         - support: [ ]
         - test: [ ]
@@ -894,14 +815,8 @@ paths:
             application/vnd.api+json:
               schema:
                 $ref: "#/components/schemas/TerminationRequest"
-        '400':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/BadRequest"
-        '403':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/Forbidden"
-        '404':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
-        '500':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+        default:
+          $ref: '#/components/responses/ErrorResponse'
       security:
         - support: [ ]
         - test: [ ]
@@ -909,6 +824,14 @@ paths:
 
 components:
   schemas:
+    Errors:
+      required:
+        - errors
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/Error'
     Error:
       required:
         - status
@@ -1178,7 +1101,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/Errors'
   securitySchemes:
     customer:
       type: apiKey

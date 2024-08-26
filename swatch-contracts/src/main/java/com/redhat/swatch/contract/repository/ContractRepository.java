@@ -33,7 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 @ApplicationScoped
 public class ContractRepository implements PanacheSpecificationSupport<ContractEntity, UUID> {
   public List<ContractEntity> getContracts(Specification<ContractEntity> specification) {
-    return find(ContractEntity.class, specification, null);
+    return find(ContractEntity.class, specification);
   }
 
   public Stream<ContractEntity> findContracts(Specification<ContractEntity> specification) {
