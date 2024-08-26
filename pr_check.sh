@@ -67,7 +67,7 @@ done
 source deploy_ephemeral_env.sh
 
 # Run smoke tests with ClowdJobInvocation
- source $CICD_ROOT/cji_smoke_test.sh
+source deploy_smoke_test.sh
 # During the PR checks the Ibutsu URL and test run IDs are published as a comment by InsightsDroid account (on GitHub) or iqe-bot (on GitLab).
 # This is achieved by adding this line to `pr_check.sh` of the repo:
  source $CICD_ROOT/post_test_results.sh
