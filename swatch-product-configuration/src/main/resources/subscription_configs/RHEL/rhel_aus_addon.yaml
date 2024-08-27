@@ -1,0 +1,18 @@
+---
+platform: RHEL
+
+id: rhel-aus-addon
+
+vdcType: true
+
+variants:
+  - tag: rhel-aus-addon
+    engineeringIds:
+      - 251
+
+defaults:
+  variant: rhel-aus-addon
+
+metrics:
+  - id: Sockets
+    type: gauge
