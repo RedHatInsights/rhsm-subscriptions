@@ -82,8 +82,8 @@ public class PartnerEntitlementsRequest {
     if (subscription.getBillingAccountId() != null) {
       var billingProviderIds = subscription.getBillingProviderId().split(";");
       if (subscription.getBillingProvider().equals(BillingProvider.AWS)) {
-        request.awsCustomerId = subscription.getBillingAccountId();
-        request.awsCustomerAccountId = billingProviderIds[1];
+        request.awsCustomerId = billingProviderIds[1];
+        request.awsCustomerAccountId = subscription.getBillingAccountId();
         request.productCode = billingProviderIds[0];
       }
       if (subscription.getBillingProvider().equals(BillingProvider.AZURE)) {
