@@ -26,6 +26,7 @@ dependencies {
     implementation project(':swatch-common-resteasy-client')
     implementation project(":clients:azure-marketplace-client")
     implementation project(':swatch-model-billable-usage')
+    implementation project(':swatch-common-trace-response')
     annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
     testImplementation 'io.rest-assured:rest-assured'
     testImplementation 'org.mockito:mockito-junit-jupiter'
