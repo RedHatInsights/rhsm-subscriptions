@@ -26,8 +26,6 @@ parameters:
   - name: REPLICAS
     value: '1'
   - name: IMAGE
-    value: quay.io/cloudservices/rhsm-subscriptions
-  - name: CONDUIT_IMAGE
     value: quay.io/cloudservices/swatch-system-conduit
   - name: IMAGE_TAG
     value: latest
@@ -151,58 +149,7 @@ objects:
             enable: true
         replicas: ${{REPLICAS}}
         podSpec:
-          image: ${CONDUIT_IMAGE}:${IMAGE_TAG}
-          initContainers:
-            - image: ${IMAGE}:${IMAGE_TAG}
-              env:
-                - name: JAVA_DEBUG
-                  value: ${JAVA_DEBUG}
-                - name: SPRING_PROFILES_ACTIVE
-                  value: liquibase-only
-                - name: JAVA_MAX_MEM_RATIO
-                  value: '85'
-                - name: GC_MAX_METASPACE_SIZE
-                  value: '256'
-                - name: DATABASE_HOST
-                  valueFrom:
-                    secretKeyRef:
-                      name: swatch-tally-db
-                      key: db.host
-                - name: DATABASE_PORT
-                  valueFrom:
-                    secretKeyRef:
-                      name: swatch-tally-db
-                      key: db.port
-                - name: DATABASE_USERNAME
-                  valueFrom:
-                    secretKeyRef:
-                      name: swatch-tally-db
-                      key: db.user
-                - name: DATABASE_PASSWORD
-                  valueFrom:
-                    secretKeyRef:
-                      name: swatch-tally-db
-                      key: db.password
-                - name: DATABASE_DATABASE
-                  valueFrom:
-                    secretKeyRef:
-                      name: swatch-tally-db
-                      key: db.name
-                - name: OTEL_EXPORTER_OTLP_ENDPOINT
-                  value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
-                - name: OTEL_EXPORTER_OTLP_PROTOCOL
-                  value: ${OTEL_EXPORTER_OTLP_PROTOCOL}
-                - name: OTEL_SERVICE_NAME
-                  value: ${OTEL_SERVICE_NAME}
-                - name: OTEL_JAVAAGENT_ENABLED
-                  value: ${OTEL_JAVAAGENT_ENABLED}
-              resources:
-                requests:
-                  cpu: ${CPU_REQUEST}
-                  memory: ${MEMORY_REQUEST}
-                limits:
-                  cpu: ${CPU_LIMIT}
-                  memory: ${MEMORY_LIMIT}
+          image: ${IMAGE}:${IMAGE_TAG}
           env:
             - name: JAVA_DEBUG
               value: ${JAVA_DEBUG}
