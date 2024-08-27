@@ -47,6 +47,7 @@ dependencies {
     implementation project(':swatch-product-configuration')
     implementation project(':swatch-common-resteasy-client')
     implementation project(":clients:rh-partner-gateway-client")
+    implementation project(':swatch-common-trace-response')
     implementation libraries["clowder-quarkus-config-source"]
     implementation libraries["quarkus-logging-splunk"]
     implementation libraries["splunk-library-javalogging"]
