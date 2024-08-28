@@ -28,7 +28,6 @@ import com.redhat.swatch.azure.exception.AzureUsageContextLookupException;
 import com.redhat.swatch.azure.exception.DefaultApiException;
 import com.redhat.swatch.azure.exception.SubscriptionCanNotBeDeterminedException;
 import com.redhat.swatch.azure.exception.SubscriptionRecentlyTerminatedException;
-import com.redhat.swatch.azure.exception.UsageTimestampOutOfBoundsException;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEvent;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEventStatusEnum;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AzureUsageContext;
@@ -50,7 +49,6 @@ import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
@@ -64,7 +62,7 @@ import org.slf4j.MDC;
 @Slf4j
 @ApplicationScoped
 public class AzureBillableUsageAggregateConsumer {
-  private final BillableUsageDeadLetterTopicProducer billableUsageDeadLetterTopicProducer;
+  private final BillableUsageStatusProducer billableUsageStatusProducer;
   private final Counter acceptedCounter;
   private final Counter rejectedCounter;
   private final InternalSubscriptionsApi internalSubscriptionsApi;
@@ -77,14 +75,14 @@ public class AzureBillableUsageAggregateConsumer {
       MeterRegistry meterRegistry,
       @RestClient InternalSubscriptionsApi internalSubscriptionsApi,
       AzureMarketplaceService azureMarketplaceService,
-      BillableUsageDeadLetterTopicProducer billableUsageDeadLetterTopicProducer,
+      BillableUsageStatusProducer billableUsageStatusProducer,
       @ConfigProperty(name = "ENABLE_AZURE_DRY_RUN") Optional<Boolean> isDryRun,
       @ConfigProperty(name = "AZURE_MARKETPLACE_USAGE_WINDOW") Duration azureUsageWindow) {
     acceptedCounter = meterRegistry.counter("swatch_azure_marketplace_batch_accepted_total");
     rejectedCounter = meterRegistry.counter("swatch_azure_marketplace_batch_rejected_total");
     this.internalSubscriptionsApi = internalSubscriptionsApi;
     this.azureMarketplaceService = azureMarketplaceService;
-    this.billableUsageDeadLetterTopicProducer = billableUsageDeadLetterTopicProducer;
+    this.billableUsageStatusProducer = billableUsageStatusProducer;
     this.isDryRun = isDryRun;
     this.azureUsageWindow = azureUsageWindow;
   }
@@ -117,6 +115,8 @@ public class AzureBillableUsageAggregateConsumer {
     try {
       context = lookupAzureUsageContext(billableUsageAggregate);
     } catch (SubscriptionRecentlyTerminatedException e) {
+      emitErrorStatusOnUsage(
+          billableUsageAggregate, BillableUsage.ErrorCode.SUBSCRIPTION_TERMINATED);
       log.info(
           "Subscription recently terminated for billableUsageAggregateId={} orgId={} remittanceUUIDs={}",
           billableUsageAggregate.getAggregateId(),
@@ -132,26 +132,14 @@ public class AzureBillableUsageAggregateConsumer {
             billableUsageAggregate.getRemittanceUuids(),
             billableUsageAggregate.getWindowTimestamp(),
             azureUsageWindow);
+        emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.INACTIVE);
       } else {
-        if (Objects.nonNull(billableUsageAggregate.getRemittanceUuids())) {
-          billableUsageAggregate.getRemittanceUuids().stream()
-              .map(
-                  uuid ->
-                      billableUsageFromAggregateKey(billableUsageAggregate.getAggregateKey(), uuid))
-              .forEach(
-                  billableUsage -> {
-                    billableUsageDeadLetterTopicProducer.send(billableUsage);
-                    log.warn(
-                        "Skipping billable usage with id={} orgId={} because the subscription was not found. Will retry again after one hour.",
-                        billableUsage.getUuid(),
-                        billableUsage.getOrgId());
-                  });
-        } else {
-          log.warn("No billable usage remittance UUIDs available to retry for.");
-        }
+        emitErrorStatusOnUsage(
+            billableUsageAggregate, BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND);
       }
       return;
     } catch (AzureUsageContextLookupException e) {
+      emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.USAGE_CONTEXT_LOOKUP);
       log.error(
           "Error looking up usage context for aggregateId={} orgId={} remittanceUUIDs={}",
           billableUsageAggregate.getAggregateId(),
@@ -162,7 +150,9 @@ public class AzureBillableUsageAggregateConsumer {
     }
     try {
       transformAndSend(context, billableUsageAggregate, metric.get());
+      emitSuccessfulStatusOnUsage(billableUsageAggregate);
     } catch (Exception e) {
+      emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.UNKNOWN);
       log.error(
           "Error sending azure usage for aggregateId={} azureResourceId={} orgId={} remittanceUUIDs={}",
           billableUsageAggregate.getAggregateId(),
@@ -183,7 +173,7 @@ public class AzureBillableUsageAggregateConsumer {
 
   private void transformAndSend(
       AzureUsageContext context, BillableUsageAggregate billableUsageAggregate, Metric metric)
-      throws AzureUnprocessedRecordsException, UsageTimestampOutOfBoundsException {
+      throws AzureUnprocessedRecordsException {
     var usageEvent = transformToAzureUsage(context, billableUsageAggregate, metric);
     if (isDryRun.isPresent() && Boolean.TRUE.equals(isDryRun.get())) {
       log.info(
@@ -227,7 +217,6 @@ public class AzureBillableUsageAggregateConsumer {
 
   private UsageEvent transformToAzureUsage(
       AzureUsageContext context, BillableUsageAggregate billableUsageAggregate, Metric metric) {
-
     var usage = new UsageEvent();
     usage.setDimension(metric.getAzureDimension());
     usage.setPlanId(context.getPlanId());
@@ -297,17 +286,17 @@ public class AzureBillableUsageAggregateConsumer {
     return metric;
   }
 
-  private BillableUsage billableUsageFromAggregateKey(BillableUsageAggregateKey key, String uuid) {
-    var billableUsage = new BillableUsage();
-    billableUsage.setUsage(BillableUsage.Usage.fromValue(key.getUsage()));
-    billableUsage.setBillingAccountId(key.getBillingAccountId());
-    billableUsage.setBillingProvider(
-        BillableUsage.BillingProvider.fromValue(key.getBillingProvider()));
-    billableUsage.setOrgId(key.getOrgId());
-    billableUsage.setProductId(key.getProductId());
-    billableUsage.setMetricId(key.getMetricId());
-    billableUsage.setSla(BillableUsage.Sla.fromValue(key.getSla()));
-    billableUsage.setUuid(UUID.fromString(uuid));
-    return billableUsage;
+  private void emitSuccessfulStatusOnUsage(BillableUsageAggregate usage) {
+    usage.setStatus(BillableUsage.Status.SUCCEEDED);
+    usage.setErrorCode(null);
+    usage.setBilledOn(OffsetDateTime.now());
+    billableUsageStatusProducer.emitStatus(usage);
+  }
+
+  private void emitErrorStatusOnUsage(
+      BillableUsageAggregate usage, BillableUsage.ErrorCode errorCode) {
+    usage.setStatus(BillableUsage.Status.FAILED);
+    usage.setErrorCode(errorCode);
+    billableUsageStatusProducer.emitStatus(usage);
   }
 }

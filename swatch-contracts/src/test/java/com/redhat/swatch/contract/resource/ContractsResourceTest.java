@@ -20,15 +20,21 @@
  */
 package com.redhat.swatch.contract.resource;
 
-import static com.redhat.swatch.contract.resource.ContractsTestingResource.FEATURE_NOT_ENABLED_MESSAGE;
+import static com.redhat.swatch.contract.resource.ContractsResource.FEATURE_NOT_ENABLED_MESSAGE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.clients.product.api.resources.ApiException;
 import com.redhat.swatch.contract.config.ApplicationConfiguration;
+import com.redhat.swatch.contract.model.SyncResult;
 import com.redhat.swatch.contract.service.EnabledOrgsProducer;
 import com.redhat.swatch.contract.service.OfferingProductTagLookupService;
 import com.redhat.swatch.contract.service.OfferingSyncService;
@@ -37,6 +43,11 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.ForbiddenException;
+import jakarta.ws.rs.InternalServerErrorException;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.core.Response;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -44,7 +55,7 @@ import org.mockito.Mockito;
 @TestSecurity(
     user = "placeholder",
     roles = {"service"})
-class ContractsTestingResourceTest {
+class ContractsResourceTest {
 
   private static final String SKU = "mw123";
   private static final String ORG_ID = "org123";
@@ -54,7 +65,7 @@ class ContractsTestingResourceTest {
   @InjectMock OfferingSyncService offeringSyncService;
   @InjectMock OfferingProductTagLookupService offeringProductTagLookupService;
   @InjectMock SubscriptionSyncService subscriptionSyncService;
-  @Inject ContractsTestingResource resource;
+  @Inject ContractsResource resource;
 
   @Test
   void testSyncAllSubscriptionsWhenFeatureIsNotEnabled() {
@@ -114,5 +125,38 @@ class ContractsTestingResourceTest {
         .forceSyncSubscriptionsForOrgAsync(ORG_ID);
     resource.forceSyncSubscriptionsForOrg(ORG_ID);
     verify(subscriptionSyncService).forceSyncSubscriptionsForOrg(ORG_ID, false);
+  }
+
+  @Test
+  void testSyncSkuErrorResult() {
+    when(offeringSyncService.syncOffering(any(String.class)))
+        .thenReturn(SyncResult.SKIPPED_NOT_FOUND);
+    assertThrows(NotFoundException.class, () -> resource.syncOffering("TEST_SKU"));
+
+    when(offeringSyncService.syncOffering(any(String.class)))
+        .thenReturn(SyncResult.SKIPPED_DENYLISTED);
+    assertThrows(ForbiddenException.class, () -> resource.syncOffering("TEST_SKU"));
+
+    RuntimeException rtex = mock(RuntimeException.class);
+    ApiException ae = mock(ApiException.class);
+    when(rtex.getCause()).thenReturn(ae);
+    Response r = mock(Response.class);
+    when(ae.getResponse()).thenReturn(r);
+
+    when(r.getStatus()).thenReturn(404);
+    doThrow(rtex).when(offeringSyncService).syncOffering(any(String.class));
+    assertThrows(NotFoundException.class, () -> resource.syncOffering("TEST_SKU"));
+
+    when(r.getStatus()).thenReturn(403);
+    doThrow(rtex).when(offeringSyncService).syncOffering(any(String.class));
+    assertThrows(ForbiddenException.class, () -> resource.syncOffering("TEST_SKU"));
+
+    when(r.getStatus()).thenReturn(400);
+    doThrow(rtex).when(offeringSyncService).syncOffering(any(String.class));
+    assertThrows(BadRequestException.class, () -> resource.syncOffering("TEST_SKU"));
+
+    when(r.getStatus()).thenReturn(0);
+    doThrow(rtex).when(offeringSyncService).syncOffering(any(String.class));
+    assertThrows(InternalServerErrorException.class, () -> resource.syncOffering("TEST_SKU"));
   }
 }
