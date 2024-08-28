@@ -131,7 +131,7 @@ class RbacRolesAugmentorTest {
   }
 
   @Test
-  void noRbacInteractionWhenRbacNotEnabled() throws ApiException {
+  void noRbacInteractionWhenRbacNotEnabled() {
     augmentor.rbacEnabled = false;
     var subscriber =
         augmentor
@@ -141,6 +141,6 @@ class RbacRolesAugmentorTest {
             .subscribe()
             .withSubscriber(UniAssertSubscriber.create());
     verifyNoInteractions(rbacApi);
-    subscriber.assertCompleted().assertItem(Set.of());
+    subscriber.assertCompleted().assertItem(Set.of("test", "service", "support"));
   }
 }

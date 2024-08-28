@@ -166,6 +166,15 @@ class MetricsTest {
     verify(tasks).updateMetricsForAllAccounts("OpenShift-metrics");
   }
 
+  @Test
+  void testWhenOriginHeaderIsInvalidThenReturnsForbidden() {
+    given()
+        .header("Origin", "wrong")
+        .get("/api/swatch-metrics/internal/openapi")
+        .then()
+        .statusCode(HttpStatus.SC_FORBIDDEN);
+  }
+
   private ValidatableResponse meterProductForOrgIdAndRange(
       String productTag,
       String orgId,
