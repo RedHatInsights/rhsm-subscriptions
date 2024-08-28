@@ -1,0 +1,38 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: kafka-bridge
+parameters:
+  - name: KAFKA_BOOTSTRAP_HOST
+    value: ephemeral-kafka-bootstrap
+  - name: KAFKA_BOOTSTRAP_PORT
+    value: '9092'
+
+objects:
+  - apiVersion: kafka.strimzi.io/v1beta2
+    kind: KafkaBridge
+    metadata:
+      name: kafka-bridge
+    spec:
+      bootstrapServers: ${KAFKA_BOOTSTRAP_HOST}:${KAFKA_BOOTSTRAP_PORT}
+      http:
+        port: 8080
+      replicas: 1
+
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: ephemeral-kafka-bootstrap
+    spec:
+      ports:
+        - name: tcp-replication
+          port: 9091
+          protocol: TCP
+          targetPort: 9091
+        - name: tcp-tcp
+          port: 9092
+          protocol: TCP
+          targetPort: 9092
+      selector:
+        strimzi.io/kind: Kafka
+      type: ClusterIP
