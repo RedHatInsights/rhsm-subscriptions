@@ -7,27 +7,6 @@ info:
   version: 1.0.0
 
 paths:
-  /id={id}/options/options;products=ALL/:
-    description: "Get a subscription by ID"
-    parameters:
-      - name: id
-        required: true
-        in: path
-        description: "The ID of the subscription entity"
-        schema:
-          type: string
-    get:
-      summary: "Get a single subscription"
-      operationId: "getSubscriptionById"
-      tags:
-        - search
-      responses:
-        '200':
-          description: "The operation completed successfully"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Subscription"
   /search/criteria;subscription_number={subscriptionNumber}/options;products=ALL;showExternalReferences=true/:
     description: "Find a subscription by subscription number"
     parameters:
