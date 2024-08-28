@@ -23,17 +23,19 @@ package com.redhat.swatch.aws.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.aws.exception.AwsUsageContextLookupException;
 import com.redhat.swatch.aws.exception.DefaultApiException;
+import com.redhat.swatch.aws.exception.SubscriptionCanNotBeDeterminedException;
 import com.redhat.swatch.aws.exception.SubscriptionRecentlyTerminatedException;
 import com.redhat.swatch.aws.openapi.model.Error;
 import com.redhat.swatch.aws.openapi.model.Errors;
-import com.redhat.swatch.aws.test.resources.InMemoryMessageBrokerKafkaResource;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AwsUsageContext;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
@@ -41,7 +43,6 @@ import com.redhat.swatch.configuration.registry.Usage;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.test.InjectMock;
-import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
@@ -55,6 +56,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
@@ -75,9 +77,6 @@ import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResu
 import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResultStatus;
 
 @QuarkusTest
-@QuarkusTestResource(
-    value = InMemoryMessageBrokerKafkaResource.class,
-    restrictToAnnotatedClass = true)
 class AwsBillableUsageAggregateConsumerTest {
 
   private static final String INSTANCE_HOURS = "INSTANCE_HOURS";
@@ -114,6 +113,7 @@ class AwsBillableUsageAggregateConsumerTest {
   @InjectMock @RestClient InternalSubscriptionsApi internalSubscriptionsApi;
   @InjectMock AwsMarketplaceMeteringClientFactory clientFactory;
   MarketplaceMeteringClient meteringClient;
+  @InjectMock BillableUsageStatusProducer billableUsageStatusProducer;
 
   @Inject MeterRegistry meterRegistry;
   Counter acceptedCounter;
@@ -238,7 +238,8 @@ class AwsBillableUsageAggregateConsumerTest {
             internalSubscriptionsApi,
             clientFactory,
             Optional.of(true),
-            Duration.of(1, ChronoUnit.HOURS));
+            Duration.of(1, ChronoUnit.HOURS),
+            billableUsageStatusProducer);
     when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
     processor.process(ROSA_INSTANCE_HOURS_RECORD);
@@ -291,6 +292,36 @@ class AwsBillableUsageAggregateConsumerTest {
     assertEquals(currentIgnored + 1, ignoredCounter.count());
   }
 
+  @Test
+  void testEmitStatus() throws ApiException {
+    BillableUsageAggregate aggregate =
+        createAggregate(
+            "rosa", INSTANCE_HOURS, OffsetDateTime.now(Clock.systemUTC()).minusHours(4), 42.0);
+
+    // verify failure
+    when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+        .thenThrow(new SubscriptionCanNotBeDeterminedException(null));
+    consumer.process(aggregate);
+    verify(billableUsageStatusProducer)
+        .emitStatus(
+            argThat(
+                usage ->
+                    BillableUsage.Status.FAILED.equals(usage.getStatus())
+                        && BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND.equals(
+                            usage.getErrorCode())));
+
+    // verify success
+    reset(internalSubscriptionsApi, billableUsageStatusProducer);
+    when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+        .thenReturn(MOCK_AWS_USAGE_CONTEXT);
+    when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
+    when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
+        .thenReturn(BatchMeterUsageResponse.builder().build());
+    consumer.process(ROSA_INSTANCE_HOURS_RECORD);
+    verify(billableUsageStatusProducer)
+        .emitStatus(argThat(usage -> BillableUsage.Status.SUCCEEDED.equals(usage.getStatus())));
+  }
+
   static Stream<Arguments> usageWindowTestArgs() {
     OffsetDateTime now = OffsetDateTime.now(clock);
     OffsetDateTime startOfCurrentHour = now.minusMinutes(30);
@@ -315,6 +346,7 @@ class AwsBillableUsageAggregateConsumerTest {
   private static BillableUsageAggregate createAggregate(
       String productId, String metricId, OffsetDateTime timestamp, double totalValue) {
     var aggregate = new BillableUsageAggregate();
+    aggregate.setAggregateId(UUID.randomUUID());
     aggregate.setWindowTimestamp(timestamp);
     aggregate.setTotalValue(new BigDecimal(totalValue));
     var key =

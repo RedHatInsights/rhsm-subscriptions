@@ -18,30 +18,29 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.aws.test.resources;
+package com.redhat.swatch.aws.service;
 
 import static com.redhat.swatch.aws.configuration.Channels.BILLABLE_USAGE_STATUS;
 
-import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
-import io.smallrye.reactive.messaging.memory.InMemoryConnector;
-import java.util.HashMap;
-import java.util.Map;
+import io.smallrye.reactive.messaging.MutinyEmitter;
+import jakarta.enterprise.context.ApplicationScoped;
+import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
+import org.eclipse.microprofile.reactive.messaging.Channel;
 
-public class InMemoryMessageBrokerKafkaResource implements QuarkusTestResourceLifecycleManager {
+@Slf4j
+@ApplicationScoped
+public class BillableUsageStatusProducer {
+  private final MutinyEmitter<BillableUsageAggregate> emitter;
 
-  public static final String IN_MEMORY_CONNECTOR = "smallrye-in-memory";
-
-  @Override
-  public Map<String, String> start() {
-    Map<String, String> env = new HashMap<>();
-    env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory("tally-in"));
-    env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory("tally-out"));
-    env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory(BILLABLE_USAGE_STATUS));
-    return env;
+  public BillableUsageStatusProducer(
+      @Channel(BILLABLE_USAGE_STATUS) MutinyEmitter<BillableUsageAggregate> emitter) {
+    this.emitter = emitter;
   }
 
-  @Override
-  public void stop() {
-    InMemoryConnector.clear();
+  public void emitStatus(BillableUsageAggregate billableUsage) {
+    emitter.sendAndAwait(billableUsage);
+
+    log.info("Queued up a BillableUsageAggregate object to the billable-usage-status topic");
   }
 }

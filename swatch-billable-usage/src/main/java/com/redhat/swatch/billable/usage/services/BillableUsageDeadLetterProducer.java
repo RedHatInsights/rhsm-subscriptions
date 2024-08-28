@@ -18,8 +18,12 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.azure.service;
+package com.redhat.swatch.billable.usage.services;
 
+import static com.redhat.swatch.billable.usage.configuration.Channels.BILLABLE_USAGE_DLT_OUT;
+import static com.redhat.swatch.billable.usage.services.BillableUsageDeadLetterConsumer.RETRY_AFTER_HEADER;
+
+import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.time.Clock;
@@ -27,19 +31,16 @@ import java.time.OffsetDateTime;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.eclipse.microprofile.reactive.messaging.Channel;
-import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 @ApplicationScoped
-public class BillableUsageDeadLetterTopicProducer {
+public class BillableUsageDeadLetterProducer {
 
-  public static final String RETRY_AFTER_HEADER = "retryAfter";
-
-  @Channel("tally-dlt")
-  Emitter<BillableUsage> dlq;
+  @Channel(BILLABLE_USAGE_DLT_OUT)
+  MutinyEmitter<BillableUsage> dlq;
 
   public void send(BillableUsage billableUsage) {
-    dlq.send(
+    dlq.sendMessageAndAwait(
         Message.of(billableUsage)
             .addMetadata(
                 OutgoingKafkaRecordMetadata.<String>builder()

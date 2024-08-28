@@ -20,9 +20,12 @@
  */
 package com.redhat.swatch.billable.usage.admin.api;
 
+import static java.util.Optional.ofNullable;
+
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceEntity;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceFilter;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
+import com.redhat.swatch.billable.usage.data.RemittanceErrorCode;
 import com.redhat.swatch.billable.usage.data.RemittanceSummaryProjection;
 import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
 import com.redhat.swatch.billable.usage.services.BillingProducer;
@@ -141,7 +144,11 @@ public class InternalBillableUsageController {
               .remittedValue(entity.getTotalRemittedPendingValue())
               .remittanceDate(entity.getRemittancePendingDate())
               .accumulationPeriod(entity.getAccumulationPeriod())
-              .remittanceStatus(remittanceStatus);
+              .remittanceStatus(remittanceStatus)
+              .remittanceErrorCode(
+                  ofNullable(entity.getErrorCode())
+                      .map(RemittanceErrorCode::getValue)
+                      .orElse("null"));
       remittances.add(accountRemittance);
     }
     log.debug("Found {} remittances for this account", remittances.size());

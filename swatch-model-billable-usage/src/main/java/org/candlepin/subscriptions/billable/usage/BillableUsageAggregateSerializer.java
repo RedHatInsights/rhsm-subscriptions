@@ -18,30 +18,12 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.billable.usage.data;
+package org.candlepin.subscriptions.billable.usage;
 
-import java.time.OffsetDateTime;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import io.quarkus.kafka.client.serialization.ObjectMapperSerializer;
 
-@Builder
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class RemittanceSummaryProjection {
-  private Double totalRemittedPendingValue;
-  private String orgId;
-  private String productId;
-  private String accumulationPeriod;
-  private String sla;
-  private String usage;
-  private OffsetDateTime remittancePendingDate;
-  private String billingProvider;
-  private String billingAccountId;
-  private String metricId;
-  private String hardwareMeasurementType;
-  private RemittanceStatus status;
-  private RemittanceErrorCode errorCode;
-}
+/**
+ * Provides quarkus a hint that we want to use Jackson to serialize BillableUsageAggregate objects
+ */
+public class BillableUsageAggregateSerializer
+    extends ObjectMapperSerializer<BillableUsageAggregate> {}
