@@ -744,8 +744,9 @@ public class ContractService {
             .streamByOrgId(orgId)
             .filter(
                 s ->
-                    List.of(BillingProvider.AWS, BillingProvider.AZURE)
-                        .contains(s.getBillingProvider()))
+                    s.getBillingProvider() != null
+                        && List.of(BillingProvider.AWS, BillingProvider.AZURE)
+                            .contains(s.getBillingProvider()))
             .toList();
     paygSubs.forEach(subscriptionRepository::delete);
     log.info("Deleted {} PAYG subs for org id {}", paygSubs.size(), orgId);
