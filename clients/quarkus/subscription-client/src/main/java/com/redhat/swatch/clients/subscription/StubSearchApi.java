@@ -27,10 +27,6 @@ import jakarta.ws.rs.ProcessingException;
 import java.util.List;
 
 public class StubSearchApi implements SearchApi {
-  @Override
-  public Subscription getSubscriptionById(String id) throws ProcessingException {
-    return null;
-  }
 
   @Override
   public List<Subscription> getSubscriptionBySubscriptionNumber(String subscriptionNumber)

@@ -320,7 +320,6 @@ class SubscriptionSyncServiceTest {
     var dto = createDto("456", 10);
     dto.setEffectiveStartDate(toEpochMillis(NOW.plusMonths(2).plusDays(1)));
     dto.setEffectiveEndDate(toEpochMillis(NOW.plusMonths(14).plusDays(1)));
-    Mockito.when(subscriptionService.getSubscriptionById("456")).thenReturn(dto);
 
     Mockito.when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(dto));
     subscriptionSyncService.reconcileSubscriptionsWithSubscriptionService("100", false);
@@ -337,7 +336,6 @@ class SubscriptionSyncServiceTest {
     var dto = createDto("456", 10);
     dto.setEffectiveStartDate(null);
     dto.setEffectiveEndDate(null);
-    Mockito.when(subscriptionService.getSubscriptionById("456")).thenReturn(dto);
 
     Mockito.when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(dto));
     subscriptionSyncService.reconcileSubscriptionsWithSubscriptionService("100", false);
