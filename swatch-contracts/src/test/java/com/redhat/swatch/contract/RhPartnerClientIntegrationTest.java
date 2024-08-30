@@ -64,7 +64,8 @@ class RhPartnerClientIntegrationTest {
     assertEquals(2, purchase.getContracts().size());
     var contract = purchase.getContracts().get(0);
     assertNotNull(contract);
-    assertEquals(OffsetDateTime.parse("2022-09-23T20:07:51.010445Z"), contract.getStartDate());
+    assertEquals(
+        OffsetDateTime.parse(WireMockResource.DEFAULT_START_DATE), contract.getStartDate());
     assertNotNull(contract.getDimensions());
     assertEquals(2, contract.getDimensions().size());
     var dimension = contract.getDimensions().get(0);
