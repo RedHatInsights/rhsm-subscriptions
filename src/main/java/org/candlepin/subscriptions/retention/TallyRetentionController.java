@@ -28,6 +28,7 @@ import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.config.OrgConfig;
+import org.candlepin.subscriptions.util.LogUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Async;
@@ -64,6 +65,7 @@ public class TallyRetentionController {
   }
 
   private void purgeSnapshotsByOrg(String orgId) {
+    LogUtils.addOrgIdToMdc(orgId);
     log.debug("Running tally snapshot purge for orgId {}", orgId);
     for (Granularity granularity : Granularity.values()) {
       OffsetDateTime cutoffDate = policy.getCutoffDate(granularity);
@@ -80,5 +82,7 @@ public class TallyRetentionController {
         count -= policy.getSnapshotsToDeleteInBatches();
       }
     }
+
+    LogUtils.clearOrgIdFromMdc();
   }
 }
