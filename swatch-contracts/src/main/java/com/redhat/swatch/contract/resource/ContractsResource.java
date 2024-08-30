@@ -48,7 +48,7 @@ import com.redhat.swatch.contract.service.EnabledOrgsProducer;
 import com.redhat.swatch.contract.service.OfferingProductTagLookupService;
 import com.redhat.swatch.contract.service.OfferingSyncService;
 import com.redhat.swatch.contract.service.SubscriptionSyncService;
-import io.quarkus.runtime.configuration.ProfileManager;
+import io.quarkus.runtime.LaunchMode;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -269,7 +269,7 @@ public class ContractsResource implements DefaultApi {
   public SubscriptionResponse saveSubscriptions(Boolean reconcileCapacity, String body)
       throws ProcessingException {
     var response = new SubscriptionResponse();
-    if (!ProfileManager.getLaunchMode().isDevOrTest()
+    if (!LaunchMode.current().isDevOrTest()
         && !applicationConfiguration.isManualSubscriptionEditingEnabled()) {
       response.setDetail(FEATURE_NOT_ENABLED_MESSAGE);
       return response;
