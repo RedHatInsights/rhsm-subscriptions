@@ -73,16 +73,37 @@ public class TallyRetentionController {
         continue;
       }
 
-      long count =
+      long countSnapshots =
           tallySnapshotRepository.countAllByGranularityAndSnapshotDateBefore(
               orgId, granularity, cutoffDate);
-      while (count > 0) {
-        tallySnapshotRepository.deleteAllByGranularityAndSnapshotDateBefore(
-            orgId, granularity.name(), cutoffDate, policy.getSnapshotsToDeleteInBatches());
-        count -= policy.getSnapshotsToDeleteInBatches();
+
+      if (countSnapshots > 0) {
+        purgeMeasurementsByOrgAndGranularity(orgId, granularity, cutoffDate);
+        purgeSnapshotsByOrgAndGranularity(countSnapshots, orgId, granularity, cutoffDate);
       }
     }
 
     LogUtils.clearOrgIdFromMdc();
+  }
+
+  private void purgeMeasurementsByOrgAndGranularity(
+      String orgId, Granularity granularity, OffsetDateTime cutoffDate) {
+    long count =
+        tallySnapshotRepository.countMeasurementsByGranularityAndSnapshotDateBefore(
+            orgId, granularity.name(), cutoffDate);
+    while (count > 0) {
+      tallySnapshotRepository.deleteMeasurementsByGranularityAndSnapshotDateBefore(
+          orgId, granularity.name(), cutoffDate, policy.getSnapshotsToDeleteInBatches());
+      count -= policy.getSnapshotsToDeleteInBatches();
+    }
+  }
+
+  private void purgeSnapshotsByOrgAndGranularity(
+      long countSnapshots, String orgId, Granularity granularity, OffsetDateTime cutoffDate) {
+    while (countSnapshots > 0) {
+      tallySnapshotRepository.deleteAllByGranularityAndSnapshotDateBefore(
+          orgId, granularity.name(), cutoffDate, policy.getSnapshotsToDeleteInBatches());
+      countSnapshots -= policy.getSnapshotsToDeleteInBatches();
+    }
   }
 }
