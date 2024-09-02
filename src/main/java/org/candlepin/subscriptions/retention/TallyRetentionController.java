@@ -28,6 +28,7 @@ import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.config.OrgConfig;
+import org.candlepin.subscriptions.util.LogUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Async;
@@ -64,6 +65,7 @@ public class TallyRetentionController {
   }
 
   private void purgeSnapshotsByOrg(String orgId) {
+    LogUtils.addOrgIdToMdc(orgId);
     log.debug("Running tally snapshot purge for orgId {}", orgId);
     for (Granularity granularity : Granularity.values()) {
       OffsetDateTime cutoffDate = policy.getCutoffDate(granularity);
@@ -71,14 +73,37 @@ public class TallyRetentionController {
         continue;
       }
 
-      long count =
+      long countSnapshots =
           tallySnapshotRepository.countAllByGranularityAndSnapshotDateBefore(
               orgId, granularity, cutoffDate);
-      while (count > 0) {
-        tallySnapshotRepository.deleteAllByGranularityAndSnapshotDateBefore(
-            orgId, granularity.name(), cutoffDate, policy.getSnapshotsToDeleteInBatches());
-        count -= policy.getSnapshotsToDeleteInBatches();
+
+      if (countSnapshots > 0) {
+        purgeMeasurementsByOrgAndGranularity(orgId, granularity, cutoffDate);
+        purgeSnapshotsByOrgAndGranularity(countSnapshots, orgId, granularity, cutoffDate);
       }
+    }
+
+    LogUtils.clearOrgIdFromMdc();
+  }
+
+  private void purgeMeasurementsByOrgAndGranularity(
+      String orgId, Granularity granularity, OffsetDateTime cutoffDate) {
+    long count =
+        tallySnapshotRepository.countMeasurementsByGranularityAndSnapshotDateBefore(
+            orgId, granularity.name(), cutoffDate);
+    while (count > 0) {
+      tallySnapshotRepository.deleteMeasurementsByGranularityAndSnapshotDateBefore(
+          orgId, granularity.name(), cutoffDate, policy.getSnapshotsToDeleteInBatches());
+      count -= policy.getSnapshotsToDeleteInBatches();
+    }
+  }
+
+  private void purgeSnapshotsByOrgAndGranularity(
+      long countSnapshots, String orgId, Granularity granularity, OffsetDateTime cutoffDate) {
+    while (countSnapshots > 0) {
+      tallySnapshotRepository.deleteAllByGranularityAndSnapshotDateBefore(
+          orgId, granularity.name(), cutoffDate, policy.getSnapshotsToDeleteInBatches());
+      countSnapshots -= policy.getSnapshotsToDeleteInBatches();
     }
   }
 }
