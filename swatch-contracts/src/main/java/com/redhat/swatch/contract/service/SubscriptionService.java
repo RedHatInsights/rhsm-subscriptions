@@ -53,29 +53,6 @@ public class SubscriptionService {
   @Inject @SearchClient SearchApi subscriptionApi;
   @Inject ApplicationConfiguration properties;
 
-  /**
-   * Object a subscription model by ID.
-   *
-   * @param id the Subscription ID.
-   * @return a subscription model.
-   */
-  @RetryWithExponentialBackoff(
-      maxRetries = "${SUBSCRIPTION_MAX_RETRY_ATTEMPTS:4}",
-      delay = "${SUBSCRIPTION_BACK_OFF_INITIAL_INTERVAL:1000ms}",
-      maxDelay = "${SUBSCRIPTION_BACK_OFF_MAX_INTERVAL:64s}",
-      factor = "${SUBSCRIPTION_BACK_OFF_MULTIPLIER:2}")
-  public Subscription getSubscriptionById(String id) {
-    try {
-      return subscriptionApi.getSubscriptionById(id);
-    } catch (ProcessingException | ApiException e) {
-      log.error(API_EXCEPTION_FROM_SUBSCRIPTION_SERVICE, e.getMessage());
-      throw new ExternalServiceException(
-          ErrorCode.REQUEST_PROCESSING_ERROR,
-          ERROR_DURING_ATTEMPT_TO_REQUEST_SUBSCRIPTION_INFO_MSG,
-          e);
-    }
-  }
-
   @RetryWithExponentialBackoff(
       maxRetries = "${SUBSCRIPTION_MAX_RETRY_ATTEMPTS:4}",
       delay = "${SUBSCRIPTION_BACK_OFF_INITIAL_INTERVAL:1000ms}",

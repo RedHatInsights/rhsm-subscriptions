@@ -34,16 +34,6 @@ public class StubSearchApi extends SearchApi {
   public static final String END_DATE = "2031-01-01T01:02:33Z";
 
   @Override
-  public Subscription getSubscriptionById(String id) {
-    if ("789".equals(id)) {
-      return createAwsBillingProviderData();
-    } else if ("790".equals(id)) {
-      return createDataForOrgId(790);
-    }
-    return createDefaultData();
-  }
-
-  @Override
   public List<Subscription> getSubscriptionBySubscriptionNumber(String subscriptionNumber) {
     return List.of(createAwsBillingProviderData());
   }
