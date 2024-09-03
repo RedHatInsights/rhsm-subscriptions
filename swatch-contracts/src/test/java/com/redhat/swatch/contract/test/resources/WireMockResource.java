@@ -35,6 +35,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class WireMockResource implements QuarkusTestResourceLifecycleManager {
+  public static final String DEFAULT_START_DATE = "2022-09-23T20:07:51.010445001Z";
+  public static final String DEFAULT_END_DATE = "2023-04-20T00:09:14.192515001Z";
   private static final String BASE_KEYSTORE_PATH =
       Paths.get(PathUtils.PROJECT_DIRECTORY, "../clients-core/src/test/resources").toString();
   private static final String SERVER_KEYSTORE_PATH =
@@ -60,7 +62,7 @@ public class WireMockResource implements QuarkusTestResourceLifecycleManager {
                 .trustStorePath(TRUSTSTORE_PATH)
                 .trustStorePassword(STORE_PASSWORD)
                 .notifier(new ConsoleNotifier(true)));
-    stubApis();
+    setup(wireMockServer);
     wireMockServer.start();
     var config = new HashMap<String, String>();
     config.put("KEYSTORE_PATH", CLIENT_KEYSTORE_PATH);
@@ -94,13 +96,14 @@ public class WireMockResource implements QuarkusTestResourceLifecycleManager {
     return config;
   }
 
-  private void stubApis() {
-    stubForRhPartnerApi();
-    stubForInternalSubscriptionService();
-    stubForSubscriptionService();
+  public static void setup(WireMockServer wireMockServer) {
+    wireMockServer.resetAll();
+    stubForRhPartnerApi(wireMockServer);
+    stubForInternalSubscriptionService(wireMockServer);
+    stubForSubscriptionService(wireMockServer);
   }
 
-  private void stubForSubscriptionService() {
+  private static void stubForSubscriptionService(WireMockServer wireMockServer) {
     wireMockServer.stubFor(
         any(urlMatching("/mock/subscription/search.*subscription_number.*"))
             .willReturn(
@@ -116,7 +119,7 @@ public class WireMockResource implements QuarkusTestResourceLifecycleManager {
                                             """)));
   }
 
-  private void stubForRhPartnerApi() {
+  private static void stubForRhPartnerApi(WireMockServer wireMockServer) {
     wireMockServer.stubFor(
         any(urlMatching("/mock/partnerApi/v1/partnerSubscriptions"))
             .willReturn(
@@ -144,8 +147,8 @@ public class WireMockResource implements QuarkusTestResourceLifecycleManager {
                                                             "vendorProductCode": "1234567890abcdefghijklmno",
                                                             "contracts": [
                                                               {
-                                                                "startDate": "2022-09-23T20:07:51.010445Z",
-                                                                "endDate": "2023-04-20T00:09:14.192515Z",
+                                                                "startDate": "%s",
+                                                                "endDate": "%s",
                                                                 "dimensions": [
                                                                   {
                                                                     "name": "foobar",
@@ -222,10 +225,11 @@ public class WireMockResource implements QuarkusTestResourceLifecycleManager {
                                                       }
                                                     }
 
-                                                    """)));
+                                                    """
+                            .formatted(DEFAULT_START_DATE, DEFAULT_END_DATE))));
   }
 
-  private void stubForInternalSubscriptionService() {
+  private static void stubForInternalSubscriptionService(WireMockServer wireMockServer) {
     wireMockServer.stubFor(
         get(urlMatching("/mock/internalSubs/v1/internal/tags/.*/metrics"))
             .willReturn(

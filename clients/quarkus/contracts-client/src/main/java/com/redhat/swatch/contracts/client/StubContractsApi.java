@@ -181,7 +181,8 @@ public class StubContractsApi implements DefaultApi {
   }
 
   @Override
-  public StatusResponse syncContractsByOrg(String orgId, Boolean isPreCleanup)
+  public StatusResponse syncContractsByOrg(
+      String orgId, Boolean isPreCleanup, Boolean deleteContractsAndSubs)
       throws ProcessingException {
     return null;
   }

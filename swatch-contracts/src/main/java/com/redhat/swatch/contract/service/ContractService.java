@@ -734,4 +734,19 @@ public class ContractService {
     }
     return ContractMessageProcessingResult.CONTRACT_DETAILS_MISSING.toStatus();
   }
+
+  @Transactional
+  public void deletePaygSubscriptionsByOrgId(String orgId) {
+    var paygSubs =
+        subscriptionRepository
+            .streamByOrgId(orgId)
+            .filter(
+                s ->
+                    s.getBillingProvider() != null
+                        && List.of(BillingProvider.AWS, BillingProvider.AZURE)
+                            .contains(s.getBillingProvider()))
+            .toList();
+    paygSubs.forEach(subscriptionRepository::delete);
+    log.info("Deleted {} PAYG subs for org id {}", paygSubs.size(), orgId);
+  }
 }

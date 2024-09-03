@@ -2,7 +2,7 @@
 // inspired by mockito's gradle structure, which dependabot uses as a test case
 
 ext {
-    quarkusVersion='3.12.3'
+    quarkusVersion='3.14.1'
     springVersion='3.3.3'
     resteasyVersion='6.2.10.Final'
     jacksonVersion='2.17.2'
@@ -35,10 +35,10 @@ libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-de
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:3.0.0"
-libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.27.14"
+libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.27.17"
 libraries["clowder-quarkus-config-source"] = "com.redhat.cloud.common:clowder-quarkus-config-source:2.6.1"
 libraries["guava"] = "com.google.guava:guava:33.3.0-jre"
-libraries["commons-lang3"] = "org.apache.commons:commons-lang3:3.16.0"
+libraries["commons-lang3"] = "org.apache.commons:commons-lang3:3.17.0"
 libraries["hamcrest-all"] = "org.hamcrest:hamcrest-all:1.3"
 libraries["jackson-databind-nullable"] = "org.openapitools:jackson-databind-nullable:0.2.6"
 libraries["janino"] = "org.codehaus.janino:janino:3.1.12"
@@ -78,6 +78,6 @@ libraries["splunk-otel-agent"] = 'com.splunk:splunk-otel-javaagent:2.7.0'
 libraries["testcontainers-postgresql"] = 'org.testcontainers:postgresql:1.20.1'
 libraries["kafka-streams-test-utils"] = "org.apache.kafka:kafka-streams-test-utils:7.7.0-ce"
 libraries["slf4j-api"] = "org.slf4j:slf4j-api:2.0.16"
-libraries["snakeyaml"] = "org.yaml:snakeyaml:2.2"
+libraries["snakeyaml"] = "org.yaml:snakeyaml:2.3"
 libraries["unleash-spring-boot-starter"] = "io.getunleash:springboot-unleash-starter:1.1.0"
 libraries["unleash-quarkus"] = "io.quarkiverse.unleash:quarkus-unleash:1.7.0"
