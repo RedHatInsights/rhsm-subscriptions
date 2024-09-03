@@ -256,6 +256,16 @@ quarkus.rest-client-reactive.provider-autodiscovery=false
 
 The generated client from openapi already uses the `@RegisterProdiver` annotation, so nothing else should be needed.
 
+### **rest-client**: default timeout is set to 30 seconds
+
+In Spring Boot, we're using the Apache HTTP client for the REST client implementations with no request timeouts, where, in Quarkus, the default timeout is 30 seconds.
+This can lead into different behaviour when using the REST Client in Spring Boot and Quarkus, that might need to increase the timeout in Quarkus like:
+
+```
+# Setting up the timeout to 2 minutes instead of 30 seconds (default)
+quarkus.rest-client."com.redhat.swatch.clients.subscription.api.resources.SearchApi".read-timeout=120000
+```
+
 ### **rest-client**: will throw an ProcessingException exception under some circumstances
 
 So, catch the ProcessingException exception as well as the ApiException one (for generated clients) to be sure, you catch all the errors.
