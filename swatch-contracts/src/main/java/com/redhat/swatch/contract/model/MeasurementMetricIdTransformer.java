@@ -58,41 +58,43 @@ public class MeasurementMetricIdTransformer {
       if (subscription.getBillingProvider() == BillingProvider.AWS
           || subscription.getBillingProvider() == BillingProvider.AZURE) {
         for (String tag : subscription.getOffering().getProductTags()) {
-          var metrics = Variant.getMetricsForTag(tag).stream().toList();
-          // the metricId currently set here is actually the aws/azure Dimension and get translated
-          // to the
-          // metric uom after calculation
-          checkForUnsupportedMetrics(metrics, subscription);
-          subscription
-              .getSubscriptionMeasurements()
-              .forEach(
-                  measurement ->
-                      metrics.stream()
-                          .filter(
-                              metric -> {
-                                String marketplaceMetricId =
-                                    subscription.getBillingProvider() == BillingProvider.AWS
-                                        ? metric.getAwsDimension()
-                                        : metric.getAzureDimension();
-                                return Objects.equals(
-                                    marketplaceMetricId, measurement.getMetricId());
-                              })
-                          .findFirst()
-                          .ifPresent(
-                              metric -> {
-                                if (metric.getBillingFactor() != null
-                                    && measurement.getValue() != null) {
-                                  measurement.setValue(
-                                      measurement.getValue() / metric.getBillingFactor());
-                                }
-                                measurement.setMetricId(metric.getId());
-                              }));
+          mapMetricsToSubscription(subscription, tag);
         }
       }
     } catch (ProcessingException e) {
       log.error("Error looking up dimension for metrics", e);
       throw new ContractsException(ErrorCode.UNHANDLED_EXCEPTION, e.getMessage());
     }
+  }
+
+  private void mapMetricsToSubscription(SubscriptionEntity subscription, String productTag) {
+    var metrics = Variant.getMetricsForTag(productTag).stream().toList();
+    // the metricId currently set here is actually the aws/azure Dimension and get translated
+    // to the
+    // metric uom after calculation
+    checkForUnsupportedMetrics(metrics, subscription);
+    subscription
+        .getSubscriptionMeasurements()
+        .forEach(
+            measurement ->
+                metrics.stream()
+                    .filter(
+                        metric -> {
+                          String marketplaceMetricId =
+                              subscription.getBillingProvider() == BillingProvider.AWS
+                                  ? metric.getAwsDimension()
+                                  : metric.getAzureDimension();
+                          return Objects.equals(marketplaceMetricId, measurement.getMetricId());
+                        })
+                    .findFirst()
+                    .ifPresent(
+                        metric -> {
+                          if (metric.getBillingFactor() != null && measurement.getValue() != null) {
+                            measurement.setValue(
+                                measurement.getValue() / metric.getBillingFactor());
+                          }
+                          measurement.setMetricId(metric.getId());
+                        }));
   }
 
   /**

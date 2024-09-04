@@ -80,15 +80,20 @@ class MeasurementMetricIdTransformerTest {
   void testNoMappingAttemptedForMissingBillingProvider() throws RuntimeException {
     var subscription = new SubscriptionEntity();
     var measurement1 = new SubscriptionMeasurementEntity();
-    measurement1.setMetricId("control_plane");
+    measurement1.setMetricId("test1");
     var measurement2 = new SubscriptionMeasurementEntity();
-    measurement2.setMetricId("four_vcpu_hour");
+    measurement2.setMetricId("test2");
     subscription.addSubscriptionMeasurement(measurement1);
     subscription.addSubscriptionMeasurement(measurement2);
     subscription.setOffering(new OfferingEntity());
     subscription.getOffering().setProductTags(Set.of("rosa"));
 
     transformer.translateContractMetricIdsToSubscriptionMetricIds(subscription);
+    assertEquals(
+        List.of("test1", "test2"),
+        subscription.getSubscriptionMeasurements().stream()
+            .map(SubscriptionMeasurementEntity::getMetricId)
+            .collect(Collectors.toList()));
   }
 
   @Test
