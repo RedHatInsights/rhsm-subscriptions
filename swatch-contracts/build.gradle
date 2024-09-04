@@ -34,7 +34,6 @@ dependencies {
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-amqp'
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka'
     implementation 'io.smallrye.reactive:smallrye-reactive-messaging-in-memory'
-    implementation project(':clients:swatch-internal-subscription-client')
     implementation project(':clients:quarkus:subscription-client')
     implementation project(':swatch-common-clock')
     implementation project(':swatch-common-config-workaround')
