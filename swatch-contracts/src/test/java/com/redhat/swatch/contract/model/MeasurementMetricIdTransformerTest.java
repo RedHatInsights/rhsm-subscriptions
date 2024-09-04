@@ -23,7 +23,6 @@ package com.redhat.swatch.contract.model;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
 import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
@@ -124,7 +123,7 @@ class MeasurementMetricIdTransformerTest {
   }
 
   @Test
-  void testUnsupportedDimensionsAreRemovedFromContracts() throws ApiException, RuntimeException {
+  void testUnsupportedDimensionsAreRemovedFromContracts() throws RuntimeException {
     var contract = new ContractEntity();
     contract.setBillingProvider(BillingProvider.AWS.getValue());
     var instanceHours = new ContractMetricEntity();
