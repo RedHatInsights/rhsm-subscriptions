@@ -125,6 +125,8 @@ components:
           type: string
         azureCustomerId:
           type: string
+        clientId:
+          type: string
     PurchaseV1:
       properties:
         vendorProductCode:

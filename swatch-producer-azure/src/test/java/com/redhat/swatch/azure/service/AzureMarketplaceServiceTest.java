@@ -30,6 +30,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.redhat.swatch.azure.exception.AzureMarketplaceRequestFailedException;
 import com.redhat.swatch.azure.file.AzureMarketplaceProperties;
+import com.redhat.swatch.azure.service.model.AzureClient;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEvent;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEventOkResponse;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEventStatusEnum;
@@ -48,21 +49,21 @@ class AzureMarketplaceServiceTest {
   AzureMarketplaceProperties azureMarketplaceProperties = new AzureMarketplaceProperties();
 
   AzureMarketplaceClientFactory azureMarketplaceClientFactory;
-  AzureMarketplaceApi acceptedClient;
-  AzureMarketplaceApi failedClient;
-  AzureMarketplaceApi badRequestClient;
+  AzureClient acceptedClient;
+  AzureClient failedClient;
+  AzureClient badRequestClient;
 
   @BeforeEach
   void setup() throws Exception {
-    acceptedClient = mock(AzureMarketplaceApi.class);
-    failedClient = mock(AzureMarketplaceApi.class);
-    badRequestClient = mock(AzureMarketplaceApi.class);
+    acceptedClient = new AzureClient("accepted", mock(AzureMarketplaceApi.class));
+    failedClient = new AzureClient("failed", mock(AzureMarketplaceApi.class));
+    badRequestClient = new AzureClient("badRequest", mock(AzureMarketplaceApi.class));
     azureMarketplaceClientFactory = Mockito.mock(AzureMarketplaceClientFactory.class);
-    Mockito.when(acceptedClient.submitUsageEvents(any(), any(), any(), any()))
+    Mockito.when(acceptedClient.api().submitUsageEvents(any(), any(), any(), any()))
         .thenReturn(new UsageEventOkResponse().status(UsageEventStatusEnum.ACCEPTED));
-    Mockito.when(failedClient.submitUsageEvents(any(), any(), any(), any()))
+    Mockito.when(failedClient.api().submitUsageEvents(any(), any(), any(), any()))
         .thenThrow(new ProcessingException("error"));
-    Mockito.when(badRequestClient.submitUsageEvents(any(), any(), any(), any()))
+    Mockito.when(badRequestClient.api().submitUsageEvents(any(), any(), any(), any()))
         .thenThrow(new ApiException(Response.status(HttpStatus.SC_BAD_REQUEST).build()));
   }
 
@@ -74,8 +75,8 @@ class AzureMarketplaceServiceTest {
         new AzureMarketplaceService(azureMarketplaceProperties, azureMarketplaceClientFactory);
     var response = service.sendUsageEventToAzureMarketplace(new UsageEvent());
     assertNotNull(response);
-    verify(acceptedClient).submitUsageEvents(any(), any(), any(), any());
-    verifyNoInteractions(failedClient);
+    verify(acceptedClient.api()).submitUsageEvents(any(), any(), any(), any());
+    verifyNoInteractions(failedClient.api());
   }
 
   @Test
@@ -86,8 +87,8 @@ class AzureMarketplaceServiceTest {
         new AzureMarketplaceService(azureMarketplaceProperties, azureMarketplaceClientFactory);
     var response = service.sendUsageEventToAzureMarketplace(new UsageEvent());
     assertNotNull(response);
-    verify(failedClient).submitUsageEvents(any(), any(), any(), any());
-    verify(acceptedClient).submitUsageEvents(any(), any(), any(), any());
+    verify(failedClient.api()).submitUsageEvents(any(), any(), any(), any());
+    verify(acceptedClient.api()).submitUsageEvents(any(), any(), any(), any());
   }
 
   @Test
@@ -118,6 +119,21 @@ class AzureMarketplaceServiceTest {
     var service =
         new AzureMarketplaceService(azureMarketplaceProperties, azureMarketplaceClientFactory);
     service.sendUsageEventToAzureMarketplace(new UsageEvent());
-    verify(acceptedClient, times(0)).submitUsageEvents(any(), any(), any(), any());
+    verify(acceptedClient.api(), times(0)).submitUsageEvents(any(), any(), any(), any());
+  }
+
+  @Test
+  void testUseClientWithMatchingClientId() throws ApiException {
+    UsageEvent event = new UsageEvent();
+    // we're using the accepted client ID, so the first client "badRequest" should not be used.
+    event.setClientId(acceptedClient.clientId());
+
+    Mockito.when(azureMarketplaceClientFactory.createClientForEachTenant())
+        .thenReturn(List.of(badRequestClient, acceptedClient));
+    var service =
+        new AzureMarketplaceService(azureMarketplaceProperties, azureMarketplaceClientFactory);
+    service.sendUsageEventToAzureMarketplace(event);
+    verify(badRequestClient.api(), times(0)).submitUsageEvents(any(), any(), any(), any());
+    verify(acceptedClient.api(), times(1)).submitUsageEvents(any(), any(), any(), any());
   }
 }

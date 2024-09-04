@@ -87,6 +87,7 @@ public class WireMockResource implements QuarkusTestResourceLifecycleManager {
     context.setAzureTenantId(UUID.randomUUID().toString());
     context.setOfferId(UUID.randomUUID().toString());
     context.setPlanId(UUID.randomUUID().toString());
+    context.setClientId(UUID.randomUUID().toString());
     wireMockServer.stubFor(
         get(urlPathEqualTo(SUBSCRIPTIONS_AZURE_USAGE_CONTEXT))
             .withQueryParam("orgId", equalTo(usage.getAggregateKey().getOrgId()))

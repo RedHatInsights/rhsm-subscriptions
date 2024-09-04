@@ -92,14 +92,27 @@ class ContractEntityMapperTest {
   }
 
   @Test
-  void testMapEntitlementToContractEntityBillingProviderId() {
-    givenAzureEntitlement("theAzureResourceId", "theAzureCustomerId", "theAzureOfferId");
+  void testMapEntitlementToContractEntityBillingProviderIdWithoutClientId() {
+    givenAzureEntitlement("theAzureResourceId", "theAzureCustomerId", "theAzureOfferId", null);
     givenContractWithPlanId("thePlanId");
 
     var entity = whenMapEntitlementToContractEntity();
 
     assertEquals(
-        "theAzureResourceId;thePlanId;theAzureOfferId;theAzureCustomerId",
+        "theAzureResourceId;thePlanId;theAzureOfferId;theAzureCustomerId;",
+        entity.getBillingProviderId());
+  }
+
+  @Test
+  void testMapEntitlementToContractEntityBillingProviderIdWithClientId() {
+    givenAzureEntitlement(
+        "theAzureResourceId", "theAzureCustomerId", "theAzureOfferId", "theClientId");
+    givenContractWithPlanId("thePlanId");
+
+    var entity = whenMapEntitlementToContractEntity();
+
+    assertEquals(
+        "theAzureResourceId;thePlanId;theAzureOfferId;theAzureCustomerId;theClientId",
         entity.getBillingProviderId());
   }
 
@@ -134,7 +147,7 @@ class ContractEntityMapperTest {
   }
 
   private void givenAzureEntitlement(
-      String azureResourceId, String azureCustomerId, String vendorProductCode) {
+      String azureResourceId, String azureCustomerId, String vendorProductCode, String clientId) {
     entitlement = new PartnerEntitlementV1();
     entitlement.setPurchase(new PurchaseV1());
     entitlement.getPurchase().setContracts(new ArrayList<>());
@@ -142,12 +155,16 @@ class ContractEntityMapperTest {
     entitlement.getPurchase().setVendorProductCode(vendorProductCode);
     entitlement.setPartnerIdentities(new PartnerIdentityV1());
     entitlement.getPartnerIdentities().azureCustomerId(azureCustomerId);
+    entitlement.getPartnerIdentities().clientId(clientId);
     entitlement.sourcePartner(ContractSourcePartnerEnum.AZURE.getCode());
   }
 
   private void givenAzureEntitlement() {
     givenAzureEntitlement(
-        "azure_resource_id_placeholder", "azure_customer_id_placeholder", "azure_vendor_code");
+        "azure_resource_id_placeholder",
+        "azure_customer_id_placeholder",
+        "azure_vendor_code",
+        "client_id");
   }
 
   private ContractEntity whenMapEntitlementToContractEntity() {

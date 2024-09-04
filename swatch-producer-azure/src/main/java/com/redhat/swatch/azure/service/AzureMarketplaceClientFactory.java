@@ -23,6 +23,7 @@ package com.redhat.swatch.azure.service;
 import com.redhat.swatch.azure.file.AzureMarketplaceCredentials;
 import com.redhat.swatch.azure.file.AzureMarketplaceProperties;
 import com.redhat.swatch.azure.http.AzureMarketplaceHeaderProvider;
+import com.redhat.swatch.azure.service.model.AzureClient;
 import com.redhat.swatch.clients.azure.marketplace.api.resources.AzureMarketplaceApi;
 import io.quarkus.oidc.client.OidcClients;
 import io.quarkus.rest.client.reactive.QuarkusRestClientBuilder;
@@ -52,17 +53,19 @@ public class AzureMarketplaceClientFactory {
     this.oidcClients = oidcClients;
   }
 
-  public List<AzureMarketplaceApi> createClientForEachTenant() {
+  public List<AzureClient> createClientForEachTenant() {
     return azureMarketplaceCredentials.getClients().stream()
         .map(
             client -> {
               try {
-                return QuarkusRestClientBuilder.newBuilder()
-                    .baseUri(new URI(azureMarketplaceProperties.getMarketplaceBaseUrl()))
-                    .register(
-                        new AzureMarketplaceHeaderProvider(
-                            azureMarketplaceProperties, client, oidcClients))
-                    .build(AzureMarketplaceApi.class);
+                var api =
+                    QuarkusRestClientBuilder.newBuilder()
+                        .baseUri(new URI(azureMarketplaceProperties.getMarketplaceBaseUrl()))
+                        .register(
+                            new AzureMarketplaceHeaderProvider(
+                                azureMarketplaceProperties, client, oidcClients))
+                        .build(AzureMarketplaceApi.class);
+                return new AzureClient(client.getClientId(), api);
               } catch (URISyntaxException ex) {
                 log.error("Unable to create URI for Azure authentication for client.", ex);
                 return null;
