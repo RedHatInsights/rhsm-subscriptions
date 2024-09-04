@@ -20,27 +20,24 @@
  */
 package com.redhat.swatch.contract.model;
 
-import com.redhat.swatch.clients.swatch.internal.subscription.api.model.Metric;
-import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
-import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
+import com.redhat.swatch.configuration.registry.Metric;
+import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.contract.exception.ContractsException;
 import com.redhat.swatch.contract.exception.ErrorCode;
 import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import jakarta.ws.rs.ProcessingException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 @Slf4j
 @ApplicationScoped
 public class MeasurementMetricIdTransformer {
-  @RestClient @Inject InternalSubscriptionsApi internalSubscriptionsApi;
 
   /**
    * Maps all incoming metrics from cloud provider-specific formats/UOMs into the swatch UOM value.
@@ -58,10 +55,12 @@ public class MeasurementMetricIdTransformer {
     }
 
     try {
-      if (subscription.getBillingProvider() == BillingProvider.AWS) {
+      if (subscription.getBillingProvider() == BillingProvider.AWS
+          || subscription.getBillingProvider() == BillingProvider.AZURE) {
         for (String tag : subscription.getOffering().getProductTags()) {
-          var metrics = internalSubscriptionsApi.getMetrics(tag);
-          // the metricId currently set here is actually the aws Dimension and get translated to the
+          var metrics = Variant.getMetricsForTag(tag).stream().toList();
+          // the metricId currently set here is actually the aws/azure Dimension and get translated
+          // to the
           // metric uom after calculation
           checkForUnsupportedMetrics(metrics, subscription);
           subscription
@@ -70,9 +69,14 @@ public class MeasurementMetricIdTransformer {
                   measurement ->
                       metrics.stream()
                           .filter(
-                              metric ->
-                                  Objects.equals(
-                                      metric.getAwsDimension(), measurement.getMetricId()))
+                              metric -> {
+                                String marketplaceMetricId =
+                                    subscription.getBillingProvider() == BillingProvider.AWS
+                                        ? metric.getAwsDimension()
+                                        : metric.getAzureDimension();
+                                return Objects.equals(
+                                    marketplaceMetricId, measurement.getMetricId());
+                              })
                           .findFirst()
                           .ifPresent(
                               metric -> {
@@ -81,11 +85,11 @@ public class MeasurementMetricIdTransformer {
                                   measurement.setValue(
                                       measurement.getValue() / metric.getBillingFactor());
                                 }
-                                measurement.setMetricId(metric.getUom());
+                                measurement.setMetricId(metric.getId());
                               }));
         }
       }
-    } catch (ProcessingException | ApiException e) {
+    } catch (ProcessingException e) {
       log.error("Error looking up dimension for metrics", e);
       throw new ContractsException(ErrorCode.UNHANDLED_EXCEPTION, e.getMessage());
     }
@@ -109,14 +113,20 @@ public class MeasurementMetricIdTransformer {
     // resolve contract measurements with the correct metrics from sync service
     // this will keep subscriptions and contract metrics consistent with its dimension to SWATCH UOM
     log.debug(
-        "Resolving conflicting metrics between subscription & contract  for {}",
+        "Resolving conflicting metrics between subscription & contract for {}",
         contract.getOrgId());
     try {
       for (String productTag : contract.getOffering().getProductTags()) {
-        var metrics =
-            internalSubscriptionsApi.getMetrics(productTag).stream()
-                .map(Metric::getAwsDimension)
-                .collect(Collectors.toSet());
+        var variantMetrics = Variant.getMetricsForTag(productTag).stream();
+        Set<String> metrics;
+        if (BillingProvider.AWS.getValue().equals(contract.getBillingProvider())) {
+          metrics = variantMetrics.map(Metric::getAwsDimension).collect(Collectors.toSet());
+        } else if (BillingProvider.AZURE.getValue().equals(contract.getBillingProvider())) {
+          metrics = variantMetrics.map(Metric::getAzureDimension).collect(Collectors.toSet());
+        } else {
+          metrics = Set.of();
+        }
+
         contract
             .getMetrics()
             .removeIf(
@@ -135,7 +145,7 @@ public class MeasurementMetricIdTransformer {
                   return false;
                 });
       }
-    } catch (ProcessingException | ApiException e) {
+    } catch (ProcessingException e) {
       log.error("Error resolving dimensions for contract metrics", e);
       throw new ContractsException(ErrorCode.UNHANDLED_EXCEPTION, e.getMessage());
     }
@@ -145,7 +155,14 @@ public class MeasurementMetricIdTransformer {
     if (!subscription.getSubscriptionMeasurements().isEmpty()) {
       // Will check for correct metrics before translating awsDimension to Metrics UOM
       log.debug("Checking for unsupported metricIds");
-      var supportedSet = metrics.stream().map(Metric::getAwsDimension).collect(Collectors.toSet());
+      Set<String> supportedSet;
+      if (subscription.getBillingProvider() == BillingProvider.AWS) {
+        supportedSet = metrics.stream().map(Metric::getAwsDimension).collect(Collectors.toSet());
+      } else if (subscription.getBillingProvider() == BillingProvider.AZURE) {
+        supportedSet = metrics.stream().map(Metric::getAzureDimension).collect(Collectors.toSet());
+      } else {
+        supportedSet = Set.of();
+      }
       subscription
           .getSubscriptionMeasurements()
           .removeIf(m -> !supportedSet.contains(m.getMetricId()));
