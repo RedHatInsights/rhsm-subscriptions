@@ -914,6 +914,7 @@ objects:
         MCT3262F3RN
         MCT3262RN
         MCT3262S
+        MCT3267
         MCT3632
         MCT3718
         MCT3719
@@ -923,6 +924,8 @@ objects:
         MCT4149
         MCT4159
         MCT4159F3
+        MW00420
+        MW00423
         MW00567
         MW00567F3
         MW00571
@@ -930,6 +933,12 @@ objects:
         MW00571RN
         MW00571S
         MW00700
+        MW00701
+        MW00784
+        MW00787
+        MW00792
+        MW01426
+        MW01429
         MW01618
         MW01620
         RH00798
@@ -1083,6 +1092,9 @@ objects:
         SER0403
         SER0419
         SER0440
+        SER0572
+        SER0573
+        SER0587
         SVC1882
         SVC2461
         SVC2462
