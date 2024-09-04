@@ -5,54 +5,84 @@ properties:
     description: Identifier for the system that captured the event.
     type: string
     required: true
+    examples:
+      - cost-management
+      - prometheus
+      - urn:redhat:source:console:app:aap-controller-billing
   event_type:
     description: Source-specific identifier for the type of event we use lower Kebab case (e.g. snapshot, delete, descriptive-variable-name). This allows
       the source to encode a special semantic for the event.
     type: string
     required: true
+    examples:
+      - snapshot_rhacs_cores
+      - snapshot_rosa_instance-hours
+      - snapshot_rhel-for-x86-els-payg-addon_vcpus
   org_id:
     description: Organization identifier associated with this event.
     type: string
     required: true
+    examples:
+      - 123456789
   instance_id:
     description: Primary identifier for the instance of the service, according to the event producer.
     type: string
     required: true
+    examples:
+      - 1e69ce3d-e9f7-484f-98a3-ccb3c268ade7
+      - i-1eavan31z971235
   metering_batch_id:
     description: Metering batch ID that identifies which process generated the event.
     type: string
     format: uuid
     required: false
+    examples:
+      - 35129cd3-d9b4-40e4-8b40-cba042c61edc
   event_id:
     description: UUID for the event, will be generated upon ingestion if not specified.
     type: string
     format: uuid
     required: false
+    examples:
+      - 94cdf000-e307-4e5b-b48e-c9d69cda76de
   service_type:
     description: Identifier for the type of service being measured. (E.g. RHEL System, OpenShift Cluster)
     type: string
     required: true
+    examples:
+      - RHEL System
+      - rosa Instance
+      - OpenShift Cluster
   timestamp:
     description: Time that the event happened or the snapshot was captured.
     type: string
     format: date-time
     required: true
+    examples:
+      - 2024-08-29T12:00:00Z
   record_date:
     description: The date that the EventRecord was persisted (NOTE Automatically set when persisted)
     type: string
     format: date-time
     required: false
+    examples:
+      - 2024-08-29T12:00:00Z
   expiration:
     description: End of the range for the event (exclusive).
     type: string
     existingJavaType: java.util.Optional<java.time.OffsetDateTime>
     format: date-time
     required: false
+    examples:
+      - 2024-08-29T12:00:00Z
   display_name:
     description: User-set name for the subject.
     type: string
     existingJavaType: java.util.Optional<String>
     required: false
+    examples:
+      - rh-app-vm01
+      - ip-11-111-1-111.us-east-1.hello.example
   inventory_id:
     description: Host-based inventory ID for the service, if applicable and known.
     type: string
@@ -94,6 +124,11 @@ properties:
           description: Metric ID for the measurement. (e.g. Cores, Sockets)
           type: string
           required: true
+          examples:
+            - Cores
+            - Sockets
+            - vCPUs
+            - Instance-hours
     required: false
   cloud_provider:
     description: Identifier for the cloud provider of the subject.
@@ -124,6 +159,9 @@ properties:
     type: array
     items:
       type: string
+      examples:
+        - 69
+        - 204
     required: false
   role:
     description: The syspurpose role for the system.
@@ -171,31 +209,44 @@ properties:
       - oracle
     required: false
   billing_account_id:
-    description: The account ID used for billing.
+    description: >
+      The marketplace account ID used for billing. This is the AzureSubscriptionId for Azure and the CustomerAwsAccountId for AWS.
+      If azure_subscription_id is set then that value is used to set billing_account_id.
     type: string
     existingJavaType: java.util.Optional<String>
     required: false
+    examples:
+      - f49a1a52-7c09-4c2f-a227-c8680c7b5a17
+      - 51231513251
   azure_tenant_id:
-    description: The azure tenant ID used for billing
+    description: Deprecated. The azure tenant ID used for billing. No longer used by swatch.
     type: string
     existingJavaType: java.util.Optional<String>
     required: false
+    deprecated: true
     deprecationMessage: This field is no longer used in billing logic
   azure_resource_id:
-    description: The azure resource ID used for billing
+    description: >
+      The azure resource ID used for billing.
+      The azure_resource_id is generally not available on service instances so azure_subscription_id is used to determine which azure resource to bill against.
     type: string
     existingJavaType: java.util.Optional<String>
     required: false
   azure_subscription_id:
-    description: The azure subscription ID used for billing
+    description: The azure subscription ID used for billing. Required for azure events.
     type: string
     existingJavaType: java.util.Optional<String>
     required: false
+    examples:
+      - f49a1a52-7c09-4c2f-a227-c8680c7b5a17
   product_tag:
-    description: Product tag
+    description: Product tag of the associated offering.
     type: array
     items:
       type: string
+      examples:
+        - rosa
+        - rhel-for-x86-els-payg
     required: false
     uniqueItems: true
   amendment_type:
