@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
+import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.repository.ContractRepository;
 import com.redhat.swatch.contract.repository.OfferingEntity;
@@ -324,8 +325,9 @@ class AzureContractLifecycleIntegrationTest {
     stubPartnerSubscriptionApi(AZURE_PARTNER_API_RESPONSE_CONTRACT_CREATED);
     var status =
         contractService.createPartnerContract(
-            objectMapper.readValue(
-                AZURE_UMB_MESSAGE_CONTRACT_CREATED, PartnerEntitlementContract.class));
+            PartnerEntitlementsRequest.from(
+                objectMapper.readValue(
+                    AZURE_UMB_MESSAGE_CONTRACT_CREATED, PartnerEntitlementContract.class)));
     assertEquals("FAILED", status.getStatus());
     assertEquals("Contract missing RH orgId", status.getMessage());
     assertEquals(0, contractRepository.count());
@@ -337,8 +339,9 @@ class AzureContractLifecycleIntegrationTest {
     stubPartnerSubscriptionApi(AZURE_PARTNER_API_RESPONSE_SKU_MISSING);
     status =
         contractService.createPartnerContract(
-            objectMapper.readValue(
-                AZURE_UMB_MESSAGE_ORG_ASSOCIATED, PartnerEntitlementContract.class));
+            PartnerEntitlementsRequest.from(
+                objectMapper.readValue(
+                    AZURE_UMB_MESSAGE_ORG_ASSOCIATED, PartnerEntitlementContract.class)));
     assertEquals("FAILED", status.getStatus());
     assertEquals("Empty value in non-null fields", status.getMessage());
     assertEquals(0, contractRepository.count());
@@ -351,8 +354,9 @@ class AzureContractLifecycleIntegrationTest {
     stubPartnerSubscriptionApi(AZURE_PARTNER_API_RESPONSE_ORG_ASSOCIATED);
     status =
         contractService.createPartnerContract(
-            objectMapper.readValue(
-                AZURE_UMB_MESSAGE_ORG_ASSOCIATED, PartnerEntitlementContract.class));
+            PartnerEntitlementsRequest.from(
+                objectMapper.readValue(
+                    AZURE_UMB_MESSAGE_ORG_ASSOCIATED, PartnerEntitlementContract.class)));
     assertEquals("SUCCESS", status.getStatus());
     assertEquals(1, contractRepository.count());
     assertEquals(1, subscriptionRepository.count());
@@ -360,8 +364,10 @@ class AzureContractLifecycleIntegrationTest {
     stubPartnerSubscriptionApi(AZURE_PARTNER_API_RESPONSE_AZURE_SUBSCRIPTION_ID_ADDED);
     status =
         contractService.createPartnerContract(
-            objectMapper.readValue(
-                AZURE_UMB_MESSAGE_AZURE_SUBSCRIPTION_ID_ADDED, PartnerEntitlementContract.class));
+            PartnerEntitlementsRequest.from(
+                objectMapper.readValue(
+                    AZURE_UMB_MESSAGE_AZURE_SUBSCRIPTION_ID_ADDED,
+                    PartnerEntitlementContract.class)));
     assertEquals("SUCCESS", status.getStatus());
     assertEquals(1, contractRepository.count());
     assertEquals(1, subscriptionRepository.count());
