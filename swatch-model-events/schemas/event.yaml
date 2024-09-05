@@ -32,7 +32,7 @@ properties:
       - 1e69ce3d-e9f7-484f-98a3-ccb3c268ade7
       - i-1eavan31z971235
   metering_batch_id:
-    description: Metering batch ID that identifies which process generated the event.
+    description: Metering batch ID that identifies which process generated the event. Correlates events that come from the same batch.
     type: string
     format: uuid
     required: false
@@ -210,8 +210,8 @@ properties:
     required: false
   billing_account_id:
     description: >
-      The marketplace account ID used for billing. This is the AzureSubscriptionId for Azure and the CustomerAwsAccountId for AWS.
-      If azure_subscription_id is set then that value is used to set billing_account_id.
+      The marketplace account ID used for billing. Required for metered offerings. This is the AzureSubscriptionId for Azure and the CustomerAwsAccountId for AWS.
+      If azure_subscription_id is set then that value is used to for billing_account_id.
     type: string
     existingJavaType: java.util.Optional<String>
     required: false
@@ -227,13 +227,12 @@ properties:
     deprecationMessage: This field is no longer used in billing logic
   azure_resource_id:
     description: >
-      The azure resource ID used for billing.
-      The azure_resource_id is generally not available on service instances so azure_subscription_id is used to determine which azure resource to bill against.
+      The azure_resource_id is generally not available on service instances. azure_subscription_id is used to determine which azure resource to bill against.
     type: string
     existingJavaType: java.util.Optional<String>
     required: false
   azure_subscription_id:
-    description: The azure subscription ID used for billing. Required for azure events.
+    description: The azure subscription ID used for billing. Required for PAYG azure instances.
     type: string
     existingJavaType: java.util.Optional<String>
     required: false
