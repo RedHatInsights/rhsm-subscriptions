@@ -121,7 +121,9 @@ properties:
           deprecated: true
           deprecationMessage: Use 'metric_id' instead.
         metric_id:
-          description: Metric ID for the measurement. (e.g. Cores, Sockets)
+          description: >
+            Metric ID for the measurement. This should match 'metrics->id' values in swatch-product-configuration project subscription_configs.
+            Ex: A rosa instance can contain measurements for 'Cores' or 'Instance-hours' based on rosa.yaml in swatch-product-configuration.
           type: string
           required: true
           examples:
@@ -129,6 +131,9 @@ properties:
             - Sockets
             - vCPUs
             - Instance-hours
+            - Managed-nodes
+            - Transfer-gibibytes
+            - Storage-gibibyte-months
     required: false
   cloud_provider:
     description: Identifier for the cloud provider of the subject.
