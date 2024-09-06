@@ -142,6 +142,7 @@ public class SubscriptionEntity implements Serializable {
   /** Composite ID class for SubscriptionEntity entities. */
   @Getter
   @Setter
+  @ToString
   public static class SubscriptionCompoundId implements Serializable {
     private String subscriptionId;
     private OffsetDateTime startDate;
@@ -160,7 +161,7 @@ public class SubscriptionEntity implements Serializable {
       if (this == o) {
         return true;
       }
-      if (!(o instanceof SubscriptionEntity subscription)) {
+      if (!(o instanceof SubscriptionCompoundId subscription)) {
         return false;
       }
 

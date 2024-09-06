@@ -31,6 +31,7 @@ import com.redhat.swatch.clients.rh.partner.gateway.api.model.SaasContractV1;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
@@ -146,10 +147,10 @@ public interface ContractEntityMapper {
   default OffsetDateTime extractStartDate(
       PartnerEntitlementV1 entitlement, SaasContractV1 contract) {
     if (contract != null && contract.getStartDate() != null) {
-      return contract.getStartDate();
+      return truncateToMicroPrecision(contract.getStartDate());
     }
     if (entitlement.getEntitlementDates() != null) {
-      return entitlement.getEntitlementDates().getStartDate();
+      return truncateToMicroPrecision(entitlement.getEntitlementDates().getStartDate());
     }
     return null;
   }
@@ -158,11 +159,23 @@ public interface ContractEntityMapper {
   default OffsetDateTime extractEndDate(PartnerEntitlementV1 entitlement, SaasContractV1 contract) {
     // If the start_date is populated then take end_date from the contract
     if (contract != null && contract.getStartDate() != null) {
-      return contract.getEndDate();
+      return truncateToMicroPrecision(contract.getEndDate());
     }
     if (entitlement.getEntitlementDates() != null) {
-      return entitlement.getEntitlementDates().getEndDate();
+      return truncateToMicroPrecision(entitlement.getEntitlementDates().getEndDate());
     }
     return null;
+  }
+
+  /**
+   * Database stores timestamps using micro precision, so we need to truncate the date given, so we
+   * can match existing records.
+   */
+  static OffsetDateTime truncateToMicroPrecision(OffsetDateTime dateTime) {
+    if (dateTime == null) {
+      return null;
+    }
+
+    return dateTime.truncatedTo(ChronoUnit.MICROS);
   }
 }

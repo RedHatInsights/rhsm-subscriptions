@@ -38,6 +38,7 @@ import com.redhat.swatch.clients.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.subscription.api.resources.SearchApi;
 import com.redhat.swatch.contract.model.ContractSourcePartnerEnum;
 import com.redhat.swatch.contract.model.MeasurementMetricIdTransformer;
+import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
 import com.redhat.swatch.contract.openapi.model.*;
 import com.redhat.swatch.contract.repository.*;
 import io.quarkus.test.InjectMock;
@@ -154,13 +155,13 @@ class ContractServiceSubscriptionTest {
   @Test
   void createPartnerContract_DuplicateContractThenDoNotPersist() throws Exception {
     mockPartnerApi();
-    PartnerEntitlementContract request = givenAzurePartnerEntitlementContract();
+    PartnerEntitlementsRequest request = givenAzurePartnerEntitlementContract();
     contractService.createPartnerContract(request);
     StatusResponse statusResponse = contractService.createPartnerContract(request);
     assertEquals("Redundant message ignored", statusResponse.getMessage());
   }
 
-  private static PartnerEntitlementContract givenAzurePartnerEntitlementContract() {
+  private static PartnerEntitlementsRequest givenAzurePartnerEntitlementContract() {
     var contract = new PartnerEntitlementContract();
     contract.setCurrentDimensions(
         List.of(new Dimension().dimensionName("vCPU").dimensionValue("4")));
@@ -170,7 +171,7 @@ class ContractServiceSubscriptionTest {
             .azureResourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
             .azureOfferId("azureProductCode")
             .planId("rh-rhel-sub-1yr"));
-    return contract;
+    return PartnerEntitlementsRequest.from(contract);
   }
 
   private void mockSubscriptionServiceSubscription() {

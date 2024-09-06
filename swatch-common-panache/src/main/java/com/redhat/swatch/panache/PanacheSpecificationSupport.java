@@ -70,6 +70,6 @@ public interface PanacheSpecificationSupport<Entity, Id> extends PanacheReposito
   }
 
   default Entity merge(Entity entity) {
-    return JpaOperations.INSTANCE.getEntityManager().merge(entity);
+    return JpaOperations.INSTANCE.getSession().merge(entity);
   }
 }

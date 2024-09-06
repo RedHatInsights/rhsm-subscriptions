@@ -23,6 +23,7 @@ package com.redhat.swatch.contract.resource;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.contract.exception.CreateContractException;
+import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.service.ContractService;
@@ -64,7 +65,7 @@ public class ContractUMBMessageConsumer {
       PartnerEntitlementContract contract =
           mapper.readValue(dtoContract, PartnerEntitlementContract.class);
 
-      return service.createPartnerContract(contract);
+      return service.createPartnerContract(PartnerEntitlementsRequest.from(contract));
     } catch (Exception e) {
       log.warn("Unable to read UMB message from JSON.", e);
       StatusResponse response = new StatusResponse();

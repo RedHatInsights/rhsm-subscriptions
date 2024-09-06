@@ -24,7 +24,6 @@ import static org.mockito.Mockito.only;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.redhat.swatch.clients.subscription.api.model.Subscription;
 import com.redhat.swatch.clients.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.subscription.api.resources.SearchApi;
 import io.quarkus.test.InjectMock;
@@ -46,12 +45,5 @@ class SubscriptionServiceTest {
     when(searchApi.searchSubscriptionsByOrgId("123", 0, 1)).thenReturn(Collections.emptyList());
     subject.getSubscriptionsByOrgId("123", 0, 1);
     verify(searchApi, only()).searchSubscriptionsByOrgId("123", 0, 1);
-  }
-
-  @Test
-  void verifyGetByIdTest() throws ApiException {
-    when(searchApi.getSubscriptionById("123")).thenReturn(new Subscription());
-    subject.getSubscriptionById("123");
-    verify(searchApi, only()).getSubscriptionById("123");
   }
 }

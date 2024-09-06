@@ -137,6 +137,12 @@ paths:
             type: boolean
             default: false
           in: query
+        - name: delete_contracts_and_subs
+          description: "When present, then delete existing contract and subscriptions before syncing"
+          schema:
+            type: boolean
+            default: false
+          in: query
       summary: "Sync contracts for given org_id."
       responses:
         '200':

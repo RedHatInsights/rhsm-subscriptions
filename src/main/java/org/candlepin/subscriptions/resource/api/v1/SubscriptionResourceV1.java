@@ -30,7 +30,6 @@ import org.candlepin.subscriptions.utilization.api.v1.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.v1.model.SkuCapacityReport;
 import org.candlepin.subscriptions.utilization.api.v1.model.SkuCapacityReportSort;
 import org.candlepin.subscriptions.utilization.api.v1.model.SortDirection;
-import org.candlepin.subscriptions.utilization.api.v1.model.Uom;
 import org.candlepin.subscriptions.utilization.api.v1.model.UsageType;
 import org.candlepin.subscriptions.utilization.api.v1.resources.SubscriptionsApi;
 import org.springframework.stereotype.Component;
@@ -58,7 +57,6 @@ public class SubscriptionResourceV1 implements SubscriptionsApi {
       String billingAccountId,
       OffsetDateTime beginning,
       OffsetDateTime ending,
-      Uom uom,
       String metricId,
       SkuCapacityReportSort sort,
       SortDirection dir) {
@@ -72,7 +70,6 @@ public class SubscriptionResourceV1 implements SubscriptionsApi {
         usage,
         billingProvider,
         billingAccountId,
-        uom,
         metricId,
         sort,
         dir);

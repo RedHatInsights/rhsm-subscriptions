@@ -26,6 +26,7 @@ import com.redhat.swatch.clients.subscription.api.model.Subscription;
 import com.redhat.swatch.contract.config.ApplicationConfiguration;
 import com.redhat.swatch.contract.config.ProductDenylist;
 import com.redhat.swatch.contract.exception.SubscriptionNotFoundException;
+import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
 import com.redhat.swatch.contract.model.SyncResult;
 import com.redhat.swatch.contract.product.umb.SubscriptionProductStatus;
 import com.redhat.swatch.contract.product.umb.UmbSubscription;
@@ -36,6 +37,7 @@ import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import com.redhat.swatch.contract.utils.CustomBatchIterator;
 import com.redhat.swatch.contract.utils.SubscriptionDtoUtil;
+import io.micrometer.common.util.StringUtils;
 import io.micrometer.core.annotation.Timed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
@@ -70,6 +72,7 @@ public class SubscriptionSyncService {
   private final ApplicationClock clock;
   private final CapacityReconciliationService capacityReconciliationService;
   private final OfferingSyncService offeringSyncService;
+  private final ContractService contractService;
   private final ApplicationConfiguration properties;
   private final ObjectMapper objectMapper;
   private final ProductDenylist productDenylist;
@@ -119,6 +122,24 @@ public class SubscriptionSyncService {
         // https://thorben-janssen.com/jpa-getreference/
         () -> newOrUpdated.setOffering(offeringRepository.findById(sku)));
 
+    if (newOrUpdated.getOffering().isMetered()) {
+      // New AWS subscriptions may have billing provider info but Azure subscriptions don't
+      if (StringUtils.isNotBlank(newOrUpdated.getBillingAccountId())
+          && StringUtils.isNotBlank(newOrUpdated.getBillingProviderId())) {
+        contractService.createPartnerContract(PartnerEntitlementsRequest.from(newOrUpdated));
+      }
+      // Existing records should have billing provider info already stored
+      else if (subscriptionOptional.isPresent()) {
+        contractService.createPartnerContract(
+            PartnerEntitlementsRequest.from(subscriptionOptional.get()));
+      } else {
+        log.info(
+            "Skipping subscription sync for new contract provided subscription with no billing_account_id, contractUMB should sync: {}",
+            newOrUpdated);
+      }
+      return;
+    }
+
     log.debug("Syncing subscription from external service={}", newOrUpdated);
 
     // UMB doesn't provide all the fields, so if we have an existing DB record, we'll populate from
@@ -130,12 +151,6 @@ public class SubscriptionSyncService {
           "Subscription not found in subscription service; unable to save subscriptionNumber={} for orgId={} without a subscription ID",
           newOrUpdated.getSubscriptionNumber(),
           newOrUpdated.getOrgId());
-      return;
-    }
-
-    // If this is a new Contract that has not been synced yet, skip syncing so Contract service can
-    // save the correct start_date.
-    if (isNewContractWithoutExistingSubscription(newOrUpdated, subscriptionOptional)) {
       return;
     }
 
@@ -225,17 +240,6 @@ public class SubscriptionSyncService {
           subscription.getSubscriptionId(),
           subscription.getSubscriptionNumber());
     }
-  }
-
-  private boolean isNewContractWithoutExistingSubscription(
-      SubscriptionEntity subscription, Optional<SubscriptionEntity> existingSubscription) {
-    if (subscription.getOffering().isMetered() && existingSubscription.isEmpty()) {
-      log.info(
-          "Skipping sync for PAYG eligible subscription to allow contracts service to initialize subscription record. subscription_number: {}",
-          subscription.getSubscriptionNumber());
-      return true;
-    }
-    return false;
   }
 
   /**
