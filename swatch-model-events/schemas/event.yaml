@@ -8,6 +8,7 @@ properties:
     examples:
       - cost-management
       - prometheus
+      - rhelemeter
       - urn:redhat:source:console:app:aap-controller-billing
   event_type:
     description: Source-specific identifier for the type of event we use lower Kebab case (e.g. snapshot, delete, descriptive-variable-name). This allows
@@ -25,7 +26,9 @@ properties:
     examples:
       - 123456789
   instance_id:
-    description: Primary identifier for the instance of the service, according to the event producer.
+    description: > 
+      Primary identifier for the instance of the service, according to the event producer. This needs to be unique to instance that created the event. 
+      If display_name is not populated than then instance_id is used instead.
     type: string
     required: true
     examples:
@@ -47,8 +50,8 @@ properties:
       - 94cdf000-e307-4e5b-b48e-c9d69cda76de
   service_type:
     description: >
-      Identifier for the type of service being measured. (E.g. RHEL System, OpenShift Cluster)
-      This should match 'serviceType' values in swatch-product-configuration project subscription_configs.
+      Identifier for the type of service being measured. (E.g. RHEL System, OpenShift Cluster). Used to match the event to the correct SWATCH product configuration.
+      This should equal the 'serviceType' value of the matching product in swatch-product-configuration project subscription_configs.
     type: string
     required: true
     examples:
@@ -78,7 +81,7 @@ properties:
     examples:
       - 2024-08-29T12:00:00Z
   display_name:
-    description: User-set name for the subject.
+    description: User-set name for the subject. This is what is displayed on the UI. If not set then the instance_id is used for display_name.
     type: string
     existingJavaType: java.util.Optional<String>
     required: false
@@ -107,7 +110,7 @@ properties:
       type: string
     required: false
   measurements:
-    description: Captures measurements for the service instance.
+    description: Captures measurements for the service instance. These values are used for tallying an instance's usage and determine marketplace billable usage amounts.
     type: array
     items:
       type: object
@@ -124,7 +127,7 @@ properties:
           deprecationMessage: Use 'metric_id' instead.
         metric_id:
           description: >
-            Metric ID for the measurement. This should match 'metrics->id' values in swatch-product-configuration project subscription_configs.
+            Metric ID for the measurement. This should equal the product's 'metrics->id' values in swatch-product-configuration project subscription_configs.
             Ex: A rosa instance can contain measurements for 'Cores' or 'Instance-hours' based on rosa.yaml in swatch-product-configuration.
           type: string
           required: true
@@ -162,7 +165,9 @@ properties:
     existingJavaType: java.util.Optional<String>
     required: false
   product_ids:
-    description: List of engineering product IDs detected on the subject.
+    description: >
+      List of engineering product IDs detected on the subject. Used to match the event to the correct SWATCH product configuration.
+      These should equal the product's 'variants->engineeringIds' values in swatch-product-configuration project subscription_configs.
     type: array
     items:
       type: string
@@ -171,7 +176,9 @@ properties:
         - 204
     required: false
   role:
-    description: The syspurpose role for the system.
+    description: > 
+      The syspurpose role for the system. Used to match the event to the correct SWATCH product configuration.
+      This should equal the product's 'variants->roles' values in swatch-product-configuration project subscription_configs.
     type: string
     enum:
       - ''  # UNSPECIFIED
@@ -246,7 +253,9 @@ properties:
     examples:
       - f49a1a52-7c09-4c2f-a227-c8680c7b5a17
   product_tag:
-    description: Product tag of the associated offering. This should match "variants->tag" values in swatch-product-configuration project subscription_configs.
+    description: >
+      Product tag of the associated offering. Used to match the event to the correct SWATCH product configuration.
+      This should match "variants->tag" values in swatch-product-configuration project subscription_configs.
     type: array
     items:
       type: string
@@ -263,7 +272,7 @@ properties:
     required: false
   conversion:
     description: > 
-      Indicates 3rd party migration instances and used to honor the isMigrationProduct
-      attribute when identifying the swatch product tag
+      Indicates 3rd party migration instances. Used to match the event to the correct SWATCH product configuration.
+      This should match 'isMigrationProduct' values of the swatch product defined in swatch-product-configuration project subscription_configs.
     type: boolean
     default: false
