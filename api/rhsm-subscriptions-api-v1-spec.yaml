@@ -578,12 +578,6 @@ paths:
             format: date-time
           description: "Defines the end of the report period.  Defaults to the current time. Dates should
              be provided in UTC."
-        - name: uom
-          in: query
-          deprecated: true
-          schema:
-            $ref: '#/components/schemas/Uom'
-          description: "Filter subscriptions to those that contribute to a specific unit of measure. Deprecated: use 'metric_id' instead."
         - name: metric_id
           in: query
           schema:
@@ -742,13 +736,6 @@ components:
         - alibaba
     BillingAccountId:
       type: string
-    Uom:
-      description: "The unit-of-measure for the capacity. Deprecated: use 'metric_id' instead."
-      type: string
-      deprecated: true
-      enum:
-        - cores
-        - sockets
     BillingCategory:
       type: string
       enum:
@@ -1270,8 +1257,6 @@ components:
         has_infinite_quantity:
           description: "Denotes unlimited capacity for the offering when true."
           type: boolean
-        uom:
-          $ref: "#/components/schemas/Uom"
         metric_id:
           type: string
     SkuCapacityReportSort:
@@ -1305,8 +1290,6 @@ components:
               $ref: '#/components/schemas/ServiceLevelType'
             usage:
               $ref: '#/components/schemas/UsageType'
-            uom:
-              $ref: '#/components/schemas/Uom'
             subscription_type:
               $ref: '#/components/schemas/SubscriptionType'
             report_category:
