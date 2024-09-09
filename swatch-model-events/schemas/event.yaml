@@ -46,7 +46,9 @@ properties:
     examples:
       - 94cdf000-e307-4e5b-b48e-c9d69cda76de
   service_type:
-    description: Identifier for the type of service being measured. (E.g. RHEL System, OpenShift Cluster)
+    description: >
+      Identifier for the type of service being measured. (E.g. RHEL System, OpenShift Cluster)
+      This should match 'serviceType' values in swatch-product-configuration project subscription_configs.
     type: string
     required: true
     examples:
@@ -61,7 +63,7 @@ properties:
     examples:
       - 2024-08-29T12:00:00Z
   record_date:
-    description: The date that the EventRecord was persisted (NOTE Automatically set when persisted)
+    description: The date that the EventRecord was persisted (NOTE Automatically set when persisted). Not currently used by swatch.
     type: string
     format: date-time
     required: false
@@ -94,7 +96,7 @@ properties:
     existingJavaType: java.util.Optional<String>
     required: false
   subscription_manager_id:
-    description: subscription-manager ID for the service, if applicable and known.
+    description: subscription-manager ID for the service, if applicable and known. This is the ID that maps a guest to a hypervisor and should match the hypervisor_uuid value of the guests' host.
     type: string
     existingJavaType: java.util.Optional<String>
     required: false
@@ -155,7 +157,7 @@ properties:
       - Cloud
     required: false
   hypervisor_uuid:
-    description: Subscription-manager ID of the hypervisor, as reported in virt-who mappings.
+    description: Subscription-manager ID of the hypervisor, as reported in virt-who mappings. Guests of this hypervisor should have subscription_manager_id populated with this value.
     type: string
     existingJavaType: java.util.Optional<String>
     required: false
@@ -244,7 +246,7 @@ properties:
     examples:
       - f49a1a52-7c09-4c2f-a227-c8680c7b5a17
   product_tag:
-    description: Product tag of the associated offering.
+    description: Product tag of the associated offering. This should match "variants->tag" values in swatch-product-configuration project subscription_configs.
     type: array
     items:
       type: string
