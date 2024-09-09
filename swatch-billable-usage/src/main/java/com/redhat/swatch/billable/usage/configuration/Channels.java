@@ -27,7 +27,6 @@ public final class Channels {
   public static final String REMITTANCES_PURGE_TASK = "remittances-purge-task";
   public static final String BILLABLE_USAGE_OUT = "billable-usage-out";
   public static final String BILLABLE_USAGE_DLT = "billable-usage-dlt";
-  public static final String BILLABLE_USAGE_DLT_OUT = "billable-usage-dlt-out";
   public static final String BILLABLE_USAGE_AGGREGATION_OUT =
       "billable-usage-aggregation-repartition-out";
   public static final String BILLABLE_USAGE_STATUS = "billable-usage-status-in";
