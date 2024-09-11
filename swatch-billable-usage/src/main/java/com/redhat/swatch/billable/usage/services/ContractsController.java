@@ -105,7 +105,7 @@ public class ContractsController {
                 .filter(metric -> metric.getMetricId().equals(contractMetricId))
                 .map(Metric::getValue)
                 .reduce(0, Integer::sum);
-        isGratisContract &= isContractCompatibleWithGratis(contract);
+        isGratisContract &= isContractCompatibleWithGratis(contract, usage);
         total += value;
       }
     }
@@ -123,9 +123,11 @@ public class ContractsController {
    * the current month. See more in <a
    * href="https://issues.redhat.com/browse/SWATCH-2571">SWATCH-2571</a>.
    */
-  private boolean isContractCompatibleWithGratis(Contract contract) {
+  private boolean isContractCompatibleWithGratis(Contract contract, BillableUsage usage) {
     OffsetDateTime startDate = contract.getStartDate();
-    return startDate != null && startDate.isAfter(clock.startOfCurrentMonth());
+    return startDate != null
+        && startDate.isAfter(clock.startOfCurrentMonth())
+        && usage.getSnapshotDate().isBefore(clock.endOfCurrentMonth());
   }
 
   private boolean isValidContract(Contract contract, BillableUsage usage) {
