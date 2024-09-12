@@ -2,7 +2,7 @@
 // inspired by mockito's gradle structure, which dependabot uses as a test case
 
 ext {
-    quarkusVersion='3.14.2'
+    quarkusVersion='3.14.3'
     springVersion='3.3.3'
     resteasyVersion='6.2.10.Final'
     jacksonVersion='2.17.2'
@@ -37,7 +37,7 @@ libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-de
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:3.0.0"
-libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.27.21"
+libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.27.24"
 libraries["clowder-quarkus-config-source"] = "com.redhat.cloud.common:clowder-quarkus-config-source:2.6.1"
 libraries["guava"] = "com.google.guava:guava:33.3.0-jre"
 libraries["commons-lang3"] = "org.apache.commons:commons-lang3:3.17.0"
@@ -45,7 +45,7 @@ libraries["hamcrest-all"] = "org.hamcrest:hamcrest-all:1.3"
 libraries["jackson-databind-nullable"] = "org.openapitools:jackson-databind-nullable:0.2.6"
 libraries["janino"] = "org.codehaus.janino:janino:3.1.12"
 libraries["jakarta-ws-rs"] = "jakarta.ws.rs:jakarta.ws.rs-api:4.0.0"
-libraries["jgit"] = "org.eclipse.jgit:org.eclipse.jgit:6.10.0.202406032230-r"
+libraries["jgit"] = "org.eclipse.jgit:org.eclipse.jgit:7.0.0.202409031743-r"
 libraries["jsr305"] = "com.google.code.findbugs:jsr305:3.0.2"
 libraries["junit-jupiter"] = "org.junit.jupiter:junit-jupiter:5.11.0"
 libraries["lombok"] = "org.projectlombok:lombok:1.18.34"
@@ -64,7 +64,7 @@ libraries["jackson-dataformat-xml"] = "com.fasterxml.jackson.dataformat:jackson-
 libraries["jackson-module-jakarta-xmlbind-annotations"] = "com.fasterxml.jackson.module:jackson-module-jakarta-xmlbind-annotations:${jacksonVersion}"
 libraries["jackson-datatype-jsr310"] = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${jacksonVersion}"
 libraries["jakarta-validation-api"] = "jakarta.validation:jakarta.validation-api:3.1.0"
-libraries["jakarta-el-impl"] = "org.apache.tomcat.embed:tomcat-embed-el:11.0.0-M24"
+libraries["jakarta-el-impl"] = "org.apache.tomcat.embed:tomcat-embed-el:11.0.0-M25"
 libraries["hibernate-validator"] = "org.hibernate.validator:hibernate-validator:8.0.1.Final"
 libraries["resteasy-client"] = "org.jboss.resteasy:resteasy-client:${resteasyVersion}"
 libraries["resteasy-multipart-provider"] = "org.jboss.resteasy:resteasy-multipart-provider:${resteasyVersion}"
