@@ -34,7 +34,7 @@ import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEventOkResponse;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEventStatusEnum;
-import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AzureUsageContext;
+import com.redhat.swatch.clients.contracts.api.model.AzureUsageContext;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import java.util.HashMap;
 import java.util.Map;
@@ -46,8 +46,8 @@ import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 
 public class WireMockResource implements QuarkusTestResourceLifecycleManager {
 
-  private static final String SUBSCRIPTIONS_AZURE_USAGE_CONTEXT =
-      "/api/rhsm-subscriptions/v1/internal/subscriptions/azureUsageContext";
+  private static final String CONTRACTS_AZURE_USAGE_CONTEXT =
+      "/api/swatch-contracts/internal/subscriptions/azureUsageContext";
   private static final String AZURE_AUTHORIZATION = "/";
   private static final String AZURE_SUBMIT_USAGE = "/api/usageEvent";
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -63,7 +63,7 @@ public class WireMockResource implements QuarkusTestResourceLifecycleManager {
     var config = new HashMap<String, String>();
     config.put("AZURE_MARKETPLACE_BASE_URL", wireMockServer.baseUrl());
     config.put("AZURE_OAUTH_TOKEN_URL", wireMockServer.baseUrl());
-    config.put("SWATCH_INTERNAL_SUBSCRIPTION_ENDPOINT", wireMockServer.baseUrl());
+    config.put("SWATCH_CONTRACTS_ENDPOINT", wireMockServer.baseUrl());
     return config;
   }
 
@@ -80,7 +80,7 @@ public class WireMockResource implements QuarkusTestResourceLifecycleManager {
         new TestInjector.AnnotatedAndMatchesType(InjectWireMock.class, WireMockResource.class));
   }
 
-  public AzureUsageContext stubInternalSubscriptionAzureMarketPlaceContextForUsage(
+  public AzureUsageContext stubContractsAzureMarketPlaceContextForUsage(
       BillableUsageAggregate usage) {
     AzureUsageContext context = new AzureUsageContext();
     context.setAzureResourceId(UUID.randomUUID().toString());
@@ -88,7 +88,7 @@ public class WireMockResource implements QuarkusTestResourceLifecycleManager {
     context.setOfferId(UUID.randomUUID().toString());
     context.setPlanId(UUID.randomUUID().toString());
     wireMockServer.stubFor(
-        get(urlPathEqualTo(SUBSCRIPTIONS_AZURE_USAGE_CONTEXT))
+        get(urlPathEqualTo(CONTRACTS_AZURE_USAGE_CONTEXT))
             .withQueryParam("orgId", equalTo(usage.getAggregateKey().getOrgId()))
             .willReturn(okJson(toJson(context))));
     return context;

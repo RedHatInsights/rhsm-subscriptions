@@ -21,7 +21,7 @@
 package com.redhat.swatch.azure.resource;
 
 import com.redhat.swatch.azure.exception.DefaultApiException;
-import com.redhat.swatch.clients.swatch.internal.subscription.api.model.Errors;
+import com.redhat.swatch.clients.contracts.api.model.Errors;
 import jakarta.annotation.Priority;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;

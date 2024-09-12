@@ -30,9 +30,9 @@ import com.redhat.swatch.azure.exception.SubscriptionCanNotBeDeterminedException
 import com.redhat.swatch.azure.exception.SubscriptionRecentlyTerminatedException;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEvent;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEventStatusEnum;
-import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AzureUsageContext;
-import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
-import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
+import com.redhat.swatch.clients.contracts.api.model.AzureUsageContext;
+import com.redhat.swatch.clients.contracts.api.resources.ApiException;
+import com.redhat.swatch.clients.contracts.api.resources.DefaultApi;
 import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.Variant;
@@ -65,7 +65,7 @@ public class AzureBillableUsageAggregateConsumer {
   private final BillableUsageStatusProducer billableUsageStatusProducer;
   private final Counter acceptedCounter;
   private final Counter rejectedCounter;
-  private final InternalSubscriptionsApi internalSubscriptionsApi;
+  private final DefaultApi internalSubscriptionsApi;
   private final Optional<Boolean> isDryRun;
   private final Duration azureUsageWindow;
   private final AzureMarketplaceService azureMarketplaceService;
@@ -73,14 +73,14 @@ public class AzureBillableUsageAggregateConsumer {
   @Inject
   public AzureBillableUsageAggregateConsumer(
       MeterRegistry meterRegistry,
-      @RestClient InternalSubscriptionsApi internalSubscriptionsApi,
+      @RestClient DefaultApi contractsApi,
       AzureMarketplaceService azureMarketplaceService,
       BillableUsageStatusProducer billableUsageStatusProducer,
       @ConfigProperty(name = "ENABLE_AZURE_DRY_RUN") Optional<Boolean> isDryRun,
       @ConfigProperty(name = "AZURE_MARKETPLACE_USAGE_WINDOW") Duration azureUsageWindow) {
     acceptedCounter = meterRegistry.counter("swatch_azure_marketplace_batch_accepted_total");
     rejectedCounter = meterRegistry.counter("swatch_azure_marketplace_batch_rejected_total");
-    this.internalSubscriptionsApi = internalSubscriptionsApi;
+    this.internalSubscriptionsApi = contractsApi;
     this.azureMarketplaceService = azureMarketplaceService;
     this.billableUsageStatusProducer = billableUsageStatusProducer;
     this.isDryRun = isDryRun;
