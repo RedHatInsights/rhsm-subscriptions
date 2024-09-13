@@ -322,6 +322,19 @@ class AwsBillableUsageAggregateConsumerTest {
         .emitStatus(argThat(usage -> BillableUsage.Status.SUCCEEDED.equals(usage.getStatus())));
   }
 
+  @Test
+  void testShouldSendErrorWhenMetricIsUnsupported() {
+    var aggregate = createAggregate("BASILISK", "Cores", OffsetDateTime.now(), 10);
+    consumer.process(aggregate);
+    verify(billableUsageStatusProducer)
+        .emitStatus(
+            argThat(
+                usage ->
+                    BillableUsage.Status.FAILED.equals(usage.getStatus())
+                        && BillableUsage.ErrorCode.UNSUPPORTED_METRIC.equals(
+                            usage.getErrorCode())));
+  }
+
   static Stream<Arguments> usageWindowTestArgs() {
     OffsetDateTime now = OffsetDateTime.now(clock);
     OffsetDateTime startOfCurrentHour = now.minusMinutes(30);

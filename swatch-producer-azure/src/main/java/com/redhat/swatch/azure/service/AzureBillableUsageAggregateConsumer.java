@@ -96,22 +96,28 @@ public class AzureBillableUsageAggregateConsumer {
       log.warn("Skipping null billable usage: deserialization failure?");
       return;
     }
+
+    if (!isForAzure(billableUsageAggregate.getAggregateKey())) {
+      log.debug("Snapshot not applicable because billingProvider is not Azure");
+      return;
+    }
+
     if (billableUsageAggregate.getAggregateKey().getOrgId() != null) {
       MDC.put("org_id", billableUsageAggregate.getAggregateKey().getOrgId());
     }
 
-    Optional<Metric> metric =
-        validateUsageAndLookupMetric(billableUsageAggregate.getAggregateKey());
+    Optional<Metric> metric = lookupMetric(billableUsageAggregate.getAggregateKey());
+    if (metric.isEmpty()) {
+      log.warn(
+          "Skipping billable usage because the metric is not supported: {}",
+          billableUsageAggregate);
+      emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.UNSUPPORTED_METRIC);
+      return;
+    }
+
+    log.info("Processing billable usage message: {}", billableUsageAggregate);
 
     AzureUsageContext context;
-    if (metric.isEmpty()) {
-      log.debug(
-          "Skipping billable usage because it is not applicable for this service: {}",
-          billableUsageAggregate);
-      return;
-    } else {
-      log.info("Processing billable usage message: {}", billableUsageAggregate);
-    }
     try {
       context = lookupAzureUsageContext(billableUsageAggregate);
     } catch (SubscriptionRecentlyTerminatedException e) {
@@ -256,13 +262,12 @@ public class AzureBillableUsageAggregateConsumer {
     }
   }
 
-  private Optional<Metric> validateUsageAndLookupMetric(BillableUsageAggregateKey aggregationKey) {
-    if (!Objects.equals(
-        aggregationKey.getBillingProvider(), BillableUsage.BillingProvider.AZURE.value())) {
-      log.debug("Snapshot not applicable because billingProvider is not Azure");
-      return Optional.empty();
-    }
+  private boolean isForAzure(BillableUsageAggregateKey aggregationKey) {
+    return Objects.equals(
+        aggregationKey.getBillingProvider(), BillableUsage.BillingProvider.AZURE.value());
+  }
 
+  private Optional<Metric> lookupMetric(BillableUsageAggregateKey aggregationKey) {
     if (aggregationKey.getMetricId() == null) {
       log.debug("Snapshot not applicable because billable metric id is empty");
       return Optional.empty();

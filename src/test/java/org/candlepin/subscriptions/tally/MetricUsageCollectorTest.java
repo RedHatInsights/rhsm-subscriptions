@@ -104,7 +104,7 @@ class MetricUsageCollectorTest {
   }
 
   @Test
-  void updateHosts_noIteractionsWhenNoEventsFound() {
+  void updateHosts_noIterationsWhenNoEventsFound() {
     metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of());
     verifyNoInteractions(accountRepo, hostRepository, tallySnapshotRepository);
   }
@@ -1132,6 +1132,66 @@ class MetricUsageCollectorTest {
     assertEquals(expectedInstanceType, host.getInstanceType());
   }
 
+  @Test
+  void testFilterSupportedMetricsByProduct() {
+    // By default, the event uses the product "OpenShift-dedicated-metrics" which only supports
+    // the Cores and Instance-Hours metrics.
+    // Therefore, measurements for other metrics should be ignored.
+    // In this test, we use the "Storage-gibibyte-months" metric which is valid, but not for this
+    // product.
+    OffsetDateTime eventDate = OffsetDateTime.parse("2021-02-26T00:00:00Z");
+    TallySnapshot snapshot =
+        createSnapshot(eventDate, MetricIdUtils.getStorageGibibyteMonths(), 100.0);
+    when(tallySnapshotRepository.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
+            "test-org",
+            Set.of(OCP_PRODUCT_TAG, OSD_PRODUCT_TAG),
+            Granularity.HOURLY,
+            eventDate,
+            clock.endOfHour(eventDate)))
+        .thenReturn(Stream.of(snapshot));
+
+    // valid metric "Cores":
+    Measurement measurement =
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
+    Event event =
+        createEvent()
+            .withEventId(UUID.randomUUID())
+            .withRole(Event.Role.OSD)
+            .withTimestamp(eventDate)
+            .withServiceType(SERVICE_TYPE)
+            .withMeasurements(Collections.singletonList(measurement))
+            .withBillingProvider(Event.BillingProvider.RED_HAT)
+            .withBillingAccountId(Optional.of("sellerAcct"));
+
+    AccountUsageCalculationCache cache = new AccountUsageCalculationCache();
+    metricUsageCollector.calculateUsage(List.of(event), cache);
+
+    assertEquals(1, cache.getCalculations().size());
+    assertTrue(cache.contains(event));
+
+    AccountUsageCalculation accountUsageCalculation = cache.get(event);
+    UsageCalculation.Key usageCalculationKey =
+        new UsageCalculation.Key(
+            OSD_PRODUCT_TAG,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.RED_HAT,
+            "sellerAcct");
+    assertTrue(accountUsageCalculation.containsCalculation(usageCalculationKey));
+    // then it should only be one metric "Cores"
+    assertEquals(
+        Double.valueOf(42.0),
+        accountUsageCalculation
+            .getCalculation(usageCalculationKey)
+            .getTotals(HardwareMeasurementType.PHYSICAL)
+            .getMeasurement(MetricIdUtils.getCores()));
+    assertNull(
+        accountUsageCalculation
+            .getCalculation(usageCalculationKey)
+            .getTotals(HardwareMeasurementType.PHYSICAL)
+            .getMeasurement(MetricIdUtils.getStorageGibibyteMonths()));
+  }
+
   private static Event createEvent() {
     return createEvent(UUID.randomUUID().toString());
   }
@@ -1152,14 +1212,15 @@ class MetricUsageCollectorTest {
   }
 
   private TallySnapshot createSnapshot(OffsetDateTime snapshotDate, double value) {
+    return createSnapshot(snapshotDate, MetricIdUtils.getCores(), value);
+  }
+
+  private TallySnapshot createSnapshot(OffsetDateTime snapshotDate, MetricId metric, double value) {
     Map<TallyMeasurementKey, Double> measurements = new HashMap<>();
     measurements.put(
-        new TallyMeasurementKey(
-            HardwareMeasurementType.PHYSICAL, MetricIdUtils.getCores().toString()),
-        value);
+        new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, metric.toString()), value);
     measurements.put(
-        new TallyMeasurementKey(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores().toString()),
-        value);
+        new TallyMeasurementKey(HardwareMeasurementType.TOTAL, metric.toString()), value);
     return TallySnapshot.builder()
         .snapshotDate(snapshotDate)
         .productId(OSD_PRODUCT_TAG)
