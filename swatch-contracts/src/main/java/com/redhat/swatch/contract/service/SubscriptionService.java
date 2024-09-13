@@ -29,8 +29,8 @@ import com.redhat.swatch.contract.exception.ErrorCode;
 import com.redhat.swatch.contract.exception.ExternalServiceException;
 import com.redhat.swatch.contract.exception.ServiceException;
 import com.redhat.swatch.contract.exception.SubscriptionNotFoundException;
-import com.redhat.swatch.faulttolerance.api.RetryWithExponentialBackoff;
 import io.micrometer.core.annotation.Timed;
+import io.smallrye.faulttolerance.api.ExponentialBackoff;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.ProcessingException;
@@ -40,6 +40,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.microprofile.faulttolerance.Retry;
 
 /** The Subscription Service wrapper for all subscription service interfaces. */
 @ApplicationScoped
@@ -53,11 +54,8 @@ public class SubscriptionService {
   @Inject @SearchClient SearchApi subscriptionApi;
   @Inject ApplicationConfiguration properties;
 
-  @RetryWithExponentialBackoff(
-      maxRetries = "${SUBSCRIPTION_MAX_RETRY_ATTEMPTS:4}",
-      delay = "${SUBSCRIPTION_BACK_OFF_INITIAL_INTERVAL:1000ms}",
-      maxDelay = "${SUBSCRIPTION_BACK_OFF_MAX_INTERVAL:64s}",
-      factor = "${SUBSCRIPTION_BACK_OFF_MULTIPLIER:2}")
+  @Retry
+  @ExponentialBackoff
   @Timed(
       description =
           "Time taken to lookup, via RHIT subscription service, a subscription by subscription number (including retries)",
@@ -109,11 +107,8 @@ public class SubscriptionService {
    * @param pageSize the number of results in the page.
    * @return a list of Subscription models.
    */
-  @RetryWithExponentialBackoff(
-      maxRetries = "${SUBSCRIPTION_MAX_RETRY_ATTEMPTS:4}",
-      delay = "${SUBSCRIPTION_BACK_OFF_INITIAL_INTERVAL:1000ms}",
-      maxDelay = "${SUBSCRIPTION_BACK_OFF_MAX_INTERVAL:64s}",
-      factor = "${SUBSCRIPTION_BACK_OFF_MULTIPLIER:2}")
+  @Retry
+  @ExponentialBackoff
   public List<Subscription> getSubscriptionsByOrgId(String orgId, int index, int pageSize) {
     try {
       return subscriptionApi.searchSubscriptionsByOrgId(orgId, index, pageSize);

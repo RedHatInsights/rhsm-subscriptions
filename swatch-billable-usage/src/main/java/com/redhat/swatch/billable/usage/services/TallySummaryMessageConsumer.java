@@ -23,13 +23,14 @@ package com.redhat.swatch.billable.usage.services;
 import static com.redhat.swatch.billable.usage.configuration.Channels.TALLY_SUMMARY;
 
 import com.redhat.swatch.billable.usage.model.TallySummary;
-import com.redhat.swatch.faulttolerance.api.RetryWithExponentialBackoff;
 import com.redhat.swatch.kafka.MessageHelper;
+import io.smallrye.faulttolerance.api.ExponentialBackoff;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.kafka.api.KafkaMessageMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 
 @Slf4j
@@ -43,11 +44,8 @@ public class TallySummaryMessageConsumer {
 
   @Incoming(TALLY_SUMMARY)
   @Blocking
-  @RetryWithExponentialBackoff(
-      maxRetries = "${BILLING_PRODUCER_MAX_ATTEMPTS:1}",
-      delay = "${BILLING_PRODUCER_BACK_OFF_INITIAL_INTERVAL:1s}",
-      maxDelay = "${BILLING_PRODUCER_BACK_OFF_MAX_INTERVAL:60s}",
-      factor = "${BILLING_PRODUCER_BACK_OFF_MULTIPLIER:2}")
+  @Retry
+  @ExponentialBackoff
   public void consume(TallySummary payload, KafkaMessageMetadata<?> metadata) {
     MessageHelper.findFirstHeaderAsString(metadata, RECEIVED_KEY)
         .ifPresent(

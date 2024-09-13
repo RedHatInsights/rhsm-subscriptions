@@ -15,6 +15,7 @@ dependencies {
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka'
     implementation 'jakarta.validation:jakarta.validation-api'
     implementation("io.quarkus:quarkus-jdbc-postgresql")
+    implementation 'io.quarkus:quarkus-smallrye-fault-tolerance'
     implementation project(':clients:swatch-internal-subscription-client')
     implementation project(":clients:quarkus:contracts-client")
     implementation project(':swatch-common-config-workaround')
@@ -22,7 +23,6 @@ dependencies {
     implementation project(':swatch-common-clock')
     implementation project(':swatch-common-panache')
     implementation project(':swatch-common-kafka')
-    implementation project(':swatch-common-smallrye-fault-tolerance')
     implementation project(':swatch-common-trace-response')
     implementation libraries["clowder-quarkus-config-source"]
     implementation libraries["quarkus-logging-splunk"]

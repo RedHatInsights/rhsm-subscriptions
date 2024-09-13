@@ -69,14 +69,6 @@ parameters:
     value: 0 3 * * *
   - name: RETRY_REMITTANCE_SCHEDULE
     value: '@hourly'
-  - name: BILLING_PRODUCER_BACK_OFF_INITIAL_INTERVAL
-    value: '1000ms'
-  - name: BILLING_PRODUCER_BACK_OFF_MAX_INTERVAL
-    value: '60s'
-  - name: BILLING_PRODUCER_BACK_OFF_MULTIPLIER
-    value: '2'
-  - name: BILLING_PRODUCER_MAX_ATTEMPTS
-    value: '1'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -196,22 +188,6 @@ objects:
               value: ${QUARKUS_PROFILE}
             - name: KAFKA_BILLABLE_USAGE_PARTITIONS
               value: ${KAFKA_BILLABLE_USAGE_PARTITIONS}
-            - name: CONTRACT_CLIENT_BACK_OFF_INITIAL_INTERVAL_MILLIS
-              value: '1000ms'
-            - name: CONTRACT_CLIENT_BACK_OFF_MAX_INTERVAL_MILLIS
-              value: '64s'
-            - name: CONTRACT_CLIENT_BACK_OFF_MULTIPLIER
-              value: '2'
-            - name: CONTRACT_CLIENT_MAX_ATTEMPTS
-              value: '1'
-            - name: BILLING_PRODUCER_BACK_OFF_INITIAL_INTERVAL
-              value: ${BILLING_PRODUCER_BACK_OFF_INITIAL_INTERVAL}
-            - name: BILLING_PRODUCER_BACK_OFF_MAX_INTERVAL
-              value: ${BILLING_PRODUCER_BACK_OFF_MAX_INTERVAL}
-            - name: BILLING_PRODUCER_BACK_OFF_MULTIPLIER
-              value: ${BILLING_PRODUCER_BACK_OFF_MULTIPLIER}
-            - name: BILLING_PRODUCER_MAX_ATTEMPTS
-              value: ${BILLING_PRODUCER_MAX_ATTEMPTS}
           volumeMounts:
             - name: logs
               mountPath: /logs

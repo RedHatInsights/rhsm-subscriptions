@@ -31,7 +31,7 @@ import com.redhat.swatch.clients.contracts.api.resources.DefaultApi;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.contracts.client.ContractsClient;
-import com.redhat.swatch.faulttolerance.api.RetryWithExponentialBackoff;
+import io.smallrye.faulttolerance.api.ExponentialBackoff;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
@@ -40,6 +40,7 @@ import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
+import org.eclipse.microprofile.faulttolerance.Retry;
 
 @Slf4j
 @ApplicationScoped
@@ -47,11 +48,8 @@ public class ContractsController {
   @ContractsClient DefaultApi contractsApi;
   @Inject ApplicationClock clock;
 
-  @RetryWithExponentialBackoff(
-      maxRetries = "${CONTRACT_CLIENT_MAX_ATTEMPTS:1}",
-      delay = "${CONTRACT_CLIENT_BACK_OFF_INITIAL_INTERVAL_MILLIS:1000ms}",
-      maxDelay = "${CONTRACT_CLIENT_BACK_OFF_MAX_INTERVAL_MILLIS:64s}",
-      factor = "${CONTRACT_CLIENT_BACK_OFF_MULTIPLIER:2}")
+  @Retry
+  @ExponentialBackoff
   public ContractCoverage getContractCoverage(BillableUsage usage) throws ContractMissingException {
     if (!SubscriptionDefinition.isContractEnabled(usage.getProductId())) {
       throw new IllegalStateException(

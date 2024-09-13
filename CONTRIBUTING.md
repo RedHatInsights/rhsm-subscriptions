@@ -294,11 +294,13 @@ In Quarkus, the official way to retry operations in Quarkus is described in [her
 Where we can also configure it to use an exponential backoff strategy, for example:
 
 ```java
+package org.acme;
+
 public class CoffeeResource {
     ...
     @GET
-    @Retry(maxRetries = 4)
-    @ExponentialBackoff(factor = 2, maxDelay = 10000, maxDelayUnit = ChronoUnit.MILLIS)
+    @Retry
+    @ExponentialBackoff
     public List<Coffee> coffees() {
         ...
     }
@@ -306,25 +308,24 @@ public class CoffeeResource {
 }
 ```
 
-Unfortunately, this brings some limitations:
+The syntax to configure retries via properties is
+`fully-qualified-class-name/method-name/annotation-name/property-name=value`
 
-- We can't configure the `@Retry` and `@ExponentialBackoff` annotations using the properties
-- The Smallrye programmatically API could be used, but we would need to alter our logic to use it
+By convention, we define these via other properties (this makes them easier
+to adjust in development/tests).
 
-Therefore, we have built our custom `@RetryWithExponentialBackoff` annotation to address these limitations:
+For example:
 
-```java
-  @RetryWithExponentialBackoff(
-      maxRetries = "${SUBSCRIPTION_MAX_RETRY_ATTEMPTS:4}",
-      delay = "${SUBSCRIPTION_BACK_OFF_INITIAL_INTERVAL:1000ms}",
-      maxDelay = "${SUBSCRIPTION_BACK_OFF_MAX_INTERVAL:64s}",
-      factor = "${SUBSCRIPTION_BACK_OFF_MULTIPLIER:2}")
-  public List<Subscription> getSubscriptionsByOrgId(String orgId, int index, int pageSize) {
-     ...
-  }
+```properties
+COFFEE_MAX_RETRY_ATTEMPTS=4
+COFFEE_BACK_OFF_INITIAL_INTERVAL_MILLIS=1000
+COFFEE_BACK_OFF_MAX_INTERVAL_MILLIS=60000
+COFFEE_BACK_OFF_MULTIPLIER=2
+org.acme.CoffeeResource/coffees/Retry/maxRetries=${COFFEE_MAX_RETRY_ATTEMPTS}
+org.acme.CoffeeResource/coffees/Retry/delay=${COFFEE_BACK_OFF_INITIAL_INTERVAL_MILLIS}
+org.acme.CoffeeResource/coffees/ExponentialBackoff/maxDelay=${COFFEE_BACK_OFF_MAX_INTERVAL_MILLIS}
+org.acme.CoffeeResource/coffees/ExponentialBackoff/factor=${COFFEE_BACK_OFF_MULTIPLIER}
 ```
-
-To use this annotation `@RetryWithExponentialBackoff`, you need to import the library `swatch-common-smallrye-fault-tolerance`.
 
 ### **micrometer**: out of memory exceptions in tests
 
