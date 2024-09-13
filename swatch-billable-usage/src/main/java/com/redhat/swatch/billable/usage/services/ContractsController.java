@@ -105,7 +105,7 @@ public class ContractsController {
                 .filter(metric -> metric.getMetricId().equals(contractMetricId))
                 .map(Metric::getValue)
                 .reduce(0, Integer::sum);
-        isGratisContract &= isContractCompatibleWithGratis(contract);
+        isGratisContract &= isContractCompatibleWithGratis(contract, usage);
         total += value;
       }
     }
@@ -121,11 +121,15 @@ public class ContractsController {
   /**
    * Check whether contract start date applies the condition for a gratis usage: contract starts on
    * the current month. See more in <a
-   * href="https://issues.redhat.com/browse/SWATCH-2571">SWATCH-2571</a>.
+   * href="https://issues.redhat.com/browse/SWATCH-2571">SWATCH-2571</a>. contract starting in Jan
+   * First part billable usage in Jan -> gratis 'jan 2' != null && 'jan 2'.isAfter(startOfMonth('jan
+   * 4')) -> true && 'jan 2'.isAfter('jan 1') = true. Second part billable usage in Feb -> not 'jan
+   * 2' != null && 'jan 2'.isAfter(startOfMonth('feb 4')) -> true && 'jan 2'.isAfter('feb 1') =
+   * false
    */
-  private boolean isContractCompatibleWithGratis(Contract contract) {
+  private boolean isContractCompatibleWithGratis(Contract contract, BillableUsage usage) {
     OffsetDateTime startDate = contract.getStartDate();
-    return startDate != null && startDate.isAfter(clock.startOfCurrentMonth());
+    return startDate != null && startDate.isAfter(clock.startOfMonth(usage.getSnapshotDate()));
   }
 
   private boolean isValidContract(Contract contract, BillableUsage usage) {
