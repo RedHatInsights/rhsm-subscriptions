@@ -267,11 +267,15 @@ public class InternalTallyResource implements InternalTallyApi {
 
   /** Trigger a tally for an org */
   @Override
-  public DefaultResponse tallyOrg(String orgId, Boolean xRhSwatchSynchronousRequest) {
+  public DefaultResponse tallyOrg(
+      String orgId, Boolean legacy, Boolean xRhSwatchSynchronousRequest) {
     Object principal = ResourceUtils.getPrincipal();
     LogUtils.addOrgIdToMdc(orgId);
     log.info("Tally for org {} triggered over API by {}", orgId, principal);
-    if (ResourceUtils.sanitizeBoolean(xRhSwatchSynchronousRequest, false)) {
+    if (!ResourceUtils.sanitizeBoolean(legacy, true)) {
+      log.info("Attempting tally for orgId {} via existing events!", orgId);
+      internalTallyDataController.tallyOrgUsingEvents(orgId);
+    } else if (ResourceUtils.sanitizeBoolean(xRhSwatchSynchronousRequest, false)) {
       if (!applicationProperties.isEnableSynchronousOperations()) {
         throw new BadRequestException("Synchronous tally operations are not enabled.");
       }

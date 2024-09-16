@@ -61,6 +61,7 @@ public class TallySnapshotController {
   private final RetryTemplate retryTemplate;
   private final SnapshotSummaryProducer summaryProducer;
   private final TallyStateRepository tallyStateRepository;
+  private final HostReconciler hostReconciler;
   private final ApplicationClock clock;
 
   @Autowired
@@ -74,6 +75,7 @@ public class TallySnapshotController {
       CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy,
       SnapshotSummaryProducer summaryProducer,
       TallyStateRepository tallyStateRepository,
+      HostReconciler hostReconciler,
       ApplicationClock clock) {
     this.appProps = appProps;
     this.usageCollector = usageCollector;
@@ -84,6 +86,7 @@ public class TallySnapshotController {
     this.combiningRollupSnapshotStrategy = combiningRollupSnapshotStrategy;
     this.summaryProducer = summaryProducer;
     this.tallyStateRepository = tallyStateRepository;
+    this.hostReconciler = hostReconciler;
     this.clock = clock;
   }
 
@@ -101,6 +104,26 @@ public class TallySnapshotController {
 
     } catch (Exception e) {
       log.error("Error collecting existing usage snapshots ", e);
+      return;
+    }
+
+    maxSeenSnapshotStrategy.produceSnapshotsFromCalculations(accountCalc);
+  }
+
+  @Transactional(propagation = Propagation.NEVER)
+  public void produceSnapshotsForOrgUsingEvents(String orgId) {
+    if (Objects.isNull(orgId)) {
+      throw new IllegalArgumentException("A non-null orgId is required for tally operations.");
+    }
+
+    log.info("Producing snapshots for Org ID {} via events", orgId);
+
+    AccountUsageCalculation accountCalc;
+    try {
+      accountCalc = performTallyUsingEvents(orgId);
+
+    } catch (Exception e) {
+      log.error("Error collecting existing usage snapshots using events.", e);
       return;
     }
 
@@ -146,7 +169,7 @@ public class TallySnapshotController {
             nextBatch ->
                 retryTemplate.execute(
                     context -> {
-                      metricUsageCollector.updateHosts(orgId, serviceType, nextBatch);
+                      hostReconciler.updateHosts(orgId, serviceType, nextBatch);
                       metricUsageCollector.calculateUsage(nextBatch, calcCache);
                       currentState.setLatestEventRecordDate(
                           nextBatch.get(nextBatch.size() - 1).getRecordDate());
@@ -211,6 +234,35 @@ public class TallySnapshotController {
                   .collect(Collectors.toUnmodifiableSet()));
           return null;
         });
+    return usageCollector.tally(orgId);
+  }
+
+  private AccountUsageCalculation performTallyUsingEvents(String orgId) {
+    final String serviceType = "HBI_HOST";
+    //    Set<String> productTags = SubscriptionDefinition.filterVariants(
+    //            variant -> !variant.getSubscription().isPaygEligible())
+    //        .stream()
+    //        .map(Variant::getTag)
+    //        .collect(Collectors.toUnmodifiableSet());
+    TallyState currentState =
+        tallyStateRepository
+            .findById(new TallyStateKey(orgId, serviceType))
+            .orElseGet(() -> initializeTallyState(orgId, serviceType));
+
+    eventController.processEventsInBatches(
+        orgId,
+        serviceType,
+        currentState.getLatestEventRecordDate(),
+        appProps.getHourlyTallyEventBatchSize(),
+        nextBatch ->
+            retryTemplate.execute(
+                context -> {
+                  hostReconciler.updateHosts(orgId, serviceType, nextBatch);
+                  currentState.setLatestEventRecordDate(
+                      nextBatch.get(nextBatch.size() - 1).getRecordDate());
+                  return null;
+                }));
+
     return usageCollector.tally(orgId);
   }
 

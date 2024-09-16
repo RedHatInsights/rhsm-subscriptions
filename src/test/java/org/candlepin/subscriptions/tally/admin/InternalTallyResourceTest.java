@@ -156,26 +156,26 @@ class InternalTallyResourceTest {
 
   @Test
   void testTallyOrgWhenAsyncRequest() {
-    resource.tallyOrg(ORG_ID, false);
+    resource.tallyOrg(ORG_ID, true, false);
     verify(internalTallyDataController).tallyOrg(ORG_ID);
   }
 
   @Test
   void testTallyOrgWhenAsyncRequestAsNull() {
-    resource.tallyOrg(ORG_ID, null);
+    resource.tallyOrg(ORG_ID, true, null);
     verify(internalTallyDataController).tallyOrg(ORG_ID);
   }
 
   @Test
   void testTallyOrgWhenSyncRequestAndNotConfigured() {
     appProps.setEnableSynchronousOperations(false);
-    assertThrows(BadRequestException.class, () -> resource.tallyOrg(ORG_ID, true));
+    assertThrows(BadRequestException.class, () -> resource.tallyOrg(ORG_ID, true, true));
   }
 
   @Test
   void testTallyOrgWhenSyncRequestAndConfigured() {
     appProps.setEnableSynchronousOperations(true);
-    resource.tallyOrg(ORG_ID, true);
+    resource.tallyOrg(ORG_ID, true, true);
     verify(internalTallyDataController).tallyOrgSync(ORG_ID);
   }
 

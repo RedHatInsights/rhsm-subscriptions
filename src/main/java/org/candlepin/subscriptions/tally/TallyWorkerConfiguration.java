@@ -189,6 +189,13 @@ public class TallyWorkerConfiguration {
   }
 
   @Bean
+  public HostReconciler hostReconciler(
+      AccountServiceInventoryRepository accountServiceInventoryRepository,
+      HostRepository hostRepository) {
+    return new HostReconciler(accountServiceInventoryRepository, hostRepository);
+  }
+
+  @Bean
   public ProducerFactory<String, TallySummary> tallySummaryProducerFactory(
       KafkaProperties kafkaProperties, ObjectMapper objectMapper) {
     DefaultKafkaProducerFactory<String, TallySummary> factory =

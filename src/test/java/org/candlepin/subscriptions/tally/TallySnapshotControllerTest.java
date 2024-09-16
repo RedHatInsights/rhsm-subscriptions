@@ -89,6 +89,7 @@ class TallySnapshotControllerTest implements ExtendWithEmbeddedKafka {
   @MockBean TallySnapshotRepository snapshotRepo;
   @Autowired HostRepository hostRepository;
   @Autowired MetricUsageCollector usageCollector;
+  @Autowired HostReconciler hostReconciler;
   @Autowired TallySnapshotController controller;
   @Autowired AccountServiceInventoryRepository accountRepo;
 
@@ -207,7 +208,7 @@ class TallySnapshotControllerTest implements ExtendWithEmbeddedKafka {
                 Collectors.toMap(
                     Host::getInstanceId,
                     Function.identity(),
-                    (hostA, hostB) -> usageCollector.handleDuplicates(hostA, hostB)));
+                    (hostA, hostB) -> hostReconciler.handleDuplicates(hostA, hostB)));
     assertEquals(2, hosts.size());
 
     // Host 1: monthly totals should be amended.

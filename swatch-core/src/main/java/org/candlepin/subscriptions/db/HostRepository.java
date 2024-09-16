@@ -551,4 +551,8 @@ public interface HostRepository
 
   @Query
   Stream<Host> findAllByOrgIdAndInstanceIdIn(String orgId, Set<String> instanceIds);
+
+  @Query
+  Stream<Host> findAllByOrgIdAndSubscriptionManagerIdIn(
+      String orgId, Set<String> subscriptionManagerIds);
 }

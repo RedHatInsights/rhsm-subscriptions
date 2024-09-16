@@ -81,6 +81,10 @@ public class InternalTallyDataController {
     snapshotController.produceSnapshotsForOrg(orgId);
   }
 
+  public void tallyOrgUsingEvents(String orgId) {
+    snapshotController.produceSnapshotsForOrgUsingEvents(orgId);
+  }
+
   public String saveEvents(String jsonListOfEvents) {
     List<EventRecord> saved;
     List<Event> events;

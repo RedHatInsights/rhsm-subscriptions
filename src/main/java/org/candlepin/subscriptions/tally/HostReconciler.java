@@ -1,0 +1,473 @@
+/*
+ * Copyright Red Hat, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Red Hat trademarks are not licensed under GPLv3. No permission is
+ * granted to use or replicate Red Hat trademarks that are incorporated
+ * in this software or its documentation.
+ */
+package org.candlepin.subscriptions.tally;
+
+import com.google.common.collect.MoreCollectors;
+import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
+import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
+import com.redhat.swatch.configuration.util.ProductTagLookupParams;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
+import org.candlepin.subscriptions.db.HostRepository;
+import org.candlepin.subscriptions.db.model.AccountServiceInventory;
+import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
+import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.Host;
+import org.candlepin.subscriptions.db.model.HostBucketKey;
+import org.candlepin.subscriptions.db.model.HostHardwareType;
+import org.candlepin.subscriptions.db.model.HostTallyBucket;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.json.Event;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+@Slf4j
+public class HostReconciler {
+
+  private final AccountServiceInventoryRepository accountServiceInventoryRepository;
+  private final HostRepository hostRepository;
+
+  public HostReconciler(
+      AccountServiceInventoryRepository accountServiceInventoryRepository,
+      HostRepository hostRepository) {
+    this.accountServiceInventoryRepository = accountServiceInventoryRepository;
+    this.hostRepository = hostRepository;
+  }
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  public void updateHosts(String orgId, String serviceType, List<Event> events) {
+
+    if (events.isEmpty()) {
+      return;
+    }
+
+    AccountServiceInventoryId inventoryId =
+        AccountServiceInventoryId.builder().orgId(orgId).serviceType(serviceType).build();
+    if (!accountServiceInventoryRepository.existsById(inventoryId)) {
+      accountServiceInventoryRepository.save(new AccountServiceInventory(inventoryId));
+    }
+
+    Set<String> hypervisorUuids =
+        events.stream()
+            .filter(e -> e.getHypervisorUuid().isPresent())
+            .map(e -> e.getHypervisorUuid().get())
+            .collect(Collectors.toSet());
+
+    var hosts =
+        hostRepository.findAllByOrgIdAndInstanceIdIn(
+            orgId, events.stream().map(Event::getInstanceId).collect(Collectors.toSet()));
+    Stream<Host> hypervisors =
+        hostRepository.findAllByOrgIdAndSubscriptionManagerIdIn(orgId, hypervisorUuids);
+
+    // NOTE: Deduplication based on monthly totals was removed here.
+    // TODO: [mstead] Can this be removed without completely enabling the
+    //       new HBI event logic?
+    var hostsByInstanceId =
+        Streams.concat(hosts, hypervisors)
+            .collect(Collectors.toMap(Host::getInstanceId, Function.identity()));
+
+    for (Event event : events) {
+      Host host = hostsByInstanceId.getOrDefault(event.getInstanceId(), new Host());
+
+      // During the hourly tally, hosts and snapshots are updated in separate transactions.
+      // If an error occurs somewhere in the overall tally process while processing a batch of
+      // Events, when the retry on error logic kicks in, an Event may have already been applied
+      // to a Host, but has not yet been applied to the snapshots. Because of this, we need to
+      // determine if the Event has already been applied to this host and skip it if it is. This
+      // is to ensure that the Event measurements are not applied to the host multiple times.
+      if (isEventAlreadyAppliedToHost(host, event)) {
+        log.debug(
+            "Skipping host update. Event already applied to the host orgId={} instanceId={}",
+            host.getOrgId(),
+            host.getInstanceId());
+        continue;
+      }
+
+      updateInstanceFromEvent(event, host);
+      hostsByInstanceId.put(host.getInstanceId(), host);
+
+      hostRepository.save(host);
+    }
+  }
+
+  public Host handleDuplicates(Host hostA, Host hostB) {
+    // prefer records already having monthly totals
+    // this will ensure that even if there are multiple records for a given instance ID,
+    // payg tallies will always operate against the same record
+    // HBI hosts are high watermark so we don't store monthly totals
+    if (!hostB.getMonthlyTotals().isEmpty()) {
+      return hostB;
+    }
+    return hostA;
+  }
+
+  private void updateInstanceFromEvent(Event event, Host instance) {
+    // Only update the instance type if it hasn't already been set (new host)
+    // so that if the host originated from a different source (HBI) it does
+    // not change.
+    if (StringUtils.isBlank(instance.getInstanceType())) {
+      instance.setInstanceType(event.getServiceType());
+    }
+
+    // Always process buckets, measurements and set the lastAppliedEventRecordDate
+    // on the host.
+    String tag = getProductTag(event).stream().findFirst().orElseThrow();
+    boolean isPayGo =
+        SubscriptionDefinition.lookupSubscriptionByTag(tag).orElseThrow().isPaygEligible();
+
+    Optional.ofNullable(event.getMeasurements())
+        .orElse(Collections.emptyList())
+        .forEach(
+            measurement -> {
+              if (!isUsageAlreadyApplied(instance, event)) {
+                instance.setMeasurement(
+                    !StringUtils.isEmpty(measurement.getMetricId())
+                        ? measurement.getMetricId()
+                        : measurement.getUom(),
+                    measurement.getValue());
+              }
+
+              if (isPayGo) {
+                // Every event should be applied to the totals.
+                instance.addToMonthlyTotal(
+                    event.getTimestamp(),
+                    MetricId.fromString(
+                        !StringUtils.isEmpty(measurement.getMetricId())
+                            ? measurement.getMetricId()
+                            : measurement.getUom()),
+                    measurement.getValue());
+              }
+            });
+
+    addBucketsFromEvent(instance, event, isPayGo);
+    instance.setLastAppliedEventRecordDate(event.getRecordDate());
+
+    // If the usage was already applied, there's no need to update the
+    // metadata from the Event since it will already be in the most up to
+    // date state based on the last time it was metered.
+    if (isUsageAlreadyApplied(instance, event)) {
+      return;
+    }
+
+    // Update the Host instance's meta-data
+    instance.setOrgId(event.getOrgId());
+    instance.setInstanceId(event.getInstanceId());
+    instance.setDisplayName(event.getInstanceId()); // may be overridden later
+    instance.setGuest(instance.getHardwareType() == HostHardwareType.VIRTUALIZED);
+
+    // fields that are optional, see update/updateWithTransform method javadocs
+    update(instance::setBillingAccountId, event.getBillingAccountId());
+    updateWithTransform(
+        instance::setBillingProvider,
+        Optional.ofNullable(event.getBillingProvider()).orElse(Event.BillingProvider.RED_HAT),
+        this::getBillingProvider);
+    updateWithTransform(
+        instance::setCloudProvider, event.getCloudProvider(), this::getCloudProviderAsString);
+    updateWithTransform(
+        instance::setHardwareType, event.getHardwareType(), this::getHostHardwareType);
+    update(instance::setDisplayName, event.getDisplayName());
+    update(instance::setInventoryId, event.getInventoryId());
+    update(instance::setHypervisorUuid, event.getHypervisorUuid());
+    update(instance::setSubscriptionManagerId, event.getSubscriptionManagerId());
+
+    instance.setLastSeen(event.getTimestamp());
+  }
+
+  /**
+   * Transform and set a value, doing nothing for null values. This method is intended to be used
+   * for enum types and complex types.
+   *
+   * @param setter the setter to invoke when value is non-null
+   * @param value the value
+   * @param transform function to transform the value to the necessary type
+   * @param <T> original type, should be an enum
+   * @param <R> type the setter expects
+   */
+  private <T, R> void updateWithTransform(Consumer<R> setter, T value, Function<T, R> transform) {
+    if (value != null) {
+      R transformed = transform.apply(value);
+      setter.accept(transformed);
+    }
+  }
+
+  /**
+   * Set a value if the value is non-null.
+   *
+   * <p>Given how we deserialize JSON, here are the possibilities: 1. null if the JSON didn't
+   * include the field at all 2. Optional.empty() if the JSON had the field set to null 3.
+   * Optional.of($someValue) if the JSON had the field set to a non-null value
+   *
+   * <p>When the Optional is null, this means the source event does not know about the field, so we
+   * do nothing. Otherwise, we update the field
+   *
+   * @param setter the setter to invoke when value is non-null
+   * @param optional null or Optional to be unwrapped
+   * @param <T> type the setter expects
+   */
+  private <T> void update(Consumer<T> setter, Optional<T> optional) {
+    Optional.ofNullable(optional).ifPresent(value -> setter.accept(value.orElse(null)));
+  }
+
+  private BillingProvider getBillingProvider(Event.BillingProvider billingProvider) {
+    return switch (billingProvider) {
+      case __EMPTY__ -> null;
+      case AWS -> BillingProvider.AWS;
+      case AZURE -> BillingProvider.AZURE;
+      case ORACLE -> BillingProvider.ORACLE;
+      case GCP -> BillingProvider.GCP;
+      case RED_HAT -> BillingProvider.RED_HAT;
+    };
+  }
+
+  private void addBucketsFromEvent(Host host, Event event, boolean isPayGo) {
+    Set<List<Object>> bucketTuples = buildBucketTuples(event);
+
+    HardwareMeasurementType hardwareMeasurementType =
+        getHardwareMeasurementType(
+            getHostHardwareType(event.getHardwareType()),
+            getCloudProviderAsString(event.getCloudProvider()));
+
+    Set<HostBucketKey> activeHostBucketKeys = new HashSet<>();
+    bucketTuples.forEach(
+        tuple -> {
+          String productId = (String) tuple.get(0);
+          ServiceLevel slaBucket = (ServiceLevel) tuple.get(1);
+          Usage usageBucket = (Usage) tuple.get(2);
+          BillingProvider billingProvider = (BillingProvider) tuple.get(3);
+          String billingAccountId = (String) tuple.get(4);
+
+          Integer cores =
+              Optional.ofNullable(host.getMeasurement(MetricIdUtils.getCores().toString()))
+                  .map(Double::intValue)
+                  .orElse(null);
+          Integer sockets =
+              Optional.ofNullable(host.getMeasurement(MetricIdUtils.getSockets().toString()))
+                  .map(Double::intValue)
+                  .orElse(null);
+
+          HostTallyBucket bucket = new HostTallyBucket();
+          var key =
+              new HostBucketKey(
+                  host,
+                  productId,
+                  slaBucket,
+                  usageBucket,
+                  billingProvider,
+                  billingAccountId,
+                  false);
+
+          bucket.setKey(key);
+          bucket.setMeasurementType(hardwareMeasurementType);
+          activeHostBucketKeys.add(key);
+          bucket.setCores(cores);
+          bucket.setSockets(sockets);
+          host.addBucket(bucket);
+        });
+
+    // TODO [mstead]: If we are sharing the host update code between multiple sources,
+    //                we can no longer just remove the buckets we haven't seen. What's
+    //                the correct way forward here.
+    host.getBuckets().removeIf(bucket -> !activeHostBucketKeys.contains(bucket.getKey()));
+  }
+
+  private void addNonPayGoBucketsFromEvent(Host host, Event event) {
+    // Add buckets to host
+    if (host.isHypervisor()) {
+      log.info("Applying hypervisor buckets.");
+    } else if (host.isUnmappedGuest()) {
+      log.info("Applying unmapped guest buckets.");
+    } else {
+      log.info("Applying guest buckets.");
+    }
+  }
+
+  // FIXME Duplicate!
+  private String getCloudProviderAsString(Event.CloudProvider cloudProvider) {
+    HardwareMeasurementType hardwareMeasurementType = getCloudProvider(cloudProvider);
+    if (hardwareMeasurementType != null) {
+      return hardwareMeasurementType.toString();
+    }
+    return null;
+  }
+
+  // FIXME Duplicate!
+  private HostHardwareType getHostHardwareType(Event.HardwareType hardwareType) {
+    if (Objects.isNull(hardwareType)) {
+      return null;
+    }
+
+    return switch (hardwareType) {
+      case __EMPTY__ -> null;
+      case PHYSICAL -> HostHardwareType.PHYSICAL;
+      case VIRTUAL -> HostHardwareType.VIRTUALIZED;
+      case CLOUD -> HostHardwareType.CLOUD;
+    };
+  }
+
+  // FIXME Duplicate!
+  private Set<List<Object>> buildBucketTuples(Event event) {
+    // We have multiple SubscriptionDefinitions that can have the same serviceType (OpenShift
+    // Cluster).  The SLA and usage for these definitions should be the same (if defined), so we
+    // need to collect them all, deduplicate, and then verify via MoreCollectors.toOptional that we
+    // have only one or zero choices.
+    var subDefinitions = SubscriptionDefinition.findByServiceType(event.getServiceType());
+    Optional<String> sla =
+        subDefinitions.stream()
+            .map(x -> x.getDefaults().getSla().toString())
+            .distinct()
+            .collect(MoreCollectors.toOptional());
+    Optional<String> usage =
+        subDefinitions.stream()
+            .map(x -> x.getDefaults().getUsage().toString())
+            .distinct()
+            .collect(MoreCollectors.toOptional());
+
+    ServiceLevel effectiveSla =
+        Optional.ofNullable(event.getSla())
+            .map(Event.Sla::toString)
+            .map(ServiceLevel::fromString)
+            .orElse(sla.map(ServiceLevel::fromString).orElse(ServiceLevel.EMPTY));
+    Usage effectiveUsage =
+        Optional.ofNullable(event.getUsage())
+            .map(Event.Usage::toString)
+            .map(Usage::fromString)
+            .orElse(usage.map(Usage::fromString).orElse(Usage.EMPTY));
+    BillingProvider effectiveProvider =
+        Optional.ofNullable(event.getBillingProvider())
+            .map(Event.BillingProvider::toString)
+            .map(BillingProvider::fromString)
+            .orElse(BillingProvider.RED_HAT);
+    String effectiveBillingAcctId =
+        Optional.ofNullable(event.getBillingAccountId()).orElse(Optional.empty()).orElse("");
+    Set<String> productTags = getProductTag(event);
+    Set<ServiceLevel> slas = Set.of(effectiveSla, ServiceLevel._ANY);
+    Set<Usage> usages = Set.of(effectiveUsage, Usage._ANY);
+    Set<BillingProvider> billingProviders = Set.of(effectiveProvider, BillingProvider._ANY);
+    Set<String> billingAccountIds = getBillingAccountIds(effectiveBillingAcctId);
+    return Sets.cartesianProduct(productTags, slas, usages, billingProviders, billingAccountIds);
+  }
+
+  // FIXME Duplicate!
+  private HardwareMeasurementType getHardwareMeasurementType(
+      HostHardwareType hostHardwareType, String hostCloudProvider) {
+    if (hostHardwareType == null) {
+      return HardwareMeasurementType.PHYSICAL;
+    }
+    return switch (hostHardwareType) {
+      case CLOUD -> getCloudProvider(hostCloudProvider);
+      case VIRTUALIZED -> HardwareMeasurementType.VIRTUAL;
+      case PHYSICAL -> HardwareMeasurementType.PHYSICAL;
+    };
+  }
+
+  // FIXME Duplicate!
+  private HardwareMeasurementType getCloudProvider(String instanceCloudProvider) {
+    if (instanceCloudProvider == null) {
+      throw new IllegalArgumentException("Hardware type cloud, but no cloud provider specified");
+    }
+    return HardwareMeasurementType.fromString(instanceCloudProvider);
+  }
+
+  // FIXME Duplicate!
+  private HardwareMeasurementType getCloudProvider(Event.CloudProvider cloudProvider) {
+    if (Objects.isNull(cloudProvider)) {
+      return null;
+    }
+
+    return switch (cloudProvider) {
+      case __EMPTY__ -> null;
+      case AWS -> HardwareMeasurementType.AWS;
+      case AZURE -> HardwareMeasurementType.AZURE;
+      case ALIBABA -> HardwareMeasurementType.ALIBABA;
+      case GOOGLE -> HardwareMeasurementType.GOOGLE;
+    };
+  }
+
+  // FIXME Duplicate!
+  /**
+   * Logic to extract the product tag using this order: - From the event productTag field which you
+   * have been populated after <a
+   * href="https://issues.redhat.com/browse/SWATCH-1928">SWATCH-1928</a> - Last case, using the
+   * subscription configuration (the same that was doing before SWATCH-1928).
+   */
+  private Set<String> getProductTag(Event event) {
+    if (event.getProductTag() != null) {
+      return event.getProductTag();
+    }
+
+    // remain old logic
+    String role = Optional.ofNullable(event.getRole()).map(Object::toString).orElse(null);
+
+    var lookupParams =
+        ProductTagLookupParams.builder()
+            .role(role)
+            .engIds(event.getProductIds())
+            .isPaygEligibleProduct(true)
+            .is3rdPartyMigration(event.getConversion())
+            .build();
+
+    return SubscriptionDefinition.getAllProductTags(lookupParams);
+  }
+
+  /**
+   * Determines if the Event's usage measurements have already been applied. Usage is considered
+   * applied when the Event's timestamp is before the Host's lastSeenDate (last time the event was
+   * metered).
+   *
+   * @param host
+   * @param event
+   * @return true if the usage was already applied, false otherwise.
+   */
+  private boolean isUsageAlreadyApplied(Host host, Event event) {
+    return Objects.nonNull(host.getLastSeen()) && event.getTimestamp().isBefore(host.getLastSeen());
+  }
+
+  private boolean isEventAlreadyAppliedToHost(Host host, Event event) {
+    return Objects.nonNull(host.getLastAppliedEventRecordDate())
+        && (host.getLastAppliedEventRecordDate().equals(event.getRecordDate())
+            || host.getLastAppliedEventRecordDate().isAfter(event.getRecordDate()));
+  }
+
+  private Set<String> getBillingAccountIds(String billingAcctId) {
+    Set<String> billingAcctIds = new HashSet<>();
+    billingAcctIds.add("_ANY");
+    if (billingAcctId != null) {
+      billingAcctIds.add(billingAcctId);
+    }
+    return billingAcctIds;
+  }
+}

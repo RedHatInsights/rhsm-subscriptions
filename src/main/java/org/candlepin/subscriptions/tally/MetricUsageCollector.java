@@ -26,32 +26,22 @@ import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
-import com.redhat.swatch.configuration.util.MetricIdUtils;
 import com.redhat.swatch.configuration.util.ProductTagLookupParams;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.commons.lang3.StringUtils;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.AccountServiceInventory;
-import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
-import org.candlepin.subscriptions.db.model.Host;
-import org.candlepin.subscriptions.db.model.HostBucketKey;
 import org.candlepin.subscriptions.db.model.HostHardwareType;
-import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -83,62 +73,63 @@ public class MetricUsageCollector {
     this.snapshotRepository = snapshotRepository;
   }
 
-  @Transactional(propagation = Propagation.REQUIRES_NEW)
-  public void updateHosts(String orgId, String serviceType, List<Event> events) {
-
-    if (events.isEmpty()) {
-      return;
-    }
-
-    AccountServiceInventoryId inventoryId =
-        AccountServiceInventoryId.builder().orgId(orgId).serviceType(serviceType).build();
-    if (!accountServiceInventoryRepository.existsById(inventoryId)) {
-      accountServiceInventoryRepository.save(new AccountServiceInventory(inventoryId));
-    }
-
-    var hosts =
-        hostRepository.findAllByOrgIdAndInstanceIdIn(
-            orgId, events.stream().map(Event::getInstanceId).collect(Collectors.toSet()));
-    // NOTE Checking handleDuplicates here should be cleaned up once we handle de duplication logic
-    // https://issues.redhat.com/browse/SWATCH-2145
-    var hostsByInstanceId =
-        hosts.collect(
-            Collectors.toMap(Host::getInstanceId, Function.identity(), this::handleDuplicates));
-
-    for (Event event : events) {
-      Host host = hostsByInstanceId.getOrDefault(event.getInstanceId(), new Host());
-
-      // During the hourly tally, hosts and snapshots are updated in separate transactions.
-      // If an error occurs somewhere in the overall tally process while processing a batch of
-      // Events, when the retry on error logic kicks in, an Event may have already been applied
-      // to a Host, but has not yet been applied to the snapshots. Because of this, we need to
-      // determine if the Event has already been applied to this host and skip it if it is. This
-      // is to ensure that the Event measurements are not applied to the host multiple times.
-      if (isEventAlreadyAppliedToHost(host, event)) {
-        log.debug(
-            "Skipping host update. Event already applied to the host orgId={} instanceId={}",
-            host.getOrgId(),
-            host.getInstanceId());
-        continue;
-      }
-
-      updateInstanceFromEvent(event, host);
-      hostsByInstanceId.put(host.getInstanceId(), host);
-
-      hostRepository.save(host);
-    }
-  }
-
-  public Host handleDuplicates(Host hostA, Host hostB) {
-    // prefer records already having monthly totals
-    // this will ensure that even if there are multiple records for a given instance ID,
-    // payg tallies will always operate against the same record
-    // HBI hosts are high watermark so we don't store monthly totals
-    if (!hostB.getMonthlyTotals().isEmpty()) {
-      return hostB;
-    }
-    return hostA;
-  }
+  //  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  //  public void updateHosts(String orgId, String serviceType, List<Event> events) {
+  //
+  //    if (events.isEmpty()) {
+  //      return;
+  //    }
+  //
+  //    AccountServiceInventoryId inventoryId =
+  //        AccountServiceInventoryId.builder().orgId(orgId).serviceType(serviceType).build();
+  //    if (!accountServiceInventoryRepository.existsById(inventoryId)) {
+  //      accountServiceInventoryRepository.save(new AccountServiceInventory(inventoryId));
+  //    }
+  //
+  //    var hosts =
+  //        hostRepository.findAllByOrgIdAndInstanceIdIn(
+  //            orgId, events.stream().map(Event::getInstanceId).collect(Collectors.toSet()));
+  //    // NOTE Checking handleDuplicates here should be cleaned up once we handle de duplication
+  // logic
+  //    // https://issues.redhat.com/browse/SWATCH-2145
+  //    var hostsByInstanceId =
+  //        hosts.collect(
+  //            Collectors.toMap(Host::getInstanceId, Function.identity(), this::handleDuplicates));
+  //
+  //    for (Event event : events) {
+  //      Host host = hostsByInstanceId.getOrDefault(event.getInstanceId(), new Host());
+  //
+  //      // During the hourly tally, hosts and snapshots are updated in separate transactions.
+  //      // If an error occurs somewhere in the overall tally process while processing a batch of
+  //      // Events, when the retry on error logic kicks in, an Event may have already been applied
+  //      // to a Host, but has not yet been applied to the snapshots. Because of this, we need to
+  //      // determine if the Event has already been applied to this host and skip it if it is. This
+  //      // is to ensure that the Event measurements are not applied to the host multiple times.
+  //      if (isEventAlreadyAppliedToHost(host, event)) {
+  //        log.debug(
+  //            "Skipping host update. Event already applied to the host orgId={} instanceId={}",
+  //            host.getOrgId(),
+  //            host.getInstanceId());
+  //        continue;
+  //      }
+  //
+  //      updateInstanceFromEvent(event, host);
+  //      hostsByInstanceId.put(host.getInstanceId(), host);
+  //
+  //      hostRepository.save(host);
+  //    }
+  //  }
+  //
+  //  public Host handleDuplicates(Host hostA, Host hostB) {
+  //    // prefer records already having monthly totals
+  //    // this will ensure that even if there are multiple records for a given instance ID,
+  //    // payg tallies will always operate against the same record
+  //    // HBI hosts are high watermark so we don't store monthly totals
+  //    if (!hostB.getMonthlyTotals().isEmpty()) {
+  //      return hostB;
+  //    }
+  //    return hostA;
+  //  }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void calculateUsage(List<Event> events, AccountUsageCalculationCache calcCache) {
@@ -159,105 +150,108 @@ public class MetricUsageCollector {
         });
   }
 
-  private void updateInstanceFromEvent(Event event, Host instance) {
-    // Only update the instance type if it hasn't already been set (new host)
-    // so that if the host originated from a different source (HBI) it does
-    // not change.
-    if (StringUtils.isBlank(instance.getInstanceType())) {
-      instance.setInstanceType(event.getServiceType());
-    }
+  //  private void updateInstanceFromEvent(Event event, Host instance) {
+  //    // Only update the instance type if it hasn't already been set (new host)
+  //    // so that if the host originated from a different source (HBI) it does
+  //    // not change.
+  //    if (StringUtils.isBlank(instance.getInstanceType())) {
+  //      instance.setInstanceType(event.getServiceType());
+  //    }
+  //
+  //    // Always process buckets, measurements and set the lastAppliedEventRecordDate
+  //    // on the host.
+  //    Optional.ofNullable(event.getMeasurements())
+  //        .orElse(Collections.emptyList())
+  //        .forEach(
+  //            measurement -> {
+  //              if (!isUsageAlreadyApplied(instance, event)) {
+  //                instance.setMeasurement(
+  //                    !StringUtils.isEmpty(measurement.getMetricId())
+  //                        ? measurement.getMetricId()
+  //                        : measurement.getUom(),
+  //                    measurement.getValue());
+  //              }
+  //              // Every event should be applied to the totals.
+  //              instance.addToMonthlyTotal(
+  //                  event.getTimestamp(),
+  //                  MetricId.fromString(
+  //                      !StringUtils.isEmpty(measurement.getMetricId())
+  //                          ? measurement.getMetricId()
+  //                          : measurement.getUom()),
+  //                  measurement.getValue());
+  //            });
+  //
+  //    addBucketsFromEvent(instance, event);
+  //    instance.setLastAppliedEventRecordDate(event.getRecordDate());
+  //
+  //    // If the usage was already applied, there's no need to update the
+  //    // metadata from the Event since it will already be in the most up to
+  //    // date state based on the last time it was metered.
+  //    if (isUsageAlreadyApplied(instance, event)) {
+  //      return;
+  //    }
+  //
+  //    // Update the Host instance's meta-data
+  //    instance.setOrgId(event.getOrgId());
+  //    instance.setInstanceId(event.getInstanceId());
+  //    instance.setDisplayName(event.getInstanceId()); // may be overridden later
+  //    instance.setGuest(instance.getHardwareType() == HostHardwareType.VIRTUALIZED);
+  //
+  //    // fields that are optional, see update/updateWithTransform method javadocs
+  //    update(instance::setBillingAccountId, event.getBillingAccountId());
+  //    updateWithTransform(
+  //        instance::setBillingProvider,
+  //        Optional.ofNullable(event.getBillingProvider()).orElse(Event.BillingProvider.RED_HAT),
+  //        this::getBillingProvider);
+  //    updateWithTransform(
+  //        instance::setCloudProvider, event.getCloudProvider(), this::getCloudProviderAsString);
+  //    updateWithTransform(
+  //        instance::setHardwareType, event.getHardwareType(), this::getHostHardwareType);
+  //    update(instance::setDisplayName, event.getDisplayName());
+  //    update(instance::setInventoryId, event.getInventoryId());
+  //    update(instance::setHypervisorUuid, event.getHypervisorUuid());
+  //    update(instance::setSubscriptionManagerId, event.getSubscriptionManagerId());
+  //
+  //    instance.setLastSeen(event.getTimestamp());
+  //  }
 
-    // Always process buckets, measurements and set the lastAppliedEventRecordDate
-    // on the host.
-    Optional.ofNullable(event.getMeasurements())
-        .orElse(Collections.emptyList())
-        .forEach(
-            measurement -> {
-              if (!isUsageAlreadyApplied(instance, event)) {
-                instance.setMeasurement(
-                    !StringUtils.isEmpty(measurement.getMetricId())
-                        ? measurement.getMetricId()
-                        : measurement.getUom(),
-                    measurement.getValue());
-              }
-              // Every event should be applied to the totals.
-              instance.addToMonthlyTotal(
-                  event.getTimestamp(),
-                  MetricId.fromString(
-                      !StringUtils.isEmpty(measurement.getMetricId())
-                          ? measurement.getMetricId()
-                          : measurement.getUom()),
-                  measurement.getValue());
-            });
+  //  /**
+  //   * Transform and set a value, doing nothing for null values. This method is intended to be
+  // used
+  //   * for enum types and complex types.
+  //   *
+  //   * @param setter the setter to invoke when value is non-null
+  //   * @param value the value
+  //   * @param transform function to transform the value to the necessary type
+  //   * @param <T> original type, should be an enum
+  //   * @param <R> type the setter expects
+  //   */
+  //  private <T, R> void updateWithTransform(Consumer<R> setter, T value, Function<T, R> transform)
+  // {
+  //    if (value != null) {
+  //      R transformed = transform.apply(value);
+  //      setter.accept(transformed);
+  //    }
+  //  }
 
-    addBucketsFromEvent(instance, event);
-    instance.setLastAppliedEventRecordDate(event.getRecordDate());
-
-    // If the usage was already applied, there's no need to update the
-    // metadata from the Event since it will already be in the most up to
-    // date state based on the last time it was metered.
-    if (isUsageAlreadyApplied(instance, event)) {
-      return;
-    }
-
-    // Update the Host instance's meta-data
-    instance.setOrgId(event.getOrgId());
-    instance.setInstanceId(event.getInstanceId());
-    instance.setDisplayName(event.getInstanceId()); // may be overridden later
-    instance.setGuest(instance.getHardwareType() == HostHardwareType.VIRTUALIZED);
-
-    // fields that are optional, see update/updateWithTransform method javadocs
-    update(instance::setBillingAccountId, event.getBillingAccountId());
-    updateWithTransform(
-        instance::setBillingProvider,
-        Optional.ofNullable(event.getBillingProvider()).orElse(Event.BillingProvider.RED_HAT),
-        this::getBillingProvider);
-    updateWithTransform(
-        instance::setCloudProvider, event.getCloudProvider(), this::getCloudProviderAsString);
-    updateWithTransform(
-        instance::setHardwareType, event.getHardwareType(), this::getHostHardwareType);
-    update(instance::setDisplayName, event.getDisplayName());
-    update(instance::setInventoryId, event.getInventoryId());
-    update(instance::setHypervisorUuid, event.getHypervisorUuid());
-    update(instance::setSubscriptionManagerId, event.getSubscriptionManagerId());
-
-    instance.setLastSeen(event.getTimestamp());
-  }
-
-  /**
-   * Transform and set a value, doing nothing for null values. This method is intended to be used
-   * for enum types and complex types.
-   *
-   * @param setter the setter to invoke when value is non-null
-   * @param value the value
-   * @param transform function to transform the value to the necessary type
-   * @param <T> original type, should be an enum
-   * @param <R> type the setter expects
-   */
-  private <T, R> void updateWithTransform(Consumer<R> setter, T value, Function<T, R> transform) {
-    if (value != null) {
-      R transformed = transform.apply(value);
-      setter.accept(transformed);
-    }
-  }
-
-  /**
-   * Set a value if the value is non-null.
-   *
-   * <p>Given how we deserialize JSON, here are the possibilities: 1. null if the JSON didn't
-   * include the field at all 2. Optional.empty() if the JSON had the field set to null 3.
-   * Optional.of($someValue) if the JSON had the field set to a non-null value
-   *
-   * <p>When the Optional is null, this means the source event does not know about the field, so we
-   * do nothing. Otherwise, we update the field
-   *
-   * @param setter the setter to invoke when value is non-null
-   * @param optional null or Optional to be unwrapped
-   * @param <T> type the setter expects
-   */
-  private <T> void update(Consumer<T> setter, Optional<T> optional) {
-    Optional.ofNullable(optional).ifPresent(value -> setter.accept(value.orElse(null)));
-  }
+  //  /**
+  //   * Set a value if the value is non-null.
+  //   *
+  //   * <p>Given how we deserialize JSON, here are the possibilities: 1. null if the JSON didn't
+  //   * include the field at all 2. Optional.empty() if the JSON had the field set to null 3.
+  //   * Optional.of($someValue) if the JSON had the field set to a non-null value
+  //   *
+  //   * <p>When the Optional is null, this means the source event does not know about the field, so
+  // we
+  //   * do nothing. Otherwise, we update the field
+  //   *
+  //   * @param setter the setter to invoke when value is non-null
+  //   * @param optional null or Optional to be unwrapped
+  //   * @param <T> type the setter expects
+  //   */
+  //  private <T> void update(Consumer<T> setter, Optional<T> optional) {
+  //    Optional.ofNullable(optional).ifPresent(value -> setter.accept(value.orElse(null)));
+  //  }
 
   private HostHardwareType getHostHardwareType(Event.HardwareType hardwareType) {
     if (Objects.isNull(hardwareType)) {
@@ -313,63 +307,63 @@ public class MetricUsageCollector {
     return null;
   }
 
-  private BillingProvider getBillingProvider(Event.BillingProvider billingProvider) {
-    return switch (billingProvider) {
-      case __EMPTY__ -> null;
-      case AWS -> BillingProvider.AWS;
-      case AZURE -> BillingProvider.AZURE;
-      case ORACLE -> BillingProvider.ORACLE;
-      case GCP -> BillingProvider.GCP;
-      case RED_HAT -> BillingProvider.RED_HAT;
-    };
-  }
+  //  private BillingProvider getBillingProvider(Event.BillingProvider billingProvider) {
+  //    return switch (billingProvider) {
+  //      case __EMPTY__ -> null;
+  //      case AWS -> BillingProvider.AWS;
+  //      case AZURE -> BillingProvider.AZURE;
+  //      case ORACLE -> BillingProvider.ORACLE;
+  //      case GCP -> BillingProvider.GCP;
+  //      case RED_HAT -> BillingProvider.RED_HAT;
+  //    };
+  //  }
 
-  private void addBucketsFromEvent(Host host, Event event) {
-    Set<List<Object>> bucketTuples = buildBucketTuples(event);
-
-    HardwareMeasurementType hardwareMeasurementType =
-        getHardwareMeasurementType(
-            getHostHardwareType(event.getHardwareType()),
-            getCloudProviderAsString(event.getCloudProvider()));
-
-    Set<HostBucketKey> activeHostBucketKeys = new HashSet<>();
-    bucketTuples.forEach(
-        tuple -> {
-          String productId = (String) tuple.get(0);
-          ServiceLevel slaBucket = (ServiceLevel) tuple.get(1);
-          Usage usageBucket = (Usage) tuple.get(2);
-          BillingProvider billingProvider = (BillingProvider) tuple.get(3);
-          String billingAccountId = (String) tuple.get(4);
-
-          Integer cores =
-              Optional.ofNullable(host.getMeasurement(MetricIdUtils.getCores().toString()))
-                  .map(Double::intValue)
-                  .orElse(null);
-          Integer sockets =
-              Optional.ofNullable(host.getMeasurement(MetricIdUtils.getSockets().toString()))
-                  .map(Double::intValue)
-                  .orElse(null);
-
-          HostTallyBucket bucket = new HostTallyBucket();
-          var key =
-              new HostBucketKey(
-                  host,
-                  productId,
-                  slaBucket,
-                  usageBucket,
-                  billingProvider,
-                  billingAccountId,
-                  false);
-
-          bucket.setKey(key);
-          bucket.setMeasurementType(hardwareMeasurementType);
-          activeHostBucketKeys.add(key);
-          bucket.setCores(cores);
-          bucket.setSockets(sockets);
-          host.addBucket(bucket);
-        });
-    host.getBuckets().removeIf(bucket -> !activeHostBucketKeys.contains(bucket.getKey()));
-  }
+  //  private void addBucketsFromEvent(Host host, Event event) {
+  //    Set<List<Object>> bucketTuples = buildBucketTuples(event);
+  //
+  //    HardwareMeasurementType hardwareMeasurementType =
+  //        getHardwareMeasurementType(
+  //            getHostHardwareType(event.getHardwareType()),
+  //            getCloudProviderAsString(event.getCloudProvider()));
+  //
+  //    Set<HostBucketKey> activeHostBucketKeys = new HashSet<>();
+  //    bucketTuples.forEach(
+  //        tuple -> {
+  //          String productId = (String) tuple.get(0);
+  //          ServiceLevel slaBucket = (ServiceLevel) tuple.get(1);
+  //          Usage usageBucket = (Usage) tuple.get(2);
+  //          BillingProvider billingProvider = (BillingProvider) tuple.get(3);
+  //          String billingAccountId = (String) tuple.get(4);
+  //
+  //          Integer cores =
+  //              Optional.ofNullable(host.getMeasurement(MetricIdUtils.getCores().toString()))
+  //                  .map(Double::intValue)
+  //                  .orElse(null);
+  //          Integer sockets =
+  //              Optional.ofNullable(host.getMeasurement(MetricIdUtils.getSockets().toString()))
+  //                  .map(Double::intValue)
+  //                  .orElse(null);
+  //
+  //          HostTallyBucket bucket = new HostTallyBucket();
+  //          var key =
+  //              new HostBucketKey(
+  //                  host,
+  //                  productId,
+  //                  slaBucket,
+  //                  usageBucket,
+  //                  billingProvider,
+  //                  billingAccountId,
+  //                  false);
+  //
+  //          bucket.setKey(key);
+  //          bucket.setMeasurementType(hardwareMeasurementType);
+  //          activeHostBucketKeys.add(key);
+  //          bucket.setCores(cores);
+  //          bucket.setSockets(sockets);
+  //          host.addBucket(bucket);
+  //        });
+  //    host.getBuckets().removeIf(bucket -> !activeHostBucketKeys.contains(bucket.getKey()));
+  //  }
 
   private void updateUsage(AccountUsageCalculation calc, Event event) {
     Set<List<Object>> bucketTuples = buildBucketTuples(event);
@@ -482,24 +476,26 @@ public class MetricUsageCollector {
     return billingAcctIds;
   }
 
-  /**
-   * Determines if the Event's usage measurements have already been applied. Usage is considered
-   * applied when the Event's timestamp is before the Host's lastSeenDate (last time the event was
-   * metered).
-   *
-   * @param host
-   * @param event
-   * @return true if the usage was already applied, false otherwise.
-   */
-  private boolean isUsageAlreadyApplied(Host host, Event event) {
-    return Objects.nonNull(host.getLastSeen()) && event.getTimestamp().isBefore(host.getLastSeen());
-  }
-
-  private boolean isEventAlreadyAppliedToHost(Host host, Event event) {
-    return Objects.nonNull(host.getLastAppliedEventRecordDate())
-        && (host.getLastAppliedEventRecordDate().equals(event.getRecordDate())
-            || host.getLastAppliedEventRecordDate().isAfter(event.getRecordDate()));
-  }
+  //  /**
+  //   * Determines if the Event's usage measurements have already been applied. Usage is considered
+  //   * applied when the Event's timestamp is before the Host's lastSeenDate (last time the event
+  // was
+  //   * metered).
+  //   *
+  //   * @param host
+  //   * @param event
+  //   * @return true if the usage was already applied, false otherwise.
+  //   */
+  //  private boolean isUsageAlreadyApplied(Host host, Event event) {
+  //    return Objects.nonNull(host.getLastSeen()) &&
+  // event.getTimestamp().isBefore(host.getLastSeen());
+  //  }
+  //
+  //  private boolean isEventAlreadyAppliedToHost(Host host, Event event) {
+  //    return Objects.nonNull(host.getLastAppliedEventRecordDate())
+  //        && (host.getLastAppliedEventRecordDate().equals(event.getRecordDate())
+  //            || host.getLastAppliedEventRecordDate().isAfter(event.getRecordDate()));
+  //  }
 
   private AccountUsageCalculation loadHourlyAccountCalculation(Event event) {
     log.debug("Loading hourly usage from snapshots: {}", event);

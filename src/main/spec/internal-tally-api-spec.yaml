@@ -250,6 +250,12 @@ paths:
           schema:
             type: string
           required: true
+        - in: query
+          required: false
+          name: legacy
+          schema:
+            type: boolean
+            default: "true"
         - name: x-rh-swatch-synchronous-request
           in: header
           required: false
