@@ -77,7 +77,12 @@ public class RetryWithExponentialBackoffInterceptor {
         .ifPresent(maxDelay -> exponentialBackoff.maxDelay(maxDelay.toMillis(), ChronoUnit.MILLIS));
     retry = exponentialBackoff.done();
 
-    return retry.done().build().call(context::proceed);
+    return retry.done().withDescription(getMethod(context)).build().call(context::proceed);
+  }
+
+  private String getMethod(InvocationContext context) {
+    return String.format(
+        "%s.%s", context.getMethod().getDeclaringClass().getName(), context.getMethod().getName());
   }
 
   @SuppressWarnings("unchecked")
