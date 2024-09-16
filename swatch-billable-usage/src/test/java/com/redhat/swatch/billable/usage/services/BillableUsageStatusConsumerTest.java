@@ -22,6 +22,7 @@ package com.redhat.swatch.billable.usage.services;
 
 import static com.redhat.swatch.billable.usage.kafka.InMemoryMessageBrokerKafkaResource.IN_MEMORY_CONNECTOR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.verify;
 
@@ -35,7 +36,6 @@ import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectSpy;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
-import io.smallrye.reactive.messaging.memory.InMemorySink;
 import io.smallrye.reactive.messaging.memory.InMemorySource;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -43,9 +43,9 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.awaitility.Awaitility;
-import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsage.ErrorCode;
 import org.candlepin.subscriptions.billable.usage.BillableUsage.Status;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
@@ -73,14 +73,11 @@ class BillableUsageStatusConsumerTest {
   @InjectSpy BillableUsageRemittanceRepository remittanceRepository;
 
   private InMemorySource<BillableUsageAggregate> source;
-  private InMemorySink<BillableUsage> dlt;
 
   @BeforeEach
   @Transactional
   void setUp() {
     source = connector.source(Channels.BILLABLE_USAGE_STATUS);
-    dlt = connector.sink(Channels.BILLABLE_USAGE_DLT_OUT);
-    dlt.clear();
     remittanceRepository.deleteAll();
   }
 
@@ -112,8 +109,8 @@ class BillableUsageStatusConsumerTest {
             .collect(Collectors.toList()));
     whenSendResponse(message);
     Awaitility.await().untilAsserted(() -> verifyUpdateForFailure(RemittanceErrorCode.INACTIVE));
-    // Since the usage failed with inactive, we should not send the usage to the dlt topic.
-    assertEquals(0, dlt.received().size());
+    // Since the usage failed with inactive, we should not update the retryAfter
+    verifyRemittancesHaveNotRetryAfterSet(message.getRemittanceUuids());
   }
 
   @Test
@@ -132,7 +129,7 @@ class BillableUsageStatusConsumerTest {
     whenSendResponse(message);
     Awaitility.await()
         .untilAsserted(() -> verifyUpdateForFailure(RemittanceErrorCode.SUBSCRIPTION_NOT_FOUND));
-    assertEquals(existingRemittances.size(), dlt.received().size());
+    verifyRemittancesHaveRetryAfterSet(message.getRemittanceUuids());
   }
 
   @Transactional
@@ -171,8 +168,7 @@ class BillableUsageStatusConsumerTest {
 
   @Transactional
   void verifyUpdateForSuccess() {
-    var results = remittanceRepository.findAll().stream().collect(Collectors.toList());
-    results.stream()
+    remittanceRepository.findAll().stream()
         .forEach(
             result -> {
               assertEquals(RemittanceStatus.SUCCEEDED, result.getStatus());
@@ -184,12 +180,28 @@ class BillableUsageStatusConsumerTest {
   @Transactional
   void verifyUpdateForFailure(RemittanceErrorCode expected) {
     remittanceRepository.findAll().stream()
-        .toList()
         .forEach(
             result -> {
               assertEquals(RemittanceStatus.FAILED, result.getStatus());
               assertEquals(expected, result.getErrorCode());
               assertNull(result.getBilledOn());
             });
+  }
+
+  @Transactional
+  void verifyRemittancesHaveRetryAfterSet(List<String> uuids) {
+    verifyRemittances(uuids, result -> assertNotNull(result.getRetryAfter()));
+  }
+
+  @Transactional
+  void verifyRemittancesHaveNotRetryAfterSet(List<String> uuids) {
+    verifyRemittances(uuids, result -> assertNull(result.getRetryAfter()));
+  }
+
+  @Transactional
+  void verifyRemittances(List<String> uuids, Consumer<BillableUsageRemittanceEntity> assertion) {
+    uuids.stream()
+        .map(uuid -> remittanceRepository.findById(UUID.fromString(uuid)))
+        .forEach(assertion);
   }
 }

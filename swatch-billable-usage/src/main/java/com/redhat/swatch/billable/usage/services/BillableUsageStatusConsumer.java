@@ -30,13 +30,12 @@ import com.redhat.swatch.billable.usage.data.RemittanceErrorCode;
 import com.redhat.swatch.billable.usage.data.RemittanceStatus;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
+import java.time.Clock;
+import java.time.OffsetDateTime;
 import java.util.Objects;
-import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
-import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 
 @Slf4j
@@ -44,8 +43,9 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 @AllArgsConstructor
 public class BillableUsageStatusConsumer {
 
+  private static final OffsetDateTime NO_RETRY = null;
+
   private final BillableUsageRemittanceRepository remittanceRepository;
-  private final BillableUsageDeadLetterProducer billableUsageDeadLetterProducer;
 
   @Incoming(Channels.BILLABLE_USAGE_STATUS)
   @Transactional
@@ -57,30 +57,6 @@ public class BillableUsageStatusConsumer {
     }
 
     updateStatus(billableUsageAggregate);
-    // NB: statuses like INACTIVE shouldn't go to the DLT since there's nothing we can do about them
-    if (billableUsageAggregate.getStatus() == FAILED
-        && billableUsageAggregate.getErrorCode() == SUBSCRIPTION_NOT_FOUND) {
-      sendToDeadLetterTopic(billableUsageAggregate);
-    }
-  }
-
-  private void sendToDeadLetterTopic(BillableUsageAggregate billableUsageAggregate) {
-    if (billableUsageAggregate.getAggregateKey().getBillingProvider() != null
-        && billableUsageAggregate.getRemittanceUuids() != null) {
-      billableUsageAggregate.getRemittanceUuids().stream()
-          .map(
-              uuid -> billableUsageFromAggregateKey(billableUsageAggregate.getAggregateKey(), uuid))
-          .forEach(
-              billableUsage -> {
-                billableUsageDeadLetterProducer.send(billableUsage);
-                log.warn(
-                    "Skipping billable usage with id={} orgId={} because the subscription was not found. Will retry again after one hour.",
-                    billableUsage.getUuid(),
-                    billableUsage.getOrgId());
-              });
-    } else {
-      log.warn("No billable usage remittance UUIDs available to retry for.");
-    }
   }
 
   private void updateStatus(BillableUsageAggregate billableUsageAggregate) {
@@ -89,30 +65,22 @@ public class BillableUsageStatusConsumer {
         ofNullable(billableUsageAggregate.getErrorCode())
             .map(code -> RemittanceErrorCode.fromString(code.value()))
             .orElse(null);
+    // NB: statuses like INACTIVE shouldn't retry again since there's nothing we can do about them
+    var retryAfter = needsRetry(billableUsageAggregate) ? nextTick() : NO_RETRY;
     remittanceRepository.updateStatusByIdIn(
         billableUsageAggregate.getRemittanceUuids(),
         status,
         billableUsageAggregate.getBilledOn(),
-        errorCode);
+        errorCode,
+        retryAfter);
   }
 
-  private BillableUsage billableUsageFromAggregateKey(BillableUsageAggregateKey key, String uuid) {
-    var billableUsage = new BillableUsage();
-    billableUsage.setUsage(
-        ofNullable(key.getUsage())
-            .map(BillableUsage.Usage::fromValue)
-            .orElse(BillableUsage.Usage.__EMPTY__));
-    billableUsage.setBillingAccountId(key.getBillingAccountId());
-    billableUsage.setBillingProvider(
-        BillableUsage.BillingProvider.fromValue(key.getBillingProvider()));
-    billableUsage.setOrgId(key.getOrgId());
-    billableUsage.setProductId(key.getProductId());
-    billableUsage.setMetricId(key.getMetricId());
-    billableUsage.setSla(
-        ofNullable(key.getSla())
-            .map(BillableUsage.Sla::fromValue)
-            .orElse(BillableUsage.Sla.__EMPTY__));
-    billableUsage.setUuid(UUID.fromString(uuid));
-    return billableUsage;
+  private OffsetDateTime nextTick() {
+    return OffsetDateTime.now(Clock.systemUTC()).plusHours(1);
+  }
+
+  private boolean needsRetry(BillableUsageAggregate billableUsageAggregate) {
+    return billableUsageAggregate.getStatus() == FAILED
+        && billableUsageAggregate.getErrorCode() == SUBSCRIPTION_NOT_FOUND;
   }
 }
