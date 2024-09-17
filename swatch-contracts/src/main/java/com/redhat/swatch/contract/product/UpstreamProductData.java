@@ -452,9 +452,9 @@ public class UpstreamProductData {
         Optional.ofNullable(attrs.get(Attr.IFL))
             .map(ifl -> Integer.parseInt(ifl) * CONVERSION_RATIO_IFL_TO_CORES)
             // ... but if IFL is not defined, then use the CORES attr.
-            .orElseGet(() -> nullOrInteger(attrs.get(Attr.CORES)));
+            .orElseGet(() -> nullOrInteger(attrs, Attr.CORES));
 
-    Integer sockets = nullOrInteger(attrs.get(Attr.SOCKET_LIMIT));
+    Integer sockets = nullOrInteger(attrs, Attr.SOCKET_LIMIT);
 
     /*
     There are no SKUs today (2021-10-27) that provide both standard capacity and hypervisor capacity
@@ -485,11 +485,17 @@ public class UpstreamProductData {
     offering.setHasUnlimitedUsage(hasUnlimitedCores || hasUnlimitedSockets);
   }
 
-  private static Integer nullOrInteger(String capacity) {
+  private static Integer nullOrInteger(Map<Attr, String> attrs, Attr key) {
+    String capacity = attrs.get(key);
     if (capacity == null || hasUnlimitedUsage(capacity)) {
       return null;
     } else {
-      return Integer.valueOf(capacity);
+      try {
+        return Integer.valueOf(capacity);
+      } catch (NumberFormatException e) {
+        log.warn("Invalid integer value {} for attr {}", capacity, key);
+        return null;
+      }
     }
   }
 

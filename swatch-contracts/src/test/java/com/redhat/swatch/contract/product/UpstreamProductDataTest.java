@@ -21,6 +21,7 @@
 package com.redhat.swatch.contract.product;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -295,5 +296,52 @@ class UpstreamProductDataTest {
     assertEquals(ServiceLevel.PREMIUM, actual.getServiceLevel());
     assertEquals(Usage.PRODUCTION, actual.getUsage());
     verifyNoInteractions(mockDataSource);
+  }
+
+  @Test
+  void testOfferingWithNoneSocketsProcessedSuccessfully() {
+    var mockDataSource = mock(ProductDataSource.class);
+    // we set only the fields which must match to avoid RHIT product service lookup
+    OfferingEntity existingData =
+        OfferingEntity.builder()
+            .sku("foo")
+            .childSkus(Set.of("child"))
+            .derivedSku("derived")
+            .build();
+    var actual =
+        UpstreamProductData.offeringFromUmbData(
+                UmbOperationalProduct.builder()
+                    .role("role")
+                    .sku("foo")
+                    .skuDescription("desc")
+                    .productRelationship(
+                        ProductRelationship.builder()
+                            .childProducts(
+                                new ChildProduct[] {ChildProduct.builder().sku("child").build()})
+                            .build())
+                    .attributes(
+                        new ProductAttribute[] {
+                          ProductAttribute.builder().code("PRODUCT_FAMILY").value("family").build(),
+                          ProductAttribute.builder().code("PRODUCT_NAME").value("name").build(),
+                          ProductAttribute.builder().code("DERIVED_SKU").value("derived").build(),
+                          ProductAttribute.builder().code("SOCKET_LIMIT").value("None").build(),
+                          ProductAttribute.builder().code("CORES").value("None").build(),
+                          ProductAttribute.builder()
+                              .code("SERVICE_TYPE")
+                              .value(ServiceLevel.PREMIUM.getValue())
+                              .build(),
+                          ProductAttribute.builder()
+                              .code("USAGE")
+                              .value(Usage.PRODUCTION.getValue())
+                              .build(),
+                        })
+                    .build(),
+                existingData,
+                mockDataSource)
+            .orElseThrow();
+    assertNull(actual.getHypervisorSockets());
+    assertNull(actual.getHypervisorCores());
+    assertNull(actual.getSockets());
+    assertNull(actual.getCores());
   }
 }
