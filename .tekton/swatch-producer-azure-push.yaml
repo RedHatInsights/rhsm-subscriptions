@@ -276,7 +276,7 @@ spec:
         - name: name
           value: deprecated-image-check
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-deprecated-image-check:0.4@sha256:954144f29267e117e291a4b2940a1d429e1ecd9cc919f3ac22bcbd97c3a45588
+          value: quay.io/redhat-appstudio-tekton-catalog/task-deprecated-image-check:0.4@sha256:cb20ddc1f52345180ad7acc18ea65636f7936b31b91968bd2538bc9bc64efd7d
         - name: kind
           value: task
         resolver: bundles
@@ -315,7 +315,7 @@ spec:
         - name: name
           value: sast-snyk-check
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-sast-snyk-check:0.2@sha256:2706784ecf55a376f243797682b197805e7a5731d6447de91469746f1643b3d4
+          value: quay.io/redhat-appstudio-tekton-catalog/task-sast-snyk-check:0.2@sha256:8bf172bea7f9aca59d5e78606baa72c492678cae44fe736be2b33bfff04713dd
         - name: kind
           value: task
         resolver: bundles
@@ -345,7 +345,7 @@ spec:
         - name: name
           value: clamav-scan
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-clamav-scan:0.1@sha256:477f46a09f8347992d37de010768ded070f890cae1743d8955e2466aba1ee7bd
+          value: quay.io/redhat-appstudio-tekton-catalog/task-clamav-scan:0.1@sha256:23932afd9a2dcec50916dc594172b1c458ca9018c2c5363c3de5f7d1f8a158e3
         - name: kind
           value: task
         resolver: bundles
