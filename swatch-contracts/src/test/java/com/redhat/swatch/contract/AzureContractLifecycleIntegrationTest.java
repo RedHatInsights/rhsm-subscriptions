@@ -52,19 +52,13 @@ import org.junit.jupiter.api.Test;
 @QuarkusTestResource(value = WireMockResource.class, restrictToAnnotatedClass = true)
 class AzureContractLifecycleIntegrationTest {
 
-  @Inject ContractService contractService;
-  @Inject ObjectMapper objectMapper;
-  @Inject SubscriptionRepository subscriptionRepository;
-  @Inject ContractRepository contractRepository;
-  @Inject OfferingRepository offeringRepository;
-  @InjectWireMock WireMockServer wireMockServer;
-
-  static String AZURE_CUSTOMER_ID = "azure_customer_id_placeholder";
-  static String AZURE_SUBSCRIPTION_ID = "d351b825-7e4b-4bfb-aad3-28441b34b5f1";
-  static String AZURE_RESOURCE_ID = "f226c862-dbc3-4f91-b8ed-1eba40dcdc59";
-  static String RH_SUBSCRIPTION_NUMBER = "42";
-  static String RH_ORG_ID = "org123";
-  static String AZURE_UMB_MESSAGE_CONTRACT_CREATED =
+  private static final String AZURE_CUSTOMER_ID = "azure_customer_id_placeholder";
+  private static final String AZURE_SUBSCRIPTION_ID = "d351b825-7e4b-4bfb-aad3-28441b34b5f1";
+  private static final String AZURE_RESOURCE_ID = "f226c862-dbc3-4f91-b8ed-1eba40dcdc59";
+  private static final String AZURE_CLIENT_ID = "123456789A";
+  private static final String RH_SUBSCRIPTION_NUMBER = "42";
+  private static final String RH_ORG_ID = "org123";
+  private static final String AZURE_UMB_MESSAGE_CONTRACT_CREATED =
       String.format(
           """
           {
@@ -81,7 +75,7 @@ class AzureContractLifecycleIntegrationTest {
           """,
           AZURE_RESOURCE_ID);
 
-  static String AZURE_PARTNER_API_RESPONSE_CONTRACT_CREATED =
+  private static final String AZURE_PARTNER_API_RESPONSE_CONTRACT_CREATED =
       String.format(
           """
           {
@@ -92,7 +86,8 @@ class AzureContractLifecycleIntegrationTest {
                   "startDate": "2024-01-01T00:00:00.000000Z"
                 },
                 "partnerIdentities": {
-                  "azureCustomerId": "%s"
+                  "azureCustomerId": "%s",
+                  "clientId": "%s"
                 },
                 "purchase": {
                   "azureResourceId": "%s",
@@ -122,9 +117,9 @@ class AzureContractLifecycleIntegrationTest {
             }
           }
           """,
-          AZURE_CUSTOMER_ID, AZURE_RESOURCE_ID, RH_SUBSCRIPTION_NUMBER);
+          AZURE_CUSTOMER_ID, AZURE_CLIENT_ID, AZURE_RESOURCE_ID, RH_SUBSCRIPTION_NUMBER);
 
-  static String AZURE_UMB_MESSAGE_ORG_ASSOCIATED =
+  private static final String AZURE_UMB_MESSAGE_ORG_ASSOCIATED =
       String.format(
           """
           {
@@ -142,7 +137,7 @@ class AzureContractLifecycleIntegrationTest {
           """,
           AZURE_RESOURCE_ID, RH_SUBSCRIPTION_NUMBER);
 
-  static String AZURE_PARTNER_API_RESPONSE_SKU_MISSING =
+  private static final String AZURE_PARTNER_API_RESPONSE_SKU_MISSING =
       String.format(
           """
           {
@@ -153,7 +148,8 @@ class AzureContractLifecycleIntegrationTest {
                   "startDate": "2024-01-01T00:00:00.000000Z"
                 },
                 "partnerIdentities": {
-                  "azureCustomerId": "%s"
+                  "azureCustomerId": "%s",
+                  "clientId": "%s"
                 },
                 "purchase": {
                   "azureResourceId": "%s",
@@ -184,9 +180,9 @@ class AzureContractLifecycleIntegrationTest {
             }
           }
           """,
-          AZURE_CUSTOMER_ID, AZURE_RESOURCE_ID, RH_ORG_ID, RH_SUBSCRIPTION_NUMBER);
+          AZURE_CUSTOMER_ID, AZURE_CLIENT_ID, AZURE_RESOURCE_ID, RH_ORG_ID, RH_SUBSCRIPTION_NUMBER);
 
-  static String AZURE_PARTNER_API_RESPONSE_ORG_ASSOCIATED =
+  private static final String AZURE_PARTNER_API_RESPONSE_ORG_ASSOCIATED =
       String.format(
           """
           {
@@ -198,7 +194,8 @@ class AzureContractLifecycleIntegrationTest {
                 },
                 "partnerIdentities": {
                   "azureSubscriptionId": "%s",
-                  "azureCustomerId": "%s"
+                  "azureCustomerId": "%s",
+                  "clientId": "%s"
                 },
                 "purchase": {
                   "azureResourceId": "%s",
@@ -232,11 +229,12 @@ class AzureContractLifecycleIntegrationTest {
           """,
           AZURE_SUBSCRIPTION_ID,
           AZURE_CUSTOMER_ID,
+          AZURE_CLIENT_ID,
           AZURE_RESOURCE_ID,
           RH_ORG_ID,
           RH_SUBSCRIPTION_NUMBER);
 
-  static String AZURE_UMB_MESSAGE_AZURE_SUBSCRIPTION_ID_ADDED =
+  private static final String AZURE_UMB_MESSAGE_AZURE_SUBSCRIPTION_ID_ADDED =
       String.format(
           """
           {
@@ -254,7 +252,7 @@ class AzureContractLifecycleIntegrationTest {
           """,
           AZURE_RESOURCE_ID, AZURE_SUBSCRIPTION_ID);
 
-  static String AZURE_PARTNER_API_RESPONSE_AZURE_SUBSCRIPTION_ID_ADDED =
+  private static final String AZURE_PARTNER_API_RESPONSE_AZURE_SUBSCRIPTION_ID_ADDED =
       String.format(
           """
           {
@@ -266,7 +264,8 @@ class AzureContractLifecycleIntegrationTest {
                 },
                 "partnerIdentities": {
                   "azureSubscriptionId": "%s",
-                  "azureCustomerId": "%s"
+                  "azureCustomerId": "%s",
+                  "clientId": "%s"
                 },
                 "purchase": {
                   "azureResourceId": "%s",
@@ -300,9 +299,17 @@ class AzureContractLifecycleIntegrationTest {
           """,
           AZURE_SUBSCRIPTION_ID,
           AZURE_CUSTOMER_ID,
+          AZURE_CLIENT_ID,
           AZURE_RESOURCE_ID,
           RH_ORG_ID,
           RH_SUBSCRIPTION_NUMBER);
+
+  @Inject ContractService contractService;
+  @Inject ObjectMapper objectMapper;
+  @Inject SubscriptionRepository subscriptionRepository;
+  @Inject ContractRepository contractRepository;
+  @Inject OfferingRepository offeringRepository;
+  @InjectWireMock WireMockServer wireMockServer;
 
   @BeforeEach
   @Transactional
@@ -375,14 +382,12 @@ class AzureContractLifecycleIntegrationTest {
     var subscription = subscriptionRepository.findAll().stream().findFirst().orElseThrow();
     assertEquals(AZURE_SUBSCRIPTION_ID, contract.getBillingAccountId());
     assertEquals(AZURE_SUBSCRIPTION_ID, subscription.getBillingAccountId());
-    assertEquals(
+    String expectedBillingProviderId =
         String.format(
-            "%s;%s;%s;%s", AZURE_RESOURCE_ID, "vcpu-hours", "azureOfferId", AZURE_CUSTOMER_ID),
-        contract.getBillingProviderId());
-    assertEquals(
-        String.format(
-            "%s;%s;%s;%s", AZURE_RESOURCE_ID, "vcpu-hours", "azureOfferId", AZURE_CUSTOMER_ID),
-        subscription.getBillingProviderId());
+            "%s;%s;%s;%s;%s",
+            AZURE_RESOURCE_ID, "vcpu-hours", "azureOfferId", AZURE_CUSTOMER_ID, AZURE_CLIENT_ID);
+    assertEquals(expectedBillingProviderId, contract.getBillingProviderId());
+    assertEquals(expectedBillingProviderId, subscription.getBillingProviderId());
   }
 
   private void stubPartnerSubscriptionApi(String jsonBody) {
