@@ -61,9 +61,6 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class SubscriptionTableController {
 
-  private static final String CORES = "Cores";
-  private static final String SOCKETS = "Sockets";
-  private static final Uom NO_UOM = null;
   private static final String NO_METRIC_ID = null;
   private final ApiModelMapperV1 mapper;
   private final SubscriptionRepository subscriptionRepository;
@@ -90,7 +87,6 @@ public class SubscriptionTableController {
       UsageType usage,
       BillingProviderType billingProviderType,
       String billingAccountId,
-      Uom uom,
       String metricId,
       SkuCapacityReportSort sort,
       SortDirection dir) {
@@ -122,7 +118,6 @@ public class SubscriptionTableController {
             + "Service Level={}, "
             + "Usage={}, "
             + "between={} and {}, "
-            + "Uom={}, "
             + "MetricId={}, "
             + "Billing Provider={}",
         orgId,
@@ -132,10 +127,8 @@ public class SubscriptionTableController {
         sanitizedUsage,
         reportStart,
         reportEnd,
-        uom,
         metricId,
         sanitizedBillingProvider);
-    String effectiveMetricId = getEffectiveMetricId(metricId, uom);
 
     var reportCriteria =
         DbReportCriteria.builder()
@@ -145,7 +138,7 @@ public class SubscriptionTableController {
             .usage(sanitizedUsage)
             .beginning(reportStart)
             .ending(reportEnd)
-            .metricId(effectiveMetricId)
+            .metricId(metricId)
             .hypervisorReportCategory(hypervisorReportCategory)
             .billingProvider(sanitizedBillingProvider)
             .build();
@@ -158,7 +151,7 @@ public class SubscriptionTableController {
       SkuCapacity inventory =
           reportItemsBySku.computeIfAbsent(
               subscription.getOffering().getSku(),
-              s -> initializeSkuCapacity(subscription, uom, effectiveMetricId));
+              s -> initializeSkuCapacity(subscription, metricId));
       calculateNextEvent(subscription, inventory, reportEnd);
       addSubscriptionInformation(subscription, inventory);
       var measurements = subscription.getSubscriptionMeasurements().entrySet().stream();
@@ -194,7 +187,7 @@ public class SubscriptionTableController {
         SkuCapacity inventory =
             reportItemsBySku.computeIfAbsent(
                 subscription.getOffering().getSku(),
-                s -> initializeSkuCapacity(subscription, uom, effectiveMetricId));
+                s -> initializeSkuCapacity(subscription, metricId));
 
         inventory.setHasInfiniteQuantity(true);
         calculateNextEvent(subscription, inventory, reportCriteria.getEnding());
@@ -236,21 +229,8 @@ public class SubscriptionTableController {
                 .count(reportItemCount)
                 .serviceLevel(serviceLevel)
                 .usage(usage)
-                .uom(uom)
                 .reportCategory(category)
                 .product(productId.toString()));
-  }
-
-  private static String getEffectiveMetricId(String metricId, Uom uom) {
-    String effectiveMetricId = metricId;
-    if (effectiveMetricId == null && uom != null) {
-      effectiveMetricId =
-          switch (uom) {
-            case CORES -> CORES;
-            case SOCKETS -> SOCKETS;
-          };
-    }
-    return effectiveMetricId;
   }
 
   @SuppressWarnings("java:S107")
@@ -286,14 +266,13 @@ public class SubscriptionTableController {
           final SkuCapacity inventory =
               inventories.computeIfAbsent(
                   String.format("%s:%s", sku, sub.getBillingProvider()),
-                  key -> initializeSkuCapacity(sub, NO_UOM, NO_METRIC_ID));
+                  key -> initializeSkuCapacity(sub, NO_METRIC_ID));
           addOnDemandSubscriptionInformation(sub, inventory);
         });
     return inventories.values();
   }
 
-  public SkuCapacity initializeSkuCapacity(
-      @Nonnull Subscription sub, @Nullable Uom uom, @Nullable String effectiveMetricId) {
+  public SkuCapacity initializeSkuCapacity(@Nonnull Subscription sub, @Nullable String metricId) {
     var offering = sub.getOffering();
     var inventory = new SkuCapacity();
     inventory.setSubscriptions(new ArrayList<>());
@@ -309,12 +288,7 @@ public class SubscriptionTableController {
     inventory.setCapacity(0);
     inventory.setHypervisorCapacity(0);
     inventory.setTotalCapacity(0);
-    inventory.setMetricId(effectiveMetricId);
-    // When uom param is set, force all inventories to report capacities for that UoM
-    // (Some products have both sockets and cores)
-    if (uom != null) {
-      inventory.setUom(uom);
-    }
+    inventory.setMetricId(metricId);
     return inventory;
   }
 
@@ -376,24 +350,13 @@ public class SubscriptionTableController {
     var metric = key.getMetricId();
     var type = key.getMeasurementType();
     // we only initialize the metric for measurements with a value higher than zero.
-    if (value > 0) {
+    if (value > 0 && skuCapacity.getMetricId() == null) {
       // initialize metric ID using the current metric if it's not set
-      if (skuCapacity.getMetricId() == null) {
-        skuCapacity.setMetricId(metric);
-      }
-      // initialize uom using the current metric if it's not set
-      if (skuCapacity.getUom() == null) {
-        if (SOCKETS.equalsIgnoreCase(metric)) {
-          skuCapacity.setUom(Uom.SOCKETS);
-        } else if (CORES.equalsIgnoreCase(metric)) {
-          skuCapacity.setUom(Uom.CORES);
-        }
-      }
+      skuCapacity.setMetricId(metric);
     }
 
     // accumulate the value
-    if ((skuCapacity.getUom() != null && skuCapacity.getUom().toString().equalsIgnoreCase(metric))
-        || metric.equals(skuCapacity.getMetricId())) {
+    if (metric.equals(skuCapacity.getMetricId())) {
       if (PHYSICAL.equals(type)) {
         skuCapacity.setCapacity(skuCapacity.getCapacity() + value.intValue());
       } else if (HYPERVISOR.equals(type)) {

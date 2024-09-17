@@ -93,6 +93,7 @@ class AzureBillableUsageAggregateConsumerTest {
     givenAzureContextForUsage();
     givenAzureMarketplaceReturnsOk();
     whenSendUsage();
+    thenInfoLogContainsClientId();
     thenUsageIsSentToAzure();
   }
 
@@ -156,6 +157,10 @@ class AzureBillableUsageAggregateConsumerTest {
   private void thenUsageIsSentToAzure() {
     Awaitility.await()
         .untilAsserted(() -> wireMockResource.verifyUsageIsSentToAzureMarketplace(contextForUsage));
+  }
+
+  private void thenInfoLogContainsClientId() {
+    thenLogWithMessage(Level.INFO, contextForUsage.getClientId());
   }
 
   private void thenWarningLogWithMessage(String str) {

@@ -421,6 +421,8 @@ components:
           format: date-time
         planId:
           type: string
+        clientId:
+          type: string
 
     UsageEventStatusEnum:
       type: string

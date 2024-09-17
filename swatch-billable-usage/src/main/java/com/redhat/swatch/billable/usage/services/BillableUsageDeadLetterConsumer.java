@@ -33,6 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 
+/** Consumer to be removed after SWATCH-2803 is in production. */
 @Slf4j
 @ApplicationScoped
 @AllArgsConstructor

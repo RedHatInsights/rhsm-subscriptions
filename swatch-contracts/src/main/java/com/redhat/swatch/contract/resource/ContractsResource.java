@@ -23,6 +23,7 @@ package com.redhat.swatch.contract.resource;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.redhat.swatch.clients.product.api.resources.ApiException;
 import com.redhat.swatch.contract.config.ApplicationConfiguration;
+import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
 import com.redhat.swatch.contract.model.SyncResult;
 import com.redhat.swatch.contract.openapi.model.AwsUsageContext;
 import com.redhat.swatch.contract.openapi.model.AzureUsageContext;
@@ -174,7 +175,7 @@ public class ContractsResource implements DefaultApi {
   @RolesAllowed({"test"})
   public StatusResponse createPartnerEntitlementContract(PartnerEntitlementContract contract)
       throws ProcessingException {
-    return service.createPartnerContract(contract);
+    return service.createPartnerContract(PartnerEntitlementsRequest.from(contract));
   }
 
   @Override
