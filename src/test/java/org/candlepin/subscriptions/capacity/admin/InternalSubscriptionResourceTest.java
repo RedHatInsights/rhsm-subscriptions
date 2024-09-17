@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.capacity.admin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -173,7 +174,7 @@ class InternalSubscriptionResourceTest {
   void azureUsageContextEncodesAttributes() {
     var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
     Subscription sub = new Subscription();
-    sub.setBillingProviderId("resourceId;planId;offerId");
+    sub.setBillingProviderId("resourceId;planId;offerId;customerId");
     sub.setEndDate(endDate);
     when(syncController.findSubscriptions(any(), any(), any(), any())).thenReturn(List.of(sub));
     var azureUsageContext =
@@ -182,6 +183,23 @@ class InternalSubscriptionResourceTest {
     assertEquals("resourceId", azureUsageContext.getAzureResourceId());
     assertEquals("planId", azureUsageContext.getPlanId());
     assertEquals("offerId", azureUsageContext.getOfferId());
+    assertNull(azureUsageContext.getClientId());
+  }
+
+  @Test
+  void azureUsageContextEncodesAttributesWithClientId() {
+    var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
+    Subscription sub = new Subscription();
+    sub.setBillingProviderId("resourceId;planId;offerId;customerId;clientId");
+    sub.setEndDate(endDate);
+    when(syncController.findSubscriptions(any(), any(), any(), any())).thenReturn(List.of(sub));
+    var azureUsageContext =
+        resource.getAzureMarketplaceContext(
+            endDate, "BASILISK", "org123", "Premium", "Production", "123");
+    assertEquals("resourceId", azureUsageContext.getAzureResourceId());
+    assertEquals("planId", azureUsageContext.getPlanId());
+    assertEquals("offerId", azureUsageContext.getOfferId());
+    assertEquals("clientId", azureUsageContext.getClientId());
   }
 
   @Test

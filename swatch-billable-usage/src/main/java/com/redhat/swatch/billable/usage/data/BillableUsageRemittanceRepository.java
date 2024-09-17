@@ -105,12 +105,14 @@ public class BillableUsageRemittanceRepository
       List<String> uuids,
       RemittanceStatus status,
       OffsetDateTime billedOn,
-      RemittanceErrorCode errorCode) {
+      RemittanceErrorCode errorCode,
+      OffsetDateTime retryAfter) {
     update(
-        "status = ?1, billedOn=?2, errorCode=?3 where uuid in (?4)",
+        "status = ?1, billedOn=?2, errorCode=?3, retryAfter=?4 where uuid in (?5)",
         status,
         billedOn,
         errorCode,
+        retryAfter,
         uuids);
   }
 

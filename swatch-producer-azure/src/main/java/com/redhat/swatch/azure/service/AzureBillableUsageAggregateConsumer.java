@@ -221,6 +221,7 @@ public class AzureBillableUsageAggregateConsumer {
     usage.setDimension(metric.getAzureDimension());
     usage.setPlanId(context.getPlanId());
     usage.setResourceId(context.getAzureResourceId());
+    usage.setClientId(context.getClientId());
     usage.setQuantity(billableUsageAggregate.getTotalValue().doubleValue());
     usage.setEffectiveStartTime(billableUsageAggregate.getWindowTimestamp());
     return usage;

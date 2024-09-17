@@ -172,7 +172,17 @@ public class InternalSubscriptionResource implements InternalSubscriptionsApi {
     String resourceId = parts[0];
     String planId = parts[1];
     String offerId = parts[2];
-    return new AzureUsageContext().azureResourceId(resourceId).offerId(offerId).planId(planId);
+    // parts[3] is the azure customer ID (see ContractEntityMapper.extractBillingProviderId method).
+    // parts[4] is the client ID which is optional for contracts created before ITPART-1180
+    String clientId = null;
+    if (parts.length > 4) {
+      clientId = parts[4];
+    }
+    return new AzureUsageContext()
+        .azureResourceId(resourceId)
+        .offerId(offerId)
+        .planId(planId)
+        .clientId(clientId);
   }
 
   @Override

@@ -334,6 +334,10 @@ components:
           description: IT Partner gateway will pass it under "cloudIdentifiers".  UMB messages under contracts.planId
           type: string
           example: rh-rhel-sub-1yr
+        clientId:
+          description: IT Partner gateway will pass it under "cloudIdentifiers".  UMB messages under partnerIdentities.clientId
+          type: string
+          example: 6779ef20e75817b79602
     Metric:
       properties:
         uom:
