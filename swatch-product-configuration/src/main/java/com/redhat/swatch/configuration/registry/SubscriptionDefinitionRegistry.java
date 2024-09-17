@@ -49,6 +49,14 @@ public class SubscriptionDefinitionRegistry {
     return instance;
   }
 
+  /** Reset the registry instance for test purposes. */
+  public static synchronized void reset() {
+    SubscriptionDefinition.tagCache.invalidateAll();
+    SubscriptionDefinition.engIdCache.invalidateAll();
+    SubscriptionDefinition.roleCache.invalidateAll();
+    instance = new SubscriptionDefinitionRegistry();
+  }
+
   SubscriptionDefinitionRegistry() {
     subscriptions = new ArrayList<>();
     var options = new LoaderOptions();

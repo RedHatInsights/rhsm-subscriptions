@@ -20,6 +20,8 @@
  */
 package com.redhat.swatch.configuration.registry;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.MoreCollectors;
 import com.redhat.swatch.configuration.util.ProductTagLookupParams;
 import jakarta.validation.Valid;
@@ -32,6 +34,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -54,6 +57,21 @@ import lombok.extern.slf4j.Slf4j;
 public class SubscriptionDefinition {
   public static final Set<String> ORDERED_GRANULARITY =
       Set.of("HOURLY", "DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY");
+
+  protected static LoadingCache<String, Optional<SubscriptionDefinition>> tagCache =
+      Caffeine.newBuilder()
+          .expireAfterAccess(3, TimeUnit.HOURS)
+          .build(SubscriptionDefinition::cacheSubscriptionByTag);
+
+  protected static LoadingCache<String, Optional<SubscriptionDefinition>> roleCache =
+      Caffeine.newBuilder()
+          .expireAfterAccess(3, TimeUnit.HOURS)
+          .build(SubscriptionDefinition::cacheSubscriptionByRole);
+
+  protected static LoadingCache<String, Set<SubscriptionDefinition>> engIdCache =
+      Caffeine.newBuilder()
+          .expireAfterAccess(3, TimeUnit.HOURS)
+          .build(SubscriptionDefinition::cacheSubscriptionByEngId);
 
   /**
    * A family of solutions that is logically related, having one or more subscriptions distinguished
@@ -245,55 +263,69 @@ public class SubscriptionDefinition {
     }
   }
 
-  /**
-   * An engineering id can be found in either a fingerprint or variant. Check the variant first. If
-   * not found, check the fingerprint.
-   *
-   * @param engProductId
-   * @return Optional<Subscription> subscription
-   */
-  public static Set<SubscriptionDefinition> lookupSubscriptionByEngId(String engProductId) {
+  // EngIds can occur in more than one SubscriptionDefinition
+  protected static Set<SubscriptionDefinition> cacheSubscriptionByEngId(String engProductId) {
+    int engId = Integer.parseInt(engProductId);
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
-        .filter(subscription -> !subscription.getVariants().isEmpty())
         .filter(
             subscription ->
-                subscription.getVariants().stream()
-                    .anyMatch(variant -> variant.getEngineeringIds().contains(engProductId)))
+                !subscription.getVariants().isEmpty()
+                    && subscription.getVariants().stream()
+                        .anyMatch(variant -> variant.getEngineeringIds().contains(engId)))
         .collect(Collectors.toUnmodifiableSet());
   }
 
   /**
-   * Looks for role matching a variant
+   * An engineering id can be found in either a fingerprint or variant. Check the variant first. If
+   * not found, check the fingerprint.
    *
-   * @param role
-   * @return Optional<Subscription>
+   * @param engProductId a String with the engineering product ID
+   * @return Optional<Subscription> subscription
    */
-  public static Optional<SubscriptionDefinition> lookupSubscriptionByRole(String role) {
+  public static Set<SubscriptionDefinition> lookupSubscriptionByEngId(String engProductId) {
+    return engIdCache.get(engProductId);
+  }
+
+  protected static Optional<SubscriptionDefinition> cacheSubscriptionByRole(String role) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
-        .filter(subscription -> !subscription.getVariants().isEmpty())
         .filter(
             subscription ->
-                subscription.getVariants().stream()
-                    .anyMatch(variant -> variant.getRoles().contains(role)))
+                !subscription.getVariants().isEmpty()
+                    && subscription.getVariants().stream()
+                        .anyMatch(variant -> variant.getRoles().contains(role)))
         .collect(MoreCollectors.toOptional());
   }
 
   /**
-   * Looks for tag matching a variant
+   * Looks for SubscriptionDefinitiion matching a role
    *
-   * @param tag
+   * @param role a String with the role value
+   * @return Optional<Subscription>
+   */
+  public static Optional<SubscriptionDefinition> lookupSubscriptionByRole(String role) {
+    return roleCache.get(role);
+  }
+
+  protected static Optional<SubscriptionDefinition> cacheSubscriptionByTag(
+      @NotNull @NotEmpty String tag) {
+    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
+        .filter(
+            subscription ->
+                !subscription.getVariants().isEmpty()
+                    && subscription.getVariants().stream()
+                        .anyMatch(variant -> Objects.equals(tag, variant.getTag())))
+        .collect(MoreCollectors.toOptional());
+  }
+
+  /**
+   * Looks for tag matching a tag
+   *
+   * @param tag a String with the tag value
    * @return Optional<Subscription>
    */
   public static Optional<SubscriptionDefinition> lookupSubscriptionByTag(
       @NotNull @NotEmpty String tag) {
-
-    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
-        .filter(subscription -> !subscription.getVariants().isEmpty())
-        .filter(
-            subscription ->
-                subscription.getVariants().stream()
-                    .anyMatch(variant -> Objects.equals(tag, variant.getTag())))
-        .collect(MoreCollectors.toOptional());
+    return tagCache.get(tag);
   }
 
   public static boolean isContractEnabled(@NotNull @NotEmpty String tag) {
