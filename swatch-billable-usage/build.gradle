@@ -31,6 +31,8 @@ dependencies {
     implementation project(":swatch-model-billable-usage")
     annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
     annotationProcessor "org.hibernate.orm:hibernate-jpamodelgen"
+    implementation libraries["mapstruct"]
+    annotationProcessor libraries["mapstruct-processor"]
     testImplementation libraries["junit-jupiter"]
     testImplementation "org.apache.kafka:kafka-streams-test-utils"
     testImplementation 'io.smallrye.reactive:smallrye-reactive-messaging-in-memory'

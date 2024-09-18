@@ -22,6 +22,7 @@ package com.redhat.swatch.billable.usage.data;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -50,6 +51,7 @@ public class BillableUsageRemittanceFilter {
   private OffsetDateTime ending;
   private String accumulationPeriod;
   private boolean excludeFailures;
+  private UUID tallyId;
 
   public static BillableUsageRemittanceFilter fromUsage(BillableUsage usage) {
     return BillableUsageRemittanceFilter.builder()
