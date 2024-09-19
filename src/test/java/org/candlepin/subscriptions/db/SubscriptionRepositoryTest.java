@@ -56,11 +56,11 @@ class SubscriptionRepositoryTest {
 
   @Autowired OfferingRepository offeringRepo;
 
-  private OffsetDateTime NOW;
+  private OffsetDateTime now;
 
   @BeforeEach
   void setup() {
-    NOW = clock.now();
+    now = clock.now();
   }
 
   @Transactional
@@ -68,7 +68,7 @@ class SubscriptionRepositoryTest {
   void canInsertAndRetrieveSubscriptions() {
     // Because the findActiveSubscription query uses CURRENT_TIMESTAMP,
     // reset NOW so that it is current and not fixed.
-    NOW = OffsetDateTime.now();
+    now = OffsetDateTime.now();
     Subscription subscription = createSubscription("1", "123", "sellerAcctId");
     Offering offering = createOffering("testSku", "rosa", 1066, null, null, null);
     subscription.setOffering(offering);
@@ -115,8 +115,8 @@ class SubscriptionRepositoryTest {
                 .usage(Usage.PRODUCTION)
                 .billingProvider(BillingProvider._ANY)
                 .billingAccountId("sellerAcctId")
-                .beginning(NOW)
-                .ending(NOW)
+                .beginning(now)
+                .ending(now)
                 .build(),
             Sort.by(Subscription_.START_DATE).descending());
     assertEquals(1, resultList.size());
@@ -151,8 +151,8 @@ class SubscriptionRepositoryTest {
                 .usage(Usage.PRODUCTION)
                 .billingProvider(BillingProvider._ANY)
                 .billingAccountId("sellerAcctId")
-                .beginning(NOW)
-                .ending(NOW)
+                .beginning(now)
+                .ending(now)
                 .build(),
             Sort.by(Subscription_.START_DATE).descending());
     assertEquals(0, result.size());
@@ -184,8 +184,8 @@ class SubscriptionRepositoryTest {
                 .usage(Usage.PRODUCTION)
                 .billingProvider(BillingProvider._ANY)
                 .billingAccountId("wrongSellerAccount")
-                .beginning(NOW)
-                .ending(NOW)
+                .beginning(now)
+                .ending(now)
                 .build(),
             Sort.by(Subscription_.START_DATE).descending());
 
@@ -196,9 +196,9 @@ class SubscriptionRepositoryTest {
   @Test
   void removeAllButMostRecentMarketplaceSubscriptions() {
     Subscription subscription1 =
-        createSubscription("1", "123", "sellerAcctId", NOW.minusDays(30), NOW.plusDays(10));
+        createSubscription("1", "123", "sellerAcctId", now.minusDays(30), now.plusDays(10));
     Subscription subscription2 =
-        createSubscription("1", "234", "sellerAcctId", NOW, NOW.plusDays(30));
+        createSubscription("1", "234", "sellerAcctId", now, now.plusDays(30));
     Offering offering =
         createOffering("testSku1", "rosa", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
     List<Subscription> subscriptions = List.of(subscription1, subscription2);
@@ -216,8 +216,8 @@ class SubscriptionRepositoryTest {
                 .usage(Usage.PRODUCTION)
                 .billingProvider(BillingProvider._ANY)
                 .billingAccountId("sellerAcctId")
-                .beginning(NOW)
-                .ending(NOW)
+                .beginning(now)
+                .ending(now)
                 .build(),
             Sort.by(Subscription_.START_DATE).descending());
 
@@ -277,7 +277,7 @@ class SubscriptionRepositoryTest {
   void testSubscriptionIsActive() {
     // Because the findActiveSubscription query uses CURRENT_TIMESTAMP,
     // reset NOW so that it is current and not fixed.
-    NOW = OffsetDateTime.now();
+    now = OffsetDateTime.now();
 
     var s1 = createSubscription("org123", "sub123", "seller123");
     var s2 = createSubscription("org123", "sub321", "seller123");
@@ -311,8 +311,8 @@ class SubscriptionRepositoryTest {
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
                 .orgId("org123")
-                .beginning(NOW)
-                .ending(NOW.plusDays(1))
+                .beginning(now)
+                .ending(now.plusDays(1))
                 .build(),
             Sort.by(Subscription_.START_DATE).descending());
     assertEquals(2, resultList.size());
@@ -345,8 +345,8 @@ class SubscriptionRepositoryTest {
                 .usage(Usage.PRODUCTION)
                 .billingProvider(BillingProvider._ANY)
                 .billingAccountId("providerTenantId")
-                .beginning(NOW)
-                .ending(NOW)
+                .beginning(now)
+                .ending(now)
                 .build(),
             Sort.by(Subscription_.START_DATE).descending());
 
@@ -377,8 +377,8 @@ class SubscriptionRepositoryTest {
                 .usage(Usage.PRODUCTION)
                 .billingProvider(BillingProvider._ANY)
                 .billingAccountId("providerTenantId;providerSubscriptionId")
-                .beginning(NOW)
-                .ending(NOW)
+                .beginning(now)
+                .ending(now)
                 .build(),
             Sort.by(Subscription_.START_DATE).descending());
 
@@ -430,7 +430,7 @@ class SubscriptionRepositoryTest {
 
     // Truncate to avoid issues around nanosecond mismatches -- HSQLDB doesn't store timestamps
     // at the same resolution as the JVM
-    OffsetDateTime startDate = NOW.truncatedTo(ChronoUnit.SECONDS);
+    OffsetDateTime startDate = now.truncatedTo(ChronoUnit.SECONDS);
     return createSubscription(orgId, subId, billingAccountId, startDate, startDate.plusDays(30));
   }
 

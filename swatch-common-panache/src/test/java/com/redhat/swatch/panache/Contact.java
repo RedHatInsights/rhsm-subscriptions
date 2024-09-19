@@ -18,21 +18,21 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.capacity.admin;
+package com.redhat.swatch.panache;
 
-import com.redhat.swatch.configuration.registry.Metric;
+import jakarta.persistence.Embedded;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import java.util.List;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring")
-public interface MetricMapper {
+@Entity
+public class Contact {
+  @Id Integer id;
 
-  List<org.candlepin.subscriptions.utilization.admin.api.model.Metric> mapMetrics(
-      List<Metric> metricsForTag);
+  String name;
 
-  @Mapping(target = "uom", source = "id")
-  @Mapping(target = "metricId", source = "id")
-  org.candlepin.subscriptions.utilization.admin.api.model.Metric fromConfigurationMetric(
-      Metric metric);
+  @Embedded ContactRanking ranking;
+
+  @OneToMany List<PhoneNumber> phoneNumbers;
 }

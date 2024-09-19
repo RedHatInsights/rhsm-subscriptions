@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.redhat.swatch.azure.test.resources.InMemoryMessageBrokerKafkaResource;
 import com.redhat.swatch.azure.test.resources.InjectWireMock;
 import com.redhat.swatch.azure.test.resources.WireMockResource;
-import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AzureUsageContext;
+import com.redhat.swatch.clients.contracts.api.model.AzureUsageContext;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
@@ -130,8 +130,7 @@ class AzureBillableUsageAggregateConsumerTest {
   }
 
   private void givenAzureContextForUsage() {
-    contextForUsage =
-        wireMockResource.stubInternalSubscriptionAzureMarketPlaceContextForUsage(usage);
+    contextForUsage = wireMockResource.stubContractsAzureMarketPlaceContextForUsage(usage);
   }
 
   private void givenValidUsage() {

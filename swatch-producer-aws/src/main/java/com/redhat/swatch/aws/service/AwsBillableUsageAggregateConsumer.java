@@ -27,9 +27,9 @@ import com.redhat.swatch.aws.exception.DefaultApiException;
 import com.redhat.swatch.aws.exception.SubscriptionCanNotBeDeterminedException;
 import com.redhat.swatch.aws.exception.SubscriptionRecentlyTerminatedException;
 import com.redhat.swatch.aws.exception.UsageTimestampOutOfBoundsException;
-import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AwsUsageContext;
-import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
-import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
+import com.redhat.swatch.clients.contracts.api.model.AwsUsageContext;
+import com.redhat.swatch.clients.contracts.api.resources.ApiException;
+import com.redhat.swatch.clients.contracts.api.resources.DefaultApi;
 import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.Variant;
@@ -67,7 +67,7 @@ public class AwsBillableUsageAggregateConsumer {
   private final Counter acceptedCounter;
   private final Counter rejectedCounter;
   private final Counter ignoreCounter;
-  private final InternalSubscriptionsApi internalSubscriptionsApi;
+  private final DefaultApi contractsApi;
   private final AwsMarketplaceMeteringClientFactory awsMarketplaceMeteringClientFactory;
   private final Optional<Boolean> isDryRun;
   private final Duration awsUsageWindow;
@@ -75,7 +75,7 @@ public class AwsBillableUsageAggregateConsumer {
 
   public AwsBillableUsageAggregateConsumer(
       MeterRegistry meterRegistry,
-      @RestClient InternalSubscriptionsApi internalSubscriptionsApi,
+      @RestClient DefaultApi contractsApi,
       AwsMarketplaceMeteringClientFactory awsMarketplaceMeteringClientFactory,
       @ConfigProperty(name = "ENABLE_AWS_DRY_RUN") Optional<Boolean> isDryRun,
       @ConfigProperty(name = "AWS_MARKETPLACE_USAGE_WINDOW") Duration awsUsageWindow,
@@ -83,7 +83,7 @@ public class AwsBillableUsageAggregateConsumer {
     acceptedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_accepted_total");
     rejectedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_rejected_total");
     ignoreCounter = meterRegistry.counter("swatch_aws_marketplace_batch_ignored_total");
-    this.internalSubscriptionsApi = internalSubscriptionsApi;
+    this.contractsApi = contractsApi;
     this.awsMarketplaceMeteringClientFactory = awsMarketplaceMeteringClientFactory;
     this.isDryRun = isDryRun;
     this.awsUsageWindow = awsUsageWindow;
@@ -187,7 +187,7 @@ public class AwsBillableUsageAggregateConsumer {
   public AwsUsageContext lookupAwsUsageContext(BillableUsageAggregate billableUsageAggregate)
       throws AwsUsageContextLookupException {
     try {
-      return internalSubscriptionsApi.getAwsUsageContext(
+      return contractsApi.getAwsUsageContext(
           billableUsageAggregate.getWindowTimestamp(),
           billableUsageAggregate.getAggregateKey().getProductId(),
           billableUsageAggregate.getAggregateKey().getOrgId(),

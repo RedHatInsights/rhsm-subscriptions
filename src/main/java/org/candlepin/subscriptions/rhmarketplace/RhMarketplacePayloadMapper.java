@@ -20,11 +20,11 @@
  */
 package org.candlepin.subscriptions.rhmarketplace;
 
-import com.redhat.swatch.clients.internal.subscriptions.api.client.ApiException;
-import com.redhat.swatch.clients.internal.subscriptions.api.model.RhmUsageContext;
-import com.redhat.swatch.clients.internal.subscriptions.api.resources.InternalSubscriptionsApi;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.contracts.api.model.RhmUsageContext;
+import com.redhat.swatch.contracts.api.resources.DefaultApi;
+import com.redhat.swatch.contracts.client.ApiException;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Collections;
@@ -49,14 +49,14 @@ import org.springframework.util.StringUtils;
 @Slf4j
 @Service
 public class RhMarketplacePayloadMapper {
-  private final InternalSubscriptionsApi subscriptionsClient;
+  private final DefaultApi contractsClient;
   private final RetryTemplate usageContextRetryTemplate;
 
   @Autowired
   public RhMarketplacePayloadMapper(
-      InternalSubscriptionsApi subscriptionsClient,
+      DefaultApi contractsClient,
       @Qualifier("rhmUsageContextLookupRetryTemplate") RetryTemplate usageContextRetryTemplate) {
-    this.subscriptionsClient = subscriptionsClient;
+    this.contractsClient = contractsClient;
     this.usageContextRetryTemplate = usageContextRetryTemplate;
   }
 
@@ -140,7 +140,7 @@ public class RhMarketplacePayloadMapper {
           try {
             log.debug(
                 "Looking up RHM usage context for orgId={} billableUsage={}", orgId, billableUsage);
-            return subscriptionsClient.getRhmUsageContext(
+            return contractsClient.getRhmUsageContext(
                 orgId,
                 billableUsage.getSnapshotDate(),
                 billableUsage.getProductId(),

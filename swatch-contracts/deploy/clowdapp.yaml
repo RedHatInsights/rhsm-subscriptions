@@ -118,7 +118,6 @@ objects:
         sharedDbAppName: swatch-tally
       dependencies:
         - swatch-tally
-        - swatch-subscription-sync
         - rbac
 
       kafkaTopics:

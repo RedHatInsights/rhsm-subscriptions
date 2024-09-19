@@ -25,10 +25,10 @@ import static org.junit.jupiter.params.ParameterizedTest.DEFAULT_DISPLAY_NAME;
 import static org.junit.jupiter.params.ParameterizedTest.DISPLAY_NAME_PLACEHOLDER;
 import static org.mockito.Mockito.*;
 
-import com.redhat.swatch.clients.internal.subscriptions.api.client.ApiException;
-import com.redhat.swatch.clients.internal.subscriptions.api.model.RhmUsageContext;
-import com.redhat.swatch.clients.internal.subscriptions.api.resources.InternalSubscriptionsApi;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import com.redhat.swatch.contracts.api.model.RhmUsageContext;
+import com.redhat.swatch.contracts.api.resources.DefaultApi;
+import com.redhat.swatch.contracts.client.ApiException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -60,7 +60,7 @@ import org.springframework.retry.support.RetryTemplate;
 @ExtendWith(MockitoExtension.class)
 class RhMarketplacePayloadMapperTest {
 
-  @Mock InternalSubscriptionsApi subscriptionsApi;
+  @Mock DefaultApi contractsApi;
 
   RhMarketplacePayloadMapper rhMarketplacePayloadMapper;
 
@@ -69,14 +69,14 @@ class RhMarketplacePayloadMapperTest {
     RetryTemplate retry = new RetryTemplate();
     retry.setBackOffPolicy(new NoBackOffPolicy());
 
-    rhMarketplacePayloadMapper = new RhMarketplacePayloadMapper(subscriptionsApi, retry);
+    rhMarketplacePayloadMapper = new RhMarketplacePayloadMapper(contractsApi, retry);
   }
 
   @Test
   void testProduceUsageEvents() throws Exception {
     RhmUsageContext rhmUsageContext = new RhmUsageContext();
     rhmUsageContext.setRhSubscriptionId("PLACEHOLDER");
-    when(subscriptionsApi.getRhmUsageContext(
+    when(contractsApi.getRhmUsageContext(
             any(String.class),
             any(OffsetDateTime.class),
             any(String.class),
@@ -125,7 +125,7 @@ class RhMarketplacePayloadMapperTest {
   @Test
   void testProducesNullUsageRequestWhenSubscriptionIdNotFound() throws Exception {
     RhmUsageContext rhmUsageContext = new RhmUsageContext();
-    when(subscriptionsApi.getRhmUsageContext(
+    when(contractsApi.getRhmUsageContext(
             any(String.class),
             any(OffsetDateTime.class),
             any(String.class),
@@ -241,7 +241,7 @@ class RhMarketplacePayloadMapperTest {
     RetryTestSupport retrySupport = new RetryTestSupport();
     retry.registerListener(retrySupport);
 
-    when(subscriptionsApi.getRhmUsageContext(
+    when(contractsApi.getRhmUsageContext(
             any(String.class),
             any(OffsetDateTime.class),
             any(String.class),
@@ -249,7 +249,7 @@ class RhMarketplacePayloadMapperTest {
             any(String.class)))
         .thenThrow(ApiException.class);
 
-    RhMarketplacePayloadMapper mapper = new RhMarketplacePayloadMapper(subscriptionsApi, retry);
+    RhMarketplacePayloadMapper mapper = new RhMarketplacePayloadMapper(contractsApi, retry);
 
     BillableUsage billableUsage =
         new BillableUsage()

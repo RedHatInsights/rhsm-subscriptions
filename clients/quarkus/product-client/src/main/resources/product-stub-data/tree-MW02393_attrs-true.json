@@ -1,0 +1,29 @@
+{
+  "products": [
+    {
+      "sku": "MW02393",
+      "description": "Red Hat OpenShift Service on AWS Hosted Control Planes (Hourly)",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "PRODUCT_FAMILY",
+          "value": "OpenShift Enterprise"
+        },
+        {
+          "code": "SERVICE_TYPE",
+          "value": "Premium"
+        },
+        {
+          "code": "PRODUCT_NAME",
+          "value": "OpenShift Online"
+        },
+        {
+          "code": "METERED",
+          "value": "Y"
+        }
+      ],
+      "roles": []
+    }
+  ],
+  "parentMap": []
+}

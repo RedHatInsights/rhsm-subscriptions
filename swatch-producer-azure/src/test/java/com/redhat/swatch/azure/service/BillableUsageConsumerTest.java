@@ -36,11 +36,11 @@ import com.redhat.swatch.azure.exception.SubscriptionRecentlyTerminatedException
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEvent;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEventOkResponse;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEventStatusEnum;
-import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AzureUsageContext;
-import com.redhat.swatch.clients.swatch.internal.subscription.api.model.Error;
-import com.redhat.swatch.clients.swatch.internal.subscription.api.model.Errors;
-import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
-import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
+import com.redhat.swatch.clients.contracts.api.model.AzureUsageContext;
+import com.redhat.swatch.clients.contracts.api.model.Error;
+import com.redhat.swatch.clients.contracts.api.model.Errors;
+import com.redhat.swatch.clients.contracts.api.resources.ApiException;
+import com.redhat.swatch.clients.contracts.api.resources.DefaultApi;
 import com.redhat.swatch.configuration.registry.Usage;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -88,7 +88,7 @@ class BillableUsageConsumerTest {
       new AzureUsageContext().azureResourceId("id").offerId("product").planId("plan");
   public static final UsageEventOkResponse USAGE_EVENT_RESPONSE = getDefaultUsageEventResponse();
 
-  @InjectMock @RestClient InternalSubscriptionsApi internalSubscriptionsApi;
+  @InjectMock @RestClient DefaultApi contractsApi;
   @InjectMock AzureMarketplaceService marketplaceService;
 
   @Inject MeterRegistry meterRegistry;
@@ -125,23 +125,20 @@ class BillableUsageConsumerTest {
             "testBillingAccountId");
     aggregate.setAggregateKey(key);
     consumer.process(aggregate);
-    verifyNoInteractions(internalSubscriptionsApi, marketplaceService);
+    verifyNoInteractions(contractsApi, marketplaceService);
   }
 
   @Test
   void shouldLookupAzureContextOnApplicableSnapshot() throws ApiException {
-    when(internalSubscriptionsApi.getAzureMarketplaceContext(
-            any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAzureMarketplaceContext(any(), any(), any(), any(), any(), any()))
         .thenReturn(new AzureUsageContext());
     consumer.process(BASILISK_INSTANCE_HOURS_RECORD);
-    verify(internalSubscriptionsApi)
-        .getAzureMarketplaceContext(any(), any(), any(), any(), any(), any());
+    verify(contractsApi).getAzureMarketplaceContext(any(), any(), any(), any(), any(), any());
   }
 
   @Test
   void shouldSendUsageForApplicableSnapshot() throws ApiException {
-    when(internalSubscriptionsApi.getAzureMarketplaceContext(
-            any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAzureMarketplaceContext(any(), any(), any(), any(), any(), any()))
         .thenReturn(MOCK_AZURE_USAGE_CONTEXT);
     consumer.process(BASILISK_INSTANCE_HOURS_RECORD);
     verify(marketplaceService).sendUsageEventToAzureMarketplace(any(UsageEvent.class));
@@ -149,8 +146,7 @@ class BillableUsageConsumerTest {
 
   @Test
   void shouldSendStatusMessageToIfSubscriptionNotFound() throws ApiException {
-    when(internalSubscriptionsApi.getAzureMarketplaceContext(
-            any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAzureMarketplaceContext(any(), any(), any(), any(), any(), any()))
         .thenThrow(new SubscriptionCanNotBeDeterminedException(null));
     consumer.process(BASILISK_INSTANCE_HOURS_RECORD);
     verify(statusProducer)
@@ -164,8 +160,7 @@ class BillableUsageConsumerTest {
 
   @Test
   void shouldInactiveErrorCodeIfSnapshotDateIsOutOfTheTimeWindow() throws ApiException {
-    when(internalSubscriptionsApi.getAzureMarketplaceContext(
-            any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAzureMarketplaceContext(any(), any(), any(), any(), any(), any()))
         .thenThrow(new SubscriptionCanNotBeDeterminedException(null));
     consumer.process(BASILISK_INSTANCE_HOURS_RECORD_OLD);
     verify(statusProducer)
@@ -178,8 +173,7 @@ class BillableUsageConsumerTest {
 
   @Test
   void shouldInactiveErrorCodeIfSubscriptionRecentlyTerminated() throws ApiException {
-    when(internalSubscriptionsApi.getAzureMarketplaceContext(
-            any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAzureMarketplaceContext(any(), any(), any(), any(), any(), any()))
         .thenThrow(new SubscriptionRecentlyTerminatedException(null));
     consumer.process(BASILISK_INSTANCE_HOURS_RECORD_OLD);
     verify(statusProducer)
@@ -195,8 +189,7 @@ class BillableUsageConsumerTest {
   void shouldSkipMessageButSendStatusIfAzureContextCannotBeLookedUp() throws ApiException {
     var aggregate =
         createAggregate("rosa", INSTANCE_HOURS, OffsetDateTime.now(Clock.systemUTC()), 42);
-    when(internalSubscriptionsApi.getAzureMarketplaceContext(
-            any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAzureMarketplaceContext(any(), any(), any(), any(), any(), any()))
         .thenThrow(AzureUsageContextLookupException.class);
     consumer.process(aggregate);
     verify(statusProducer)
@@ -214,23 +207,20 @@ class BillableUsageConsumerTest {
     var aggregate =
         createAggregate("foobar", INSTANCE_HOURS, OffsetDateTime.now(Clock.systemUTC()), 42);
     consumer.process(aggregate);
-    verifyNoInteractions(internalSubscriptionsApi, marketplaceService);
+    verifyNoInteractions(contractsApi, marketplaceService);
   }
 
   @Test
   void shouldFindStorageAzureDimension() throws ApiException {
-    when(internalSubscriptionsApi.getAzureMarketplaceContext(
-            any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAzureMarketplaceContext(any(), any(), any(), any(), any(), any()))
         .thenReturn(new AzureUsageContext());
     consumer.process(BASILISK_STORAGE_GIB_MONTHS_RECORD);
-    verify(internalSubscriptionsApi)
-        .getAzureMarketplaceContext(any(), any(), any(), any(), any(), any());
+    verify(contractsApi).getAzureMarketplaceContext(any(), any(), any(), any(), any(), any());
   }
 
   @Test
   void shouldIncrementAcceptedCounterIfSuccessful() throws ApiException {
-    when(internalSubscriptionsApi.getAzureMarketplaceContext(
-            any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAzureMarketplaceContext(any(), any(), any(), any(), any(), any()))
         .thenReturn(MOCK_AZURE_USAGE_CONTEXT);
     consumer.process(BASILISK_INSTANCE_HOURS_RECORD);
     assertEquals(1.0, acceptedCounter.count());
@@ -238,8 +228,7 @@ class BillableUsageConsumerTest {
 
   @Test
   void shouldSendSuccessStatusIfSuccessful() throws ApiException {
-    when(internalSubscriptionsApi.getAzureMarketplaceContext(
-            any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAzureMarketplaceContext(any(), any(), any(), any(), any(), any()))
         .thenReturn(MOCK_AZURE_USAGE_CONTEXT);
     consumer.process(BASILISK_INSTANCE_HOURS_RECORD);
     verify(statusProducer)
@@ -253,8 +242,7 @@ class BillableUsageConsumerTest {
   @Test
   void shouldIncrementFailureCounterOnError() throws ApiException {
     double current = rejectedCounter.count();
-    when(internalSubscriptionsApi.getAzureMarketplaceContext(
-            any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAzureMarketplaceContext(any(), any(), any(), any(), any(), any()))
         .thenReturn(MOCK_AZURE_USAGE_CONTEXT);
     when(marketplaceService.sendUsageEventToAzureMarketplace(any(UsageEvent.class)))
         .thenThrow(AzureMarketplaceRequestFailedException.class);
@@ -264,8 +252,7 @@ class BillableUsageConsumerTest {
 
   @Test
   void shouldSendFailureStatusOnFailure() throws ApiException {
-    when(internalSubscriptionsApi.getAzureMarketplaceContext(
-            any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAzureMarketplaceContext(any(), any(), any(), any(), any(), any()))
         .thenReturn(MOCK_AZURE_USAGE_CONTEXT);
     when(marketplaceService.sendUsageEventToAzureMarketplace(any(UsageEvent.class)))
         .thenThrow(AzureMarketplaceRequestFailedException.class);
@@ -283,13 +270,12 @@ class BillableUsageConsumerTest {
     AzureBillableUsageAggregateConsumer azureConsumer =
         new AzureBillableUsageAggregateConsumer(
             meterRegistry,
-            internalSubscriptionsApi,
+            contractsApi,
             marketplaceService,
             statusProducer,
             Optional.of(true),
             null);
-    when(internalSubscriptionsApi.getAzureMarketplaceContext(
-            any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAzureMarketplaceContext(any(), any(), any(), any(), any(), any()))
         .thenReturn(MOCK_AZURE_USAGE_CONTEXT);
     azureConsumer.process(BASILISK_INSTANCE_HOURS_RECORD);
     verifyNoInteractions(marketplaceService);
@@ -303,8 +289,7 @@ class BillableUsageConsumerTest {
     errors.setErrors(List.of(error));
     var response = Response.serverError().entity(errors).build();
     var exception = new DefaultApiException(response, errors);
-    when(internalSubscriptionsApi.getAzureMarketplaceContext(
-            any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAzureMarketplaceContext(any(), any(), any(), any(), any(), any()))
         .thenThrow(exception);
 
     assertThrows(
@@ -322,8 +307,7 @@ class BillableUsageConsumerTest {
     errors.setErrors(List.of(error));
     var response = Response.serverError().entity(errors).build();
     var exception = new DefaultApiException(response, errors);
-    when(internalSubscriptionsApi.getAzureMarketplaceContext(
-            any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAzureMarketplaceContext(any(), any(), any(), any(), any(), any()))
         .thenThrow(exception);
 
     consumer.process(BASILISK_INSTANCE_HOURS_RECORD);
@@ -334,8 +318,7 @@ class BillableUsageConsumerTest {
   void shouldThrowSubscriptionNotFoundException() throws ApiException {
     var response = Response.status(Status.NOT_FOUND.getStatusCode()).build();
     var exception = new DefaultApiException(response, null);
-    when(internalSubscriptionsApi.getAzureMarketplaceContext(
-            any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAzureMarketplaceContext(any(), any(), any(), any(), any(), any()))
         .thenThrow(exception);
 
     assertThrows(

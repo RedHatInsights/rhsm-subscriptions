@@ -43,7 +43,6 @@ dependencies {
     implementation project(":clients:rhsm-client")
     implementation project(":clients:subscription-client")
     implementation project(":clients:contracts-client")
-    implementation project(":clients:swatch-internal-subscription-springboot-client")
     implementation project(":clients:export-client")
     implementation project(":clients:billable-usage-client")
 
@@ -146,9 +145,6 @@ ext {
     tally_api_spec_file = "${internal_spec_dir}/internal-tally-api-spec.yaml"
     tally_config_file = "${internal_spec_dir}/internal-tally-api-config.json"
 
-    sub_sync_api_spec_file = "${internal_spec_dir}/internal-subscriptions-sync-api-spec.yaml"
-    sub_sync_config_file = "${internal_spec_dir}/internal-subscriptions-sync-api-config.json"
-
     swatch_producer_rhm_api_spec_file = "${internal_spec_dir}/internal-swatch-producer-red-hat-marketplace-api-spec.yaml"
     swatch_producer_rhm_config_spec_file = "${internal_spec_dir}/internal-swatch-producer-red-hat-marketplace-api-config.json"
 
@@ -165,20 +161,6 @@ tasks.register("buildApiTally", GenerateTask) {
         dateLibrary: "java8",
         useJakartaEe: "true",
         useTags: "true"
-    ]
-}
-
-tasks.register("buildApiSubSync", GenerateTask) {
-    generatorName = "jaxrs-spec"
-    inputSpec = sub_sync_api_spec_file
-    configFile = sub_sync_config_file
-    outputDir = "$buildDir/generated/sub-sync"
-    configOptions = [
-            interfaceOnly: "true",
-            generatePom: "false",
-            dateLibrary: "java8",
-            useJakartaEe: "true",
-            useTags: "true"
     ]
 }
 
@@ -206,10 +188,6 @@ tasks.register("validateApiTally", ValidateTask) {
     inputSpec = tally_api_spec_file
 }
 
-tasks.register("validateApiSubSync", ValidateTask) {
-    inputSpec = sub_sync_api_spec_file
-}
-
 tasks.register("apiValidate") {
     dependsOn(provider {
         tasks.findAll { task -> task.name.startsWith('validateApi') }
@@ -224,14 +202,6 @@ tasks.register("generateApiDocsTally", GenerateTask) {
     generateApiTests = false
 }
 
-tasks.register("generateApiDocsSubSync", GenerateTask) {
-    generatorName = "html"
-    inputSpec = sub_sync_api_spec_file
-    outputDir = "$buildDir/internal-subscription-sync-docs"
-    generateModelTests = false
-    generateApiTests = false
-}
-
 tasks.register("generateOpenApiJsonTally", GenerateTask) {
     generatorName = "openapi"
     inputSpec = tally_api_spec_file
@@ -240,18 +210,6 @@ tasks.register("generateOpenApiJsonTally", GenerateTask) {
     generateApiTests = false
     configOptions = [
         outputFileName: "internal-tally-openapi.json",
-        useJakartaEe: "true",
-    ]
-}
-
-tasks.register("generateOpenApiJsonSubSync", GenerateTask) {
-    generatorName = "openapi"
-    inputSpec = sub_sync_api_spec_file
-    outputDir = "$buildDir/openapijson"
-    generateModelTests = false
-    generateApiTests = false
-    configOptions = [
-        outputFileName: "internal-subscription-sync-openapi.json",
         useJakartaEe: "true",
     ]
 }
@@ -269,8 +227,8 @@ tasks.register("generateOpenApiJsonProducerRhM", GenerateTask) {
 }
 
 processResources {
-    from tasks.generateOpenApiJsonTally, tasks.generateOpenApiJsonSubSync, tasks.generateOpenApiJsonProducerRhM
-    from tally_api_spec_file, sub_sync_api_spec_file, swatch_producer_rhm_api_spec_file
+    from tasks.generateOpenApiJsonTally, tasks.generateOpenApiJsonProducerRhM
+    from tally_api_spec_file, swatch_producer_rhm_api_spec_file
 }
 
 sourceSets.main.java.srcDirs += [
