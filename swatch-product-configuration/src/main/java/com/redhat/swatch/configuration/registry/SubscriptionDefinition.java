@@ -376,7 +376,11 @@ public class SubscriptionDefinition {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions();
   }
 
-  public static void pruneIncludedProducts(Set<String> productTags) {
+  public static void pruneIncludedProducts(Collection<String> productTags) {
+    if (productTags == null) {
+      return;
+    }
+
     Set<String> exclusions =
         productTags.stream()
             .map(SubscriptionDefinition::lookupSubscriptionByTag)
