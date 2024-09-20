@@ -36,6 +36,7 @@ import com.redhat.swatch.billable.usage.data.RemittanceStatus;
 import com.redhat.swatch.billable.usage.kafka.InMemoryMessageBrokerKafkaResource;
 import com.redhat.swatch.billable.usage.model.EnabledOrgsRequest;
 import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
+import com.redhat.swatch.billable.usage.openapi.model.TallyRemittance;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
@@ -47,6 +48,7 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
@@ -124,6 +126,28 @@ class InternalBillableUsageResourceTest {
   }
 
   @Test
+  void testGetRemittancesReturnsBadRequestWhenWrongTallyId() {
+    String tallyId = "e404074d-626f-4272-aa05-b6d69d6de16c";
+    given()
+        .get("/api/swatch-billable-usage/internal/remittance/accountRemittances/" + tallyId)
+        .then()
+        .statusCode(HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
+  void testGetRemittancesByTallyId() {
+    String tallyId = "c204074d-626f-4272-aa05-b6d69d6de16a";
+    givenRemittanceForTallyId(tallyId);
+    TallyRemittance[] remittances =
+        given()
+            .get("/api/swatch-billable-usage/internal/remittance/accountRemittances/" + tallyId)
+            .as(TallyRemittance[].class);
+    assertEquals(1, remittances.length);
+    assertEquals(ORG_ID, remittances[0].getOrgId());
+    assertEquals(RemittanceStatus.FAILED.name(), remittances[0].getStatus());
+  }
+
+  @Test
   void testResetBillableUsageRemittance() {
     givenRemittanceForOrgId(ORG_ID);
     given()
@@ -143,7 +167,7 @@ class InternalBillableUsageResourceTest {
         .post("/api/swatch-billable-usage/internal/rpc/remittance/processRetries")
         .then()
         .statusCode(HttpStatus.SC_OK);
-    Awaitility.await().untilAsserted(() -> assertEquals(2, billableUsageSink.received().size()));
+    Awaitility.await().untilAsserted(() -> assertEquals(3, billableUsageSink.received().size()));
     assertNull(remittanceRepository.findById(entity.getUuid()).getRetryAfter());
   }
 
@@ -187,9 +211,32 @@ class InternalBillableUsageResourceTest {
             .status(RemittanceStatus.FAILED)
             .errorCode(RemittanceErrorCode.UNKNOWN)
             .retryAfter(OffsetDateTime.now().minusDays(1))
+            .tallyId(UUID.fromString("c204074d-626f-4272-aa05-b6d69d6de16a"))
             .build();
     remittanceRepository.persist(entity);
     return entity;
+  }
+
+  @Transactional
+  void givenRemittanceForTallyId(String tallyId) {
+    var entity =
+        BillableUsageRemittanceEntity.builder()
+            .usage(BillableUsage.Usage.PRODUCTION.value())
+            .orgId(ORG_ID)
+            .billingProvider(BillableUsage.BillingProvider.AZURE.value())
+            .billingAccountId(String.format("%s_%s_ba", ORG_ID, PRODUCT_ID))
+            .productId(PRODUCT_ID)
+            .accumulationPeriod("mm-DD")
+            .sla(BillableUsage.Sla.PREMIUM.value())
+            .metricId("Cores")
+            .remittancePendingDate(OffsetDateTime.now())
+            .remittedPendingValue(2.0)
+            .status(RemittanceStatus.FAILED)
+            .errorCode(RemittanceErrorCode.UNKNOWN)
+            .retryAfter(OffsetDateTime.now().minusDays(1))
+            .tallyId(UUID.fromString(tallyId))
+            .build();
+    remittanceRepository.persist(entity);
   }
 
   private static void whenPurgeRemittances() {

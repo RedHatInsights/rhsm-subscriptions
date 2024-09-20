@@ -8,6 +8,30 @@ info:
     name: SWATCH Dev
     url: https://github.com/RedHatInsights/rhsm-subscriptions
 paths:
+  /api/swatch-billable-usage/internal/remittance/accountRemittances/{tally_id}:
+    get:
+      operationId: getRemittancesByTally
+      summary: Get Account Remittance by Tally ID
+      description: Returns a single account remittance by tally ID.
+      parameters:
+        - name: tally_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Remittance records by tally id."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TallyRemittances"
+        '400':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
   /api/swatch-billable-usage/internal/remittance/accountRemittances:
     description: 'Operations to get specific account remittances'
     parameters:
@@ -218,6 +242,37 @@ components:
         remittanceStatus:
           type: string
         remittanceErrorCode:
+          type: string
+    TallyRemittances:
+      type: array
+      items:
+        $ref: "#/components/schemas/TallyRemittance"
+    TallyRemittance:
+      description: Encapsulates all Monthly remittance
+      properties:
+        orgId:
+          type: string
+        productId:
+          type: string
+        metricId:
+          type: string
+        billingProvider:
+          type: string
+        billingAccountId:
+          type: string
+        remittedPendingValue:
+          type: number
+          format: double
+        accumulationPeriod:
+          type: string
+        remittancePendingDate:
+          type: string
+          format: date-time
+        status:
+          type: string
+        errorCode:
+          type: string
+        tallyId:
           type: string
     OrgIds:
       type: string

@@ -77,7 +77,7 @@ class ContractsControllerTest {
   }
 
   @AfterAll
-  static void tearDown() throws Exception {
+  static void tearDownClass() throws Exception {
     Field instance = SubscriptionDefinitionRegistry.class.getDeclaredField("instance");
     instance.setAccessible(true);
     instance.set(instance, originalReference);
@@ -87,6 +87,14 @@ class ContractsControllerTest {
   void setupTest() {
     subscriptionDefinitionRegistry = mock(SubscriptionDefinitionRegistry.class);
     setMock(subscriptionDefinitionRegistry);
+  }
+
+  @AfterEach
+  void tearDown() {
+    /* We need to reset the registry because the mock SubscriptionDefinitionRegistry uses stubbed
+     * SubscriptionDefinitions.  If the test run order happens to result in the stubs being used first for a tag lookup
+     * then the SubscriptionDefinition cache will be populated with the stub's particulars which we don't want. */
+    SubscriptionDefinitionRegistry.reset();
   }
 
   private void setMock(SubscriptionDefinitionRegistry mock) {

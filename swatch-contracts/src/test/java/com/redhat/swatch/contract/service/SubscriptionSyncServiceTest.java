@@ -20,6 +20,8 @@
  */
 package com.redhat.swatch.contract.service;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -685,6 +687,61 @@ class SubscriptionSyncServiceTest {
                         "testAccountId".equals(s.getBillingAccountId())
                             && "testProviderId".equals(s.getBillingProviderId())
                             && BillingProvider.AZURE.equals(s.getBillingProvider())));
+  }
+
+  @Test
+  void terminateActivePAYGSubscriptionTest() {
+    SubscriptionEntity s = createSubscription();
+    OfferingEntity o = new OfferingEntity();
+    o.setMetered(true);
+    when(offeringRepository.findById(SKU)).thenReturn(o);
+    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(List.of(s));
+
+    var termination = OffsetDateTime.now();
+    var result = subscriptionSyncService.terminateSubscription("456", termination);
+    assertThat(result, matchesPattern("Subscription 456 terminated at .*\\."));
+    assertEquals(termination, s.getEndDate());
+  }
+
+  @Test
+  void lateTerminateActivePAYGSubscriptionTest() {
+    SubscriptionEntity s = createSubscription();
+    OfferingEntity offering = OfferingEntity.builder().metered(true).build();
+    s.setOffering(offering);
+    when(offeringRepository.findById(SKU)).thenReturn(offering);
+    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(List.of(s));
+
+    var termination = OffsetDateTime.now().minusDays(1);
+    var result = subscriptionSyncService.terminateSubscription("456", termination);
+    assertThat(
+        result,
+        matchesPattern("Subscription 456 terminated at .* with out of range termination date .*"));
+    assertEquals(termination, s.getEndDate());
+  }
+
+  @Test
+  void terminateInTheFutureActivePAYGSubscriptionTest() {
+    SubscriptionEntity s = createSubscription();
+    s.getOffering().setMetered(true);
+    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(List.of(s));
+
+    var termination = OffsetDateTime.now().plusDays(1);
+    var result = subscriptionSyncService.terminateSubscription("456", termination);
+    assertThat(
+        result,
+        matchesPattern("Subscription 456 terminated at .* with out of range termination date .*"));
+    assertEquals(termination, s.getEndDate());
+  }
+
+  @Test
+  void terminateActiveNonPAYGSubscriptionTest() {
+    SubscriptionEntity s = createSubscription();
+    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(List.of(s));
+
+    var termination = OffsetDateTime.now();
+    var result = subscriptionSyncService.terminateSubscription("456", termination);
+    assertThat(result, matchesPattern("Subscription 456 terminated at .*\\."));
+    assertEquals(termination, s.getEndDate());
   }
 
   private OfferingEntity givenOfferingWithProductIds(Integer... productIds) {

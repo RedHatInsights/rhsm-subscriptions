@@ -26,7 +26,6 @@ import com.redhat.swatch.contract.model.ReconcileCapacityByOfferingTask;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.OfferingRepository;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
-import com.redhat.swatch.contract.repository.SubscriptionMeasurementEntity;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import com.redhat.swatch.contract.service.CapacityReconciliationService;
 import io.quarkus.kafka.client.serialization.ObjectMapperSerde;
@@ -62,12 +61,7 @@ class CapacityReconciliationIntegrationTest {
     SubscriptionEntity subscription = new SubscriptionEntity();
     subscription.setSubscriptionId("subId");
     subscription.setStartDate(OffsetDateTime.now());
-    var measurement = new SubscriptionMeasurementEntity();
-    measurement.setSubscription(subscription);
-    measurement.setMeasurementType("PHYSICAL");
-    measurement.setMetricId("Cores");
-    measurement.setValue(42.0);
-    subscription.getSubscriptionMeasurements().add(measurement);
+    subscription.addSubscriptionMeasurement("Cores", "PHYSICAL", 42.0);
     subscription.setOffering(offering);
     subscriptionRepository.persist(subscription);
   }

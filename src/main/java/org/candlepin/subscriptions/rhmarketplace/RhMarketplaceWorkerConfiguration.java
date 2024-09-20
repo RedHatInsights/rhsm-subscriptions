@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.rhmarketplace;
 
-import com.redhat.swatch.clients.internal.subscriptions.api.client.InternalSubscriptionsApiClientFactory;
+import com.redhat.swatch.contracts.client.ContractsApiFactory;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.TallySummary;
@@ -160,9 +160,8 @@ public class RhMarketplaceWorkerConfiguration {
   }
 
   @Bean
-  public InternalSubscriptionsApiClientFactory internalSubscriptionsClientFactory(
-      RhmUsageContextLookupProperties props) {
-    return new InternalSubscriptionsApiClientFactory(props);
+  public ContractsApiFactory contractsApiFactory(RhmUsageContextLookupProperties props) {
+    return new ContractsApiFactory(props);
   }
 
   @Bean

@@ -22,7 +22,7 @@ package com.redhat.swatch.azure.resource;
 
 import com.redhat.swatch.azure.exception.AzureProducerException;
 import com.redhat.swatch.azure.exception.ErrorCode;
-import com.redhat.swatch.clients.swatch.internal.subscription.api.model.Error;
+import com.redhat.swatch.azure.openapi.model.Error;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.ext.ExceptionMapper;

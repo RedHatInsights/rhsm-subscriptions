@@ -27,7 +27,9 @@ import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceFilter;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
 import com.redhat.swatch.billable.usage.data.RemittanceErrorCode;
 import com.redhat.swatch.billable.usage.data.RemittanceSummaryProjection;
+import com.redhat.swatch.billable.usage.model.RemittanceMapper;
 import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
+import com.redhat.swatch.billable.usage.openapi.model.TallyRemittance;
 import com.redhat.swatch.billable.usage.services.BillingProducer;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -47,6 +49,7 @@ import org.candlepin.subscriptions.billable.usage.BillableUsage;
 public class InternalBillableUsageController {
   private final BillableUsageRemittanceRepository remittanceRepository;
   private final BillingProducer billingProducer;
+  private final RemittanceMapper remittanceMapper;
 
   public List<MonthlyRemittance> getRemittances(BillableUsageRemittanceFilter filter) {
     if (filter.getOrgId() == null) {
@@ -69,6 +72,10 @@ public class InternalBillableUsageController {
     }
     log.debug("Found {} matches for Org Id: {}", accountRemittanceList.size(), filter.getOrgId());
     return accountRemittanceList;
+  }
+
+  public List<TallyRemittance> getRemittancesByTally(BillableUsageRemittanceFilter filter) {
+    return remittanceMapper.map(remittanceRepository.find(filter));
   }
 
   @Transactional

@@ -18,25 +18,12 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource.api;
+package com.redhat.swatch.panache;
 
-import lombok.AllArgsConstructor;
-import org.candlepin.subscriptions.utilization.api.v1.resources.RootApi;
-import org.springframework.stereotype.Component;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
 
-/** Serves the OpenAPI json for the internal subscription sync API */
-@Component
-@AllArgsConstructor
-public class InternalSubscriptionSyncApiResource implements RootApi {
-  private final ApiSpecController controller;
-
-  @Override
-  public String getOpenApiJson() {
-    return controller.getInternalSubSyncApiJson();
-  }
-
-  @Override
-  public String getOpenApiYaml() {
-    return controller.getInternalSubSyncApiYaml();
-  }
+@Embeddable
+public class ContactRanking {
+  @Column int ranking;
 }

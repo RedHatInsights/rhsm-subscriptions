@@ -93,13 +93,13 @@ parameters:
   - name: CURL_CRON_IMAGE_TAG
     value: latest
   - name: CURL_CRON_MEMORY_REQUEST
-    value: 500Mi
+    value: 10Mi
   - name: CURL_CRON_MEMORY_LIMIT
-    value: 800Mi
+    value: 50Mi
   - name: CURL_CRON_CPU_REQUEST
-    value: 350m
+    value: 100m
   - name: CURL_CRON_CPU_LIMIT
-    value: 500m
+    value: 100m
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -118,7 +118,6 @@ objects:
         sharedDbAppName: swatch-tally
       dependencies:
         - swatch-tally
-        - swatch-subscription-sync
         - rbac
 
       kafkaTopics:

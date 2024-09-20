@@ -27,6 +27,8 @@ public enum ErrorCode {
   CONTRACT_EXISTS(
       1001, "There's already an active contract for that productId & subscriptionNumber"),
   CONTRACT_DOES_NOT_EXIST(1002, "Contract does not exist"),
+  SUBSCRIPTION_RECENTLY_TERMINATED(
+      1005, "Subscription recently terminated. No active subscriptions."),
   SUBSCRIPTION_SERVICE_REQUEST_ERROR(3000, "Subscription Service Error"),
   OFFERING_MISSING_ERROR(3003, "Sku not present in Offering"),
   BAD_UPDATE(4000, "Bad update request"),

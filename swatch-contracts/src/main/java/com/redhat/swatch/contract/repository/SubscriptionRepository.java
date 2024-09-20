@@ -48,6 +48,15 @@ public class SubscriptionRepository
     return query.list();
   }
 
+  public List<SubscriptionEntity> findByCriteria(DbReportCriteria criteria) {
+    return find(SubscriptionEntity.class, SubscriptionEntity.buildSearchSpecification(criteria));
+  }
+
+  public List<SubscriptionEntity> findByCriteria(DbReportCriteria criteria, Sort sort) {
+    return find(
+        SubscriptionEntity.class, SubscriptionEntity.buildSearchSpecification(criteria), sort);
+  }
+
   public long countByOfferingSku(String sku) {
     return count("offering.sku", sku);
   }
@@ -55,5 +64,20 @@ public class SubscriptionRepository
   public Stream<SubscriptionEntity> streamByOrgId(String orgId) {
     PanacheQuery<SubscriptionEntity> query = find("orgId = ?1", DEFAULT_SORT, orgId);
     return query.stream();
+  }
+
+  public List<SubscriptionEntity> findActiveSubscription(String subscriptionId) {
+    // Added an order by clause to avoid Hibernate issue HHH-17040
+    return find(
+            "(endDate IS NULL OR endDate > CURRENT_TIMESTAMP) AND subscriptionId = ?1",
+            DEFAULT_SORT,
+            subscriptionId)
+        .list();
+  }
+
+  List<SubscriptionEntity> findUnlimited(DbReportCriteria dbReportCriteria) {
+    var searchCriteria = SubscriptionEntity.buildSearchSpecification(dbReportCriteria);
+    searchCriteria = searchCriteria.and(SubscriptionEntity.hasUnlimitedUsage());
+    return find(SubscriptionEntity.class, searchCriteria);
   }
 }

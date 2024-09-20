@@ -1,0 +1,25 @@
+{
+  "products": [
+    {
+      "sku": "MCT4121HR",
+      "description": "Red Hat OpenShift AI (Hosted, 1 vCPU, Hourly)",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "SERVICE_TYPE",
+          "value": "Premium"
+        },
+        {
+          "code": "PRODUCT_NAME",
+          "value": "OpenShift Data Science"
+        },
+        {
+          "code": "METERED",
+          "value": "Y"
+        }
+      ],
+      "roles": []
+    }
+  ],
+  "parentMap": []
+}

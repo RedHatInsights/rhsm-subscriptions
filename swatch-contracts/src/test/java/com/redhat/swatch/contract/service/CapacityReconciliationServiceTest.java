@@ -25,6 +25,7 @@ import static com.redhat.swatch.contract.service.CapacityReconciliationService.H
 import static com.redhat.swatch.contract.service.CapacityReconciliationService.PHYSICAL;
 import static com.redhat.swatch.contract.service.CapacityReconciliationService.SOCKETS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -34,7 +35,6 @@ import com.redhat.swatch.contract.config.ProductDenylist;
 import com.redhat.swatch.contract.model.ReconcileCapacityByOfferingTask;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
-import com.redhat.swatch.contract.repository.SubscriptionMeasurementEntity;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import com.redhat.swatch.contract.test.resources.InMemoryMessageBrokerKafkaResource;
 import io.quarkus.test.InjectMock;
@@ -45,7 +45,7 @@ import io.smallrye.reactive.messaging.memory.InMemorySink;
 import jakarta.enterprise.inject.Any;
 import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -208,15 +208,8 @@ class CapacityReconciliationServiceTest {
   }
 
   private void givenSubscriptionMeasurement(String measurementType, String metricId, double value) {
-    subscription
-        .getSubscriptionMeasurements()
-        .add(
-            SubscriptionMeasurementEntity.builder()
-                .measurementType(measurementType)
-                .metricId(metricId)
-                .value(value * subscription.getQuantity())
-                .subscription(subscription)
-                .build());
+    subscription.addSubscriptionMeasurement(
+        metricId, measurementType, value * subscription.getQuantity());
   }
 
   private void whenReconcileCapacityForSubscription() {
@@ -232,8 +225,8 @@ class CapacityReconciliationServiceTest {
   private void thenSubscriptionMeasurementsContains(
       String measurementType, String metricId, int value) {
     var existing = subscription.getSubscriptionMeasurement(metricId, measurementType);
-    assertTrue(existing.isPresent(), "measurement not found: " + metricId);
-    assertEquals(value * subscription.getQuantity(), existing.get().getValue());
+    assertNotNull(existing, "measurement not found: " + metricId);
+    assertEquals(value * subscription.getQuantity(), existing);
   }
 
   private SubscriptionEntity createSubscription() {
@@ -243,7 +236,7 @@ class CapacityReconciliationServiceTest {
         .quantity(10)
         .startDate(NOW)
         .endDate(NOW.plusDays(30))
-        .subscriptionMeasurements(new HashSet<>())
+        .subscriptionMeasurements(new HashMap<>())
         .build();
   }
 }

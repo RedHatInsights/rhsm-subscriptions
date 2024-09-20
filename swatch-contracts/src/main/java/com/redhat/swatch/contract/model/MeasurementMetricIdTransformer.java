@@ -24,77 +24,52 @@ import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.contract.exception.ContractsException;
 import com.redhat.swatch.contract.exception.ErrorCode;
-import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.ContractEntity;
-import com.redhat.swatch.contract.repository.SubscriptionEntity;
+import com.redhat.swatch.contract.repository.ContractMetricEntity;
+import com.redhat.swatch.contract.repository.SubscriptionMeasurementKey;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.ProcessingException;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.mapstruct.Named;
 
 @Slf4j
 @ApplicationScoped
 public class MeasurementMetricIdTransformer {
+
+  public static final String MEASUREMENT_TYPE_DEFAULT = "PHYSICAL";
 
   /**
    * Maps all incoming metrics from cloud provider-specific formats/UOMs into the swatch UOM value.
    *
    * <p>For example, 100 four_vcpu_hours (AWS dimension) will be transformed into 400 CORES.
    *
-   * @param subscription subscription w/ measurements in the cloud-provider units
+   * @param contract entity w/ measurements in the cloud-provider units
    */
-  public void translateContractMetricIdsToSubscriptionMetricIds(SubscriptionEntity subscription) {
-    if (subscription.getOffering() == null) {
+  @Named("subscriptionMeasurementsFromContract")
+  public Map<SubscriptionMeasurementKey, Double> mapContractMetricsToSubscriptionMeasurements(
+      ContractEntity contract) {
+    if (contract.getOffering() == null) {
       log.warn(
-          "Offering is not set for subscription {}. Skipping the translation of contract metrics",
-          subscription);
-      return;
+          "Offering is not set for contract {}. Skipping the translation of contract metrics",
+          contract);
+      return Map.of();
     }
 
-    try {
-      if (subscription.getBillingProvider() == BillingProvider.AWS
-          || subscription.getBillingProvider() == BillingProvider.AZURE) {
-        for (String tag : subscription.getOffering().getProductTags()) {
-          mapMetricsToSubscription(subscription, tag);
-        }
-      }
-    } catch (ProcessingException e) {
-      log.error("Error looking up dimension for metrics", e);
-      throw new ContractsException(ErrorCode.UNHANDLED_EXCEPTION, e.getMessage());
+    if (contract.getBillingProvider() == null) {
+      // in absence of billing provider, we map all the contract metrics as it is.
+      return contract.getMetrics().stream()
+          .collect(
+              Collectors.toMap(
+                  m -> new SubscriptionMeasurementKey(m.getMetricId(), MEASUREMENT_TYPE_DEFAULT),
+                  ContractMetricEntity::getValue));
     }
-  }
 
-  private void mapMetricsToSubscription(SubscriptionEntity subscription, String productTag) {
-    var metrics = Variant.getMetricsForTag(productTag).stream().toList();
-    // the metricId currently set here is actually the aws/azure Dimension and get translated
-    // to the
-    // metric uom after calculation
-    checkForUnsupportedMetrics(metrics, subscription);
-    subscription
-        .getSubscriptionMeasurements()
-        .forEach(
-            measurement ->
-                metrics.stream()
-                    .filter(
-                        metric -> {
-                          String marketplaceMetricId =
-                              subscription.getBillingProvider() == BillingProvider.AWS
-                                  ? metric.getAwsDimension()
-                                  : metric.getAzureDimension();
-                          return Objects.equals(marketplaceMetricId, measurement.getMetricId());
-                        })
-                    .findFirst()
-                    .ifPresent(
-                        metric -> {
-                          if (metric.getBillingFactor() != null && measurement.getValue() != null) {
-                            measurement.setValue(
-                                measurement.getValue() / metric.getBillingFactor());
-                          }
-                          measurement.setMetricId(metric.getId());
-                        }));
+    return translateContractMetricToSubscriptionMeasurements(contract);
   }
 
   /**
@@ -119,16 +94,10 @@ public class MeasurementMetricIdTransformer {
         contract.getOrgId());
     try {
       for (String productTag : contract.getOffering().getProductTags()) {
-        var variantMetrics = Variant.getMetricsForTag(productTag).stream();
-        Set<String> metrics;
-        if (BillingProvider.AWS.getValue().equals(contract.getBillingProvider())) {
-          metrics = variantMetrics.map(Metric::getAwsDimension).collect(Collectors.toSet());
-        } else if (BillingProvider.AZURE.getValue().equals(contract.getBillingProvider())) {
-          metrics = variantMetrics.map(Metric::getAzureDimension).collect(Collectors.toSet());
-        } else {
-          metrics = Set.of();
-        }
-
+        var metrics =
+            Variant.findByTag(productTag).orElseThrow().getSubscription().getMetrics().stream()
+                .map(m -> getBillingProviderMetricIdentifier(contract.getBillingProvider(), m))
+                .collect(Collectors.toSet());
         contract
             .getMetrics()
             .removeIf(
@@ -147,27 +116,49 @@ public class MeasurementMetricIdTransformer {
                   return false;
                 });
       }
-    } catch (ProcessingException e) {
+    } catch (ProcessingException | NoSuchElementException e) {
       log.error("Error resolving dimensions for contract metrics", e);
       throw new ContractsException(ErrorCode.UNHANDLED_EXCEPTION, e.getMessage());
     }
   }
 
-  private void checkForUnsupportedMetrics(List<Metric> metrics, SubscriptionEntity subscription) {
-    if (!subscription.getSubscriptionMeasurements().isEmpty()) {
-      // Will check for correct metrics before translating awsDimension to Metrics UOM
-      log.debug("Checking for unsupported metricIds");
-      Set<String> supportedSet;
-      if (subscription.getBillingProvider() == BillingProvider.AWS) {
-        supportedSet = metrics.stream().map(Metric::getAwsDimension).collect(Collectors.toSet());
-      } else if (subscription.getBillingProvider() == BillingProvider.AZURE) {
-        supportedSet = metrics.stream().map(Metric::getAzureDimension).collect(Collectors.toSet());
-      } else {
-        supportedSet = Set.of();
+  private Map<SubscriptionMeasurementKey, Double> translateContractMetricToSubscriptionMeasurements(
+      ContractEntity contract) {
+    Map<SubscriptionMeasurementKey, Double> subscriptionMetrics = new HashMap<>();
+    try {
+      for (String tag : contract.getOffering().getProductTags()) {
+        var supportedMetrics = Variant.findByTag(tag).orElseThrow().getSubscription().getMetrics();
+        for (var supportedMetric : supportedMetrics) {
+          var contractMetric =
+              contract.getMetric(
+                  getBillingProviderMetricIdentifier(
+                      contract.getBillingProvider(), supportedMetric));
+          if (contractMetric != null) {
+            double billingFactor =
+                Optional.ofNullable(supportedMetric.getBillingFactor()).orElse(1.0);
+            double metricValue = contractMetric.getValue() / billingFactor;
+            subscriptionMetrics.put(
+                new SubscriptionMeasurementKey(supportedMetric.getId(), MEASUREMENT_TYPE_DEFAULT),
+                metricValue);
+          }
+        }
       }
-      subscription
-          .getSubscriptionMeasurements()
-          .removeIf(m -> !supportedSet.contains(m.getMetricId()));
+    } catch (ProcessingException | NoSuchElementException e) {
+      log.error("Error looking up dimension for metrics", e);
+      throw new ContractsException(ErrorCode.UNHANDLED_EXCEPTION, e.getMessage());
     }
+
+    return subscriptionMetrics;
+  }
+
+  private String getBillingProviderMetricIdentifier(String billingProvider, Metric metric) {
+    return switch (billingProvider) {
+      case "aws" -> metric.getAwsDimension();
+      case "azure" -> metric.getAzureDimension();
+      case "red hat" -> metric.getRhmMetricId();
+      default ->
+          throw new IllegalArgumentException(
+              String.format("Unsupported billing provider: %s", billingProvider));
+    };
   }
 }

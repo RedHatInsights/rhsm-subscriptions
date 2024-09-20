@@ -56,13 +56,13 @@ parameters:
   - name: CURL_CRON_IMAGE_TAG
     value: latest
   - name: CURL_CRON_MEMORY_REQUEST
-    value: 500Mi
+    value: 10Mi
   - name: CURL_CRON_MEMORY_LIMIT
-    value: 800Mi
+    value: 50Mi
   - name: CURL_CRON_CPU_REQUEST
-    value: 350m
+    value: 100m
   - name: CURL_CRON_CPU_LIMIT
-    value: 500m
+    value: 100m
   - name: AGGREGATE_FLUSH_SCHEDULE
     value: '@hourly'
   - name: PURGE_REMITTANCE_SCHEDULE

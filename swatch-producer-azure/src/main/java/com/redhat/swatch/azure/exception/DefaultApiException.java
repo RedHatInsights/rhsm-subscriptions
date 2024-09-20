@@ -20,8 +20,8 @@
  */
 package com.redhat.swatch.azure.exception;
 
-import com.redhat.swatch.clients.swatch.internal.subscription.api.model.Errors;
-import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
+import com.redhat.swatch.clients.contracts.api.model.Errors;
+import com.redhat.swatch.clients.contracts.api.resources.ApiException;
 import jakarta.ws.rs.core.Response;
 import lombok.Getter;
 

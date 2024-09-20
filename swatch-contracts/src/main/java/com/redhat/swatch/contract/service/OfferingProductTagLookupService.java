@@ -70,6 +70,7 @@ public class OfferingProductTagLookupService {
             .build();
 
     SubscriptionDefinition.getAllProductTags(lookupParams).forEach(productTags::addDataItem);
+    SubscriptionDefinition.pruneIncludedProducts(productTags.getData());
   }
 
   public OfferingProductTags findPersistedProductTagsBySku(String sku) {

@@ -52,12 +52,6 @@ public class ApiSpecController {
   @Value("classpath:rhsm-subscriptions-api-v2-openapi.json")
   private Resource openApiV2Json;
 
-  @Value("classpath:internal-subscriptions-sync-api-spec.yaml")
-  private Resource internalSubSyncApiYaml;
-
-  @Value("classpath:internal-subscription-sync-openapi.json")
-  private Resource internalSubSyncApiJson;
-
   @Value("classpath:internal-tally-api-spec.yaml")
   private Resource internalTallyApiYaml;
 
@@ -102,14 +96,6 @@ public class ApiSpecController {
 
   public String getOpenApiV2Yaml() {
     return getResourceAsString(openApiV2Yaml);
-  }
-
-  public String getInternalSubSyncApiYaml() {
-    return getResourceAsString(internalSubSyncApiYaml);
-  }
-
-  public String getInternalSubSyncApiJson() {
-    return getResourceAsString(internalSubSyncApiJson);
   }
 
   public String getInternalTallyApiYaml() {

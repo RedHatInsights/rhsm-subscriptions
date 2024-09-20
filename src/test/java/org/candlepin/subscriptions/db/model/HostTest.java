@@ -25,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -210,7 +209,7 @@ class HostTest {
             SubscriptionDefinition.class,
             Mockito.withSettings().defaultAnswer(Mockito.CALLS_REAL_METHODS));
     SubscriptionDefinition subscriptionDefinition = mock(SubscriptionDefinition.class);
-    when(SubscriptionDefinition.lookupSubscriptionByTag(any()))
+    when(SubscriptionDefinition.lookupSubscriptionByTag("test-prod"))
         .thenReturn(Optional.ofNullable(subscriptionDefinition));
     host.addBucket(hostTallyBucket);
 
