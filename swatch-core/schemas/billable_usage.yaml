@@ -60,6 +60,7 @@ properties:
       - subscription_not_found
       - subscription_terminated
       - usage_context_lookup
+      - unsupported_metric
       - unknown
   billed_on:
     type: string

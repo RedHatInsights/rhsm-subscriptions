@@ -21,7 +21,9 @@
 package com.redhat.swatch.azure.service;
 
 import static com.redhat.swatch.azure.configuration.Channels.BILLABLE_USAGE_HOURLY_AGGREGATE;
+import static com.redhat.swatch.azure.configuration.Channels.BILLABLE_USAGE_STATUS;
 import static com.redhat.swatch.azure.test.resources.InMemoryMessageBrokerKafkaResource.IN_MEMORY_CONNECTOR;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.azure.test.resources.InMemoryMessageBrokerKafkaResource;
@@ -32,6 +34,7 @@ import com.redhat.swatch.configuration.util.MetricIdUtils;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
+import io.smallrye.reactive.messaging.memory.InMemorySink;
 import io.smallrye.reactive.messaging.memory.InMemorySource;
 import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
@@ -71,6 +74,7 @@ class AzureBillableUsageAggregateConsumerTest {
   @InjectWireMock WireMockResource wireMockResource;
 
   InMemorySource<BillableUsageAggregate> source;
+  InMemorySink<BillableUsageAggregate> status;
   BillableUsageAggregate usage;
   AzureUsageContext contextForUsage;
 
@@ -85,6 +89,8 @@ class AzureBillableUsageAggregateConsumerTest {
   void setup() {
     LOGGER_CAPTOR.clearRecords();
     source = connector.source(BILLABLE_USAGE_HOURLY_AGGREGATE);
+    status = connector.sink(BILLABLE_USAGE_STATUS);
+    status.clear();
   }
 
   @Test
@@ -115,6 +121,21 @@ class AzureBillableUsageAggregateConsumerTest {
     thenWarningLogWithMessage("status: Error");
   }
 
+  @Test
+  void testShouldSendErrorWhenMetricIsUnsupported() {
+    givenUsageWithUnsupportedMetric();
+    whenSendUsage();
+    Awaitility.await()
+        .untilAsserted(
+            () -> {
+              var received = status.received();
+              assertEquals(1, received.size());
+              var actual = received.get(0).getPayload();
+              assertEquals(BillableUsage.Status.FAILED, actual.getStatus());
+              assertEquals(BillableUsage.ErrorCode.UNSUPPORTED_METRIC, actual.getErrorCode());
+            });
+  }
+
   private void givenAzureMarketplaceReturnsForbidden() {
     wireMockResource.stubAzureMarketplaceSubmitUsageEventForReturnsStatus(
         contextForUsage, HttpStatus.SC_FORBIDDEN);
@@ -131,6 +152,14 @@ class AzureBillableUsageAggregateConsumerTest {
 
   private void givenAzureContextForUsage() {
     contextForUsage = wireMockResource.stubContractsAzureMarketPlaceContextForUsage(usage);
+  }
+
+  private void givenUsageWithUnsupportedMetric() {
+    givenValidUsage();
+    // this metric is not configured for rosa
+    usage
+        .getAggregateKey()
+        .setMetricId(MetricIdUtils.getStorageGibibyteMonths().toUpperCaseFormatted());
   }
 
   private void givenValidUsage() {
