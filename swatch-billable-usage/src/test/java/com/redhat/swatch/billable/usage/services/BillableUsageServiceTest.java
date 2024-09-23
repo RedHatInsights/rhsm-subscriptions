@@ -25,9 +25,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceEntity;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
@@ -60,13 +58,13 @@ import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.billable.usage.AccumulationPeriodFormatter;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.Mockito;
 
 @Slf4j
 @QuarkusTest
@@ -91,7 +89,7 @@ class BillableUsageServiceTest {
   @Inject BillableUsageService service;
 
   private final SubscriptionDefinitionRegistry mockSubscriptionDefinitionRegistry =
-      Mockito.mock(SubscriptionDefinitionRegistry.class);
+      mock(SubscriptionDefinitionRegistry.class);
 
   @BeforeAll
   static void setupClass() {
@@ -104,6 +102,14 @@ class BillableUsageServiceTest {
     remittanceRepo.deleteAll();
     // reset original subscription definition registry
     setSubscriptionDefinitionRegistry(originalReference);
+  }
+
+  @AfterEach
+  void tearDown() {
+    /* We need to reset the registry because the mock SubscriptionDefinitionRegistry uses a stubbed
+     * SubscriptionDefinition.  If the test run order happens to result in that stub being used first for a tag lookup
+     * then the SubscriptionDefinition cache will be populated with the stub's particulars which we don't want. */
+    SubscriptionDefinitionRegistry.reset();
   }
 
   @Test

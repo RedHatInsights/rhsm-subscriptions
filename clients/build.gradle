@@ -44,20 +44,6 @@ project(":clients:quarkus:subscription-client") {
     apply plugin: "swatch.quarkus-rest-client-conventions"
 }
 
-project(":clients:swatch-internal-subscription-client") {
-    apply plugin: "swatch.quarkus-rest-client-conventions"
-    openApiGenerate {
-        inputSpec = "${rootDir}/src/main/spec/internal-subscriptions-sync-api-spec.yaml"
-    }
-}
-
-project(":clients:swatch-internal-subscription-springboot-client") {
-    apply plugin: "swatch.spring-boot-rest-client-conventions"
-    openApiGenerate {
-        inputSpec = "${rootDir}/src/main/spec/internal-subscriptions-sync-api-spec.yaml"
-    }
-}
-
 project(":clients:rh-partner-gateway-client") {
     apply plugin: "swatch.quarkus-rest-client-conventions"
 }

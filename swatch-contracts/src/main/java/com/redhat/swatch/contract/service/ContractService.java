@@ -75,7 +75,6 @@ public class ContractService {
   private final ContractRepository contractRepository;
   private final ContractMetricRepository contractMetricRepository;
   private final SubscriptionRepository subscriptionRepository;
-  private final SubscriptionMeasurementRepository subscriptionMeasurementRepository;
   private final MeasurementMetricIdTransformer measurementMetricIdTransformer;
   @Inject protected ContractEntityMapper contractEntityMapper;
   @Inject protected ContractDtoMapper contractDtoMapper;
@@ -89,14 +88,12 @@ public class ContractService {
       ContractRepository contractRepository,
       ContractMetricRepository contractMetricRepository,
       SubscriptionRepository subscriptionRepository,
-      SubscriptionMeasurementRepository subscriptionMeasurementRepository,
       MeasurementMetricIdTransformer measurementMetricIdTransformer,
       AwsPartnerEntitlementsProvider awsPartnerEntitlementsProvider,
       AzurePartnerEntitlementsProvider azurePartnerEntitlementsProvider) {
     this.contractRepository = contractRepository;
     this.contractMetricRepository = contractMetricRepository;
     this.subscriptionRepository = subscriptionRepository;
-    this.subscriptionMeasurementRepository = subscriptionMeasurementRepository;
     this.measurementMetricIdTransformer = measurementMetricIdTransformer;
     this.partnerEntitlementsProviders =
         List.of(awsPartnerEntitlementsProvider, azurePartnerEntitlementsProvider);
@@ -382,7 +379,9 @@ public class ContractService {
             subscriptionRepository.delete(existingSubscription);
           } else {
             var measurementsEqual =
-                subscriptionMeasurementsEqual(existingSubscription, matchingUpdatedSubscription);
+                Objects.equals(
+                    existingSubscription.getSubscriptionMeasurements(),
+                    matchingUpdatedSubscription.getSubscriptionMeasurements());
             if (!matchingUpdatedSubscription.equals(existingSubscription) || !measurementsEqual) {
               log.info(
                   "Subscription updated. Old values: {} New values: {}",
@@ -434,35 +433,15 @@ public class ContractService {
   private void deleteMisalignedSubscriptionMeasurements(
       SubscriptionEntity existingSubscription, SubscriptionEntity matchingUpdatedSubscription) {
     var measurements =
-        existingSubscription.getSubscriptionMeasurements().stream()
+        existingSubscription.getSubscriptionMeasurements().keySet().stream()
             .filter(
                 measurement ->
                     !matchingUpdatedSubscription
                         .getSubscriptionMeasurements()
-                        .contains(measurement))
+                        .containsKey(measurement))
             .toList();
     measurements.forEach(
-        measurement -> deleteSubscriptionMeasurement(existingSubscription, measurement));
-  }
-
-  private void deleteSubscriptionMeasurement(
-      SubscriptionEntity subscriptionEntity,
-      SubscriptionMeasurementEntity subscriptionMeasurementEntity) {
-    log.info("Deleting subscription_measurement: {}", subscriptionMeasurementEntity);
-    subscriptionMeasurementRepository.delete(subscriptionMeasurementEntity);
-    subscriptionEntity.removeMeasurement(subscriptionMeasurementEntity);
-    subscriptionMeasurementRepository.flush();
-  }
-
-  private boolean subscriptionMeasurementsEqual(
-      SubscriptionEntity existing, SubscriptionEntity updated) {
-    if (existing.getSubscriptionMeasurements().size()
-        != updated.getSubscriptionMeasurements().size()) {
-      return false;
-    }
-    return updated.getSubscriptionMeasurements().stream()
-        .toList()
-        .containsAll(existing.getSubscriptionMeasurements().stream().toList());
+        measurement -> existingSubscription.getSubscriptionMeasurements().remove(measurement));
   }
 
   @Transactional
@@ -596,24 +575,20 @@ public class ContractService {
   private void updateSubscriptionForContract(
       SubscriptionEntity subscription, ContractEntity contract) {
     subscriptionEntityMapper.mapSubscriptionEntityFromContractEntity(subscription, contract);
-    measurementMetricIdTransformer.translateContractMetricIdsToSubscriptionMetricIds(subscription);
-    if (subscription.getSubscriptionMeasurements().size() != contract.getMetrics().size()) {
-      measurementMetricIdTransformer.resolveConflictingMetrics(contract);
-    }
   }
 
   private void deleteContract(ContractEntity contract) {
-    var subscription =
-        subscriptionRepository
-            .find(SubscriptionEntity.class, SubscriptionEntity.forContract(contract))
-            .stream()
-            .findFirst()
-            .orElse(null);
     if (contract != null) {
+      var subscription =
+          subscriptionRepository
+              .find(SubscriptionEntity.class, SubscriptionEntity.forContract(contract))
+              .stream()
+              .findFirst()
+              .orElse(null);
       contractRepository.delete(contract);
-    }
-    if (subscription != null) {
-      subscriptionRepository.delete(subscription);
+      if (subscription != null) {
+        subscriptionRepository.delete(subscription);
+      }
     }
   }
 

@@ -45,9 +45,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.conduit.inventory.ConduitFacts;
@@ -573,17 +571,20 @@ class InventoryControllerTest {
 
   @Test
   void testIpAddressesCollected() {
-    Map<String, String> rhsmFacts = new HashMap<>();
-    rhsmFacts.put("net.interface.eth0.ipv4_address_list", "192.168.1.1, 1.2.3.4");
-    rhsmFacts.put("net.interface.eth0.ipv4_address", "192.168.1.1");
-    rhsmFacts.put("net.interface.lo.ipv4_address", "127.0.0.1");
-    rhsmFacts.put("net.interface.eth0.ipv6_address.link", "fe80::2323:912a:177a:d8e6");
-    rhsmFacts.put("net.interface.eth0.ipv6_address.link_list", "0088::99aa:bbcc:ddee:ff33");
+    Consumer consumer = new Consumer();
+    consumer.setUuid(UUID.randomUUID().toString());
+    consumer.getFacts().put("net.interface.eth0.ipv4_address_list", "192.168.1.1, 1.2.3.4");
+    consumer.getFacts().put("net.interface.eth0.ipv4_address", "192.168.1.1");
+    consumer.getFacts().put("net.interface.lo.ipv4_address", "127.0.0.1");
+    consumer.getFacts().put("net.interface.eth0.ipv6_address.link", "fe80::2323:912a:177a:d8e6");
+    consumer
+        .getFacts()
+        .put("net.interface.eth0.ipv6_address.link_list", "0088::99aa:bbcc:ddee:ff33");
 
-    var results = controller.extractIpAddresses(rhsmFacts);
+    var result = controller.getFactsFromConsumer(consumer);
 
     assertThat(
-        results,
+        result.getIpAddresses(),
         Matchers.containsInAnyOrder(
             "192.168.1.1",
             "1.2.3.4",
@@ -591,7 +592,7 @@ class InventoryControllerTest {
             "fe80::2323:912a:177a:d8e6",
             "0088::99aa:bbcc:ddee:ff33"));
     // testing whether the duplicates have been removed
-    assertEquals(5, results.size());
+    assertEquals(5, result.getIpAddresses().size());
   }
 
   @Test
@@ -624,33 +625,36 @@ class InventoryControllerTest {
 
   @Test
   void testUnknownIpsAreIgnored() {
-    Map<String, String> rhsmFacts = new HashMap<>();
-    rhsmFacts.put("net.interface.eth0.ipv4_address", "192.168.1.1");
-    rhsmFacts.put("net.interface.lo.ipv4_address", "127.0.0.1");
-    rhsmFacts.put("net.interface.eth0.ipv6_address.link", "fe80::2323:912a:177a:d8e6");
-    rhsmFacts.put("net.interface.virbr0-nic.ipv4_address", "Unknown");
-    rhsmFacts.put("net.interface.virbr0.ipv4_address", "192.168.122.1");
-    rhsmFacts.put("net.interface.wlan0.ipv4_address", "Unknown");
+    Consumer consumer = new Consumer();
+    consumer.setUuid(UUID.randomUUID().toString());
+    consumer.getFacts().put("net.interface.eth0.ipv4_address", "192.168.1.1");
+    consumer.getFacts().put("net.interface.lo.ipv4_address", "127.0.0.1");
+    consumer.getFacts().put("net.interface.eth0.ipv6_address.link", "fe80::2323:912a:177a:d8e6");
+    consumer.getFacts().put("net.interface.virbr0-nic.ipv4_address", "Unknown");
+    consumer.getFacts().put("net.interface.virbr0.ipv4_address", "192.168.122.1");
+    consumer.getFacts().put("net.interface.wlan0.ipv4_address", "Unknown");
 
-    var results = controller.extractIpAddresses(rhsmFacts);
+    var result = controller.getFactsFromConsumer(consumer);
 
     assertThat(
-        results,
+        result.getIpAddresses(),
         Matchers.containsInAnyOrder(
             "192.168.1.1", "127.0.0.1", "fe80::2323:912a:177a:d8e6", "192.168.122.1"));
   }
 
   @Test
   void testTruncatedIPsAreIgnored() {
-    Map<String, String> rhsmFacts = new HashMap<>();
-    rhsmFacts.put("net.interface.eth0.ipv4_address", "192.168.1.1");
-    rhsmFacts.put(
-        "net.interface.lo.ipv4_address", "127.0.0.1, 192.168.2.1,192.168.2.2,192...,redacted");
+    Consumer consumer = new Consumer();
+    consumer.setUuid(UUID.randomUUID().toString());
+    consumer.getFacts().put("net.interface.eth0.ipv4_address", "192.168.1.1");
+    consumer
+        .getFacts()
+        .put("net.interface.lo.ipv4_address", "127.0.0.1, 192.168.2.1,192.168.2.2,192...,redacted");
 
-    var results = controller.extractIpAddresses(rhsmFacts);
-    assertEquals(4, results.size());
+    var result = controller.getFactsFromConsumer(consumer);
+    assertEquals(4, result.getIpAddresses().size());
     assertThat(
-        results,
+        result.getIpAddresses(),
         Matchers.containsInAnyOrder("192.168.1.1", "127.0.0.1", "192.168.2.1", "192.168.2.2"));
   }
 

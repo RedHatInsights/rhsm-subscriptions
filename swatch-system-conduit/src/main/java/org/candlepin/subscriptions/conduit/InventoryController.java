@@ -43,6 +43,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.conduit.inventory.ConduitFacts;
 import org.candlepin.subscriptions.conduit.inventory.InventoryService;
 import org.candlepin.subscriptions.conduit.inventory.ProviderFact;
@@ -54,22 +55,20 @@ import org.candlepin.subscriptions.conduit.rhsm.client.model.Consumer;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.InstalledProducts;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.Pagination;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
+import org.candlepin.subscriptions.util.LogUtils;
 import org.candlepin.subscriptions.utilization.api.model.OrgInventory;
 import org.candlepin.subscriptions.validator.IpAddressValidator;
 import org.candlepin.subscriptions.validator.MacAddressValidator;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 /** Controller used to interact with the Inventory service. */
+@Slf4j
 @Component
 public class InventoryController {
-
-  private static final Logger log = LoggerFactory.getLogger(InventoryController.class);
 
   private static final BigDecimal KIBIBYTES_PER_GIBIBYTE = BigDecimal.valueOf(1048576);
   private static final BigDecimal BYTES_PER_KIBIBYTE = BigDecimal.valueOf(1024);
@@ -201,8 +200,8 @@ public class InventoryController {
     facts.setBillingModel(rhsmFacts.get(OCM_BILLING_MODEL));
     extractConversionsActivity(rhsmFacts, facts);
 
-    extractNetworkFacts(rhsmFacts, facts);
-    extractHardwareFacts(rhsmFacts, facts);
+    extractNetworkFacts(consumer, rhsmFacts, facts);
+    extractHardwareFacts(consumer, rhsmFacts, facts);
     extractVirtualizationFacts(consumer, rhsmFacts, facts);
     extractProviderFacts(rhsmFacts, facts);
     facts.setCloudProvider(extractCloudProvider(rhsmFacts));
@@ -285,7 +284,8 @@ public class InventoryController {
     }
   }
 
-  private void extractHardwareFacts(Map<String, String> rhsmFacts, ConduitFacts facts) {
+  private void extractHardwareFacts(
+      Consumer consumer, Map<String, String> rhsmFacts, ConduitFacts facts) {
     String systemUuid = rhsmFacts.get(DMI_SYSTEM_UUID);
     if (StringUtils.hasLength(systemUuid)) {
       if (systemUuid.matches(UUID_REGEX)) {
@@ -295,7 +295,7 @@ public class InventoryController {
       } else {
         log.info(
             "Consumer {} in org {} has unparseable BIOS uuid: {}",
-            facts.getSubscriptionManagerId(),
+            consumerToString(consumer),
             facts.getOrgId(),
             systemUuid);
       }
@@ -329,7 +329,7 @@ public class InventoryController {
       facts.setThreadsPerCore(Integer.parseInt(threadsPerCore));
     }
 
-    setMemoryFacts(rhsmFacts, facts);
+    setMemoryFacts(consumer, rhsmFacts, facts);
 
     String architecture = rhsmFacts.get(UNAME_MACHINE);
     if (StringUtils.hasLength(architecture)) {
@@ -337,7 +337,8 @@ public class InventoryController {
     }
   }
 
-  private void setMemoryFacts(Map<String, String> rhsmFacts, ConduitFacts facts) {
+  private void setMemoryFacts(
+      Consumer consumer, Map<String, String> rhsmFacts, ConduitFacts facts) {
     String memoryTotal = rhsmFacts.get(MEMORY_MEMTOTAL);
     if (StringUtils.hasLength(memoryTotal)) {
       try {
@@ -349,14 +350,18 @@ public class InventoryController {
         long systemMemoryBytes = memoryBytes.multiply(BYTES_PER_KIBIBYTE).longValue();
         if (systemMemoryBytes > MAX_ALLOWED_SYSTEM_MEMORY_BYTES) {
           log.warn(
-              "System memory bytes value {} greater than max allowed value of {}. Setting to null.",
+              "For consumer {}: System memory bytes value {} greater than max allowed value of {}. Setting to null.",
+              consumerToString(consumer),
               systemMemoryBytes,
               MAX_ALLOWED_SYSTEM_MEMORY_BYTES);
         } else {
           facts.setSystemMemoryBytes(systemMemoryBytes);
         }
       } catch (NumberFormatException e) {
-        log.info("Bad memory.memtotal value: {}", memoryTotal);
+        log.info(
+            "For consumer {}: Bad memory.memtotal value: {}",
+            consumerToString(consumer),
+            memoryTotal);
       }
     }
   }
@@ -383,28 +388,29 @@ public class InventoryController {
   }
 
   @SuppressWarnings("indentation")
-  private void extractNetworkFacts(Map<String, String> rhsmFacts, ConduitFacts facts) {
-    String fqdn = rhsmFacts.get(NETWORK_FQDN);
-    if (StringUtils.hasLength(fqdn)) {
+  private void extractNetworkFacts(
+      Consumer consumer, Map<String, String> rhsmFacts, ConduitFacts facts) {
+    String fqdn = getNetworkFqdn(rhsmFacts);
+    if (fqdn != null) {
       facts.setFqdn(fqdn);
     }
 
-    List<HbiNetworkInterface> networkInterfaces = populateNICs(rhsmFacts);
+    List<HbiNetworkInterface> networkInterfaces = populateNICs(consumer, rhsmFacts);
     if (!networkInterfaces.isEmpty()) {
       facts.setNetworkInterfaces(networkInterfaces);
     }
 
-    var macAddresses = extractMacAddresses(rhsmFacts);
+    var macAddresses = extractMacAddresses(consumer, rhsmFacts);
     if (!macAddresses.isEmpty()) {
       facts.setMacAddresses(new ArrayList<>(macAddresses));
     }
-    var ipAddresses = extractIpAddresses(rhsmFacts);
+    var ipAddresses = extractIpAddresses(consumer, rhsmFacts);
     if (!ipAddresses.isEmpty()) {
       facts.setIpAddresses(new ArrayList<>(ipAddresses));
     }
   }
 
-  protected Set<String> extractMacAddresses(Map<String, String> rhsmFacts) {
+  private Set<String> extractMacAddresses(Consumer consumer, Map<String, String> rhsmFacts) {
     Set<String> macAddresses = new HashSet<>();
     rhsmFacts.entrySet().stream()
         .filter(
@@ -413,14 +419,14 @@ public class InventoryController {
             entry -> {
               var macString = entry.getValue();
               var macFact = entry.getKey();
-              var splitMacs = filterMacs(macString, macFact);
+              var splitMacs = filterMacs(consumer, macString, macFact);
               macAddresses.addAll(splitMacs);
             });
 
     return macAddresses;
   }
 
-  protected Set<String> extractIpAddresses(Map<String, String> rhsmFacts) {
+  private Set<String> extractIpAddresses(Consumer consumer, Map<String, String> rhsmFacts) {
     Set<String> ipAddresses = new HashSet<>();
     rhsmFacts.entrySet().stream()
         .filter(
@@ -431,18 +437,18 @@ public class InventoryController {
             entry -> {
               var addrString = entry.getValue();
               var addrFact = entry.getKey();
-              var splitAddrs = filterIps(addrString, addrFact);
+              var splitAddrs = filterIps(consumer, addrString, addrFact);
               ipAddresses.addAll(splitAddrs);
             });
 
     return ipAddresses;
   }
 
-  protected List<String> filterIps(String s, String factKey) {
+  protected List<String> filterIps(Consumer consumer, String s, String factKey) {
     Predicate<String> ipTests = getIpTests();
     // A truncated IP would fail the validator, but we check it separately and
     // before the validator so that we can log that the fact is truncated.
-    Predicate<String> truncation = ip -> !isTruncated(ip, factKey);
+    Predicate<String> truncation = ip -> !isTruncated(consumer, ip, factKey);
     return filterCommaDelimitedList(s, truncation.and(ipTests));
   }
 
@@ -451,10 +457,10 @@ public class InventoryController {
     return addr -> StringUtils.hasLength(addr) && ipValidator.isValid(addr, null);
   }
 
-  protected List<String> filterMacs(String s, String factKey) {
+  protected List<String> filterMacs(Consumer consumer, String s, String factKey) {
     // A truncated MAC would fail the validator, but we check it separately and
     // before the validator so that we can log that the fact is truncated.
-    Predicate<String> truncation = mac -> !isTruncated(mac, factKey);
+    Predicate<String> truncation = mac -> !isTruncated(consumer, mac, factKey);
     Predicate<String> macTests = getMacTests();
     return filterCommaDelimitedList(s, truncation.and(macTests));
   }
@@ -469,7 +475,7 @@ public class InventoryController {
     return items.stream().filter(predicate).toList();
   }
 
-  private List<HbiNetworkInterface> populateNICs(Map<String, String> rhsmFacts) {
+  private List<HbiNetworkInterface> populateNICs(Consumer consumer, Map<String, String> rhsmFacts) {
     var nicSet = new ArrayList<HbiNetworkInterface>();
     for (Map.Entry<String, String> entry : rhsmFacts.entrySet()) {
       if (entry.getKey().startsWith(NIC_PREFIX)
@@ -482,18 +488,21 @@ public class InventoryController {
         var networkInterface = new HbiNetworkInterface();
         networkInterface.setName(nicsName[2]);
         networkInterface.setMacAddress(mac);
-        mapInterfaceIps(networkInterface, rhsmFacts, ".ipv4");
-        mapInterfaceIps(networkInterface, rhsmFacts, ".ipv6");
+        mapInterfaceIps(consumer, networkInterface, rhsmFacts, ".ipv4");
+        mapInterfaceIps(consumer, networkInterface, rhsmFacts, ".ipv6");
         nicSet.add(networkInterface);
       }
     }
     // creates a lo interface if ips exist for it, but no mac was given
-    checkLoopbackIPs(nicSet, rhsmFacts);
+    checkLoopbackIPs(consumer, nicSet, rhsmFacts);
     return nicSet;
   }
 
   private void mapInterfaceIps(
-      HbiNetworkInterface networkInterface, Map<String, String> facts, String suffix) {
+      Consumer consumer,
+      HbiNetworkInterface networkInterface,
+      Map<String, String> facts,
+      String suffix) {
     String prefix = NIC_PREFIX + networkInterface.getName() + suffix;
 
     var ipv4List = new HashSet<String>();
@@ -502,7 +511,7 @@ public class InventoryController {
     var fact = prefix + "_address";
     var listFact = prefix + "_address_list";
     if (suffix.equalsIgnoreCase(".ipv4") && facts.containsKey(listFact)) {
-      ipv4List.addAll(filterIps(facts.get(listFact), fact));
+      ipv4List.addAll(filterIps(consumer, facts.get(listFact), fact));
     } else if (facts.containsKey(fact) && getIpTests().test(facts.get(fact))) {
       ipv4List.add(facts.get(fact));
     }
@@ -510,7 +519,7 @@ public class InventoryController {
     fact = prefix + "_address.global";
     listFact = prefix + "_address.global_list";
     if (facts.containsKey(listFact)) {
-      ipv6List.addAll(filterIps(facts.get(listFact), fact));
+      ipv6List.addAll(filterIps(consumer, facts.get(listFact), fact));
     } else if (facts.containsKey(fact) && getIpTests().test(facts.get(fact))) {
       ipv6List.add(facts.get(fact));
     }
@@ -518,7 +527,7 @@ public class InventoryController {
     fact = prefix + "_address.link";
     listFact = prefix + "_address.link_list";
     if (facts.containsKey(listFact)) {
-      ipv6List.addAll(filterIps(facts.get(listFact), fact));
+      ipv6List.addAll(filterIps(consumer, facts.get(listFact), fact));
     } else if (facts.containsKey(fact) && getIpTests().test(facts.get(fact))) {
       ipv6List.add(facts.get(fact));
     }
@@ -533,7 +542,7 @@ public class InventoryController {
   }
 
   private void checkLoopbackIPs(
-      List<HbiNetworkInterface> networkInterfaces, Map<String, String> facts) {
+      Consumer consumer, List<HbiNetworkInterface> networkInterfaces, Map<String, String> facts) {
     boolean loExist = networkInterfaces.stream().anyMatch(nic -> "lo".equals(nic.getName()));
     var lo = new HbiNetworkInterface();
 
@@ -541,7 +550,8 @@ public class InventoryController {
       lo.setName("lo");
       lo.setMacAddress("00:00:00:00:00:00");
       var splitAddrs =
-          filterIps(facts.get(NET_INTERFACE_LO_IPV4_ADDRESS), NET_INTERFACE_LO_IPV4_ADDRESS);
+          filterIps(
+              consumer, facts.get(NET_INTERFACE_LO_IPV4_ADDRESS), NET_INTERFACE_LO_IPV4_ADDRESS);
       lo.setIpv4Addresses(
           CollectionUtils.isEmpty(splitAddrs)
               ? List.of("127.0.0.1")
@@ -551,7 +561,8 @@ public class InventoryController {
       lo.setName("lo");
       lo.setMacAddress("00:00:00:00:00:00");
       var splitAddrs =
-          filterIps(facts.get(NET_INTERFACE_LO_IPV6_ADDRESS), NET_INTERFACE_LO_IPV6_ADDRESS);
+          filterIps(
+              consumer, facts.get(NET_INTERFACE_LO_IPV6_ADDRESS), NET_INTERFACE_LO_IPV6_ADDRESS);
       lo.setIpv6Addresses(
           CollectionUtils.isEmpty(splitAddrs)
               ? List.of("::1")
@@ -648,10 +659,15 @@ public class InventoryController {
 
   public OrgInventory getInventoryForOrg(String orgId, String offset)
       throws ExternalServiceException {
-    org.candlepin.subscriptions.conduit.rhsm.client.model.OrgInventory feedPage =
-        getConsumerFeed(orgId, offset);
-    return inventoryService.getInventoryForOrgConsumers(
-        validateConduitFactsForOrg(feedPage).toList());
+    try {
+      LogUtils.addOrgIdToMdc(orgId);
+      org.candlepin.subscriptions.conduit.rhsm.client.model.OrgInventory feedPage =
+          getConsumerFeed(orgId, offset);
+      return inventoryService.getInventoryForOrgConsumers(
+          validateConduitFactsForOrg(feedPage).toList());
+    } finally {
+      LogUtils.clearOrgIdFromMdc();
+    }
   }
 
   private Stream<ConduitFacts> validateConduitFactsForOrg(
@@ -686,7 +702,7 @@ public class InventoryController {
         if (log.isInfoEnabled()) {
           log.info(
               "Consumer {} failed validation: {}",
-              consumer.getName(),
+              consumerToString(consumer),
               violations.stream()
                   .map(this::buildValidationMessage)
                   .collect(Collectors.joining("; ")));
@@ -694,18 +710,46 @@ public class InventoryController {
         return Optional.empty();
       }
     } catch (Exception e) {
-      log.warn(String.format("Skipping consumer %s due to exception", consumer.getUuid()), e);
+      log.warn("Skipping consumer {} due to exception", consumerToString(consumer), e);
       return Optional.empty();
     }
+  }
+
+  private String getNetworkFqdn(Map<String, String> rhsmFacts) {
+    String networkFqdn = rhsmFacts.get(NETWORK_FQDN);
+    if (StringUtils.hasLength(networkFqdn)) {
+      return networkFqdn;
+    }
+
+    return null;
+  }
+
+  private String consumerToString(Consumer consumer) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(consumer.getId());
+    try {
+      String fqdn = getNetworkFqdn(consumer.getFacts());
+      if (fqdn != null) {
+        sb.append(String.format(" with fqdn='%s'", fqdn));
+      }
+    } catch (Exception ex) {
+      log.warn("Error loading the facts for the consumer {}", consumer.getId(), ex);
+    }
+
+    return sb.toString();
   }
 
   private String buildValidationMessage(ConstraintViolation<ConduitFacts> x) {
     return String.format("%s: %s: %s", x.getPropertyPath(), x.getMessage(), x.getInvalidValue());
   }
 
-  private boolean isTruncated(String toCheck, String factKey) {
+  private boolean isTruncated(Consumer consumer, String toCheck, String factKey) {
     if (toCheck != null && toCheck.endsWith("...")) {
-      log.info("Consumer fact value was truncated. Skipping value: {}:{}", factKey, toCheck);
+      log.info(
+          "For consumer {}, fact value was truncated. Skipping value: {}:{}",
+          consumerToString(consumer),
+          factKey,
+          toCheck);
       return true;
     }
     return false;

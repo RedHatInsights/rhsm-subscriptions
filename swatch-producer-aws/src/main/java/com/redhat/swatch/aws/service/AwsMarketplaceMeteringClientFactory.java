@@ -21,7 +21,7 @@
 package com.redhat.swatch.aws.service;
 
 import com.redhat.swatch.aws.file.AwsCredentialsLookup;
-import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AwsUsageContext;
+import com.redhat.swatch.clients.contracts.api.model.AwsUsageContext;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.net.URI;
 import org.eclipse.microprofile.config.inject.ConfigProperty;

@@ -25,6 +25,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.clients.subscription.api.model.Subscription;
 import com.redhat.swatch.contract.config.ApplicationConfiguration;
 import com.redhat.swatch.contract.config.ProductDenylist;
+import com.redhat.swatch.contract.exception.ErrorCode;
+import com.redhat.swatch.contract.exception.ServiceException;
 import com.redhat.swatch.contract.exception.SubscriptionNotFoundException;
 import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
 import com.redhat.swatch.contract.model.SyncResult;
@@ -41,9 +43,12 @@ import io.micrometer.common.util.StringUtils;
 import io.micrometer.core.annotation.Timed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.core.Response;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -537,5 +542,45 @@ public class SubscriptionSyncService {
     log.info("Starting force sync for orgId: {}", orgId);
     reconcileSubscriptionsWithSubscriptionService(orgId, paygOnly);
     log.info("Finished force sync for orgId: {}", orgId);
+  }
+
+  @Transactional
+  public String terminateSubscription(String subscriptionId, OffsetDateTime terminationDate) {
+    var subscriptions = subscriptionRepository.findActiveSubscription(subscriptionId);
+    if (subscriptions.isEmpty()) {
+      throw new EntityNotFoundException(
+          String.format(
+              "Cannot terminate subscription because no active subscription was found with subscription ID '%s'",
+              subscriptionId));
+    } else if (subscriptions.size() > 1) {
+      throw new ServiceException(
+          ErrorCode.UNHANDLED_EXCEPTION,
+          Response.Status.INTERNAL_SERVER_ERROR,
+          "Multiple active subscription found",
+          String.format(
+              "Cannot terminate subscription because multiple active subscriptions were found for subscription ID '%s'",
+              subscriptionId));
+    }
+
+    var subscription = subscriptions.get(0);
+
+    // Wait until after we are sure there's an offering for this subscription before setting the
+    // end date.  We want validation to occur before we start mutating data.
+    subscription.setEndDate(terminationDate);
+
+    OffsetDateTime now = OffsetDateTime.now();
+    // The calculation returns a whole number, representing the number of complete units
+    // between the two temporals. For example, the amount in hours between the times 11:30 and
+    // 12:29 will zero hours as it is one minute short of an hour.
+    var delta = Math.abs(ChronoUnit.HOURS.between(terminationDate, now));
+    if (subscription.getOffering().isMetered() && delta > 0) {
+      var msg =
+          String.format(
+              "Subscription %s terminated at %s with out of range termination date %s.",
+              subscriptionId, now, terminationDate);
+      log.warn(msg);
+      return msg;
+    }
+    return String.format("Subscription %s terminated at %s.", subscriptionId, terminationDate);
   }
 }

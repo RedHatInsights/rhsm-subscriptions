@@ -21,6 +21,7 @@
 package com.redhat.swatch.contract.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
@@ -32,11 +33,17 @@ import com.redhat.swatch.contract.repository.OfferingRepository;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 class OfferingProductTagLookupServiceTest {
+
+  private static final int RHEL_PRODUCT = 69;
+  private static final int RHEL_EUS_PRODUCT = 70;
+  private static final int OCP_PRODUCT = 290;
+  private static final int NON_EXISTING_PRODUCT = 999;
 
   @InjectMock OfferingRepository offeringRepository;
   @Inject OfferingProductTagLookupService offeringProductTagLookupService;
@@ -97,5 +104,33 @@ class OfferingProductTagLookupServiceTest {
         offeringProductTagLookupService.findPersistedProductTagsBySku("sku");
     assertEquals(1, productTags.getData().size());
     assertEquals("OpenShift Container Platform", productTags.getData().get(0));
+  }
+
+  @Test
+  void discoverProductTagsBySkuShouldPruneIncludedProducts() {
+    // given an offering with eng ids that match to the following products
+    OfferingEntity offering =
+        OfferingEntity.builder()
+            .productIds(Set.of(RHEL_PRODUCT, RHEL_EUS_PRODUCT, OCP_PRODUCT))
+            .build();
+    // discover product tags by configuration
+    OfferingProductTags productTags =
+        offeringProductTagLookupService.discoverProductTagsBySku(Optional.of(offering));
+    // then only the OCP product should be taken as it's configured with the includedSubscriptions
+    // property that excludes the other products.
+    assertEquals(1, productTags.getData().size());
+    assertEquals("OpenShift Container Platform", productTags.getData().get(0));
+  }
+
+  @Test
+  void discoverProductTagsBySkuShouldDoNothingWhenNoFoundProductTags() {
+    // given an offering with eng ids that do not match with any product
+    OfferingEntity offering =
+        OfferingEntity.builder().productIds(Set.of(NON_EXISTING_PRODUCT)).build();
+    // discover product tags by configuration
+    OfferingProductTags productTags =
+        offeringProductTagLookupService.discoverProductTagsBySku(Optional.of(offering));
+    // then product tags should be null
+    assertNull(productTags.getData());
   }
 }

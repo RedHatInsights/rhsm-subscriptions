@@ -20,12 +20,9 @@
  */
 package com.redhat.swatch.contract.repository;
 
-import com.redhat.swatch.panache.PanacheSpecificationSupport;
-import jakarta.enterprise.context.ApplicationScoped;
-import lombok.extern.slf4j.Slf4j;
-
-@Slf4j
-@ApplicationScoped
-public class SubscriptionMeasurementRepository
-    implements PanacheSpecificationSupport<
-        SubscriptionMeasurementEntity, SubscriptionMeasurementEntity.SubscriptionMeasurementKey> {}
+public enum ReportCategory {
+  PHYSICAL,
+  VIRTUAL,
+  CLOUD,
+  HYPERVISOR
+}

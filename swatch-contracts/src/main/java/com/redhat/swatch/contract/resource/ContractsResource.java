@@ -22,6 +22,7 @@ package com.redhat.swatch.contract.resource;
 
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.redhat.swatch.clients.product.api.resources.ApiException;
+import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.contract.config.ApplicationConfiguration;
 import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
 import com.redhat.swatch.contract.model.SyncResult;
@@ -39,19 +40,25 @@ import com.redhat.swatch.contract.openapi.model.RpcResponse;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.openapi.model.SubscriptionResponse;
 import com.redhat.swatch.contract.openapi.model.TerminationRequest;
+import com.redhat.swatch.contract.openapi.model.TerminationRequestData;
 import com.redhat.swatch.contract.openapi.resource.DefaultApi;
 import com.redhat.swatch.contract.product.umb.CanonicalMessage;
 import com.redhat.swatch.contract.product.umb.UmbSubscription;
+import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.ContractEntity;
+import com.redhat.swatch.contract.repository.DbReportCriteria;
+import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.service.CapacityReconciliationService;
 import com.redhat.swatch.contract.service.ContractService;
 import com.redhat.swatch.contract.service.EnabledOrgsProducer;
 import com.redhat.swatch.contract.service.OfferingProductTagLookupService;
 import com.redhat.swatch.contract.service.OfferingSyncService;
 import com.redhat.swatch.contract.service.SubscriptionSyncService;
+import com.redhat.swatch.contract.service.UsageContextSubscriptionProvider;
 import io.quarkus.runtime.LaunchMode;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.ForbiddenException;
@@ -60,10 +67,10 @@ import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.ProcessingException;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jboss.resteasy.reactive.common.NotImplementedYet;
 
 @Slf4j
 @ApplicationScoped
@@ -82,6 +89,8 @@ public class ContractsResource implements DefaultApi {
   private final OfferingSyncService offeringSyncService;
   private final OfferingProductTagLookupService offeringProductTagLookupService;
   private final SubscriptionSyncService subscriptionSyncService;
+  private final UsageContextSubscriptionProvider usageContextSubscriptionProvider;
+  private final MetricMapper metricMapper;
 
   /**
    * Create contract record in database from provided contract dto payload
@@ -221,7 +230,43 @@ public class ContractsResource implements DefaultApi {
       String usage,
       String awsAccountId)
       throws ProcessingException {
-    throw new NotImplementedYet();
+    return getPaygSubscription(date, productId, orgId, BillingProvider.AWS, awsAccountId)
+        .map(this::buildAwsUsageContext)
+        .orElseThrow();
+  }
+
+  private Optional<SubscriptionEntity> getPaygSubscription(
+      OffsetDateTime date,
+      String productId,
+      String orgId,
+      BillingProvider billingProvider,
+      String awsAccountId) {
+    DbReportCriteria criteria =
+        DbReportCriteria.builder()
+            .orgId(orgId)
+            .productTag(productId)
+            // NOTE(khowell): we intentionally ignore sla and usage currently for looking up payg
+            // subscriptions
+            .billingProvider(billingProvider)
+            .billingAccountId(awsAccountId)
+            // Set start date one hour in past to pickup recently terminated subscriptions
+            .beginning(date.minusHours(1))
+            .ending(date)
+            .build();
+    return usageContextSubscriptionProvider.getSubscription(criteria);
+  }
+
+  private AwsUsageContext buildAwsUsageContext(SubscriptionEntity subscription) {
+    String[] parts = subscription.getBillingProviderId().split(";");
+    String productCode = parts[0];
+    String customerId = parts[1];
+    String sellerAccount = parts[2];
+    return new AwsUsageContext()
+        .rhSubscriptionId(subscription.getSubscriptionId())
+        .subscriptionStartDate(subscription.getStartDate())
+        .productCode(productCode)
+        .customerId(customerId)
+        .awsSellerAccountId(sellerAccount);
   }
 
   @Override
@@ -234,13 +279,23 @@ public class ContractsResource implements DefaultApi {
       String usage,
       String azureAccountId)
       throws ProcessingException {
-    throw new NotImplementedYet();
+    return getPaygSubscription(date, productId, orgId, BillingProvider.AZURE, azureAccountId)
+        .map(this::buildAzureUsageContext)
+        .orElseThrow();
+  }
+
+  private AzureUsageContext buildAzureUsageContext(SubscriptionEntity subscription) {
+    String[] parts = subscription.getBillingProviderId().split(";");
+    String resourceId = parts[0];
+    String planId = parts[1];
+    String offerId = parts[2];
+    return new AzureUsageContext().azureResourceId(resourceId).offerId(offerId).planId(planId);
   }
 
   @Override
   @RolesAllowed({"test", "support", "service"})
   public List<MetricResponse> getMetrics(String tag) throws ProcessingException {
-    throw new NotImplementedYet();
+    return metricMapper.mapMetrics(Variant.getMetricsForTag(tag).stream().toList());
   }
 
   @Override
@@ -248,7 +303,19 @@ public class ContractsResource implements DefaultApi {
   public RhmUsageContext getRhmUsageContext(
       String orgId, OffsetDateTime date, String productId, String sla, String usage)
       throws ProcessingException {
-    throw new NotImplementedYet();
+
+    // Use "_ANY" because we don't support multiple rh marketplace accounts for a single customer
+    String billingAccountId = "_ANY";
+
+    return getPaygSubscription(date, productId, orgId, BillingProvider.RED_HAT, billingAccountId)
+        .map(this::buildRhmUsageContext)
+        .orElseThrow();
+  }
+
+  private RhmUsageContext buildRhmUsageContext(SubscriptionEntity subscription) {
+    RhmUsageContext context = new RhmUsageContext();
+    context.setRhSubscriptionId(subscription.getBillingProviderId());
+    return context;
   }
 
   @Override
@@ -382,6 +449,16 @@ public class ContractsResource implements DefaultApi {
   @RolesAllowed({"test", "support", "service"})
   public TerminationRequest terminateSubscription(String subscriptionId, OffsetDateTime timestamp)
       throws ProcessingException {
-    throw new NotImplementedYet();
+    if (!applicationConfiguration.isManualSubscriptionEditingEnabled()) {
+      throw new UnsupportedOperationException("Manual subscription editing is disabled");
+    }
+
+    try {
+      var msg = subscriptionSyncService.terminateSubscription(subscriptionId, timestamp);
+      return new TerminationRequest().data(new TerminationRequestData().terminationMessage(msg));
+    } catch (EntityNotFoundException e) {
+      throw new NotFoundException(
+          "Subscription " + subscriptionId + " either does not exist or is already terminated");
+    }
   }
 }

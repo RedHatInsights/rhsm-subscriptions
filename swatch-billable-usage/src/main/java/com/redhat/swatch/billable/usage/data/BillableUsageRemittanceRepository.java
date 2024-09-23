@@ -165,6 +165,9 @@ public class BillableUsageRemittanceRepository
     if (filter.isExcludeFailures()) {
       searchCriteria = searchCriteria.and(excludesFailures());
     }
+    if (Objects.nonNull(filter.getTallyId())) {
+      searchCriteria = searchCriteria.and(matchingTallyId(filter.getTallyId()));
+    }
 
     return searchCriteria;
   }
@@ -242,5 +245,10 @@ public class BillableUsageRemittanceRepository
   private static Specification<BillableUsageRemittanceEntity> matchingSla(String sla) {
     return (root, query, builder) ->
         builder.equal(root.get(BillableUsageRemittanceEntity_.sla), sla);
+  }
+
+  private static Specification<BillableUsageRemittanceEntity> matchingTallyId(UUID tallyId) {
+    return (root, query, builder) ->
+        builder.equal(root.get(BillableUsageRemittanceEntity_.tallyId), tallyId);
   }
 }

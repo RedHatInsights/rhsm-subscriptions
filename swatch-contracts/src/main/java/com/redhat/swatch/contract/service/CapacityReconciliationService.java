@@ -25,7 +25,7 @@ import com.redhat.swatch.contract.config.ProductDenylist;
 import com.redhat.swatch.contract.model.ReconcileCapacityByOfferingTask;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
-import com.redhat.swatch.contract.repository.SubscriptionMeasurementEntity;
+import com.redhat.swatch.contract.repository.SubscriptionMeasurementKey;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -112,7 +112,7 @@ public class CapacityReconciliationService {
 
   private void reconcileSubscriptionCapacities(SubscriptionEntity subscription) {
     OfferingEntity offering = subscription.getOffering();
-    var existingKeys = new HashSet<>(subscription.getSubscriptionMeasurements());
+    var existingKeys = new HashSet<>(subscription.getSubscriptionMeasurements().keySet());
     upsertMeasurement(subscription, offering.getCores(), PHYSICAL, CORES)
         .ifPresent(existingKeys::remove);
     upsertMeasurement(subscription, offering.getHypervisorCores(), HYPERVISOR, CORES)
@@ -135,33 +135,25 @@ public class CapacityReconciliationService {
     }
   }
 
-  private Optional<SubscriptionMeasurementEntity> upsertMeasurement(
+  private Optional<SubscriptionMeasurementKey> upsertMeasurement(
       SubscriptionEntity subscription,
       Integer sourceValue,
       String measurementType,
       String metricId) {
     if (sourceValue != null && sourceValue > 0) {
-      var metric = new SubscriptionMeasurementEntity();
-      metric.setMeasurementType(measurementType);
-      metric.setMetricId(metricId);
+      var metric = new SubscriptionMeasurementKey(metricId, measurementType);
 
-      Optional<SubscriptionMeasurementEntity> existing =
-          subscription.getSubscriptionMeasurement(metricId, measurementType);
+      Double existing = subscription.getSubscriptionMeasurement(metricId, measurementType);
       var newValue = (double) (sourceValue * subscription.getQuantity());
-      if (existing.isPresent() && !Objects.equals(existing.get().getValue(), newValue)) {
-        existing.get().setValue(newValue);
+      if (existing != null && !Objects.equals(existing, newValue)) {
+        subscription.getSubscriptionMeasurements().put(metric, newValue);
         measurementsUpdated.increment();
-      } else if (existing.isEmpty()) {
-        SubscriptionMeasurementEntity newMetric = new SubscriptionMeasurementEntity();
-        newMetric.setMeasurementType(measurementType);
-        newMetric.setMetricId(metricId);
-        newMetric.setValue(newValue);
-        newMetric.setSubscription(subscription);
-        subscription.getSubscriptionMeasurements().add(newMetric);
+      } else if (existing == null) {
+        subscription.getSubscriptionMeasurements().put(metric, newValue);
         measurementsCreated.increment();
       }
 
-      return existing;
+      return Optional.of(metric);
     }
     return Optional.empty();
   }

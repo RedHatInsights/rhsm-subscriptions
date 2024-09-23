@@ -25,6 +25,7 @@ import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceFilter;
 import com.redhat.swatch.billable.usage.kafka.streams.FlushTopicService;
 import com.redhat.swatch.billable.usage.openapi.model.DefaultResponse;
 import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
+import com.redhat.swatch.billable.usage.openapi.model.TallyRemittance;
 import com.redhat.swatch.billable.usage.openapi.resource.DefaultApi;
 import com.redhat.swatch.billable.usage.services.EnabledOrgsProducer;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -35,6 +36,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
@@ -82,6 +84,18 @@ public class InternalBillableUsageResource implements DefaultApi {
             .ending(ending)
             .build();
     return billingController.getRemittances(filter);
+  }
+
+  @Override
+  public List<TallyRemittance> getRemittancesByTally(String tallyId) throws ProcessingException {
+
+    BillableUsageRemittanceFilter filter =
+        BillableUsageRemittanceFilter.builder().tallyId(UUID.fromString(tallyId)).build();
+    List<TallyRemittance> tallyRemittances = billingController.getRemittancesByTally(filter);
+    if (tallyRemittances.isEmpty()) {
+      throw new BadRequestException("Tally id not found in billable usage remittance" + tallyId);
+    }
+    return tallyRemittances;
   }
 
   @Override

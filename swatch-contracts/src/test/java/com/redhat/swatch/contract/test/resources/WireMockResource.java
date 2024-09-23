@@ -22,7 +22,6 @@ package com.redhat.swatch.contract.test.resources;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -78,28 +77,12 @@ public class WireMockResource implements QuarkusTestResourceLifecycleManager {
     config.put(
         "ENTITLEMENT_GATEWAY_URL", String.format("%s/mock/partnerApi", wireMockServer.baseUrl()));
     config.put("SUBSCRIPTION_URL", String.format("%s/mock/subscription", wireMockServer.baseUrl()));
-    config.put(
-        "quarkus.rest-client.\"com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi\".url",
-        String.format("%s/mock/internalSubs", wireMockServer.baseUrl()));
-    config.put(
-        "quarkus.rest-client.\"com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi\".key-store",
-        CLIENT_KEYSTORE_RESOURCE);
-    config.put(
-        "quarkus.rest-client.\"com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi\".key-store-password",
-        STORE_PASSWORD);
-    config.put(
-        "quarkus.rest-client.\"com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi\".trust-store",
-        String.format("file:%s", TRUSTSTORE_PATH));
-    config.put(
-        "quarkus.rest-client.\"com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi\".trust-store-password",
-        STORE_PASSWORD);
     return config;
   }
 
   public static void setup(WireMockServer wireMockServer) {
     wireMockServer.resetAll();
     stubForRhPartnerApi(wireMockServer);
-    stubForInternalSubscriptionService(wireMockServer);
     stubForSubscriptionService(wireMockServer);
   }
 
@@ -151,11 +134,11 @@ public class WireMockResource implements QuarkusTestResourceLifecycleManager {
                                                                 "endDate": "%s",
                                                                 "dimensions": [
                                                                   {
-                                                                    "name": "foobar",
+                                                                    "name": "control_plane",
                                                                     "value": "1000000"
                                                                   },
                                                                   {
-                                                                    "name": "cpu-hours",
+                                                                    "name": "four_vcpu_hour",
                                                                     "value": "1000000"
                                                                   }
                                                                 ]
@@ -164,11 +147,11 @@ public class WireMockResource implements QuarkusTestResourceLifecycleManager {
                                                                 "startDate": "2023-04-20T00:09:14.192515Z",
                                                                 "dimensions": [
                                                                   {
-                                                                    "name": "foobar",
+                                                                    "name": "control_plane",
                                                                     "value": "1000000"
                                                                   },
                                                                   {
-                                                                    "name": "cpu-hours",
+                                                                    "name": "four_vcpu_hour",
                                                                     "value": "1000000"
                                                                   }
                                                                 ]
@@ -227,38 +210,6 @@ public class WireMockResource implements QuarkusTestResourceLifecycleManager {
 
                                                     """
                             .formatted(DEFAULT_START_DATE, DEFAULT_END_DATE))));
-  }
-
-  private static void stubForInternalSubscriptionService(WireMockServer wireMockServer) {
-    wireMockServer.stubFor(
-        get(urlMatching("/mock/internalSubs/v1/internal/tags/.*/metrics"))
-            .willReturn(
-                aResponse()
-                    .withHeader("Content-Type", "application/json")
-                    .withBody(
-                        """
-                                            [
-                                              {
-                                                "aws_dimension": "cpu-hours",
-                                                "uom": "CORES",
-                                                "billing_factor": "1.0"
-                                              },
-                                              {
-                                                "aws_dimension": "foobar",
-                                                "uom": "INSTANCE_HOURS",
-                                                "billing_factor": "0.25"
-                                              }
-                                            ]
-                                            """)));
-    wireMockServer.stubFor(
-        any(urlMatching("/mock/internalSubs/v1/internal/offerings/.*/product_tags"))
-            .willReturn(
-                aResponse()
-                    .withHeader("Content-Type", "application/json")
-                    .withBody(
-                        """
-                                            {"data":["BASILISK"]}
-                                            """)));
   }
 
   @Override

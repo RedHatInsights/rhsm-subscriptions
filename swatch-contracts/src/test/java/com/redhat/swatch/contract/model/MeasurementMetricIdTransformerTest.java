@@ -20,22 +20,18 @@
  */
 package com.redhat.swatch.contract.model;
 
+import static com.redhat.swatch.contract.model.MeasurementMetricIdTransformer.MEASUREMENT_TYPE_DEFAULT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
 import com.redhat.swatch.contract.repository.OfferingEntity;
-import com.redhat.swatch.contract.repository.SubscriptionEntity;
-import com.redhat.swatch.contract.repository.SubscriptionMeasurementEntity;
-import java.util.List;
+import com.redhat.swatch.contract.repository.SubscriptionMeasurementKey;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -43,34 +39,25 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class MeasurementMetricIdTransformerTest {
   @InjectMocks MeasurementMetricIdTransformer transformer;
 
-  @ParameterizedTest
-  @EnumSource(
-      value = BillingProvider.class,
-      names = {"AWS", "AZURE"})
-  void testMapsMarketplaceDimensionToMetricId(BillingProvider billingProvider)
-      throws RuntimeException {
-    var subscription = new SubscriptionEntity();
-    subscription.setBillingProvider(billingProvider);
-    var measurement1 = new SubscriptionMeasurementEntity();
-    measurement1.setMetricId("control_plane");
-    var measurement2 = new SubscriptionMeasurementEntity();
-    measurement2.setMetricId("four_vcpu_hour");
-    measurement2.setValue(100.0);
-    subscription.addSubscriptionMeasurement(measurement1);
-    subscription.addSubscriptionMeasurement(measurement2);
-    subscription.setOffering(new OfferingEntity());
-    subscription.getOffering().setProductTags(Set.of("rosa"));
+  @Test
+  void testMapsAwsDimensionToMetricId() throws RuntimeException {
+    var contract = new ContractEntity();
+    contract.setBillingProvider(BillingProvider.AWS.getValue());
+    contract.addMetric(contractMetric("four_vcpu_hour", 100.0));
+    contract.addMetric(contractMetric("control_plane", 0));
+    contract.setOffering(new OfferingEntity());
+    contract.getOffering().setProductTags(Set.of("rosa"));
 
-    transformer.translateContractMetricIdsToSubscriptionMetricIds(subscription);
-    assertTrue(
-        subscription.getSubscriptionMeasurements().stream()
-            .map(SubscriptionMeasurementEntity::getMetricId)
-            .toList()
-            .containsAll(Set.of("Instance-hours", "Cores")));
+    var measurements = transformer.mapContractMetricsToSubscriptionMeasurements(contract);
+    assertEquals(
+        Set.of("Cores", "Instance-hours"),
+        measurements.keySet().stream()
+            .map(SubscriptionMeasurementKey::getMetricId)
+            .collect(Collectors.toSet()));
     assertEquals(
         400.0,
-        subscription.getSubscriptionMeasurements().stream()
-            .filter(m -> m.getMetricId().startsWith("Cores"))
+        measurements.entrySet().stream()
+            .filter(e -> e.getKey().getMetricId().startsWith("Cores"))
             .findFirst()
             .orElseThrow()
             .getValue());
@@ -78,53 +65,36 @@ class MeasurementMetricIdTransformerTest {
 
   @Test
   void testNoMappingAttemptedForMissingBillingProvider() throws RuntimeException {
-    var subscription = new SubscriptionEntity();
-    var measurement1 = new SubscriptionMeasurementEntity();
-    measurement1.setMetricId("test1");
-    var measurement2 = new SubscriptionMeasurementEntity();
-    measurement2.setMetricId("test2");
-    subscription.addSubscriptionMeasurement(measurement1);
-    subscription.addSubscriptionMeasurement(measurement2);
-    subscription.setOffering(new OfferingEntity());
-    subscription.getOffering().setProductTags(Set.of("rosa"));
+    var contract = new ContractEntity();
+    contract.addMetric(contractMetric("bar", 1.0));
+    contract.addMetric(contractMetric("boo", 2.0));
+    contract.setOffering(new OfferingEntity());
+    contract.getOffering().setProductTags(Set.of("hello"));
 
-    transformer.translateContractMetricIdsToSubscriptionMetricIds(subscription);
+    var measurements = transformer.mapContractMetricsToSubscriptionMeasurements(contract);
     assertEquals(
-        List.of("test1", "test2"),
-        subscription.getSubscriptionMeasurements().stream()
-            .map(SubscriptionMeasurementEntity::getMetricId)
-            .collect(Collectors.toList()));
+        1.0, measurements.get(new SubscriptionMeasurementKey("bar", MEASUREMENT_TYPE_DEFAULT)));
+    assertEquals(
+        2.0, measurements.get(new SubscriptionMeasurementKey("boo", MEASUREMENT_TYPE_DEFAULT)));
   }
 
   @Test
   void testUnsupportedMetricIdAreRemoved() throws RuntimeException {
-    var subscription = new SubscriptionEntity();
-    subscription.setBillingProvider(BillingProvider.AWS);
-    var instanceHours = new SubscriptionMeasurementEntity();
-    instanceHours.setValue(100.0);
-    instanceHours.setMetricId("control_plane");
+    var contract = new ContractEntity();
+    contract.setBillingProvider(BillingProvider.AWS.getValue());
+    contract.addMetric(contractMetric("control_plane", 100.0));
+    contract.addMetric(contractMetric("four_vcpu_hour", 100.0));
+    contract.addMetric(contractMetric("Unknown", 100.0));
 
-    var cores = new SubscriptionMeasurementEntity();
-    cores.setMetricId("four_vcpu_hour");
-    cores.setValue(100.0);
+    contract.setOffering(new OfferingEntity());
+    contract.getOffering().setProductTags(Set.of("rosa"));
 
-    var unknown = new SubscriptionMeasurementEntity();
-    unknown.setMetricId("Unknown");
-    unknown.setValue(100.0);
-
-    subscription.addSubscriptionMeasurement(instanceHours);
-    subscription.addSubscriptionMeasurement(unknown);
-    subscription.addSubscriptionMeasurement(cores);
-
-    subscription.setOffering(new OfferingEntity());
-    subscription.getOffering().setProductTags(Set.of("rosa"));
-
-    transformer.translateContractMetricIdsToSubscriptionMetricIds(subscription);
+    var measurements = transformer.mapContractMetricsToSubscriptionMeasurements(contract);
     assertEquals(
-        List.of("Instance-hours", "Cores"),
-        subscription.getSubscriptionMeasurements().stream()
-            .map(SubscriptionMeasurementEntity::getMetricId)
-            .collect(Collectors.toList()));
+        Set.of("Instance-hours", "Cores"),
+        measurements.keySet().stream()
+            .map(SubscriptionMeasurementKey::getMetricId)
+            .collect(Collectors.toSet()));
   }
 
   @Test
@@ -161,5 +131,9 @@ class MeasurementMetricIdTransformerTest {
         contract.getMetrics().stream()
             .map(ContractMetricEntity::getMetricId)
             .collect(Collectors.toSet()));
+  }
+
+  private ContractMetricEntity contractMetric(String metricId, double value) {
+    return ContractMetricEntity.builder().metricId(metricId).value(value).build();
   }
 }
