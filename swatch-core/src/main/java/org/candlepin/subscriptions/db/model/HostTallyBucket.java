@@ -29,6 +29,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import jakarta.persistence.Version;
 import java.io.Serializable;
 import java.util.Objects;
@@ -60,6 +61,8 @@ public class HostTallyBucket implements Serializable {
   @ManyToOne(fetch = FetchType.LAZY)
   private Host host;
 
+  @Transient private boolean stale;
+
   // Version to enable optimistic locking
   @Version @Column private Integer version;
 
@@ -82,6 +85,7 @@ public class HostTallyBucket implements Serializable {
     this.cores = cores;
     this.sockets = sockets;
     this.measurementType = type;
+    this.stale = false;
   }
 
   public void setHost(Host host) {

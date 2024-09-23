@@ -73,8 +73,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class MetricUsageCollectorTest {
 
-  public static final String RHEL_ENG_ID = "69";
-  public static final String RHEL_ELS_PAYG_ENG_ID = "204";
+  private static final String RHEL_ENG_ID = "69";
+  private static final String RHEL_ELS_PAYG_ENG_ID = "204";
+  private static final String ORG_ID = "orgId";
+  private static final String SERVICE_TYPE = "OpenShift Cluster";
+  private static final String RHEL_FOR_X86 = "RHEL for x86";
+  private static final String RHEL_FOR_X86_ELS_PAYG = "rhel-for-x86-els-payg";
+
+  private static final String RHEL_WORKSTATION_SWATCH_PRODUCT_ID = "RHEL Workstation";
+  private static final String RHEL_COMPUTE_NODE_SWATCH_PRODUCT_ID = "RHEL Compute Node";
+  private static final String OSD_PRODUCT_TAG = "OpenShift-dedicated-metrics";
+  private static final String OCP_PRODUCT_TAG = "OpenShift-metrics";
+
+  private static final String OSD_METRIC_ID = "redhat.com:openshift_dedicated:4cpu_hour";
+
   MetricUsageCollector metricUsageCollector;
 
   @Mock AccountServiceInventoryRepository accountRepo;
@@ -85,18 +97,6 @@ class MetricUsageCollectorTest {
 
   ApplicationClock clock = new TestClockConfiguration().adjustableClock();
 
-  static final String ORG_ID = "orgId";
-  static final String SERVICE_TYPE = "OpenShift Cluster";
-  static final String RHEL_FOR_X86 = "RHEL for x86";
-  static final String RHEL_FOR_X86_ELS_PAYG = "rhel-for-x86-els-payg";
-
-  static final String RHEL_WORKSTATION_SWATCH_PRODUCT_ID = "RHEL Workstation";
-  static final String RHEL_COMPUTE_NODE_SWATCH_PRODUCT_ID = "RHEL Compute Node";
-  static final String OSD_PRODUCT_TAG = "OpenShift-dedicated-metrics";
-  static final String OCP_PRODUCT_TAG = "OpenShift-metrics";
-
-  static final String OSD_METRIC_ID = "redhat.com:openshift_dedicated:4cpu_hour";
-
   @BeforeEach
   void setup() {
     metricUsageCollector =
@@ -104,7 +104,7 @@ class MetricUsageCollectorTest {
   }
 
   @Test
-  void updateHosts_noIteractionsWhenNoEventsFound() {
+  void updateHosts_noIterationsWhenNoEventsFound() {
     metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of());
     verifyNoInteractions(accountRepo, hostRepository, tallySnapshotRepository);
   }
@@ -785,7 +785,7 @@ class MetricUsageCollectorTest {
         List.of(coresEvent1, instanceHoursEvent1, coresEvent2, instanceHoursEvent2));
 
     ArgumentCaptor<Host> saveHostCaptor = ArgumentCaptor.forClass(Host.class);
-    verify(hostRepository, times(4)).save(saveHostCaptor.capture());
+    verify(hostRepository).save(saveHostCaptor.capture());
 
     Set<Host> savedHosts = new HashSet<>(saveHostCaptor.getAllValues());
     assertEquals(1, savedHosts.size());
@@ -904,8 +904,6 @@ class MetricUsageCollectorTest {
   @Test
   void testEventWithNullFieldsProcessedDuringUpdateHosts() {
     // NOTE: null in the JSON gets represented as Optional.empty()
-    Measurement measurement =
-        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event =
         createEvent()
             .withEventId(UUID.randomUUID())
@@ -1087,7 +1085,7 @@ class MetricUsageCollectorTest {
               .withSla(Event.Sla.PREMIUM)
               .withBillingProvider(Event.BillingProvider.RED_HAT)
               .withBillingAccountId(Optional.of(billingAccountId));
-      metricUsageCollector.updateHosts("org123", "serviceType", List.of(event));
+      metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(event));
       var expectedBillingAccountIds = Set.of(billingAccountId, "_ANY");
       // This shows that the instance has only a single billing account id in its buckets
       var hostBucketBillingAccountIds =

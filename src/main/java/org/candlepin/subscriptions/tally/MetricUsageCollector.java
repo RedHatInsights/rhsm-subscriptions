@@ -106,7 +106,7 @@ public class MetricUsageCollector {
             Collectors.toMap(Host::getInstanceId, Function.identity(), this::handleDuplicates));
 
     for (Event event : events) {
-      Host host = hostsByInstanceId.getOrDefault(event.getInstanceId(), new Host());
+      Host host = hostsByInstanceId.computeIfAbsent(event.getInstanceId(), i -> new Host());
 
       // During the hourly tally, hosts and snapshots are updated in separate transactions.
       // If an error occurs somewhere in the overall tally process while processing a batch of
@@ -123,8 +123,10 @@ public class MetricUsageCollector {
       }
 
       updateInstanceFromEvent(event, host);
-      hostsByInstanceId.put(host.getInstanceId(), host);
+    }
 
+    for (Host host : hostsByInstanceId.values()) {
+      host.getBuckets().removeIf(HostTallyBucket::isStale);
       hostRepository.save(host);
     }
   }
@@ -368,7 +370,12 @@ public class MetricUsageCollector {
           bucket.setSockets(sockets);
           host.addBucket(bucket);
         });
-    host.getBuckets().removeIf(bucket -> !activeHostBucketKeys.contains(bucket.getKey()));
+    // mark as deleted the buckets that are not active
+    for (HostTallyBucket bucket : host.getBuckets()) {
+      if (!activeHostBucketKeys.contains(bucket.getKey())) {
+        bucket.setStale(true);
+      }
+    }
   }
 
   private void updateUsage(AccountUsageCalculation calc, Event event) {

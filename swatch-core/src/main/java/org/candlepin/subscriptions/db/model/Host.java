@@ -229,6 +229,7 @@ public class Host implements Serializable {
       HostTallyBucket b = existingBucket.get();
       b.setSockets(bucket.getSockets());
       b.setCores(bucket.getCores());
+      b.setStale(false);
     } else {
       bucket.setHost(this);
       getBuckets().add(bucket);
