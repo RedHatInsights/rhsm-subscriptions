@@ -197,7 +197,7 @@ public class UpstreamProductData {
       ProductDataSource productDataSource) {
     if (existingData == null) {
       log.debug("Must sync SKU={} from data source because no existing data", product.getSku());
-      return offeringFromUpstream(product.getSku(), productDataSource);
+      return offeringUpstream(product.getSku(), productDataSource);
     }
     UpstreamProductData umbData = createFromUmbMessage(product);
     UpstreamProductData existingProductData = UpstreamProductData.createFromOffering(existingData);
@@ -209,7 +209,7 @@ public class UpstreamProductData {
             "Must sync SKU={} from data source because attribute={} is not defined in UMB message, but may be defined in child/derived SKU",
             product.getSku(),
             attr);
-        return offeringFromUpstream(product.getSku(), productDataSource);
+        return offeringUpstream(product.getSku(), productDataSource);
       }
     }
     if (!Objects.equals(umbData.children, existingProductData.children)) {
@@ -218,7 +218,7 @@ public class UpstreamProductData {
           product.getSku(),
           existingProductData.children,
           umbData.children);
-      return offeringFromUpstream(product.getSku(), productDataSource);
+      return offeringUpstream(product.getSku(), productDataSource);
     }
     String umbDerivedSku = umbData.attrs.get(Attr.DERIVED_SKU);
     String existingDerivedSku = existingProductData.attrs.get(Attr.DERIVED_SKU);
@@ -228,11 +228,21 @@ public class UpstreamProductData {
           product.getSku(),
           existingDerivedSku,
           umbDerivedSku);
-      return offeringFromUpstream(product.getSku(), productDataSource);
+      return offeringUpstream(product.getSku(), productDataSource);
     }
     existingProductData.attrs.forEach(umbData::putIfNoConflict);
     umbData.engOids.addAll(existingProductData.engOids);
     return Optional.of(umbData.toOffering());
+  }
+
+  private static Optional<OfferingEntity> offeringUpstream(
+      String sku, ProductDataSource productDataSource) {
+    try {
+      return UpstreamProductData.offeringFromUpstream(sku, productDataSource);
+    } catch (ServiceException e) {
+      log.warn("Error enriching upstream offering data for SKU: {}", sku, e);
+      return Optional.empty();
+    }
   }
 
   private static UpstreamProductData createFromUmbMessage(UmbOperationalProduct product) {

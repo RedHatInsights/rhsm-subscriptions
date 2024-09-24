@@ -27,6 +27,7 @@ import com.redhat.swatch.clients.product.JsonProductDataSource;
 import com.redhat.swatch.clients.product.ProductService;
 import com.redhat.swatch.contract.config.Channels;
 import com.redhat.swatch.contract.config.ProductDenylist;
+import com.redhat.swatch.contract.exception.ServiceException;
 import com.redhat.swatch.contract.model.OfferingSyncTask;
 import com.redhat.swatch.contract.model.SyncResult;
 import com.redhat.swatch.contract.product.UpstreamProductData;
@@ -131,9 +132,14 @@ public class OfferingSyncService {
    */
   private Optional<OfferingEntity> getUpstreamOffering(String sku) {
     log.debug("Retrieving product tree for offeringSku=\"{}\"", sku);
-    var offering = UpstreamProductData.offeringFromUpstream(sku, productService);
-    discoverProductTagsBySku(offering);
-    return offering;
+    try {
+      var offering = UpstreamProductData.offeringFromUpstream(sku, productService);
+      discoverProductTagsBySku(offering);
+      return offering;
+    } catch (ServiceException e) {
+      log.error("Unable to retrieve offering from upstream ", e);
+      return Optional.empty();
+    }
   }
 
   /**
@@ -260,9 +266,14 @@ public class OfferingSyncService {
 
   private Optional<OfferingEntity> enrichUpstreamOfferingData(
       String sku, JsonProductDataSource productDataSource) {
-    var offering = UpstreamProductData.offeringFromUpstream(sku, productDataSource);
-    discoverProductTagsBySku(offering);
-    return offering;
+    try {
+      var offering = UpstreamProductData.offeringFromUpstream(sku, productDataSource);
+      discoverProductTagsBySku(offering);
+      return offering;
+    } catch (ServiceException e) {
+      log.error("Unable to retrieve offering from upstream ", e);
+      return Optional.empty();
+    }
   }
 
   public void deleteOffering(String sku) {
