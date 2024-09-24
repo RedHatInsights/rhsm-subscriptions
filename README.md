@@ -343,6 +343,7 @@ RHSM_RBAC_USE_STUB=true ./gradlew bootRun
 * `INVENTORY_DATABASE_DATABASE`: inventory DB database
 * `INVENTORY_DATABASE_USERNAME`: inventory DB user
 * `INVENTORY_DATABASE_PASSWORD`: inventory DB password
+* `INVENTORY_DATABASE_SCHEMA`: inventory DB schema
 * `PRODUCT_DENYLIST_RESOURCE_LOCATION`: location of the product denylist
 * `ACCOUNT_LIST_RESOURCE_LOCATION`: location of the account list (opt-in used otherwise)
 * `DATABASE_HOST`: DB host
