@@ -44,7 +44,7 @@ parameters:
   - name: ENABLE_AZURE_DRY_RUN
     value: 'true'
   - name: DISABLE_OTEL
-    value: 'true'
+    value: 'false'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
