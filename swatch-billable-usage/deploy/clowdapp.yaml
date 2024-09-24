@@ -77,6 +77,8 @@ parameters:
     value: '2'
   - name: BILLING_PRODUCER_MAX_ATTEMPTS
     value: '1'
+  - name: DISABLE_OTEL
+    value: 'false'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -212,6 +214,8 @@ objects:
               value: ${BILLING_PRODUCER_BACK_OFF_MULTIPLIER}
             - name: BILLING_PRODUCER_MAX_ATTEMPTS
               value: ${BILLING_PRODUCER_MAX_ATTEMPTS}
+            - name: DISABLE_OTEL
+              value: ${DISABLE_OTEL}
           volumeMounts:
             - name: logs
               mountPath: /logs
