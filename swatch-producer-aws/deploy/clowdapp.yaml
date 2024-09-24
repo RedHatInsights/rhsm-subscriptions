@@ -71,6 +71,8 @@ parameters:
     value: '3'
   - name: QUARKUS_PROFILE
     value: prod
+  - name: DISABLE_OTEL
+    value: 'false'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -199,6 +201,8 @@ objects:
               value: ${ENABLE_AWS_DRY_RUN}
             - name: QUARKUS_PROFILE
               value: ${QUARKUS_PROFILE}
+            - name: DISABLE_OTEL
+              value: ${DISABLE_OTEL}
           volumeMounts:
             - name: logs
               mountPath: /logs

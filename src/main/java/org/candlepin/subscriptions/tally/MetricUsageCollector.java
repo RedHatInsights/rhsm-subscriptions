@@ -38,6 +38,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
@@ -56,15 +57,13 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 public class MetricUsageCollector {
-
-  private static final Logger log = LoggerFactory.getLogger(MetricUsageCollector.class);
 
   private final AccountServiceInventoryRepository accountServiceInventoryRepository;
   private final ApplicationClock clock;
@@ -106,7 +105,7 @@ public class MetricUsageCollector {
             Collectors.toMap(Host::getInstanceId, Function.identity(), this::handleDuplicates));
 
     for (Event event : events) {
-      Host host = hostsByInstanceId.getOrDefault(event.getInstanceId(), new Host());
+      Host host = hostsByInstanceId.computeIfAbsent(event.getInstanceId(), i -> new Host());
 
       // During the hourly tally, hosts and snapshots are updated in separate transactions.
       // If an error occurs somewhere in the overall tally process while processing a batch of
@@ -123,8 +122,10 @@ public class MetricUsageCollector {
       }
 
       updateInstanceFromEvent(event, host);
-      hostsByInstanceId.put(host.getInstanceId(), host);
+    }
 
+    for (Host host : hostsByInstanceId.values()) {
+      host.getBuckets().removeIf(HostTallyBucket::isStale);
       hostRepository.save(host);
     }
   }
@@ -368,7 +369,12 @@ public class MetricUsageCollector {
           bucket.setSockets(sockets);
           host.addBucket(bucket);
         });
-    host.getBuckets().removeIf(bucket -> !activeHostBucketKeys.contains(bucket.getKey()));
+    // mark as deleted the buckets that are not active
+    for (HostTallyBucket bucket : host.getBuckets()) {
+      if (!activeHostBucketKeys.contains(bucket.getKey())) {
+        bucket.setStale(true);
+      }
+    }
   }
 
   private void updateUsage(AccountUsageCalculation calc, Event event) {
@@ -392,18 +398,30 @@ public class MetricUsageCollector {
               .getMeasurements()
               .forEach(
                   measurement -> {
-                    var metricId =
-                        MetricId.fromString(
-                            Optional.ofNullable(measurement.getMetricId())
-                                .orElse(measurement.getUom()));
-                    if (Variant.getMetricsForTag(productId).stream()
-                        .map(Metric::getId)
-                        .anyMatch(definedMetricId -> definedMetricId.equals(metricId.toString()))) {
+                    var metricId = toMetricId(measurement);
+                    if (isMetricSupportedByProduct(metricId, productId)) {
                       calc.addUsage(
                           usageKey, hardwareMeasurementType, metricId, measurement.getValue());
+                    } else {
+                      log.warn(
+                          "Metric '{}' is not supported by product '{}'. Skipping measurement: {}",
+                          metricId,
+                          productId,
+                          measurement);
                     }
                   });
         });
+  }
+
+  private MetricId toMetricId(Measurement measurement) {
+    return MetricId.fromString(
+        Optional.ofNullable(measurement.getMetricId()).orElse(measurement.getUom()));
+  }
+
+  private boolean isMetricSupportedByProduct(MetricId metric, String productId) {
+    return Variant.getMetricsForTag(productId).stream()
+        .map(Metric::getId)
+        .anyMatch(definedMetricId -> definedMetricId.equals(metric.toString()));
   }
 
   private Set<List<Object>> buildBucketTuples(Event event) {
@@ -528,11 +546,20 @@ public class MetricUsageCollector {
               .forEach(
                   entry -> {
                     var measurementKey = entry.getKey();
-                    calc.addUsage(
-                        usageKey,
-                        measurementKey.getMeasurementType(),
-                        MetricId.fromString(measurementKey.getMetricId()),
-                        entry.getValue());
+                    var metricId = MetricId.fromString(measurementKey.getMetricId());
+                    if (isMetricSupportedByProduct(metricId, usageKey.getProductId())) {
+                      calc.addUsage(
+                          usageKey,
+                          measurementKey.getMeasurementType(),
+                          metricId,
+                          entry.getValue());
+                    } else {
+                      log.warn(
+                          "Metric '{}' is not supported by product '{}'. Skipping measurement: {}",
+                          metricId,
+                          usageKey.getProductId(),
+                          measurementKey);
+                    }
                   });
         });
     return calc;

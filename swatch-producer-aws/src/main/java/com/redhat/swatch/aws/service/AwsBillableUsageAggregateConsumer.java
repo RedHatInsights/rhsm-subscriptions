@@ -98,20 +98,26 @@ public class AwsBillableUsageAggregateConsumer {
       log.warn("Skipping null billable usage: deserialization failure?");
       return;
     }
+
+    if (!isForAws(billableUsageAggregate.getAggregateKey())) {
+      log.debug("Snapshot not applicable because billingProvider is not AWS");
+      return;
+    }
+
     if (billableUsageAggregate.getAggregateKey().getOrgId() != null) {
       MDC.put("org_id", billableUsageAggregate.getAggregateKey().getOrgId());
     }
 
-    Optional<Metric> metric =
-        validateUsageAndLookupMetric(billableUsageAggregate.getAggregateKey());
+    Optional<Metric> metric = lookupMetric(billableUsageAggregate.getAggregateKey());
     if (metric.isEmpty()) {
-      log.debug(
-          "Skipping billable usage because it is not applicable for this service: {}",
+      log.warn(
+          "Skipping billable usage because the metric is not supported: {}",
           billableUsageAggregate);
+      emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.UNSUPPORTED_METRIC);
       return;
-    } else {
-      log.info("Processing billable usage message: {}", billableUsageAggregate);
     }
+
+    log.info("Processing billable usage message: {}", billableUsageAggregate);
 
     AwsUsageContext context;
     try {
@@ -318,13 +324,12 @@ public class AwsBillableUsageAggregateConsumer {
         .build();
   }
 
-  private Optional<Metric> validateUsageAndLookupMetric(BillableUsageAggregateKey aggregationKey) {
-    if (!Objects.equals(
-        aggregationKey.getBillingProvider(), BillableUsage.BillingProvider.AWS.value())) {
-      log.debug("Snapshot not applicable because billingProvider is not AWS");
-      return Optional.empty();
-    }
+  private boolean isForAws(BillableUsageAggregateKey aggregationKey) {
+    return Objects.equals(
+        aggregationKey.getBillingProvider(), BillableUsage.BillingProvider.AWS.value());
+  }
 
+  private Optional<Metric> lookupMetric(BillableUsageAggregateKey aggregationKey) {
     if (aggregationKey.getMetricId() == null) {
       log.debug("Snapshot not applicable because billable metric is empty");
       return Optional.empty();

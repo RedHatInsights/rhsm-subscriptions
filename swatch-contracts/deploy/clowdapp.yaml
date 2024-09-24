@@ -100,6 +100,8 @@ parameters:
     value: 100m
   - name: CURL_CRON_CPU_LIMIT
     value: 100m
+  - name: DISABLE_OTEL
+    value: 'false'
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -310,6 +312,8 @@ objects:
                 value: ${SUBSCRIPTION_IGNORE_STARTING_LATER_THAN}
               - name: ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC
                 value: ${ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC}
+              - name: DISABLE_OTEL
+                value: ${DISABLE_OTEL}
             volumeMounts:
               - name: logs
                 mountPath: /logs
