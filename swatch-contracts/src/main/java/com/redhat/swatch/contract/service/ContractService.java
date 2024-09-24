@@ -693,6 +693,11 @@ public class ContractService {
       if (entity.getOrgId() == null) {
         throw new ContractNotAssociatedToOrgException();
       }
+      if (!Objects.nonNull(entity.getOffering())
+          || !Objects.nonNull(entity.getOffering().getSku())) {
+        log.warn("Contract doesn't have a offering or sku {}", entity);
+        throw new ContractValidationFailedException();
+      }
       var violations = validator.validate(entity);
       if (!violations.isEmpty()) {
         throw new ContractValidationFailedException(entity, violations);
