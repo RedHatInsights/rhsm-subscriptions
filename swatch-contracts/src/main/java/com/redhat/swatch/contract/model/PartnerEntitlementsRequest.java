@@ -79,14 +79,18 @@ public class PartnerEntitlementsRequest {
   public static PartnerEntitlementsRequest from(SubscriptionEntity subscription) {
     PartnerEntitlementsRequest request = new PartnerEntitlementsRequest();
     request.redHatSubscriptionNumber = subscription.getSubscriptionNumber();
-    if (subscription.getBillingAccountId() != null) {
+    if (Objects.nonNull(subscription.getBillingAccountId())
+        && Objects.nonNull(subscription.getBillingProviderId())
+        && Objects.nonNull(subscription.getBillingProvider())) {
       var billingProviderIds = subscription.getBillingProviderId().split(";");
-      if (subscription.getBillingProvider().equals(BillingProvider.AWS)) {
+      if (subscription.getBillingProvider().equals(BillingProvider.AWS)
+          && billingProviderIds.length >= 2) {
         request.awsCustomerId = billingProviderIds[1];
         request.awsCustomerAccountId = subscription.getBillingAccountId();
         request.productCode = billingProviderIds[0];
       }
-      if (subscription.getBillingProvider().equals(BillingProvider.AZURE)) {
+      if (subscription.getBillingProvider().equals(BillingProvider.AZURE)
+          && billingProviderIds.length >= 3) {
         request.azureResourceId = billingProviderIds[0];
         request.productCode = billingProviderIds[2];
       }
