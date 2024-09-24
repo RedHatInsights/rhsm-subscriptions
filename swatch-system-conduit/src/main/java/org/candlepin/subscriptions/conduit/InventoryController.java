@@ -35,9 +35,9 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -141,6 +141,10 @@ public class InventoryController {
           "8291906032809750558" // rhel-9-0-sap-ha
           );
 
+  /** AWS Product Codes that have been identified as BYOS, see SWATCH-2915 */
+  public static final Set<String> MARKETPLACE_AWS_BYOS_BILLING_PRODUCT_CODES =
+      Set.of("bp-63a5400a");
+
   private InventoryService inventoryService;
   private RhsmService rhsmService;
   private Validator validator;
@@ -237,11 +241,17 @@ public class InventoryController {
     var azureOffer = rhsmFacts.get(AZURE_OFFER);
     var awsBillingProducts = rhsmFacts.get(AWS_BILLING_PRODUCTS);
     var gcpLicenseCodes = rhsmFacts.getOrDefault(GCP_LICENSE_CODES, "").split(" ");
-    if (StringUtils.hasText(azureOffer) && !Objects.equals(azureOffer, "rhel-byos")
-        || StringUtils.hasText(awsBillingProducts)
-        || hasMarketplaceGcpLicenseCode(gcpLicenseCodes)) {
-      facts.setIsMarketplace(true);
-    }
+
+    boolean isAzureOfferMarketplace =
+        StringUtils.hasText(azureOffer) && !"rhel-byos".equals(azureOffer);
+    boolean isAwsBillingProductMarketplace =
+        StringUtils.hasText(awsBillingProducts)
+            && !MARKETPLACE_AWS_BYOS_BILLING_PRODUCT_CODES.contains(awsBillingProducts);
+
+    facts.setIsMarketplace(
+        isAzureOfferMarketplace
+            || isAwsBillingProductMarketplace
+            || hasMarketplaceGcpLicenseCode(gcpLicenseCodes));
   }
 
   private boolean hasMarketplaceGcpLicenseCode(String[] gcpLicenseCodes) {
@@ -621,15 +631,17 @@ public class InventoryController {
 
     Stream<ConduitFacts> facts = validateConduitFactsForOrg(feedPage);
 
-    long updateSize =
-        facts
-            .map(
-                hostFacts -> {
-                  inventoryService.scheduleHostUpdate(hostFacts);
-                  return 1;
-                })
-            .count();
-    if (updateSize > 0) {
+    AtomicLong updateSize = new AtomicLong(0);
+
+    facts.forEach(
+        hostFacts -> {
+          inventoryService.scheduleHostUpdate(hostFacts);
+          updateSize.incrementAndGet();
+        });
+
+    long size = updateSize.get();
+
+    if (size > 0) {
       inventoryService.flushHostUpdates();
     }
     log.debug(

@@ -66,6 +66,7 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -453,35 +454,14 @@ class InventoryControllerTest {
     consumer.getFacts().put(azureOfferFact, azzureOffer);
 
     conduitFacts = controller.getFactsFromConsumer(consumer);
-    assertNull(conduitFacts.getIsMarketplace());
+    assertFalse(conduitFacts.getIsMarketplace());
 
     azureOfferFact = "azure_offer";
     azzureOffer = "rhel-byos";
     consumer.getFacts().put(azureOfferFact, azzureOffer);
 
     conduitFacts = controller.getFactsFromConsumer(consumer);
-    assertNull(conduitFacts.getIsMarketplace());
-  }
-
-  @Test
-  void testIsMarketplaceFacts_WhenAwsBillingProductsPresent() {
-    String awsBillingProductsFact = "aws_billing_products";
-    String awsBillingProducts = "bi-6fa54";
-    String uuid = UUID.randomUUID().toString();
-    Consumer consumer = new Consumer();
-    consumer.setUuid(uuid);
-
-    consumer.getFacts().put(awsBillingProductsFact, awsBillingProducts);
-
-    ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
-    assertEquals(true, conduitFacts.getIsMarketplace());
-
-    awsBillingProductsFact = "aws_billing_products";
-    awsBillingProducts = " ";
-    consumer.getFacts().put(awsBillingProductsFact, awsBillingProducts);
-
-    conduitFacts = controller.getFactsFromConsumer(consumer);
-    assertNull(conduitFacts.getIsMarketplace());
+    assertFalse(conduitFacts.getIsMarketplace());
   }
 
   @Test
@@ -491,7 +471,7 @@ class InventoryControllerTest {
     consumer.setUuid(uuid);
 
     ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
-    assertNull(conduitFacts.getIsMarketplace());
+    assertFalse(conduitFacts.getIsMarketplace());
   }
 
   @Test
@@ -517,7 +497,26 @@ class InventoryControllerTest {
     consumer.getFacts().put(InventoryController.GCP_LICENSE_CODES, "non-rhel-placeholder");
 
     ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
-    assertNull(conduitFacts.getIsMarketplace());
+    assertFalse(conduitFacts.getIsMarketplace());
+  }
+
+  @ParameterizedTest(name = "[{index}] billingCode={0}, isMarketplace={1}")
+  @CsvSource({
+    "'', false",
+    ", false",
+    "'bp-63a5400a', false",
+    "'bananas', true",
+    "'bp-6fa54006', true",
+  })
+  void testIsMarketplaceFactsForAwsBillingCodes(String billingCode, boolean expected) {
+    String uuid = UUID.randomUUID().toString();
+    Consumer consumer = new Consumer();
+    consumer.setUuid(uuid);
+    consumer.getFacts().put(InventoryController.AWS_BILLING_PRODUCTS, billingCode);
+
+    ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+
+    assertEquals(expected, conduitFacts.getIsMarketplace());
   }
 
   @Test
