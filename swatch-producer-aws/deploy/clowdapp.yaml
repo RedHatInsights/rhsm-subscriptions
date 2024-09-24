@@ -72,7 +72,7 @@ parameters:
   - name: QUARKUS_PROFILE
     value: prod
   - name: DISABLE_OTEL
-    value: 'true'
+    value: 'false'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1

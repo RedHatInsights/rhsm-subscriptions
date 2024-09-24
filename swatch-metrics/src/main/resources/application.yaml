@@ -13,6 +13,7 @@ METRICS_IN_FAIL_ON_DESER_FAILURE: true
 METERING_TASK_TOPIC: platform.rhsm-subscriptions.metering-tasks
 SERVICE_INSTANCE_INGRESS_TOPIC: platform.rhsm-subscriptions.service-instance-ingress
 CORS_ORIGINS: /.+\\.redhat\\.com/
+DISABLE_OTEL: true
 
 # dev-specific defaults; these can still be overridden by env var
 "%dev":
@@ -47,16 +48,6 @@ CORS_ORIGINS: /.+\\.redhat\\.com/
     otel:
       sdk:
         disabled: true
-"%stage":
-  quarkus:
-    otel:
-      sdk:
-        disabled: false
-"%prod":
-  quarkus:
-    otel:
-      sdk:
-        disabled: false
 
 quarkus:
   # Exposing the health checks and metrics on :9000.
@@ -110,7 +101,7 @@ quarkus:
         traces:
           protocol: ${OTEL_EXPORTER_OTLP_PROTOCOL:grpc}
     sdk:
-      disabled: true
+      disabled: ${DISABLE_OTEL}
   kafka:
     devservices:
       enabled: false

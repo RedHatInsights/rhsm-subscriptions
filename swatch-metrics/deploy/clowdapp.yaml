@@ -128,7 +128,7 @@ parameters:
     value: 'false'
   - name: OTEL_SERVICE_NAME
     value: swatch-metrics
-  - name: OTEL_JAVAAGENT_ENABLED
+  - name: DISABLE_OTEL
     value: 'false'
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: 'http://localhost:4317'
@@ -476,8 +476,8 @@ objects:
                 value: ${OTEL_EXPORTER_OTLP_PROTOCOL}
               - name: OTEL_SERVICE_NAME
                 value: swatch-metrics-rhel
-              - name: OTEL_JAVAAGENT_ENABLED
-                value: ${OTEL_JAVAAGENT_ENABLED}
+              - name: DISABLE_OTEL
+                value: ${DISABLE_OTEL}
             livenessProbe:
               failureThreshold: 3
               httpGet:
