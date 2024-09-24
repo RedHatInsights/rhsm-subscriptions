@@ -277,8 +277,6 @@ objects:
                 value: ${OTEL_EXPORTER_OTLP_PROTOCOL}
               - name: OTEL_SERVICE_NAME
                 value: ${OTEL_SERVICE_NAME}
-              - name: OTEL_JAVAAGENT_ENABLED
-                value: ${OTEL_JAVAAGENT_ENABLED}
             livenessProbe:
               failureThreshold: 3
               httpGet:
