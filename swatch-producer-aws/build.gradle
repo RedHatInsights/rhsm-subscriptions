@@ -28,6 +28,7 @@ dependencies {
     implementation project(":swatch-common-kafka")
     implementation project(":swatch-common-resteasy-client")
     implementation project(':swatch-common-trace-response')
+    implementation project(':swatch-common-smallrye-fault-tolerance')
     testImplementation 'io.rest-assured:rest-assured'
     testImplementation 'org.mockito:mockito-junit-jupiter'
     testImplementation 'org.testcontainers:junit-jupiter'
