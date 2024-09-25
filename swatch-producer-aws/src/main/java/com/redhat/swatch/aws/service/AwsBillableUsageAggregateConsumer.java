@@ -33,6 +33,7 @@ import com.redhat.swatch.clients.contracts.api.resources.DefaultApi;
 import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.Variant;
+import com.redhat.swatch.faulttolerance.api.RetryWithExponentialBackoff;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.smallrye.reactive.messaging.annotations.Blocking;
@@ -50,7 +51,6 @@ import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.slf4j.MDC;
@@ -189,7 +189,9 @@ public class AwsBillableUsageAggregateConsumer {
     }
   }
 
-  @Retry(retryOn = AwsUsageContextLookupException.class)
+  @RetryWithExponentialBackoff(
+      maxRetries = "${AWS_USAGE_CONTEXT_LOOKUP_RETRIES}",
+      retryOn = AwsUsageContextLookupException.class)
   public AwsUsageContext lookupAwsUsageContext(BillableUsageAggregate billableUsageAggregate)
       throws AwsUsageContextLookupException {
     try {
@@ -293,7 +295,7 @@ public class AwsBillableUsageAggregateConsumer {
     }
   }
 
-  @Retry
+  @RetryWithExponentialBackoff(maxRetries = "${AWS_SEND_RETRIES}")
   public BatchMeterUsageResponse send(
       MarketplaceMeteringClient client, BatchMeterUsageRequest request) {
     return client.batchMeterUsage(request);
