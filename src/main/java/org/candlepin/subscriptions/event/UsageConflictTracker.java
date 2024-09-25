@@ -78,6 +78,6 @@ public class UsageConflictTracker {
     }
     return new UsageConflictKey(
         event.getProductTag().stream().findFirst().get(),
-        UsageConflictKey.getMetricId(event.getMeasurements().get(0)));
+        event.getMeasurements().get(0).getMetricId());
   }
 }

@@ -155,9 +155,8 @@ public class RhMarketplacePayloadMapper {
   }
 
   /**
-   * UsageEvents include a list of usage measurements. This data includes metric id equivalent of
-   * uom, and the rhmMetricId (RHM terminology) which is a configuration value of the product is
-   * for.
+   * UsageEvents include a list of usage measurements. This data includes metric id and the
+   * rhmMetricId (RHM terminology) which is a configuration value of the product is for.
    *
    * @param billableUsage billable usage to transform
    * @return List&lt;UsageMeasurement%gt;

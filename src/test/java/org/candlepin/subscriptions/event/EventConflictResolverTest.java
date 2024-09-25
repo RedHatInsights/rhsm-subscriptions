@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.event;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -53,7 +52,6 @@ import org.candlepin.subscriptions.json.Event.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -367,54 +365,6 @@ class EventConflictResolverTest {
     testResolutionScenario(expectedExisting, expectedIncoming, expectedResolved);
   }
 
-  @Test
-  void testConflictResolutionWillPreferMetricIdOverUomButSupportsBoth() {
-    // NOTE We should never see a case where the metric_id and uom are different
-    //      for a single measurement, but will test the edge case just in case.
-    OffsetDateTime eventTimestamp = CLOCK.now();
-    String instanceId = "instance1";
-
-    EventRecord existingEvent =
-        withExistingEvent(
-            instanceId,
-            eventTimestamp,
-            List.of(
-                new Measurement().withUom(CORES_IGNORED).withMetricId(CORES1).withValue(1.0),
-                new Measurement().withMetricId(INSTANCE_HOURS1).withValue(5.0)));
-
-    Event incomingEvent =
-        withIncomingEvent(
-            instanceId,
-            eventTimestamp,
-            List.of(
-                // Should be applied to the existing Cores value.
-                new Measurement().withUom(CORES1).withValue(15.0),
-                new Measurement().withUom(INSTANCE_HOURS1).withValue(30.0)));
-
-    when(repo.findConflictingEvents(Set.of(EventKey.fromEvent(existingEvent.getEvent()))))
-        .thenReturn(List.of(existingEvent));
-
-    List<EventRecord> resolved = resolver.resolveIncomingEvents(List.of(incomingEvent));
-
-    Measurement expectedDeductionInstanceHours =
-        new Measurement().withValue(-5.0).withUom(null).withMetricId(INSTANCE_HOURS1);
-    Measurement expectedInstanceHours =
-        new Measurement().withValue(30.0).withUom(INSTANCE_HOURS1).withMetricId(null);
-    Measurement expectedDeductionCores =
-        new Measurement().withValue(-1.0).withUom(CORES_IGNORED).withMetricId(CORES1);
-    Measurement expectedCores =
-        new Measurement().withValue(15.0).withUom(CORES1).withMetricId(null);
-
-    assertThat(resolved)
-        .extracting(EventRecord::getEvent)
-        .extracting(Event::getMeasurements)
-        .containsExactlyInAnyOrder(
-            List.of(expectedDeductionInstanceHours),
-            List.of(expectedInstanceHours),
-            List.of(expectedDeductionCores),
-            List.of(expectedCores));
-  }
-
   static Stream<Arguments> tagResolutionScenarios() {
     return Stream.of(
         Arguments.of(
@@ -605,14 +555,6 @@ class EventConflictResolverTest {
         .withTimestamp(timestamp);
   }
 
-  private EventRecord withExistingEvent(
-      String instanceId, OffsetDateTime timestamp, List<Measurement> measurements) {
-    Event existingEvent = withIncomingEvent(instanceId, timestamp, measurements);
-    EventRecord existingEventRecord = new EventRecord(existingEvent);
-    existingEventRecord.prePersist();
-    return existingEventRecord;
-  }
-
   private static Event withIncomingEvent(
       String instanceId, OffsetDateTime timestamp, List<Measurement> measurements) {
     Event existingEvent = createEvent(instanceId, timestamp);
@@ -712,7 +654,6 @@ class EventConflictResolverTest {
                       entry ->
                           new Measurement()
                               .withMetricId(entry.getKey())
-                              .withUom(entry.getKey())
                               .withValue(entry.getValue()))
                   .toList());
       event.setProductTag(tags);

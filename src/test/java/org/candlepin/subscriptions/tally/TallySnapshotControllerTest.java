@@ -287,10 +287,7 @@ class TallySnapshotControllerTest implements ExtendWithEmbeddedKafka {
   }
 
   private Measurement createMeasurement(Double value) {
-    return new Measurement()
-        .withMetricId(MetricIdUtils.getCores().toString())
-        .withUom(MetricIdUtils.getCores().toString())
-        .withValue(value);
+    return new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(value);
   }
 
   private void assertSnapshot(TallySnapshot snap, Double expectedValue) {

@@ -31,7 +31,6 @@ public interface MetricMapper {
 
   List<MetricResponse> mapMetrics(List<Metric> metricsForTag);
 
-  @Mapping(target = "uom", source = "id")
   @Mapping(target = "metricId", source = "id")
   MetricResponse fromConfigurationMetric(Metric metric);
 }

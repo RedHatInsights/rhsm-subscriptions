@@ -467,7 +467,7 @@ class SubscriptionTableControllerTest {
     givenSubscriptionsInRepository(coresSpec1.subscription, coresSpec2.subscription);
     givenSubscriptionsInRepository(socketsSpec1.subscription, socketsSpec2.subscription);
 
-    var reportForMatchingCoresUom =
+    var reportForMatchingCores =
         subscriptionTableController.capacityReportBySku(
             productId,
             null,
@@ -480,9 +480,9 @@ class SubscriptionTableControllerTest {
             MetricIdUtils.getCores().toString(),
             SkuCapacityReportSort.SKU,
             null);
-    assertEquals(2, reportForMatchingCoresUom.getData().size());
+    assertEquals(2, reportForMatchingCores.getData().size());
 
-    var reportForMatchingSocketsUom =
+    var reportForMatchingSockets =
         subscriptionTableController.capacityReportBySku(
             productId,
             null,
@@ -495,7 +495,7 @@ class SubscriptionTableControllerTest {
             MetricIdUtils.getSockets().toString(),
             SkuCapacityReportSort.SKU,
             null);
-    assertEquals(2, reportForMatchingSocketsUom.getData().size());
+    assertEquals(2, reportForMatchingSockets.getData().size());
   }
 
   @Test
