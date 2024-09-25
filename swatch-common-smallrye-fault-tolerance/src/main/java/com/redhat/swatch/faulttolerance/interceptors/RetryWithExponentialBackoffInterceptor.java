@@ -71,6 +71,10 @@ public class RetryWithExponentialBackoffInterceptor {
       retry.delay(duration.get().toMillis(), ChronoUnit.MILLIS);
     }
 
+    if (binding.retryOn() != null) {
+      retry.retryOn(List.of(binding.retryOn()));
+    }
+
     var exponentialBackoff = retry.withExponentialBackoff();
     getOptionalValue(binding.factor(), Integer.class).ifPresent(exponentialBackoff::factor);
     getOptionalValue(binding.maxDelay(), Duration.class)
