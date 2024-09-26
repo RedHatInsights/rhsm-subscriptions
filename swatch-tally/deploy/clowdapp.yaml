@@ -128,6 +128,8 @@ parameters:
     value: 'host-inventory-db'
   - name: INVENTORY_SECRET_KEY_NAME_PREFIX
     value: ''
+  - name: INVENTORY_DATABASE_SCHEMA
+    value: public
   - name: DEVTEST_EVENT_EDITING_ENABLED
     value: 'false'
 
@@ -395,6 +397,8 @@ objects:
               value: ${INVENTORY_DATABASE_CONNECTION_TIMEOUT_MS}
             - name: INVENTORY_DATABASE_MAX_POOL_SIZE
               value: ${INVENTORY_DATABASE_MAX_POOL_SIZE}
+            - name: INVENTORY_DATABASE_SCHEMA
+              value: ${INVENTORY_DATABASE_SCHEMA}
             - name: SWATCH_SELF_PSK
               valueFrom:
                 secretKeyRef:
