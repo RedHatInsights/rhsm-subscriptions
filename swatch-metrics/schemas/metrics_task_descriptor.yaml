@@ -13,7 +13,7 @@ properties:
   product_tag:
     type: string
   metric:
-    description: Preferred unit of measure for the subject (for products with multiple possible UOM).
+    description: Preferred unit of measure for the subject (for products with multiple possible metrics).
     type: string
   start:
     type: string

@@ -386,7 +386,7 @@ public class CombiningRollupSnapshotStrategy {
       log.debug("Updating snapshot with hardware measurement: {}", type);
       calculatedTotals
           .getMeasurements()
-          .forEach((uom, value) -> snapshot.setMeasurement(type, uom, value));
+          .forEach((metricId, value) -> snapshot.setMeasurement(type, metricId, value));
     }
   }
 

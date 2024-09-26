@@ -58,7 +58,7 @@ class MeteringEventFactoryTest {
     OffsetDateTime expiry = OffsetDateTime.now();
     OffsetDateTime measuredTime = expiry.minusHours(1);
     Double measuredValue = 23.0;
-    MetricId uom = MetricIdUtils.getCores();
+    MetricId metricId = MetricIdUtils.getCores();
 
     Event event =
         MeteringEventFactory.createMetricEvent(
@@ -73,7 +73,7 @@ class MeteringEventFactoryTest {
             serviceType,
             billingProvider,
             null,
-            uom,
+            metricId,
             measuredValue,
             productTag,
             meteringBatchId,
@@ -89,12 +89,12 @@ class MeteringEventFactoryTest {
     assertEquals(Usage.PRODUCTION, event.getUsage());
     assertEquals(EVENT_SOURCE, event.getEventSource());
     assertEquals(
-        MeteringEventFactory.getEventType(uom.getValue(), productTag), event.getEventType());
+        MeteringEventFactory.getEventType(metricId.getValue(), productTag), event.getEventType());
     assertEquals(serviceType, event.getServiceType());
     assertEquals(meteringBatchId, event.getMeteringBatchId());
     assertEquals(1, event.getMeasurements().size());
     Measurement measurement = event.getMeasurements().get(0);
-    assertEquals(uom.toString(), measurement.getUom());
+    assertEquals(metricId.toString(), measurement.getMetricId());
     assertEquals(measuredValue, measurement.getValue());
     assertTrue(event.getDisplayName().isPresent());
     assertEquals(DISPLAY_NAME, event.getDisplayName().get());

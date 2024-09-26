@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.event;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -497,7 +496,7 @@ class EventControllerTest {
                    "event_source": "cost-management",
                    "measurements": [
                      {
-                       "uom": "Instance-hours",
+                       "metric_id": "Instance-hours",
                        "value": 1.0
                      }
                    ],
@@ -516,7 +515,6 @@ class EventControllerTest {
     assertEquals(1, eventRecord.getEvent().getMeasurements().size());
     var measurement = eventRecord.getEvent().getMeasurements().get(0);
     assertEquals("Instance-hours", measurement.getMetricId());
-    assertNull(measurement.getUom());
   }
 
   private class BatchedEventCounter {

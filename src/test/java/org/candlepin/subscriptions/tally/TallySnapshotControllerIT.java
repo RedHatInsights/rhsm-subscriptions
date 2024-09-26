@@ -289,7 +289,6 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
 
   private Measurement measurement(Double value) {
     Measurement measurement = new Measurement();
-    measurement.setUom(METRIC);
     measurement.setMetricId(METRIC);
     measurement.setValue(value);
     return measurement;
@@ -304,7 +303,7 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
       Measurement current = measurementsByDate.getOrDefault(timestamp, measurement(0.0));
       measurementsByDate.put(timestamp, current);
       event.getMeasurements().stream()
-          .filter(m -> m.getUom().equals(METRIC))
+          .filter(m -> m.getMetricId().equals(METRIC))
           .forEach(m -> current.setValue(current.getValue() + m.getValue()));
     }
 

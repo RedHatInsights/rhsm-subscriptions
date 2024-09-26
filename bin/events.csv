@@ -1,4 +1,4 @@
-event_type,account,org_id,instance,timestamp,expiration,role,sla,uom,value,service_type,billing_provider,billing_account_id
+event_type,account,org_id,instance,timestamp,expiration,role,sla,metric_id,value,service_type,billing_provider,billing_account_id
 redhat.com:openshift_dedicated:4cpu_hour,account123,org123,aeb1f778-af79-4708-8401-35a5a9e8e877,2021-10-18T19:00:00Z,2021-10-19T19:00:00Z,osd,Premium,Cores,7.6,OpenShift Cluster,red hat,dummyId
 redhat.com:openshift_dedicated:4cpu_hour,account123,org123,aeb1f778-af79-4708-8401-35a5a9e8e877,2021-10-18T20:00:00Z,2021-10-19T20:00:00Z,osd,Premium,Cores,8.4,OpenShift Cluster,red hat,dummyId
 redhat.com:openshift_dedicated:4cpu_hour,account123,org123,aeb1f778-af79-4708-8401-35a5a9e8e877,2021-10-18T21:00:00Z,2021-10-19T21:00:00Z,osd,Premium,Cores,5,OpenShift Cluster,red hat,dummyId

@@ -57,7 +57,6 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Event;
-import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -175,19 +174,12 @@ public class MetricUsageCollector {
         .forEach(
             measurement -> {
               if (!isUsageAlreadyApplied(instance, event)) {
-                instance.setMeasurement(
-                    !StringUtils.isEmpty(measurement.getMetricId())
-                        ? measurement.getMetricId()
-                        : measurement.getUom(),
-                    measurement.getValue());
+                instance.setMeasurement(measurement.getMetricId(), measurement.getValue());
               }
               // Every event should be applied to the totals.
               instance.addToMonthlyTotal(
                   event.getTimestamp(),
-                  MetricId.fromString(
-                      !StringUtils.isEmpty(measurement.getMetricId())
-                          ? measurement.getMetricId()
-                          : measurement.getUom()),
+                  MetricId.fromString(measurement.getMetricId()),
                   measurement.getValue());
             });
 
@@ -398,7 +390,7 @@ public class MetricUsageCollector {
               .getMeasurements()
               .forEach(
                   measurement -> {
-                    var metricId = toMetricId(measurement);
+                    var metricId = MetricId.fromString(measurement.getMetricId());
                     if (isMetricSupportedByProduct(metricId, productId)) {
                       calc.addUsage(
                           usageKey, hardwareMeasurementType, metricId, measurement.getValue());
@@ -411,11 +403,6 @@ public class MetricUsageCollector {
                     }
                   });
         });
-  }
-
-  private MetricId toMetricId(Measurement measurement) {
-    return MetricId.fromString(
-        Optional.ofNullable(measurement.getMetricId()).orElse(measurement.getUom()));
   }
 
   private boolean isMetricSupportedByProduct(MetricId metric, String productId) {

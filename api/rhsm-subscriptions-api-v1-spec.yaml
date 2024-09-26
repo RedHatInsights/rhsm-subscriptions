@@ -442,12 +442,6 @@ paths:
           schema:
             $ref: '#/components/schemas/UsageType'
           description: "Include only hosts for the specified usage level."
-        - name: uom
-          in: query
-          deprecated: true
-          schema:
-            type: string
-          description: "Include only hosts with a specific unit of measure. Deprecated: use 'metric_id' instead. "
         - name: metric_id
           in: query
           schema:

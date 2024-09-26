@@ -74,7 +74,7 @@ public class TallyMeasurementKey implements Serializable {
     return "TallyMeasurementKey{"
         + "measurementType="
         + measurementType
-        + ", uom="
+        + ", metricId="
         + metricId
         + '}';
   }

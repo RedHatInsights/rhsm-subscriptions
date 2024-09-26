@@ -83,8 +83,8 @@ public class UsageCalculation {
           measurements.entrySet().stream()
               .map(e -> String.format("%s: %s", e.getKey(), e.getValue()))
               .collect(Collectors.joining(", "));
-      String uomMeasurements = String.format("[%s]", entries);
-      return String.format("[uom_measurements: %s]", uomMeasurements);
+      String metricMeasurements = String.format("[%s]", entries);
+      return String.format("[metric_measurements: %s]", metricMeasurements);
     }
 
     public Map<MetricId, Double> getMeasurements() {
@@ -92,13 +92,15 @@ public class UsageCalculation {
           .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().doubleValue()));
     }
 
-    public Double getMeasurement(MetricId uom) {
-      return Optional.ofNullable(measurements.get(uom)).map(BigDecimal::doubleValue).orElse(null);
+    public Double getMeasurement(MetricId metricId) {
+      return Optional.ofNullable(measurements.get(metricId))
+          .map(BigDecimal::doubleValue)
+          .orElse(null);
     }
 
-    public void increment(MetricId uom, Double amount) {
-      BigDecimal value = measurements.getOrDefault(uom, BigDecimal.valueOf(0));
-      measurements.put(uom, value.add(BigDecimal.valueOf(amount)));
+    public void increment(MetricId metricId, Double amount) {
+      BigDecimal value = measurements.getOrDefault(metricId, BigDecimal.valueOf(0));
+      measurements.put(metricId, value.add(BigDecimal.valueOf(amount)));
     }
   }
 
@@ -170,8 +172,8 @@ public class UsageCalculation {
     add(HardwareMeasurementType.TOTAL, cores, sockets, instances);
   }
 
-  public void addToTotal(MetricId uom, Double value) {
-    increment(HardwareMeasurementType.TOTAL, uom, value);
+  public void addToTotal(MetricId metricId, Double value) {
+    increment(HardwareMeasurementType.TOTAL, metricId, value);
   }
 
   public void addCloudProvider(
@@ -183,9 +185,9 @@ public class UsageCalculation {
     add(cloudType, cores, sockets, instances);
   }
 
-  private void increment(HardwareMeasurementType type, MetricId uom, Double value) {
+  private void increment(HardwareMeasurementType type, MetricId metricId, Double value) {
     Totals total = getOrDefault(type);
-    total.increment(uom, value);
+    total.increment(metricId, value);
   }
 
   private Totals getOrDefault(HardwareMeasurementType type) {

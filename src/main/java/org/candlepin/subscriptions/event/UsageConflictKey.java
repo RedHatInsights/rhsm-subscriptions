@@ -24,8 +24,6 @@ import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.lang3.StringUtils;
-import org.candlepin.subscriptions.json.Measurement;
 
 /**
  * A UsageConflictKey represents specific usage shared across multiple Events. Usage conflicts are
@@ -40,10 +38,4 @@ import org.candlepin.subscriptions.json.Measurement;
 public class UsageConflictKey {
   private String productTag;
   private String metricId;
-
-  public static String getMetricId(Measurement measurement) {
-    return !StringUtils.isEmpty(measurement.getMetricId())
-        ? measurement.getMetricId()
-        : measurement.getUom();
-  }
 }

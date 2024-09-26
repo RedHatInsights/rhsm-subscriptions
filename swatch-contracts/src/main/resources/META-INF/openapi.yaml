@@ -1067,8 +1067,6 @@ components:
           example: 6779ef20e75817b79602
     MetricResponse:
       properties:
-        uom:
-          type: string
         metric_id:
           type: string
         aws_dimension:

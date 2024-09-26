@@ -120,13 +120,15 @@ class HostRepositoryTest {
     Host host9 = createHost("inventory9", "account123");
     Host host10 = createHost("inventory10", "account123");
 
-    for (MetricId uom : MetricId.getAll()) {
+    for (MetricId metricId : MetricId.getAll()) {
       host8.addToMonthlyTotal(
-          OffsetDateTime.of(LocalDateTime.of(2021, 1, 1, 0, 0, 0), ZoneOffset.UTC), uom, 100.0);
+          OffsetDateTime.of(LocalDateTime.of(2021, 1, 1, 0, 0, 0), ZoneOffset.UTC),
+          metricId,
+          100.0);
       host9.addToMonthlyTotal(
-          OffsetDateTime.of(LocalDateTime.of(2021, 1, 1, 0, 0, 0), ZoneOffset.UTC), uom, 0.0);
+          OffsetDateTime.of(LocalDateTime.of(2021, 1, 1, 0, 0, 0), ZoneOffset.UTC), metricId, 0.0);
       host10.addToMonthlyTotal(
-          OffsetDateTime.of(LocalDateTime.of(2021, 2, 1, 0, 0, 0), ZoneOffset.UTC), uom, 50.0);
+          OffsetDateTime.of(LocalDateTime.of(2021, 2, 1, 0, 0, 0), ZoneOffset.UTC), metricId, 50.0);
     }
 
     addBucketToHost(host8, RHEL, ServiceLevel._ANY, Usage._ANY, HardwareMeasurementType.PHYSICAL);
