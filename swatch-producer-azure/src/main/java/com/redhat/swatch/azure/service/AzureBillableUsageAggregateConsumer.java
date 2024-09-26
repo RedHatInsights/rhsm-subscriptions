@@ -233,7 +233,9 @@ public class AzureBillableUsageAggregateConsumer {
     return usage;
   }
 
-  @RetryWithExponentialBackoff(retryOn = AzureUsageContextLookupException.class)
+  @RetryWithExponentialBackoff(
+      maxRetries = "${AZURE_USAGE_CONTEXT_LOOKUP_RETRIES}",
+      retryOn = AzureUsageContextLookupException.class)
   public AzureUsageContext lookupAzureUsageContext(BillableUsageAggregate billableUsageAggregate)
       throws AzureUsageContextLookupException {
     try {
