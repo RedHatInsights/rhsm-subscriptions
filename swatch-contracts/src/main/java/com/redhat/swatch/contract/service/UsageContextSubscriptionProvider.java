@@ -41,7 +41,6 @@ import lombok.extern.slf4j.Slf4j;
 @AllArgsConstructor
 public class UsageContextSubscriptionProvider {
 
-  private final SubscriptionSyncService subscriptionSyncService;
   private final SubscriptionRepository subscriptionRepository;
   private final MeterRegistry meterRegistry;
 
@@ -55,10 +54,6 @@ public class UsageContextSubscriptionProvider {
     List<SubscriptionEntity> subscriptions =
         subscriptionRepository.findByCriteria(
             criteria, Sort.descending(SubscriptionEntity_.START_DATE));
-    if (subscriptions.isEmpty()) {
-      subscriptionSyncService.forceSyncSubscriptionsForOrg(criteria.getOrgId(), true);
-      subscriptions = subscriptionRepository.findByCriteria(criteria);
-    }
 
     var existsRecentlyTerminatedSubscription =
         subscriptions.stream()
