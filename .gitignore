@@ -42,6 +42,8 @@ config/export-service/tmp
 .settings
 /**/bin/*
 !bin/import-events.py
+!bin/import-features.sh
+!bin/liquibase-new-changeset.sh
 !bin/build-images.sh
 !bin/insert-mock-hosts
 .vscode

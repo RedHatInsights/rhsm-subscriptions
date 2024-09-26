@@ -24,6 +24,7 @@ dependencies {
     implementation project(':swatch-product-configuration')
     implementation project(':swatch-common-kafka')
     implementation project(':swatch-common-resteasy-client')
+    implementation project(':swatch-common-splunk')
     implementation project(":clients:azure-marketplace-client")
     implementation project(':swatch-model-billable-usage')
     implementation project(':swatch-common-trace-response')

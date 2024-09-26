@@ -18,13 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.aws.splunk;
+package com.redhat.swatch.splunk;
 
 import com.splunk.logging.HttpEventCollectorErrorHandler;
 import com.splunk.logging.HttpEventCollectorErrorHandler.ErrorCallback;
 import com.splunk.logging.HttpEventCollectorEventInfo;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.quarkiverse.logging.splunk.SplunkErrorCallback;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
@@ -47,7 +48,7 @@ public class CountingSplunkErrorCallback implements ErrorCallback {
     // prints the formatted error to stderr, so we'll delegate invocations of our ErrorCallback
     // to the default callback so that it can handle creating a human-readable record of the
     // issue.
-    this.delegatedCallback = new QuarkusHecErrorCallback();
+    this.delegatedCallback = new SplunkErrorCallback();
     this.failureCounter = meterRegistry.counter("splunk.hec.message.failure.total");
   }
 
