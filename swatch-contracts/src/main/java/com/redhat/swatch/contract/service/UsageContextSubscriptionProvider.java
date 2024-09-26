@@ -55,6 +55,12 @@ public class UsageContextSubscriptionProvider {
         subscriptionRepository.findByCriteria(
             criteria, Sort.descending(SubscriptionEntity_.START_DATE));
 
+    if (subscriptions.isEmpty()) {
+      log.warn("No subscription found for criteria {}", criteria);
+      missingSubscriptionCounter.increment();
+      throw new NotFoundException();
+    }
+
     var existsRecentlyTerminatedSubscription =
         subscriptions.stream()
             .anyMatch(
@@ -72,17 +78,18 @@ public class UsageContextSubscriptionProvider {
                         || subscription.getEndDate().equals(criteria.getEnding()))
             .toList();
 
-    if (subscriptions.isEmpty()) {
-      missingSubscriptionCounter.increment();
-      throw new NotFoundException();
-    }
-
-    if (activeSubscriptions.isEmpty() && existsRecentlyTerminatedSubscription) {
-      throw new ServiceException(
-          ErrorCode.SUBSCRIPTION_RECENTLY_TERMINATED,
-          Status.NOT_FOUND,
-          "Subscription recently terminated",
-          "");
+    if (activeSubscriptions.isEmpty()) {
+      if (existsRecentlyTerminatedSubscription) {
+        throw new ServiceException(
+            ErrorCode.SUBSCRIPTION_RECENTLY_TERMINATED,
+            Status.NOT_FOUND,
+            "Subscription recently terminated",
+            "");
+      } else {
+        log.warn("No active subscription found for criteria {}", criteria);
+        missingSubscriptionCounter.increment();
+        throw new NotFoundException();
+      }
     }
 
     if (activeSubscriptions.size() > 1) {
