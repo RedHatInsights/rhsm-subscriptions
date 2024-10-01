@@ -63,18 +63,23 @@ import org.candlepin.subscriptions.utilization.api.v1.model.GranularityType;
 import org.candlepin.subscriptions.utilization.api.v1.model.TallyReportData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Answers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
-@SpringBootTest(properties = "CONTRACT_USE_STUB=true")
+@SpringBootTest(properties = {"CONTRACT_USE_STUB=true", "HOURLY_TALLY_EVENT_BATCH_SIZE=2"})
 @ActiveProfiles(value = {"worker", "kafka-queue", "api", "test-inventory", "capacity-ingress"})
+@ExtendWith(OutputCaptureExtension.class)
 class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithEmbeddedKafka {
-  static final String PROMETHEUS = "prometheus";
+  static final String INSTANCE_ID = "i-123456";
   static final String METRIC = "Cores";
   static final String USER_ID = "123";
   static final String ORG_ID = "owner" + USER_ID;
@@ -100,10 +105,40 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   List<Event> events = new ArrayList<>();
   ExpectedReport expectedReport = new ExpectedReport();
 
+  @Transactional
   @BeforeEach
   public void setup() {
     expectedReport.clear();
     events.clear();
+  }
+
+  /**
+   * Test to reproduce the issue <a
+   * href="https://issues.redhat.com/browse/SWATCH-2887">SWATCH-2887</a>
+   */
+  @WithMockRedHatPrincipal(value = USER_ID)
+  @Test
+  void testProduceHourlySnapshotsForOrgFromEventsUpdatingTheSameBucket(CapturedOutput output) {
+    givenOrgAndAccountInConfig();
+    givenFiveDaysOfRangeForReport();
+    // prevent retally
+    givenExistingHostInformation();
+    // first tx
+    // host_tally_buckets created with STANDARD
+    givenEventAtDay(1, 2, Event.Sla.STANDARD);
+    // do nothing
+    givenEventAtDay(2, 2, Event.Sla.STANDARD);
+
+    // second tx
+    // host_tally_buckets deleted with STANDARD
+    // host_tally_buckets created with PREMIUM
+    givenEventAtDay(3, 2, Event.Sla.PREMIUM);
+    // host_tally_buckets deleted with PREMIUM
+    // host_tally_buckets created with STANDARD
+    givenEventAtDay(4, 2, Event.Sla.STANDARD);
+
+    whenProduceHourlySnapshotsForOrg();
+    assertFalse(output.getAll().contains("Could not collect"));
   }
 
   @WithMockRedHatPrincipal(value = USER_ID)
@@ -197,15 +232,19 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   }
 
   private void givenEventAtDay(int dayAt, double value) {
+    givenEventAtDay(dayAt, value, Event.Sla.PREMIUM);
+  }
+
+  private void givenEventAtDay(int dayAt, double value, Event.Sla sla) {
     Event event = new Event();
     event.setEventId(UUID.randomUUID());
     event.setTimestamp(start.plusDays(dayAt));
-    event.setSla(Event.Sla.PREMIUM);
+    event.setSla(sla);
     event.setRole(Event.Role.MOA_HOSTEDCONTROLPLANE);
     event.setProductTag(Set.of(PRODUCT_TAG));
     event.setOrgId(ORG_ID);
     event.setEventType("snapshot_" + METRIC.toLowerCase() + "_" + PRODUCT_TAG.toLowerCase());
-    event.setInstanceId(PROMETHEUS);
+    event.setInstanceId(INSTANCE_ID);
     event.setEventSource("any");
     event.setExpiration(Optional.of(event.getTimestamp().plusHours(5)));
     event.setMeasurements(List.of(measurement(value)));
@@ -250,7 +289,6 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
 
   private Measurement measurement(Double value) {
     Measurement measurement = new Measurement();
-    measurement.setUom(METRIC);
     measurement.setMetricId(METRIC);
     measurement.setValue(value);
     return measurement;
@@ -265,7 +303,7 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
       Measurement current = measurementsByDate.getOrDefault(timestamp, measurement(0.0));
       measurementsByDate.put(timestamp, current);
       event.getMeasurements().stream()
-          .filter(m -> m.getUom().equals(METRIC))
+          .filter(m -> m.getMetricId().equals(METRIC))
           .forEach(m -> current.setValue(current.getValue() + m.getValue()));
     }
 

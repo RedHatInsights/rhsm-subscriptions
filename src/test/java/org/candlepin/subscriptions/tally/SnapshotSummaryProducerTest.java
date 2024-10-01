@@ -143,7 +143,7 @@ class SnapshotSummaryProducerTest {
       Granularity granularity,
       ServiceLevel sla,
       Usage usage,
-      MetricId uom,
+      MetricId metricId,
       double value) {
     assertTrue(results.containsKey(orgId));
     List<TallySummary> accountSummaries = results.get(orgId);
@@ -164,7 +164,7 @@ class SnapshotSummaryProducerTest {
         snapshot.getTallyMeasurements().stream()
             .collect(Collectors.groupingBy(TallyMeasurement::getHardwareMeasurementType));
     assertTrue(Optional.ofNullable(measurements.get("TOTAL")).isEmpty());
-    assertMeasurement(measurements, "PHYSICAL", uom, value);
+    assertMeasurement(measurements, "PHYSICAL", metricId, value);
   }
 
   @Test

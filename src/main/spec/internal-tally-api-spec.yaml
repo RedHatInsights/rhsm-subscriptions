@@ -183,7 +183,7 @@ paths:
                     display_name: c5mu16smf1c22rn8e730
                     measurements:
                       - value: 1.5
-                        uom: Storage-gibibyte-months
+                        metric_id: Storage-gibibyte-months
                     role: BASILISK
                     sla: Premium
                     billing_provider: red hat

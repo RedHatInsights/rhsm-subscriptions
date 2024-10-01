@@ -36,6 +36,7 @@ import com.redhat.swatch.clients.contracts.api.resources.DefaultApi;
 import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.Variant;
+import com.redhat.swatch.faulttolerance.api.RetryWithExponentialBackoff;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.smallrye.reactive.messaging.annotations.Blocking;
@@ -54,7 +55,6 @@ import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.slf4j.MDC;
@@ -96,22 +96,28 @@ public class AzureBillableUsageAggregateConsumer {
       log.warn("Skipping null billable usage: deserialization failure?");
       return;
     }
+
+    if (!isForAzure(billableUsageAggregate.getAggregateKey())) {
+      log.debug("Snapshot not applicable because billingProvider is not Azure");
+      return;
+    }
+
     if (billableUsageAggregate.getAggregateKey().getOrgId() != null) {
       MDC.put("org_id", billableUsageAggregate.getAggregateKey().getOrgId());
     }
 
-    Optional<Metric> metric =
-        validateUsageAndLookupMetric(billableUsageAggregate.getAggregateKey());
+    Optional<Metric> metric = lookupMetric(billableUsageAggregate.getAggregateKey());
+    if (metric.isEmpty()) {
+      log.warn(
+          "Skipping billable usage because the metric is not supported: {}",
+          billableUsageAggregate);
+      emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.UNSUPPORTED_METRIC);
+      return;
+    }
+
+    log.info("Processing billable usage message: {}", billableUsageAggregate);
 
     AzureUsageContext context;
-    if (metric.isEmpty()) {
-      log.debug(
-          "Skipping billable usage because it is not applicable for this service: {}",
-          billableUsageAggregate);
-      return;
-    } else {
-      log.info("Processing billable usage message: {}", billableUsageAggregate);
-    }
     try {
       context = lookupAzureUsageContext(billableUsageAggregate);
     } catch (SubscriptionRecentlyTerminatedException e) {
@@ -131,9 +137,16 @@ public class AzureBillableUsageAggregateConsumer {
             billableUsageAggregate.getAggregateKey().getOrgId(),
             billableUsageAggregate.getRemittanceUuids(),
             billableUsageAggregate.getWindowTimestamp(),
-            azureUsageWindow);
+            azureUsageWindow,
+            e);
         emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.INACTIVE);
       } else {
+        log.warn(
+            "Subscription not found for for aggregateId={} orgId={} remittanceUUIDs={}",
+            billableUsageAggregate.getAggregateId(),
+            billableUsageAggregate.getAggregateKey().getOrgId(),
+            billableUsageAggregate.getRemittanceUuids(),
+            e);
         emitErrorStatusOnUsage(
             billableUsageAggregate, BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND);
       }
@@ -227,7 +240,9 @@ public class AzureBillableUsageAggregateConsumer {
     return usage;
   }
 
-  @Retry(retryOn = AzureUsageContextLookupException.class)
+  @RetryWithExponentialBackoff(
+      maxRetries = "${AZURE_USAGE_CONTEXT_LOOKUP_RETRIES}",
+      retryOn = AzureUsageContextLookupException.class)
   public AzureUsageContext lookupAzureUsageContext(BillableUsageAggregate billableUsageAggregate)
       throws AzureUsageContextLookupException {
     try {
@@ -257,13 +272,12 @@ public class AzureBillableUsageAggregateConsumer {
     }
   }
 
-  private Optional<Metric> validateUsageAndLookupMetric(BillableUsageAggregateKey aggregationKey) {
-    if (!Objects.equals(
-        aggregationKey.getBillingProvider(), BillableUsage.BillingProvider.AZURE.value())) {
-      log.debug("Snapshot not applicable because billingProvider is not Azure");
-      return Optional.empty();
-    }
+  private boolean isForAzure(BillableUsageAggregateKey aggregationKey) {
+    return Objects.equals(
+        aggregationKey.getBillingProvider(), BillableUsage.BillingProvider.AZURE.value());
+  }
 
+  private Optional<Metric> lookupMetric(BillableUsageAggregateKey aggregationKey) {
     if (aggregationKey.getMetricId() == null) {
       log.debug("Snapshot not applicable because billable metric id is empty");
       return Optional.empty();

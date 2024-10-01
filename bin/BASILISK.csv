@@ -1,4 +1,4 @@
-event_type,account,org_id,instance,timestamp,expiration,role,sla,uom,value,service_type,billing_provider,billing_account_id
+event_type,account,org_id,instance,timestamp,expiration,role,sla,metric_id,value,service_type,billing_provider,billing_account_id
 redhat.com:BASILISK:storage_gb,account123,org123,c5mu16smf1c22rn8e730,2021-10-18T19:00:00Z,2021-10-19T19:00:00Z,BASILISK,Premium,Storage-gibibyte-months,0.2,BASILISK Instance,red hat,dummyId
 redhat.com:BASILISK:storage_gb,account123,org123,c5mu16smf1c22rn8e730,2021-10-18T20:00:00Z,2021-10-19T20:00:00Z,BASILISK,Premium,Storage-gibibyte-months,0.5,BASILISK Instance,red hat,dummyId
 redhat.com:BASILISK:storage_gb,account123,org123,c5mu16smf1c22rn8e730,2021-10-18T21:00:00Z,2021-10-19T21:00:00Z,BASILISK,Premium,Storage-gibibyte-months,0.75,BASILISK Instance,red hat,dummyId

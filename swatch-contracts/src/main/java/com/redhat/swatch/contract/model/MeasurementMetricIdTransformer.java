@@ -44,7 +44,7 @@ public class MeasurementMetricIdTransformer {
   public static final String MEASUREMENT_TYPE_DEFAULT = "PHYSICAL";
 
   /**
-   * Maps all incoming metrics from cloud provider-specific formats/UOMs into the swatch UOM value.
+   * Maps all incoming metrics from cloud provider-specific formats into the swatch metric ID value.
    *
    * <p>For example, 100 four_vcpu_hours (AWS dimension) will be transformed into 400 CORES.
    *
@@ -76,8 +76,8 @@ public class MeasurementMetricIdTransformer {
    * Resolves all conflicting metrics from cloud provider-specific formats.
    *
    * <p>For example, 100 four_vcpu_hours (AWS dimension) will be the metricId for contract metrics
-   * While the transformed unit will be stored as a SWATCH UOM into 400 CORES in the subscriptions'
-   * metrics measurements.
+   * While the transformed unit will be stored as a SWATCH metric ID into 400 CORES in the
+   * subscriptions' metrics measurements.
    *
    * @param contract contract w/ measurements in the cloud-provider-specific dimensions
    */
@@ -88,7 +88,8 @@ public class MeasurementMetricIdTransformer {
     }
 
     // resolve contract measurements with the correct metrics from sync service
-    // this will keep subscriptions and contract metrics consistent with its dimension to SWATCH UOM
+    // this will keep subscriptions and contract metrics consistent with its dimension to SWATCH
+    // metric ID
     log.debug(
         "Resolving conflicting metrics between subscription & contract for {}",
         contract.getOrgId());

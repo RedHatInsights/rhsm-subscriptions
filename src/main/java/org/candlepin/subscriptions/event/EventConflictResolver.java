@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
@@ -127,7 +128,6 @@ public class EventConflictResolver {
                   Measurement measurement =
                       new Measurement()
                           .withMetricId(conflictingMeasurement.getMetricId())
-                          .withUom(conflictingMeasurement.getUom())
                           .withValue(conflictingMeasurement.getValue() * -1);
                   deductionEvent.setMeasurements(List.of(measurement));
                   newlyResolvedEvents.add(deductionEvent);
@@ -175,7 +175,7 @@ public class EventConflictResolver {
 
   private Measurement findMeasurement(Event event, String metricId) {
     return event.getMeasurements().stream()
-        .filter(m -> UsageConflictKey.getMetricId(m).equals(metricId))
+        .filter(m -> StringUtils.equals(m.getMetricId(), metricId))
         .findFirst()
         .orElseThrow(
             () ->

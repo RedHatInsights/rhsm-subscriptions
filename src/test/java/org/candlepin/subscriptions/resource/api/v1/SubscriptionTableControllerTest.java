@@ -569,57 +569,6 @@ class SubscriptionTableControllerTest {
   }
 
   @Test
-  void testShouldUseUomQueryParam() {
-    var productId = RHEL_FOR_X86;
-    var expectedNewerSub = stubSubscription("1234", "1235", 4, 5, 7);
-    var expectedOlderSub = stubSubscription("1236", "1237", 5, 6, 6);
-    var expectedMuchOlderSub = stubSubscription("1238", "1237", 5, 24, 6);
-
-    var coresSpec1 = RH0180193_CORES.withSub(expectedNewerSub);
-    var coresSpec2 = RH0180194_SOCKETS_AND_CORES.withSub(expectedMuchOlderSub);
-    givenOfferings(coresSpec1, coresSpec2);
-
-    var socketsSpec1 = RH0180192_SOCKETS.withSub(expectedOlderSub);
-    var socketsSpec2 = RH0180194_SOCKETS_AND_CORES.withSub(expectedMuchOlderSub);
-    givenOfferings(socketsSpec1, socketsSpec2);
-
-    givenCapacities(Org.STANDARD, productId, coresSpec1, coresSpec2);
-    givenCapacities(Org.STANDARD, productId, socketsSpec1, socketsSpec2);
-    givenSubscriptionsInRepository(coresSpec1.subscription, coresSpec2.subscription);
-    givenSubscriptionsInRepository(socketsSpec1.subscription, socketsSpec2.subscription);
-
-    SkuCapacityReport reportForMatchingCoresUom =
-        subscriptionTableController.capacityReportBySku(
-            productId,
-            null,
-            null,
-            null,
-            ServiceLevelType.STANDARD,
-            null,
-            null,
-            null,
-            null,
-            SkuCapacityReportSort.SKU,
-            null);
-    assertEquals(2, reportForMatchingCoresUom.getData().size());
-
-    SkuCapacityReport reportForMatchingSocketsUom =
-        subscriptionTableController.capacityReportBySku(
-            productId,
-            null,
-            null,
-            null,
-            ServiceLevelType.STANDARD,
-            null,
-            null,
-            null,
-            null,
-            SkuCapacityReportSort.SKU,
-            null);
-    assertEquals(2, reportForMatchingSocketsUom.getData().size());
-  }
-
-  @Test
   void testShouldUseMetricIdQueryParam() {
     var productId = RHEL_FOR_X86;
     var expectedNewerSub = stubSubscription("1234", "1235", 4, 5, 7);
@@ -639,7 +588,7 @@ class SubscriptionTableControllerTest {
     givenSubscriptionsInRepository(coresSpec1.subscription, coresSpec2.subscription);
     givenSubscriptionsInRepository(socketsSpec1.subscription, socketsSpec2.subscription);
 
-    SkuCapacityReport reportForMatchingCoresUom =
+    SkuCapacityReport reportForMatchingCores =
         subscriptionTableController.capacityReportBySku(
             productId,
             null,
@@ -652,9 +601,9 @@ class SubscriptionTableControllerTest {
             MetricIdUtils.getCores().toString(),
             SkuCapacityReportSort.SKU,
             null);
-    assertEquals(2, reportForMatchingCoresUom.getData().size());
+    assertEquals(2, reportForMatchingCores.getData().size());
 
-    SkuCapacityReport reportForMatchingSocketsUom =
+    SkuCapacityReport reportForMatchingSockets =
         subscriptionTableController.capacityReportBySku(
             productId,
             null,
@@ -667,7 +616,7 @@ class SubscriptionTableControllerTest {
             MetricIdUtils.getSockets().toString(),
             SkuCapacityReportSort.SKU,
             null);
-    assertEquals(2, reportForMatchingSocketsUom.getData().size());
+    assertEquals(2, reportForMatchingSockets.getData().size());
   }
 
   @Test

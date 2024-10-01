@@ -197,7 +197,7 @@ public class UpstreamProductData {
       ProductDataSource productDataSource) {
     if (existingData == null) {
       log.debug("Must sync SKU={} from data source because no existing data", product.getSku());
-      return offeringFromUpstream(product.getSku(), productDataSource);
+      return offeringUpstream(product.getSku(), productDataSource);
     }
     UpstreamProductData umbData = createFromUmbMessage(product);
     UpstreamProductData existingProductData = UpstreamProductData.createFromOffering(existingData);
@@ -209,7 +209,7 @@ public class UpstreamProductData {
             "Must sync SKU={} from data source because attribute={} is not defined in UMB message, but may be defined in child/derived SKU",
             product.getSku(),
             attr);
-        return offeringFromUpstream(product.getSku(), productDataSource);
+        return offeringUpstream(product.getSku(), productDataSource);
       }
     }
     if (!Objects.equals(umbData.children, existingProductData.children)) {
@@ -218,7 +218,7 @@ public class UpstreamProductData {
           product.getSku(),
           existingProductData.children,
           umbData.children);
-      return offeringFromUpstream(product.getSku(), productDataSource);
+      return offeringUpstream(product.getSku(), productDataSource);
     }
     String umbDerivedSku = umbData.attrs.get(Attr.DERIVED_SKU);
     String existingDerivedSku = existingProductData.attrs.get(Attr.DERIVED_SKU);
@@ -228,11 +228,21 @@ public class UpstreamProductData {
           product.getSku(),
           existingDerivedSku,
           umbDerivedSku);
-      return offeringFromUpstream(product.getSku(), productDataSource);
+      return offeringUpstream(product.getSku(), productDataSource);
     }
     existingProductData.attrs.forEach(umbData::putIfNoConflict);
     umbData.engOids.addAll(existingProductData.engOids);
     return Optional.of(umbData.toOffering());
+  }
+
+  private static Optional<OfferingEntity> offeringUpstream(
+      String sku, ProductDataSource productDataSource) {
+    try {
+      return UpstreamProductData.offeringFromUpstream(sku, productDataSource);
+    } catch (ServiceException e) {
+      log.warn("Error enriching upstream offering data for SKU: {}", sku, e);
+      return Optional.empty();
+    }
   }
 
   private static UpstreamProductData createFromUmbMessage(UmbOperationalProduct product) {
@@ -452,9 +462,9 @@ public class UpstreamProductData {
         Optional.ofNullable(attrs.get(Attr.IFL))
             .map(ifl -> Integer.parseInt(ifl) * CONVERSION_RATIO_IFL_TO_CORES)
             // ... but if IFL is not defined, then use the CORES attr.
-            .orElseGet(() -> nullOrInteger(attrs.get(Attr.CORES)));
+            .orElseGet(() -> nullOrInteger(attrs, Attr.CORES, sku));
 
-    Integer sockets = nullOrInteger(attrs.get(Attr.SOCKET_LIMIT));
+    Integer sockets = nullOrInteger(attrs, Attr.SOCKET_LIMIT, sku);
 
     /*
     There are no SKUs today (2021-10-27) that provide both standard capacity and hypervisor capacity
@@ -485,11 +495,17 @@ public class UpstreamProductData {
     offering.setHasUnlimitedUsage(hasUnlimitedCores || hasUnlimitedSockets);
   }
 
-  private static Integer nullOrInteger(String capacity) {
+  private static Integer nullOrInteger(Map<Attr, String> attrs, Attr key, String sku) {
+    String capacity = attrs.get(key);
     if (capacity == null || hasUnlimitedUsage(capacity)) {
       return null;
     } else {
-      return Integer.valueOf(capacity);
+      try {
+        return Integer.valueOf(capacity);
+      } catch (NumberFormatException e) {
+        log.warn("Invalid integer value {} on sku {} for attr {}", capacity, sku, key);
+        return null;
+      }
     }
   }
 

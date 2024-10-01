@@ -119,12 +119,6 @@ properties:
           description: Measurement value.
           type: number
           required: true
-        uom:
-          description: Metric ID for the measurement. (e.g. Cores, Sockets)
-          type: string
-          required: false
-          deprecated: true
-          deprecationMessage: Use 'metric_id' instead.
         metric_id:
           description: >
             Metric ID for the measurement. This should equal the product's 'metrics->id' values in swatch-product-configuration project subscription_configs.

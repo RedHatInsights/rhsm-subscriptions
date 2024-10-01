@@ -45,6 +45,7 @@ if [ ${#projects[@]} -eq 0 ]; then
   projects[4]="swatch-producer-azure"
   projects[5]="swatch-metrics"
   projects[6]="swatch-billable-usage"
+  projects[7]="swatch-metrics-hbi"
 fi
 
 quay_user=$(podman login --get-login quay.io)
@@ -101,7 +102,13 @@ for p in "${projects[@]}"; do
         -t quay.io/$quay_user/swatch-billable-usage:$tag \
         --label "git-commit=${commit}" --ulimit nofile=2048:2048
       ;;
-    *) echo "Please use values from the set \"rhsm\", \"conduit\", \"swatch-producer-aws\", \"swatch-contracts\", \"swatch-producer-azure\", \"swatch-metrics\", \"swatch-billable-usage\"";;
+    "swatch-metrics-hbi")
+      podman build . -f swatch-metrics-hbi/src/main/docker/Dockerfile.jvm \
+        --build-arg-file bin/dev-argfile.conf \
+        -t quay.io/$quay_user/swatch-metrics-hbi:$tag \
+        --label "git-commit=${commit}" --ulimit nofile=2048:2048
+      ;;
+    *) echo "Please use values from the set \"rhsm\", \"conduit\", \"swatch-producer-aws\", \"swatch-contracts\", \"swatch-producer-azure\", \"swatch-metrics\", \"swatch-billable-usage\", \"swatch-metrics-hbi\"";;
   esac
 done
 
@@ -135,6 +142,9 @@ for p in "${projects[@]}"; do
       ;;
     "swatch-billable-usage")
       push_and_clean "quay.io/$quay_user/swatch-billable-usage:$tag"
+      ;;
+    "swatch-metrics-hbi")
+      push_and_clean "quay.io/$quay_user/swatch-metrics-hbi:$tag"
       ;;
   esac
 done

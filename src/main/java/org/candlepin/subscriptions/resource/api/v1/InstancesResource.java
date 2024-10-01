@@ -146,7 +146,6 @@ public class InstancesResource implements InstancesApi {
       Integer limit,
       ServiceLevelType sla,
       UsageType usage,
-      String uom,
       String metricId,
       BillingProviderType billingProviderType,
       String billingAccountId,
@@ -162,7 +161,7 @@ public class InstancesResource implements InstancesApi {
     log.debug("Get instances api called for org_id: {} and product: {}", orgId, productId);
 
     Optional<MetricId> metricIdOptional =
-        Stream.of(metricId, uom)
+        Stream.of(metricId)
             .filter(Objects::nonNull)
             .map(
                 m -> {

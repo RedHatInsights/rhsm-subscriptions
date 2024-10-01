@@ -66,4 +66,8 @@ public @interface RetryWithExponentialBackoff {
    */
   @Nonbinding
   String maxDelay() default "";
+
+  /** Exceptions to be retried on. */
+  @Nonbinding
+  Class<? extends Throwable>[] retryOn() default Exception.class;
 }

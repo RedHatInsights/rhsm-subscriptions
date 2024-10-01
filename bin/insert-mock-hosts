@@ -14,7 +14,7 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
                   hardware_type=None, measurement_type=None, num_of_guests=None, last_seen=None, product=None,
                   sla=None, usage=None, is_unmapped_guest=None, is_hypervisor=None, cloud_provider=None,
                   skip_buckets=False, is_hbi=False, is_marketplace=False, conversions_activity=None, host_type=None,
-                  billing_provider=None, billing_account_id=None, uom=None):
+                  billing_provider=None, billing_account_id=None, metric_id=None):
     account = account_number or "account123"
     org = org_id or "org123"
     host_id = uuid.uuid4()
@@ -86,7 +86,7 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
 
     _generate_insert('hosts', **host_fields)
     if not is_hbi:
-        _generate_measurements(host_id, uom, 1.0)
+        _generate_measurements(host_id, metric_id, 1.0)
     if not is_hbi and not skip_buckets:
         _generate_buckets(host_id, product, sla, usage, as_hypervisor=is_hypervisor, cores=cores, sockets=sockets, measurement_type=measurement_type,
         billing_provider=billing_provider, billing_account_id=billing_account_id)
@@ -241,9 +241,9 @@ parser.add_argument('--billing-provider',
 parser.add_argument('--billing-account-id',
                     default="_ANY",
                     help='Set the billing_account_id for the inserted records')
-parser.add_argument('--uom',
+parser.add_argument('--metric_id',
                     default="CORES",
-                    help='Set the uom for the inserted records')
+                    help='Set the metric id for the inserted records')
 
 args = parser.parse_args()
 if args.is_hbi:
@@ -289,7 +289,7 @@ for i in range(args.num_accounts):
                       is_hbi=args.is_hbi, num_of_guests=args.num_guests,
                       cloud_provider='AWS', is_marketplace=args.is_marketplace, conversions_activity=args.conversions_activity,
                       host_type=args.host_type, billing_provider=args.billing_provider, billing_account_id=args.billing_account_id,
-                      uom=args.uom)
+                      metric_id=args.metric_id)
 
     for i in range(args.num_gcp):
         generate_host(account_number=account, org_id=args.org, hardware_type='VIRTUALIZED', measurement_type='GOOGLE',
@@ -297,7 +297,7 @@ for i in range(args.num_accounts):
                       is_hbi=args.is_hbi, num_of_guests=args.num_guests,
                       cloud_provider='GCP', is_marketplace=args.is_marketplace, conversions_activity=args.conversions_activity, host_type=args.host_type,
                       billing_provider=args.billing_provider, billing_account_id=args.billing_account_id,
-                      uom=args.uom)
+                      metric_id=args.metric_id)
 
     for i in range(args.num_physical):
         generate_host(account_number=account, org_id=args.org, hardware_type='PHYSICAL', measurement_type='PHYSICAL',
@@ -306,7 +306,7 @@ for i in range(args.num_accounts):
                       is_marketplace=args.is_marketplace, conversions_activity=args.conversions_activity,
                       host_type=args.host_type,
                       billing_provider=args.billing_provider, billing_account_id=args.billing_account_id,
-                      uom=args.uom)
+                      metric_id=args.metric_id)
 
     hypervisor = None
     for i in range(args.num_hypervisors):
@@ -317,7 +317,7 @@ for i in range(args.num_accounts):
                                    is_marketplace=args.is_marketplace, conversions_activity=args.conversions_activity,
                                    host_type=args.host_type,
                                    billing_provider=args.billing_provider, billing_account_id=args.billing_account_id,
-                                   uom=args.uom)
+                                   metric_id=args.metric_id)
         # create a physical entry for the host as well.
         if not args.is_hbi:
             generate_host(account_number=account, org_id=args.org, hardware_type='PHYSICAL', measurement_type='PHYSICAL',
@@ -326,7 +326,8 @@ for i in range(args.num_accounts):
                           is_hbi=args.is_hbi,
                           is_marketplace=args.is_marketplace, conversions_activity=args.conversions_activity,
                           host_type=args.host_type,
-                          billing_provider=args.billing_provider, billing_account_id=args.billing_account_id, uom=args.uom)
+                          billing_provider=args.billing_provider, billing_account_id=args.billing_account_id,
+                          metric_id=args.metric_id)
 
     create_unmapped = args.unmapped_guests
     for i in range(args.num_guests):
@@ -349,7 +350,7 @@ for i in range(args.num_accounts):
                       is_marketplace=args.is_marketplace,  conversions_activity=args.conversions_activity,
                       host_type=args.host_type,
                       billing_provider=args.billing_provider, billing_account_id=args.billing_account_id,
-                      uom=args.uom)
+                      metric_id=args.metric_id)
 
 output.write('commit;')
 

@@ -136,7 +136,7 @@ public interface HostRepository
       Specification<Host> specification,
       Specification<HostTallyBucket> hostTallyBucketSpecification,
       Pageable pageable,
-      MetricId referenceUom,
+      MetricId referenceMetricId,
       String productId) {
     var entityManager = getEntityManager();
     var criteriaBuilder = entityManager.getCriteriaBuilder();
@@ -153,8 +153,8 @@ public interface HostRepository
     var coresMonthlyTotalsJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_CORES);
     var instanceHoursMonthlyTotalsJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_INSTANCE_HOURS);
 
-    MetricId effectiveUom =
-        Optional.ofNullable(referenceUom).orElse(getDefaultMetricIdForProduct(productId));
+    MetricId effectiveMetricId =
+        Optional.ofNullable(referenceMetricId).orElse(getDefaultMetricIdForProduct(productId));
 
     query.select(
         criteriaBuilder.construct(
@@ -191,7 +191,7 @@ public interface HostRepository
             countRoot,
             countBucketRoot));
 
-    addSort(root, query, criteriaBuilder, effectiveUom, pageable);
+    addSort(root, query, criteriaBuilder, effectiveMetricId, pageable);
 
     List<HostApiProjection> resultList;
     Long countTotal;
@@ -233,16 +233,16 @@ public interface HostRepository
       Root<Host> root,
       CriteriaQuery<HostApiProjection> query,
       CriteriaBuilder criteriaBuilder,
-      MetricId effectiveUom,
+      MetricId effectiveMetricId,
       Pageable pageable) {
     var sort = pageable.getSort();
     var orderOptional = sort.get().findFirst();
     if (orderOptional.isPresent()) {
       var order = orderOptional.get();
       if (order.isAscending()) {
-        setOrderByAsc(root, criteriaBuilder, query, order, effectiveUom);
+        setOrderByAsc(root, criteriaBuilder, query, order, effectiveMetricId);
       } else if (order.isDescending()) {
-        setOrderByDesc(root, criteriaBuilder, query, order, effectiveUom);
+        setOrderByDesc(root, criteriaBuilder, query, order, effectiveMetricId);
       }
     }
   }
@@ -252,13 +252,13 @@ public interface HostRepository
       CriteriaBuilder criteriaBuilder,
       CriteriaQuery<HostApiProjection> query,
       Sort.Order order,
-      MetricId effectiveUom) {
+      MetricId effectiveMetricId) {
     if (order.getProperty().equals(MONTHLY_TOTALS)) {
       var coresMonthlyTotalsJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_CORES);
       var instanceHoursMonthlyTotalsJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_INSTANCE_HOURS);
-      if (MetricIdUtils.getCores().equals(effectiveUom)) {
+      if (MetricIdUtils.getCores().equals(effectiveMetricId)) {
         query.orderBy(criteriaBuilder.asc(coresMonthlyTotalsJoin.value()));
-      } else if (MetricIdUtils.getInstanceHours().equals(effectiveUom)) {
+      } else if (MetricIdUtils.getInstanceHours().equals(effectiveMetricId)) {
         query.orderBy(criteriaBuilder.asc(instanceHoursMonthlyTotalsJoin.value()));
       }
     } else {
@@ -271,13 +271,13 @@ public interface HostRepository
       CriteriaBuilder criteriaBuilder,
       CriteriaQuery<HostApiProjection> query,
       Sort.Order order,
-      MetricId effectiveUom) {
+      MetricId effectiveMetricId) {
     if (order.getProperty().equals(MONTHLY_TOTALS)) {
       var coresMonthlyTotalsJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_CORES);
       var instanceHoursMonthlyTotalsJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_INSTANCE_HOURS);
-      if (MetricIdUtils.getCores().equals(effectiveUom)) {
+      if (MetricIdUtils.getCores().equals(effectiveMetricId)) {
         query.orderBy(criteriaBuilder.asc(coresMonthlyTotalsJoin.value()));
-      } else if (MetricIdUtils.getInstanceHours().equals(effectiveUom)) {
+      } else if (MetricIdUtils.getInstanceHours().equals(effectiveMetricId)) {
         query.orderBy(criteriaBuilder.asc(instanceHoursMonthlyTotalsJoin.value()));
       }
     } else {
@@ -316,7 +316,7 @@ public interface HostRepository
    * @param minCores Filter to Hosts with at least this number of cores.
    * @param minSockets Filter to Hosts with at least this number of sockets.
    * @param month Filter to Hosts with monthly instance totals in provided month
-   * @param referenceUom MetricId used when filtering to a specific month.
+   * @param referenceMetricId MetricId used when filtering to a specific month.
    * @param pageable the current paging info for this query.
    * @return a page of Host entities matching the criteria.
    */
@@ -330,14 +330,14 @@ public interface HostRepository
       int minCores,
       int minSockets,
       String month,
-      MetricId referenceUom,
+      MetricId referenceMetricId,
       BillingProvider billingProvider,
       String billingAccountId,
       List<HardwareMeasurementType> hardwareMeasurementTypes,
       Pageable pageable) {
 
     return findAllHostApiProjections(
-        buildSearchSpecification(orgId, productId, displayNameSubstring, month, referenceUom),
+        buildSearchSpecification(orgId, productId, displayNameSubstring, month, referenceMetricId),
         buildBucketSpecification(
             productId,
             sla,
@@ -348,7 +348,7 @@ public interface HostRepository
             billingAccountId,
             hardwareMeasurementTypes),
         pageable,
-        referenceUom,
+        referenceMetricId,
         productId);
   }
 
@@ -460,7 +460,7 @@ public interface HostRepository
       String productId,
       String displayNameSubstring,
       String month,
-      MetricId referenceUom) {
+      MetricId referenceMetricId) {
 
     /* The where call allows us to build a Specification object to operate on even if the
      * first specification method we call returns null (it won't be null in this case, but it's
@@ -476,11 +476,12 @@ public interface HostRepository
     if (StringUtils.hasText(month)) {
       // Defaulting if null, since we need a MetricId in order to properly filter against a given
       // month
-      MetricId effectiveUom =
-          Optional.ofNullable(referenceUom).orElse(getDefaultMetricIdForProduct(productId));
-      if (Objects.nonNull(effectiveUom)) {
+      MetricId effectiveMetricId =
+          Optional.ofNullable(referenceMetricId).orElse(getDefaultMetricIdForProduct(productId));
+      if (Objects.nonNull(effectiveMetricId)) {
         searchCriteria =
-            searchCriteria.and(monthlyKeyEquals(new InstanceMonthlyTotalKey(month, effectiveUom)));
+            searchCriteria.and(
+                monthlyKeyEquals(new InstanceMonthlyTotalKey(month, effectiveMetricId)));
       }
     }
 
@@ -527,7 +528,7 @@ public interface HostRepository
       "select distinct h1 from Host h1 where "
           + "h1.orgId = :orgId and "
           + "h1.hypervisorUuid in (select h2.subscriptionManagerId from Host h2 where "
-          + "h2.instanceId = :instanceId)")
+          + "h2.orgId=:orgId and h2.instanceId = :instanceId)")
   Page<Host> getGuestHostsByHypervisorInstanceId(
       @Param("orgId") String orgId, @Param("instanceId") String instanceId, Pageable pageable);
 

@@ -43,6 +43,8 @@ parameters:
     value: prod
   - name: ENABLE_AZURE_DRY_RUN
     value: 'true'
+  - name: DISABLE_OTEL
+    value: 'false'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -140,6 +142,8 @@ objects:
               value: ${QUARKUS_PROFILE}
             - name: ENABLE_AZURE_DRY_RUN
               value: ${ENABLE_AZURE_DRY_RUN}
+            - name: DISABLE_OTEL
+              value: ${DISABLE_OTEL}
             - name: AZURE_MARKETPLACE_CREDENTIALS
               valueFrom:
                 secretKeyRef:

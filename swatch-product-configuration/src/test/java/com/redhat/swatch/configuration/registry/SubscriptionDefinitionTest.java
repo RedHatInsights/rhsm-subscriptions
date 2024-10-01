@@ -126,17 +126,6 @@ class SubscriptionDefinitionTest {
   }
 
   @Test
-  void testGetMetricIdsUom() {
-    var openshiftContainerPlatformSub =
-        SubscriptionDefinition.findById("openshift-container-platform").orElseThrow();
-
-    var expected = List.of("Sockets", "Cores");
-    var actual = openshiftContainerPlatformSub.getMetricIds();
-
-    assertThat(actual, Matchers.containsInAnyOrder(expected.toArray()));
-  }
-
-  @Test
   void testFindById() {
     var basiliskSub = SubscriptionDefinition.findById("basilisk-test").orElseThrow();
 

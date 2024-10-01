@@ -332,12 +332,12 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
       Totals expectedTotal = expectedVals.getTotals(type);
       MetricId.getAll()
           .forEach(
-              uom ->
+              metricId ->
                   assertEquals(
                       Optional.ofNullable(expectedTotal)
-                          .map(totals -> totals.getMeasurement(uom))
+                          .map(totals -> totals.getMeasurement(metricId))
                           .orElse(null),
-                      snapshot.getMeasurement(type, uom)));
+                      snapshot.getMeasurement(type, metricId)));
     }
   }
 }

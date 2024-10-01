@@ -87,7 +87,7 @@ public abstract class BaseSnapshotRoller {
         log.debug("Updating snapshot with hardware measurement: {}", type);
         calculatedTotals
             .getMeasurements()
-            .forEach((uom, value) -> snapshot.setMeasurement(type, uom, value));
+            .forEach((metricId, value) -> snapshot.setMeasurement(type, metricId, value));
       } else {
         log.debug("Skipping hardware measurement {} since it was not found.", type);
       }
@@ -220,12 +220,12 @@ public abstract class BaseSnapshotRoller {
 
     HashMap<TallyMeasurementKey, Double> beforeUpdate = new HashMap<>(snap.getTallyMeasurements());
 
-    updateUomTotals(override, snap, measurementType, prodCalcTotals);
+    updateMetricsTotals(override, snap, measurementType, prodCalcTotals);
 
     return override || !beforeUpdate.equals(snap.getTallyMeasurements());
   }
 
-  private void updateUomTotals(
+  private void updateMetricsTotals(
       boolean override,
       TallySnapshot snap,
       HardwareMeasurementType measurementType,
@@ -234,11 +234,12 @@ public abstract class BaseSnapshotRoller {
       prodCalcTotals
           .getMeasurements()
           .forEach(
-              (uom, value) -> {
-                Double prodCalcMeasurement = prodCalcTotals.getMeasurement(uom);
+              (metricId, value) -> {
+                Double prodCalcMeasurement = prodCalcTotals.getMeasurement(metricId);
                 if (override
-                    || mustUpdate(snap.getMeasurement(measurementType, uom), prodCalcMeasurement)) {
-                  snap.setMeasurement(measurementType, uom, prodCalcMeasurement);
+                    || mustUpdate(
+                        snap.getMeasurement(measurementType, metricId), prodCalcMeasurement)) {
+                  snap.setMeasurement(measurementType, metricId, prodCalcMeasurement);
                 }
               });
     }

@@ -13,13 +13,13 @@ except ImportError as e:
 
 
 class Measurement:
-    def __init__(self, uom, value):
-        self.uom = uom
+    def __init__(self, metric_id, value):
+        self.metric_id = metricId
         self.value = value
 
 
 class Event:
-    def __init__(self, event_type, account, org_id, instance, timestamp, expiration, role, sla, uom, value, service_type, billing_provider, billing_account_id):
+    def __init__(self, event_type, account, org_id, instance, timestamp, expiration, role, sla, metric_id, value, service_type, billing_provider, billing_account_id):
         self.event_source = "prometheus"
         self.event_type = "snapshot_" + event_type
         self.account_number = account
@@ -28,7 +28,7 @@ class Event:
         self.timestamp = timestamp
         self.expiration = expiration
         self.display_name = instance
-        self.measurements = [ Measurement(uom, value)]
+        self.measurements = [ Measurement(metric_id, value)]
         self.role = role
         self.sla = sla
         self.service_type = service_type
@@ -68,7 +68,7 @@ def post_events(url, events, dry_run=False):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="""Insert Events from CSV over internal API.
         The CSV must have a header containing the following rows:
-        event_type, account, org_id, instance, timestamp, expiration, role, sla, uom, value, service_type
+        event_type, account, org_id, instance, timestamp, expiration, role, sla, metric_id, value, service_type
     """)
     parser.add_argument('--host', default='localhost', help='Event endpoint host')
     parser.add_argument('--port', default='8000', help='Event endpoint port')

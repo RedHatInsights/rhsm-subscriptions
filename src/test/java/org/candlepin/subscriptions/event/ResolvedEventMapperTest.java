@@ -50,7 +50,7 @@ class ResolvedEventMapperTest {
     return new Event()
         .withEventId(UUID.randomUUID())
         .withRecordDate(OffsetDateTime.now())
-        .withMeasurements(List.of(new Measurement().withUom("cores").withValue(12.0)))
+        .withMeasurements(List.of(new Measurement().withMetricId("cores").withValue(12.0)))
         .withEventSource("Event Source")
         .withEventType("Event Type")
         .withAzureResourceId(Optional.of("Azure Resource Id"))

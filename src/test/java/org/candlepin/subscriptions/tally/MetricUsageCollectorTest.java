@@ -73,8 +73,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class MetricUsageCollectorTest {
 
-  public static final String RHEL_ENG_ID = "69";
-  public static final String RHEL_ELS_PAYG_ENG_ID = "204";
+  private static final String RHEL_ENG_ID = "69";
+  private static final String RHEL_ELS_PAYG_ENG_ID = "204";
+  private static final String ORG_ID = "orgId";
+  private static final String SERVICE_TYPE = "OpenShift Cluster";
+  private static final String RHEL_FOR_X86 = "RHEL for x86";
+  private static final String RHEL_FOR_X86_ELS_PAYG = "rhel-for-x86-els-payg";
+
+  private static final String RHEL_WORKSTATION_SWATCH_PRODUCT_ID = "RHEL Workstation";
+  private static final String RHEL_COMPUTE_NODE_SWATCH_PRODUCT_ID = "RHEL Compute Node";
+  private static final String OSD_PRODUCT_TAG = "OpenShift-dedicated-metrics";
+  private static final String OCP_PRODUCT_TAG = "OpenShift-metrics";
+
+  private static final String OSD_METRIC_ID = "redhat.com:openshift_dedicated:4cpu_hour";
+
   MetricUsageCollector metricUsageCollector;
 
   @Mock AccountServiceInventoryRepository accountRepo;
@@ -85,18 +97,6 @@ class MetricUsageCollectorTest {
 
   ApplicationClock clock = new TestClockConfiguration().adjustableClock();
 
-  static final String ORG_ID = "orgId";
-  static final String SERVICE_TYPE = "OpenShift Cluster";
-  static final String RHEL_FOR_X86 = "RHEL for x86";
-  static final String RHEL_FOR_X86_ELS_PAYG = "rhel-for-x86-els-payg";
-
-  static final String RHEL_WORKSTATION_SWATCH_PRODUCT_ID = "RHEL Workstation";
-  static final String RHEL_COMPUTE_NODE_SWATCH_PRODUCT_ID = "RHEL Compute Node";
-  static final String OSD_PRODUCT_TAG = "OpenShift-dedicated-metrics";
-  static final String OCP_PRODUCT_TAG = "OpenShift-metrics";
-
-  static final String OSD_METRIC_ID = "redhat.com:openshift_dedicated:4cpu_hour";
-
   @BeforeEach
   void setup() {
     metricUsageCollector =
@@ -104,7 +104,7 @@ class MetricUsageCollectorTest {
   }
 
   @Test
-  void updateHosts_noIteractionsWhenNoEventsFound() {
+  void updateHosts_noIterationsWhenNoEventsFound() {
     metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of());
     verifyNoInteractions(accountRepo, hostRepository, tallySnapshotRepository);
   }
@@ -163,82 +163,6 @@ class MetricUsageCollectorTest {
   void updateHostsOnlyUpdatesLastSeenAndMeasurementsWhenEventTimestampMostRecent() {
     Measurement coresMeasurement =
         new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
-    Event event1 =
-        createEvent()
-            .withEventId(UUID.randomUUID())
-            .withProductIds(List.of(RHEL_FOR_X86))
-            .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
-            .withServiceType("RHEL System")
-            .withMeasurements(List.of(coresMeasurement))
-            .withSla(Event.Sla.PREMIUM)
-            .withBillingProvider(Event.BillingProvider.RED_HAT)
-            .withBillingAccountId(Optional.of("sellerAcctId"));
-
-    Measurement oldCoresMeasurement =
-        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(100.0);
-    Event event2 =
-        createEvent(event1.getInstanceId())
-            .withEventId(UUID.randomUUID())
-            .withProductIds(List.of(RHEL_FOR_X86))
-            .withTimestamp(event1.getTimestamp().minusMonths(1))
-            .withServiceType("RHEL System")
-            .withMeasurements(List.of(oldCoresMeasurement))
-            .withSla(Event.Sla.PREMIUM)
-            .withBillingProvider(Event.BillingProvider.RED_HAT)
-            .withBillingAccountId(Optional.of("sellerAcctId"));
-
-    Measurement instanceHoursMeasurement =
-        new Measurement().withMetricId(MetricIdUtils.getInstanceHours().toString()).withValue(5.0);
-    Event event3 =
-        createEvent(event1.getInstanceId())
-            .withEventId(UUID.randomUUID())
-            .withProductIds(List.of(RHEL_FOR_X86))
-            .withTimestamp(event1.getTimestamp())
-            .withServiceType("RHEL System")
-            .withMeasurements(List.of(instanceHoursMeasurement))
-            .withSla(Event.Sla.PREMIUM)
-            .withBillingProvider(Event.BillingProvider.RED_HAT)
-            .withBillingAccountId(Optional.of("sellerAcctId"));
-
-    OffsetDateTime instanceDate = event1.getTimestamp().minusDays(1);
-    Host activeInstance = new Host();
-    activeInstance.setInstanceId(event1.getInstanceId());
-    activeInstance.setInstanceType(SERVICE_TYPE);
-    activeInstance.setLastSeen(instanceDate);
-
-    doAnswer(invocation -> Stream.of(activeInstance))
-        .when(hostRepository)
-        .findAllByOrgIdAndInstanceIdIn(ORG_ID, Set.of(event1.getInstanceId()));
-
-    // First update should change the date.
-    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(event1));
-    assertEquals(event1.getTimestamp(), activeInstance.getLastSeen());
-    assertTrue(activeInstance.getMeasurements().containsKey("CORES"));
-    assertEquals(coresMeasurement.getValue(), activeInstance.getMeasurement("CORES"));
-
-    // Second update should have the Event applied, but the lastSeen date should
-    // not change since this event represents older usage.
-    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(event2));
-    assertEquals(event1.getTimestamp(), activeInstance.getLastSeen());
-    assertTrue(activeInstance.getMeasurements().containsKey("CORES"));
-    // Should remain the same as the first event.
-    assertEquals(coresMeasurement.getValue(), activeInstance.getMeasurement("CORES"));
-
-    // Third update should have the third event applied because it's the same timestamp, but
-    // includes
-    // a different measurement.
-    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(event3));
-    assertEquals(event1.getTimestamp(), activeInstance.getLastSeen());
-    assertEquals(coresMeasurement.getValue(), activeInstance.getMeasurement("CORES"));
-    assertEquals(
-        instanceHoursMeasurement.getValue(), activeInstance.getMeasurement("INSTANCE_HOURS"));
-  }
-
-  // Redundant test to show that the fallback to UOM is working
-  @Test
-  void updateHostsOnlyUpdatesLastSeenAndMeasurementsWhenEventTimestampMostRecentUOMVersion() {
-    Measurement coresMeasurement =
-        new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event1 =
         createEvent()
             .withEventId(UUID.randomUUID())
@@ -785,7 +709,7 @@ class MetricUsageCollectorTest {
         List.of(coresEvent1, instanceHoursEvent1, coresEvent2, instanceHoursEvent2));
 
     ArgumentCaptor<Host> saveHostCaptor = ArgumentCaptor.forClass(Host.class);
-    verify(hostRepository, times(4)).save(saveHostCaptor.capture());
+    verify(hostRepository).save(saveHostCaptor.capture());
 
     Set<Host> savedHosts = new HashSet<>(saveHostCaptor.getAllValues());
     assertEquals(1, savedHosts.size());
@@ -904,8 +828,6 @@ class MetricUsageCollectorTest {
   @Test
   void testEventWithNullFieldsProcessedDuringUpdateHosts() {
     // NOTE: null in the JSON gets represented as Optional.empty()
-    Measurement measurement =
-        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event =
         createEvent()
             .withEventId(UUID.randomUUID())
@@ -1087,7 +1009,7 @@ class MetricUsageCollectorTest {
               .withSla(Event.Sla.PREMIUM)
               .withBillingProvider(Event.BillingProvider.RED_HAT)
               .withBillingAccountId(Optional.of(billingAccountId));
-      metricUsageCollector.updateHosts("org123", "serviceType", List.of(event));
+      metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(event));
       var expectedBillingAccountIds = Set.of(billingAccountId, "_ANY");
       // This shows that the instance has only a single billing account id in its buckets
       var hostBucketBillingAccountIds =
@@ -1132,6 +1054,66 @@ class MetricUsageCollectorTest {
     assertEquals(expectedInstanceType, host.getInstanceType());
   }
 
+  @Test
+  void testFilterSupportedMetricsByProduct() {
+    // By default, the event uses the product "OpenShift-dedicated-metrics" which only supports
+    // the Cores and Instance-Hours metrics.
+    // Therefore, measurements for other metrics should be ignored.
+    // In this test, we use the "Storage-gibibyte-months" metric which is valid, but not for this
+    // product.
+    OffsetDateTime eventDate = OffsetDateTime.parse("2021-02-26T00:00:00Z");
+    TallySnapshot snapshot =
+        createSnapshot(eventDate, MetricIdUtils.getStorageGibibyteMonths(), 100.0);
+    when(tallySnapshotRepository.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
+            "test-org",
+            Set.of(OCP_PRODUCT_TAG, OSD_PRODUCT_TAG),
+            Granularity.HOURLY,
+            eventDate,
+            clock.endOfHour(eventDate)))
+        .thenReturn(Stream.of(snapshot));
+
+    // valid metric "Cores":
+    Measurement measurement =
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
+    Event event =
+        createEvent()
+            .withEventId(UUID.randomUUID())
+            .withRole(Event.Role.OSD)
+            .withTimestamp(eventDate)
+            .withServiceType(SERVICE_TYPE)
+            .withMeasurements(Collections.singletonList(measurement))
+            .withBillingProvider(Event.BillingProvider.RED_HAT)
+            .withBillingAccountId(Optional.of("sellerAcct"));
+
+    AccountUsageCalculationCache cache = new AccountUsageCalculationCache();
+    metricUsageCollector.calculateUsage(List.of(event), cache);
+
+    assertEquals(1, cache.getCalculations().size());
+    assertTrue(cache.contains(event));
+
+    AccountUsageCalculation accountUsageCalculation = cache.get(event);
+    UsageCalculation.Key usageCalculationKey =
+        new UsageCalculation.Key(
+            OSD_PRODUCT_TAG,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.RED_HAT,
+            "sellerAcct");
+    assertTrue(accountUsageCalculation.containsCalculation(usageCalculationKey));
+    // then it should only be one metric "Cores"
+    assertEquals(
+        Double.valueOf(42.0),
+        accountUsageCalculation
+            .getCalculation(usageCalculationKey)
+            .getTotals(HardwareMeasurementType.PHYSICAL)
+            .getMeasurement(MetricIdUtils.getCores()));
+    assertNull(
+        accountUsageCalculation
+            .getCalculation(usageCalculationKey)
+            .getTotals(HardwareMeasurementType.PHYSICAL)
+            .getMeasurement(MetricIdUtils.getStorageGibibyteMonths()));
+  }
+
   private static Event createEvent() {
     return createEvent(UUID.randomUUID().toString());
   }
@@ -1152,14 +1134,15 @@ class MetricUsageCollectorTest {
   }
 
   private TallySnapshot createSnapshot(OffsetDateTime snapshotDate, double value) {
+    return createSnapshot(snapshotDate, MetricIdUtils.getCores(), value);
+  }
+
+  private TallySnapshot createSnapshot(OffsetDateTime snapshotDate, MetricId metric, double value) {
     Map<TallyMeasurementKey, Double> measurements = new HashMap<>();
     measurements.put(
-        new TallyMeasurementKey(
-            HardwareMeasurementType.PHYSICAL, MetricIdUtils.getCores().toString()),
-        value);
+        new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, metric.toString()), value);
     measurements.put(
-        new TallyMeasurementKey(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores().toString()),
-        value);
+        new TallyMeasurementKey(HardwareMeasurementType.TOTAL, metric.toString()), value);
     return TallySnapshot.builder()
         .snapshotDate(snapshotDate)
         .productId(OSD_PRODUCT_TAG)

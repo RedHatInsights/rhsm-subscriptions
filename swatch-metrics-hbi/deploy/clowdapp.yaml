@@ -1,0 +1,166 @@
+---
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: swatch-metrics-hbi
+parameters:
+  - name: JAVA_DEBUG
+    # Set to "true" to enable remote debugging
+    value: ''
+  - name: QUARKUS_LAUNCH_DEVMODE
+    value: ''
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
+  - name: MEMORY_REQUEST
+    value: 512Mi
+  - name: MEMORY_LIMIT
+    value: 512Mi
+  - name: CPU_REQUEST
+    value: 200m
+  - name: CPU_LIMIT
+    value: '1'
+  - name: ENV_NAME
+    value: env-swatch-metrics-hbi
+  - name: REPLICAS
+    value: '1'
+  - name: IMAGE
+    value: quay.io/cloudservices/swatch-metrics-hbi
+  - name: IMAGE_TAG
+    value: latest
+  - name: LOGGING_LEVEL_ROOT
+    value: 'INFO'
+  - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
+    value: 'INFO'
+  - name: QUARKUS_PROFILE
+    value: prod
+  - name: SWATCH_EVENT_PRODUCER_BACK_OFF_INITIAL_INTERVAL
+    value: '1000ms'
+  - name: SWATCH_EVENT_PRODUCER_BACK_OFF_MAX_INTERVAL
+    value: '60s'
+  - name: SWATCH_EVENT_PRODUCER_BACK_OFF_MULTIPLIER
+    value: '2'
+  - name: SWATCH_EVENT_PRODUCER_MAX_ATTEMPTS
+    value: '1'
+  - name: KAFKA_HBI_HOST_EVENTS_TOPIC
+    value: 'platform.inventory.events'
+  - name: KAFKA_HBI_HOST_EVENTS_REPLICAS
+    value: '1'
+  - name: KAFKA_HBI_HOST_EVENTS_PARTITIONS
+    value: '1'
+  - name: KAFKA_SERVICE_INSTANCE_TOPIC
+    value: 'platform.rhsm-subscriptions.service-instance-ingress'
+  - name: KAFKA_SERVICE_INSTANCE_REPLICAS
+    value: '1'
+  - name: KAFKA_SERVICE_INSTANCE_PARTITIONS
+    value: '1'
+
+objects:
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdApp
+  metadata:
+    name: swatch-metrics-hbi
+    labels:
+      prometheus: quarkus
+  spec:
+    envName: ${ENV_NAME}
+
+    kafkaTopics:
+      - topicName: ${{KAFKA_HBI_HOST_EVENTS_TOPIC}}
+        replicas: ${{KAFKA_HBI_HOST_EVENTS_REPLICAS}}
+        partitions: ${{KAFKA_HBI_HOST_EVENTS_PARTITIONS}}
+      - topicName: ${{KAFKA_SERVICE_INSTANCE_TOPIC}}
+        replicas: ${{KAFKA_SERVICE_INSTANCE_REPLICAS}}
+        partitions: ${{KAFKA_SERVICE_INSTANCE_PARTITIONS}}
+
+    pullSecrets:
+      name: ${IMAGE_PULL_SECRET}
+
+    deployments:
+      - name: service
+        replicas: ${{REPLICAS}}
+        webServices:
+          public:
+            enabled: true
+        podSpec:
+          image: ${IMAGE}:${IMAGE_TAG}
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health/live
+              port: 9000
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health/ready
+              port: 9000
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: ${CPU_REQUEST}
+              memory: ${MEMORY_REQUEST}
+            limits:
+              cpu: ${CPU_LIMIT}
+              memory: ${MEMORY_LIMIT}
+          env:
+            - name: JAVA_DEBUG
+              value: ${JAVA_DEBUG}
+            - name: QUARKUS_LAUNCH_DEVMODE
+              value: ${QUARKUS_LAUNCH_DEVMODE}
+            - name: LOGGING_LEVEL_ROOT
+              value: ${LOGGING_LEVEL_ROOT}
+            - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
+              value: ${LOGGING_LEVEL_COM_REDHAT_SWATCH}
+            - name: LOGGING_SHOW_SQL_QUERIES
+              value: ${LOGGING_SHOW_SQL_QUERIES}
+            - name: SPLUNKMETA_namespace
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: HOST_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: SPLUNK_HEC_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: splunk-hec-external
+                  key: token
+            - name: SWATCH_SELF_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: swatch-psks
+                  key: self
+            - name: QUARKUS_PROFILE
+              value: ${QUARKUS_PROFILE}
+            - name: SWATCH_EVENT_PRODUCER_BACK_OFF_INITIAL_INTERVAL
+              value: ${SWATCH_EVENT_PRODUCER_BACK_OFF_INITIAL_INTERVAL}
+            - name: SWATCH_EVENT_PRODUCER_BACK_OFF_MAX_INTERVAL
+              value: ${SWATCH_EVENT_PRODUCER_BACK_OFF_MAX_INTERVAL}
+            - name: SWATCH_EVENT_PRODUCER_BACK_OFF_MULTIPLIER
+              value: ${SWATCH_EVENT_PRODUCER_BACK_OFF_MULTIPLIER}
+            - name: SWATCH_EVENT_PRODUCER_MAX_ATTEMPTS
+              value: ${SWATCH_EVENT_PRODUCER_MAX_ATTEMPTS}
+          volumeMounts:
+            - name: logs
+              mountPath: /logs
+          volumes:
+            - name: logs
+              emptyDir:
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: swatch-psks
+  data:
+    self: cGxhY2Vob2xkZXI=

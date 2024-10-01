@@ -109,6 +109,8 @@ parameters:
     value: 'host-inventory-db'
   - name: INVENTORY_SECRET_KEY_NAME_PREFIX
     value: ''
+  - name: INVENTORY_DATABASE_SCHEMA
+    value: public
   - name: KAFKA_SUBSCRIPTIONS_PRUNE_REPLICAS
     value: '3'
   - name: KAFKA_SUBSCRIPTIONS_PRUNE_PARTITIONS
@@ -317,6 +319,8 @@ objects:
                 secretKeyRef:
                   name: ${INVENTORY_SECRET_KEY_NAME}
                   key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}password
+            - name: INVENTORY_DATABASE_SCHEMA
+              value: ${INVENTORY_DATABASE_SCHEMA}
             - name: PRODUCT_DENYLIST_RESOURCE_LOCATION
               value: file:/denylist/product-denylist.txt
             - name: PRODUCT_KEYSTORE

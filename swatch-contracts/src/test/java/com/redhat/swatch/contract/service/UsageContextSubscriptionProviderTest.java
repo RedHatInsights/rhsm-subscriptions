@@ -58,7 +58,6 @@ class UsageContextSubscriptionProviderTest {
   private static final OffsetDateTime DEFAULT_END_DATE =
       OffsetDateTime.of(2022, 7, 22, 8, 0, 0, 0, ZoneOffset.UTC);
 
-  @Mock private SubscriptionSyncService syncService;
   @Mock private SubscriptionRepository repo;
   private MeterRegistry meterRegistry;
   private UsageContextSubscriptionProvider provider;
@@ -68,7 +67,7 @@ class UsageContextSubscriptionProviderTest {
   void setupTest() {
     givenDefaultCriteria();
     meterRegistry = new SimpleMeterRegistry();
-    provider = new UsageContextSubscriptionProvider(syncService, repo, meterRegistry);
+    provider = new UsageContextSubscriptionProvider(repo, meterRegistry);
   }
 
   @Test

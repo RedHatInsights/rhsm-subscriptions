@@ -86,6 +86,18 @@ class RetryWithExponentialBackoffInterceptorTest {
     assertEquals(2, COUNTER.get());
   }
 
+  @Test
+  void testAnnotationUsingRetryOnPropertyShouldNotRetry() {
+    assertThrows(RuntimeException.class, () -> service.runUsingRetryOnShouldNotRetry());
+    assertEquals(1, COUNTER.get());
+  }
+
+  @Test
+  void testAnnotationUsingRetryOnPropertyShouldRetry() {
+    assertThrows(RuntimeException.class, () -> service.runUsingRetryOnShouldRetry());
+    assertEquals(4, COUNTER.get());
+  }
+
   @ApplicationScoped
   static class Service {
 
@@ -95,6 +107,18 @@ class RetryWithExponentialBackoffInterceptorTest {
 
     @RetryWithExponentialBackoff(maxRetries = "3")
     void runUsingDirectValue() {
+      run();
+    }
+
+    @RetryWithExponentialBackoff(maxRetries = "3", retryOn = NullPointerException.class)
+    void runUsingRetryOnShouldNotRetry() {
+      // run throws a RuntimeException, not a NullPointerException exception.
+      run();
+    }
+
+    @RetryWithExponentialBackoff(maxRetries = "3", retryOn = RuntimeException.class)
+    void runUsingRetryOnShouldRetry() {
+      // run throws a RuntimeException, so it should retry
       run();
     }
 
