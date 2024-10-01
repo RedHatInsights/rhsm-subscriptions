@@ -137,9 +137,16 @@ public class AzureBillableUsageAggregateConsumer {
             billableUsageAggregate.getAggregateKey().getOrgId(),
             billableUsageAggregate.getRemittanceUuids(),
             billableUsageAggregate.getWindowTimestamp(),
-            azureUsageWindow);
+            azureUsageWindow,
+            e);
         emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.INACTIVE);
       } else {
+        log.warn(
+            "Subscription not found for for aggregateId={} orgId={} remittanceUUIDs={}",
+            billableUsageAggregate.getAggregateId(),
+            billableUsageAggregate.getAggregateKey().getOrgId(),
+            billableUsageAggregate.getRemittanceUuids(),
+            e);
         emitErrorStatusOnUsage(
             billableUsageAggregate, BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND);
       }
