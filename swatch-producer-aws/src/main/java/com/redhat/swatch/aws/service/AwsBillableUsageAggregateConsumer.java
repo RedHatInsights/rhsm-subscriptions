@@ -151,7 +151,8 @@ public class AwsBillableUsageAggregateConsumer {
           "Subscription recently terminated for billableUsageAggregateId={} orgId={} remittanceUUIDs={}",
           billableUsageAggregate.getAggregateId(),
           billableUsageAggregate.getAggregateKey().getOrgId(),
-          billableUsageAggregate.getRemittanceUuids());
+          billableUsageAggregate.getRemittanceUuids(),
+          e);
       return;
     } catch (AwsUsageContextLookupException e) {
       emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.USAGE_CONTEXT_LOOKUP);
