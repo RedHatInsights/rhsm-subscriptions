@@ -2,6 +2,21 @@
     "version": 1,
     "features": [
         {
+            "name": "swatch.swatch-metrics-hbi.emit-events",
+            "description": "Enable sending of HBI events to the Swatch events after conversion.",
+            "type": "operational",
+            "project": "default",
+            "stale": false,
+            "strategies": [
+                {
+                    "name": "default",
+                    "parameters": {}
+                }
+            ],
+            "variants": [],
+            "createdAt": "2024-10-01T09:18:27.111Z"
+        },
+        {
             "name": "hbi.api.disable-xjoin",
             "description": "A list of org_id for customers allow listed for postgres direct querying.",
             "type": "operational",
