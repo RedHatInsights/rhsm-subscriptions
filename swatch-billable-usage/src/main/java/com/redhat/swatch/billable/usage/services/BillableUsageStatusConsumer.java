@@ -21,6 +21,7 @@
 package com.redhat.swatch.billable.usage.services;
 
 import static java.util.Optional.ofNullable;
+import static org.candlepin.subscriptions.billable.usage.BillableUsage.ErrorCode.MARKETPLACE_RATE_LIMIT;
 import static org.candlepin.subscriptions.billable.usage.BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND;
 import static org.candlepin.subscriptions.billable.usage.BillableUsage.Status.FAILED;
 
@@ -81,6 +82,7 @@ public class BillableUsageStatusConsumer {
 
   private boolean needsRetry(BillableUsageAggregate billableUsageAggregate) {
     return billableUsageAggregate.getStatus() == FAILED
-        && billableUsageAggregate.getErrorCode() == SUBSCRIPTION_NOT_FOUND;
+        && (billableUsageAggregate.getErrorCode() == SUBSCRIPTION_NOT_FOUND
+            || billableUsageAggregate.getErrorCode() == MARKETPLACE_RATE_LIMIT);
   }
 }

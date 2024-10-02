@@ -62,6 +62,7 @@ properties:
       - usage_context_lookup
       - unsupported_metric
       - unknown
+      - marketplace_rate_limit
   billed_on:
     type: string
     format: date-time
