@@ -58,7 +58,7 @@ OPTIONAL_DEPS_METHOD=none
 export COMPONENTS_W_RESOURCES="app:rhsm app:export-service"
 
 # NOTE: this ensures that all of the other services end up deployed with the latest template
-export EXTRA_COMPONENTS="rhsm $(find -name clowdapp.yaml -exec dirname {} \; | cut -d'/' -f2 | xargs)"
+export EXTRA_COMPONENTS="rhsm swatch-kafka-bridge $(find -name clowdapp.yaml -exec dirname {} \; | cut -d'/' -f2 | xargs)"
 for EXTRA_COMPONENT_NAME in $EXTRA_COMPONENTS; do
   export EXTRA_DEPLOY_ARGS="${EXTRA_DEPLOY_ARGS} --set-template-ref ${EXTRA_COMPONENT_NAME}=${GIT_COMMIT}"
 done
@@ -71,5 +71,3 @@ source deploy_ephemeral_env.sh
 # During the PR checks the Ibutsu URL and test run IDs are published as a comment by InsightsDroid account (on GitHub) or iqe-bot (on GitLab).
 # This is achieved by adding this line to `pr_check.sh` of the repo:
  source $CICD_ROOT/post_test_results.sh
-
-
