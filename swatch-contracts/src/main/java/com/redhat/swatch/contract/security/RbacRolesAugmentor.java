@@ -47,7 +47,7 @@ public class RbacRolesAugmentor implements SecurityIdentityAugmentor {
   private static final String RBAC_APP_NAME = "subscriptions";
   private static final String RBAC_ADMIN_ROLE = String.format("%s:*:*", RBAC_APP_NAME);
   private static final String RBAC_READER_ROLE = String.format("%s:reports:read", RBAC_APP_NAME);
-  private static final List<String> ALL_ROLES = List.of("test", "support", "service");
+  private static final List<String> ALL_ROLES = List.of("test", "support", "service", "customer");
 
   @ConfigProperty(name = "RBAC_ENABLED")
   boolean rbacEnabled;

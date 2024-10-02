@@ -33,6 +33,7 @@ public enum ErrorCode {
   OFFERING_MISSING_ERROR(3003, "Sku not present in Offering"),
   BAD_UPDATE(4000, "Bad update request"),
   UNHANDLED_EXCEPTION(5000, "Unhandled exception"),
+  VALIDATION_FAILED_ERROR(1002, "Client request failed validation."),
   /**
    * An exception was thrown by RestEasy while processing a request to the rhsm-conduit API. This
    * typically means that an HTTP client error has occurred (HTTP 4XX).
