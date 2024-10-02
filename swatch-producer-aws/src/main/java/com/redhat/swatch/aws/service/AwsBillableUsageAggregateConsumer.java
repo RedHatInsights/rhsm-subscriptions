@@ -21,6 +21,7 @@
 package com.redhat.swatch.aws.service;
 
 import com.redhat.swatch.aws.exception.AwsMissingCredentialsException;
+import com.redhat.swatch.aws.exception.AwsThrottlingException;
 import com.redhat.swatch.aws.exception.AwsUnprocessedRecordsException;
 import com.redhat.swatch.aws.exception.AwsUsageContextLookupException;
 import com.redhat.swatch.aws.exception.DefaultApiException;
@@ -58,6 +59,7 @@ import software.amazon.awssdk.services.marketplacemetering.MarketplaceMeteringCl
 import software.amazon.awssdk.services.marketplacemetering.model.BatchMeterUsageRequest;
 import software.amazon.awssdk.services.marketplacemetering.model.BatchMeterUsageResponse;
 import software.amazon.awssdk.services.marketplacemetering.model.MarketplaceMeteringException;
+import software.amazon.awssdk.services.marketplacemetering.model.ThrottlingException;
 import software.amazon.awssdk.services.marketplacemetering.model.UsageRecord;
 import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResultStatus;
 
@@ -183,6 +185,18 @@ public class AwsBillableUsageAggregateConsumer {
           context.getSubscriptionStartDate(),
           billableUsageAggregate.getTotalValue());
       ignoreCounter.increment();
+    } catch (AwsThrottlingException e) {
+      emitErrorStatusOnUsage(
+          billableUsageAggregate, BillableUsage.ErrorCode.MARKETPLACE_RATE_LIMIT);
+      log.error(
+          "Error sending aws usage due to rate limit for rhSubscriptionId={} aggregateId={} awsCustomerId={} awsProductCode={} orgId={} remittanceUUIDs={}",
+          context.getRhSubscriptionId(),
+          billableUsageAggregate.getAggregateId(),
+          context.getCustomerId(),
+          context.getProductCode(),
+          billableUsageAggregate.getAggregateKey().getOrgId(),
+          billableUsageAggregate.getRemittanceUuids(),
+          e);
     } catch (Exception e) {
       emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.UNKNOWN);
       log.error(
@@ -290,6 +304,9 @@ public class AwsBillableUsageAggregateConsumer {
         rejectedCounter.increment(response.unprocessedRecords().size());
         throw new AwsUnprocessedRecordsException(response.unprocessedRecords().size());
       }
+    } catch (ThrottlingException e) {
+      rejectedCounter.increment(request.usageRecords().size());
+      throw new AwsThrottlingException(request.usageRecords().size());
     } catch (MarketplaceMeteringException e) {
       rejectedCounter.increment(request.usageRecords().size());
       throw new AwsUnprocessedRecordsException(request.usageRecords().size(), e);
