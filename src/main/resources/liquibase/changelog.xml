@@ -172,5 +172,6 @@
     <include file="/liquibase/202407161214-clean-up-non-payg-measurements-on-rhel-systems.xml"/>
     <include file="/liquibase/202407231110-subscription-capacity-index.xml"/>
     <include file="/liquibase/202409251400-update-subscription-capacity-view-org-id.xml"/>
+    <include file="/liquibase/202410021300-update_usages_to_unknown.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
