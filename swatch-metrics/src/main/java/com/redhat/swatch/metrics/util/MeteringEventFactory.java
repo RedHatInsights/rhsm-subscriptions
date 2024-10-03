@@ -130,7 +130,7 @@ public final class MeteringEventFactory {
         .withDisplayName(Optional.of(displayName))
         .withSla(getSla(serviceLevel, orgId, instanceId))
         .withUsage(getUsage(usage, orgId, instanceId))
-        .withBillingProvider(getBillingProvider(billingProvider, orgId, instanceId))
+        .withBillingProvider(getBillingProvider(billingProvider, orgId, instanceId, role))
         .withBillingAccountId(Optional.ofNullable(billingAccountId))
         .withMeasurements(
             List.of(
@@ -205,10 +205,20 @@ public final class MeteringEventFactory {
   }
 
   private static BillingProvider getBillingProvider(
-      String billingProvider, String orgId, String clusterId) {
-    if (billingProvider == null
-        || billingProvider.equals(BillingProvider.__EMPTY__.value())
-        || "rhm".equalsIgnoreCase(billingProvider)) {
+      String billingProvider, String orgId, String clusterId, String role) {
+    // if billing provider (billing_marketplace) is not set:
+    if (billingProvider == null || billingProvider.equals(BillingProvider.__EMPTY__.value())) {
+      // if role is moa or moa-hostedcontrolplane, then use AWS
+      if (Role.MOA_HOSTEDCONTROLPLANE.value().equals(role) || Role.MOA.value().equals(role)) {
+        return BillingProvider.AWS;
+      }
+
+      // default billing provider
+      return BillingProvider.RED_HAT;
+    }
+
+    // if billing provider is provided:
+    if ("rhm".equalsIgnoreCase(billingProvider)) {
       return BillingProvider.RED_HAT;
     }
 
