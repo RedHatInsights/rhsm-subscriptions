@@ -72,6 +72,7 @@ import software.amazon.awssdk.services.marketplacemetering.MarketplaceMeteringCl
 import software.amazon.awssdk.services.marketplacemetering.model.BatchMeterUsageRequest;
 import software.amazon.awssdk.services.marketplacemetering.model.BatchMeterUsageResponse;
 import software.amazon.awssdk.services.marketplacemetering.model.MarketplaceMeteringException;
+import software.amazon.awssdk.services.marketplacemetering.model.ThrottlingException;
 import software.amazon.awssdk.services.marketplacemetering.model.UsageRecord;
 import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResult;
 import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResultStatus;
@@ -164,6 +165,25 @@ class AwsBillableUsageAggregateConsumerTest {
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
     consumer.process(ROSA_INSTANCE_HOURS_RECORD);
     verify(meteringClient).batchMeterUsage(any(BatchMeterUsageRequest.class));
+  }
+
+  @Test
+  void whenThrottlingExceptionThenSetRateLimitErrorCode() throws ApiException {
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+        .thenReturn(MOCK_AWS_USAGE_CONTEXT);
+    when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
+    ThrottlingException throttlingException =
+        ThrottlingException.builder().message("Rate limit exceeded").build();
+    when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
+        .thenThrow(throttlingException);
+    consumer.process(ROSA_INSTANCE_HOURS_RECORD);
+    verify(billableUsageStatusProducer)
+        .emitStatus(
+            argThat(
+                usage ->
+                    BillableUsage.Status.FAILED.equals(usage.getStatus())
+                        && BillableUsage.ErrorCode.MARKETPLACE_RATE_LIMIT.equals(
+                            usage.getErrorCode())));
   }
 
   @Test
