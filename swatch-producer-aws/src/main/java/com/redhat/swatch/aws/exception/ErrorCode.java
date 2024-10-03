@@ -33,7 +33,8 @@ public enum ErrorCode {
   USAGE_TIMESTAMP_OUT_OF_RANGE(1007, "Usage timestamp will not be accepted by AWS"),
   SUBSCRIPTION_CANNOT_BE_DETERMINED(
       1010,
-      "Multiple possible matches found. Likely a subscription is missing part of its billingAccountId.");
+      "Multiple possible matches found. Likely a subscription is missing part of its billingAccountId."),
+  AWS_THROTTLING_ERROR(1011, "AWS throttling error");
 
   private static final String CODE_PREFIX = "SWATCHAWS";
 
