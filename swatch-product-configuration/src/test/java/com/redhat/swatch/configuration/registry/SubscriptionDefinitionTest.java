@@ -383,6 +383,22 @@ class SubscriptionDefinitionTest {
     assertEquals(expectedProductTags, actual);
   }
 
+  /** Test to reproduce <a href="https://issues.redhat.com/browse/SWATCH-2942">SWATCH-2942</a>. */
+  @Test
+  void testRhelSapProducts() {
+    ProductTagLookupParams params =
+        ProductTagLookupParams.builder()
+            .engIds(
+                Set.of(
+                    387, 388, // match rhel-for-sap-x86
+                    389, 479))
+            .role("Red Hat Enterprise Linux Server") // role will match the product "RHEL x86"
+            .build();
+    var actual = SubscriptionDefinition.getAllProductTags(params);
+    assertTrue(actual.contains("rhel-for-sap-x86"), "missing product 'rhel-for-sap-x86'");
+    assertTrue(actual.contains("RHEL for x86"), "missing product 'RHEL for x86'");
+  }
+
   private static Stream<Arguments> ansibleTestCases() {
 
     var lookupParams1 =
@@ -396,7 +412,7 @@ class SubscriptionDefinitionTest {
     var lookupParams2 =
         ProductTagLookupParams.builder()
             .metricIds(Set.of())
-            .engIds(Set.of("69", "204", "83", "408"))
+            .engIds(Set.of("69", "83", "408"))
             .role(null)
             .productName("NULL")
             .level1("Ansible")

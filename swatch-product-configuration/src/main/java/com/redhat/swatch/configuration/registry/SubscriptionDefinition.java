@@ -239,21 +239,15 @@ public class SubscriptionDefinition {
             .flatMap(subscription -> subscription.getVariants().stream())
             .collect(Collectors.toSet());
 
-    List<Predicate<Variant>> sequentialPredicates =
-        List.of(
-            createLevelPredicate(params),
-            createRolePredicate(params),
-            createEngIdPredicate(params),
-            createProductNamePredicate(params));
-
-    Set<Variant> filteredVariants = new HashSet<>();
-
-    for (Predicate<Variant> predicate : sequentialPredicates) {
-      filteredVariants = variants.stream().filter(predicate).collect(Collectors.toSet());
-      if (!filteredVariants.isEmpty()) {
-        break;
-      }
-    }
+    Set<Variant> filteredVariants =
+        variants.stream()
+            // order of predicates is important. When one applies, we stop checking the rest.
+            .filter(
+                createLevelPredicate(params)
+                    .or(createRolePredicate(params))
+                    .or(createEngIdPredicate(params))
+                    .or(createProductNamePredicate(params)))
+            .collect(Collectors.toSet());
 
     if (filteredVariants.isEmpty()) {
       log.info("No variants found to uniquely identify a product based on {}", params);
