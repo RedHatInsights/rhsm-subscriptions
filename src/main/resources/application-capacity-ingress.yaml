@@ -1,4 +1,3 @@
-SUBSCRIPTION_PRUNE_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.subscription-prune".name:platform.rhsm-subscriptions.subscription-prune}
 SUBSCRIPTION_EXPORT_TOPIC: ${clowder.kafka.topics."platform.export.requests".name:platform.export.requests}
 
 
@@ -10,10 +9,6 @@ rhsm-subscriptions:
     truststore-type: ${clowder.privateEndpoints.export-service-service.trust-store-type}
     psk: ${SWATCH_EXPORT_PSK:placeholder}
   subscription-sync-enabled: ${SUBSCRIPTION_SYNC_ENABLED:true}
-  subscription-prune:
-    tasks:
-      topic: ${SUBSCRIPTION_PRUNE_TOPIC}
-      kafka-group-id: subscription-prune-worker
   export:
     tasks:
       topic: ${SUBSCRIPTION_EXPORT_TOPIC}

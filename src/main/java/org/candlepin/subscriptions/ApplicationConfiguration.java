@@ -45,14 +45,11 @@ import org.candlepin.subscriptions.security.AuthProperties;
 import org.candlepin.subscriptions.security.SecurityConfiguration;
 import org.candlepin.subscriptions.subscription.SubscriptionServiceConfiguration;
 import org.candlepin.subscriptions.tally.TallyWorkerConfiguration;
-import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.LiquibaseUpdateOnlyConfiguration;
 import org.candlepin.subscriptions.util.UtilConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.actuate.autoconfigure.info.ConditionalOnEnabledInfoContributor;
 import org.springframework.boot.actuate.autoconfigure.info.InfoContributorFallback;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -83,13 +80,6 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   @Bean
   ApplicationProperties applicationProperties() {
     return new ApplicationProperties();
-  }
-
-  @Bean
-  @Qualifier
-  @ConfigurationProperties(prefix = "rhsm-subscriptions.subscription-prune.tasks")
-  TaskQueueProperties pruneSubscriptionTasks() {
-    return new TaskQueueProperties();
   }
 
   @Bean

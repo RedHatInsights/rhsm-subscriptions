@@ -492,24 +492,6 @@ paths:
         - support: [ ]
         - test: [ ]
         - service: [ ]
-  /api/swatch-contracts/internal/subscriptions/prune:
-    description: Remove subscription and capacity records that are in the denylist.
-    delete:
-      summary: Remove subscription and capacity records that are in the denylist.
-      operationId: pruneUnlistedSubscriptions
-      responses:
-        '200':
-          description: Prune of unlisted subscriptions is successful.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RpcResponse"
-        default:
-          $ref: '#/components/responses/ErrorResponse'
-      security:
-        - support: [ ]
-        - test: [ ]
-        - service: [ ]
   /api/swatch-contracts/internal/subscriptions/rhmUsageContext:
     description: "Get the Red Hat Marketplace usage context."
     parameters:

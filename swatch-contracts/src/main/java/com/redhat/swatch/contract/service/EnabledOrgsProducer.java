@@ -33,24 +33,15 @@ public class EnabledOrgsProducer {
 
   public static final String SUBSCRIPTION_SYNC_TASK_TOPIC =
       "mp.messaging.incoming.subscription-sync-task.topic";
-  public static final String SUBSCRIPTION_PRUNE_TASK_TOPIC =
-      "mp.messaging.incoming.subscription-prune-task.topic";
 
   private final Emitter<EnabledOrgsRequest> emitter;
   private final String subscriptionSyncTaskTopic;
-  private final String subscriptionPruneTaskTopic;
 
   public EnabledOrgsProducer(
       @Channel(ENABLED_ORGS) Emitter<EnabledOrgsRequest> emitter,
-      @ConfigProperty(name = SUBSCRIPTION_SYNC_TASK_TOPIC) String subscriptionSyncTaskTopic,
-      @ConfigProperty(name = SUBSCRIPTION_PRUNE_TASK_TOPIC) String subscriptionPruneTaskTopic) {
+      @ConfigProperty(name = SUBSCRIPTION_SYNC_TASK_TOPIC) String subscriptionSyncTaskTopic) {
     this.emitter = emitter;
     this.subscriptionSyncTaskTopic = subscriptionSyncTaskTopic;
-    this.subscriptionPruneTaskTopic = subscriptionPruneTaskTopic;
-  }
-
-  public void sendTaskForSubscriptionsPrune() {
-    sendTask(subscriptionPruneTaskTopic);
   }
 
   public void sendTaskForSubscriptionsSync() {

@@ -159,9 +159,6 @@ objects:
 #        - rhsm
 
       kafkaTopics:
-        - replicas: ${{KAFKA_SUBSCRIPTIONS_PRUNE_REPLICAS}}
-          partitions: ${{KAFKA_SUBSCRIPTIONS_PRUNE_PARTITIONS}}
-          topicName: platform.rhsm-subscriptions.subscription-prune
         - replicas: ${{KAFKA_SUBSCRIPTIONS_EXPORT_REPLICAS}}
           partitions: ${{KAFKA_SUBSCRIPTIONS_EXPORT_PARTITIONS}}
           topicName: platform.export.requests

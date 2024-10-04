@@ -72,10 +72,6 @@ parameters:
     value: '3'
   - name: KAFKA_ENABLED_ORGS_PARTITIONS
     value: '3'
-  - name: KAFKA_SUBSCRIPTION_PRUNE_TASK_REPLICAS
-    value: '3'
-  - name: KAFKA_SUBSCRIPTION_PRUNE_TASK_PARTITIONS
-    value: '3'
   - name: KAFKA_SUBSCRIPTION_SYNC_TASK_REPLICAS
     value: '3'
   - name: KAFKA_SUBSCRIPTION_SYNC_TASK_PARTITIONS
@@ -126,9 +122,6 @@ objects:
         - replicas: ${{KAFKA_ENABLED_ORGS_REPLICAS}}
           partitions: ${{KAFKA_ENABLED_ORGS_PARTITIONS}}
           topicName: platform.rhsm-subscriptions.enabled-orgs-for-tasks
-        - replicas: ${{KAFKA_SUBSCRIPTION_PRUNE_TASK_REPLICAS}}
-          partitions: ${{KAFKA_SUBSCRIPTION_PRUNE_TASK_PARTITIONS}}
-          topicName: platform.rhsm-subscriptions.subscription-prune-task
         - replicas: ${{KAFKA_SUBSCRIPTION_SYNC_TASK_REPLICAS}}
           partitions: ${{KAFKA_SUBSCRIPTION_SYNC_TASK_PARTITIONS}}
           topicName: platform.rhsm-subscriptions.subscription-sync-task

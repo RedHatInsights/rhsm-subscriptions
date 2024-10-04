@@ -34,7 +34,6 @@ import org.springframework.test.context.DynamicPropertySource;
       "${rhsm-subscriptions.subscription-export.tasks.topic:platform.export.requests}",
       "${rhsm-subscriptions.enabled-orgs.incoming.topic:platform.rhsm-subscriptions.enabled-orgs-for-tasks}",
       // these following two topics are created outside of swatch-tally:
-      "platform.rhsm-subscriptions.subscription-prune-task",
       "platform.rhsm-subscriptions.subscription-sync-task"
     })
 public interface ExtendWithEmbeddedKafka {
