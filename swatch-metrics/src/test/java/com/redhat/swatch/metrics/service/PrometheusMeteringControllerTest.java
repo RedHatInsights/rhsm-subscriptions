@@ -63,6 +63,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 @QuarkusTest
 @QuarkusTestResource(value = PrometheusResource.class, restrictToAnnotatedClass = true)
@@ -237,6 +238,83 @@ class PrometheusMeteringControllerTest {
             .putMetricItem("usage", expectedUsage)
             .putMetricItem("external_organization", externalOrganization)
             .putMetricItem("billing_marketplace", billingProvider)
+            .putMetricItem("billing_marketplace_account", billingMarketplaceAccount)
+            .putMetricItem("display_name", displayName)
+            .putMetricItem("billing_marketplace_instance_id", billingMarketplaceInstanceId)
+            .putMetricItem("billing_marketplace_model", billingModel)
+            .putMetricItem("product", product)
+            .putMetricItem("receive", String.valueOf(receive))
+            .putMetricItem("socket_count", String.valueOf(socketCount))
+            .putMetricItem("tenant_id", tenantId)
+            .putMetricItem("conversions_success", String.valueOf(is3rdPartyMigrationFlag));
+
+    BigDecimal time1 = BigDecimal.valueOf(123456.234);
+    BigDecimal val1 = BigDecimal.valueOf(100L);
+
+    var timeValueTuples = List.of(List.of(time1, val1));
+    timeValueTuples.forEach(dataResult::addValuesItem);
+
+    var data =
+        new QueryResult()
+            .status(StatusType.SUCCESS)
+            .data(new QueryResultData().resultType(ResultType.MATRIX).addResultItem(dataResult));
+
+    prometheusServer.stubQueryRange(data);
+
+    OffsetDateTime start = clock.startOfCurrentHour();
+    OffsetDateTime end = start.plusDays(1);
+
+    whenCollectMetrics(externalOrganization, productTag, MetricId.fromString(metricId), start, end);
+
+    var actual = results.received().stream().map(Message::getPayload).toList();
+    assertEquals(
+        List.of(
+            MeteringEventFactory.createMetricEvent(
+                externalOrganization,
+                clusterId,
+                expectedSla,
+                expectedUsage,
+                product,
+                PROMETHEUS,
+                clock.dateFromUnix(time1).minusSeconds(metricProperties.step()),
+                clock.dateFromUnix(time1),
+                serviceType,
+                billingProvider,
+                billingMarketplaceAccount,
+                MetricId.fromString(metricId),
+                val1.doubleValue(),
+                productTag,
+                expectedSpanId,
+                List.of(),
+                displayName,
+                is3rdPartyMigrationFlag)),
+        actual);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"moa-hostedcontrolplane", "moa"})
+  void testProductWhenNoBillingProvider(String product) {
+    var productTag = "rosa";
+    var metricId = "Instance-hours";
+    var serviceType = "rosa Instance";
+    var clusterId = UUID.randomUUID().toString();
+    var billingProvider = "aws";
+    var billingMarketplaceAccount = UUID.randomUUID().toString();
+    var billingMarketplaceInstanceId = UUID.randomUUID().toString();
+    var billingModel = "marketplace";
+    var displayName = "rhel-metering";
+    var externalOrganization = "18078360";
+    var receive = true;
+    var socketCount = 1;
+    var tenantId = UUID.randomUUID().toString();
+    var is3rdPartyMigrationFlag = false;
+
+    QueryResultDataResultInner dataResult =
+        new QueryResultDataResultInner()
+            .putMetricItem("_id", clusterId)
+            .putMetricItem("support", expectedSla)
+            .putMetricItem("usage", expectedUsage)
+            .putMetricItem("external_organization", externalOrganization)
             .putMetricItem("billing_marketplace_account", billingMarketplaceAccount)
             .putMetricItem("display_name", displayName)
             .putMetricItem("billing_marketplace_instance_id", billingMarketplaceInstanceId)

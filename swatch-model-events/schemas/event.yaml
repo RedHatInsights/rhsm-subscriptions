@@ -186,6 +186,7 @@ properties:
       - addon-open-data-hub
       - BASILISK
       - moa-hostedcontrolplane
+      - moa
     required: false
   sla:
     description: Service level for the subject.
