@@ -28,7 +28,7 @@ import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.OfferingRepository;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 import java.util.ArrayList;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
@@ -85,7 +85,7 @@ public class OfferingProductTagLookupService {
     if (offering == null) {
       throw new ServiceException(
           ErrorCode.OFFERING_MISSING_ERROR,
-          Response.Status.NOT_FOUND,
+          Status.NO_CONTENT,
           String.format("Sku %s not found in Offering", sku),
           null);
     }
