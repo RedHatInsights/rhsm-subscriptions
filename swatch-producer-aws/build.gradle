@@ -19,8 +19,6 @@ dependencies {
     implementation 'software.amazon.awssdk:marketplacemetering'
     implementation 'software.amazon.awssdk:sts'
     implementation libraries["clowder-quarkus-config-source"]
-    implementation libraries["quarkus-logging-splunk"]
-    implementation libraries["splunk-library-javalogging"]
     implementation project(":clients:quarkus:contracts-client")
     implementation project(":swatch-model-billable-usage")
     implementation project(":swatch-common-resteasy")
@@ -29,6 +27,7 @@ dependencies {
     implementation project(":swatch-common-resteasy-client")
     implementation project(':swatch-common-trace-response')
     implementation project(':swatch-common-smallrye-fault-tolerance')
+    implementation project(':swatch-common-splunk')
     testImplementation 'io.rest-assured:rest-assured'
     testImplementation 'org.mockito:mockito-junit-jupiter'
     testImplementation 'org.testcontainers:junit-jupiter'

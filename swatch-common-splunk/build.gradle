@@ -1,0 +1,12 @@
+plugins {
+    id 'swatch.java-library-conventions'
+}
+
+dependencies {
+    implementation enforcedPlatform(libraries["quarkus-bom"])
+    implementation "io.micrometer:micrometer-core"
+    implementation libraries["quarkus-logging-splunk"]
+    implementation libraries["splunk-library-javalogging"]
+}
+
+description = 'Shared Splunk classes for swatch services'
