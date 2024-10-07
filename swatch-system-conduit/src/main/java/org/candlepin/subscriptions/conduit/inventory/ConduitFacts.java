@@ -38,6 +38,11 @@ public class ConduitFacts extends ConsumerInventory {
   private List<HbiNetworkInterface> networkInterfaces;
   private Map<String, String> originalFacts = new HashMap<>();
 
+  public ConduitFacts() {
+    // Force non-null boolean value since ConsumerInventory generated as Boolean data type
+    this.isMarketplace(false);
+  }
+
   // Reusing systemprofile for network interfaces in Inventory Service
   public void setNetworkInterfaces(List<HbiNetworkInterface> networkInterfaces) {
     this.networkInterfaces = networkInterfaces;
