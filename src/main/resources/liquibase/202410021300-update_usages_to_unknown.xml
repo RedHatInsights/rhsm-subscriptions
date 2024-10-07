@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+  <changeSet id="202410021300-01" author="jcarvaja" dbms="postgresql" runOnChange="true">
+    <comment>
+      All existing billable_usage_remittance older than October 1 where status='pending'
+      or status is null are updated to have status='unknown'.
+    </comment>
+    <sql dbms="postgresql">
+      <![CDATA[
+        update billable_usage_remittance set status = 'unknown'
+        where (status is null or status = 'pending')
+        and remittance_pending_date < TO_TIMESTAMP('2024-10-01 0:00:00','YYYY-MM-DD HH24:MI:SS')
+      ]]>
+    </sql>
+  </changeSet>
+</databaseChangeLog>

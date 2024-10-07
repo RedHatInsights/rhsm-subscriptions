@@ -34,6 +34,7 @@ public enum RemittanceStatus {
   PENDING("pending"),
   GRATIS("gratis"),
   FAILED("failed"),
+  UNKNOWN("unknown"),
   SUCCEEDED("succeeded");
 
   private static final Map<String, RemittanceStatus> VALUE_ENUM_MAP =
