@@ -35,18 +35,24 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 @Path("/events")
 public class EventsResource {
 
-  private EmitterService<Event> eventEmitter;
+  private final EmitterService<Event> eventEmitter;
+  private final FeatureFlags flags;
 
-  public EventsResource(@Channel(SWATCH_EVENTS_OUT) Emitter<Event> emitter) {
-    eventEmitter = new EmitterService<>(emitter);
+  public EventsResource(@Channel(SWATCH_EVENTS_OUT) Emitter<Event> emitter, FeatureFlags flags) {
+    this.eventEmitter = new EmitterService<>(emitter);
+    this.flags = flags;
   }
 
   @POST
   @Path("/swatch")
   public String sendSwatchEvent() {
-    Event event = new Event();
-    event.setInstanceId("Instance ID");
-    eventEmitter.send(Message.of(event));
-    return "Event sent!";
+    if (flags.emitEvents()) {
+      Event event = new Event();
+      event.setInstanceId("Instance ID");
+      eventEmitter.send(Message.of(event));
+      return "Event sent!";
+    } else {
+      return "Not sending event since emitting events is disabled!";
+    }
   }
 }
