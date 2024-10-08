@@ -132,6 +132,25 @@ class BillableUsageStatusConsumerTest {
     verifyRemittancesHaveRetryAfterSet(message.getRemittanceUuids());
   }
 
+  @Test
+  void testWhenUsageThatFailedWithMarketplaceRateLimitThenUsageSentToRetry() {
+    var existingRemittances = givenExistingRemittance();
+    var message = new BillableUsageAggregate();
+    message.setAggregateKey(new BillableUsageAggregateKey());
+    message.getAggregateKey().setBillingProvider("aws");
+    message.setStatus(Status.FAILED);
+    message.setErrorCode(ErrorCode.MARKETPLACE_RATE_LIMIT);
+    message.setRemittanceUuids(
+        existingRemittances.stream()
+            .map(BillableUsageRemittanceEntity::getUuid)
+            .map(UUID::toString)
+            .toList());
+    whenSendResponse(message);
+    Awaitility.await()
+        .untilAsserted(() -> verifyUpdateForFailure(RemittanceErrorCode.MARKETPLACE_RATE_LIMIT));
+    verifyRemittancesHaveRetryAfterSet(message.getRemittanceUuids());
+  }
+
   @Transactional
   List<BillableUsageRemittanceEntity> givenExistingRemittance() {
     var remittance = new BillableUsageRemittanceEntity();
