@@ -1021,6 +1021,16 @@ class InventoryControllerTest {
     assertNull(conduitFacts.getThreadsPerCore());
   }
 
+  @Test
+  void testThreadsPerCoreIsMappedUsingStringValueToConduitFacts() {
+    Consumer consumer = new Consumer();
+    consumer.getFacts().put("cpu.thread(s)_per_core", "confidential");
+
+    // verify when cpu.thread(s)_per_core is unset
+    ConduitFacts conduitFacts = controller.getFactsFromConsumer(new Consumer());
+    assertNull(conduitFacts.getThreadsPerCore());
+  }
+
   @ParameterizedTest
   @EnumSource(value = ProviderFact.class)
   void testProviderIdAndProviderTypeToConduitFacts(ProviderFact provider) {
