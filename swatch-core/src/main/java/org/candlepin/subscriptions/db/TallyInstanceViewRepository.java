@@ -21,20 +21,35 @@
 package org.candlepin.subscriptions.db;
 
 import com.redhat.swatch.configuration.registry.MetricId;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.MapJoin;
+import jakarta.persistence.criteria.Order;
+import jakarta.persistence.criteria.Path;
+import jakarta.persistence.criteria.Root;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.TallyInstanceNonPaygView_;
 import org.candlepin.subscriptions.db.model.TallyInstancePaygView_;
 import org.candlepin.subscriptions.db.model.TallyInstanceView;
 import org.candlepin.subscriptions.db.model.TallyInstanceViewKey_;
 import org.candlepin.subscriptions.db.model.TallyInstanceView_;
 import org.candlepin.subscriptions.db.model.TallyInstancesDbReportCriteria;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.resource.ResourceUtils;
+import org.candlepin.subscriptions.utilization.api.v1.model.SortDirection;
+import org.hibernate.query.NullPrecedence;
+import org.hibernate.query.criteria.JpaOrder;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.ObjectUtils;
@@ -44,6 +59,28 @@ import org.springframework.util.StringUtils;
 @Repository
 @AllArgsConstructor
 public class TallyInstanceViewRepository {
+
+  public static final Map<String, String> FIELD_SORT_PARAM_MAPPING =
+      Map.of(
+          "display_name",
+          TallyInstanceView_.DISPLAY_NAME,
+          "last_seen",
+          TallyInstanceView_.LAST_SEEN,
+          "billing_provider",
+          TallyInstanceView_.HOST_BILLING_PROVIDER,
+          "number_of_guests",
+          TallyInstanceView_.NUM_OF_GUESTS,
+          "category",
+          TallyInstanceViewKey_.MEASUREMENT_TYPE,
+          "Sockets",
+          TallyInstanceView_.SOCKETS,
+          "Cores",
+          TallyInstanceView_.CORES);
+
+  public static final Set<String> METRICS_TO_SORT =
+      MetricId.getAll().stream()
+          .map(MetricId::toUpperCaseFormatted)
+          .collect(Collectors.toUnmodifiableSet());
 
   private final TallyInstancePaygViewRepository paygViewRepository;
   private final TallyInstanceNonPaygViewRepository nonPaygViewRepository;
@@ -63,7 +100,6 @@ public class TallyInstanceViewRepository {
    * @param minSockets Filter to Hosts with at least this number of sockets.
    * @param month Filter to Hosts with with monthly instance totals in provided month
    * @param referenceMetricId Metric ID used when filtering to a specific month.
-   * @param pageable the current paging info for this query.
    * @return a page of Host entities matching the criteria.
    */
   @SuppressWarnings("java:S107")
@@ -81,7 +117,10 @@ public class TallyInstanceViewRepository {
       BillingProvider billingProvider,
       String billingAccountId,
       List<HardwareMeasurementType> hardwareMeasurementTypes,
-      Pageable pageable) {
+      Integer offset,
+      Integer limit,
+      String sort,
+      SortDirection dir) {
     var repository = isPayg ? paygViewRepository : nonPaygViewRepository;
     return (Page<TallyInstanceView>)
         repository.findAll(
@@ -99,8 +138,10 @@ public class TallyInstanceViewRepository {
                     .billingProvider(billingProvider)
                     .billingAccountId(billingAccountId)
                     .hardwareMeasurementTypes(hardwareMeasurementTypes)
+                    .sort(sort)
+                    .sortDirection(dir)
                     .build()),
-            pageable);
+            ResourceUtils.getPageable(offset, limit));
   }
 
   static <T extends TallyInstanceView> Specification<T> socketsAndCoresGreaterThanOrEqualTo(
@@ -168,11 +209,11 @@ public class TallyInstanceViewRepository {
   }
 
   static <T extends TallyInstanceView> Specification<T> metricIdContains(
-      MetricId effectiveMetricId) {
-    return (root, query, builder) ->
-        builder.like(
-            builder.upper(builder.function("jsonb_pretty", String.class, root.get("metrics"))),
-            "%" + effectiveMetricId.toUpperCaseFormatted() + "%");
+      MetricId effectiveMetricId, boolean isPayg) {
+    return (root, query, builder) -> {
+      var measurements = leftJoinMetricsBy(effectiveMetricId, isPayg, root, builder);
+      return builder.isNotNull(measurements.value());
+    };
   }
 
   static <T extends TallyInstanceView> Specification<T> displayNameContains(
@@ -187,20 +228,60 @@ public class TallyInstanceViewRepository {
     return (root, query, builder) -> builder.equal(root.get(TallyInstancePaygView_.MONTH), month);
   }
 
-  static <T extends TallyInstanceView> Specification<T> distinct() {
+  static <T extends TallyInstanceView> Specification<T> orderBy(
+      String sort, SortDirection sortDirection, boolean isPayg) {
     return (root, query, builder) -> {
-      query.distinct(true);
-      return null;
+      boolean isAscending = sortDirection == null || SortDirection.ASC.equals(sortDirection);
+      List<Order> orders = new ArrayList<>();
+      String column = FIELD_SORT_PARAM_MAPPING.get(sort);
+      Path<T> path = root;
+      if (TallyInstanceViewKey_.MEASUREMENT_TYPE.equals(column)) {
+        path = root.get(TallyInstanceView_.KEY);
+      }
+
+      if (column != null) {
+        orders.add(orderByColumn(builder, path.get(column), isAscending));
+      } else {
+        // try the metrics
+        getMetricIdToSort(sort)
+            .ifPresent(
+                metricId -> {
+                  var metrics = leftJoinMetricsBy(metricId, isPayg, root, builder);
+                  orders.add(orderByColumn(builder, metrics.value(), isAscending));
+                });
+      }
+
+      orders.add(builder.asc(root.get(TallyInstanceView_.ID)));
+      query.orderBy(orders);
+      return query.getRestriction();
     };
+  }
+
+  private static JpaOrder orderByColumn(
+      CriteriaBuilder builder, Path<Object> column, boolean isAscending) {
+    if (isAscending) {
+      return ((JpaOrder) builder.asc(column)).nullPrecedence(NullPrecedence.FIRST);
+    }
+
+    return ((JpaOrder) builder.desc(column)).nullPrecedence(NullPrecedence.LAST);
+  }
+
+  private static MapJoin<Object, Object, Object> leftJoinMetricsBy(
+      MetricId effectiveMetricId, boolean isPayg, Root<?> root, CriteriaBuilder builder) {
+    var metrics =
+        root.joinMap(
+            isPayg
+                ? TallyInstancePaygView_.filteredMetrics.getName()
+                : TallyInstanceNonPaygView_.filteredMetrics.getName(),
+            JoinType.LEFT);
+    metrics.on(builder.equal(metrics.key(), effectiveMetricId.toUpperCaseFormatted()));
+    return metrics;
   }
 
   @SuppressWarnings("java:S107")
   public static <T extends TallyInstanceView> Specification<T> buildSearchSpecification(
       TallyInstancesDbReportCriteria criteria) {
-    /* The where call allows us to build a Specification object to operate on even if the
-     * first specification method we call returns null which is does because we're using the
-     * Specification call to set the query to return distinct results */
-    var searchCriteria = Specification.<T>where(distinct());
+    var searchCriteria = Specification.<T>where(null);
     searchCriteria =
         searchCriteria.and(
             socketsAndCoresGreaterThanOrEqualTo(criteria.getMinCores(), criteria.getMinSockets()));
@@ -227,7 +308,8 @@ public class TallyInstanceViewRepository {
       searchCriteria = searchCriteria.and(displayNameContains(criteria.getDisplayNameSubstring()));
     }
     if (Objects.nonNull(criteria.getMetricId())) {
-      searchCriteria = searchCriteria.and(metricIdContains(criteria.getMetricId()));
+      searchCriteria =
+          searchCriteria.and(metricIdContains(criteria.getMetricId(), criteria.isPayg()));
     }
     if (StringUtils.hasText(criteria.getMonth())) {
       searchCriteria = searchCriteria.and(monthEquals(criteria.getMonth()));
@@ -236,7 +318,20 @@ public class TallyInstanceViewRepository {
       searchCriteria =
           searchCriteria.and(hardwareMeasurementTypeIn(criteria.getHardwareMeasurementTypes()));
     }
+    if (criteria.getSort() != null) {
+      searchCriteria =
+          searchCriteria.and(
+              orderBy(criteria.getSort(), criteria.getSortDirection(), criteria.isPayg()));
+    }
 
     return searchCriteria;
+  }
+
+  private static Optional<MetricId> getMetricIdToSort(String sort) {
+    try {
+      return Optional.of(MetricId.fromString(sort));
+    } catch (IllegalArgumentException e) {
+      return Optional.empty();
+    }
   }
 }

@@ -121,6 +121,9 @@ class InstancesResourceTest {
                 any(),
                 any(),
                 any(),
+                any(),
+                any(),
+                any(),
                 any()))
         .thenReturn(new PageImpl<>(List.of(tallyInstanceView)));
 
@@ -212,6 +215,9 @@ class InstancesResourceTest {
                 any(),
                 any(),
                 any(),
+                any(),
+                any(),
+                any(),
                 any()))
         .thenReturn(
             new PageImpl<>(List.of(tallyInstanceViewPhysical, tallyInstanceViewHypervisor)));
@@ -285,6 +291,9 @@ class InstancesResourceTest {
             repository.findAllBy(
                 eq(true),
                 eq("owner123456"),
+                any(),
+                any(),
+                any(),
                 any(),
                 any(),
                 any(),
@@ -385,6 +394,9 @@ class InstancesResourceTest {
                 any(),
                 any(),
                 any(),
+                any(),
+                any(),
+                any(),
                 any()))
         .thenReturn(new PageImpl<>(List.of(tallyInstanceView)));
 
@@ -419,6 +431,9 @@ class InstancesResourceTest {
                 any(),
                 any(),
                 any(),
+                any(),
+                any(),
+                any(),
                 any()))
         .thenReturn(new PageImpl<>(new ArrayList<>()));
 
@@ -433,6 +448,9 @@ class InstancesResourceTest {
             any(),
             any(),
             eq(null),
+            any(),
+            any(),
+            any(),
             any(),
             any(),
             any(),
@@ -488,6 +506,9 @@ class InstancesResourceTest {
                 any(),
                 any(),
                 any(),
+                any(),
+                any(),
+                any(),
                 any()))
         .thenReturn(new PageImpl<>(List.of(tallyInstanceView)));
 
@@ -522,6 +543,9 @@ class InstancesResourceTest {
             any(),
             any(),
             any(),
+            any(),
+            any(),
+            any(),
             any());
   }
 
@@ -544,6 +568,9 @@ class InstancesResourceTest {
             repository.findAllBy(
                 eq(false),
                 eq("owner123456"),
+                any(),
+                any(),
+                any(),
                 any(),
                 any(),
                 any(),
@@ -585,6 +612,9 @@ class InstancesResourceTest {
             eq(null),
             eq(0),
             eq(null),
+            any(),
+            any(),
+            any(),
             any(),
             any(),
             any(),
