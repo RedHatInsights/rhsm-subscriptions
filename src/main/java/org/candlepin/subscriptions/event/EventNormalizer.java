@@ -71,16 +71,6 @@ public class EventNormalizer {
         && event.getServiceType().equals(ANSIBLE_INFRASTRUCTURE_HOUR)) {
       event.setServiceType("Ansible Managed Node");
     }
-    // normalize UOM to metric_id
-    event
-        .getMeasurements()
-        .forEach(
-            measurement -> {
-              if (measurement.getUom() != null) {
-                measurement.setMetricId(measurement.getUom());
-                measurement.setUom(null);
-              }
-            });
     return event;
   }
 
