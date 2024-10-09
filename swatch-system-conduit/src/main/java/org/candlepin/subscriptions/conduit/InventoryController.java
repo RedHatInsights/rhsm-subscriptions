@@ -317,27 +317,16 @@ public class InventoryController {
     facts.setBiosVersion(rhsmFacts.get(DMI_BIOS_VERSION));
     facts.setBiosVendor(rhsmFacts.get(DMI_BIOS_VENDOR));
 
-    String cpuSockets = rhsmFacts.get(CPU_SOCKETS);
-    String coresPerSocket = rhsmFacts.get(CPU_CORES_PER_SOCKET);
-    if (StringUtils.hasLength(cpuSockets)) {
-      Integer numCpuSockets = Integer.parseInt(cpuSockets);
+    var cpuSockets = tryParseIntFact(consumer, CPU_SOCKETS);
+    var coresPerSocket = tryParseIntFact(consumer, CPU_CORES_PER_SOCKET);
+    if (cpuSockets.isPresent()) {
+      Integer numCpuSockets = cpuSockets.get();
       facts.setCpuSockets(numCpuSockets);
-      if (StringUtils.hasLength(coresPerSocket)) {
-        Integer numCoresPerSocket = Integer.parseInt(coresPerSocket);
-        facts.setCpuCores(numCoresPerSocket * numCpuSockets);
-      }
+      coresPerSocket.ifPresent(v -> facts.setCpuCores(v * numCpuSockets));
     }
-    if (StringUtils.hasLength(coresPerSocket)) {
-      facts.setCoresPerSocket(Integer.parseInt(coresPerSocket));
-    }
-    String numberOfCpus = rhsmFacts.get(NUMBER_OF_CPUS);
-    if (StringUtils.hasLength(numberOfCpus)) {
-      facts.setNumberOfCpus(Integer.parseInt(numberOfCpus));
-    }
-    String threadsPerCore = rhsmFacts.get(THREADS_PER_CORE);
-    if (StringUtils.hasLength(threadsPerCore)) {
-      facts.setThreadsPerCore(Integer.parseInt(threadsPerCore));
-    }
+    coresPerSocket.ifPresent(facts::setCoresPerSocket);
+    tryParseIntFact(consumer, NUMBER_OF_CPUS).ifPresent(facts::setNumberOfCpus);
+    tryParseIntFact(consumer, THREADS_PER_CORE).ifPresent(facts::setThreadsPerCore);
 
     setMemoryFacts(consumer, rhsmFacts, facts);
 
@@ -765,5 +754,22 @@ public class InventoryController {
       return true;
     }
     return false;
+  }
+
+  private Optional<Integer> tryParseIntFact(Consumer consumer, String key) {
+    String value = consumer.getFacts().get(key);
+    if (StringUtils.hasLength(value)) {
+      try {
+        return Optional.of(Integer.parseInt(value));
+      } catch (NumberFormatException e) {
+        log.warn(
+            "For consumer {}, error trying to parse integer from fact '{}'. Value was '{}'",
+            consumerToString(consumer),
+            key,
+            value);
+      }
+    }
+
+    return Optional.empty();
   }
 }
