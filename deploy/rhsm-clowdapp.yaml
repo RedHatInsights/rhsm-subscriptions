@@ -17,7 +17,7 @@ parameters:
   - name: SWATCH_UNLEASH_IMPORT_IMAGE_TAG
     value: latest
   - name: SWATCH_UNLEASH_IMPORT_MEMORY_REQUEST
-    value: 10Mi
+    value: 25Mi
   - name: SWATCH_UNLEASH_IMPORT_MEMORY_LIMIT
     value: 50Mi
   - name: SWATCH_UNLEASH_IMPORT_CPU_REQUEST
