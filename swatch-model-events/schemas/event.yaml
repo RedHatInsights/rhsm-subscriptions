@@ -133,12 +133,6 @@ properties:
             - Managed-nodes
             - Transfer-gibibytes
             - Storage-gibibyte-months
-        uom:
-          description: Metric ID for the measurement. (e.g. Cores, Sockets)
-          type: string
-          required: false
-          deprecated: true
-          deprecationMessage: Use 'metric_id' instead.
     required: false
   cloud_provider:
     description: Identifier for the cloud provider of the subject.
