@@ -318,13 +318,6 @@ public class ContractsResource implements DefaultApi {
     return context;
   }
 
-  @Override
-  @RolesAllowed({"test", "support", "service"})
-  public RpcResponse pruneUnlistedSubscriptions() throws ProcessingException {
-    enabledOrgsProducer.sendTaskForSubscriptionsPrune();
-    return new RpcResponse();
-  }
-
   /**
    * Save subscriptions manually. Supported only in dev-mode.
    *

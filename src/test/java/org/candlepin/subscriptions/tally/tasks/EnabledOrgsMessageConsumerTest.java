@@ -91,11 +91,7 @@ class EnabledOrgsMessageConsumerTest implements ExtendWithEmbeddedKafka {
   }
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "platform.rhsm-subscriptions.subscription-prune-task",
-        "platform.rhsm-subscriptions.subscription-sync-task"
-      })
+  @ValueSource(strings = {"platform.rhsm-subscriptions.subscription-sync-task"})
   void testRequestWithAllowedTargetTopic(String targetTopic) {
     givenRequestWithTargetTopic(targetTopic);
     whenSendRequest();

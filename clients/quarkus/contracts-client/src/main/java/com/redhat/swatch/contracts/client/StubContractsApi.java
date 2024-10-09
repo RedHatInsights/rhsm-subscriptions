@@ -155,11 +155,6 @@ public class StubContractsApi implements DefaultApi {
   }
 
   @Override
-  public RpcResponse pruneUnlistedSubscriptions() throws ProcessingException {
-    return null;
-  }
-
-  @Override
   public SubscriptionResponse saveSubscriptions(Boolean reconcileCapacity, String body)
       throws ProcessingException {
     return null;

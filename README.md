@@ -792,7 +792,6 @@ Service that syncs system data from Hosted Candlepin into HBI.
 | capacity-ingress | platform.rhsm-subscriptions.subscription-sync        | swatch-contracts                    |
 | capacity-ingress | platform.rhsm-subscriptions.offering-sync            | swatch-contracts                    |
 | capacity-ingress | platform.rhsm-subscriptions.capacity-reconcile       | swatch-contracts                    |
-| capacity-ingress | platform.rhsm-subscriptions.subscription-prune       | swatch-subscriptions-sync           |
 </details>
 
 ## BASILISK (placeholder/testing PAYG product)

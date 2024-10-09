@@ -112,13 +112,6 @@ class ContractsResourceTest {
   }
 
   @Test
-  void testPruneUnlistedSubscriptions() {
-    var result = resource.pruneUnlistedSubscriptions();
-    assertNull(result.getResult());
-    verify(enabledOrgsProducer).sendTaskForSubscriptionsPrune();
-  }
-
-  @Test
   void testSyncAllOfferings() {
     var result = resource.syncAllOfferings();
     assertNotNull(result);

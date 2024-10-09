@@ -18,7 +18,6 @@ Kafka Topics
 * platform.rhsm-subscriptions.subscription-sync
 * platform.rhsm-subscriptions.capacity-reconcile
 * platform.rhsm-subscriptions.offering-sync
-* platform.rhsm-subscriptions.subscription-prune
 
 ## Caching
 
