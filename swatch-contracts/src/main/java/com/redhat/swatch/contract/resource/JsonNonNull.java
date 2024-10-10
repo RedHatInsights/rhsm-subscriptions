@@ -18,29 +18,17 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.repository;
+package com.redhat.swatch.contract.resource;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
-import java.io.Serializable;
-import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.quarkus.jackson.ObjectMapperCustomizer;
+import jakarta.enterprise.context.ApplicationScoped;
 
-/** Map key for subscription measurements */
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
-@EqualsAndHashCode
-@Embeddable
-public class SubscriptionMeasurementKey implements Serializable {
-
-  @Column(name = "metric_id")
-  private String metricId;
-
-  @Column(name = "measurement_type")
-  private String measurementType;
+@ApplicationScoped
+public class JsonNonNull implements ObjectMapperCustomizer {
+  @Override
+  public void customize(ObjectMapper objectMapper) {
+    objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+  }
 }

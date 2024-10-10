@@ -34,6 +34,10 @@ import lombok.NoArgsConstructor;
 public class Identity {
   private String type;
 
+  public String getType() {
+    return type != null ? type : "User";
+  }
+
   @JsonProperty("org_id")
   private String orgId;
 

@@ -75,7 +75,7 @@ public class SubscriptionRepository
         .list();
   }
 
-  List<SubscriptionEntity> findUnlimited(DbReportCriteria dbReportCriteria) {
+  public List<SubscriptionEntity> findUnlimited(DbReportCriteria dbReportCriteria) {
     var searchCriteria = SubscriptionEntity.buildSearchSpecification(dbReportCriteria);
     searchCriteria = searchCriteria.and(SubscriptionEntity.hasUnlimitedUsage());
     return find(SubscriptionEntity.class, searchCriteria);
