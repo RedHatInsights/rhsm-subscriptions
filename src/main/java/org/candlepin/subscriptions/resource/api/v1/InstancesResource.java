@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.resource.api.v1;
 
 import static java.util.Optional.ofNullable;
 
-import com.google.common.collect.ImmutableMap;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
@@ -37,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
@@ -69,7 +67,6 @@ import org.candlepin.subscriptions.utilization.api.v1.model.UsageType;
 import org.candlepin.subscriptions.utilization.api.v1.resources.InstancesApi;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -77,22 +74,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 @Slf4j
 public class InstancesResource implements InstancesApi {
-
-  public static final Map<String, String> FIELD_SORT_PARAM_MAPPING =
-      ImmutableMap.<String, String>builder()
-          .put("display_name", "displayName")
-          .put("last_seen", "lastSeen")
-          .put("billing_provider", "hostBillingProvider")
-          .put("number_of_guests", "numOfGuests")
-          .put("category", "key.measurementType")
-          .put("Sockets", "sockets")
-          .put("Cores", "cores")
-          .build();
-
-  public static final Set<String> METRICS_TO_SORT =
-      MetricId.getAll().stream().map(MetricId::getValue).collect(Collectors.toUnmodifiableSet());
-  private static final Sort.Order IMPLICIT_ORDER_TO_SORT = Sort.Order.by("id");
-
   private static final Map<ReportCategory, List<HardwareMeasurementType>> CATEGORY_MAP =
       Map.of(
           ReportCategory.PHYSICAL, List.of(HardwareMeasurementType.PHYSICAL),
@@ -193,8 +174,6 @@ public class InstancesResource implements InstancesApi {
     List<InstanceData> payload;
     Page<? extends TallyInstanceView> instances;
 
-    Pageable page = ResourceUtils.getPageable(offset, limit, toSort(sort, dir));
-
     OffsetDateTime now = OffsetDateTime.now();
     OffsetDateTime start = ofNullable(beginning).orElse(now);
     OffsetDateTime end = ofNullable(ending).orElse(now);
@@ -226,7 +205,10 @@ public class InstancesResource implements InstancesApi {
             sanitizedBillingProvider,
             sanitizedBillingAccountId,
             hardwareMeasurementTypes,
-            page);
+            offset,
+            limit,
+            sort,
+            dir);
     payload =
         instances.getContent().stream()
             .map(tallyInstanceView -> asTallyHostViewApiInstance(tallyInstanceView, measurements))
@@ -251,25 +233,6 @@ public class InstancesResource implements InstancesApi {
                 .billingAccountId(billingAccountId)
                 .measurements(measurements))
         .data(payload);
-  }
-
-  private static Sort toSort(String sort, SortDirection dir) {
-    Sort.Direction dirValue =
-        SortDirection.DESC.equals(dir) ? Sort.Direction.DESC : Sort.Direction.ASC;
-
-    Sort sortValue;
-
-    if (sort != null && FIELD_SORT_PARAM_MAPPING.containsKey(sort)) {
-      String column = FIELD_SORT_PARAM_MAPPING.get(sort);
-      Sort.Order userDefinedOrder = new Sort.Order(dirValue, column);
-      userDefinedOrder =
-          dirValue.isAscending() ? userDefinedOrder.nullsFirst() : userDefinedOrder.nullsLast();
-      sortValue = Sort.by(userDefinedOrder, IMPLICIT_ORDER_TO_SORT);
-    } else {
-      sortValue = Sort.by(IMPLICIT_ORDER_TO_SORT);
-    }
-
-    return sortValue;
   }
 
   public static boolean isPayg(Optional<Variant> variant) {

@@ -24,6 +24,7 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import java.util.List;
 import lombok.Builder;
 import lombok.Data;
+import org.candlepin.subscriptions.utilization.api.v1.model.SortDirection;
 
 /** Common criteria that can be used to filter instances, subscriptions, and tally snapshots */
 @Data
@@ -42,4 +43,6 @@ public class TallyInstancesDbReportCriteria {
   private String billingAccountId;
   private List<HardwareMeasurementType> hardwareMeasurementTypes;
   private boolean isPayg;
+  private String sort;
+  private SortDirection sortDirection;
 }

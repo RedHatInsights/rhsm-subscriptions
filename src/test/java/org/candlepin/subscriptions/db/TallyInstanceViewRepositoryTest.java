@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.db;
 
 import static com.redhat.swatch.configuration.util.MetricIdUtils.getMetricIdsFromConfigForTag;
-import static org.candlepin.subscriptions.resource.api.v1.InstancesResource.FIELD_SORT_PARAM_MAPPING;
+import static org.candlepin.subscriptions.db.TallyInstanceViewRepository.FIELD_SORT_PARAM_MAPPING;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -48,6 +48,7 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyInstanceView;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.test.ExtendWithSwatchDatabase;
+import org.candlepin.subscriptions.utilization.api.v1.model.SortDirection;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -55,10 +56,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.domain.Sort.Direction;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -68,10 +65,12 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
 
   // Using this product ID because it has two valid metrics: Sockets and Cores
   private static final String OPENSHIFT_CONTAINER_PLATFORM = "OpenShift Container Platform";
+  // Using ROSA product because it also has the Instance-Hours metric.
+  private static final String ROSA = "rosa";
   private static final String COOL_PROD = "COOL_PROD";
   private static final String DEFAULT_DISPLAY_NAME = "REDHAT_PWNS";
   private static final String SORT_BY_CORES = "cores";
-  private static final String SORT_BY_BILLING_PROVIDER = "hostBillingProvider";
+  private static final String SORT_BY_BILLING_PROVIDER = "billing_provider";
   private static final String BILLING_ACCOUNT_ID_ANY = "_ANY";
   private static final String DEFAULT_ORG_ID = "org123";
 
@@ -113,15 +112,6 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
   @ParameterizedTest
   @MethodSource("instanceSortParams")
   void canSortByInstanceBasedSortMethods(String sort) {
-
-    MetricId referenceMetricId = MetricIdUtils.getCores();
-    var page = PageRequest.of(0, 2);
-    String sortValue = FIELD_SORT_PARAM_MAPPING.get(sort);
-    if (sortValue == null) {
-      referenceMetricId = MetricId.fromString(sort);
-    } else {
-      page.withSort(Sort.by(sortValue));
-    }
     Page<TallyInstanceView> results =
         repo.findAllBy(
             true,
@@ -133,13 +123,52 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
             0,
             0,
             "2021-01",
+            MetricIdUtils.getCores(),
+            BillingProvider._ANY,
+            BILLING_ACCOUNT_ID_ANY,
+            null,
+            0,
+            2,
+            sort,
+            SortDirection.ASC);
+
+    assertEquals(2, results.getTotalElements());
+  }
+
+  @Transactional
+  @Test
+  void testCanSortByMetrics() {
+    // using instance hours, because sort by Cores and Sockets work and it's already covered by the
+    // previous test.
+    MetricId referenceMetricId = MetricIdUtils.getInstanceHours();
+
+    // given two hosts with different values for Instance-Hours
+    var host1 = givenHostWithMetric(ROSA, referenceMetricId, 5.0);
+    var host2 = givenHostWithMetric(ROSA, referenceMetricId, 10.0);
+
+    Page<TallyInstanceView> results =
+        repo.findAllBy(
+            true,
+            DEFAULT_ORG_ID,
+            ROSA,
+            ServiceLevel._ANY,
+            Usage._ANY,
+            "",
+            0,
+            0,
+            "2021-01",
             referenceMetricId,
             BillingProvider._ANY,
             BILLING_ACCOUNT_ID_ANY,
             null,
-            page);
+            0,
+            2,
+            referenceMetricId.toString(),
+            SortDirection.DESC);
 
-    assertEquals(2, results.getTotalElements());
+    // host2 should be returned first because we ordered by Instance-Hours descending
+    assertEquals(host2.getInstanceId(), results.getContent().get(0).getKey().getInstanceId());
+    assertEquals(host1.getInstanceId(), results.getContent().get(1).getKey().getInstanceId());
   }
 
   @Test
@@ -197,8 +226,6 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
 
     persistHosts(host1, host2, host3);
 
-    Pageable page = PageRequest.of(0, 10, Sort.by(SORT_BY_CORES));
-
     Page<TallyInstanceView> results =
         repo.findAllBy(
             false,
@@ -214,7 +241,10 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
             BillingProvider.AWS,
             BILLING_ACCOUNT_ID_ANY,
             null,
-            page);
+            0,
+            10,
+            SORT_BY_CORES,
+            SortDirection.ASC);
     assertEquals(1L, results.getTotalElements());
     assertEquals(BillingProvider.AWS, results.getContent().get(0).getHostBillingProvider());
 
@@ -233,7 +263,10 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
             BillingProvider._ANY,
             BILLING_ACCOUNT_ID_ANY,
             null,
-            page);
+            0,
+            10,
+            SORT_BY_CORES,
+            SortDirection.ASC);
     assertEquals(3L, allResults.getTotalElements());
     Map<String, TallyInstanceView> hostToBill =
         allResults.stream()
@@ -327,9 +360,6 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
     persistHosts(host1, host2, host3, host4);
     hostRepo.flush();
 
-    Sort asc = Sort.by(Direction.DESC, SORT_BY_BILLING_PROVIDER);
-    Pageable page = PageRequest.of(0, 10, asc);
-
     Page<TallyInstanceView> results =
         repo.findAllBy(
             false,
@@ -345,7 +375,10 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
             BillingProvider._ANY,
             BILLING_ACCOUNT_ID_ANY,
             null,
-            page);
+            0,
+            10,
+            SORT_BY_BILLING_PROVIDER,
+            SortDirection.DESC);
     assertEquals(4L, results.getTotalElements());
     assertEquals(BillingProvider.RED_HAT, results.getContent().get(0).getHostBillingProvider());
     assertEquals(BillingProvider.ORACLE, results.getContent().get(1).getHostBillingProvider());
@@ -387,8 +420,6 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
 
     persistHosts(host1, host2, host3);
 
-    Pageable page = PageRequest.of(0, 10, Sort.by(SORT_BY_CORES));
-
     Page<TallyInstanceView> results =
         repo.findAllBy(
             false,
@@ -404,7 +435,10 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
             BillingProvider.RED_HAT,
             BILLING_ACCOUNT_ID_ANY,
             List.of(HardwareMeasurementType.VIRTUAL),
-            page);
+            0,
+            10,
+            SORT_BY_CORES,
+            SortDirection.ASC);
     assertEquals(1L, results.getTotalElements());
     assertEquals(
         HardwareMeasurementType.VIRTUAL, results.getContent().get(0).getKey().getMeasurementType());
@@ -424,7 +458,10 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
             BillingProvider.RED_HAT,
             BILLING_ACCOUNT_ID_ANY,
             null,
-            page);
+            0,
+            10,
+            SORT_BY_CORES,
+            SortDirection.ASC);
     assertEquals(3L, allResults.getTotalElements());
     Map<String, TallyInstanceView> hostToBill =
         allResults.stream()
@@ -458,8 +495,6 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
 
     persistHosts(host1);
 
-    Pageable page = PageRequest.of(0, 10, Sort.by(SORT_BY_CORES));
-
     Page<TallyInstanceView> results =
         repo.findAllBy(
             false,
@@ -475,7 +510,10 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
             BillingProvider.RED_HAT,
             BILLING_ACCOUNT_ID_ANY,
             null,
-            page);
+            0,
+            10,
+            SORT_BY_CORES,
+            SortDirection.ASC);
     assertEquals(1L, results.getTotalElements());
     assertEquals(
         HardwareMeasurementType.EMPTY, results.getContent().get(0).getKey().getMeasurementType());
@@ -524,8 +562,6 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
 
     persistHosts(host1, host2, host3, host5);
 
-    Pageable page = PageRequest.of(0, 10, Sort.by(SORT_BY_CORES));
-
     Page<TallyInstanceView> results =
         repo.findAllBy(
             false,
@@ -541,7 +577,10 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
             BillingProvider.RED_HAT,
             BILLING_ACCOUNT_ID_ANY,
             HardwareMeasurementType.getCloudProviderTypes(),
-            page);
+            0,
+            10,
+            SORT_BY_CORES,
+            SortDirection.ASC);
     assertEquals(3L, results.getTotalElements());
     Map<String, TallyInstanceView> hostToBill =
         results.stream()
@@ -600,8 +639,6 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
 
     persistHosts(host1, host2, host3);
 
-    Pageable page = PageRequest.of(0, 10, Sort.by(SORT_BY_CORES));
-
     Page<TallyInstanceView> coresResults =
         repo.findAllBy(
             false,
@@ -617,7 +654,10 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
             null,
             BILLING_ACCOUNT_ID_ANY,
             null,
-            page);
+            0,
+            10,
+            SORT_BY_CORES,
+            SortDirection.ASC);
     assertEquals(2L, coresResults.getTotalElements());
     List<String> coreResultsIds =
         coresResults.stream().map(r -> r.getKey().getInstanceId()).toList();
@@ -638,7 +678,10 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
             null,
             BILLING_ACCOUNT_ID_ANY,
             null,
-            page);
+            0,
+            10,
+            SORT_BY_CORES,
+            SortDirection.ASC);
     assertEquals(2L, socketsResults.getTotalElements());
     List<String> socketsResultIds =
         socketsResults.stream().map(r -> r.getKey().getInstanceId()).collect(Collectors.toList());
@@ -663,7 +706,10 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
             BillingProvider._ANY,
             BILLING_ACCOUNT_ID_ANY,
             null,
-            PageRequest.of(0, 10));
+            0,
+            10,
+            null,
+            null);
     List<MetricId> validMetricsByProduct =
         getMetricIdsFromConfigForTag(OPENSHIFT_CONTAINER_PLATFORM).toList();
 
@@ -719,6 +765,22 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
     Host host = createBaseHost(inventoryId, org);
     host.setMeasurement(MetricIdUtils.getSockets().toString(), 1.0);
     host.setMeasurement(MetricIdUtils.getCores().toString(), 1.0);
+    return host;
+  }
+
+  private Host givenHostWithMetric(String productId, MetricId metric, Double value) {
+    Host host = createBaseHost(UUID.randomUUID().toString(), DEFAULT_ORG_ID);
+    host.setMeasurement(metric.toString(), value);
+    host.addToMonthlyTotal(
+        OffsetDateTime.of(LocalDateTime.of(2021, 1, 1, 0, 0, 0), ZoneOffset.UTC), metric, value);
+    addBucketToHost(
+        host,
+        productId,
+        ServiceLevel._ANY,
+        Usage._ANY,
+        HardwareMeasurementType.PHYSICAL,
+        BillingProvider._ANY);
+    persistHosts(host);
     return host;
   }
 
