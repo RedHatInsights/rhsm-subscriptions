@@ -57,6 +57,8 @@ public class InternalTallyDataController {
   private final BillableUsageController billableUsageController;
   private final TallySnapshotController snapshotController;
   private final EventNormalizer eventNormalizer;
+  private final DataMigrationRunner dataMigrationRunner;
+  private final MergeHostsMigration mergeHostsMigration;
 
   public void deleteDataAssociatedWithOrg(String orgId) {
     // we first delete the contracts and if it works, we continue with the rest of the data.
@@ -129,6 +131,11 @@ public class InternalTallyDataController {
 
   public void tallyAllOrgsByHourly() throws IllegalArgumentException {
     tasks.updateHourlySnapshotsForAllOrgs();
+  }
+
+  public void mergeHostsFromMultipleSources(String orgId) {
+    mergeHostsMigration.setOrgId(orgId);
+    dataMigrationRunner.migrate(mergeHostsMigration, null, 10);
   }
 
   public String createOrUpdateOptInConfig(String orgId, OptInType api) {
