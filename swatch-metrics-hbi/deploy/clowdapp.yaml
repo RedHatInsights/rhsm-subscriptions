@@ -53,6 +53,10 @@ parameters:
     value: '1'
   - name: KAFKA_SERVICE_INSTANCE_PARTITIONS
     value: '1'
+  - name: HOST_LAST_SYNC_THRESHOLD
+    value: '24h'
+  - name: USE_CPU_SYSTEM_FACTS_FOR_ALL_PRODUCTS
+    value: 'true'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -151,6 +155,10 @@ objects:
               value: ${SWATCH_EVENT_PRODUCER_BACK_OFF_MULTIPLIER}
             - name: SWATCH_EVENT_PRODUCER_MAX_ATTEMPTS
               value: ${SWATCH_EVENT_PRODUCER_MAX_ATTEMPTS}
+            - name: HOST_LAST_SYNC_THRESHOLD
+              value: ${HOST_LAST_SYNC_THRESHOLD}
+            - name: USE_CPU_SYSTEM_FACTS_FOR_ALL_PRODUCTS
+              value: ${USE_CPU_SYSTEM_FACTS_FOR_ALL_PRODUCTS}
           volumeMounts:
             - name: logs
               mountPath: /logs

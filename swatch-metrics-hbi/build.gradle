@@ -10,6 +10,8 @@ dependencies {
     implementation libraries["unleash-quarkus"]
 
     implementation project(':swatch-common-config-workaround')
+    implementation project(':swatch-core')
+    implementation project(':swatch-common-clock')
     implementation libraries["clowder-quarkus-config-source"]
     implementation 'io.quarkus:quarkus-messaging-kafka'
     implementation 'io.quarkus:quarkus-rest' // TODO: Remove later since REST API is temporary
@@ -25,6 +27,8 @@ dependencies {
     annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
 
     testImplementation libraries["junit-jupiter"]
+    testImplementation 'io.smallrye.reactive:smallrye-reactive-messaging-in-memory'
+    testImplementation libraries["awaitility"]
 }
 
 tasks.withType(JavaCompile) {
