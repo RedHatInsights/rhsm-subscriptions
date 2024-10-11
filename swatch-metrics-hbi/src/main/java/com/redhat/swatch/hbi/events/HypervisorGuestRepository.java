@@ -20,12 +20,15 @@
  */
 package com.redhat.swatch.hbi.events;
 
-import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
-import io.quarkus.kafka.client.serialization.ObjectMapperDeserializer;
+import jakarta.enterprise.context.ApplicationScoped;
 
-/** Provides quarkus a hint that we want to use Jackson to serialize BillableUsage objects. */
-public class HbiHostEventDeserializer extends ObjectMapperDeserializer<HbiEvent> {
-  public HbiHostEventDeserializer() {
-    super(HbiEvent.class);
+@ApplicationScoped
+public class HypervisorGuestRepository {
+  public boolean isHypervisor(String subscriptionManagerId) {
+    return false;
+  }
+
+  public boolean isUnmappedGuest(String hypervisorUUID) {
+    return false;
   }
 }
