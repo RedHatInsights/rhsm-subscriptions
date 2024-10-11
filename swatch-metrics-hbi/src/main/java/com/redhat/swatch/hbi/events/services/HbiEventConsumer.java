@@ -23,10 +23,17 @@ package com.redhat.swatch.hbi.events.services;
 import static com.redhat.swatch.hbi.events.configuration.Channels.HBI_HOST_EVENTS_IN;
 
 import com.redhat.swatch.faulttolerance.api.RetryWithExponentialBackoff;
+import com.redhat.swatch.hbi.events.dtos.HostCreateUpdateEvent;
 import io.smallrye.reactive.messaging.kafka.api.KafkaMessageMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.json.Measurement;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 
 @Slf4j
@@ -40,11 +47,54 @@ public class HbiEventConsumer {
       delay = "${SWATCH_EVENT_PRODUCER_BACK_OFF_INITIAL_INTERVAL:1s}",
       maxDelay = "${SWATCH_EVENT_PRODUCER_BACK_OFF_MAX_INTERVAL:60s}",
       factor = "${SWATCH_EVENT_PRODUCER_BACK_OFF_MULTIPLIER:2}")
-  public void consume(String hbiHostEvent, KafkaMessageMetadata<?> metadata) {
+  public void consume(HostCreateUpdateEvent hbiHostEvent, KafkaMessageMetadata<?> metadata) {
     log.info(
         "Received host event from HBI - [{}|{}]: {}",
         metadata.getTimestamp(),
         metadata.getKey(),
         hbiHostEvent);
+
+
+var event = new Event();
+
+    String serviceType;
+    OffsetDateTime measuredTime;
+    OffsetDateTime expired;
+    String displayName;
+    String sla;
+    String billingAccountId;
+    Object role;
+    String orgId;
+    String instanceId;
+    Object serviceLevel;
+
+    String productTag;
+    event
+        .withServiceType(serviceType)
+        .withTimestamp(measuredTime)
+        .withExpiration(Optional.of(expired))
+        .withDisplayName(Optional.of(displayName))
+        .withSla(getSla(serviceLevel, orgId, instanceId))
+        .withUsage(getUsage(usage, orgId, instanceId))
+        .withBillingProvider(getBillingProvider(billingProvider, orgId, instanceId, role))
+        .withBillingAccountId(Optional.ofNullable(billingAccountId))
+        .withMeasurements(
+            List.of(
+                new Measurement().withMetricId(measuredMetric.getValue()).withValue(measuredValue)))
+        .withRole(getRole(role, orgId, instanceId))
+        .withEventSource(eventSource)
+        .withEventType(MeteringEventFactory.getEventType(measuredMetric.getValue(), productTag))
+        .withOrgId(orgId)
+        .withInstanceId(instanceId)
+        .withMeteringBatchId(meteringBatchId)
+        .withProductTag(Set.of(productTag))
+        .withProductIds(productIds)
+        .withConversion(is3rdPartyMigrated);
+  }
+
+
+
+
+
   }
 }
