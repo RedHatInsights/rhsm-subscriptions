@@ -18,14 +18,13 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.hbi.events;
+package com.redhat.swatch.hbi.events.dtos.hbi;
 
-import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
-import io.quarkus.kafka.client.serialization.ObjectMapperDeserializer;
+import lombok.Getter;
+import lombok.Setter;
 
-/** Provides quarkus a hint that we want to use Jackson to serialize BillableUsage objects. */
-public class HbiHostEventDeserializer extends ObjectMapperDeserializer<HbiEvent> {
-  public HbiHostEventDeserializer() {
-    super(HbiEvent.class);
-  }
+@Getter
+@Setter
+public class HbiHostCreateUpdateEvent extends HbiEvent {
+  private HbiHost host;
 }

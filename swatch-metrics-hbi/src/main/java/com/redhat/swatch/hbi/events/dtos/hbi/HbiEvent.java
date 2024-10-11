@@ -18,14 +18,32 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.hbi.events;
+package com.redhat.swatch.hbi.events.dtos.hbi;
 
-import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
-import io.quarkus.kafka.client.serialization.ObjectMapperDeserializer;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
+import java.time.ZonedDateTime;
+import java.util.Map;
+import lombok.Getter;
+import lombok.Setter;
 
-/** Provides quarkus a hint that we want to use Jackson to serialize BillableUsage objects. */
-public class HbiHostEventDeserializer extends ObjectMapperDeserializer<HbiEvent> {
-  public HbiHostEventDeserializer() {
-    super(HbiEvent.class);
-  }
+@Getter
+@Setter
+@JsonTypeInfo(use = Id.DEDUCTION)
+@JsonSubTypes({
+  @Type(value = HbiHostDeleteEvent.class, name = "HbiHostDeleteEvent"),
+  @Type(value = HbiHostCreateUpdateEvent.class, name = "HbiHostCreateUpdateEvent"),
+})
+public abstract class HbiEvent {
+
+  private String type;
+  private ZonedDateTime timestamp;
+
+  @JsonProperty("platform_metadata")
+  private Map<String, Object> platformMetadata;
+
+  private HbiHostEventMetadata metadata;
 }
