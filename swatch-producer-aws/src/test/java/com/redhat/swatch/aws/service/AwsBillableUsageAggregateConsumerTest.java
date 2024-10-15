@@ -181,7 +181,7 @@ class AwsBillableUsageAggregateConsumerTest {
         .emitStatus(
             argThat(
                 usage ->
-                    BillableUsage.Status.FAILED.equals(usage.getStatus())
+                    BillableUsage.Status.RETRYABLE.equals(usage.getStatus())
                         && BillableUsage.ErrorCode.MARKETPLACE_RATE_LIMIT.equals(
                             usage.getErrorCode())));
   }
@@ -326,7 +326,7 @@ class AwsBillableUsageAggregateConsumerTest {
         .emitStatus(
             argThat(
                 usage ->
-                    BillableUsage.Status.FAILED.equals(usage.getStatus())
+                    BillableUsage.Status.RETRYABLE.equals(usage.getStatus())
                         && BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND.equals(
                             usage.getErrorCode())));
 

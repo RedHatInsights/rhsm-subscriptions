@@ -148,7 +148,7 @@ public class AzureBillableUsageAggregateConsumer {
             billableUsageAggregate.getAggregateKey().getOrgId(),
             billableUsageAggregate.getRemittanceUuids(),
             e);
-        emitErrorStatusOnUsage(
+        emitRetryableStatusOnUsage(
             billableUsageAggregate, BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND);
       }
       return;
@@ -312,6 +312,13 @@ public class AzureBillableUsageAggregateConsumer {
   private void emitErrorStatusOnUsage(
       BillableUsageAggregate usage, BillableUsage.ErrorCode errorCode) {
     usage.setStatus(BillableUsage.Status.FAILED);
+    usage.setErrorCode(errorCode);
+    billableUsageStatusProducer.emitStatus(usage);
+  }
+
+  private void emitRetryableStatusOnUsage(
+      BillableUsageAggregate usage, BillableUsage.ErrorCode errorCode) {
+    usage.setStatus(BillableUsage.Status.RETRYABLE);
     usage.setErrorCode(errorCode);
     billableUsageStatusProducer.emitStatus(usage);
   }

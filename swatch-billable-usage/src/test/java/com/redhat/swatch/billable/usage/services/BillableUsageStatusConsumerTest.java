@@ -119,7 +119,7 @@ class BillableUsageStatusConsumerTest {
     var message = new BillableUsageAggregate();
     message.setAggregateKey(new BillableUsageAggregateKey());
     message.getAggregateKey().setBillingProvider("aws");
-    message.setStatus(Status.FAILED);
+    message.setStatus(Status.RETRYABLE);
     message.setErrorCode(ErrorCode.SUBSCRIPTION_NOT_FOUND);
     message.setRemittanceUuids(
         existingRemittances.stream()
@@ -128,7 +128,7 @@ class BillableUsageStatusConsumerTest {
             .toList());
     whenSendResponse(message);
     Awaitility.await()
-        .untilAsserted(() -> verifyUpdateForFailure(RemittanceErrorCode.SUBSCRIPTION_NOT_FOUND));
+        .untilAsserted(() -> verifyUpdateForRetryable(RemittanceErrorCode.SUBSCRIPTION_NOT_FOUND));
     verifyRemittancesHaveRetryAfterSet(message.getRemittanceUuids());
   }
 
@@ -138,7 +138,7 @@ class BillableUsageStatusConsumerTest {
     var message = new BillableUsageAggregate();
     message.setAggregateKey(new BillableUsageAggregateKey());
     message.getAggregateKey().setBillingProvider("aws");
-    message.setStatus(Status.FAILED);
+    message.setStatus(Status.RETRYABLE);
     message.setErrorCode(ErrorCode.MARKETPLACE_RATE_LIMIT);
     message.setRemittanceUuids(
         existingRemittances.stream()
@@ -147,7 +147,7 @@ class BillableUsageStatusConsumerTest {
             .toList());
     whenSendResponse(message);
     Awaitility.await()
-        .untilAsserted(() -> verifyUpdateForFailure(RemittanceErrorCode.MARKETPLACE_RATE_LIMIT));
+        .untilAsserted(() -> verifyUpdateForRetryable(RemittanceErrorCode.MARKETPLACE_RATE_LIMIT));
     verifyRemittancesHaveRetryAfterSet(message.getRemittanceUuids());
   }
 
@@ -202,6 +202,17 @@ class BillableUsageStatusConsumerTest {
         .forEach(
             result -> {
               assertEquals(RemittanceStatus.FAILED, result.getStatus());
+              assertEquals(expected, result.getErrorCode());
+              assertNull(result.getBilledOn());
+            });
+  }
+
+  @Transactional
+  void verifyUpdateForRetryable(RemittanceErrorCode expected) {
+    remittanceRepository.findAll().stream()
+        .forEach(
+            result -> {
+              assertEquals(RemittanceStatus.RETRYABLE, result.getStatus());
               assertEquals(expected, result.getErrorCode());
               assertNull(result.getBilledOn());
             });
