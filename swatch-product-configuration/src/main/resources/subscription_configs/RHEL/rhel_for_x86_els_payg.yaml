@@ -24,7 +24,8 @@ metrics:
   - id: vCPUs
     type: counter
     awsDimension: vCPU_hours
-    azureDimension: vcpu_hours
+    # NOTE(khowell) disabled on 2024-10-15 to be re-enabled on 2024-11-01
+    #azureDimension: vcpu_hours
     prometheus:
       queryKey: rhelemeter
       queryParams:
