@@ -107,7 +107,7 @@ public class AzureBillableUsageAggregateConsumer {
     }
 
     Optional<Metric> metric = lookupMetric(billableUsageAggregate.getAggregateKey());
-    if (metric.isEmpty()) {
+    if (metric.isEmpty() || metric.get().getAzureDimension() == null) {
       log.warn(
           "Skipping billable usage because the metric is not supported: {}",
           billableUsageAggregate);
