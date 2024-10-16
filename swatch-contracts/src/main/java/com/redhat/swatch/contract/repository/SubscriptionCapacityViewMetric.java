@@ -20,27 +20,18 @@
  */
 package com.redhat.swatch.contract.repository;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
 import java.io.Serializable;
 import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
+import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-/** Map key for subscription measurements */
-@Getter
-@Setter
+@Builder
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
-@EqualsAndHashCode
-@Embeddable
-public class SubscriptionMeasurementKey implements Serializable {
-
-  @Column(name = "metric_id")
+public class SubscriptionCapacityViewMetric implements Serializable {
   private String metricId;
-
-  @Column(name = "measurement_type")
   private String measurementType;
+  private Double capacity;
 }

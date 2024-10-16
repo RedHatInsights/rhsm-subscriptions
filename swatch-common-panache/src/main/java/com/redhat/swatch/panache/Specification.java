@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.panache;
 
+import jakarta.annotation.Nullable;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
@@ -31,6 +32,11 @@ import jakarta.persistence.criteria.Root;
  * @param <T> Entity type of the specification
  */
 public interface Specification<T> {
+
+  static <T> Specification<T> where(@Nullable Specification<T> spec) {
+    return spec == null ? (root, query, builder) -> null : spec;
+  }
+
   static <T> Specification<T> where() {
     return (root, query, builder) -> null;
   }

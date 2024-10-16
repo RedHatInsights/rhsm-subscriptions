@@ -141,6 +141,6 @@ class RbacRolesAugmentorTest {
             .subscribe()
             .withSubscriber(UniAssertSubscriber.create());
     verifyNoInteractions(rbacApi);
-    subscriber.assertCompleted().assertItem(Set.of("test", "service", "support"));
+    subscriber.assertCompleted().assertItem(Set.of("test", "service", "support", "customer"));
   }
 }
