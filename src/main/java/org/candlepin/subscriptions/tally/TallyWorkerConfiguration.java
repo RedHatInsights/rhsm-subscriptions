@@ -32,7 +32,7 @@ import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.export.ExportSubscriptionConfiguration;
+import org.candlepin.subscriptions.export.ExportConfiguration;
 import org.candlepin.subscriptions.inventory.db.InventoryDataSourceConfiguration;
 import org.candlepin.subscriptions.json.EnabledOrgsRequest;
 import org.candlepin.subscriptions.json.EnabledOrgsResponse;
@@ -97,7 +97,7 @@ import org.springframework.util.backoff.FixedBackOff;
   ContractsConfiguration.class,
   InventoryDataSourceConfiguration.class,
   ProductConfiguration.class,
-  ExportSubscriptionConfiguration.class
+  ExportConfiguration.class
 })
 @ComponentScan(
     basePackages = {

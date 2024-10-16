@@ -18,19 +18,23 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.export;
+package com.redhat.swatch.export;
 
-import java.io.Serializable;
-import java.util.List;
+import lombok.Getter;
 
-public interface DataMapperService<T extends Serializable> {
-  List<Object> mapDataItem(T item, ExportServiceRequest request);
+@Getter
+public class ExportServiceException extends RuntimeException {
+  private final int status;
 
-  default List<Object> mapDataItem(Object item, ExportServiceRequest request) {
-    return mapDataItem(getDataClass().cast(item), request);
+  public ExportServiceException(int status, String message) {
+    super(message);
+
+    this.status = status;
   }
 
-  Class<T> getDataClass();
+  public ExportServiceException(int status, String message, Exception e) {
+    super(message, e);
 
-  Class<?> getExportItemClass();
+    this.status = status;
+  }
 }

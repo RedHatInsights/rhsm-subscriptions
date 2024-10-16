@@ -20,9 +20,9 @@
  */
 package org.candlepin.subscriptions.export;
 
-import static org.candlepin.subscriptions.export.ExportSubscriptionConfiguration.SUBSCRIPTION_EXPORT_QUALIFIER;
-import static org.candlepin.subscriptions.export.ExportSubscriptionListener.ADMIN_ROLE;
-import static org.candlepin.subscriptions.export.ExportSubscriptionListener.SWATCH_APP;
+import static com.redhat.swatch.export.ExportRequestHandler.ADMIN_ROLE;
+import static com.redhat.swatch.export.ExportRequestHandler.SWATCH_APP;
+import static org.candlepin.subscriptions.export.ExportConfiguration.SUBSCRIPTION_EXPORT_QUALIFIER;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -33,6 +33,8 @@ import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequest;
 import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequestClass;
 import com.redhat.cloud.event.parser.ConsoleCloudEventParser;
 import com.redhat.cloud.event.parser.GenericConsoleCloudEvent;
+import com.redhat.swatch.export.DataExporterService;
+import com.redhat.swatch.export.ExportRequestHandler;
 import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -79,16 +81,16 @@ public abstract class BaseDataExporterServiceTest
   @Qualifier(SUBSCRIPTION_EXPORT_QUALIFIER)
   TaskQueueProperties taskQueueProperties;
 
-  @Autowired ConsoleCloudEventParser parser;
   @Autowired ObjectMapper objectMapper;
   @Autowired CsvMapper csvMapper;
-  @Autowired ExportSubscriptionListener listener;
+  @Autowired ExportRequestHandler listener;
   @Autowired KafkaProperties kafkaProperties;
   @Autowired OfferingRepository offeringRepository;
   @Autowired AccountServiceInventoryRepository accountServiceInventoryRepository;
   @Autowired DataExporterService<?> dataExporterService;
   @MockBean RbacService rbacService;
 
+  protected ConsoleCloudEventParser parser;
   protected KafkaTemplate<String, String> kafkaTemplate;
   protected Offering offering;
   protected AccountServiceInventory accountServiceInventory;
@@ -97,6 +99,8 @@ public abstract class BaseDataExporterServiceTest
   @Transactional
   @BeforeEach
   public void setup() {
+    parser = new ConsoleCloudEventParser(objectMapper);
+
     Map<String, Object> properties = kafkaProperties.buildProducerProperties(null);
     properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
     properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);

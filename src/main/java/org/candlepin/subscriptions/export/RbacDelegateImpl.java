@@ -20,11 +20,28 @@
  */
 package org.candlepin.subscriptions.export;
 
-import java.io.File;
-import java.util.stream.Stream;
+import com.redhat.swatch.export.ExportServiceException;
+import com.redhat.swatch.export.api.RbacDelegate;
+import jakarta.ws.rs.core.Response;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import org.candlepin.subscriptions.rbac.RbacApiException;
+import org.candlepin.subscriptions.rbac.RbacService;
+import org.springframework.stereotype.Service;
 
-public interface ExportFileWriter {
+@AllArgsConstructor
+@Service
+public class RbacDelegateImpl implements RbacDelegate {
+  private final RbacService rbacService;
 
-  void write(
-      File output, DataMapperService<?> dataMapper, Stream<?> data, ExportServiceRequest request);
+  @Override
+  public List<String> getPermissions(String application, String xRhIdentity)
+      throws ExportServiceException {
+    try {
+      return rbacService.getPermissions(application, xRhIdentity);
+    } catch (RbacApiException e) {
+      throw new ExportServiceException(
+          Response.Status.NOT_FOUND.getStatusCode(), e.getMessage(), e);
+    }
+  }
 }

@@ -25,6 +25,8 @@ import static org.candlepin.subscriptions.resource.api.v1.InstancesResource.getC
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import com.redhat.swatch.export.DataMapperService;
+import com.redhat.swatch.export.ExportServiceRequest;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -34,8 +36,6 @@ import lombok.AllArgsConstructor;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.TallyInstanceView;
-import org.candlepin.subscriptions.export.DataMapperService;
-import org.candlepin.subscriptions.export.ExportServiceRequest;
 import org.candlepin.subscriptions.json.InstancesExportJsonGuest;
 import org.candlepin.subscriptions.json.InstancesExportJsonItem;
 import org.candlepin.subscriptions.json.InstancesExportJsonMetric;

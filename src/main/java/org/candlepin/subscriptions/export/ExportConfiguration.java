@@ -20,6 +20,16 @@
  */
 package org.candlepin.subscriptions.export;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.csv.CsvMapper;
+import com.redhat.cloud.event.parser.ConsoleCloudEventParser;
+import com.redhat.swatch.export.CsvExportFileWriter;
+import com.redhat.swatch.export.DataExporterService;
+import com.redhat.swatch.export.ExportRequestHandler;
+import com.redhat.swatch.export.JsonExportFileWriter;
+import com.redhat.swatch.export.api.ExportDelegate;
+import com.redhat.swatch.export.api.RbacDelegate;
+import java.util.List;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
@@ -37,7 +47,7 @@ import org.springframework.util.backoff.FixedBackOff;
 
 @Configuration
 @Import({ExportClientConfiguration.class})
-public class ExportSubscriptionConfiguration {
+public class ExportConfiguration {
 
   public static final String SUBSCRIPTION_EXPORT_QUALIFIER = "subscriptionExport";
   public static final String EXPORT_CONSUMER_FACTORY_QUALIFIER = "exportConsumerFactory";
@@ -87,5 +97,21 @@ public class ExportSubscriptionConfiguration {
         new FixedBackOff(
             subscriptionExportProperties.getRetryBackOffMillis(),
             subscriptionExportProperties.getRetryAttempts()));
+  }
+
+  @Bean
+  ExportRequestHandler exportService(
+      ExportDelegate exportDelegate,
+      RbacDelegate rbacDelegate,
+      List<DataExporterService<?>> exporterServices,
+      ObjectMapper objectMapper,
+      CsvMapper csvMapper) {
+    return new ExportRequestHandler(
+        exportDelegate,
+        rbacDelegate,
+        exporterServices,
+        new ConsoleCloudEventParser(objectMapper),
+        new JsonExportFileWriter(objectMapper),
+        new CsvExportFileWriter(csvMapper));
   }
 }
