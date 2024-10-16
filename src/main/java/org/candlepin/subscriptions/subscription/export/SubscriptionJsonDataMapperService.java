@@ -22,6 +22,8 @@ package org.candlepin.subscriptions.subscription.export;
 
 import static org.candlepin.subscriptions.subscription.export.SubscriptionDataExporterService.groupMetrics;
 
+import com.redhat.swatch.export.DataMapperService;
+import com.redhat.swatch.export.ExportServiceRequest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -29,8 +31,6 @@ import lombok.AllArgsConstructor;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.export.DataMapperService;
-import org.candlepin.subscriptions.export.ExportServiceRequest;
 import org.candlepin.subscriptions.json.SubscriptionsExportJsonItem;
 import org.candlepin.subscriptions.util.ApiModelMapperV1;
 import org.springframework.stereotype.Service;

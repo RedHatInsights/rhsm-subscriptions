@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.subscription.export;
 
+import static com.redhat.swatch.export.ExportRequestHandler.MISSING_PERMISSIONS;
 import static org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository.orgIdEquals;
-import static org.candlepin.subscriptions.export.ExportSubscriptionListener.MISSING_PERMISSIONS;
 import static org.candlepin.subscriptions.subscription.export.SubscriptionDataExporterService.PRODUCT_ID;
 
 import com.redhat.cloud.event.apps.exportservice.v1.Format;

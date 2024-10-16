@@ -18,21 +18,19 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.export;
+package com.redhat.swatch.export;
+
+import static com.redhat.swatch.export.ExportRequestHandler.INTERNAL_ERROR;
 
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
-import jakarta.ws.rs.core.Response;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.exception.ExportServiceException;
-import org.springframework.stereotype.Service;
 
 @Slf4j
-@Service
 @AllArgsConstructor
 public class CsvExportFileWriter implements ExportFileWriter {
 
@@ -57,8 +55,7 @@ public class CsvExportFileWriter implements ExportFileWriter {
       writer.close();
     } catch (IOException e) {
       log.error("Error writing the CSV payload for request {}", request.getExportRequestUUID(), e);
-      throw new ExportServiceException(
-          Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(), "Error writing the CSV payload");
+      throw new ExportServiceException(INTERNAL_ERROR, "Error writing the CSV payload");
     }
   }
 
@@ -68,7 +65,6 @@ public class CsvExportFileWriter implements ExportFileWriter {
         item,
         request.getExportRequestUUID(),
         e);
-    throw new ExportServiceException(
-        Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(), "Error writing the payload");
+    throw new ExportServiceException(INTERNAL_ERROR, "Error writing the payload");
   }
 }

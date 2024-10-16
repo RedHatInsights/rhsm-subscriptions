@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.export;
+package com.redhat.swatch.export;
 
 import com.redhat.cloud.event.apps.exportservice.v1.Format;
 import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequest;

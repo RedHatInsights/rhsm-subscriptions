@@ -18,15 +18,15 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.export;
+package com.redhat.swatch.export.api;
 
-import java.io.Serializable;
-import java.util.stream.Stream;
+import com.redhat.swatch.export.ExportServiceException;
+import com.redhat.swatch.export.ExportServiceRequest;
+import java.io.File;
 
-public interface DataExporterService<T extends Serializable> {
-  boolean handles(ExportServiceRequest request);
+public interface ExportDelegate {
+  void sendExportError(ExportServiceRequest request, Integer error, String message)
+      throws ExportServiceException;
 
-  Stream<T> fetchData(ExportServiceRequest request);
-
-  DataMapperService<T> getMapper(ExportServiceRequest request);
+  void upload(File file, ExportServiceRequest request) throws ExportServiceException;
 }
