@@ -26,6 +26,7 @@ import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceEntity;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceFilter;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
 import com.redhat.swatch.billable.usage.data.RemittanceErrorCode;
+import com.redhat.swatch.billable.usage.data.RemittanceStatus;
 import com.redhat.swatch.billable.usage.data.RemittanceSummaryProjection;
 import com.redhat.swatch.billable.usage.model.RemittanceMapper;
 import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
@@ -98,6 +99,8 @@ public class InternalBillableUsageController {
       billingProducer.produce(toBillableUsage(remittance));
       // reset the retry after column
       remittance.setRetryAfter(null);
+      remittance.setErrorCode(null);
+      remittance.setStatus(RemittanceStatus.PENDING);
     }
 
     // to save the retry after column for all the entities

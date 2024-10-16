@@ -35,7 +35,8 @@ public enum RemittanceStatus {
   GRATIS("gratis"),
   FAILED("failed"),
   UNKNOWN("unknown"),
-  SUCCEEDED("succeeded");
+  SUCCEEDED("succeeded"),
+  RETRYABLE("retryable");
 
   private static final Map<String, RemittanceStatus> VALUE_ENUM_MAP =
       Arrays.stream(RemittanceStatus.values())
