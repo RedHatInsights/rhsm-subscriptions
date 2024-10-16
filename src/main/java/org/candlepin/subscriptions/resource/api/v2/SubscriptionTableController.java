@@ -112,7 +112,7 @@ public class SubscriptionTableController {
                   reportItemsBySku.computeIfAbsent(
                       inventoryKey, s -> initializeSkuCapacity(subscription, metrics, category));
               calculateNextEvent(subscription, inventory);
-              if (productId.isPrometheusEnabled()) {
+              if (productId.isPrometheusEnabled() || productId.isPayg()) {
                 addOnDemandSubscriptionInformation(subscription, inventory);
               } else {
                 addSubscriptionInformation(subscription, inventory);
@@ -149,7 +149,7 @@ public class SubscriptionTableController {
         .meta(
             new SkuCapacityReportMeta()
                 .subscriptionType(
-                    productId.isPrometheusEnabled()
+                    productId.isPrometheusEnabled() || productId.isPayg()
                         ? SubscriptionType.ON_DEMAND
                         : SubscriptionType.ANNUAL)
                 .count(reportItemCount)
@@ -283,7 +283,7 @@ public class SubscriptionTableController {
 
     public InventoryKey(ProductId productId, SubscriptionCapacityView subscription) {
       sku = subscription.getSku();
-      if (productId.isPrometheusEnabled()) {
+      if (productId.isPrometheusEnabled() || productId.isPayg()) {
         billingProvider = subscription.getBillingProvider();
       }
     }
