@@ -1,16 +1,47 @@
 #!/bin/bash
 
+valid_artifacts=('rhsm-subscriptions'
+  'swatch-system-conduit'
+  'swatch-producer-aws'
+  'swatch-contracts'
+  'swatch-producer-azure'
+  'swatch-metrics'
+  'swatch-billable-usage'
+  'swatch-unleash-import'
+  'swatch-metrics-hbi')
+
 function build_failed() {
     # Return from the directory the script started in
     popd
     exit 1
 }
 
+function print_valid_artifacts() {
+  echo "Valid build artifacts are: $(echo "${valid_artifacts[@]}" | xargs | sed -e 's/ /, /g')"
+}
+
+function get_docker_file_path() {
+  docker_file="unknown"
+  if [[ "$1" == "rhsm-subscriptions" ]]; then
+    docker_file="Dockerfile"
+  elif [[ -f "$1/src/main/docker/Dockerfile.jvm" ]]; then
+    docker_file=$1/src/main/docker/Dockerfile.jvm
+  else
+    docker_file=$1/Dockerfile
+  fi
+
+  if [[ ! -f "$docker_file" ]]; then
+      echo "Unable to find docker file: ${docker_file}"
+      build_failed
+  fi
+  echo $docker_file
+}
+
 function usage() {
   echo "Usage: $0 [-k] [-t tag] [BUILD_ARTIFACT...]"
   echo "-k       keep built images"
   echo "-t [tag] image tag"
-  echo "Valid build artifacts are 'rhsm', 'conduit', 'swatch-producer-aws', 'swatch-contracts', 'swatch-producer-azure', 'swatch-metrics', 'swatch-billable-usage'"
+  print_valid_artifacts
   echo "Providing no artifact ids will result in a build for all artifacts"
   exit 0
 }
@@ -38,16 +69,25 @@ shift $((OPTIND-1))
 
 projects=("$@")
 if [ ${#projects[@]} -eq 0 ]; then
-  projects[0]="rhsm"
-  projects[1]="conduit"
-  projects[2]="swatch-producer-aws"
-  projects[3]="swatch-contracts"
-  projects[4]="swatch-producer-azure"
-  projects[5]="swatch-metrics"
-  projects[6]="swatch-billable-usage"
-  projects[7]="swatch-metrics-hbi"
-  projects[8]="swatch-unleash-import"
+  projects+=(${valid_artifacts[@]})
 fi
+
+function validate_artifact() {
+  for artifact in ${valid_artifacts[@]}
+  do
+    if [[ $artifact == $1 ]]; then
+      return
+    fi
+  done
+  echo "ERROR: Invalid build artifact specified: $1"
+  print_valid_artifacts
+  build_failed
+}
+
+# Validate that all applicable projects are valid.
+for p in "${projects[@]}"; do
+  validate_artifact $p
+done
 
 quay_user=$(podman login --get-login quay.io)
 if [ $? -ne 0 ]; then
@@ -60,63 +100,13 @@ trap build_failed ERR
 
 ./gradlew clean
 for p in "${projects[@]}"; do
-  case "$p" in
-    "rhsm")
-      podman build . -f Dockerfile \
-        --build-arg-file bin/dev-argfile.conf \
-        -t quay.io/$quay_user/rhsm-subscriptions:$tag \
-        --label "git-commit=${commit}" --ulimit nofile=2048:2048
-      ;;
-    "conduit")
-      podman build . -f swatch-system-conduit/Dockerfile \
-        --build-arg-file bin/dev-argfile.conf \
-        -t quay.io/$quay_user/swatch-system-conduit:$tag \
-        --label "git-commit=${commit}" --ulimit nofile=2048:2048
-      ;;
-    "swatch-producer-aws")
-      podman build . -f swatch-producer-aws/src/main/docker/Dockerfile.jvm \
-        --build-arg-file bin/dev-argfile.conf \
-        -t quay.io/$quay_user/swatch-producer-aws:$tag \
-        --label "git-commit=${commit}" --ulimit nofile=2048:2048
-      ;;
-    "swatch-contracts")
-      podman build . -f swatch-contracts/src/main/docker/Dockerfile.jvm \
-        --build-arg-file bin/dev-argfile.conf \
-        -t quay.io/$quay_user/swatch-contracts:$tag \
-        --label "git-commit=${commit}" --ulimit nofile=2048:2048
-      ;;
-    "swatch-producer-azure")
-      podman build . -f swatch-producer-azure/src/main/docker/Dockerfile.jvm \
-        --build-arg-file bin/dev-argfile.conf \
-        -t quay.io/$quay_user/swatch-producer-azure:$tag \
-        --label "git-commit=${commit}" --ulimit nofile=2048:2048
-      ;;
-    "swatch-metrics")
-      podman build . -f swatch-metrics/src/main/docker/Dockerfile.jvm \
-        --build-arg-file bin/dev-argfile.conf \
-        -t quay.io/$quay_user/swatch-metrics:$tag \
-        --label "git-commit=${commit}" --ulimit nofile=2048:2048
-      ;;
-    "swatch-billable-usage")
-      podman build . -f swatch-billable-usage/src/main/docker/Dockerfile.jvm \
-        --build-arg-file bin/dev-argfile.conf \
-        -t quay.io/$quay_user/swatch-billable-usage:$tag \
-        --label "git-commit=${commit}" --ulimit nofile=2048:2048
-      ;;
-    "swatch-metrics-hbi")
-      podman build . -f swatch-metrics-hbi/src/main/docker/Dockerfile.jvm \
-        --build-arg-file bin/dev-argfile.conf \
-        -t quay.io/$quay_user/swatch-metrics-hbi:$tag \
-        --label "git-commit=${commit}" --ulimit nofile=2048:2048
-      ;;
-    "swatch-unleash-import")
-      podman build . -f swatch-unleash-import/Dockerfile \
-        --build-arg-file bin/dev-argfile.conf \
-        -t quay.io/$quay_user/swatch-unleash-import:$tag \
-        --label "git-commit=${commit}" --ulimit nofile=2048:2048
-      ;;
-    *) echo "Please use values from the set \"rhsm\", \"conduit\", \"swatch-producer-aws\", \"swatch-contracts\", \"swatch-producer-azure\", \"swatch-metrics\", \"swatch-billable-usage\", \"swatch-metrics-hbi\", \"swatch-unleash-import\"";;
-  esac
+  echo "Building ${p}"
+
+  docker_file=$(get_docker_file_path $p)
+  podman build . -f $docker_file \
+    --build-arg-file bin/dev-argfile.conf \
+    -t quay.io/$quay_user/$p:$tag \
+    --label "git-commit=${commit}" --ulimit nofile=2048:2048
 done
 
 function push_and_clean() {
@@ -128,33 +118,5 @@ function push_and_clean() {
 
 # Do all builds (and make sure they succeed before any pushes)
 for p in "${projects[@]}"; do
-  case "$p" in
-    "rhsm")
-      push_and_clean "quay.io/$quay_user/rhsm-subscriptions:$tag"
-      ;;
-    "conduit")
-      push_and_clean "quay.io/$quay_user/swatch-system-conduit:$tag"
-      ;;
-    "swatch-producer-aws")
-      push_and_clean "quay.io/$quay_user/swatch-producer-aws:$tag"
-      ;;
-    "swatch-contracts")
-      push_and_clean "quay.io/$quay_user/swatch-contracts:$tag"
-      ;;
-    "swatch-producer-azure")
-      push_and_clean "quay.io/$quay_user/swatch-producer-azure:$tag"
-      ;;
-    "swatch-metrics")
-      push_and_clean "quay.io/$quay_user/swatch-metrics:$tag"
-      ;;
-    "swatch-billable-usage")
-      push_and_clean "quay.io/$quay_user/swatch-billable-usage:$tag"
-      ;;
-    "swatch-metrics-hbi")
-      push_and_clean "quay.io/$quay_user/swatch-metrics-hbi:$tag"
-      ;;
-    "swatch-unleash-import")
-      push_and_clean "quay.io/$quay_user/swatch-unleash-import:$tag"
-      ;;
-  esac
+  push_and_clean "quay.io/$quay_user/$p:$tag"
 done
