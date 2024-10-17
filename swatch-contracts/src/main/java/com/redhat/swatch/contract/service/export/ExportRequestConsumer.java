@@ -18,19 +18,30 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.config;
+package com.redhat.swatch.contract.service.export;
 
-public final class Channels {
+import static com.redhat.swatch.contract.config.Channels.EXPORT_REQUESTS_TOPIC;
 
-  public static final String CAPACITY_RECONCILE = "capacity-reconcile";
-  public static final String CAPACITY_RECONCILE_TASK = "capacity-reconcile-task";
-  public static final String ENABLED_ORGS = "enabled-orgs";
-  public static final String SUBSCRIPTION_SYNC_TASK_TOPIC = "subscription-sync-task";
-  public static final String SUBSCRIPTION_SYNC_TASK_UMB = "subscription-sync-umb";
-  public static final String OFFERING_SYNC = "offering-sync";
-  public static final String OFFERING_SYNC_TASK_TOPIC = "offering-sync-task";
-  public static final String OFFERING_SYNC_TASK_UMB = "offering-sync-umb";
-  public static final String EXPORT_REQUESTS_TOPIC = "export-requests";
+import com.redhat.swatch.export.ExportRequestHandler;
+import com.redhat.swatch.export.ExportServiceException;
+import io.micrometer.core.annotation.Timed;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.eclipse.microprofile.reactive.messaging.Incoming;
 
-  private Channels() {}
+@ApplicationScoped
+@Slf4j
+@AllArgsConstructor
+public class ExportRequestConsumer {
+
+  private final ExportRequestHandler exportService;
+
+  @Timed("rhsm-subscriptions.exports.upload")
+  @Transactional
+  @Incoming(EXPORT_REQUESTS_TOPIC)
+  public void receive(String exportEvent) throws ExportServiceException {
+    exportService.handle(exportEvent);
+  }
 }

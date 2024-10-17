@@ -18,24 +18,22 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.subscription.export;
+package com.redhat.swatch.contract.service.export;
 
-import static org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository.PHYSICAL;
-import static org.candlepin.subscriptions.subscription.export.SubscriptionDataExporterService.groupMetrics;
-
+import com.redhat.swatch.contract.model.SubscriptionsExportCsvItem;
+import com.redhat.swatch.contract.repository.ServiceLevel;
+import com.redhat.swatch.contract.repository.SubscriptionCapacityView;
+import com.redhat.swatch.contract.repository.SubscriptionCapacityViewRepository;
+import com.redhat.swatch.contract.repository.Usage;
+import com.redhat.swatch.contract.resource.api.v1.ApiModelMapperV1;
 import com.redhat.swatch.export.DataMapperService;
 import com.redhat.swatch.export.ExportServiceRequest;
+import jakarta.enterprise.context.ApplicationScoped;
 import java.util.List;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
-import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.json.SubscriptionsExportCsvItem;
-import org.candlepin.subscriptions.util.ApiModelMapperV1;
-import org.springframework.stereotype.Service;
 
-@Service
+@ApplicationScoped
 @AllArgsConstructor
 public class SubscriptionCsvDataMapperService
     implements DataMapperService<SubscriptionCapacityView> {
@@ -48,7 +46,7 @@ public class SubscriptionCsvDataMapperService
       return List.of();
     }
 
-    return groupMetrics(mapper, dataItem, request).stream()
+    return SubscriptionDataExporterService.groupMetrics(mapper, dataItem, request).stream()
         .map(
             m -> {
               var item = new SubscriptionsExportCsvItem();
@@ -58,7 +56,7 @@ public class SubscriptionCsvDataMapperService
               item.setEnd(dataItem.getEndDate());
               item.setQuantity((double) dataItem.getQuantity());
               item.setMetricId(m.getMetricId());
-              if (PHYSICAL.equals(m.getMeasurementType())) {
+              if (SubscriptionCapacityViewRepository.PHYSICAL.equals(m.getMeasurementType())) {
                 item.setHypervisorCapacity(m.getCapacity());
               } else {
                 item.setCapacity(m.getCapacity());
