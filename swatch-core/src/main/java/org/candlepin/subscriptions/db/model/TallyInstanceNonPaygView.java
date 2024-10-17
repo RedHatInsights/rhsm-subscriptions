@@ -24,8 +24,16 @@ import static java.util.Optional.ofNullable;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.MapKeyColumn;
 import jakarta.persistence.Table;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.Immutable;
@@ -36,6 +44,15 @@ import org.springframework.data.annotation.Immutable;
 @Immutable
 @Table(name = "tally_instance_non_payg_view")
 public class TallyInstanceNonPaygView extends TallyInstanceView {
+
+  /** This is only used when filtering/sorting instances. */
+  @ElementCollection(fetch = FetchType.LAZY)
+  @CollectionTable(
+      name = "instance_measurements",
+      joinColumns = @JoinColumn(name = "host_id", referencedColumnName = "id"))
+  @MapKeyColumn(name = "metric_id")
+  @Column(name = "value")
+  private Map<String, Double> filteredMetrics = new HashMap<>();
 
   @Override
   public double getMetricValue(MetricId metricId) {
