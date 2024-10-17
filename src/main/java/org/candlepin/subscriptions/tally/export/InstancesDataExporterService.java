@@ -106,7 +106,7 @@ public class InstancesDataExporterService implements DataExporterService<TallyIn
   public Stream<TallyInstanceView> fetchData(ExportServiceRequest request) {
     log.debug("Fetching data for {}", request.getOrgId());
     var reportCriteria = extractExportFilter(request);
-    boolean isPayg = ProductId.fromString(reportCriteria.getProductId()).isPayg();
+    boolean isPayg = reportCriteria.getProductId().isPayg();
     var repository = isPayg ? paygViewRepository : nonPaygViewRepository;
     return repository
         .findBy(buildSearchSpecification(reportCriteria), FluentQuery.FetchableFluentQuery::stream)
@@ -157,7 +157,7 @@ public class InstancesDataExporterService implements DataExporterService<TallyIn
     }
 
     // special handling of the month for non payg products
-    if (!ProductId.fromString(report.build().getProductId()).isPayg()) {
+    if (!report.build().getProductId().isPayg()) {
       report.month(null);
     }
 
@@ -166,7 +166,7 @@ public class InstancesDataExporterService implements DataExporterService<TallyIn
 
   private static void handleProductIdFilter(
       TallyInstancesDbReportCriteria.TallyInstancesDbReportCriteriaBuilder builder, String value) {
-    builder.productId(ProductId.fromString(value).toString());
+    builder.productId(ProductId.fromString(value));
   }
 
   private static void handleSlaFilter(

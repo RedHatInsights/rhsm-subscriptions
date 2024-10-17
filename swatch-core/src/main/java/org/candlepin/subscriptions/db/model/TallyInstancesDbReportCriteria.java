@@ -21,16 +21,18 @@
 package org.candlepin.subscriptions.db.model;
 
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.registry.ProductId;
 import java.util.List;
 import lombok.Builder;
 import lombok.Data;
+import org.candlepin.subscriptions.utilization.api.v1.model.SortDirection;
 
 /** Common criteria that can be used to filter instances, subscriptions, and tally snapshots */
 @Data
 @Builder
 public class TallyInstancesDbReportCriteria {
   private String orgId;
-  private String productId;
+  private ProductId productId;
   private ServiceLevel sla;
   private Usage usage;
   private String displayNameSubstring;
@@ -41,5 +43,6 @@ public class TallyInstancesDbReportCriteria {
   private BillingProvider billingProvider;
   private String billingAccountId;
   private List<HardwareMeasurementType> hardwareMeasurementTypes;
-  private boolean isPayg;
+  private String sort;
+  private SortDirection sortDirection;
 }
