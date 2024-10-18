@@ -59,6 +59,7 @@ public class BillableUsageStatusConsumer {
   }
 
   private void updateStatus(BillableUsageAggregate billableUsageAggregate) {
+    log.info("Updating status for aggregate: {}", billableUsageAggregate);
     var status = RemittanceStatus.fromString(billableUsageAggregate.getStatus().value());
     var errorCode =
         ofNullable(billableUsageAggregate.getErrorCode())

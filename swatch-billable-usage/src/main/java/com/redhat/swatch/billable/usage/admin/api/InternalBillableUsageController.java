@@ -95,6 +95,7 @@ public class InternalBillableUsageController {
     List<BillableUsageRemittanceEntity> remittances =
         remittanceRepository.findByRetryAfterLessThan(asOf);
     for (BillableUsageRemittanceEntity remittance : remittances) {
+      log.info("Processing retry of remittance {}", remittance);
       // re-trigger billable usage
       billingProducer.produce(toBillableUsage(remittance));
       // reset the retry after column
