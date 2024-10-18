@@ -20,17 +20,17 @@
  */
 package com.redhat.swatch.contract.config;
 
-public final class Channels {
+import com.redhat.swatch.clients.rbac.RbacApi;
+import com.redhat.swatch.clients.rbac.RbacClient;
+import com.redhat.swatch.clients.rbac.RbacService;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
 
-  public static final String CAPACITY_RECONCILE = "capacity-reconcile";
-  public static final String CAPACITY_RECONCILE_TASK = "capacity-reconcile-task";
-  public static final String ENABLED_ORGS = "enabled-orgs";
-  public static final String SUBSCRIPTION_SYNC_TASK_TOPIC = "subscription-sync-task";
-  public static final String SUBSCRIPTION_SYNC_TASK_UMB = "subscription-sync-umb";
-  public static final String OFFERING_SYNC = "offering-sync";
-  public static final String OFFERING_SYNC_TASK_TOPIC = "offering-sync-task";
-  public static final String OFFERING_SYNC_TASK_UMB = "offering-sync-umb";
-  public static final String EXPORT_REQUESTS_TOPIC = "export-requests";
-
-  private Channels() {}
+@ApplicationScoped
+public class RbacConfiguration {
+  @ApplicationScoped
+  @Produces
+  RbacService rbacService(@RbacClient RbacApi rbacApi) {
+    return new RbacService(rbacApi);
+  }
 }

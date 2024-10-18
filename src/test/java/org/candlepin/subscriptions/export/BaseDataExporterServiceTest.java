@@ -51,7 +51,7 @@ import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.json.SubscriptionsExportJson;
+import org.candlepin.subscriptions.json.InstancesExportJson;
 import org.candlepin.subscriptions.rbac.RbacApiException;
 import org.candlepin.subscriptions.rbac.RbacService;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
@@ -193,7 +193,7 @@ public abstract class BaseDataExporterServiceTest
 
   protected void verifyRequestWasSentToExportServiceWithNoDataFound() {
     verifyRequestWasSentToExportServiceWithUploadData(
-        request, toJson(new SubscriptionsExportJson().withData(new ArrayList<>())));
+        request, toJson(new InstancesExportJson().withData(new ArrayList<>())));
   }
 
   protected void updateOffering() {

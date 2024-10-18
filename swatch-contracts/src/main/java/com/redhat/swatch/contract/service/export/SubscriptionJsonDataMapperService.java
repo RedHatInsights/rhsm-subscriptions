@@ -18,24 +18,24 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.subscription.export;
+package com.redhat.swatch.contract.service.export;
 
-import static org.candlepin.subscriptions.subscription.export.SubscriptionDataExporterService.groupMetrics;
+import static com.redhat.swatch.contract.service.export.SubscriptionDataExporterService.groupMetrics;
 
+import com.redhat.swatch.contract.model.SubscriptionsExportJsonItem;
+import com.redhat.swatch.contract.repository.ServiceLevel;
+import com.redhat.swatch.contract.repository.SubscriptionCapacityView;
+import com.redhat.swatch.contract.repository.Usage;
+import com.redhat.swatch.contract.resource.api.v1.ApiModelMapperV1;
 import com.redhat.swatch.export.DataMapperService;
 import com.redhat.swatch.export.ExportServiceRequest;
+import jakarta.enterprise.context.ApplicationScoped;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
-import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.json.SubscriptionsExportJsonItem;
-import org.candlepin.subscriptions.util.ApiModelMapperV1;
-import org.springframework.stereotype.Service;
 
-@Service
+@ApplicationScoped
 @AllArgsConstructor
 public class SubscriptionJsonDataMapperService
     implements DataMapperService<SubscriptionCapacityView> {
