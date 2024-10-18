@@ -22,6 +22,8 @@ package com.redhat.swatch.contract.resource;
 
 import com.redhat.swatch.contract.exception.ErrorCode;
 import com.redhat.swatch.contract.exception.SubscriptionsException;
+import com.redhat.swatch.contract.resteasy.Page;
+import com.redhat.swatch.contract.resteasy.Pageable;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
 
@@ -30,6 +32,10 @@ public class InMemoryPager {
 
   private InMemoryPager() {
     /* intentionally empty */
+  }
+
+  public static <T> Page<T> paginate(List<T> items, Pageable pageable) {
+    return new Page<>(paginate(items, pageable.getOffset(), pageable.getPageSize()), pageable);
   }
 
   public static <T> List<T> paginate(List<T> items, Integer offset, Integer limit) {
