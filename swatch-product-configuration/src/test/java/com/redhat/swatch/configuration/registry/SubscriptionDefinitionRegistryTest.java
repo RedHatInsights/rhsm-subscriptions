@@ -28,6 +28,12 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.yaml.snakeyaml.composer.ComposerException;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @TestInstance(Lifecycle.PER_CLASS)
 class SubscriptionDefinitionRegistryTest {
@@ -36,6 +42,19 @@ class SubscriptionDefinitionRegistryTest {
 
   @BeforeAll
   void setup() {
+    ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+    var url = classLoader.getResource("swatch_config_index.txt");
+
+    if (Files.isSymbolicLink(Paths.get(url.getPath()))){
+      var warning = """
+      Detected a symlink version of swatch_config_index.txt.  This link should only be used
+      in testNoGlobalTags().  Its presence indicates a failure of the test to clean up after itself.
+      Please delete the symlink at %s and rerun the tests.
+      Also consider investigating why the symlink was not deleted after completion of the test.
+      """.formatted(url.getPath());
+      throw new IllegalStateException(warning);
+    }
+
     subscriptionDefinitionRegistry = new SubscriptionDefinitionRegistry();
   }
 
@@ -50,6 +69,34 @@ class SubscriptionDefinitionRegistryTest {
             "Found the following violations in " + definition + ":" + violations);
       }
     }
+  }
+
+  @Test
+  /** Test for SnakeYaml deserialization vulnerability due to enabled global tags.  See
+   *  <ul>
+   *    <li>https://www.cve.org/CVERecord?id=CVE-2022-1471</li>
+   *    <li>https://www.veracode.com/blog/research/resolving-cve-2022-1471-snakeyaml-20-release-0</li>
+   *    <li>https://bitbucket.org/snakeyaml/snakeyaml/issues/561/cve-2022-1471-vulnerability-in</li>
+   *    <li>https://www.websec.ca/publication/Blog/CVE-2022-21404-Another-story-of-developers-fixing-vulnerabilities-unknowingly-because-of-CodeQL</li>
+   *  </ul>
+   */
+  void testNoGlobalTags() throws IOException {
+    Path link = null;
+    try {
+      ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+      var url = classLoader.getResource("cve_2022_1471_swatch_config_index.txt");
+      Path target = Paths.get(url.getPath());
+      Path parent = target.getParent();
+
+      link = parent.resolve("swatch_config_index.txt");
+      Files.createSymbolicLink(link, target);
+      assertThrows(ComposerException.class, SubscriptionDefinitionRegistry::new);
+    } finally {
+      if (link != null && Files.exists(link)) {
+          Files.delete(link);
+      }
+    }
+
   }
 
   @Test
