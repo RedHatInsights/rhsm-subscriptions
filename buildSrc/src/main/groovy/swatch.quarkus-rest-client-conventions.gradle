@@ -19,7 +19,6 @@ tasks.register("generateApiDocs", GenerateTask) {
     generateModelDocumentation = true
     generateModelTests = false
     generateApiTests = false
-    withXml = false
 }
 
 openApiGenerate {
