@@ -7,6 +7,8 @@ description = 'The swatch-metrics-hbi service build definition'
 dependencies {
     annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
     implementation 'io.quarkus:quarkus-config-yaml'
+    implementation libraries["unleash-quarkus"]
+
     implementation project(':swatch-common-config-workaround')
     implementation libraries["clowder-quarkus-config-source"]
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka'
@@ -23,7 +25,6 @@ dependencies {
     annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
 
     testImplementation libraries["junit-jupiter"]
-
 }
 
 tasks.withType(JavaCompile) {
