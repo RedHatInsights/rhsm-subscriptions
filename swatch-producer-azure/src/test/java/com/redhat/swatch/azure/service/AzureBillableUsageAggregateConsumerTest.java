@@ -109,7 +109,7 @@ class AzureBillableUsageAggregateConsumerTest {
     givenAzureContextForUsage();
     givenAzureMarketplaceReturnsForbidden();
     whenSendUsage();
-    thenErrorLogWithMessage("Error sending azure usage for aggregateId");
+    thenErrorLogWithMessage("Error sending azure usage for aggregate");
   }
 
   @Test
