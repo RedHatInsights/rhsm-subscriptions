@@ -105,6 +105,7 @@ public class InternalBillableUsageController {
     }
 
     // to save the retry after column for all the entities
+    log.info("Persisting remittances: {}", remittances);
     remittanceRepository.persist(remittances);
     return remittances.size();
   }
