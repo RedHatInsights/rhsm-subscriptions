@@ -26,7 +26,6 @@ import static com.redhat.swatch.contract.resource.ResourceUtils.sanitizeServiceL
 import static com.redhat.swatch.contract.resource.ResourceUtils.sanitizeUsage;
 
 import com.redhat.swatch.configuration.registry.ProductId;
-import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.contract.openapi.model.BillingProviderType;
 import com.redhat.swatch.contract.openapi.model.ReportCategory;
 import com.redhat.swatch.contract.openapi.model.ServiceLevelType;
@@ -214,7 +213,7 @@ public class SubscriptionTableControllerV1 {
       }
     }
 
-    boolean isOnDemand = SubscriptionDefinition.isPrometheusEnabled(productId.toString());
+    boolean isOnDemand = productId.isPrometheusEnabled() || productId.isPayg();
 
     SubscriptionType subscriptionType =
         isOnDemand ? SubscriptionType.ON_DEMAND : SubscriptionType.ANNUAL;
