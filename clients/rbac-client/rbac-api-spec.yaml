@@ -1958,7 +1958,7 @@
     "/permissions/": {
       "get": {
         "tags": [
-          "Permission"
+          "Access"
         ],
         "summary": "List the permissions for a tenant",
         "description": "By default, responses are sorted in ascending order by permission application.",
@@ -2076,7 +2076,7 @@
     "/permissions/options/": {
       "get": {
         "tags": [
-          "Permission"
+          "Access"
         ],
         "summary": "List the available options for fields of permissions for a tenant",
         "description": "By default, options of application is returned. And could be resource_type or verb on demand.",
