@@ -30,4 +30,9 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 public class ApplicationConfiguration {
   @ConfigProperty(name = "rhsm-subscriptions.remittance-retention-policy.duration")
   Duration remittanceRetentionPolicyDuration;
+
+  @ConfigProperty(
+      name = "rhsm-subscriptions.billable-usage.retry-remittances-batch-size",
+      defaultValue = "1024")
+  int retryRemittancesBatchSize;
 }

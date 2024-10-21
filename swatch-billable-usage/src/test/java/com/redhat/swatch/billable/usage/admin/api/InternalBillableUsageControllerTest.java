@@ -22,8 +22,12 @@ package com.redhat.swatch.billable.usage.admin.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceEntity;
@@ -286,10 +290,25 @@ class InternalBillableUsageControllerTest {
     // verify remittance has been sent
     verify(billingProducer).produce(argThat(b -> b.getOrgId().equals(orgId)));
     // verify retry after is reset
-    assertTrue(
-        remittanceRepo.findAll().stream()
-            .filter(b -> b.getOrgId().equals(orgId))
-            .allMatch(b -> b.getRetryAfter() == null));
+    var found =
+        remittanceRepo.listAll().stream().filter(b -> b.getOrgId().equals(orgId)).findFirst();
+    assertTrue(found.isPresent());
+    assertNull(found.get().getRetryAfter());
+  }
+
+  @Test
+  void testProcessRetriesShouldRestoreStateIfSendFails() {
+    String orgId = "testProcessRetriesOrg123";
+    givenRemittanceWithOldRetryAfter(orgId);
+    doThrow(RuntimeException.class).when(billingProducer).produce(any(BillableUsage.class));
+
+    controller.processRetries(OffsetDateTime.now());
+
+    // verify retry after is set
+    var found =
+        remittanceRepo.listAll().stream().filter(b -> b.getOrgId().equals(orgId)).findFirst();
+    assertTrue(found.isPresent());
+    assertNotNull(found.get().getRetryAfter());
   }
 
   @Transactional

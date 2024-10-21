@@ -86,8 +86,9 @@ public class BillableUsageRemittanceRepository
     return entityManager.createQuery(query).getResultList();
   }
 
-  public List<BillableUsageRemittanceEntity> findByRetryAfterLessThan(OffsetDateTime asOf) {
-    return find("retryAfter < ?1", asOf).list();
+  public List<BillableUsageRemittanceEntity> findByRetryAfterLessThan(
+      OffsetDateTime asOf, int pageIndex, int pageSize) {
+    return find("retryAfter < ?1", asOf).page(pageIndex, pageSize).list();
   }
 
   public void deleteAllByOrgIdAndRemittancePendingDateBefore(
