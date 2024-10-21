@@ -77,6 +77,7 @@ class InternalBillableUsageResourceTest {
     enabledOrgsSink.clear();
     billableUsageSink = connector.sink(BILLABLE_USAGE_OUT);
     billableUsageSink.clear();
+    when(configuration.getRetryRemittancesBatchSize()).thenReturn(10);
   }
 
   @Test
