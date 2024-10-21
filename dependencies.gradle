@@ -25,7 +25,7 @@ ext.plugins = [
         // required for the newest liquibase gradle plugin version
         "org.liquibase:liquibase-core:4.29.2",
         "org.liquibase:liquibase-gradle-plugin:3.0.1",
-        "org.kordamp.gradle:jandex-gradle-plugin:2.0.0",
+        "org.kordamp.gradle:jandex-gradle-plugin:2.1.0",
         "org.openapitools:openapi-generator-gradle-plugin:7.9.0",
         "org.springframework.boot:spring-boot-gradle-plugin:${springVersion}",
         "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:5.1.0.4882",
