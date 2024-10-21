@@ -5,6 +5,7 @@ plugins {
 dependencies {
     constraints {
         runtime libraries["netty-codec-http2"]
+        runtime libraries["commons-io"]
     }
 }
 
