@@ -25,9 +25,9 @@ function get_docker_file_path() {
   if [[ "$1" == "rhsm-subscriptions" ]]; then
     docker_file="Dockerfile"
   elif [[ -f "$1/src/main/docker/Dockerfile.jvm" ]]; then
-    docker_file=$1/src/main/docker/Dockerfile.jvm
+    docker_file="$1/src/main/docker/Dockerfile.jvm"
   else
-    docker_file=$1/Dockerfile
+    docker_file="$1/Dockerfile"
   fi
 
   if [[ ! -f "$docker_file" ]]; then
@@ -86,7 +86,7 @@ function validate_artifact() {
 
 # Validate that all applicable projects are valid.
 for p in "${projects[@]}"; do
-  validate_artifact $p
+  validate_artifact "$p"
 done
 
 quay_user=$(podman login --get-login quay.io)
@@ -102,8 +102,8 @@ trap build_failed ERR
 for p in "${projects[@]}"; do
   echo "Building ${p}"
 
-  docker_file=$(get_docker_file_path $p)
-  podman build . -f $docker_file \
+  docker_file=$(get_docker_file_path "$p")
+  podman build . -f "$docker_file" \
     --build-arg-file bin/dev-argfile.conf \
     -t quay.io/$quay_user/$p:$tag \
     --label "git-commit=${commit}" --ulimit nofile=2048:2048
