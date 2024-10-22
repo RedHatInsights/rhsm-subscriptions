@@ -173,5 +173,6 @@
     <include file="/liquibase/202407231110-subscription-capacity-index.xml"/>
     <include file="/liquibase/202409251400-update-subscription-capacity-view-org-id.xml"/>
     <include file="/liquibase/202410021300-update_usages_to_unknown.xml"/>
+    <include file="/liquibase/202410211200-retry-after-billable-usage-index.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
