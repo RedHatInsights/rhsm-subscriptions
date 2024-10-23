@@ -93,24 +93,25 @@ public class InternalBillableUsageController {
   }
 
   public long processRetries(OffsetDateTime asOf) {
-    int pageIndex = 0;
-    int total = 0;
-
-    List<BillableUsageRemittanceEntity> remittances = findByRetryAfterLessThan(asOf, pageIndex);
-    while (!remittances.isEmpty()) {
-      remittances.forEach(this::processRetryForUsage);
-      total += remittances.size();
-      pageIndex++;
-      remittances = findByRetryAfterLessThan(asOf, pageIndex);
+    long total = remittanceRepository.countRemittancesByRetryAfterLessThan(asOf);
+    if (total > 0) {
+      long current = 0;
+      List<BillableUsageRemittanceEntity> remittances =
+          findNextRemittancesByRetryAfterLessThan(asOf);
+      while (current < total && !remittances.isEmpty()) {
+        remittances.forEach(this::processRetryForUsage);
+        current += remittances.size();
+        remittances = findNextRemittancesByRetryAfterLessThan(asOf);
+      }
     }
 
     return total;
   }
 
   @Transactional
-  List<BillableUsageRemittanceEntity> findByRetryAfterLessThan(OffsetDateTime asOf, int pageIndex) {
-    return remittanceRepository.findByRetryAfterLessThan(
-        asOf, pageIndex, applicationConfiguration.getRetryRemittancesBatchSize());
+  List<BillableUsageRemittanceEntity> findNextRemittancesByRetryAfterLessThan(OffsetDateTime asOf) {
+    return remittanceRepository.findNextRemittancesByRetryAfterLessThan(
+        asOf, applicationConfiguration.getRetryRemittancesBatchSize());
   }
 
   @Transactional
@@ -140,6 +141,7 @@ public class InternalBillableUsageController {
       log.warn("Remittance {} failed to be sent over kafka. Restoring.", remittance);
       // restoring previous state of the remittance because it fails to be sent
       updateRemittance(remittance, previousStatus, previousRetryAfter, previousErrorCode);
+      throw ex;
     }
   }
 
