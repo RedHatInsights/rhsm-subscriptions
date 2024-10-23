@@ -19,6 +19,9 @@ dependencies {
     implementation "org.springframework.boot:spring-boot-actuator-autoconfigure"
     implementation "org.springframework.boot:spring-boot-starter-data-jpa"
     implementation "org.springframework.boot:spring-boot-starter-security"
+    // to generate trace ID and span ID for tracing
+    implementation "io.micrometer:micrometer-tracing-bridge-otel"
+    implementation "io.opentelemetry:opentelemetry-api"
     implementation libraries["guava"] // for ip address class
     implementation libraries["jackson-annotations"] // for json generated models
     implementation "com.fasterxml.jackson.core:jackson-databind" // for use of objectmapper in EventRecord
