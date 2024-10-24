@@ -49,6 +49,7 @@ import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
 import org.candlepin.subscriptions.task.queue.inmemory.ExecutorTaskProcessor;
 import org.candlepin.subscriptions.task.queue.inmemory.ExecutorTaskQueueConsumerFactory;
 import org.candlepin.subscriptions.task.queue.kafka.KafkaTaskConsumerFactory;
+import org.candlepin.subscriptions.tracing.TracingConfiguration;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
@@ -97,7 +98,8 @@ import org.springframework.util.backoff.FixedBackOff;
   ContractsConfiguration.class,
   InventoryDataSourceConfiguration.class,
   ProductConfiguration.class,
-  ExportConfiguration.class
+  ExportConfiguration.class,
+  TracingConfiguration.class
 })
 @ComponentScan(
     basePackages = {
@@ -203,8 +205,12 @@ public class TallyWorkerConfiguration {
 
   @Bean
   public KafkaTemplate<String, TallySummary> tallySummaryKafkaTemplate(
-      ProducerFactory<String, TallySummary> tallySummaryProducerFactory) {
-    return new KafkaTemplate<>(tallySummaryProducerFactory);
+      ProducerFactory<String, TallySummary> tallySummaryProducerFactory,
+      KafkaProperties kafkaProperties) {
+    KafkaTemplate<String, TallySummary> kafkaTemplate =
+        new KafkaTemplate<>(tallySummaryProducerFactory);
+    kafkaTemplate.setObservationEnabled(kafkaProperties.getTemplate().isObservationEnabled());
+    return kafkaTemplate;
   }
 
   @Bean

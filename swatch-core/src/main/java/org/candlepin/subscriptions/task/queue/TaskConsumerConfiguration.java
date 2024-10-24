@@ -46,7 +46,7 @@ public class TaskConsumerConfiguration {
   @Bean
   @Primary
   @Profile("kafka-queue")
-  KafkaTaskConsumerFactory kakfaTaskConsumerFactory(KafkaConsumerRegistry kafkaConsumerRegistry) {
+  KafkaTaskConsumerFactory kafkaTaskConsumerFactory(KafkaConsumerRegistry kafkaConsumerRegistry) {
     return new KafkaTaskConsumerFactory(kafkaConsumerRegistry);
   }
 

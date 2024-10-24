@@ -21,6 +21,7 @@ DISABLE_OTEL: true
   SWATCH_SELF_PSK: placeholder
   ENABLE_SPLUNK_HEC: false
   SPLUNK_HEC_URL: https://splunk-hec.prod.utility-us-east-2.redhat.com:8088/
+  SPLUNK_DISABLE_CERTIFICATE_VALIDATION: true
   HOST_NAME: ${USER}@${HOSTNAME}
   SPLUNKMETA_namespace: local
   SPLUNK_HEC_INCLUDE_EX: true
