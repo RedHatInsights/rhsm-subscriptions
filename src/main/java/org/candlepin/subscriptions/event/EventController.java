@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.configuration.util.ProductTagLookupParams;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -59,6 +60,8 @@ import org.springframework.util.StringUtils;
 @Slf4j
 public class EventController {
 
+  protected static final String INGESTED_USAGE_METRIC =
+      "rhsm-subscriptions.swatch_metrics_ingested_usage_total";
   private static final Set<String> EXCLUDE_LOG_FOR_EVENT_SOURCES =
       Set.of("prometheus", "rhelemeter");
   private final EventRecordRepository repo;
@@ -67,6 +70,7 @@ public class EventController {
   private final TransactionHandler transactionHandler;
   private final EventConflictResolver eventConflictResolver;
   private final EventNormalizer eventNormalizer;
+  private final MeterRegistry meterRegistry;
 
   public EventController(
       EventRecordRepository repo,
@@ -74,13 +78,15 @@ public class EventController {
       OptInController optInController,
       TransactionHandler transactionHandler,
       EventConflictResolver eventConflictResolver,
-      EventNormalizer eventNormalizer) {
+      EventNormalizer eventNormalizer,
+      MeterRegistry meterRegistry) {
     this.repo = repo;
     this.objectMapper = objectMapper;
     this.optInController = optInController;
     this.transactionHandler = transactionHandler;
     this.eventConflictResolver = eventConflictResolver;
     this.eventNormalizer = eventNormalizer;
+    this.meterRegistry = meterRegistry;
   }
 
   /**
@@ -172,20 +178,19 @@ public class EventController {
   public void persistServiceInstances(List<String> eventJsonList)
       throws BatchListenerFailedException {
     ServiceInstancesResult result = parseServiceInstancesResult(eventJsonList);
+    List<EventRecord> savedEvents = new ArrayList<>();
     try {
       if (!result.indexedEvents.isEmpty()) {
         // Check to see if any of the incoming Events are in conflict and if so, resolve them.
-        int updated =
-            transactionHandler
-                .runInNewTransaction(
-                    () -> {
-                      List<EventRecord> resolved =
-                          resolveEventConflicts(
-                              result.indexedEvents.stream().map(Pair::getKey).toList());
-                      return repo.saveAll(resolved);
-                    })
-                .size();
-        log.debug("Adding/Updating {} metric events", updated);
+        savedEvents.addAll(
+            transactionHandler.runInNewTransaction(
+                () -> {
+                  List<EventRecord> resolved =
+                      resolveEventConflicts(
+                          result.indexedEvents.stream().map(Pair::getKey).toList());
+                  return repo.saveAll(resolved);
+                }));
+        log.debug("Adding/Updating {} metric events", savedEvents.size());
       }
     } catch (Exception saveAllException) {
       log.warn(
@@ -193,11 +198,12 @@ public class EventController {
       result.indexedEvents.forEach(
           indexedPair -> {
             try {
-              transactionHandler.runInNewTransaction(
-                  () ->
-                      repo.saveAll(
-                          eventConflictResolver.resolveIncomingEvents(
-                              List.of(indexedPair.getKey()))));
+              savedEvents.addAll(
+                  transactionHandler.runInNewTransaction(
+                      () ->
+                          repo.saveAll(
+                              eventConflictResolver.resolveIncomingEvents(
+                                  List.of(indexedPair.getKey())))));
             } catch (Exception individualSaveException) {
               log.warn(
                   "Failed to save individual event record: {} with error {}.",
@@ -208,6 +214,9 @@ public class EventController {
             }
           });
     }
+
+    // create the ingested usage metrics for created events
+    updateIngestedUsage(savedEvents);
 
     if (result
         .failedOnIndex
@@ -363,6 +372,33 @@ public class EventController {
     } catch (Exception e) {
       log.error("Error while attempting to automatically opt-in for orgId={} ", orgId, e);
     }
+  }
+
+  private void updateIngestedUsage(List<EventRecord> eventRecords) {
+    for (EventRecord eventRecord : eventRecords) {
+      Event event = eventRecord.getEvent();
+      if (event.getProductTag() == null || event.getMeasurements() == null) {
+        continue;
+      }
+      if ("prometheus".equalsIgnoreCase(event.getEventSource())) {
+        for (String tag : event.getProductTag()) {
+          for (Measurement measurement : event.getMeasurements()) {
+            updateIngestedUsageCounterFor(event, tag, measurement);
+          }
+        }
+      }
+    }
+  }
+
+  private void updateIngestedUsageCounterFor(Event event, String tag, Measurement measurement) {
+    List<String> tags =
+        new ArrayList<>(List.of("product_tag", tag, "metric_id", measurement.getMetricId()));
+    if (event.getBillingProvider() != null) {
+      tags.addAll(List.of("billing_provider", event.getBillingProvider().value()));
+    }
+    meterRegistry
+        .counter(INGESTED_USAGE_METRIC, tags.toArray(new String[0]))
+        .increment(measurement.getValue());
   }
 
   private static class ServiceInstancesResult {
