@@ -1,0 +1,13 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "/api/v1/query"
+  },
+  "response": {
+    "status": 200,
+    "bodyFileName": "prometheus_success.json",
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  }
+}

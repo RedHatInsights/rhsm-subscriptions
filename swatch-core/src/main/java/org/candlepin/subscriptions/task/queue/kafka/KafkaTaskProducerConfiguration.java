@@ -57,8 +57,9 @@ public class KafkaTaskProducerConfiguration {
   @Bean
   public KafkaTemplate<String, JsonTaskMessage> jsonKafkaProducerTemplate(
       ProducerFactory<String, JsonTaskMessage> jsonProducerFactory,
-      KafkaConfigurator kafkaConfigurator) {
-    return kafkaConfigurator.jsonTaskMessageKafkaTemplate(jsonProducerFactory);
+      KafkaConfigurator kafkaConfigurator,
+      KafkaProperties kafkaProperties) {
+    return kafkaConfigurator.jsonTaskMessageKafkaTemplate(jsonProducerFactory, kafkaProperties);
   }
 
   @NotNull
