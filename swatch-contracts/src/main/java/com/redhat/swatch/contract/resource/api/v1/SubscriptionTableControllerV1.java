@@ -26,7 +26,6 @@ import static com.redhat.swatch.contract.resource.ResourceUtils.sanitizeServiceL
 import static com.redhat.swatch.contract.resource.ResourceUtils.sanitizeUsage;
 
 import com.redhat.swatch.configuration.registry.ProductId;
-import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.contract.openapi.model.BillingProviderType;
 import com.redhat.swatch.contract.openapi.model.ReportCategory;
 import com.redhat.swatch.contract.openapi.model.ServiceLevelType;
@@ -214,13 +213,11 @@ public class SubscriptionTableControllerV1 {
       }
     }
 
-    boolean isOnDemand = SubscriptionDefinition.isPrometheusEnabled(productId.toString());
-
     SubscriptionType subscriptionType =
-        isOnDemand ? SubscriptionType.ON_DEMAND : SubscriptionType.ANNUAL;
+        productId.isOnDemand() ? SubscriptionType.ON_DEMAND : SubscriptionType.ANNUAL;
 
     List<SkuCapacityV1> reportItems = new ArrayList<>(reportItemsBySku.values());
-    if (isOnDemand && reportItems.isEmpty()) {
+    if (productId.isOnDemand() && reportItems.isEmpty()) {
       reportItems.addAll(
           getOnDemandSkuCapacities(
               productId,

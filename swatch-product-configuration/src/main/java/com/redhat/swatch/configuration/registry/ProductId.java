@@ -63,6 +63,10 @@ public class ProductId {
                     String.format("ProductId: %s not found in configuration", value)));
   }
 
+  public boolean isOnDemand() {
+    return this.isPrometheusEnabled || this.isPayg;
+  }
+
   // NOTE: intentionally overriding the toString() from @Data, so users can use getValue() and
   // toString() interchangeably without introducing errors
   public String toString() {

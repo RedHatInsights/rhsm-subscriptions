@@ -685,6 +685,28 @@ class SubscriptionTableControllerTest {
   }
 
   @Test
+  void testShouldPopulateOnDemandSubscriptionTypeNonPrometheus() {
+
+    givenSubscriptionsInRepository();
+
+    SkuCapacityReport report =
+        subscriptionTableController.capacityReportBySku(
+            ProductId.fromString("ansible-aap-managed"),
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            MetricIdUtils.getInstanceHours().toString(),
+            SkuCapacityReportSort.SKU,
+            null);
+
+    assertEquals(SubscriptionType.ON_DEMAND, report.getMeta().getSubscriptionType());
+  }
+
+  @Test
   void testGetSkuCapacityReportUnlimitedQuantity() {
     // Given an org with one active sub with a quantity of 4 and has an eng product with unlimited
     // usage.
