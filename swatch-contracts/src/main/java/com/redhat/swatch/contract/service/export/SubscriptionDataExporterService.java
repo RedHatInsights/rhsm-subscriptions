@@ -18,25 +18,27 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.subscription.export;
-
-import static org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository.billingAccountIdStartsWith;
-import static org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository.billingProviderEquals;
-import static org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository.buildSearchSpecification;
-import static org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository.getMeasurementTypeFromCategory;
-import static org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository.hasCategory;
-import static org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository.hasMetricId;
-import static org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository.productIdEquals;
-import static org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository.slaEquals;
-import static org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository.usageEquals;
-import static org.candlepin.subscriptions.resource.ResourceUtils.ANY;
+package com.redhat.swatch.contract.service.export;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
+import com.redhat.swatch.contract.model.SubscriptionsExportJsonMeasurement;
+import com.redhat.swatch.contract.openapi.model.ReportCategory;
+import com.redhat.swatch.contract.repository.BillingProvider;
+import com.redhat.swatch.contract.repository.ServiceLevel;
+import com.redhat.swatch.contract.repository.SubscriptionCapacityView;
+import com.redhat.swatch.contract.repository.SubscriptionCapacityViewMetric;
+import com.redhat.swatch.contract.repository.SubscriptionCapacityViewRepository;
+import com.redhat.swatch.contract.repository.Usage;
+import com.redhat.swatch.contract.resource.ResourceUtils;
+// NOTE(khowell): this couples our export implementation to the v1 REST API
+import com.redhat.swatch.contract.resource.api.v1.ApiModelMapperV1;
 import com.redhat.swatch.export.DataExporterService;
 import com.redhat.swatch.export.DataMapperService;
 import com.redhat.swatch.export.ExportServiceException;
 import com.redhat.swatch.export.ExportServiceRequest;
+import com.redhat.swatch.panache.Specification;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.core.Response;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -50,23 +52,9 @@ import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
-import org.candlepin.subscriptions.db.model.BillingProvider;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
-import org.candlepin.subscriptions.db.model.SubscriptionCapacityViewMetric;
-import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.json.SubscriptionsExportJsonMeasurement;
-// NOTE(khowell): this couples our export implementation to the v1 REST API
-import org.candlepin.subscriptions.util.ApiModelMapperV1;
-import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
-import org.springframework.context.annotation.Profile;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.stereotype.Component;
 
 @Slf4j
-@Component
-@Profile("capacity-ingress")
+@ApplicationScoped
 @AllArgsConstructor
 public class SubscriptionDataExporterService
     implements DataExporterService<SubscriptionCapacityView> {
@@ -117,7 +105,8 @@ public class SubscriptionDataExporterService
 
   private Specification<SubscriptionCapacityView> extractExportFilter(
       ExportServiceRequest request) {
-    Specification<SubscriptionCapacityView> criteria = buildSearchSpecification(request.getOrgId());
+    Specification<SubscriptionCapacityView> criteria =
+        SubscriptionCapacityViewRepository.buildSearchSpecification(request.getOrgId());
     if (request.getFilters() != null) {
       var requestedFilters = request.getFilters().entrySet();
       try {
@@ -144,14 +133,14 @@ public class SubscriptionDataExporterService
   }
 
   private static Specification<SubscriptionCapacityView> handleProductIdFilter(String value) {
-    return productIdEquals(ProductId.fromString(value));
+    return SubscriptionCapacityViewRepository.productIdEquals(ProductId.fromString(value));
   }
 
   private static Specification<SubscriptionCapacityView> handleUsageFilter(String value) {
     Usage usage = Usage.fromString(value);
     if (value.equalsIgnoreCase(usage.getValue())) {
       if (!Usage._ANY.equals(usage)) {
-        return usageEquals(usage);
+        return SubscriptionCapacityViewRepository.usageEquals(usage);
       }
     } else {
       throw new IllegalArgumentException(String.format("usage: %s not supported", value));
@@ -164,7 +153,7 @@ public class SubscriptionDataExporterService
     ServiceLevel serviceLevel = ServiceLevel.fromString(value);
     if (value.equalsIgnoreCase(serviceLevel.getValue())) {
       if (!ServiceLevel._ANY.equals(serviceLevel)) {
-        return slaEquals(serviceLevel);
+        return SubscriptionCapacityViewRepository.slaEquals(serviceLevel);
       }
     } else {
       throw new IllegalArgumentException(String.format("sla: %s not supported", value));
@@ -174,18 +163,19 @@ public class SubscriptionDataExporterService
   }
 
   private Specification<SubscriptionCapacityView> handleCategoryFilter(String value) {
-    return hasCategory(mapper.map(ReportCategory.fromValue(value)));
+    return SubscriptionCapacityViewRepository.hasCategory(
+        mapper.map(ReportCategory.fromValue(value)));
   }
 
   private static Specification<SubscriptionCapacityView> handleMetricIdFilter(String value) {
-    return hasMetricId(MetricId.fromString(value).toString());
+    return SubscriptionCapacityViewRepository.hasMetricId(MetricId.fromString(value).toString());
   }
 
   private static Specification<SubscriptionCapacityView> handleBillingProviderFilter(String value) {
     BillingProvider billingProvider = BillingProvider.fromString(value);
-    if (value.equalsIgnoreCase(billingProvider.getValue())) {
+    if (billingProvider != null && value.equalsIgnoreCase(billingProvider.getValue())) {
       if (!BillingProvider._ANY.equals(billingProvider)) {
-        return billingProviderEquals(billingProvider);
+        return SubscriptionCapacityViewRepository.billingProviderEquals(billingProvider);
       }
     } else {
       throw new IllegalArgumentException(
@@ -197,8 +187,8 @@ public class SubscriptionDataExporterService
 
   private static Specification<SubscriptionCapacityView> handleBillingAccountIdFilter(
       String value) {
-    if (!ANY.equalsIgnoreCase(value)) {
-      return billingAccountIdStartsWith(value);
+    if (!ResourceUtils.ANY.equalsIgnoreCase(value)) {
+      return SubscriptionCapacityViewRepository.billingAccountIdStartsWith(value);
     }
 
     return null;
@@ -248,7 +238,8 @@ public class SubscriptionDataExporterService
     if (request != null
         && request.getFilters() != null
         && request.getFilters().get(CATEGORY) instanceof String value) {
-      return getMeasurementTypeFromCategory(mapper.map(ReportCategory.fromValue(value)));
+      return SubscriptionCapacityViewRepository.getMeasurementTypeFromCategory(
+          mapper.map(ReportCategory.fromValue(value)));
     }
 
     return null;

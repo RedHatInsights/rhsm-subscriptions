@@ -1,15 +1,2 @@
-SUBSCRIPTION_EXPORT_TOPIC: ${clowder.kafka.topics."platform.export.requests".name:platform.export.requests}
-
-
 rhsm-subscriptions:
-  export-service:
-    url: ${clowder.privateEndpoints.export-service-service.url:http://localhost:10000}
-    truststore: ${clowder.privateEndpoints.export-service-service.trust-store-path}
-    truststore-password: ${clowder.privateEndpoints.export-service-service.trust-store-password}
-    truststore-type: ${clowder.privateEndpoints.export-service-service.trust-store-type}
-    psk: ${SWATCH_EXPORT_PSK:placeholder}
   subscription-sync-enabled: ${SUBSCRIPTION_SYNC_ENABLED:true}
-  export:
-    tasks:
-      topic: ${SUBSCRIPTION_EXPORT_TOPIC}
-      kafka-group-id: swatch-subscription-export
