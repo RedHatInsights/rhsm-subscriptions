@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.configuration.util.ProductTagLookupParams;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -67,6 +68,7 @@ public class EventController {
   private final TransactionHandler transactionHandler;
   private final EventConflictResolver eventConflictResolver;
   private final EventNormalizer eventNormalizer;
+  private MeterRegistry meterRegistry;
 
   public EventController(
       EventRecordRepository repo,
@@ -74,13 +76,15 @@ public class EventController {
       OptInController optInController,
       TransactionHandler transactionHandler,
       EventConflictResolver eventConflictResolver,
-      EventNormalizer eventNormalizer) {
+      EventNormalizer eventNormalizer,
+      MeterRegistry meterRegistry) {
     this.repo = repo;
     this.objectMapper = objectMapper;
     this.optInController = optInController;
     this.transactionHandler = transactionHandler;
     this.eventConflictResolver = eventConflictResolver;
     this.eventNormalizer = eventNormalizer;
+    this.meterRegistry = meterRegistry;
   }
 
   /**
@@ -182,7 +186,7 @@ public class EventController {
                       List<EventRecord> resolved =
                           resolveEventConflicts(
                               result.indexedEvents.stream().map(Pair::getKey).toList());
-                      return repo.saveAll(resolved);
+                      return updateIngestedUsage(repo.saveAll(resolved));
                     })
                 .size();
         log.debug("Adding/Updating {} metric events", updated);
@@ -195,9 +199,10 @@ public class EventController {
             try {
               transactionHandler.runInNewTransaction(
                   () ->
-                      repo.saveAll(
-                          eventConflictResolver.resolveIncomingEvents(
-                              List.of(indexedPair.getKey()))));
+                      updateIngestedUsage(
+                          repo.saveAll(
+                              eventConflictResolver.resolveIncomingEvents(
+                                  List.of(indexedPair.getKey())))));
             } catch (Exception individualSaveException) {
               log.warn(
                   "Failed to save individual event record: {} with error {}.",
@@ -365,6 +370,47 @@ public class EventController {
     }
   }
 
+  private List<EventRecord> updateIngestedUsage(List<EventRecord> eventRecords) {
+    for (Event event :
+        eventRecords.stream().map(EventRecord::getEvent).collect(Collectors.toList())) {
+      if (event.getProductTag() == null
+          || event.getMeasurements() == null
+          || event.getMeasurements().size() == 0) {
+        continue;
+      }
+      if (event.getEventSource() != null && event.getEventSource().equalsIgnoreCase("prometheus")) {
+        for (String tag : event.getProductTag()) {
+          for (Measurement measurement : event.getMeasurements()) {
+            String billingProvider =
+                event.getBillingProvider() == null ? null : event.getBillingProvider().value();
+            if (billingProvider != null) {
+              meterRegistry
+                  .counter(
+                      "rhsm-subscriptions.swatch_metrics_ingested_usage_total",
+                      "product_tag",
+                      tag,
+                      "metric_id",
+                      measurement.getMetricId(),
+                      "billing_provider",
+                      billingProvider)
+                  .increment(measurement.getValue());
+            } else {
+              meterRegistry
+                  .counter(
+                      "rhsm-subscriptions.swatch_metrics_ingested_usage_total",
+                      "product_tag",
+                      tag,
+                      "metric_id",
+                      measurement.getMetricId())
+                  .increment(measurement.getValue());
+            }
+          }
+        }
+      }
+    }
+    return eventRecords;
+  }
+
   private static class ServiceInstancesResult {
     private final List<Pair<Event, Integer>> indexedEvents;
     private Optional<Integer> failedOnIndex = Optional.empty();
@@ -380,5 +426,9 @@ public class EventController {
     public void setFailedOnIndex(int index) {
       this.failedOnIndex = Optional.of(index);
     }
+  }
+
+  public void setTestMeterRegistry(MeterRegistry meterRegistry) {
+    this.meterRegistry = meterRegistry;
   }
 }

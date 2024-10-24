@@ -23,21 +23,28 @@ package org.candlepin.subscriptions.event;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.persistence.EntityManager;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.security.OptInController;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,6 +65,7 @@ class EventControllerTest {
   @Autowired ObjectMapper mapper;
   @MockBean private EventRecordRepository eventRecordRepository;
   @MockBean private OptInController optInController;
+  @Mock private MeterRegistry meterRegistry;
   @Captor private ArgumentCaptor<Collection<EventRecord>> eventsSaved;
 
   String eventRecord1;
@@ -197,6 +205,7 @@ class EventControllerTest {
                  }
         """;
     when(eventRecordRepository.getEntityManager()).thenReturn(mockEntityManager);
+    eventController.setTestMeterRegistry(meterRegistry);
   }
 
   @Test
@@ -222,10 +231,9 @@ class EventControllerTest {
     eventRecords.add(eventRecord3);
     eventRecords.add(eventRecord4);
     eventRecords.add(eventRecord5);
-    BatchListenerFailedException exception =
-        assertThrows(
-            BatchListenerFailedException.class,
-            () -> eventController.persistServiceInstances(eventRecords));
+    assertThrows(
+        BatchListenerFailedException.class,
+        () -> eventController.persistServiceInstances(eventRecords));
     verify(optInController, times(2)).optInByOrgId(any(), any());
     when(eventRecordRepository.saveAll(any())).thenReturn(new ArrayList<>());
     verify(eventRecordRepository).saveAll(eventsSaved.capture());
@@ -444,6 +452,110 @@ class EventControllerTest {
     verify(eventRecordRepository).saveAll(eventsSaved.capture());
     List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
     assertEquals(1, events.size());
+  }
+
+  @Test
+  void testMeterRegistryCounter() {
+    List<String> eventRecords = new ArrayList<>();
+
+    var validProductTagEventRecord1 =
+        """
+                    {
+                     "sla":"Premium",
+                     "org_id":"111111111",
+                     "timestamp":"2024-06-10T10:00:00Z",
+                     "conversion":false,
+                     "event_type":"snapshot_rhel-for-x86-els-payg-addon_vCPUs",
+                     "expiration":"2024-06-10T11:00:00Z",
+                     "instance_id":"d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                     "product_tag":[
+                        "rhel-for-x86-els-payg-addon"
+                     ],
+                     "display_name":"automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                     "event_source":"prometheus",
+                     "measurements":[
+                        {
+                           "value":4.0,
+                           "metric_id":"vCPUs"
+                        }
+                     ],
+                     "service_type":"RHEL System"
+                  }
+            """;
+    eventRecords.add(validProductTagEventRecord1);
+    Counter counter = mock(Counter.class);
+    when(meterRegistry.counter(any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(counter);
+    when(eventRecordRepository.saveAll(any()))
+        .thenReturn(
+            List.of(
+                new EventRecord(
+                    new Event()
+                        .withEventId(UUID.randomUUID())
+                        .withProductTag(Set.of("rhel-for-x86-els-payg-addon"))
+                        .withMeasurements(
+                            List.of(new Measurement().withMetricId("vCPUs").withValue(4.0)))
+                        .withBillingProvider(Event.BillingProvider.AZURE)
+                        .withEventSource("prometheus"))));
+    eventController.persistServiceInstances(eventRecords);
+
+    verify(eventRecordRepository).saveAll(eventsSaved.capture());
+    verify(meterRegistry)
+        .counter(
+            "rhsm-subscriptions.swatch_metrics_ingested_usage_total",
+            "product_tag",
+            "rhel-for-x86-els-payg-addon",
+            "metric_id",
+            "vCPUs",
+            "billing_provider",
+            "azure");
+    verify(counter).increment(4.0);
+  }
+
+  @Test
+  void testMeterRegistryCounterNotPrometheus() {
+    List<String> eventRecords = new ArrayList<>();
+
+    var validProductTagEventRecord1 =
+        """
+                    {
+                     "sla":"Premium",
+                     "org_id":"111111111",
+                     "timestamp":"2024-06-10T10:00:00Z",
+                     "conversion":false,
+                     "event_type":"snapshot_rhel-for-x86-els-payg-addon_vCPUs",
+                     "expiration":"2024-06-10T11:00:00Z",
+                     "instance_id":"d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                     "product_tag":[
+                        "rhel-for-x86-els-payg-addon"
+                     ],
+                     "display_name":"automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                     "event_source":"cost-management",
+                     "measurements":[
+                        {
+                           "value":4.0,
+                           "metric_id":"vCPUs"
+                        }
+                     ],
+                     "service_type":"RHEL System"
+                  }
+            """;
+    eventRecords.add(validProductTagEventRecord1);
+    when(eventRecordRepository.saveAll(any()))
+        .thenReturn(
+            List.of(
+                new EventRecord(
+                    new Event()
+                        .withEventId(UUID.randomUUID())
+                        .withProductTag(Set.of("rhel-for-x86-els-payg-addon"))
+                        .withMeasurements(
+                            List.of(new Measurement().withMetricId("vCPUs").withValue(4.0)))
+                        .withBillingProvider(Event.BillingProvider.AZURE)
+                        .withEventSource("cost-management"))));
+    eventController.persistServiceInstances(eventRecords);
+
+    verify(eventRecordRepository).saveAll(eventsSaved.capture());
+    verifyNoInteractions(meterRegistry);
   }
 
   @Test
