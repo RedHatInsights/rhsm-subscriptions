@@ -192,7 +192,7 @@ SPLUNK_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75 \
 Some of these environment variables are our own (e.g. `SPLUNK_HEC_URL`) and are
 piped into the `quarkus.log.handler.splunk` namespace which is what ultimately
 controls the Splunk HEC configuration.  By default SSL/TLS certificate
-validation is disable in the `dev` profile for the `swatch-producer-aws`,
+validation is disabled in the `dev` profile for the `swatch-producer-aws`,
 `swatch-producer-azure`, and `swatch-contracts` projects.  If you are seeing
 SSL/TLS error (generally something like `unable to find valid certification path
 to requested target`), then setting `QUARKUS_LOG_HANDLER_SPLUNK_DISABLE_CERTIFICATE_VALIDATION=true`
@@ -247,6 +247,20 @@ Furthermore, you can also check the export-service database (by default, it's: "
 ```
 f9288f52-59dc-4ad6-9307-8c67de75c09c	fb177ea7-a8ea-43e4-8c2e-cb4bd7170601	subscriptions	failed	subscriptions	{"product_id": "Wrong!"}	400	ProductId: Wrong! not found in configuration
 ```
+
+### Wiremock service
+
+Wiremock is a very helpful tool that helps us to mock other services like Prometheus. 
+At the moment, the wiremock service is configured to stub a prometheus instance which is necessary for swatch-metrics. 
+Let's see how we can start the swatch-metrics service to use the wiremock service as prometheus.
+We can start the Wiremock service via:
+```
+podman-compose -f config/wiremock/docker-compose.yml up -d
+```
+
+Next, we start the swatch metrics app using: `SERVER_PORT=8002 QUARKUS_MANAGEMENT_PORT=9002 EVENT_SOURCE=telemeter PROM_URL="http://localhost:8101/api/v1/" ./gradlew :swatch-metrics:quarkusDev`
+
+Finally, when syncing all the accounts by: `curl -v -H 'Origin: https://service.redhat.com' -X PUT http://localhost:8002/api/swatch-metrics/v1/internal/metering/sync`, we should see some events in the service logs and the Kafka topic.
 
 ### Build and Run rhsm-subscriptions
 

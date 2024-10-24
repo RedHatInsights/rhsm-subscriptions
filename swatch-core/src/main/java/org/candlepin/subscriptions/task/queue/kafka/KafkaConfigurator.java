@@ -72,8 +72,11 @@ public class KafkaConfigurator {
   }
 
   public KafkaTemplate<String, JsonTaskMessage> jsonTaskMessageKafkaTemplate(
-      ProducerFactory<String, JsonTaskMessage> factory) {
-    return new KafkaTemplate<>(factory);
+      ProducerFactory<String, JsonTaskMessage> factory, KafkaProperties kafkaProperties) {
+    KafkaTemplate<String, JsonTaskMessage> kafkaTemplate = new KafkaTemplate<>(factory);
+    // propagate observation properties
+    kafkaTemplate.setObservationEnabled(kafkaProperties.getTemplate().isObservationEnabled());
+    return kafkaTemplate;
   }
 
   public KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, JsonTaskMessage>>
@@ -95,6 +98,10 @@ public class KafkaConfigurator {
     }
     // hack to track the Kafka consumers, so SeekableKafkaConsumer can commit when needed
     factory.getContainerProperties().setConsumerRebalanceListener(consumerRegistry);
+    // propagate observation properties
+    factory
+        .getContainerProperties()
+        .setObservationEnabled(kafkaProperties.getListener().isObservationEnabled());
     return factory;
   }
 }

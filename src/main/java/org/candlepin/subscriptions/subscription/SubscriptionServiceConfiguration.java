@@ -25,6 +25,7 @@ import org.candlepin.subscriptions.capacity.CapacityReconciliationConfiguration;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
 import org.candlepin.subscriptions.exception.UnretryableException;
 import org.candlepin.subscriptions.resteasy.ResteasyConfiguration;
+import org.candlepin.subscriptions.tracing.TracingConfiguration;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -44,7 +45,8 @@ import org.springframework.retry.support.RetryTemplateBuilder;
 @Import({
   ResteasyConfiguration.class,
   RhsmSubscriptionsDataSourceConfiguration.class,
-  CapacityReconciliationConfiguration.class
+  CapacityReconciliationConfiguration.class,
+  TracingConfiguration.class
 })
 @EnableJms
 @ComponentScan(
