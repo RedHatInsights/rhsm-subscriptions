@@ -21,18 +21,29 @@
 package com.redhat.swatch.hbi.events.services;
 
 import static com.redhat.swatch.hbi.events.configuration.Channels.HBI_HOST_EVENTS_IN;
+import static com.redhat.swatch.hbi.events.configuration.Channels.SWATCH_EVENTS_OUT;
 
 import com.redhat.swatch.faulttolerance.api.RetryWithExponentialBackoff;
+import com.redhat.swatch.kafka.EmitterService;
 import io.smallrye.reactive.messaging.kafka.api.KafkaMessageMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.json.Event;
+import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 
 @Slf4j
 @ApplicationScoped
-@AllArgsConstructor
 public class HbiEventConsumer {
+
+  private final FeatureFlags flags;
+  private final EmitterService<Event> emitter;
+
+  public HbiEventConsumer(@Channel(SWATCH_EVENTS_OUT) Emitter<Event> emitter, FeatureFlags flags) {
+    this.emitter = new EmitterService<>(emitter);
+    this.flags = flags;
+  }
 
   @Incoming(HBI_HOST_EVENTS_IN)
   @RetryWithExponentialBackoff(
@@ -46,5 +57,10 @@ public class HbiEventConsumer {
         metadata.getTimestamp(),
         metadata.getKey(),
         hbiHostEvent);
+    if (flags.emitEvents()) {
+      log.info("Emitting HBI events to swatch!");
+    } else {
+      log.info("Emitting HBI events to swatch is disabled. Not sending event.");
+    }
   }
 }
