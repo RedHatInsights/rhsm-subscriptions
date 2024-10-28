@@ -25,7 +25,6 @@ import static org.candlepin.subscriptions.resource.api.v1.CapacityResource.HYPER
 import static org.candlepin.subscriptions.resource.api.v1.CapacityResource.PHYSICAL;
 
 import com.redhat.swatch.configuration.registry.ProductId;
-import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.Min;
 import java.time.OffsetDateTime;
@@ -195,13 +194,11 @@ public class SubscriptionTableController {
       }
     }
 
-    boolean isOnDemand = SubscriptionDefinition.isPrometheusEnabled(productId.toString());
-
     SubscriptionType subscriptionType =
-        isOnDemand ? SubscriptionType.ON_DEMAND : SubscriptionType.ANNUAL;
+        productId.isOnDemand() ? SubscriptionType.ON_DEMAND : SubscriptionType.ANNUAL;
 
     List<SkuCapacity> reportItems = new ArrayList<>(reportItemsBySku.values());
-    if (isOnDemand && reportItems.isEmpty()) {
+    if (productId.isOnDemand() && reportItems.isEmpty()) {
       reportItems.addAll(
           getOnDemandSkuCapacities(
               productId,
