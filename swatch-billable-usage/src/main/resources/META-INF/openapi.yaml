@@ -91,17 +91,26 @@ paths:
   /api/swatch-billable-usage/internal/rpc/remittance/reset_billable_usage_remittance:
     put:
       description: Reset remittance_pending_value in Billable Usage Remittance table when it matches certain criteria
-      summary: Update billable usage remittance records.
+      summary: Update billable usage remittance records. Use org_ids to update by orgs, or billing_account_ids to update by billing accounts. Only one of these parameters should be specified at a time, do not provide both.
       operationId: resetBillableUsageRemittance
       parameters:
-        - in: query
-          name: org_id
+        - name: org_ids
+          in: query
           schema:
             type: array
             uniqueItems: true
             items:
               $ref: "#/components/schemas/OrgIds"
-          required: true
+            description: "List of organization IDs. Use this parameter if updating by organization IDs."
+          allowEmptyValue: false
+        - name: billing_account_ids
+          in: query
+          schema:
+            type: array
+            uniqueItems: true
+            items:
+              type: string
+            description: "List of billing account IDs. Use this parameter if updating by billing account IDs."
           allowEmptyValue: false
         - name: product_id
           in: query
