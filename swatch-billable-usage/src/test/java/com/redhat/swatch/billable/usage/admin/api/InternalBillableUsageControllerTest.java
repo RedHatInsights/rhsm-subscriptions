@@ -266,13 +266,15 @@ class InternalBillableUsageControllerTest {
             "rosa",
             clock.startOfCurrentMonth().minusDays(1),
             clock.startOfCurrentMonth().plusDays(1),
-            Set.of("1234", "5678"));
+            Set.of("1234", "5678"),
+            null);
     int remittanceNotPresent =
         controller.resetBillableUsageRemittance(
             "rosa",
             clock.startOfCurrentMonth().plusDays(1),
             clock.startOfCurrentMonth().plusDays(2),
-            Set.of("1234"));
+            Set.of("1234"),
+            null);
     assertEquals(2, remittancePresent);
     assertEquals(0, remittanceNotPresent);
   }
