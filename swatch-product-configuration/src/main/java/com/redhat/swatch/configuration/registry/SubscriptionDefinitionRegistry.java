@@ -30,6 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
+import org.yaml.snakeyaml.inspector.UnTrustedTagInspector;
 
 /**
  * Loads yaml files from src/main/resource/subscription_configs into List<Subscription>. Provides
@@ -59,8 +60,11 @@ public class SubscriptionDefinitionRegistry {
 
   SubscriptionDefinitionRegistry() {
     subscriptions = new ArrayList<>();
+
     var options = new LoaderOptions();
+    options.setTagInspector(new UnTrustedTagInspector());
     options.setEnumCaseSensitive(false);
+
     Constructor constructor = new Constructor(SubscriptionDefinition.class, options);
     constructor.getPropertyUtils().setSkipMissingProperties(true);
 
