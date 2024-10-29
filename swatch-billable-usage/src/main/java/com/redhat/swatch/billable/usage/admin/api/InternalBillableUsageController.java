@@ -83,8 +83,13 @@ public class InternalBillableUsageController {
 
   @Transactional
   public int resetBillableUsageRemittance(
-      String productId, OffsetDateTime start, OffsetDateTime end, Set<String> orgIds) {
-    return remittanceRepository.resetBillableUsageRemittance(productId, start, end, orgIds);
+      String productId,
+      OffsetDateTime start,
+      OffsetDateTime end,
+      Set<String> orgIds,
+      Set<String> billingAccountIds) {
+    return remittanceRepository.resetBillableUsageRemittance(
+        productId, start, end, orgIds, billingAccountIds);
   }
 
   @Transactional
