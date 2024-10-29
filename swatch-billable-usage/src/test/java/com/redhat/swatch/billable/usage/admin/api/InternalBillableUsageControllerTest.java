@@ -24,12 +24,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.billable.usage.configuration.ApplicationConfiguration;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceEntity;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceFilter;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
@@ -54,15 +58,18 @@ import org.junit.jupiter.api.Test;
 class InternalBillableUsageControllerTest {
 
   private static final String PRODUCT_ID = "rosa";
+  private static final int REMITTANCES_BATCH_SIZE = 2;
 
   @Inject BillableUsageRemittanceRepository remittanceRepo;
   @Inject ApplicationClock clock;
   @InjectMock BillingProducer billingProducer;
   @Inject InternalBillableUsageController controller;
+  @InjectMock ApplicationConfiguration configuration;
 
   @Transactional
   @BeforeEach
   void setup() {
+    remittanceRepo.deleteAll();
     BillableUsageRemittanceEntity remittance1 =
         remittance(
             "111",
@@ -130,6 +137,7 @@ class InternalBillableUsageControllerTest {
             remittance6,
             remittance7));
     remittanceRepo.flush();
+    when(configuration.getRetryRemittancesBatchSize()).thenReturn(REMITTANCES_BATCH_SIZE);
   }
 
   @Transactional
@@ -258,13 +266,15 @@ class InternalBillableUsageControllerTest {
             "rosa",
             clock.startOfCurrentMonth().minusDays(1),
             clock.startOfCurrentMonth().plusDays(1),
-            Set.of("1234", "5678"));
+            Set.of("1234", "5678"),
+            null);
     int remittanceNotPresent =
         controller.resetBillableUsageRemittance(
             "rosa",
             clock.startOfCurrentMonth().plusDays(1),
             clock.startOfCurrentMonth().plusDays(2),
-            Set.of("1234"));
+            Set.of("1234"),
+            null);
     assertEquals(2, remittancePresent);
     assertEquals(0, remittanceNotPresent);
   }
@@ -297,12 +307,31 @@ class InternalBillableUsageControllerTest {
   }
 
   @Test
+  void testProcessRetriesInPages() {
+    String orgId = "testProcessRetriesInPages";
+    for (var i = 0; i < REMITTANCES_BATCH_SIZE * 2; i++) {
+      givenRemittanceWithOldRetryAfter(orgId + i);
+    }
+
+    controller.processRetries(OffsetDateTime.now());
+
+    // verify remittance has been sent
+    verify(billingProducer, times(REMITTANCES_BATCH_SIZE * 2)).produce(any());
+    // verify retry after is reset
+    var remittances =
+        remittanceRepo.listAll().stream().filter(b -> b.getOrgId().startsWith(orgId)).toList();
+    assertFalse(remittances.isEmpty());
+    assertTrue(remittances.stream().allMatch(u -> u.getRetryAfter() == null));
+  }
+
+  @Test
   void testProcessRetriesShouldRestoreStateIfSendFails() {
     String orgId = "testProcessRetriesOrg123";
     givenRemittanceWithOldRetryAfter(orgId);
     doThrow(RuntimeException.class).when(billingProducer).produce(any(BillableUsage.class));
+    OffsetDateTime retryAfter = OffsetDateTime.now();
 
-    controller.processRetries(OffsetDateTime.now());
+    assertThrows(RuntimeException.class, () -> controller.processRetries(retryAfter));
 
     // verify retry after is set
     var found =

@@ -108,8 +108,10 @@ class InstancesResourceTest {
 
     Mockito.when(
             repository.findAllBy(
-                eq(true),
                 eq("owner123456"),
+                any(),
+                any(),
+                any(),
                 any(),
                 any(),
                 any(),
@@ -199,8 +201,10 @@ class InstancesResourceTest {
 
     Mockito.when(
             repository.findAllBy(
-                eq(false),
                 eq("owner123456"),
+                any(),
+                any(),
+                any(),
                 any(),
                 any(),
                 any(),
@@ -283,8 +287,10 @@ class InstancesResourceTest {
 
     Mockito.when(
             repository.findAllBy(
-                eq(true),
                 eq("owner123456"),
+                any(),
+                any(),
+                any(),
                 any(),
                 any(),
                 any(),
@@ -372,8 +378,10 @@ class InstancesResourceTest {
 
     Mockito.when(
             repository.findAllBy(
-                eq(false),
                 eq("owner123456"),
+                any(),
+                any(),
+                any(),
                 any(),
                 any(),
                 any(),
@@ -406,8 +414,10 @@ class InstancesResourceTest {
 
     Mockito.when(
             repository.findAllBy(
-                eq(false),
                 eq("owner123456"),
+                any(),
+                any(),
+                any(),
                 any(),
                 any(),
                 any(),
@@ -424,7 +434,6 @@ class InstancesResourceTest {
 
     verify(repository)
         .findAllBy(
-            eq(false),
             eq("owner123456"),
             any(),
             any(),
@@ -433,6 +442,9 @@ class InstancesResourceTest {
             any(),
             any(),
             eq(null),
+            any(),
+            any(),
+            any(),
             any(),
             any(),
             any(),
@@ -475,8 +487,10 @@ class InstancesResourceTest {
 
     Mockito.when(
             repository.findAllBy(
-                eq(false),
                 eq("owner123456"),
+                any(),
+                any(),
+                any(),
                 any(),
                 any(),
                 any(),
@@ -509,7 +523,6 @@ class InstancesResourceTest {
 
     verify(repository)
         .findAllBy(
-            eq(false),
             eq("owner123456"),
             any(),
             any(),
@@ -518,6 +531,9 @@ class InstancesResourceTest {
             eq(0),
             eq(null),
             eq(null),
+            any(),
+            any(),
+            any(),
             any(),
             any(),
             any(),
@@ -542,8 +558,10 @@ class InstancesResourceTest {
 
     Mockito.when(
             repository.findAllBy(
-                eq(false),
                 eq("owner123456"),
+                any(),
+                any(),
+                any(),
                 any(),
                 any(),
                 any(),
@@ -576,7 +594,6 @@ class InstancesResourceTest {
 
     verify(repository)
         .findAllBy(
-            eq(false),
             eq("owner123456"),
             any(),
             any(),
@@ -585,6 +602,9 @@ class InstancesResourceTest {
             eq(null),
             eq(0),
             eq(null),
+            any(),
+            any(),
+            any(),
             any(),
             any(),
             any(),
