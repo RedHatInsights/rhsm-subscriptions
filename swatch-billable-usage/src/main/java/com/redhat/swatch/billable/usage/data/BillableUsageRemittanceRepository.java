@@ -25,6 +25,7 @@ import com.redhat.swatch.panache.Specification;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -86,8 +87,14 @@ public class BillableUsageRemittanceRepository
     return entityManager.createQuery(query).getResultList();
   }
 
-  public List<BillableUsageRemittanceEntity> findByRetryAfterLessThan(OffsetDateTime asOf) {
-    return find("retryAfter < ?1", asOf).list();
+  @Transactional
+  public long countRemittancesByRetryAfterLessThan(OffsetDateTime asOf) {
+    return count("retryAfter < ?1", asOf);
+  }
+
+  public List<BillableUsageRemittanceEntity> findNextRemittancesByRetryAfterLessThan(
+      OffsetDateTime asOf, int pageSize) {
+    return find("retryAfter < ?1", asOf).page(0, pageSize).list();
   }
 
   public void deleteAllByOrgIdAndRemittancePendingDateBefore(
@@ -117,10 +124,28 @@ public class BillableUsageRemittanceRepository
   }
 
   public int resetBillableUsageRemittance(
-      String productId, OffsetDateTime start, OffsetDateTime end, Set<String> orgIds) {
-    return update(
-        "update BillableUsageRemittanceEntity bu set bu.remittedPendingValue=0.0 where bu.productId = :productId and bu.orgId in :orgIds and bu.remittancePendingDate between :start and :end",
-        Map.of("productId", productId, "orgIds", orgIds, "start", start, "end", end));
+      String productId,
+      OffsetDateTime start,
+      OffsetDateTime end,
+      Set<String> orgIds,
+      Set<String> billingAccountIds) {
+    String query =
+        "update BillableUsageRemittanceEntity bu set bu.remittedPendingValue=0.0 "
+            + "where bu.productId = :productId and bu.remittancePendingDate between :start and :end";
+
+    Map<String, Object> parameters = new HashMap<>();
+    parameters.put("productId", productId);
+    parameters.put("start", start);
+    parameters.put("end", end);
+
+    if (orgIds != null && !orgIds.isEmpty()) {
+      query += " and bu.orgId in :orgIds";
+      parameters.put("orgIds", orgIds);
+    } else if (billingAccountIds != null && !billingAccountIds.isEmpty()) {
+      query += " and bu.billingAccountId in :billingAccountIds";
+      parameters.put("billingAccountIds", billingAccountIds);
+    }
+    return update(query, parameters);
   }
 
   private Specification<BillableUsageRemittanceEntity> buildSearchSpecification(

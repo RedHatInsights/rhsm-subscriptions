@@ -100,22 +100,37 @@ public class InternalBillableUsageResource implements DefaultApi {
 
   @Override
   public DefaultResponse resetBillableUsageRemittance(
-      Set<String> orgIds, String productId, OffsetDateTime start, OffsetDateTime end) {
-    int updatedRemittance = 0;
+      String productId,
+      OffsetDateTime start,
+      OffsetDateTime end,
+      Set<String> orgIds,
+      Set<String> billingAccountIds) {
+    if ((orgIds == null || orgIds.isEmpty())
+        && (billingAccountIds == null || billingAccountIds.isEmpty())) {
+      throw new BadRequestException("Either orgIds or billingAccountIds must be provided.");
+    } else if (orgIds != null
+        && !orgIds.isEmpty()
+        && billingAccountIds != null
+        && !billingAccountIds.isEmpty()) {
+      throw new BadRequestException(
+          "Only one of orgIds or billingAccountIds parameters should be specified at a time, do not provide both.");
+    }
+    int updatedRemittance;
     try {
       updatedRemittance =
-          billingController.resetBillableUsageRemittance(productId, start, end, orgIds);
+          billingController.resetBillableUsageRemittance(
+              productId, start, end, orgIds, billingAccountIds);
     } catch (Exception e) {
       log.warn("Billable usage remittance update failed.", e);
       return getDefaultResponse(REJECTED_STATUS);
     }
     if (updatedRemittance > 0) {
-      return getDefaultResponse(SUCCESS_STATUS);
+      return new DefaultResponse().status(SUCCESS_STATUS);
     } else {
       throw new BadRequestException(
           String.format(
-              "No record found for billable usage remittance for productId %s and between start %s and end date %s and orgIds %s",
-              productId, start, end, orgIds));
+              "No record found for billable usage remittance for productId %s and between start %s and end date %s and orgIds %s or billingAccountIds %s",
+              productId, start, end, orgIds, billingAccountIds));
     }
   }
 

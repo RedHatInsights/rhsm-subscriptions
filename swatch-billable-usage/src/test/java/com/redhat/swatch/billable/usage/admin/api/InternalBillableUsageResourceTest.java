@@ -77,6 +77,7 @@ class InternalBillableUsageResourceTest {
     enabledOrgsSink.clear();
     billableUsageSink = connector.sink(BILLABLE_USAGE_OUT);
     billableUsageSink.clear();
+    when(configuration.getRetryRemittancesBatchSize()).thenReturn(10);
   }
 
   @Test
@@ -148,16 +149,43 @@ class InternalBillableUsageResourceTest {
   }
 
   @Test
-  void testResetBillableUsageRemittance() {
+  void testResetBillableUsageRemittanceOrgOnly() {
     givenRemittanceForOrgId(ORG_ID);
     given()
         .queryParam("product_id", PRODUCT_ID)
-        .queryParam("org_id", ORG_ID)
+        .queryParam("org_ids", ORG_ID)
         .queryParam("start", OffsetDateTime.now().minusDays(5).toString())
         .queryParam("end", OffsetDateTime.now().plusDays(5).toString())
         .put("/api/swatch-billable-usage/internal/rpc/remittance/reset_billable_usage_remittance")
         .then()
         .statusCode(HttpStatus.SC_OK);
+  }
+
+  @Test
+  void testResetBillableUsageRemittanceBillingAccountOnly() {
+    givenRemittanceForOrgId(ORG_ID);
+    given()
+        .queryParam("product_id", PRODUCT_ID)
+        .queryParam("start", OffsetDateTime.now().minusDays(5).toString())
+        .queryParam("end", OffsetDateTime.now().plusDays(5).toString())
+        .queryParam("billing_account_ids", String.format("%s_%s_ba", ORG_ID, PRODUCT_ID))
+        .put("/api/swatch-billable-usage/internal/rpc/remittance/reset_billable_usage_remittance")
+        .then()
+        .statusCode(HttpStatus.SC_OK);
+  }
+
+  @Test
+  void testResetBillableUsageRemittanceBoth() {
+    givenRemittanceForOrgId(ORG_ID);
+    given()
+        .queryParam("product_id", PRODUCT_ID)
+        .queryParam("org_ids", ORG_ID)
+        .queryParam("start", OffsetDateTime.now().minusDays(5).toString())
+        .queryParam("end", OffsetDateTime.now().plusDays(5).toString())
+        .queryParam("billing_account_ids", String.format("%s_%s_ba", ORG_ID, PRODUCT_ID))
+        .put("/api/swatch-billable-usage/internal/rpc/remittance/reset_billable_usage_remittance")
+        .then()
+        .statusCode(HttpStatus.SC_BAD_REQUEST);
   }
 
   @Test

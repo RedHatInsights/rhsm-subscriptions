@@ -3,7 +3,7 @@
 
 ext {
     quarkusVersion='3.15.1'
-    springVersion='3.3.4'
+    springVersion='3.3.5'
     resteasyVersion='6.2.10.Final'
     jacksonVersion='2.18.0'
     mapstructVersion='1.6.2'
@@ -20,7 +20,7 @@ ext.plugins = [
         "io.quarkus:gradle-application-plugin:${quarkusVersion}",
         // swagger-parser manually upgraded for compatibility with snakeyaml 2.0
         // see https://github.com/OpenAPITools/openapi-generator/issues/15876
-        "io.swagger.parser.v3:swagger-parser:2.1.22",
+        "io.swagger.parser.v3:swagger-parser:2.1.23",
         "org.jsonschema2pojo:jsonschema2pojo-gradle-plugin:1.2.2",
         // required for the newest liquibase gradle plugin version
         "org.liquibase:liquibase-core:4.29.2",
@@ -37,7 +37,7 @@ libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-de
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:3.0.0"
-libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.28.23"
+libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.29.2"
 libraries["clowder-quarkus-config-source"] = "com.redhat.cloud.common:clowder-quarkus-config-source:2.6.1"
 libraries["guava"] = "com.google.guava:guava:33.3.1-jre"
 libraries["commons-lang3"] = "org.apache.commons:commons-lang3:3.17.0"
@@ -47,7 +47,7 @@ libraries["janino"] = "org.codehaus.janino:janino:3.1.12"
 libraries["jakarta-ws-rs"] = "jakarta.ws.rs:jakarta.ws.rs-api:4.0.0"
 libraries["jgit"] = "org.eclipse.jgit:org.eclipse.jgit:7.0.0.202409031743-r"
 libraries["jsr305"] = "com.google.code.findbugs:jsr305:3.0.2"
-libraries["junit-jupiter"] = "org.junit.jupiter:junit-jupiter:5.11.2"
+libraries["junit-jupiter"] = "org.junit.jupiter:junit-jupiter:5.11.3"
 libraries["lombok"] = "org.projectlombok:lombok:1.18.34"
 libraries["lombok-mapstruct-binding"] = "org.projectlombok:lombok-mapstruct-binding:0.2.0"
 libraries["mapstruct"] = "org.mapstruct:mapstruct:${mapstructVersion}"
@@ -76,11 +76,11 @@ libraries["swagger-ui"] = "org.webjars:swagger-ui:5.17.14"
 libraries["webjars-locator"] = "org.webjars:webjars-locator:0.52"
 libraries["wiremock"] = "com.github.tomakehurst:wiremock-standalone:3.0.1"
 libraries["awaitility"] = "org.awaitility:awaitility:4.2.2"
-libraries["splunk-otel-agent"] = 'com.splunk:splunk-otel-javaagent:2.8.1'
-libraries["testcontainers-postgresql"] = 'org.testcontainers:postgresql:1.20.2'
+libraries["splunk-otel-agent"] = 'com.splunk:splunk-otel-javaagent:2.9.0'
+libraries["testcontainers-postgresql"] = 'org.testcontainers:postgresql:1.20.3'
 libraries["kafka-streams-test-utils"] = "org.apache.kafka:kafka-streams-test-utils:7.7.1-ce"
 libraries["slf4j-api"] = "org.slf4j:slf4j-api:2.0.16"
 libraries["snakeyaml"] = "org.yaml:snakeyaml:2.3"
 libraries["unleash-spring-boot-starter"] = "io.getunleash:springboot-unleash-starter:1.1.0"
-libraries["unleash-quarkus"] = "io.quarkiverse.unleash:quarkus-unleash:1.7.0"
+libraries["unleash-quarkus"] = "io.quarkiverse.unleash:quarkus-unleash:1.8.0"
 libraries["caffeine"] = "com.github.ben-manes.caffeine:caffeine:3.1.8"

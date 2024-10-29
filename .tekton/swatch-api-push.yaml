@@ -37,7 +37,7 @@ spec:
         - name: name
           value: show-sbom
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-show-sbom:0.1@sha256:8e0f8cad75e6f674d72a874385b69c4651afc0c9dcc59feffe0d85844687d852
+          value: quay.io/redhat-appstudio-tekton-catalog/task-show-sbom:0.1@sha256:1580a8766406207d3a7500cc0c62f8ec4cd935d772008a74dd71ec7e94af2f45
         - name: kind
           value: task
         resolver: bundles
@@ -216,7 +216,7 @@ spec:
         - name: name
           value: buildah
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-buildah:0.2@sha256:43c31ce835f260d11d9b263c3a1fff4c1dcbcfed0e608d36d8752e095d8d9906
+          value: quay.io/redhat-appstudio-tekton-catalog/task-buildah:0.2@sha256:79bfd61dc67a505f8a7025181a7651f73479742eb10d9bc35f2d73254629d4f3
         - name: kind
           value: task
         resolver: bundles
@@ -290,7 +290,7 @@ spec:
         - name: name
           value: clair-scan
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-clair-scan:0.2@sha256:cf9edf8ae0dbf7597a9d47bd1865f84d1e900f033057ecd7e2946ac5fce351d3
+          value: quay.io/redhat-appstudio-tekton-catalog/task-clair-scan:0.2@sha256:89ca5c9ddcaf609509aaed9c937c2a72cf400810e3a7892adfb9ac247a13693d
         - name: kind
           value: task
         resolver: bundles
@@ -327,7 +327,7 @@ spec:
         - name: name
           value: sast-snyk-check
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-sast-snyk-check:0.2@sha256:d7a29368e26184fc7343bb62dd0ffc4439240b3eb49d2b074c1d62d5fa11ebd9
+          value: quay.io/redhat-appstudio-tekton-catalog/task-sast-snyk-check:0.3@sha256:a35e1b1e108fe50737e47d5d71368ec882809fdd854096691d4e6fa7bc67e77b
         - name: kind
           value: task
         resolver: bundles
@@ -357,7 +357,7 @@ spec:
         - name: name
           value: clamav-scan
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-clamav-scan:0.1@sha256:2da8996017d1fbde1bb7f207a015679fb1796628f5cb372df36186931da84e78
+          value: quay.io/redhat-appstudio-tekton-catalog/task-clamav-scan:0.1@sha256:10976247ae6c9ae7b04670e8d52e7b521c4ce98806891ddcd7248d3c10b56980
         - name: kind
           value: task
         resolver: bundles

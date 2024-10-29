@@ -23,9 +23,16 @@ package org.candlepin.subscriptions.db.model;
 import static java.util.Optional.ofNullable;
 
 import com.redhat.swatch.configuration.registry.MetricId;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.MapKeyColumn;
 import jakarta.persistence.Table;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.Immutable;
@@ -39,6 +46,18 @@ public class TallyInstancePaygView extends TallyInstanceView {
 
   @Column(name = "month")
   private String month;
+
+  /** This is only used when filtering/sorting instances. */
+  @ElementCollection(fetch = FetchType.LAZY)
+  @CollectionTable(
+      name = "instance_monthly_totals",
+      joinColumns = {
+        @JoinColumn(name = "host_id", referencedColumnName = "id"),
+        @JoinColumn(name = "month", referencedColumnName = "month")
+      })
+  @MapKeyColumn(name = "metric_id")
+  @Column(name = "value")
+  private Map<String, Double> filteredMetrics = new HashMap<>();
 
   @Override
   public double getMetricValue(MetricId metricId) {

@@ -78,7 +78,7 @@ public interface SubscriptionCapacityViewRepository
         Specification.where(orgIdEquals(orgId));
     if (productId != null) {
       searchCriteria = searchCriteria.and(productIdEquals(productId));
-      if (productId.isPayg() || productId.isPrometheusEnabled()) {
+      if (productId.isOnDemand()) {
         searchCriteria = searchCriteria.and(hasBillingProviderId());
       }
     }
@@ -102,7 +102,7 @@ public interface SubscriptionCapacityViewRepository
     if (Objects.nonNull(sanitizedBillingAccountId)
         && !ANY.equalsIgnoreCase(sanitizedBillingAccountId)
         && productId != null
-        && productId.isPrometheusEnabled()) {
+        && productId.isOnDemand()) {
       searchCriteria = searchCriteria.and(billingAccountIdStartsWith(sanitizedBillingAccountId));
     }
 
