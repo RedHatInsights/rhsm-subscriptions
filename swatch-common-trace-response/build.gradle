@@ -4,7 +4,7 @@ plugins {
 
 dependencies {
     implementation enforcedPlatform(libraries["quarkus-bom"])
-    implementation 'io.quarkus:quarkus-resteasy-reactive-jackson'
+    implementation 'io.quarkus:quarkus-rest-jackson'
     implementation('io.opentelemetry:opentelemetry-api')
 }
 

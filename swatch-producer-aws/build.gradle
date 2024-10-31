@@ -11,11 +11,10 @@ dependencies {
     implementation 'io.quarkus:quarkus-logging-json'
     implementation 'io.quarkus:quarkus-micrometer-registry-prometheus'
     implementation 'io.quarkus:quarkus-opentelemetry'
-    implementation 'io.quarkus:quarkus-resteasy-reactive-jackson'
+    implementation 'io.quarkus:quarkus-rest-jackson'
     implementation 'io.quarkus:quarkus-smallrye-fault-tolerance'
     implementation 'io.quarkus:quarkus-smallrye-openapi'
-    implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka'
-    implementation 'io.quarkus:quarkus-smallrye-reactive-messaging'
+    implementation 'io.quarkus:quarkus-messaging-kafka'
     implementation 'software.amazon.awssdk:marketplacemetering'
     implementation 'software.amazon.awssdk:sts'
     implementation libraries["clowder-quarkus-config-source"]
