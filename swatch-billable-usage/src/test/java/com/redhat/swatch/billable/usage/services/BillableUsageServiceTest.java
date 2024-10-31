@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.billable.usage.services;
 
+import static com.redhat.swatch.billable.usage.util.MockHelper.setSubscriptionDefinitionRegistry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -44,7 +45,6 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectSpy;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.lang.reflect.Field;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -58,10 +58,7 @@ import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.billable.usage.AccumulationPeriodFormatter;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -734,15 +731,5 @@ class BillableUsageServiceTest {
     variant.setSubscription(subscriptionDefinition);
     when(mockSubscriptionDefinitionRegistry.getSubscriptions())
         .thenReturn(List.of(subscriptionDefinition));
-  }
-
-  private static void setSubscriptionDefinitionRegistry(SubscriptionDefinitionRegistry instance) {
-    try {
-      Field field = SubscriptionDefinitionRegistry.class.getDeclaredField("instance");
-      field.setAccessible(true);
-      field.set(field, instance);
-    } catch (Exception e) {
-      fail(e);
-    }
   }
 }

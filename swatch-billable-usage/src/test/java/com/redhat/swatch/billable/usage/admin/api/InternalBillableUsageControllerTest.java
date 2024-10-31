@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.billable.usage.admin.api;
 
+import static com.redhat.swatch.billable.usage.util.MockHelper.setSubscriptionDefinitionRegistry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -28,10 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.redhat.swatch.billable.usage.configuration.ApplicationConfiguration;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceEntity;
@@ -40,6 +38,9 @@ import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
 import com.redhat.swatch.billable.usage.data.RemittanceStatus;
 import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
 import com.redhat.swatch.billable.usage.services.BillingProducer;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinitionRegistry;
+import com.redhat.swatch.configuration.registry.Variant;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
@@ -50,21 +51,31 @@ import java.util.Set;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.billable.usage.AccumulationPeriodFormatter;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
+import org.mockito.ArgumentCaptor;
 
 @QuarkusTest
 class InternalBillableUsageControllerTest {
 
   private static final String PRODUCT_ID = "rosa";
   private static final int REMITTANCES_BATCH_SIZE = 2;
+  private static final String AWS_METRIC_ID = "aws_metric";
 
   @Inject BillableUsageRemittanceRepository remittanceRepo;
   @Inject ApplicationClock clock;
   @InjectMock BillingProducer billingProducer;
   @Inject InternalBillableUsageController controller;
   @InjectMock ApplicationConfiguration configuration;
+
+  private static SubscriptionDefinitionRegistry originalReference;
+
+  private final SubscriptionDefinitionRegistry mockSubscriptionDefinitionRegistry =
+      mock(SubscriptionDefinitionRegistry.class);
+
+  @BeforeAll
+  static void setupClass() {
+    originalReference = SubscriptionDefinitionRegistry.getInstance();
+  }
 
   @Transactional
   @BeforeEach
@@ -138,12 +149,19 @@ class InternalBillableUsageControllerTest {
             remittance7));
     remittanceRepo.flush();
     when(configuration.getRetryRemittancesBatchSize()).thenReturn(REMITTANCES_BATCH_SIZE);
+
+    // reset original subscription definition registry
+    setSubscriptionDefinitionRegistry(originalReference);
   }
 
   @Transactional
   @AfterEach
-  public void tearDown() {
+  void tearDown() {
     remittanceRepo.deleteAll();
+    /* We need to reset the registry because the mock SubscriptionDefinitionRegistry uses a stubbed
+     * SubscriptionDefinition.  If the test run order happens to result in that stub being used first for a tag lookup
+     * then the SubscriptionDefinition cache will be populated with the stub's particulars which we don't want. */
+    SubscriptionDefinitionRegistry.reset();
   }
 
   @Test
@@ -307,6 +325,60 @@ class InternalBillableUsageControllerTest {
   }
 
   @Test
+  @Transactional
+  void testProcessRetriesAppliesBillingFactor() {
+    String orgId = "testProcessRetriesOrg123";
+    var remittance =
+        remittance(
+            orgId,
+            "product",
+            BillableUsage.BillingProvider.AWS,
+            20.0,
+            clock.startOfCurrentMonth(),
+            RemittanceStatus.RETRYABLE);
+    remittance.setRetryAfter(clock.now().minusMonths(30));
+    remittanceRepo.persistAndFlush(remittance);
+
+    setSubscriptionDefinitionRegistry(mockSubscriptionDefinitionRegistry);
+    stubSubscriptionDefinition(remittance.getProductId(), remittance.getMetricId(), .25);
+
+    controller.processRetries(OffsetDateTime.now());
+
+    ArgumentCaptor<BillableUsage> billableUsageArgumentCaptor =
+        ArgumentCaptor.forClass(BillableUsage.class);
+    verify(billingProducer).produce(billableUsageArgumentCaptor.capture());
+    // Billable Usage value should be remitted_pending_value * billing_factor (20 * .25)
+    assertEquals(5, billableUsageArgumentCaptor.getValue().getValue());
+  }
+
+  @Test
+  @Transactional
+  void testProcessRetriesAppliesNoBillingFactor() {
+    String orgId = "testProcessRetriesOrg123";
+    var remittance =
+        remittance(
+            orgId,
+            "product",
+            BillableUsage.BillingProvider.AWS,
+            20.0,
+            clock.startOfCurrentMonth(),
+            RemittanceStatus.RETRYABLE);
+    remittance.setRetryAfter(clock.now().minusMonths(30));
+    remittanceRepo.persistAndFlush(remittance);
+
+    setSubscriptionDefinitionRegistry(mockSubscriptionDefinitionRegistry);
+    stubSubscriptionDefinition(remittance.getProductId(), remittance.getMetricId(), 1);
+
+    controller.processRetries(OffsetDateTime.now());
+
+    ArgumentCaptor<BillableUsage> billableUsageArgumentCaptor =
+        ArgumentCaptor.forClass(BillableUsage.class);
+    verify(billingProducer).produce(billableUsageArgumentCaptor.capture());
+    // Billable Usage value should be remitted_pending_value * billing_factor (20 * 1)
+    assertEquals(20, billableUsageArgumentCaptor.getValue().getValue());
+  }
+
+  @Test
   void testProcessRetriesInPages() {
     String orgId = "testProcessRetriesInPages";
     for (var i = 0; i < REMITTANCES_BATCH_SIZE * 2; i++) {
@@ -349,7 +421,7 @@ class InternalBillableUsageControllerTest {
             BillableUsage.BillingProvider.AZURE,
             4.0,
             clock.startOfCurrentMonth(),
-            RemittanceStatus.PENDING);
+            RemittanceStatus.RETRYABLE);
     remittance.setRetryAfter(clock.now().minusMonths(30));
     remittanceRepo.persistAndFlush(remittance);
   }
@@ -390,5 +462,24 @@ class InternalBillableUsageControllerTest {
         .remittedPendingValue(value)
         .status(remittanceStatus)
         .build();
+  }
+
+  private void stubSubscriptionDefinition(String tag, String metricId, double billingFactor) {
+    metricId = metricId.replace('_', '-');
+    var variant = Variant.builder().tag(tag).build();
+    var awsMetric =
+        com.redhat.swatch.configuration.registry.Metric.builder()
+            .awsDimension(AWS_METRIC_ID)
+            .billingFactor(billingFactor)
+            .id(metricId)
+            .build();
+    var subscriptionDefinition =
+        SubscriptionDefinition.builder()
+            .variants(Set.of(variant))
+            .metrics(Set.of(awsMetric))
+            .build();
+    variant.setSubscription(subscriptionDefinition);
+    when(mockSubscriptionDefinitionRegistry.getSubscriptions())
+        .thenReturn(List.of(subscriptionDefinition));
   }
 }

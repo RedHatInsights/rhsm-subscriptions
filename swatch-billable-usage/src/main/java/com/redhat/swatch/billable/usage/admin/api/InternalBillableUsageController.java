@@ -33,6 +33,8 @@ import com.redhat.swatch.billable.usage.model.RemittanceMapper;
 import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
 import com.redhat.swatch.billable.usage.openapi.model.TallyRemittance;
 import com.redhat.swatch.billable.usage.services.BillingProducer;
+import com.redhat.swatch.billable.usage.services.model.BillingUnit;
+import com.redhat.swatch.billable.usage.services.model.Quantity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
@@ -141,7 +143,9 @@ public class InternalBillableUsageController {
     updateRemittance(remittance, RemittanceStatus.PENDING, null, null);
     try {
       // re-trigger billable usage
-      billingProducer.produce(toBillableUsage(remittance));
+      var usage = toBillableUsage(remittance);
+      log.info("Resending billable usage: {}", usage);
+      billingProducer.produce(usage);
     } catch (Exception ex) {
       log.warn("Remittance {} failed to be sent over kafka. Restoring.", remittance);
       // restoring previous state of the remittance because it fails to be sent
@@ -157,21 +161,33 @@ public class InternalBillableUsageController {
         Objects.nonNull(remittance.getStatus())
             ? BillableUsage.Status.fromValue(remittance.getStatus().getValue())
             : null;
-    return new BillableUsage()
-        .withOrgId(remittance.getOrgId())
-        .withTallyId(remittance.getTallyId())
-        .withUuid(remittance.getUuid())
-        .withSnapshotDate(remittance.getRemittancePendingDate())
-        .withProductId(remittance.getProductId())
-        .withSla(BillableUsage.Sla.fromValue(remittance.getSla()))
-        .withUsage(BillableUsage.Usage.fromValue(remittance.getUsage()))
-        .withBillingProvider(
-            BillableUsage.BillingProvider.fromValue(remittance.getBillingProvider()))
-        .withBillingAccountId(remittance.getBillingAccountId())
-        .withMetricId(remittance.getMetricId())
-        .withValue(remittance.getRemittedPendingValue())
-        .withHardwareMeasurementType(remittance.getHardwareMeasurementType())
-        .withStatus(remittanceStatus);
+    var billableUsage =
+        new BillableUsage()
+            .withOrgId(remittance.getOrgId())
+            .withTallyId(remittance.getTallyId())
+            .withUuid(remittance.getUuid())
+            .withSnapshotDate(remittance.getRemittancePendingDate())
+            .withProductId(remittance.getProductId())
+            .withSla(BillableUsage.Sla.fromValue(remittance.getSla()))
+            .withUsage(BillableUsage.Usage.fromValue(remittance.getUsage()))
+            .withBillingProvider(
+                BillableUsage.BillingProvider.fromValue(remittance.getBillingProvider()))
+            .withBillingAccountId(remittance.getBillingAccountId())
+            .withMetricId(remittance.getMetricId())
+            .withHardwareMeasurementType(remittance.getHardwareMeasurementType())
+            .withStatus(remittanceStatus);
+
+    billableUsage.setValue(getBillableValue(remittance, billableUsage));
+
+    return billableUsage;
+  }
+
+  /** Multiplies the remittance's pending value by the usages billing factor */
+  private double getBillableValue(
+      BillableUsageRemittanceEntity remittance, BillableUsage billableUsage) {
+    var billingUnit = new BillingUnit(billableUsage);
+    var remittedPendingValueQuantity = Quantity.of(remittance.getRemittedPendingValue());
+    return remittedPendingValueQuantity.to(billingUnit).ceil().getValue();
   }
 
   private List<MonthlyRemittance> transformUsageToMonthlyRemittance(
