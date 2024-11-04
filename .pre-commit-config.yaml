@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: spotless
+        name: spotless
+        entry: ./gradlew -q spotlessCheck
+        language: script
+        pass_filenames: false
+        types: [java]
