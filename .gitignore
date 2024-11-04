@@ -46,6 +46,7 @@ config/export-service/tmp
 !bin/liquibase-new-changeset.sh
 !bin/build-images.sh
 !bin/insert-mock-hosts
+!bin/check_vulnerabilities.py
 .vscode
 .editorconfig
 *.code-workspace
@@ -65,5 +66,7 @@ bonfire
 .docker
 .kube
 
-
 stub/__files/
+
+# SwatchDog
+swatchdog/swatchdog/__pycache__/

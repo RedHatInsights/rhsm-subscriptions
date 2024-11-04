@@ -3,7 +3,9 @@ import sys
 import argparse
 import csv
 import requests
+from check_vulnerabilities import check_vulnerabilities
 
+check_vulnerabilities()
 
 try:
     import jsonpickle
