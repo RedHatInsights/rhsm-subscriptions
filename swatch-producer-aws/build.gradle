@@ -8,7 +8,6 @@ dependencies {
     implementation platform(libraries["awssdk-bom"])
     implementation 'io.quarkus:quarkus-hibernate-validator'
     implementation 'io.quarkus:quarkus-jackson'
-    implementation 'io.quarkus:quarkus-logging-json'
     implementation 'io.quarkus:quarkus-micrometer-registry-prometheus'
     implementation 'io.quarkus:quarkus-opentelemetry'
     implementation 'io.quarkus:quarkus-rest-jackson'
