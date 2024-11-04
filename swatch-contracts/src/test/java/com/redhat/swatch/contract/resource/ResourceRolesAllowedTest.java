@@ -26,14 +26,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.clients.product.StubProductApi;
 import com.redhat.swatch.clients.subscription.StubSearchApi;
-import io.quarkus.smallrye.openapi.runtime.OpenApiDocumentService;
 import io.quarkus.test.junit.QuarkusTest;
-import io.smallrye.openapi.runtime.io.Format;
-import io.smallrye.openapi.runtime.io.OpenApiParser;
+import io.smallrye.config.SmallRyeConfigBuilder;
+import io.smallrye.openapi.api.SmallRyeOpenAPI;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.inject.spi.Bean;
 import jakarta.enterprise.inject.spi.CDI;
-import jakarta.inject.Inject;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.HEAD;
@@ -42,8 +40,8 @@ import jakarta.ws.rs.PATCH;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -53,6 +51,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.eclipse.microprofile.openapi.models.OpenAPI;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 
@@ -64,12 +63,9 @@ class ResourceRolesAllowedTest {
   private static final Set<Class<?>> IGNORE_RESOURCES =
       Set.of(StubProductApi.class, StubSearchApi.class);
 
-  @Inject OpenApiDocumentService openApiDocumentService;
-
   @TestFactory
   Stream<DynamicTest> testResourceMethodAnnotatedWithAppropriateRoles() throws IOException {
-    var yamlDocument = openApiDocumentService.getYamlDocument();
-    var api = OpenApiParser.parse(new ByteArrayInputStream(yamlDocument), Format.YAML);
+    var api = loadOpenApiModel();
     return findResourceMethods().stream()
         .map(
             method ->
@@ -215,5 +211,20 @@ class ResourceRolesAllowedTest {
 
   private boolean hasJaxRsAnnotation(Bean<?> bean) {
     return hasJaxRsAnnotation(bean.getBeanClass());
+  }
+
+  private OpenAPI loadOpenApiModel() throws IOException {
+    try (InputStream openapiStream =
+        ResourceRolesAllowedTest.class.getResourceAsStream("/META-INF/openapi.yaml")) {
+      return SmallRyeOpenAPI.builder()
+          .withConfig(new SmallRyeConfigBuilder().addDefaultSources().build())
+          .enableAnnotationScan(false)
+          .enableModelReader(false)
+          .enableStandardFilter(false)
+          .enableStandardStaticFiles(false)
+          .withCustomStaticFile(() -> openapiStream)
+          .build()
+          .model();
+    }
   }
 }

@@ -251,7 +251,7 @@ Since having multiple clients in the classpath will cause that the exception map
 ```
 # Disable the auto-discovery of providers (for ex: exception mappers).
 # All the clients must use either the "quarkus.rest-client.*.providers" property or the `@RegisterProvider` instead.
-quarkus.rest-client-reactive.provider-autodiscovery=false
+quarkus.rest-client.provider-autodiscovery=false
 ```
 
 The generated client from openapi already uses the `@RegisterProdiver` annotation, so nothing else should be needed.
