@@ -23,7 +23,10 @@ package org.candlepin.subscriptions.tally;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import io.micrometer.core.annotation.Timed;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -33,9 +36,12 @@ import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.TallyStateRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.TallyState;
 import org.candlepin.subscriptions.db.model.TallyStateKey;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.event.EventController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,6 +68,7 @@ public class TallySnapshotController {
   private final SnapshotSummaryProducer summaryProducer;
   private final TallyStateRepository tallyStateRepository;
   private final ApplicationClock clock;
+  private final MeterRegistry meterRegistry;
 
   @Autowired
   public TallySnapshotController(
@@ -74,6 +81,7 @@ public class TallySnapshotController {
       CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy,
       SnapshotSummaryProducer summaryProducer,
       TallyStateRepository tallyStateRepository,
+      MeterRegistry meterRegistry,
       ApplicationClock clock) {
     this.appProps = appProps;
     this.usageCollector = usageCollector;
@@ -85,6 +93,7 @@ public class TallySnapshotController {
     this.summaryProducer = summaryProducer;
     this.tallyStateRepository = tallyStateRepository;
     this.clock = clock;
+    this.meterRegistry = meterRegistry;
   }
 
   @Timed("rhsm-subscriptions.snapshots.single")
@@ -104,7 +113,46 @@ public class TallySnapshotController {
       return;
     }
 
-    maxSeenSnapshotStrategy.produceSnapshotsFromCalculations(accountCalc);
+    var snapshots = maxSeenSnapshotStrategy.produceSnapshotsFromCalculations(accountCalc);
+    // Record tally values on the counter now that the transaction has closed.
+    recordTallyCount(snapshots);
+  }
+
+  protected void recordTallyCount(List<TallySnapshot> savedSnapshots) {
+    var count = Counter.builder("swatch_tally_tallied_usage_total").withRegistry(meterRegistry);
+    // Only increment the counter at the finest granularity level to prevent over-counting
+    savedSnapshots.parallelStream()
+        .filter(this::isDuplicateSnap)
+        .forEach(
+            snap ->
+                snap.getTallyMeasurements().entrySet().stream()
+                    // Filter out TOTAL measurement types since those are aggregates and we don't
+                    // want to double count
+                    .filter(
+                        entry ->
+                            !entry
+                                .getKey()
+                                .getMeasurementType()
+                                .equals(HardwareMeasurementType.TOTAL))
+                    .forEach(
+                        entry -> {
+                          var c =
+                              count.withTags(
+                                  "product",
+                                  snap.getProductId(),
+                                  "metric_id",
+                                  entry.getKey().getMetricId(),
+                                  "billing_provider_id",
+                                  snap.getBillingProvider().getValue());
+                          c.increment(entry.getValue());
+                        }));
+  }
+
+  protected boolean isDuplicateSnap(TallySnapshot snap) {
+    return SubscriptionDefinition.isFinestGranularity(
+            snap.getProductId(), snap.getGranularity().toString())
+        && snap.getServiceLevel() != ServiceLevel._ANY
+        && snap.getUsage() != Usage._ANY;
   }
 
   // Because we want to ensure that our DB operations have been completed before
@@ -176,6 +224,7 @@ public class TallySnapshotController {
                   Double::sum);
 
           tallyStateRepository.update(currentState);
+          recordTallyCount(totalSnapshots.values().stream().flatMap(Collection::stream).toList());
           summaryProducer.produceTallySummaryMessages(totalSnapshots);
         }
 

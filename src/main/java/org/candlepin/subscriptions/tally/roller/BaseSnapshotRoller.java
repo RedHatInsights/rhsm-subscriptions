@@ -175,8 +175,10 @@ public abstract class BaseSnapshotRoller {
   }
 
   private boolean isFinestGranularity(TallySnapshot snap) {
-    Granularity finestGranularity = getFinestGranularity(snap);
-    return finestGranularity.equals(snap.getGranularity());
+    // The snapshot calls this a "product ID" but in the SubscriptionDefinition world it's actually
+    // a variant's tag
+    return SubscriptionDefinition.isFinestGranularity(
+        snap.getProductId(), snap.getGranularity().toString());
   }
 
   private boolean updateMaxValues(TallySnapshot snap, UsageCalculation calc) {
@@ -188,20 +190,6 @@ public abstract class BaseSnapshotRoller {
       changed |= updateTotals(overrideMaxCheck, snap, type, calc);
     }
     return changed;
-  }
-
-  private Granularity getFinestGranularity(TallySnapshot snap) {
-    // The snapshot calls this a "product ID" but in the SubscriptionDefinition world it's actually
-    // a variant's tag
-    String productId = snap.getProductId();
-    var subscription =
-        SubscriptionDefinition.lookupSubscriptionByTag(productId)
-            .orElseThrow(
-                () ->
-                    new IllegalStateException(
-                        productId + " missing in subscription configuration"));
-
-    return Granularity.fromString(subscription.getFinestGranularity().toString());
   }
 
   private boolean updateTotals(
