@@ -20,14 +20,11 @@
  */
 package org.candlepin.subscriptions.tally.admin;
 
-import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.PreDestroy;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
 
@@ -35,14 +32,9 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class DataMigrationRunner {
   private final ExecutorService executor;
-  private final JdbcTemplate jdbcTemplate;
-  private final MeterRegistry meterRegistry;
 
-  @Autowired
-  public DataMigrationRunner(JdbcTemplate jdbcTemplate, MeterRegistry meterRegistry) {
+  public DataMigrationRunner() {
     executor = Executors.newFixedThreadPool(4);
-    this.jdbcTemplate = jdbcTemplate;
-    this.meterRegistry = meterRegistry;
   }
 
   @PreDestroy
@@ -53,18 +45,9 @@ public class DataMigrationRunner {
     }
   }
 
-  public void migrate(
-      Class<? extends DataMigration> migrationClass, String startingRecordID, int batchSize) {
+  public void migrate(DataMigration dataMigration, String startingRecordID, int batchSize) {
     executor.execute(
         () -> {
-          DataMigration dataMigration;
-          try {
-            dataMigration = DataMigration.getMigration(migrationClass, jdbcTemplate, meterRegistry);
-          } catch (Exception e) {
-            log.warn("Unable to constructor migration from class {}", migrationClass);
-            return;
-          }
-
           String lastProcessedId = startingRecordID;
           do {
             SqlRowSet page = dataMigration.extract(lastProcessedId, batchSize);

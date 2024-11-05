@@ -311,6 +311,21 @@ public class InternalTallyResource implements InternalTallyApi {
     return response;
   }
 
+  /**
+   * Update hosts to eliminate duplicate systems that arrived from different inputs
+   *
+   * @return
+   */
+  @Override
+  public DefaultResponse mergeHostsFromMultipleSources(String orgId) {
+    var response = new DefaultResponse();
+    Object principal = ResourceUtils.getPrincipal();
+    log.info(
+        "Merge hosts org {} triggered via API by {}", orgId == null ? "all" : orgId, principal);
+    internalTallyDataController.mergeHostsFromMultipleSources(orgId);
+    return response;
+  }
+
   private boolean isFeatureEnabled() {
     if (!properties.isDevMode() && !properties.isManualEventEditingEnabled()) {
       log.error(FEATURE_NOT_ENABLED_MESSSAGE);

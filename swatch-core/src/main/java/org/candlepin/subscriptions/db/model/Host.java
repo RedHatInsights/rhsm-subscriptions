@@ -197,8 +197,8 @@ public class Host implements Serializable {
       BillingProvider billingProvider,
       String billingAccountId,
       Boolean asHypervisor,
-      int sockets,
-      int cores,
+      Integer sockets,
+      Integer cores,
       HardwareMeasurementType measurementType) {
 
     HostTallyBucket bucket =
