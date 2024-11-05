@@ -177,15 +177,17 @@ public class InternalBillableUsageController {
             .withHardwareMeasurementType(remittance.getHardwareMeasurementType())
             .withStatus(remittanceStatus);
 
-    billableUsage.setValue(getBillableValue(remittance, billableUsage));
+    // Apply billing factor since remittance is saved in metric units
+    var billingUnit = new BillingUnit(billableUsage);
+    billableUsage.setValue(getBillableValue(remittance, billingUnit));
+    billableUsage.setBillingFactor(billingUnit.getBillingFactor());
 
     return billableUsage;
   }
 
   /** Multiplies the remittance's pending value by the usages billing factor */
   private double getBillableValue(
-      BillableUsageRemittanceEntity remittance, BillableUsage billableUsage) {
-    var billingUnit = new BillingUnit(billableUsage);
+      BillableUsageRemittanceEntity remittance, BillingUnit billingUnit) {
     var remittedPendingValueQuantity = Quantity.of(remittance.getRemittedPendingValue());
     return remittedPendingValueQuantity.to(billingUnit).ceil().getValue();
   }

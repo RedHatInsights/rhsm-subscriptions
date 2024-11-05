@@ -29,7 +29,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.billable.usage.configuration.ApplicationConfiguration;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceEntity;
@@ -51,7 +55,10 @@ import java.util.Set;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.billable.usage.AccumulationPeriodFormatter;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 @QuarkusTest
