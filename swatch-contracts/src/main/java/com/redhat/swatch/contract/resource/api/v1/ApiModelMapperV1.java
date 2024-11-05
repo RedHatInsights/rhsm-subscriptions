@@ -47,6 +47,9 @@ public interface ApiModelMapperV1 {
   com.redhat.swatch.contract.openapi.model.BillingProviderType map(
       com.redhat.swatch.contract.repository.BillingProvider sanitizeProviderLevel);
 
+  com.redhat.swatch.contract.openapi.model.PageLinks map(
+      com.redhat.swatch.contract.resteasy.PageLinks pageLinks);
+
   @SuppressWarnings("Duplicates")
   default ReportCategory measurementTypeToReportCategory(HardwareMeasurementType measurementType) {
     if (HardwareMeasurementType.isSupportedCloudProvider(measurementType.name())) {

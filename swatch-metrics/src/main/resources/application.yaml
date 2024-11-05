@@ -24,11 +24,8 @@ DISABLE_OTEL: true
   HOST_NAME: ${USER}@${HOSTNAME}
   SPLUNKMETA_namespace: local
   SPLUNK_HEC_INCLUDE_EX: true
+  SPLUNK_DISABLE_CERTIFICATE_VALIDATION: true
   CORS_ORIGINS: /.*/
-  quarkus:
-    log:
-      console:
-        json: false
 
 # set the test profile properties to the same values as dev; these get activated for @QuarkusTest
 "%test":
@@ -39,9 +36,6 @@ DISABLE_OTEL: true
     management:
       # disable during testing to prevent port conflict during parallel runs
       enabled: false
-    log:
-      console:
-        json: false
 
 "%ephemeral":
   quarkus:
@@ -73,6 +67,7 @@ quarkus:
       splunk:
         enabled: ${ENABLE_SPLUNK_HEC:false}
         url: ${SPLUNK_HEC_URL:https://splunk-hec.redhat.com:8088/}
+        disable-certificate-validation: ${SPLUNK_DISABLE_CERTIFICATE_VALIDATION:false}
         metadata-source: ${SPLUNK_SOURCE:swatch-metrics}
         max-retries: ${SPLUNK_HEC_RETRY_COUNT:0}
         metadata-source-type: ${SPLUNK_SOURCE_TYPE:quarkus_service}

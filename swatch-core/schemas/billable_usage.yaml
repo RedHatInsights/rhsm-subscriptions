@@ -51,6 +51,7 @@ properties:
       - succeeded
       - failed
       - gratis
+      - retryable
   error_code:
     description: Intended to be used for reporting remittance error code in case of failure
     type: string

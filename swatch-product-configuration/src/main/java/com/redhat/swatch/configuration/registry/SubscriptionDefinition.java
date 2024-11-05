@@ -149,8 +149,21 @@ public class SubscriptionDefinition {
     return this.getMetrics().stream().anyMatch(metric -> Objects.nonNull(metric.getPrometheus()));
   }
 
-  public SubscriptionDefinitionGranularity getFinestGranularity() {
+  public static boolean isFinestGranularity(String tag, String granularity) {
+    var subscription =
+        SubscriptionDefinition.lookupSubscriptionByTag(tag)
+            .orElseThrow(
+                () -> new IllegalStateException(tag + " missing in subscription configuration"));
 
+    var finestTagGranularity = subscription.getFinestGranularity().toString();
+
+    // Compare as strings because granularity is represented by two different enumerations:
+    // org.candlepin.subscriptions.db.model.Granularity and
+    // com.redhat.swatch.configuration.registry.SubscriptionDefinitionGranularity
+    return finestTagGranularity.equalsIgnoreCase(granularity);
+  }
+
+  public SubscriptionDefinitionGranularity getFinestGranularity() {
     return this.isPrometheusEnabled()
         ? SubscriptionDefinitionGranularity.HOURLY
         : SubscriptionDefinitionGranularity.DAILY;

@@ -22,10 +22,12 @@ package com.redhat.swatch.billable.usage.admin.api;
 
 import static java.util.Optional.ofNullable;
 
+import com.redhat.swatch.billable.usage.configuration.ApplicationConfiguration;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceEntity;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceFilter;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
 import com.redhat.swatch.billable.usage.data.RemittanceErrorCode;
+import com.redhat.swatch.billable.usage.data.RemittanceStatus;
 import com.redhat.swatch.billable.usage.data.RemittanceSummaryProjection;
 import com.redhat.swatch.billable.usage.model.RemittanceMapper;
 import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
@@ -50,6 +52,7 @@ public class InternalBillableUsageController {
   private final BillableUsageRemittanceRepository remittanceRepository;
   private final BillingProducer billingProducer;
   private final RemittanceMapper remittanceMapper;
+  private final ApplicationConfiguration applicationConfiguration;
 
   public List<MonthlyRemittance> getRemittances(BillableUsageRemittanceFilter filter) {
     if (filter.getOrgId() == null) {
@@ -80,8 +83,13 @@ public class InternalBillableUsageController {
 
   @Transactional
   public int resetBillableUsageRemittance(
-      String productId, OffsetDateTime start, OffsetDateTime end, Set<String> orgIds) {
-    return remittanceRepository.resetBillableUsageRemittance(productId, start, end, orgIds);
+      String productId,
+      OffsetDateTime start,
+      OffsetDateTime end,
+      Set<String> orgIds,
+      Set<String> billingAccountIds) {
+    return remittanceRepository.resetBillableUsageRemittance(
+        productId, start, end, orgIds, billingAccountIds);
   }
 
   @Transactional
@@ -89,20 +97,57 @@ public class InternalBillableUsageController {
     remittanceRepository.deleteByOrgId(orgId);
   }
 
-  @Transactional
   public long processRetries(OffsetDateTime asOf) {
-    List<BillableUsageRemittanceEntity> remittances =
-        remittanceRepository.findByRetryAfterLessThan(asOf);
-    for (BillableUsageRemittanceEntity remittance : remittances) {
-      // re-trigger billable usage
-      billingProducer.produce(toBillableUsage(remittance));
-      // reset the retry after column
-      remittance.setRetryAfter(null);
+    long total = remittanceRepository.countRemittancesByRetryAfterLessThan(asOf);
+    if (total > 0) {
+      long current = 0;
+      List<BillableUsageRemittanceEntity> remittances =
+          findNextRemittancesByRetryAfterLessThan(asOf);
+      while (current < total && !remittances.isEmpty()) {
+        remittances.forEach(this::processRetryForUsage);
+        current += remittances.size();
+        remittances = findNextRemittancesByRetryAfterLessThan(asOf);
+      }
     }
 
-    // to save the retry after column for all the entities
-    remittanceRepository.persist(remittances);
-    return remittances.size();
+    return total;
+  }
+
+  @Transactional
+  List<BillableUsageRemittanceEntity> findNextRemittancesByRetryAfterLessThan(OffsetDateTime asOf) {
+    return remittanceRepository.findNextRemittancesByRetryAfterLessThan(
+        asOf, applicationConfiguration.getRetryRemittancesBatchSize());
+  }
+
+  @Transactional
+  void updateRemittance(
+      BillableUsageRemittanceEntity remittance,
+      RemittanceStatus status,
+      OffsetDateTime retryAfter,
+      RemittanceErrorCode errorCode) {
+    remittance.setRetryAfter(retryAfter);
+    remittance.setErrorCode(errorCode);
+    remittance.setStatus(status);
+    // using merge because remittance is a detached entity
+    remittanceRepository.merge(remittance);
+  }
+
+  private void processRetryForUsage(BillableUsageRemittanceEntity remittance) {
+    log.info("Processing retry of remittance {}", remittance);
+    RemittanceStatus previousStatus = remittance.getStatus();
+    RemittanceErrorCode previousErrorCode = remittance.getErrorCode();
+    OffsetDateTime previousRetryAfter = remittance.getRetryAfter();
+    // reset the retry after column
+    updateRemittance(remittance, RemittanceStatus.PENDING, null, null);
+    try {
+      // re-trigger billable usage
+      billingProducer.produce(toBillableUsage(remittance));
+    } catch (Exception ex) {
+      log.warn("Remittance {} failed to be sent over kafka. Restoring.", remittance);
+      // restoring previous state of the remittance because it fails to be sent
+      updateRemittance(remittance, previousStatus, previousRetryAfter, previousErrorCode);
+      throw ex;
+    }
   }
 
   private BillableUsage toBillableUsage(BillableUsageRemittanceEntity remittance) {

@@ -11,7 +11,7 @@ dependencies {
 
     implementation project(':swatch-common-config-workaround')
     implementation libraries["clowder-quarkus-config-source"]
-    implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka'
+    implementation 'io.quarkus:quarkus-messaging-kafka'
     implementation 'io.quarkus:quarkus-rest' // TODO: Remove later since REST API is temporary
     implementation project(':swatch-common-smallrye-fault-tolerance')
     implementation project(':swatch-common-kafka')

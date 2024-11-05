@@ -251,7 +251,7 @@ Since having multiple clients in the classpath will cause that the exception map
 ```
 # Disable the auto-discovery of providers (for ex: exception mappers).
 # All the clients must use either the "quarkus.rest-client.*.providers" property or the `@RegisterProvider` instead.
-quarkus.rest-client-reactive.provider-autodiscovery=false
+quarkus.rest-client.provider-autodiscovery=false
 ```
 
 The generated client from openapi already uses the `@RegisterProdiver` annotation, so nothing else should be needed.
@@ -269,6 +269,47 @@ quarkus.rest-client."com.redhat.swatch.clients.subscription.api.resources.Search
 ### **rest-client**: will throw an ProcessingException exception under some circumstances
 
 So, catch the ProcessingException exception as well as the ApiException one (for generated clients) to be sure, you catch all the errors.
+
+### **rest-client**: will remove the trailing slash in paths located at class level
+
+The Quarkus REST Client extension is magically removing the trailing slash when the `@Path` annotation is used at class level. For example, having the following REST interface:
+
+```java
+@RegisterRestClient
+@Path("/access/")
+public interface ClientApi {
+    @GET
+    String ping();
+}
+```
+
+Internally, the Quarkus REST Client extension will modify the path from "/access/" to "/access" which would make some servers to not found the endpoint. 
+The workaround is to move the `@Path` annotation at method level:
+```java
+@RegisterRestClient
+public interface ClientApi {
+    @GET
+    @Path("/access/")
+    String ping();
+}
+```
+
+Now, the URL will be correctly set by preserving the trailing slash. 
+
+Note that since we're using the OpenAPI generator to generate the REST Client interfaces, we can't easily change where to put the `@Path` annotation. The only workaround that I'm aware is to configure the API manifest to include different endpoints in the same client interface:
+```java
+@RegisterRestClient
+@Path("/common")
+public interface ClientApi {
+  @GET
+  @Path("/access/")
+  String ping();
+
+  @GET
+  @Path("/other")
+  String other();
+}
+```
 
 ### **fault-tolerance**: Quarkus does not have a configurable exponential backoff retry strategy
 
