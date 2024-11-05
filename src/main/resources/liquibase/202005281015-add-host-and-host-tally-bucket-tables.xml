@@ -21,6 +21,7 @@
             <column name="cores" type="INTEGER"/>
             <column name="sockets" type="INTEGER"/>
             <column name="is_guest" type="BOOLEAN"/>
+            <column name="subscription_manager_id" type="VARCHAR(255)"/>
             <column name="hypervisor_uuid" type="VARCHAR(255)"/>
             <column name="hardware_type" type="VARCHAR(32)" />
             <column name="num_of_guests" type="INTEGER"/>
