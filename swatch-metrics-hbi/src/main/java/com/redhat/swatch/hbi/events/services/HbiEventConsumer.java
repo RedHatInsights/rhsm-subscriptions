@@ -38,6 +38,8 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 public class HbiEventConsumer {
 
   private final FeatureFlags flags;
+
+  @SuppressWarnings("java:S1068")
   private final EmitterService<Event> emitter;
 
   public HbiEventConsumer(@Channel(SWATCH_EVENTS_OUT) Emitter<Event> emitter, FeatureFlags flags) {
