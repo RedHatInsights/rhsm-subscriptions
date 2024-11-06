@@ -115,10 +115,6 @@ parameters:
     value: '3'
   - name: KAFKA_SUBSCRIPTIONS_PRUNE_PARTITIONS
     value: '3'
-  - name: KAFKA_SUBSCRIPTIONS_EXPORT_REPLICAS
-    value: '3'
-  - name: KAFKA_SUBSCRIPTIONS_EXPORT_PARTITIONS
-    value: '3'
   - name: CURL_CRON_IMAGE
     value: quay.io/app-sre/ubi8-ubi-minimal
   - name: CURL_CRON_IMAGE_TAG
@@ -158,17 +154,11 @@ objects:
 #      dependencies:
 #        - rhsm
 
-      kafkaTopics:
-        - replicas: ${{KAFKA_SUBSCRIPTIONS_EXPORT_REPLICAS}}
-          partitions: ${{KAFKA_SUBSCRIPTIONS_EXPORT_PARTITIONS}}
-          topicName: platform.export.requests
-
       database:
         sharedDbAppName: swatch-tally
       dependencies:
         - swatch-tally
         - rbac
-        - export-service
 
       # Creates a database if local mode, or uses RDS in production
       # database:
@@ -369,11 +359,6 @@ objects:
                 secretKeyRef:
                   name: swatch-psks
                   key: self
-            - name: SWATCH_EXPORT_PSK
-              valueFrom:
-                secretKeyRef:
-                  name: export-psk
-                  key: export_psk
             - name: USER_HOST
               value: ${USER_HOST}
             - name: USER_MAX_CONNECTIONS
@@ -471,10 +456,3 @@ objects:
       name: swatch-psks
     data:
       self: cGxhY2Vob2xkZXI=
-
-  - apiVersion: v1
-    kind: Secret
-    metadata:
-      name: export-psk
-    data:
-      export_psk: dGVzdGluZy1hLXBzaw==

@@ -38,15 +38,15 @@ import java.util.stream.Stream;
 public class SubscriptionCapacityViewRepository
     implements PanacheSpecificationSupport<SubscriptionCapacityView, String> {
 
-  static final String PHYSICAL = "PHYSICAL";
-  static final String HYPERVISOR = "HYPERVISOR";
+  public static final String PHYSICAL = "PHYSICAL";
+  public static final String HYPERVISOR = "HYPERVISOR";
 
   public Stream<SubscriptionCapacityView> streamBy(
       Specification<SubscriptionCapacityView> criteria) {
     return find(SubscriptionCapacityView.class, criteria).stream();
   }
 
-  static Specification<SubscriptionCapacityView> buildSearchSpecification(String orgId) {
+  public static Specification<SubscriptionCapacityView> buildSearchSpecification(String orgId) {
     return buildSearchSpecification(orgId, null, null, null, null, null, null, null);
   }
 
@@ -102,40 +102,40 @@ public class SubscriptionCapacityViewRepository
     return searchCriteria;
   }
 
-  static Specification<SubscriptionCapacityView> productIdEquals(ProductId productId) {
+  public static Specification<SubscriptionCapacityView> productIdEquals(ProductId productId) {
     return (root, query, builder) ->
         builder.equal(root.get(SubscriptionCapacityView_.productTag), productId.getValue());
   }
 
-  static Specification<SubscriptionCapacityView> hasBillingProviderId() {
+  public static Specification<SubscriptionCapacityView> hasBillingProviderId() {
     return (root, query, builder) ->
         builder.and(
             builder.isNotNull(root.get(SubscriptionCapacityView_.billingProviderId)),
             builder.notEqual(root.get(SubscriptionCapacityView_.billingProviderId), ""));
   }
 
-  static Specification<SubscriptionCapacityView> billingAccountIdStartsWith(String value) {
+  public static Specification<SubscriptionCapacityView> billingAccountIdStartsWith(String value) {
     return (root, query, builder) ->
         builder.like(root.get(SubscriptionCapacityView_.billingAccountId), value + "%");
   }
 
-  static Specification<SubscriptionCapacityView> slaEquals(ServiceLevel sla) {
+  public static Specification<SubscriptionCapacityView> slaEquals(ServiceLevel sla) {
     return (root, query, builder) ->
         builder.equal(root.get(SubscriptionCapacityView_.serviceLevel), sla);
   }
 
-  static Specification<SubscriptionCapacityView> usageEquals(Usage usage) {
+  public static Specification<SubscriptionCapacityView> usageEquals(Usage usage) {
     return (root, query, builder) ->
         builder.equal(root.get(SubscriptionCapacityView_.usage), usage);
   }
 
-  static Specification<SubscriptionCapacityView> billingProviderEquals(
+  public static Specification<SubscriptionCapacityView> billingProviderEquals(
       BillingProvider billingProvider) {
     return (root, query, builder) ->
         builder.equal(root.get(SubscriptionCapacityView_.billingProvider), billingProvider);
   }
 
-  static Specification<SubscriptionCapacityView> hasCategory(ReportCategory value) {
+  public static Specification<SubscriptionCapacityView> hasCategory(ReportCategory value) {
     String measurementType = getMeasurementTypeFromCategory(value);
     if (measurementType != null) {
       return handleMetricsFilter("measurement_type", measurementType);
@@ -144,11 +144,11 @@ public class SubscriptionCapacityViewRepository
     return null;
   }
 
-  static Specification<SubscriptionCapacityView> hasMetricId(String value) {
+  public static Specification<SubscriptionCapacityView> hasMetricId(String value) {
     return handleMetricsFilter("metric_id", MetricId.fromString(value).toString());
   }
 
-  static String getMeasurementTypeFromCategory(ReportCategory value) {
+  public static String getMeasurementTypeFromCategory(ReportCategory value) {
     var category = HypervisorReportCategory.mapCategory(value);
     if (category != null) {
       return switch (category) {
@@ -159,7 +159,7 @@ public class SubscriptionCapacityViewRepository
     return null;
   }
 
-  static Specification<SubscriptionCapacityView> orgIdEquals(String orgId) {
+  public static Specification<SubscriptionCapacityView> orgIdEquals(String orgId) {
     return (root, query, builder) ->
         builder.equal(root.get(SubscriptionCapacityView_.orgId), orgId);
   }
