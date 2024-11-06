@@ -45,7 +45,7 @@ public class ExportServiceWireMockResource implements QuarkusTestResourceLifecyc
     wireMockServer = startWireMockServer();
     wireMockServer.resetAll();
     wireMockServer.stubFor(post(urlPathMatching("/app/export/.*")));
-    return Map.of("clowder.privateEndpoints.export-service-service.url", wireMockServer.baseUrl());
+    return Map.of("clowder.private-endpoints.export-service-service.url", wireMockServer.baseUrl());
   }
 
   @Override
