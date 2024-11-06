@@ -39,11 +39,7 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
-            schema:
-              type: string
-              format: binary
-          application/csv:
+          application/octet-stream:
             schema:
               type: string
               format: binary

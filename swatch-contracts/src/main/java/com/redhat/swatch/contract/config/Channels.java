@@ -30,6 +30,7 @@ public final class Channels {
   public static final String OFFERING_SYNC = "offering-sync";
   public static final String OFFERING_SYNC_TASK_TOPIC = "offering-sync-task";
   public static final String OFFERING_SYNC_TASK_UMB = "offering-sync-umb";
+  public static final String EXPORT_REQUESTS_TOPIC = "export-requests";
 
   private Channels() {}
 }

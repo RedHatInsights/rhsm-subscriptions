@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.resource;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
 import org.candlepin.subscriptions.resteasy.ResteasyConfiguration;
 import org.candlepin.subscriptions.tally.TallyWorkerConfiguration;
+import org.candlepin.subscriptions.tracing.TracingConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
 import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.context.annotation.ComponentScan;
@@ -50,6 +51,7 @@ import org.springframework.context.annotation.Profile;
 @Import({
   ResteasyConfiguration.class,
   RhsmSubscriptionsDataSourceConfiguration.class,
-  TallyWorkerConfiguration.class
+  TallyWorkerConfiguration.class,
+  TracingConfiguration.class
 })
 public class ApiConfiguration {}

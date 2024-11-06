@@ -123,6 +123,9 @@ spring:
       # the number of partitions on the queue)
       concurrency: ${KAFKA_MESSAGE_THREADS:1}
       idle-event-interval: ${KAFKA_IDLE_EVENT_INTERVAL:5s}
+      observation-enabled: true
+    template:
+      observation-enabled: true
     consumer:
       properties:
         # Required kafka defaults

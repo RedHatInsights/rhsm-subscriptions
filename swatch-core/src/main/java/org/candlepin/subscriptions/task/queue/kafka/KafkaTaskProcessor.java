@@ -48,7 +48,7 @@ public class KafkaTaskProcessor extends SeekableKafkaConsumer implements TaskCon
       TaskQueueProperties taskQueueProperties,
       KafkaConsumerRegistry kafkaConsumerRegistry) {
     super(taskQueueProperties, kafkaConsumerRegistry);
-    worker = new TaskWorker(taskFactory);
+    this.worker = new TaskWorker(taskFactory);
   }
 
   @KafkaListener(id = "#{__listener.groupId}", topics = "#{__listener.topic}")
