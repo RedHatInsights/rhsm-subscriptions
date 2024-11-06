@@ -20,19 +20,17 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
+import lombok.AllArgsConstructor;
 import org.candlepin.subscriptions.task.TaskFactory;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.queue.TaskConsumerFactory;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 
 /** Task consumer factory that creates consumers that read tasks from a kafka topic. */
+@AllArgsConstructor
 public class KafkaTaskConsumerFactory implements TaskConsumerFactory<KafkaTaskProcessor> {
 
   private final KafkaConsumerRegistry kafkaConsumerRegistry;
-
-  public KafkaTaskConsumerFactory(KafkaConsumerRegistry kafkaConsumerRegistry) {
-    this.kafkaConsumerRegistry = kafkaConsumerRegistry;
-  }
 
   @Override
   public KafkaTaskProcessor createTaskConsumer(

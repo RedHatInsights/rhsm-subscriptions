@@ -35,6 +35,7 @@ config/*
 !config/rabbitmq
 !config/splunk
 !config/export-service
+!config/wiremock
 config/export-service/tmp
 
 #VS Code
