@@ -24,6 +24,7 @@ import static com.redhat.swatch.contract.service.export.SubscriptionDataExporter
 import static com.redhat.swatch.export.ExportRequestHandler.ADMIN_ROLE;
 import static com.redhat.swatch.export.ExportRequestHandler.MISSING_PERMISSIONS;
 import static com.redhat.swatch.export.ExportRequestHandler.SWATCH_APP;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -67,8 +68,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import org.jboss.logmanager.LogContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -76,6 +82,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 @QuarkusTest
 @QuarkusTestResource(ExportServiceWireMockResource.class)
@@ -85,6 +92,7 @@ class SubscriptionDataExporterServiceTest {
   private static final String RHEL_FOR_X86 = "RHEL for x86";
   private static final String ROSA = "rosa";
   private static final String ORG_ID = "13259775";
+  private static final LoggerCaptor LOGGER_CAPTOR = new LoggerCaptor();
 
   @Inject SubscriptionRepository subscriptionRepository;
   @Inject SubscriptionCapacityViewRepository subscriptionCapacityViewRepository;
@@ -102,9 +110,17 @@ class SubscriptionDataExporterServiceTest {
   private GenericConsoleCloudEvent<ResourceRequest> request;
   private InMemorySource<String> exportChannel;
 
+  @BeforeAll
+  static void configureLogging() {
+    LogContext.getLogContext()
+        .getLogger(ExportRequestConsumer.class.getName())
+        .addHandler(LOGGER_CAPTOR);
+  }
+
   @Transactional
   @BeforeEach
   public void setup() {
+    wireMockResource.setup();
     exportChannel = connector.source(Channels.EXPORT_REQUESTS_TOPIC);
     parser = new ConsoleCloudEventParser(objectMapper);
 
@@ -246,6 +262,19 @@ class SubscriptionDataExporterServiceTest {
     givenExportRequestWithPermissions(Format.JSON);
     whenReceiveExportRequest();
     verifyRequestWasSentToExportService();
+  }
+
+  @Test
+  void testErrorWhenServiceReturnsTimeout() {
+    givenSubscriptionWithMeasurement(RHEL_FOR_X86);
+    givenExportRequestWithPermissions(Format.JSON);
+    givenExportServiceReturnsGatewayTimeout();
+    whenReceiveExportRequest();
+    thenErrorLogWithMessage("Error handling export request");
+  }
+
+  private void givenExportServiceReturnsGatewayTimeout() {
+    wireMockResource.mockRequestToReturnGatewayTimeout(request);
   }
 
   private void verifyRequestWasSentToExportService() {
@@ -435,6 +464,42 @@ class SubscriptionDataExporterServiceTest {
     } catch (JsonProcessingException e) {
       Assertions.fail("Failed to serialize the export data", e);
       return null;
+    }
+  }
+
+  private void thenErrorLogWithMessage(String str) {
+    Awaitility.await()
+        .untilAsserted(
+            () ->
+                assertTrue(
+                    LOGGER_CAPTOR.records.stream()
+                        .anyMatch(
+                            r ->
+                                r.getLevel().equals(Level.SEVERE)
+                                    && r.getMessage().contains(str))));
+  }
+
+  public static class LoggerCaptor extends Handler {
+
+    private final List<LogRecord> records = new ArrayList<>();
+
+    @Override
+    public void publish(LogRecord trace) {
+      records.add(trace);
+    }
+
+    @Override
+    public void flush() {
+      // no need to flush any sink
+    }
+
+    @Override
+    public void close() throws SecurityException {
+      clearRecords();
+    }
+
+    public void clearRecords() {
+      records.clear();
     }
   }
 }

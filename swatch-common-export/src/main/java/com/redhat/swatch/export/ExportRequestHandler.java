@@ -54,9 +54,10 @@ public class ExportRequestHandler {
     var request = new ExportServiceRequest(parser.fromJsonString(exportEvent));
     try {
       if (!request.hasRequest()) {
-        throw new ExportServiceException(
-            INTERNAL_ERROR, "Cloud event doesn't have any Export data: " + request.getId());
+        log.warn("Cloud event doesn't have any Export data: {}", request.getId());
+        return;
       }
+
       if (request.isRequestForApplication(SWATCH_APP)) {
         for (var service : exporterServices) {
           if (service.handles(request)) {

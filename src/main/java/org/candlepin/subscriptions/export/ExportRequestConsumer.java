@@ -55,7 +55,15 @@ public class ExportRequestConsumer extends SeekableKafkaConsumer {
       id = "#{__listener.groupId}",
       topics = "#{__listener.topic}",
       containerFactory = "exportListenerContainerFactory")
-  public void receive(String exportEvent) throws ExportServiceException {
-    exportService.handle(exportEvent);
+  public void receive(String exportEvent) {
+    try {
+      exportService.handle(exportEvent);
+    } catch (ExportServiceException ex) {
+      log.error(
+          "Error handling export request: {}. This request will be ignored. "
+              + "See the previous errors for further details",
+          exportEvent,
+          ex);
+    }
   }
 }
