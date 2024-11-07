@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
+import com.redhat.swatch.configuration.registry.Variant;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -80,10 +81,10 @@ import org.springframework.transaction.annotation.Transactional;
 @ExtendWith(OutputCaptureExtension.class)
 class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithEmbeddedKafka {
   static final String INSTANCE_ID = "i-123456";
-  static final String METRIC = "Cores";
   static final String USER_ID = "123";
   static final String ORG_ID = "owner" + USER_ID;
-  static final String PRODUCT_TAG = "rosa";
+  static final String ROSA = "rosa";
+  static final String ANSIBLE = "ansible-aap-managed";
   static final String PHYSICAL = "PHYSICAL";
 
   @Autowired TallySnapshotController controller;
@@ -102,14 +103,15 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
 
   OffsetDateTime start;
   OffsetDateTime end;
-  List<Event> events = new ArrayList<>();
   ExpectedReport expectedReport = new ExpectedReport();
+  ProductId product;
+  String serviceType;
+  String metric;
 
   @Transactional
   @BeforeEach
   public void setup() {
     expectedReport.clear();
-    events.clear();
   }
 
   /**
@@ -119,6 +121,7 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   @WithMockRedHatPrincipal(value = USER_ID)
   @Test
   void testProduceHourlySnapshotsForOrgFromEventsUpdatingTheSameBucket(CapturedOutput output) {
+    givenProduct(ROSA);
     givenOrgAndAccountInConfig();
     givenFiveDaysOfRangeForReport();
     // prevent retally
@@ -144,6 +147,7 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   @WithMockRedHatPrincipal(value = USER_ID)
   @Test
   void testProduceHourlySnapshotsForOrgFromEvents() {
+    givenProduct(ROSA);
     givenOrgAndAccountInConfig();
     givenFiveDaysOfRangeForReport();
     // prevent retally
@@ -153,23 +157,24 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
 
     whenProduceHourlySnapshotsForOrg();
 
-    assertTallyReportData();
+    assertDailyTallyReportData();
 
     givenEventAtDay(4, 10.0);
     whenProduceHourlySnapshotsForOrg();
-    assertTallyReportData();
+    assertDailyTallyReportData();
 
     // Process an amendment.
     givenEventAtDay(1, -78.4390);
     givenEventAtDay(1, 100.0);
     whenProduceHourlySnapshotsForOrg();
-    assertTallyReportData();
+    assertDailyTallyReportData();
   }
 
   @WithMockRedHatPrincipal(value = USER_ID)
   @ParameterizedTest
   @CsvSource(value = {"83,rhel-for-x86-ha", "90,rhel-for-x86-rs", "389,rhel-for-sap-x86"})
   void testProduceSnapshotsForOrgFromHostsPartOfHbi(String engId, String product) {
+    givenProduct(ROSA);
     givenOrgAndAccountInConfig();
     UUID inventoryId = givenInventoryHostWithProductIds(engId);
 
@@ -178,15 +183,25 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
     assertAllHostTallyBucketsHaveExpectedProduct(inventoryId, product);
   }
 
-  private void assertAllHostTallyBucketsHaveExpectedProduct(
-      UUID inventoryId, String expectedProduct) {
-    List<HostTallyBucket> allHostTallyBuckets = new ArrayList<>();
-    hostTallyBucketRepository.findAll().forEach(allHostTallyBuckets::add);
-    assertFalse(allHostTallyBuckets.isEmpty());
-    assertTrue(
-        allHostTallyBuckets.stream()
-            .filter(h -> inventoryId.equals(h.getKey().getHostId()))
-            .allMatch(h -> expectedProduct.equals(h.getKey().getProductId())));
+  @WithMockRedHatPrincipal(value = USER_ID)
+  @Test
+  void testAnsibleTallyReportWithGranularityHourly() {
+    givenProduct(ANSIBLE);
+    givenOrgAndAccountInConfig();
+    givenFiveDaysOfRangeForReport();
+    givenExistingHostInformation();
+    givenEventAtDay(1, 2, Event.Sla.STANDARD);
+
+    whenProduceHourlySnapshotsForOrg();
+
+    assertHourlyTallyReportData();
+  }
+
+  private void givenProduct(String productTag) {
+    Variant variant = Variant.findByTag(productTag).orElseThrow();
+    this.product = ProductId.fromString(productTag);
+    this.serviceType = variant.getSubscription().getServiceType();
+    this.metric = variant.getSubscription().getMetrics().iterator().next().getId();
   }
 
   private UUID givenInventoryHostWithProductIds(String... productIds) {
@@ -215,8 +230,7 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
 
   private void givenOrgAndAccountInConfig() {
     optInResource.putOptInConfig();
-    tallyStateRepository.save(
-        new TallyState(ResourceUtils.getOrgId(), "rosa Instance", clock.now()));
+    tallyStateRepository.save(new TallyState(ResourceUtils.getOrgId(), serviceType, clock.now()));
   }
 
   private void givenExistingHostInformation() {
@@ -224,9 +238,9 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
     host.setOrgId(ORG_ID);
     host.setInstanceId("1c474d4e-c277-472c-94ab-8229a40417eb");
     host.setDisplayName("name");
-    host.setInstanceType("rosa Instance");
+    host.setInstanceType(serviceType);
     host.setLastSeen(clock.startOfCurrentMonth().minusMonths(1));
-    AccountServiceInventory service = new AccountServiceInventory(ORG_ID, "rosa Instance");
+    AccountServiceInventory service = new AccountServiceInventory(ORG_ID, serviceType);
     service.getServiceInstances().put(host.getInstanceId(), host);
     accountServiceInventoryRepository.save(service);
   }
@@ -241,21 +255,20 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
     event.setTimestamp(start.plusDays(dayAt));
     event.setSla(sla);
     event.setRole(Event.Role.MOA_HOSTEDCONTROLPLANE);
-    event.setProductTag(Set.of(PRODUCT_TAG));
+    event.setProductTag(Set.of(product.getValue()));
     event.setOrgId(ORG_ID);
-    event.setEventType("snapshot_" + METRIC.toLowerCase() + "_" + PRODUCT_TAG.toLowerCase());
+    event.setEventType("snapshot_" + metric.toLowerCase() + "_" + product.getValue().toLowerCase());
     event.setInstanceId(INSTANCE_ID);
     event.setEventSource("any");
     event.setExpiration(Optional.of(event.getTimestamp().plusHours(5)));
     event.setMeasurements(List.of(measurement(value)));
-    event.setServiceType("rosa Instance");
+    event.setServiceType(serviceType);
     event.setBillingProvider(Event.BillingProvider.AWS);
     event.setBillingAccountId(Optional.of("mktp-123"));
 
     eventRecordRepository.save(new EventRecord(event));
 
-    events.add(event);
-    expectedReport.applyEvent(event);
+    expectedReport.addEvent(event);
   }
 
   private void whenProduceSnapshotsForOrg() {
@@ -266,12 +279,20 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
     controller.produceHourlySnapshotsForOrg(ORG_ID);
   }
 
-  private void assertTallyReportData() {
+  private void assertHourlyTallyReportData() {
+    assertTallyReportData(GranularityType.HOURLY);
+  }
+
+  private void assertDailyTallyReportData() {
+    assertTallyReportData(GranularityType.DAILY);
+  }
+
+  private void assertTallyReportData(GranularityType granularity) {
     TallyReportData report =
         tallyResource.getTallyReportData(
-            ProductId.fromString(PRODUCT_TAG),
-            MetricId.fromString(METRIC),
-            GranularityType.DAILY,
+            product,
+            MetricId.fromString(metric),
+            granularity,
             start,
             end,
             null,
@@ -284,30 +305,37 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
             true,
             null);
 
-    expectedReport.assertReport(report);
+    expectedReport.assertReport(granularity, report);
+  }
+
+  private void assertAllHostTallyBucketsHaveExpectedProduct(
+      UUID inventoryId, String expectedProduct) {
+    List<HostTallyBucket> allHostTallyBuckets = new ArrayList<>();
+    hostTallyBucketRepository.findAll().forEach(allHostTallyBuckets::add);
+    assertFalse(allHostTallyBuckets.isEmpty());
+    assertTrue(
+        allHostTallyBuckets.stream()
+            .filter(h -> inventoryId.equals(h.getKey().getHostId()))
+            .allMatch(h -> expectedProduct.equals(h.getKey().getProductId())));
   }
 
   private Measurement measurement(Double value) {
     Measurement measurement = new Measurement();
-    measurement.setMetricId(METRIC);
+    measurement.setMetricId(metric);
     measurement.setValue(value);
     return measurement;
   }
 
   private class ExpectedReport {
-    private final Map<OffsetDateTime, Measurement> measurementsByDate = new HashMap<>();
+    private final List<Event> rawEvents = new ArrayList<>();
 
-    public void applyEvent(Event event) {
-      // For now tests are against Daily report, so track by start of day.
-      OffsetDateTime timestamp = clock.startOfDay(event.getTimestamp());
-      Measurement current = measurementsByDate.getOrDefault(timestamp, measurement(0.0));
-      measurementsByDate.put(timestamp, current);
-      event.getMeasurements().stream()
-          .filter(m -> m.getMetricId().equals(METRIC))
-          .forEach(m -> current.setValue(current.getValue() + m.getValue()));
+    public void addEvent(Event event) {
+      rawEvents.add(event);
     }
 
-    public void assertReport(TallyReportData report) {
+    public void assertReport(GranularityType granularity, TallyReportData report) {
+      Map<OffsetDateTime, Measurement> measurementsByDate = groupsEventsByGranularity(granularity);
+
       int nextValue = 0;
       for (var point : report.getData()) {
         if (measurementsByDate.containsKey(point.getDate())) {
@@ -326,11 +354,35 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
       }
 
       // assert days, end day is inclusive, so we need to add one day more.
-      assertEquals((int) Duration.between(start, end).toDays() + 1, report.getMeta().getCount());
+      Duration duration = Duration.between(start, end);
+      if (granularity == GranularityType.DAILY) {
+        assertEquals((int) duration.toDays() + 1, report.getMeta().getCount());
+      } else if (granularity == GranularityType.HOURLY) {
+        assertEquals((int) duration.toHours() + 1, report.getMeta().getCount());
+      }
     }
 
     public void clear() {
-      measurementsByDate.clear();
+      rawEvents.clear();
+    }
+
+    private Map<OffsetDateTime, Measurement> groupsEventsByGranularity(
+        GranularityType granularity) {
+      Map<OffsetDateTime, Measurement> measurementsByDate = new HashMap<>();
+      for (Event event : rawEvents) {
+        OffsetDateTime timestamp = event.getTimestamp();
+        if (granularity == GranularityType.DAILY) {
+          timestamp = clock.startOfDay(event.getTimestamp());
+        }
+
+        Measurement current = measurementsByDate.getOrDefault(timestamp, measurement(0.0));
+        measurementsByDate.put(timestamp, current);
+        event.getMeasurements().stream()
+            .filter(m -> m.getMetricId().equals(metric))
+            .forEach(m -> current.setValue(current.getValue() + m.getValue()));
+      }
+
+      return measurementsByDate;
     }
   }
 }
