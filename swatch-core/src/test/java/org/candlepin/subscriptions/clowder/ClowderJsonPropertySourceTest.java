@@ -44,7 +44,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.web.context.support.StandardServletEnvironment;
 
 @ContextConfiguration
-class ClowderJsonPathPropertySourceTest {
+class ClowderJsonPropertySourceTest {
   public static final String TEST_CLOWDER_CONFIG_JSON = "classpath:/test-clowder-config.json";
 
   private final ConfigurableEnvironment environment = new StandardEnvironment();
@@ -69,11 +69,11 @@ class ClowderJsonPathPropertySourceTest {
     MapPropertySource custom = getPropertySource("custom", "custom");
     environment.getPropertySources().addFirst(custom);
 
-    var clowder = new ClowderJsonPathPropertySource(jsonFromResource(TEST_CLOWDER_CONFIG_JSON));
-    clowder.addToEnvironment(environment, logFactory.getLog(ClowderJsonPathPropertySource.class));
+    var clowder = new ClowderJsonPropertySource(jsonFromResource(TEST_CLOWDER_CONFIG_JSON));
+    clowder.addToEnvironment(environment, logFactory.getLog(ClowderJsonPropertySource.class));
 
     PropertySource<?> json =
-        environment.getPropertySources().get(ClowderJsonPathPropertySource.PROPERTY_SOURCE_NAME);
+        environment.getPropertySources().get(ClowderJsonPropertySource.PROPERTY_SOURCE_NAME);
 
     // The "custom" property source should supersede the Clowder source in precedence.
     assertEquals("custom", environment.getProperty("clowder.database.name"));
@@ -102,7 +102,7 @@ class ClowderJsonPathPropertySourceTest {
   @Test
   void testKafkaBrokersPropertyWhenNoBrokersConfiguration() throws Exception {
     var source =
-        new ClowderJsonPathPropertySource(
+        new ClowderJsonPropertySource(
             jsonFromResource("classpath:/test-clowder-config-without-brokers.json"));
     var result = source.getProperty("clowder.kafka.brokers");
     assertNull(result);
@@ -128,7 +128,7 @@ class ClowderJsonPathPropertySourceTest {
       },
       delimiter = '|')
   void testCustomLogicInProperties(String property, String expectedValue) throws Exception {
-    var source = new ClowderJsonPathPropertySource(jsonFromResource(TEST_CLOWDER_CONFIG_JSON));
+    var source = new ClowderJsonPropertySource(jsonFromResource(TEST_CLOWDER_CONFIG_JSON));
     var result = source.getProperty(property);
     assertTrue(
         Pattern.matches(expectedValue, (String) result),
@@ -141,8 +141,8 @@ class ClowderJsonPathPropertySourceTest {
         .getPropertySources()
         .addFirst(getPropertySource(servletContextPropertySourceName, "servlet"));
 
-    var clowder = new ClowderJsonPathPropertySource(jsonFromResource(TEST_CLOWDER_CONFIG_JSON));
-    clowder.addToEnvironment(environment, logFactory.getLog(ClowderJsonPathPropertySource.class));
+    var clowder = new ClowderJsonPropertySource(jsonFromResource(TEST_CLOWDER_CONFIG_JSON));
+    clowder.addToEnvironment(environment, logFactory.getLog(ClowderJsonPropertySource.class));
 
     assertEquals("swatch-tally-db", environment.getProperty("clowder.database.name"));
   }

@@ -56,8 +56,17 @@ public class CertInfoContributor implements InfoContributor {
       if (Objects.nonNull(store)) {
         String filename = store.getFilename();
         if (Objects.nonNull(filename) && !filename.isBlank()) {
+          /* The ${clowder.endpoints...trust-store-path property is actually a synthetic property created by our
+           * ClowderJsonPropertySource for the endpoints.  The value is based off of a Java truststore we create from the
+           * path given in tlsCACert and the presence of a tlsPort key in the endpoint section.  Since tlsCACert or tlsPort
+           * isn't always present, the trust-store-path might not resolve to an actual path name. */
+          if ((filename.startsWith("${clowder.endpoints")
+                  || filename.startsWith("${clowder.privateEndpoints"))
+              && filename.endsWith("trust-store-path}")) {
+            return Map.of("Unresolved clowder config value: " + filename, Collections.emptyMap());
+          }
           if (!store.isReadable()) {
-            return Map.of(store.getFilename() + " not readable", Collections.emptyMap());
+            return Map.of(filename + " not readable", Collections.emptyMap());
           }
           return CertInfoInquisitor.loadStoreInfo(store, password);
         }
