@@ -2,9 +2,19 @@
 // gradle config common to all swatch java projects
 plugins {
     id "java"
+    id "idea"
     id "com.diffplug.spotless"
     id 'com.adarshr.test-logger'
     id 'jacoco'
+}
+
+idea {
+    module {
+        downloadSources = true
+        // Do not index the bin directories that IntelliJ drops its .class files and copies resource files to
+        // See https://docs.gradle.org/current/dsl/org.gradle.plugins.ide.idea.model.IdeaModule.html
+        excludeDirs += file("bin")
+    }
 }
 
 repositories {
