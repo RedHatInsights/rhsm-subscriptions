@@ -139,12 +139,6 @@ public class SubscriptionDefinition {
         .collect(Collectors.toSet());
   }
 
-  public static boolean isPrometheusEnabled(@NotNull @NotEmpty String tag) {
-    return lookupSubscriptionByTag(tag).filter(SubscriptionDefinition::isPrometheusEnabled).stream()
-        .findFirst()
-        .isPresent();
-  }
-
   public boolean isPrometheusEnabled() {
     return this.getMetrics().stream().anyMatch(metric -> Objects.nonNull(metric.getPrometheus()));
   }
@@ -164,7 +158,7 @@ public class SubscriptionDefinition {
   }
 
   public SubscriptionDefinitionGranularity getFinestGranularity() {
-    return this.isPrometheusEnabled()
+    return this.isPaygEligible()
         ? SubscriptionDefinitionGranularity.HOURLY
         : SubscriptionDefinitionGranularity.DAILY;
   }
@@ -173,7 +167,7 @@ public class SubscriptionDefinition {
     List<SubscriptionDefinitionGranularity> granularity =
         new ArrayList<>(List.of(SubscriptionDefinitionGranularity.values()));
 
-    if (!isPrometheusEnabled()) {
+    if (!isPaygEligible()) {
       granularity.remove(SubscriptionDefinitionGranularity.HOURLY);
     }
 
