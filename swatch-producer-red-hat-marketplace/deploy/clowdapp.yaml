@@ -247,6 +247,8 @@ objects:
               value: ${LOGGING_LEVEL_ROOT}
             - name: LOGGING_LEVEL_ORG_CANDLEPIN
               value: ${LOGGING_LEVEL}
+            - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
+              value: ${LOGGING_LEVEL}
             - name: LOGGING_SHOW_SQL_QUERIES
               value: ${LOGGING_SHOW_SQL_QUERIES}
             - name: KAFKA_MESSAGE_THREADS

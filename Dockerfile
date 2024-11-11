@@ -42,6 +42,11 @@ RUN microdnf \
     --disablerepo=* \
     --enablerepo=ubi-9-baseos-rpms \
     install -y tar rsync
+RUN microdnf \
+  --disablerepo=* \
+  --enablerepo=ubi-9-appstream-rpms \
+  --enablerepo=ubi-9-baseos-rpms \
+  update -y
 
 # TODO: Investigate layertools? See https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#container-images.efficient-images.layering
 # and https://spring.io/guides/topicals/spring-boot-docker/#_spring_boot_layer_index

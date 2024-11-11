@@ -214,6 +214,8 @@ objects:
               value: ${LOGGING_LEVEL_ROOT}
             - name: LOGGING_LEVEL_ORG_CANDLEPIN
               value: ${LOGGING_LEVEL}
+            - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
+              value: ${LOGGING_LEVEL}
             - name: KAFKA_TASK_GROUP
               value: platform.rhsm-conduit.tasks
             - name: KAFKA_MESSAGE_THREADS
