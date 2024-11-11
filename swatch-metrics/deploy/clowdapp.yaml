@@ -227,6 +227,8 @@ objects:
                 value: ${LOGGING_LEVEL_ROOT}
               - name: LOGGING_LEVEL_ORG_CANDLEPIN
                 value: ${LOGGING_LEVEL}
+              - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
+                value: ${LOGGING_LEVEL}
               - name: KAFKA_MESSAGE_THREADS
                 value: ${KAFKA_MESSAGE_THREADS}
               - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
@@ -423,6 +425,8 @@ objects:
               - name: LOGGING_LEVEL_ROOT
                 value: ${LOGGING_LEVEL_ROOT}
               - name: LOGGING_LEVEL_ORG_CANDLEPIN
+                value: ${METRICS_RHEL_LOGGING_LEVEL}
+              - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
                 value: ${METRICS_RHEL_LOGGING_LEVEL}
               - name: KAFKA_MESSAGE_THREADS
                 value: ${KAFKA_MESSAGE_THREADS}
