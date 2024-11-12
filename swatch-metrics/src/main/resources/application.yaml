@@ -25,7 +25,6 @@ DISABLE_OTEL: true
   HOST_NAME: ${USER}@${HOSTNAME}
   SPLUNKMETA_namespace: local
   SPLUNK_HEC_INCLUDE_EX: true
-  SPLUNK_DISABLE_CERTIFICATE_VALIDATION: true
   CORS_ORIGINS: /.*/
 
 # set the test profile properties to the same values as dev; these get activated for @QuarkusTest
