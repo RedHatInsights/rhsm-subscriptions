@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import org.hibernate.validator.messageinterpolation.ParameterMessageInterpolator;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -61,7 +62,11 @@ class SubscriptionDefinitionRegistryTest {
 
   @Test
   void testValidations() {
-    try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
+    try (ValidatorFactory factory =
+        Validation.byDefaultProvider()
+            .configure()
+            .messageInterpolator(new ParameterMessageInterpolator())
+            .buildValidatorFactory()) {
       var validator = factory.getValidator();
       for (var definition : subscriptionDefinitionRegistry.getSubscriptions()) {
         var violations = validator.validate(definition);
