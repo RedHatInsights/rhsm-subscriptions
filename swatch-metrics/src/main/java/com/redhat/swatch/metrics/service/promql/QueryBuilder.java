@@ -22,6 +22,7 @@ package com.redhat.swatch.metrics.service.promql;
 
 import com.redhat.swatch.metrics.configuration.MetricProperties;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -52,11 +53,7 @@ public class QueryBuilder {
           descriptor -> descriptor.getMetric().getPrometheus().getQueryKey());
   private static final String KEY_VALUE_CLOSE_TAG = "]}";
 
-  private final MetricProperties metricProperties;
-
-  public QueryBuilder(MetricProperties metricProperties) {
-    this.metricProperties = metricProperties;
-  }
+  @Inject MetricProperties metricProperties;
 
   public String build(QueryDescriptor queryDescriptor) {
     String templateKey = queryDescriptor.getMetric().getPrometheus().getQueryKey();

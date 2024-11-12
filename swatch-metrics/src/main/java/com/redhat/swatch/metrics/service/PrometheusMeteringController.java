@@ -42,6 +42,7 @@ import io.micrometer.core.instrument.Timer.Sample;
 import io.micrometer.core.instrument.binder.BaseUnits;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -72,30 +73,16 @@ public class PrometheusMeteringController {
   private static final String PROMETHEUS_QUERY_PARAM_INSTANCE_KEY = "instanceKey";
   private static final String PRODUCT_TAG = "productTag";
 
-  private final PrometheusService prometheusService;
-  private final EmitterService<Event> emitter;
-  private final ApplicationClock clock;
-  private final MetricProperties metricProperties;
-  private final SpanGenerator spanGenerator;
-  private final QueryBuilder prometheusQueryBuilder;
-  private final MeterRegistry registry;
+  @Inject PrometheusService prometheusService;
 
-  public PrometheusMeteringController(
-      PrometheusService prometheusService,
-      ApplicationClock clock,
-      MetricProperties metricProperties,
-      SpanGenerator spanGenerator,
-      QueryBuilder prometheusQueryBuilder,
-      MeterRegistry registry,
-      @Channel("events-out") Emitter<Event> emitter) {
-    this.prometheusService = prometheusService;
-    this.clock = clock;
-    this.metricProperties = metricProperties;
-    this.spanGenerator = spanGenerator;
-    this.prometheusQueryBuilder = prometheusQueryBuilder;
-    this.registry = registry;
-    this.emitter = new EmitterService<>(emitter);
-  }
+  @Channel("events-out")
+  Emitter<Event> emitter;
+
+  @Inject ApplicationClock clock;
+  @Inject MetricProperties metricProperties;
+  @Inject SpanGenerator spanGenerator;
+  @Inject QueryBuilder prometheusQueryBuilder;
+  @Inject MeterRegistry registry;
 
   public void collectMetrics(
       String tag, MetricId metric, String orgId, OffsetDateTime start, OffsetDateTime end) {
@@ -382,7 +369,7 @@ public class PrometheusMeteringController {
 
     OutgoingKafkaRecordMetadata<?> metadata =
         OutgoingKafkaRecordMetadata.builder().withKey(event.getOrgId()).build();
-    emitter.send(Message.of(event).addMetadata(metadata));
+    new EmitterService<>(emitter).send(Message.of(event).addMetadata(metadata));
   }
 
   private String buildPromQLForMetering(String orgId, Metric tagMetric) {

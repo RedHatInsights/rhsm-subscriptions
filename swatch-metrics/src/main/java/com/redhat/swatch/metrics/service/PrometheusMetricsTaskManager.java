@@ -28,6 +28,7 @@ import com.redhat.swatch.metrics.configuration.MetricProperties;
 import com.redhat.swatch.metrics.model.MetricsTaskDescriptor;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.stream.Stream;
@@ -42,24 +43,13 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 @ApplicationScoped
 public class PrometheusMetricsTaskManager {
 
-  private final PrometheusAccountSource accountSource;
-  private final ApplicationClock clock;
-  private final MetricProperties metricProperties;
-  private final ApplicationConfiguration applicationConfiguration;
-  private final Emitter<MetricsTaskDescriptor> emitter;
+  @Inject PrometheusAccountSource accountSource;
+  @Inject ApplicationClock clock;
+  @Inject MetricProperties metricProperties;
+  @Inject ApplicationConfiguration applicationConfiguration;
 
-  public PrometheusMetricsTaskManager(
-      PrometheusAccountSource accountSource,
-      ApplicationClock clock,
-      MetricProperties metricProperties,
-      ApplicationConfiguration applicationConfiguration,
-      @Channel("tasks-out") Emitter<MetricsTaskDescriptor> emitter) {
-    this.accountSource = accountSource;
-    this.clock = clock;
-    this.metricProperties = metricProperties;
-    this.applicationConfiguration = applicationConfiguration;
-    this.emitter = emitter;
-  }
+  @Channel("tasks-out")
+  Emitter<MetricsTaskDescriptor> emitter;
 
   public void updateMetricsForOrgId(
       String orgId, String productTag, OffsetDateTime start, OffsetDateTime end) {

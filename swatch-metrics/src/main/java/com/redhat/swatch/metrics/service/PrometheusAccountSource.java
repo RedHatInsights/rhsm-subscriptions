@@ -28,6 +28,7 @@ import com.redhat.swatch.metrics.service.prometheus.PrometheusService;
 import com.redhat.swatch.metrics.service.promql.QueryBuilder;
 import com.redhat.swatch.metrics.service.promql.QueryDescriptor;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.Optional;
@@ -40,16 +41,9 @@ import org.apache.commons.lang3.StringUtils;
 @ApplicationScoped
 public class PrometheusAccountSource {
 
-  private final PrometheusService service;
-  private final MetricProperties metricProperties;
-  private final QueryBuilder queryBuilder;
-
-  public PrometheusAccountSource(
-      PrometheusService service, MetricProperties metricProperties, QueryBuilder queryBuilder) {
-    this.service = service;
-    this.metricProperties = metricProperties;
-    this.queryBuilder = queryBuilder;
-  }
+  @Inject PrometheusService service;
+  @Inject MetricProperties metricProperties;
+  @Inject QueryBuilder queryBuilder;
 
   public Set<String> getMarketplaceAccounts(
       String productTag, MetricId metric, OffsetDateTime start, OffsetDateTime end) {

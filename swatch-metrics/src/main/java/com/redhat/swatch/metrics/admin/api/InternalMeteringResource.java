@@ -28,6 +28,7 @@ import com.redhat.swatch.metrics.configuration.MetricProperties;
 import com.redhat.swatch.metrics.service.PrometheusMeteringController;
 import com.redhat.swatch.metrics.service.PrometheusMetricsTaskManager;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.BadRequestException;
@@ -44,24 +45,11 @@ import org.candlepin.clock.ApplicationClock;
 public class InternalMeteringResource implements DefaultApi {
 
   @Context SecurityContext securityContext;
-  private final PrometheusMetricsTaskManager tasks;
-  private final PrometheusMeteringController controller;
-  private final MetricProperties metricProperties;
-  private final ApplicationConfiguration applicationConfiguration;
-  private final ApplicationClock clock;
-
-  public InternalMeteringResource(
-      PrometheusMetricsTaskManager tasks,
-      PrometheusMeteringController controller,
-      MetricProperties metricProperties,
-      ApplicationConfiguration applicationConfiguration,
-      ApplicationClock clock) {
-    this.tasks = tasks;
-    this.controller = controller;
-    this.metricProperties = metricProperties;
-    this.clock = clock;
-    this.applicationConfiguration = applicationConfiguration;
-  }
+  @Inject PrometheusMetricsTaskManager tasks;
+  @Inject PrometheusMeteringController controller;
+  @Inject MetricProperties metricProperties;
+  @Inject ApplicationConfiguration applicationConfiguration;
+  @Inject ApplicationClock clock;
 
   @Override
   public void syncMetricsForAllAccounts() {
