@@ -24,7 +24,9 @@ import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.status;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 
@@ -32,6 +34,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequest;
 import com.redhat.cloud.event.parser.GenericConsoleCloudEvent;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import java.util.Map;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
@@ -43,8 +46,7 @@ public class ExportServiceWireMockResource implements QuarkusTestResourceLifecyc
   @Override
   public Map<String, String> start() {
     wireMockServer = startWireMockServer();
-    wireMockServer.resetAll();
-    wireMockServer.stubFor(post(urlPathMatching("/app/export/.*")));
+    setup();
     return Map.of("clowder.private-endpoints.export-service-service.url", wireMockServer.baseUrl());
   }
 
@@ -62,6 +64,11 @@ public class ExportServiceWireMockResource implements QuarkusTestResourceLifecyc
         this,
         new TestInjector.AnnotatedAndMatchesType(
             InjectWireMock.class, ExportServiceWireMockResource.class));
+  }
+
+  public void setup() {
+    wireMockServer.resetAll();
+    wireMockServer.stubFor(post(urlPathMatching("/app/export/.*")));
   }
 
   public void verifyNoRequestsWereSentToExportServiceWithError(
@@ -116,6 +123,16 @@ public class ExportServiceWireMockResource implements QuarkusTestResourceLifecyc
                                     request.getData().getResourceRequest().getExportRequestUUID(),
                                     request.getData().getResourceRequest().getUUID())))
                         .withRequestBody(equalTo(expected))));
+  }
+
+  public void mockRequestToReturnGatewayTimeout(GenericConsoleCloudEvent<ResourceRequest> request) {
+    wireMockServer.stubFor(
+        post(urlMatching(
+                String.format(
+                    "/app/export/v1/%s/subscriptions/%s/.*",
+                    request.getData().getResourceRequest().getExportRequestUUID(),
+                    request.getData().getResourceRequest().getUUID())))
+            .willReturn(status(HttpResponseStatus.GATEWAY_TIMEOUT.code())));
   }
 
   private static WireMockServer startWireMockServer() {
