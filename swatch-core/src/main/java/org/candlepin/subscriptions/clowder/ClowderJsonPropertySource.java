@@ -44,16 +44,18 @@ import org.springframework.util.ClassUtils;
 import org.springframework.web.context.support.StandardServletEnvironment;
 
 /**
- * Property source that attempts to resolve properties against the Clowder JSON using JSON Path.
- * This class resolves any property starting with "clowder.". Everything after the "clowder." prefix
- * is evaluated by using the following patterns:
+ * Property source that attempts to resolve properties against the Clowder JSON. This class resolves
+ * any property starting with "clowder.". Everything after the "clowder." prefix is evaluated by
+ * using the following patterns:
  *
  * <ul>
  *   <li>clowder.kafka.brokers
  *   <li>clowder.kafka.brokers.(sasl.securityProtocol|sasl.mechanism|sasl.jaas.config|cacert|cacert.type)
  *   <li>clowder.kafka.topics.<topics[?].requestedName(*)>.name
- *   <li>clowder.endpoints.<endpoints[?].app>-<endpoints[?].name>.(url|trust-store-path|trust-store-password|trust-store-type).
- *       For example: "clowder.endpoints.index-service.url"
+ *   <li>clowder.endpoints.<endpoints[?].app>-<endpoints[?].name>.url For example:
+ *       "clowder.endpoints.index-service.url"
+ *   <li>clowder.endpoints.<endpoints[?].app>-<endpoints[?].name>.(trust-store-path|trust-store-password|trust-store-type)
+ *       are special synthetic properties that are generated based on the clowder.tlsCAPath
  *   <li>clowder.privateEndpoints.<privateEndpoints[?].app(*)>-<privateEndpoints[?].name(*)>.(url|trust-store-path|trust-store-password|trust-store-type).
  *       For example: "clowder.privateEndpoints.index-service.url"
  *   <li>When there is no matching rule from above, we navigate from (*) and extract the string
@@ -66,7 +68,7 @@ import org.springframework.web.context.support.StandardServletEnvironment;
  */
 @EqualsAndHashCode(callSuper = true)
 @Slf4j
-public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
+public class ClowderJsonPropertySource extends PropertySource<ClowderJson>
     implements OriginLookup<String> {
 
   public static final String PROPERTY_SOURCE_NAME = "Clowder JSON";
@@ -75,8 +77,8 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
   private static final String KAFKA_TOPICS = "kafka.topics";
   private static final String ENDPOINTS = "endpoints";
   private static final String PRIVATE_ENDPOINTS = "privateEndpoints";
-  private static final Integer PORT_NOT_SET = 0;
   private static final String ENDPOINT_TLS_PORT_PROPERTY = "tlsPort";
+  private static final Integer PORT_NOT_SET = 0;
 
   /**
    * Custom rules for kafka broker property binding where the key is the suffix of the clowder
@@ -89,25 +91,30 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
    */
   private static final Map<String, KafkaBrokerConfigMapper> KAFKA_BROKERS_PROPERTIES =
       Map.of(
-          "", ClowderJsonPathPropertySource::kafkaBrokerToBootstrapServer,
-          ".sasl.securityProtocol",
-              ClowderJsonPathPropertySource::kafkaBrokerToSaslSecurityProtocol,
-          ".sasl.mechanism", ClowderJsonPathPropertySource::kafkaBrokerToSaslMechanism,
-          ".sasl.jaas.config", ClowderJsonPathPropertySource::kafkaBrokerToSaslJaasConfig,
-          ".cacert", ClowderJsonPathPropertySource::kafkaBrokerToCaCert,
-          ".cacert.type", ClowderJsonPathPropertySource::kafkaBrokerToCaCertType);
+          "", ClowderJsonPropertySource::kafkaBrokerToBootstrapServer,
+          ".sasl.securityProtocol", ClowderJsonPropertySource::kafkaBrokerToSaslSecurityProtocol,
+          ".sasl.mechanism", ClowderJsonPropertySource::kafkaBrokerToSaslMechanism,
+          ".sasl.jaas.config", ClowderJsonPropertySource::kafkaBrokerToSaslJaasConfig,
+          ".cacert", ClowderJsonPropertySource::kafkaBrokerToCaCert,
+          ".cacert.type", ClowderJsonPropertySource::kafkaBrokerToCaCertType);
 
   /** Custom rules to configure the Kafka topics using clowder file. */
   private static final Map<String, KafkaTopicConfigMapper> KAFKA_TOPICS_PROPERTIES =
-      Map.of(".name", ClowderJsonPathPropertySource::kafkaTopicToName);
+      Map.of(".name", ClowderJsonPropertySource::kafkaTopicToName);
 
-  /** Custom rules to configure rest-clients using clowder file. */
+  /**
+   * Custom rules to configure rest-clients using clowder file. <a
+   * href="https://inscope.corp.redhat.com/docs/default/component/clowder/api_ref">The Clowder
+   * configuration</a> does not have actual properties for endpoint level truststore information.
+   * What we are doing here is creating phoney entries that actually link to a constructed keystore
+   * that we build from the Clowder provided value for tlsCAPath
+   */
   private static final Map<String, EndpointConfigMapper> ENDPOINTS_PROPERTIES =
       Map.of(
-          ".url", ClowderJsonPathPropertySource::endpointToUrl,
-          ".trust-store-path", ClowderJsonPathPropertySource::endpointToTrustStorePath,
-          ".trust-store-password", ClowderJsonPathPropertySource::endpointToTrustStorePassword,
-          ".trust-store-type", ClowderJsonPathPropertySource::endpointToTrustStoreType);
+          ".url", ClowderJsonPropertySource::endpointToUrl,
+          ".trust-store-path", ClowderJsonPropertySource::endpointToTrustStorePath,
+          ".trust-store-password", ClowderJsonPropertySource::endpointToTrustStorePassword,
+          ".trust-store-type", ClowderJsonPropertySource::endpointToTrustStoreType);
 
   private final Map<String, Function<String, Object>> handledPropertyStrategies =
       Map.of(
@@ -132,11 +139,11 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
 
   private ClowderTrustStoreConfiguration trustStoreConfiguration;
 
-  public ClowderJsonPathPropertySource(ClowderJson source) {
+  public ClowderJsonPropertySource(ClowderJson source) {
     super(PROPERTY_SOURCE_NAME, source);
   }
 
-  public ClowderJsonPathPropertySource() throws IOException {
+  public ClowderJsonPropertySource() throws IOException {
     super(PROPERTY_SOURCE_NAME, new ClowderJson());
   }
 
@@ -337,7 +344,7 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
   }
 
   public static Object endpointToUrl(
-      ClowderJsonPathPropertySource root, Map<String, Object> endpointConfig) {
+      ClowderJsonPropertySource root, Map<String, Object> endpointConfig) {
     String protocol = "http";
     Object hostName = endpointConfig.get("hostname");
     Object port = endpointConfig.get("port");
@@ -352,7 +359,7 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
   }
 
   public static Object endpointToTrustStorePath(
-      ClowderJsonPathPropertySource root, Map<String, Object> endpointConfig) {
+      ClowderJsonPropertySource root, Map<String, Object> endpointConfig) {
     if (endpointUsesTls(endpointConfig)) {
       return "file:" + root.getTruststorePath();
     }
@@ -361,7 +368,7 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
   }
 
   public static Object endpointToTrustStorePassword(
-      ClowderJsonPathPropertySource root, Map<String, Object> endpointConfig) {
+      ClowderJsonPropertySource root, Map<String, Object> endpointConfig) {
     if (endpointUsesTls(endpointConfig)) {
       return root.getTruststorePassword();
     }
@@ -370,7 +377,7 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
   }
 
   public static Object endpointToTrustStoreType(
-      ClowderJsonPathPropertySource root, Map<String, Object> endpointConfig) {
+      ClowderJsonPropertySource root, Map<String, Object> endpointConfig) {
     if (endpointUsesTls(endpointConfig)) {
       return root.getTruststoreType();
     }
@@ -563,5 +570,5 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
 
   @FunctionalInterface
   private interface EndpointConfigMapper
-      extends BiFunction<ClowderJsonPathPropertySource, Map<String, Object>, Object> {}
+      extends BiFunction<ClowderJsonPropertySource, Map<String, Object>, Object> {}
 }

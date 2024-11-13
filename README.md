@@ -209,7 +209,7 @@ Some swatch services like Subscription Sync listen for the Export service reques
 podman-compose -f config/export-service/docker-compose.yml up -d
 ```
 
-The above export-service will expose the internal API via the port 10000 and the public API via the port 8002. The subscription-sync service is already configured to use the port 10000. 
+The above export-service will expose the internal API via the port 10000 and the public API via the port 8002. The subscription-sync service is already configured to use the port 10000.
 To create an export request, you can use the following example as a reference:
 
 ```
@@ -236,7 +236,7 @@ echo -n '{"identity":{"account_number":"<any>","org_id":"<org_id>","internal":{"
 > eyJpZGVudGl0eSI6eyJhY2NvdW50X251bWJlciI6IjEwMDAxIiwib3JnX2lkIjoiMTMyNTk3NzUiLCJpbnRlcm5hbCI6eyJvcmdfaWQiOiIxMzI1OTc3NSJ9LCJ0eXBlIjoiVXNlciIsInVzZXIiOnsidXNlcm5hbWUiOiJ1c2VyX2RldiJ9fX0=
 ```
 
-The above request will trigger an event from the export-service to swatch via topics and swatch will eventually upload the report using the internal export service API. 
+The above request will trigger an event from the export-service to swatch via topics and swatch will eventually upload the report using the internal export service API.
 
 The uploaded reports are stored in minio (s3). You can verify that this report has been uploaded by checking the folder 'config/export-service/tmp/minio/exports-bucket' where should be a file at `<BUCKET ID>.json/xl.meta`. The `xl.meta` file is binary, but if you open the txt plain editor, you should see:
 ```
@@ -250,8 +250,8 @@ f9288f52-59dc-4ad6-9307-8c67de75c09c	fb177ea7-a8ea-43e4-8c2e-cb4bd7170601	subscr
 
 ### Wiremock service
 
-Wiremock is a very helpful tool that helps us to mock other services like Prometheus. 
-At the moment, the wiremock service is configured to stub a prometheus instance which is necessary for swatch-metrics. 
+Wiremock is a very helpful tool that helps us to mock other services like Prometheus.
+At the moment, the wiremock service is configured to stub a prometheus instance which is necessary for swatch-metrics.
 Let's see how we can start the swatch-metrics service to use the wiremock service as prometheus.
 We can start the Wiremock service via:
 ```
@@ -408,7 +408,7 @@ For example,
 }}
 ```
 
-These properties are then passed into the Spring Environment and may be used elsewhere (the 
+These properties are then passed into the Spring Environment and may be used elsewhere (the
 `ClowderJsonEnvironmentPostProcessor` runs *before* most other environment processing classes).
 
 The pattern we follow is to assign the Clowder style properties to an **intermediate** property
@@ -443,6 +443,20 @@ E.g.
 ```
 $ ACG_CONFIG=$(pwd)/swatch-core/src/test/resources/test-clowder-config.json ./gradlew bootRun
 ```
+
+Note that there are 3 properties which `ClowderJsonEnvironmentPostProcessor` actually **creates**.
+The `clowder.endpoint....trust-store-*` properties are actually synthetic. They don't appear in the `cdappconfig.json`
+file.  Clowder provides the CA information via a `tlsCAPath` property which is just a pointer to a PEM file.
+Our code generally doesn't want just a bare PEM file. Instead, we take that path and construct a temporary Java truststore (a PKCS12 file) from it.  We pass the reference to that keystore whenever CA information is required.
+
+Following the pattern of clowder-quarkus-config-source, we also configure the truststore information on a per-endpoint
+basis. To do that, *if and only if* the endpoint has a `tlsPort` key, then we generate three synthetic properties:
+trust-store-path, trust-store-password, and trust-store-type.  We populate those synthetic properties with the
+information from the generated PKS12.
+
+However, if an endpoint doesn't have a `tlsPort` defined on it or if the `tlsCAPath` isn't specified, the
+`ClowderJsonPropertyResolver` can't resolve the synthetic `clowder.endpoints.[...].trust-store-path` property. The
+Spring property resolver behavior is to just return the literal string instead.
 
 ### Viewing Kafka messages in an ephemeral environment
 
@@ -517,7 +531,7 @@ cat <<BONFIRE >>  ~/.config/bonfire/config.yaml
         DEV_MODE: "true"
         swatch-tally/IMAGE: quay.io/cloudservices/rhsm-subscriptions
         RHSM_RBAC_USE_STUB: "true"
-        
+
     - name: swatch-producer-red-hat-marketplace
       host: local
       repo: $(pwd)/rhsm-subscriptions/swatch-producer-red-hat-marketplace
@@ -567,7 +581,7 @@ cat <<BONFIRE >>  ~/.config/bonfire/config.yaml
       parameters:
         REPLICAS: 1
         swatch-producer-aws/IMAGE: quay.io/cloudservices/swatch-producer-aws
-    
+
     - name: swatch-contracts
       host: local
       repo: $(pwd)/rhsm-subscriptions/swatch-contracts
@@ -583,7 +597,7 @@ cat <<BONFIRE >>  ~/.config/bonfire/config.yaml
       parameters:
         REPLICAS: 1
         swatch-producer-azure/IMAGE: quay.io/cloudservices/swatch-producer-azure
-        
+
     - name: swatch-billable-usage
       host: local
       repo: $(pwd)/rhsm-subscriptions/swatch-billable-usage

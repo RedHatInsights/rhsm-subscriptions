@@ -35,7 +35,7 @@ import org.springframework.util.StringUtils;
 
 /**
  * An {@link org.springframework.boot.env.EnvironmentPostProcessor} that inserts a {@link
- * ClowderJsonPathPropertySource} into the list of property sources.
+ * ClowderJsonPropertySource} into the list of property sources.
  */
 public class ClowderJsonEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
   public static final String CLOWDER_CONFIG_LOCATION_PROPERTY = "ACG_CONFIG";
@@ -93,7 +93,7 @@ public class ClowderJsonEnvironmentPostProcessor implements EnvironmentPostProce
   }
 
   private void processJson(ConfigurableEnvironment environment, ClowderJson clowderJson) {
-    var jsonSource = new ClowderJsonPathPropertySource(clowderJson);
+    var jsonSource = new ClowderJsonPropertySource(clowderJson);
     jsonSource.addToEnvironment(environment, logger);
   }
 }
