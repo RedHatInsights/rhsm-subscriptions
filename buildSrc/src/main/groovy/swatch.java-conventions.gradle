@@ -17,11 +17,16 @@ repositories {
     }
 }
 
+configurations {
+    jacocoAgentJar
+}
+
 dependencies {
     compileOnly libraries["lombok"]
     annotationProcessor libraries["lombok"]
     testCompileOnly libraries["lombok"]
     testAnnotationProcessor libraries["lombok"]
+    jacocoAgentJar libraries["jacoco-agent"]
 }
 
 spotless {
@@ -73,6 +78,16 @@ test {
 tasks.withType(Jar).configureEach {
     // Here to address https://youtrack.jetbrains.com/issue/IDEA-305759
     duplicatesStrategy = DuplicatesStrategy.WARN
+}
+
+tasks.register("withJacocoEnabled", Copy) {
+    into "$buildDir/javaagent"
+    from {
+        configurations.jacocoAgentJar
+    }
+    rename { filename ->
+        'jacoco-agent.jar'
+    }
 }
 
 jacocoTestReport {

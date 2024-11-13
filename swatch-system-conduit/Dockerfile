@@ -31,7 +31,7 @@ COPY buildSrc buildSrc
 
 COPY . .
 ARG GRADLE_BUILD_ARGS=''
-ARG GRADLE_TASKS='assemble'
+ARG GRADLE_TASKS='assemble withJacocoEnabled'
 RUN ./gradlew ${GRADLE_TASKS} -x test ${GRADLE_BUILD_ARGS}
 
 # See https://stackoverflow.com/a/786515
@@ -53,5 +53,7 @@ COPY --from=0 /stage/swatch-system-conduit/build/javaagent/* /opt/
 RUN chmod -R g=u /deployments
 
 USER default
+ENV JACOCO_AGENT="-javaagent:/opt/jacoco-agent.jar=port=6300,address=0.0.0.0,destfile=jacoco.exec,includes=*,append=true,output=tcpserver"
+ENV JAVA_OPTS_APPEND="${JACOCO_AGENT} ${SPLUNK_AGENT} ${JAVA_OPTS_APPEND}"
 ENV JAVA_MAIN_CLASS=org.candlepin.subscriptions.SystemConduitApplication
 ENV JAVA_LIB_DIR=/deployments/lib/*

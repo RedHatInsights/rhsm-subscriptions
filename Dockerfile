@@ -31,7 +31,7 @@ COPY buildSrc buildSrc
 
 COPY . .
 ARG GRADLE_BUILD_ARGS=''
-ARG GRADLE_TASKS='assemble'
+ARG GRADLE_TASKS='assemble withJacocoEnabled'
 RUN ./gradlew ${GRADLE_TASKS} -x test ${GRADLE_BUILD_ARGS}
 
 RUN jar -xf ./build/libs/*.jar
@@ -62,5 +62,7 @@ COPY --from=0 /stage/LICENSE /licenses/
 RUN chmod -R g=u /deployments
 
 USER default
+ENV JACOCO_AGENT="-javaagent:/opt/jacoco-agent.jar=port=6300,address=0.0.0.0,destfile=jacoco.exec,includes=*,append=true,output=tcpserver"
+ENV JAVA_OPTS_APPEND="${JACOCO_AGENT} ${SPLUNK_AGENT} ${JAVA_OPTS_APPEND}"
 ENV JAVA_MAIN_CLASS=org.candlepin.subscriptions.BootApplication
 ENV JAVA_LIB_DIR=/deployments/lib/*

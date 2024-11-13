@@ -149,8 +149,8 @@ objects:
             env:
               - name: JAVA_DEBUG
                 value: ${JAVA_DEBUG}
-              - name: JAVA_OPTS_APPEND
-                value: -javaagent:/opt/splunk-otel-javaagent.jar ${JAVA_OPTS_APPEND}
+              - name: SPLUNK_AGENT
+                value: -javaagent:/opt/splunk-otel-javaagent.jar
               - name: DEV_MODE
                 value: ${DEV_MODE}
               - name: LOG_FILE

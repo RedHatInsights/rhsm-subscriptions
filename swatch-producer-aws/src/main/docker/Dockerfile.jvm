@@ -108,7 +108,7 @@ COPY buildSrc buildSrc
 
 COPY . .
 ARG GRADLE_BUILD_ARGS=''
-ARG GRADLE_TASKS='assemble'
+ARG GRADLE_TASKS='assemble withJacocoEnabled'
 RUN ./gradlew ${GRADLE_TASKS} -x test ${GRADLE_BUILD_ARGS}
 
 FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.20-2.1725851029
@@ -138,11 +138,15 @@ COPY --from=0 --chown=default:root --chmod=775 /stage/swatch-producer-aws/build/
 # Required by Red Hat OpenShift Software Certification Policy Guide
 COPY --from=0 /stage/LICENSE /licenses/
 
+# Support javaagents if any
+COPY --from=0 /stage/build/javaagent/* /opt/
+
 # Used by Quarkus dev mode
 RUN chmod 775 /deployments /deployments/*
 
 EXPOSE 8080
 
 ENV AB_JOLOKIA_OFF=""
-ENV JAVA_OPTS_APPEND="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
+ENV JACOCO_AGENT="-javaagent:/opt/jacoco-agent.jar=port=6300,address=0.0.0.0,destfile=jacoco.exec,includes=*,append=true,output=tcpserver"
+ENV JAVA_OPTS_APPEND="${JACOCO_AGENT} ${JAVA_OPTS_APPEND}"
 ENV JAVA_APP_JAR="/deployments/quarkus-run.jar"

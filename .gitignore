@@ -71,3 +71,7 @@ stub/__files/
 
 # SwatchDog
 swatchdog/swatchdog/__pycache__/
+
+# Code coverage
+code-coverage/
+!code-coverage/generate.sh

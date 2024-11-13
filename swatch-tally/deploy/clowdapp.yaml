@@ -308,8 +308,8 @@ objects:
           env:
             - name: JAVA_DEBUG
               value: ${JAVA_DEBUG}
-            - name: JAVA_OPTS_APPEND
-              value: -javaagent:/opt/splunk-otel-javaagent.jar ${JAVA_OPTS_APPEND}
+            - name: SPLUNK_AGENT
+              value: -javaagent:/opt/splunk-otel-javaagent.jar
             - name: ENABLE_SPLUNK_HEC
               value: ${ENABLE_SPLUNK_HEC}
             - name: SPLUNKMETA_namespace
