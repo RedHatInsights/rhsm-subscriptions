@@ -6,7 +6,7 @@ ext {
     springVersion='3.3.5'
     resteasyVersion='6.2.10.Final'
     jacksonVersion='2.18.1'
-    mapstructVersion='1.6.2'
+    mapstructVersion='1.6.3'
     libraries = [:]
     plugins = []
 }
