@@ -221,7 +221,7 @@ spec:
         - name: name
           value: buildah
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-buildah:0.2@sha256:4b88941c97d4c28b01ba84339028da30dd274a7e44efbe550fc4b6d4225bc8d8
+          value: quay.io/redhat-appstudio-tekton-catalog/task-buildah:0.2@sha256:712b3eee4f73ac0bfc0fe2008190a649418caa6741ef77f4bc8eec2aedc0286b
         - name: kind
           value: task
         resolver: bundles
@@ -384,7 +384,7 @@ spec:
         - name: name
           value: clamav-scan
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-clamav-scan:0.1@sha256:1f861d1d83dbf7888bf458cfd453ca71a775dd9691e92275635496980ed54668
+          value: quay.io/redhat-appstudio-tekton-catalog/task-clamav-scan:0.1@sha256:a9521f8ba018bd18a1271ce44da48762c9df3d6693bcdfd704de90481a660d6c
         - name: kind
           value: task
         resolver: bundles
