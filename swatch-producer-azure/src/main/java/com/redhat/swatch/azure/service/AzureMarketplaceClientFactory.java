@@ -58,14 +58,22 @@ public class AzureMarketplaceClientFactory {
         .map(
             client -> {
               try {
-                var api =
-                    QuarkusRestClientBuilder.newBuilder()
-                        .baseUri(new URI(azureMarketplaceProperties.getMarketplaceBaseUrl()))
-                        .register(
-                            new AzureMarketplaceHeaderProvider(
-                                azureMarketplaceProperties, client, oidcClients))
-                        .build(AzureMarketplaceApi.class);
-                return new AzureClient(client.getClientId(), api);
+                AzureMarketplaceApi api;
+                if (azureMarketplaceProperties.isDisableAzureOidc()) {
+                  api =
+                      QuarkusRestClientBuilder.newBuilder()
+                          .baseUri(new URI(azureMarketplaceProperties.getMarketplaceBaseUrl()))
+                          .build(AzureMarketplaceApi.class);
+                } else {
+                    api =
+                      QuarkusRestClientBuilder.newBuilder()
+                          .baseUri(new URI(azureMarketplaceProperties.getMarketplaceBaseUrl()))
+                          .register(
+                              new AzureMarketplaceHeaderProvider(
+                                  azureMarketplaceProperties, client, oidcClients))
+                          .build(AzureMarketplaceApi.class);
+                    }
+                  return new AzureClient(client.getClientId(), api);
               } catch (URISyntaxException ex) {
                 log.error("Unable to create URI for Azure authentication for client.", ex);
                 return null;
