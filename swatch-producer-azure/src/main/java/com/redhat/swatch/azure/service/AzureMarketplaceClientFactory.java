@@ -65,15 +65,15 @@ public class AzureMarketplaceClientFactory {
                           .baseUri(new URI(azureMarketplaceProperties.getMarketplaceBaseUrl()))
                           .build(AzureMarketplaceApi.class);
                 } else {
-                    api =
+                  api =
                       QuarkusRestClientBuilder.newBuilder()
                           .baseUri(new URI(azureMarketplaceProperties.getMarketplaceBaseUrl()))
                           .register(
                               new AzureMarketplaceHeaderProvider(
                                   azureMarketplaceProperties, client, oidcClients))
                           .build(AzureMarketplaceApi.class);
-                    }
-                  return new AzureClient(client.getClientId(), api);
+                }
+                return new AzureClient(client.getClientId(), api);
               } catch (URISyntaxException ex) {
                 log.error("Unable to create URI for Azure authentication for client.", ex);
                 return null;
