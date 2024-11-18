@@ -66,6 +66,8 @@ import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResu
 @Slf4j
 @ApplicationScoped
 public class AwsBillableUsageAggregateConsumer {
+  protected static final String METERED_TOTAL_METRIC = "swatch_producer_metered_total";
+
   private final Counter acceptedCounter;
   private final Counter rejectedCounter;
   private final Counter ignoreCounter;
@@ -74,6 +76,7 @@ public class AwsBillableUsageAggregateConsumer {
   private final Optional<Boolean> isDryRun;
   private final Duration awsUsageWindow;
   private final BillableUsageStatusProducer billableUsageStatusProducer;
+  private final MeterRegistry meterRegistry;
 
   public AwsBillableUsageAggregateConsumer(
       MeterRegistry meterRegistry,
@@ -85,6 +88,7 @@ public class AwsBillableUsageAggregateConsumer {
     acceptedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_accepted_total");
     rejectedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_rejected_total");
     ignoreCounter = meterRegistry.counter("swatch_aws_marketplace_batch_ignored_total");
+    this.meterRegistry = meterRegistry;
     this.contractsApi = contractsApi;
     this.awsMarketplaceMeteringClientFactory = awsMarketplaceMeteringClientFactory;
     this.isDryRun = isDryRun;
@@ -149,6 +153,7 @@ public class AwsBillableUsageAggregateConsumer {
       log.error("Error looking up aws usage context for aggregate={}", billableUsageAggregate, e);
       return;
     }
+
     try {
       transformAndSend(context, billableUsageAggregate, metric.get());
       emitSuccessfulStatusOnUsage(billableUsageAggregate);
@@ -341,6 +346,7 @@ public class AwsBillableUsageAggregateConsumer {
     usage.setErrorCode(null);
     usage.setBilledOn(OffsetDateTime.now());
     billableUsageStatusProducer.emitStatus(usage);
+    incrementMeteredTotal(usage);
   }
 
   private void emitErrorStatusOnUsage(
@@ -348,6 +354,29 @@ public class AwsBillableUsageAggregateConsumer {
     usage.setStatus(BillableUsage.Status.FAILED);
     usage.setErrorCode(errorCode);
     billableUsageStatusProducer.emitStatus(usage);
+    incrementMeteredTotal(usage);
+  }
+
+  private void incrementMeteredTotal(BillableUsageAggregate usage) {
+    BillableUsageAggregateKey aggregateKey = usage.getAggregateKey();
+    var swatchProducerMeteredTotal = Counter.builder(METERED_TOTAL_METRIC);
+
+    if (Objects.nonNull(aggregateKey.getBillingProvider())) {
+      swatchProducerMeteredTotal.tag("billing_provider", aggregateKey.getBillingProvider());
+    }
+
+    if (Objects.nonNull(usage.getStatus())) {
+      swatchProducerMeteredTotal.tag("status", usage.getStatus().toString());
+    }
+
+    if (Objects.nonNull(usage.getErrorCode())) {
+      swatchProducerMeteredTotal.tag("error_code", usage.getErrorCode().toString());
+    }
+
+    swatchProducerMeteredTotal
+        .withRegistry(meterRegistry)
+        .withTags("product", aggregateKey.getProductId(), "metric_id", aggregateKey.getMetricId())
+        .increment(usage.getTotalValue().doubleValue());
   }
 
   private void emitRetryableStatusOnUsage(
