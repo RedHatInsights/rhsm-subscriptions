@@ -26,6 +26,13 @@ spec:
     value: .
   - name: revision
     value: '{{revision}}'
+  taskRunSpecs:
+    - pipelineTaskName: build-container
+      computeResources:
+        requests:
+          memory: 8Gi
+        limits:
+          memory: 8Gi
   pipelineSpec:
     finally:
     - name: show-sbom
