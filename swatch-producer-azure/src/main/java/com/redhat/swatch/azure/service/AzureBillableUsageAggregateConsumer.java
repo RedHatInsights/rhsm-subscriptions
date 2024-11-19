@@ -62,7 +62,10 @@ import org.slf4j.MDC;
 @Slf4j
 @ApplicationScoped
 public class AzureBillableUsageAggregateConsumer {
+  protected static final String METERED_TOTAL_METRIC = "swatch_producer_metered_total";
+
   private final BillableUsageStatusProducer billableUsageStatusProducer;
+  private final MeterRegistry meterRegistry;
   private final Counter acceptedCounter;
   private final Counter rejectedCounter;
   private final DefaultApi internalSubscriptionsApi;
@@ -78,8 +81,9 @@ public class AzureBillableUsageAggregateConsumer {
       BillableUsageStatusProducer billableUsageStatusProducer,
       @ConfigProperty(name = "ENABLE_AZURE_DRY_RUN") Optional<Boolean> isDryRun,
       @ConfigProperty(name = "AZURE_MARKETPLACE_USAGE_WINDOW") Duration azureUsageWindow) {
-    acceptedCounter = meterRegistry.counter("swatch_azure_marketplace_batch_accepted_total");
-    rejectedCounter = meterRegistry.counter("swatch_azure_marketplace_batch_rejected_total");
+    this.meterRegistry = meterRegistry;
+    this.acceptedCounter = meterRegistry.counter("swatch_azure_marketplace_batch_accepted_total");
+    this.rejectedCounter = meterRegistry.counter("swatch_azure_marketplace_batch_rejected_total");
     this.internalSubscriptionsApi = contractsApi;
     this.azureMarketplaceService = azureMarketplaceService;
     this.billableUsageStatusProducer = billableUsageStatusProducer;
@@ -279,6 +283,7 @@ public class AzureBillableUsageAggregateConsumer {
     usage.setErrorCode(null);
     usage.setBilledOn(OffsetDateTime.now());
     billableUsageStatusProducer.emitStatus(usage);
+    incrementMeteredTotal(usage);
   }
 
   private void emitErrorStatusOnUsage(
@@ -286,5 +291,31 @@ public class AzureBillableUsageAggregateConsumer {
     usage.setStatus(BillableUsage.Status.FAILED);
     usage.setErrorCode(errorCode);
     billableUsageStatusProducer.emitStatus(usage);
+    incrementMeteredTotal(usage);
+  }
+
+  private void incrementMeteredTotal(BillableUsageAggregate usage) {
+    // add metrics for aggregation
+    var counter = Counter.builder(METERED_TOTAL_METRIC);
+    if (usage.getAggregateKey().getBillingProvider() != null) {
+      counter.tag("billing_provider", usage.getAggregateKey().getBillingProvider());
+    }
+
+    if (usage.getStatus() != null) {
+      counter.tag("status", usage.getStatus().toString());
+    }
+
+    if (usage.getErrorCode() != null) {
+      counter.tag("error_code", usage.getErrorCode().toString());
+    }
+
+    counter
+        .withRegistry(meterRegistry)
+        .withTags(
+            "product",
+            usage.getAggregateKey().getProductId(),
+            "metric_id",
+            usage.getAggregateKey().getMetricId())
+        .increment(usage.getTotalValue().doubleValue());
   }
 }
