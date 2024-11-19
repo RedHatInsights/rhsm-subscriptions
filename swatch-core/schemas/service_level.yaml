@@ -1,0 +1,24 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: "ServiceLevel"
+type: "string"
+enum:
+  - ""
+  - "Premium"
+  - "Standard"
+  - "Self-Support"
+  - "_ANY"
+definitions:
+  validServiceLevels:
+    description: "All valid service levels excluding special values like '_ANY'."
+    type: "array"
+    items:
+      type: "string"
+      enum:
+        - "Premium"
+        - "Standard"
+        - "Self-Support"
+additionalProperties: false
+examples:
+  - "Premium"
+  - "Standard"
+  - "Self-Support"

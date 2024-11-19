@@ -1,0 +1,30 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: "HardwareMeasurementType"
+type: "string"
+enum:
+  - "PHYSICAL"
+  - "HYPERVISOR"
+  - "VIRTUAL"
+  - "TOTAL"
+  - "AWS"
+  - "AWS_CLOUDIGRADE"
+  - "GOOGLE"
+  - "ALIBABA"
+  - "AZURE"
+  - "EMPTY"
+definitions:
+  cloudProviderTypes:
+    description: "Supported cloud provider types."
+    type: "array"
+    items:
+      type: "string"
+      enum:
+        - "AWS"
+        - "GOOGLE"
+        - "AZURE"
+        - "ALIBABA"
+additionalProperties: false
+examples:
+  - "PHYSICAL"
+  - "GOOGLE"
+  - "AZURE"

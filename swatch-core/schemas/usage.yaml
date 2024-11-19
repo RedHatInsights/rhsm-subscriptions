@@ -1,0 +1,24 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: "Usage"
+type: "string"
+enum:
+  - ""
+  - "Production"
+  - "Development/Test"
+  - "Disaster Recovery"
+  - "_ANY"
+definitions:
+  validUsage:
+    description: "All valid usage types excluding special values like '_ANY'."
+    type: "array"
+    items:
+      type: "string"
+      enum:
+        - "Production"
+        - "Development/Test"
+        - "Disaster Recovery"
+additionalProperties: false
+examples:
+  - "Production"
+  - "Development/Test"
+  - "Disaster Recovery"

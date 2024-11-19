@@ -1,6 +1,7 @@
 plugins {
     id 'swatch.quarkus-conventions'
     id 'swatch.liquibase-conventions'
+    id 'jsonschema2pojo'
 }
 
 description = 'The swatch-metrics-hbi service build definition'
@@ -21,7 +22,8 @@ dependencies {
     implementation libraries["unleash-quarkus"]
 
     implementation project(':swatch-common-config-workaround')
-    implementation project(':swatch-core')
+//    implementation project(':swatch-core')
+    implementation project(":swatch-product-configuration")
     implementation project(':swatch-common-clock')
     implementation libraries["clowder-quarkus-config-source"]
     implementation 'io.quarkus:quarkus-messaging-kafka'
@@ -47,8 +49,26 @@ dependencies {
     testImplementation libraries["awaitility"]
 }
 
+jsonSchema2Pojo {
+    source = files("${projectDir}/../swatch-core/schemas/hardware_measurement_type.yaml",
+            "${projectDir}/schemas")
+    targetPackage = "com.redhat.swatch.metrics.model"
+    targetDirectory = file("${buildDir}/generated/src/gen/java")
+    includeAdditionalProperties = false
+    includeJsr303Annotations = true
+    initializeCollections = false
+    dateTimeType = 'java.time.OffsetDateTime'
+    sourceType = 'yamlschema'
+    generateBuilders = true
+    includeGetters = true
+    includeSetters = true
+    useJakartaValidation = true
+}
+
 
 
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
 }
+
+sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]

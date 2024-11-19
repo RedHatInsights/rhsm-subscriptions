@@ -29,6 +29,7 @@ import com.redhat.swatch.hbi.events.normalization.facts.QpcFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SatelliteFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
+import com.redhat.swatch.metrics.model.HardwareMeasurementType;
 import io.quarkus.runtime.util.StringUtil;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.time.OffsetDateTime;
@@ -37,9 +38,6 @@ import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
-import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Event.CloudProvider;
 import org.candlepin.subscriptions.json.Event.HardwareType;
 
@@ -144,10 +142,17 @@ public class FactNormalizer {
     return id;
   }
 
+
+
+
   private HardwareMeasurementType determineCloudProviderType(
       SystemProfileFacts systemProfileFacts) {
     HardwareMeasurementType type = null;
     String systemProfileCloudProvider = systemProfileFacts.getCloudProvider();
+
+    boolean isSupportedCloudProvider =
+
+
     if (HardwareMeasurementType.isSupportedCloudProvider(systemProfileCloudProvider)) {
       type = HardwareMeasurementType.fromString(systemProfileCloudProvider);
     }
@@ -179,6 +184,8 @@ public class FactNormalizer {
   private HardwareType determineHardwareType(
       SystemProfileFacts systemProfileFacts, boolean isVirtual) {
     var hardwareType = HardwareType.PHYSICAL;
+
+
     if (HardwareMeasurementType.isSupportedCloudProvider(systemProfileFacts.getCloudProvider())) {
       hardwareType = HardwareType.CLOUD;
     } else if (isVirtual) {
