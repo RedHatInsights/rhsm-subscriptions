@@ -21,23 +21,24 @@
 package org.candlepin.subscriptions.conduit.rhsm.client;
 
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.Consumer;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.InstalledProducts;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.OrgInventory;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.Pagination;
 import org.candlepin.subscriptions.conduit.rhsm.client.resources.RhsmApi;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Stub class implementing RhsmApi that we can use for development against if the real thing is
  * unavailable
  */
+@Slf4j
 public class StubRhsmApi extends RhsmApi {
-  private static Logger log = LoggerFactory.getLogger(StubRhsmApi.class);
 
   private static final String MAX_ALLOWED_MEMORY_ORG_ID = "maxAllowedMemoryOrg";
   private static final String GCP_ORG_ID = "gcpOrg";
+  private static final String CONSUMER_1_ID = "consumer1id";
+  private static final String CONSUMER_2_ID = "consumer2id";
 
   @Override
   public OrgInventory getConsumersForOrg(
@@ -55,6 +56,7 @@ public class StubRhsmApi extends RhsmApi {
     OrgInventory inventory = new OrgInventory();
 
     Consumer consumer1 = new Consumer();
+    consumer1.setId(CONSUMER_1_ID);
     consumer1.setUuid(UUID.randomUUID().toString());
     consumer1.setOrgId(xRhsmApiAccountID);
     consumer1.setHypervisorName("hypervisor1.test.com");
@@ -94,8 +96,8 @@ public class StubRhsmApi extends RhsmApi {
     applyOrgIdUpdates(xRhsmApiAccountID, consumer1);
 
     Consumer consumer2 = new Consumer();
-    String consumer2Uuid = UUID.randomUUID().toString();
-    consumer2.setUuid(consumer2Uuid);
+    consumer2.setId(CONSUMER_2_ID);
+    consumer2.setUuid(UUID.randomUUID().toString());
     consumer2.setOrgId(xRhsmApiAccountID);
     consumer2.getFacts().put("network.fqdn", "host2.test.com");
 
@@ -103,7 +105,7 @@ public class StubRhsmApi extends RhsmApi {
     if (offset == null) {
       inventory.addBodyItem(consumer1);
       pagination.count(1L);
-    } else if (!consumer2Uuid.equals(offset)) {
+    } else if (!CONSUMER_2_ID.equals(offset)) {
       inventory.addBodyItem(consumer2);
       pagination.count(1L);
     } else {
