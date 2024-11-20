@@ -20,7 +20,9 @@
  */
 package org.candlepin.subscriptions.subscription;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.only;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import org.candlepin.subscriptions.subscription.api.resources.SearchApi;

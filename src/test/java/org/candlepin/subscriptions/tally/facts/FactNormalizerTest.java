@@ -27,7 +27,12 @@ import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.crea
 import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.createRhsmHost;
 import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.createSystemProfileHost;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;

@@ -20,8 +20,10 @@
  */
 package org.candlepin.subscriptions.security.auth;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.when;
 
 import org.candlepin.subscriptions.security.AllowlistedAccountReportAccessService;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;

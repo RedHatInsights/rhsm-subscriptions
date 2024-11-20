@@ -20,7 +20,8 @@
  */
 package org.candlepin.subscriptions.task.queue.inmemory;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
