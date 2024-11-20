@@ -28,11 +28,13 @@ import jakarta.enterprise.context.Dependent;
 import jakarta.enterprise.inject.Produces;
 import java.time.Duration;
 import lombok.Getter;
+import lombok.Setter;
 import org.candlepin.clock.ApplicationClock;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @Dependent
 @Getter
+@Setter
 public class ApplicationConfiguration {
 
   @Produces
@@ -47,6 +49,15 @@ public class ApplicationConfiguration {
     mapper.configure(Feature.IGNORE_UNKNOWN, true);
     return mapper;
   }
+
+  /**
+   * The duration after the inventory's stale_timestamp that the record will be culled. Currently,
+   * HBI is calculating this value and setting it on messages. Right now the default is:
+   * stale_timestamp + 14 days. Adding this as a configuration setting since we may need to adjust
+   * it at some point to match.
+   */
+  @ConfigProperty(name = "swatch-metrics-hbi.culling-offset")
+  Duration cullingOffset;
 
   @ConfigProperty(name = "swatch-metrics-hbi.host-last-sync-threshold")
   Duration hostLastSyncThreshold;

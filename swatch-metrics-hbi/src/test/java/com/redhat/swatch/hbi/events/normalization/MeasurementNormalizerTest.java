@@ -114,6 +114,7 @@ class MeasurementNormalizerTest {
 
   private SystemProfileFacts systemProfileFacts(Integer coresPerSocket, Integer sockets) {
     return new SystemProfileFacts(
+        "host_type",
         "hypervisor_uuid",
         "infra",
         coresPerSocket,
@@ -129,12 +130,28 @@ class MeasurementNormalizerTest {
 
   private RhsmFacts rhsmFacts(String units, String role, Set<String> productIds) {
     return new RhsmFacts(
-        "Premium", "Production", OffsetDateTime.now().toString(), false, role, units, productIds);
+        "Premium",
+        "Production",
+        OffsetDateTime.now().toString(),
+        false,
+        role,
+        units,
+        null,
+        null,
+        productIds);
   }
 
   private RhsmFacts rhsmFacts() {
     return new RhsmFacts(
-        "Premium", "Production", OffsetDateTime.now().toString(), false, null, null, Set.of());
+        "Premium",
+        "Production",
+        OffsetDateTime.now().toString(),
+        false,
+        null,
+        null,
+        null,
+        null,
+        Set.of());
   }
 
   private SatelliteFacts satelliteFacts(String role) {

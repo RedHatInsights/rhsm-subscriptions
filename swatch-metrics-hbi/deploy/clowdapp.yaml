@@ -57,6 +57,8 @@ parameters:
     value: '24h'
   - name: USE_CPU_SYSTEM_FACTS_FOR_ALL_PRODUCTS
     value: 'true'
+  - name: CULLING_OFFSET
+    value: '14d'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -159,6 +161,8 @@ objects:
               value: ${HOST_LAST_SYNC_THRESHOLD}
             - name: USE_CPU_SYSTEM_FACTS_FOR_ALL_PRODUCTS
               value: ${USE_CPU_SYSTEM_FACTS_FOR_ALL_PRODUCTS}
+            - name: CULLING_OFFSET
+              value: ${CULLING_OFFSET}
           volumeMounts:
             - name: logs
               mountPath: /logs

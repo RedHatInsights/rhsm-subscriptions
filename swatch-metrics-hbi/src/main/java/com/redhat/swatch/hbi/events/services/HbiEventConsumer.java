@@ -29,10 +29,13 @@ import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.normalization.FactNormalizer;
 import com.redhat.swatch.hbi.events.normalization.NormalizedMeasurements;
+import com.redhat.swatch.hbi.events.normalization.facts.HbiFactExtractor;
 import com.redhat.swatch.hbi.events.normalization.facts.HostFacts;
+import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.kafka.EmitterService;
 import io.smallrye.reactive.messaging.kafka.api.KafkaMessageMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -81,7 +84,6 @@ public class HbiEventConsumer {
       maxDelay = "${SWATCH_EVENT_PRODUCER_BACK_OFF_MAX_INTERVAL:60s}",
       factor = "${SWATCH_EVENT_PRODUCER_BACK_OFF_MULTIPLIER:2}")
   public void consume(HbiEvent hbiEvent, KafkaMessageMetadata<?> metadata) {
-    // TODO: Need to add event filtering based on the InventoryHost facts query
     if (!(hbiEvent instanceof HbiHostCreateUpdateEvent)) {
       log.info("HBI Event not supported yet! Skipping: {}", hbiEvent.getType());
       return;
@@ -89,6 +91,11 @@ public class HbiEventConsumer {
 
     log.info("Received create/update host event from HBI - {}", hbiEvent);
     HbiHostCreateUpdateEvent hbiHostEvent = (HbiHostCreateUpdateEvent) hbiEvent;
+    if (skipEvent(hbiHostEvent)) {
+      log.debug("Event {} will be filtered.", hbiEvent);
+      return;
+    }
+
     HostFacts facts = factNormalizer.normalize(hbiHostEvent.getHost());
     var event =
         new Event()
@@ -135,6 +142,37 @@ public class HbiEventConsumer {
     } else {
       log.info("Emitting HBI events to swatch is disabled. Not sending event.");
     }
+  }
+
+  private boolean skipEvent(HbiHostCreateUpdateEvent hbiHostEvent) {
+    // NOTE: Filtering based org will be done before swatch events are persisted on ingestion.
+    HbiFactExtractor extractor = new HbiFactExtractor(hbiHostEvent.getHost());
+
+    Optional<RhsmFacts> rhsmFacts = extractor.getRhsmFacts();
+    String billingModel = rhsmFacts.map(RhsmFacts::getBillingModel).orElse(null);
+    boolean validBillingModel = Objects.isNull(billingModel) || !"marketplace".equals(billingModel);
+    if (!validBillingModel) {
+      log.info(
+          "Incoming HBI event will be skipped do to an invalid billing model: {}", billingModel);
+      return true;
+    }
+
+    String hostType = extractor.getSystemProfileFacts().getHostType();
+    boolean validHostType = Objects.isNull(hostType) || !"edge".equals(hostType);
+    if (!validHostType) {
+      log.info("Incoming HBI event will be skipped do to an invalid host type: {}", hostType);
+      return true;
+    }
+
+    OffsetDateTime staleTimestamp =
+        OffsetDateTime.parse(hbiHostEvent.getHost().getStaleTimestamp());
+    boolean isNotStale =
+        clock.now().isBefore(staleTimestamp.plusDays(config.getCullingOffset().toDays()));
+    if (!isNotStale) {
+      log.info("Incoming HBI event will be skipped because it is stale.");
+      return true;
+    }
+    return false;
   }
 
   private List<Measurement> convertMeasurements(NormalizedMeasurements measurements) {
