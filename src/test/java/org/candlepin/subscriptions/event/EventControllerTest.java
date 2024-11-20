@@ -621,7 +621,7 @@ class EventControllerTest {
         .filter(
             m ->
                 INGESTED_USAGE_METRIC.equals(m.getId().getName())
-                    && productTag.equals(m.getId().getTag("product_tag"))
+                    && productTag.equals(m.getId().getTag("product"))
                     && metricId.equals(m.getId().getTag("metric_id"))
                     && billingProvider.equals(m.getId().getTag("billing_provider")))
         .findFirst();

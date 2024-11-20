@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.configuration.util.ProductTagLookupParams;
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -60,8 +61,7 @@ import org.springframework.util.StringUtils;
 @Slf4j
 public class EventController {
 
-  protected static final String INGESTED_USAGE_METRIC =
-      "rhsm-subscriptions.swatch_metrics_ingested_usage_total";
+  protected static final String INGESTED_USAGE_METRIC = "swatch_metrics_ingested_usage_total";
   private static final Set<String> EXCLUDE_LOG_FOR_EVENT_SOURCES =
       Set.of("prometheus", "rhelemeter");
   private final EventRecordRepository repo;
@@ -391,13 +391,13 @@ public class EventController {
   }
 
   private void updateIngestedUsageCounterFor(Event event, String tag, Measurement measurement) {
-    List<String> tags =
-        new ArrayList<>(List.of("product_tag", tag, "metric_id", measurement.getMetricId()));
+    var counter = Counter.builder(INGESTED_USAGE_METRIC);
     if (event.getBillingProvider() != null) {
-      tags.addAll(List.of("billing_provider", event.getBillingProvider().value()));
+      counter.tag("billing_provider", event.getBillingProvider().value());
     }
-    meterRegistry
-        .counter(INGESTED_USAGE_METRIC, tags.toArray(new String[0]))
+    counter
+        .withRegistry(meterRegistry)
+        .withTags("product", tag, "metric_id", measurement.getMetricId())
         .increment(measurement.getValue());
   }
 
