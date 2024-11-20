@@ -419,16 +419,10 @@ class BillableUsageServiceTest {
     BillableUsage usage = givenInstanceHoursUsageForRosa(0.0);
     givenExistingRemittanceForUsage(usage, startOfUsage, 1.0, RemittanceStatus.SUCCEEDED);
     givenExistingRemittanceForUsage(usage, startOfUsage.plusDays(2), 5.0, RemittanceStatus.PENDING);
-    // failures with retry after not-null should still be included
-    givenExistingRemittanceForUsage(
-        usage,
-        startOfUsage.plusDays(4),
-        10.0,
-        RemittanceStatus.FAILED,
-        OffsetDateTime.now().plusHours(1));
+    // failures be included
+    givenExistingRemittanceForUsage(usage, startOfUsage.plusDays(4), 10.0, RemittanceStatus.FAILED);
     // failures with retry after null should be filtered out
-    givenExistingRemittanceForUsage(
-        usage, startOfUsage.plusDays(4), 30.0, RemittanceStatus.FAILED, null);
+    givenExistingRemittanceForUsage(usage, startOfUsage.plusDays(4), 30.0, RemittanceStatus.FAILED);
     givenExistingRemittanceForUsage(usage, startOfUsage.plusDays(4), 20.0, null);
 
     var result = service.getTotalRemitted(usage);
@@ -567,17 +561,6 @@ class BillableUsageServiceTest {
       OffsetDateTime remittancePendingDate,
       double remittedPendingValue,
       RemittanceStatus status) {
-    givenExistingRemittanceForUsage(
-        usage, remittancePendingDate, remittedPendingValue, status, null);
-  }
-
-  @Transactional
-  void givenExistingRemittanceForUsage(
-      BillableUsage usage,
-      OffsetDateTime remittancePendingDate,
-      double remittedPendingValue,
-      RemittanceStatus status,
-      OffsetDateTime retryAfter) {
     var newRemittance =
         BillableUsageRemittanceEntity.builder()
             .orgId(usage.getOrgId())
@@ -592,7 +575,6 @@ class BillableUsageServiceTest {
             .tallyId(usage.getTallyId())
             .hardwareMeasurementType(usage.getHardwareMeasurementType())
             .status(status)
-            .retryAfter(retryAfter)
             .build();
     // Remitted value should be set to usages metric_value rather than billing_value
     newRemittance.setRemittedPendingValue(remittedPendingValue);

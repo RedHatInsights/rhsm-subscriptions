@@ -22,16 +22,7 @@ package com.redhat.swatch.billable.usage.admin.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.billable.usage.configuration.ApplicationConfiguration;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceEntity;
@@ -58,7 +49,6 @@ import org.junit.jupiter.api.Test;
 class InternalBillableUsageControllerTest {
 
   private static final String PRODUCT_ID = "rosa";
-  private static final int REMITTANCES_BATCH_SIZE = 2;
 
   @Inject BillableUsageRemittanceRepository remittanceRepo;
   @Inject ApplicationClock clock;
@@ -137,7 +127,6 @@ class InternalBillableUsageControllerTest {
             remittance6,
             remittance7));
     remittanceRepo.flush();
-    when(configuration.getRetryRemittancesBatchSize()).thenReturn(REMITTANCES_BATCH_SIZE);
   }
 
   @Transactional
@@ -288,70 +277,6 @@ class InternalBillableUsageControllerTest {
     var remittances = remittanceRepo.listAll();
     assertFalse(remittances.stream().anyMatch(r -> r.getOrgId().equals("org1")));
     assertTrue(remittances.stream().anyMatch(r -> r.getOrgId().equals("org2")));
-  }
-
-  @Test
-  void testProcessRetries() {
-    String orgId = "testProcessRetriesOrg123";
-    givenRemittanceWithOldRetryAfter(orgId);
-
-    controller.processRetries(OffsetDateTime.now());
-
-    // verify remittance has been sent
-    verify(billingProducer).produce(argThat(b -> b.getOrgId().equals(orgId)));
-    // verify retry after is reset
-    var found =
-        remittanceRepo.listAll().stream().filter(b -> b.getOrgId().equals(orgId)).findFirst();
-    assertTrue(found.isPresent());
-    assertNull(found.get().getRetryAfter());
-  }
-
-  @Test
-  void testProcessRetriesInPages() {
-    String orgId = "testProcessRetriesInPages";
-    for (var i = 0; i < REMITTANCES_BATCH_SIZE * 2; i++) {
-      givenRemittanceWithOldRetryAfter(orgId + i);
-    }
-
-    controller.processRetries(OffsetDateTime.now());
-
-    // verify remittance has been sent
-    verify(billingProducer, times(REMITTANCES_BATCH_SIZE * 2)).produce(any());
-    // verify retry after is reset
-    var remittances =
-        remittanceRepo.listAll().stream().filter(b -> b.getOrgId().startsWith(orgId)).toList();
-    assertFalse(remittances.isEmpty());
-    assertTrue(remittances.stream().allMatch(u -> u.getRetryAfter() == null));
-  }
-
-  @Test
-  void testProcessRetriesShouldRestoreStateIfSendFails() {
-    String orgId = "testProcessRetriesOrg123";
-    givenRemittanceWithOldRetryAfter(orgId);
-    doThrow(RuntimeException.class).when(billingProducer).produce(any(BillableUsage.class));
-    OffsetDateTime retryAfter = OffsetDateTime.now();
-
-    assertThrows(RuntimeException.class, () -> controller.processRetries(retryAfter));
-
-    // verify retry after is set
-    var found =
-        remittanceRepo.listAll().stream().filter(b -> b.getOrgId().equals(orgId)).findFirst();
-    assertTrue(found.isPresent());
-    assertNotNull(found.get().getRetryAfter());
-  }
-
-  @Transactional
-  void givenRemittanceWithOldRetryAfter(String orgId) {
-    var remittance =
-        remittance(
-            orgId,
-            "product",
-            BillableUsage.BillingProvider.AZURE,
-            4.0,
-            clock.startOfCurrentMonth(),
-            RemittanceStatus.PENDING);
-    remittance.setRetryAfter(clock.now().minusMonths(30));
-    remittanceRepo.persistAndFlush(remittance);
   }
 
   private void givenRemittanceForOrgId(String orgId) {
