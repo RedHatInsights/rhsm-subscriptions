@@ -20,6 +20,8 @@
  */
 package com.redhat.swatch.contract.repository;
 
+import com.redhat.swatch.common.model.ServiceLevel;
+import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.panache.Specification;
 import jakarta.persistence.*;
 import jakarta.persistence.criteria.CriteriaBuilder;

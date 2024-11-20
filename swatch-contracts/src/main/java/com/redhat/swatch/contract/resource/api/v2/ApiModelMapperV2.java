@@ -21,7 +21,7 @@
 package com.redhat.swatch.contract.resource.api.v2;
 
 import com.redhat.swatch.contract.openapi.model.ReportCategory;
-import com.redhat.swatch.contract.repository.HardwareMeasurementType;
+import com.redhat.swatch.common.model.HardwareMeasurementType;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "cdi")
@@ -29,17 +29,17 @@ public interface ApiModelMapperV2 {
   com.redhat.swatch.contract.repository.ReportCategory map(
       com.redhat.swatch.contract.openapi.model.ReportCategory reportCategory);
 
-  com.redhat.swatch.contract.repository.ServiceLevel map(
+  com.redhat.swatch.common.model.ServiceLevel map(
       com.redhat.swatch.contract.openapi.model.ServiceLevelType serviceLevelType);
 
   com.redhat.swatch.contract.openapi.model.ServiceLevelType map(
-      com.redhat.swatch.contract.repository.ServiceLevel sanitizedServiceLevel);
+      com.redhat.swatch.common.model.ServiceLevel sanitizedServiceLevel);
 
-  com.redhat.swatch.contract.repository.Usage map(
+  com.redhat.swatch.common.model.Usage map(
       com.redhat.swatch.contract.openapi.model.UsageType usage);
 
   com.redhat.swatch.contract.openapi.model.UsageType map(
-      com.redhat.swatch.contract.repository.Usage sanitizedUsage);
+      com.redhat.swatch.common.model.Usage sanitizedUsage);
 
   com.redhat.swatch.contract.repository.BillingProvider map(
       com.redhat.swatch.contract.openapi.model.BillingProviderType billingProviderType);

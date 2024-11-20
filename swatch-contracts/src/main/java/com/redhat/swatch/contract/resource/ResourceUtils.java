@@ -21,8 +21,8 @@
 package com.redhat.swatch.contract.resource;
 
 import com.redhat.swatch.contract.repository.BillingProvider;
-import com.redhat.swatch.contract.repository.ServiceLevel;
-import com.redhat.swatch.contract.repository.Usage;
+import com.redhat.swatch.common.model.ServiceLevel;
+import com.redhat.swatch.common.model.Usage;
 import java.util.Objects;
 
 /** Functionality common to both capacity and tally resources. */
