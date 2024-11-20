@@ -265,7 +265,16 @@ public class EventController {
       return Optional.empty();
     }
 
-    if (StringUtils.hasText(eventToProcess.getOrgId())) {
+    // Events coming from HBI must be checked to ensure that the org is opted in.
+    // An org that has not been opted-in will not get tallied nightly, so there is no reason
+    // to further process and store the event.
+    boolean isHbiEvent = "HBI_HOST".equalsIgnoreCase(eventToProcess.getServiceType());
+    if (isHbiEvent && !optInController.isOptedIn(eventToProcess.getOrgId())) {
+      log.debug("Skipping HBI event because the org was not opted-in");
+      return Optional.empty();
+    }
+
+    if (StringUtils.hasText(eventToProcess.getOrgId()) && !isHbiEvent) {
       log.debug(
           "Ensuring orgId={} has been set up for syncing/reporting.", eventToProcess.getOrgId());
       ensureOptIn(eventToProcess.getOrgId());

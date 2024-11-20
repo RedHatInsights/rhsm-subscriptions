@@ -33,6 +33,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public class SystemProfileFacts {
 
+  public static final String HOST_TYPE_FACT = "host_type";
   public static final String HYPERVISOR_UUID_FACT = "virtual_host_uuid";
   public static final String INFRASTRUCTURE_TYPE_FACT = "infrastructure_type";
   public static final String CORES_PER_SOCKET_FACT = "cores_per_socket";
@@ -47,6 +48,7 @@ public class SystemProfileFacts {
   public static final String CONVERSIONS_FACT = "conversions";
   public static final String CONVERSIONS_ACTIVITY = "activity";
 
+  private final String hostType;
   private final String hypervisorUuid;
   private final String infrastructureType;
   private final Integer coresPerSocket;
@@ -63,6 +65,7 @@ public class SystemProfileFacts {
   public SystemProfileFacts(HbiHost host) {
     Map<String, Object> systemProfile =
         Optional.ofNullable(host.getSystemProfile()).orElse(new HashMap<>());
+    hostType = (String) systemProfile.get(HOST_TYPE_FACT);
     hypervisorUuid = (String) systemProfile.get(HYPERVISOR_UUID_FACT);
     infrastructureType = (String) systemProfile.get(INFRASTRUCTURE_TYPE_FACT);
     coresPerSocket = (Integer) systemProfile.get(CORES_PER_SOCKET_FACT);

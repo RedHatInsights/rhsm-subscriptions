@@ -41,6 +41,8 @@ public class RhsmFacts {
   public static final String SYSTEM_PURPOSE_ROLE_FACT = "SYSPURPOSE_ROLE";
   public static final String SYSTEM_PURPOSE_UNITS_FACT = "SYSPURPOSE_UNITS";
   public static final String IS_VIRTUAL_FACT = "IS_VIRTUAL";
+  public static final String BILLING_MODEL = "BILLING_MODEL";
+  public static final String GUEST_ID = "GUEST_ID";
   public static final String PRODUCT_IDS_FACT = "RH_PROD";
 
   private final String sla;
@@ -49,6 +51,8 @@ public class RhsmFacts {
   private final Boolean isVirtual;
   private final String systemPurposeRole;
   private final String systemPurposeUnits;
+  private final String billingModel;
+  private final String guestId;
   private final Set<String> productIds;
 
   @SuppressWarnings("unchecked")
@@ -68,6 +72,8 @@ public class RhsmFacts {
     this.isVirtual = (Boolean) rawFacts.get(IS_VIRTUAL_FACT);
     this.systemPurposeRole = (String) rawFacts.get(SYSTEM_PURPOSE_ROLE_FACT);
     this.systemPurposeUnits = (String) rawFacts.get(SYSTEM_PURPOSE_UNITS_FACT);
+    this.billingModel = (String) rawFacts.get(BILLING_MODEL);
+    this.guestId = (String) rawFacts.get(GUEST_ID);
     this.productIds =
         new HashSet<>((List<String>) rawFacts.getOrDefault(PRODUCT_IDS_FACT, List.of()));
   }

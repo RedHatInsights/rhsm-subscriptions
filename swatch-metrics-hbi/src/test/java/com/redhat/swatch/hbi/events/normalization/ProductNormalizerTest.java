@@ -305,6 +305,7 @@ class ProductNormalizerTest {
   private SystemProfileFacts systemProfileFacts(
       String arch, boolean is3rdPartyMigrated, List<String> productIds) {
     return new SystemProfileFacts(
+        "host_type",
         "hypervisor_uuid",
         "infra",
         2,
@@ -326,6 +327,8 @@ class ProductNormalizerTest {
         false,
         "a_role",
         "sockets",
+        null,
+        null,
         productIds);
   }
 

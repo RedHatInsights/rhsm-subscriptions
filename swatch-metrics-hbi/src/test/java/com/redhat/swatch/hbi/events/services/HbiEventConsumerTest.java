@@ -32,6 +32,7 @@ import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostFacts;
 import com.redhat.swatch.hbi.events.kafka.InMemoryMessageBrokerKafkaResource;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
+import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
 import io.getunleash.Unleash;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.common.QuarkusTestResource;
@@ -46,6 +47,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 import org.awaitility.Awaitility;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.json.Event;
@@ -56,6 +58,9 @@ import org.candlepin.subscriptions.json.Measurement;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 @QuarkusTest
 @QuarkusTestResource(
@@ -82,9 +87,8 @@ class HbiEventConsumerTest {
   @Test
   void testValidSatelliteVirtualRhelHost() {
     when(unleash.isEnabled(FeatureFlags.EMIT_EVENTS)).thenReturn(true);
-    var message = HbiEventTestData.getSatelliteRhelHostCreatedEvent();
     HbiHostCreateUpdateEvent hbiEvent =
-        HbiEventTestData.getEvent(message, HbiHostCreateUpdateEvent.class);
+        getCreateUpdateEvent(HbiEventTestData.getSatelliteRhelHostCreatedEvent());
     var hbiHost = hbiEvent.getHost();
     Event expected =
         new Event()
@@ -105,7 +109,7 @@ class HbiEventConsumerTest {
             .withCloudProvider(null)
             .withHardwareType(HardwareType.VIRTUAL)
             // TODO Need a test grabbing this from system profile facts.
-            .withHypervisorUuid(Optional.of("33951fca-6dd9-41d8-9097-e75fb7f4ddb5"))
+            .withHypervisorUuid(Optional.of("bed420fa-59ef-44e5-af8a-62a24473a554"))
             .withProductTag(Set.of("RHEL for x86"))
             .withProductIds(List.of("69", "408"))
             .withMeasurements(
@@ -120,9 +124,7 @@ class HbiEventConsumerTest {
   @Test
   void testPhysicalRhelEvent() {
     when(unleash.isEnabled(FeatureFlags.EMIT_EVENTS)).thenReturn(true);
-    var hbiEvent =
-        HbiEventTestData.getEvent(
-            HbiEventTestData.getPhysicalRhelHostCreatedEvent(), HbiHostCreateUpdateEvent.class);
+    var hbiEvent = getCreateUpdateEvent(HbiEventTestData.getPhysicalRhelHostCreatedEvent());
     // Override the sync timestamp fact so that it aligns with the current time
     // and is within the configured 'hostLastSyncThreshold'.
     // TODO Replacing the ApplicationClock with a static instance would likely be better.
@@ -162,9 +164,7 @@ class HbiEventConsumerTest {
   void testRhsmFactsAreNotConsideredWhenOutsideOfTheSyncThreshold() {
     when(unleash.isEnabled(FeatureFlags.EMIT_EVENTS)).thenReturn(true);
     // The test event has a sync timestamp outside the configured 'hostLastSyncThreshold'.
-    var hbiEvent =
-        HbiEventTestData.getEvent(
-            HbiEventTestData.getPhysicalRhelHostCreatedEvent(), HbiHostCreateUpdateEvent.class);
+    var hbiEvent = getCreateUpdateEvent(HbiEventTestData.getPhysicalRhelHostCreatedEvent());
     var hbiHost = hbiEvent.getHost();
     Event expected =
         new Event()
@@ -198,9 +198,7 @@ class HbiEventConsumerTest {
   @Test
   void testQpcRhelHostCreatedEvent() {
     when(unleash.isEnabled(FeatureFlags.EMIT_EVENTS)).thenReturn(true);
-    var hbiEvent =
-        HbiEventTestData.getEvent(
-            HbiEventTestData.getQpcRhelHostCreatedEvent(), HbiHostCreateUpdateEvent.class);
+    var hbiEvent = getCreateUpdateEvent(HbiEventTestData.getQpcRhelHostCreatedEvent());
     var hbiHost = hbiEvent.getHost();
     Event expected =
         new Event()
@@ -245,6 +243,51 @@ class HbiEventConsumerTest {
             });
   }
 
+  static Stream<Arguments> filterTestArgs() {
+    ApplicationClock clock = new ApplicationClock();
+    OffsetDateTime notStale = clock.now().plusMonths(1);
+    OffsetDateTime stale = clock.now().minusMonths(2);
+    return Stream.of(
+        // staleTimestamp, billingModel, hostType, shouldBeFiltered
+        Arguments.of(notStale, "marketplace", "good_host_type", true),
+        // Valid events should not be filtered.
+        Arguments.of(notStale, "annual", "good_host_type", false),
+        // Stale hosts should be filtered.
+        Arguments.of(stale, "annual", "good_host_type", true),
+        // Hosts with type 'edge' should be filtered.
+        Arguments.of(notStale, "annual", "edge", true),
+        // Nulls are considered valid when filtering.
+        Arguments.of(notStale, null, null, false),
+        // Empty strings are considered valid when filtering.
+        Arguments.of(notStale, "", "", false));
+  }
+
+  @ParameterizedTest
+  @MethodSource("filterTestArgs")
+  void testIncomingEventFilter(
+      OffsetDateTime staleTimestamp,
+      String billingModel,
+      String hostType,
+      boolean shouldBeFiltered) {
+    when(unleash.isEnabled(FeatureFlags.EMIT_EVENTS)).thenReturn(true);
+    var hbiEvent = getCreateUpdateEvent(HbiEventTestData.getPhysicalRhelHostCreatedEvent());
+    hbiEvent.getHost().setStaleTimestamp(staleTimestamp.toString());
+    setBillingModel(hbiEvent, billingModel);
+    setHostType(hbiEvent, hostType);
+
+    int expectedEventCount = shouldBeFiltered ? 0 : 1;
+
+    hbiEventsIn.send(hbiEvent);
+    Awaitility.await()
+        .atMost(Duration.ofSeconds(1))
+        .catchUncaughtExceptions()
+        .untilAsserted(
+            () -> {
+              List<? extends Message<Event>> received = swatchEventsOut.received();
+              assertEquals(expectedEventCount, received.size());
+            });
+  }
+
   private void assertSwatchEventSent(Event expected) {
     Awaitility.await()
         .atMost(Duration.ofSeconds(1))
@@ -263,13 +306,38 @@ class HbiEventConsumerTest {
   //   - systempurpose_unit
   //   - null cores/sockets.
 
+  private HbiHostCreateUpdateEvent getCreateUpdateEvent(String messageJson) {
+    HbiHostCreateUpdateEvent event =
+        HbiEventTestData.getEvent(messageJson, HbiHostCreateUpdateEvent.class);
+
+    // Ensure the event is not stale.
+    event.getHost().setStaleTimestamp(clock.now().plusMonths(1).toString());
+    return event;
+  }
+
   private void setRhsmSyncTimestamp(HbiHostCreateUpdateEvent event, OffsetDateTime syncTimestamp) {
-    HbiHostFacts rhsm =
+    setFact(
+        event,
+        RhsmFacts.RHSM_FACTS_NAMESPACE,
+        RhsmFacts.SYNC_TIMESTAMP_FACT,
+        syncTimestamp.toString());
+  }
+
+  private void setBillingModel(HbiHostCreateUpdateEvent event, String billingModel) {
+    setFact(event, RhsmFacts.RHSM_FACTS_NAMESPACE, RhsmFacts.BILLING_MODEL, billingModel);
+  }
+
+  private void setHostType(HbiHostCreateUpdateEvent event, String hostType) {
+    event.getHost().getSystemProfile().put(SystemProfileFacts.HOST_TYPE_FACT, hostType);
+  }
+
+  private void setFact(
+      HbiHostCreateUpdateEvent event, String namespace, String factName, String factValue) {
+    HbiHostFacts hostFacts =
         event.getHost().getFacts().stream()
-            .filter(
-                factsSchema -> RhsmFacts.RHSM_FACTS_NAMESPACE.equals(factsSchema.getNamespace()))
+            .filter(f -> namespace.equals(f.getNamespace()))
             .findFirst()
             .orElseThrow();
-    rhsm.getFacts().put(RhsmFacts.SYNC_TIMESTAMP_FACT, syncTimestamp.toString());
+    hostFacts.facts.put(factName, factValue);
   }
 }
