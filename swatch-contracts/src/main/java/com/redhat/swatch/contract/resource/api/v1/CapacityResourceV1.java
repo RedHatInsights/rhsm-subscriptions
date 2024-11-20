@@ -20,6 +20,9 @@
  */
 package com.redhat.swatch.contract.resource.api.v1;
 
+import com.redhat.swatch.common.model.HardwareMeasurementType;
+import com.redhat.swatch.common.model.ServiceLevel;
+import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinitionGranularity;
@@ -35,12 +38,9 @@ import com.redhat.swatch.contract.openapi.model.UsageType;
 import com.redhat.swatch.contract.openapi.resource.CapacityApi;
 import com.redhat.swatch.contract.repository.DbReportCriteria;
 import com.redhat.swatch.contract.repository.Granularity;
-import com.redhat.swatch.common.model.HardwareMeasurementType;
 import com.redhat.swatch.contract.repository.HypervisorReportCategory;
-import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
-import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.contract.resource.InMemoryPager;
 import com.redhat.swatch.contract.resource.ResourceUtils;
 import com.redhat.swatch.contract.resteasy.Page;

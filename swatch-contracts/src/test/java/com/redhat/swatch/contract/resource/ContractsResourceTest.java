@@ -33,16 +33,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.clients.product.api.resources.ApiException;
+import com.redhat.swatch.common.model.ServiceLevel;
+import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.contract.config.ApplicationConfiguration;
 import com.redhat.swatch.contract.exception.ErrorCode;
 import com.redhat.swatch.contract.exception.ServiceException;
 import com.redhat.swatch.contract.model.SyncResult;
 import com.redhat.swatch.contract.openapi.model.AwsUsageContext;
 import com.redhat.swatch.contract.openapi.model.RhmUsageContext;
-import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
-import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.contract.service.EnabledOrgsProducer;
 import com.redhat.swatch.contract.service.OfferingProductTagLookupService;
 import com.redhat.swatch.contract.service.OfferingSyncService;

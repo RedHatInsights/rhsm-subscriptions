@@ -20,11 +20,11 @@
  */
 package com.redhat.swatch.contract.service.export;
 
-import com.redhat.swatch.contract.model.SubscriptionsExportCsvItem;
 import com.redhat.swatch.common.model.ServiceLevel;
+import com.redhat.swatch.common.model.Usage;
+import com.redhat.swatch.contract.model.SubscriptionsExportCsvItem;
 import com.redhat.swatch.contract.repository.SubscriptionCapacityView;
 import com.redhat.swatch.contract.repository.SubscriptionCapacityViewRepository;
-import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.contract.resource.api.v1.ApiModelMapperV1;
 import com.redhat.swatch.export.DataMapperService;
 import com.redhat.swatch.export.ExportServiceRequest;

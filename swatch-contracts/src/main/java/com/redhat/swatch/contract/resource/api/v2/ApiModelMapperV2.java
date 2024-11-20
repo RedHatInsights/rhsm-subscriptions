@@ -20,8 +20,8 @@
  */
 package com.redhat.swatch.contract.resource.api.v2;
 
-import com.redhat.swatch.contract.openapi.model.ReportCategory;
 import com.redhat.swatch.common.model.HardwareMeasurementType;
+import com.redhat.swatch.contract.openapi.model.ReportCategory;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "cdi")
