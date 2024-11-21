@@ -190,8 +190,7 @@ public class BillableUsageRemittanceRepository
         builder.or(
             builder.isNull(root.get(BillableUsageRemittanceEntity_.status)),
             builder.notEqual(
-                root.get(BillableUsageRemittanceEntity_.status), RemittanceStatus.FAILED),
-            builder.isNotNull(root.get(BillableUsageRemittanceEntity_.retryAfter)));
+                root.get(BillableUsageRemittanceEntity_.status), RemittanceStatus.FAILED));
   }
 
   private Specification<BillableUsageRemittanceEntity> matchingHardwareMeasurementType(

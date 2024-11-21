@@ -426,7 +426,7 @@ class BillableUsageServiceTest {
     givenExistingRemittanceForUsage(usage, startOfUsage.plusDays(4), 20.0, null);
 
     var result = service.getTotalRemitted(usage);
-    assertEquals(36.0, result);
+    assertEquals(26.0, result);
   }
 
   static Stream<Arguments> remittanceBillingFactorParameters() {
