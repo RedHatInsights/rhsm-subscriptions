@@ -49,7 +49,7 @@ class OfferingProductTagLookupServiceTest {
   @Inject OfferingProductTagLookupService offeringProductTagLookupService;
 
   @Test
-  void findProductTagsBySku_WhenSkuNotPresent() {
+  void findProductTagsBySkuWhenSkuNotPresent() {
     when(offeringRepository.findById("sku")).thenReturn(null);
     RuntimeException e =
         assertThrows(
@@ -65,7 +65,7 @@ class OfferingProductTagLookupServiceTest {
 
   @Test
   void
-      findProductTagsBySku_WhenSkuPresentWithNoRoleOrEngIDsThenItShouldNotUseProductNameWhenMeteredFlagIsFalse() {
+      findProductTagsBySkuWhenSkuPresentWithNoRoleOrEngIDsThenItShouldNotUseProductNameWhenMeteredFlagIsFalse() {
     OfferingEntity offering = new OfferingEntity();
     offering.setProductName("OpenShift Online");
     offering.setRole(null);
@@ -80,7 +80,7 @@ class OfferingProductTagLookupServiceTest {
 
   @Test
   void
-      findProductTagsBySku_WhenSkuPresentWithNoRoleOrEngIDsThenItShouldUseProductNameWhenMeteredFlagIsTrue() {
+      findProductTagsBySkuWhenSkuPresentWithNoRoleOrEngIDsThenItShouldUseProductNameWhenMeteredFlagIsTrue() {
     OfferingEntity offering = new OfferingEntity();
     offering.setProductName("OpenShift Online");
     offering.setRole(null);
@@ -95,7 +95,7 @@ class OfferingProductTagLookupServiceTest {
   }
 
   @Test
-  void findProductTagsBySku_WhenEngIdPresent() {
+  void findProductTagsBySkuWhenEngIdPresent() {
     OfferingEntity offering = new OfferingEntity();
     offering.setProductIds(Set.of(290));
     when(offeringRepository.findById("sku")).thenReturn(offering);

@@ -68,7 +68,7 @@ class ExecutorTaskQueueTest {
                 (runnable) -> {
                   Thread thread = new Thread(runnable);
                   thread.setUncaughtExceptionHandler(
-                      (_thread, throwable) -> {
+                      (t, throwable) -> {
                         failed.set(true);
                       });
                   return thread;

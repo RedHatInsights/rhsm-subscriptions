@@ -109,7 +109,7 @@ class SubscriptionSyncControllerTest {
   }
 
   @Test
-  void findsSubscriptionId_WhenOrgIdPresent() {
+  void findsSubscriptionIdWhenOrgIdPresent() {
     UsageCalculation.Key key =
         new Key(
             "OpenShift-metrics",

@@ -143,7 +143,7 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   @Test
-  void createPartnerContract_WhenNonNullEntityAndContractNotFoundInDB() {
+  void createPartnerContractWhenNonNullEntityAndContractNotFoundInDB() {
     var contract = givenPartnerEntitlementContractRequest();
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
     assertEquals("New contract created", statusResponse.getMessage());
@@ -153,7 +153,7 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   @Test
-  void createPartnerContract_WhenExistingContractThenStatusReturnsRedundantMessage() {
+  void createPartnerContractWhenExistingContractThenStatusReturnsRedundantMessage() {
     // given an existing contract
     var contract = givenPartnerEntitlementContractRequest();
     contractService.createPartnerContract(contract);
@@ -164,7 +164,7 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   @Test
-  void upsertPartnerContract_WhenNullEntityThrowError() {
+  void upsertPartnerContractWhenNullEntityThrowError() {
     PartnerEntitlementV1 contract = givenContractWithoutRequiredData();
     assertThrows(
         ContractValidationFailedException.class,
@@ -172,14 +172,14 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   @Test
-  void whenInvalidPartnerContract_DoNotPersist() {
+  void whenInvalidPartnerContractDoNotPersist() {
     var contract = givenPartnerEntitlementContractWithoutProductCode();
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
     assertEquals("Bad message, see logs for details", statusResponse.getMessage());
   }
 
   @Test
-  void createPartnerContract_NotDuplicateContractThenPersist() {
+  void createPartnerContractNotDuplicateContractThenPersist() {
     givenExistingContract();
     givenExistingSubscriptionWithBillingProviderId("1234:agb1:1fa");
 
@@ -191,7 +191,7 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   @Test
-  void createPartnerContract_UpdateContract() {
+  void createPartnerContractUpdateContract() {
     givenExistingContractWithExistingMetrics();
     givenExistingSubscriptionWithBillingProviderId("1234:agb1:1fa");
 

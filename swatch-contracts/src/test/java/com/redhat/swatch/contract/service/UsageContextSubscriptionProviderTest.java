@@ -71,7 +71,7 @@ class UsageContextSubscriptionProviderTest {
   }
 
   @Test
-  void incrementsMissingCounter_WhenOrgIdPresent() {
+  void incrementsMissingCounterWhenOrgIdPresent() {
     when(repo.findByCriteria(any(), any())).thenReturn(Collections.emptyList());
     assertThrows(NotFoundException.class, this::whenGetSubscriptions);
     Counter counter = meterRegistry.counter(MISSING_SUBSCRIPTIONS_COUNTER_NAME, "provider", "aws");
@@ -79,7 +79,7 @@ class UsageContextSubscriptionProviderTest {
   }
 
   @Test
-  void incrementsAmbiguousCounter_WhenOrgIdPresent() {
+  void incrementsAmbiguousCounterWhenOrgIdPresent() {
     SubscriptionEntity sub1 = new SubscriptionEntity();
     sub1.setSubscriptionId("SUB1");
     sub1.setBillingProviderId("foo1;foo2;foo3");
@@ -103,7 +103,7 @@ class UsageContextSubscriptionProviderTest {
   }
 
   @Test
-  void shouldThrowSubscriptionsExceptionForTerminatedSubscription_WhenOrgIdPresent() {
+  void shouldThrowSubscriptionsExceptionForTerminatedSubscriptionWhenOrgIdPresent() {
     var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
     SubscriptionEntity sub1 = new SubscriptionEntity();
     sub1.setBillingProviderId("foo1;foo2;foo3");
@@ -120,7 +120,7 @@ class UsageContextSubscriptionProviderTest {
   }
 
   @Test
-  void shouldReturnActiveSubscriptionAndNotTerminated_WhenOrgIdPresent() {
+  void shouldReturnActiveSubscriptionAndNotTerminatedWhenOrgIdPresent() {
     var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
     SubscriptionEntity sub1 = new SubscriptionEntity();
     sub1.setBillingProviderId("foo1;foo2;foo3");

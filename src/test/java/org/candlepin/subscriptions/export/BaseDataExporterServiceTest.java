@@ -159,12 +159,12 @@ public abstract class BaseDataExporterServiceTest
     request.getData().getResourceRequest().getFilters().put(filter, value);
   }
 
-  protected void givenRbacPermissions(List<String> SWATCH_APP) {
+  protected void givenRbacPermissions(List<String> permissions) {
     try {
       when(rbacService.getPermissions(
               request.getData().getResourceRequest().getApplication(),
               request.getData().getResourceRequest().getXRhIdentity()))
-          .thenReturn(SWATCH_APP);
+          .thenReturn(permissions);
     } catch (RbacApiException e) {
       Assertions.fail("Failed to call the get permissions method", e);
     }

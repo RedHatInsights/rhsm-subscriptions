@@ -827,34 +827,34 @@ class TallyResourceTest {
       ServiceLevelType sla,
       UsageType usageType,
       Map<OffsetDateTime, Integer> result) {
-    GranularityType cGranularity = GranularityType.valueOf(granularityType.name());
-    ReportCategory cReportCategory =
+    GranularityType resolvedGranularity = GranularityType.valueOf(granularityType.name());
+    ReportCategory resolvedReportCategory =
         Optional.ofNullable(category).map(c -> ReportCategory.valueOf(c.name())).orElse(null);
-    ServiceLevelType cSla =
+    ServiceLevelType resolvedSla =
         Optional.ofNullable(sla).map(s -> ServiceLevelType.valueOf(s.name())).orElse(null);
-    UsageType cUsage =
+    UsageType resolvedUsage =
         Optional.ofNullable(usageType).map(ut -> UsageType.valueOf(ut.name())).orElse(null);
 
     when(capacityResource.getCapacityReportByMetricId(
             eq(productId),
             eq(metricId),
-            eq(cGranularity),
+            eq(resolvedGranularity),
             eq(beginning),
             eq(ending),
             any(),
             any(),
-            eq(cReportCategory),
-            eq(cSla),
-            eq(cUsage)))
+            eq(resolvedReportCategory),
+            eq(resolvedSla),
+            eq(resolvedUsage)))
         .thenReturn(
             capacityReport(
                 beginning,
                 ending,
                 metricId.getValue(),
-                cReportCategory,
-                cGranularity,
-                cSla,
-                cUsage,
+                resolvedReportCategory,
+                resolvedGranularity,
+                resolvedSla,
+                resolvedUsage,
                 result));
   }
 

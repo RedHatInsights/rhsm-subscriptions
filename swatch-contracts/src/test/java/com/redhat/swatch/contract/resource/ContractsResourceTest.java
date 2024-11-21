@@ -174,7 +174,7 @@ class ContractsResourceTest {
   }
 
   @Test
-  void incrementsMissingCounter_WhenAccountNumberPresent() {
+  void incrementsMissingCounterWhenAccountNumberPresent() {
     Counter counter = meterRegistry.counter("swatch_missing_subscriptions", "provider", "aws");
     var initialCount = counter.count();
     when(subscriptionRepository.findByCriteria(any())).thenReturn(Collections.emptyList());
@@ -187,7 +187,7 @@ class ContractsResourceTest {
   }
 
   @Test
-  void incrementsMissingCounter_WhenOrgIdPresent() {
+  void incrementsMissingCounterWhenOrgIdPresent() {
     Counter counter = meterRegistry.counter("swatch_missing_subscriptions", "provider", "aws");
     var initialCount = counter.count();
     when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(Collections.emptyList());
@@ -200,7 +200,7 @@ class ContractsResourceTest {
   }
 
   @Test
-  void incrementsAmbiguousCounter_WhenOrgIdPresent() {
+  void incrementsAmbiguousCounterWhenOrgIdPresent() {
     Counter counter = meterRegistry.counter("swatch_ambiguous_subscriptions", "provider", "aws");
     var initialCount = counter.count();
     SubscriptionEntity sub1 = new SubscriptionEntity();
@@ -221,7 +221,7 @@ class ContractsResourceTest {
   }
 
   @Test
-  void shouldThrowSubscriptionsExceptionForTerminatedSubscription_WhenOrgIdPresent() {
+  void shouldThrowSubscriptionsExceptionForTerminatedSubscriptionWhenOrgIdPresent() {
     var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
     SubscriptionEntity sub1 = new SubscriptionEntity();
     sub1.setBillingProviderId("foo1;foo2;foo3");
@@ -243,7 +243,7 @@ class ContractsResourceTest {
   }
 
   @Test
-  void shouldReturnActiveSubscriptionAndNotTerminated_WhenOrgIdPresent() {
+  void shouldReturnActiveSubscriptionAndNotTerminatedWhenOrgIdPresent() {
     var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
     SubscriptionEntity sub1 = new SubscriptionEntity();
     sub1.setBillingProviderId("foo1;foo2;foo3");
