@@ -183,11 +183,7 @@ public class InventoryController {
     log.debug("Received message from consumer: {}", consumer);
     ConduitFacts facts = new ConduitFacts();
     facts.setOrgId(consumer.getOrgId());
-    String clusterUuid = rhsmFacts.get(OPENSHIFT_CLUSTER_UUID);
-    // NOTE future displayName logic could consider more facts here
-    if (clusterUuid != null) {
-      facts.setDisplayName(clusterUuid);
-    }
+    extractDisplayName(consumer, rhsmFacts, facts);
     facts.setSubscriptionManagerId(normalizeUuid(consumer.getUuid()));
     facts.setInsightsId(normalizeUuid(rhsmFacts.get(INSIGHTS_ID)));
 
@@ -216,6 +212,20 @@ public class InventoryController {
 
     extractMarketPlaceFacts(rhsmFacts, facts);
     return facts;
+  }
+
+  private void extractDisplayName(
+      Consumer consumer, Map<String, String> rhsmFacts, ConduitFacts facts) {
+    // by the default, we use the consumer.name
+    String displayName = consumer.getName();
+
+    String clusterUuid = rhsmFacts.get(OPENSHIFT_CLUSTER_UUID);
+    if (clusterUuid != null) {
+      // When the openshift cluster UUID is set, we use it as display name.
+      displayName = clusterUuid;
+    }
+
+    facts.setDisplayName(displayName);
   }
 
   private void extractConversionsActivity(Map<String, String> rhsmFacts, ConduitFacts facts) {

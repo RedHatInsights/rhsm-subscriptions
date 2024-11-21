@@ -902,6 +902,29 @@ class InventoryControllerTest {
   }
 
   @Test
+  void testNameUsedAsDisplayNameWhenItIsNotOpenShiftCluster() throws ApiException {
+    UUID uuid = UUID.randomUUID();
+    Consumer consumer = new Consumer();
+    consumer.setName("TheName");
+    consumer.setOrgId("123");
+    consumer.setUuid(uuid.toString());
+
+    ConduitFacts expected = new ConduitFacts();
+    expected.setOrgId("123");
+    expected.setDisplayName("TheName");
+    expected.setSubscriptionManagerId(uuid.toString());
+    expected.setRhProd(new ArrayList<>());
+    expected.setSysPurposeAddons(new ArrayList<>());
+
+    when(rhsmService.getPageOfConsumers(eq("123"), nullable(String.class), anyString()))
+        .thenReturn(pageOf(consumer));
+
+    controller.updateInventoryForOrg("123");
+    verify(inventoryService).scheduleHostUpdate(expected);
+    verify(inventoryService, times(1)).flushHostUpdates();
+  }
+
+  @Test
   void testAdditionalFactsMapping() {
     Consumer consumer = new Consumer();
     // Operating System
