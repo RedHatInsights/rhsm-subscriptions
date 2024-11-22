@@ -183,7 +183,6 @@ class TallyRetentionControllerTest {
                 HardwareMeasurementType.AWS, MetricIdUtils.getCores().toString()),
             1.0));
     for (var granularity : Granularity.values()) {
-      snapshot.setId(UUID.randomUUID());
       snapshot.setGranularity(granularity);
       repository.saveAndFlush(snapshot);
     }
