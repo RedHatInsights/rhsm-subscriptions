@@ -20,20 +20,26 @@
  */
 package com.redhat.swatch.billable.usage.kafka;
 
+import static com.redhat.swatch.billable.usage.kafka.streams.StreamTopologyProducer.USAGE_TOTAL_METRIC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.redhat.swatch.billable.usage.kafka.streams.BillableUsageAggregationStreamProperties;
 import com.redhat.swatch.billable.usage.kafka.streams.StreamTopologyProducer;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import io.micrometer.core.instrument.Meter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.quarkus.kafka.client.serialization.ObjectMapperSerde;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -54,6 +60,9 @@ class BillableUsageAggregateStreamTopologyTest {
   private static final String BILLABLE_USAGE_SUPPRESS_STORE = "billable-usage-suppress-store";
   private static final Duration WINDOW_DURATION = Duration.ofSeconds(1);
   private static final Duration GRACE_DURATION = Duration.ofSeconds(0);
+  private static final String PRODUCT = "OpenShift-metrics";
+
+  private final MeterRegistry meterRegistry = new SimpleMeterRegistry();
   private ObjectMapperSerde<BillableUsage> billableUsageSerde;
   private ObjectMapperSerde<BillableUsageAggregate> billableUsageAggregateSerde;
   private ObjectMapperSerde<BillableUsageAggregateKey> billableUsageAggregateKeySerde;
@@ -61,6 +70,7 @@ class BillableUsageAggregateStreamTopologyTest {
 
   @BeforeEach
   void initializeTopology() {
+    meterRegistry.clear();
     BillableUsageAggregationStreamProperties properties =
         new BillableUsageAggregationStreamProperties();
     properties.setBillableUsageSuppressStoreName(BILLABLE_USAGE_SUPPRESS_STORE);
@@ -71,7 +81,8 @@ class BillableUsageAggregateStreamTopologyTest {
     properties.setGradeDuration(GRACE_DURATION);
     ObjectMapper objectMapper = new ObjectMapper();
     objectMapper.registerModule(new JavaTimeModule());
-    StreamTopologyProducer topologyProducer = new StreamTopologyProducer(properties, objectMapper);
+    StreamTopologyProducer topologyProducer =
+        new StreamTopologyProducer(properties, objectMapper, meterRegistry);
     this.testDriver = new TopologyTestDriver(topologyProducer.buildTopology());
     this.billableUsageSerde = new ObjectMapperSerde<>(BillableUsage.class, objectMapper);
     this.billableUsageAggregateSerde =
@@ -104,6 +115,7 @@ class BillableUsageAggregateStreamTopologyTest {
     assertEquals(Set.of(usage.getSnapshotDate()), actualAggregate.getSnapshotDates());
     assertEquals(usage.getUuid().toString(), actualAggregate.getRemittanceUuids().get(0));
     assertNotNull(actualAggregate.getWindowTimestamp());
+    assertUsageTotalMetricIs(36.0);
   }
 
   @Test
@@ -140,6 +152,7 @@ class BillableUsageAggregateStreamTopologyTest {
             usage1.getUuid().toString(), usage2.getUuid().toString(), usage3.getUuid().toString()),
         actualAggregate.getRemittanceUuids());
     assertNotNull(actualAggregate.getWindowTimestamp());
+    assertUsageTotalMetricIs(9.0);
   }
 
   @Test
@@ -181,13 +194,24 @@ class BillableUsageAggregateStreamTopologyTest {
     assertIterableEquals(
         List.of(secondSubUsage1.getUuid().toString(), secondSubUsage2.getUuid().toString()),
         actualSecondAggregate.getRemittanceUuids());
+    assertUsageTotalMetricIs(11.0);
+  }
+
+  private void assertUsageTotalMetricIs(double expectedTotal) {
+    var metric =
+        getIngestedUsageMetric(
+            PRODUCT,
+            MetricIdUtils.getCores().toUpperCaseFormatted(),
+            BillableUsage.BillingProvider.AZURE.toString());
+    assertTrue(metric.isPresent());
+    assertEquals(metric.get().measure().iterator().next().getValue(), expectedTotal);
   }
 
   private BillableUsage createBillableUsage(
       String billingAccountId, int value, OffsetDateTime snapshotDate) {
     var usage = new BillableUsage();
     usage.setOrgId("org123");
-    usage.setProductId("OpenShift-metrics");
+    usage.setProductId(PRODUCT);
     usage.setSnapshotDate(snapshotDate);
     usage.setUsage(BillableUsage.Usage.PRODUCTION);
     usage.setMetricId(MetricIdUtils.getCores().toUpperCaseFormatted());
@@ -197,5 +221,17 @@ class BillableUsageAggregateStreamTopologyTest {
     usage.setBillingAccountId(billingAccountId);
     usage.setUuid(UUID.randomUUID());
     return usage;
+  }
+
+  private Optional<Meter> getIngestedUsageMetric(
+      String productTag, String metricId, String billingProvider) {
+    return meterRegistry.getMeters().stream()
+        .filter(
+            m ->
+                USAGE_TOTAL_METRIC.equals(m.getId().getName())
+                    && productTag.equals(m.getId().getTag("product"))
+                    && metricId.equals(m.getId().getTag("metric_id"))
+                    && billingProvider.equals(m.getId().getTag("billing_provider")))
+        .findFirst();
   }
 }
