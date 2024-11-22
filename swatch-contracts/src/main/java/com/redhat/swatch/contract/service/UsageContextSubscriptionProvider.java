@@ -41,15 +41,18 @@ import lombok.extern.slf4j.Slf4j;
 @AllArgsConstructor
 public class UsageContextSubscriptionProvider {
 
+  protected static final String MISSING_SUBSCRIPTIONS_COUNTER_NAME = "swatch_missing_subscriptions";
+  protected static final String AMBIGUOUS_SUBSCRIPTIONS_COUNTER_NAME =
+      "swatch_ambiguous_subscriptions";
   private final SubscriptionRepository subscriptionRepository;
   private final MeterRegistry meterRegistry;
 
   public Optional<SubscriptionEntity> getSubscription(DbReportCriteria criteria) {
     var providerString = criteria.getBillingProvider().getValue();
     var missingSubscriptionCounter =
-        meterRegistry.counter("swatch_missing_subscriptions", "provider", providerString);
+        meterRegistry.counter(MISSING_SUBSCRIPTIONS_COUNTER_NAME, "provider", providerString);
     var ambiguousSubscriptionCounter =
-        meterRegistry.counter("swatch_ambiguous_subscriptions", "provider", providerString);
+        meterRegistry.counter(AMBIGUOUS_SUBSCRIPTIONS_COUNTER_NAME, "provider", providerString);
 
     List<SubscriptionEntity> subscriptions =
         subscriptionRepository.findByCriteria(
