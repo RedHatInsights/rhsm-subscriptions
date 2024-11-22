@@ -43,5 +43,5 @@ metrics:
       queryParams:
         instanceKey: _id
         productLabelRegex: (moa-hostedcontrolplane|moa)
-        metric: hostedcluster:hypershift_cluster_vcpus:vcpu_hours
+        metric: rosa:cluster:vcpu_hours
         metadataMetric: ocm_subscription
