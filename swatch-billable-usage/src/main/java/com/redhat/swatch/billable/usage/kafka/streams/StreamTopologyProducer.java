@@ -21,9 +21,12 @@
 package com.redhat.swatch.billable.usage.kafka.streams;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.kafka.client.serialization.ObjectMapperSerde;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
@@ -35,23 +38,22 @@ import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Suppressed;
 import org.apache.kafka.streams.kstream.Suppressed.BufferConfig;
 import org.apache.kafka.streams.kstream.TimeWindows;
+import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.state.WindowStore;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 
+@AllArgsConstructor
 @ApplicationScoped
 @Slf4j
 public class StreamTopologyProducer {
 
+  public static final String USAGE_TOTAL_METRIC = "swatch_billable_usage_total";
+
   private final BillableUsageAggregationStreamProperties properties;
   private final ObjectMapper objectMapper;
-
-  public StreamTopologyProducer(
-      BillableUsageAggregationStreamProperties properties, ObjectMapper objectMapper) {
-    this.properties = properties;
-    this.objectMapper = objectMapper;
-  }
+  private final MeterRegistry meterRegistry;
 
   @Produces
   public Topology buildTopology() {
@@ -89,9 +91,30 @@ public class StreamTopologyProducer {
             Suppressed.untilWindowCloses(BufferConfig.unbounded())
                 .withName(properties.getBillableUsageSuppressStoreName()))
         .toStream()
-        .peek((key, aggregate) -> log.info("Sending aggregate to hourly topic: {}", aggregate))
+        .peek(this::traceAggregate)
         .to(properties.getBillableUsageHourlyAggregateTopicName());
 
     return builder.build();
+  }
+
+  private void traceAggregate(
+      Windowed<BillableUsageAggregateKey> key, BillableUsageAggregate aggregate) {
+    log.info("Sending aggregate to hourly topic: {}", aggregate);
+    if (key.key().getProductId() != null && key.key().getMetricId() != null) {
+      // add metrics for aggregation
+      var counter = Counter.builder(USAGE_TOTAL_METRIC);
+      if (key.key().getBillingProvider() != null) {
+        counter.tag("billing_provider", key.key().getBillingProvider());
+      }
+
+      if (aggregate.getStatus() != null) {
+        counter.tag("status", aggregate.getStatus().toString());
+      }
+
+      counter
+          .withRegistry(meterRegistry)
+          .withTags("product", key.key().getProductId(), "metric_id", key.key().getMetricId())
+          .increment(aggregate.getTotalValue().doubleValue());
+    }
   }
 }

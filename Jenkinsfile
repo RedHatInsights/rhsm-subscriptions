@@ -18,7 +18,8 @@ kind: Pod
 spec:
   containers:
     - name: kubedock
-      image: quay.io/cloudservices/kubedock:f8452a8
+      image: quay.io/cloudservices/kubedock:latest
+      imagePullPolicy: Always
       tty: true
       args:
        - server
