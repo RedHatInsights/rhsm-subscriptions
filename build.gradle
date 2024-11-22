@@ -43,7 +43,6 @@ dependencies {
     implementation project(":clients:prometheus-client")
     implementation project(":clients:rbac-client")
     implementation project(":clients:rhsm-client")
-    implementation project(":clients:subscription-client")
     implementation project(":clients:contracts-client")
     implementation project(":clients:export-client")
     implementation project(":clients:billable-usage-client")

@@ -13,11 +13,6 @@ rhsm-subscriptions:
     platform: hsqldb
   account-batch-size: 2
   subscription-sync-enabled: true
-  subscription:
-    use-stub: true
-    tasks:
-      topic: platform.rhsm-subscriptions.subscription-sync
-      kafka-group-id: subscription-worker
   user-service:
     use-stub: true
   product:

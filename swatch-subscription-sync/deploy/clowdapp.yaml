@@ -53,20 +53,8 @@ parameters:
     value: '500'
   - name: DEVTEST_EVENT_EDITING_ENABLED
     value: 'false'
-  - name: SUBSCRIPTION_URL
-    value: https://subscription.stage.api.redhat.com/svcrest/subscription/v5
   - name: PRODUCT_URL
     value: https://product.stage.api.redhat.com/svcrest/product/v3
-  - name: SUBSCRIPTION_MAX_CONNECTIONS
-    value: '100'
-  - name: SUBSCRIPTION_MAX_RETRY_ATTEMPTS
-    value: '4'
-  - name: SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL
-    value: 1s
-  - name: SUBSCRIPTION_BACK_OFF_MAX_INTERVAL
-    value: 64s
-  - name: SUBSCRIPTION_BACK_OFF_MULTIPLIER
-    value: '2'
   - name: USER_HOST
   - name: USER_MAX_CONNECTIONS
     value: '100'
@@ -333,27 +321,8 @@ objects:
                   key: keystore_password
             - name: RHSM_TRUSTSTORE
               value: /pinhead/truststore.jks
-            - name: SUBSCRIPTION_KEYSTORE
-              value: /pinhead/keystore.jks
-            - name: SUBSCRIPTION_URL
-              value: ${SUBSCRIPTION_URL}
-            - name: SUBSCRIPTION_MAX_CONNECTIONS
-              value: ${SUBSCRIPTION_MAX_CONNECTIONS}
-            - name: SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL
-              value: ${SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL}
-            - name: SUBSCRIPTION_BACK_OFF_MAX_INTERVAL
-              value: ${SUBSCRIPTION_BACK_OFF_MAX_INTERVAL}
-            - name: SUBSCRIPTION_BACK_OFF_MULTIPLIER
-              value: ${SUBSCRIPTION_BACK_OFF_MULTIPLIER}
-            - name: SUBSCRIPTION_MAX_RETRY_ATTEMPTS
-              value: ${SUBSCRIPTION_MAX_RETRY_ATTEMPTS}
             - name: PRODUCT_URL
               value: ${PRODUCT_URL}
-            - name: SUBSCRIPTION_KEYSTORE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: tls
-                  key: keystore_password
             - name: DEV_MODE
               value: ${DEV_MODE}
             - name: SWATCH_SELF_PSK

@@ -20,25 +20,20 @@
  */
 package org.candlepin.subscriptions.subscription;
 
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationConfiguration;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
-import org.candlepin.subscriptions.exception.UnretryableException;
 import org.candlepin.subscriptions.resteasy.ResteasyConfiguration;
 import org.candlepin.subscriptions.tracing.TracingConfiguration;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.TypeExcludeFilter;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.jms.annotation.EnableJms;
-import org.springframework.retry.support.RetryTemplate;
-import org.springframework.retry.support.RetryTemplateBuilder;
 
 /** Configuration class for subscription package. */
 @Configuration
@@ -62,37 +57,10 @@ import org.springframework.retry.support.RetryTemplateBuilder;
           type = FilterType.CUSTOM,
           classes = AutoConfigurationExcludeFilter.class)
     })
-public class SubscriptionServiceConfiguration {
-
-  @Bean
-  @ConfigurationProperties(prefix = "rhsm-subscriptions.subscription")
-  public SubscriptionServiceProperties subscriptionServiceProperties() {
-    return new SubscriptionServiceProperties();
-  }
-
+public class SubscriptionConfiguration {
   @Bean
   @ConditionalOnMissingBean
   KafkaConsumerRegistry kafkaConsumerRegistry() {
     return new KafkaConsumerRegistry();
-  }
-
-  @Bean
-  public SearchApiFactory searchApiFactory(
-      SubscriptionServiceProperties subscriptionServiceProperties) {
-    return new SearchApiFactory(subscriptionServiceProperties);
-  }
-
-  @Bean
-  public RetryTemplate subscriptionServiceRetryTemplate(
-      ApplicationProperties applicationProperties) {
-
-    return new RetryTemplateBuilder()
-        .maxAttempts(applicationProperties.getSubscription().getMaxRetryAttempts())
-        .exponentialBackoff(
-            applicationProperties.getSubscription().getBackOffInitialInterval().toMillis(),
-            applicationProperties.getSubscription().getBackOffMultiplier(),
-            applicationProperties.getSubscription().getBackOffMaxInterval().toMillis())
-        .notRetryOn(UnretryableException.class)
-        .build();
   }
 }
