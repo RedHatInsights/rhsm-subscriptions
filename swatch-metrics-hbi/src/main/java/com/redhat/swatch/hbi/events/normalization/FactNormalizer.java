@@ -127,7 +127,7 @@ public class FactNormalizer {
     // Measurements are normalized after all general host facts have been determined.
     hostFacts.setMeasurements(
         measurementNormalizer.getMeasurements(
-            hostFacts, systemProfileFacts, rhsmFacts, productNormalizer));
+            hostFacts, systemProfileFacts, rhsmFacts, productNormalizer.getProductTags()));
     return hostFacts;
   }
 

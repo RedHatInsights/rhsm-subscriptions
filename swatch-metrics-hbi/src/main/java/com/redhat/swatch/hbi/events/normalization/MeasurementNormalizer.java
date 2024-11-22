@@ -37,7 +37,7 @@ import lombok.extern.slf4j.Slf4j;
 @ApplicationScoped
 public class MeasurementNormalizer {
 
-  private static final String OPEN_SHIFT_CONTAINER_PLATFORM = "OpenShift Container Platform";
+  public static final String OPEN_SHIFT_CONTAINER_PLATFORM = "OpenShift Container Platform";
   private static final double THREADS_PER_CORE_DEFAULT = 2.0;
 
   private final ApplicationConfiguration appConfig;
@@ -53,18 +53,17 @@ public class MeasurementNormalizer {
       HostFacts facts,
       SystemProfileFacts systemProfileFacts,
       Optional<RhsmFacts> rhsmFacts,
-      ProductNormalizer products) {
+      Set<String> productTags) {
     NormalizedMeasurements measurements = new NormalizedMeasurements();
-    measurements.setCores(normalizeCores(systemProfileFacts, products));
-    measurements.setSockets(normalizeSockets(facts, systemProfileFacts, products));
+    measurements.setCores(normalizeCores(systemProfileFacts, productTags));
+    measurements.setSockets(normalizeSockets(facts, systemProfileFacts, productTags));
 
     normalizeUnits(facts, systemProfileFacts, rhsmFacts, measurements);
     return measurements;
   }
 
-  private Integer normalizeCores(
-      SystemProfileFacts systemProfileFacts, ProductNormalizer products) {
-    Integer applicableCores = getSystemProfileCores(systemProfileFacts, products);
+  private Integer normalizeCores(SystemProfileFacts systemProfileFacts, Set<String> productTags) {
+    Integer applicableCores = getSystemProfileCores(systemProfileFacts, productTags);
     if (Boolean.TRUE.equals(systemProfileFacts.getIsMarketplace())) {
       applicableCores = 0;
     }
@@ -72,13 +71,13 @@ public class MeasurementNormalizer {
   }
 
   private Integer normalizeSockets(
-      HostFacts facts, SystemProfileFacts systemProfileFacts, ProductNormalizer products) {
-    // noralizeSocketCount
-    // normalizeMarketplace
-    // normalizeNullSocketsAndCores
+      HostFacts normalizedHostFacts,
+      SystemProfileFacts systemProfileFacts,
+      Set<String> productTags) {
     Integer applicableSockets = getSystemProfileSockets(systemProfileFacts);
     applicableSockets =
-        normalizeSocketCount(applicableSockets, facts, systemProfileFacts, products);
+        normalizeSocketCount(
+            applicableSockets, normalizedHostFacts, systemProfileFacts, productTags);
     if (Boolean.TRUE.equals(systemProfileFacts.getIsMarketplace())) {
       applicableSockets = 0;
     }
@@ -86,7 +85,7 @@ public class MeasurementNormalizer {
   }
 
   private Integer getSystemProfileCores(
-      SystemProfileFacts systemProfileFacts, ProductNormalizer products) {
+      SystemProfileFacts systemProfileFacts, Set<String> productTags) {
     Integer spSockets = systemProfileFacts.getSockets();
     Integer spCoresPerSocket = systemProfileFacts.getCoresPerSocket();
 
@@ -99,7 +98,7 @@ public class MeasurementNormalizer {
         && HardwareMeasurementType.VIRTUAL
             .toString()
             .equalsIgnoreCase(systemProfileFacts.getInfrastructureType())) {
-      applicableCores = calculateVirtualCPU(products.getProductTags(), systemProfileFacts);
+      applicableCores = calculateVirtualCPU(productTags, systemProfileFacts);
     }
     return applicableCores;
   }
@@ -113,27 +112,25 @@ public class MeasurementNormalizer {
       Integer currentCalculatedSockets,
       HostFacts normalizedFacts,
       SystemProfileFacts systemProfileFacts,
-      ProductNormalizer products) {
+      Set<String> productTags) {
     // modulo-2 rounding only applied to physical or hypervisors
-    boolean isHypervisor =
-        hypervisorGuestRepository.isHypervisor(normalizedFacts.getSubscriptionManagerId());
-    if (isHypervisor || !normalizedFacts.isVirtual()) {
+    if (!normalizedFacts.isVirtual()
+        || hypervisorGuestRepository.isHypervisor(normalizedFacts.getSubscriptionManagerId())) {
       if (currentCalculatedSockets != null && (currentCalculatedSockets % 2) == 1) {
         return currentCalculatedSockets + 1;
       }
     } else {
+      // Cloud provider hosts only account for a single socket.
+      if (Optional.ofNullable(normalizedFacts.getCloudProviderType()).isPresent()) {
+        return Boolean.TRUE.equals(systemProfileFacts.getIsMarketplace()) ? 0 : 1;
+      }
+
       boolean isHypervisorUnknown =
           hypervisorGuestRepository.isUnmappedGuest(normalizedFacts.getHypervisorUuid());
       boolean guestWithUnknownHypervisor = normalizedFacts.isVirtual() && isHypervisorUnknown;
-      // Cloud provider hosts only account for a single socket.
-      if (Optional.ofNullable(normalizedFacts.getCloudProviderType()).isPresent()) {
-        // TODO Rework this comparison; sonar was complaining otherwise.
-        return Boolean.TRUE.equals(systemProfileFacts.getIsMarketplace()) ? 0 : 1;
-      }
       // Unmapped virtual rhel guests only account for a single socket
-      else if (guestWithUnknownHypervisor
-          && products.getProductTags().stream()
-              .anyMatch(prod -> startsWithIgnoreCase(prod, "RHEL"))) {
+      if (guestWithUnknownHypervisor
+          && productTags.stream().anyMatch(prod -> startsWithIgnoreCase(prod, "RHEL"))) {
         return 1;
       }
     }
