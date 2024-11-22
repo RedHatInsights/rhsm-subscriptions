@@ -63,10 +63,10 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @WithMockRedHatPrincipal("123456")
@@ -80,9 +80,9 @@ class CapacityResourceTest {
   private static final MetricId METRIC_ID_CORES = MetricId.fromString("Cores");
   private static final MetricId METRIC_ID_SOCKETS = MetricId.fromString("Sockets");
 
-  @MockBean SubscriptionRepository subscriptionRepository;
-  @MockBean PageLinkCreator pageLinkCreator;
-  @MockBean OrgConfigRepository orgConfigRepository;
+  @MockitoBean SubscriptionRepository subscriptionRepository;
+  @MockitoBean PageLinkCreator pageLinkCreator;
+  @MockitoBean OrgConfigRepository orgConfigRepository;
 
   @Autowired CapacityResource resource;
 

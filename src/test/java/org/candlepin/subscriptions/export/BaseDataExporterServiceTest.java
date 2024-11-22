@@ -64,9 +64,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 public abstract class BaseDataExporterServiceTest
@@ -88,7 +88,7 @@ public abstract class BaseDataExporterServiceTest
   @Autowired OfferingRepository offeringRepository;
   @Autowired AccountServiceInventoryRepository accountServiceInventoryRepository;
   @Autowired DataExporterService<?> dataExporterService;
-  @MockBean RbacService rbacService;
+  @MockitoBean RbacService rbacService;
 
   protected ConsoleCloudEventParser parser;
   protected KafkaTemplate<String, String> kafkaTemplate;

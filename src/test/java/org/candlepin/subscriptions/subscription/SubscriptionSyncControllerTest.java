@@ -48,9 +48,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @DirtiesContext
@@ -63,15 +63,15 @@ class SubscriptionSyncControllerTest {
 
   @Autowired SubscriptionSyncController subscriptionSyncController;
 
-  @MockBean ProductDenylist denylist;
+  @MockitoBean ProductDenylist denylist;
 
-  @MockBean OfferingRepository offeringRepository;
+  @MockitoBean OfferingRepository offeringRepository;
 
-  @MockBean SubscriptionRepository subscriptionRepository;
+  @MockitoBean SubscriptionRepository subscriptionRepository;
 
-  @MockBean OrgConfigRepository orgConfigRepository;
+  @MockitoBean OrgConfigRepository orgConfigRepository;
 
-  @MockBean SubscriptionService subscriptionService;
+  @MockitoBean SubscriptionService subscriptionService;
 
   private OffsetDateTime rangeStart = OffsetDateTime.now().minusDays(5);
   private OffsetDateTime rangeEnd = OffsetDateTime.now().plusDays(5);

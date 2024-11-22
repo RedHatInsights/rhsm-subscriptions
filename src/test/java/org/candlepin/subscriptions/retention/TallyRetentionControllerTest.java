@@ -45,10 +45,10 @@ import org.candlepin.subscriptions.db.model.config.OrgConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
@@ -58,9 +58,9 @@ class TallyRetentionControllerTest {
   private static final int ORGANIZATION_BATCH_SIZE = 1;
   private static final String ORG_ID = "org123";
 
-  @MockBean TallyRetentionPolicy policy;
-  @SpyBean TallySnapshotRepository repository;
-  @SpyBean OrgConfigRepository orgConfigRepository;
+  @MockitoBean TallyRetentionPolicy policy;
+  @MockitoSpyBean TallySnapshotRepository repository;
+  @MockitoSpyBean OrgConfigRepository orgConfigRepository;
   TallyRetentionController controller;
 
   @BeforeEach

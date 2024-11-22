@@ -29,7 +29,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -38,14 +37,15 @@ import org.springframework.security.web.authentication.preauth.PreAuthenticatedA
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedCredentialsNotFoundException;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @ActiveProfiles("test")
 class IdentityHeaderAuthenticationProviderTest {
 
-  @MockBean PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails details;
+  @MockitoBean PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails details;
 
-  @MockBean
+  @MockitoBean
   @Qualifier("identityHeaderAuthenticationDetailsService")
   IdentityHeaderAuthenticationDetailsService detailsService;
 

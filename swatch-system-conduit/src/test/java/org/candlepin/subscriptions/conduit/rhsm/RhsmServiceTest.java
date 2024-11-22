@@ -37,10 +37,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.retry.backoff.NoBackOffPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @ActiveProfiles({"rhsm-conduit", "test", "kafka-queue"})
@@ -53,7 +53,7 @@ class RhsmServiceTest {
 
   @Autowired private InventoryServiceProperties inventoryServiceProperties;
 
-  @MockBean private RhsmApi rhsmApi;
+  @MockitoBean private RhsmApi rhsmApi;
 
   /*
   @TestConfiguration

@@ -31,10 +31,10 @@ import org.candlepin.subscriptions.utilization.api.v1.model.OptInConfigData;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -42,7 +42,7 @@ class OptInCheckerTest {
 
   @Autowired OptInChecker checker;
 
-  @MockBean OrgConfigRepository orgConfigRepository;
+  @MockitoBean OrgConfigRepository orgConfigRepository;
 
   @Test
   @WithInvalidPrincipal
