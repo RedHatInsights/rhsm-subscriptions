@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- vim: set expandtab sts=2 sw=2 ai: -->
+
+<!DOCTYPE suppressions PUBLIC
+  "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+  "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+
+<!--
+  Google java format: https://github.com/google/google-java-format
+  Google style guide: https://google.github.io/styleguide/javaguide.html
+  Checkstyle implementation: https://checkstyle.org/google_style.html
+  Checkstyle Google style implementation: https://github.com/checkstyle/checkstyle/blob/master/src/main/resources/google_checks.xml
+
+  The goal is to use the google_checks.xml document without alterations so that we can
+  periodically drop in newer versions without having to migrate local changes.  Since that
+  document is actually stricter in places than what google-java-format enforces, we selectively
+  suppress some of the checks in this document.
+
+  Ideally, we can slowly migrate the code to be more in compliance with the Google style guide
+  and remove some of these exceptions.
+-->
+
+<suppressions>
+  <!-- Ignore generated code -->
+  <suppress checks=".*" files=".*[\\/]generated[\\/].*.java"/>
+  <suppress checks=".*" files=".*[\\/]generated-sources[\\/].*.java"/>
+  <suppress checks=".*" files="buildSrc[\\/]build[\\/].*.java"/>
+
+  <!-- The first Javadoc sentence is supposed to end with a period. -->
+  <suppress checks="SummaryJavadoc" files="."/>
+
+  <suppress checks="MissingJavadocMethod" files="."/>
+  <suppress checks="MissingJavadocType" files="."/>
+
+  <!--    <suppress checks="EmptyLineSeparator" files="."/>-->
+
+  <!-- Variables need to be used within 3 lines of declaration.  Perhaps worth enabling. -->
+  <suppress checks="VariableDeclarationUsageDistance" files="."/>
+
+  <!-- We use method names like getUUID which should be getUuid -->
+  <suppress checks="AbbreviationAsWordInName" files="."/>
+
+  <!-- The formatter allows longer lines than the checkstyle definitions -->
+  <suppress checks="LineLength" files="."/>
+
+  <!-- The google-java-format tool and Checkstyle have different opinions on how far """ tokens
+   should be indented.  Defer to google-java-format. -->
+  <suppress checks="Indentation" files="."/>
+
+  <!-- https://checkstyle.org/styleguides/google-java-style-20220203/javaguide.html#s3.4.2-ordering-class-contents -->
+  <suppress checks="OverloadMethodsDeclarationOrder" files="."/>
+
+  <!-- Type parameters are normally just single letter or a word ending in T, but for this
+  class we are extending a third-party class and want to remain consistent with the superclass -->
+  <suppress checks="MethodTypeParameterName" files="PanacheSpecificationSupport"/>
+  <suppress checks="InterfaceTypeParameterName" files="PanacheSpecificationSupport"/>
+</suppressions>
