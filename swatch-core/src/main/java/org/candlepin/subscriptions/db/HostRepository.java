@@ -551,9 +551,9 @@ public interface HostRepository
    * We want to obtain the max last seen host record for the hourly tally. This helps in determining
    * whether we need to reevaluate the earlier event measurements.
    *
-   * @param orgId
-   * @param serviceType
-   * @return
+   * @param orgId the orgId
+   * @param serviceType the service type
+   * @return an Optional of the maximum last-seen date
    */
   @Query(
       value =

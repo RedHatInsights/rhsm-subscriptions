@@ -50,7 +50,8 @@ public class SubscriptionCapacityViewRepository
     return buildSearchSpecification(orgId, null, null, null, null, null, null, null);
   }
 
-  public static Specification<SubscriptionCapacityView> buildSearchSpecification( // NOSONAR
+  @SuppressWarnings("java:S107")
+  public static Specification<SubscriptionCapacityView> buildSearchSpecification(
       String orgId,
       ProductId productId,
       ReportCategory category,

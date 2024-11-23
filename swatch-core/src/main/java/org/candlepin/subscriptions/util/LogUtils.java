@@ -30,7 +30,7 @@ public final class LogUtils {
 
   /**
    * Includes the "org_id" key in the MDC registry to be logged. When the "org_id" is logged, we can
-   * search for traces in Splunk using properties.org_id='<orgId>'.
+   * search for traces in Splunk using properties.org_id='&lt;orgId&gt;'.
    *
    * @param orgId the org id to log.
    */

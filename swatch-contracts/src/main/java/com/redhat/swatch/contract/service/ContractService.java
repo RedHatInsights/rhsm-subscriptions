@@ -152,7 +152,7 @@ public class ContractService {
    * @param billingProvider the billing provider.
    * @param billingAccountId the billing account ID.
    * @param vendorProductCode the vendor product code.
-   * @return List<Contract> the list of contracts.
+   * @return List&lt;Contract&gt; the list of contracts.
    */
   public List<Contract> getContracts(
       String orgId,
@@ -283,8 +283,8 @@ public class ContractService {
   /**
    * Update contracts in the database against the new contracts from IT partner gateway
    *
-   * @param unsavedContracts
-   * @param existingContracts
+   * @param unsavedContracts contracts that have not been saved yet
+   * @param existingContracts contracts that already exist
    * @return true if records have been updated and false otherwise
    */
   private boolean mergeWithExistingContractRecords(
@@ -351,8 +351,8 @@ public class ContractService {
   /**
    * Update subscription to match contracts from IT partner gateway
    *
-   * @param contractEntities
-   * @param subscriptionId
+   * @param contractEntities existing contract entities
+   * @param subscriptionId the subscription ID
    * @return true if records have been updated and false otherwise
    */
   private boolean mergeWithExistingSubscriptionRecords(

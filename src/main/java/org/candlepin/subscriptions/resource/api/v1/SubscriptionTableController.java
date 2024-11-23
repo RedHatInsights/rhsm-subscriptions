@@ -90,9 +90,10 @@ public class SubscriptionTableController {
     this.clock = clock;
   }
 
+  @SuppressWarnings("java:S107")
   // Transactional annotation necessary to access lazy loaded ElementCollections for Subscription
   @Transactional
-  public SkuCapacityReport capacityReportBySku( // NOSONAR
+  public SkuCapacityReport capacityReportBySku(
       ProductId productId,
       @Min(0) Integer offset,
       @Min(1) Integer limit,
