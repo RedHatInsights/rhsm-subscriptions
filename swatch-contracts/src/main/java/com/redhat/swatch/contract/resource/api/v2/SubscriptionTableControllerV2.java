@@ -20,6 +20,9 @@
  */
 package com.redhat.swatch.contract.resource.api.v2;
 
+import com.redhat.swatch.common.model.HardwareMeasurementType;
+import com.redhat.swatch.common.model.ServiceLevel;
+import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
@@ -36,12 +39,9 @@ import com.redhat.swatch.contract.openapi.model.SubscriptionEventType;
 import com.redhat.swatch.contract.openapi.model.SubscriptionType;
 import com.redhat.swatch.contract.openapi.model.UsageType;
 import com.redhat.swatch.contract.repository.BillingProvider;
-import com.redhat.swatch.contract.repository.HardwareMeasurementType;
-import com.redhat.swatch.contract.repository.ServiceLevel;
 import com.redhat.swatch.contract.repository.SubscriptionCapacityView;
 import com.redhat.swatch.contract.repository.SubscriptionCapacityViewMetric;
 import com.redhat.swatch.contract.repository.SubscriptionCapacityViewRepository;
-import com.redhat.swatch.contract.repository.Usage;
 import com.redhat.swatch.contract.resource.InMemoryPager;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;

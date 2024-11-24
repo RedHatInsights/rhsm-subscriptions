@@ -20,6 +20,8 @@
  */
 package com.redhat.swatch.contract.repository;
 
+import com.redhat.swatch.common.model.ServiceLevel;
+import com.redhat.swatch.common.model.Usage;
 import java.time.OffsetDateTime;
 import lombok.Builder;
 import lombok.Data;

@@ -18,18 +18,22 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.repository;
+package com.redhat.swatch.common.model;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 import java.util.Map;
 import java.util.Objects;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 /**
  * System purpose usage
  *
  * <p>Usage represents the class of usage for a given system or subscription.
  */
+@Getter
+@AllArgsConstructor
 public enum Usage implements StringValueEnum {
   EMPTY(""),
   PRODUCTION("Production"),
@@ -42,10 +46,6 @@ public enum Usage implements StringValueEnum {
 
   private final String value;
 
-  Usage(String value) {
-    this.value = value;
-  }
-
   /**
    * Parse the usage from its string representation
    *
@@ -56,13 +56,10 @@ public enum Usage implements StringValueEnum {
     return StringValueEnum.getValueOf(Usage.class, VALUE_ENUM_MAP, value, EMPTY);
   }
 
-  public String getValue() {
-    return value;
-  }
-
   /** JPA converter for Usage */
   @Converter(autoApply = true)
   public static class EnumConverter implements AttributeConverter<Usage, String> {
+
     @Override
     public String convertToDatabaseColumn(Usage attribute) {
       if (attribute == null) {

@@ -1,0 +1,21 @@
+plugins {
+    id 'swatch.java-library-conventions'
+}
+
+description = 'Models with cross-cutting concerns'
+
+dependencies {
+    implementation libraries["jackson-annotations"] // for json generated models
+    implementation libraries["jakarta-validation-api"] // for validation API in generated models
+    implementation libraries["jakarta-persistence-api"]
+    implementation "com.fasterxml.jackson.core:jackson-databind"
+    annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
+    implementation libraries["jackson-module-jakarta-xmlbind-annotations"]
+
+    testImplementation libraries["junit-jupiter"]
+
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}

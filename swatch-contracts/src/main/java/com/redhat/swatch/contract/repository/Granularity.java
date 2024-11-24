@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.contract.repository;
 
+import com.redhat.swatch.common.model.StringValueEnum;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
