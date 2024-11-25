@@ -153,7 +153,7 @@ class BillableUsageConsumerTest {
         .emitStatus(
             argThat(
                 usage ->
-                    BillableUsage.Status.RETRYABLE.equals(usage.getStatus())
+                    BillableUsage.Status.FAILED.equals(usage.getStatus())
                         && BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND.equals(
                             usage.getErrorCode())));
   }
