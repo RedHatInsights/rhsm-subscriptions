@@ -173,9 +173,8 @@ public class RhMarketplaceProducer {
                             .collect(Collectors.joining(","))));
       }
       return status;
-    }
-    // handle checked exceptions here, so that submitUsageRequest can be easily used in lambdas etc.
-    catch (ApiException e) {
+    } catch (ApiException e) {
+      // handle checked exceptions here, so submitUsageRequest can be easily used in lambdas etc.
       throw new SubscriptionsException(
           ErrorCode.REQUEST_PROCESSING_ERROR,
           Response.Status.fromStatusCode(e.getCode()),

@@ -28,7 +28,10 @@ import static org.candlepin.subscriptions.test.TestClockConfiguration.WINTER_EPO
 import static org.candlepin.subscriptions.test.TestClockConfiguration.WINTER_EPOCH_UTC;
 import static org.candlepin.subscriptions.test.TestClockConfiguration.WINTER_TIME_EST;
 import static org.candlepin.subscriptions.test.TestClockConfiguration.WINTER_TIME_UTC;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;

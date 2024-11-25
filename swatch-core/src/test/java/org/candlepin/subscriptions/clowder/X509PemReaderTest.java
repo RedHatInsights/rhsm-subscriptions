@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.clowder;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
 import org.candlepin.subscriptions.clowder.X509PemReader.CertInfo;

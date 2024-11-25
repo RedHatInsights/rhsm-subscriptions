@@ -85,8 +85,9 @@ public class SubscriptionTableControllerV2 {
     this.clock = clock;
   }
 
+  @SuppressWarnings("java:S107")
   @Transactional
-  public SkuCapacityReportV2 capacityReportBySkuV2( // NOSONAR
+  public SkuCapacityReportV2 capacityReportBySkuV2(
       ProductId productId,
       @Min(0) Integer offset,
       @Min(1) Integer limit,

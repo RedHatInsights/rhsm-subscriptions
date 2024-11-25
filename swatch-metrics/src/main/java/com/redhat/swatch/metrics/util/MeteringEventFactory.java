@@ -153,7 +153,7 @@ public final class MeteringEventFactory {
   }
 
   private static Sla getSla(String serviceLevel, String orgId, String clusterId) {
-    /**
+    /*
      * SLA values set by OCM: - Eval (ignored for now) - Standard - Premium - Self-Support - None
      * (converted to be __EMPTY__)
      */

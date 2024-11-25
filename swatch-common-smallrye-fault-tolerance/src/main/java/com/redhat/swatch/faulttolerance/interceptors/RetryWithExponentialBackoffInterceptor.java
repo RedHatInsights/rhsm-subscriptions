@@ -149,13 +149,27 @@ public class RetryWithExponentialBackoffInterceptor {
   }
 
   private static Object parseValue(String value, Class<?> clazz) {
-    if (String.class == clazz) return value;
-    if (Duration.class == clazz) return DurationConverter.parseDuration(value);
-    if (Boolean.class == clazz) return Boolean.parseBoolean(value);
-    if (Integer.class == clazz) return Integer.parseInt(value);
-    if (Long.class == clazz) return Long.parseLong(value);
-    if (Float.class == clazz) return Float.parseFloat(value);
-    if (Double.class == clazz) return Double.parseDouble(value);
+    if (String.class == clazz) {
+      return value;
+    }
+    if (Duration.class == clazz) {
+      return DurationConverter.parseDuration(value);
+    }
+    if (Boolean.class == clazz) {
+      return Boolean.parseBoolean(value);
+    }
+    if (Integer.class == clazz) {
+      return Integer.parseInt(value);
+    }
+    if (Long.class == clazz) {
+      return Long.parseLong(value);
+    }
+    if (Float.class == clazz) {
+      return Float.parseFloat(value);
+    }
+    if (Double.class == clazz) {
+      return Double.parseDouble(value);
+    }
     throw new UnsupportedOperationException(
         "Unsupported type '" + clazz + "' in @RetryWithExponentialBackoff");
   }

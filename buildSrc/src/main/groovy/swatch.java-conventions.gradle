@@ -6,6 +6,7 @@ plugins {
     id "com.diffplug.spotless"
     id 'com.adarshr.test-logger'
     id 'jacoco'
+    id 'checkstyle'
 }
 
 idea {
@@ -42,6 +43,42 @@ spotless {
         licenseHeaderFile "${rootDir}/config/codestyle/HEADER.txt" //lets you specify code that you don't want to violate rules or be reformatted
         toggleOffOn()
     }
+}
+
+checkstyle {
+    toolVersion = "10.20.1"
+    configProperties['org.checkstyle.google.severity'] = "error"
+    configProperties['org.checkstyle.google.suppressionfilter.config'] =
+            "${rootProject.projectDir}/config/checkstyle/checkstyle-suppressions.xml"
+    configProperties['org.checkstyle.google.suppressionxpathfilter.config'] =
+            "${rootProject.projectDir}/config/checkstyle/checkstyle-xpath-suppressions.xml"
+}
+
+checkstyleMain {
+    source ='src/main/java'
+}
+
+checkstyleTest {
+    source ='src/test/java'
+}
+
+tasks.withType(Checkstyle) {
+    reports {
+        xml.required = false
+        html.required = true
+        html.stylesheet resources.text.fromFile (
+                "${rootProject.projectDir}/config/checkstyle/checkstyle-noframes-severity-sorted.xsl"
+        )
+    }
+}
+
+def checkstyleTask = tasks.register("checkstyle", Checkstyle) {
+    dependsOn "checkstyleMain"
+    dependsOn "checkstyleTest"
+}
+
+tasks."spotlessCheck".configure {
+    finalizedBy checkstyleTask
 }
 
 java {

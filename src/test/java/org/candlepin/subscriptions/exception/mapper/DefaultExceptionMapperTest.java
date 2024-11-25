@@ -20,8 +20,9 @@
  */
 package org.candlepin.subscriptions.exception.mapper;
 
-import static org.hamcrest.MatcherAssert.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import jakarta.ws.rs.core.Response;
 import org.candlepin.subscriptions.utilization.api.v1.model.Error;

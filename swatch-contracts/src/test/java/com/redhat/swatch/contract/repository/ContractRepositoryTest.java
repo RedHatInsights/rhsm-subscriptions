@@ -45,8 +45,8 @@ import org.junit.jupiter.api.TestInstance;
 @QuarkusTransactionalTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ContractRepositoryTest {
-  final OffsetDateTime BEGIN = OffsetDateTime.parse("2023-01-01T00:00Z");
-  final OffsetDateTime END = OffsetDateTime.parse("2024-01-01T00:00Z");
+  static final OffsetDateTime BEGIN = OffsetDateTime.parse("2023-01-01T00:00Z");
+  static final OffsetDateTime END = OffsetDateTime.parse("2024-01-01T00:00Z");
 
   @Inject ContractRepository contractRepository;
   @Inject OfferingRepository offeringRepository;

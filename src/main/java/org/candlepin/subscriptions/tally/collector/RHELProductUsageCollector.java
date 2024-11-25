@@ -73,9 +73,7 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
       appliedSockets = normalizedFacts.isMarketplace() ? 0 : 1;
       return Optional.of(
           createBucket(key, false, appliedCores, appliedSockets, HardwareMeasurementType.VIRTUAL));
-    }
-    // Accumulate for physical systems.
-    else if (!normalizedFacts.isVirtual()) {
+    } else if (!normalizedFacts.isVirtual()) { // Accumulate for physical systems.
       // Physical system so increment the physical system counts.
       if (normalizedFacts.isMarketplace()) {
         appliedSockets = 0;

@@ -49,7 +49,7 @@ public class TallyRetentionPolicy {
    *
    * <p>Any snapshots of this granularity older than the cutoff date should be removed.
    *
-   * @param granularity
+   * @param granularity Granularity to base the cutoff date on
    * @return cutoff date (i.e. dates less than this are candidates for removal), or null
    */
   public OffsetDateTime getCutoffDate(Granularity granularity) {

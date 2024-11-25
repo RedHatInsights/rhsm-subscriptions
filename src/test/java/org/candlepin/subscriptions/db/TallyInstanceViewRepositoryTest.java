@@ -706,10 +706,11 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
     assertEquals(2, validMetricsByProduct.size());
     assertEquals(defaultHosts.size(), (int) results.getTotalElements());
     for (var host : defaultHosts) {
-      for (var metric : validMetricsByProduct)
+      for (var metric : validMetricsByProduct) {
         assertTrue(
             results.stream().anyMatch(h -> h.getMetrics().containsKey(metric)),
             "Metric " + metric + " not found in the host " + host.getInventoryId());
+      }
     }
   }
 

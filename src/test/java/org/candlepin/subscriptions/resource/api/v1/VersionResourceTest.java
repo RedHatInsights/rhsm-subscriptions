@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.resource.api.v1;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.when;
 
 import org.candlepin.subscriptions.utilization.api.v1.model.VersionInfo;
 import org.candlepin.subscriptions.utilization.api.v1.model.VersionInfoBuild;

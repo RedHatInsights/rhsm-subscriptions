@@ -94,8 +94,9 @@ public class SubscriptionTableControllerV1 {
   }
 
   // Transactional annotation necessary to access lazy loaded ElementCollections for Subscription
+  @SuppressWarnings("java:S107")
   @Transactional
-  public SkuCapacityReportV1 capacityReportBySkuV1( // NOSONAR
+  public SkuCapacityReportV1 capacityReportBySkuV1(
       ProductId productId,
       @Min(0) Integer offset,
       @Min(1) Integer limit,

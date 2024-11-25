@@ -9,3 +9,4 @@ plugins {
 }
 
 tasks.compileTestJava.dependsOn tasks.jandex
+tasks.checkstyleMain.dependsOn tasks.jandex
