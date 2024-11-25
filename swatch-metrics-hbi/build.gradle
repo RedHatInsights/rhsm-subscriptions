@@ -6,29 +6,35 @@ description = 'The swatch-metrics-hbi service build definition'
 
 dependencies {
     annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
-    implementation 'io.quarkus:quarkus-config-yaml'
-    implementation libraries["unleash-quarkus"]
+    annotationProcessor "org.hibernate.orm:hibernate-jpamodelgen"
 
-    implementation project(':swatch-common-config-workaround')
-    implementation project(':swatch-core')
-    implementation project(':swatch-common-clock')
-    implementation libraries["clowder-quarkus-config-source"]
+    implementation 'io.quarkus:quarkus-config-yaml'
+    implementation 'io.quarkus:quarkus-hibernate-validator'
     implementation 'io.quarkus:quarkus-messaging-kafka'
-    implementation 'io.quarkus:quarkus-rest' // TODO: Remove later since REST API is temporary
-    implementation project(':swatch-common-smallrye-fault-tolerance')
-    implementation project(':swatch-common-kafka')
-    implementation libraries["quarkus-logging-splunk"]
-    implementation libraries["splunk-library-javalogging"]
     implementation 'io.quarkus:quarkus-opentelemetry'
+    implementation 'io.quarkus:quarkus-rest' // TODO: Remove later since REST API is temporary
     implementation "com.fasterxml.jackson.core:jackson-databind"
+    implementation libraries["clowder-quarkus-config-source"]
     implementation libraries["jackson-annotations"] // for json generated models
     implementation libraries["jakarta-validation-api"] // for validation API in generated models
+    implementation libraries["quarkus-logging-splunk"]
+    implementation libraries["splunk-library-javalogging"]
+    implementation libraries["unleash-quarkus"]
+    implementation project(':swatch-common-clock')
+    implementation project(':swatch-common-config-workaround')
+    implementation project(':swatch-common-kafka')
+    implementation project(':swatch-common-models')
+    implementation project(':swatch-common-panache')
+    implementation project(':swatch-common-smallrye-fault-tolerance')
     implementation project(':swatch-model-events')
-    annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
+    implementation project(':swatch-product-configuration')
+    implementation("io.quarkus:quarkus-jdbc-postgresql")
+    implementation("io.quarkus:quarkus-liquibase")
 
-    testImplementation libraries["junit-jupiter"]
     testImplementation 'io.smallrye.reactive:smallrye-reactive-messaging-in-memory'
     testImplementation libraries["awaitility"]
+    testImplementation libraries["junit-jupiter"]
+    testImplementation("io.quarkus:quarkus-jdbc-h2")
 }
 
 tasks.withType(JavaCompile) {
