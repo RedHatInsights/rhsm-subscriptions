@@ -20,24 +20,23 @@
  */
 package org.candlepin.subscriptions.conduit.tasks;
 
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.conduit.InventoryController;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.task.Task;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.candlepin.subscriptions.util.LogUtils;
 
 /**
  * A task that retrieves the Consumer data associated with an organization from RHSM API, and sends
  * that data into the insights host inventory.
  */
+@Slf4j
 public class UpdateOrgInventoryTask implements Task {
 
-  private static Logger log = LoggerFactory.getLogger(UpdateOrgInventoryTask.class);
-
-  private String orgId;
-  private String offset;
-  private InventoryController controller;
+  private final String orgId;
+  private final String offset;
+  private final InventoryController controller;
 
   public UpdateOrgInventoryTask(InventoryController controller, String orgId, String offset) {
     this.orgId = orgId;
@@ -47,6 +46,7 @@ public class UpdateOrgInventoryTask implements Task {
 
   @Override
   public void execute() {
+    LogUtils.addOrgIdToMdc(orgId);
     log.info("Updating inventory for org {} with offset {}", orgId, offset);
     try {
       controller.updateInventoryForOrg(orgId, offset);
@@ -56,6 +56,8 @@ public class UpdateOrgInventoryTask implements Task {
       } else {
         log.error("Exception calling RHSM for org {}", orgId, e);
       }
+    } finally {
+      LogUtils.clearOrgIdFromMdc();
     }
   }
 }

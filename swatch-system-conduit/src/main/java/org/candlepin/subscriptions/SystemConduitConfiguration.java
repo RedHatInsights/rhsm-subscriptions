@@ -22,13 +22,16 @@ package org.candlepin.subscriptions;
 
 import org.candlepin.subscriptions.clowder.KafkaSslBeanPostProcessor;
 import org.candlepin.subscriptions.clowder.RdsSslBeanPostProcessor;
+import org.candlepin.subscriptions.tracing.TracingConfiguration;
 import org.candlepin.subscriptions.validator.IpAddressValidator;
 import org.candlepin.subscriptions.validator.MacAddressValidator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 
 @Configuration
+@Import(TracingConfiguration.class)
 public class SystemConduitConfiguration {
   /**
    * A bean post-processor responsible for setting up Kafka truststores correctly. It's declared
