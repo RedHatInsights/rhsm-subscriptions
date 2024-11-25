@@ -21,11 +21,11 @@
 package com.redhat.swatch.hbi.events.normalization;
 
 import com.redhat.swatch.common.model.HardwareMeasurementType;
-import com.redhat.swatch.hbi.events.HypervisorGuestRepository;
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.normalization.facts.HostFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
+import com.redhat.swatch.hbi.events.services.HypervisorRelationshipService;
 import io.quarkus.runtime.util.StringUtil;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.Arrays;
@@ -41,12 +41,13 @@ public class MeasurementNormalizer {
   private static final double THREADS_PER_CORE_DEFAULT = 2.0;
 
   private final ApplicationConfiguration appConfig;
-  private final HypervisorGuestRepository hypervisorGuestRepository;
+  private final HypervisorRelationshipService hypervisorRelationshipService;
 
   public MeasurementNormalizer(
-      ApplicationConfiguration appConfig, HypervisorGuestRepository hypervisorGuestRepository) {
+      ApplicationConfiguration appConfig,
+      HypervisorRelationshipService hypervisorRelationshipService) {
     this.appConfig = appConfig;
-    this.hypervisorGuestRepository = hypervisorGuestRepository;
+    this.hypervisorRelationshipService = hypervisorRelationshipService;
   }
 
   public NormalizedMeasurements getMeasurements(
@@ -116,14 +117,14 @@ public class MeasurementNormalizer {
       ProductNormalizer products) {
     // modulo-2 rounding only applied to physical or hypervisors
     boolean isHypervisor =
-        hypervisorGuestRepository.isHypervisor(normalizedFacts.getSubscriptionManagerId());
+        hypervisorRelationshipService.isHypervisor(normalizedFacts.getSubscriptionManagerId());
     if (isHypervisor || !normalizedFacts.isVirtual()) {
       if (currentCalculatedSockets != null && (currentCalculatedSockets % 2) == 1) {
         return currentCalculatedSockets + 1;
       }
     } else {
       boolean isHypervisorUnknown =
-          hypervisorGuestRepository.isUnmappedGuest(normalizedFacts.getHypervisorUuid());
+          hypervisorRelationshipService.isUnmappedGuest(normalizedFacts.getHypervisorUuid());
       boolean guestWithUnknownHypervisor = normalizedFacts.isVirtual() && isHypervisorUnknown;
       // Cloud provider hosts only account for a single socket.
       if (Optional.ofNullable(normalizedFacts.getCloudProviderType()).isPresent()) {
