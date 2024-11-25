@@ -80,10 +80,10 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SuppressWarnings("linelength")
 @SpringBootTest
@@ -102,10 +102,10 @@ class TallyResourceTest {
   public static final ProductId RHEL_FOR_X86 = RHEL_PRODUCT_ID;
   private static final MetricId METRIC_ID_CORES = MetricIdUtils.getCores();
 
-  @MockBean TallySnapshotRepository repository;
-  @MockBean PageLinkCreator pageLinkCreator;
-  @MockBean OrgConfigRepository orgConfigRepository;
-  @MockBean CapacityResource capacityResource;
+  @MockitoBean TallySnapshotRepository repository;
+  @MockitoBean PageLinkCreator pageLinkCreator;
+  @MockitoBean OrgConfigRepository orgConfigRepository;
+  @MockitoBean CapacityResource capacityResource;
   @Autowired TallyResource resource;
   @Autowired ApplicationClock applicationClock;
 

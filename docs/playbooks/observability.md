@@ -60,6 +60,21 @@ DISABLE_OTEL=false \
 ./gradlew :swatch-billable-usage:quarkusDev
 ```
 
+- **swatch-system-conduit**: port 8005
+
+```
+java -DENABLE_SPLUNK_HEC=true \
+-DSERVER_PORT=8005 \
+-DMANAGEMENT_PORT=8005 \
+-DSPLUNK_HEC_URL=https://localhost:8088 \
+-DSPLUNK_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75 \
+-DSPLUNK_DISABLE_CERTIFICATE_VALIDATION=true \
+-DSPLUNK_SOURCE_TYPE=springboot_server \
+-DRHSM_USE_STUB=true \
+-DRHSM_BATCH_SIZE=1 \
+-jar swatch-system-conduit/build/libs/swatch-system-conduit-*.jar
+```
+
 ## Scenarios
 
 ### Events ingestion by API
@@ -115,6 +130,44 @@ traceresponse: 00-314bf601e06b4c76d199a71b0abc119b-bd13c0fb161d55fd-00
 
 Note that "314bf601e06b4c76d199a71b0abc119b" is the trace ID of the whole operation. 
 Running the splunk query `properties.traceId="314bf601e06b4c76d199a71b0abc119b"` will return all the logs within the spring boot and quarkus services.
+
+### Sync Accounts (Organizations) by Swatch Conduit
+
+Services:
+- **swatch-system-conduit**
+
+1. Sync the account org123
+```
+http :8005/api/rhsm-subscriptions/v1/internal/rpc/syncOrg   x-rh-swatch-psk:placeholder   org_id=org123
+```
+We should see the trace ID in the "traceresponse" response:
+```
+HTTP/1.1 200 
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Connection: keep-alive
+Content-Length: 20
+Content-Type: application/vnd.api+json
+Date: Wed, 20 Nov 2024 06:12:47 GMT
+Expires: 0
+Keep-Alive: timeout=60
+Pragma: no-cache
+Set-Cookie: JSESSIONID=D91C434F673A9D97EDC73676A1A95126; Path=/; HttpOnly
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+X-XSS-Protection: 0
+traceresponse: 00-e861d11055c4675e01093c73ed606fa9-344caadf992b1d6c-01
+```
+
+The trace ID is the second token "e861d11055c4675e01093c73ed606fa9".
+
+Searching in Splunk by this trace ID: `properties.traceId="e861d11055c4675e01093c73ed606fa9"`, we should see at least the following messages correlated: 
+
+```
+2024-11-20 06:58:55,295 [thread=http-nio-8005-exec-3] [INFO ] [org.candlepin.subscriptions.security.LogPrincipalFilter] self- Internal API: /api/rhsm-subscriptions/v1/internal/rpc/syncOrg requested by user: self
+2024-11-20 06:58:43,581 [thread=rhsm-conduit-task-processor-0-C-1] [INFO ] [org.candlepin.subscriptions.conduit.InventoryController] - Finished page w/ offset '' of inventory updates for org org123, producing 1 updates
+2024-11-20 06:58:43,610 [thread=rhsm-conduit-task-processor-0-C-1] [INFO ] [org.candlepin.subscriptions.conduit.InventoryController] - Finished page w/ offset 'consumer1id' of inventory updates for org org123, producing 1 updates
+2024-11-20 06:58:43,660 [thread=rhsm-conduit-task-processor-0-C-1] [INFO ] [org.candlepin.subscriptions.conduit.InventoryController] - Host inventory update completed for org org123.
+```
 
 ## Documentation
 

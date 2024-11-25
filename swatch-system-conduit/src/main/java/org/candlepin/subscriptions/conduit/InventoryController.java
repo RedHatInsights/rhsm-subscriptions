@@ -642,12 +642,13 @@ public class InventoryController {
 
     if (size > 0) {
       inventoryService.flushHostUpdates();
+      log.info(
+          "Finished page w/ offset '{}' of inventory updates for org {}, producing {} updates",
+          Optional.ofNullable(offset).orElse(""),
+          orgId,
+          size);
     }
-    log.debug(
-        "Finished page w/ offset {} of inventory updates for org {}, producing {} updates",
-        offset,
-        orgId,
-        updateSize);
+
     Optional<String> nextOffset = getNextOffset(feedPage);
     if (nextOffset.isPresent()) {
       log.debug("Queueing up task for next page of org {}", orgId);
@@ -661,11 +662,16 @@ public class InventoryController {
 
   private Optional<String> getNextOffset(
       org.candlepin.subscriptions.conduit.rhsm.client.model.OrgInventory feedPage) {
+    String nextOffset = null;
     Pagination pagination = feedPage.getPagination();
-    if (pagination != null && pagination.getLimit().equals(pagination.getCount())) {
-      return Optional.of(feedPage.getBody().get(pagination.getCount().intValue() - 1).getId());
+    if (feedPage.getBody() != null
+        && !feedPage.getBody().isEmpty()
+        && pagination != null
+        && pagination.getLimit().equals(pagination.getCount())) {
+      nextOffset = feedPage.getBody().get(pagination.getCount().intValue() - 1).getId();
     }
-    return Optional.empty();
+
+    return Optional.ofNullable(nextOffset);
   }
 
   public OrgInventory getInventoryForOrg(String orgId, String offset)

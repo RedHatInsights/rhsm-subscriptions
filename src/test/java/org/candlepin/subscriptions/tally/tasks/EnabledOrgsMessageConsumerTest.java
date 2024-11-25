@@ -43,12 +43,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 @SpringBootTest
@@ -62,9 +62,9 @@ class EnabledOrgsMessageConsumerTest implements ExtendWithEmbeddedKafka {
   TaskQueueProperties enabledOrgsTopicProperties;
 
   @Autowired KafkaProperties kafkaProperties;
-  @MockBean OrgConfigRepository repository;
-  @MockBean KafkaTemplate<String, EnabledOrgsResponse> producer;
-  @SpyBean EnabledOrgsMessageConsumer consumer;
+  @MockitoBean OrgConfigRepository repository;
+  @MockitoBean KafkaTemplate<String, EnabledOrgsResponse> producer;
+  @MockitoSpyBean EnabledOrgsMessageConsumer consumer;
   KafkaTemplate<String, EnabledOrgsRequest> kafkaTemplate;
   EnabledOrgsRequest request;
 

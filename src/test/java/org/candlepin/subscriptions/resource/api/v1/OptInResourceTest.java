@@ -34,10 +34,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @ActiveProfiles({"api", "test"})
@@ -45,9 +45,9 @@ import org.springframework.test.context.ActiveProfiles;
 @Import(TestClockConfiguration.class)
 class OptInResourceTest {
 
-  @MockBean OrgConfigRepository orgConfigRepository;
+  @MockitoBean OrgConfigRepository orgConfigRepository;
 
-  @MockBean private OptInController controller;
+  @MockitoBean private OptInController controller;
 
   @Autowired private OptInResource resource;
 

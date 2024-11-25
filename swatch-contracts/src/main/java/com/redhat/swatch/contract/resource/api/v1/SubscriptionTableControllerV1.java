@@ -25,6 +25,9 @@ import static com.redhat.swatch.contract.resource.ResourceUtils.sanitizeBillingP
 import static com.redhat.swatch.contract.resource.ResourceUtils.sanitizeServiceLevel;
 import static com.redhat.swatch.contract.resource.ResourceUtils.sanitizeUsage;
 
+import com.redhat.swatch.common.model.HardwareMeasurementType;
+import com.redhat.swatch.common.model.ServiceLevel;
+import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.contract.openapi.model.BillingProviderType;
 import com.redhat.swatch.contract.openapi.model.ReportCategory;
@@ -40,13 +43,10 @@ import com.redhat.swatch.contract.openapi.model.SubscriptionType;
 import com.redhat.swatch.contract.openapi.model.UsageType;
 import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.DbReportCriteria;
-import com.redhat.swatch.contract.repository.HardwareMeasurementType;
 import com.redhat.swatch.contract.repository.HypervisorReportCategory;
-import com.redhat.swatch.contract.repository.ServiceLevel;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionMeasurementKey;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
-import com.redhat.swatch.contract.repository.Usage;
 import com.redhat.swatch.contract.resource.InMemoryPager;
 import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;

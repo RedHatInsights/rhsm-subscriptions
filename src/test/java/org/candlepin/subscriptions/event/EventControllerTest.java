@@ -55,17 +55,17 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.kafka.listener.BatchListenerFailedException;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
 class EventControllerTest {
   @Mock EntityManager mockEntityManager;
   @Autowired ObjectMapper mapper;
-  @MockBean private EventRecordRepository eventRecordRepository;
-  @MockBean private OptInController optInController;
+  @MockitoBean private EventRecordRepository eventRecordRepository;
+  @MockitoBean private OptInController optInController;
   @Captor private ArgumentCaptor<Collection<EventRecord>> eventsSaved;
   @Autowired private MeterRegistry meterRegistry;
   @Autowired private EventController eventController;
