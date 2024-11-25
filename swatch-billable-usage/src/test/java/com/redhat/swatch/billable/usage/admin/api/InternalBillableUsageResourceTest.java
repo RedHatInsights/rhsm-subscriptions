@@ -24,7 +24,6 @@ import static com.redhat.swatch.billable.usage.configuration.Channels.BILLABLE_U
 import static com.redhat.swatch.billable.usage.configuration.Channels.ENABLED_ORGS;
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -50,7 +49,6 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.apache.http.HttpStatus;
-import org.awaitility.Awaitility;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -77,7 +75,6 @@ class InternalBillableUsageResourceTest {
     enabledOrgsSink.clear();
     billableUsageSink = connector.sink(BILLABLE_USAGE_OUT);
     billableUsageSink.clear();
-    when(configuration.getRetryRemittancesBatchSize()).thenReturn(10);
   }
 
   @Test
@@ -189,17 +186,6 @@ class InternalBillableUsageResourceTest {
   }
 
   @Test
-  void testProcessRetries() {
-    var entity = givenRemittanceForOrgId(ORG_ID);
-    given()
-        .post("/api/swatch-billable-usage/internal/rpc/remittance/processRetries")
-        .then()
-        .statusCode(HttpStatus.SC_OK);
-    Awaitility.await().untilAsserted(() -> assertEquals(3, billableUsageSink.received().size()));
-    assertNull(remittanceRepository.findById(entity.getUuid()).getRetryAfter());
-  }
-
-  @Test
   void testDeleteRemittancesAssociatedWithOrg() {
     given()
         .delete("/api/swatch-billable-usage/internal/rpc/remittance/" + ORG_ID)
@@ -238,7 +224,6 @@ class InternalBillableUsageResourceTest {
             .remittedPendingValue(2.0)
             .status(RemittanceStatus.FAILED)
             .errorCode(RemittanceErrorCode.UNKNOWN)
-            .retryAfter(OffsetDateTime.now().minusDays(1))
             .tallyId(UUID.fromString("c204074d-626f-4272-aa05-b6d69d6de16a"))
             .build();
     remittanceRepository.persist(entity);
@@ -261,7 +246,6 @@ class InternalBillableUsageResourceTest {
             .remittedPendingValue(2.0)
             .status(RemittanceStatus.FAILED)
             .errorCode(RemittanceErrorCode.UNKNOWN)
-            .retryAfter(OffsetDateTime.now().minusDays(1))
             .tallyId(UUID.fromString(tallyId))
             .build();
     remittanceRepository.persist(entity);

@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.actuator;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.FileInputStream;
 import java.util.Set;

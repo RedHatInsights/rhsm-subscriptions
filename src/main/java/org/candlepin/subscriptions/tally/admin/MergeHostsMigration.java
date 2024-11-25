@@ -149,20 +149,28 @@ public class MergeHostsMigration extends DataMigration {
   /**
    * Merge the identifier values into the primary (latest seen wins)
    *
-   * @param primaryHost
-   * @param host
+   * @param primaryHost the primary Host
+   * @param host the secondary Host
    */
   private void mergeDataFields(Host primaryHost, Host host) {
-    if (primaryHost.getInventoryId() == null) primaryHost.setInventoryId(host.getInventoryId());
-    if (primaryHost.getInsightsId() == null) primaryHost.setInsightsId(host.getInsightsId());
-    if (primaryHost.getSubscriptionManagerId() == null)
+    if (primaryHost.getInventoryId() == null) {
+      primaryHost.setInventoryId(host.getInventoryId());
+    }
+    if (primaryHost.getInsightsId() == null) {
+      primaryHost.setInsightsId(host.getInsightsId());
+    }
+    if (primaryHost.getSubscriptionManagerId() == null) {
       primaryHost.setSubscriptionManagerId(host.getSubscriptionManagerId());
-    if (primaryHost.getHypervisorUuid() == null)
+    }
+    if (primaryHost.getHypervisorUuid() == null) {
       primaryHost.setHypervisorUuid(host.getHypervisorUuid());
-    if (primaryHost.getBillingProvider() == null)
+    }
+    if (primaryHost.getBillingProvider() == null) {
       primaryHost.setBillingProvider(host.getBillingProvider());
-    if (primaryHost.getBillingAccountId() == null)
+    }
+    if (primaryHost.getBillingAccountId() == null) {
       primaryHost.setBillingAccountId(host.getBillingAccountId());
+    }
     // keep the latest applied event record date
     if (primaryHost.getLastAppliedEventRecordDate() == null
         || host.getLastAppliedEventRecordDate() != null
@@ -182,8 +190,8 @@ public class MergeHostsMigration extends DataMigration {
   /**
    * Compile all buckets from all hosts
    *
-   * @param primaryHost
-   * @param host
+   * @param primaryHost the primary Host
+   * @param host the secondary Host
    */
   private void mergeTallyBuckets(Host primaryHost, Host host) {
     for (HostTallyBucket hostTallyBucket : host.getBuckets()) {
@@ -203,8 +211,8 @@ public class MergeHostsMigration extends DataMigration {
   /**
    * Add measurements to primary only if it does not exist yet
    *
-   * @param primaryHost
-   * @param host
+   * @param primaryHost the primary Host
+   * @param host the secondary Host
    */
   private void mergeMeasurements(Host primaryHost, Host host) {
     for (String measurementName : host.getMeasurements().keySet()) {
@@ -219,8 +227,8 @@ public class MergeHostsMigration extends DataMigration {
   /**
    * Add monthly totals to primary; duplicates will be handled in the Host object
    *
-   * @param primaryHost
-   * @param host
+   * @param primaryHost the primary Host
+   * @param host the secondary Host
    */
   private void mergeMonthlyTotals(Host primaryHost, Host host) {
     // add monthly totals to primary. duplicates will be handled in the Host object

@@ -298,7 +298,7 @@ public class InternalTallyResource implements InternalTallyApi {
   /**
    * Create or update an opt in configuration. This operation is idempotent
    *
-   * @param orgId
+   * @param orgId the organization ID
    * @return success or error message
    */
   @Override
@@ -314,7 +314,7 @@ public class InternalTallyResource implements InternalTallyApi {
   /**
    * Update hosts to eliminate duplicate systems that arrived from different inputs
    *
-   * @return
+   * @return a {@link DefaultResponse}
    */
   @Override
   public DefaultResponse mergeHostsFromMultipleSources(String orgId) {

@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.files;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
 import org.candlepin.clock.ApplicationClock;

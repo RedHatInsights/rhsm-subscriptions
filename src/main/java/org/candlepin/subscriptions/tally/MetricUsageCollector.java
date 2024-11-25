@@ -492,8 +492,8 @@ public class MetricUsageCollector {
    * applied when the Event's timestamp is before the Host's lastSeenDate (last time the event was
    * metered).
    *
-   * @param host
-   * @param event
+   * @param host the Host
+   * @param event the Event
    * @return true if the usage was already applied, false otherwise.
    */
   private boolean isUsageAlreadyApplied(Host host, Event event) {

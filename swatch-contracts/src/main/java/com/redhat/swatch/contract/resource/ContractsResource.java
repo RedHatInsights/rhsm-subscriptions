@@ -95,10 +95,8 @@ public class ContractsResource implements DefaultApi {
   /**
    * Create contract record in database from provided contract dto payload
    *
-   * @param request
+   * @param request the ContractRequest
    * @return status
-   * @throws ApiException
-   * @throws ProcessingException
    */
   @Override
   @Transactional
@@ -118,13 +116,11 @@ public class ContractsResource implements DefaultApi {
   /**
    * Get a list of saved contracts based on URL query parameters
    *
-   * @param orgId
-   * @param productTag
-   * @param billingProvider
-   * @param billingAccountId
-   * @return List<Contract> dtos
-   * @throws ApiException
-   * @throws ProcessingException
+   * @param orgId the organization ID given as a query parameter
+   * @param productTag the product Tag given as a query parameter
+   * @param billingProvider the billing provider given as a query parameter
+   * @param billingAccountId the billing provider given as a query parameter
+   * @return List&lt;Contract&gt; dtos
    */
   @Override
   @RolesAllowed({"test", "support", "service"})

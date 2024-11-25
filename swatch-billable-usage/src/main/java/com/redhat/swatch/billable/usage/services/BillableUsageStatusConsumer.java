@@ -21,7 +21,6 @@
 package com.redhat.swatch.billable.usage.services;
 
 import static java.util.Optional.ofNullable;
-import static org.candlepin.subscriptions.billable.usage.BillableUsage.Status.RETRYABLE;
 
 import com.redhat.swatch.billable.usage.configuration.Channels;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
@@ -29,8 +28,6 @@ import com.redhat.swatch.billable.usage.data.RemittanceErrorCode;
 import com.redhat.swatch.billable.usage.data.RemittanceStatus;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
-import java.time.Clock;
-import java.time.OffsetDateTime;
 import java.util.Objects;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,8 +38,6 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 @ApplicationScoped
 @AllArgsConstructor
 public class BillableUsageStatusConsumer {
-
-  private static final OffsetDateTime NO_RETRY = null;
 
   private final BillableUsageRemittanceRepository remittanceRepository;
 
@@ -65,21 +60,11 @@ public class BillableUsageStatusConsumer {
         ofNullable(billableUsageAggregate.getErrorCode())
             .map(code -> RemittanceErrorCode.fromString(code.value()))
             .orElse(null);
-    // NB: statuses like INACTIVE shouldn't retry again since there's nothing we can do about them
-    var retryAfter = needsRetry(billableUsageAggregate) ? nextTick() : NO_RETRY;
+
     remittanceRepository.updateStatusByIdIn(
         billableUsageAggregate.getRemittanceUuids(),
         status,
         billableUsageAggregate.getBilledOn(),
-        errorCode,
-        retryAfter);
-  }
-
-  private OffsetDateTime nextTick() {
-    return OffsetDateTime.now(Clock.systemUTC()).plusHours(1);
-  }
-
-  private boolean needsRetry(BillableUsageAggregate billableUsageAggregate) {
-    return billableUsageAggregate.getStatus() == RETRYABLE;
+        errorCode);
   }
 }

@@ -34,9 +34,24 @@ import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.validation.constraints.NotNull;
 import java.time.OffsetDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Stream;
-import org.candlepin.subscriptions.db.model.*;
+import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.Host;
+import org.candlepin.subscriptions.db.model.HostApiProjection;
+import org.candlepin.subscriptions.db.model.HostBucketKey_;
+import org.candlepin.subscriptions.db.model.HostTallyBucket;
+import org.candlepin.subscriptions.db.model.HostTallyBucket_;
+import org.candlepin.subscriptions.db.model.Host_;
+import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.TallyHostView;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -536,9 +551,9 @@ public interface HostRepository
    * We want to obtain the max last seen host record for the hourly tally. This helps in determining
    * whether we need to reevaluate the earlier event measurements.
    *
-   * @param orgId
-   * @param serviceType
-   * @return
+   * @param orgId the orgId
+   * @param serviceType the service type
+   * @return an Optional of the maximum last-seen date
    */
   @Query(
       value =

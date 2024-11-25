@@ -20,7 +20,12 @@
  */
 package org.candlepin.subscriptions.product;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.product.api.model.EngineeringProduct;
 import org.candlepin.subscriptions.product.api.model.RESTProductTree;

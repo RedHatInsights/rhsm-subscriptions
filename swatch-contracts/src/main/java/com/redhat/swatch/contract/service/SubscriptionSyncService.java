@@ -132,9 +132,8 @@ public class SubscriptionSyncService {
       if (StringUtils.isNotBlank(newOrUpdated.getBillingAccountId())
           && StringUtils.isNotBlank(newOrUpdated.getBillingProviderId())) {
         contractService.createPartnerContract(PartnerEntitlementsRequest.from(newOrUpdated));
-      }
-      // Existing records should have billing provider info already stored
-      else if (subscriptionOptional.isPresent()) {
+      } else if (subscriptionOptional.isPresent()) {
+        // Existing records should have billing provider info already stored
         contractService.createPartnerContract(
             PartnerEntitlementsRequest.from(subscriptionOptional.get()));
       } else {

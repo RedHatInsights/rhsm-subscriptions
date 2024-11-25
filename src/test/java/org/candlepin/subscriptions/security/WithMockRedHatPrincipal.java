@@ -37,7 +37,7 @@ public @interface WithMockRedHatPrincipal {
   /**
    * Set account and orgId to account$value and owner$value respectively.
    *
-   * @return
+   * @return value used in org and account IDs
    */
   String value() default "";
 

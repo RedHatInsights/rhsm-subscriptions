@@ -184,7 +184,7 @@ public class UpstreamProductData {
    *       been "inherited" from a child/derived SKU.
    * </ul>
    *
-   * (Future work could cache more information to reduce data source usage).
+   * <p>(Future work could cache more information to reduce data source usage).
    *
    * @param product umb data for the offering
    * @param existingData existing offering from swatch DB if present, or null

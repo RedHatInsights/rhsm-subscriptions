@@ -147,7 +147,9 @@ public class TallyInstanceViewRepository {
         return builder.greaterThanOrEqualTo(root.get(TallyInstanceView_.cores), minCores);
       } else if (Objects.nonNull(minSockets)) {
         return builder.greaterThanOrEqualTo(root.get(TallyInstanceView_.sockets), minSockets);
-      } else return null;
+      } else {
+        return null;
+      }
     };
   }
 

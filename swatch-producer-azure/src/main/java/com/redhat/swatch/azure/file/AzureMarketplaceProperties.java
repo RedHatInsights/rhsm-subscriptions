@@ -39,4 +39,7 @@ public class AzureMarketplaceProperties {
 
   @ConfigProperty(name = "AZURE_OIDC_SAAS_MARKETPLACE_RESOURCE")
   String oidcSaasMarketplaceResource;
+
+  @ConfigProperty(name = "DISABLE_AZURE_OIDC")
+  boolean disableAzureOidc;
 }

@@ -20,9 +20,11 @@
  */
 package org.candlepin.subscriptions.rhmarketplace;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.params.ParameterizedTest.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.params.ParameterizedTest.DEFAULT_DISPLAY_NAME;
+import static org.junit.jupiter.params.ParameterizedTest.DISPLAY_NAME_PLACEHOLDER;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.List;

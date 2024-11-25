@@ -69,8 +69,12 @@ public class ContractMetricEntity extends PanacheEntityBase {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
     ContractMetricEntity that = (ContractMetricEntity) o;
     return value == that.value && Objects.equals(metricId, that.metricId);
   }
