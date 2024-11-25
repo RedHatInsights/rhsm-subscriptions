@@ -33,8 +33,8 @@ import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.inspector.UnTrustedTagInspector;
 
 /**
- * Loads yaml files from src/main/resource/subscription_configs into List<Subscription>. Provides
- * lookup methods for that list.
+ * Loads yaml files from src/main/resource/subscription_configs into a List and provides lookup
+ * methods for that list.
  */
 @Slf4j
 public class SubscriptionDefinitionRegistry {

@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.security;
 
-import static org.candlepin.subscriptions.security.SecurityConfiguration.*;
+import static org.candlepin.subscriptions.security.SecurityConfiguration.SECURITY_STACKTRACE;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;

@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.security;
 
-import static org.candlepin.subscriptions.security.SecurityConfiguration.*;
+import static org.candlepin.subscriptions.security.SecurityConfiguration.SECURITY_STACKTRACE;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
@@ -70,9 +70,8 @@ public class IdentityHeaderAuthenticationFilter extends AbstractPreAuthenticated
         // Initialize an empty principal. The IdentityHeaderAuthenticationProvider will validate it.
         return new InsightsUserPrincipal();
       }
-    }
-    // If both headers are missing it will be passed down the chain.
-    else {
+    } else {
+      // If both headers are missing it will be passed down the chain.
       log.debug("{} and {} are empty", RH_IDENTITY_HEADER, RH_PSK_HEADER);
       return null;
     }

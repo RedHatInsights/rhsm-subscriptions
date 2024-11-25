@@ -190,7 +190,8 @@ public class Host implements Serializable {
     measurements.put(MetricIdUtils.toUpperCaseFormatted(metricId), value);
   }
 
-  public HostTallyBucket addBucket( // NOSONAR
+  @SuppressWarnings("java:S107")
+  public HostTallyBucket addBucket(
       String productId,
       ServiceLevel sla,
       Usage usage,

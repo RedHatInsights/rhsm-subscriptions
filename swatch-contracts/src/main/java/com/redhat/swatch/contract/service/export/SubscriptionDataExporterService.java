@@ -20,16 +20,16 @@
  */
 package com.redhat.swatch.contract.service.export;
 
+import com.redhat.swatch.common.model.ServiceLevel;
+import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.contract.model.SubscriptionsExportJsonMeasurement;
 import com.redhat.swatch.contract.openapi.model.ReportCategory;
 import com.redhat.swatch.contract.repository.BillingProvider;
-import com.redhat.swatch.contract.repository.ServiceLevel;
 import com.redhat.swatch.contract.repository.SubscriptionCapacityView;
 import com.redhat.swatch.contract.repository.SubscriptionCapacityViewMetric;
 import com.redhat.swatch.contract.repository.SubscriptionCapacityViewRepository;
-import com.redhat.swatch.contract.repository.Usage;
 import com.redhat.swatch.contract.resource.ResourceUtils;
 // NOTE(khowell): this couples our export implementation to the v1 REST API
 import com.redhat.swatch.contract.resource.api.v1.ApiModelMapperV1;

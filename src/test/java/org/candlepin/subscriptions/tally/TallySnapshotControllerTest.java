@@ -66,12 +66,12 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.retry.RetryCallback;
 import org.springframework.retry.RetryContext;
 import org.springframework.retry.RetryListener;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
@@ -81,12 +81,12 @@ class TallySnapshotControllerTest implements ExtendWithEmbeddedKafka {
   private static final String SERVICE_TYPE = "OpenShift Cluster";
 
   @Mock EntityManager mockEntityManager;
-  @MockBean EventRecordRepository eventRepo;
-  @MockBean TallyStateRepository tallyStateRepo;
+  @MockitoBean EventRecordRepository eventRepo;
+  @MockitoBean TallyStateRepository tallyStateRepo;
   @Autowired RetryTemplate collectorRetryTemplate;
   @Autowired ApplicationClock clock;
   @Autowired ApplicationProperties props;
-  @MockBean TallySnapshotRepository snapshotRepo;
+  @MockitoBean TallySnapshotRepository snapshotRepo;
   @Autowired HostRepository hostRepository;
   @Autowired MetricUsageCollector usageCollector;
   @Autowired TallySnapshotController controller;

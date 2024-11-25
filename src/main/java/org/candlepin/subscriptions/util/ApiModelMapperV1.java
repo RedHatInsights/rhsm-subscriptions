@@ -27,7 +27,14 @@ import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.utilization.api.v1.model.*;
+import org.candlepin.subscriptions.utilization.api.v1.model.BillingCategory;
+import org.candlepin.subscriptions.utilization.api.v1.model.BillingProviderType;
+import org.candlepin.subscriptions.utilization.api.v1.model.GranularityType;
+import org.candlepin.subscriptions.utilization.api.v1.model.Host;
+import org.candlepin.subscriptions.utilization.api.v1.model.PageLinks;
+import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
+import org.candlepin.subscriptions.utilization.api.v1.model.ServiceLevelType;
+import org.candlepin.subscriptions.utilization.api.v1.model.UsageType;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

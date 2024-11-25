@@ -20,7 +20,11 @@
  */
 package org.candlepin.subscriptions.resource.api.v1;
 
-import static org.candlepin.subscriptions.resource.ResourceUtils.*;
+import static org.candlepin.subscriptions.resource.ResourceUtils.getOrgId;
+import static org.candlepin.subscriptions.resource.ResourceUtils.sanitizeBillingAccountId;
+import static org.candlepin.subscriptions.resource.ResourceUtils.sanitizeBillingProvider;
+import static org.candlepin.subscriptions.resource.ResourceUtils.sanitizeServiceLevel;
+import static org.candlepin.subscriptions.resource.ResourceUtils.sanitizeUsage;
 import static org.candlepin.subscriptions.resource.api.v1.CapacityResource.HYPERVISOR;
 import static org.candlepin.subscriptions.resource.api.v1.CapacityResource.PHYSICAL;
 
@@ -50,7 +54,18 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.util.ApiModelMapperV1;
 import org.candlepin.subscriptions.util.InMemoryPager;
-import org.candlepin.subscriptions.utilization.api.v1.model.*;
+import org.candlepin.subscriptions.utilization.api.v1.model.BillingProviderType;
+import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
+import org.candlepin.subscriptions.utilization.api.v1.model.ServiceLevelType;
+import org.candlepin.subscriptions.utilization.api.v1.model.SkuCapacity;
+import org.candlepin.subscriptions.utilization.api.v1.model.SkuCapacityReport;
+import org.candlepin.subscriptions.utilization.api.v1.model.SkuCapacityReportMeta;
+import org.candlepin.subscriptions.utilization.api.v1.model.SkuCapacityReportSort;
+import org.candlepin.subscriptions.utilization.api.v1.model.SkuCapacitySubscription;
+import org.candlepin.subscriptions.utilization.api.v1.model.SortDirection;
+import org.candlepin.subscriptions.utilization.api.v1.model.SubscriptionEventType;
+import org.candlepin.subscriptions.utilization.api.v1.model.SubscriptionType;
+import org.candlepin.subscriptions.utilization.api.v1.model.UsageType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -75,9 +90,10 @@ public class SubscriptionTableController {
     this.clock = clock;
   }
 
+  @SuppressWarnings("java:S107")
   // Transactional annotation necessary to access lazy loaded ElementCollections for Subscription
   @Transactional
-  public SkuCapacityReport capacityReportBySku( // NOSONAR
+  public SkuCapacityReport capacityReportBySku(
       ProductId productId,
       @Min(0) Integer offset,
       @Min(1) Integer limit,

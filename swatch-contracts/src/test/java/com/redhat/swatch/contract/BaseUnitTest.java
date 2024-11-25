@@ -29,12 +29,12 @@ public class BaseUnitTest {
   private AutoCloseable closeable;
 
   @BeforeEach
-  void init_mocks() {
+  void initMocks() {
     closeable = MockitoAnnotations.openMocks(this);
   }
 
   @AfterEach
-  void close_mocks() throws Exception {
+  void closeMocks() throws Exception {
     closeable.close();
   }
 }

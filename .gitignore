@@ -30,6 +30,7 @@
 # going to use or files used for developer deployment (certificates and key)
 config/*
 !config/codestyle
+!config/checkstyle
 !config/kafka
 !config/otel
 !config/rabbitmq

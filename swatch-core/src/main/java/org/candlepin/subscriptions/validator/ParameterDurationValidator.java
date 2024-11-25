@@ -162,8 +162,8 @@ public class ParameterDurationValidator
    * @param beginText a String parseable by the DateTimeFormatter given with the format parameter
    * @param endText a String parseable by the DateTimeFormatter given with the format parameter
    * @param format a value of Iso8601Format with an associated DateTimeFormatter
-   * @throws DateTimeParseException if the beginText or endText cannot be parsed by the method
    * @return the Duration between beginText and endText
+   * @throws DateTimeParseException if the beginText or endText cannot be parsed by the method
    */
   protected static Duration findDuration(String beginText, String endText, Iso8601Format format) {
     DateTimeFormatter formatter = format.formatter;

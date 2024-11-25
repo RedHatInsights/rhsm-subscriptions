@@ -20,7 +20,8 @@
  */
 package org.candlepin.subscriptions.task.queue.inmemory;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -67,7 +68,7 @@ class ExecutorTaskQueueTest {
                 (runnable) -> {
                   Thread thread = new Thread(runnable);
                   thread.setUncaughtExceptionHandler(
-                      (_thread, throwable) -> {
+                      (t, throwable) -> {
                         failed.set(true);
                       });
                   return thread;

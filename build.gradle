@@ -33,6 +33,7 @@ allprojects {
 }
 
 dependencies {
+    implementation project(":swatch-common-models")
     implementation project(":swatch-common-clock")
     implementation project(":swatch-common-export")
     implementation project(':swatch-core')

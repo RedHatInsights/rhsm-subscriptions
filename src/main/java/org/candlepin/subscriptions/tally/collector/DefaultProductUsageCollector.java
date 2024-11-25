@@ -41,14 +41,10 @@ public class DefaultProductUsageCollector implements ProductUsageCollector {
     if (normalizedFacts.getCloudProviderType() != null) {
       appliedSockets = normalizedFacts.isMarketplace() ? 0 : 1;
       appliedType = normalizedFacts.getCloudProviderType();
-    }
-    // Accumulate for physical systems.
-    else if (!normalizedFacts.isVirtual()) {
+    } else if (!normalizedFacts.isVirtual()) { // Accumulate for physical systems.
       appliedSockets = normalizedFacts.isMarketplace() ? (Integer) 0 : appliedSockets;
       appliedType = HardwareMeasurementType.PHYSICAL;
-    }
-    // Any other system is considered virtual
-    else {
+    } else { // Any other system is considered virtual
       if (normalizedFacts.isMarketplace()) {
         appliedSockets = 0;
       }

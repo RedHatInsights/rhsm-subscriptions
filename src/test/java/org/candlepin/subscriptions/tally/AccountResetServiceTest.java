@@ -20,7 +20,8 @@
  */
 package org.candlepin.subscriptions.tally;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import java.time.OffsetDateTime;
@@ -102,7 +103,7 @@ class AccountResetServiceTest {
 
     TallySnapshot snapshot =
         new TallySnapshot(
-            UUID.randomUUID(),
+            null,
             OffsetDateTime.now(),
             "RHEL",
             "org123",

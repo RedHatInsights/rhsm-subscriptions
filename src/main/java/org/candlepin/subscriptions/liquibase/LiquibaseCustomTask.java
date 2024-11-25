@@ -78,8 +78,8 @@ public abstract class LiquibaseCustomTask
    * @param statement the statement on which to set a parameter
    * @param index the index of the parameter to set
    * @param value the value to set
-   * @throws NullPointerException if statement is null
    * @return the PreparedStatement being updated
+   * @throws NullPointerException if statement is null
    */
   protected PreparedStatement setParameter(PreparedStatement statement, int index, Object value)
       throws SQLException {
@@ -100,8 +100,8 @@ public abstract class LiquibaseCustomTask
    *
    * @param statement the statement to fill
    * @param argv the collection of arguments with which to fill the statement's parameters
-   * @throws NullPointerException if statement is null
    * @return the provided PreparedStatement
+   * @throws NullPointerException if statement is null
    */
   protected PreparedStatement fillStatementParameters(PreparedStatement statement, Object... argv)
       throws SQLException {

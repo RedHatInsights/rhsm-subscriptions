@@ -23,7 +23,9 @@ package org.candlepin.subscriptions.tally;
 import static com.redhat.swatch.configuration.util.MetricIdUtils.getCores;
 import static org.candlepin.subscriptions.tally.collector.Assertions.assertHardwareMeasurementTotals;
 import static org.candlepin.subscriptions.tally.collector.Assertions.assertNullExcept;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.stream.IntStream;
 import org.candlepin.subscriptions.db.model.BillingProvider;

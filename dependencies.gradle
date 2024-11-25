@@ -3,7 +3,7 @@
 
 ext {
     quarkusVersion='3.16.4'
-    springVersion='3.3.5'
+    springVersion='3.4.0'
     resteasyVersion='6.2.10.Final'
     jacksonVersion='2.18.1'
     mapstructVersion='1.6.3'
@@ -26,7 +26,7 @@ ext.plugins = [
         "org.liquibase:liquibase-core:4.30.0",
         "org.liquibase:liquibase-gradle-plugin:3.0.1",
         "org.kordamp.gradle:jandex-gradle-plugin:2.0.0",
-        "org.openapitools:openapi-generator-gradle-plugin:7.9.0",
+        "org.openapitools:openapi-generator-gradle-plugin:7.10.0",
         "org.springframework.boot:spring-boot-gradle-plugin:${springVersion}",
         "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:6.0.0.5145",
 ]
@@ -64,6 +64,7 @@ libraries["jackson-dataformat-xml"] = "com.fasterxml.jackson.dataformat:jackson-
 libraries["jackson-module-jakarta-xmlbind-annotations"] = "com.fasterxml.jackson.module:jackson-module-jakarta-xmlbind-annotations:${jacksonVersion}"
 libraries["jackson-datatype-jsr310"] = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${jacksonVersion}"
 libraries["jakarta-validation-api"] = "jakarta.validation:jakarta.validation-api:3.1.0"
+libraries["jakarta-persistence-api"] = "jakarta.persistence:jakarta.persistence-api:3.1.0"
 libraries["hibernate-validator"] = "org.hibernate.validator:hibernate-validator:8.0.1.Final"
 libraries["resteasy-client"] = "org.jboss.resteasy:resteasy-client:${resteasyVersion}"
 libraries["resteasy-multipart-provider"] = "org.jboss.resteasy:resteasy-multipart-provider:${resteasyVersion}"
@@ -75,7 +76,7 @@ libraries["swagger-ui"] = "org.webjars:swagger-ui:5.18.2"
 libraries["webjars-locator"] = "org.webjars:webjars-locator:0.52"
 libraries["wiremock"] = "com.github.tomakehurst:wiremock-standalone:3.0.1"
 libraries["awaitility"] = "org.awaitility:awaitility:4.2.2"
-libraries["splunk-otel-agent"] = 'com.splunk:splunk-otel-javaagent:2.9.0'
+libraries["splunk-otel-agent"] = 'com.splunk:splunk-otel-javaagent:2.10.0'
 libraries["testcontainers-postgresql"] = 'org.testcontainers:postgresql:1.20.4'
 libraries["kafka-streams-test-utils"] = "org.apache.kafka:kafka-streams-test-utils:7.7.1-ce"
 libraries["slf4j-api"] = "org.slf4j:slf4j-api:2.0.16"

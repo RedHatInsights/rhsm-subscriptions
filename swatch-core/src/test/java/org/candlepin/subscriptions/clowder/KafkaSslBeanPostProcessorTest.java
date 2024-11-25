@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.clowder;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.io.ByteArrayInputStream;
 import org.junit.jupiter.api.Test;

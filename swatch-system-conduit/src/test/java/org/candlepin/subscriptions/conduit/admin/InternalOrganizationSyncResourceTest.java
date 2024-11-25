@@ -22,7 +22,9 @@ package org.candlepin.subscriptions.conduit.admin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.util.AssertionErrors.assertFalse;
 import static org.springframework.test.util.AssertionErrors.assertTrue;
 
@@ -42,8 +44,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.web.WebAppConfiguration;
 
 @SpringBootTest
@@ -51,10 +53,10 @@ import org.springframework.test.context.web.WebAppConfiguration;
 @ActiveProfiles({"rhsm-conduit", "test"})
 class InternalOrganizationSyncResourceTest {
 
-  @MockBean InventoryController controller;
-  @MockBean OrgConfigRepository repo;
-  @MockBean OrgSyncTaskManager tasks;
-  @MockBean SystemConduitProperties properties;
+  @MockitoBean InventoryController controller;
+  @MockitoBean OrgConfigRepository repo;
+  @MockitoBean OrgSyncTaskManager tasks;
+  @MockitoBean SystemConduitProperties properties;
   @Captor ArgumentCaptor<List<OrgConfig>> orgConfigCaptor;
 
   @Autowired InternalOrganizationSyncResource resource;

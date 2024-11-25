@@ -52,9 +52,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @ActiveProfiles({"api", "test"})
@@ -65,7 +65,7 @@ class SubscriptionTableControllerOnDemandTest {
   private static final ProductId RHEL_x86_ELS_PAYG = ProductId.fromString("rhel-for-x86-els-payg");
   private static final String OFFERING_DESCRIPTION_SUFFIX = " test description";
 
-  @MockBean SubscriptionRepository subscriptionRepository;
+  @MockitoBean SubscriptionRepository subscriptionRepository;
   @Autowired ApplicationClock clock;
   @Autowired SubscriptionTableController subscriptionTableController;
 

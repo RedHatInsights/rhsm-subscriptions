@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.repository;
+package com.redhat.swatch.common.model;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 
 /** Interface to reduce duplication of common methods for some enums */
 public interface StringValueEnum {
+
   static <T> T getValueOf(
       Class<T> className, Map<String, T> valueEnumMap, String value, T defaultEnum) {
     String key = Objects.nonNull(value) ? value.toLowerCase() : null;

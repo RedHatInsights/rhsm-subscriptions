@@ -18,12 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.repository;
+package com.redhat.swatch.common.model;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 import java.util.Map;
 import java.util.Objects;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 /**
  * System purpose service level
@@ -31,6 +33,8 @@ import java.util.Objects;
  * <p>SLA or service level agreement is defined on a given subscription, and can be set as an
  * attribute on a system to associate it with a specific SLA requirement.
  */
+@Getter
+@AllArgsConstructor
 public enum ServiceLevel implements StringValueEnum {
   EMPTY(""),
   PREMIUM("Premium"),
@@ -43,10 +47,6 @@ public enum ServiceLevel implements StringValueEnum {
 
   private final String value;
 
-  ServiceLevel(String value) {
-    this.value = value;
-  }
-
   /**
    * Parse the service level from its string representation (excluding special value _ANY).
    *
@@ -58,10 +58,6 @@ public enum ServiceLevel implements StringValueEnum {
    */
   public static ServiceLevel fromString(String value) {
     return StringValueEnum.getValueOf(ServiceLevel.class, VALUE_ENUM_MAP, value, EMPTY);
-  }
-
-  public String getValue() {
-    return value;
   }
 
   /** JPA converter for ServiceLevel */

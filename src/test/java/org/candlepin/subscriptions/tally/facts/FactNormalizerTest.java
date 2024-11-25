@@ -27,7 +27,12 @@ import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.crea
 import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.createRhsmHost;
 import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.createSystemProfileHost;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
@@ -61,9 +66,9 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.util.StringUtils;
 
 @SpringBootTest
@@ -74,7 +79,7 @@ class FactNormalizerTest {
   @Autowired FactNormalizer normalizer;
   @Autowired ApplicationClock clock;
   @Autowired ApplicationProperties applicationProperties;
-  @MockBean BuildProperties buildProperties;
+  @MockitoBean BuildProperties buildProperties;
   static MockedStatic<SubscriptionDefinition> subscriptionDefinitionMockedStatic;
 
   @BeforeEach

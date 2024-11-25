@@ -22,7 +22,6 @@ package com.redhat.swatch.billable.usage.services;
 
 import static com.redhat.swatch.billable.usage.kafka.InMemoryMessageBrokerKafkaResource.IN_MEMORY_CONNECTOR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.verify;
 
@@ -109,17 +108,16 @@ class BillableUsageStatusConsumerTest {
             .collect(Collectors.toList()));
     whenSendResponse(message);
     Awaitility.await().untilAsserted(() -> verifyUpdateForFailure(RemittanceErrorCode.INACTIVE));
-    // Since the usage failed with inactive, we should not update the retryAfter
     verifyRemittancesHaveNotRetryAfterSet(message.getRemittanceUuids());
   }
 
   @Test
-  void testWhenUsageThatFailedWithSubscriptionNotFoundThenUsageSentToDlt() {
+  void testWhenUsageThatFailedWithSubscriptionNotFoundThenUsageSetToFailed() {
     var existingRemittances = givenExistingRemittance();
     var message = new BillableUsageAggregate();
     message.setAggregateKey(new BillableUsageAggregateKey());
     message.getAggregateKey().setBillingProvider("aws");
-    message.setStatus(Status.RETRYABLE);
+    message.setStatus(Status.FAILED);
     message.setErrorCode(ErrorCode.SUBSCRIPTION_NOT_FOUND);
     message.setRemittanceUuids(
         existingRemittances.stream()
@@ -128,17 +126,16 @@ class BillableUsageStatusConsumerTest {
             .toList());
     whenSendResponse(message);
     Awaitility.await()
-        .untilAsserted(() -> verifyUpdateForRetryable(RemittanceErrorCode.SUBSCRIPTION_NOT_FOUND));
-    verifyRemittancesHaveRetryAfterSet(message.getRemittanceUuids());
+        .untilAsserted(() -> verifyUpdateForFailure(RemittanceErrorCode.SUBSCRIPTION_NOT_FOUND));
   }
 
   @Test
-  void testWhenUsageThatFailedWithMarketplaceRateLimitThenUsageSentToRetry() {
+  void testWhenUsageThatFailedWithMarketplaceRateLimitThenUsageSetFailed() {
     var existingRemittances = givenExistingRemittance();
     var message = new BillableUsageAggregate();
     message.setAggregateKey(new BillableUsageAggregateKey());
     message.getAggregateKey().setBillingProvider("aws");
-    message.setStatus(Status.RETRYABLE);
+    message.setStatus(Status.FAILED);
     message.setErrorCode(ErrorCode.MARKETPLACE_RATE_LIMIT);
     message.setRemittanceUuids(
         existingRemittances.stream()
@@ -147,8 +144,7 @@ class BillableUsageStatusConsumerTest {
             .toList());
     whenSendResponse(message);
     Awaitility.await()
-        .untilAsserted(() -> verifyUpdateForRetryable(RemittanceErrorCode.MARKETPLACE_RATE_LIMIT));
-    verifyRemittancesHaveRetryAfterSet(message.getRemittanceUuids());
+        .untilAsserted(() -> verifyUpdateForFailure(RemittanceErrorCode.MARKETPLACE_RATE_LIMIT));
   }
 
   @Transactional
@@ -205,22 +201,6 @@ class BillableUsageStatusConsumerTest {
               assertEquals(expected, result.getErrorCode());
               assertNull(result.getBilledOn());
             });
-  }
-
-  @Transactional
-  void verifyUpdateForRetryable(RemittanceErrorCode expected) {
-    remittanceRepository.findAll().stream()
-        .forEach(
-            result -> {
-              assertEquals(RemittanceStatus.RETRYABLE, result.getStatus());
-              assertEquals(expected, result.getErrorCode());
-              assertNull(result.getBilledOn());
-            });
-  }
-
-  @Transactional
-  void verifyRemittancesHaveRetryAfterSet(List<String> uuids) {
-    verifyRemittances(uuids, result -> assertNotNull(result.getRetryAfter()));
   }
 
   @Transactional
