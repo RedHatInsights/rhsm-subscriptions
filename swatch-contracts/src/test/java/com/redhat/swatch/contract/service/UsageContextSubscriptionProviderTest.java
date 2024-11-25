@@ -73,6 +73,7 @@ class UsageContextSubscriptionProviderTest {
   @BeforeEach
   void setupTest() {
     givenDefaultCriteria();
+    meterRegistry.clear();
     repo.deleteAll();
     offeringRepository.deleteAll();
     givenExistingOffering();
@@ -81,10 +82,7 @@ class UsageContextSubscriptionProviderTest {
   @Test
   void incrementsMissingCounterWhenOrgIdPresent() {
     assertThrows(NotFoundException.class, this::whenGetSubscriptions);
-    Counter counter =
-        meterRegistry.counter(
-            MISSING_SUBSCRIPTIONS_COUNTER_NAME, "provider", BILLING_PROVIDER.getValue());
-    assertEquals(1.0, counter.count());
+    thenCounterIs(MISSING_SUBSCRIPTIONS_COUNTER_NAME, 1.0);
   }
 
   @Test
@@ -94,11 +92,7 @@ class UsageContextSubscriptionProviderTest {
     Optional<SubscriptionEntity> subscription = whenGetSubscriptions();
     assertTrue(subscription.isPresent());
     assertEquals(sub1.getSubscriptionId(), subscription.get().getSubscriptionId());
-
-    Counter counter =
-        meterRegistry.counter(
-            AMBIGUOUS_SUBSCRIPTIONS_COUNTER_NAME, "provider", BILLING_PROVIDER.getValue());
-    assertEquals(1.0, counter.count());
+    thenCounterIs(AMBIGUOUS_SUBSCRIPTIONS_COUNTER_NAME, 1.0);
   }
 
   @Test
@@ -178,5 +172,12 @@ class UsageContextSubscriptionProviderTest {
 
   private Optional<SubscriptionEntity> whenGetSubscriptions() {
     return provider.getSubscription(criteria);
+  }
+
+  private void thenCounterIs(String counterName, double expected) {
+    Counter counter =
+        meterRegistry.counter(
+            counterName, "provider", BILLING_PROVIDER.getValue(), "product", PRODUCT);
+    assertEquals(expected, counter.count());
   }
 }
