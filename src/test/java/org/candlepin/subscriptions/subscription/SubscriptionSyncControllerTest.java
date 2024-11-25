@@ -25,7 +25,7 @@ import static org.hamcrest.Matchers.matchesPattern;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
 import java.util.Collections;
@@ -109,7 +109,7 @@ class SubscriptionSyncControllerTest {
   }
 
   @Test
-  void findsSubscriptionId_WhenOrgIdPresent() {
+  void findsSubscriptionIdWhenOrgIdPresent() {
     UsageCalculation.Key key =
         new Key(
             "OpenShift-metrics",

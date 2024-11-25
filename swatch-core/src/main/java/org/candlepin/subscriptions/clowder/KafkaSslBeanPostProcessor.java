@@ -43,7 +43,7 @@ import org.springframework.core.io.Resource;
  *      trust-store-type: ${clowder.kafka.brokers.cacert.type:}
  * </pre>
  *
- * The {@link ClowderJsonPropertySource} will return null for the evaluation of
+ * <p>The {@link ClowderJsonPropertySource} will return null for the evaluation of
  * <tt>clowder.kafka.brokers.cacert</tt> (since that key is missing in the Clowder JSON), but Spring
  * will then fall back to the default which is the empty string. If no default is provided, Spring
  * instead uses the literal value of "${clowder.kafka.brokers.cacert}". So this class exists to set

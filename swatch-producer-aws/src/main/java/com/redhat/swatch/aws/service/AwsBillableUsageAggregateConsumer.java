@@ -135,7 +135,7 @@ public class AwsBillableUsageAggregateConsumer {
         emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.INACTIVE);
       } else {
         log.warn("Subscription not found for for aggregate={}", billableUsageAggregate, e);
-        emitRetryableStatusOnUsage(
+        emitErrorStatusOnUsage(
             billableUsageAggregate, BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND);
       }
       return;
@@ -164,7 +164,7 @@ public class AwsBillableUsageAggregateConsumer {
           context.getSubscriptionStartDate());
       ignoreCounter.increment();
     } catch (AwsThrottlingException e) {
-      emitRetryableStatusOnUsage(
+      emitErrorStatusOnUsage(
           billableUsageAggregate, BillableUsage.ErrorCode.MARKETPLACE_RATE_LIMIT);
       log.error(
           "Error sending aws usage due to rate limit for rhSubscriptionId={} aggregate={} awsCustomerId={} awsProductCode={}",
@@ -346,13 +346,6 @@ public class AwsBillableUsageAggregateConsumer {
   private void emitErrorStatusOnUsage(
       BillableUsageAggregate usage, BillableUsage.ErrorCode errorCode) {
     usage.setStatus(BillableUsage.Status.FAILED);
-    usage.setErrorCode(errorCode);
-    billableUsageStatusProducer.emitStatus(usage);
-  }
-
-  private void emitRetryableStatusOnUsage(
-      BillableUsageAggregate usage, BillableUsage.ErrorCode errorCode) {
-    usage.setStatus(BillableUsage.Status.RETRYABLE);
     usage.setErrorCode(errorCode);
     billableUsageStatusProducer.emitStatus(usage);
   }

@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.google.common.collect.Sets;
 import java.util.Set;

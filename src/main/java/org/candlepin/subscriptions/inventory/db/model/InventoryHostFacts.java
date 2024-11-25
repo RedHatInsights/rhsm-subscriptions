@@ -72,11 +72,11 @@ public class InventoryHostFacts {
     // Used for testing
   }
 
-  @SuppressWarnings("squid:S00107")
   /**
    * Constructor represent current query structure for reads from HBI Must be consistent with
    * InventoryHost (Any changes here must be made in this Object. vice versa)
    */
+  @SuppressWarnings("squid:S00107")
   public InventoryHostFacts(
       UUID inventoryId,
       OffsetDateTime modifiedOn,

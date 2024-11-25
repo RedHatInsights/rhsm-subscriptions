@@ -137,8 +137,12 @@ public class ContractEntity extends PanacheEntityBase {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
     ContractEntity that = (ContractEntity) o;
     return Objects.equals(subscriptionNumber, that.subscriptionNumber)
         && Objects.equals(orgId, that.orgId)

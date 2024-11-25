@@ -88,7 +88,7 @@ public class SubscriptionDefinition {
   private String parentSubscription;
 
   /**
-   * defines an "in-the-box" subscription. Considered included from both usage and capacity
+   * Defines an "in-the-box" subscription. Considered included from both usage and capacity
    * perspectives.
    */
   @Default private Set<String> includedSubscriptions = new HashSet<>();
@@ -101,8 +101,10 @@ public class SubscriptionDefinition {
   private boolean vdcType;
 
   /**
-   * @param serviceType
-   * @return Optional<Subscription>
+   * Search for a given service type.
+   *
+   * @param serviceType the service type to search for
+   * @return an Optional&lt;Subscription&gt;
    */
   public static Set<SubscriptionDefinition> findByServiceType(String serviceType) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
@@ -130,7 +132,9 @@ public class SubscriptionDefinition {
   }
 
   /**
-   * @return Set<String> serviceTypes
+   * Return a list of all service types among the subscription definitions.
+   *
+   * @return Set&lt;String&gt; serviceTypes
    */
   public static Set<String> getAllServiceTypes() {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
@@ -229,8 +233,8 @@ public class SubscriptionDefinition {
   /**
    * In order to get a product tag, you must supply either level, role, engId, or productName data.
    *
-   * @param params
-   * @return Set<Variant>
+   * @param params the search parameters to use
+   * @return Set&amp;lt;Variant&amp;gt;
    */
   private static Set<Variant> getVariantsMatchingPAYGStatusAndRequiredIdentifier(
       ProductTagLookupParams params) {
@@ -281,7 +285,7 @@ public class SubscriptionDefinition {
    * not found, check the fingerprint.
    *
    * @param engProductId a String with the engineering product ID
-   * @return Optional<Subscription> subscription
+   * @return Optional&lt;Subscription&gt; subscription
    */
   public static Set<SubscriptionDefinition> lookupSubscriptionByEngId(String engProductId) {
     return engIdCache.get(engProductId);
@@ -301,7 +305,7 @@ public class SubscriptionDefinition {
    * Looks for SubscriptionDefinitiion matching a role
    *
    * @param role a String with the role value
-   * @return Optional<Subscription>
+   * @return Optional&lt;Subscription&gt;
    */
   public static Optional<SubscriptionDefinition> lookupSubscriptionByRole(String role) {
     return roleCache.get(role);
@@ -322,7 +326,7 @@ public class SubscriptionDefinition {
    * Looks for tag matching a tag
    *
    * @param tag a String with the tag value
-   * @return Optional<Subscription>
+   * @return Optional&lt;Subscription&gt;
    */
   public static Optional<SubscriptionDefinition> lookupSubscriptionByTag(
       @NotNull @NotEmpty String tag) {
@@ -400,7 +404,7 @@ public class SubscriptionDefinition {
    * AND both match the same Variant.
    *
    * @param params ProductTagLookupParams
-   * @return Predicate<Variant>
+   * @return a Predicate as described above
    */
   private static Predicate<Variant> createLevelPredicate(ProductTagLookupParams params) {
     Predicate<Variant> level1Predicate =
@@ -429,7 +433,7 @@ public class SubscriptionDefinition {
    * variant
    *
    * @param params ProductTagLookupParams
-   * @return Predicate<Variant>
+   * @return a Predicate as described above
    */
   private static Predicate<Variant> createEngIdPredicate(ProductTagLookupParams params) {
     return variant -> {
@@ -446,7 +450,7 @@ public class SubscriptionDefinition {
    * variant
    *
    * @param params ProductTagLookupParams
-   * @return Predicate<Variant>
+   * @return a Predicate as described above
    */
   private static Predicate<Variant> createRolePredicate(ProductTagLookupParams params) {
     return variant -> {
@@ -463,7 +467,7 @@ public class SubscriptionDefinition {
    * matches a variant
    *
    * @param params ProductTagLookupParams
-   * @return Predicate<Variant>
+   * @return a Predicate as described above
    */
   private static Predicate<Variant> createProductNamePredicate(ProductTagLookupParams params) {
     return variant -> {
@@ -480,7 +484,7 @@ public class SubscriptionDefinition {
    * specified.
    *
    * @param params ProductTagLookupParams
-   * @return Predicate<Variant>
+   * @return a Predicate as described above
    */
   private static Predicate<Variant> createOptionalConversionPredicate(
       ProductTagLookupParams params) {
@@ -498,7 +502,7 @@ public class SubscriptionDefinition {
    * relevant for those tags.)
    *
    * @param params ProductTagLookupParams
-   * @return Predicate<Variant>
+   * @return a Predicate as described above
    */
   private static Predicate<Variant> createOptionalMetricIdsPredicate(
       ProductTagLookupParams params) {

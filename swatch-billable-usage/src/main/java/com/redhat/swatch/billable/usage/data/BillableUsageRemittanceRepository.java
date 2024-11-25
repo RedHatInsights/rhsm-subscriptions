@@ -87,16 +87,6 @@ public class BillableUsageRemittanceRepository
     return entityManager.createQuery(query).getResultList();
   }
 
-  @Transactional
-  public long countRemittancesByRetryAfterLessThan(OffsetDateTime asOf) {
-    return count("retryAfter < ?1", asOf);
-  }
-
-  public List<BillableUsageRemittanceEntity> findNextRemittancesByRetryAfterLessThan(
-      OffsetDateTime asOf, int pageSize) {
-    return find("retryAfter < ?1", asOf).page(0, pageSize).list();
-  }
-
   public void deleteAllByOrgIdAndRemittancePendingDateBefore(
       String orgId, OffsetDateTime cutoffDate) {
     delete("orgId = ?1 AND remittancePendingDate < ?2", orgId, cutoffDate);
@@ -112,14 +102,12 @@ public class BillableUsageRemittanceRepository
       List<String> uuids,
       RemittanceStatus status,
       OffsetDateTime billedOn,
-      RemittanceErrorCode errorCode,
-      OffsetDateTime retryAfter) {
+      RemittanceErrorCode errorCode) {
     update(
-        "status = ?1, billedOn=?2, errorCode=?3, retryAfter=?4 where uuid in (?5)",
+        "status = ?1, billedOn=?2, errorCode=?3 where uuid in (?4)",
         status,
         billedOn,
         errorCode,
-        retryAfter,
         uuids);
   }
 
@@ -202,8 +190,7 @@ public class BillableUsageRemittanceRepository
         builder.or(
             builder.isNull(root.get(BillableUsageRemittanceEntity_.status)),
             builder.notEqual(
-                root.get(BillableUsageRemittanceEntity_.status), RemittanceStatus.FAILED),
-            builder.isNotNull(root.get(BillableUsageRemittanceEntity_.retryAfter)));
+                root.get(BillableUsageRemittanceEntity_.status), RemittanceStatus.FAILED));
   }
 
   private Specification<BillableUsageRemittanceEntity> matchingHardwareMeasurementType(
