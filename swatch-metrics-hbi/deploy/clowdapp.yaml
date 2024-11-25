@@ -81,6 +81,9 @@ objects:
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
 
+    database:
+      sharedDbAppName: swatch-tally
+
     deployments:
       - name: service
         replicas: ${{REPLICAS}}

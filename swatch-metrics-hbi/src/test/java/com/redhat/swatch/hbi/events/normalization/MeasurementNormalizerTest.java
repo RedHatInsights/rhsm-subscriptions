@@ -23,12 +23,12 @@ package com.redhat.swatch.hbi.events.normalization;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import com.redhat.swatch.hbi.events.HypervisorGuestRepository;
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.normalization.facts.HostFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SatelliteFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
+import com.redhat.swatch.hbi.events.services.HypervisorRelationshipService;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -47,13 +47,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class MeasurementNormalizerTest {
 
-  @Mock HypervisorGuestRepository hypervisorGuestRepository;
+  @Mock HypervisorRelationshipService hypervisorRelationshipService;
   private MeasurementNormalizer measurementNormalizer;
 
   @BeforeEach
   void setup() {
     measurementNormalizer =
-        new MeasurementNormalizer(new ApplicationConfiguration(), hypervisorGuestRepository);
+        new MeasurementNormalizer(new ApplicationConfiguration(), hypervisorRelationshipService);
   }
 
   @Test

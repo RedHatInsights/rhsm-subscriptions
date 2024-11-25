@@ -23,7 +23,6 @@ package com.redhat.swatch.hbi.events.normalization;
 import com.redhat.swatch.common.model.HardwareMeasurementType;
 import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
-import com.redhat.swatch.hbi.events.HypervisorGuestRepository;
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.normalization.facts.HbiFactExtractor;
@@ -32,6 +31,7 @@ import com.redhat.swatch.hbi.events.normalization.facts.QpcFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SatelliteFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
+import com.redhat.swatch.hbi.events.services.HypervisorRelationshipService;
 import io.quarkus.runtime.util.StringUtil;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.time.OffsetDateTime;
@@ -53,15 +53,15 @@ public class FactNormalizer {
 
   private final ApplicationClock clock;
   private final ApplicationConfiguration appConfig;
-  private final HypervisorGuestRepository hypervisorGuestRepository;
+  private final HypervisorRelationshipService hypervisorRelationshipService;
 
   public FactNormalizer(
-      HypervisorGuestRepository hypervisorGuestRepository,
+      HypervisorRelationshipService hypervisorRelationshipService,
       ApplicationClock clock,
       ApplicationConfiguration appConfig) {
     this.clock = clock;
     this.appConfig = appConfig;
-    this.hypervisorGuestRepository = hypervisorGuestRepository;
+    this.hypervisorRelationshipService = hypervisorRelationshipService;
   }
 
   public HostFacts normalize(HbiHost host) {
@@ -86,7 +86,7 @@ public class FactNormalizer {
         new ProductNormalizer(
             systemProfileFacts, rhsmFacts, satelliteFacts, qpcFacts, skipRhsmFacts);
     MeasurementNormalizer measurementNormalizer =
-        new MeasurementNormalizer(appConfig, hypervisorGuestRepository);
+        new MeasurementNormalizer(appConfig, hypervisorRelationshipService);
 
     HostFacts hostFacts =
         HostFacts.builder()
