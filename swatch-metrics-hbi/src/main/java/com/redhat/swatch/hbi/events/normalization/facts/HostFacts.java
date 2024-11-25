@@ -20,12 +20,12 @@
  */
 package com.redhat.swatch.hbi.events.normalization.facts;
 
+import com.redhat.swatch.common.model.HardwareMeasurementType;
 import com.redhat.swatch.hbi.events.normalization.NormalizedMeasurements;
 import java.util.Set;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
-import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.json.Event.CloudProvider;
 import org.candlepin.subscriptions.json.Event.HardwareType;
 

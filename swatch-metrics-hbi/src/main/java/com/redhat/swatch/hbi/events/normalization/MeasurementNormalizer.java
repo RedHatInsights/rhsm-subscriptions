@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.hbi.events.normalization;
 
+import com.redhat.swatch.common.model.HardwareMeasurementType;
 import com.redhat.swatch.hbi.events.HypervisorGuestRepository;
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.normalization.facts.HostFacts;
@@ -31,7 +32,6 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 
 @Slf4j
 @ApplicationScoped
