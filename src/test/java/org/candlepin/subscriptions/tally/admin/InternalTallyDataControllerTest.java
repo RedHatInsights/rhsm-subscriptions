@@ -43,8 +43,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
@@ -52,12 +52,12 @@ class InternalTallyDataControllerTest {
   private static final ApplicationClock CLOCK = new TestClockConfiguration().adjustableClock();
   private static final String ORG_ID = "org1";
 
-  @MockBean ContractsController contractsController;
-  @MockBean BillableUsageController billableUsageController;
-  @MockBean AccountResetService accountResetService;
-  @MockBean TallySnapshotController snapshotController;
-  @MockBean CaptureSnapshotsTaskManager tasks;
-  @MockBean EventRecordRepository eventRepo;
+  @MockitoBean ContractsController contractsController;
+  @MockitoBean BillableUsageController billableUsageController;
+  @MockitoBean AccountResetService accountResetService;
+  @MockitoBean TallySnapshotController snapshotController;
+  @MockitoBean CaptureSnapshotsTaskManager tasks;
+  @MockitoBean EventRecordRepository eventRepo;
   @Autowired EventController eventController;
   @Autowired InternalTallyDataController controller;
   @Autowired ObjectMapper mapper;

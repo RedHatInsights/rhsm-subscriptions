@@ -61,10 +61,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @ActiveProfiles({"api", "test"})
@@ -74,11 +74,11 @@ class InstancesResourceTest {
   private static final ProductId RHEL_FOR_X86 = ProductId.fromString("RHEL for x86");
   private static final String SORT_BY_DISPLAY_NAME = "display_name";
 
-  @MockBean TallyInstanceViewRepository repository;
-  @MockBean HostRepository hostRepository;
-  @MockBean PageLinkCreator pageLinkCreator;
-  @MockBean OrgConfigRepository orgConfigRepository;
-  @MockBean UriInfo uriInfo;
+  @MockitoBean TallyInstanceViewRepository repository;
+  @MockitoBean HostRepository hostRepository;
+  @MockitoBean PageLinkCreator pageLinkCreator;
+  @MockitoBean OrgConfigRepository orgConfigRepository;
+  @MockitoBean UriInfo uriInfo;
   @Autowired InstancesResource resource;
 
   @BeforeEach

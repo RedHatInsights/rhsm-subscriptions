@@ -70,10 +70,10 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Answers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest(properties = {"CONTRACT_USE_STUB=true", "HOURLY_TALLY_EVENT_BATCH_SIZE=2"})
@@ -98,7 +98,7 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   @Autowired AccountServiceInventoryRepository accountServiceInventoryRepository;
   @Autowired TallyStateRepository tallyStateRepository;
 
-  @MockBean(answer = Answers.CALLS_REAL_METHODS)
+  @MockitoBean(answers = Answers.CALLS_REAL_METHODS)
   InventoryRepository inventoryRepository;
 
   OffsetDateTime start;

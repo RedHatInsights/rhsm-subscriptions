@@ -47,17 +47,17 @@ import org.junit.jupiter.api.Test;
 import org.mockito.AdditionalAnswers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
 class TallySnapshotControllerMetricsTest {
-  @MockBean MaxSeenSnapshotStrategy maxSeenStrat;
-  @MockBean CombiningRollupSnapshotStrategy combiningStrat;
-  @MockBean InventoryAccountUsageCollector accountUsageCollector;
-  @MockBean EventController eventController;
-  @MockBean MetricUsageCollector usageCollector;
+  @MockitoBean MaxSeenSnapshotStrategy maxSeenStrat;
+  @MockitoBean CombiningRollupSnapshotStrategy combiningStrat;
+  @MockitoBean InventoryAccountUsageCollector accountUsageCollector;
+  @MockitoBean EventController eventController;
+  @MockitoBean MetricUsageCollector usageCollector;
 
   @Autowired TallySnapshotController controller;
   @Autowired MeterRegistry registry;

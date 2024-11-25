@@ -61,9 +61,9 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.util.StringUtils;
 
 @SpringBootTest
@@ -74,7 +74,7 @@ class FactNormalizerTest {
   @Autowired FactNormalizer normalizer;
   @Autowired ApplicationClock clock;
   @Autowired ApplicationProperties applicationProperties;
-  @MockBean BuildProperties buildProperties;
+  @MockitoBean BuildProperties buildProperties;
   static MockedStatic<SubscriptionDefinition> subscriptionDefinitionMockedStatic;
 
   @BeforeEach

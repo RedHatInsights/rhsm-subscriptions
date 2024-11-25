@@ -30,12 +30,12 @@ import org.candlepin.subscriptions.util.StubResourceConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -44,7 +44,7 @@ class ReportingAccessRequiredTest {
 
   @Autowired ApplicationContext context;
 
-  @MockBean AllowlistedAccountReportAccessService reportAccessService;
+  @MockitoBean AllowlistedAccountReportAccessService reportAccessService;
 
   /* The reporting admin expression in pseudo-code:
    *

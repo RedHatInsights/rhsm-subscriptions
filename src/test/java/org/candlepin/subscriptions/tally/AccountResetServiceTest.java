@@ -102,7 +102,7 @@ class AccountResetServiceTest {
 
     TallySnapshot snapshot =
         new TallySnapshot(
-            UUID.randomUUID(),
+            null,
             OffsetDateTime.now(),
             "RHEL",
             "org123",
