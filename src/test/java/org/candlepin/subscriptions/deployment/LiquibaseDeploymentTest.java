@@ -27,13 +27,13 @@ import org.candlepin.subscriptions.util.LiquibaseUpdateOnlyConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @ActiveProfiles({"liquibase-only", "test"})
 class LiquibaseDeploymentTest {
-  @MockBean JobRunner jobRunner;
+  @MockitoBean JobRunner jobRunner;
   @Autowired LiquibaseUpdateOnlyConfiguration configuration;
 
   @Test

@@ -71,25 +71,25 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @ActiveProfiles({"rhsm-conduit", "test", "kafka-queue"})
 class InventoryControllerTest {
-  @MockBean InventoryService inventoryService;
+  @MockitoBean InventoryService inventoryService;
 
-  @MockBean RhsmService rhsmService;
+  @MockitoBean RhsmService rhsmService;
 
-  @MockBean DatabaseOrgList orgList;
+  @MockitoBean DatabaseOrgList orgList;
 
-  @MockBean OrgSyncTaskManager taskManager;
+  @MockitoBean OrgSyncTaskManager taskManager;
 
   @Autowired InventoryController controller;
 
   @Autowired RhsmApiProperties rhsmApiProperties;
 
-  @MockBean InventoryServiceProperties inventoryServiceProperties;
+  @MockitoBean InventoryServiceProperties inventoryServiceProperties;
 
   @BeforeEach
   void setup() {
@@ -426,7 +426,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testReleaseverInFacts_WhenReleaseVerPresent() {
+  void testReleaseverInFactsWhenReleaseVerPresent() {
     String uuid = UUID.randomUUID().toString();
     Consumer consumer = new Consumer();
     consumer.setUuid(uuid);
@@ -437,7 +437,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testIsMarketplaceFacts_WhenAzureOfferPresent() {
+  void testIsMarketplaceFactsWhenAzureOfferPresent() {
     String azureOfferFact = "azure_offer";
     String azzureOffer = "RHEL";
     String uuid = UUID.randomUUID().toString();
@@ -465,7 +465,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testIsMarketplaceFacts_WhenAzureOfferOrAWSBillingProductsNotPresent() {
+  void testIsMarketplaceFactsWhenAzureOfferOrAWSBillingProductsNotPresent() {
     String uuid = UUID.randomUUID().toString();
     Consumer consumer = new Consumer();
     consumer.setUuid(uuid);
@@ -475,7 +475,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testIsMarketplaceFacts_WhenGcpLicenseCodeIsRhel() {
+  void testIsMarketplaceFactsWhenGcpLicenseCodeIsRhel() {
     String uuid = UUID.randomUUID().toString();
     Consumer consumer = new Consumer();
     consumer.setUuid(uuid);
@@ -490,7 +490,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testIsMarketplaceFacts_WhenGcpLicenseCodeIsNonRhel() {
+  void testIsMarketplaceFactsWhenGcpLicenseCodeIsNonRhel() {
     String uuid = UUID.randomUUID().toString();
     Consumer consumer = new Consumer();
     consumer.setUuid(uuid);

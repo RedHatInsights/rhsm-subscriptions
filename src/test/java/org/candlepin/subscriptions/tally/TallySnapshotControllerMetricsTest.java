@@ -20,8 +20,13 @@
  */
 package org.candlepin.subscriptions.tally;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyList;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Sets;
 import io.micrometer.core.instrument.Counter;
@@ -47,17 +52,17 @@ import org.junit.jupiter.api.Test;
 import org.mockito.AdditionalAnswers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
 class TallySnapshotControllerMetricsTest {
-  @MockBean MaxSeenSnapshotStrategy maxSeenStrat;
-  @MockBean CombiningRollupSnapshotStrategy combiningStrat;
-  @MockBean InventoryAccountUsageCollector accountUsageCollector;
-  @MockBean EventController eventController;
-  @MockBean MetricUsageCollector usageCollector;
+  @MockitoBean MaxSeenSnapshotStrategy maxSeenStrat;
+  @MockitoBean CombiningRollupSnapshotStrategy combiningStrat;
+  @MockitoBean InventoryAccountUsageCollector accountUsageCollector;
+  @MockitoBean EventController eventController;
+  @MockitoBean MetricUsageCollector usageCollector;
 
   @Autowired TallySnapshotController controller;
   @Autowired MeterRegistry registry;

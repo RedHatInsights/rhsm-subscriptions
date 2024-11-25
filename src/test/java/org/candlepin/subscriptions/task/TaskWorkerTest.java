@@ -20,11 +20,11 @@
  */
 package org.candlepin.subscriptions.task;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.BDDMockito.any;
-import static org.mockito.BDDMockito.doThrow;
-import static org.mockito.BDDMockito.verify;
-import static org.mockito.BDDMockito.when;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import org.candlepin.subscriptions.tally.TallyTaskFactory;
 import org.junit.jupiter.api.Test;

@@ -51,18 +51,18 @@ import org.springframework.web.context.support.StandardServletEnvironment;
  * <ul>
  *   <li>clowder.kafka.brokers
  *   <li>clowder.kafka.brokers.(sasl.securityProtocol|sasl.mechanism|sasl.jaas.config|cacert|cacert.type)
- *   <li>clowder.kafka.topics.<topics[?].requestedName(*)>.name
- *   <li>clowder.endpoints.<endpoints[?].app>-<endpoints[?].name>.url For example:
+ *   <li>clowder.kafka.topics.&lt;topics[?].requestedName(*)&gt;.name
+ *   <li>clowder.endpoints.&lt;endpoints[?].app&gt;-&lt;endpoints[?].name&gt;.url For example:
  *       "clowder.endpoints.index-service.url"
- *   <li>clowder.endpoints.<endpoints[?].app>-<endpoints[?].name>.(trust-store-path|trust-store-password|trust-store-type)
+ *   <li>clowder.endpoints.&lt;endpoints[?].app&gt;-&lt;endpoints[?].name&gt;.(trust-store-path|trust-store-password|trust-store-type)
  *       are special synthetic properties that are generated based on the clowder.tlsCAPath
- *   <li>clowder.privateEndpoints.<privateEndpoints[?].app(*)>-<privateEndpoints[?].name(*)>.(url|trust-store-path|trust-store-password|trust-store-type).
+ *   <li>clowder.privateEndpoints.&lt;privateEndpoints[?].app(*)&gt;-&lt;privateEndpoints[?].name(*)&gt;(url|trust-store-path|trust-store-password|trust-store-type).
  *       For example: "clowder.privateEndpoints.index-service.url"
  *   <li>When there is no matching rule from above, we navigate from (*) and extract the string
  *       value directly from the clowder config file. For example: "clowder.database.name".
  * </ul>
  *
- * (*) Coming from the clowder config file. For example: <a
+ * <p>(*) Coming from the clowder config file. For example: <a
  * href="https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/swatch-core/src/test/resources/test-clowder-config.json">see
  * example of a clowder config file</a>
  */
@@ -450,8 +450,8 @@ public class ClowderJsonPropertySource extends PropertySource<ClowderJson>
    *   <li>The ClowderJsonPathPropertySource is triggered and resolves to 456.
    * </ol>
    *
-   * The ultimate result is that care must be taken with intermediate assignments since environment
-   * variables can override them.
+   * <p>The ultimate result is that care must be taken with intermediate assignments since
+   * environment variables can override them.
    *
    * @param sources a list of PropertySources
    * @return the name of the property source the ClowderJsonPropertySource should be immediately

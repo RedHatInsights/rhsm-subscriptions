@@ -55,17 +55,17 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.kafka.listener.BatchListenerFailedException;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
 class EventControllerTest {
   @Mock EntityManager mockEntityManager;
   @Autowired ObjectMapper mapper;
-  @MockBean private EventRecordRepository eventRecordRepository;
-  @MockBean private OptInController optInController;
+  @MockitoBean private EventRecordRepository eventRecordRepository;
+  @MockitoBean private OptInController optInController;
   @Captor private ArgumentCaptor<Collection<EventRecord>> eventsSaved;
   @Autowired private MeterRegistry meterRegistry;
   @Autowired private EventController eventController;
@@ -210,7 +210,7 @@ class EventControllerTest {
   }
 
   @Test
-  void testPersistServiceInstances_WhenValidPayload() {
+  void testPersistServiceInstancesWhenValidPayload() {
     List<String> eventRecords = new ArrayList<>();
     eventRecords.add(eventRecord1);
     eventRecords.add(eventRecord2);
@@ -225,7 +225,7 @@ class EventControllerTest {
   }
 
   @Test
-  void testPersistServiceInstances_ProcessValidPayloadAndSkipInvalidPayload() {
+  void testPersistServiceInstancesProcessValidPayloadAndSkipInvalidPayload() {
     List<String> eventRecords = new ArrayList<>();
     eventRecords.add(eventRecord1);
     eventRecords.add(eventRecord2);
@@ -243,7 +243,7 @@ class EventControllerTest {
   }
 
   @Test
-  void testPersistServiceInstances_SkipBadEventJson() {
+  void testPersistServiceInstancesSkipBadEventJson() {
     List<String> eventRecords = new ArrayList<>();
     eventRecords.add(eventRecord1);
     eventRecords.add(eventRecord2);
@@ -268,7 +268,7 @@ class EventControllerTest {
   }
 
   @Test
-  void testPersistServiceInstances_SkipEventsWithNegativeMeasurements() throws Exception {
+  void testPersistServiceInstancesSkipEventsWithNegativeMeasurements() throws Exception {
     List<String> eventRecords = new ArrayList<>();
     eventRecords.add(eventRecord1);
     eventRecords.add(eventRecordNegativeMeasurement);
@@ -285,7 +285,7 @@ class EventControllerTest {
   }
 
   @Test
-  void testPersistServiceInstances_SuccessfullyRetryFailedEventSave() throws Exception {
+  void testPersistServiceInstancesSuccessfullyRetryFailedEventSave() throws Exception {
     List<String> eventRecords = new ArrayList<>();
     eventRecords.add(eventRecord1);
     eventRecords.add(eventRecord2);
@@ -317,7 +317,7 @@ class EventControllerTest {
   }
 
   @Test
-  void testPersistServiceInstances_RetryFailedEventsSavesUntilError() throws Exception {
+  void testPersistServiceInstancesRetryFailedEventsSavesUntilError() throws Exception {
     List<String> eventRecords = new ArrayList<>();
     eventRecords.add(eventRecord1);
     eventRecords.add(eventRecord2);
@@ -356,7 +356,7 @@ class EventControllerTest {
   }
 
   @Test
-  void testPersistServiceInstances_AzureBillingAccountIdSet() {
+  void testPersistServiceInstancesAzureBillingAccountIdSet() {
     List<String> eventRecords = new ArrayList<>();
 
     var azureEventRecord1 =
@@ -393,7 +393,7 @@ class EventControllerTest {
   }
 
   @Test
-  void testPersistServiceInstances_WhenProductTagExists() {
+  void testPersistServiceInstancesWhenProductTagExists() {
     List<String> eventRecords = new ArrayList<>();
 
     var invalidProductTagEventRecord1 =

@@ -20,9 +20,9 @@
  */
 package com.redhat.swatch.azure.service;
 
-import static com.redhat.swatch.azure.configuration.Channels.*;
+import static com.redhat.swatch.azure.configuration.Channels.BILLABLE_USAGE_STATUS;
 import static com.redhat.swatch.azure.test.resources.InMemoryMessageBrokerKafkaResource.IN_MEMORY_CONNECTOR;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.redhat.swatch.azure.test.resources.InMemoryMessageBrokerKafkaResource;
 import io.quarkus.test.common.QuarkusTestResource;

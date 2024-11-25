@@ -108,10 +108,10 @@ class SubscriptionSyncServiceTest {
     // Change quantity from 4 to 10
     var dto = createDto("456", 10);
 
-    var aWeekAgo = toEpochMillis(NOW.minusDays(7L));
+    var oneWeekAgo = toEpochMillis(NOW.minusDays(7L));
     var twoDaysAgo = NOW.minusDays(2L);
-    dto.setEffectiveStartDate(aWeekAgo);
-    initialSub.setStartDate(clock.dateFromMilliseconds(aWeekAgo));
+    dto.setEffectiveStartDate(oneWeekAgo);
+    initialSub.setStartDate(clock.dateFromMilliseconds(oneWeekAgo));
     initialSub.setEndDate(twoDaysAgo);
 
     // Simulate the brief delay between when a subscription is terminated and when the
@@ -151,10 +151,10 @@ class SubscriptionSyncServiceTest {
     // Change quantity from 4 to 10
     var dto = createDto("456", 10);
 
-    var aWeekAgo = toEpochMillis(NOW.minusDays(7L));
+    var oneWeekAgo = toEpochMillis(NOW.minusDays(7L));
     var twoDaysAgo = NOW.minusDays(2L);
-    dto.setEffectiveStartDate(aWeekAgo);
-    initialSub.setStartDate(clock.dateFromMilliseconds(aWeekAgo));
+    dto.setEffectiveStartDate(oneWeekAgo);
+    initialSub.setStartDate(clock.dateFromMilliseconds(oneWeekAgo));
     initialSub.setEndDate(twoDaysAgo);
 
     // Simulate the brief delay between when a subscription is terminated and when the

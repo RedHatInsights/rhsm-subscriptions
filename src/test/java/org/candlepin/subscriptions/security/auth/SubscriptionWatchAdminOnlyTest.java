@@ -20,7 +20,8 @@
  */
 package org.candlepin.subscriptions.security.auth;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.candlepin.subscriptions.security.AllowlistedAccountReportAccessService;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
@@ -29,11 +30,11 @@ import org.candlepin.subscriptions.util.StubResourceConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -42,7 +43,7 @@ class SubscriptionWatchAdminOnlyTest {
 
   @Autowired ApplicationContext context;
 
-  @MockBean AllowlistedAccountReportAccessService reportAccessService;
+  @MockitoBean AllowlistedAccountReportAccessService reportAccessService;
 
   @Test
   @WithMockRedHatPrincipal(

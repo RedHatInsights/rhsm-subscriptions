@@ -1494,6 +1494,7 @@ components:
     RpcResponse:
       properties:
         result:
+          type: string
           description: Result of the operation. Empty when succeeded.
     SubscriptionResponse:
       properties:

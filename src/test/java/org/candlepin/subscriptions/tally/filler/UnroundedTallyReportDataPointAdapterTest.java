@@ -20,7 +20,9 @@
  */
 package org.candlepin.subscriptions.tally.filler;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.test.TestClockConfiguration;

@@ -20,8 +20,13 @@
  */
 package org.candlepin.subscriptions.tally.job;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.BDDMockito.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.List;
@@ -38,18 +43,18 @@ import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @ContextConfiguration(classes = TestClockConfiguration.class)
 @ActiveProfiles({"worker", "test"})
 class CaptureSnapshotsTaskManagerTest {
 
-  @MockBean ExecutorTaskQueue queue;
+  @MockitoBean ExecutorTaskQueue queue;
 
-  @MockBean ExecutorTaskQueueConsumerFactory consumerFactory;
+  @MockitoBean ExecutorTaskQueueConsumerFactory consumerFactory;
 
   @Autowired private CaptureSnapshotsTaskManager manager;
 
@@ -59,7 +64,7 @@ class CaptureSnapshotsTaskManagerTest {
 
   @Autowired ApplicationClock applicationClock;
 
-  @MockBean private OrgConfigRepository orgRepo;
+  @MockitoBean private OrgConfigRepository orgRepo;
 
   public static final String ORG_ID = "org123";
   public static final String ACCOUNT = "foo123";

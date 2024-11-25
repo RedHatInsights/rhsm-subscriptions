@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.resource.api.v1;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.when;
 
 import org.candlepin.subscriptions.utilization.api.v1.model.VersionInfo;
 import org.candlepin.subscriptions.utilization.api.v1.model.VersionInfoBuild;
@@ -29,13 +29,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @ActiveProfiles({"api", "test"})
 class VersionResourceTest {
-  @MockBean BuildProperties buildProperties;
+  @MockitoBean BuildProperties buildProperties;
 
   @Autowired VersionResource versionResource;
 

@@ -44,7 +44,13 @@ import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.ContractRequest;
 import com.redhat.swatch.contract.openapi.model.ContractResponse;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
-import com.redhat.swatch.contract.repository.*;
+import com.redhat.swatch.contract.repository.BillingProvider;
+import com.redhat.swatch.contract.repository.ContractEntity;
+import com.redhat.swatch.contract.repository.ContractMetricEntity;
+import com.redhat.swatch.contract.repository.ContractMetricRepository;
+import com.redhat.swatch.contract.repository.ContractRepository;
+import com.redhat.swatch.contract.repository.SubscriptionEntity;
+import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import com.redhat.swatch.contract.utils.ContractMessageProcessingResult;
 import com.redhat.swatch.panache.Specification;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -54,7 +60,15 @@ import jakarta.validation.Validator;
 import jakarta.ws.rs.ProcessingException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -138,7 +152,7 @@ public class ContractService {
    * @param billingProvider the billing provider.
    * @param billingAccountId the billing account ID.
    * @param vendorProductCode the vendor product code.
-   * @return List<Contract> the list of contracts.
+   * @return List&lt;Contract&gt; the list of contracts.
    */
   public List<Contract> getContracts(
       String orgId,
@@ -269,8 +283,8 @@ public class ContractService {
   /**
    * Update contracts in the database against the new contracts from IT partner gateway
    *
-   * @param unsavedContracts
-   * @param existingContracts
+   * @param unsavedContracts contracts that have not been saved yet
+   * @param existingContracts contracts that already exist
    * @return true if records have been updated and false otherwise
    */
   private boolean mergeWithExistingContractRecords(
@@ -337,8 +351,8 @@ public class ContractService {
   /**
    * Update subscription to match contracts from IT partner gateway
    *
-   * @param contractEntities
-   * @param subscriptionId
+   * @param contractEntities existing contract entities
+   * @param subscriptionId the subscription ID
    * @return true if records have been updated and false otherwise
    */
   private boolean mergeWithExistingSubscriptionRecords(

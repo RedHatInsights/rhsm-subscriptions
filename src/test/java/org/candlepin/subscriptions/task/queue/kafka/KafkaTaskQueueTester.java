@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -32,12 +32,12 @@ import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.TaskType;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 /** Base class for testing message sending and receiving via Kafka. */
 public class KafkaTaskQueueTester {
 
-  @MockBean private TallyTaskFactory factory;
+  @MockitoBean private TallyTaskFactory factory;
 
   @Autowired private CaptureSnapshotsTaskManager manager;
 

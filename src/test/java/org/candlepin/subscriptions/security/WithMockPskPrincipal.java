@@ -37,7 +37,7 @@ public @interface WithMockPskPrincipal {
   /**
    * Set client name
    *
-   * @return
+   * @return principal name
    */
   String value() default "";
 

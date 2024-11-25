@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.clowder;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.FileNotFoundException;
 import java.util.function.Supplier;

@@ -77,8 +77,9 @@ public class SubscriptionTableController {
   private final SubscriptionCapacityViewRepository repository;
   private final ApplicationClock clock;
 
+  @SuppressWarnings("java:S107")
   @Transactional
-  public SkuCapacityReport capacityReportBySku( // NOSONAR
+  public SkuCapacityReport capacityReportBySku(
       ProductId productId,
       @Min(0) Integer offset,
       @Min(1) Integer limit,

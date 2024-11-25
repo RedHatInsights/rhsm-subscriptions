@@ -20,9 +20,12 @@
  */
 package org.candlepin.subscriptions.security;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.exception.OptInRequiredException;
@@ -31,10 +34,10 @@ import org.candlepin.subscriptions.utilization.api.v1.model.OptInConfigData;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -42,7 +45,7 @@ class OptInCheckerTest {
 
   @Autowired OptInChecker checker;
 
-  @MockBean OrgConfigRepository orgConfigRepository;
+  @MockitoBean OrgConfigRepository orgConfigRepository;
 
   @Test
   @WithInvalidPrincipal

@@ -176,7 +176,7 @@ class BillableUsageMapperTest {
   }
 
   @Test
-  void shouldProduceBillableUsage_WhenOrgIdPresent() {
+  void shouldProduceBillableUsageWhenOrgIdPresent() {
     String expectedOrgId = "org123";
     String expectedProductId = "rosa";
     String expectedBillingAccountId = "bill123";

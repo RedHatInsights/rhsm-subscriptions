@@ -22,7 +22,12 @@ package org.candlepin.subscriptions.conduit.inventory;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.candlepin.subscriptions.conduit.json.inventory.HbiFactSet;
 import org.candlepin.subscriptions.conduit.json.inventory.HbiHost;

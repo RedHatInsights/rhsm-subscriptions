@@ -26,6 +26,8 @@ import static com.redhat.swatch.contract.resource.ResourceUtils.sanitizeBillingP
 import static com.redhat.swatch.contract.resource.ResourceUtils.sanitizeServiceLevel;
 import static com.redhat.swatch.contract.resource.ResourceUtils.sanitizeUsage;
 
+import com.redhat.swatch.common.model.ServiceLevel;
+import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.panache.PanacheSpecificationSupport;
@@ -50,7 +52,8 @@ public class SubscriptionCapacityViewRepository
     return buildSearchSpecification(orgId, null, null, null, null, null, null, null);
   }
 
-  public static Specification<SubscriptionCapacityView> buildSearchSpecification( // NOSONAR
+  @SuppressWarnings("java:S107")
+  public static Specification<SubscriptionCapacityView> buildSearchSpecification(
       String orgId,
       ProductId productId,
       ReportCategory category,
