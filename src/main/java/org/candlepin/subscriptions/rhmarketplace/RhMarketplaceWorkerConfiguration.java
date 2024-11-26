@@ -24,7 +24,7 @@ import com.redhat.swatch.contracts.client.ContractsApiFactory;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.TallySummary;
-import org.candlepin.subscriptions.subscription.SubscriptionServiceConfiguration;
+import org.candlepin.subscriptions.subscription.SubscriptionConfiguration;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -56,7 +56,7 @@ import org.springframework.retry.support.RetryTemplateBuilder;
           type = FilterType.CUSTOM,
           classes = AutoConfigurationExcludeFilter.class)
     })
-@Import(SubscriptionServiceConfiguration.class)
+@Import(SubscriptionConfiguration.class)
 public class RhMarketplaceWorkerConfiguration {
   @Bean
   @Qualifier("rhMarketplaceRetryTemplate")

@@ -83,20 +83,6 @@ parameters:
     value: '25'
   - name: PRODUCT_URL
     value: https://product.stage.api.redhat.com/svcrest/product/v3
-  - name: SUBSCRIPTION_URL
-    value: https://subscription.stage.api.redhat.com/svcrest/subscription/v5
-  - name: SUBSCRIPTION_MAX_CONNECTIONS
-    value: '100'
-  - name: SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL
-    value: 1s
-  - name: SUBSCRIPTION_BACK_OFF_MAX_INTERVAL
-    value: 64s
-  - name: SUBSCRIPTION_MAX_RETRY_ATTEMPTS
-    value: '4'
-  - name: SUBSCRIPTION_BACK_OFF_MULTIPLIER
-    value: '2'
-  - name: SUBSCRIPTION_PAGE_SIZE
-    value: '500'
   - name: USER_HOST
     value: 'user.stage.api.redhat.com'
   - name: USER_MAX_CONNECTIONS
@@ -318,29 +304,8 @@ objects:
               value: ${RH_MARKETPLACE_BILLABLE_USAGE_KAFKA_SEEK_OVERRIDE_END}
             - name: RH_MARKETPLACE_BILLABLE_USAGE_KAFKA_SEEK_OVERRIDE_TIMESTAMP
               value: ${RH_MARKETPLACE_BILLABLE_USAGE_KAFKA_SEEK_OVERRIDE_TIMESTAMP}
-            - name: SUBSCRIPTION_KEYSTORE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: tls
-                  key: keystore_password
-            - name: SUBSCRIPTION_KEYSTORE
-              value: /pinhead/keystore.jks
-            - name: SUBSCRIPTION_URL
-              value: ${SUBSCRIPTION_URL}
             - name: PRODUCT_URL
               value: ${PRODUCT_URL}
-            - name: SUBSCRIPTION_MAX_CONNECTIONS
-              value: ${SUBSCRIPTION_MAX_CONNECTIONS}
-            - name: SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL
-              value: ${SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL}
-            - name: SUBSCRIPTION_BACK_OFF_MAX_INTERVAL
-              value: ${SUBSCRIPTION_BACK_OFF_MAX_INTERVAL}
-            - name: SUBSCRIPTION_BACK_OFF_MULTIPLIER
-              value: ${SUBSCRIPTION_BACK_OFF_MULTIPLIER}
-            - name: SUBSCRIPTION_MAX_RETRY_ATTEMPTS
-              value: ${SUBSCRIPTION_MAX_RETRY_ATTEMPTS}
-            - name: SUBSCRIPTION_PAGE_SIZE
-              value: ${SUBSCRIPTION_PAGE_SIZE}
             - name: SWATCH_SELF_PSK
               valueFrom:
                 secretKeyRef:

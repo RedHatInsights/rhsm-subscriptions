@@ -27,19 +27,7 @@ rhsm-subscriptions:
   product-denylist-resource-location: ${PRODUCT_DENYLIST_RESOURCE_LOCATION:}
   hourly-tally-offset: ${HOURLY_TALLY_OFFSET:60m}
   metric-lookup-range-duration: ${METRIC_LOOKUP_RANGE:1h}
-  subscription-sync-enabled: ${SUBSCRIPTION_SYNC_ENABLED:false}
   enable-synchronous-operations: ${ENABLE_SYNCHRONOUS_OPERATIONS:false}
-  subscription:
-    use-stub: ${SUBSCRIPTION_USE_STUB:false}
-    url: ${SUBSCRIPTION_URL:https://subscription.stage.api.redhat.com/svcrest/subscription/v5}
-    keystore: file:${SUBSCRIPTION_KEYSTORE:}
-    keystore-password: ${SUBSCRIPTION_KEYSTORE_PASSWORD:changeit}
-    max-connections: ${SUBSCRIPTION_MAX_CONNECTIONS:100}
-    max-retry-attempts: ${SUBSCRIPTION_MAX_RETRY_ATTEMPTS:4}
-    back-off-max-interval: ${SUBSCRIPTION_BACK_OFF_MAX_INTERVAL:64s}
-    back-off-initial-interval: ${SUBSCRIPTION_BACK_OFF_INITIAL_INTERVAL:1s}
-    back-off-multiplier: ${SUBSCRIPTION_BACK_OFF_MULTIPLIER:2}
-    page-size: ${SUBSCRIPTION_PAGE_SIZE:1000}
   user-service:
     use-stub: ${USER_USE_STUB:false}
     url: https://${USER_HOST:localhost}:${USER_PORT:443}
