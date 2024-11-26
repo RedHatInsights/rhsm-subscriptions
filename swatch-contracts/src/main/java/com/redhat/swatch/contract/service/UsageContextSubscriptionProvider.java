@@ -41,23 +41,20 @@ import lombok.extern.slf4j.Slf4j;
 @AllArgsConstructor
 public class UsageContextSubscriptionProvider {
 
+  public static final String MISSING_SUBSCRIPTIONS_COUNTER_NAME = "swatch_missing_subscriptions";
+  public static final String AMBIGUOUS_SUBSCRIPTIONS_COUNTER_NAME =
+      "swatch_ambiguous_subscriptions";
   private final SubscriptionRepository subscriptionRepository;
   private final MeterRegistry meterRegistry;
 
   public Optional<SubscriptionEntity> getSubscription(DbReportCriteria criteria) {
-    var providerString = criteria.getBillingProvider().getValue();
-    var missingSubscriptionCounter =
-        meterRegistry.counter("swatch_missing_subscriptions", "provider", providerString);
-    var ambiguousSubscriptionCounter =
-        meterRegistry.counter("swatch_ambiguous_subscriptions", "provider", providerString);
-
     List<SubscriptionEntity> subscriptions =
         subscriptionRepository.findByCriteria(
             criteria, Sort.descending(SubscriptionEntity_.START_DATE));
 
     if (subscriptions.isEmpty()) {
       log.warn("No subscription found for criteria {}", criteria);
-      missingSubscriptionCounter.increment();
+      incrementCounter(MISSING_SUBSCRIPTIONS_COUNTER_NAME, criteria);
       throw new NotFoundException();
     }
 
@@ -87,15 +84,26 @@ public class UsageContextSubscriptionProvider {
             "");
       } else {
         log.warn("No active subscription found for criteria {}", criteria);
-        missingSubscriptionCounter.increment();
+        incrementCounter(MISSING_SUBSCRIPTIONS_COUNTER_NAME, criteria);
         throw new NotFoundException();
       }
     }
 
     if (activeSubscriptions.size() > 1) {
-      ambiguousSubscriptionCounter.increment();
       log.warn("Multiple subscriptions found for criteria {}. Selecting first result", criteria);
+      incrementCounter(AMBIGUOUS_SUBSCRIPTIONS_COUNTER_NAME, criteria);
     }
     return activeSubscriptions.stream().findFirst();
+  }
+
+  private void incrementCounter(String counterName, DbReportCriteria criteria) {
+    meterRegistry
+        .counter(
+            counterName,
+            "provider",
+            criteria.getBillingProvider().getValue(),
+            "product",
+            criteria.getProductTag())
+        .increment();
   }
 }
