@@ -35,7 +35,6 @@ import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
 import io.quarkus.runtime.util.StringUtil;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.time.OffsetDateTime;
-import java.time.format.DateTimeParseException;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -77,9 +76,12 @@ public class FactNormalizer {
     HardwareMeasurementType cloudProviderType = determineCloudProviderType(systemProfileFacts);
     boolean isVirtual = determineIfVirtual(systemProfileFacts, rhsmFacts, satelliteFacts);
 
-    boolean skipRhsmFacts = skipRhsmFacts(orgId, inventoryId, syncTimestamp);
+    boolean skipRhsmFacts = skipRhsmFacts(syncTimestamp);
     if (skipRhsmFacts) {
-      log.info("Skipping RHSM facts for HBI host {} during fact normalization.", inventoryId);
+      log.info(
+          "Skipping RHSM facts for HBI host orgId={} inventoryId={} during fact normalization.",
+          orgId,
+          inventoryId);
     }
 
     ProductNormalizer productNormalizer =
@@ -187,19 +189,13 @@ public class FactNormalizer {
     return hardwareType;
   }
 
-  private boolean skipRhsmFacts(String orgId, String inventoryId, String syncTimestampFact) {
-    if (StringUtil.isNullOrEmpty(syncTimestampFact)) {
-      return false;
-    }
-
-    try {
-      return hostUnregistered(OffsetDateTime.parse(syncTimestampFact));
-    } catch (DateTimeParseException e) {
-      throw new IllegalArgumentException(
-          String.format(
-              "HBI host's sync timestamp is invalid: orgId=%s inventoryId=%s syncTimestamp=%s",
-              orgId, inventoryId, syncTimestampFact));
-    }
+  private boolean skipRhsmFacts(String syncTimestampFact) {
+    return Optional.ofNullable(syncTimestampFact)
+        .map(
+            syncTimestamp ->
+                !StringUtil.isNullOrEmpty(syncTimestampFact)
+                    && hostUnregistered(OffsetDateTime.parse(syncTimestamp)))
+        .orElse(false);
   }
 
   private String determineUsage(

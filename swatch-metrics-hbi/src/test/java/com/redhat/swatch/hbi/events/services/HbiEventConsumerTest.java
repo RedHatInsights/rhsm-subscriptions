@@ -338,6 +338,6 @@ class HbiEventConsumerTest {
             .filter(f -> namespace.equals(f.getNamespace()))
             .findFirst()
             .orElseThrow();
-    hostFacts.facts.put(factName, factValue);
+    hostFacts.getFacts().put(factName, factValue);
   }
 }

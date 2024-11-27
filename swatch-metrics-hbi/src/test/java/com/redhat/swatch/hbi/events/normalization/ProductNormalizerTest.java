@@ -243,65 +243,6 @@ class ProductNormalizerTest {
     assertTrue(productNormalizer.getProductIds().isEmpty());
   }
 
-  //  private HbiHost createBaseHost(String orgId, OffsetDateTime syncTimestamp, boolean isVirtual)
-  // {
-  //    HbiHost hbiHost = new HbiHost();
-  //    hbiHost.setId(UUID.randomUUID());
-  //    hbiHost.setDisplayName("Test System");
-  //    hbiHost.setOrgId(orgId);
-  //    hbiHost.setSubscriptionManagerId(UUID.randomUUID().toString());
-  //
-  //    HbiHostFacts rhsmFacts = new HbiHostFacts();
-  //    rhsmFacts.setNamespace(RhsmFacts.RHSM_FACTS_NAMESPACE);
-  //    rhsmFacts.setFacts(
-  //        Map.of(
-  //            RhsmFacts.SYNC_TIMESTAMP_FACT,
-  //            syncTimestamp.toString(),
-  //            RhsmFacts.IS_VIRTUAL_FACT,
-  //            isVirtual));
-  //
-  //    List<HbiHostFacts> facts = new ArrayList<>();
-  //    facts.add(rhsmFacts);
-  //    hbiHost.setFacts(facts);
-  //    return hbiHost;
-  //  }
-  //
-  //  private HbiHost createQpcHost(
-  //      String qpcProducts,
-  //      String systemArch,
-  //      OffsetDateTime syncTimestamp,
-  //      boolean isVirtual,
-  //      boolean is3rdPartyMigrated) {
-  //
-  //    HbiHost hbiHost = createBaseHost("test_org", syncTimestamp, isVirtual);
-  //
-  //    Map<String, Object> systemProfile = new HashMap<>();
-  //    systemProfile.put(
-  //        SystemProfileFacts.CONVERSIONS_FACT,
-  //        Map.of(SystemProfileFacts.CONVERSIONS_ACTIVITY, is3rdPartyMigrated));
-  //    systemProfile.put(SystemProfileFacts.ARCH_PROVIDER_FACT, systemArch);
-  //    hbiHost.setSystemProfile(systemProfile);
-  //
-  //    HbiHostFacts qpcFacts = new HbiHostFacts();
-  //    qpcFacts.setNamespace(QpcFacts.QPC_FACTS_NAMESPACE);
-  //    qpcFacts.setFacts(Map.of(QpcFacts.PRODUCT_ID_FACT, List.of(qpcProducts)));
-  //    hbiHost.getFacts().add(qpcFacts);
-  //
-  //    return hbiHost;
-  //  }
-  //
-  //  private Products products(HbiHost host, boolean skipRhsm) {
-  //    HbiFactExtractor extractor = new HbiFactExtractor(host);
-  //
-  //    return new Products(
-  //        extractor.getSystemProfileFacts(),
-  //        extractor.getRhsmFacts(),
-  //        extractor.getSatelliteFacts(),
-  //        extractor.getQpcFacts(),
-  //        skipRhsm
-  //    );
-  //  }
-
   private SystemProfileFacts systemProfileFacts(
       String arch, boolean is3rdPartyMigrated, List<String> productIds) {
     return new SystemProfileFacts(

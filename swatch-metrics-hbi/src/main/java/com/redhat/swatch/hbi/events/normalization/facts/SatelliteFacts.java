@@ -31,10 +31,10 @@ import lombok.Getter;
 @AllArgsConstructor
 public class SatelliteFacts {
   public static final String SATELLITE_FACTS_NAMESPACE = "satellite";
-  private static final String SLA_FACT = "system_purpose_sla";
-  private static final String USAGE_FACT = "system_purpose_usage";
-  private static final String ROLE_FACT = "system_purpose_role";
-  private static final String VIRTUAL_HOST_UUID_FACT = "virtual_host_uuid";
+  public static final String SLA_FACT = "system_purpose_sla";
+  public static final String USAGE_FACT = "system_purpose_usage";
+  public static final String ROLE_FACT = "system_purpose_role";
+  public static final String VIRTUAL_HOST_UUID_FACT = "virtual_host_uuid";
 
   private final String sla;
   private final String usage;

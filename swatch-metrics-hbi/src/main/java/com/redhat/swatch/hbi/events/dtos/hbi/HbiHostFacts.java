@@ -20,11 +20,17 @@
  */
 package com.redhat.swatch.hbi.events.dtos.hbi;
 
+import java.util.HashMap;
 import java.util.Map;
 import lombok.Data;
 
 @Data
 public class HbiHostFacts {
-  public String namespace;
-  public Map<String, Object> facts;
+
+  public HbiHostFacts() {
+    facts = new HashMap<>();
+  }
+
+  private String namespace;
+  private Map<String, Object> facts;
 }
