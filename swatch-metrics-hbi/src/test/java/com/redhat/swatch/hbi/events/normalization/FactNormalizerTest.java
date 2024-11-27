@@ -29,7 +29,6 @@ import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostFacts;
-import com.redhat.swatch.hbi.events.normalization.facts.HostFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SatelliteFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
@@ -63,7 +62,7 @@ class FactNormalizerTest {
   @Test
   void testNormalizationOfBasicFacts() {
     HbiHost host = host();
-    HostFacts normalizedFacts = normalizer.normalize(host);
+    NormalizedFacts normalizedFacts = normalizer.normalize(host);
     assertEquals(host.getOrgId(), normalizedFacts.getOrgId());
     assertEquals(host.getId().toString(), normalizedFacts.getInventoryId());
     assertEquals(host.getInsightsId(), normalizedFacts.getInsightsId());
@@ -363,7 +362,7 @@ class FactNormalizerTest {
     HbiHost host = host();
     host.setFacts(hbiHostFacts);
 
-    HostFacts normalizedFacts = normalizer.normalize(host);
+    NormalizedFacts normalizedFacts = normalizer.normalize(host);
     assertEquals(Set.of("RHEL for x86"), normalizedFacts.getProductTags());
     assertEquals(Set.of("69"), normalizedFacts.getProductIds());
   }

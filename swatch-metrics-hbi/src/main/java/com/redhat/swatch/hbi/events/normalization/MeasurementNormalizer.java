@@ -23,7 +23,6 @@ package com.redhat.swatch.hbi.events.normalization;
 import com.redhat.swatch.common.model.HardwareMeasurementType;
 import com.redhat.swatch.hbi.events.HypervisorGuestRepository;
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
-import com.redhat.swatch.hbi.events.normalization.facts.HostFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
 import io.quarkus.runtime.util.StringUtil;
@@ -50,7 +49,7 @@ public class MeasurementNormalizer {
   }
 
   public NormalizedMeasurements getMeasurements(
-      HostFacts facts,
+      NormalizedFacts facts,
       SystemProfileFacts systemProfileFacts,
       Optional<RhsmFacts> rhsmFacts,
       Set<String> productTags) {
@@ -71,13 +70,12 @@ public class MeasurementNormalizer {
   }
 
   private Integer normalizeSockets(
-      HostFacts normalizedHostFacts,
+      NormalizedFacts normalizedFacts,
       SystemProfileFacts systemProfileFacts,
       Set<String> productTags) {
     Integer applicableSockets = getSystemProfileSockets(systemProfileFacts);
     applicableSockets =
-        normalizeSocketCount(
-            applicableSockets, normalizedHostFacts, systemProfileFacts, productTags);
+        normalizeSocketCount(applicableSockets, normalizedFacts, systemProfileFacts, productTags);
     if (Boolean.TRUE.equals(systemProfileFacts.getIsMarketplace())) {
       applicableSockets = 0;
     }
@@ -110,7 +108,7 @@ public class MeasurementNormalizer {
 
   private Integer normalizeSocketCount(
       Integer currentCalculatedSockets,
-      HostFacts normalizedFacts,
+      NormalizedFacts normalizedFacts,
       SystemProfileFacts systemProfileFacts,
       Set<String> productTags) {
     // modulo-2 rounding only applied to physical or hypervisors
@@ -177,7 +175,7 @@ public class MeasurementNormalizer {
   }
 
   private void normalizeUnits(
-      HostFacts normalizedFacts,
+      NormalizedFacts normalizedFacts,
       SystemProfileFacts systemProfileFacts,
       Optional<RhsmFacts> rhsmFacts,
       NormalizedMeasurements measurements) {

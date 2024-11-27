@@ -18,10 +18,9 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.hbi.events.normalization.facts;
+package com.redhat.swatch.hbi.events.normalization;
 
 import com.redhat.swatch.common.model.HardwareMeasurementType;
-import com.redhat.swatch.hbi.events.normalization.NormalizedMeasurements;
 import java.util.Set;
 import lombok.Builder;
 import lombok.Getter;
@@ -31,7 +30,7 @@ import org.candlepin.subscriptions.json.Event.HardwareType;
 
 @Builder
 @Getter
-public class HostFacts {
+public class NormalizedFacts {
 
   private String orgId;
   private String inventoryId;

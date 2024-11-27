@@ -27,7 +27,6 @@ import com.redhat.swatch.hbi.events.HypervisorGuestRepository;
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.normalization.facts.HbiFactExtractor;
-import com.redhat.swatch.hbi.events.normalization.facts.HostFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.QpcFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SatelliteFacts;
@@ -63,7 +62,7 @@ public class FactNormalizer {
     this.hypervisorGuestRepository = hypervisorGuestRepository;
   }
 
-  public HostFacts normalize(HbiHost host) {
+  public NormalizedFacts normalize(HbiHost host) {
     HbiFactExtractor extractor = new HbiFactExtractor(host);
     Optional<RhsmFacts> rhsmFacts = extractor.getRhsmFacts();
     Optional<SatelliteFacts> satelliteFacts = extractor.getSatelliteFacts();
@@ -90,8 +89,8 @@ public class FactNormalizer {
     MeasurementNormalizer measurementNormalizer =
         new MeasurementNormalizer(appConfig, hypervisorGuestRepository);
 
-    HostFacts hostFacts =
-        HostFacts.builder()
+    NormalizedFacts normalizedFacts =
+        NormalizedFacts.builder()
             .orgId(orgId)
             .inventoryId(inventoryId)
             .instanceId(determineInstanceId(host))
@@ -127,10 +126,10 @@ public class FactNormalizer {
             .build();
 
     // Measurements are normalized after all general host facts have been determined.
-    hostFacts.setMeasurements(
+    normalizedFacts.setMeasurements(
         measurementNormalizer.getMeasurements(
-            hostFacts, systemProfileFacts, rhsmFacts, productNormalizer.getProductTags()));
-    return hostFacts;
+            normalizedFacts, systemProfileFacts, rhsmFacts, productNormalizer.getProductTags()));
+    return normalizedFacts;
   }
 
   private String determineInstanceId(HbiHost hbiHost) {

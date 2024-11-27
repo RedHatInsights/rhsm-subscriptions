@@ -30,7 +30,6 @@ import static org.mockito.Mockito.when;
 import com.redhat.swatch.common.model.HardwareMeasurementType;
 import com.redhat.swatch.hbi.events.HypervisorGuestRepository;
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
-import com.redhat.swatch.hbi.events.normalization.facts.HostFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
 import java.time.OffsetDateTime;
@@ -71,10 +70,10 @@ class MeasurementNormalizerTest {
     SystemProfileFacts systemProfileFacts =
         physicalSystemProfile(systemProfileSockets, systemProfileCorePerSocket);
     RhsmFacts rhsmFacts = rhsmFacts();
-    HostFacts hostFacts = hostFacts(UUID.randomUUID().toString(), false);
+    NormalizedFacts normalizedFacts = hostFacts(UUID.randomUUID().toString(), false);
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
-            hostFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of());
+            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of());
     // sockets * coresPerSocket
     assertEquals(12, normalized.getCores().orElse(null));
   }
@@ -85,10 +84,10 @@ class MeasurementNormalizerTest {
 
     SystemProfileFacts systemProfileFacts = physicalSystemProfile(systemProfileSockets, null);
     RhsmFacts rhsmFacts = rhsmFacts();
-    HostFacts hostFacts = hostFacts(UUID.randomUUID().toString(), false);
+    NormalizedFacts normalizedFacts = hostFacts(UUID.randomUUID().toString(), false);
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
-            hostFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of());
+            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of());
     // Null sockets when cores can not be calculated.
     assertTrue(normalized.getCores().isEmpty());
   }
@@ -103,10 +102,10 @@ class MeasurementNormalizerTest {
         virtualSystemProfile(
             "x86_64", systemProfileSockets, systemProfileCorePerSocket, null, null);
     RhsmFacts rhsmFacts = rhsmFacts();
-    HostFacts hostFacts = hostFacts(UUID.randomUUID().toString(), true);
+    NormalizedFacts normalizedFacts = hostFacts(UUID.randomUUID().toString(), true);
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
-            hostFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of());
+            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of());
     // Default threadsPerCore = 2
     // (sockets * coresPerSocket) / threadsPerCore
     assertEquals(6, normalized.getCores().orElse(null));
@@ -123,10 +122,10 @@ class MeasurementNormalizerTest {
         virtualSystemProfile(
             "x86_64", systemProfileSockets, systemProfileCorePerSocket, threadsPerCore, null);
     RhsmFacts rhsmFacts = rhsmFacts();
-    HostFacts hostFacts = hostFacts(UUID.randomUUID().toString(), true);
+    NormalizedFacts normalizedFacts = hostFacts(UUID.randomUUID().toString(), true);
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
-            hostFacts,
+            normalizedFacts,
             systemProfileFacts,
             Optional.of(rhsmFacts),
             Set.of(MeasurementNormalizer.OPEN_SHIFT_CONTAINER_PLATFORM));
@@ -148,10 +147,10 @@ class MeasurementNormalizerTest {
         virtualSystemProfile(
             "x86_64", systemProfileSockets, systemProfileCorePerSocket, null, cpus);
     RhsmFacts rhsmFacts = rhsmFacts();
-    HostFacts hostFacts = hostFacts(UUID.randomUUID().toString(), true);
+    NormalizedFacts normalizedFacts = hostFacts(UUID.randomUUID().toString(), true);
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
-            hostFacts,
+            normalizedFacts,
             systemProfileFacts,
             Optional.of(rhsmFacts),
             Set.of(MeasurementNormalizer.OPEN_SHIFT_CONTAINER_PLATFORM));
@@ -165,10 +164,10 @@ class MeasurementNormalizerTest {
   void testZeroCoresWhenIsMarketplaceProfile() {
     SystemProfileFacts systemProfileFacts = marketPlaceProfile(2, 2);
     RhsmFacts rhsmFacts = rhsmFacts();
-    HostFacts hostFacts = hostFacts(UUID.randomUUID().toString(), true);
+    NormalizedFacts normalizedFacts = hostFacts(UUID.randomUUID().toString(), true);
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
-            hostFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of());
+            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of());
     // Expect 0 cores for a marketplace system profile
     assertEquals(0, normalized.getCores().orElse(null));
   }
@@ -187,10 +186,10 @@ class MeasurementNormalizerTest {
         virtualSystemProfile(
             "x86_64", systemProfileSockets, systemProfileCorePerSocket, threadsPerCore, null);
     RhsmFacts rhsmFacts = rhsmFacts();
-    HostFacts hostFacts = hostFacts(UUID.randomUUID().toString(), true);
+    NormalizedFacts normalizedFacts = hostFacts(UUID.randomUUID().toString(), true);
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
-            hostFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of());
+            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of());
     // (sockets * coresPerSocket) / threadsPerCore
     // ceil(12 / 4) = 3
     assertEquals(3, normalized.getCores().orElse(null));
@@ -200,10 +199,10 @@ class MeasurementNormalizerTest {
   void testNormalizeSocketsWhenFactDoesNotExist() {
     SystemProfileFacts systemProfileFacts = physicalSystemProfile(null, null);
     RhsmFacts rhsmFacts = rhsmFacts();
-    HostFacts hostFacts = hostFacts(UUID.randomUUID().toString(), false);
+    NormalizedFacts normalizedFacts = hostFacts(UUID.randomUUID().toString(), false);
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
-            hostFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of());
+            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of());
     assertTrue(normalized.getSockets().isEmpty());
   }
 
@@ -225,21 +224,21 @@ class MeasurementNormalizerTest {
     String subscriptionManagerId = UUID.randomUUID().toString();
 
     SystemProfileFacts systemProfileFacts;
-    HostFacts normalizedHostFacts;
+    NormalizedFacts normalizedFacts;
     if (isHypervisor) {
       // Although a virtual hypervisor isn't typical, testing this way allows for a stronger
       // and more isolated test.
       systemProfileFacts = virtualSystemProfile("x86_64", systemProfileSockets, 4, null, null);
-      normalizedHostFacts = hostFacts(subscriptionManagerId, true);
+      normalizedFacts = hostFacts(subscriptionManagerId, true);
       when(hypervisorGuestRepository.isHypervisor(subscriptionManagerId)).thenReturn(true);
     } else {
       systemProfileFacts = physicalSystemProfile(systemProfileSockets, null);
-      normalizedHostFacts = hostFacts(subscriptionManagerId, false);
+      normalizedFacts = hostFacts(subscriptionManagerId, false);
     }
 
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
-            normalizedHostFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of());
+            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of());
     assertEquals(expectedSockets, normalized.getSockets().orElse(null));
 
     if (isHypervisor) {
@@ -259,12 +258,12 @@ class MeasurementNormalizerTest {
     SystemProfileFacts systemProfileFacts =
         virtualSystemProfile(
             "x86_64", systemProfileSockets, systemProfileCorePerSocket, null, null);
-    HostFacts normalizedHostFacts =
+    NormalizedFacts normalizedFacts =
         virtualWithCloudProviderHostFacts(subscriptionManagerId, hypervisorUuid);
 
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
-            normalizedHostFacts, systemProfileFacts, Optional.of(rhsmFacts()), Set.of());
+            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts()), Set.of());
     assertEquals(1, normalized.getSockets().orElse(null));
   }
 
@@ -291,13 +290,13 @@ class MeasurementNormalizerTest {
 
     SystemProfileFacts systemProfileFacts =
         virtualSystemProfile("x86_64", systemProfileSockets, 4, null, null);
-    HostFacts normalizedHostFacts = virtualHostFacts(subscriptionManagerId, hypervisorUuid);
+    NormalizedFacts normalizedFacts = virtualHostFacts(subscriptionManagerId, hypervisorUuid);
 
     when(hypervisorGuestRepository.isUnmappedGuest(hypervisorUuid)).thenReturn(true);
 
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
-            normalizedHostFacts, systemProfileFacts, Optional.of(rhsmFacts()), productTags);
+            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts()), productTags);
     assertEquals(expectedSockets, normalized.getSockets().orElse(null));
   }
 
@@ -309,11 +308,11 @@ class MeasurementNormalizerTest {
 
     SystemProfileFacts systemProfileFacts =
         marketPlaceProfile(systemProfileSockets, systemProfileCorePerSocket);
-    HostFacts normalizedHostFacts = hostFacts(subscriptionManagerId, false);
+    NormalizedFacts normalizedFacts = hostFacts(subscriptionManagerId, false);
 
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
-            normalizedHostFacts, systemProfileFacts, Optional.of(rhsmFacts()), Set.of());
+            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts()), Set.of());
     assertEquals(0, normalized.getSockets().orElse(null));
   }
 
@@ -331,10 +330,10 @@ class MeasurementNormalizerTest {
     SystemProfileFacts systemProfileFacts = physicalSystemProfile(2, 4);
     RhsmFacts rhsmFacts = rhsmFacts(unit, null, Set.of());
 
-    HostFacts hostFacts = hostFacts(UUID.randomUUID().toString(), false);
+    NormalizedFacts normalizedFacts = hostFacts(UUID.randomUUID().toString(), false);
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
-            hostFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of());
+            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of());
     assertEquals(expectedSockets, normalized.getSockets().orElse(null));
     assertEquals(expectedCores, normalized.getCores().orElse(null));
   }
@@ -414,24 +413,24 @@ class MeasurementNormalizerTest {
         Set.of());
   }
 
-  private HostFacts hostFacts(String subscriptionManagerId, boolean isVirtual) {
-    return HostFacts.builder()
+  private NormalizedFacts hostFacts(String subscriptionManagerId, boolean isVirtual) {
+    return NormalizedFacts.builder()
         .subscriptionManagerId(subscriptionManagerId)
         .isVirtual(isVirtual)
         .build();
   }
 
-  private HostFacts virtualHostFacts(String subscriptionManagerId, String hypervisorUuid) {
-    return HostFacts.builder()
+  private NormalizedFacts virtualHostFacts(String subscriptionManagerId, String hypervisorUuid) {
+    return NormalizedFacts.builder()
         .subscriptionManagerId(subscriptionManagerId)
         .isVirtual(true)
         .hypervisorUuid(hypervisorUuid)
         .build();
   }
 
-  private HostFacts virtualWithCloudProviderHostFacts(
+  private NormalizedFacts virtualWithCloudProviderHostFacts(
       String subscriptionManagerId, String hypervisorUuid) {
-    return HostFacts.builder()
+    return NormalizedFacts.builder()
         .subscriptionManagerId(subscriptionManagerId)
         .isVirtual(true)
         .cloudProviderType(HardwareMeasurementType.AWS)

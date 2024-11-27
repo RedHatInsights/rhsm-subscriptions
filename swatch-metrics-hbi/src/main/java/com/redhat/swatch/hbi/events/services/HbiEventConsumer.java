@@ -30,7 +30,7 @@ import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.normalization.FactNormalizer;
 import com.redhat.swatch.hbi.events.normalization.NormalizedMeasurements;
 import com.redhat.swatch.hbi.events.normalization.facts.HbiFactExtractor;
-import com.redhat.swatch.hbi.events.normalization.facts.HostFacts;
+import com.redhat.swatch.hbi.events.normalization.NormalizedFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.kafka.EmitterService;
 import io.smallrye.reactive.messaging.kafka.api.KafkaMessageMetadata;
@@ -96,7 +96,7 @@ public class HbiEventConsumer {
       return;
     }
 
-    HostFacts facts = factNormalizer.normalize(hbiHostEvent.getHost());
+    NormalizedFacts facts = factNormalizer.normalize(hbiHostEvent.getHost());
     var event =
         new Event()
             .withServiceType("HBI_HOST")
