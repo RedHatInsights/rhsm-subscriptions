@@ -36,6 +36,7 @@ import com.redhat.swatch.kafka.EmitterService;
 import io.smallrye.reactive.messaging.kafka.api.KafkaMessageMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.time.OffsetDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -55,6 +56,8 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 @ApplicationScoped
 public class HbiEventConsumer {
 
+  public static final String EVENT_SERVICE_TYPE = "HBI_HOST";
+  public static final String EVENT_SOURCE = "HBI_EVENT";
   private final FeatureFlags flags;
 
   @SuppressWarnings("java:S1068")
@@ -92,21 +95,23 @@ public class HbiEventConsumer {
     log.info("Received create/update host event from HBI - {}", hbiEvent);
     HbiHostCreateUpdateEvent hbiHostEvent = (HbiHostCreateUpdateEvent) hbiEvent;
     if (skipEvent(hbiHostEvent)) {
-      log.debug("Event {} will be filtered.", hbiEvent);
+      log.debug("HBI event {} will be filtered.", hbiEvent);
       return;
     }
+
+    OffsetDateTime eventTimestamp =
+        Optional.ofNullable(hbiHostEvent.getTimestamp())
+            .orElse(ZonedDateTime.now())
+            .toOffsetDateTime();
 
     NormalizedFacts facts = factNormalizer.normalize(hbiHostEvent.getHost());
     var event =
         new Event()
-            .withServiceType("HBI_HOST")
-            .withEventSource("HBI_EVENT")
+            .withServiceType(EVENT_SERVICE_TYPE)
+            .withEventSource(EVENT_SOURCE)
             .withEventType(String.format("HBI_HOST_%s", hbiHostEvent.getType().toUpperCase()))
-            // TODO: Should the date be set to the modifiedOn date?
-            //       Need to think about how this will translate to the "Host.lastSeenDate"
-            //       when events are processed, and hosts are updated.
-            .withTimestamp(clock.startOfCurrentHour())
-            .withExpiration(Optional.of(clock.startOfCurrentHour().plusHours(1)))
+            .withTimestamp(eventTimestamp)
+            .withExpiration(Optional.of(eventTimestamp.plusHours(1)))
             .withOrgId(facts.getOrgId())
             .withInstanceId(facts.getInstanceId())
             .withInventoryId(Optional.ofNullable(facts.getInventoryId()))
@@ -123,18 +128,7 @@ public class HbiEventConsumer {
             .withProductTag(facts.getProductTags())
             .withMeasurements(convertMeasurements(facts.getMeasurements()));
 
-    // TODO OUTLIERS
-    //        .withCorrelationIds()
-    //        .withMeteringBatchId(meteringBatchId)
-    //        .withAzureResourceId()
-    //        .withAzureTenantId()
-    //        .withAzureSubscriptionId()
-    //        .withRole(getRole(role, orgId, instanceId))
-    ;
-
-    // NOTE: The following event fields are not provided by Inventory.
-    //  * billingAccountId (defaulted to _ANY on tally)
-    //  * billingProvider (defaulted to _ANY on tally)
+    // TODO: correlation id from the header?
 
     if (flags.emitEvents()) {
       log.info("Emitting HBI events to swatch!");

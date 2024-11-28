@@ -89,26 +89,26 @@ class HbiEventConsumerTest {
     when(unleash.isEnabled(FeatureFlags.EMIT_EVENTS)).thenReturn(true);
     HbiHostCreateUpdateEvent hbiEvent =
         getCreateUpdateEvent(HbiEventTestData.getSatelliteRhelHostCreatedEvent());
+
+    OffsetDateTime eventTimestamp = hbiEvent.getTimestamp().toOffsetDateTime();
     var hbiHost = hbiEvent.getHost();
     Event expected =
         new Event()
-            .withServiceType("HBI_HOST")
-            .withEventSource("HBI_EVENT")
+            .withServiceType(HbiEventConsumer.EVENT_SERVICE_TYPE)
+            .withEventSource(HbiEventConsumer.EVENT_SOURCE)
             .withEventType("HBI_HOST_CREATED")
-            .withTimestamp(clock.startOfCurrentHour())
-            .withExpiration(Optional.of(clock.startOfCurrentHour().plusHours(1)))
+            .withTimestamp(eventTimestamp)
+            .withExpiration(Optional.of(eventTimestamp.plusHours(1)))
             .withOrgId(hbiHost.getOrgId())
             .withInstanceId(hbiHost.getId().toString())
             .withInventoryId(Optional.of(hbiHost.id.toString()))
             .withInsightsId(Optional.of(hbiHost.insightsId))
             .withSubscriptionManagerId(Optional.of(hbiHost.subscriptionManagerId))
             .withDisplayName(Optional.of(hbiHost.displayName))
-            // TODO Need a test that covers when conversion is true.
             .withSla(Sla.PREMIUM)
             .withUsage(Usage.PRODUCTION)
             .withCloudProvider(null)
             .withHardwareType(HardwareType.VIRTUAL)
-            // TODO Need a test grabbing this from system profile facts.
             .withHypervisorUuid(Optional.of("bed420fa-59ef-44e5-af8a-62a24473a554"))
             .withProductTag(Set.of("RHEL for x86"))
             .withProductIds(List.of("69", "408"))
@@ -125,19 +125,19 @@ class HbiEventConsumerTest {
   void testPhysicalRhelEvent() {
     when(unleash.isEnabled(FeatureFlags.EMIT_EVENTS)).thenReturn(true);
     var hbiEvent = getCreateUpdateEvent(HbiEventTestData.getPhysicalRhelHostCreatedEvent());
-    // Override the sync timestamp fact so that it aligns with the current time
+    // Override the syncTimestamp fact so that it aligns with the current time
     // and is within the configured 'hostLastSyncThreshold'.
-    // TODO Replacing the ApplicationClock with a static instance would likely be better.
     setRhsmSyncTimestamp(hbiEvent, clock.now().minusHours(5));
 
+    OffsetDateTime eventTimestamp = hbiEvent.getTimestamp().toOffsetDateTime();
     var hbiHost = hbiEvent.getHost();
     Event expected =
         new Event()
-            .withServiceType("HBI_HOST")
-            .withEventSource("HBI_EVENT")
+            .withServiceType(HbiEventConsumer.EVENT_SERVICE_TYPE)
+            .withEventSource(HbiEventConsumer.EVENT_SOURCE)
             .withEventType("HBI_HOST_CREATED")
-            .withTimestamp(clock.startOfCurrentHour())
-            .withExpiration(Optional.of(clock.startOfCurrentHour().plusHours(1)))
+            .withTimestamp(eventTimestamp)
+            .withExpiration(Optional.of(eventTimestamp.plusHours(1)))
             .withOrgId(hbiHost.getOrgId())
             .withInstanceId(hbiHost.getId().toString())
             .withInventoryId(Optional.of(hbiHost.id.toString()))
@@ -163,32 +163,32 @@ class HbiEventConsumerTest {
   @Test
   void testRhsmFactsAreNotConsideredWhenOutsideOfTheSyncThreshold() {
     when(unleash.isEnabled(FeatureFlags.EMIT_EVENTS)).thenReturn(true);
-    // The test event has a sync timestamp outside the configured 'hostLastSyncThreshold'.
+    // The test event has a syncTimestamp outside the configured 'hostLastSyncThreshold'.
     var hbiEvent = getCreateUpdateEvent(HbiEventTestData.getPhysicalRhelHostCreatedEvent());
+    OffsetDateTime eventTimestamp = hbiEvent.getTimestamp().toOffsetDateTime();
     var hbiHost = hbiEvent.getHost();
     Event expected =
         new Event()
-            .withServiceType("HBI_HOST")
-            .withEventSource("HBI_EVENT")
+            .withServiceType(HbiEventConsumer.EVENT_SERVICE_TYPE)
+            .withEventSource(HbiEventConsumer.EVENT_SOURCE)
             .withEventType("HBI_HOST_CREATED")
-            .withTimestamp(clock.startOfCurrentHour())
-            .withExpiration(Optional.of(clock.startOfCurrentHour().plusHours(1)))
+            .withTimestamp(eventTimestamp)
+            .withExpiration(Optional.of(eventTimestamp.plusHours(1)))
             .withOrgId(hbiHost.getOrgId())
             .withInstanceId(hbiHost.getId().toString())
             .withInventoryId(Optional.of(hbiHost.id.toString()))
             .withInsightsId(Optional.of(hbiHost.getInsightsId()))
             .withSubscriptionManagerId(Optional.of(hbiHost.getSubscriptionManagerId()))
             .withDisplayName(Optional.of(hbiHost.getDisplayName()))
-            // TODO Need a test around actually setting cloud provider.
             .withHardwareType(HardwareType.PHYSICAL)
             .withHypervisorUuid(Optional.empty())
-            // No expected product tags/ids since 'rhsm' facts would be skipped.
+            // No expected product tags/ids since 'rhsm' facts would be skipped because
+            // the host will be considered unregistered due to lastCheckinDate.
             .withProductTag(Set.of())
             .withProductIds(List.of())
             .withMeasurements(
                 List.of(
                     new Measurement().withMetricId("cores").withValue(2.0),
-                    // TODO Verify the socket counts are as per expected based on the system type.
                     new Measurement().withMetricId("sockets").withValue(2.0)));
 
     hbiEventsIn.send(hbiEvent);
@@ -199,14 +199,15 @@ class HbiEventConsumerTest {
   void testQpcRhelHostCreatedEvent() {
     when(unleash.isEnabled(FeatureFlags.EMIT_EVENTS)).thenReturn(true);
     var hbiEvent = getCreateUpdateEvent(HbiEventTestData.getQpcRhelHostCreatedEvent());
+    OffsetDateTime eventTimestamp = hbiEvent.getTimestamp().toOffsetDateTime();
     var hbiHost = hbiEvent.getHost();
     Event expected =
         new Event()
-            .withServiceType("HBI_HOST")
-            .withEventSource("HBI_EVENT")
+            .withServiceType(HbiEventConsumer.EVENT_SERVICE_TYPE)
+            .withEventSource(HbiEventConsumer.EVENT_SOURCE)
             .withEventType("HBI_HOST_CREATED")
-            .withTimestamp(clock.startOfCurrentHour())
-            .withExpiration(Optional.of(clock.startOfCurrentHour().plusHours(1)))
+            .withTimestamp(eventTimestamp)
+            .withExpiration(Optional.of(eventTimestamp.plusHours(1)))
             .withOrgId(hbiHost.getOrgId())
             .withInstanceId(hbiHost.getId().toString())
             .withInventoryId(Optional.of(hbiHost.id.toString()))
@@ -298,13 +299,6 @@ class HbiEventConsumerTest {
               assertEquals(expected, received.get(0).getPayload());
             });
   }
-
-  // Additional coverage required
-  // - tests around the invalid/null/empty values of sla/usage
-  // - tests around RHSM facts and Satellite + RHSM facts.
-  // - tests around various cores/sockets normalization logic
-  //   - systempurpose_unit
-  //   - null cores/sockets.
 
   private HbiHostCreateUpdateEvent getCreateUpdateEvent(String messageJson) {
     HbiHostCreateUpdateEvent event =
