@@ -29,7 +29,6 @@ import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SatelliteFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -60,7 +59,7 @@ class ProductNormalizerTest {
 
   @Test
   void appliesSystemProfileProducts() {
-    List<String> definedProductIds = List.of("69", "408");
+    Set<String> definedProductIds = Set.of("69", "408");
     ProductNormalizer productNormalizer =
         new ProductNormalizer(
             systemProfileFacts("x86_64", false, definedProductIds),
@@ -76,7 +75,7 @@ class ProductNormalizerTest {
 
   @Test
   void appliesSystemProfileProductsFilteringByMigration() {
-    List<String> definedProductIds = List.of("69", "204");
+    Set<String> definedProductIds = Set.of("69", "204");
     ProductNormalizer productNormalizer =
         new ProductNormalizer(
             systemProfileFacts("x86_64", true, definedProductIds),
@@ -95,7 +94,7 @@ class ProductNormalizerTest {
     Set<String> rhIntalledProducts = Set.of("EAP", "RHEL");
     ProductNormalizer productNormalizer =
         new ProductNormalizer(
-            systemProfileFacts(null, false, List.of()),
+            systemProfileFacts(null, false, Set.of()),
             Optional.empty(),
             Optional.empty(),
             Optional.of(qpcFacts(rhIntalledProducts)),
@@ -123,7 +122,7 @@ class ProductNormalizerTest {
     Set<String> rhIntalledProducts = Set.of("RHEL");
     ProductNormalizer productNormalizer =
         new ProductNormalizer(
-            systemProfileFacts(arch, false, List.of()),
+            systemProfileFacts(arch, false, Set.of()),
             Optional.empty(),
             Optional.empty(),
             Optional.of(qpcFacts(rhIntalledProducts)),
@@ -140,7 +139,7 @@ class ProductNormalizerTest {
     Set<String> rhIntalledProducts = Set.of("QPC_PRODUCT");
     ProductNormalizer productNormalizer =
         new ProductNormalizer(
-            systemProfileFacts("x86_64", false, List.of()),
+            systemProfileFacts("x86_64", false, Set.of()),
             Optional.empty(),
             Optional.empty(),
             Optional.of(qpcFacts(rhIntalledProducts)),
@@ -164,7 +163,7 @@ class ProductNormalizerTest {
       Set<String> rhsmProductIds, Set<String> expectedProductTags, Set<String> expectedProductIds) {
     ProductNormalizer productNormalizer =
         new ProductNormalizer(
-            systemProfileFacts("x86_64", false, List.of()),
+            systemProfileFacts("x86_64", false, Set.of()),
             Optional.of(rhsmFacts(rhsmProductIds)),
             Optional.empty(),
             Optional.empty(),
@@ -188,7 +187,7 @@ class ProductNormalizerTest {
     Set<String> productIds = Set.of("204");
     ProductNormalizer productNormalizer =
         new ProductNormalizer(
-            systemProfileFacts("x86_64", is3rdPartyMigrated, List.of()),
+            systemProfileFacts("x86_64", is3rdPartyMigrated, Set.of()),
             Optional.of(rhsmFacts(productIds)),
             Optional.empty(),
             Optional.empty(),
@@ -202,7 +201,7 @@ class ProductNormalizerTest {
   void noRhsmProductsAppliedWhenSkipRhsmFactsIsTrue() {
     ProductNormalizer productNormalizer =
         new ProductNormalizer(
-            systemProfileFacts("x86_64", false, List.of()),
+            systemProfileFacts("x86_64", false, Set.of()),
             Optional.of(rhsmFacts(Set.of("69"))),
             Optional.empty(),
             Optional.empty(),
@@ -216,7 +215,7 @@ class ProductNormalizerTest {
     Set<String> rhIntalledProducts = Set.of("RHEL");
     ProductNormalizer productNormalizer =
         new ProductNormalizer(
-            systemProfileFacts("test_arch", false, List.of("69")),
+            systemProfileFacts("test_arch", false, Set.of("69")),
             Optional.empty(),
             Optional.empty(),
             Optional.of(qpcFacts(rhIntalledProducts)),
@@ -233,7 +232,7 @@ class ProductNormalizerTest {
   void appliesSatelliteRoleProducts() {
     ProductNormalizer productNormalizer =
         new ProductNormalizer(
-            systemProfileFacts("x86_64", false, List.of()),
+            systemProfileFacts("x86_64", false, Set.of()),
             Optional.empty(),
             Optional.of(satelliteFacts("Red Hat Enterprise Linux Workstation")),
             Optional.empty(),
@@ -244,7 +243,7 @@ class ProductNormalizerTest {
   }
 
   private SystemProfileFacts systemProfileFacts(
-      String arch, boolean is3rdPartyMigrated, List<String> productIds) {
+      String arch, boolean is3rdPartyMigrated, Set<String> productIds) {
     return new SystemProfileFacts(
         "host_type",
         "hypervisor_uuid",

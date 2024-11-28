@@ -25,7 +25,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -41,7 +44,7 @@ public class SystemProfileFacts {
   public static final String CPUS_FACT = "number_of_cpus";
   public static final String THREADS_PER_CORE_FACT = "threads_per_core";
   public static final String CLOUD_PROVIDER_FACT = "cloud_provider";
-  public static final String ARCH_PROVIDER_FACT = "arch";
+  public static final String ARCH_FACT = "arch";
   public static final String IS_MARKETPLACE_FACT = "is_marketplace";
   public static final String INSTALLED_PRODUCTS_FACT = "installed_products";
   public static final String INSTALLED_PRODUCT_ID_FACT = "id";
@@ -59,10 +62,15 @@ public class SystemProfileFacts {
   private final String arch;
   private final Boolean isMarketplace;
   private final Boolean is3rdPartyMigrated;
-  private final List<String> productIds;
+  private final Set<String> productIds;
 
   @SuppressWarnings("unchecked")
   public SystemProfileFacts(HbiHost host) {
+    if (Objects.isNull(host)) {
+      throw new IllegalArgumentException(
+          "HbiHost cannot be null when initializing system profile facts");
+    }
+
     Map<String, Object> systemProfile =
         Optional.ofNullable(host.getSystemProfile()).orElse(new HashMap<>());
     hostType = (String) systemProfile.get(HOST_TYPE_FACT);
@@ -73,8 +81,8 @@ public class SystemProfileFacts {
     cpus = (Integer) systemProfile.get(CPUS_FACT);
     threadsPerCore = (Integer) systemProfile.get(THREADS_PER_CORE_FACT);
     cloudProvider = (String) systemProfile.get(CLOUD_PROVIDER_FACT);
-    arch = (String) systemProfile.get(ARCH_PROVIDER_FACT);
-    isMarketplace = (Boolean) systemProfile.getOrDefault(IS_MARKETPLACE_FACT, false);
+    arch = (String) systemProfile.get(ARCH_FACT);
+    isMarketplace = (Boolean) systemProfile.getOrDefault(IS_MARKETPLACE_FACT, Boolean.FALSE);
     productIds = getInstalledProductIds(systemProfile);
 
     Map<String, Object> conversions =
@@ -83,13 +91,13 @@ public class SystemProfileFacts {
   }
 
   @SuppressWarnings("unchecked")
-  private List<String> getInstalledProductIds(Map<String, Object> systemProfileRawFacts) {
+  private Set<String> getInstalledProductIds(Map<String, Object> systemProfileRawFacts) {
     List<Map<String, String>> installedProductMap =
         (List<Map<String, String>>)
             systemProfileRawFacts.getOrDefault(INSTALLED_PRODUCTS_FACT, new ArrayList<>());
     return installedProductMap.stream()
         .map(ip -> ip.getOrDefault(INSTALLED_PRODUCT_ID_FACT, ""))
         .filter(id -> !id.isEmpty())
-        .toList();
+        .collect(Collectors.toSet());
   }
 }

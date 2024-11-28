@@ -49,7 +49,6 @@ import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SatelliteFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import lombok.Getter;
@@ -88,7 +87,7 @@ public class ProductNormalizer {
   }
 
   private void applySystemProfileProducts(SystemProfileFacts systemProfileFacts) {
-    List<String> systemProfileProductIds = systemProfileFacts.getProductIds();
+    Set<String> systemProfileProductIds = systemProfileFacts.getProductIds();
 
     if (systemProfileProductIds == null) {
       return;
@@ -155,7 +154,7 @@ public class ProductNormalizer {
     }
 
     boolean hasNoSystemProfileProduct =
-        Optional.ofNullable(systemProfileFacts.getProductIds()).orElse(List.of()).isEmpty();
+        Optional.ofNullable(systemProfileFacts.getProductIds()).orElse(Set.of()).isEmpty();
 
     String arch = systemProfileFacts.getArch();
     if (arch != null && hasNoSystemProfileProduct) {

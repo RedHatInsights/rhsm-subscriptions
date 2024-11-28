@@ -43,11 +43,11 @@ public class SatelliteFacts {
 
   public SatelliteFacts(HbiHostFacts facts) {
     if (facts == null) {
-      throw new IllegalArgumentException("factsSchema is null");
+      throw new IllegalArgumentException("Satellite fact collection cannot be null");
     }
 
     if (!SATELLITE_FACTS_NAMESPACE.equalsIgnoreCase(facts.getNamespace())) {
-      throw new IllegalArgumentException("Invalid HBI fact namespace for 'rhsm' facts.");
+      throw new IllegalArgumentException("Invalid HBI fact namespace for 'satellite' facts.");
     }
 
     Map<String, Object> rawFacts = Optional.ofNullable(facts.getFacts()).orElse(new HashMap<>());

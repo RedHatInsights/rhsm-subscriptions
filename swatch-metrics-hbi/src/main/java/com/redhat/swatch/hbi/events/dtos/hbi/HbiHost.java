@@ -21,6 +21,7 @@
 package com.redhat.swatch.hbi.events.dtos.hbi;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -61,7 +62,7 @@ public class HbiHost {
   @JsonProperty("mac_addresses")
   public List<String> macAddresses;
 
-  public List<HbiHostFacts> facts;
+  public List<HbiHostFacts> facts = new ArrayList<>();
 
   @JsonProperty("provider_id")
   public String providerId;

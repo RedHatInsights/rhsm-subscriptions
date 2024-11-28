@@ -58,7 +58,7 @@ public class RhsmFacts {
   @SuppressWarnings("unchecked")
   public RhsmFacts(HbiHostFacts facts) {
     if (facts == null) {
-      throw new IllegalArgumentException("RHSM fact collection can not be null");
+      throw new IllegalArgumentException("RHSM fact collection cannot be null");
     }
 
     if (!RHSM_FACTS_NAMESPACE.equalsIgnoreCase(facts.getNamespace())) {

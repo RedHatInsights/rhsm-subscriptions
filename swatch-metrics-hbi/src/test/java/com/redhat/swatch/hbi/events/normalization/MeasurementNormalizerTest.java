@@ -33,7 +33,6 @@ import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -351,7 +350,7 @@ class MeasurementNormalizerTest {
         "arch",
         false,
         false,
-        List.of());
+        Set.of());
   }
 
   private SystemProfileFacts virtualSystemProfile(
@@ -368,7 +367,7 @@ class MeasurementNormalizerTest {
         arch,
         false,
         false,
-        List.of());
+        Set.of());
   }
 
   private SystemProfileFacts marketPlaceProfile(Integer sockets, Integer coresPerSocket) {
@@ -384,7 +383,7 @@ class MeasurementNormalizerTest {
         "arch",
         true,
         false,
-        List.of());
+        Set.of());
   }
 
   private RhsmFacts rhsmFacts(String units, String role, Set<String> productIds) {
