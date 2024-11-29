@@ -126,7 +126,11 @@ public class HbiEventConsumer {
             .withHardwareType(facts.getHardwareType())
             .withProductIds(facts.getProductIds().stream().toList())
             .withProductTag(facts.getProductTags())
-            .withMeasurements(convertMeasurements(facts.getMeasurements()));
+            .withMeasurements(convertMeasurements(facts.getMeasurements()))
+            .withIsVirtual(facts.isVirtual())
+            .withIsUnmappedGuest(facts.isUnmappedGuest())
+            .withIsHypervisor(facts.isHypervisor())
+            .withLastSeen(facts.getLastSeen());
 
     // TODO: correlation id from the header?
 

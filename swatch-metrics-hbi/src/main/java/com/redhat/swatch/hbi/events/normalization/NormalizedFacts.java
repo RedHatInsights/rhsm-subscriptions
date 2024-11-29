@@ -21,6 +21,7 @@
 package com.redhat.swatch.hbi.events.normalization;
 
 import com.redhat.swatch.common.model.HardwareMeasurementType;
+import java.time.OffsetDateTime;
 import java.util.Set;
 import lombok.Builder;
 import lombok.Getter;
@@ -45,10 +46,13 @@ public class NormalizedFacts {
   private CloudProvider cloudProvider;
   private String syncTimestamp;
   private boolean isVirtual;
+  private boolean isUnmappedGuest;
+  private boolean isHypervisor;
   private String hypervisorUuid;
   private Set<String> productTags;
   private Set<String> productIds;
   private HardwareType hardwareType;
+  private OffsetDateTime lastSeen;
 
   @Setter private NormalizedMeasurements measurements;
 }

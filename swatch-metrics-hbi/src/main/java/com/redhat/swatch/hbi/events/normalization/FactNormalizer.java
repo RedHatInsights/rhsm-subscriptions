@@ -34,6 +34,7 @@ import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
 import io.quarkus.runtime.util.StringUtil;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -73,6 +74,7 @@ public class FactNormalizer {
     String inventoryId = Objects.nonNull(host.getId()) ? host.getId().toString() : null;
     String syncTimestamp = rhsmFacts.map(RhsmFacts::getSyncTimestamp).orElse(null);
     HardwareMeasurementType cloudProviderType = determineCloudProviderType(systemProfileFacts);
+    String hypervisorUuid = determineHypervisorUuid(systemProfileFacts, satelliteFacts);
     boolean isVirtual = determineIfVirtual(systemProfileFacts, rhsmFacts, satelliteFacts);
 
     boolean skipRhsmFacts = skipRhsmFacts(syncTimestamp);
@@ -86,8 +88,7 @@ public class FactNormalizer {
     ProductNormalizer productNormalizer =
         new ProductNormalizer(
             systemProfileFacts, rhsmFacts, satelliteFacts, qpcFacts, skipRhsmFacts);
-    MeasurementNormalizer measurementNormalizer =
-        new MeasurementNormalizer(appConfig, hypervisorGuestRepository);
+    MeasurementNormalizer measurementNormalizer = new MeasurementNormalizer(appConfig);
 
     NormalizedFacts normalizedFacts =
         NormalizedFacts.builder()
@@ -120,9 +121,13 @@ public class FactNormalizer {
             .syncTimestamp(syncTimestamp)
             .isVirtual(isVirtual)
             .hardwareType(determineHardwareType(systemProfileFacts, isVirtual))
-            .hypervisorUuid(determineHypervisorUuid(systemProfileFacts, satelliteFacts))
+            .hypervisorUuid(hypervisorUuid)
             .productTags(productNormalizer.getProductTags())
             .productIds(productNormalizer.getProductIds())
+            .isHypervisor(hypervisorGuestRepository.isHypervisor(host.getSubscriptionManagerId()))
+            .isUnmappedGuest(
+                isVirtual && this.hypervisorGuestRepository.isUnmappedGuest(hypervisorUuid))
+            .lastSeen(determineLastSeenDate(host))
             .build();
 
     // Measurements are normalized after all general host facts have been determined.
@@ -287,5 +292,16 @@ public class FactNormalizer {
     // NOTE: sync threshold is relative to conduit schedule - i.e. midnight UTC
     // otherwise the sync threshold would be offset by the tally schedule, which would be confusing
     return lastSync.isBefore(clock.startOfToday().minus(appConfig.getHostLastSyncThreshold()));
+  }
+
+  private OffsetDateTime determineLastSeenDate(HbiHost host) {
+    if (Objects.nonNull(host) && !StringUtil.isNullOrEmpty(host.getUpdated())) {
+      try {
+        return OffsetDateTime.parse(host.getUpdated());
+      } catch (DateTimeParseException e) {
+        log.warn("Unable to determine lastSeenDate for {}; defaulting to null.", host.getUpdated());
+      }
+    }
+    return null;
   }
 }

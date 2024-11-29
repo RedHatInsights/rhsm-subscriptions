@@ -21,7 +21,6 @@
 package com.redhat.swatch.hbi.events.normalization;
 
 import com.redhat.swatch.common.model.HardwareMeasurementType;
-import com.redhat.swatch.hbi.events.HypervisorGuestRepository;
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
@@ -40,12 +39,9 @@ public class MeasurementNormalizer {
   private static final double THREADS_PER_CORE_DEFAULT = 2.0;
 
   private final ApplicationConfiguration appConfig;
-  private final HypervisorGuestRepository hypervisorGuestRepository;
 
-  public MeasurementNormalizer(
-      ApplicationConfiguration appConfig, HypervisorGuestRepository hypervisorGuestRepository) {
+  public MeasurementNormalizer(ApplicationConfiguration appConfig) {
     this.appConfig = appConfig;
-    this.hypervisorGuestRepository = hypervisorGuestRepository;
   }
 
   public NormalizedMeasurements getMeasurements(
@@ -75,7 +71,13 @@ public class MeasurementNormalizer {
       Set<String> productTags) {
     Integer applicableSockets = getSystemProfileSockets(systemProfileFacts);
     applicableSockets =
-        normalizeSocketCount(applicableSockets, normalizedFacts, systemProfileFacts, productTags);
+        normalizeSocketCount(
+            applicableSockets,
+            normalizedFacts,
+            systemProfileFacts,
+            productTags,
+            normalizedFacts.isHypervisor(),
+            normalizedFacts.isUnmappedGuest());
     if (Boolean.TRUE.equals(systemProfileFacts.getIsMarketplace())) {
       applicableSockets = 0;
     }
@@ -110,10 +112,11 @@ public class MeasurementNormalizer {
       Integer currentCalculatedSockets,
       NormalizedFacts normalizedFacts,
       SystemProfileFacts systemProfileFacts,
-      Set<String> productTags) {
+      Set<String> productTags,
+      boolean isHypervisor,
+      boolean isUnmappedGuest) {
     // modulo-2 rounding only applied to physical or hypervisors
-    if (!normalizedFacts.isVirtual()
-        || hypervisorGuestRepository.isHypervisor(normalizedFacts.getSubscriptionManagerId())) {
+    if (!normalizedFacts.isVirtual() || isHypervisor) {
       if (currentCalculatedSockets != null && (currentCalculatedSockets % 2) == 1) {
         return currentCalculatedSockets + 1;
       }
@@ -123,9 +126,7 @@ public class MeasurementNormalizer {
         return Boolean.TRUE.equals(systemProfileFacts.getIsMarketplace()) ? 0 : 1;
       }
 
-      boolean isHypervisorUnknown =
-          hypervisorGuestRepository.isUnmappedGuest(normalizedFacts.getHypervisorUuid());
-      boolean guestWithUnknownHypervisor = normalizedFacts.isVirtual() && isHypervisorUnknown;
+      boolean guestWithUnknownHypervisor = normalizedFacts.isVirtual() && isUnmappedGuest;
       // Unmapped virtual rhel guests only account for a single socket
       if (guestWithUnknownHypervisor
           && productTags.stream().anyMatch(prod -> startsWithIgnoreCase(prod, "RHEL"))) {

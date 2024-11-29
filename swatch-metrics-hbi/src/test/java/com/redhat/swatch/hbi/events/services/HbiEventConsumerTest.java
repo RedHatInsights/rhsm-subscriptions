@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.hbi.events.HbiEventTestData;
+import com.redhat.swatch.hbi.events.HypervisorGuestRepository;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
@@ -72,6 +73,7 @@ class HbiEventConsumerTest {
   //  we need to disable the unleash service in the configuration
   //  file.
   @InjectMock Unleash unleash;
+  @InjectMock HypervisorGuestRepository hypervisorGuestRepository;
   @Inject @Any InMemoryConnector connector;
   @Inject ApplicationClock clock;
   private InMemorySource<HbiEvent> hbiEventsIn;
@@ -110,12 +112,19 @@ class HbiEventConsumerTest {
             .withCloudProvider(null)
             .withHardwareType(HardwareType.VIRTUAL)
             .withHypervisorUuid(Optional.of("bed420fa-59ef-44e5-af8a-62a24473a554"))
+            .withLastSeen(OffsetDateTime.parse(hbiHost.getUpdated()))
             .withProductTag(Set.of("RHEL for x86"))
             .withProductIds(List.of("69", "408"))
+            .withIsVirtual(true)
+            .withIsUnmappedGuest(false)
+            .withIsHypervisor(false)
             .withMeasurements(
                 List.of(
                     new Measurement().withMetricId("cores").withValue(6.0),
                     new Measurement().withMetricId("sockets").withValue(1.0)));
+
+    when(hypervisorGuestRepository.isHypervisor(hbiHost.getSubscriptionManagerId()))
+        .thenReturn(false);
 
     hbiEventsIn.send(hbiEvent);
     assertSwatchEventSent(expected);
@@ -137,6 +146,7 @@ class HbiEventConsumerTest {
             .withEventSource(HbiEventConsumer.EVENT_SOURCE)
             .withEventType("HBI_HOST_CREATED")
             .withTimestamp(eventTimestamp)
+            .withLastSeen(OffsetDateTime.parse(hbiHost.getUpdated()))
             .withExpiration(Optional.of(eventTimestamp.plusHours(1)))
             .withOrgId(hbiHost.getOrgId())
             .withInstanceId(hbiHost.getId().toString())
@@ -151,6 +161,9 @@ class HbiEventConsumerTest {
             .withHypervisorUuid(Optional.empty())
             .withProductTag(Set.of("RHEL for x86"))
             .withProductIds(List.of("69"))
+            .withIsVirtual(false)
+            .withIsUnmappedGuest(false)
+            .withIsHypervisor(false)
             .withMeasurements(
                 List.of(
                     new Measurement().withMetricId("cores").withValue(2.0),
@@ -182,6 +195,10 @@ class HbiEventConsumerTest {
             .withDisplayName(Optional.of(hbiHost.getDisplayName()))
             .withHardwareType(HardwareType.PHYSICAL)
             .withHypervisorUuid(Optional.empty())
+            .withLastSeen(OffsetDateTime.parse(hbiHost.getUpdated()))
+            .withIsVirtual(false)
+            .withIsUnmappedGuest(false)
+            .withIsHypervisor(false)
             // No expected product tags/ids since 'rhsm' facts would be skipped because
             // the host will be considered unregistered due to lastCheckinDate.
             .withProductTag(Set.of())
@@ -216,6 +233,10 @@ class HbiEventConsumerTest {
             .withDisplayName(Optional.of(hbiHost.getDisplayName()))
             .withHardwareType(HardwareType.VIRTUAL)
             .withHypervisorUuid(Optional.empty())
+            .withLastSeen(OffsetDateTime.parse(hbiHost.getUpdated()))
+            .withIsVirtual(true)
+            .withIsUnmappedGuest(false)
+            .withIsHypervisor(false)
             .withProductTag(Set.of("RHEL Ungrouped", "RHEL for x86", "RHEL"))
             .withProductIds(List.of())
             .withMeasurements(

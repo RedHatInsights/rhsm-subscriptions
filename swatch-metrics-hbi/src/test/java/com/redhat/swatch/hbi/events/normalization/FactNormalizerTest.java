@@ -407,6 +407,22 @@ class FactNormalizerTest {
         Optional.ofNullable(coresPerSocket).isPresent(), measurements.getCores().isPresent());
   }
 
+  static Stream<Arguments> lastSeenParams() {
+    OffsetDateTime lastUpdatedDate = OffsetDateTime.now();
+    return Stream.of(
+        Arguments.of(null, null),
+        Arguments.of("", null),
+        Arguments.of(lastUpdatedDate.toString(), lastUpdatedDate));
+  }
+
+  @ParameterizedTest
+  @MethodSource("lastSeenParams")
+  void testLastSeenNormalization(String hostUpdatedDate, OffsetDateTime expectedLastSeen) {
+    HbiHost host = host();
+    host.updated = Objects.nonNull(hostUpdatedDate) ? hostUpdatedDate : null;
+    assertEquals(expectedLastSeen, normalizer.normalize(host).getLastSeen());
+  }
+
   private HbiHost host() {
     HbiHost hbiHost = new HbiHost();
     hbiHost.orgId = "12345678";

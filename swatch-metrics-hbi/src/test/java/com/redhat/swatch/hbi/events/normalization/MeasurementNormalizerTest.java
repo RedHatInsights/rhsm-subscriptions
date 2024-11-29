@@ -23,12 +23,8 @@ package com.redhat.swatch.hbi.events.normalization;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.common.model.HardwareMeasurementType;
-import com.redhat.swatch.hbi.events.HypervisorGuestRepository;
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
@@ -43,13 +39,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class MeasurementNormalizerTest {
 
-  @Mock HypervisorGuestRepository hypervisorGuestRepository;
   private ApplicationConfiguration appConfig;
   private MeasurementNormalizer measurementNormalizer;
 
@@ -58,7 +52,7 @@ class MeasurementNormalizerTest {
     appConfig = new ApplicationConfiguration();
     appConfig.setUseCpuSystemFactsForAllProducts(false);
 
-    measurementNormalizer = new MeasurementNormalizer(appConfig, hypervisorGuestRepository);
+    measurementNormalizer = new MeasurementNormalizer(appConfig);
   }
 
   @Test
@@ -226,10 +220,9 @@ class MeasurementNormalizerTest {
     NormalizedFacts normalizedFacts;
     if (isHypervisor) {
       // Although a virtual hypervisor isn't typical, testing this way allows for a stronger
-      // and more isolated test.
+      // and more isolated test since it triggers the non-physical hyperlogic.
       systemProfileFacts = virtualSystemProfile("x86_64", systemProfileSockets, 4, null, null);
-      normalizedFacts = hostFacts(subscriptionManagerId, true);
-      when(hypervisorGuestRepository.isHypervisor(subscriptionManagerId)).thenReturn(true);
+      normalizedFacts = hypervisorFacts(subscriptionManagerId);
     } else {
       systemProfileFacts = physicalSystemProfile(systemProfileSockets, null);
       normalizedFacts = hostFacts(subscriptionManagerId, false);
@@ -239,12 +232,6 @@ class MeasurementNormalizerTest {
         measurementNormalizer.getMeasurements(
             normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of());
     assertEquals(expectedSockets, normalized.getSockets().orElse(null));
-
-    if (isHypervisor) {
-      verify(hypervisorGuestRepository).isHypervisor(subscriptionManagerId);
-    } else {
-      verify(hypervisorGuestRepository, never()).isHypervisor(subscriptionManagerId);
-    }
   }
 
   @Test
@@ -289,9 +276,8 @@ class MeasurementNormalizerTest {
 
     SystemProfileFacts systemProfileFacts =
         virtualSystemProfile("x86_64", systemProfileSockets, 4, null, null);
-    NormalizedFacts normalizedFacts = virtualHostFacts(subscriptionManagerId, hypervisorUuid);
-
-    when(hypervisorGuestRepository.isUnmappedGuest(hypervisorUuid)).thenReturn(true);
+    NormalizedFacts normalizedFacts =
+        unmappedVirtualHostFacts(subscriptionManagerId, hypervisorUuid);
 
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
@@ -419,11 +405,21 @@ class MeasurementNormalizerTest {
         .build();
   }
 
-  private NormalizedFacts virtualHostFacts(String subscriptionManagerId, String hypervisorUuid) {
+  private NormalizedFacts hypervisorFacts(String subscriptionManagerId) {
+    return NormalizedFacts.builder()
+        .subscriptionManagerId(subscriptionManagerId)
+        .isVirtual(false)
+        .isHypervisor(true)
+        .build();
+  }
+
+  private NormalizedFacts unmappedVirtualHostFacts(
+      String subscriptionManagerId, String hypervisorUuid) {
     return NormalizedFacts.builder()
         .subscriptionManagerId(subscriptionManagerId)
         .isVirtual(true)
         .hypervisorUuid(hypervisorUuid)
+        .isUnmappedGuest(true)
         .build();
   }
 
