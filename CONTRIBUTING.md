@@ -191,6 +191,19 @@ public class NewAuthorConsumer {
 }
 ```
 
+### **kafka**: the Channel metrics are disabled by default
+
+To enable, we need to add the following property:
+
+```
+# Enable Kafka metrics
+smallrye.messaging.observation.enabled=true
+```
+
+More info in [here](https://quarkus.io/guides/kafka#channel-metrics).
+
+This property will expose the following metrics with prefix `quarkus_messaging_message_*`.
+
 ### **data**: the repository `save` method (Spring Boot) is not the same than the panache `persist` method (Quarkus)
 
 The repository `save` method (Spring Boot) is doing much more than the panache `persist` method (Quarkus) which is the standard JPA operation:
