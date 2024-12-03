@@ -2,10 +2,10 @@
 // inspired by mockito's gradle structure, which dependabot uses as a test case
 
 ext {
-    quarkusVersion='3.16.4'
+    quarkusVersion='3.17.0'
     springVersion='3.4.0'
     resteasyVersion='6.2.10.Final'
-    jacksonVersion='2.18.1'
+    jacksonVersion='2.18.2'
     mapstructVersion='1.6.3'
     libraries = [:]
     plugins = []
@@ -37,7 +37,7 @@ libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-de
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:3.0.0"
-libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.29.21"
+libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.29.23"
 libraries["clowder-quarkus-config-source"] = "com.redhat.cloud.common:clowder-quarkus-config-source:2.6.1"
 libraries["guava"] = "com.google.guava:guava:33.3.1-jre"
 libraries["commons-lang3"] = "org.apache.commons:commons-lang3:3.17.0"
@@ -78,7 +78,7 @@ libraries["wiremock"] = "com.github.tomakehurst:wiremock-standalone:3.0.1"
 libraries["awaitility"] = "org.awaitility:awaitility:4.2.2"
 libraries["splunk-otel-agent"] = 'com.splunk:splunk-otel-javaagent:2.10.0'
 libraries["testcontainers-postgresql"] = 'org.testcontainers:postgresql:1.20.4'
-libraries["kafka-streams-test-utils"] = "org.apache.kafka:kafka-streams-test-utils:7.7.1-ce"
+libraries["kafka-streams-test-utils"] = "org.apache.kafka:kafka-streams-test-utils:7.7.2-ce"
 libraries["slf4j-api"] = "org.slf4j:slf4j-api:2.0.16"
 libraries["snakeyaml"] = "org.yaml:snakeyaml:2.3"
 libraries["unleash-spring-boot-starter"] = "io.getunleash:springboot-unleash-starter:1.1.0"
