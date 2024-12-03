@@ -62,5 +62,8 @@ COPY --from=0 /stage/LICENSE /licenses/
 RUN chmod -R g=u /deployments
 
 USER default
+# Custom JVM properties
+## Fix CVE-2024-31141: Disabling Kafka client config providers
+ENV JAVA_OPTS_APPEND="-Dorg.apache.kafka.automatic.config.providers=none"
 ENV JAVA_MAIN_CLASS=org.candlepin.subscriptions.BootApplication
 ENV JAVA_LIB_DIR=/deployments/lib/*
