@@ -61,7 +61,7 @@ public class FactNormalizer {
    * Normalize the FactSets of the given host.
    *
    * @param hostFacts the collection of facts to normalize.
-   * @param guestData
+   * @param guestData OrgHostsData for guests
    * @return a normalized version of the host's facts.
    */
   public NormalizedFacts normalize(InventoryHostFacts hostFacts, OrgHostsData guestData) {
@@ -185,11 +185,10 @@ public class FactNormalizer {
       if (normalizedFacts.getCloudProviderType() != null) {
         var sockets = normalizedFacts.isMarketplace() ? 0 : 1;
         normalizedFacts.setSockets(sockets);
-      }
-      // Unmapped virtual rhel guests only account for a single socket
-      else if (guestWithUnknownHypervisor
+      } else if (guestWithUnknownHypervisor
           && normalizedFacts.getProducts().stream()
               .anyMatch(prod -> StringUtils.startsWithIgnoreCase(prod, "RHEL"))) {
+        // Unmapped virtual rhel guests only account for a single socket
         normalizedFacts.setSockets(1);
       }
     }

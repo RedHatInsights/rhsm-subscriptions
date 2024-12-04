@@ -20,7 +20,8 @@
  */
 package org.candlepin.subscriptions.tally.roller;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;

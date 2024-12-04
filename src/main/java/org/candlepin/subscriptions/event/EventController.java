@@ -168,10 +168,11 @@ public class EventController {
    * transaction so that exceptions can be caught, and we can re-attempt to save. If saveAll() fails
    * on events then we try one by one so that we know where to retry and the records that can be
    * saved are persisted. Throws BatchListenerFailedException which tells kafka to Retry or put
-   * record on dead letter topic.
-   * https://docs.spring.io/spring-kafka/docs/latest-ga/reference/html/#recovering-batch-eh
+   * record on dead letter topic. <a
+   * href="https://docs.spring.io/spring-kafka/docs/latest-ga/reference/html/#recovering-batch-eh">
+   * See more in the documentation</a>
    *
-   * @param eventJsonList
+   * @param eventJsonList a List of Events in JSON form
    * @throws BatchListenerFailedException tells kafka where in batch to retry or send failed record
    *     to dead letter topic. The index field of the exception is where kafka will retry.
    */
@@ -365,7 +366,7 @@ public class EventController {
    * Deduplicate eventJsonList while preserving indexes of events in batch Returns a map ordered by
    * the event record index.
    *
-   * @param eventJsonList
+   * @param eventJsonList a List of Events in JSON format
    */
   private LinkedHashMap<String, Integer> mapEventsToBatchIndex(List<String> eventJsonList) {
     var result = new LinkedHashMap<String, Integer>();

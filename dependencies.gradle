@@ -2,10 +2,10 @@
 // inspired by mockito's gradle structure, which dependabot uses as a test case
 
 ext {
-    quarkusVersion='3.16.4'
+    quarkusVersion='3.17.2'
     springVersion='3.4.0'
     resteasyVersion='6.2.10.Final'
-    jacksonVersion='2.18.1'
+    jacksonVersion='2.18.2'
     mapstructVersion='1.6.3'
     libraries = [:]
     plugins = []
@@ -28,7 +28,7 @@ ext.plugins = [
         "org.kordamp.gradle:jandex-gradle-plugin:2.0.0",
         "org.openapitools:openapi-generator-gradle-plugin:7.10.0",
         "org.springframework.boot:spring-boot-gradle-plugin:${springVersion}",
-        "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:6.0.0.5145",
+        "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:6.0.1.5171",
 ]
 
 // BOMs
@@ -37,7 +37,7 @@ libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-de
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:3.0.0"
-libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.29.18"
+libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.29.25"
 libraries["clowder-quarkus-config-source"] = "com.redhat.cloud.common:clowder-quarkus-config-source:2.6.1"
 libraries["guava"] = "com.google.guava:guava:33.3.1-jre"
 libraries["commons-lang3"] = "org.apache.commons:commons-lang3:3.17.0"
@@ -64,7 +64,7 @@ libraries["jackson-dataformat-xml"] = "com.fasterxml.jackson.dataformat:jackson-
 libraries["jackson-module-jakarta-xmlbind-annotations"] = "com.fasterxml.jackson.module:jackson-module-jakarta-xmlbind-annotations:${jacksonVersion}"
 libraries["jackson-datatype-jsr310"] = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${jacksonVersion}"
 libraries["jakarta-validation-api"] = "jakarta.validation:jakarta.validation-api:3.1.0"
-libraries["jakarta-persistence-api"] = "jakarta.persistence:jakarta.persistence-api:3.1.0"
+libraries["jakarta-persistence-api"] = "jakarta.persistence:jakarta.persistence-api:3.2.0"
 libraries["hibernate-validator"] = "org.hibernate.validator:hibernate-validator:8.0.1.Final"
 libraries["resteasy-client"] = "org.jboss.resteasy:resteasy-client:${resteasyVersion}"
 libraries["resteasy-multipart-provider"] = "org.jboss.resteasy:resteasy-multipart-provider:${resteasyVersion}"
@@ -78,9 +78,9 @@ libraries["wiremock"] = "com.github.tomakehurst:wiremock-standalone:3.0.1"
 libraries["awaitility"] = "org.awaitility:awaitility:4.2.2"
 libraries["splunk-otel-agent"] = 'com.splunk:splunk-otel-javaagent:2.10.0'
 libraries["testcontainers-postgresql"] = 'org.testcontainers:postgresql:1.20.4'
-libraries["kafka-streams-test-utils"] = "org.apache.kafka:kafka-streams-test-utils:7.7.1-ce"
+libraries["kafka-streams-test-utils"] = "org.apache.kafka:kafka-streams-test-utils:7.8.0-ce"
 libraries["slf4j-api"] = "org.slf4j:slf4j-api:2.0.16"
 libraries["snakeyaml"] = "org.yaml:snakeyaml:2.3"
-libraries["unleash-spring-boot-starter"] = "io.getunleash:springboot-unleash-starter:1.1.0"
+libraries["unleash-spring-boot-starter"] = "io.getunleash:springboot-unleash-starter:1.1.1"
 libraries["unleash-quarkus"] = "io.quarkiverse.unleash:quarkus-unleash:1.8.0"
 libraries["caffeine"] = "com.github.ben-manes.caffeine:caffeine:3.1.8"

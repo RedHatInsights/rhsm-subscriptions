@@ -43,6 +43,7 @@ import com.redhat.swatch.contract.repository.SubscriptionCapacityView;
 import com.redhat.swatch.contract.repository.SubscriptionCapacityViewMetric;
 import com.redhat.swatch.contract.repository.SubscriptionCapacityViewRepository;
 import com.redhat.swatch.contract.resource.InMemoryPager;
+import jakarta.annotation.Nonnull;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -60,7 +61,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
-import javax.annotation.Nonnull;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
@@ -85,8 +85,9 @@ public class SubscriptionTableControllerV2 {
     this.clock = clock;
   }
 
+  @SuppressWarnings("java:S107")
   @Transactional
-  public SkuCapacityReportV2 capacityReportBySkuV2( // NOSONAR
+  public SkuCapacityReportV2 capacityReportBySkuV2(
       ProductId productId,
       @Min(0) Integer offset,
       @Min(1) Integer limit,

@@ -21,7 +21,9 @@
 package org.candlepin.subscriptions.actuator;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
 import org.candlepin.subscriptions.util.TlsProperties;

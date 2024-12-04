@@ -20,11 +20,11 @@
  */
 package com.redhat.swatch.contract.service;
 
+import static com.redhat.swatch.contract.service.UsageContextSubscriptionProvider.AMBIGUOUS_SUBSCRIPTIONS_COUNTER_NAME;
+import static com.redhat.swatch.contract.service.UsageContextSubscriptionProvider.MISSING_SUBSCRIPTIONS_COUNTER_NAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
@@ -32,84 +32,73 @@ import com.redhat.swatch.contract.exception.ErrorCode;
 import com.redhat.swatch.contract.exception.ServiceException;
 import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.DbReportCriteria;
+import com.redhat.swatch.contract.repository.OfferingEntity;
+import com.redhat.swatch.contract.repository.OfferingRepository;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
+@QuarkusTest
 class UsageContextSubscriptionProviderTest {
 
-  private static final String MISSING_SUBSCRIPTIONS_COUNTER_NAME = "swatch_missing_subscriptions";
-  private static final String AMBIGUOUS_SUBSCRIPTIONS_COUNTER_NAME =
-      "swatch_ambiguous_subscriptions";
+  private static final String ORG_ID = "org123";
+  private static final String BILLING_ACCOUNT_ID = "123";
+  private static final Usage USAGE = Usage.PRODUCTION;
+  private static final ServiceLevel SLA = ServiceLevel.PREMIUM;
+  private static final String PRODUCT = "rosa";
+  private static final BillingProvider BILLING_PROVIDER = BillingProvider.AWS;
   private static final OffsetDateTime DEFAULT_END_DATE =
       OffsetDateTime.of(2022, 7, 22, 8, 0, 0, 0, ZoneOffset.UTC);
 
-  @Mock private SubscriptionRepository repo;
-  private MeterRegistry meterRegistry;
-  private UsageContextSubscriptionProvider provider;
+  @Inject SubscriptionRepository repo;
+  @Inject OfferingRepository offeringRepository;
+  @Inject MeterRegistry meterRegistry;
+  @Inject UsageContextSubscriptionProvider provider;
   private DbReportCriteria criteria;
+  private OfferingEntity offering;
 
+  @Transactional
   @BeforeEach
   void setupTest() {
     givenDefaultCriteria();
-    meterRegistry = new SimpleMeterRegistry();
-    provider = new UsageContextSubscriptionProvider(repo, meterRegistry);
+    meterRegistry.clear();
+    repo.deleteAll();
+    offeringRepository.deleteAll();
+    givenExistingOffering();
   }
 
   @Test
-  void incrementsMissingCounter_WhenOrgIdPresent() {
-    when(repo.findByCriteria(any(), any())).thenReturn(Collections.emptyList());
+  void incrementsMissingCounterWhenOrgIdPresent() {
     assertThrows(NotFoundException.class, this::whenGetSubscriptions);
-    Counter counter = meterRegistry.counter(MISSING_SUBSCRIPTIONS_COUNTER_NAME, "provider", "aws");
-    assertEquals(1.0, counter.count());
+    thenCounterIs(MISSING_SUBSCRIPTIONS_COUNTER_NAME, 1.0);
   }
 
   @Test
-  void incrementsAmbiguousCounter_WhenOrgIdPresent() {
-    SubscriptionEntity sub1 = new SubscriptionEntity();
-    sub1.setSubscriptionId("SUB1");
-    sub1.setBillingProviderId("foo1;foo2;foo3");
-    sub1.setBillingAccountId("123");
-    sub1.setEndDate(DEFAULT_END_DATE);
-    SubscriptionEntity sub2 = new SubscriptionEntity();
-    sub2.setSubscriptionId("SUB2");
-    sub2.setBillingProviderId("bar1;bar2;bar3");
-    sub2.setBillingAccountId("123");
-    sub2.setEndDate(DEFAULT_END_DATE);
-
-    when(repo.findByCriteria(any(), any())).thenReturn(List.of(sub1, sub2));
-
+  void incrementsAmbiguousCounterWhenOrgIdPresent() {
+    var sub1 = givenNewSubscription();
+    givenNewSubscription();
     Optional<SubscriptionEntity> subscription = whenGetSubscriptions();
     assertTrue(subscription.isPresent());
-    assertEquals("SUB1", subscription.get().getSubscriptionId());
-
-    Counter counter =
-        meterRegistry.counter(AMBIGUOUS_SUBSCRIPTIONS_COUNTER_NAME, "provider", "aws");
-    assertEquals(1.0, counter.count());
+    assertEquals(sub1.getSubscriptionId(), subscription.get().getSubscriptionId());
+    thenCounterIs(AMBIGUOUS_SUBSCRIPTIONS_COUNTER_NAME, 1.0);
   }
 
   @Test
-  void shouldThrowSubscriptionsExceptionForTerminatedSubscription_WhenOrgIdPresent() {
+  void shouldThrowSubscriptionsExceptionForTerminatedSubscriptionWhenOrgIdPresent() {
     var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
-    SubscriptionEntity sub1 = new SubscriptionEntity();
-    sub1.setBillingProviderId("foo1;foo2;foo3");
-    sub1.setBillingAccountId("123");
-    sub1.setEndDate(endDate);
-    when(repo.findByCriteria(any(), any())).thenReturn(List.of(sub1));
+    givenNewSubscriptionWithEndDate(endDate);
 
     givenCriteriaWithEnding(endDate.plusMinutes(30));
     var exception = assertThrows(ServiceException.class, this::whenGetSubscriptions);
@@ -120,23 +109,47 @@ class UsageContextSubscriptionProviderTest {
   }
 
   @Test
-  void shouldReturnActiveSubscriptionAndNotTerminated_WhenOrgIdPresent() {
+  void shouldReturnActiveSubscriptionAndNotTerminatedWhenOrgIdPresent() {
     var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
-    SubscriptionEntity sub1 = new SubscriptionEntity();
-    sub1.setBillingProviderId("foo1;foo2;foo3");
-    sub1.setBillingAccountId("123");
-    sub1.setEndDate(endDate);
-    SubscriptionEntity sub2 = new SubscriptionEntity();
-    sub2.setBillingProviderId("bar1;bar2;bar3");
-    sub2.setBillingAccountId("123");
-    sub2.setEndDate(endDate.plusMinutes(45));
-
-    when(repo.findByCriteria(any(), any())).thenReturn(List.of(sub1, sub2));
+    givenNewSubscriptionWithEndDate(endDate);
+    var sub2 = givenNewSubscriptionWithEndDate(endDate.plusMinutes(30));
 
     givenCriteriaWithEnding(endDate.plusMinutes(30));
     Optional<SubscriptionEntity> subscription = whenGetSubscriptions();
     assertTrue(subscription.isPresent());
-    assertEquals(sub2, subscription.get());
+    assertEquals(sub2.getSubscriptionId(), subscription.get().getSubscriptionId());
+  }
+
+  SubscriptionEntity givenNewSubscription() {
+    return givenNewSubscription(DEFAULT_END_DATE);
+  }
+
+  SubscriptionEntity givenNewSubscriptionWithEndDate(OffsetDateTime endDate) {
+    return givenNewSubscription(endDate);
+  }
+
+  @Transactional
+  SubscriptionEntity givenNewSubscription(OffsetDateTime endDate) {
+    SubscriptionEntity sub = new SubscriptionEntity();
+    sub.setSubscriptionId(UUID.randomUUID().toString());
+    sub.setBillingProvider(BILLING_PROVIDER);
+    sub.setBillingProviderId(UUID.randomUUID().toString());
+    sub.setBillingAccountId(BILLING_ACCOUNT_ID);
+    sub.setStartDate(endDate.minusDays(10));
+    sub.setEndDate(endDate);
+    sub.setOrgId(ORG_ID);
+    sub.setOffering(offering);
+    repo.persist(sub);
+    return sub;
+  }
+
+  private void givenExistingOffering() {
+    offering = new OfferingEntity();
+    offering.setSku(UUID.randomUUID().toString());
+    offering.setUsage(USAGE);
+    offering.setServiceLevel(SLA);
+    offering.setProductTags(Set.of(PRODUCT));
+    offeringRepository.persist(offering);
   }
 
   private void givenDefaultCriteria() {
@@ -146,12 +159,12 @@ class UsageContextSubscriptionProviderTest {
   private void givenCriteriaWithEnding(OffsetDateTime ending) {
     this.criteria =
         DbReportCriteria.builder()
-            .orgId("org123")
-            .productTag("rosa")
-            .serviceLevel(ServiceLevel.PREMIUM)
-            .usage(Usage.PRODUCTION)
-            .billingProvider(BillingProvider.AWS)
-            .billingAccountId("123")
+            .orgId(ORG_ID)
+            .productTag(PRODUCT)
+            .serviceLevel(SLA)
+            .usage(USAGE)
+            .billingProvider(BILLING_PROVIDER)
+            .billingAccountId(BILLING_ACCOUNT_ID)
             .beginning(ending.minusHours(1))
             .ending(ending)
             .build();
@@ -159,5 +172,12 @@ class UsageContextSubscriptionProviderTest {
 
   private Optional<SubscriptionEntity> whenGetSubscriptions() {
     return provider.getSubscription(criteria);
+  }
+
+  private void thenCounterIs(String counterName, double expected) {
+    Counter counter =
+        meterRegistry.counter(
+            counterName, "provider", BILLING_PROVIDER.getValue(), "product", PRODUCT);
+    assertEquals(expected, counter.count());
   }
 }

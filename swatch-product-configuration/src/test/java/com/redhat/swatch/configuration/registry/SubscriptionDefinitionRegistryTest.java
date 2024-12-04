@@ -20,7 +20,9 @@
  */
 package com.redhat.swatch.configuration.registry;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import jakarta.validation.Validation;
 import jakarta.validation.ValidatorFactory;
@@ -77,7 +79,6 @@ class SubscriptionDefinitionRegistryTest {
     }
   }
 
-  @Test
   /**
    * Test for SnakeYaml deserialization vulnerability due to enabled global tags. See
    *
@@ -88,6 +89,7 @@ class SubscriptionDefinitionRegistryTest {
    *   <li>https://www.websec.ca/publication/Blog/CVE-2022-21404-Another-story-of-developers-fixing-vulnerabilities-unknowingly-because-of-CodeQL
    * </ul>
    */
+  @Test
   void testNoGlobalTags() throws IOException {
     Path link = null;
     try {

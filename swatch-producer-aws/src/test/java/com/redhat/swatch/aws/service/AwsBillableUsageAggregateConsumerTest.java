@@ -22,6 +22,7 @@ package com.redhat.swatch.aws.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
@@ -41,6 +42,7 @@ import com.redhat.swatch.clients.contracts.api.resources.ApiException;
 import com.redhat.swatch.clients.contracts.api.resources.DefaultApi;
 import com.redhat.swatch.configuration.registry.Usage;
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -82,6 +84,7 @@ class AwsBillableUsageAggregateConsumerTest {
 
   private static final String INSTANCE_HOURS = "INSTANCE_HOURS";
   private static final String CORES = "CORES";
+  private static final String PRODUCT_ID = "rosa";
 
   private static final Clock clock =
       Clock.fixed(Instant.parse("2023-10-02T12:30:00Z"), ZoneId.of("UTC"));
@@ -120,6 +123,10 @@ class AwsBillableUsageAggregateConsumerTest {
   Counter acceptedCounter;
   Counter rejectedCounter;
   Counter ignoredCounter;
+  Counter redundantCounter;
+  Counter successCounter;
+  Counter failedCounter;
+
   @Inject AwsBillableUsageAggregateConsumer consumer;
 
   @ConfigProperty(name = "AWS_MARKETPLACE_USAGE_WINDOW")
@@ -130,6 +137,29 @@ class AwsBillableUsageAggregateConsumerTest {
     acceptedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_accepted_total");
     rejectedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_rejected_total");
     ignoredCounter = meterRegistry.counter("swatch_aws_marketplace_batch_ignored_total");
+
+    var meteredTotalBuilder =
+        Counter.builder(AwsBillableUsageAggregateConsumer.METERED_TOTAL_METRIC)
+            .tags("product", "rosa", "metric_id", INSTANCE_HOURS, "billing_provider", "aws")
+            .withRegistry(meterRegistry);
+
+    failedCounter =
+        meteredTotalBuilder.withTags(
+            "status",
+            BillableUsage.Status.FAILED.toString(),
+            "error_code",
+            BillableUsage.ErrorCode.UNKNOWN.toString());
+
+    redundantCounter =
+        meteredTotalBuilder.withTags(
+            "status",
+            BillableUsage.Status.FAILED.toString(),
+            "error_code",
+            BillableUsage.ErrorCode.REDUNDANT.toString());
+
+    successCounter =
+        meteredTotalBuilder.withTag("status", BillableUsage.Status.SUCCEEDED.toString());
+
     meteringClient = mock(MarketplaceMeteringClient.class);
   }
 
@@ -213,7 +243,8 @@ class AwsBillableUsageAggregateConsumerTest {
   }
 
   @Test
-  void shouldIncrementAcceptedCounterIfSuccessful() throws ApiException {
+  void shouldIncrementAcceptedAndSuccessCounters() throws ApiException {
+    var priorSuccess = successCounter.count();
     when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
@@ -221,10 +252,15 @@ class AwsBillableUsageAggregateConsumerTest {
         .thenReturn(BATCH_METER_USAGE_SUCCESS_RESPONSE);
     consumer.process(ROSA_INSTANCE_HOURS_RECORD);
     assertEquals(1.0, acceptedCounter.count());
+
+    var metric = getMeteredTotalMetricForSucceeded(INSTANCE_HOURS);
+    assertTrue(metric.isPresent());
+    assertEquals(priorSuccess + 42.0, metric.get().measure().iterator().next().getValue());
   }
 
   @Test
   void shouldIncrementFailureCounterIfUnprocessed() throws ApiException {
+    double priorFailed = failedCounter.count();
     double current = rejectedCounter.count();
     when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
@@ -236,6 +272,10 @@ class AwsBillableUsageAggregateConsumerTest {
                 .build());
     consumer.process(ROSA_INSTANCE_HOURS_RECORD);
     assertEquals(current + 1, rejectedCounter.count());
+    var metric =
+        getMeteredTotalMetricForFailed(INSTANCE_HOURS, BillableUsage.ErrorCode.UNKNOWN.toString());
+    assertTrue(metric.isPresent());
+    assertEquals(priorFailed + 42.0, metric.get().measure().iterator().next().getValue());
   }
 
   @Test
@@ -310,6 +350,11 @@ class AwsBillableUsageAggregateConsumerTest {
     consumer.process(aggregate);
     verifyNoInteractions(meteringClient);
     assertEquals(currentIgnored + 1, ignoredCounter.count());
+    var metric =
+        getMeteredTotalMetricForFailed(
+            INSTANCE_HOURS, BillableUsage.ErrorCode.REDUNDANT.toString());
+    assertTrue(metric.isPresent());
+    assertEquals(currentIgnored + 42.0, metric.get().measure().iterator().next().getValue());
   }
 
   @Test
@@ -393,5 +438,34 @@ class AwsBillableUsageAggregateConsumerTest {
             "testBillingAccountId");
     aggregate.setAggregateKey(key);
     return aggregate;
+  }
+
+  private Optional<Meter> getMeteredTotalMetricForSucceeded(String metricId) {
+    return meterRegistry.getMeters().stream()
+        .filter(
+            m ->
+                AwsBillableUsageAggregateConsumer.METERED_TOTAL_METRIC.equals(m.getId().getName())
+                    && PRODUCT_ID.equals(m.getId().getTag("product"))
+                    && metricId.equals(m.getId().getTag("metric_id"))
+                    && BillableUsage.BillingProvider.AWS
+                        .toString()
+                        .equals(m.getId().getTag("billing_provider"))
+                    && "succeeded".equals(m.getId().getTag("status")))
+        .findFirst();
+  }
+
+  private Optional<Meter> getMeteredTotalMetricForFailed(String metricId, String errorCode) {
+    return meterRegistry.getMeters().stream()
+        .filter(
+            m ->
+                AwsBillableUsageAggregateConsumer.METERED_TOTAL_METRIC.equals(m.getId().getName())
+                    && PRODUCT_ID.equals(m.getId().getTag("product"))
+                    && metricId.equals(m.getId().getTag("metric_id"))
+                    && BillableUsage.BillingProvider.AWS
+                        .toString()
+                        .equals(m.getId().getTag("billing_provider"))
+                    && "failed".equals(m.getId().getTag("status"))
+                    && errorCode.equals(m.getId().getTag("error_code")))
+        .findFirst();
   }
 }

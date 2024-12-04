@@ -20,8 +20,7 @@
  */
 package org.candlepin.subscriptions.tally.tasks;
 
-import static org.hamcrest.MatcherAssert.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.candlepin.subscriptions.tally.TallyTaskFactory;
 import org.candlepin.subscriptions.task.TaskDescriptor;

@@ -26,7 +26,6 @@ import java.time.temporal.ChronoUnit;
 import lombok.Getter;
 import lombok.Setter;
 import org.candlepin.subscriptions.jobs.JobProperties;
-import org.candlepin.subscriptions.subscription.SubscriptionServiceProperties;
 import org.candlepin.subscriptions.tally.admin.InternalTallyResource;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.convert.DurationUnit;
@@ -117,12 +116,6 @@ public class ApplicationProperties {
    * before tallying begins.
    */
   private Duration hourlyTallyOffset = Duration.ofMinutes(60L);
-
-  /** Additional properties related to the Subscription Service */
-  private SubscriptionServiceProperties subscription = new SubscriptionServiceProperties();
-
-  /** If enabled, will sync Subscriptions with the upstream subscription service. */
-  private boolean subscriptionSyncEnabled = false;
 
   /** If enabled, will allow synchronous operations when requested. */
   private boolean enableSynchronousOperations = false;

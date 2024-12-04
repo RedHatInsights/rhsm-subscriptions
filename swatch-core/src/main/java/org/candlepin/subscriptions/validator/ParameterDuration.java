@@ -20,8 +20,10 @@
  */
 package org.candlepin.subscriptions.validator;
 
-import static java.lang.annotation.ElementType.*;
-import static java.lang.annotation.RetentionPolicy.*;
+import static java.lang.annotation.ElementType.ANNOTATION_TYPE;
+import static java.lang.annotation.ElementType.CONSTRUCTOR;
+import static java.lang.annotation.ElementType.METHOD;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;

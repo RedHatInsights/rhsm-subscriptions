@@ -72,7 +72,8 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
               + "t.billingProvider = :billingProvider and "
               + "t.billingAccountId = :billingAcctId and "
               + "t.snapshotDate between :beginning and :ending ")
-  Page<TallySnapshot> findSnapshot( // NOSONAR
+  @SuppressWarnings("java:S107")
+  Page<TallySnapshot> findSnapshot(
       @Param("orgId") String orgId,
       @Param("productId") String productId,
       @Param("granularity") Granularity granularity,

@@ -42,7 +42,7 @@ import org.candlepin.subscriptions.resource.ApiConfiguration;
 import org.candlepin.subscriptions.rhmarketplace.RhMarketplaceWorkerConfiguration;
 import org.candlepin.subscriptions.security.AuthProperties;
 import org.candlepin.subscriptions.security.SecurityConfiguration;
-import org.candlepin.subscriptions.subscription.SubscriptionServiceConfiguration;
+import org.candlepin.subscriptions.subscription.SubscriptionConfiguration;
 import org.candlepin.subscriptions.tally.TallyWorkerConfiguration;
 import org.candlepin.subscriptions.util.LiquibaseUpdateOnlyConfiguration;
 import org.candlepin.subscriptions.util.UtilConfiguration;
@@ -69,7 +69,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
   RhMarketplaceWorkerConfiguration.class,
   DevModeConfiguration.class,
   SecurityConfiguration.class,
-  SubscriptionServiceConfiguration.class,
+  SubscriptionConfiguration.class,
   // NOTE(khowell): actually not needed in RH marketplace worker
   RhsmSubscriptionsDataSourceConfiguration.class,
   UtilConfiguration.class,

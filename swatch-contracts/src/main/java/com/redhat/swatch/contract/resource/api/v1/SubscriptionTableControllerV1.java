@@ -49,6 +49,8 @@ import com.redhat.swatch.contract.repository.SubscriptionMeasurementKey;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import com.redhat.swatch.contract.resource.InMemoryPager;
 import io.quarkus.panache.common.Sort;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -63,8 +65,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
 
@@ -94,8 +94,9 @@ public class SubscriptionTableControllerV1 {
   }
 
   // Transactional annotation necessary to access lazy loaded ElementCollections for Subscription
+  @SuppressWarnings("java:S107")
   @Transactional
-  public SkuCapacityReportV1 capacityReportBySkuV1( // NOSONAR
+  public SkuCapacityReportV1 capacityReportBySkuV1(
       ProductId productId,
       @Min(0) Integer offset,
       @Min(1) Integer limit,

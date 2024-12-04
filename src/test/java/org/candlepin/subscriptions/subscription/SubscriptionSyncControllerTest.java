@@ -25,16 +25,14 @@ import static org.hamcrest.Matchers.matchesPattern;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import org.candlepin.subscriptions.capacity.files.ProductDenylist;
 import org.candlepin.subscriptions.db.OfferingRepository;
-import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Offering;
@@ -63,18 +61,12 @@ class SubscriptionSyncControllerTest {
 
   @Autowired SubscriptionSyncController subscriptionSyncController;
 
-  @MockitoBean ProductDenylist denylist;
-
   @MockitoBean OfferingRepository offeringRepository;
 
   @MockitoBean SubscriptionRepository subscriptionRepository;
 
-  @MockitoBean OrgConfigRepository orgConfigRepository;
-
-  @MockitoBean SubscriptionService subscriptionService;
-
-  private OffsetDateTime rangeStart = OffsetDateTime.now().minusDays(5);
-  private OffsetDateTime rangeEnd = OffsetDateTime.now().plusDays(5);
+  private final OffsetDateTime rangeStart = OffsetDateTime.now().minusDays(5);
+  private final OffsetDateTime rangeEnd = OffsetDateTime.now().plusDays(5);
 
   @BeforeEach
   void setUp() {
@@ -109,7 +101,7 @@ class SubscriptionSyncControllerTest {
   }
 
   @Test
-  void findsSubscriptionId_WhenOrgIdPresent() {
+  void findsSubscriptionIdWhenOrgIdPresent() {
     UsageCalculation.Key key =
         new Key(
             "OpenShift-metrics",

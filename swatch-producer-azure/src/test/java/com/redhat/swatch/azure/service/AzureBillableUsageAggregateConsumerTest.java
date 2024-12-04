@@ -22,6 +22,7 @@ package com.redhat.swatch.azure.service;
 
 import static com.redhat.swatch.azure.configuration.Channels.BILLABLE_USAGE_HOURLY_AGGREGATE;
 import static com.redhat.swatch.azure.configuration.Channels.BILLABLE_USAGE_STATUS;
+import static com.redhat.swatch.azure.service.AzureBillableUsageAggregateConsumer.METERED_TOTAL_METRIC;
 import static com.redhat.swatch.azure.test.resources.InMemoryMessageBrokerKafkaResource.IN_MEMORY_CONNECTOR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -31,15 +32,19 @@ import com.redhat.swatch.azure.test.resources.InjectWireMock;
 import com.redhat.swatch.azure.test.resources.WireMockResource;
 import com.redhat.swatch.clients.contracts.api.model.AzureUsageContext;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import io.micrometer.core.instrument.Meter;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import io.smallrye.reactive.messaging.memory.InMemorySink;
 import io.smallrye.reactive.messaging.memory.InMemorySource;
 import jakarta.inject.Inject;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -65,6 +70,7 @@ class AzureBillableUsageAggregateConsumerTest {
   private static final String ORG_ID = "org123";
   private static final String PRODUCT_ID = "rosa";
   private static final String BILLING_ACCOUNT_ID = "abc";
+  private static final BigDecimal EXPECTED_VALUE = BigDecimal.valueOf(500.0);
   private static final LoggerCaptor LOGGER_CAPTOR = new LoggerCaptor();
 
   @Inject
@@ -72,6 +78,7 @@ class AzureBillableUsageAggregateConsumerTest {
   InMemoryConnector connector;
 
   @InjectWireMock WireMockResource wireMockResource;
+  @Inject MeterRegistry meterRegistry;
 
   InMemorySource<BillableUsageAggregate> source;
   InMemorySink<BillableUsageAggregate> status;
@@ -91,6 +98,7 @@ class AzureBillableUsageAggregateConsumerTest {
     source = connector.source(BILLABLE_USAGE_HOURLY_AGGREGATE);
     status = connector.sink(BILLABLE_USAGE_STATUS);
     status.clear();
+    meterRegistry.clear();
   }
 
   @Test
@@ -101,6 +109,7 @@ class AzureBillableUsageAggregateConsumerTest {
     whenSendUsage();
     thenInfoLogContainsClientId();
     thenUsageIsSentToAzure();
+    thenMeteredTotalMetricIsPopulated();
   }
 
   @Test
@@ -176,6 +185,7 @@ class AzureBillableUsageAggregateConsumerTest {
     usage.setAggregateId(UUID.randomUUID());
     usage.setAggregateKey(key);
     usage.setWindowTimestamp(OffsetDateTime.now());
+    usage.setTotalValue(EXPECTED_VALUE);
   }
 
   private void whenSendUsage() {
@@ -207,6 +217,25 @@ class AzureBillableUsageAggregateConsumerTest {
                     LOGGER_CAPTOR.records.stream()
                         .anyMatch(
                             r -> r.getLevel().equals(level) && r.getMessage().contains(str))));
+  }
+
+  private void thenMeteredTotalMetricIsPopulated() {
+    var metric = getMeteredTotalMetric(MetricIdUtils.getCores().toUpperCaseFormatted());
+    assertTrue(metric.isPresent());
+    assertEquals(metric.get().measure().iterator().next().getValue(), EXPECTED_VALUE.doubleValue());
+  }
+
+  private Optional<Meter> getMeteredTotalMetric(String metricId) {
+    return meterRegistry.getMeters().stream()
+        .filter(
+            m ->
+                METERED_TOTAL_METRIC.equals(m.getId().getName())
+                    && PRODUCT_ID.equals(m.getId().getTag("product"))
+                    && metricId.equals(m.getId().getTag("metric_id"))
+                    && BillableUsage.BillingProvider.AZURE
+                        .toString()
+                        .equals(m.getId().getTag("billing_provider")))
+        .findFirst();
   }
 
   public static class LoggerCaptor extends Handler {

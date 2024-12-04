@@ -57,13 +57,13 @@ public class RhIdentityHeaderAuthenticationMechanism implements HttpAuthenticati
   @Override
   public Uni<SecurityIdentity> authenticate(
       RoutingContext context, IdentityProviderManager identityProviderManager) {
-    String xRhIdentityHeader = context.request().headers().get(RH_IDENTITY_HEADER);
-    if (StringUtil.isNullOrEmpty(xRhIdentityHeader)) {
+    String rhIdentityHeader = context.request().headers().get(RH_IDENTITY_HEADER);
+    if (StringUtil.isNullOrEmpty(rhIdentityHeader)) {
       // no authentication attempted
       return Uni.createFrom().nullItem();
     }
     try {
-      RhIdentityPrincipal identity = identityFactory.fromHeader(xRhIdentityHeader);
+      RhIdentityPrincipal identity = identityFactory.fromHeader(rhIdentityHeader);
       // NOTE: it is important we call identityProviderManager.authenticate rather than building a
       // SecurityIdentity directly, as identityProviderManager is responsible for invoking the
       // RolesAugmentor

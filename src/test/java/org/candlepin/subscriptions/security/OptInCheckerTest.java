@@ -20,9 +20,12 @@
  */
 package org.candlepin.subscriptions.security;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.exception.OptInRequiredException;

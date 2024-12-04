@@ -20,8 +20,13 @@
  */
 package org.candlepin.subscriptions.tally.job;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.BDDMockito.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.List;

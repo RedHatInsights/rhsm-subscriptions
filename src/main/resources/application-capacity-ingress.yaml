@@ -1,2 +1,0 @@
-rhsm-subscriptions:
-  subscription-sync-enabled: ${SUBSCRIPTION_SYNC_ENABLED:true}

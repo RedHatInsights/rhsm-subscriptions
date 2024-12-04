@@ -426,7 +426,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testReleaseverInFacts_WhenReleaseVerPresent() {
+  void testReleaseverInFactsWhenReleaseVerPresent() {
     String uuid = UUID.randomUUID().toString();
     Consumer consumer = new Consumer();
     consumer.setUuid(uuid);
@@ -437,7 +437,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testIsMarketplaceFacts_WhenAzureOfferPresent() {
+  void testIsMarketplaceFactsWhenAzureOfferPresent() {
     String azureOfferFact = "azure_offer";
     String azzureOffer = "RHEL";
     String uuid = UUID.randomUUID().toString();
@@ -465,7 +465,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testIsMarketplaceFacts_WhenAzureOfferOrAWSBillingProductsNotPresent() {
+  void testIsMarketplaceFactsWhenAzureOfferOrAWSBillingProductsNotPresent() {
     String uuid = UUID.randomUUID().toString();
     Consumer consumer = new Consumer();
     consumer.setUuid(uuid);
@@ -475,7 +475,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testIsMarketplaceFacts_WhenGcpLicenseCodeIsRhel() {
+  void testIsMarketplaceFactsWhenGcpLicenseCodeIsRhel() {
     String uuid = UUID.randomUUID().toString();
     Consumer consumer = new Consumer();
     consumer.setUuid(uuid);
@@ -490,7 +490,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testIsMarketplaceFacts_WhenGcpLicenseCodeIsNonRhel() {
+  void testIsMarketplaceFactsWhenGcpLicenseCodeIsNonRhel() {
     String uuid = UUID.randomUUID().toString();
     Consumer consumer = new Consumer();
     consumer.setUuid(uuid);

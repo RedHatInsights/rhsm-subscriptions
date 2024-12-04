@@ -86,7 +86,7 @@ public class CaptureSnapshotsTaskManager {
   /**
    * Queue up tasks to update the snapshots for all configured orgs.
    *
-   * @throws TaskManagerException
+   * @throws TaskManagerException if org update cannot be executed
    */
   @Transactional
   public void updateSnapshotsForAllOrg() {

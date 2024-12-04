@@ -21,6 +21,8 @@
 package com.redhat.swatch.contract.resource;
 
 import static com.redhat.swatch.contract.resource.ContractsResource.FEATURE_NOT_ENABLED_MESSAGE;
+import static com.redhat.swatch.contract.service.UsageContextSubscriptionProvider.AMBIGUOUS_SUBSCRIPTIONS_COUNTER_NAME;
+import static com.redhat.swatch.contract.service.UsageContextSubscriptionProvider.MISSING_SUBSCRIPTIONS_COUNTER_NAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -47,7 +49,6 @@ import com.redhat.swatch.contract.service.EnabledOrgsProducer;
 import com.redhat.swatch.contract.service.OfferingProductTagLookupService;
 import com.redhat.swatch.contract.service.OfferingSyncService;
 import com.redhat.swatch.contract.service.SubscriptionSyncService;
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -62,6 +63,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -73,6 +75,7 @@ class ContractsResourceTest {
 
   private static final String SKU = "mw123";
   private static final String ORG_ID = "org123";
+  private static final String ROSA = "rosa";
   private final OffsetDateTime defaultEndDate =
       OffsetDateTime.of(2022, 7, 22, 8, 0, 0, 0, ZoneOffset.UTC);
   private final OffsetDateTime defaultLookUpDate =
@@ -86,6 +89,11 @@ class ContractsResourceTest {
   @InjectMock SubscriptionRepository subscriptionRepository;
   @Inject ContractsResource resource;
   @Inject MeterRegistry meterRegistry;
+
+  @BeforeEach
+  void setup() {
+    meterRegistry.clear();
+  }
 
   @Test
   void testSyncAllSubscriptionsWhenFeatureIsNotEnabled() {
@@ -174,35 +182,29 @@ class ContractsResourceTest {
   }
 
   @Test
-  void incrementsMissingCounter_WhenAccountNumberPresent() {
-    Counter counter = meterRegistry.counter("swatch_missing_subscriptions", "provider", "aws");
-    var initialCount = counter.count();
+  void incrementsMissingCounterWhenAccountNumberPresent() {
     when(subscriptionRepository.findByCriteria(any())).thenReturn(Collections.emptyList());
     assertThrows(
         NotFoundException.class,
         () ->
             resource.getAwsUsageContext(
-                defaultLookUpDate, "rosa", null, "Premium", "Production", "123"));
-    assertEquals(1.0, counter.count() - initialCount);
+                defaultLookUpDate, ROSA, null, "Premium", "Production", "123"));
+    thenMissingSubscriptionsMetricIs("aws", 1.0);
   }
 
   @Test
-  void incrementsMissingCounter_WhenOrgIdPresent() {
-    Counter counter = meterRegistry.counter("swatch_missing_subscriptions", "provider", "aws");
-    var initialCount = counter.count();
+  void incrementsMissingCounterWhenOrgIdPresent() {
     when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(Collections.emptyList());
     assertThrows(
         NotFoundException.class,
         () ->
             resource.getAwsUsageContext(
-                defaultLookUpDate, "rosa", "org123", "Premium", "Production", "123"));
-    assertEquals(1.0, counter.count() - initialCount);
+                defaultLookUpDate, ROSA, "org123", "Premium", "Production", "123"));
+    thenMissingSubscriptionsMetricIs("aws", 1.0);
   }
 
   @Test
-  void incrementsAmbiguousCounter_WhenOrgIdPresent() {
-    Counter counter = meterRegistry.counter("swatch_ambiguous_subscriptions", "provider", "aws");
-    var initialCount = counter.count();
+  void incrementsAmbiguousCounterWhenOrgIdPresent() {
     SubscriptionEntity sub1 = new SubscriptionEntity();
     sub1.setBillingProviderId("foo1;foo2;foo3");
     sub1.setEndDate(defaultEndDate);
@@ -212,16 +214,16 @@ class ContractsResourceTest {
     when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(List.of(sub1, sub2));
     AwsUsageContext awsUsageContext =
         resource.getAwsUsageContext(
-            defaultLookUpDate, "rosa", "org123", "Premium", "Production", "123");
+            defaultLookUpDate, ROSA, "org123", "Premium", "Production", "123");
 
-    assertEquals(1.0, counter.count() - initialCount);
+    thenAmbiguousSubscriptionsMetricIs("aws", 1.0);
     assertEquals("foo1", awsUsageContext.getProductCode());
     assertEquals("foo2", awsUsageContext.getCustomerId());
     assertEquals("foo3", awsUsageContext.getAwsSellerAccountId());
   }
 
   @Test
-  void shouldThrowSubscriptionsExceptionForTerminatedSubscription_WhenOrgIdPresent() {
+  void shouldThrowSubscriptionsExceptionForTerminatedSubscriptionWhenOrgIdPresent() {
     var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
     SubscriptionEntity sub1 = new SubscriptionEntity();
     sub1.setBillingProviderId("foo1;foo2;foo3");
@@ -234,7 +236,7 @@ class ContractsResourceTest {
             ServiceException.class,
             () -> {
               resource.getAwsUsageContext(
-                  lookupDate, "rosa", "org123", "Premium", "Production", "123");
+                  lookupDate, ROSA, "org123", "Premium", "Production", "123");
             });
 
     assertEquals(
@@ -243,7 +245,7 @@ class ContractsResourceTest {
   }
 
   @Test
-  void shouldReturnActiveSubscriptionAndNotTerminated_WhenOrgIdPresent() {
+  void shouldReturnActiveSubscriptionAndNotTerminatedWhenOrgIdPresent() {
     var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
     SubscriptionEntity sub1 = new SubscriptionEntity();
     sub1.setBillingProviderId("foo1;foo2;foo3");
@@ -254,7 +256,7 @@ class ContractsResourceTest {
     when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(List.of(sub1, sub2));
     var lookupDate = endDate.plusMinutes(30);
     AwsUsageContext awsUsageContext =
-        resource.getAwsUsageContext(lookupDate, "rosa", "org123", "Premium", "Production", "123");
+        resource.getAwsUsageContext(lookupDate, ROSA, "org123", "Premium", "Production", "123");
     assertEquals("bar1", awsUsageContext.getProductCode());
     assertEquals("bar2", awsUsageContext.getCustomerId());
     assertEquals("bar3", awsUsageContext.getAwsSellerAccountId());
@@ -277,8 +279,6 @@ class ContractsResourceTest {
 
   @Test
   void incrementsRhmMissingSubscriptionsCounter() {
-    Counter counter = meterRegistry.counter("swatch_missing_subscriptions", "provider", "red hat");
-    var initialValue = counter.count();
     when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(Collections.emptyList());
 
     OffsetDateTime now = OffsetDateTime.now();
@@ -287,18 +287,14 @@ class ContractsResourceTest {
     assertThrows(
         NotFoundException.class,
         () -> {
-          resource.getRhmUsageContext("org123", now, "productId", sla, usage);
+          resource.getRhmUsageContext("org123", now, ROSA, sla, usage);
         });
 
-    assertEquals(1.0, counter.count() - initialValue);
+    thenMissingSubscriptionsMetricIs("red hat", 1.0);
   }
 
   @Test
   void incrementsRhmAmbiguousSubscriptionsCounter() {
-    Counter counter =
-        meterRegistry.counter("swatch_ambiguous_subscriptions", "provider", "red hat");
-    var initialValue = counter.count();
-
     SubscriptionEntity sub1 = new SubscriptionEntity();
     sub1.setBillingProviderId("account123");
     sub1.setStartDate(OffsetDateTime.now());
@@ -315,11 +311,11 @@ class ContractsResourceTest {
         resource.getRhmUsageContext(
             "org123",
             OffsetDateTime.now(),
-            "productId",
+            ROSA,
             ServiceLevel.PREMIUM.toString(),
             Usage.PRODUCTION.toString());
 
-    assertEquals(1.0, counter.count() - initialValue);
+    thenAmbiguousSubscriptionsMetricIs("red hat", 1.0);
     assertEquals("account123", rhmUsageContext.getRhSubscriptionId());
   }
 
@@ -340,5 +336,18 @@ class ContractsResourceTest {
         resource.getAzureMarketplaceContext(
             lookupDate, "BASILISK", "org123", "Premium", "Production", "azureSubscriptionId2");
     assertEquals("resourceId2", azureUsageContext.getAzureResourceId());
+  }
+
+  void thenAmbiguousSubscriptionsMetricIs(String provider, double expected) {
+    thenMetricIs(AMBIGUOUS_SUBSCRIPTIONS_COUNTER_NAME, provider, expected);
+  }
+
+  void thenMissingSubscriptionsMetricIs(String provider, double expected) {
+    thenMetricIs(MISSING_SUBSCRIPTIONS_COUNTER_NAME, provider, expected);
+  }
+
+  void thenMetricIs(String metric, String provider, double expected) {
+    assertEquals(
+        expected, meterRegistry.counter(metric, "provider", provider, "product", ROSA).count());
   }
 }

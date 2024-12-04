@@ -20,10 +20,14 @@
  */
 package org.candlepin.subscriptions.rhmarketplace;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.ParameterizedTest.DEFAULT_DISPLAY_NAME;
 import static org.junit.jupiter.params.ParameterizedTest.DISPLAY_NAME_PLACEHOLDER;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import com.redhat.swatch.contracts.api.model.RhmUsageContext;
