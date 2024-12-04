@@ -2,7 +2,7 @@
 
 Subscription watch tracks usage and capacity at an account-level.
 Account-level reporting means that subscriptions are not directly associated to machines,
-containers, or service instances.
+containers, or service instances.  
 
 ![Context diagram for Subscription watch](docs/context.svg)
 
