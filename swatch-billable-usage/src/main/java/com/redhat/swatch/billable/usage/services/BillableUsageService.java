@@ -170,8 +170,7 @@ public class BillableUsageService {
   }
 
   protected double getTotalRemitted(BillableUsage billableUsage) {
-    var filter = BillableUsageRemittanceFilter.fromUsage(billableUsage);
-    filter.setExcludeFailures(true);
+    var filter = BillableUsageRemittanceFilter.totalRemittedFilter(billableUsage);
     return billableUsageRemittanceRepository.getRemittanceSummaries(filter).stream()
         .map(RemittanceSummaryProjection::getTotalRemittedPendingValue)
         .reduce(Double::sum)
