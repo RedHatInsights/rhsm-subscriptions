@@ -175,5 +175,6 @@
     <include file="/liquibase/202410021300-update_usages_to_unknown.xml"/>
     <include file="/liquibase/202410211200-retry-after-billable-usage-index.xml"/>
     <include file="/liquibase/202410241408-clear-retryable.xml"/>
+    <include file="/liquibase/202412041537-primary-keys-on-all-tables.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

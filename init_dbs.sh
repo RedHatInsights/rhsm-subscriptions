@@ -1,4 +1,7 @@
-#!/bin/bash
+#!/bin/bash -x
+# https://github.com/olivergondza/bash-strict-mode
+set -eEuo pipefail
+trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
 if [[ -v POSTGRESQL_USER || -v POSTGRESQL_PASSWORD || -v POSTGRESQL_DATABASE ]]; then
   cat >&2 <<EOF
