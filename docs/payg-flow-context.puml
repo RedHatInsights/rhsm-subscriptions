@@ -1,0 +1,58 @@
+@startuml
+!include <C4/C4_Context>
+
+' see https://forum.plantuml.net/8356/white-backgrounds-are-rendered-transparent-in-svg
+skinparam backgroundColor #FEFEFE
+
+LAYOUT_WITH_LEGEND()
+'LAYOUT_LEFT_RIGHT()
+
+title System Context diagram for SaaS Metering Dataflows
+
+Boundary(backoffice, "Red Hat Backoffice") {
+  System_Ext(subprod, "IT Subscription/Product Services")
+  System_Ext(umb, "UMB", "RH IT Messaging Broker")
+  System_Ext(partnergw, "IT Partner Services", "Handles Cloud Provider Listings and SaaS Subscription Lifecycle")
+}
+
+Boundary(telemetry, "Telemetry Sources") {
+  System_Ext(observatorium, "Telemeter/Rhelemeter (Observatorium)", "Stores time-series telemetry")
+  System_Ext(cost, "Cost Management", "Polls customer cloud provider accounts")
+  System_Ext(ansible, "Ansible Analytics", "Gathers Ansible-specific usage data")
+}
+Boundary(swatch, "Swatch services") {
+  System(contracts, "swatch-contracts", "Manages customer subscription data for subscription watch")
+  System(metrics, "swatch-metrics", "Syncs time-series data from observatorium")
+  System(tally, "swatch-tally", "Aggregates customer account-wide usage")
+  System(billable_usage, "swatch-billable-usage", "Normalizes, aggregates and tracks billable SaaS usage")
+  System(producer_aws, "swatch-producer-aws", "Reports billable usage to AWS")
+  System(producer_azure, "swatch-producer-azure", "Reports billable usage to Azure")
+  System(producer_rhm, "swatch-producer-rhm", "Reports billable usage to Red Hat Marketplace")
+}
+
+Boundary(cloud_providers, "SaaS Billing Providers") {
+  System_Ext(aws, "AWS Marketplace")
+  System_Ext(azure, "Azure Marketplace")
+  System_Ext(rhm, "Red Hat Marketplace")
+}
+
+Rel(metrics, observatorium, "Queries")
+Rel(metrics, tally, "Produces message")
+Rel(cost, tally, "Produces message")
+Rel(ansible, tally, "Produces message")
+Rel(partnergw, subprod, "Syncs subscription data")
+Rel(partnergw, umb, "Produces change notifications")
+Rel(subprod, umb, "Produces change notifications")
+Rel(contracts, umb, "Consumes change notifications")
+Rel(contracts, subprod, "Queries subscription & product data")
+Rel(contracts, partnergw, "Queries SaaS-specific subscription data")
+Rel(tally, billable_usage, "Produces message")
+Rel(billable_usage, producer_aws, "Produces message")
+Rel(billable_usage, producer_azure, "Produces message")
+Rel(billable_usage, contracts, "Queries pre-paid capacity")
+Rel(tally, producer_rhm, "Produces message")
+Rel(producer_aws, aws, "Submits via HTTP")
+Rel(producer_azure, azure, "Submits via HTTP")
+Rel(producer_rhm, rhm, "Submits via HTTP")
+
+@enduml
