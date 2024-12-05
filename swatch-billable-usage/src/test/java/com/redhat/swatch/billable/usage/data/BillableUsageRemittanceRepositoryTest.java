@@ -372,6 +372,25 @@ class BillableUsageRemittanceRepositoryTest {
     String remittancePendingDateStr = "2024-06-19T16:52:17.526219+00:00";
     String hardwareMeasurementType = "AWS";
 
+    var billableUsageNoExpected =
+        BillableUsageRemittanceEntity.builder()
+            .orgId(orgId)
+            .productId("another_product")
+            .metricId(metricId)
+            .accumulationPeriod("2024-06")
+            .sla(sla)
+            .usage(usage)
+            .billingProvider(billingProvider)
+            .billingAccountId(billingAccountId)
+            .remittedPendingValue(1.0)
+            .remittancePendingDate(
+                OffsetDateTime.parse(
+                    remittancePendingDateStr, DateTimeFormatter.ISO_OFFSET_DATE_TIME))
+            .tallyId(UUID.randomUUID())
+            .hardwareMeasurementType(hardwareMeasurementType)
+            .status(RemittanceStatus.PENDING)
+            .build();
+
     var billableUsageRemittanceFromCost =
         BillableUsageRemittanceEntity.builder()
             .orgId(orgId)
@@ -408,10 +427,13 @@ class BillableUsageRemittanceRepositoryTest {
                     remittancePendingDateStr, DateTimeFormatter.ISO_OFFSET_DATE_TIME))
             .tallyId(UUID.randomUUID())
             .hardwareMeasurementType("PHYSICAL")
-            .status(RemittanceStatus.PENDING)
+            .status(RemittanceStatus.SUCCEEDED)
             .build();
     repository.persist(
-        List.of(billableUsageRemittanceFromCost, billableUsageRemittanceFromRhelemeter));
+        List.of(
+            billableUsageRemittanceFromCost,
+            billableUsageRemittanceFromRhelemeter,
+            billableUsageNoExpected));
 
     BillableUsage incomingUsage = new BillableUsage();
     incomingUsage
@@ -428,11 +450,11 @@ class BillableUsageRemittanceRepositoryTest {
         .withHardwareMeasurementType("PHYSICAL");
 
     // Build the filter the same way that we do in the billable usage in the service.
-    var filter = BillableUsageRemittanceFilter.fromUsage(incomingUsage);
+    var filter = BillableUsageRemittanceFilter.totalRemittedFilter(incomingUsage);
 
     List<RemittanceSummaryProjection> remittanceSummaries =
         repository.getRemittanceSummaries(filter);
-    assertEquals(1, remittanceSummaries.size());
+    assertEquals(2, remittanceSummaries.size());
 
     var expectedSummary =
         RemittanceSummaryProjection.builder()
@@ -450,10 +472,29 @@ class BillableUsageRemittanceRepositoryTest {
             .usage(billableUsageRemittanceFromRhelemeter.getUsage())
             .hardwareMeasurementType(
                 billableUsageRemittanceFromRhelemeter.getHardwareMeasurementType())
-            .status(RemittanceStatus.PENDING)
+            .status(billableUsageRemittanceFromRhelemeter.getStatus())
             .build();
 
-    assertEquals(expectedSummary, remittanceSummaries.get(0));
+    assertTrue(remittanceSummaries.contains(expectedSummary));
+
+    var expectedSummary2 =
+        RemittanceSummaryProjection.builder()
+            .accumulationPeriod(
+                getAccumulationPeriod(billableUsageRemittanceFromCost.getRemittancePendingDate()))
+            .billingAccountId(billableUsageRemittanceFromCost.getBillingAccountId())
+            .billingProvider(billableUsageRemittanceFromCost.getBillingProvider())
+            .orgId(billableUsageRemittanceFromCost.getOrgId())
+            .productId(billableUsageRemittanceFromCost.getProductId())
+            .remittancePendingDate(billableUsageRemittanceFromCost.getRemittancePendingDate())
+            .metricId(billableUsageRemittanceFromCost.getMetricId())
+            .totalRemittedPendingValue(billableUsageRemittanceFromCost.getRemittedPendingValue())
+            .sla(billableUsageRemittanceFromCost.getSla())
+            .usage(billableUsageRemittanceFromCost.getUsage())
+            .hardwareMeasurementType(billableUsageRemittanceFromCost.getHardwareMeasurementType())
+            .status(billableUsageRemittanceFromCost.getStatus())
+            .build();
+
+    assertTrue(remittanceSummaries.contains(expectedSummary2));
   }
 
   @Test
