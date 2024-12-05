@@ -53,7 +53,7 @@ public class BillableUsageRemittanceFilter {
   private boolean excludeFailures;
   private UUID tallyId;
 
-  public static BillableUsageRemittanceFilter fromUsage(BillableUsage usage) {
+  public static BillableUsageRemittanceFilter totalRemittedFilter(BillableUsage usage) {
     return BillableUsageRemittanceFilter.builder()
         .orgId(usage.getOrgId())
         .billingAccountId(usage.getBillingAccountId())
@@ -63,7 +63,7 @@ public class BillableUsageRemittanceFilter {
         .productId(usage.getProductId())
         .sla(usage.getSla().value())
         .usage(usage.getUsage().value())
-        .hardwareMeasurementType(usage.getHardwareMeasurementType())
+        .excludeFailures(true)
         .build();
   }
 }
