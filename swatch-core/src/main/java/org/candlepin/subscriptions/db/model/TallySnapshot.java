@@ -39,7 +39,6 @@ import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -97,10 +96,6 @@ public class TallySnapshot implements Serializable {
   @MapKeyClass(TallyMeasurementKey.class)
   @Builder.Default
   private Map<TallyMeasurementKey, Double> tallyMeasurements = new HashMap<>();
-
-  public int getMeasurementAsInteger(HardwareMeasurementType type, MetricId metricId) {
-    return Optional.ofNullable(getMeasurement(type, metricId)).map(Double::intValue).orElse(0);
-  }
 
   public Double getMeasurement(HardwareMeasurementType type, MetricId metricId) {
     TallyMeasurementKey key = new TallyMeasurementKey(type, metricId.getValue());

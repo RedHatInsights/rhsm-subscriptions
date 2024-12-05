@@ -20,10 +20,6 @@
  */
 package org.candlepin.subscriptions.db;
 
-import static org.hibernate.jpa.AvailableHints.HINT_FETCH_SIZE;
-import static org.hibernate.jpa.AvailableHints.HINT_READ_ONLY;
-
-import jakarta.persistence.QueryHint;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.UUID;
@@ -39,7 +35,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -174,36 +169,6 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
       @Param("orgId") String orgId,
       @Param("productId") String productId,
       @Param("granularity") Granularity granularity,
-      @Param("serviceLevel") ServiceLevel serviceLevel,
-      @Param("usage") Usage usage,
-      @Param("billingProvider") BillingProvider billingProvider,
-      @Param("billingAcctId") String billingAccountId,
-      @Param("beginning") OffsetDateTime beginning,
-      @Param("ending") OffsetDateTime ending,
-      @Param("measurementKey") TallyMeasurementKey measurementKey);
-
-  @SuppressWarnings("java:S107")
-  @QueryHints(
-      value = {
-        @QueryHint(name = HINT_FETCH_SIZE, value = "1024"),
-        @QueryHint(name = HINT_READ_ONLY, value = "true")
-      })
-  @Query(
-      """
-        select s from TallySnapshot s
-        left join s.tallyMeasurements m on key(m) = :measurementKey
-        where s.orgId = :orgId and
-          s.productId = :productId and
-          s.granularity = 'HOURLY' and
-          s.serviceLevel = :serviceLevel and
-          s.usage = :usage and
-          s.billingProvider = :billingProvider and
-          s.billingAccountId = :billingAcctId and
-          s.snapshotDate >= :beginning and s.snapshotDate <= :ending order by s.snapshotDate
-      """)
-  Stream<TallySnapshot> getBillableSnapshots(
-      @Param("orgId") String orgId,
-      @Param("productId") String productId,
       @Param("serviceLevel") ServiceLevel serviceLevel,
       @Param("usage") Usage usage,
       @Param("billingProvider") BillingProvider billingProvider,

@@ -128,14 +128,6 @@ class InventoryRepositoryIT implements ExtendWithInventoryService, ExtendWithSwa
     assertEquals(Set.of("d1", "d2"), fact.getSystemProfileProductIds());
   }
 
-  @Test
-  void testActiveSystemCount() {
-    assertEquals(0, repository.activeSystemCountForOrgId(ORG_ID, CUT_OFF_DAYS));
-
-    givenHost();
-    assertEquals(1, repository.activeSystemCountForOrgId(ORG_ID, CUT_OFF_DAYS));
-  }
-
   @Transactional
   @Test
   void testGetReportedHypervisors() {
