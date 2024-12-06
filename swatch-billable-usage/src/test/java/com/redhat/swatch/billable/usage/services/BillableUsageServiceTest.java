@@ -20,12 +20,14 @@
  */
 package com.redhat.swatch.billable.usage.services;
 
+import static com.redhat.swatch.billable.usage.services.BillableUsageService.BILLABLE_USAGE_METRIC;
+import static com.redhat.swatch.billable.usage.services.BillableUsageService.COVERED_USAGE_METRIC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -43,6 +45,8 @@ import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinitionRegistry;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import io.micrometer.core.instrument.Meter;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectSpy;
@@ -53,7 +57,9 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -79,7 +85,7 @@ class BillableUsageServiceTest {
               LocalDateTime.of(2019, 5, 24, 12, 35, 0, 0).toInstant(ZoneOffset.UTC),
               ZoneOffset.UTC));
 
-  private static final String AWS_METRIC_ID = "aws_metric";
+  private static final String AWS_METRIC_ID = "Instance-hours";
   private static final String ROSA = "rosa";
   private static final String ORG_ID = "org123";
 
@@ -91,6 +97,8 @@ class BillableUsageServiceTest {
 
   @Inject ApplicationClock clock;
   @Inject BillableUsageService service;
+  @Inject BillableUsageService billableUsageService;
+  @Inject MeterRegistry meterRegistry;
 
   private final SubscriptionDefinitionRegistry mockSubscriptionDefinitionRegistry =
       mock(SubscriptionDefinitionRegistry.class);
@@ -106,6 +114,7 @@ class BillableUsageServiceTest {
     remittanceRepo.deleteAll();
     // reset original subscription definition registry
     setSubscriptionDefinitionRegistry(originalReference);
+    meterRegistry.clear();
   }
 
   @AfterEach
@@ -125,6 +134,7 @@ class BillableUsageServiceTest {
 
     thenRemittanceIsUpdated(usage, 1.0);
     thenUsageIsSent(usage, 1.0);
+    thenBillableMeterMatches(usage, 1.0);
   }
 
   @Test
@@ -138,6 +148,7 @@ class BillableUsageServiceTest {
 
     thenRemittanceIsUpdated(usage, 2.0);
     thenUsageIsSent(usage, 2.0);
+    thenBillableMeterMatches(usage, 2.0);
   }
 
   @Test
@@ -152,6 +163,7 @@ class BillableUsageServiceTest {
     // 4(Billing_factor) = 72
     thenRemittanceIsUpdated(usage, 72.0);
     thenUsageIsSent(usage, 18.0);
+    thenBillableMeterMatches(usage, 18.0);
   }
 
   @Test
@@ -164,6 +176,7 @@ class BillableUsageServiceTest {
     service.submitBillableUsage(usage);
 
     thenUsageIsSent(usage, 0.0);
+    thenBillableMeterMatches(usage, 0.0);
   }
 
   @Test
@@ -194,6 +207,7 @@ class BillableUsageServiceTest {
 
     thenRemittanceIsUpdated(usage, 12.0);
     thenUsageIsSent(usage, usage.getValue());
+    thenBillableMeterMatches(usage, usage.getValue());
   }
 
   @Test
@@ -206,6 +220,7 @@ class BillableUsageServiceTest {
 
     thenRemittanceIsUpdated(usage, 28.0);
     thenUsageIsSent(usage, usage.getValue());
+    thenBillableMeterMatches(usage, usage.getValue());
   }
 
   // Simulates progression through contract billing.
@@ -522,7 +537,7 @@ class BillableUsageServiceTest {
     }
   }
 
-  private void givenExistingContract(
+  private List<Contract> givenExistingContract(
       String orgId,
       String productId,
       String metric,
@@ -547,6 +562,7 @@ class BillableUsageServiceTest {
     when(contractsApi.getContract(
             orgId, productId, vendorProductCode, billingProvider, billingAccountId, startDate))
         .thenReturn(List.of(contract1, updatedContract));
+    return List.of(contract1, updatedContract);
   }
 
   void givenExistingRemittanceForUsage(BillableUsage usage, double remittedPendingValue) {
@@ -616,7 +632,6 @@ class BillableUsageServiceTest {
       boolean isContractEnabledTest)
       throws Exception {
     BillableUsage usage = givenInstanceHoursUsageForRosa(usageDate, currentUsage, currentUsage);
-    givenExistingContractForUsage(usage);
 
     // Enable contracts for the current product.
     givenExistingRemittanceForUsage(usage, CLOCK.now().minusHours(1), currentRemittance);
@@ -625,16 +640,18 @@ class BillableUsageServiceTest {
     stubSubscriptionDefinition(
         usage.getProductId(), usage.getMetricId(), billingFactor, isContractEnabledTest);
 
+    List<Contract> contracts = new ArrayList<>();
     // Configure contract data, if defined
     if (isContractEnabledTest) {
-      givenExistingContract(
-          usage.getOrgId(),
-          usage.getProductId(),
-          AWS_METRIC_ID,
-          usage.getVendorProductCode(),
-          usage.getBillingProvider().value(),
-          usage.getBillingAccountId(),
-          usage.getSnapshotDate());
+      contracts =
+          givenExistingContract(
+              usage.getOrgId(),
+              usage.getProductId(),
+              AWS_METRIC_ID,
+              usage.getVendorProductCode(),
+              usage.getBillingProvider().value(),
+              usage.getBillingAccountId(),
+              usage.getSnapshotDate());
     }
 
     service.submitBillableUsage(usage);
@@ -646,6 +663,36 @@ class BillableUsageServiceTest {
     }
 
     thenUsageIsSent(usage, expectedBilledValue);
+    thenBillableMeterMatches(usage, expectedBilledValue);
+    if (!contracts.isEmpty()) {
+      thenCoveredMeterMatches(usage, getCoveredAmount(usage, currentUsage, contracts, usageDate));
+    }
+  }
+
+  private double getCoveredAmount(
+      BillableUsage usage,
+      Double currentUsage,
+      List<Contract> contracts,
+      OffsetDateTime usageDate) {
+    double coverage =
+        contracts.stream()
+            .filter(
+                x ->
+                    (x.getStartDate() == null
+                            || x.getStartDate().isBefore(usageDate)
+                            || x.getStartDate().isEqual(usageDate))
+                        && (x.getEndDate() == null
+                            || x.getEndDate().isAfter(usageDate)
+                            || x.getEndDate().isEqual(usageDate)))
+            .map(Contract::getMetrics)
+            .flatMap(List::stream)
+            .filter(
+                x -> x.getMetricId().equals(MetricId.fromString(usage.getMetricId()).toString()))
+            .mapToInt(Metric::getValue)
+            .sum();
+    return currentUsage * usage.getBillingFactor() > coverage
+        ? coverage
+        : currentUsage * usage.getBillingFactor();
   }
 
   private void thenUsageIsSent(BillableUsage usage, double expectedValue) {
@@ -659,6 +706,37 @@ class BillableUsageServiceTest {
                   assertEquals(usage.getCurrentTotal(), output.getCurrentTotal());
                   return true;
                 }));
+  }
+
+  private void thenBillableMeterMatches(BillableUsage usage, double expectedBillableValue) {
+
+    var billableMeter =
+        getUsageMetric(
+            BILLABLE_USAGE_METRIC,
+            usage.getProductId(),
+            usage.getMetricId(),
+            usage.getBillingProvider().value());
+    if (expectedBillableValue > 0) {
+      assertEquals(
+          expectedBillableValue, billableMeter.get().measure().iterator().next().getValue());
+      assertEquals(usage.getStatus().value(), billableMeter.get().getId().getTag("status"));
+    } else {
+      assertFalse(billableMeter.isPresent());
+    }
+  }
+
+  private void thenCoveredMeterMatches(BillableUsage usage, Double expectedCoveredValue) {
+    var coveredMeter =
+        getUsageMetric(
+            COVERED_USAGE_METRIC,
+            usage.getProductId(),
+            usage.getMetricId(),
+            usage.getBillingProvider().value());
+    if (expectedCoveredValue > 0) {
+      assertEquals(expectedCoveredValue, coveredMeter.get().measure().iterator().next().getValue());
+    } else {
+      assertFalse(coveredMeter.isPresent());
+    }
   }
 
   private void thenUsageIsNotSent() {
@@ -730,5 +808,17 @@ class BillableUsageServiceTest {
     } catch (Exception e) {
       fail(e);
     }
+  }
+
+  private Optional<Meter> getUsageMetric(
+      String metric, String productTag, String metricId, String billingProvider) {
+    return meterRegistry.getMeters().stream()
+        .filter(
+            m ->
+                metric.equals(m.getId().getName())
+                    && productTag.equals(m.getId().getTag("product"))
+                    && metricId.equals(m.getId().getTag("metric_id"))
+                    && billingProvider.equals(m.getId().getTag("billing_provider")))
+        .findFirst();
   }
 }
