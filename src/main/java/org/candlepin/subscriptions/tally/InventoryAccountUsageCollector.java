@@ -193,7 +193,6 @@ public class InventoryAccountUsageCollector {
 
     if (inventoryHostFacts.getInventoryId() != null) {
       host.setInventoryId(inventoryHostFacts.getInventoryId().toString());
-
       // fallback logic to set the instance ID if and only if the instanceId is not set yet:
       if (host.getInstanceId() == null) {
         // We assume that the instance ID for any given HBI host record is the inventory ID; compare
@@ -206,9 +205,12 @@ public class InventoryAccountUsageCollector {
     host.setOrgId(inventoryHostFacts.getOrgId());
     host.setDisplayName(inventoryHostFacts.getDisplayName());
     host.setSubscriptionManagerId(inventoryHostFacts.getSubscriptionManagerId());
+    // TAG: REQUIRES NORMALIZATION
     host.setGuest(normalizedFacts.isVirtual());
+    // TAG: REQUIRES NORMALIZATION
     host.setHypervisorUuid(normalizedFacts.getHypervisorUuid());
 
+    // TAG: REQUIRES NORMALIZATION
     if (normalizedFacts.getCores() != null) {
       host.getMeasurements()
           .put(
@@ -216,6 +218,7 @@ public class InventoryAccountUsageCollector {
               normalizedFacts.getCores().doubleValue());
     }
 
+    // TAG: REQUIRES NORMALIZATION
     if (normalizedFacts.getSockets() != null) {
       host.getMeasurements()
           .put(
@@ -223,8 +226,11 @@ public class InventoryAccountUsageCollector {
               normalizedFacts.getSockets().doubleValue());
     }
 
+    // TAG: REQUIRES NORMALIZATION
     host.setHypervisor(normalizedFacts.isHypervisor());
+    // TAG: REQUIRES NORMALIZATION
     host.setUnmappedGuest(normalizedFacts.isVirtual() && normalizedFacts.isHypervisorUnknown());
+    // DONE
     host.setCloudProvider(
         normalizedFacts.getCloudProviderType() == null
             ? null

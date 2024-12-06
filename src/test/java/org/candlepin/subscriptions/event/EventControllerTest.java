@@ -45,6 +45,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventRecord;
+import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.security.OptInController;
@@ -613,6 +614,118 @@ class EventControllerTest {
     assertEquals(1, eventRecord.getEvent().getMeasurements().size());
     var measurement = eventRecord.getEvent().getMeasurements().get(0);
     assertEquals("Instance-hours", measurement.getMetricId());
+  }
+
+  @Test
+  void incomingHbiEventsAreFilteredByActiveOrgIdIfFromHbi() {
+    String expectedActiveOrgId = "111111111";
+    String expectedInactiveOrgId = "22222222";
+    String expecedNonHbiOrgId = "33333333";
+
+    var hbiEventWithActiveOrgId =
+        """
+                    {
+                     "sla":"Premium",
+                     "org_id":"%s",
+                     "timestamp":"2024-06-10T10:00:00Z",
+                     "conversion":false,
+                     "event_type":"snapshot_rhel-for-x86-els-payg-addon_vCPUs",
+                     "expiration":"2024-06-10T11:00:00Z",
+                     "instance_id":"d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                     "product_tag":[
+                        "rhel-for-x86-els-payg-addon"
+                     ],
+                     "display_name":"automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                     "event_source":"Premium",
+                     "measurements":[
+                        {
+                           "value":4.0,
+                           "metric_id":"vCPUs"
+                        }
+                     ],
+                     "service_type":"HBI_HOST"
+                  }
+            """
+            .formatted(expectedActiveOrgId);
+
+    var hbiEventWithInactiveOrgId =
+        """
+                    {
+                     "sla":"Premium",
+                     "org_id":"%s",
+                     "timestamp":"2024-06-10T10:00:00Z",
+                     "conversion":false,
+                     "event_type":"snapshot_rhel-for-x86-els-payg-addon_vCPUs",
+                     "expiration":"2024-06-10T11:00:00Z",
+                     "instance_id":"d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                     "product_tag":[
+                        "rhel-for-x86-els-payg-addon"
+                     ],
+                     "display_name":"automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                     "event_source":"Premium",
+                     "measurements":[
+                        {
+                           "value":4.0,
+                           "metric_id":"vCPUs"
+                        }
+                     ],
+                     "service_type":"HBI_HOST"
+                  }
+            """
+            .formatted(expectedInactiveOrgId);
+
+    var nonHbiEvent =
+        """
+                    {
+                     "sla":"Premium",
+                     "org_id":"%s",
+                     "timestamp":"2024-06-10T10:00:00Z",
+                     "conversion":false,
+                     "event_type":"snapshot_rhel",
+                     "expiration":"2024-06-10T11:00:00Z",
+                     "instance_id":"d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                     "product_tag":[
+                        "rhel-for-x86-els-payg-addon"
+                     ],
+                     "display_name":"automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                     "event_source":"Premium",
+                     "measurements":[
+                        {
+                           "value":4.0,
+                           "metric_id":"vCPUs"
+                        }
+                     ],
+                     "service_type":"RHEL Server"
+                  }
+            """
+            .formatted(expecedNonHbiOrgId);
+
+    List<String> eventRecords = new ArrayList<>();
+    eventRecords.add(hbiEventWithActiveOrgId);
+    eventRecords.add(hbiEventWithInactiveOrgId);
+    eventRecords.add(nonHbiEvent);
+
+    when(optInController.isOptedIn(expectedActiveOrgId)).thenReturn(true);
+    when(optInController.isOptedIn(expectedInactiveOrgId)).thenReturn(false);
+
+    eventController.persistServiceInstances(eventRecords);
+
+    ArgumentCaptor<List<EventRecord>> captor = ArgumentCaptor.forClass(List.class);
+    verify(eventRecordRepository).saveAll(captor.capture());
+    var records = captor.getAllValues().get(0);
+    assertEquals(2, records.size());
+    assertTrue(records.stream().anyMatch(r -> expectedActiveOrgId.equals(r.getOrgId())));
+    assertTrue(records.stream().anyMatch(r -> expecedNonHbiOrgId.equals(r.getOrgId())));
+
+    // Make sure that opt-in wasn't tried for HBI events.
+    verify(optInController, times(1)).isOptedIn(expectedActiveOrgId);
+    verify(optInController, never()).optInByOrgId(expectedActiveOrgId, OptInType.PROMETHEUS);
+    verify(optInController, times(1)).isOptedIn(expectedInactiveOrgId);
+    verify(optInController, never()).optInByOrgId(expectedInactiveOrgId, OptInType.PROMETHEUS);
+
+    // Opt-in should have been attempted for non-HBI host.
+    verify(optInController, never()).isOptedIn(expecedNonHbiOrgId);
+    verify(optInController, times(1)).optInByOrgId(expecedNonHbiOrgId, OptInType.PROMETHEUS);
   }
 
   private Optional<Meter> getIngestedUsageMetric(

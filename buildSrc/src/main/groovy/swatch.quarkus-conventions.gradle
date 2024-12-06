@@ -24,3 +24,5 @@ test {
     }
     jacocoTestReport.enabled = false
 }
+
+compileJava.dependsOn tasks.compileQuarkusGeneratedSourcesJava
