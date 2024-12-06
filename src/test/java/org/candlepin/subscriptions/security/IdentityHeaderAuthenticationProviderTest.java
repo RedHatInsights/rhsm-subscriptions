@@ -91,7 +91,6 @@ class IdentityHeaderAuthenticationProviderTest {
   @Test
   void invalidPskPrincipalThrowsException() {
     AuthProperties authProperties = new AuthProperties();
-    String pskEncoded = "{\"source\":\"c9a98753-2092-4617-b226-5c2653330b3d\"}";
     PskClientPrincipal principal = new PskClientPrincipal();
     principal.setPreSharedKey("e88bc49f-e395-48c0-8665-c87b251c30cf");
     authProperties.setSwatchPsks(Map.of("source", "c9a98753-2092-4617-b226-5c2653330b3d"));
@@ -109,7 +108,6 @@ class IdentityHeaderAuthenticationProviderTest {
   @Test
   void emptyPskPrincipalThrowsException() {
     AuthProperties authProperties = new AuthProperties();
-    String pskEncoded = "{\"source\":\"c9a98753-2092-4617-b226-5c2653330b3d\"}";
     PskClientPrincipal principal = new PskClientPrincipal();
     authProperties.setSwatchPsks(Map.of("source", "c9a98753-2092-4617-b226-5c2653330b3d"));
     IdentityHeaderAuthenticationProvider provider =
