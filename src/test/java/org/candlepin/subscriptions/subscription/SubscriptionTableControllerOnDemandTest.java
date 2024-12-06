@@ -97,17 +97,6 @@ class SubscriptionTableControllerOnDemandTest {
           ServiceLevel.PREMIUM,
           Usage.PRODUCTION,
           true);
-  private static final SubCapSpec MW01882S =
-      SubCapSpec.offering(
-          "MW01882S",
-          "OpenShift Streams for Apache Kafka",
-          null,
-          null,
-          null,
-          null,
-          ServiceLevel.STANDARD,
-          Usage.DEVELOPMENT_TEST,
-          false);
   private static final SubCapSpec RH02781HR =
       SubCapSpec.offering(
           "RH02781HR",
