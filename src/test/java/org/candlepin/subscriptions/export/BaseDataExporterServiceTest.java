@@ -33,8 +33,6 @@ import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequest;
 import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequestClass;
 import com.redhat.cloud.event.parser.ConsoleCloudEventParser;
 import com.redhat.cloud.event.parser.GenericConsoleCloudEvent;
-import com.redhat.swatch.export.DataExporterService;
-import com.redhat.swatch.export.ExportRequestHandler;
 import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -72,8 +70,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 public abstract class BaseDataExporterServiceTest
     implements ExtendWithExportServiceWireMock, ExtendWithEmbeddedKafka, ExtendWithSwatchDatabase {
 
-  protected static final String RHEL_FOR_X86 = "RHEL for x86";
-  protected static final String ROSA = "rosa";
   protected static final String ORG_ID = "13259775";
   protected static final String INSTANCE_TYPE = "HBI_HOST";
 
@@ -83,11 +79,9 @@ public abstract class BaseDataExporterServiceTest
 
   @Autowired ObjectMapper objectMapper;
   @Autowired CsvMapper csvMapper;
-  @Autowired ExportRequestHandler listener;
   @Autowired KafkaProperties kafkaProperties;
   @Autowired OfferingRepository offeringRepository;
   @Autowired AccountServiceInventoryRepository accountServiceInventoryRepository;
-  @Autowired DataExporterService<?> dataExporterService;
   @MockitoBean RbacService rbacService;
 
   protected ConsoleCloudEventParser parser;
@@ -194,10 +188,6 @@ public abstract class BaseDataExporterServiceTest
   protected void verifyRequestWasSentToExportServiceWithNoDataFound() {
     verifyRequestWasSentToExportServiceWithUploadData(
         request, toJson(new InstancesExportJson().withData(new ArrayList<>())));
-  }
-
-  protected void updateOffering() {
-    offeringRepository.save(offering);
   }
 
   protected String toJson(Object data) {

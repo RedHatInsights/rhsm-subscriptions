@@ -53,10 +53,6 @@ public interface SubscriptionCapacityViewRepository
     return findBy(criteria, FluentQuery.FetchableFluentQuery::stream);
   }
 
-  static Specification<SubscriptionCapacityView> buildSearchSpecification(String orgId) {
-    return buildSearchSpecification(orgId, null, null, null, null, null, null, null);
-  }
-
   @SuppressWarnings("java:S107")
   static Specification<SubscriptionCapacityView> buildSearchSpecification(
       String orgId,

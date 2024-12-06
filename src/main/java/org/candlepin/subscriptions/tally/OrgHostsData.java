@@ -133,21 +133,6 @@ public class OrgHostsData {
         });
   }
 
-  public void tallyGuestData(AccountUsageCalculation accountCalc) {
-    hypervisorFacts.forEach(
-        (hypervisorUuid, normalizedFacts) -> {
-          Set<UsageCalculation.Key> keys =
-              hypervisorKeys.getOrDefault(hypervisorUuid, Collections.emptySet());
-
-          for (UsageCalculation.Key key : keys) {
-            UsageCalculation usageCalc = accountCalc.getOrCreateCalculation(key);
-            ProductUsageCollector productUsageCollector =
-                ProductUsageCollectorFactory.get(key.getProductId());
-            productUsageCollector.collectForHypervisor(usageCalc, normalizedFacts);
-          }
-        });
-  }
-
   public void addHostWithNormalizedFacts(Host host, NormalizedFacts facts) {
     this.hostNormalizedFactsMap.put(host, facts);
   }

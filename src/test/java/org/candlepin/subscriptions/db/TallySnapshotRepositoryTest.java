@@ -69,8 +69,7 @@ class TallySnapshotRepositoryTest {
   @Test
   void testSave() {
     TallySnapshot t =
-        createUnpersisted(
-            "orgHello", "Hello", "World", Granularity.DAILY, 2, 3, 4, OffsetDateTime.now());
+        createUnpersisted("orgHello", "World", Granularity.DAILY, 2, 3, 4, OffsetDateTime.now());
     TallySnapshot saved = repository.saveAndFlush(t);
     assertNotNull(saved.getId());
   }
@@ -78,14 +77,12 @@ class TallySnapshotRepositoryTest {
   @SuppressWarnings("linelength")
   @Test
   void findByOrgIdAndProductIdAndGranularityAndServiceLevelAndUsage() {
-    TallySnapshot t1 =
-        createUnpersisted("orgHello", "Hello", "World", Granularity.DAILY, 2, 3, 4, NOWISH);
+    TallySnapshot t1 = createUnpersisted("orgHello", "World", Granularity.DAILY, 2, 3, 4, NOWISH);
     TallySnapshot t2 =
-        createUnpersisted("orgBugs", "Bugs", "Bunny", Granularity.DAILY, 9999, 999, 99, NOWISH);
+        createUnpersisted("orgBugs", "Bunny", Granularity.DAILY, 9999, 999, 99, NOWISH);
     TallySnapshot t3 =
         createUnpersisted(
             "orgBugs",
-            "Bugs",
             "Bunny",
             Granularity.DAILY,
             ServiceLevel.STANDARD,
@@ -133,7 +130,6 @@ class TallySnapshotRepositoryTest {
     TallySnapshot t1 =
         createUnpersisted(
             "orgA1",
-            "A1",
             "P1",
             Granularity.DAILY,
             ServiceLevel.EMPTY,
@@ -178,21 +174,16 @@ class TallySnapshotRepositoryTest {
     String product1 = "Product1";
     String product2 = "Product2";
     // Will not be found - out of date range.
-    TallySnapshot t1 =
-        createUnpersisted("Org1", "Account1", product1, Granularity.DAILY, 2, 3, 4, LONG_AGO);
+    TallySnapshot t1 = createUnpersisted("Org1", product1, Granularity.DAILY, 2, 3, 4, LONG_AGO);
     // Will be found.
-    TallySnapshot t2 =
-        createUnpersisted("Org1", "Account1", product1, Granularity.DAILY, 9, 10, 11, NOWISH);
+    TallySnapshot t2 = createUnpersisted("Org1", product1, Granularity.DAILY, 9, 10, 11, NOWISH);
     // Will not be found, incorrect granularity
-    TallySnapshot t3 =
-        createUnpersisted("Org1", "Account1", product2, Granularity.WEEKLY, 19, 20, 21, NOWISH);
+    TallySnapshot t3 = createUnpersisted("Org1", product2, Granularity.WEEKLY, 19, 20, 21, NOWISH);
     // Will not be in result - Account not in query
     TallySnapshot t4 =
-        createUnpersisted(
-            "Org1", "Account2", product1, Granularity.DAILY, 99, 100, 101, FAR_FUTURE);
+        createUnpersisted("Org1", product1, Granularity.DAILY, 99, 100, 101, FAR_FUTURE);
     // Will not be found - incorrect granularity
-    TallySnapshot t5 =
-        createUnpersisted("Org1", "Account1", product1, Granularity.WEEKLY, 20, 22, 23, NOWISH);
+    TallySnapshot t5 = createUnpersisted("Org1", product1, Granularity.WEEKLY, 20, 22, 23, NOWISH);
 
     repository.saveAll(Arrays.asList(t1, t2, t3, t4, t5));
     repository.flush();
@@ -230,8 +221,7 @@ class TallySnapshotRepositoryTest {
   @Test
   void testPersistsHardwareMeasurements() {
     TallySnapshot snap =
-        createUnpersisted(
-            "OrgAcme", "Acme Inc.", "rocket-skates", Granularity.DAILY, 1, 2, 3, NOWISH);
+        createUnpersisted("OrgAcme", "rocket-skates", Granularity.DAILY, 1, 2, 3, NOWISH);
 
     snap.setMeasurement(HardwareMeasurementType.PHYSICAL, MetricIdUtils.getCores(), 9.0);
     snap.setMeasurement(HardwareMeasurementType.PHYSICAL, MetricIdUtils.getSockets(), 8.0);
@@ -270,7 +260,6 @@ class TallySnapshotRepositoryTest {
 
   private TallySnapshot createUnpersisted(
       String orgId,
-      String account,
       String product,
       Granularity granularity,
       int cores,
@@ -279,7 +268,6 @@ class TallySnapshotRepositoryTest {
       OffsetDateTime date) {
     return createUnpersisted(
         orgId,
-        account,
         product,
         granularity,
         ServiceLevel.PREMIUM,
@@ -294,7 +282,6 @@ class TallySnapshotRepositoryTest {
 
   private TallySnapshot createUnpersisted(
       String orgId,
-      String account,
       String product,
       Granularity granularity,
       ServiceLevel serviceLevel,
@@ -450,8 +437,7 @@ class TallySnapshotRepositoryTest {
     List<TallySnapshot> snaps = new ArrayList<>();
     OffsetDateTime next = start;
     for (int i = 1; i <= numOfSnaps; i++) {
-      TallySnapshot snap =
-          createUnpersisted(orgId, "accountSeq", product, granularity, 1, 2, 3, next);
+      TallySnapshot snap = createUnpersisted(orgId, product, granularity, 1, 2, 3, next);
       snap.setMeasurement(HardwareMeasurementType.PHYSICAL, MetricIdUtils.getCores(), 1.0);
       snap.setMeasurement(measurementType, measurementMetricId, measurementValue);
       snaps.add(snap);
@@ -477,8 +463,7 @@ class TallySnapshotRepositoryTest {
   @Test
   void testHasLatestBillablesWhenMetricExists() {
     TallySnapshot snap =
-        createUnpersisted(
-            "OrgAcme", "Acme Inc.", "rocket-skates", Granularity.HOURLY, 1, 2, 3, NOWISH);
+        createUnpersisted("OrgAcme", "rocket-skates", Granularity.HOURLY, 1, 2, 3, NOWISH);
 
     snap.setMeasurement(HardwareMeasurementType.PHYSICAL, MetricIdUtils.getCores(), 9.0);
     snap.setMeasurement(HardwareMeasurementType.PHYSICAL, MetricIdUtils.getSockets(), 8.0);
@@ -504,8 +489,7 @@ class TallySnapshotRepositoryTest {
   @Test
   void testDoesNotHaveLatestBillablesWhenMetricDoesNotExists() {
     TallySnapshot snap =
-        createUnpersisted(
-            "OrgAcme", "Acme Inc.", "rocket-skates", Granularity.HOURLY, 1, 2, 3, NOWISH);
+        createUnpersisted("OrgAcme", "rocket-skates", Granularity.HOURLY, 1, 2, 3, NOWISH);
 
     snap.setMeasurement(HardwareMeasurementType.PHYSICAL, MetricIdUtils.getSockets(), 8.0);
 

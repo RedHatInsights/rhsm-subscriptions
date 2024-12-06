@@ -76,7 +76,7 @@ class CaptureSnapshotsTaskManagerTest {
   }
 
   @Test
-  void ensureUpdateIsRunForEachOrg() throws Exception {
+  void ensureUpdateIsRunForEachOrg() {
     List<String> expectedOrgList = Arrays.asList("o1", "o2");
     when(orgRepo.findSyncEnabledOrgs()).thenReturn(expectedOrgList.stream());
 
@@ -87,7 +87,7 @@ class CaptureSnapshotsTaskManagerTest {
   }
 
   @Test
-  void ensureOrgListIsPartitionedWhenSendingTaskMessages() throws Exception {
+  void ensureOrgListIsPartitionedWhenSendingTaskMessages() {
     List<String> expectedOrgList = Arrays.asList("o1", "o2", "o3", "o4");
     when(orgRepo.findSyncEnabledOrgs()).thenReturn(expectedOrgList.stream());
 
@@ -101,7 +101,7 @@ class CaptureSnapshotsTaskManagerTest {
   }
 
   @Test
-  void ensureLastOrgListPartitionIsIncludedWhenSendingTaskMessages() throws Exception {
+  void ensureLastOrgListPartitionIsIncludedWhenSendingTaskMessages() {
     List<String> expectedOrgList = Arrays.asList("o1", "o2", "o3", "o4", "o5");
     when(orgRepo.findSyncEnabledOrgs()).thenReturn(expectedOrgList.stream());
 
@@ -116,7 +116,7 @@ class CaptureSnapshotsTaskManagerTest {
   }
 
   @Test
-  void ensureErrorOnUpdateContinuesWithoutFailure() throws Exception {
+  void ensureErrorOnUpdateContinuesWithoutFailure() {
     List<String> expectedOrgList = Arrays.asList("o1", "o2", "o3", "o4", "o5", "o6");
     when(orgRepo.findSyncEnabledOrgs()).thenReturn(expectedOrgList.stream());
 
@@ -135,7 +135,7 @@ class CaptureSnapshotsTaskManagerTest {
   }
 
   @Test
-  void ensureNoUpdatesWhenOrgListCanNotBeRetreived() throws Exception {
+  void ensureNoUpdatesWhenOrgListCanNotBeRetrieved() {
     doThrow(new RuntimeException()).when(orgRepo).findSyncEnabledOrgs();
 
     assertThrows(
@@ -148,7 +148,7 @@ class CaptureSnapshotsTaskManagerTest {
   }
 
   @Test
-  void testHourlySnapshotForAllAccounts() throws Exception {
+  void testHourlySnapshotForAllAccounts() {
     List<String> expectedOrgs = Arrays.asList("o1", "o2");
     when(orgRepo.findSyncEnabledOrgs()).thenReturn(expectedOrgs.stream());
 
@@ -163,10 +163,6 @@ class CaptureSnapshotsTaskManagerTest {
                       .setSingleValuedArg("orgId", orgId)
                       .build());
         });
-  }
-
-  private TaskDescriptor createDescriptorAccount(String account) {
-    return createDescriptorAccount(List.of(account));
   }
 
   private TaskDescriptor createDescriptorAccount(List<String> accounts) {
