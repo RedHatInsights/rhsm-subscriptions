@@ -494,12 +494,19 @@ objects:
               mountPath: /logs
             - name: pinhead
               mountPath: /pinhead
+            - name: swatch-tally-otel-config
+              mountPath: "/etc/otelcol/config.yaml"
+              readOnly: true
           volumes:
             - name: logs
               emptyDir:
             - name: pinhead
               secret:
                 secretName: pinhead
+            - name: swatch-tally-otel-config
+              configMap:
+                name: swatch-tally-otel-config
+
           machinePool: ${MACHINE_POOL}
 
     jobs:
