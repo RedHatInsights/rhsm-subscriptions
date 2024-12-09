@@ -235,7 +235,6 @@ public class BillableUsageService {
             .usage(usage.getUsage().value())
             .remittancePendingDate(clock.now())
             .tallyId(usage.getTallyId())
-            .hardwareMeasurementType(usage.getHardwareMeasurementType())
             .status(
                 contractCoverage.isGratis() ? RemittanceStatus.GRATIS : RemittanceStatus.PENDING)
             .build();
