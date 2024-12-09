@@ -16,6 +16,9 @@ dependencies {
     testImplementation 'io.quarkus:quarkus-jacoco'
 }
 
+// Workaround for https://github.com/quarkusio/quarkus/issues/38996 to force the compileJava order when building the projects in parallel
+compileJava.dependsOn tasks.compileQuarkusGeneratedSourcesJava
+
 test {
     finalizedBy jacocoTestReport
     jacoco {
