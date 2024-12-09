@@ -46,7 +46,6 @@ public class BillableUsageRemittanceFilter {
   private String metricId;
   private String billingProvider;
   private String billingAccountId;
-  private String hardwareMeasurementType;
   private OffsetDateTime beginning;
   private OffsetDateTime ending;
   private String accumulationPeriod;

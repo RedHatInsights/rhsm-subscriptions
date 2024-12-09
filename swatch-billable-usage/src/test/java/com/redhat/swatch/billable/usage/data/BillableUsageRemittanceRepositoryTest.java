@@ -135,7 +135,6 @@ class BillableUsageRemittanceRepositoryTest {
         .accumulationPeriod(AccumulationPeriodFormatter.toMonthId(remittanceDate))
         .remittancePendingDate(remittanceDate)
         .remittedPendingValue(value)
-        .hardwareMeasurementType("AWS")
         .build();
   }
 
@@ -335,7 +334,6 @@ class BillableUsageRemittanceRepositoryTest {
             .totalRemittedPendingValue(24.0)
             .sla(remittance1.getSla())
             .usage(remittance1.getUsage())
-            .hardwareMeasurementType("AWS")
             .build();
 
     var expectedSummary2 =
@@ -350,7 +348,6 @@ class BillableUsageRemittanceRepositoryTest {
             .totalRemittedPendingValue(15.0)
             .sla(remittance3.getSla())
             .usage(remittance3.getUsage())
-            .hardwareMeasurementType("AWS")
             .build();
 
     List<RemittanceSummaryProjection> results = repository.getRemittanceSummaries(filter1);
@@ -370,7 +367,6 @@ class BillableUsageRemittanceRepositoryTest {
     String billingProvider = "aws";
     String billingAccountId = "ba123456789";
     String remittancePendingDateStr = "2024-06-19T16:52:17.526219+00:00";
-    String hardwareMeasurementType = "AWS";
 
     var billableUsageNoExpected =
         BillableUsageRemittanceEntity.builder()
@@ -387,7 +383,6 @@ class BillableUsageRemittanceRepositoryTest {
                 OffsetDateTime.parse(
                     remittancePendingDateStr, DateTimeFormatter.ISO_OFFSET_DATE_TIME))
             .tallyId(UUID.randomUUID())
-            .hardwareMeasurementType(hardwareMeasurementType)
             .status(RemittanceStatus.PENDING)
             .build();
 
@@ -406,7 +401,6 @@ class BillableUsageRemittanceRepositoryTest {
                 OffsetDateTime.parse(
                     remittancePendingDateStr, DateTimeFormatter.ISO_OFFSET_DATE_TIME))
             .tallyId(UUID.randomUUID())
-            .hardwareMeasurementType(hardwareMeasurementType)
             .status(RemittanceStatus.PENDING)
             .build();
 
@@ -426,7 +420,6 @@ class BillableUsageRemittanceRepositoryTest {
                 OffsetDateTime.parse(
                     remittancePendingDateStr, DateTimeFormatter.ISO_OFFSET_DATE_TIME))
             .tallyId(UUID.randomUUID())
-            .hardwareMeasurementType("PHYSICAL")
             .status(RemittanceStatus.SUCCEEDED)
             .build();
     repository.persist(
@@ -446,8 +439,7 @@ class BillableUsageRemittanceRepositoryTest {
         .withMetricId(metricId)
         .withProductId(productTag)
         .withUsage(BillableUsage.Usage.PRODUCTION)
-        .withSla(BillableUsage.Sla.PREMIUM)
-        .withHardwareMeasurementType("PHYSICAL");
+        .withSla(BillableUsage.Sla.PREMIUM);
 
     // Build the filter the same way that we do in the billable usage in the service.
     var filter = BillableUsageRemittanceFilter.totalRemittedFilter(incomingUsage);
@@ -470,8 +462,6 @@ class BillableUsageRemittanceRepositoryTest {
             .totalRemittedPendingValue(expectedRemittedPendingValue)
             .sla(billableUsageRemittanceFromRhelemeter.getSla())
             .usage(billableUsageRemittanceFromRhelemeter.getUsage())
-            .hardwareMeasurementType(
-                billableUsageRemittanceFromRhelemeter.getHardwareMeasurementType())
             .status(billableUsageRemittanceFromRhelemeter.getStatus())
             .build();
 
@@ -490,7 +480,6 @@ class BillableUsageRemittanceRepositoryTest {
             .totalRemittedPendingValue(billableUsageRemittanceFromCost.getRemittedPendingValue())
             .sla(billableUsageRemittanceFromCost.getSla())
             .usage(billableUsageRemittanceFromCost.getUsage())
-            .hardwareMeasurementType(billableUsageRemittanceFromCost.getHardwareMeasurementType())
             .status(billableUsageRemittanceFromCost.getStatus())
             .build();
 
