@@ -92,7 +92,7 @@ class MeasurementNormalizerTest {
   }
 
   @Test
-  void testApplyX86_64VirtualCpusAsCores_Default() {
+  void testApplyx8664VirtualCpusAsCoresDefault() {
     // Must be VIRTUAL and have an arch of x86_64 (not OCP)
     int systemProfileCorePerSocket = 6;
     int systemProfileSockets = 2;
@@ -111,7 +111,7 @@ class MeasurementNormalizerTest {
   }
 
   @Test
-  void testApplyX86_64VirtualCpusAsCores_Ocp_useThreadsPerCoreIfFactExists() {
+  void testApplyX86VirtualCpusAsCoresOcpUseThreadsPerCoreIfFactExists() {
     // Must be VIRTUAL and have an arch of x86_64 and have tag OCP.
     int systemProfileCorePerSocket = 6;
     int systemProfileSockets = 2;
@@ -134,7 +134,7 @@ class MeasurementNormalizerTest {
   }
 
   @Test
-  void testApplyX86_64VirtualCpusAsCores_Ocp_calculateThreadsPerCoreIfFactDoesNotExist() {
+  void testApplyX86VirtualCpusAsCoresOcpCalculateThreadsPerCoreIfFactDoesNotExist() {
     // Must be VIRTUAL and have an arch of x86_64 and have tag OCP.
     // If threadsPerCore does not exist, but cpus are, calculate threadsPerCore as
     // cpus / (sockets * corePerSocket)
@@ -172,7 +172,7 @@ class MeasurementNormalizerTest {
   }
 
   @Test
-  void testApplyVirtualCpusAsCores_LikeOcp_ForAllGuestsWhenEnabled() {
+  void testApplyVirtualCpusAsCoresLikeOcpForAllGuestsWhenEnabled() {
     // Must be VIRTUAL and have an arch of x86_64, no OCP, and the app must be
     // configured to use cpu system facts for all products.
     int systemProfileCorePerSocket = 6;
