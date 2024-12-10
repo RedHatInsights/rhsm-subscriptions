@@ -175,5 +175,6 @@
     <include file="/liquibase/202410021300-update_usages_to_unknown.xml"/>
     <include file="/liquibase/202410211200-retry-after-billable-usage-index.xml"/>
     <include file="/liquibase/202410241408-clear-retryable.xml"/>
+    <include file="/liquibase/202412091327-drop-hardware-measurement-type-from-billable-usage-remittance.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
