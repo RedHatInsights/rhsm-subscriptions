@@ -23,8 +23,11 @@ package org.candlepin.subscriptions.conduit.inventory.kafka;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -34,7 +37,6 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -50,7 +52,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -61,6 +65,7 @@ import org.springframework.retry.backoff.NoBackOffPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
+@SuppressWarnings("unchecked")
 @SpringBootTest
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles({"rhsm-conduit", "test", "kafka-queue"})
@@ -68,16 +73,21 @@ class KafkaEnabledInventoryServiceTest {
 
   private static final int NUMBER_OF_CPUS = 5;
   private static final int THREADS_PER_CORE = 3;
+  private static final String ORG_ID = "org123";
 
   @Autowired
   @Qualifier("kafkaRetryTemplate")
   private RetryTemplate retryTemplate;
 
-  @Mock private KafkaTemplate producer;
+  @Mock KafkaTemplate<String, CreateUpdateHostMessage> producer;
 
   @Mock MeterRegistry meterRegistry;
 
   @Mock Counter mockCounter;
+
+  @Captor ArgumentCaptor<String> topicCaptor;
+  @Captor ArgumentCaptor<String> keyCaptor;
+  @Captor ArgumentCaptor<CreateUpdateHostMessage> messageCaptor;
 
   @BeforeEach
   void setup() {
@@ -85,19 +95,16 @@ class KafkaEnabledInventoryServiceTest {
 
     // Make the tests run faster!
     retryTemplate.setBackOffPolicy(new NoBackOffPolicy());
+
+    when(producer.send(topicCaptor.capture(), keyCaptor.capture(), messageCaptor.capture()))
+        .thenReturn(null);
   }
 
   @Test
   void ensureKafkaProducerSendsHostMessage() {
-    ArgumentCaptor<String> topicCaptor = ArgumentCaptor.forClass(String.class);
-    ArgumentCaptor<CreateUpdateHostMessage> messageCaptor =
-        ArgumentCaptor.forClass(CreateUpdateHostMessage.class);
-
-    when(producer.send(topicCaptor.capture(), messageCaptor.capture())).thenReturn(null);
-
     ConduitFacts expectedFacts = new ConduitFacts();
     expectedFacts.setFqdn("my_fqdn");
-    expectedFacts.setOrgId("my_org");
+    expectedFacts.setOrgId(ORG_ID);
     expectedFacts.setCpuCores(25);
     expectedFacts.setCpuSockets(45);
     expectedFacts.setOsName("Red Hat Enterprise Linux Workstation");
@@ -111,9 +118,10 @@ class KafkaEnabledInventoryServiceTest {
     props.setKafkaHostIngressTopic("placeholder");
     KafkaEnabledInventoryService service =
         new KafkaEnabledInventoryService(props, producer, meterRegistry, retryTemplate);
-    service.sendHostUpdate(Arrays.asList(expectedFacts));
+    service.sendHostUpdate(List.of(expectedFacts));
 
     assertEquals(props.getKafkaHostIngressTopic(), topicCaptor.getValue());
+    assertEquals(ORG_ID, keyCaptor.getValue());
 
     CreateUpdateHostMessage message = messageCaptor.getValue();
     assertNotNull(message);
@@ -126,7 +134,7 @@ class KafkaEnabledInventoryServiceTest {
     assertEquals("rhsm", rhsm.getNamespace());
 
     Map<String, Object> rhsmFacts = (Map<String, Object>) rhsm.getFacts();
-    assertEquals(expectedFacts.getOrgId(), (String) rhsmFacts.get("orgId"));
+    assertEquals(expectedFacts.getOrgId(), rhsmFacts.get("orgId"));
 
     OffsetDateTime syncDate = (OffsetDateTime) rhsmFacts.get("SYNC_TIMESTAMP");
     assertNotNull(syncDate);
@@ -146,9 +154,11 @@ class KafkaEnabledInventoryServiceTest {
   @Test
   void ensureSendHostRetries() {
     ConduitFacts conduitFacts = new ConduitFacts();
-    List<ConduitFacts> expectedFacts = Arrays.asList(conduitFacts);
+    conduitFacts.setOrgId(ORG_ID);
+    List<ConduitFacts> expectedFacts = List.of(conduitFacts);
 
-    when(producer.send(anyString(), any(CreateUpdateHostMessage.class)))
+    reset(producer);
+    when(producer.send(anyString(), anyString(), any(CreateUpdateHostMessage.class)))
         .thenThrow(KafkaException.class);
 
     InventoryServiceProperties props = new InventoryServiceProperties();
@@ -160,15 +170,17 @@ class KafkaEnabledInventoryServiceTest {
     // This 4 is based on the RetryTemplate.  I don't know of a way to get the value at runtime, so
     // it's
     // hardcoded here.
-    verify(producer, times(4)).send(anyString(), any(CreateUpdateHostMessage.class));
+    verify(producer, times(4)).send(anyString(), eq(ORG_ID), any(CreateUpdateHostMessage.class));
   }
 
   @Test
   void ensureNoMessageWithEmptyFactList() {
+    Mockito.reset(producer);
+
     InventoryServiceProperties props = new InventoryServiceProperties();
     KafkaEnabledInventoryService service =
         new KafkaEnabledInventoryService(props, producer, meterRegistry, retryTemplate);
-    service.sendHostUpdate(Arrays.asList());
+    service.sendHostUpdate(List.of());
 
     verifyNoInteractions(producer);
   }
@@ -182,17 +194,11 @@ class KafkaEnabledInventoryServiceTest {
     service.scheduleHostUpdate(new ConduitFacts());
     service.scheduleHostUpdate(new ConduitFacts());
 
-    verify(producer, times(2)).send(anyString(), any());
+    verify(producer, times(2)).send(anyString(), isNull(), any());
   }
 
   @Test
   void testStaleTimestampUpdatedBasedOnSyncTimestampAndOffset() {
-    ArgumentCaptor<String> topicCaptor = ArgumentCaptor.forClass(String.class);
-    ArgumentCaptor<CreateUpdateHostMessage> messageCaptor =
-        ArgumentCaptor.forClass(CreateUpdateHostMessage.class);
-
-    when(producer.send(topicCaptor.capture(), messageCaptor.capture())).thenReturn(null);
-
     ConduitFacts expectedFacts = new ConduitFacts();
 
     InventoryServiceProperties props = new InventoryServiceProperties();
@@ -200,7 +206,7 @@ class KafkaEnabledInventoryServiceTest {
 
     KafkaEnabledInventoryService service =
         new KafkaEnabledInventoryService(props, producer, meterRegistry, retryTemplate);
-    service.sendHostUpdate(Arrays.asList(expectedFacts));
+    service.sendHostUpdate(List.of(expectedFacts));
 
     CreateUpdateHostMessage message = messageCaptor.getValue();
     assertNotNull(message);
@@ -221,15 +227,9 @@ class KafkaEnabledInventoryServiceTest {
   @MethodSource("osReleases")
   void requiredKafkaProducerSendsHostMessageHasMajorVersion(
       String release, Integer expectedMajorVersion, Integer expectedMinorVersion) {
-    ArgumentCaptor<String> topicCaptor = ArgumentCaptor.forClass(String.class);
-    ArgumentCaptor<CreateUpdateHostMessage> messageCaptor =
-        ArgumentCaptor.forClass(CreateUpdateHostMessage.class);
-
-    when(producer.send(topicCaptor.capture(), messageCaptor.capture())).thenReturn(null);
-
     ConduitFacts expectedFacts = new ConduitFacts();
     expectedFacts.setFqdn("my_fqdn");
-    expectedFacts.setOrgId("my_org");
+    expectedFacts.setOrgId(ORG_ID);
     expectedFacts.setCpuCores(25);
     expectedFacts.setCpuSockets(45);
     expectedFacts.setOsName("Red Hat Enterprise Linux Workstation");
@@ -239,7 +239,7 @@ class KafkaEnabledInventoryServiceTest {
     props.setKafkaHostIngressTopic("placeholder");
     KafkaEnabledInventoryService service =
         new KafkaEnabledInventoryService(props, producer, meterRegistry, retryTemplate);
-    service.sendHostUpdate(Arrays.asList(expectedFacts));
+    service.sendHostUpdate(List.of(expectedFacts));
 
     assertEquals(props.getKafkaHostIngressTopic(), topicCaptor.getValue());
 
@@ -254,7 +254,7 @@ class KafkaEnabledInventoryServiceTest {
     assertEquals("rhsm", rhsm.getNamespace());
 
     Map<String, Object> rhsmFacts = (Map<String, Object>) rhsm.getFacts();
-    assertEquals(expectedFacts.getOrgId(), (String) rhsmFacts.get("orgId"));
+    assertEquals(expectedFacts.getOrgId(), rhsmFacts.get("orgId"));
 
     OffsetDateTime syncDate = (OffsetDateTime) rhsmFacts.get("SYNC_TIMESTAMP");
     assertNotNull(syncDate);
@@ -276,15 +276,9 @@ class KafkaEnabledInventoryServiceTest {
   @ParameterizedTest
   @MethodSource("osNullableVersions")
   void testHandleEmptyOrNonFormatOsVersion(String version) {
-    ArgumentCaptor<String> topicCaptor = ArgumentCaptor.forClass(String.class);
-    ArgumentCaptor<CreateUpdateHostMessage> messageCaptor =
-        ArgumentCaptor.forClass(CreateUpdateHostMessage.class);
-
-    when(producer.send(topicCaptor.capture(), messageCaptor.capture())).thenReturn(null);
-
     ConduitFacts expectedFacts = new ConduitFacts();
     expectedFacts.setFqdn("my_fqdn");
-    expectedFacts.setOrgId("my_org");
+    expectedFacts.setOrgId(ORG_ID);
     expectedFacts.setCpuCores(25);
     expectedFacts.setCpuSockets(45);
     expectedFacts.setOsName("Red Hat Enterprise Linux Workstation");
@@ -294,7 +288,7 @@ class KafkaEnabledInventoryServiceTest {
     props.setKafkaHostIngressTopic("placeholder");
     KafkaEnabledInventoryService service =
         new KafkaEnabledInventoryService(props, producer, meterRegistry, retryTemplate);
-    service.sendHostUpdate(Arrays.asList(expectedFacts));
+    service.sendHostUpdate(List.of(expectedFacts));
 
     assertEquals(props.getKafkaHostIngressTopic(), topicCaptor.getValue());
 
