@@ -35,10 +35,14 @@ import com.redhat.swatch.billable.usage.services.model.MetricUnit;
 import com.redhat.swatch.billable.usage.services.model.Quantity;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
@@ -52,10 +56,13 @@ public class BillableUsageService {
 
   private static final ContractCoverage DEFAULT_CONTRACT_COVERAGE =
       ContractCoverage.builder().total(0).gratis(false).build();
+  protected static final String COVERED_USAGE_METRIC = "swatch_contract_usage_total";
+  protected static final String BILLABLE_USAGE_METRIC = "swatch_billable_usage_total";
   private final ApplicationClock clock;
   private final BillingProducer billingProducer;
   private final BillableUsageRemittanceRepository billableUsageRemittanceRepository;
   private final ContractsController contractsController;
+  private final MeterRegistry meterRegistry;
 
   public void submitBillableUsage(BillableUsage usage) {
     // transaction to store the usage into database
@@ -119,6 +126,7 @@ public class BillableUsageService {
     } else {
       log.debug("Nothing to remit. Remittance record will not be created.");
     }
+    updateUsageMeter(usage, contractCoverage.getTotal(), usageCalc.getBillableValue());
 
     // There were issues with transmitting usage to AWS since the cost event timestamps were in the
     // past. This modification allows us to send usage to AWS if we get it during the current hour
@@ -242,5 +250,37 @@ public class BillableUsageService {
     usage.setStatus(
         contractCoverage.isGratis() ? BillableUsage.Status.GRATIS : BillableUsage.Status.PENDING);
     usage.setUuid(newRemittance.getUuid());
+  }
+
+  private void updateUsageMeter(BillableUsage usage, double contractCoverage, double billable) {
+    if (usage.getProductId() == null
+        || usage.getMetricId() == null
+        || usage.getBillingProvider() == null
+        || usage.getStatus() == null) {
+      return;
+    }
+    List<String> tags =
+        new ArrayList<>(
+            List.of(
+                "product", usage.getProductId(),
+                "metric_id", usage.getMetricId(),
+                "billing_provider", usage.getBillingProvider().value(),
+                "status", usage.getStatus().value()));
+    double coverage =
+        usage.getCurrentTotal() * usage.getBillingFactor() > contractCoverage
+            ? contractCoverage
+            : usage.getCurrentTotal() * usage.getBillingFactor();
+    if (coverage > 0) {
+      Counter.builder(COVERED_USAGE_METRIC)
+          .withRegistry(meterRegistry)
+          .withTags(tags.toArray(new String[0]))
+          .increment(coverage);
+    }
+    if (billable > 0) {
+      Counter.builder(BILLABLE_USAGE_METRIC)
+          .withRegistry(meterRegistry)
+          .withTags(tags.toArray(new String[0]))
+          .increment(billable);
+    }
   }
 }

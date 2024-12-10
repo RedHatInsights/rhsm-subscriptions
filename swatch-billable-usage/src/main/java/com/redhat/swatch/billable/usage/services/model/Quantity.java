@@ -74,7 +74,10 @@ public class Quantity<U extends Unit> {
     return new Quantity<>(valueInTargetUnits, targetUnit);
   }
 
-  public static Quantity<MetricUnit> of(double value) {
+  public static Quantity<MetricUnit> of(Double value) {
+    if (value == null) {
+      value = 0.0;
+    }
     return new Quantity<>(value, new MetricUnit());
   }
 
