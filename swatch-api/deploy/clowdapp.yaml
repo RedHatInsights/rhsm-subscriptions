@@ -7,7 +7,7 @@ parameters:
   - name: JAVA_DEBUG
     # Set to "true" to enable remote debugging
     value: ''
-  - name: JAVA_OPTS_APPEND
+  - name: USER_OPTS_APPEND
     value: ''
   - name: DEV_MODE
     value: 'false'
@@ -149,8 +149,8 @@ objects:
             env:
               - name: JAVA_DEBUG
                 value: ${JAVA_DEBUG}
-              - name: JAVA_OPTS_APPEND
-                value: -javaagent:/opt/splunk-otel-javaagent.jar ${JAVA_OPTS_APPEND}
+              - name: USER_OPTS_APPEND
+                value: -javaagent:/opt/splunk-otel-javaagent.jar
               - name: DEV_MODE
                 value: ${DEV_MODE}
               - name: LOG_FILE
