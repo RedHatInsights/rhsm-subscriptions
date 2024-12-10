@@ -189,7 +189,8 @@ public class InventorySwatchDataCollator {
   private OrgHostsData trackActiveHypervisor(
       String hypervisorUuid, PeekingIterator<String> activeSubmanIds) {
     log.debug("Active hypervisorUuid={}", hypervisorUuid);
-    while (activeSubmanIds.hasNext() && activeSubmanIds.peek().compareTo(hypervisorUuid) < 0) {
+    while (activeSubmanIds.hasNext()
+        && compareStrings(activeSubmanIds.peek(), hypervisorUuid) < 0) {
       // discard any subman IDs less than the specified hypervisor UUID
       activeSubmanIds.next();
     }
@@ -203,6 +204,16 @@ public class InventorySwatchDataCollator {
       orgHostsData.addHostMapping(hypervisorUuid, hypervisorUuid);
     }
     return orgHostsData;
+  }
+
+  private int compareStrings(String a, String b) {
+    if (a == null) {
+      return 1;
+    } else if (b == null) {
+      return -1;
+    }
+
+    return a.compareTo(b);
   }
 
   /**
