@@ -54,7 +54,7 @@ public class RhMarketplacePayloadMapper {
 
   @Autowired
   public RhMarketplacePayloadMapper(
-      DefaultApi contractsClient,
+      @Qualifier("marketplaceContractsApi") DefaultApi contractsClient,
       @Qualifier("rhmUsageContextLookupRetryTemplate") RetryTemplate usageContextRetryTemplate) {
     this.contractsClient = contractsClient;
     this.usageContextRetryTemplate = usageContextRetryTemplate;

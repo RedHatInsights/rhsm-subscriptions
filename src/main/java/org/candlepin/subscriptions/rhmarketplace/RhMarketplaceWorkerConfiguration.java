@@ -159,8 +159,8 @@ public class RhMarketplaceWorkerConfiguration {
     return new RhMarketplaceApiFactory(properties);
   }
 
-  @Bean
-  public ContractsApiFactory contractsApiFactory(RhmUsageContextLookupProperties props) {
+  @Bean(name = "marketplaceContractsApi")
+  public ContractsApiFactory marketplaceContractsApiFactory(RhmUsageContextLookupProperties props) {
     return new ContractsApiFactory(props);
   }
 
