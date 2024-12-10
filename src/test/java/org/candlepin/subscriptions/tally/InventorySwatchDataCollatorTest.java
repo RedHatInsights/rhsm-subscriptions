@@ -160,6 +160,22 @@ class InventorySwatchDataCollatorTest {
   }
 
   @Test
+  void testCollatorPreventNullPointerWhenNoMoreSubscriptionManagerIdsArePresent() {
+    InventoryHostFacts hbiSystem = new InventoryHostFacts();
+    hbiSystem.setInventoryId(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"));
+    hbiSystem.setHypervisorUuid("223e4567-e89b-12d3-a456-426614174000");
+    when(inventoryRepository.streamFacts(any(), any())).thenReturn(Stream.of(hbiSystem));
+    when(inventoryRepository.streamActiveSubscriptionManagerIds(any(), any()))
+        .thenReturn(Stream.of((String) null));
+    when(hostRepository.streamHbiHostsByOrgId(any())).thenReturn(Stream.of());
+
+    InventorySwatchDataCollator collator =
+        new InventorySwatchDataCollator(inventoryRepository, hostRepository);
+    collator.collateData("foo", 7, processor);
+    verify(processor).accept(hbiSystem, null, new OrgHostsData("placeholder"), 1);
+  }
+
+  @Test
   void testCollatorTracksPresentHypervisorUuidViaSatelliteHypervisorUuidForGuest() {
     InventoryHostFacts hbiSystem = new InventoryHostFacts();
     hbiSystem.setInventoryId(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"));
