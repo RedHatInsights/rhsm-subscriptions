@@ -7,7 +7,7 @@ parameters:
   - name: JAVA_DEBUG
     # Set to "true" to enable remote debugging
     value: ''
-  - name: JAVA_OPTS_APPEND
+  - name: USER_OPTS_APPEND
     value: ''
   - name: SERVER_MAX_HTTP_HEADER_SIZE
     value: '96000'
@@ -184,8 +184,8 @@ objects:
           env:
             - name: JAVA_DEBUG
               value: ${JAVA_DEBUG}
-            - name: JAVA_OPTS_APPEND
-              value: -javaagent:/opt/splunk-otel-javaagent.jar ${JAVA_OPTS_APPEND}
+            - name: USER_OPTS_APPEND
+              value: -javaagent:/opt/splunk-otel-javaagent.jar
             - name: SPRING_LIQUIBASE_ENABLED
               value: 'false'
             - name: ENABLE_SPLUNK_HEC
