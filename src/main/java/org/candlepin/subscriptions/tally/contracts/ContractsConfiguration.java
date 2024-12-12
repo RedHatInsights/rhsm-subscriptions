@@ -36,7 +36,7 @@ public class ContractsConfiguration {
     return new ContractsClientProperties();
   }
 
-  @Bean
+  @Bean(name = "contractsApi")
   public ContractsApiFactory contractsApiFactory(ContractsClientProperties clientProperties) {
     return new ContractsApiFactory(clientProperties);
   }
