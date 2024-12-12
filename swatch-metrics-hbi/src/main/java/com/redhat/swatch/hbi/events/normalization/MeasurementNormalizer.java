@@ -21,10 +21,10 @@
 package com.redhat.swatch.hbi.events.normalization;
 
 import com.redhat.swatch.common.model.HardwareMeasurementType;
-import com.redhat.swatch.hbi.events.HypervisorGuestRepository;
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
+import com.redhat.swatch.hbi.events.services.HypervisorRelationshipService;
 import io.quarkus.runtime.util.StringUtil;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.Arrays;
@@ -40,12 +40,13 @@ public class MeasurementNormalizer {
   private static final double THREADS_PER_CORE_DEFAULT = 2.0;
 
   private final ApplicationConfiguration appConfig;
-  private final HypervisorGuestRepository hypervisorGuestRepository;
+  private final HypervisorRelationshipService hypervisorRelationshipService;
 
   public MeasurementNormalizer(
-      ApplicationConfiguration appConfig, HypervisorGuestRepository hypervisorGuestRepository) {
+      ApplicationConfiguration appConfig,
+      HypervisorRelationshipService hypervisorRelationshipService) {
     this.appConfig = appConfig;
-    this.hypervisorGuestRepository = hypervisorGuestRepository;
+    this.hypervisorRelationshipService = hypervisorRelationshipService;
   }
 
   public NormalizedMeasurements getMeasurements(
@@ -124,7 +125,7 @@ public class MeasurementNormalizer {
       }
 
       boolean isHypervisorUnknown =
-          hypervisorGuestRepository.isUnmappedGuest(normalizedFacts.getHypervisorUuid());
+          hypervisorRelationshipService.isUnmappedGuest(normalizedFacts.getHypervisorUuid());
       boolean guestWithUnknownHypervisor = normalizedFacts.isVirtual() && isHypervisorUnknown;
       // Unmapped virtual rhel guests only account for a single socket
       if (guestWithUnknownHypervisor

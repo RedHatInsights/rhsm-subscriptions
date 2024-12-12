@@ -18,17 +18,25 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.hbi.events;
+package com.redhat.swatch.hbi.events.repository;
 
+import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import jakarta.enterprise.context.ApplicationScoped;
+import java.util.List;
 
 @ApplicationScoped
-public class HypervisorGuestRepository {
-  public boolean isHypervisor(String subscriptionManagerId) {
-    return false;
+public class HypervisorRelationshipRepository
+    implements PanacheRepositoryBase<HypervisorRelationship, HypervisorRelationshipId> {
+
+  public List<HypervisorRelationship> findByOrgId(String orgId) {
+    return list("id.orgId", orgId);
   }
 
-  public boolean isUnmappedGuest(String hypervisorUUID) {
-    return false;
+  public List<HypervisorRelationship> findBySubscriptionManagerId(String subscriptionManagerId) {
+    return list("id.subscriptionManagerId", subscriptionManagerId);
+  }
+
+  public List<HypervisorRelationship> findByHypervisorUuid(String hypervisorUuid) {
+    return list("hypervisorUuid", hypervisorUuid);
   }
 }
