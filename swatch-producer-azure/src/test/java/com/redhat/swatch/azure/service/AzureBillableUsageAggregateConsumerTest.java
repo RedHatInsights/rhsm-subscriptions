@@ -220,9 +220,15 @@ class AzureBillableUsageAggregateConsumerTest {
   }
 
   private void thenMeteredTotalMetricIsPopulated() {
-    var metric = getMeteredTotalMetric(MetricIdUtils.getCores().toUpperCaseFormatted());
-    assertTrue(metric.isPresent());
-    assertEquals(metric.get().measure().iterator().next().getValue(), EXPECTED_VALUE.doubleValue());
+    Awaitility.await()
+        .untilAsserted(
+            () -> {
+              var metric = getMeteredTotalMetric(MetricIdUtils.getCores().toUpperCaseFormatted());
+              assertTrue(metric.isPresent());
+              assertEquals(
+                  metric.get().measure().iterator().next().getValue(),
+                  EXPECTED_VALUE.doubleValue());
+            });
   }
 
   private Optional<Meter> getMeteredTotalMetric(String metricId) {
