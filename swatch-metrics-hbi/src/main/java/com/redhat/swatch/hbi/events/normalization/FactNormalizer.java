@@ -23,7 +23,6 @@ package com.redhat.swatch.hbi.events.normalization;
 import com.redhat.swatch.common.model.HardwareMeasurementType;
 import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
-import com.redhat.swatch.hbi.events.HypervisorGuestRepository;
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.normalization.facts.HbiFactExtractor;
@@ -31,6 +30,7 @@ import com.redhat.swatch.hbi.events.normalization.facts.QpcFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SatelliteFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
+import com.redhat.swatch.hbi.events.services.HypervisorRelationshipService;
 import io.quarkus.runtime.util.StringUtil;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.time.OffsetDateTime;
@@ -52,15 +52,15 @@ public class FactNormalizer {
 
   private final ApplicationClock clock;
   private final ApplicationConfiguration appConfig;
-  private final HypervisorGuestRepository hypervisorGuestRepository;
+  private final HypervisorRelationshipService hypervisorRelationshipService;
 
   public FactNormalizer(
-      HypervisorGuestRepository hypervisorGuestRepository,
+      HypervisorRelationshipService hypervisorRelationshipService,
       ApplicationClock clock,
       ApplicationConfiguration appConfig) {
     this.clock = clock;
     this.appConfig = appConfig;
-    this.hypervisorGuestRepository = hypervisorGuestRepository;
+    this.hypervisorRelationshipService = hypervisorRelationshipService;
   }
 
   public NormalizedFacts normalize(HbiHost host) {
@@ -88,6 +88,7 @@ public class FactNormalizer {
     ProductNormalizer productNormalizer =
         new ProductNormalizer(
             systemProfileFacts, rhsmFacts, satelliteFacts, qpcFacts, skipRhsmFacts);
+
     MeasurementNormalizer measurementNormalizer = new MeasurementNormalizer(appConfig);
 
     NormalizedFacts normalizedFacts =
@@ -124,9 +125,9 @@ public class FactNormalizer {
             .hypervisorUuid(hypervisorUuid)
             .productTags(productNormalizer.getProductTags())
             .productIds(productNormalizer.getProductIds())
-            .isHypervisor(hypervisorGuestRepository.isHypervisor(host.getSubscriptionManagerId()))
+            .isHypervisor(hypervisorRelationshipService.isHypervisor(host.getSubscriptionManagerId()))
             .isUnmappedGuest(
-                isVirtual && this.hypervisorGuestRepository.isUnmappedGuest(hypervisorUuid))
+                isVirtual && hypervisorRelationshipService.isUnmappedGuest(hypervisorUuid))
             .lastSeen(determineLastSeenDate(host))
             .build();
 
