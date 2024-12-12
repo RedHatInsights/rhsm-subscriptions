@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/openjdk-17:1.20-2.1725851028
+FROM registry.access.redhat.com/ubi9/openjdk-17:1.21-2
 
 USER root
 # Add git, so that the build can determine the git hash
@@ -36,7 +36,7 @@ RUN ./gradlew ${GRADLE_TASKS} -x test ${GRADLE_BUILD_ARGS}
 
 RUN jar -xf ./build/libs/*.jar
 
-FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.20-2.1725851029
+FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.21-1
 USER root
 RUN microdnf \
     --disablerepo=* \
@@ -62,5 +62,10 @@ COPY --from=0 /stage/LICENSE /licenses/
 RUN chmod -R g=u /deployments
 
 USER default
+# Custom JVM properties:
+## - Fix CVE-2024-31141: Disabling Kafka client config providers
+## - OmitStackTraceInFastThrow: disabling the optimization that eliminates the full exception stack trace
+ENV INTERNAL_OPTS_APPEND="-Dorg.apache.kafka.automatic.config.providers=none -XX:-OmitStackTraceInFastThrow"
+ENV JAVA_OPTS_APPEND="$INTERNAL_OPTS_APPEND $USER_OPTS_APPEND"
 ENV JAVA_MAIN_CLASS=org.candlepin.subscriptions.BootApplication
 ENV JAVA_LIB_DIR=/deployments/lib/*

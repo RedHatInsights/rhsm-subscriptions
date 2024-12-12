@@ -111,7 +111,7 @@ public class KafkaEnabledInventoryService extends InventoryService {
   private void sendToKafka(OffsetDateTime now, ConduitFacts factSet) {
     CreateUpdateHostMessage message = new CreateUpdateHostMessage(createHost(factSet, now));
     message.setMetadata("request_id", UUID.randomUUID().toString());
-    producer.send(hostIngressTopic, message).handle(this::handleResult);
+    producer.send(hostIngressTopic, factSet.getOrgId(), message).handle(this::handleResult);
   }
 
   private SendResult<String, CreateUpdateHostMessage> handleResult(

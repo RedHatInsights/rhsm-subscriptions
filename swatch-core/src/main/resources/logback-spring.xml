@@ -21,7 +21,7 @@
         </encoder>
     </appender>
 
-    <appender name="SplunkAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <appender name="FileAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_FILE:-/tmp/rhsm-subscriptions.log}</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
         <!-- daily rollover -->
@@ -38,7 +38,7 @@
 
     <root level="WARN">
         <appender-ref ref="ConsoleAppender" />
-        <appender-ref ref="SplunkAppender" />
+        <appender-ref ref="FileAppender" />
     </root>
 
     <!--
@@ -72,10 +72,6 @@
             </appender>
 
             <logger name="splunk.logger" additivity="false" level="INFO">
-                <appender-ref ref="http"/>
-            </logger>
-
-            <logger name="org.candlepin" level="INFO">
                 <appender-ref ref="http"/>
             </logger>
 
