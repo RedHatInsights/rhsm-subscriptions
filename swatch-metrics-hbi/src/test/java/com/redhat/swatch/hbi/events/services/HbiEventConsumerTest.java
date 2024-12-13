@@ -26,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.hbi.events.HbiEventTestData;
-import com.redhat.swatch.hbi.events.HypervisorGuestRepository;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
@@ -73,7 +72,7 @@ class HbiEventConsumerTest {
   //  we need to disable the unleash service in the configuration
   //  file.
   @InjectMock Unleash unleash;
-  @InjectMock HypervisorGuestRepository hypervisorGuestRepository;
+  @InjectMock HypervisorRelationshipService hypervisorRelationshipService;
   @Inject @Any InMemoryConnector connector;
   @Inject ApplicationClock clock;
   private InMemorySource<HbiEvent> hbiEventsIn;
@@ -123,7 +122,7 @@ class HbiEventConsumerTest {
                     new Measurement().withMetricId("cores").withValue(6.0),
                     new Measurement().withMetricId("sockets").withValue(1.0)));
 
-    when(hypervisorGuestRepository.isHypervisor(hbiHost.getSubscriptionManagerId()))
+    when(hypervisorRelationshipService.isHypervisor(hbiHost.getSubscriptionManagerId()))
         .thenReturn(false);
 
     hbiEventsIn.send(hbiEvent);

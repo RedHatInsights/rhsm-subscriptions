@@ -28,7 +28,6 @@ import com.redhat.swatch.common.model.HardwareMeasurementType;
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
-import com.redhat.swatch.hbi.events.services.HypervisorRelationshipService;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.Set;
@@ -52,7 +51,6 @@ class MeasurementNormalizerTest {
   void setup() {
     appConfig = new ApplicationConfiguration();
     appConfig.setUseCpuSystemFactsForAllProducts(false);
-
     measurementNormalizer = new MeasurementNormalizer(appConfig);
   }
 
@@ -223,6 +221,7 @@ class MeasurementNormalizerTest {
       // Although a virtual hypervisor isn't typical, testing this way allows for a stronger
       // and more isolated test since it triggers the non-physical hyperlogic.
       systemProfileFacts = virtualSystemProfile("x86_64", systemProfileSockets, 4, null, null);
+
       normalizedFacts = hypervisorFacts(subscriptionManagerId);
     } else {
       systemProfileFacts = physicalSystemProfile(systemProfileSockets, null);
@@ -277,6 +276,7 @@ class MeasurementNormalizerTest {
 
     SystemProfileFacts systemProfileFacts =
         virtualSystemProfile("x86_64", systemProfileSockets, 4, null, null);
+
     NormalizedFacts normalizedFacts =
         unmappedVirtualHostFacts(subscriptionManagerId, hypervisorUuid);
 

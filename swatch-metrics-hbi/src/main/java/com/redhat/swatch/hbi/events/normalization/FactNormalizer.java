@@ -125,7 +125,8 @@ public class FactNormalizer {
             .hypervisorUuid(hypervisorUuid)
             .productTags(productNormalizer.getProductTags())
             .productIds(productNormalizer.getProductIds())
-            .isHypervisor(hypervisorRelationshipService.isHypervisor(host.getSubscriptionManagerId()))
+            .isHypervisor(
+                hypervisorRelationshipService.isHypervisor(host.getSubscriptionManagerId()))
             .isUnmappedGuest(
                 isVirtual && hypervisorRelationshipService.isUnmappedGuest(hypervisorUuid))
             .lastSeen(determineLastSeenDate(host))
