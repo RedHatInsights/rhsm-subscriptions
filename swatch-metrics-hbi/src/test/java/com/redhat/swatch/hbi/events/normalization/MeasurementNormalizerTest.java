@@ -28,7 +28,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.common.model.HardwareMeasurementType;
-import com.redhat.swatch.hbi.events.HypervisorGuestRepository;
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
@@ -50,7 +49,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class MeasurementNormalizerTest {
 
-  @Mock HypervisorGuestRepository hypervisorGuestRepository;
+  @Mock HypervisorRelationshipService hypervisorRelationshipService;
   private ApplicationConfiguration appConfig;
   private MeasurementNormalizer measurementNormalizer;
 
@@ -59,7 +58,7 @@ class MeasurementNormalizerTest {
     appConfig = new ApplicationConfiguration();
     appConfig.setUseCpuSystemFactsForAllProducts(false);
 
-    measurementNormalizer = new MeasurementNormalizer(appConfig, hypervisorGuestRepository);
+    measurementNormalizer = new MeasurementNormalizer(appConfig, hypervisorRelationshipService);
   }
 
   @Test
@@ -230,7 +229,7 @@ class MeasurementNormalizerTest {
       // and more isolated test.
       systemProfileFacts = virtualSystemProfile("x86_64", systemProfileSockets, 4, null, null);
       normalizedFacts = hostFacts(subscriptionManagerId, true);
-      when(hypervisorGuestRepository.isHypervisor(subscriptionManagerId)).thenReturn(true);
+      when(hypervisorRelationshipService.isHypervisor(subscriptionManagerId)).thenReturn(true);
     } else {
       systemProfileFacts = physicalSystemProfile(systemProfileSockets, null);
       normalizedFacts = hostFacts(subscriptionManagerId, false);
@@ -242,9 +241,9 @@ class MeasurementNormalizerTest {
     assertEquals(expectedSockets, normalized.getSockets().orElse(null));
 
     if (isHypervisor) {
-      verify(hypervisorGuestRepository).isHypervisor(subscriptionManagerId);
+      verify(hypervisorRelationshipService).isHypervisor(subscriptionManagerId);
     } else {
-      verify(hypervisorGuestRepository, never()).isHypervisor(subscriptionManagerId);
+      verify(hypervisorRelationshipService, never()).isHypervisor(subscriptionManagerId);
     }
   }
 
@@ -292,7 +291,7 @@ class MeasurementNormalizerTest {
         virtualSystemProfile("x86_64", systemProfileSockets, 4, null, null);
     NormalizedFacts normalizedFacts = virtualHostFacts(subscriptionManagerId, hypervisorUuid);
 
-    when(hypervisorGuestRepository.isUnmappedGuest(hypervisorUuid)).thenReturn(true);
+    when(hypervisorRelationshipService.isUnmappedGuest(hypervisorUuid)).thenReturn(true);
 
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(

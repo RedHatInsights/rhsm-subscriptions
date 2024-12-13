@@ -114,7 +114,7 @@ public class MeasurementNormalizer {
       Set<String> productTags) {
     // modulo-2 rounding only applied to physical or hypervisors
     if (!normalizedFacts.isVirtual()
-        || hypervisorGuestRepository.isHypervisor(normalizedFacts.getSubscriptionManagerId())) {
+        || hypervisorRelationshipService.isHypervisor(normalizedFacts.getSubscriptionManagerId())) {
       if (currentCalculatedSockets != null && (currentCalculatedSockets % 2) == 1) {
         return currentCalculatedSockets + 1;
       }
