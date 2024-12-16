@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+  <!--
+  These changeSets are only for PostgreSQL because the primary keys we're adding are just to satisfy
+  PostgreSQL's requirements for logical replication.  See
+  https://www.postgresql.org/docs/12/logical-replication-publication.html
+
+  Consequently, these keys aren't mapped in JPA so we don't need to worry about them during
+  in-memory DB tests.
+  -->
+  <changeSet id="202412041537-01" author="awood" dbms="postgresql">
+    <!--
+    Creating an extension requires superuser permissions.  But in production and stage, we don't
+    have those permissions.  We have to create the extension in an out-of-band migration.
+
+    The creation command checks permissions before it checks the extensions existence, so even an
+    invocation that would have no effect will cause the changeset to fail.  Accordingly, we have to
+    have a pre-condition to check if we should even attempt to create the extension.  That way we
+    can use the same changeset in both development and production.
+    -->
+    <preConditions onFail="MARK_RAN">
+      <sqlCheck expectedResult="0">
+        SELECT count(1) FROM pg_extension WHERE extname = 'uuid-ossp';
+      </sqlCheck>
+    </preConditions>
+
+    <sql>
+      CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    </sql>
+    <!--
+    I am intentionally not providing a rollback because we have two change logs: this one and
+    the one for swatch-contracts.  Rolling back the extension in one changelog could adversely
+    affect the operations of the other changelog.
+    -->
+  </changeSet>
+
+  <changeSet id="202412041537-02" author="awood" dbms="postgresql">
+    <addColumn tableName="databasechangelog">
+      <column name="uuid" type="uuid" defaultValueComputed="uuid_generate_v4()">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+    </addColumn>
+  </changeSet>
+
+  <changeSet id="202412041537-03" author="awood" dbms="postgresql">
+    <addColumn tableName="sku_child_sku">
+      <column name="id" type="uuid" defaultValueComputed="uuid_generate_v4()">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+    </addColumn>
+  </changeSet>
+
+  <changeSet id="202412041537-04" author="awood" dbms="postgresql">
+    <addColumn tableName="sku_oid">
+      <column name="id" type="uuid" defaultValueComputed="uuid_generate_v4()">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+    </addColumn>
+  </changeSet>
+
+  <changeSet id="202412041537-05" author="awood" dbms="postgresql">
+    <addColumn tableName="sku_product_tag">
+      <column name="id" type="uuid" defaultValueComputed="uuid_generate_v4()">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+    </addColumn>
+  </changeSet>
+</databaseChangeLog>
