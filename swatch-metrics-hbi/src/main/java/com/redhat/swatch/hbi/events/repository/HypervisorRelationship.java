@@ -26,10 +26,12 @@ import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-import java.time.ZonedDateTime;
+import java.time.OffsetDateTime;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @EqualsAndHashCode(callSuper = false)
 @Entity
@@ -46,18 +48,20 @@ public class HypervisorRelationship extends PanacheEntityBase {
 
   @EmbeddedId private HypervisorRelationshipId id;
 
-  @Column(name = "hypervisor_uuid", nullable = true)
+  @Column(name = "hypervisor_uuid")
   private String hypervisorUuid;
 
   @Column(name = "creation_date", nullable = false)
-  private ZonedDateTime creationDate;
+  private OffsetDateTime creationDate;
 
   @Column(name = "last_updated", nullable = false)
-  private ZonedDateTime lastUpdated;
+  private OffsetDateTime lastUpdated;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "facts", columnDefinition = "jsonb")
   private String facts;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "measurements", columnDefinition = "jsonb")
   private String measurements;
 }

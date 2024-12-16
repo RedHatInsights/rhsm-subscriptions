@@ -24,21 +24,25 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
-import io.quarkus.test.junit.QuarkusTest;
-import jakarta.inject.Inject;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-@QuarkusTest
 class HbiEventDeserializationTest {
 
-  @Inject ObjectMapper mapper;
-  @Inject ObjectMapper objectMapper;
+  private ObjectMapper objectMapper;
+
+  @BeforeEach
+  void setUp() {
+    ApplicationConfiguration applicationConfiguration = new ApplicationConfiguration();
+    objectMapper = applicationConfiguration.objectMapper();
+  }
 
   private static Stream<Arguments> eventTypeDeserializationParams() {
     return Stream.of(

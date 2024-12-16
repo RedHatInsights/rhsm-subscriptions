@@ -25,7 +25,7 @@ import java.time.OffsetDateTime;
 import java.util.Set;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
+import org.apache.commons.lang3.StringUtils;
 import org.candlepin.subscriptions.json.Event.CloudProvider;
 import org.candlepin.subscriptions.json.Event.HardwareType;
 
@@ -46,13 +46,13 @@ public class NormalizedFacts {
   private CloudProvider cloudProvider;
   private String syncTimestamp;
   private boolean isVirtual;
-  private boolean isUnmappedGuest;
-  private boolean isHypervisor;
   private String hypervisorUuid;
   private Set<String> productTags;
   private Set<String> productIds;
   private HardwareType hardwareType;
   private OffsetDateTime lastSeen;
 
-  @Setter private NormalizedMeasurements measurements;
+  public boolean isGuest() {
+    return isVirtual() && StringUtils.isNotEmpty(getHypervisorUuid());
+  }
 }

@@ -65,7 +65,7 @@ class MeasurementNormalizerTest {
     NormalizedFacts normalizedFacts = hostFacts(UUID.randomUUID().toString(), false);
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
-            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of());
+            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of(), false, false);
     // sockets * coresPerSocket
     assertEquals(12, normalized.getCores().orElse(null));
   }
@@ -79,7 +79,7 @@ class MeasurementNormalizerTest {
     NormalizedFacts normalizedFacts = hostFacts(UUID.randomUUID().toString(), false);
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
-            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of());
+            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of(), false, false);
     // Null sockets when cores can not be calculated.
     assertTrue(normalized.getCores().isEmpty());
   }
@@ -97,7 +97,7 @@ class MeasurementNormalizerTest {
     NormalizedFacts normalizedFacts = hostFacts(UUID.randomUUID().toString(), true);
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
-            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of());
+            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of(), false, false);
     // Default threadsPerCore = 2
     // (sockets * coresPerSocket) / threadsPerCore
     assertEquals(6, normalized.getCores().orElse(null));
@@ -120,7 +120,9 @@ class MeasurementNormalizerTest {
             normalizedFacts,
             systemProfileFacts,
             Optional.of(rhsmFacts),
-            Set.of(MeasurementNormalizer.OPEN_SHIFT_CONTAINER_PLATFORM));
+            Set.of(MeasurementNormalizer.OPEN_SHIFT_CONTAINER_PLATFORM),
+            false,
+            false);
     // (sockets * coresPerSocket) / threadsPerCore
     // ceil(12 / 4) = 3
     assertEquals(3, normalized.getCores().orElse(null));
@@ -145,7 +147,9 @@ class MeasurementNormalizerTest {
             normalizedFacts,
             systemProfileFacts,
             Optional.of(rhsmFacts),
-            Set.of(MeasurementNormalizer.OPEN_SHIFT_CONTAINER_PLATFORM));
+            Set.of(MeasurementNormalizer.OPEN_SHIFT_CONTAINER_PLATFORM),
+            false,
+            false);
     // threadsPerCore = cpus / (sockets * coresPerSocket) = 0.333333333
     // (sockets * coresPerSocket) / threadsPerCore
     // ceil(12 / 0.333333333) = 36
@@ -159,7 +163,7 @@ class MeasurementNormalizerTest {
     NormalizedFacts normalizedFacts = hostFacts(UUID.randomUUID().toString(), true);
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
-            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of());
+            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of(), false, false);
     // Expect 0 cores for a marketplace system profile
     assertEquals(0, normalized.getCores().orElse(null));
   }
@@ -181,7 +185,7 @@ class MeasurementNormalizerTest {
     NormalizedFacts normalizedFacts = hostFacts(UUID.randomUUID().toString(), true);
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
-            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of());
+            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of(), false, false);
     // (sockets * coresPerSocket) / threadsPerCore
     // ceil(12 / 4) = 3
     assertEquals(3, normalized.getCores().orElse(null));
@@ -194,7 +198,7 @@ class MeasurementNormalizerTest {
     NormalizedFacts normalizedFacts = hostFacts(UUID.randomUUID().toString(), false);
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
-            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of());
+            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of(), false, false);
     assertTrue(normalized.getSockets().isEmpty());
   }
 
@@ -219,7 +223,7 @@ class MeasurementNormalizerTest {
     NormalizedFacts normalizedFacts;
     if (isHypervisor) {
       // Although a virtual hypervisor isn't typical, testing this way allows for a stronger
-      // and more isolated test since it triggers the non-physical hyperlogic.
+      // and more isolated test since it triggers the non-physical logic.
       systemProfileFacts = virtualSystemProfile("x86_64", systemProfileSockets, 4, null, null);
 
       normalizedFacts = hypervisorFacts(subscriptionManagerId);
@@ -230,7 +234,12 @@ class MeasurementNormalizerTest {
 
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
-            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of());
+            normalizedFacts,
+            systemProfileFacts,
+            Optional.of(rhsmFacts),
+            Set.of(),
+            isHypervisor,
+            false);
     assertEquals(expectedSockets, normalized.getSockets().orElse(null));
   }
 
@@ -249,7 +258,7 @@ class MeasurementNormalizerTest {
 
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
-            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts()), Set.of());
+            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts()), Set.of(), false, false);
     assertEquals(1, normalized.getSockets().orElse(null));
   }
 
@@ -282,7 +291,12 @@ class MeasurementNormalizerTest {
 
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
-            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts()), productTags);
+            normalizedFacts,
+            systemProfileFacts,
+            Optional.of(rhsmFacts()),
+            productTags,
+            false,
+            true);
     assertEquals(expectedSockets, normalized.getSockets().orElse(null));
   }
 
@@ -298,7 +312,7 @@ class MeasurementNormalizerTest {
 
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
-            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts()), Set.of());
+            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts()), Set.of(), false, false);
     assertEquals(0, normalized.getSockets().orElse(null));
   }
 
@@ -319,7 +333,7 @@ class MeasurementNormalizerTest {
     NormalizedFacts normalizedFacts = hostFacts(UUID.randomUUID().toString(), false);
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
-            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of());
+            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of(), false, false);
     assertEquals(expectedSockets, normalized.getSockets().orElse(null));
     assertEquals(expectedCores, normalized.getCores().orElse(null));
   }
@@ -410,7 +424,6 @@ class MeasurementNormalizerTest {
     return NormalizedFacts.builder()
         .subscriptionManagerId(subscriptionManagerId)
         .isVirtual(false)
-        .isHypervisor(true)
         .build();
   }
 
@@ -420,7 +433,6 @@ class MeasurementNormalizerTest {
         .subscriptionManagerId(subscriptionManagerId)
         .isVirtual(true)
         .hypervisorUuid(hypervisorUuid)
-        .isUnmappedGuest(true)
         .build();
   }
 

@@ -61,6 +61,9 @@ dependencies {
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.quarkus:quarkus-hibernate-orm-panache'
     testImplementation 'io.quarkus:quarkus-liquibase'
+    testImplementation 'org.testcontainers:postgresql'
+    testImplementation 'org.testcontainers:testcontainers'
+    testImplementation project(':swatch-common-testcontainers')
 }
 
 

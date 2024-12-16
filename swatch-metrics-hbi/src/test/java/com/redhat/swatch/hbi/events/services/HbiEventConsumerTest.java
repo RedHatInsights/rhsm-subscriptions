@@ -25,14 +25,19 @@ import static com.redhat.swatch.hbi.events.configuration.Channels.SWATCH_EVENTS_
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.hbi.events.HbiEventTestData;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
+import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostFacts;
 import com.redhat.swatch.hbi.events.kafka.InMemoryMessageBrokerKafkaResource;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
+import com.redhat.swatch.hbi.events.repository.HypervisorRelationship;
+import com.redhat.swatch.hbi.events.repository.HypervisorRelationshipId;
+import com.redhat.swatch.hbi.events.test.resources.PostgresResource;
 import io.getunleash.Unleash;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.common.QuarkusTestResource;
@@ -56,6 +61,8 @@ import org.candlepin.subscriptions.json.Event.Sla;
 import org.candlepin.subscriptions.json.Event.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 import org.eclipse.microprofile.reactive.messaging.Message;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -66,6 +73,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 @QuarkusTestResource(
     value = InMemoryMessageBrokerKafkaResource.class,
     restrictToAnnotatedClass = true)
+@QuarkusTestResource(value = PostgresResource.class, restrictToAnnotatedClass = true)
 class HbiEventConsumerTest {
   // NOTE:
   //  In order to mock the unleash service used in FeatureFlags
@@ -75,6 +83,7 @@ class HbiEventConsumerTest {
   @InjectMock HypervisorRelationshipService hypervisorRelationshipService;
   @Inject @Any InMemoryConnector connector;
   @Inject ApplicationClock clock;
+  @Inject ObjectMapper objectMapper;
   private InMemorySource<HbiEvent> hbiEventsIn;
   private InMemorySink<Event> swatchEventsOut;
 
@@ -115,15 +124,19 @@ class HbiEventConsumerTest {
             .withProductTag(Set.of("RHEL for x86"))
             .withProductIds(List.of("69", "408"))
             .withIsVirtual(true)
-            .withIsUnmappedGuest(false)
+            .withIsUnmappedGuest(true)
             .withIsHypervisor(false)
             .withMeasurements(
                 List.of(
                     new Measurement().withMetricId("cores").withValue(6.0),
                     new Measurement().withMetricId("sockets").withValue(1.0)));
 
-    when(hypervisorRelationshipService.isHypervisor(hbiHost.getSubscriptionManagerId()))
+    when(hypervisorRelationshipService.isHypervisor(
+            hbiHost.getOrgId(), hbiHost.getSubscriptionManagerId()))
         .thenReturn(false);
+    when(hypervisorRelationshipService.isUnmappedGuest(
+            hbiHost.getOrgId(), "bed420fa-59ef-44e5-af8a-62a24473a554"))
+        .thenReturn(true);
 
     hbiEventsIn.send(hbiEvent);
     assertSwatchEventSent(expected);
@@ -309,15 +322,117 @@ class HbiEventConsumerTest {
             });
   }
 
-  private void assertSwatchEventSent(Event expected) {
+  private void assertSwatchEventSent(Event... expected) {
     Awaitility.await()
         .atMost(Duration.ofSeconds(1))
         .untilAsserted(
             () -> {
               List<? extends Message<Event>> received = swatchEventsOut.received();
-              assertEquals(1, received.size());
-              assertEquals(expected, received.get(0).getPayload());
+              assertEquals(expected.length, received.size());
+              received.forEach(m -> System.out.println(m.getPayload()));
+              MatcherAssert.assertThat(
+                  received.stream().map(Message::getPayload).toList(),
+                  Matchers.containsInAnyOrder(expected));
             });
+  }
+
+  @Test
+  void testIncomingHypervisorReCalculatesForAllUnmappedGuests() throws Exception {
+    when(unleash.isEnabled(FeatureFlags.EMIT_EVENTS)).thenReturn(true);
+
+    String expectedHypervisorUuid = "6bfc8a3d-464f-4853-a301-4b1715480799";
+
+    var virtualHostHbiEvent =
+        getCreateUpdateEvent(HbiEventTestData.getVirtualRhelHostCreatedEvent());
+    // Override the syncTimestamp fact so that it aligns with the current time
+    // and is within the configured 'hostLastSyncThreshold'.
+    setRhsmSyncTimestamp(virtualHostHbiEvent, clock.now().minusHours(5));
+
+    HypervisorRelationshipId unmappedGuestRelationshipId =
+        new HypervisorRelationshipId(
+            virtualHostHbiEvent.getHost().getOrgId(),
+            virtualHostHbiEvent.getHost().getSubscriptionManagerId());
+    HypervisorRelationship unmappedGuestRelationship = new HypervisorRelationship();
+    unmappedGuestRelationship.setId(unmappedGuestRelationshipId);
+    unmappedGuestRelationship.setHypervisorUuid(expectedHypervisorUuid);
+    unmappedGuestRelationship.setFacts(
+        objectMapper.writeValueAsString(virtualHostHbiEvent.getHost()));
+
+    var hypervisorEvent = getCreateUpdateEvent(HbiEventTestData.getPhysicalRhelHostCreatedEvent());
+    setRhsmSyncTimestamp(hypervisorEvent, clock.now().minusHours(5));
+
+    OffsetDateTime eventTimestamp = hypervisorEvent.getTimestamp().toOffsetDateTime();
+    var hypervisorHbiHost = hypervisorEvent.getHost();
+    Event expectedHypervisorEvent =
+        new Event()
+            .withServiceType(HbiEventConsumer.EVENT_SERVICE_TYPE)
+            .withEventSource(HbiEventConsumer.EVENT_SOURCE)
+            .withEventType("HBI_HOST_CREATED")
+            .withTimestamp(eventTimestamp)
+            .withLastSeen(OffsetDateTime.parse(hypervisorHbiHost.getUpdated()))
+            .withExpiration(Optional.of(eventTimestamp.plusHours(1)))
+            .withOrgId(hypervisorHbiHost.getOrgId())
+            .withInstanceId(hypervisorHbiHost.getId().toString())
+            .withInventoryId(Optional.of(hypervisorHbiHost.id.toString()))
+            .withInsightsId(Optional.of(hypervisorHbiHost.insightsId))
+            .withSubscriptionManagerId(Optional.of(hypervisorHbiHost.subscriptionManagerId))
+            .withDisplayName(Optional.of(hypervisorHbiHost.displayName))
+            .withSla(Sla.SELF_SUPPORT)
+            .withUsage(Usage.DEVELOPMENT_TEST)
+            .withCloudProvider(null)
+            .withHardwareType(HardwareType.PHYSICAL)
+            .withHypervisorUuid(Optional.empty())
+            .withProductTag(Set.of("RHEL for x86"))
+            .withProductIds(List.of("69"))
+            .withIsVirtual(false)
+            .withIsUnmappedGuest(false)
+            .withIsHypervisor(true)
+            .withMeasurements(
+                List.of(
+                    new Measurement().withMetricId("cores").withValue(2.0),
+                    new Measurement().withMetricId("sockets").withValue(2.0)));
+
+    HbiHost unmappedGuest = virtualHostHbiEvent.getHost();
+    Event expectedMappedGuestEvent =
+        new Event()
+            .withServiceType(HbiEventConsumer.EVENT_SERVICE_TYPE)
+            .withEventSource(HbiEventConsumer.EVENT_SOURCE)
+            .withEventType("HBI_HOST_HBI_MAPPED_GUEST_UPDATE")
+            .withTimestamp(eventTimestamp)
+            .withLastSeen(OffsetDateTime.parse(unmappedGuest.getUpdated()))
+            .withExpiration(Optional.of(eventTimestamp.plusHours(1)))
+            .withOrgId(unmappedGuest.getOrgId())
+            .withInstanceId(unmappedGuest.getId().toString())
+            .withInventoryId(Optional.of(unmappedGuest.id.toString()))
+            .withInsightsId(Optional.of(unmappedGuest.insightsId))
+            .withSubscriptionManagerId(Optional.of(unmappedGuest.subscriptionManagerId))
+            .withDisplayName(Optional.of(unmappedGuest.displayName))
+            .withSla(Sla.SELF_SUPPORT)
+            .withUsage(Usage.DEVELOPMENT_TEST)
+            .withCloudProvider(null)
+            .withHardwareType(HardwareType.VIRTUAL)
+            .withHypervisorUuid(Optional.of(expectedHypervisorUuid))
+            .withProductTag(Set.of("RHEL for x86"))
+            .withProductIds(List.of("69"))
+            .withIsVirtual(true)
+            .withIsUnmappedGuest(false)
+            .withIsHypervisor(false)
+            .withMeasurements(
+                List.of(
+                    new Measurement().withMetricId("cores").withValue(1.0),
+                    new Measurement().withMetricId("sockets").withValue(2.0)));
+
+    // Stub out the repository calls for the incoming hypervisor. For this test we assume that
+    // the guest was already processed and has a record already in the relationships table.
+    when(hypervisorRelationshipService.isHypervisor(
+            hypervisorHbiHost.getOrgId(), hypervisorHbiHost.getSubscriptionManagerId()))
+        .thenReturn(true);
+    when(hypervisorRelationshipService.getUnmappedGuests(
+            hypervisorHbiHost.getOrgId(), hypervisorHbiHost.getSubscriptionManagerId()))
+        .thenReturn(List.of(unmappedGuestRelationship));
+
+    hbiEventsIn.send(hypervisorEvent);
+    assertSwatchEventSent(expectedHypervisorEvent, expectedMappedGuestEvent);
   }
 
   private HbiHostCreateUpdateEvent getCreateUpdateEvent(String messageJson) {

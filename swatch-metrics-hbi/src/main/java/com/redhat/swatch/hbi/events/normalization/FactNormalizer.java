@@ -24,13 +24,10 @@ import com.redhat.swatch.common.model.HardwareMeasurementType;
 import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
-import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
-import com.redhat.swatch.hbi.events.normalization.facts.HbiFactExtractor;
 import com.redhat.swatch.hbi.events.normalization.facts.QpcFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SatelliteFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
-import com.redhat.swatch.hbi.events.services.HypervisorRelationshipService;
 import io.quarkus.runtime.util.StringUtil;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.time.OffsetDateTime;
@@ -52,26 +49,21 @@ public class FactNormalizer {
 
   private final ApplicationClock clock;
   private final ApplicationConfiguration appConfig;
-  private final HypervisorRelationshipService hypervisorRelationshipService;
 
-  public FactNormalizer(
-      HypervisorRelationshipService hypervisorRelationshipService,
-      ApplicationClock clock,
-      ApplicationConfiguration appConfig) {
+  public FactNormalizer(ApplicationClock clock, ApplicationConfiguration appConfig) {
     this.clock = clock;
     this.appConfig = appConfig;
-    this.hypervisorRelationshipService = hypervisorRelationshipService;
   }
 
-  public NormalizedFacts normalize(HbiHost host) {
-    HbiFactExtractor extractor = new HbiFactExtractor(host);
-    Optional<RhsmFacts> rhsmFacts = extractor.getRhsmFacts();
-    Optional<SatelliteFacts> satelliteFacts = extractor.getSatelliteFacts();
-    Optional<QpcFacts> qpcFacts = extractor.getQpcFacts();
-    SystemProfileFacts systemProfileFacts = extractor.getSystemProfileFacts();
+  public NormalizedFacts normalize(Host host) {
+    Optional<RhsmFacts> rhsmFacts = host.getRhsmFacts();
+    Optional<SatelliteFacts> satelliteFacts = host.getSatelliteFacts();
+    Optional<QpcFacts> qpcFacts = host.getQpcFacts();
+    SystemProfileFacts systemProfileFacts = host.getSystemProfileFacts();
 
-    String orgId = host.getOrgId();
-    String inventoryId = Objects.nonNull(host.getId()) ? host.getId().toString() : null;
+    String orgId = host.getHbiHost().getOrgId();
+    String inventoryId =
+        Objects.nonNull(host.getHbiHost().getId()) ? host.getHbiHost().getId().toString() : null;
     String syncTimestamp = rhsmFacts.map(RhsmFacts::getSyncTimestamp).orElse(null);
     HardwareMeasurementType cloudProviderType = determineCloudProviderType(systemProfileFacts);
     String hypervisorUuid = determineHypervisorUuid(systemProfileFacts, satelliteFacts);
@@ -89,65 +81,52 @@ public class FactNormalizer {
         new ProductNormalizer(
             systemProfileFacts, rhsmFacts, satelliteFacts, qpcFacts, skipRhsmFacts);
 
-    MeasurementNormalizer measurementNormalizer = new MeasurementNormalizer(appConfig);
-
-    NormalizedFacts normalizedFacts =
-        NormalizedFacts.builder()
-            .orgId(orgId)
-            .inventoryId(inventoryId)
-            .instanceId(determineInstanceId(host))
-            .insightsId(host.getInsightsId())
-            .subscriptionManagerId(host.getSubscriptionManagerId())
-            .displayName(host.getDisplayName())
-            .is3rdPartyMigrated(systemProfileFacts.getIs3rdPartyMigrated())
-            .usage(
-                determineUsage(
-                    orgId,
-                    host.getSubscriptionManagerId(),
-                    satelliteFacts,
-                    rhsmFacts,
-                    skipRhsmFacts))
-            .sla(
-                determineSla(
-                    orgId,
-                    host.getSubscriptionManagerId(),
-                    satelliteFacts,
-                    rhsmFacts,
-                    skipRhsmFacts))
-            .cloudProviderType(cloudProviderType)
-            .cloudProvider(
-                Objects.nonNull(cloudProviderType)
-                    ? CloudProvider.fromValue(cloudProviderType.name())
-                    : null)
-            .syncTimestamp(syncTimestamp)
-            .isVirtual(isVirtual)
-            .hardwareType(determineHardwareType(systemProfileFacts, isVirtual))
-            .hypervisorUuid(hypervisorUuid)
-            .productTags(productNormalizer.getProductTags())
-            .productIds(productNormalizer.getProductIds())
-            .isHypervisor(
-                hypervisorRelationshipService.isHypervisor(host.getSubscriptionManagerId()))
-            .isUnmappedGuest(
-                isVirtual && hypervisorRelationshipService.isUnmappedGuest(hypervisorUuid))
-            .lastSeen(determineLastSeenDate(host))
-            .build();
-
-    // Measurements are normalized after all general host facts have been determined.
-    normalizedFacts.setMeasurements(
-        measurementNormalizer.getMeasurements(
-            normalizedFacts, systemProfileFacts, rhsmFacts, productNormalizer.getProductTags()));
-    return normalizedFacts;
+    return NormalizedFacts.builder()
+        .orgId(orgId)
+        .inventoryId(inventoryId)
+        .instanceId(determineInstanceId(host))
+        .insightsId(host.getHbiHost().getInsightsId())
+        .subscriptionManagerId(host.getHbiHost().getSubscriptionManagerId())
+        .displayName(host.getHbiHost().getDisplayName())
+        .is3rdPartyMigrated(systemProfileFacts.getIs3rdPartyMigrated())
+        .usage(
+            determineUsage(
+                orgId,
+                host.getHbiHost().getSubscriptionManagerId(),
+                satelliteFacts,
+                rhsmFacts,
+                skipRhsmFacts))
+        .sla(
+            determineSla(
+                orgId,
+                host.getHbiHost().getSubscriptionManagerId(),
+                satelliteFacts,
+                rhsmFacts,
+                skipRhsmFacts))
+        .cloudProviderType(cloudProviderType)
+        .cloudProvider(
+            Objects.nonNull(cloudProviderType)
+                ? CloudProvider.fromValue(cloudProviderType.name())
+                : null)
+        .syncTimestamp(syncTimestamp)
+        .isVirtual(isVirtual)
+        .hardwareType(determineHardwareType(systemProfileFacts, isVirtual))
+        .hypervisorUuid(hypervisorUuid)
+        .productTags(productNormalizer.getProductTags())
+        .productIds(productNormalizer.getProductIds())
+        .lastSeen(determineLastSeenDate(host))
+        .build();
   }
 
-  private String determineInstanceId(HbiHost hbiHost) {
+  private String determineInstanceId(Host hbiHost) {
     String id = null;
-    if (hbiHost.getProviderId() != null) {
+    if (hbiHost.getHbiHost().getProviderId() != null) {
       // will use the provider ID from HBI
-      id = hbiHost.getProviderId();
+      id = hbiHost.getHbiHost().getProviderId();
     }
 
-    if (id == null && hbiHost.getId() != null) {
-      id = hbiHost.getId().toString();
+    if (id == null && hbiHost.getHbiHost().getId() != null) {
+      id = hbiHost.getHbiHost().getId().toString();
     }
     return id;
   }
@@ -296,12 +275,14 @@ public class FactNormalizer {
     return lastSync.isBefore(clock.startOfToday().minus(appConfig.getHostLastSyncThreshold()));
   }
 
-  private OffsetDateTime determineLastSeenDate(HbiHost host) {
-    if (Objects.nonNull(host) && !StringUtil.isNullOrEmpty(host.getUpdated())) {
+  private OffsetDateTime determineLastSeenDate(Host host) {
+    if (Objects.nonNull(host) && !StringUtil.isNullOrEmpty(host.getHbiHost().getUpdated())) {
       try {
-        return OffsetDateTime.parse(host.getUpdated());
+        return OffsetDateTime.parse(host.getHbiHost().getUpdated());
       } catch (DateTimeParseException e) {
-        log.warn("Unable to determine lastSeenDate for {}; defaulting to null.", host.getUpdated());
+        log.warn(
+            "Unable to determine lastSeenDate for {}; defaulting to null.",
+            host.getHbiHost().getUpdated());
       }
     }
     return null;

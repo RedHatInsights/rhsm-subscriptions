@@ -24,100 +24,89 @@ import com.redhat.swatch.hbi.events.repository.HypervisorRelationship;
 import com.redhat.swatch.hbi.events.repository.HypervisorRelationshipId;
 import com.redhat.swatch.hbi.events.repository.HypervisorRelationshipRepository;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import java.time.ZonedDateTime;
+import jakarta.transaction.Transactional;
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Objects;
+import org.candlepin.clock.ApplicationClock;
 
 @ApplicationScoped
 public class HypervisorRelationshipService {
 
-  @Inject HypervisorRelationshipRepository repository;
+  private ApplicationClock clock;
+  private HypervisorRelationshipRepository repository;
 
-  public void processGuest(String subscriptionManagerId, String hypervisorUuid) {
-    boolean isHypervisor = !repository.findByHypervisorUuid(hypervisorUuid).isEmpty();
-    boolean isUnmapped = repository.findBySubscriptionManagerId(subscriptionManagerId).isEmpty();
-
-    if (!isHypervisor && isUnmapped) {
-      // Derive measurements and persist a new relationship
-      String derivedMeasurements = deriveMeasurements(4, 2);
-      HypervisorRelationshipId id = new HypervisorRelationshipId("org123", subscriptionManagerId);
-      HypervisorRelationship relationship = new HypervisorRelationship();
-      relationship.setId(id);
-      relationship.setHypervisorUuid(hypervisorUuid);
-      relationship.setCreationDate(ZonedDateTime.now());
-      relationship.setLastUpdated(ZonedDateTime.now());
-      relationship.setFacts("{\"cores\":4,\"sockets\":2}");
-      relationship.setMeasurements(derivedMeasurements);
-
-      repository.persist(relationship);
-      emitSwatchEvent(subscriptionManagerId, hypervisorUuid, derivedMeasurements);
-    }
+  public HypervisorRelationshipService(
+      ApplicationClock clock, HypervisorRelationshipRepository repository) {
+    this.clock = clock;
+    this.repository = repository;
   }
 
-  /** Translate an unmapped guest to a mapped hypervisor. */
-  public void mapHypervisor(String hypervisorUuid) {
-    List<HypervisorRelationship> unmappedGuests = repository.findByHypervisorUuid(null);
-    for (HypervisorRelationship guest : unmappedGuests) {
-      guest.setHypervisorUuid(hypervisorUuid);
-      guest.setLastUpdated(ZonedDateTime.now());
-      repository.persist(guest);
-
-      String derivedMeasurements = deriveMeasurements(1, 1);
-      emitSwatchEvent(
-          guest.getId().getSubscriptionManagerId(), hypervisorUuid, derivedMeasurements);
-    }
-  }
-
-  /** Delete a stale hypervisor. */
-  public void deleteStaleHypervisor(String hypervisorUuid) {
-    List<HypervisorRelationship> staleHypervisors = repository.findByHypervisorUuid(hypervisorUuid);
-    for (HypervisorRelationship hypervisor : staleHypervisors) {
-      repository.delete(hypervisor);
-      emitDeleteEvent(hypervisorUuid);
-    }
-  }
-
-  /** Re-add a guest with a known but deleted hypervisor. */
-  public void reAddGuest(
-      String subscriptionManagerId, String hypervisorUuid, String orgId, String rawFacts) {
+  /** Adds a relationship if a guest is unmapped, and removes it otherwise. */
+  @Transactional
+  public void processGuest(
+      String orgId,
+      String subscriptionManagerId,
+      String hypervisorUuid,
+      String hbiHostFactJson,
+      boolean isUnmapped) {
     HypervisorRelationshipId id = new HypervisorRelationshipId(orgId, subscriptionManagerId);
-    HypervisorRelationship relationship = new HypervisorRelationship();
-    relationship.setId(id);
+
+    if (isUnmapped) {
+      repository.persist(createOrUpdate(id, hypervisorUuid, hbiHostFactJson));
+    } else {
+      repository.deleteById(id);
+    }
+  }
+
+  /**
+   * Translate create/update the hypervisor mapping and return all unmapped guests for this
+   * hypervisor.
+   */
+  @Transactional
+  public void mapHypervisor(String orgId, String subscriptionManagerId, String hypervisorFacts) {
+    HypervisorRelationshipId id = new HypervisorRelationshipId(orgId, subscriptionManagerId);
+    repository.persist(createOrUpdate(id, null, hypervisorFacts));
+  }
+
+  @Transactional
+  public List<HypervisorRelationship> getUnmappedGuests(String orgId, String hypervisorUuid) {
+    return repository.findByHypervisorUuid(orgId, hypervisorUuid);
+  }
+
+  @Transactional
+  public boolean isHypervisor(String orgId, String subscriptionManagerId) {
+    return !repository.findByHypervisorUuid(orgId, subscriptionManagerId).isEmpty();
+  }
+
+  @Transactional
+  public boolean isUnmappedGuest(String orgId, String hypervisorUUID) {
+    return repository
+        .findByIdOptional(new HypervisorRelationshipId(orgId, hypervisorUUID))
+        .isEmpty();
+  }
+
+  private HypervisorRelationship createOrUpdate(
+      HypervisorRelationshipId id, String hypervisorUuid, String hbiHostFactJson) {
+    HypervisorRelationship relationship = findOrDefault(id);
+    OffsetDateTime now = clock.now();
+    if (Objects.isNull(relationship.getCreationDate())) {
+      relationship.setCreationDate(now);
+    }
     relationship.setHypervisorUuid(hypervisorUuid);
-    relationship.setCreationDate(ZonedDateTime.now());
-    relationship.setLastUpdated(ZonedDateTime.now());
-    relationship.setFacts(rawFacts);
-    relationship.setMeasurements(deriveMeasurements(5, 3));
-
-    repository.persist(relationship);
-    emitSwatchEvent(subscriptionManagerId, hypervisorUuid, relationship.getMeasurements());
+    relationship.setLastUpdated(now);
+    relationship.setFacts(hbiHostFactJson);
+    return relationship;
   }
 
-  // TODO placeholder
-  private String deriveMeasurements(int cores, int sockets) {
-    return String.format("{\"derivedCores\":%d,\"derivedSockets\":%d}", cores, sockets);
-  }
-
-  // TODO placeholder
-  private void emitSwatchEvent(
-      String subscriptionManagerId, String hypervisorUuid, String measurements) {
-
-    System.out.printf(
-        "emit swatch event message: subscriptionManagerId=%s, hypervisorUuid=%s, measurements=%s%n",
-        subscriptionManagerId, hypervisorUuid, measurements);
-  }
-
-  // TODO placeholder
-  private void emitDeleteEvent(String hypervisorUuid) {
-
-    System.out.printf("emit swatch delete event message: hypervisorUuid=%s%n", hypervisorUuid);
-  }
-
-  public boolean isHypervisor(String subscriptionManagerId) {
-    return false;
-  }
-
-  public boolean isUnmappedGuest(String hypervisorUUID) {
-    return false;
+  private HypervisorRelationship findOrDefault(HypervisorRelationshipId id) {
+    return repository
+        .findByIdOptional(id)
+        .orElseGet(
+            () -> {
+              HypervisorRelationship newRelationship = new HypervisorRelationship();
+              newRelationship.setId(id);
+              return newRelationship;
+            });
   }
 }

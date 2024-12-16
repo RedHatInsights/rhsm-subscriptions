@@ -25,16 +25,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostFacts;
+import com.redhat.swatch.hbi.events.normalization.Host;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-class HbiFactExtractorTest {
+class HostTest {
 
   @Test
   void testFactExtractionWhenNotProvidedFromHbi() {
     HbiHost hbiHost = new HbiHost();
-    HbiFactExtractor factExtractor = new HbiFactExtractor(hbiHost);
+    Host factExtractor = new Host(hbiHost);
     assertTrue(factExtractor.getRhsmFacts().isEmpty());
     assertTrue(factExtractor.getSatelliteFacts().isEmpty());
     assertTrue(factExtractor.getQpcFacts().isEmpty());
@@ -61,7 +62,7 @@ class HbiFactExtractorTest {
 
     hbiHost.setFacts(List.of(rhsmFacts, satelliteFacts, qpcFacts));
 
-    HbiFactExtractor factExtractor = new HbiFactExtractor(hbiHost);
+    Host factExtractor = new Host(hbiHost);
     assertTrue(factExtractor.getRhsmFacts().isPresent());
     assertTrue(factExtractor.getSatelliteFacts().isPresent());
     assertTrue(factExtractor.getQpcFacts().isPresent());

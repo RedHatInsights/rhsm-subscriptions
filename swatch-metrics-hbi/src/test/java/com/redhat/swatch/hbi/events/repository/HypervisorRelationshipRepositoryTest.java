@@ -21,17 +21,22 @@
 package com.redhat.swatch.hbi.events.repository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.redhat.swatch.hbi.events.test.resources.PostgresResource;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.time.ZonedDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
+@QuarkusTestResource(value = PostgresResource.class, restrictToAnnotatedClass = true)
 class HypervisorRelationshipRepositoryTest {
 
   @Inject HypervisorRelationshipRepository repository;
@@ -43,8 +48,8 @@ class HypervisorRelationshipRepositoryTest {
     HypervisorRelationship relationship1 = new HypervisorRelationship();
     relationship1.setId(id1);
     relationship1.setHypervisorUuid("uuid1");
-    relationship1.setCreationDate(ZonedDateTime.now());
-    relationship1.setLastUpdated(ZonedDateTime.now());
+    relationship1.setCreationDate(OffsetDateTime.now());
+    relationship1.setLastUpdated(OffsetDateTime.now());
     relationship1.setFacts("{\"cores\":4,\"sockets\":2}");
     relationship1.setMeasurements("{\"derivedCores\":4,\"derivedSockets\":2}");
 
@@ -52,8 +57,8 @@ class HypervisorRelationshipRepositoryTest {
     HypervisorRelationship relationship2 = new HypervisorRelationship();
     relationship2.setId(id2);
     relationship2.setHypervisorUuid("uuid2");
-    relationship2.setCreationDate(ZonedDateTime.now());
-    relationship2.setLastUpdated(ZonedDateTime.now());
+    relationship2.setCreationDate(OffsetDateTime.now());
+    relationship2.setLastUpdated(OffsetDateTime.now());
     relationship2.setFacts("{\"cores\":8,\"sockets\":4}");
     relationship2.setMeasurements("{\"derivedCores\":8,\"derivedSockets\":4}");
 
@@ -92,18 +97,25 @@ class HypervisorRelationshipRepositoryTest {
 
   @Test
   @Transactional
-  void testFindBySubscriptionManagerId_ReturnsCorrectResult() {
-    HypervisorRelationshipId id = new HypervisorRelationshipId("org2", "subman3");
+  void testFindById_ReturnsCorrectResult() {
+    HypervisorRelationshipId id = new HypervisorRelationshipId("org123", "subman3");
     HypervisorRelationship relationship = new HypervisorRelationship();
     relationship.setId(id);
     relationship.setHypervisorUuid("uuid3");
-    relationship.setCreationDate(ZonedDateTime.now());
-    relationship.setLastUpdated(ZonedDateTime.now());
+    relationship.setCreationDate(OffsetDateTime.now());
+    relationship.setLastUpdated(OffsetDateTime.now());
     relationship.setFacts("{\"cores\":16,\"sockets\":8}");
     relationship.setMeasurements("{\"derivedCores\":16,\"derivedSockets\":8}");
     repository.persist(relationship);
 
-    List<HypervisorRelationship> results = repository.findBySubscriptionManagerId("subman3");
-    assertEquals(1, results.size(), "Expected 1 result for subscriptionManagerId 'subman3'");
+    assertTrue(
+        repository.findByIdOptional(new HypervisorRelationshipId("org123", "subman3")).isPresent());
+  }
+
+  @Test
+  @Transactional
+  void testFindByHypervisorUUID() {
+    assertFalse(repository.findByHypervisorUuid("org1", "uuid1").isEmpty());
+    assertTrue(repository.findByHypervisorUuid("org2", "uuid1").isEmpty());
   }
 }

@@ -48,10 +48,13 @@ public class MeasurementNormalizer {
       NormalizedFacts facts,
       SystemProfileFacts systemProfileFacts,
       Optional<RhsmFacts> rhsmFacts,
-      Set<String> productTags) {
+      Set<String> productTags,
+      boolean isHypervisor,
+      boolean isUnmappedGuest) {
     NormalizedMeasurements measurements = new NormalizedMeasurements();
     measurements.setCores(normalizeCores(systemProfileFacts, productTags));
-    measurements.setSockets(normalizeSockets(facts, systemProfileFacts, productTags));
+    measurements.setSockets(
+        normalizeSockets(facts, systemProfileFacts, productTags, isHypervisor, isUnmappedGuest));
 
     normalizeUnits(facts, systemProfileFacts, rhsmFacts, measurements);
     return measurements;
@@ -68,7 +71,9 @@ public class MeasurementNormalizer {
   private Integer normalizeSockets(
       NormalizedFacts normalizedFacts,
       SystemProfileFacts systemProfileFacts,
-      Set<String> productTags) {
+      Set<String> productTags,
+      boolean isHypervisor,
+      boolean isUnmappedGuest) {
     Integer applicableSockets = getSystemProfileSockets(systemProfileFacts);
     applicableSockets =
         normalizeSocketCount(
@@ -76,8 +81,8 @@ public class MeasurementNormalizer {
             normalizedFacts,
             systemProfileFacts,
             productTags,
-            normalizedFacts.isHypervisor(),
-            normalizedFacts.isUnmappedGuest());
+            isHypervisor,
+            isUnmappedGuest);
     if (Boolean.TRUE.equals(systemProfileFacts.getIsMarketplace())) {
       applicableSockets = 0;
     }

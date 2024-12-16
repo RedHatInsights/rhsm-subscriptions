@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.hbi.events.normalization.facts;
+package com.redhat.swatch.hbi.events.normalization;
 
 import static com.redhat.swatch.hbi.events.normalization.facts.QpcFacts.QPC_FACTS_NAMESPACE;
 import static com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts.RHSM_FACTS_NAMESPACE;
@@ -26,6 +26,10 @@ import static com.redhat.swatch.hbi.events.normalization.facts.SatelliteFacts.SA
 
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostFacts;
+import com.redhat.swatch.hbi.events.normalization.facts.QpcFacts;
+import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
+import com.redhat.swatch.hbi.events.normalization.facts.SatelliteFacts;
+import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -35,14 +39,16 @@ import java.util.stream.Collectors;
  * Extracts HBI facts from an {@link com.redhat.swatch.hbi.events.dtos.hbi.HbiHost} and maps then to
  * appropriate swatch fact objects.
  */
-public class HbiFactExtractor {
+public class Host {
 
+  private final HbiHost hbiHost;
   private final RhsmFacts rhsmFacts;
   private final SatelliteFacts satelliteFacts;
   private final QpcFacts qpcFacts;
   private final SystemProfileFacts systemProfileFacts;
 
-  public HbiFactExtractor(HbiHost host) {
+  public Host(HbiHost host) {
+    this.hbiHost = host;
     Map<String, HbiHostFacts> facts = getFacts(host);
     rhsmFacts =
         facts.containsKey(RHSM_FACTS_NAMESPACE)
@@ -60,6 +66,10 @@ public class HbiFactExtractor {
             : null;
 
     systemProfileFacts = new SystemProfileFacts(host);
+  }
+
+  public HbiHost getHbiHost() {
+    return hbiHost;
   }
 
   public Optional<RhsmFacts> getRhsmFacts() {

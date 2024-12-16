@@ -20,95 +20,175 @@
  */
 package com.redhat.swatch.hbi.events.services;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 import com.redhat.swatch.hbi.events.repository.HypervisorRelationship;
 import com.redhat.swatch.hbi.events.repository.HypervisorRelationshipId;
 import com.redhat.swatch.hbi.events.repository.HypervisorRelationshipRepository;
+import java.time.OffsetDateTime;
 import java.util.List;
-import org.junit.jupiter.api.AfterEach;
+import java.util.Optional;
+import org.candlepin.clock.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.mockito.InjectMocks;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class HypervisorRelationshipServiceTest {
 
   @Mock private HypervisorRelationshipRepository repository;
+  @Mock private ApplicationClock clock;
 
-  @InjectMocks private HypervisorRelationshipService service;
-
-  private AutoCloseable mocks;
+  HypervisorRelationshipService service;
 
   @BeforeEach
   void setUp() {
-    mocks = MockitoAnnotations.openMocks(this);
-  }
-
-  @AfterEach
-  void tearDown() throws Exception {
-    if (mocks != null) {
-      mocks.close();
-    }
+    service = new HypervisorRelationshipService(clock, repository);
   }
 
   @Test
-  void testProcessGuest() {
+  void testProcessGuest_PersistsRelationshipForUnmappedGuest() {
+    String orgId = "orgId";
     String subscriptionManagerId = "abc";
     String hypervisorUuid = "123";
 
-    when(repository.findByHypervisorUuid(hypervisorUuid)).thenReturn(List.of());
-    when(repository.findBySubscriptionManagerId(subscriptionManagerId)).thenReturn(List.of());
+    String hbiHostFactJson = "{\"data\":\"Test host fact data\"}";
+    service.processGuest(orgId, subscriptionManagerId, hypervisorUuid, hbiHostFactJson, true);
 
-    service.processGuest(subscriptionManagerId, hypervisorUuid);
-
-    verify(repository, times(1)).persist(any(HypervisorRelationship.class));
+    ArgumentCaptor<HypervisorRelationship> captor =
+        ArgumentCaptor.forClass(HypervisorRelationship.class);
+    verify(repository, times(1)).persist(captor.capture());
+    HypervisorRelationship hypervisorRelationship = captor.getValue();
+    assertNotNull(hypervisorRelationship);
+    assertEquals(orgId, hypervisorRelationship.getId().getOrgId());
+    assertEquals(subscriptionManagerId, hypervisorRelationship.getId().getSubscriptionManagerId());
+    assertEquals(hypervisorUuid, hypervisorRelationship.getHypervisorUuid());
+    assertEquals(hbiHostFactJson, hypervisorRelationship.getFacts());
   }
 
   @Test
-  void testMapHypervisor() {
-    String hypervisorUuid = "123";
-
-    HypervisorRelationship guest = new HypervisorRelationship();
-    guest.setId(new HypervisorRelationshipId("org123", "abc"));
-
-    when(repository.findByHypervisorUuid(null)).thenReturn(List.of(guest));
-
-    service.mapHypervisor(hypervisorUuid);
-
-    verify(repository, times(1)).persist(guest);
-  }
-
-  @Test
-  void testDeleteStaleHypervisor() {
-    String hypervisorUuid = "123";
-
-    HypervisorRelationship hypervisor = new HypervisorRelationship();
-    hypervisor.setId(new HypervisorRelationshipId("org123", "abc"));
-    hypervisor.setHypervisorUuid(hypervisorUuid);
-
-    when(repository.findByHypervisorUuid(hypervisorUuid)).thenReturn(List.of(hypervisor));
-
-    service.deleteStaleHypervisor(hypervisorUuid);
-
-    verify(repository, times(1)).delete(hypervisor);
-  }
-
-  @Test
-  void testReAddGuest() {
+  void testProcessGuest_RemovesRelationshipForMappedGuest() {
+    String orgId = "org1";
     String subscriptionManagerId = "abc";
     String hypervisorUuid = "123";
-    String rawFacts = "{\"cores\":5,\"sockets\":3}";
 
-    service.reAddGuest(subscriptionManagerId, hypervisorUuid, "org123", rawFacts);
+    HypervisorRelationshipId expectedId =
+        new HypervisorRelationshipId(orgId, subscriptionManagerId);
+    service.processGuest(orgId, subscriptionManagerId, hypervisorUuid, "", false);
 
-    verify(repository, times(1)).persist(any(HypervisorRelationship.class));
+    verify(repository, never()).persist(any(HypervisorRelationship.class));
+    verify(repository, times(1)).deleteById(expectedId);
   }
 
-  @ParameterizedTest
-  @CsvSource({"abc,123,guestName", ",HBI_HOST", "'',HBI_HOST", "' ',HBI_HOST"})
-  void testHypervisorStatus(String subscriptionManagerId, String hypervisorUuid) {}
+  @Test
+  void testMapHypervisor_createsNewRelationship() {
+    String orgId = "org_1";
+    String submanId = "123";
+    String factData = "{\"data\":\"Test hypervisor fact data\"}";
+
+    OffsetDateTime expectedCreateUpdateTime = OffsetDateTime.now();
+    when(clock.now()).thenReturn(expectedCreateUpdateTime);
+
+    HypervisorRelationship hypervisorRelationship = new HypervisorRelationship();
+    hypervisorRelationship.setId(new HypervisorRelationshipId(orgId, submanId));
+    hypervisorRelationship.setFacts(factData);
+    hypervisorRelationship.setCreationDate(expectedCreateUpdateTime);
+    hypervisorRelationship.setLastUpdated(expectedCreateUpdateTime);
+
+    service.mapHypervisor(orgId, submanId, factData);
+    verify(repository, times(1)).findByIdOptional(hypervisorRelationship.getId());
+    verify(repository, times(1)).persist(hypervisorRelationship);
+  }
+
+  @Test
+  void testMapHypervisor_updatesExistingRelationship() {
+    String orgId = "org_1";
+    String submanId = "123";
+
+    HypervisorRelationshipId relationshipId = new HypervisorRelationshipId(orgId, submanId);
+
+    OffsetDateTime initialCreateUpdateTime = OffsetDateTime.now();
+    HypervisorRelationship existingHypervisorRelationship = new HypervisorRelationship();
+    existingHypervisorRelationship.setId(relationshipId);
+    existingHypervisorRelationship.setFacts("{\"data\":\"Initial Fact Data\"}");
+    existingHypervisorRelationship.setHypervisorUuid("hypervisor_123");
+    existingHypervisorRelationship.setCreationDate(initialCreateUpdateTime);
+    existingHypervisorRelationship.setLastUpdated(initialCreateUpdateTime);
+
+    when(repository.findByIdOptional(existingHypervisorRelationship.getId()))
+        .thenReturn(Optional.of(existingHypervisorRelationship));
+
+    OffsetDateTime expectedUpdateTime = initialCreateUpdateTime.plusMinutes(1);
+    String updatedFactData = "{\"data\":\"Test hypervisor fact data\"}";
+
+    when(clock.now()).thenReturn(expectedUpdateTime);
+
+    service.mapHypervisor(orgId, submanId, updatedFactData);
+
+    verify(repository, times(1)).findByIdOptional(existingHypervisorRelationship.getId());
+
+    ArgumentCaptor<HypervisorRelationship> persistCaptor =
+        ArgumentCaptor.forClass(HypervisorRelationship.class);
+    verify(repository, times(1)).persist(persistCaptor.capture());
+
+    HypervisorRelationship persistedHypervisorRelationship = persistCaptor.getValue();
+    assertEquals(existingHypervisorRelationship.getId(), persistedHypervisorRelationship.getId());
+    assertEquals(
+        existingHypervisorRelationship.getHypervisorUuid(),
+        persistedHypervisorRelationship.getHypervisorUuid());
+    assertEquals(updatedFactData, persistedHypervisorRelationship.getFacts());
+    assertEquals(initialCreateUpdateTime, persistedHypervisorRelationship.getCreationDate());
+    assertEquals(expectedUpdateTime, persistedHypervisorRelationship.getLastUpdated());
+  }
+
+  @Test
+  void testIsHypervisor() {
+    String orgId = "org123";
+    String hypervisorSubmanId = "hypervisorSubmanId1";
+    String nonHypervisorSubmanId = "hypervisorSubmanId2";
+
+    HypervisorRelationship guestRelationship = new HypervisorRelationship();
+    guestRelationship.setId(new HypervisorRelationshipId(orgId, "abc"));
+
+    when(repository.findByHypervisorUuid(orgId, hypervisorSubmanId))
+        .thenReturn(List.of(guestRelationship));
+    when(repository.findByHypervisorUuid(orgId, nonHypervisorSubmanId)).thenReturn(List.of());
+
+    assertTrue(service.isHypervisor(orgId, hypervisorSubmanId));
+    assertFalse(service.isHypervisor(orgId, nonHypervisorSubmanId));
+  }
+
+  @Test
+  void testIsUnmappedGuest() {
+    String orgId = "org123";
+    String unmappedGuestHypervisorUuid = "123";
+    String mappedGuestHypervisorUuid = "abc";
+
+    // A record must exist for the hypervisor's subman ID.
+    when(repository.findByIdOptional(
+            new HypervisorRelationshipId(orgId, mappedGuestHypervisorUuid)))
+        .thenReturn(Optional.of(new HypervisorRelationship()));
+    when(repository.findByIdOptional(
+            new HypervisorRelationshipId(orgId, unmappedGuestHypervisorUuid)))
+        .thenReturn(Optional.empty());
+
+    assertTrue(service.isUnmappedGuest(orgId, unmappedGuestHypervisorUuid));
+    assertFalse(service.isUnmappedGuest(orgId, mappedGuestHypervisorUuid));
+  }
+
+  @Test
+  void testGetUnmappedGuests() {
+    String orgId = "org123";
+    String hypervisorUuid = "hypervisorUuid";
+    List<HypervisorRelationship> unmapped = List.of(new HypervisorRelationship());
+    when(repository.findByHypervisorUuid(orgId, hypervisorUuid)).thenReturn(unmapped);
+    assertEquals(unmapped, service.getUnmappedGuests(orgId, hypervisorUuid));
+  }
 }

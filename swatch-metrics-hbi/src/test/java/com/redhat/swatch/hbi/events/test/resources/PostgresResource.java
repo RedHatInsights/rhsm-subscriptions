@@ -18,21 +18,25 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.hbi.events.repository;
+package com.redhat.swatch.hbi.events.test.resources;
 
-import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
-import jakarta.enterprise.context.ApplicationScoped;
-import java.util.List;
+import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import java.util.Collections;
+import java.util.Map;
+import org.candlepin.testcontainers.SwatchPostgreSQLContainer;
 
-@ApplicationScoped
-public class HypervisorRelationshipRepository
-    implements PanacheRepositoryBase<HypervisorRelationship, HypervisorRelationshipId> {
+public class PostgresResource implements QuarkusTestResourceLifecycleManager {
 
-  public List<HypervisorRelationship> findByOrgId(String orgId) {
-    return list("id.orgId", orgId);
+  static SwatchPostgreSQLContainer db = new SwatchPostgreSQLContainer("rhsm-subscriptions");
+
+  @Override
+  public Map<String, String> start() {
+    db.start();
+    return Collections.singletonMap("quarkus.datasource.jdbc.url", db.getJdbcUrl());
   }
 
-  public List<HypervisorRelationship> findByHypervisorUuid(String orgId, String hypervisorUuid) {
-    return list("id.orgId=?1 and hypervisorUuid=?2", orgId, hypervisorUuid);
+  @Override
+  public void stop() {
+    db.stop();
   }
 }

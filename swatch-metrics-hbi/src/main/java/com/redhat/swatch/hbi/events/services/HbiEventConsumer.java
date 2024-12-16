@@ -23,18 +23,24 @@ package com.redhat.swatch.hbi.events.services;
 import static com.redhat.swatch.hbi.events.configuration.Channels.HBI_HOST_EVENTS_IN;
 import static com.redhat.swatch.hbi.events.configuration.Channels.SWATCH_EVENTS_OUT;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.faulttolerance.api.RetryWithExponentialBackoff;
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
+import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.normalization.FactNormalizer;
+import com.redhat.swatch.hbi.events.normalization.Host;
+import com.redhat.swatch.hbi.events.normalization.MeasurementNormalizer;
 import com.redhat.swatch.hbi.events.normalization.NormalizedFacts;
 import com.redhat.swatch.hbi.events.normalization.NormalizedMeasurements;
-import com.redhat.swatch.hbi.events.normalization.facts.HbiFactExtractor;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
+import com.redhat.swatch.hbi.events.repository.HypervisorRelationship;
 import com.redhat.swatch.kafka.EmitterService;
 import io.smallrye.reactive.messaging.kafka.api.KafkaMessageMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -66,18 +72,27 @@ public class HbiEventConsumer {
   private final ApplicationClock clock;
   private final ApplicationConfiguration config;
   private final FactNormalizer factNormalizer;
+  private final MeasurementNormalizer measurementNormalizer;
+  private final HypervisorRelationshipService hypervisorRelationshipService;
+  private final ObjectMapper objectMapper;
 
   public HbiEventConsumer(
       @Channel(SWATCH_EVENTS_OUT) Emitter<Event> emitter,
       FeatureFlags flags,
       ApplicationClock clock,
       ApplicationConfiguration config,
-      FactNormalizer factNormalizer) {
+      FactNormalizer factNormalizer,
+      MeasurementNormalizer measurementNormalizer,
+      HypervisorRelationshipService hypervisorRelationshipService,
+      ObjectMapper objectMapper) {
     this.emitter = new EmitterService<>(emitter);
     this.flags = flags;
     this.clock = clock;
     this.config = config;
     this.factNormalizer = factNormalizer;
+    this.measurementNormalizer = measurementNormalizer;
+    this.hypervisorRelationshipService = hypervisorRelationshipService;
+    this.objectMapper = objectMapper;
   }
 
   @Incoming(HBI_HOST_EVENTS_IN)
@@ -94,7 +109,13 @@ public class HbiEventConsumer {
 
     log.info("Received create/update host event from HBI - {}", hbiEvent);
     HbiHostCreateUpdateEvent hbiHostEvent = (HbiHostCreateUpdateEvent) hbiEvent;
-    if (skipEvent(hbiHostEvent)) {
+
+    Host host = new Host(hbiHostEvent.getHost());
+
+    if (skipEvent(
+        host.getRhsmFacts().map(RhsmFacts::getBillingModel).orElse(null),
+        host.getSystemProfileFacts().getHostType(),
+        OffsetDateTime.parse(hbiHostEvent.getHost().getStaleTimestamp()))) {
       log.debug("HBI event {} will be filtered.", hbiEvent);
       return;
     }
@@ -104,50 +125,91 @@ public class HbiEventConsumer {
             .orElse(ZonedDateTime.now())
             .toOffsetDateTime();
 
-    NormalizedFacts facts = factNormalizer.normalize(hbiHostEvent.getHost());
-    var event =
-        new Event()
-            .withServiceType(EVENT_SERVICE_TYPE)
-            .withEventSource(EVENT_SOURCE)
-            .withEventType(String.format("HBI_HOST_%s", hbiHostEvent.getType().toUpperCase()))
-            .withTimestamp(eventTimestamp)
-            .withExpiration(Optional.of(eventTimestamp.plusHours(1)))
-            .withOrgId(facts.getOrgId())
-            .withInstanceId(facts.getInstanceId())
-            .withInventoryId(Optional.ofNullable(facts.getInventoryId()))
-            .withInsightsId(Optional.ofNullable(facts.getInsightsId()))
-            .withSubscriptionManagerId(Optional.ofNullable(facts.getSubscriptionManagerId()))
-            .withDisplayName(Optional.ofNullable(facts.getDisplayName()))
-            .withSla(Objects.nonNull(facts.getSla()) ? Sla.fromValue(facts.getSla()) : null)
-            .withUsage(Objects.nonNull(facts.getUsage()) ? Usage.fromValue(facts.getUsage()) : null)
-            .withConversion(facts.is3rdPartyMigrated())
-            .withHypervisorUuid(Optional.ofNullable(facts.getHypervisorUuid()))
-            .withCloudProvider(facts.getCloudProvider())
-            .withHardwareType(facts.getHardwareType())
-            .withProductIds(facts.getProductIds().stream().toList())
-            .withProductTag(facts.getProductTags())
-            .withMeasurements(convertMeasurements(facts.getMeasurements()))
-            .withIsVirtual(facts.isVirtual())
-            .withIsUnmappedGuest(facts.isUnmappedGuest())
-            .withIsHypervisor(facts.isHypervisor())
-            .withLastSeen(facts.getLastSeen());
-
+    NormalizedFacts facts = factNormalizer.normalize(host);
+    Event event = buildEvent(hbiHostEvent.getType().toUpperCase(), facts, host, eventTimestamp);
     // TODO: correlation id from the header?
 
+    List<Event> toSend = new ArrayList<>();
+    toSend.add(event);
+
+    if (facts.isGuest()) {
+      updateGuestRelationship(facts, hbiHostEvent, event.getIsUnmappedGuest());
+    } else if (Boolean.TRUE.equals(event.getIsHypervisor())) {
+      toSend.addAll(updateHypervisorRelationship(facts, hbiHostEvent, eventTimestamp));
+    }
+
     if (flags.emitEvents()) {
-      log.info("Emitting HBI events to swatch!");
-      emitter.send(Message.of(event));
+      log.info("Emitting {} HBI events to swatch!", toSend.size());
+      toSend.forEach(eventToSend -> emitter.send(Message.of(eventToSend)));
     } else {
-      log.info("Emitting HBI events to swatch is disabled. Not sending event.");
+      log.info("Emitting HBI events to swatch is disabled. Not sending {} events.", toSend.size());
+      toSend.forEach(eventToSend -> log.info("EVENT: {}", eventToSend));
     }
   }
 
-  private boolean skipEvent(HbiHostCreateUpdateEvent hbiHostEvent) {
-    // NOTE: Filtering based org will be done before swatch events are persisted on ingestion.
-    HbiFactExtractor extractor = new HbiFactExtractor(hbiHostEvent.getHost());
+  @Transactional
+  public List<Event> updateHypervisorRelationship(
+      NormalizedFacts facts, HbiHostCreateUpdateEvent hbiHostEvent, OffsetDateTime eventTimestamp) {
+    List<Event> updateGuestEvents = new ArrayList<>();
+    try {
+      hypervisorRelationshipService.mapHypervisor(
+          facts.getOrgId(),
+          facts.getSubscriptionManagerId(),
+          objectMapper.writeValueAsString(hbiHostEvent.getHost()));
+      // Reprocess any unmapped guests and resend an event with updated measurements.
+      hypervisorRelationshipService
+          .getUnmappedGuests(facts.getOrgId(), facts.getSubscriptionManagerId())
+          .forEach(unmapped -> updateGuestEvents.add(refreshGuest(unmapped, eventTimestamp)));
+    } catch (JsonProcessingException e) {
+      // TODO Should this retry, or should it fail silently.
+      throw new RuntimeException(e);
+    }
+    return updateGuestEvents;
+  }
 
-    Optional<RhsmFacts> rhsmFacts = extractor.getRhsmFacts();
-    String billingModel = rhsmFacts.map(RhsmFacts::getBillingModel).orElse(null);
+  @Transactional
+  public void updateGuestRelationship(
+      NormalizedFacts facts, HbiHostCreateUpdateEvent hbiHostEvent, boolean isUnmappedGuest) {
+    try {
+      hypervisorRelationshipService.processGuest(
+          facts.getOrgId(),
+          facts.getSubscriptionManagerId(),
+          facts.getHypervisorUuid(),
+          objectMapper.writeValueAsString(hbiHostEvent.getHost()),
+          isUnmappedGuest);
+    } catch (JsonProcessingException e) {
+      // TODO Should this retry, or should it fail silently.
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * Refresh an unmapped guest's measurements and create a new Event representing these changes.
+   *
+   * @param unmapped the unmapped guests hypervisor relationship.
+   * @return a new Event representing the host's new state.
+   */
+  private Event refreshGuest(HypervisorRelationship unmapped, OffsetDateTime hypervisorTimestamp) {
+    Host host = null;
+    try {
+      host = new Host(objectMapper.readValue(unmapped.getFacts(), HbiHost.class));
+      NormalizedFacts facts = factNormalizer.normalize(host);
+      Event event = buildEvent("HBI_MAPPED_GUEST_UPDATE", facts, host, hypervisorTimestamp);
+      hypervisorRelationshipService.processGuest(
+          unmapped.getId().getOrgId(),
+          unmapped.getId().getSubscriptionManagerId(),
+          unmapped.getHypervisorUuid(),
+          unmapped.getFacts(),
+          false);
+      return event;
+    } catch (JsonProcessingException e) {
+      // TODO Throw proper exception.
+      throw new RuntimeException(e);
+    }
+  }
+
+  private boolean skipEvent(String billingModel, String hostType, OffsetDateTime staleTimestamp) {
+    // NOTE: Filtering based org will be done before swatch events are persisted on ingestion.
     boolean validBillingModel = Objects.isNull(billingModel) || !"marketplace".equals(billingModel);
     if (!validBillingModel) {
       log.info(
@@ -155,15 +217,12 @@ public class HbiEventConsumer {
       return true;
     }
 
-    String hostType = extractor.getSystemProfileFacts().getHostType();
     boolean validHostType = Objects.isNull(hostType) || !"edge".equals(hostType);
     if (!validHostType) {
       log.info("Incoming HBI event will be skipped do to an invalid host type: {}", hostType);
       return true;
     }
 
-    OffsetDateTime staleTimestamp =
-        OffsetDateTime.parse(hbiHostEvent.getHost().getStaleTimestamp());
     boolean isNotStale =
         clock.now().isBefore(staleTimestamp.plusDays(config.getCullingOffset().toDays()));
     if (!isNotStale) {
@@ -188,5 +247,53 @@ public class HbiEventConsumer {
                 applicableMeasurements.add(
                     new Measurement().withMetricId("sockets").withValue(Double.valueOf(sockets))));
     return applicableMeasurements;
+  }
+
+  private Event buildEvent(
+      String eventType, NormalizedFacts facts, Host hbiHost, OffsetDateTime eventTimestamp) {
+
+    boolean isHypervisor =
+        hypervisorRelationshipService.isHypervisor(
+            facts.getOrgId(), facts.getSubscriptionManagerId());
+    boolean isUnmappedGuest =
+        facts.isGuest()
+            && hypervisorRelationshipService.isUnmappedGuest(
+                facts.getOrgId(), facts.getHypervisorUuid());
+
+    // TODO: Product ids/tags
+    NormalizedMeasurements measurements =
+        measurementNormalizer.getMeasurements(
+            facts,
+            hbiHost.getSystemProfileFacts(),
+            hbiHost.getRhsmFacts(),
+            facts.getProductTags(),
+            isHypervisor,
+            isUnmappedGuest);
+
+    return new Event()
+        .withServiceType(EVENT_SERVICE_TYPE)
+        .withEventSource(EVENT_SOURCE)
+        .withEventType(String.format("HBI_HOST_%s", eventType.toUpperCase()))
+        .withTimestamp(eventTimestamp)
+        .withExpiration(Optional.of(eventTimestamp.plusHours(1)))
+        .withOrgId(facts.getOrgId())
+        .withInstanceId(facts.getInstanceId())
+        .withInventoryId(Optional.ofNullable(facts.getInventoryId()))
+        .withInsightsId(Optional.ofNullable(facts.getInsightsId()))
+        .withSubscriptionManagerId(Optional.ofNullable(facts.getSubscriptionManagerId()))
+        .withDisplayName(Optional.ofNullable(facts.getDisplayName()))
+        .withSla(Objects.nonNull(facts.getSla()) ? Sla.fromValue(facts.getSla()) : null)
+        .withUsage(Objects.nonNull(facts.getUsage()) ? Usage.fromValue(facts.getUsage()) : null)
+        .withConversion(facts.is3rdPartyMigrated())
+        .withHypervisorUuid(Optional.ofNullable(facts.getHypervisorUuid()))
+        .withCloudProvider(facts.getCloudProvider())
+        .withHardwareType(facts.getHardwareType())
+        .withProductIds(facts.getProductIds().stream().toList())
+        .withProductTag(facts.getProductTags())
+        .withMeasurements(convertMeasurements(measurements))
+        .withIsVirtual(facts.isVirtual())
+        .withIsUnmappedGuest(isUnmappedGuest)
+        .withIsHypervisor(isHypervisor)
+        .withLastSeen(facts.getLastSeen());
   }
 }

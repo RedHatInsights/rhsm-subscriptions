@@ -27,47 +27,56 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.redhat.swatch.common.model.HardwareMeasurementType;
 import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
+import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SatelliteFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
-import io.quarkus.test.junit.QuarkusTest;
-import jakarta.inject.Inject;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.json.Event.CloudProvider;
 import org.candlepin.subscriptions.json.Event.HardwareType;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-@QuarkusTest
 class FactNormalizerTest {
-  @Inject ApplicationClock clock;
-  @Inject FactNormalizer normalizer;
+
+  private ApplicationClock clock;
+  private FactNormalizer normalizer;
+
+  @BeforeEach
+  void setUp() {
+    ApplicationConfiguration config = new ApplicationConfiguration();
+    config.setHostLastSyncThreshold(Duration.ofHours(24));
+    clock = config.applicationClock();
+    normalizer = new FactNormalizer(clock, config);
+  }
 
   // Basic facts are facts that require no logic when deciding the value.
   // They are either set or are null.
   @Test
   void testNormalizationOfBasicFacts() {
-    HbiHost host = host();
+    Host host = new Host(hbiHost());
     NormalizedFacts normalizedFacts = normalizer.normalize(host);
-    assertEquals(host.getOrgId(), normalizedFacts.getOrgId());
-    assertEquals(host.getId().toString(), normalizedFacts.getInventoryId());
-    assertEquals(host.getInsightsId(), normalizedFacts.getInsightsId());
-    assertEquals(host.getSubscriptionManagerId(), normalizedFacts.getSubscriptionManagerId());
-    assertEquals(host.getDisplayName(), normalizedFacts.getDisplayName());
+    assertEquals(host.getHbiHost().getOrgId(), normalizedFacts.getOrgId());
+    assertEquals(host.getHbiHost().getId().toString(), normalizedFacts.getInventoryId());
+    assertEquals(host.getHbiHost().getInsightsId(), normalizedFacts.getInsightsId());
+    assertEquals(
+        host.getHbiHost().getSubscriptionManagerId(), normalizedFacts.getSubscriptionManagerId());
+    assertEquals(host.getHbiHost().getDisplayName(), normalizedFacts.getDisplayName());
     assertEquals(clock.startOfToday().minusHours(1).toString(), normalizedFacts.getSyncTimestamp());
   }
 
@@ -85,10 +94,10 @@ class FactNormalizerTest {
   @ParameterizedTest
   @MethodSource("instanceIdParams")
   void testInstanceIdNormalization(UUID inventoryId, String providerId, String expectedInstanceId) {
-    HbiHost host = host();
-    host.setId(inventoryId);
-    host.setProviderId(providerId);
-    assertEquals(expectedInstanceId, normalizer.normalize(host).getInstanceId());
+    HbiHost hbiHost = hbiHost();
+    hbiHost.setId(inventoryId);
+    hbiHost.setProviderId(providerId);
+    assertEquals(expectedInstanceId, normalizer.normalize(new Host(hbiHost)).getInstanceId());
   }
 
   static Stream<Arguments> cloudProviderParams() {
@@ -105,11 +114,13 @@ class FactNormalizerTest {
       String cloudProviderFact,
       HardwareMeasurementType expectedType,
       CloudProvider expectedProvider) {
-    HbiHost host = host();
-    host.getSystemProfile().put(SystemProfileFacts.CLOUD_PROVIDER_FACT, cloudProviderFact);
+    HbiHost hbiHost = hbiHost();
+    hbiHost.getSystemProfile().put(SystemProfileFacts.CLOUD_PROVIDER_FACT, cloudProviderFact);
 
-    assertEquals(expectedType, normalizer.normalize(host).getCloudProviderType());
-    assertEquals(expectedProvider, normalizer.normalize(host).getCloudProvider());
+    Host host = new Host(hbiHost);
+    NormalizedFacts normalizedFacts = normalizer.normalize(host);
+    assertEquals(expectedType, normalizedFacts.getCloudProviderType());
+    assertEquals(expectedProvider, normalizedFacts.getCloudProvider());
   }
 
   static Stream<Arguments> hypervisorUuidParams() {
@@ -129,18 +140,20 @@ class FactNormalizerTest {
       String satelliteHypervisorUuid,
       String systemProfileHypervisorUuid,
       String expectedHypervisorUuid) {
-    HbiHost host = host();
+    HbiHost hbiHost = hbiHost();
     if (Objects.nonNull(systemProfileHypervisorUuid)) {
-      host.getSystemProfile()
+      hbiHost
+          .getSystemProfile()
           .put(SystemProfileFacts.HYPERVISOR_UUID_FACT, systemProfileHypervisorUuid);
     }
 
     if (Objects.nonNull(satelliteHypervisorUuid)) {
       HbiHostFacts satelliteFacts = satelliteFacts();
       satelliteFacts.getFacts().put(SatelliteFacts.VIRTUAL_HOST_UUID_FACT, satelliteHypervisorUuid);
-      host.setFacts(List.of(satelliteFacts));
+      hbiHost.setFacts(List.of(satelliteFacts));
     }
-    assertEquals(expectedHypervisorUuid, normalizer.normalize(host).getHypervisorUuid());
+    assertEquals(
+        expectedHypervisorUuid, normalizer.normalize(new Host(hbiHost)).getHypervisorUuid());
   }
 
   static Stream<Arguments> isVirtualParams() {
@@ -170,11 +183,11 @@ class FactNormalizerTest {
     satelliteFacts.getFacts().put(SatelliteFacts.VIRTUAL_HOST_UUID_FACT, satelliteHypervisorUuid);
     hbiHostFacts.add(satelliteFacts);
 
-    HbiHost host = host();
-    host.setFacts(hbiHostFacts);
-    host.getSystemProfile().put(SystemProfileFacts.INFRASTRUCTURE_TYPE_FACT, infrastructureType);
+    HbiHost hbiHost = hbiHost();
+    hbiHost.setFacts(hbiHostFacts);
+    hbiHost.getSystemProfile().put(SystemProfileFacts.INFRASTRUCTURE_TYPE_FACT, infrastructureType);
 
-    assertEquals(expectedToBeVirtual, normalizer.normalize(host).isVirtual());
+    assertEquals(expectedToBeVirtual, normalizer.normalize(new Host(hbiHost)).isVirtual());
   }
 
   static Stream<Arguments> hardwareTypeParams() {
@@ -197,10 +210,12 @@ class FactNormalizerTest {
       String sysProfileCloudProvider,
       String sysProfileInfraType,
       HardwareType expectedHardwareType) {
-    HbiHost host = host();
-    host.getSystemProfile().put(SystemProfileFacts.CLOUD_PROVIDER_FACT, sysProfileCloudProvider);
-    host.getSystemProfile().put(SystemProfileFacts.INFRASTRUCTURE_TYPE_FACT, sysProfileInfraType);
-    assertEquals(expectedHardwareType, normalizer.normalize(host).getHardwareType());
+    HbiHost hbiHost = hbiHost();
+    hbiHost.getSystemProfile().put(SystemProfileFacts.CLOUD_PROVIDER_FACT, sysProfileCloudProvider);
+    hbiHost
+        .getSystemProfile()
+        .put(SystemProfileFacts.INFRASTRUCTURE_TYPE_FACT, sysProfileInfraType);
+    assertEquals(expectedHardwareType, normalizer.normalize(new Host(hbiHost)).getHardwareType());
   }
 
   static Stream<Arguments> skipRhsmFactsParams() {
@@ -246,11 +261,13 @@ class FactNormalizerTest {
     satelliteFacts.getFacts().put(SatelliteFacts.SLA_FACT, ServiceLevel.STANDARD.getValue());
     hbiHostFacts.add(satelliteFacts);
 
-    HbiHost host = host();
-    host.setFacts(hbiHostFacts);
-    assertEquals(expectedUsage.getValue(), normalizer.normalize(host).getUsage());
-    assertEquals(expectedSla.getValue(), normalizer.normalize(host).getSla());
-    assertEquals(expectedProductTags, normalizer.normalize(host).getProductTags());
+    HbiHost hbiHost = hbiHost();
+    hbiHost.setFacts(hbiHostFacts);
+
+    NormalizedFacts normalizedFacts = normalizer.normalize(new Host(hbiHost));
+    assertEquals(expectedUsage.getValue(), normalizedFacts.getUsage());
+    assertEquals(expectedSla.getValue(), normalizedFacts.getSla());
+    assertEquals(expectedProductTags, normalizedFacts.getProductTags());
   }
 
   static Stream<Arguments> usageParams() {
@@ -291,11 +308,11 @@ class FactNormalizerTest {
     }
     hbiHostFacts.add(satelliteFacts);
 
-    HbiHost host = host();
-    host.setFacts(hbiHostFacts);
+    HbiHost hbiHost = hbiHost();
+    hbiHost.setFacts(hbiHostFacts);
     assertEquals(
         Objects.nonNull(expectedUsage) ? expectedUsage.getValue() : null,
-        normalizer.normalize(host).getUsage());
+        normalizer.normalize(new Host(hbiHost)).getUsage());
   }
 
   static Stream<Arguments> slaParams() {
@@ -341,11 +358,11 @@ class FactNormalizerTest {
     }
     hbiHostFacts.add(satelliteFacts);
 
-    HbiHost host = host();
-    host.setFacts(hbiHostFacts);
+    HbiHost hbiHost = hbiHost();
+    hbiHost.setFacts(hbiHostFacts);
     assertEquals(
         Objects.nonNull(expectedSla) ? expectedSla.getValue() : null,
-        normalizer.normalize(host).getSla());
+        normalizer.normalize(new Host(hbiHost)).getSla());
   }
 
   @Test
@@ -359,10 +376,10 @@ class FactNormalizerTest {
     rhsmFacts.getFacts().put(RhsmFacts.PRODUCT_IDS_FACT, List.of("69"));
     hbiHostFacts.add(rhsmFacts);
 
-    HbiHost host = host();
-    host.setFacts(hbiHostFacts);
+    HbiHost hbiHost = hbiHost();
+    hbiHost.setFacts(hbiHostFacts);
 
-    NormalizedFacts normalizedFacts = normalizer.normalize(host);
+    NormalizedFacts normalizedFacts = normalizer.normalize(new Host(hbiHost));
     assertEquals(Set.of("RHEL for x86"), normalizedFacts.getProductTags());
     assertEquals(Set.of("69"), normalizedFacts.getProductIds());
   }
@@ -370,41 +387,22 @@ class FactNormalizerTest {
   @Test
   void testIs3rdPartyMigrated() {
     // Empty system profile facts.
-    HbiHost host = host();
-    assertFalse(normalizer.normalize(host).is3rdPartyMigrated());
+    HbiHost hbiHost = hbiHost();
+    assertFalse(normalizer.normalize(new Host(hbiHost)).is3rdPartyMigrated());
 
-    host.getSystemProfile()
+    hbiHost
+        .getSystemProfile()
         .put(
             SystemProfileFacts.CONVERSIONS_FACT,
             Map.of(SystemProfileFacts.CONVERSIONS_ACTIVITY, false));
-    assertFalse(normalizer.normalize(host).is3rdPartyMigrated());
+    assertFalse(normalizer.normalize(new Host(hbiHost)).is3rdPartyMigrated());
 
-    host.getSystemProfile()
+    hbiHost
+        .getSystemProfile()
         .put(
             SystemProfileFacts.CONVERSIONS_FACT,
             Map.of(SystemProfileFacts.CONVERSIONS_ACTIVITY, true));
-    assertTrue(normalizer.normalize(host).is3rdPartyMigrated());
-  }
-
-  static Stream<Arguments> measurementParams() {
-    return Stream.of(
-        Arguments.of(2, 4), Arguments.of(2, null), Arguments.of(null, 4), Arguments.of(null, null));
-  }
-
-  @ParameterizedTest
-  @MethodSource("measurementParams")
-  void testMeasurementNormalization(Integer sockets, Integer coresPerSocket) {
-    // NOTE: The logic around measurement normalization is tested in MeasurementNormalizerTest.
-    //       This test only ensures that measurements are being normalized and included in
-    //       the normalized facts, when appropriate.
-    HbiHost host = host();
-    host.getSystemProfile().put(SystemProfileFacts.SOCKETS_FACT, sockets);
-    host.getSystemProfile().put(SystemProfileFacts.CORES_PER_SOCKET_FACT, coresPerSocket);
-
-    NormalizedMeasurements measurements = normalizer.normalize(host).getMeasurements();
-    assertEquals(Optional.ofNullable(sockets).isPresent(), measurements.getSockets().isPresent());
-    assertEquals(
-        Optional.ofNullable(coresPerSocket).isPresent(), measurements.getCores().isPresent());
+    assertTrue(normalizer.normalize(new Host(hbiHost)).is3rdPartyMigrated());
   }
 
   static Stream<Arguments> lastSeenParams() {
@@ -418,12 +416,12 @@ class FactNormalizerTest {
   @ParameterizedTest
   @MethodSource("lastSeenParams")
   void testLastSeenNormalization(String hostUpdatedDate, OffsetDateTime expectedLastSeen) {
-    HbiHost host = host();
-    host.updated = Objects.nonNull(hostUpdatedDate) ? hostUpdatedDate : null;
-    assertEquals(expectedLastSeen, normalizer.normalize(host).getLastSeen());
+    HbiHost hbiHost = hbiHost();
+    hbiHost.updated = Objects.nonNull(hostUpdatedDate) ? hostUpdatedDate : null;
+    assertEquals(expectedLastSeen, normalizer.normalize(new Host(hbiHost)).getLastSeen());
   }
 
-  private HbiHost host() {
+  private HbiHost hbiHost() {
     HbiHost hbiHost = new HbiHost();
     hbiHost.orgId = "12345678";
     hbiHost.id = UUID.randomUUID();
