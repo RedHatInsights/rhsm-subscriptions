@@ -1,5 +1,6 @@
 plugins {
     id 'swatch.java-library-conventions'
+    id 'io.quarkus'
 }
 
 dependencies {
@@ -10,9 +11,6 @@ dependencies {
     testImplementation("io.quarkus:quarkus-jdbc-h2")
 }
 
-test {
-    apply plugin: 'io.quarkus'
-    tasks."quarkusDependenciesBuild".dependsOn tasks.jandex
-}
+tasks."quarkusDependenciesBuild".dependsOn tasks.jandex
 
 description = 'Shared panache logic for swatch services'
