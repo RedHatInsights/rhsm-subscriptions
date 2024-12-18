@@ -46,14 +46,13 @@ public class BillableUsageRemittanceFilter {
   private String metricId;
   private String billingProvider;
   private String billingAccountId;
-  private String hardwareMeasurementType;
   private OffsetDateTime beginning;
   private OffsetDateTime ending;
   private String accumulationPeriod;
   private boolean excludeFailures;
   private UUID tallyId;
 
-  public static BillableUsageRemittanceFilter fromUsage(BillableUsage usage) {
+  public static BillableUsageRemittanceFilter totalRemittedFilter(BillableUsage usage) {
     return BillableUsageRemittanceFilter.builder()
         .orgId(usage.getOrgId())
         .billingAccountId(usage.getBillingAccountId())
@@ -63,7 +62,7 @@ public class BillableUsageRemittanceFilter {
         .productId(usage.getProductId())
         .sla(usage.getSla().value())
         .usage(usage.getUsage().value())
-        .hardwareMeasurementType(usage.getHardwareMeasurementType())
+        .excludeFailures(true)
         .build();
   }
 }
