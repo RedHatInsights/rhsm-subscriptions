@@ -64,7 +64,6 @@ public class BillableUsageRemittanceRepository
           root.get(BillableUsageRemittanceEntity_.METRIC_ID),
           root.get(BillableUsageRemittanceEntity_.ORG_ID),
           root.get(BillableUsageRemittanceEntity_.PRODUCT_ID),
-          root.get(BillableUsageRemittanceEntity_.HARDWARE_MEASUREMENT_TYPE),
           root.get(BillableUsageRemittanceEntity_.STATUS),
           root.get(BillableUsageRemittanceEntity_.ERROR_CODE));
     }
@@ -81,7 +80,6 @@ public class BillableUsageRemittanceRepository
             root.get(BillableUsageRemittanceEntity_.BILLING_PROVIDER),
             root.get(BillableUsageRemittanceEntity_.BILLING_ACCOUNT_ID),
             root.get(BillableUsageRemittanceEntity_.METRIC_ID),
-            root.get(BillableUsageRemittanceEntity_.HARDWARE_MEASUREMENT_TYPE),
             root.get(BillableUsageRemittanceEntity_.STATUS),
             root.get(BillableUsageRemittanceEntity_.ERROR_CODE)));
     return entityManager.createQuery(query).getResultList();
@@ -171,10 +169,6 @@ public class BillableUsageRemittanceRepository
     if (Objects.nonNull(filter.getSla())) {
       searchCriteria = searchCriteria.and(matchingSla(filter.getSla()));
     }
-    if (Objects.nonNull(filter.getHardwareMeasurementType())) {
-      searchCriteria =
-          searchCriteria.and(matchingHardwareMeasurementType(filter.getHardwareMeasurementType()));
-    }
     if (filter.isExcludeFailures()) {
       searchCriteria = searchCriteria.and(excludesFailures());
     }
@@ -191,14 +185,6 @@ public class BillableUsageRemittanceRepository
             builder.isNull(root.get(BillableUsageRemittanceEntity_.status)),
             builder.notEqual(
                 root.get(BillableUsageRemittanceEntity_.status), RemittanceStatus.FAILED));
-  }
-
-  private Specification<BillableUsageRemittanceEntity> matchingHardwareMeasurementType(
-      String hardwareMeasurementType) {
-    return (root, query, builder) ->
-        builder.equal(
-            root.get(BillableUsageRemittanceEntity_.hardwareMeasurementType),
-            hardwareMeasurementType);
   }
 
   private static Specification<BillableUsageRemittanceEntity> matchingProductId(String productId) {
