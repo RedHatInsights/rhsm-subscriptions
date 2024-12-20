@@ -1,21 +1,21 @@
 import logging
 import os
-
-import click
 import re
 import sys
-import iterfzf
-import openshift
 import typing as t
 
+import click
+import iterfzf
+import openshift_client as openshift
+from invoke import Context as InvokeContext
+from invoke import UnexpectedExit, StreamWatcher
+
 from .. import SwatchDogError, info, err, invoke_config, pass_swatch
+
 
 # Trying to avoid some confusion here because otherwise we have invoke.Context
 # calls (from the Invoke library we use for shell commands) and context.Invoke() calls
 # from Click.
-
-from invoke import Context as InvokeContext
-from invoke import UnexpectedExit, StreamWatcher
 
 
 class GradleWatcher(StreamWatcher):
