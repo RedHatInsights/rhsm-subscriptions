@@ -23,6 +23,7 @@ package com.redhat.swatch.export;
 import com.redhat.cloud.event.parser.ConsoleCloudEventParser;
 import com.redhat.swatch.export.api.ExportDelegate;
 import com.redhat.swatch.export.api.RbacDelegate;
+import com.redhat.swatch.export.utils.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -77,9 +78,10 @@ public class ExportRequestHandler {
       }
     } catch (ExportServiceException e) {
       log.error(
-          "Error thrown for event: '{}' sending ErrorRequest: '{}'",
-          request.getId(),
-          e.getMessage());
+          "Export request failed with error '{}', sending to export service for request ID '{}' and resource '{}'",
+          e.getMessage(),
+          request.getExportRequestUUID(),
+          request.getRequest().getUUID());
       exportDelegate.sendExportError(request, e.getStatus(), e.getMessage());
     }
   }
@@ -97,6 +99,11 @@ public class ExportRequestHandler {
     Stream<?> data = exporterService.fetchData(request);
     File file = createTemporalFile(request);
     getFileWriter(request).write(file, exporterService.getMapper(request), data, request);
+    log.info(
+        "Uploading file of size '{}' to export service for request ID '{}' and resource '{}'",
+        FileUtils.getFileSize(file),
+        request.getExportRequestUUID(),
+        request.getRequest().getUUID());
     exportDelegate.upload(file, request);
     log.info("Event processed: '{}' from application: '{}'", request.getId(), request.getSource());
   }
