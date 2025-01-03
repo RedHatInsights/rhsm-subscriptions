@@ -22,10 +22,13 @@ package com.redhat.swatch.export.utils;
 
 import java.io.File;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
 
 public final class FileUtils {
 
-  private static final DecimalFormat FORMAT = new DecimalFormat("##.00");
+  private static final DecimalFormat FORMAT =
+      new DecimalFormat("##.00", DecimalFormatSymbols.getInstance(Locale.ENGLISH));
   private static final double BYTE = 1024;
 
   private FileUtils() {}
