@@ -14,13 +14,13 @@
   -->
   <changeSet id="202412041537-01" author="awood" dbms="postgresql">
     <!--
-    Creating an extension requires superuser permissions.  But in production and stage, we don't
+    Creating an extension requires superuser permissions.  But in some environments, we don't
     have those permissions.  We have to create the extension in an out-of-band migration.
 
     The creation command checks permissions before it checks the extensions existence, so even an
     invocation that would have no effect will cause the changeset to fail.  Accordingly, we have to
     have a pre-condition to check if we should even attempt to create the extension.  That way we
-    can use the same changeset in both development and production.
+    can use the same changeset everywhere.
     -->
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">
