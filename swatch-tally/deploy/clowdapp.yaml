@@ -760,3 +760,9 @@ objects:
         where product_id='OpenShift Container Platform'
         and usage!='_ANY'
         and sla!='_ANY'
+    - prefix: swatch/sku_product_tag
+      query: >-
+        select
+          sku,
+          product_tag
+        from sku_product_tag
