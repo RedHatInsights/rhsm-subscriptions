@@ -23,6 +23,7 @@ package com.redhat.swatch.billable.usage.kafka.streams;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.quarkus.arc.profile.UnlessBuildProfile;
 import io.quarkus.kafka.client.serialization.ObjectMapperSerde;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
@@ -47,6 +48,7 @@ import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 @AllArgsConstructor
 @ApplicationScoped
 @Slf4j
+@UnlessBuildProfile("test")
 public class StreamTopologyProducer {
 
   public static final String USAGE_TOTAL_METRIC = "swatch_billable_usage_total";

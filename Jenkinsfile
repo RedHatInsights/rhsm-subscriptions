@@ -87,7 +87,9 @@ spec:
             steps {
                 // The build task includes check, test, and assemble.  Linting happens during the check
                 // task and uses the spotless gradle plugin.
-                sh "./gradlew --no-daemon --no-parallel build testCodeCoverageReport"
+                // Excluding tests with tag "integration" because new Jenkins service account is missing the
+                // pods/portforward permissions: https://issues.redhat.com/browse/CCITJEN-2066
+                sh "./gradlew --no-daemon --no-parallel --info build testCodeCoverageReport -DexcludeTags=integration"
             }
         }
 
