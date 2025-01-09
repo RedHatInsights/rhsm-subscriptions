@@ -21,6 +21,7 @@
 package com.redhat.swatch.aws.configuration;
 
 public class Channels {
+  public static final String BILLABLE_USAGE_HOURLY_AGGREGATE = "billable-usage-hourly-aggregate-in";
   public static final String BILLABLE_USAGE_STATUS = "billable-usage-status-out";
 
   private Channels() {}
