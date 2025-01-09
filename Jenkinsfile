@@ -27,6 +27,9 @@ spec:
        # Verbosity level which is helpful to troubleshot issues when starting up containers
        - -v
        - 10
+       # Service account from jenkins cluster having port-forward permissions
+       - --service-account
+       - stage-instance-admin
     - name: openjdk17
       image: registry.access.redhat.com/ubi9/openjdk-17-runtime
       command:
