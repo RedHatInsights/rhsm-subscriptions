@@ -9,42 +9,20 @@ pipeline {
     }
     agent {
         kubernetes {
-            label 'swatch-17-kubedock-2023-12-06' // this value + unique identifier becomes the pod name
+            label 'swatch-17' // this value + unique identifier becomes the pod name
             idleMinutes 5  // how long the pod will live after no jobs have run on it
+            containerTemplate {
+                name 'openjdk17'
+                image 'registry.access.redhat.com/ubi9/openjdk-17-runtime'
+                command 'sleep'
+                args '99d'
+                resourceRequestCpu '2'
+                resourceLimitCpu '6'
+                resourceRequestMemory '2Gi'
+                resourceLimitMemory '6Gi'
+            }
+
             defaultContainer 'openjdk17'
-            yaml """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-    - name: kubedock
-      image: quay.io/cloudservices/kubedock:latest
-      imagePullPolicy: Always
-      tty: true
-      args:
-       - server
-       - --port-forward
-       # Verbosity level which is helpful to troubleshot issues when starting up containers
-       - -v
-       - 10
-    - name: openjdk17
-      image: registry.access.redhat.com/ubi9/openjdk-17-runtime
-      command:
-      - sleep
-      tty: true
-      args:
-      - 99d
-      resources:
-        requests:
-          memory: "2Gi"
-          cpu: "2"
-        limits:
-          memory: "6Gi"
-          cpu: "6"
-      env:
-      - name: DOCKER_HOST
-        value: tcp://127.0.0.1:2475
-"""
         }
     }
     stages {
@@ -89,7 +67,7 @@ spec:
                 // task and uses the spotless gradle plugin.
                 // Excluding tests with tag "integration" because new Jenkins service account is missing the
                 // pods/portforward permissions: https://issues.redhat.com/browse/CCITJEN-2066
-                sh "./gradlew --no-daemon --no-parallel --info build testCodeCoverageReport -DexcludeTags=integration"
+                sh "./gradlew --no-daemon --no-parallel build testCodeCoverageReport -DexcludeTags=integration"
             }
         }
 
@@ -139,7 +117,6 @@ spec:
     }
     post {
         always {
-            containerLog "kubedock"
             junit '**/build/test-results/test/*.xml'
         }
     }
