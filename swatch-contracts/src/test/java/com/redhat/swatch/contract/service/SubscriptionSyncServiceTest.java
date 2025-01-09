@@ -53,7 +53,6 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
-
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
