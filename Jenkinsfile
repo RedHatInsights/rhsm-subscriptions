@@ -9,7 +9,7 @@ pipeline {
     }
     agent {
         kubernetes {
-            cloud 'ocp-c1'
+            cloud 'upshift'
             label 'swatch-17-kubedock-2023-12-06' // this value + unique identifier becomes the pod name
             idleMinutes 5  // how long the pod will live after no jobs have run on it
             defaultContainer 'openjdk17'
@@ -17,6 +17,7 @@ pipeline {
 apiVersion: v1
 kind: Pod
 spec:
+  serviceAccountName: stage-instance-admin
   containers:
     - name: kubedock
       image: quay.io/cloudservices/kubedock:latest
