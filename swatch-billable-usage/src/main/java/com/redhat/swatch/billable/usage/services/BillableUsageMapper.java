@@ -95,7 +95,22 @@ public class BillableUsageMapper {
                     // Filter out any HardwareMeasurementType.TOTAL measurements to prevent
                     // duplicates
                     .filter(this::isNotHardwareMeasurementTypeTotal)
+                    .filter(m -> isSupportedMetric(m, snapshot))
                     .map(m -> toBillableUsage(m, summary, snapshot)));
+  }
+
+  private boolean isSupportedMetric(TallyMeasurement measurement, TallySnapshot snapshot) {
+    boolean valid =
+        SubscriptionDefinition.isMetricSupportedByProduct(
+            snapshot.getProductId(), measurement.getMetricId());
+    if (!valid) {
+      log.warn(
+          "Ignoring unsupported measurement '{}' for snapshot '{}'",
+          measurement.getMetricId(),
+          snapshot);
+    }
+
+    return valid;
   }
 
   private BillableUsage toBillableUsage(

@@ -377,6 +377,12 @@ public class SubscriptionDefinition {
         .orElse(false);
   }
 
+  public static boolean isMetricSupportedByProduct(String productId, String metric) {
+    return Variant.getMetricsForTag(productId).stream()
+        .map(Metric::getId)
+        .anyMatch(definedMetricId -> definedMetricId.equals(metric));
+  }
+
   public static List<SubscriptionDefinition> getSubscriptionDefinitions() {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions();
   }

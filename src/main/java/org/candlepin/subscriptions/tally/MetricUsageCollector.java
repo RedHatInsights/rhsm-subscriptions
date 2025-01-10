@@ -20,9 +20,10 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import static com.redhat.swatch.configuration.registry.SubscriptionDefinition.isMetricSupportedByProduct;
+
 import com.google.common.collect.MoreCollectors;
 import com.google.common.collect.Sets;
-import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
@@ -391,7 +392,7 @@ public class MetricUsageCollector {
               .forEach(
                   measurement -> {
                     var metricId = MetricId.fromString(measurement.getMetricId());
-                    if (isMetricSupportedByProduct(metricId, productId)) {
+                    if (isMetricSupportedByProduct(productId, metricId.toString())) {
                       calc.addUsage(
                           usageKey, hardwareMeasurementType, metricId, measurement.getValue());
                     } else {
@@ -403,12 +404,6 @@ public class MetricUsageCollector {
                     }
                   });
         });
-  }
-
-  private boolean isMetricSupportedByProduct(MetricId metric, String productId) {
-    return Variant.getMetricsForTag(productId).stream()
-        .map(Metric::getId)
-        .anyMatch(definedMetricId -> definedMetricId.equals(metric.toString()));
   }
 
   private Set<List<Object>> buildBucketTuples(Event event) {
@@ -534,7 +529,7 @@ public class MetricUsageCollector {
                   entry -> {
                     var measurementKey = entry.getKey();
                     var metricId = MetricId.fromString(measurementKey.getMetricId());
-                    if (isMetricSupportedByProduct(metricId, usageKey.getProductId())) {
+                    if (isMetricSupportedByProduct(usageKey.getProductId(), metricId.toString())) {
                       calc.addUsage(
                           usageKey,
                           measurementKey.getMeasurementType(),
