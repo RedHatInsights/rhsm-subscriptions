@@ -9,7 +9,7 @@ pipeline {
     }
     agent {
         kubernetes {
-            cloud 'ocp-c1'
+            cloud 'upshift'
             label 'swatch-17-kubedock-2023-12-06' // this value + unique identifier becomes the pod name
             idleMinutes 5  // how long the pod will live after no jobs have run on it
             defaultContainer 'openjdk17'
@@ -17,6 +17,11 @@ pipeline {
 apiVersion: v1
 kind: Pod
 spec:
+  # Configure Kubedock to use this service account that has the "portForward" permission.
+  serviceAccountName: stage-instance-admin
+  # Quay secrets are not linked to the above service account, so we need to explicitly define it:
+  imagePullSecrets:
+    - name: nkathole-smqejenkins-pull-secret
   containers:
     - name: kubedock
       image: quay.io/cloudservices/kubedock:latest
