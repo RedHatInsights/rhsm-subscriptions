@@ -291,6 +291,9 @@ objects:
             enabled: true
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
+          sidecars:
+              - name: otel-collector
+                enabled: true
           initContainers:
             - env:
                 - name: JAVA_DEBUG
@@ -494,12 +497,17 @@ objects:
               mountPath: /logs
             - name: pinhead
               mountPath: /pinhead
+            - name: swatch-tally-otel-config
+              mountPath: /etc/otelcol
           volumes:
             - name: logs
               emptyDir:
             - name: pinhead
               secret:
                 secretName: pinhead
+            - name: swatch-tally-otel-config
+              configMap:
+                name: splunk-otel-collector-config
           machinePool: ${MACHINE_POOL}
 
     jobs:
