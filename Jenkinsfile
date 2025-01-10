@@ -3,15 +3,16 @@ if (buildNumber > 1) milestone(buildNumber - 1)
 milestone(buildNumber)
 
 pipeline {
-    options { buildDiscarder(logRotator(numToKeepStr: '50')) }
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '50'))
+        disableConcurrentBuilds()
+    }
     environment {
         SPRING_ACTIVE_PROFILE = "test"
     }
     agent {
         kubernetes {
-            cloud 'ocp-c1'
-            label 'swatch-17-kubedock-2023-12-06' // this value + unique identifier becomes the pod name
-            idleMinutes 5  // how long the pod will live after no jobs have run on it
+            label 'swatch-17-kubedock-2025-02-24' // this value + unique identifier becomes the pod name
             defaultContainer 'openjdk17'
             yaml """
 apiVersion: v1
@@ -100,7 +101,8 @@ spec:
             steps {
                 // The build task includes check, test, and assemble.  Linting happens during the check
                 // task and uses the spotless gradle plugin.
-                sh "./gradlew --no-daemon --no-parallel build testCodeCoverageReport"
+                sh "./gradlew build -x test"
+                sh "./gradlew --no-parallel test testCodeCoverageReport"
             }
         }
 
@@ -110,7 +112,7 @@ spec:
             }
             steps {
                 withSonarQubeEnv('sonarcloud.io') {
-                    sh "./gradlew --no-daemon sonar -Duser.home=/tmp -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.token=${SONAR_AUTH_TOKEN} -Dsonar.pullrequest.key=${CHANGE_ID} -Dsonar.pullrequest.base=${CHANGE_TARGET} -Dsonar.pullrequest.branch=${BRANCH_NAME} -Dsonar.organization=rhsm -Dsonar.projectKey=rhsm-subscriptions"
+                    sh "./gradlew sonar -Duser.home=/tmp -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.token=${SONAR_AUTH_TOKEN} -Dsonar.pullrequest.key=${CHANGE_ID} -Dsonar.pullrequest.base=${CHANGE_TARGET} -Dsonar.pullrequest.branch=${BRANCH_NAME} -Dsonar.organization=rhsm -Dsonar.projectKey=rhsm-subscriptions"
                 }
             }
         }
@@ -122,7 +124,7 @@ spec:
             }
             steps {
                 withSonarQubeEnv('sonarcloud.io') {
-                    sh "./gradlew --no-daemon sonar -Duser.home=/tmp -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.token=${SONAR_AUTH_TOKEN} -Dsonar.branch.name=${BRANCH_NAME} -Dsonar.organization=rhsm -Dsonar.projectKey=rhsm-subscriptions"
+                    sh "./gradlew sonar -Duser.home=/tmp -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.token=${SONAR_AUTH_TOKEN} -Dsonar.branch.name=${BRANCH_NAME} -Dsonar.organization=rhsm -Dsonar.projectKey=rhsm-subscriptions"
                 }
             }
         }
@@ -150,6 +152,7 @@ spec:
     }
     post {
         always {
+            containerLog "openjdk17"
             containerLog "kubedock"
             junit '**/build/test-results/test/*.xml'
         }
