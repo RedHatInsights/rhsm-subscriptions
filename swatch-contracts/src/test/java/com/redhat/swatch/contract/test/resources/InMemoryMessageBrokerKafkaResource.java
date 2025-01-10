@@ -25,6 +25,7 @@ import static com.redhat.swatch.contract.config.Channels.CAPACITY_RECONCILE_TASK
 import static com.redhat.swatch.contract.config.Channels.ENABLED_ORGS;
 import static com.redhat.swatch.contract.config.Channels.EXPORT_REQUESTS_TOPIC;
 import static com.redhat.swatch.contract.config.Channels.OFFERING_SYNC;
+import static com.redhat.swatch.contract.config.Channels.OFFERING_SYNC_TASK_TOPIC;
 import static com.redhat.swatch.contract.config.Channels.SUBSCRIPTION_SYNC_TASK_TOPIC;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
@@ -42,6 +43,7 @@ public class InMemoryMessageBrokerKafkaResource implements QuarkusTestResourceLi
     env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory(CAPACITY_RECONCILE_TASK));
     env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory(CAPACITY_RECONCILE));
     env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory(OFFERING_SYNC));
+    env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory(OFFERING_SYNC_TASK_TOPIC));
     env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory(EXPORT_REQUESTS_TOPIC));
     return env;
   }

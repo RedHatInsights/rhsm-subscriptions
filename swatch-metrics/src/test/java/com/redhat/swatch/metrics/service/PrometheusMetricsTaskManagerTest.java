@@ -33,9 +33,7 @@ import java.time.OffsetDateTime;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@QuarkusTestResource(
-    value = InMemoryMessageBrokerKafkaResource.class,
-    restrictToAnnotatedClass = true)
+@QuarkusTestResource(InMemoryMessageBrokerKafkaResource.class)
 class PrometheusMetricsTaskManagerTest {
 
   private static final String TEST_PROFILE_ID = "OpenShift-dedicated-metrics";

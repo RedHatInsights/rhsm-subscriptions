@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.aws.test.resources;
 
+import static com.redhat.swatch.aws.configuration.Channels.BILLABLE_USAGE_HOURLY_AGGREGATE;
 import static com.redhat.swatch.aws.configuration.Channels.BILLABLE_USAGE_STATUS;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
@@ -36,6 +37,7 @@ public class InMemoryMessageBrokerKafkaResource implements QuarkusTestResourceLi
     Map<String, String> env = new HashMap<>();
     env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory("tally-in"));
     env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory("tally-out"));
+    env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory(BILLABLE_USAGE_HOURLY_AGGREGATE));
     env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory(BILLABLE_USAGE_STATUS));
     return env;
   }

@@ -104,7 +104,7 @@ quarkus:
   kafka:
     devservices:
       enabled: false
-  reactive-messaging:
+  messaging:
     kafka:
       serializer-generation:
         enabled: false
