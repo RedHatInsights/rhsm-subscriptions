@@ -23,9 +23,12 @@ package com.redhat.swatch.billable.usage.services;
 import static com.redhat.swatch.billable.usage.configuration.Channels.BILLABLE_USAGE_OUT;
 import static com.redhat.swatch.billable.usage.configuration.Channels.TALLY_SUMMARY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
@@ -53,11 +56,17 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
 import org.awaitility.Awaitility;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
+import org.jboss.logmanager.LogContext;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 @QuarkusTest
 @QuarkusTestResource(
@@ -73,8 +82,10 @@ class TallySummaryMessageConsumerTest {
   private static final String HARDWARE_MEASUREMENT_TYPE = "AWS";
   private static final String PRODUCT_ID = "rosa";
   private static final String BILLING_ACCOUNT_ID = "456";
+  private static final LoggerCaptor LOGGER_CAPTOR = new LoggerCaptor();
 
   @InjectMock @RestClient DefaultApi contractsApi;
+  @InjectSpy BillableUsageMapper billableUsageMapper;
   @InjectSpy BillingProducer billingProducer;
   @InjectSpy BillableUsageRemittanceRepository usageRemittanceRepository;
   @Inject @Any InMemoryConnector connector;
@@ -83,6 +94,13 @@ class TallySummaryMessageConsumerTest {
   private InMemorySink<BillableUsage> target;
   OffsetDateTime snapshotDate;
   List<TallySnapshot> snapshots = new ArrayList<>();
+
+  @BeforeAll
+  static void configureLogging() {
+    LogContext.getLogContext()
+        .getLogger(BillableUsageMapper.class.getName())
+        .addHandler(LOGGER_CAPTOR);
+  }
 
   @Transactional
   @BeforeEach
@@ -93,6 +111,19 @@ class TallySummaryMessageConsumerTest {
     usageRemittanceRepository.deleteAll();
     snapshots.clear();
     target.clear();
+    Mockito.reset(billingProducer, billableUsageMapper, usageRemittanceRepository);
+  }
+
+  @Test
+  void testTallySummaryHasInvalidMetric() {
+    givenSnapshotWithMetric("wrong!");
+
+    whenSendSnapshots();
+
+    thenSnapshotsAreConsumed();
+    thenRemittanceIsNotEmitted();
+    thenWarningLogWithMessage("Ignoring unsupported measurement");
+    thenServiceIsReadyToAcceptMoreSnapshots();
   }
 
   @Test
@@ -108,7 +139,11 @@ class TallySummaryMessageConsumerTest {
     thenRemittanceIsEmitted();
   }
 
-  private void givenSnapshotWithUsages(double... usages) {
+  private void givenSnapshotWithMetric(String metricId) {
+    givenSnapshotWithUsages(2).getTallyMeasurements().forEach(m -> m.setMetricId(metricId));
+  }
+
+  private TallySnapshot givenSnapshotWithUsages(double... usages) {
     TallySnapshot snapshot = new TallySnapshot();
     List<TallyMeasurement> measurements = new ArrayList<>();
     for (Double usage : usages) {
@@ -130,6 +165,7 @@ class TallySummaryMessageConsumerTest {
     snapshot.setSla(SERVICE_LEVEL);
 
     snapshots.add(snapshot);
+    return snapshot;
   }
 
   /**
@@ -178,7 +214,59 @@ class TallySummaryMessageConsumerTest {
     assertEquals(expected, remittances.get(0).getRemittedPendingValue());
   }
 
+  private void thenSnapshotsAreConsumed() {
+    Awaitility.await().untilAsserted(() -> verify(billableUsageMapper).fromTallySummary(any()));
+  }
+
   private void thenRemittanceIsEmitted() {
     Awaitility.await().untilAsserted(() -> assertEquals(1, target.received().size()));
+  }
+
+  private void thenRemittanceIsNotEmitted() {
+    verify(billingProducer, times(0)).produce(any());
+  }
+
+  private void thenServiceIsReadyToAcceptMoreSnapshots() {
+    snapshots.clear();
+    givenValidContractWithMetric(8);
+    givenSnapshotWithUsages(80);
+    whenSendSnapshots();
+    thenRemittanceIsEmitted();
+  }
+
+  private void thenWarningLogWithMessage(String str) {
+    Awaitility.await()
+        .untilAsserted(
+            () ->
+                assertTrue(
+                    LOGGER_CAPTOR.records.stream()
+                        .anyMatch(
+                            r ->
+                                r.getLevel().equals(Level.WARNING)
+                                    && r.getMessage().contains(str))));
+  }
+
+  public static class LoggerCaptor extends Handler {
+
+    private final List<LogRecord> records = new ArrayList<>();
+
+    @Override
+    public void publish(LogRecord trace) {
+      records.add(trace);
+    }
+
+    @Override
+    public void flush() {
+      // no need to flush any sink
+    }
+
+    @Override
+    public void close() throws SecurityException {
+      clearRecords();
+    }
+
+    public void clearRecords() {
+      records.clear();
+    }
   }
 }
