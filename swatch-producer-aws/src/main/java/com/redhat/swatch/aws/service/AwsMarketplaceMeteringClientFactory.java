@@ -52,13 +52,14 @@ public class AwsMarketplaceMeteringClientFactory {
     MarketplaceMeteringClientBuilder builder = MarketplaceMeteringClient.builder();
     if (awsMarketplaceEndpointOverride) {
       builder = builder.endpointOverride(URI.create(awsMarketplaceEndpointUrl));
+    } else {
+      builder.credentialsProvider(
+          awsCredentialsLookup.getCredentialsProvider(context.getAwsSellerAccountId()));
     }
     if (awsRegion != null) {
       builder = builder.region(Region.of(awsRegion));
     }
-    return builder
-        .credentialsProvider(
-            awsCredentialsLookup.getCredentialsProvider(context.getAwsSellerAccountId()))
-        .build();
+
+    return builder.build();
   }
 }
