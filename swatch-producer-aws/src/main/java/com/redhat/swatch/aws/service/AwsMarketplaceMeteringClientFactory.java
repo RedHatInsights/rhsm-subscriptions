@@ -25,6 +25,10 @@ import com.redhat.swatch.clients.contracts.api.model.AwsUsageContext;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.net.URI;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.marketplacemetering.MarketplaceMeteringClient;
 import software.amazon.awssdk.services.marketplacemetering.MarketplaceMeteringClientBuilder;
@@ -50,16 +54,21 @@ public class AwsMarketplaceMeteringClientFactory {
 
   public MarketplaceMeteringClient buildMarketplaceMeteringClient(AwsUsageContext context) {
     MarketplaceMeteringClientBuilder builder = MarketplaceMeteringClient.builder();
+    AwsCredentialsProvider awsCredentialsProvider;
     if (awsMarketplaceEndpointOverride) {
       builder = builder.endpointOverride(URI.create(awsMarketplaceEndpointUrl));
-    } else {
-      builder.credentialsProvider(
-          awsCredentialsLookup.getCredentialsProvider(context.getAwsSellerAccountId()));
+        awsCredentialsProvider = StaticCredentialsProvider.create(
+                AwsBasicCredentials.create("placeholder_id", "placeholder_key")
+        );
+    }
+    else {
+      awsCredentialsProvider = awsCredentialsLookup.getCredentialsProvider(context.getAwsSellerAccountId());
     }
     if (awsRegion != null) {
       builder = builder.region(Region.of(awsRegion));
     }
-
-    return builder.build();
+    return builder
+        .credentialsProvider(awsCredentialsProvider)
+        .build();
   }
 }
