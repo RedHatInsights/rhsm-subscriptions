@@ -193,7 +193,6 @@ class BillableUsageMapperTest {
             .withBillingAccountId(expectedBillingAccountId)
             .withMetricId(CORES)
             .withValue(42.0)
-            .withHardwareMeasurementType("PHYSICAL")
             .withCurrentTotal(expectedCurrentTotal);
 
     var summary =

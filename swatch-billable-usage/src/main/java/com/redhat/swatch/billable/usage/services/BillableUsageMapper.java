@@ -127,7 +127,6 @@ public class BillableUsageMapper {
         .withBillingAccountId(snapshot.getBillingAccountId())
         .withMetricId(measurement.getMetricId())
         .withValue(measurement.getValue())
-        .withHardwareMeasurementType(measurement.getHardwareMeasurementType())
         .withCurrentTotal(measurement.getCurrentTotal());
   }
 
