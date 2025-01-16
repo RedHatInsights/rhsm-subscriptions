@@ -18,11 +18,32 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.aws.configuration;
+package com.redhat.swatch.export.utils;
 
-public class Channels {
-  public static final String BILLABLE_USAGE_HOURLY_AGGREGATE = "billable-usage-hourly-aggregate-in";
-  public static final String BILLABLE_USAGE_STATUS = "billable-usage-status-out";
+import java.io.File;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
 
-  private Channels() {}
+public final class FileUtils {
+
+  private static final DecimalFormat FORMAT =
+      new DecimalFormat("##.00", DecimalFormatSymbols.getInstance(Locale.ENGLISH));
+  private static final double BYTE = 1024;
+
+  private FileUtils() {}
+
+  public static String getFileSize(File file) {
+    double fileSize = file.length();
+    if (fileSize < BYTE) {
+      return (int) fileSize + " b";
+    }
+
+    fileSize = fileSize / BYTE;
+    if (fileSize < BYTE) {
+      return FORMAT.format(fileSize) + " kb";
+    }
+
+    return FORMAT.format(fileSize / BYTE) + " mb";
+  }
 }

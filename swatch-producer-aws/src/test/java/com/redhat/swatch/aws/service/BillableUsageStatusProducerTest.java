@@ -36,9 +36,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@QuarkusTestResource(
-    value = InMemoryMessageBrokerKafkaResource.class,
-    restrictToAnnotatedClass = true)
+@QuarkusTestResource(InMemoryMessageBrokerKafkaResource.class)
 class BillableUsageStatusProducerTest {
 
   @Inject

@@ -53,6 +53,7 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
+import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collections;
@@ -70,7 +71,7 @@ import org.mockito.Mockito;
 @QuarkusTest
 class SubscriptionSyncServiceTest {
 
-  private static final OffsetDateTime NOW = OffsetDateTime.now();
+  private static final OffsetDateTime NOW = OffsetDateTime.now(Clock.systemUTC());
   private static final String SKU = "testsku";
 
   @InjectMock OfferingRepository offeringRepository;
@@ -339,7 +340,7 @@ class SubscriptionSyncServiceTest {
   void shouldSyncSubscriptionsSkipSubIfTooFutureDated() {
     // When syncing an org's subs, don't sync subscriptions future-dated more than 2 months from now
     var dto = createDto("456", 10);
-    dto.setEffectiveStartDate(toEpochMillis(NOW.plusMonths(2).plusDays(1)));
+    dto.setEffectiveStartDate(toEpochMillis(NOW.plusMonths(2).plusDays(1).plusMinutes(1)));
     dto.setEffectiveEndDate(toEpochMillis(NOW.plusMonths(14).plusDays(1)));
 
     Mockito.when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(dto));

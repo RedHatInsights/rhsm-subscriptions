@@ -20,12 +20,15 @@
  */
 package org.candlepin.testcontainers;
 
+import com.github.dockerjava.api.command.InspectContainerResponse;
 import java.io.IOException;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.EqualsAndHashCode;
+import lombok.SneakyThrows;
 import org.candlepin.testcontainers.exceptions.ExecuteStatementInContainerException;
+import org.testcontainers.containers.ContainerLaunchException;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
@@ -62,6 +65,30 @@ public class SwatchPostgreSQLContainer extends PostgreSQLContainer<SwatchPostgre
             + "VALUES ("
             + arrayToString(values)
             + ")");
+  }
+
+  @SneakyThrows(InterruptedException.class)
+  @Override
+  protected void containerIsStarted(InspectContainerResponse containerInfo) {
+    try {
+      super.containerIsStarted(containerInfo);
+      var result =
+          execInContainer(
+              "/usr/bin/psql",
+              "--user=postgres",
+              "--command=ALTER USER \"" + getUsername() + "\" WITH SUPERUSER;");
+      if (result.getExitCode() != 0) {
+        throw new ContainerLaunchException(
+            "Could not alter user "
+                + getUsername()
+                + "\nSTDOUT: "
+                + result.getStdout()
+                + "\nSTDERR: "
+                + result.getStderr());
+      }
+    } catch (IOException e) {
+      throw new ContainerLaunchException("Could not launch container", e);
+    }
   }
 
   @Override

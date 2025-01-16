@@ -43,7 +43,8 @@ import org.junit.jupiter.api.Test;
 
 class BillableUsageMapperTest {
 
-  private static final String STORAGE_GIBIBYTES = "Storage-gibibytes";
+  private static final String CORES = "Cores";
+  private static final String ROSA = "rosa";
 
   private static SubscriptionDefinitionRegistry originalReference;
   private SubscriptionDefinitionRegistry subscriptionDefinitionRegistry;
@@ -69,11 +70,11 @@ class BillableUsageMapperTest {
   void setupTest() {
     subscriptionDefinitionRegistry = mock(SubscriptionDefinitionRegistry.class);
     setMock(subscriptionDefinitionRegistry);
-    var variant = Variant.builder().tag("rosa").build();
+    var variant = Variant.builder().tag(ROSA).build();
     var awsMetric =
         com.redhat.swatch.configuration.registry.Metric.builder()
             .awsDimension("AWS_METRIC_ID")
-            .id("Cores")
+            .id(CORES)
             .build();
     var subscriptionDefinition =
         SubscriptionDefinition.builder()
@@ -117,7 +118,7 @@ class BillableUsageMapperTest {
         mapper
             .fromTallySummary(
                 createExampleTallySummaryWithOrgId(
-                    "rosa",
+                    ROSA,
                     TallySnapshot.Granularity.HOURLY,
                     TallySnapshot.Sla.ANY,
                     TallySnapshot.Usage.PRODUCTION,
@@ -133,7 +134,7 @@ class BillableUsageMapperTest {
         mapper
             .fromTallySummary(
                 createExampleTallySummaryWithOrgId(
-                    "rosa",
+                    ROSA,
                     TallySnapshot.Granularity.HOURLY,
                     TallySnapshot.Sla.STANDARD,
                     TallySnapshot.Usage.ANY,
@@ -149,7 +150,7 @@ class BillableUsageMapperTest {
         mapper
             .fromTallySummary(
                 createExampleTallySummaryWithOrgId(
-                    "rosa",
+                    ROSA,
                     TallySnapshot.Granularity.HOURLY,
                     TallySnapshot.Sla.STANDARD,
                     TallySnapshot.Usage.PRODUCTION,
@@ -165,7 +166,7 @@ class BillableUsageMapperTest {
         mapper
             .fromTallySummary(
                 createExampleTallySummaryWithOrgId(
-                    "rosa",
+                    ROSA,
                     TallySnapshot.Granularity.HOURLY,
                     TallySnapshot.Sla.STANDARD,
                     TallySnapshot.Usage.PRODUCTION,
@@ -178,28 +179,26 @@ class BillableUsageMapperTest {
   @Test
   void shouldProduceBillableUsageWhenOrgIdPresent() {
     String expectedOrgId = "org123";
-    String expectedProductId = "rosa";
     String expectedBillingAccountId = "bill123";
     double expectedCurrentTotal = 88.0;
     OffsetDateTime expectedSnapshotDate = OffsetDateTime.MIN;
-    String expectedMetricId = "Storage-gibibytes";
     BillableUsage expected =
         new BillableUsage()
             .withOrgId(expectedOrgId)
-            .withProductId(expectedProductId)
+            .withProductId(ROSA)
             .withSnapshotDate(expectedSnapshotDate)
             .withUsage(BillableUsage.Usage.PRODUCTION)
             .withSla(BillableUsage.Sla.STANDARD)
             .withBillingProvider(BillableUsage.BillingProvider.AWS)
             .withBillingAccountId(expectedBillingAccountId)
-            .withMetricId(expectedMetricId)
+            .withMetricId(CORES)
             .withValue(42.0)
             .withHardwareMeasurementType("PHYSICAL")
             .withCurrentTotal(expectedCurrentTotal);
 
     var summary =
         createExampleTallySummaryWithOrgId(
-            expectedProductId,
+            ROSA,
             TallySnapshot.Granularity.HOURLY,
             TallySnapshot.Sla.STANDARD,
             TallySnapshot.Usage.PRODUCTION,
@@ -220,7 +219,7 @@ class BillableUsageMapperTest {
         mapper
             .fromTallySummary(
                 createExampleTallySummaryWithOrgId(
-                    "rosa",
+                    ROSA,
                     TallySnapshot.Granularity.YEARLY,
                     TallySnapshot.Sla.STANDARD,
                     TallySnapshot.Usage.PRODUCTION,
@@ -234,7 +233,7 @@ class BillableUsageMapperTest {
   void shouldSkipSummaryWithNoMeasurements() {
     TallySummary tallySummary =
         createExampleTallySummaryWithOrgId(
-            "rosa",
+            ROSA,
             TallySnapshot.Granularity.HOURLY,
             TallySnapshot.Sla.STANDARD,
             TallySnapshot.Usage.PRODUCTION,
@@ -262,11 +261,11 @@ class BillableUsageMapperTest {
                     .withTallyMeasurements(
                         List.of(
                             new TallyMeasurement()
-                                .withMetricId(STORAGE_GIBIBYTES)
+                                .withMetricId(CORES)
                                 .withHardwareMeasurementType("PHYSICAL")
                                 .withValue(42.0),
                             new TallyMeasurement()
-                                .withMetricId(STORAGE_GIBIBYTES)
+                                .withMetricId(CORES)
                                 .withHardwareMeasurementType("TOTAL")
                                 .withValue(42.0)))
                     .withSla(sla)

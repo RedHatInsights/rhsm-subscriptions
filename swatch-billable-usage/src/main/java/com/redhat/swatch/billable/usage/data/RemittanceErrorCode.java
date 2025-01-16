@@ -37,6 +37,7 @@ public enum RemittanceErrorCode {
   SUBSCRIPTION_TERMINATED("subscription_terminated"),
   USAGE_CONTEXT_LOOKUP("usage_context_lookup"),
   UNKNOWN("unknown"),
+  UNSUPPORTED_METRIC("unsupported_metric"),
   MARKETPLACE_RATE_LIMIT("marketplace_rate_limit");
 
   private static final Map<String, RemittanceErrorCode> VALUE_ENUM_MAP =

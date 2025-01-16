@@ -69,6 +69,3 @@ bonfire
 .kube
 
 stub/__files/
-
-# SwatchDog
-swatchdog/swatchdog/__pycache__/

@@ -29,6 +29,7 @@ dependencies {
     implementation "io.micrometer:micrometer-core"
     implementation libraries["splunk-library-javalogging"]
     implementation libraries["janino"]
+    implementation libraries["jakarta-servlet"]
     implementation (libraries["resteasy-spring-boot-starter"]) {
         exclude group: "org.jboss", module: "jandex"
     }
