@@ -23,7 +23,7 @@ ext.plugins = [
         "io.swagger.parser.v3:swagger-parser:2.1.24",
         "org.jsonschema2pojo:jsonschema2pojo-gradle-plugin:1.2.2",
         // required for the newest liquibase gradle plugin version
-        "org.liquibase:liquibase-core:4.30.0",
+        "org.liquibase:liquibase-core:4.31.0",
         "org.liquibase:liquibase-gradle-plugin:3.0.1",
         "org.kordamp.gradle:jandex-gradle-plugin:2.0.0",
         "org.openapitools:openapi-generator-gradle-plugin:7.10.0",
