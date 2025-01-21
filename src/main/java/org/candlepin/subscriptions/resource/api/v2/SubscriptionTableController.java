@@ -171,7 +171,7 @@ public class SubscriptionTableController {
     if (subEnd != null && (nearestEventDate == null || subEnd.isBefore(nearestEventDate))) {
       nearestEventDate = subEnd;
       skuCapacity.setNextEventDate(nearestEventDate);
-      skuCapacity.setNextEventType(SubscriptionEventType.END);
+      skuCapacity.setNextEventType(SubscriptionEventType.SUBSCRIPTION_END);
     }
   }
 
@@ -198,7 +198,7 @@ public class SubscriptionTableController {
         && (nearestEventDate == null || subEnd.isBefore(nearestEventDate))) {
       nearestEventDate = subEnd;
       skuCapacity.setNextEventDate(nearestEventDate);
-      skuCapacity.setNextEventType(SubscriptionEventType.END);
+      skuCapacity.setNextEventType(SubscriptionEventType.SUBSCRIPTION_END);
     }
   }
 

@@ -366,7 +366,9 @@ class SubscriptionTableControllerOnDemandTest {
 
     // Then the report should contain end date of the contributing subscription
     assertEquals(
-        SubscriptionEventType.END, actualItem.getNextEventType(), "Wrong upcoming event type");
+        SubscriptionEventType.SUBSCRIPTION_END,
+        actualItem.getNextEventType(),
+        "Wrong upcoming event type");
     assertEquals(expectedSub.end, actualItem.getNextEventDate(), "Wrong upcoming event date");
   }
 

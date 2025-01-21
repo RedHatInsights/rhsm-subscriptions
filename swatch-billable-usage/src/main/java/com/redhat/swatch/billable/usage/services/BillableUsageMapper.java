@@ -23,6 +23,7 @@ package com.redhat.swatch.billable.usage.services;
 import com.redhat.swatch.billable.usage.model.TallyMeasurement;
 import com.redhat.swatch.billable.usage.model.TallySnapshot;
 import com.redhat.swatch.billable.usage.model.TallySummary;
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -95,7 +96,21 @@ public class BillableUsageMapper {
                     // Filter out any HardwareMeasurementType.TOTAL measurements to prevent
                     // duplicates
                     .filter(this::isNotHardwareMeasurementTypeTotal)
+                    .filter(m -> isSupportedMetric(m, snapshot))
                     .map(m -> toBillableUsage(m, summary, snapshot)));
+  }
+
+  private boolean isSupportedMetric(TallyMeasurement measurement, TallySnapshot snapshot) {
+    try {
+      MetricId.fromString(measurement.getMetricId());
+      return true;
+    } catch (IllegalArgumentException e) {
+      log.warn(
+          "Ignoring unsupported measurement '{}' for snapshot '{}'",
+          measurement.getMetricId(),
+          snapshot);
+      return false;
+    }
   }
 
   private BillableUsage toBillableUsage(
@@ -112,7 +127,6 @@ public class BillableUsageMapper {
         .withBillingAccountId(snapshot.getBillingAccountId())
         .withMetricId(measurement.getMetricId())
         .withValue(measurement.getValue())
-        .withHardwareMeasurementType(measurement.getHardwareMeasurementType())
         .withCurrentTotal(measurement.getCurrentTotal());
   }
 

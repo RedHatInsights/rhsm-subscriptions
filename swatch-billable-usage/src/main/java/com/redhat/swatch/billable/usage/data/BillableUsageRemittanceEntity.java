@@ -85,9 +85,6 @@ public class BillableUsageRemittanceEntity implements Serializable {
   @Column(name = "tally_id")
   private UUID tallyId;
 
-  @Column(name = "hardware_measurement_type")
-  private String hardwareMeasurementType;
-
   @Column(name = "status")
   private RemittanceStatus status;
 
