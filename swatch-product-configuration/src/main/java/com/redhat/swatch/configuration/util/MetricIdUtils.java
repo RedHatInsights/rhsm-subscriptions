@@ -58,6 +58,10 @@ public class MetricIdUtils {
     return MetricId.fromString("Transfer-gibibytes");
   }
 
+  public static MetricId getManagedNodes() {
+    return MetricId.fromString("Managed-nodes");
+  }
+
   public static Stream<MetricId> getMetricIdsFromConfigForTag(String tag) {
     return getMetricIdsFromConfigForVariant(Variant.findByTag(tag).orElse(null));
   }

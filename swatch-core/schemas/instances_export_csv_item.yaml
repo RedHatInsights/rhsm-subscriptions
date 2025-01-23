@@ -33,6 +33,9 @@ properties:
   measurement_vcpus:
     type: number
     format: double
+  measurement_managed_nodes:
+    type: number
+    format: double
   category:
     type: string
   last_seen:

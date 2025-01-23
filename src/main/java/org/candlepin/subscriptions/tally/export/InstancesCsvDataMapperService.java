@@ -62,7 +62,8 @@ public class InstancesCsvDataMapperService implements DataMapperService<TallyIns
               InstancesExportCsvItem::setMeasurementStorageGibibyteMonths,
           MetricIdUtils.getTransferGibibytes(),
               InstancesExportCsvItem::setMeasurementTransferGibibytes,
-          MetricIdUtils.getVCpus(), InstancesExportCsvItem::setMeasurementVcpus);
+          MetricIdUtils.getVCpus(), InstancesExportCsvItem::setMeasurementVcpus,
+          MetricIdUtils.getManagedNodes(), InstancesExportCsvItem::setMeasurementManagedNodes);
 
   @Override
   public List<Object> mapDataItem(TallyInstanceView item, ExportServiceRequest request) {
