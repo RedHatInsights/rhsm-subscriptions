@@ -42,16 +42,19 @@ config/export-service/tmp
 #VS Code
 .project
 .settings
-/**/bin/*
-!bin/import-events.py
-!bin/import-features.sh
-!bin/liquibase-new-changeset.sh
-!bin/build-images.sh
-!bin/insert-mock-hosts
-!bin/check_vulnerabilities.py
 .vscode
 .editorconfig
 *.code-workspace
+
+# The logic here is complicated.  We want to ignore all bin directories because
+# build artifacts land there.  Except we want to track the bin directory at the
+# top level (where we keep our scripts).  But in that top level bin directory
+# we don't want to track the main or test directory since those also have build
+# artifacts.
+**/bin/
+!/bin
+/bin/main
+/bin/test
 
 .run/
 .env
