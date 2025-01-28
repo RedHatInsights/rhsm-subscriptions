@@ -20,6 +20,10 @@
  */
 package org.candlepin.subscriptions.db;
 
+import static org.hibernate.jpa.AvailableHints.HINT_FETCH_SIZE;
+import static org.hibernate.jpa.AvailableHints.HINT_READ_ONLY;
+
+import jakarta.persistence.QueryHint;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.UUID;
@@ -35,6 +39,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -153,19 +158,44 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
 
   void deleteByOrgId(String orgId);
 
-  @SuppressWarnings("java:S107") // repository method has a lot of params, deal with it
+  @SuppressWarnings("java:S107")
+  @QueryHints(
+      value = {
+        @QueryHint(name = HINT_FETCH_SIZE, value = "1024"),
+        @QueryHint(name = HINT_READ_ONLY, value = "true")
+      })
   @Query(
-      "select coalesce(sum(VALUE(m)), 0.0) from TallySnapshot s "
-          + "left join s.tallyMeasurements m on key(m) = :measurementKey "
-          + "where s.orgId = :orgId and "
-          + "s.productId = :productId and "
-          + "s.granularity = :granularity and "
-          + "s.serviceLevel = :serviceLevel and "
-          + "s.usage = :usage and "
-          + "s.billingProvider = :billingProvider and "
-          + "s.billingAccountId = :billingAcctId and "
-          + "s.snapshotDate >= :beginning and s.snapshotDate <= :ending")
+      value =
+          """
+      select coalesce(sum(m.value), 0.0) from tally_snapshots s
+      left join tally_measurements m on m.snapshot_id=s.id
+      where s.org_id = :orgId and
+        s.product_id = :productId and
+        s.granularity = :granularity and
+        s.sla = :serviceLevel and
+        s.usage = :usage and
+        s.billing_provider = :billingProvider and
+        s.billing_account_id = :billingAcctId and
+        s.snapshot_date >= :beginning and s.snapshot_date <= :ending and
+        m.measurement_type != 'TOTAL' and m.metric_id = :metricId
+      """,
+      nativeQuery = true)
   Double sumMeasurementValueForPeriod(
+      @Param("orgId") String orgId,
+      @Param("productId") String productId,
+      @Param("granularity") String granularity,
+      @Param("serviceLevel") String serviceLevel,
+      @Param("usage") String usage,
+      @Param("billingProvider") String billingProvider,
+      @Param("billingAcctId") String billingAccountId,
+      @Param("beginning") OffsetDateTime beginning,
+      @Param("ending") OffsetDateTime ending,
+      @Param("metricId") String metricId);
+
+  // Provided to allow passing enums instead of strings. Native queries need the String values
+  // of enums, so this is a common place to do the required name vs value conversion.
+  @SuppressWarnings("java:S107")
+  default Double sumMeasurementValueForPeriod(
       @Param("orgId") String orgId,
       @Param("productId") String productId,
       @Param("granularity") Granularity granularity,
@@ -175,7 +205,19 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
       @Param("billingAcctId") String billingAccountId,
       @Param("beginning") OffsetDateTime beginning,
       @Param("ending") OffsetDateTime ending,
-      @Param("measurementKey") TallyMeasurementKey measurementKey);
+      @Param("measurementKey") TallyMeasurementKey measurementKey) {
+    return this.sumMeasurementValueForPeriod(
+        orgId,
+        productId,
+        granularity.name(),
+        serviceLevel.getValue(),
+        usage.getValue(),
+        billingProvider.getValue(),
+        billingAccountId,
+        beginning,
+        ending,
+        measurementKey.getMetricId());
+  }
 
   @SuppressWarnings("java:S107")
   @Query(

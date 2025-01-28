@@ -18,29 +18,24 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.billable.usage.data;
+package org.candlepin.subscriptions.tally.export;
 
-import java.time.OffsetDateTime;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import static org.candlepin.subscriptions.tally.export.InstancesCsvDataMapperService.METRIC_MAPPER;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@Builder
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class RemittanceSummaryProjection {
-  private Double totalRemittedPendingValue;
-  private String orgId;
-  private String productId;
-  private String accumulationPeriod;
-  private String sla;
-  private String usage;
-  private OffsetDateTime remittancePendingDate;
-  private String billingProvider;
-  private String billingAccountId;
-  private String metricId;
-  private RemittanceStatus status;
-  private RemittanceErrorCode errorCode;
+import com.redhat.swatch.configuration.registry.MetricId;
+import java.util.Set;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
+class InstancesCsvDataMapperServiceTest {
+  @ParameterizedTest
+  @MethodSource("getMetricsFromConfiguration")
+  void testGeneratedModelShouldHaveAllMetricsFromConfiguration(MetricId metricId) {
+    assertTrue(METRIC_MAPPER.containsKey(metricId));
+  }
+
+  static Set<MetricId> getMetricsFromConfiguration() {
+    return MetricId.getAll();
+  }
 }

@@ -207,7 +207,9 @@ class SubscriptionTableControllerTest {
     assertCapacities(8, 0, MetricIdUtils.getSockets().toUpperCaseFormatted(), actualItem);
     assertSubscription(expectedSub, actualItem.getSubscriptions().get(0));
     assertEquals(
-        SubscriptionEventType.END, actualItem.getNextEventType(), "Wrong upcoming event type");
+        SubscriptionEventType.SUBSCRIPTION_END,
+        actualItem.getNextEventType(),
+        "Wrong upcoming event type");
     assertEquals(
         expectedSub.getEndDate(), actualItem.getNextEventDate(), "Wrong upcoming event date");
   }
@@ -245,7 +247,9 @@ class SubscriptionTableControllerTest {
         9, actualItem.getQuantity(), "Item should contain the sum of all subs' quantities");
     assertCapacities(18, 0, MetricIdUtils.getSockets().toUpperCaseFormatted(), actualItem);
     assertEquals(
-        SubscriptionEventType.END, actualItem.getNextEventType(), "Wrong upcoming event type");
+        SubscriptionEventType.SUBSCRIPTION_END,
+        actualItem.getNextEventType(),
+        "Wrong upcoming event type");
     assertEquals(
         expectedOlderSub.getEndDate(),
         actualItem.getNextEventDate(),
@@ -305,7 +309,9 @@ class SubscriptionTableControllerTest {
     assertCapacities(10, 10, MetricIdUtils.getSockets().toUpperCaseFormatted(), actualItem);
     assertSubscription(expectedOlderSub, actualItem.getSubscriptions().get(0));
     assertEquals(
-        SubscriptionEventType.END, actualItem.getNextEventType(), "Wrong upcoming event type");
+        SubscriptionEventType.SUBSCRIPTION_END,
+        actualItem.getNextEventType(),
+        "Wrong upcoming event type");
     assertEquals(
         expectedOlderSub.getEndDate(), actualItem.getNextEventDate(), "Wrong upcoming event date");
 
@@ -318,7 +324,9 @@ class SubscriptionTableControllerTest {
     assertCapacities(8, 0, MetricIdUtils.getSockets().toUpperCaseFormatted(), actualItem);
     assertSubscription(expectedNewerSub, actualItem.getSubscriptions().get(0));
     assertEquals(
-        SubscriptionEventType.END, actualItem.getNextEventType(), "Wrong upcoming event type");
+        SubscriptionEventType.SUBSCRIPTION_END,
+        actualItem.getNextEventType(),
+        "Wrong upcoming event type");
     assertEquals(
         expectedNewerSub.getEndDate(),
         actualItem.getNextEventDate(),

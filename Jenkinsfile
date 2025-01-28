@@ -71,12 +71,24 @@ spec:
                     changeRequest author: "ntkathole"
                     // Jose Carvajal
                     changeRequest author: "Sgitario"
-                    // Kenny Synvrit
-                    changeRequest author: "ksynvrit"
                     // Kartik Shah
                     changeRequest author: "kartikshahc"
                     // Vanessa Busch
                     changeRequest author: "vbusch"
+                    // William Poteat
+                    changeRequest author: "wottop"
+                    // Ryan Himmelwright
+                    changeRequest author: "himmAllRight"
+                    // Trayvon McKnight
+                    changeRequest author: "TrayvonMcKnight"
+                    // Lisa Walker
+                    changeRequest author: "liwalker-rh"
+                    //Diego Maranhão 
+                    changeRequest author: "diegomaranhao"
+                    //Aurobinda Nayak
+                    changeRequest author: "Aurobinda55"
+                    //Marek Musil
+                    changeRequest author: "mmusil"
                   }
                }
             }

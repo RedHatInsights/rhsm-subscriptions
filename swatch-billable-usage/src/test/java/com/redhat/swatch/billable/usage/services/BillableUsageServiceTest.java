@@ -593,7 +593,6 @@ class BillableUsageServiceTest {
             .usage(usage.getUsage().value())
             .remittancePendingDate(remittancePendingDate)
             .tallyId(usage.getTallyId())
-            .hardwareMeasurementType(usage.getHardwareMeasurementType())
             .status(status)
             .build();
     // Remitted value should be set to usages metric_value rather than billing_value
