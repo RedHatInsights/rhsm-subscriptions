@@ -29,7 +29,7 @@ import static org.candlepin.subscriptions.tally.export.InstancesDataExporterServ
 
 import com.redhat.cloud.event.apps.exportservice.v1.Format;
 import com.redhat.swatch.configuration.registry.MetricId;
-import com.redhat.swatch.configuration.registry.Variant;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
@@ -61,11 +62,13 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ActiveProfiles;
 
+@Slf4j
 @ActiveProfiles({"worker", "kafka-queue", "test-inventory"})
 class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
 
   private static final String RHEL_FOR_X86 = "RHEL for x86";
   private static final String ROSA = "rosa";
+  private static final String ANSIBLE = "ansible-aap-managed";
   private static final String APRIL = "2024-04-16T07:12:52.426707Z";
 
   private final List<HostWithGuests> itemsToBeExported = new ArrayList<>();
@@ -138,11 +141,15 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
     verifyNoRequestsWereSentToExportServiceWithError();
   }
 
-  @Test
-  void testRequestShouldBeUploadedWithInstancesAsCsv() {
-    givenInstanceWithMetrics(RHEL_FOR_X86);
+  @ParameterizedTest
+  @ValueSource(strings = {RHEL_FOR_X86, ANSIBLE})
+  void testRequestShouldBeUploadedWithInstancesAsCsv(String productId) {
+    givenInstanceWithMetrics(productId);
     givenExportRequestWithPermissions(Format.CSV);
-    givenFilterInExportRequest(PRODUCT_ID, RHEL_FOR_X86);
+    givenFilterInExportRequest(PRODUCT_ID, productId);
+    if (SubscriptionDefinition.isContractEnabled(productId)) {
+      givenFilterInExportRequest(BEGINNING, APRIL);
+    }
     whenReceiveExportRequest();
     verifyRequestWasSentToExportService();
   }
@@ -241,12 +248,14 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
         instance.setCategory(category.toString());
       }
 
-      var variant = Variant.findByTag(bucket.getKey().getProductId());
-      var metrics = MetricIdUtils.getMetricIdsFromConfigForVariant(variant.orElse(null)).toList();
+      var metrics =
+          MetricIdUtils.getMetricIdsFromConfigForTag(bucket.getKey().getProductId()).toList();
       for (var metric : metrics) {
         var setter = METRIC_MAPPER.get(metric);
         if (setter != null) {
           setter.accept(instance, resolveMetricValue(item, metric));
+        } else {
+          log.warn("Metric {} was not found in the CSV mapper", metric);
         }
       }
 
@@ -301,9 +310,8 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
       }
 
       instance.setBillingAccountId(host.getBillingAccountId());
-      var variant = Variant.findByTag(bucket.getKey().getProductId());
       var metrics =
-          MetricIdUtils.getMetricIdsFromConfigForVariant(variant.orElse(null))
+          MetricIdUtils.getMetricIdsFromConfigForTag(bucket.getKey().getProductId())
               .map(MetricId::toString)
               .toList();
       instance.setMeasurements(new ArrayList<>());
@@ -387,14 +395,21 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
     bucket.setSockets(6);
     bucket.setHost(instance);
     instance.addBucket(bucket);
-    boolean isPayg = !productId.equals(RHEL_FOR_X86);
+    boolean isContractEnabled = SubscriptionDefinition.isContractEnabled(productId);
 
-    if (isPayg) {
-      // metrics for payg
-      instance.addToMonthlyTotal(OffsetDateTime.parse(APRIL), MetricIdUtils.getSockets(), 7.0);
-      instance.addToMonthlyTotal(OffsetDateTime.parse(APRIL), MetricIdUtils.getCores(), 8.0);
+    if (isContractEnabled) {
+      // metrics for contract enabled products
+      if (productId.equals(ANSIBLE)) {
+        instance.addToMonthlyTotal(
+            OffsetDateTime.parse(APRIL), MetricIdUtils.getManagedNodes(), 1.0);
+        instance.addToMonthlyTotal(
+            OffsetDateTime.parse(APRIL), MetricIdUtils.getInstanceHours(), 2.0);
+      } else {
+        instance.addToMonthlyTotal(OffsetDateTime.parse(APRIL), MetricIdUtils.getSockets(), 7.0);
+        instance.addToMonthlyTotal(OffsetDateTime.parse(APRIL), MetricIdUtils.getCores(), 8.0);
+      }
     } else {
-      // metrics for non-payg
+      // metrics for non-contract enabled products
       instance.setMeasurements(
           Map.of(
               MetricIdUtils.getSockets().toUpperCaseFormatted(),
@@ -408,7 +423,7 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
     HostWithGuests item = new HostWithGuests();
     item.host = instance;
     item.guests = List.of(guest);
-    item.usePaygProduct = isPayg;
+    item.usePaygProduct = isContractEnabled;
     itemsToBeExported.add(item);
     return item;
   }
@@ -418,8 +433,6 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
     if (item.usePaygProduct) {
       // then use the monthly totals
       value = item.host.getMonthlyTotal(formatMonthId(OffsetDateTime.parse(APRIL)), metricId);
-      System.out.println(
-          "Looking for " + metricId + " in " + item.host.getMonthlyTotals() + ". Found: " + value);
     } else {
       // for non payg products:
       if (metricId.equals(MetricIdUtils.getSockets())) {
