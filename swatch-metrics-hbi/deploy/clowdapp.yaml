@@ -84,6 +84,9 @@ objects:
     database:
       sharedDbAppName: swatch-tally
 
+    dependencies:
+      - swatch-tally
+
     deployments:
       - name: service
         replicas: ${{REPLICAS}}
