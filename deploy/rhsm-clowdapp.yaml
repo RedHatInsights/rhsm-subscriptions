@@ -31,19 +31,221 @@ parameters:
   # When needed bump SWATCH_UNLEASH_IMPORT_RUN_NUMBER
   - name: SWATCH_UNLEASH_IMPORT_RUN_NUMBER
     value: "1"
+  - name: JAVA_DEBUG
+    # Set to "true" to enable remote debugging
+    value: ''
+  - name: USER_OPTS_APPEND
+    value: ''
+
+  - name: LOGGING_LEVEL_ROOT
+    value: INFO
+  - name: LOGGING_LEVEL
+    value: INFO
+  - name: LOGGING_SHOW_SQL_QUERIES
+    value: 'false'
+  - name: REPLICAS
+    value: '1'
+  - name: IMAGE
+    value: quay.io/cloudservices/rhsm-subscriptions
+  - name: IMAGE_TAG
+    value: latest
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
+  - name: MEMORY_REQUEST
+    value: 1000Mi
+  - name: MEMORY_LIMIT
+    value: 1400Mi
+  - name: JOB_MEMORY_REQUEST
+    value: 1000Mi
+  - name: JOB_MEMORY_LIMIT
+    value: 1400Mi
+  - name: CPU_REQUEST
+    value: 350m
+  - name: CPU_LIMIT
+    value: 1500m
+  - name: PROM_URL
+    value: http://localhost:8082
+  - name: DATABASE_CONNECTION_TIMEOUT_MS
+    value: '30000'
+  # TODO This has been lowered from what it was in the previous environment (from 25 to 10)
+  # We were running the clowder DB out of connections.  If we need more, we need to investigate
+  # tuning the database to allow more
+  - name: DATABASE_MAX_POOL_SIZE
+    value: '10'
+  - name: INVENTORY_DATABASE_CONNECTION_TIMEOUT_MS
+    value: '30000'
+  # TODO This has been lowered from what it was in the previous environment (from 25 to 10)
+  # We were running the clowder DB out of connections.  If we need more, we need to investigate
+  # tuning the database to allow more
+  - name: INVENTORY_DATABASE_MAX_POOL_SIZE
+    value: '10'
+  - name: OPENSHIFT_BILLING_MODEL_FILTER
+    value: 'marketplace'
+  - name: USER_HOST
+    # required: true # FIXME Not sure where this is provided
+    value: 'user.stage.api.redhat.com'
+  - name: USER_MAX_CONNECTIONS
+    value: '100'
+  - name: USER_MAX_ATTEMPTS
+    value: '10'
+  - name: USER_BACK_OFF_MAX_INTERVAL
+    value: 64s
+  - name: USER_BACK_OFF_INITIAL_INTERVAL
+    value: 1s
+  - name: USER_BACK_OFF_MULTIPLIER
+    value: '2'
+  - name: TALLY_SUMMARY_PRODUCER_MAX_ATTEMPTS
+    value: '5'
+  - name: TALLY_SUMMARY_PRODUCER_BACK_OFF_MAX_INTERVAL
+    value: 1m
+  - name: TALLY_SUMMARY_PRODUCER_BACK_OFF_INITIAL_INTERVAL
+    value: 1s
+  - name: TALLY_SUMMARY_PRODUCER_BACK_OFF_MULTIPLIER
+    value: '2'
+  - name: HOST_LAST_SYNC_THRESHOLD
+    value: 30h
+  - name: PURGE_SNAPSHOT_SCHEDULE
+    value: 0 3 * * *
+  - name: CAPTURE_SNAPSHOT_SCHEDULE
+    value: 0 6 * * *
+  - name: CAPTURE_HOURLY_SNAPSHOT_SCHEDULE
+    value: '@hourly'
+  - name: PURGE_EVENTS_SCHEDULE
+    value: '30 4 * * *'
+  - name: EVENT_RECORD_RETENTION
+    value: 'P6M'
+  # TODO after enable individual functionality (see ENT-4487)
+  - name: DEV_MODE
+    value: 'false'
+  - name: ENABLE_ACCOUNT_RESET
+    value: 'false'
+  - name: ENABLE_SPLUNK_HEC
+    value: 'true'
+  - name: SPLUNK_SOURCE
+    value: 'rhsm-subscription-hec'
+  - name: SPLUNK_SOURCE_TYPE
+    value: 'springboot_server'
+  - name: SPLUNK_MESSAGE_FORMAT
+    value: 'text'
+  - name: SPLUNK_HEC_URL
+    value: https://splunk-hec.redhat.com:8088
+  - name: SPLUNK_HEC_CONNECT_TIMEOUT
+    value: '5000'
+  - name: SPLUNK_HEC_BATCH_SIZE
+    value: '1000'
+  - name: SPLUNK_HEC_TERMINATION_TIMEOUT
+    value: '2000'
+  # nonprod secret keys have different syntax than prod/stage
+  - name: INVENTORY_SECRET_KEY_NAME
+    value: 'host-inventory-db'
+  - name: INVENTORY_SECRET_KEY_NAME_PREFIX
+    value: ''
+  - name: INVENTORY_DATABASE_SCHEMA
+    value: public
+  - name: DEVTEST_EVENT_EDITING_ENABLED
+    value: 'false'
+
+  - name: EGRESS_IMAGE_TAG
+    value: fec6dc2
+  # Using a value of 'select 1' makes this job a no-op by default.
+  # When needed bump DB_CHANGELOG_CLEANUP_RUN_NUMBER, set DB_CHANGELOG_CLEANUP_SQL to 'delete from databasechangeloglock'
+  - name: DB_CHANGELOG_CLEANUP_RUN_NUMBER
+    value: '1'
+  - name: DB_CHANGELOG_CLEANUP_SQL
+    value: 'select 1'
+  - name: KAFKA_BILLABLE_USAGE_REPLICAS
+    value: '3'
+  - name: KAFKA_BILLABLE_USAGE_PARTITIONS
+    value: '3'
+  - name: KAFKA_SERVICE_INSTANCE_REPLICAS
+    value: '3'
+  - name: KAFKA_SERVICE_INSTANCE_PARTITIONS
+    value: '3'
+  - name: KAFKA_SERVICE_INSTANCE_DEAD_LETTER_REPLICAS
+    value: '3'
+  - name: KAFKA_SERVICE_INSTANCE_DEAD_LETTER_PARTITIONS
+    value: '3'
+  - name: KAFKA_TALLY_REPLICAS
+    value: '3'
+  - name: KAFKA_TALLY_PARTITIONS
+    value: '3'
+  - name: KAFKA_SUBSCRIPTIONS_TASKS_REPLICAS
+    value: '3'
+  - name: KAFKA_SUBSCRIPTIONS_TASKS_PARTITIONS
+    value: '3'
+  - name: KAFKA_ENABLED_ORGS_REPLICAS
+    value: '3'
+  - name: KAFKA_ENABLED_ORGS_PARTITIONS
+    value: '3'
+  - name: KAFKA_SUBSCRIPTIONS_EXPORT_REPLICAS
+    value: '3'
+  - name: KAFKA_SUBSCRIPTIONS_EXPORT_PARTITIONS
+    value: '3'
+  - name: ENABLE_SYNCHRONOUS_OPERATIONS
+    value: 'false'
+  - name: TALLY_MAX_HBI_ACCOUNT_SIZE
+    value: '2147483647'  # Integer.MAX_VALUE by default
+  - name: HBI_RECONCILIATION_FLUSH_INTERVAL
+    value: '1024'
+  - name: USE_CPU_SYSTEM_FACTS_TO_ALL_PRODUCTS
+    value: 'true'
+  # Defines the number of Events to process in a batch during the hourly tally. Since a Host
+  # update can require many DB inserts (host,buckets,measurements,monthly totals), increasing
+  # the batch size too high has a direct negative impact hourly tally performance due to the
+  # increase of resulting DB insert/update statements.
+  #
+  # A default value of 16000 was chosen since it provided a good balance between memory usage and
+  # performance when executing an hourly tally requiring many batches.
+  - name: HOURLY_TALLY_EVENT_BATCH_SIZE
+    value: '16000'
+  - name: MACHINE_POOL
+    value: '' # don't restrict to a specific machine pool by default
+  - name: JOB_MACHINE_POOL
+    value: ''
+  - name: CONTRACT_CLIENT_BACK_OFF_INITIAL_INTERVAL_MILLIS
+    value: '1000'
+  - name: CONTRACT_CLIENT_BACK_OFF_MAX_INTERVAL_MILLIS
+    value: '64000'
+  - name: CONTRACT_CLIENT_BACK_OFF_MULTIPLIER
+    value: '2'
+  - name: CONTRACT_CLIENT_MAX_ATTEMPTS
+    value: '1'
+  - name: CURL_CRON_IMAGE
+    value: quay.io/app-sre/ubi8-ubi-minimal
+  - name: CURL_CRON_IMAGE_TAG
+    value: latest
+  - name: CURL_CRON_MEMORY_REQUEST
+    value: 10Mi
+  - name: CURL_CRON_MEMORY_LIMIT
+    value: 50Mi
+  - name: CURL_CRON_CPU_REQUEST
+    value: 100m
+  - name: CURL_CRON_CPU_LIMIT
+    value: 100m
+  - name: OTEL_SERVICE_NAME
+    value: swatch-tally
+  - name: OTEL_JAVAAGENT_ENABLED
+    value: 'false'
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: 'http://localhost:4317'
+  - name: OTEL_EXPORTER_OTLP_PROTOCOL
+    value: 'grpc'
+  - description: database secret name
+    name: FLOORIST_DB_SECRET_NAME
+    value: swatch-tally-db
+  - description: bucket secret name
+    name: FLOORIST_BUCKET_SECRET_NAME
+    required: true
+    value: egress-s3
+  - name: FLOORIST_LOGLEVEL
+    description: Floorist loglevel config
+    value: 'INFO'
+  - name: FLOORIST_SUSPEND
+    description: Disable Floorist cronjob execution
+    required: true
+    value: 'false'
 
 objects:
-  - apiVersion: cloud.redhat.com/v1alpha1
-    kind: ClowdApp
-    metadata:
-      name: rhsm
-    spec:
-      # The name of the ClowdEnvironment providing the services
-      envName: ${ENV_NAME}
-      # IQE plugin your ClowdApp is associated with
-      testing:
-        iqePlugin: rhsm-subscriptions
-
   - apiVersion: cloud.redhat.com/v1alpha1
     kind: ClowdApp
     metadata:
@@ -119,3 +321,108 @@ objects:
                 }
             ]
         }
+
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdApp
+    metadata:
+      name: rhsm
+      labels:
+        prometheus: rhsm
+    spec:
+      envName: ${ENV_NAME}
+      testing:
+        iqePlugin: rhsm-subscriptions
+      database:
+        name: swatch-tally-db
+        version: 12
+      pullSecrets:
+        name: ${IMAGE_PULL_SECRET}
+      deployments:
+        - name: db-init-service
+          replicas: ${{REPLICAS}}
+          webServices:
+            public:
+              enabled: true
+            metrics:
+              enabled: true
+          podSpec:
+            image: ${IMAGE}:${IMAGE_TAG}
+            env:
+              - name: JAVA_DEBUG
+                value: ${JAVA_DEBUG}
+              - name: USER_OPTS_APPEND
+                value: -javaagent:/opt/splunk-otel-javaagent.jar
+              - name: ENABLE_SPLUNK_HEC
+                value: ${ENABLE_SPLUNK_HEC}
+              - name: SPLUNKMETA_namespace
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.namespace
+              - name: HOST_NAME
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.name
+              - name: SPLUNK_HEC_URL
+                value: ${SPLUNK_HEC_URL}
+              - name: SPLUNK_HEC_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: splunk-hec-external
+                    key: token
+              - name: SPLUNK_SOURCE
+                value: ${SPLUNK_SOURCE}
+              - name: SPLUNK_SOURCE_TYPE
+                value: ${SPLUNK_SOURCE_TYPE}
+              - name: SPLUNK_MESSAGE_FORMAT
+                value: ${SPLUNK_MESSAGE_FORMAT}
+              - name: SPLUNK_HEC_CONNECT_TIMEOUT
+                value: ${SPLUNK_HEC_CONNECT_TIMEOUT}
+              - name: SPLUNK_HEC_BATCH_SIZE
+                value: ${SPLUNK_HEC_BATCH_SIZE}
+              - name: SPLUNK_HEC_TERMINATION_TIMEOUT
+                value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
+              - name: SPRING_PROFILES_ACTIVE
+                value: liquibase-only
+              - name: LOG_FILE
+                value: /logs/server.log
+              - name: JAVA_MAX_MEM_RATIO
+                value: '85'
+              - name: GC_MAX_METASPACE_SIZE
+                value: '256'
+              - name: LOGGING_LEVEL_ROOT
+                value: ${LOGGING_LEVEL_ROOT}
+              - name: LOGGING_LEVEL_ORG_CANDLEPIN
+                value: ${LOGGING_LEVEL}
+              - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
+                value: ${LOGGING_LEVEL}
+              - name: LOGGING_SHOW_SQL_QUERIES
+                value: ${LOGGING_SHOW_SQL_QUERIES}
+              - name: DATABASE_CONNECTION_TIMEOUT_MS
+                value: ${DATABASE_CONNECTION_TIMEOUT_MS}
+              - name: DATABASE_MAX_POOL_SIZE
+                value: ${DATABASE_MAX_POOL_SIZE}
+              - name: OTEL_EXPORTER_OTLP_ENDPOINT
+                value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+              - name: OTEL_EXPORTER_OTLP_PROTOCOL
+                value: ${OTEL_EXPORTER_OTLP_PROTOCOL}
+              - name: OTEL_SERVICE_NAME
+                value: ${OTEL_SERVICE_NAME}
+              - name: OTEL_JAVAAGENT_ENABLED
+                value: ${OTEL_JAVAAGENT_ENABLED}
+            resources:
+              requests:
+                cpu: ${CPU_REQUEST}
+                memory: ${MEMORY_REQUEST}
+              limits:
+                cpu: ${CPU_LIMIT}
+                memory: ${MEMORY_LIMIT}
+            volumeMounts:
+              - name: logs
+                mountPath: /logs
+            volumes:
+              - name: logs
+                emptyDir:
+            machinePool: ${MACHINE_POOL}
+      jobs: []
