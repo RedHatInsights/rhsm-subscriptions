@@ -59,6 +59,8 @@ parameters:
     value: 'true'
   - name: CULLING_OFFSET
     value: '14d'
+  - name: LOGGING_SHOW_SQL_QUERIES
+    value: 'false'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
