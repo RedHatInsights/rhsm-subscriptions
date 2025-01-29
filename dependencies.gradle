@@ -29,6 +29,7 @@ ext.plugins = [
         "org.openapitools:openapi-generator-gradle-plugin:7.11.0",
         "org.springframework.boot:spring-boot-gradle-plugin:${springVersion}",
         "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:6.0.1.5171",
+        "net.ltgt.gradle:gradle-errorprone-plugin:4.1.0"
 ]
 
 // BOMs
