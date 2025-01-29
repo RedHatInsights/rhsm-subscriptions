@@ -49,6 +49,9 @@ fi
 
 oc port-forward $(oc get pod -o name | grep kafka-0) 9092:9092 &
 oc port-forward $(oc get service -o name | grep kafka-bridge-bridge-service) 8080:8080 &
+oc port-forward $(oc get service -o name | grep wiremock-service) 8101:8101 &
+oc port-forward $(oc get service -o name | grep swatch-mock-prometheus-test-service) 9090:9090 &
+
 
 oc create configmap caddyfile \
     --from-file=${TMP_DIR}/Caddyfile
