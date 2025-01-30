@@ -67,12 +67,14 @@ class InternalBillableUsageResourceTest {
   InMemorySink<EnabledOrgsRequest> enabledOrgsSink;
   InMemorySink<BillableUsage> billableUsageSink;
 
+  @Transactional
   @BeforeEach
   void setUp() {
     enabledOrgsSink = connector.sink(ENABLED_ORGS);
     enabledOrgsSink.clear();
     billableUsageSink = connector.sink(BILLABLE_USAGE_OUT);
     billableUsageSink.clear();
+    remittanceRepository.deleteAll();
   }
 
   @Test

@@ -84,7 +84,7 @@ class MetricsTest {
     OffsetDateTime end = start.plusMinutes(5L);
     // asynchronous
     meterProductForOrgIdAndRange(VALID_PRODUCT, null, end, 120, false)
-        .statusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+        .statusCode(HttpStatus.SC_BAD_REQUEST);
     meterProductForOrgIdAndRange(VALID_PRODUCT, "org1", clock.startOfHour(end), 120, false)
         .statusCode(HttpStatus.SC_NO_CONTENT);
 
