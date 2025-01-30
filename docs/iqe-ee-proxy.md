@@ -48,8 +48,10 @@ Use JetBrains toolbox to install PyCharm since the flatpak version has issues.
 Run -> Edit Configurations -> Edit Configuration templates ... -> Python tests -> pytest  
 - Paths to ".env" files: /home/[username]/iqe-workspace/iqe_env 
 - both iqe-core and iqe-rhsm-subscriptions-plugin tabs should have this value
-- Additional arguments: -m ephemeral
+- Additional arguments: "-m ephemeral --log-cli-level=10"
 - Ensure that the python interpreter is using ~/iqe-workspace/.iqe_env/bin/python3
+
+**Note**: Using "--log-cli-level=10" will enable the live logging when running tests directly on Pycharm. More information in [this link](https://docs.pytest.org/en/latest/how-to/logging.html#live-logs).
 
 
 
