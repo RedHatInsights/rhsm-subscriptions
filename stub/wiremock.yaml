@@ -29,7 +29,7 @@ objects:
   - apiVersion: v1
     kind: Service
     metadata:
-      name: wiremock
+      name: wiremock-service
     spec:
       selector:
         app: wiremock

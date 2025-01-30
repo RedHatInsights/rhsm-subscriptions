@@ -26,6 +26,15 @@ https://insights-qe.pages.redhat.com/iqe-core-docs/tutorial/part3.html#download-
 `oc login …`
 `bonfire namespace reserve`
 `bonfire deploy rhsm …`
+
+If necessary, don't forget to deploy the additional "helper" containers (e.g. wiremock, kafka-bridge, mock prometheus), since they're EE specific and defined outside of the rhsm clowdapp.  If you're using `--source=appsre`, or if you have them defined in your local `~/.config/bonfire/config.yaml`, they should be automatically deployed.
+
+Otherwise, here's how you can deploy them manually.
+
+`oc process -f ../rhsm-subscriptions/stub/wiremock.yaml | oc apply -f -`
+`oc process -f ../rhsm-subscriptions/kafka-bridge/deploy/template.yaml | oc apply -f -`
+`oc process -f ../rhsm-subscriptions/swatch-metrics/deploy/mock-prometheus-clowdapp.yaml | oc apply -f -`
+
 9. Start the proxy:  
 `../rhsm-subscriptions/bin/iqe-ee-proxy.sh`
 10. Run iqe tests:  
