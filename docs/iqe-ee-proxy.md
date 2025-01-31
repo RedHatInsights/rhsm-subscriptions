@@ -26,6 +26,15 @@ https://insights-qe.pages.redhat.com/iqe-core-docs/tutorial/part3.html#download-
 `oc login …`
 `bonfire namespace reserve`
 `bonfire deploy rhsm …`
+
+If necessary, don't forget to deploy the additional "helper" containers (e.g. wiremock, kafka-bridge, mock prometheus), since they're EE specific and defined outside of the rhsm clowdapp.  If you're using `--source=appsre`, or if you have them defined in your local `~/.config/bonfire/config.yaml`, they should be automatically deployed.
+
+Otherwise, here's how you can deploy them manually.
+
+`oc process -f ../rhsm-subscriptions/stub/wiremock.yaml | oc apply -f -`
+`oc process -f ../rhsm-subscriptions/kafka-bridge/deploy/template.yaml | oc apply -f -`
+`oc process -f ../rhsm-subscriptions/swatch-metrics/deploy/mock-prometheus-clowdapp.yaml | oc apply -f -`
+
 9. Start the proxy:  
 `../rhsm-subscriptions/bin/iqe-ee-proxy.sh`
 10. Run iqe tests:  
@@ -39,8 +48,10 @@ Use JetBrains toolbox to install PyCharm since the flatpak version has issues.
 Run -> Edit Configurations -> Edit Configuration templates ... -> Python tests -> pytest  
 - Paths to ".env" files: /home/[username]/iqe-workspace/iqe_env 
 - both iqe-core and iqe-rhsm-subscriptions-plugin tabs should have this value
-- Additional arguments: -m ephemeral
+- Additional arguments: "-m ephemeral --log-cli-level=10"
 - Ensure that the python interpreter is using ~/iqe-workspace/.iqe_env/bin/python3
+
+**Note**: Using "--log-cli-level=10" will enable the live logging when running tests directly on Pycharm. More information in [this link](https://docs.pytest.org/en/latest/how-to/logging.html#live-logs).
 
 
 

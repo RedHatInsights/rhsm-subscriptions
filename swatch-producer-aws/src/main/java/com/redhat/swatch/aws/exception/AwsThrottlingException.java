@@ -31,9 +31,4 @@ public class AwsThrottlingException extends AwsProducerException {
     super(ErrorCode.AWS_THROTTLING_ERROR, String.format("count=%d", count));
     this.count = count;
   }
-
-  public AwsThrottlingException(int count, Exception e) {
-    super(ErrorCode.AWS_THROTTLING_ERROR, String.format("count=%d", count), e);
-    this.count = count;
-  }
 }
