@@ -63,11 +63,18 @@ for EXTRA_COMPONENT_NAME in $EXTRA_COMPONENTS; do
   export EXTRA_DEPLOY_ARGS="${EXTRA_DEPLOY_ARGS} --set-template-ref ${EXTRA_COMPONENT_NAME}=${GIT_COMMIT}"
 done
 
+# Delete comment about the IQE tests output if exists
+source bin/delete_comment_iqe_summary.sh
+
 # Deploy to an ephemeral namespace for testing
 source deploy_ephemeral_env.sh
 
 # Run smoke tests with ClowdJobInvocation
- source $CICD_ROOT/cji_smoke_test.sh
+source $CICD_ROOT/cji_smoke_test.sh
+
+# Post comment about the IQE tests output
+source bin/post_comment_iqe_summary.sh
+
 # During the PR checks the Ibutsu URL and test run IDs are published as a comment by InsightsDroid account (on GitHub) or iqe-bot (on GitLab).
 # This is achieved by adding this line to `pr_check.sh` of the repo:
- source $CICD_ROOT/post_test_results.sh
+source $CICD_ROOT/post_test_results.sh
