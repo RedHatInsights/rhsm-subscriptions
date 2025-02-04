@@ -264,7 +264,8 @@ class HbiEventConsumerTest {
   void testDeletedEventIsSkipped() {
     when(unleash.isEnabled(FeatureFlags.EMIT_EVENTS)).thenReturn(true);
     HbiHostDeleteEvent hbiEvent =
-        HbiEventTestData.getEvent(HbiEventTestData.getHostDeletedEvent(), HbiHostDeleteEvent.class);
+        HbiEventTestData.getEvent(
+            objectMapper, HbiEventTestData.getHostDeletedEvent(), HbiHostDeleteEvent.class);
     hbiEventsIn.send(hbiEvent);
 
     Awaitility.await()
@@ -437,7 +438,7 @@ class HbiEventConsumerTest {
 
   private HbiHostCreateUpdateEvent getCreateUpdateEvent(String messageJson) {
     HbiHostCreateUpdateEvent event =
-        HbiEventTestData.getEvent(messageJson, HbiHostCreateUpdateEvent.class);
+        HbiEventTestData.getEvent(objectMapper, messageJson, HbiHostCreateUpdateEvent.class);
 
     // Ensure the event is not stale.
     event.getHost().setStaleTimestamp(clock.now().plusMonths(1).toString());
