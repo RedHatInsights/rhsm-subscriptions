@@ -20,9 +20,8 @@
  */
 package com.redhat.swatch.hbi.events.configuration;
 
-import com.fasterxml.jackson.core.JsonGenerator.Feature;
+import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.redhat.swatch.hbi.events.normalization.MeasurementNormalizer;
 import jakarta.enterprise.context.Dependent;
 import jakarta.enterprise.inject.Produces;
@@ -43,11 +42,8 @@ public class ApplicationConfiguration {
   }
 
   @Produces
-  public ObjectMapper objectMapper() {
-    ObjectMapper mapper = new ObjectMapper();
-    mapper.registerModule(new JavaTimeModule());
-    mapper.configure(Feature.IGNORE_UNKNOWN, true);
-    return mapper;
+  public JsonFactory jsonFactory(ObjectMapper objectMapper) {
+    return new JsonFactory(objectMapper);
   }
 
   /**

@@ -22,7 +22,6 @@ package com.redhat.swatch.hbi.events;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -31,8 +30,6 @@ import java.util.Objects;
 import org.apache.commons.io.FileUtils;
 
 public class HbiEventTestData {
-
-  private static final ObjectMapper mapper = new ApplicationConfiguration().objectMapper();
 
   public static String getSatelliteRhelHostCreatedEvent() {
     return loadEventFileAsString("data/hbi_rhel_host_created_satellite_event.json");
@@ -67,7 +64,7 @@ public class HbiEventTestData {
     }
   }
 
-  public static <E> E getEvent(String message, Class<E> eventClass) {
+  public static <E> E getEvent(ObjectMapper mapper, String message, Class<E> eventClass) {
     try {
       return mapper.readValue(message, eventClass);
     } catch (JsonProcessingException e) {
