@@ -56,6 +56,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class TallySnapshotController {
 
+  protected static final String TALLIED_USAGE_TOTAL_METRIC = "swatch_tally_tallied_usage_total";
   private static final Logger log = LoggerFactory.getLogger(TallySnapshotController.class);
 
   private final ApplicationProperties appProps;
@@ -119,7 +120,7 @@ public class TallySnapshotController {
   }
 
   protected void recordTallyCount(List<TallySnapshot> savedSnapshots) {
-    var count = Counter.builder("swatch_tally_tallied_usage_total").withRegistry(meterRegistry);
+    var count = Counter.builder(TALLIED_USAGE_TOTAL_METRIC).withRegistry(meterRegistry);
     // Only increment the counter at the finest granularity level to prevent over-counting
     savedSnapshots.parallelStream()
         .filter(this::isDuplicateSnap)
@@ -142,7 +143,7 @@ public class TallySnapshotController {
                                   snap.getProductId(),
                                   "metric_id",
                                   entry.getKey().getMetricId(),
-                                  "billing_provider_id",
+                                  "billing_provider",
                                   snap.getBillingProvider().getValue());
                           c.increment(entry.getValue());
                         }));

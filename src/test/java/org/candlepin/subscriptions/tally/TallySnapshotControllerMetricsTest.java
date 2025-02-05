@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import static org.candlepin.subscriptions.tally.TallySnapshotController.TALLIED_USAGE_TOTAL_METRIC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
@@ -77,12 +78,8 @@ class TallySnapshotControllerMetricsTest {
     controller.produceSnapshotsForOrg("123");
 
     var counter =
-        Counter.builder("swatch_tally_tallied_usage_total")
-            .tags(
-                "product",
-                "RHEL for x86",
-                "billing_provider_id",
-                BillingProvider.RED_HAT.getValue())
+        Counter.builder(TALLIED_USAGE_TOTAL_METRIC)
+            .tags("product", "RHEL for x86", "billing_provider", BillingProvider.RED_HAT.getValue())
             .withRegistry(registry);
 
     for (var s : Set.of("CORES", "SOCKETS")) {
@@ -128,8 +125,8 @@ class TallySnapshotControllerMetricsTest {
     controller.produceHourlySnapshotsForOrg("123");
 
     var counter =
-        Counter.builder("swatch_tally_tallied_usage_total")
-            .tags("product", "rosa", "billing_provider_id", BillingProvider.RED_HAT.getValue())
+        Counter.builder(TALLIED_USAGE_TOTAL_METRIC)
+            .tags("product", "rosa", "billing_provider", BillingProvider.RED_HAT.getValue())
             .withRegistry(registry);
 
     for (var s : Set.of("CORES", "SOCKETS")) {
