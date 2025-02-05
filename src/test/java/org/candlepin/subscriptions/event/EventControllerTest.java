@@ -32,6 +32,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redhat.swatch.configuration.registry.MetricId;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.persistence.EntityManager;
@@ -622,7 +623,9 @@ class EventControllerTest {
             m ->
                 INGESTED_USAGE_METRIC.equals(m.getId().getName())
                     && productTag.equals(m.getId().getTag("product"))
-                    && metricId.equals(m.getId().getTag("metric_id"))
+                    && MetricId.fromString(metricId)
+                        .toUpperCaseFormatted()
+                        .equals(m.getId().getTag("metric_id"))
                     && billingProvider.equals(m.getId().getTag("billing_provider")))
         .findFirst();
   }

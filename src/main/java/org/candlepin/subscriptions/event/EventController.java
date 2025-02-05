@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.event;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.configuration.util.ProductTagLookupParams;
@@ -396,10 +397,19 @@ public class EventController {
     if (event.getBillingProvider() != null) {
       counter.tag("billing_provider", event.getBillingProvider().value());
     }
-    counter
-        .withRegistry(meterRegistry)
-        .withTags("product", tag, "metric_id", measurement.getMetricId())
-        .increment(measurement.getValue());
+    try {
+      counter
+          .tag("metric_id", MetricId.fromString(measurement.getMetricId()).toUpperCaseFormatted())
+          .withRegistry(meterRegistry)
+          .withTags("product", tag)
+          .increment(measurement.getValue());
+    } catch (Exception e) {
+      log.error(
+          "Error to increment counter '{}'. Event was '{}' and measurement '{}'",
+          INGESTED_USAGE_METRIC,
+          event,
+          measurement);
+    }
   }
 
   private static class ServiceInstancesResult {
