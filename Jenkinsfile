@@ -37,10 +37,10 @@ spec:
       - 99d
       resources:
         requests:
-          memory: "2Gi"
+          memory: "4Gi"
           cpu: "2"
         limits:
-          memory: "6Gi"
+          memory: "8Gi"
           cpu: "6"
       env:
       - name: DOCKER_HOST
@@ -100,7 +100,8 @@ spec:
             steps {
                 // The build task includes check, test, and assemble.  Linting happens during the check
                 // task and uses the spotless gradle plugin.
-                sh "./gradlew --no-daemon --no-parallel build testCodeCoverageReport"
+                sh "./gradlew --no-daemon --no-parallel build -x test"
+                sh "./gradlew --no-daemon --no-parallel test testCodeCoverageReport"
             }
         }
 
