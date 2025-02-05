@@ -100,8 +100,8 @@ spec:
             steps {
                 // The build task includes check, test, and assemble.  Linting happens during the check
                 // task and uses the spotless gradle plugin.
-                sh "./gradlew --no-daemon --no-parallel build -x test"
-                sh "./gradlew --no-daemon --no-parallel test testCodeCoverageReport"
+                sh "./gradlew build -x test"
+                sh "./gradlew --no-parallel test testCodeCoverageReport"
             }
         }
 
