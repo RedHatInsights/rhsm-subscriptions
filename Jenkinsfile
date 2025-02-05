@@ -37,7 +37,7 @@ spec:
       - 99d
       resources:
         requests:
-          memory: "4Gi"
+          memory: "1Gi"
           cpu: "2"
         limits:
           memory: "8Gi"
