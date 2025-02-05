@@ -20,7 +20,7 @@
  */
 package com.redhat.swatch.billable.usage.kafka;
 
-import static com.redhat.swatch.billable.usage.kafka.streams.StreamTopologyProducer.USAGE_TOTAL_METRIC;
+import static com.redhat.swatch.billable.usage.kafka.streams.StreamTopologyProducer.USAGE_TOTAL_AGGREGATED_METRIC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -115,7 +115,7 @@ class BillableUsageAggregateStreamTopologyTest {
     assertEquals(Set.of(usage.getSnapshotDate()), actualAggregate.getSnapshotDates());
     assertEquals(usage.getUuid().toString(), actualAggregate.getRemittanceUuids().get(0));
     assertNotNull(actualAggregate.getWindowTimestamp());
-    assertUsageTotalMetricIs(36.0);
+    assertUsageTotalAggregatedMetricIs(36.0);
   }
 
   @Test
@@ -152,7 +152,7 @@ class BillableUsageAggregateStreamTopologyTest {
             usage1.getUuid().toString(), usage2.getUuid().toString(), usage3.getUuid().toString()),
         actualAggregate.getRemittanceUuids());
     assertNotNull(actualAggregate.getWindowTimestamp());
-    assertUsageTotalMetricIs(9.0);
+    assertUsageTotalAggregatedMetricIs(9.0);
   }
 
   @Test
@@ -194,12 +194,12 @@ class BillableUsageAggregateStreamTopologyTest {
     assertIterableEquals(
         List.of(secondSubUsage1.getUuid().toString(), secondSubUsage2.getUuid().toString()),
         actualSecondAggregate.getRemittanceUuids());
-    assertUsageTotalMetricIs(11.0);
+    assertUsageTotalAggregatedMetricIs(11.0);
   }
 
-  private void assertUsageTotalMetricIs(double expectedTotal) {
+  private void assertUsageTotalAggregatedMetricIs(double expectedTotal) {
     var metric =
-        getIngestedUsageMetric(
+        getIngestedUsageAggregatedMetric(
             PRODUCT,
             MetricIdUtils.getCores().toUpperCaseFormatted(),
             BillableUsage.BillingProvider.AZURE.toString());
@@ -223,12 +223,12 @@ class BillableUsageAggregateStreamTopologyTest {
     return usage;
   }
 
-  private Optional<Meter> getIngestedUsageMetric(
+  private Optional<Meter> getIngestedUsageAggregatedMetric(
       String productTag, String metricId, String billingProvider) {
     return meterRegistry.getMeters().stream()
         .filter(
             m ->
-                USAGE_TOTAL_METRIC.equals(m.getId().getName())
+                USAGE_TOTAL_AGGREGATED_METRIC.equals(m.getId().getName())
                     && productTag.equals(m.getId().getTag("product"))
                     && metricId.equals(m.getId().getTag("metric_id"))
                     && billingProvider.equals(m.getId().getTag("billing_provider")))
