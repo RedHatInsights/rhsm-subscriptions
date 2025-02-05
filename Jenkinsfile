@@ -17,11 +17,6 @@ pipeline {
 apiVersion: v1
 kind: Pod
 spec:
-  # Configure Kubedock to use this service account that has the "portForward" permission.
-  serviceAccountName: stage-instance-admin
-  # Quay secrets are not linked to the above service account, so we need to explicitly define it:
-  imagePullSecrets:
-    - name: nkathole-smqejenkins-pull-secret
   containers:
     - name: kubedock
       image: quay.io/cloudservices/kubedock:latest
