@@ -1,0 +1,1160 @@
+apiVersion: v1
+data:
+  subscription-watch-payg-metrics.json: |-
+    {
+      "annotations": {
+        "list": [
+          {
+            "builtIn": 1,
+            "datasource": {
+              "type": "grafana",
+              "uid": "-- Grafana --"
+            },
+            "enable": true,
+            "hide": true,
+            "iconColor": "rgba(0, 211, 255, 1)",
+            "name": "Annotations & Alerts",
+            "type": "dashboard"
+          }
+        ]
+      },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "id": 995724,
+      "links": [],
+      "panels": [
+        {
+          "collapsed": false,
+          "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 0
+          },
+          "id": 2,
+          "panels": [],
+          "title": "Metered end-to-end stats",
+          "type": "row"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Value #Metered"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Metered"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Value #Tallied"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Tallied"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Value #Covered"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Covered by Contract"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Value #Billing Pending"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Billing Pending"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Value #Remitted Failed"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Remitted Failed"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Value #Remitted Success"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Remitted Success"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 0,
+            "y": 1
+          },
+          "id": 3,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "center",
+            "orientation": "vertical",
+            "reduceOptions": {
+              "calcs": [
+                "sum"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": true,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "10.4.1",
+          "repeat": "product",
+          "repeatDirection": "v",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "disableTextWrap": false,
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "sum(increase(swatch_metrics_ingested_usage_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\"}[1d]))",
+              "format": "table",
+              "fullMetaSearch": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "interval": "",
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "Metered",
+              "useBackend": false
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum(increase(swatch_tally_tallied_usage_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\"}[1d]))",
+              "format": "table",
+              "hide": false,
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "Tallied"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum(increase(swatch_contract_usage_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\"}[1d]))",
+              "format": "table",
+              "hide": false,
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "Covered"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum(increase(swatch_billable_usage_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\"}[1d]))",
+              "format": "table",
+              "hide": false,
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "Billing Pending"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum(increase(swatch_producer_metered_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\", status=\"failed\"}[1d]))",
+              "format": "table",
+              "hide": false,
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "Remitted Failed"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum(increase(swatch_producer_metered_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\", status=\"succeeded\"}[1d]))",
+              "format": "table",
+              "hide": false,
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "Remitted Success"
+            }
+          ],
+          "title": "Stats for \"$product\"",
+          "type": "stat"
+        },
+        {
+          "collapsed": true,
+          "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 65
+          },
+          "id": 4,
+          "panels": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      }
+                    ]
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "CORES"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Cores"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "INSTANCE_HOURS"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Instance-Hours"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "SOCKETS"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Sockets"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "VCPUS"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "vCPUs"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "MANAGED_NODES"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Managed-Nodes"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 2
+              },
+              "id": 5,
+              "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "value_and_name",
+                "wideLayout": true
+              },
+              "pluginVersion": "10.4.1",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "PDD8BE47D10408F45"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum(increase(swatch_metrics_ingested_usage_total{product=\"$product\", billing_provider=\"$billing_provider\"}[1d])) by (metric_id)",
+                  "instant": false,
+                  "legendFormat": "__auto",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "Metered",
+              "type": "stat"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      }
+                    ]
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "CORES"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Cores"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "INSTANCE_HOURS"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Instance-Hours"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "SOCKETS"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Sockets"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "VCPUS"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "vCPUs"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "MANAGED_NODES"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Managed-Nodes"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 2
+              },
+              "id": 6,
+              "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "value_and_name",
+                "wideLayout": true
+              },
+              "pluginVersion": "10.4.1",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "PDD8BE47D10408F45"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum(increase(swatch_tally_tallied_usage_total{product=\"$product\", billing_provider=\"$billing_provider\"}[1d])) by (metric_id)",
+                  "instant": false,
+                  "legendFormat": "__auto",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "Tallied",
+              "type": "stat"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      }
+                    ]
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "CORES"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Cores"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "INSTANCE_HOURS"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Instance-Hours"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "SOCKETS"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Sockets"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "VCPUS"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "vCPUs"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "MANAGED_NODES"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Managed-Nodes"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 10
+              },
+              "id": 7,
+              "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "value_and_name",
+                "wideLayout": true
+              },
+              "pluginVersion": "10.4.1",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "PDD8BE47D10408F45"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum(increase(swatch_contract_usage_total{product=\"$product\", billing_provider=\"$billing_provider\"}[1d])) by (metric_id)",
+                  "instant": false,
+                  "legendFormat": "__auto",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "Covered by contract",
+              "type": "stat"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      }
+                    ]
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "CORES"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Cores"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "INSTANCE_HOURS"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Instance-Hours"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "SOCKETS"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Sockets"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "VCPUS"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "vCPUs"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "MANAGED_NODES"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Managed-Nodes"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 10
+              },
+              "id": 8,
+              "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "value_and_name",
+                "wideLayout": true
+              },
+              "pluginVersion": "10.4.1",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "PDD8BE47D10408F45"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum(increase(swatch_billable_usage_total{product=\"$product\", billing_provider=\"$billing_provider\"}[1d])) by (metric_id)",
+                  "instant": false,
+                  "legendFormat": "__auto",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "Billing Pending",
+              "type": "stat"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      }
+                    ]
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "{metric_id=\"INSTANCE_HOURS\", status=\"failed\"}"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Instance-Hours (failed)"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "{metric_id=\"MANAGED_NODES\", status=\"failed\"}"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Managed-Nodes (failed)"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "{metric_id=\"CORES\", status=\"failed\"}"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Cores (failed)"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "{metric_id=\"SOCKETS\", status=\"failed\"}"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Sockets (failed)"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "{metric_id=\"Sockets\", status=\"failed\"}"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Sockets (failed)"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "{metric_id=\"VCPUS\", status=\"failed\"}"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "vCPUs (failed)"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "{metric_id=\"VCPUS\", status=\"succeeded\"}"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "vCPUs (succeeded)"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "{metric_id=\"INSTANCE_HOURS\", status=\"succeeded\"}"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Instance-Hours (succeeded)"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "{metric_id=\"MANAGED_NODES\", status=\"succeeded\"}"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Managed-Nodes (succeeded)"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "{metric_id=\"SOCKETS\", status=\"succeeded\"}"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Sockets (succeeded)"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "{metric_id=\"CORES\", status=\"succeeded\"}"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Cores (succeeded)"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 18
+              },
+              "id": 9,
+              "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "value_and_name",
+                "wideLayout": true
+              },
+              "pluginVersion": "10.4.1",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "PDD8BE47D10408F45"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum(increase(swatch_producer_metered_total{product=\"$product\", billing_provider=\"$billing_provider\"}[1d])) by (metric_id, status)",
+                  "instant": false,
+                  "legendFormat": "__auto",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "Remitted",
+              "type": "stat"
+            }
+          ],
+          "repeat": "product",
+          "repeatDirection": "h",
+          "title": "Stats by metrics for $product",
+          "type": "row"
+        }
+      ],
+      "schemaVersion": 39,
+      "tags": [],
+      "templating": {
+        "list": [
+          {
+            "current": {
+              "selected": false,
+              "text": "crcs02ue1-prometheus",
+              "value": "PDD8BE47D10408F45"
+            },
+            "hide": 0,
+            "includeAll": false,
+            "label": "",
+            "multi": false,
+            "name": "datasource",
+            "options": [],
+            "query": "prometheus",
+            "queryValue": "",
+            "refresh": 1,
+            "regex": "/crc[sp]\\d[^-]*-prometheus/",
+            "skipUrlSync": false,
+            "type": "datasource"
+          },
+          {
+            "current": {
+              "selected": true,
+              "text": [
+                "ansible-aap-managed",
+                "openshift-dedicated-metrics",
+                "OpenShift-metrics",
+                "rhacs",
+                "rhel-for-x86-els-payg",
+                "rhel-for-x86-els-payg-addon",
+                "rhods",
+                "rosa"
+              ],
+              "value": [
+                "ansible-aap-managed",
+                "openshift-dedicated-metrics",
+                "OpenShift-metrics",
+                "rhacs",
+                "rhel-for-x86-els-payg",
+                "rhel-for-x86-els-payg-addon",
+                "rhods",
+                "rosa"
+              ]
+            },
+            "hide": 0,
+            "includeAll": true,
+            "label": "Product",
+            "multi": true,
+            "name": "product",
+            "options": [
+              {
+                "selected": true,
+                "text": "ansible-aap-managed",
+                "value": "ansible-aap-managed"
+              },
+              {
+                "selected": true,
+                "text": "openshift-dedicated-metrics",
+                "value": "openshift-dedicated-metrics"
+              },
+              {
+                "selected": true,
+                "text": "OpenShift-metrics",
+                "value": "OpenShift-metrics"
+              },
+              {
+                "selected": true,
+                "text": "rhacs",
+                "value": "rhacs"
+              },
+              {
+                "selected": true,
+                "text": "rhel-for-x86-els-payg",
+                "value": "rhel-for-x86-els-payg"
+              },
+              {
+                "selected": true,
+                "text": "rhel-for-x86-els-payg-addon",
+                "value": "rhel-for-x86-els-payg-addon"
+              },
+              {
+                "selected": true,
+                "text": "rhods",
+                "value": "rhods"
+              },
+              {
+                "selected": true,
+                "text": "rosa",
+                "value": "rosa"
+              }
+            ],
+            "query": "ansible-aap-managed, openshift-dedicated-metrics, OpenShift-metrics, rhacs, rhel-for-x86-els-payg, rhel-for-x86-els-payg-addon, rhods, rosa",
+            "queryValue": "",
+            "skipUrlSync": false,
+            "type": "custom"
+          },
+          {
+            "current": {
+              "selected": true,
+              "text": "VCPUS",
+              "value": "VCPUS"
+            },
+            "hide": 0,
+            "includeAll": false,
+            "label": "Metric",
+            "multi": false,
+            "name": "metric_id",
+            "options": [
+              {
+                "selected": false,
+                "text": "CORES",
+                "value": "CORES"
+              },
+              {
+                "selected": false,
+                "text": "MANAGED_NODES",
+                "value": "MANAGED_NODES"
+              },
+              {
+                "selected": false,
+                "text": "INSTANCE_HOURS",
+                "value": "INSTANCE_HOURS"
+              },
+              {
+                "selected": false,
+                "text": "SOCKETS",
+                "value": "SOCKETS"
+              },
+              {
+                "selected": true,
+                "text": "VCPUS",
+                "value": "VCPUS"
+              }
+            ],
+            "query": "CORES, MANAGED_NODES, INSTANCE_HOURS, SOCKETS, VCPUS",
+            "queryValue": "",
+            "skipUrlSync": false,
+            "type": "custom"
+          },
+          {
+            "current": {
+              "selected": true,
+              "text": "aws",
+              "value": "aws"
+            },
+            "hide": 0,
+            "includeAll": false,
+            "label": "Billing Provider",
+            "multi": false,
+            "name": "billing_provider",
+            "options": [
+              {
+                "selected": true,
+                "text": "aws",
+                "value": "aws"
+              },
+              {
+                "selected": false,
+                "text": "azure",
+                "value": "azure"
+              }
+            ],
+            "query": "aws, azure",
+            "queryValue": "",
+            "skipUrlSync": false,
+            "type": "custom"
+          }
+        ]
+      },
+      "time": {
+        "from": "now-90d",
+        "to": "now"
+      },
+      "timepicker": {},
+      "timezone": "browser",
+      "title": "Subscription Watch - PAYG metrics",
+      "uid": "aec1blbwi445cf",
+      "version": 1,
+      "weekStart": ""
+    }
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: grafana-dashboard-subscription-watch-payg-metrics
+  annotations:
+    grafana-folder: /grafana-dashboard-definitions/Insights
+  labels:
+    grafana_dashboard: "true"
