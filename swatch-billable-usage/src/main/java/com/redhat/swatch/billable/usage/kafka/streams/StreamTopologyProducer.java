@@ -51,7 +51,8 @@ import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 @UnlessBuildProfile("test")
 public class StreamTopologyProducer {
 
-  public static final String USAGE_TOTAL_METRIC = "swatch_billable_usage_total";
+  public static final String USAGE_TOTAL_AGGREGATED_METRIC =
+      "swatch_billable_usage_total_aggregated";
 
   private final BillableUsageAggregationStreamProperties properties;
   private final ObjectMapper objectMapper;
@@ -104,7 +105,7 @@ public class StreamTopologyProducer {
     log.info("Sending aggregate to hourly topic: {}", aggregate);
     if (key.key().getProductId() != null && key.key().getMetricId() != null) {
       // add metrics for aggregation
-      var counter = Counter.builder(USAGE_TOTAL_METRIC);
+      var counter = Counter.builder(USAGE_TOTAL_AGGREGATED_METRIC);
       if (key.key().getBillingProvider() != null) {
         counter.tag("billing_provider", key.key().getBillingProvider());
       }
