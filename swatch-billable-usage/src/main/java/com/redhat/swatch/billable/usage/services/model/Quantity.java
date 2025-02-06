@@ -68,8 +68,12 @@ public class Quantity<U extends Unit> {
     return this;
   }
 
+  public double toMetricUnits() {
+    return value / unit.getBillingFactor();
+  }
+
   public <T extends Unit> Quantity<T> to(T targetUnit) {
-    var valueInMetricUnits = value / unit.getBillingFactor();
+    var valueInMetricUnits = toMetricUnits();
     var valueInTargetUnits = valueInMetricUnits * targetUnit.getBillingFactor();
     return new Quantity<>(valueInTargetUnits, targetUnit);
   }

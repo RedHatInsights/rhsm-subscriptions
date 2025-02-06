@@ -123,10 +123,10 @@ public class BillableUsageService {
 
     if (usageCalc.getRemittedValue() > 0) {
       createRemittance(usage, usageCalc, contractCoverage);
+      updateUsageMeter(usage, usageCalc, contractAmount);
     } else {
       log.debug("Nothing to remit. Remittance record will not be created.");
     }
-    updateUsageMeter(usage, contractCoverage.getTotal(), usageCalc.getBillableValue());
 
     // There were issues with transmitting usage to AWS since the cost event timestamps were in the
     // past. This modification allows us to send usage to AWS if we get it during the current hour
@@ -250,7 +250,10 @@ public class BillableUsageService {
     usage.setUuid(newRemittance.getUuid());
   }
 
-  private void updateUsageMeter(BillableUsage usage, double contractCoverage, double billable) {
+  private void updateUsageMeter(
+      BillableUsage usage,
+      BillableUsageCalculation usageCalc,
+      Quantity<BillingUnit> contractAmount) {
     if (usage.getProductId() == null
         || usage.getMetricId() == null
         || usage.getBillingProvider() == null
@@ -264,21 +267,14 @@ public class BillableUsageService {
                 "metric_id", MetricId.tryGetValueFromString(usage.getMetricId()),
                 "billing_provider", usage.getBillingProvider().value(),
                 "status", usage.getStatus().value()));
-    double coverage =
-        usage.getCurrentTotal() * usage.getBillingFactor() > contractCoverage
-            ? contractCoverage
-            : usage.getCurrentTotal() * usage.getBillingFactor();
-    if (coverage > 0) {
-      Counter.builder(COVERED_USAGE_METRIC)
-          .withRegistry(meterRegistry)
-          .withTags(tags.toArray(new String[0]))
-          .increment(coverage);
-    }
-    if (billable > 0) {
-      Counter.builder(BILLABLE_USAGE_METRIC)
-          .withRegistry(meterRegistry)
-          .withTags(tags.toArray(new String[0]))
-          .increment(billable);
-    }
+    Counter.builder(COVERED_USAGE_METRIC)
+        .withRegistry(meterRegistry)
+        .withTags(tags.toArray(new String[0]))
+        .increment(contractAmount.toMetricUnits());
+
+    Counter.builder(BILLABLE_USAGE_METRIC)
+        .withRegistry(meterRegistry)
+        .withTags(tags.toArray(new String[0]))
+        .increment(usageCalc.getRemittedValue());
   }
 }
