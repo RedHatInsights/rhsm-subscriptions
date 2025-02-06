@@ -148,17 +148,21 @@ public class SubscriptionDefinition {
   }
 
   public static boolean isFinestGranularity(String tag, String granularity) {
-    var subscription =
-        SubscriptionDefinition.lookupSubscriptionByTag(tag)
-            .orElseThrow(
-                () -> new IllegalStateException(tag + " missing in subscription configuration"));
-
-    var finestTagGranularity = subscription.getFinestGranularity().toString();
+    String finestTagGranularity = getFinestGranularity(tag);
 
     // Compare as strings because granularity is represented by two different enumerations:
     // org.candlepin.subscriptions.db.model.Granularity and
     // com.redhat.swatch.configuration.registry.SubscriptionDefinitionGranularity
     return finestTagGranularity.equalsIgnoreCase(granularity);
+  }
+
+  public static String getFinestGranularity(String tag) {
+    var subscription =
+        SubscriptionDefinition.lookupSubscriptionByTag(tag)
+            .orElseThrow(
+                () -> new IllegalStateException(tag + " missing in subscription configuration"));
+
+    return subscription.getFinestGranularity().toString();
   }
 
   public SubscriptionDefinitionGranularity getFinestGranularity() {
