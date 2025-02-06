@@ -315,7 +315,7 @@ public class AzureBillableUsageAggregateConsumer {
             "product",
             usage.getAggregateKey().getProductId(),
             "metric_id",
-            usage.getAggregateKey().getMetricId())
+            MetricId.tryGetValueFromString(usage.getAggregateKey().getMetricId()))
         .increment(usage.getTotalValue().doubleValue());
   }
 }

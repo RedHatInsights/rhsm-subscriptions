@@ -82,7 +82,7 @@ class TallySnapshotControllerMetricsTest {
             .tags("product", "RHEL for x86", "billing_provider", BillingProvider.RED_HAT.getValue())
             .withRegistry(registry);
 
-    for (var s : Set.of("CORES", "SOCKETS")) {
+    for (var s : Set.of("Cores", "Sockets")) {
       var c = counter.withTag("metric_id", s);
       assertEquals(10.0, c.count());
     }
@@ -129,7 +129,7 @@ class TallySnapshotControllerMetricsTest {
             .tags("product", "rosa", "billing_provider", BillingProvider.RED_HAT.getValue())
             .withRegistry(registry);
 
-    for (var s : Set.of("CORES", "SOCKETS")) {
+    for (var s : Set.of("Cores", "Sockets")) {
       var c = counter.withTag("metric_id", s);
       assertEquals(10.0, c.count());
     }

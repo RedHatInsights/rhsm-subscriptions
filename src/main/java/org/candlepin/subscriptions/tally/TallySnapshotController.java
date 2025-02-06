@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import io.micrometer.core.annotation.Timed;
@@ -142,7 +143,7 @@ public class TallySnapshotController {
                                   "product",
                                   snap.getProductId(),
                                   "metric_id",
-                                  entry.getKey().getMetricId(),
+                                  MetricId.tryGetValueFromString(entry.getKey().getMetricId()),
                                   "billing_provider",
                                   snap.getBillingProvider().getValue());
                           c.increment(entry.getValue());

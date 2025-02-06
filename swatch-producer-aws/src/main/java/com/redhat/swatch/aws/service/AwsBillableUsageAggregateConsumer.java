@@ -375,7 +375,11 @@ public class AwsBillableUsageAggregateConsumer {
 
     swatchProducerMeteredTotal
         .withRegistry(meterRegistry)
-        .withTags("product", aggregateKey.getProductId(), "metric_id", aggregateKey.getMetricId())
+        .withTags(
+            "product",
+            aggregateKey.getProductId(),
+            "metric_id",
+            MetricId.fromString(aggregateKey.getMetricId()).getValue())
         .increment(usage.getTotalValue().doubleValue());
   }
 

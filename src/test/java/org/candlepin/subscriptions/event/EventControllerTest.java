@@ -624,7 +624,7 @@ class EventControllerTest {
                 INGESTED_USAGE_METRIC.equals(m.getId().getName())
                     && productTag.equals(m.getId().getTag("product"))
                     && MetricId.fromString(metricId)
-                        .toUpperCaseFormatted()
+                        .getValue()
                         .equals(m.getId().getTag("metric_id"))
                     && billingProvider.equals(m.getId().getTag("billing_provider")))
         .findFirst();

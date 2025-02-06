@@ -31,6 +31,7 @@ import com.redhat.swatch.azure.test.resources.InMemoryMessageBrokerKafkaResource
 import com.redhat.swatch.azure.test.resources.InjectWireMock;
 import com.redhat.swatch.azure.test.resources.WireMockResource;
 import com.redhat.swatch.clients.contracts.api.model.AzureUsageContext;
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -237,7 +238,9 @@ class AzureBillableUsageAggregateConsumerTest {
             m ->
                 METERED_TOTAL_METRIC.equals(m.getId().getName())
                     && PRODUCT_ID.equals(m.getId().getTag("product"))
-                    && metricId.equals(m.getId().getTag("metric_id"))
+                    && MetricId.fromString(metricId)
+                        .getValue()
+                        .equals(m.getId().getTag("metric_id"))
                     && BillableUsage.BillingProvider.AZURE
                         .toString()
                         .equals(m.getId().getTag("billing_provider")))

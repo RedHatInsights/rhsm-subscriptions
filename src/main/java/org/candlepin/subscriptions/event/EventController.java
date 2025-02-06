@@ -397,19 +397,11 @@ public class EventController {
     if (event.getBillingProvider() != null) {
       counter.tag("billing_provider", event.getBillingProvider().value());
     }
-    try {
-      counter
-          .tag("metric_id", MetricId.fromString(measurement.getMetricId()).toUpperCaseFormatted())
-          .withRegistry(meterRegistry)
-          .withTags("product", tag)
-          .increment(measurement.getValue());
-    } catch (Exception e) {
-      log.error(
-          "Error to increment counter '{}'. Event was '{}' and measurement '{}'",
-          INGESTED_USAGE_METRIC,
-          event,
-          measurement);
-    }
+    counter
+        .tag("metric_id", MetricId.tryGetValueFromString(measurement.getMetricId()))
+        .withRegistry(meterRegistry)
+        .withTags("product", tag)
+        .increment(measurement.getValue());
   }
 
   private static class ServiceInstancesResult {

@@ -261,7 +261,7 @@ public class BillableUsageService {
         new ArrayList<>(
             List.of(
                 "product", usage.getProductId(),
-                "metric_id", usage.getMetricId(),
+                "metric_id", MetricId.tryGetValueFromString(usage.getMetricId()),
                 "billing_provider", usage.getBillingProvider().value(),
                 "status", usage.getStatus().value()));
     double coverage =
