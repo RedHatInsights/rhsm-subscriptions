@@ -21,6 +21,7 @@
 package com.redhat.swatch.azure.service;
 
 import static com.redhat.swatch.azure.configuration.Channels.BILLABLE_USAGE_HOURLY_AGGREGATE;
+import static com.redhat.swatch.configuration.registry.SubscriptionDefinition.getBillingFactor;
 
 import com.redhat.swatch.azure.exception.AzureMarketplaceRequestFailedException;
 import com.redhat.swatch.azure.exception.AzureUnprocessedRecordsException;
@@ -282,16 +283,16 @@ public class AzureBillableUsageAggregateConsumer {
     usage.setStatus(BillableUsage.Status.SUCCEEDED);
     usage.setErrorCode(null);
     usage.setBilledOn(OffsetDateTime.now());
-    billableUsageStatusProducer.emitStatus(usage);
     incrementMeteredTotal(usage);
+    billableUsageStatusProducer.emitStatus(usage);
   }
 
   private void emitErrorStatusOnUsage(
       BillableUsageAggregate usage, BillableUsage.ErrorCode errorCode) {
     usage.setStatus(BillableUsage.Status.FAILED);
     usage.setErrorCode(errorCode);
-    billableUsageStatusProducer.emitStatus(usage);
     incrementMeteredTotal(usage);
+    billableUsageStatusProducer.emitStatus(usage);
   }
 
   private void incrementMeteredTotal(BillableUsageAggregate usage) {
@@ -316,6 +317,9 @@ public class AzureBillableUsageAggregateConsumer {
             usage.getAggregateKey().getProductId(),
             "metric_id",
             MetricId.tryGetValueFromString(usage.getAggregateKey().getMetricId()))
-        .increment(usage.getTotalValue().doubleValue());
+        .increment(
+            usage.getTotalValue().doubleValue()
+                / getBillingFactor(
+                    usage.getAggregateKey().getProductId(), usage.getAggregateKey().getMetricId()));
   }
 }

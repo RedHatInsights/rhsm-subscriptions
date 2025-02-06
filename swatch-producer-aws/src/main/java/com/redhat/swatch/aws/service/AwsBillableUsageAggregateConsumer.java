@@ -20,6 +20,8 @@
  */
 package com.redhat.swatch.aws.service;
 
+import static com.redhat.swatch.configuration.registry.SubscriptionDefinition.getBillingFactor;
+
 import com.redhat.swatch.aws.exception.AwsMissingCredentialsException;
 import com.redhat.swatch.aws.exception.AwsThrottlingException;
 import com.redhat.swatch.aws.exception.AwsUnprocessedRecordsException;
@@ -345,16 +347,16 @@ public class AwsBillableUsageAggregateConsumer {
     usage.setStatus(BillableUsage.Status.SUCCEEDED);
     usage.setErrorCode(null);
     usage.setBilledOn(OffsetDateTime.now());
-    billableUsageStatusProducer.emitStatus(usage);
     incrementMeteredTotal(usage);
+    billableUsageStatusProducer.emitStatus(usage);
   }
 
   private void emitErrorStatusOnUsage(
       BillableUsageAggregate usage, BillableUsage.ErrorCode errorCode) {
     usage.setStatus(BillableUsage.Status.FAILED);
     usage.setErrorCode(errorCode);
-    billableUsageStatusProducer.emitStatus(usage);
     incrementMeteredTotal(usage);
+    billableUsageStatusProducer.emitStatus(usage);
   }
 
   private void incrementMeteredTotal(BillableUsageAggregate usage) {
@@ -380,7 +382,10 @@ public class AwsBillableUsageAggregateConsumer {
             aggregateKey.getProductId(),
             "metric_id",
             MetricId.fromString(aggregateKey.getMetricId()).getValue())
-        .increment(usage.getTotalValue().doubleValue());
+        .increment(
+            usage.getTotalValue().doubleValue()
+                / getBillingFactor(
+                    usage.getAggregateKey().getProductId(), usage.getAggregateKey().getMetricId()));
   }
 
   /**

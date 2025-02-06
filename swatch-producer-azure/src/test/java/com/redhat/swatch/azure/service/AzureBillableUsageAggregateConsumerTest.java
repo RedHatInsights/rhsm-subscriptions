@@ -24,6 +24,7 @@ import static com.redhat.swatch.azure.configuration.Channels.BILLABLE_USAGE_HOUR
 import static com.redhat.swatch.azure.configuration.Channels.BILLABLE_USAGE_STATUS;
 import static com.redhat.swatch.azure.service.AzureBillableUsageAggregateConsumer.METERED_TOTAL_METRIC;
 import static com.redhat.swatch.azure.test.resources.InMemoryMessageBrokerKafkaResource.IN_MEMORY_CONNECTOR;
+import static com.redhat.swatch.configuration.registry.SubscriptionDefinition.getBillingFactor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -228,7 +229,8 @@ class AzureBillableUsageAggregateConsumerTest {
               assertTrue(metric.isPresent());
               assertEquals(
                   metric.get().measure().iterator().next().getValue(),
-                  EXPECTED_VALUE.doubleValue());
+                  EXPECTED_VALUE.doubleValue()
+                      / getBillingFactor(PRODUCT_ID, MetricIdUtils.getCores().getValue()));
             });
   }
 

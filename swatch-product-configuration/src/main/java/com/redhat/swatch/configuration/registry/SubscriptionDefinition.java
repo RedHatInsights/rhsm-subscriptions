@@ -182,6 +182,16 @@ public class SubscriptionDefinition {
     return granularity;
   }
 
+  public static double getBillingFactor(String tag, String metricId) {
+    var metricOptional =
+        Variant.findByTag(tag)
+            .map(Variant::getSubscription)
+            .flatMap(
+                subscriptionDefinition ->
+                    subscriptionDefinition.getMetric(MetricId.fromString(metricId).getValue()));
+    return metricOptional.map(Metric::getBillingFactor).orElse(1.0);
+  }
+
   public static boolean supportsGranularity(SubscriptionDefinition sub, String granularity) {
     return sub.getSupportedGranularity().stream()
         .map(x -> x.toString().toLowerCase())
