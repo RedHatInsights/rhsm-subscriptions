@@ -206,11 +206,10 @@ spec:
       - prefetch-dependencies
       taskSpec:
         steps:
-          - image: quay.io/kahowell/kubedock:latest
+          - image: registry.access.redhat.com/ubi9/openjdk-17-runtime
             name: builder
-            #workingDir: $(workspaces.source.path)/source
-            #script: DOCKER_HOST=tcp://127.0.0.1:2475 ./gradlew :test --tests=EventRecordRepositoryTest
-            timeout: 60s
+            workingDir: $(workspaces.source.path)/source
+            script: DOCKER_HOST=tcp://127.0.0.1:2475 ./gradlew :test --tests=EventRecordRepositoryTest
             computeResources:
               limits:
                 memory: '6Gi'
