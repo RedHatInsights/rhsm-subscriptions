@@ -217,9 +217,9 @@ spec:
               requests:
                 memory: '2Gi'
                 cpu: 2
-            sidecars:
-              - image: quay.io/kahowell/kubedock:latest
-                name: kubedock
+        sidecars:
+          - image: quay.io/kahowell/kubedock:latest
+            name: kubedock
       workspaces:
       - name: source
         workspace: workspace
