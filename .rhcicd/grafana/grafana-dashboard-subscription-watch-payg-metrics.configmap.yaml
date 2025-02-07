@@ -21,7 +21,7 @@ data:
       "editable": true,
       "fiscalYearStartMonth": 0,
       "graphTooltip": 0,
-      "id": 995724,
+      "id": 995732,
       "links": [],
       "panels": [
         {
@@ -45,7 +45,39 @@ data:
           "fieldConfig": {
             "defaults": {
               "color": {
-                "mode": "thresholds"
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
               },
               "mappings": [],
               "thresholds": {
@@ -141,20 +173,16 @@ data:
           },
           "id": 3,
           "options": {
-            "colorMode": "value",
-            "graphMode": "area",
-            "justifyMode": "center",
-            "orientation": "vertical",
-            "reduceOptions": {
-              "calcs": [
-                "sum"
-              ],
-              "fields": "",
-              "values": false
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
             },
-            "showPercentChange": true,
-            "textMode": "auto",
-            "wideLayout": true
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
           },
           "pluginVersion": "10.4.1",
           "repeat": "product",
@@ -168,7 +196,7 @@ data:
               "disableTextWrap": false,
               "editorMode": "code",
               "exemplar": false,
-              "expr": "sum(increase(swatch_metrics_ingested_usage_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\"}[1d]))",
+              "expr": "sum(increase(swatch_metrics_ingested_usage_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\"}[$__range]))",
               "format": "table",
               "fullMetaSearch": false,
               "includeNullMetadata": true,
@@ -185,7 +213,7 @@ data:
                 "uid": "${datasource}"
               },
               "editorMode": "code",
-              "expr": "sum(increase(swatch_tally_tallied_usage_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\"}[1d]))",
+              "expr": "sum(increase(swatch_tally_tallied_usage_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\"}[$__range]))",
               "format": "table",
               "hide": false,
               "instant": false,
@@ -199,7 +227,7 @@ data:
                 "uid": "${datasource}"
               },
               "editorMode": "code",
-              "expr": "sum(increase(swatch_contract_usage_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\"}[1d]))",
+              "expr": "sum(increase(swatch_contract_usage_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\"}[$__range]))",
               "format": "table",
               "hide": false,
               "instant": false,
@@ -213,7 +241,7 @@ data:
                 "uid": "${datasource}"
               },
               "editorMode": "code",
-              "expr": "sum(increase(swatch_billable_usage_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\"}[1d]))",
+              "expr": "sum(increase(swatch_billable_usage_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\"}[$__range]))",
               "format": "table",
               "hide": false,
               "instant": false,
@@ -227,7 +255,7 @@ data:
                 "uid": "${datasource}"
               },
               "editorMode": "code",
-              "expr": "sum(increase(swatch_producer_metered_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\", status=\"failed\"}[1d]))",
+              "expr": "sum(increase(swatch_producer_metered_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\", status=\"failed\"}[$__range]))",
               "format": "table",
               "hide": false,
               "instant": false,
@@ -241,7 +269,7 @@ data:
                 "uid": "${datasource}"
               },
               "editorMode": "code",
-              "expr": "sum(increase(swatch_producer_metered_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\", status=\"succeeded\"}[1d]))",
+              "expr": "sum(increase(swatch_producer_metered_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\", status=\"succeeded\"}[$__range]))",
               "format": "table",
               "hide": false,
               "instant": false,
@@ -251,7 +279,7 @@ data:
             }
           ],
           "title": "Stats for \"$product\"",
-          "type": "stat"
+          "type": "timeseries"
         },
         {
           "collapsed": true,
@@ -259,7 +287,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 65
+            "y": 41
           },
           "id": 4,
           "panels": [
@@ -271,7 +299,39 @@ data:
               "fieldConfig": {
                 "defaults": {
                   "color": {
-                    "mode": "thresholds"
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
                   },
                   "mappings": [],
                   "thresholds": {
@@ -284,68 +344,7 @@ data:
                     ]
                   }
                 },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "CORES"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Cores"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "INSTANCE_HOURS"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Instance-Hours"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "SOCKETS"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Sockets"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "VCPUS"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "vCPUs"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "MANAGED_NODES"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Managed-Nodes"
-                      }
-                    ]
-                  }
-                ]
+                "overrides": []
               },
               "gridPos": {
                 "h": 8,
@@ -355,20 +354,16 @@ data:
               },
               "id": 5,
               "options": {
-                "colorMode": "value",
-                "graphMode": "area",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "reduceOptions": {
-                  "calcs": [
-                    "lastNotNull"
-                  ],
-                  "fields": "",
-                  "values": false
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
                 },
-                "showPercentChange": false,
-                "textMode": "value_and_name",
-                "wideLayout": true
+                "tooltip": {
+                  "mode": "single",
+                  "sort": "none"
+                }
               },
               "pluginVersion": "10.4.1",
               "targets": [
@@ -378,7 +373,7 @@ data:
                     "uid": "PDD8BE47D10408F45"
                   },
                   "editorMode": "code",
-                  "expr": "sum(increase(swatch_metrics_ingested_usage_total{product=\"$product\", billing_provider=\"$billing_provider\"}[1d])) by (metric_id)",
+                  "expr": "sum(increase(swatch_metrics_ingested_usage_total{product=\"$product\", billing_provider=\"$billing_provider\"}[$__range])) by (metric_id)",
                   "instant": false,
                   "legendFormat": "__auto",
                   "range": true,
@@ -386,7 +381,7 @@ data:
                 }
               ],
               "title": "Metered",
-              "type": "stat"
+              "type": "timeseries"
             },
             {
               "datasource": {
@@ -396,7 +391,39 @@ data:
               "fieldConfig": {
                 "defaults": {
                   "color": {
-                    "mode": "thresholds"
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
                   },
                   "mappings": [],
                   "thresholds": {
@@ -409,68 +436,7 @@ data:
                     ]
                   }
                 },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "CORES"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Cores"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "INSTANCE_HOURS"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Instance-Hours"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "SOCKETS"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Sockets"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "VCPUS"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "vCPUs"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "MANAGED_NODES"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Managed-Nodes"
-                      }
-                    ]
-                  }
-                ]
+                "overrides": []
               },
               "gridPos": {
                 "h": 8,
@@ -480,20 +446,16 @@ data:
               },
               "id": 6,
               "options": {
-                "colorMode": "value",
-                "graphMode": "area",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "reduceOptions": {
-                  "calcs": [
-                    "lastNotNull"
-                  ],
-                  "fields": "",
-                  "values": false
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
                 },
-                "showPercentChange": false,
-                "textMode": "value_and_name",
-                "wideLayout": true
+                "tooltip": {
+                  "mode": "single",
+                  "sort": "none"
+                }
               },
               "pluginVersion": "10.4.1",
               "targets": [
@@ -503,7 +465,7 @@ data:
                     "uid": "PDD8BE47D10408F45"
                   },
                   "editorMode": "code",
-                  "expr": "sum(increase(swatch_tally_tallied_usage_total{product=\"$product\", billing_provider=\"$billing_provider\"}[1d])) by (metric_id)",
+                  "expr": "sum(increase(swatch_tally_tallied_usage_total{product=\"$product\", billing_provider=\"$billing_provider\"}[$__range])) by (metric_id)",
                   "instant": false,
                   "legendFormat": "__auto",
                   "range": true,
@@ -511,7 +473,7 @@ data:
                 }
               ],
               "title": "Tallied",
-              "type": "stat"
+              "type": "timeseries"
             },
             {
               "datasource": {
@@ -521,7 +483,39 @@ data:
               "fieldConfig": {
                 "defaults": {
                   "color": {
-                    "mode": "thresholds"
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
                   },
                   "mappings": [],
                   "thresholds": {
@@ -534,68 +528,7 @@ data:
                     ]
                   }
                 },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "CORES"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Cores"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "INSTANCE_HOURS"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Instance-Hours"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "SOCKETS"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Sockets"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "VCPUS"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "vCPUs"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "MANAGED_NODES"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Managed-Nodes"
-                      }
-                    ]
-                  }
-                ]
+                "overrides": []
               },
               "gridPos": {
                 "h": 8,
@@ -605,20 +538,16 @@ data:
               },
               "id": 7,
               "options": {
-                "colorMode": "value",
-                "graphMode": "area",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "reduceOptions": {
-                  "calcs": [
-                    "lastNotNull"
-                  ],
-                  "fields": "",
-                  "values": false
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
                 },
-                "showPercentChange": false,
-                "textMode": "value_and_name",
-                "wideLayout": true
+                "tooltip": {
+                  "mode": "single",
+                  "sort": "none"
+                }
               },
               "pluginVersion": "10.4.1",
               "targets": [
@@ -628,7 +557,7 @@ data:
                     "uid": "PDD8BE47D10408F45"
                   },
                   "editorMode": "code",
-                  "expr": "sum(increase(swatch_contract_usage_total{product=\"$product\", billing_provider=\"$billing_provider\"}[1d])) by (metric_id)",
+                  "expr": "sum(increase(swatch_contract_usage_total{product=\"$product\", billing_provider=\"$billing_provider\"}[$__range])) by (metric_id)",
                   "instant": false,
                   "legendFormat": "__auto",
                   "range": true,
@@ -636,7 +565,7 @@ data:
                 }
               ],
               "title": "Covered by contract",
-              "type": "stat"
+              "type": "timeseries"
             },
             {
               "datasource": {
@@ -646,7 +575,39 @@ data:
               "fieldConfig": {
                 "defaults": {
                   "color": {
-                    "mode": "thresholds"
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
                   },
                   "mappings": [],
                   "thresholds": {
@@ -659,68 +620,7 @@ data:
                     ]
                   }
                 },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "CORES"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Cores"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "INSTANCE_HOURS"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Instance-Hours"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "SOCKETS"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Sockets"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "VCPUS"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "vCPUs"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "MANAGED_NODES"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Managed-Nodes"
-                      }
-                    ]
-                  }
-                ]
+                "overrides": []
               },
               "gridPos": {
                 "h": 8,
@@ -730,20 +630,16 @@ data:
               },
               "id": 8,
               "options": {
-                "colorMode": "value",
-                "graphMode": "area",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "reduceOptions": {
-                  "calcs": [
-                    "lastNotNull"
-                  ],
-                  "fields": "",
-                  "values": false
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
                 },
-                "showPercentChange": false,
-                "textMode": "value_and_name",
-                "wideLayout": true
+                "tooltip": {
+                  "mode": "single",
+                  "sort": "none"
+                }
               },
               "pluginVersion": "10.4.1",
               "targets": [
@@ -753,7 +649,7 @@ data:
                     "uid": "PDD8BE47D10408F45"
                   },
                   "editorMode": "code",
-                  "expr": "sum(increase(swatch_billable_usage_total{product=\"$product\", billing_provider=\"$billing_provider\"}[1d])) by (metric_id)",
+                  "expr": "sum(increase(swatch_billable_usage_total{product=\"$product\", billing_provider=\"$billing_provider\"}[$__range])) by (metric_id)",
                   "instant": false,
                   "legendFormat": "__auto",
                   "range": true,
@@ -761,7 +657,7 @@ data:
                 }
               ],
               "title": "Billing Pending",
-              "type": "stat"
+              "type": "timeseries"
             },
             {
               "datasource": {
@@ -771,7 +667,131 @@ data:
               "fieldConfig": {
                 "defaults": {
                   "color": {
-                    "mode": "thresholds"
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      }
+                    ]
+                  }
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 18
+              },
+              "id": 9,
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "pluginVersion": "10.4.1",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "PDD8BE47D10408F45"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum(increase(swatch_producer_metered_total{product=\"$product\", billing_provider=\"$billing_provider\", status=\"succeeded\"}[$__range])) by (metric_id)",
+                  "instant": false,
+                  "legendFormat": "__auto",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "Remitted Success",
+              "type": "timeseries"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
                   },
                   "mappings": [],
                   "thresholds": {
@@ -788,7 +808,7 @@ data:
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "{metric_id=\"INSTANCE_HOURS\", status=\"failed\"}"
+                      "options": "{metric_id=\"Instance-Hours\", status=\"failed\"}"
                     },
                     "properties": [
                       {
@@ -800,7 +820,19 @@ data:
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "{metric_id=\"MANAGED_NODES\", status=\"failed\"}"
+                      "options": "{metric_id=\"Instance-Hours\", status=\"succeeded\"}"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Instance-Hours (succeeded)"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "{metric_id=\"Managed-Nodes\", status=\"failed\"}"
                     },
                     "properties": [
                       {
@@ -812,7 +844,19 @@ data:
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "{metric_id=\"CORES\", status=\"failed\"}"
+                      "options": "{metric_id=\"Managed-Nodes\", status=\"succeeded\"}"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Managed-Nodes (succeeded)"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "{metric_id=\"Cores\", status=\"failed\"}"
                     },
                     "properties": [
                       {
@@ -824,12 +868,12 @@ data:
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "{metric_id=\"SOCKETS\", status=\"failed\"}"
+                      "options": "{metric_id=\"Cores\", status=\"succeeded\"}"
                     },
                     "properties": [
                       {
                         "id": "displayName",
-                        "value": "Sockets (failed)"
+                        "value": "Cores (succeeded)"
                       }
                     ]
                   },
@@ -848,55 +892,7 @@ data:
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "{metric_id=\"VCPUS\", status=\"failed\"}"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "vCPUs (failed)"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "{metric_id=\"VCPUS\", status=\"succeeded\"}"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "vCPUs (succeeded)"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "{metric_id=\"INSTANCE_HOURS\", status=\"succeeded\"}"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Instance-Hours (succeeded)"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "{metric_id=\"MANAGED_NODES\", status=\"succeeded\"}"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Managed-Nodes (succeeded)"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "{metric_id=\"SOCKETS\", status=\"succeeded\"}"
+                      "options": "{metric_id=\"Sockets\", status=\"succeeded\"}"
                     },
                     "properties": [
                       {
@@ -908,12 +904,24 @@ data:
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "{metric_id=\"CORES\", status=\"succeeded\"}"
+                      "options": "{metric_id=\"vCPUs\", status=\"failed\"}"
                     },
                     "properties": [
                       {
                         "id": "displayName",
-                        "value": "Cores (succeeded)"
+                        "value": "vCPUs (failed)"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "{metric_id=\"vCPUs\", status=\"succeeded\"}"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "vCPUs (succeeded)"
                       }
                     ]
                   }
@@ -922,25 +930,21 @@ data:
               "gridPos": {
                 "h": 8,
                 "w": 12,
-                "x": 0,
+                "x": 12,
                 "y": 18
               },
-              "id": 9,
+              "id": 15,
               "options": {
-                "colorMode": "value",
-                "graphMode": "area",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "reduceOptions": {
-                  "calcs": [
-                    "lastNotNull"
-                  ],
-                  "fields": "",
-                  "values": false
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
                 },
-                "showPercentChange": false,
-                "textMode": "value_and_name",
-                "wideLayout": true
+                "tooltip": {
+                  "mode": "single",
+                  "sort": "none"
+                }
               },
               "pluginVersion": "10.4.1",
               "targets": [
@@ -950,15 +954,228 @@ data:
                     "uid": "PDD8BE47D10408F45"
                   },
                   "editorMode": "code",
-                  "expr": "sum(increase(swatch_producer_metered_total{product=\"$product\", billing_provider=\"$billing_provider\"}[1d])) by (metric_id, status)",
+                  "expr": "sum(increase(swatch_producer_metered_total{product=\"$product\", billing_provider=\"$billing_provider\", status!=\"succeeded\",error_code=\"subscription_not_found\"}[$__range])) by (metric_id, error_code)",
                   "instant": false,
                   "legendFormat": "__auto",
                   "range": true,
                   "refId": "A"
                 }
               ],
-              "title": "Remitted",
-              "type": "stat"
+              "title": "Remitted Failed with Subscription Not Found",
+              "type": "timeseries"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      }
+                    ]
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "{metric_id=\"Instance-Hours\", status=\"failed\"}"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Instance-Hours (failed)"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "{metric_id=\"Instance-Hours\", status=\"succeeded\"}"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Instance-Hours (succeeded)"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "{metric_id=\"Managed-Nodes\", status=\"failed\"}"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Managed-Nodes (failed)"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "{metric_id=\"Managed-Nodes\", status=\"succeeded\"}"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Managed-Nodes (succeeded)"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "{metric_id=\"Cores\", status=\"failed\"}"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Cores (failed)"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "{metric_id=\"Cores\", status=\"succeeded\"}"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Cores (succeeded)"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "{metric_id=\"Sockets\", status=\"failed\"}"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Sockets (failed)"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "{metric_id=\"Sockets\", status=\"succeeded\"}"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Sockets (succeeded)"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "{metric_id=\"vCPUs\", status=\"failed\"}"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "vCPUs (failed)"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "{metric_id=\"vCPUs\", status=\"succeeded\"}"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "vCPUs (succeeded)"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 26
+              },
+              "id": 10,
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "pluginVersion": "10.4.1",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "PDD8BE47D10408F45"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum(increase(swatch_producer_metered_total{product=\"$product\", billing_provider=\"$billing_provider\", status!=\"succeeded\",error_code!=\"subscription_not_found\"}[$__range])) by (metric_id, error_code)",
+                  "instant": false,
+                  "legendFormat": "__auto",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "Remitted Failed with Unknown",
+              "type": "timeseries"
             }
           ],
           "repeat": "product",
@@ -994,148 +1211,89 @@ data:
             "current": {
               "selected": true,
               "text": [
-                "ansible-aap-managed",
-                "openshift-dedicated-metrics",
-                "OpenShift-metrics",
-                "rhacs",
-                "rhel-for-x86-els-payg",
-                "rhel-for-x86-els-payg-addon",
-                "rhods",
-                "rosa"
+                "All"
               ],
               "value": [
-                "ansible-aap-managed",
-                "openshift-dedicated-metrics",
-                "OpenShift-metrics",
-                "rhacs",
-                "rhel-for-x86-els-payg",
-                "rhel-for-x86-els-payg-addon",
-                "rhods",
-                "rosa"
+                "$__all"
               ]
             },
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${datasource}"
+            },
+            "definition": "label_values(swatch_metrics_ingested_usage_total,product)",
             "hide": 0,
             "includeAll": true,
             "label": "Product",
             "multi": true,
             "name": "product",
-            "options": [
-              {
-                "selected": true,
-                "text": "ansible-aap-managed",
-                "value": "ansible-aap-managed"
-              },
-              {
-                "selected": true,
-                "text": "openshift-dedicated-metrics",
-                "value": "openshift-dedicated-metrics"
-              },
-              {
-                "selected": true,
-                "text": "OpenShift-metrics",
-                "value": "OpenShift-metrics"
-              },
-              {
-                "selected": true,
-                "text": "rhacs",
-                "value": "rhacs"
-              },
-              {
-                "selected": true,
-                "text": "rhel-for-x86-els-payg",
-                "value": "rhel-for-x86-els-payg"
-              },
-              {
-                "selected": true,
-                "text": "rhel-for-x86-els-payg-addon",
-                "value": "rhel-for-x86-els-payg-addon"
-              },
-              {
-                "selected": true,
-                "text": "rhods",
-                "value": "rhods"
-              },
-              {
-                "selected": true,
-                "text": "rosa",
-                "value": "rosa"
-              }
-            ],
-            "query": "ansible-aap-managed, openshift-dedicated-metrics, OpenShift-metrics, rhacs, rhel-for-x86-els-payg, rhel-for-x86-els-payg-addon, rhods, rosa",
-            "queryValue": "",
+            "options": [],
+            "query": {
+              "qryType": 5,
+              "query": "label_values(swatch_metrics_ingested_usage_total,product)",
+              "refId": "PrometheusVariableQueryEditor-VariableQuery"
+            },
+            "refresh": 2,
+            "regex": "",
             "skipUrlSync": false,
-            "type": "custom"
+            "sort": 0,
+            "type": "query"
           },
           {
             "current": {
-              "selected": true,
-              "text": "VCPUS",
-              "value": "VCPUS"
+              "selected": false,
+              "text": "Cores",
+              "value": "Cores"
             },
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${datasource}"
+            },
+            "definition": "label_values(swatch_metrics_ingested_usage_total,metric_id)",
             "hide": 0,
             "includeAll": false,
             "label": "Metric",
             "multi": false,
             "name": "metric_id",
-            "options": [
-              {
-                "selected": false,
-                "text": "CORES",
-                "value": "CORES"
-              },
-              {
-                "selected": false,
-                "text": "MANAGED_NODES",
-                "value": "MANAGED_NODES"
-              },
-              {
-                "selected": false,
-                "text": "INSTANCE_HOURS",
-                "value": "INSTANCE_HOURS"
-              },
-              {
-                "selected": false,
-                "text": "SOCKETS",
-                "value": "SOCKETS"
-              },
-              {
-                "selected": true,
-                "text": "VCPUS",
-                "value": "VCPUS"
-              }
-            ],
-            "query": "CORES, MANAGED_NODES, INSTANCE_HOURS, SOCKETS, VCPUS",
-            "queryValue": "",
+            "options": [],
+            "query": {
+              "qryType": 5,
+              "query": "label_values(swatch_metrics_ingested_usage_total,metric_id)",
+              "refId": "PrometheusVariableQueryEditor-VariableQuery"
+            },
+            "refresh": 2,
+            "regex": "",
             "skipUrlSync": false,
-            "type": "custom"
+            "sort": 0,
+            "type": "query"
           },
           {
             "current": {
-              "selected": true,
+              "selected": false,
               "text": "aws",
               "value": "aws"
             },
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${datasource}"
+            },
+            "definition": "label_values(swatch_metrics_ingested_usage_total,billing_provider)",
             "hide": 0,
             "includeAll": false,
             "label": "Billing Provider",
             "multi": false,
             "name": "billing_provider",
-            "options": [
-              {
-                "selected": true,
-                "text": "aws",
-                "value": "aws"
-              },
-              {
-                "selected": false,
-                "text": "azure",
-                "value": "azure"
-              }
-            ],
-            "query": "aws, azure",
-            "queryValue": "",
+            "options": [],
+            "query": {
+              "qryType": 5,
+              "query": "label_values(swatch_metrics_ingested_usage_total,billing_provider)",
+              "refId": "PrometheusVariableQueryEditor-VariableQuery"
+            },
+            "refresh": 2,
+            "regex": "",
             "skipUrlSync": false,
-            "type": "custom"
+            "sort": 0,
+            "type": "query"
           }
         ]
       },
@@ -1153,7 +1311,7 @@ data:
 kind: ConfigMap
 metadata:
   creationTimestamp: null
-  name: grafana-dashboard-subscription-watch-payg-metrics
+  name: grafana-dashboard-subscription-watch
   annotations:
     grafana-folder: /grafana-dashboard-definitions/Insights
   labels:
