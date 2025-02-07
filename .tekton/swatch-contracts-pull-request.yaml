@@ -201,6 +201,31 @@ spec:
       workspaces:
       - name: source
         workspace: workspace
+    - name: run-tests
+      runAfter:
+      - prefetch-dependencies
+      taskSpec:
+        steps:
+          - image: registry.access.redhat.com/ubi9/openjdk-17-runtime
+            name: builder
+            workingDir: $(workspaces.source.path)/source
+            script: ./gradlew swatch-contracts:test
+            env:
+              - name: DOCKER_HOST
+                value: tcp://127.0.0.1:2475
+            computeResources:
+              limits:
+                memory: '6Gi'
+                cpu: 6
+              requests:
+                memory: '2Gi'
+                cpu: 2
+            sidecars:
+              - image: quay.io/cloudservices/kubedock:latest
+                name: kubedock
+      workspaces:
+      - name: source
+        workspace: workspace
     - name: build-container
       params:
       - name: IMAGE
