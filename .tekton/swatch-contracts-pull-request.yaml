@@ -206,7 +206,7 @@ spec:
       - prefetch-dependencies
       taskSpec:
         steps:
-          - image: quay.io/cloudservices/kubedock:latest
+          - image: quay.io/kahowell/kubedock:latest
             name: builder
             #workingDir: $(workspaces.source.path)/source
             #script: DOCKER_HOST=tcp://127.0.0.1:2475 ./gradlew :test --tests=EventRecordRepositoryTest
@@ -219,7 +219,7 @@ spec:
                 memory: '2Gi'
                 cpu: 2
             sidecars:
-              - image: quay.io/cloudservices/kubedock:latest
+              - image: quay.io/kahowell/kubedock:latest
                 name: kubedock
       workspaces:
       - name: source
