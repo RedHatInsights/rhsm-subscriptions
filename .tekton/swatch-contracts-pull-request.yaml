@@ -37,6 +37,9 @@ spec:
           memory: 8Gi
         limits:
           memory: 8Gi
+      sidecars:
+        - image: quay.io/cloudservices/kubedock:latest
+          name: kubedock
   pipelineSpec:
     finally:
     - name: show-sbom
