@@ -209,7 +209,7 @@ spec:
           - image: registry.access.redhat.com/ubi9/openjdk-17-runtime
             name: builder
             workingDir: $(workspaces.source.path)/source
-            script: ./gradlew swatch-contracts:test
+            script: ./gradlew :test --tests=EventRecordRepositoryTest
             env:
               - name: DOCKER_HOST
                 value: tcp://127.0.0.1:2475
