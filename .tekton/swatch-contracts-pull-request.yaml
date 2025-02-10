@@ -37,6 +37,8 @@ spec:
           memory: 8Gi
         limits:
           memory: 8Gi
+    - pipelineTaskName: run-tests
+      serviceAccountName: kubedock
   pipelineSpec:
     finally:
     - name: show-sbom
