@@ -163,7 +163,7 @@ class BillableUsageServiceTest {
     // 4(Billing_factor) = 72
     thenRemittanceIsUpdated(usage, 72.0);
     thenUsageIsSent(usage, 18.0);
-    thenBillableMeterMatches(usage, 18.0);
+    thenBillableMeterMatches(usage, 72.0);
   }
 
   @Test
@@ -207,7 +207,7 @@ class BillableUsageServiceTest {
 
     thenRemittanceIsUpdated(usage, 12.0);
     thenUsageIsSent(usage, usage.getValue());
-    thenBillableMeterMatches(usage, usage.getValue());
+    thenBillableMeterMatches(usage, 12.0);
   }
 
   @Test
@@ -220,7 +220,7 @@ class BillableUsageServiceTest {
 
     thenRemittanceIsUpdated(usage, 28.0);
     thenUsageIsSent(usage, usage.getValue());
-    thenBillableMeterMatches(usage, usage.getValue());
+    thenBillableMeterMatches(usage, 28.0);
   }
 
   // Simulates progression through contract billing.
@@ -662,36 +662,28 @@ class BillableUsageServiceTest {
     }
 
     thenUsageIsSent(usage, expectedBilledValue);
-    thenBillableMeterMatches(usage, expectedBilledValue);
-    if (!contracts.isEmpty()) {
-      thenCoveredMeterMatches(usage, getCoveredAmount(usage, currentUsage, contracts, usageDate));
+    thenBillableMeterMatches(usage, expectedRemitted);
+    if (expectedRemitted > 0 && !contracts.isEmpty()) {
+      thenCoveredMeterMatches(usage, getCoveredAmount(usage, contracts, usageDate));
     }
   }
 
   private double getCoveredAmount(
-      BillableUsage usage,
-      Double currentUsage,
-      List<Contract> contracts,
-      OffsetDateTime usageDate) {
-    double coverage =
-        contracts.stream()
-            .filter(
-                x ->
-                    (x.getStartDate() == null
-                            || x.getStartDate().isBefore(usageDate)
-                            || x.getStartDate().isEqual(usageDate))
-                        && (x.getEndDate() == null
-                            || x.getEndDate().isAfter(usageDate)
-                            || x.getEndDate().isEqual(usageDate)))
-            .map(Contract::getMetrics)
-            .flatMap(List::stream)
-            .filter(
-                x -> x.getMetricId().equals(MetricId.fromString(usage.getMetricId()).toString()))
-            .mapToInt(Metric::getValue)
-            .sum();
-    return currentUsage * usage.getBillingFactor() > coverage
-        ? coverage
-        : currentUsage * usage.getBillingFactor();
+      BillableUsage usage, List<Contract> contracts, OffsetDateTime usageDate) {
+    return contracts.stream()
+        .filter(
+            x ->
+                (x.getStartDate() == null
+                        || x.getStartDate().isBefore(usageDate)
+                        || x.getStartDate().isEqual(usageDate))
+                    && (x.getEndDate() == null
+                        || x.getEndDate().isAfter(usageDate)
+                        || x.getEndDate().isEqual(usageDate)))
+        .map(Contract::getMetrics)
+        .flatMap(List::stream)
+        .filter(x -> x.getMetricId().equals(MetricId.fromString(usage.getMetricId()).toString()))
+        .mapToDouble(m -> m.getValue() / usage.getBillingFactor())
+        .sum();
   }
 
   private void thenUsageIsSent(BillableUsage usage, double expectedValue) {
@@ -816,7 +808,9 @@ class BillableUsageServiceTest {
             m ->
                 metric.equals(m.getId().getName())
                     && productTag.equals(m.getId().getTag("product"))
-                    && metricId.equals(m.getId().getTag("metric_id"))
+                    && MetricId.fromString(metricId)
+                        .getValue()
+                        .equals(m.getId().getTag("metric_id"))
                     && billingProvider.equals(m.getId().getTag("billing_provider")))
         .findFirst();
   }

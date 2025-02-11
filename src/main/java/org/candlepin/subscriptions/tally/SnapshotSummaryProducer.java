@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
@@ -33,8 +34,6 @@ import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.resource.ResourceUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -42,9 +41,9 @@ import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Service;
 
 /** Component that produces tally snapshot summary messages given a list of tally snapshots. */
+@Slf4j
 @Service
 public class SnapshotSummaryProducer {
-  private static final Logger log = LoggerFactory.getLogger(SnapshotSummaryProducer.class);
 
   private final String tallySummaryTopic;
   private final KafkaTemplate<String, TallySummary> tallySummaryKafkaTemplate;
@@ -72,7 +71,7 @@ public class SnapshotSummaryProducer {
             and measurement types other than Total
             when we transmit the tally summary message to the BillableUsage component. */
             snapshots.stream()
-                .filter(this::filterByHourlyAndNotAnySnapshots)
+                .filter(SnapshotSummaryProducer::filterByHourlyAndNotAnySnapshots)
                 .map(
                     snapshot -> {
                       removeTotalMeasurements(snapshot);
@@ -90,16 +89,7 @@ public class SnapshotSummaryProducer {
     log.info("Produced {} TallySummary messages", totalTallies);
   }
 
-  private boolean filterByHourlyAndNotAnySnapshots(TallySnapshot snapshot) {
-    return snapshot.getGranularity().equals(Granularity.HOURLY)
-        && !snapshot.getServiceLevel().equals(ServiceLevel._ANY)
-        && !snapshot.getUsage().equals(Usage._ANY)
-        && !snapshot.getBillingProvider().equals(BillingProvider._ANY)
-        && !snapshot.getBillingAccountId().equals(ResourceUtils.ANY)
-        && hasMeasurements(snapshot);
-  }
-
-  private void removeTotalMeasurements(TallySnapshot snapshot) {
+  public static void removeTotalMeasurements(TallySnapshot snapshot) {
     if (Objects.nonNull(snapshot.getTallyMeasurements())) {
       snapshot
           .getTallyMeasurements()
@@ -109,6 +99,21 @@ public class SnapshotSummaryProducer {
     }
   }
 
+  public static boolean filterByHourlyAndNotAnySnapshots(TallySnapshot snapshot) {
+    return filterByGranularityAndNotAnySnapshots(snapshot, Granularity.HOURLY.getValue());
+  }
+
+  public static boolean filterByGranularityAndNotAnySnapshots(
+      TallySnapshot snapshot, String granularity) {
+    return snapshot.getGranularity() != null
+        && snapshot.getGranularity().toString().equalsIgnoreCase(granularity)
+        && !ServiceLevel._ANY.equals(snapshot.getServiceLevel())
+        && !Usage._ANY.equals(snapshot.getUsage())
+        && !BillingProvider._ANY.equals(snapshot.getBillingProvider())
+        && !ResourceUtils.ANY.equals(snapshot.getBillingAccountId())
+        && hasMeasurements(snapshot);
+  }
+
   /**
    * Validates TallySnapshot measurements to make sure that it has all the information required by
    * the RH marketplace API. Any issues will be logged.
@@ -116,7 +121,7 @@ public class SnapshotSummaryProducer {
    * @param snapshot the TallySnapshot to validate.
    * @return true if the TallySnapshot is valid, false otherwise.
    */
-  private boolean hasMeasurements(TallySnapshot snapshot) {
+  public static boolean hasMeasurements(TallySnapshot snapshot) {
     if (!Objects.nonNull(snapshot.getTallyMeasurements())
         || snapshot.getTallyMeasurements().isEmpty()) {
       log.warn(

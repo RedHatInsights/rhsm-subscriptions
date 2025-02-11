@@ -40,7 +40,9 @@ import com.redhat.swatch.aws.openapi.model.Errors;
 import com.redhat.swatch.clients.contracts.api.model.AwsUsageContext;
 import com.redhat.swatch.clients.contracts.api.resources.ApiException;
 import com.redhat.swatch.clients.contracts.api.resources.DefaultApi;
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.Usage;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -81,19 +83,24 @@ import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResu
 
 @QuarkusTest
 class AwsBillableUsageAggregateConsumerTest {
-
-  private static final String INSTANCE_HOURS = "INSTANCE_HOURS";
-  private static final String CORES = "CORES";
   private static final String PRODUCT_ID = "rosa";
 
   private static final Clock clock =
       Clock.fixed(Instant.parse("2023-10-02T12:30:00Z"), ZoneId.of("UTC"));
 
   private static final BillableUsageAggregate ROSA_INSTANCE_HOURS_RECORD =
-      createAggregate("rosa", INSTANCE_HOURS, OffsetDateTime.now(Clock.systemUTC()), 42);
+      createAggregate(
+          "rosa",
+          MetricIdUtils.getInstanceHours().toUpperCaseFormatted(),
+          OffsetDateTime.now(Clock.systemUTC()),
+          42);
 
   private static final BillableUsageAggregate ROSA_STORAGE_CORES_RECORD =
-      createAggregate("rosa", CORES, OffsetDateTime.now(Clock.systemUTC()), 42);
+      createAggregate(
+          "rosa",
+          MetricIdUtils.getCores().toUpperCaseFormatted(),
+          OffsetDateTime.now(Clock.systemUTC()),
+          42);
 
   public static final AwsUsageContext MOCK_AWS_USAGE_CONTEXT =
       new AwsUsageContext()
@@ -140,7 +147,13 @@ class AwsBillableUsageAggregateConsumerTest {
 
     var meteredTotalBuilder =
         Counter.builder(AwsBillableUsageAggregateConsumer.METERED_TOTAL_METRIC)
-            .tags("product", "rosa", "metric_id", INSTANCE_HOURS, "billing_provider", "aws")
+            .tags(
+                "product",
+                "rosa",
+                "metric_id",
+                MetricIdUtils.getInstanceHours().getValue(),
+                "billing_provider",
+                "aws")
             .withRegistry(meterRegistry);
 
     failedCounter =
@@ -165,12 +178,17 @@ class AwsBillableUsageAggregateConsumerTest {
 
   @Test
   void shouldSkipNonAwsSnapshots() {
-    var aggregate = createAggregate("BASILISK", INSTANCE_HOURS, OffsetDateTime.now(), 10);
+    var aggregate =
+        createAggregate(
+            "BASILISK",
+            MetricIdUtils.getInstanceHours().toUpperCaseFormatted(),
+            OffsetDateTime.now(),
+            10);
     var key =
         new BillableUsageAggregateKey(
             "testOrg",
             "BASILSK",
-            INSTANCE_HOURS,
+            MetricIdUtils.getInstanceHours().toUpperCaseFormatted(),
             BillableUsage.Sla.PREMIUM.value(),
             Usage.PRODUCTION.getValue(),
             BillableUsage.BillingProvider.RED_HAT.value(),
@@ -219,7 +237,11 @@ class AwsBillableUsageAggregateConsumerTest {
   @Test
   void shouldSkipMessageIfAwsContextCannotBeLookedUp() throws ApiException {
     BillableUsageAggregate aggregate =
-        createAggregate("rosa", INSTANCE_HOURS, OffsetDateTime.now(), 42.0);
+        createAggregate(
+            "rosa",
+            MetricIdUtils.getInstanceHours().toUpperCaseFormatted(),
+            OffsetDateTime.now(),
+            42.0);
     when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
         .thenThrow(AwsUsageContextLookupException.class);
     consumer.process(aggregate);
@@ -229,7 +251,11 @@ class AwsBillableUsageAggregateConsumerTest {
   @Test
   void shouldSkipMessageIfUnknownAwsDimensionCannotBeLookedUp() {
     BillableUsageAggregate aggregate =
-        createAggregate("foobar", INSTANCE_HOURS, OffsetDateTime.now(), 42.0);
+        createAggregate(
+            "foobar",
+            MetricIdUtils.getInstanceHours().toUpperCaseFormatted(),
+            OffsetDateTime.now(),
+            42.0);
     consumer.process(aggregate);
     verifyNoInteractions(contractsApi, meteringClient);
   }
@@ -253,7 +279,7 @@ class AwsBillableUsageAggregateConsumerTest {
     consumer.process(ROSA_INSTANCE_HOURS_RECORD);
     assertEquals(1.0, acceptedCounter.count());
 
-    var metric = getMeteredTotalMetricForSucceeded(INSTANCE_HOURS);
+    var metric = getMeteredTotalMetricForSucceeded(MetricIdUtils.getInstanceHours().getValue());
     assertTrue(metric.isPresent());
     assertEquals(priorSuccess + 42.0, metric.get().measure().iterator().next().getValue());
   }
@@ -273,7 +299,9 @@ class AwsBillableUsageAggregateConsumerTest {
     consumer.process(ROSA_INSTANCE_HOURS_RECORD);
     assertEquals(current + 1, rejectedCounter.count());
     var metric =
-        getMeteredTotalMetricForFailed(INSTANCE_HOURS, BillableUsage.ErrorCode.UNKNOWN.toString());
+        getMeteredTotalMetricForFailed(
+            MetricIdUtils.getInstanceHours().getValue(),
+            BillableUsage.ErrorCode.UNKNOWN.toString());
     assertTrue(metric.isPresent());
     assertEquals(priorFailed + 42.0, metric.get().measure().iterator().next().getValue());
   }
@@ -346,13 +374,17 @@ class AwsBillableUsageAggregateConsumerTest {
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
     BillableUsageAggregate aggregate =
         createAggregate(
-            "rosa", INSTANCE_HOURS, OffsetDateTime.now(Clock.systemUTC()).minusHours(8), 42.0);
+            "rosa",
+            MetricIdUtils.getInstanceHours().toUpperCaseFormatted(),
+            OffsetDateTime.now(Clock.systemUTC()).minusHours(8),
+            42.0);
     consumer.process(aggregate);
     verifyNoInteractions(meteringClient);
     assertEquals(currentIgnored + 1, ignoredCounter.count());
     var metric =
         getMeteredTotalMetricForFailed(
-            INSTANCE_HOURS, BillableUsage.ErrorCode.REDUNDANT.toString());
+            MetricIdUtils.getInstanceHours().getValue(),
+            BillableUsage.ErrorCode.REDUNDANT.toString());
     assertTrue(metric.isPresent());
     assertEquals(currentIgnored + 42.0, metric.get().measure().iterator().next().getValue());
   }
@@ -361,7 +393,10 @@ class AwsBillableUsageAggregateConsumerTest {
   void testEmitStatus() throws ApiException {
     BillableUsageAggregate aggregate =
         createAggregate(
-            "rosa", INSTANCE_HOURS, OffsetDateTime.now(Clock.systemUTC()).minusHours(4), 42.0);
+            "rosa",
+            MetricIdUtils.getInstanceHours().toUpperCaseFormatted(),
+            OffsetDateTime.now(Clock.systemUTC()).minusHours(4),
+            42.0);
 
     // verify failure
     when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
@@ -416,7 +451,9 @@ class AwsBillableUsageAggregateConsumerTest {
   @MethodSource("usageWindowTestArgs")
   void testUsageWindow(OffsetDateTime date, boolean isValid) {
     // 6h
-    BillableUsageAggregate aggregate = createAggregate("rosa", INSTANCE_HOURS, date, 42.0);
+    BillableUsageAggregate aggregate =
+        createAggregate(
+            "rosa", MetricIdUtils.getInstanceHours().toUpperCaseFormatted(), date, 42.0);
     assertEquals(21600, maxAgeDuration.getSeconds());
     assertEquals(isValid, consumer.isUsageDateValid(clock, aggregate));
   }
@@ -446,7 +483,9 @@ class AwsBillableUsageAggregateConsumerTest {
             m ->
                 AwsBillableUsageAggregateConsumer.METERED_TOTAL_METRIC.equals(m.getId().getName())
                     && PRODUCT_ID.equals(m.getId().getTag("product"))
-                    && metricId.equals(m.getId().getTag("metric_id"))
+                    && MetricId.fromString(metricId)
+                        .getValue()
+                        .equals(m.getId().getTag("metric_id"))
                     && BillableUsage.BillingProvider.AWS
                         .toString()
                         .equals(m.getId().getTag("billing_provider"))
@@ -460,7 +499,9 @@ class AwsBillableUsageAggregateConsumerTest {
             m ->
                 AwsBillableUsageAggregateConsumer.METERED_TOTAL_METRIC.equals(m.getId().getName())
                     && PRODUCT_ID.equals(m.getId().getTag("product"))
-                    && metricId.equals(m.getId().getTag("metric_id"))
+                    && MetricId.fromString(metricId)
+                        .getValue()
+                        .equals(m.getId().getTag("metric_id"))
                     && BillableUsage.BillingProvider.AWS
                         .toString()
                         .equals(m.getId().getTag("billing_provider"))
