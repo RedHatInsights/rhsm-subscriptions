@@ -37,7 +37,7 @@ libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-de
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:3.0.0"
-libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.30.14"
+libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.30.16"
 libraries["clowder-quarkus-config-source"] = "com.redhat.cloud.common:clowder-quarkus-config-source:2.7.1"
 libraries["guava"] = "com.google.guava:guava:33.4.0-jre"
 libraries["commons-lang3"] = "org.apache.commons:commons-lang3:3.17.0"
@@ -54,7 +54,7 @@ libraries["mapstruct"] = "org.mapstruct:mapstruct:${mapstructVersion}"
 libraries["mapstruct-processor"] = "org.mapstruct:mapstruct-processor:${mapstructVersion}"
 libraries["event-schemas"] = "com.redhat.cloud.event:event-schemas:1.4.11"
 // overridden to address CVE-2023-44487
-libraries["netty-codec-http2"] = "io.netty:netty-codec-http2:4.1.117.Final"
+libraries["netty-codec-http2"] = "io.netty:netty-codec-http2:4.1.118.Final"
 libraries["quarkus-logging-logback"] = "io.quarkiverse.logging.logback:quarkus-logging-logback:1.1.2"
 libraries["quarkus-logging-splunk"] = "io.quarkiverse.logging.splunk:quarkus-logging-splunk:4.0.2"
 libraries["resilience4j-spring-boot2"] = "io.github.resilience4j:resilience4j-spring-boot2:2.3.0"
@@ -78,9 +78,9 @@ libraries["wiremock"] = "com.github.tomakehurst:wiremock-standalone:3.0.1"
 libraries["awaitility"] = "org.awaitility:awaitility:4.2.2"
 libraries["splunk-otel-agent"] = 'com.splunk:splunk-otel-javaagent:2.12.0'
 libraries["testcontainers-postgresql"] = 'org.testcontainers:postgresql:1.20.4'
-libraries["kafka-streams-test-utils"] = "org.apache.kafka:kafka-streams-test-utils:7.8.0-ce"
+libraries["kafka-streams-test-utils"] = "org.apache.kafka:kafka-streams-test-utils:7.8.1-ce"
 libraries["slf4j-api"] = "org.slf4j:slf4j-api:2.0.16"
 libraries["snakeyaml"] = "org.yaml:snakeyaml:2.3"
 libraries["unleash-spring-boot-starter"] = "io.getunleash:springboot-unleash-starter:1.1.1"
-libraries["unleash-quarkus"] = "io.quarkiverse.unleash:quarkus-unleash:1.9.0"
+libraries["unleash-quarkus"] = "io.quarkiverse.unleash:quarkus-unleash:1.10.0"
 libraries["caffeine"] = "com.github.ben-manes.caffeine:caffeine:3.2.0"

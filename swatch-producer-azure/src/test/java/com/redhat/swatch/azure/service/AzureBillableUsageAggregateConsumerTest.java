@@ -24,6 +24,7 @@ import static com.redhat.swatch.azure.configuration.Channels.BILLABLE_USAGE_HOUR
 import static com.redhat.swatch.azure.configuration.Channels.BILLABLE_USAGE_STATUS;
 import static com.redhat.swatch.azure.service.AzureBillableUsageAggregateConsumer.METERED_TOTAL_METRIC;
 import static com.redhat.swatch.azure.test.resources.InMemoryMessageBrokerKafkaResource.IN_MEMORY_CONNECTOR;
+import static com.redhat.swatch.configuration.registry.SubscriptionDefinition.getBillingFactor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -31,6 +32,7 @@ import com.redhat.swatch.azure.test.resources.InMemoryMessageBrokerKafkaResource
 import com.redhat.swatch.azure.test.resources.InjectWireMock;
 import com.redhat.swatch.azure.test.resources.WireMockResource;
 import com.redhat.swatch.clients.contracts.api.model.AzureUsageContext;
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -227,7 +229,8 @@ class AzureBillableUsageAggregateConsumerTest {
               assertTrue(metric.isPresent());
               assertEquals(
                   metric.get().measure().iterator().next().getValue(),
-                  EXPECTED_VALUE.doubleValue());
+                  EXPECTED_VALUE.doubleValue()
+                      / getBillingFactor(PRODUCT_ID, MetricIdUtils.getCores().getValue()));
             });
   }
 
@@ -237,7 +240,9 @@ class AzureBillableUsageAggregateConsumerTest {
             m ->
                 METERED_TOTAL_METRIC.equals(m.getId().getName())
                     && PRODUCT_ID.equals(m.getId().getTag("product"))
-                    && metricId.equals(m.getId().getTag("metric_id"))
+                    && MetricId.fromString(metricId)
+                        .getValue()
+                        .equals(m.getId().getTag("metric_id"))
                     && BillableUsage.BillingProvider.AZURE
                         .toString()
                         .equals(m.getId().getTag("billing_provider")))

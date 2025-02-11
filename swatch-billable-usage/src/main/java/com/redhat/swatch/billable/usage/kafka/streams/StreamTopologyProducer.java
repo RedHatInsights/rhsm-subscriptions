@@ -21,6 +21,7 @@
 package com.redhat.swatch.billable.usage.kafka.streams;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redhat.swatch.configuration.registry.MetricId;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.arc.profile.UnlessBuildProfile;
@@ -116,7 +117,11 @@ public class StreamTopologyProducer {
 
       counter
           .withRegistry(meterRegistry)
-          .withTags("product", key.key().getProductId(), "metric_id", key.key().getMetricId())
+          .withTags(
+              "product",
+              key.key().getProductId(),
+              "metric_id",
+              MetricId.tryGetValueFromString(key.key().getMetricId()))
           .increment(aggregate.getTotalValue().doubleValue());
     }
   }

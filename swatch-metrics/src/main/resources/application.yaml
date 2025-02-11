@@ -50,10 +50,6 @@ quarkus:
     port: 9000
     # Configure the Quarkus non application paths to listen on "/" instead of "/q"
     root-path: /
-  micrometer:
-    export:
-      json:
-        enabled: true
   http:
     port: ${SERVER_PORT}
     test-port: 0

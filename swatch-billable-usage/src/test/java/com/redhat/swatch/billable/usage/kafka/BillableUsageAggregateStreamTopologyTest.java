@@ -30,6 +30,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.redhat.swatch.billable.usage.kafka.streams.BillableUsageAggregationStreamProperties;
 import com.redhat.swatch.billable.usage.kafka.streams.StreamTopologyProducer;
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -230,7 +231,9 @@ class BillableUsageAggregateStreamTopologyTest {
             m ->
                 USAGE_TOTAL_AGGREGATED_METRIC.equals(m.getId().getName())
                     && productTag.equals(m.getId().getTag("product"))
-                    && metricId.equals(m.getId().getTag("metric_id"))
+                    && MetricId.fromString(metricId)
+                        .getValue()
+                        .equals(m.getId().getTag("metric_id"))
                     && billingProvider.equals(m.getId().getTag("billing_provider")))
         .findFirst();
   }
