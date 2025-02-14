@@ -24,6 +24,7 @@ import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.candlepin.subscriptions.kafka.IqeTestMdcProducerInterceptor;
 import org.candlepin.subscriptions.task.JsonTaskMessage;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -67,6 +68,8 @@ public class KafkaTaskProducerConfiguration {
     Map<String, Object> properties = kafkaProperties.buildProducerProperties(null);
     properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
     properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+    properties.put(
+        ProducerConfig.INTERCEPTOR_CLASSES_CONFIG, IqeTestMdcProducerInterceptor.class.getName());
     return properties;
   }
 

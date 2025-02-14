@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.task.queue.kafka;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.candlepin.subscriptions.kafka.IqeTestMdcRecordInterceptor;
 import org.candlepin.subscriptions.task.JsonTaskMessage;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -102,6 +103,7 @@ public class KafkaConfigurator {
     factory
         .getContainerProperties()
         .setObservationEnabled(kafkaProperties.getListener().isObservationEnabled());
+    factory.setRecordInterceptor(new IqeTestMdcRecordInterceptor<>());
     return factory;
   }
 }

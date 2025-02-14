@@ -42,6 +42,9 @@ DISABLE_OTEL: true
     otel:
       sdk:
         disabled: true
+    log:
+      console:
+        format: '[iqe-test=%X{x-rh-iqe-test}] %d{yyyy-MM-dd HH:mm:ss,SSS} %-5p [%c{3.}] (%t) %s%e%n'
 
 quarkus:
   # Exposing the health checks and metrics on :9000.

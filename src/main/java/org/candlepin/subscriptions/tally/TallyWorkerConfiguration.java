@@ -38,6 +38,7 @@ import org.candlepin.subscriptions.json.EnabledOrgsRequest;
 import org.candlepin.subscriptions.json.EnabledOrgsResponse;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.TallySummary;
+import org.candlepin.subscriptions.kafka.IqeTestMdcRecordInterceptor;
 import org.candlepin.subscriptions.product.ProductConfiguration;
 import org.candlepin.subscriptions.tally.billing.BillableUsageConfiguration;
 import org.candlepin.subscriptions.tally.contracts.ContractsConfiguration;
@@ -313,6 +314,7 @@ public class TallyWorkerConfiguration {
     // hack to track the Kafka consumers, so SeekableKafkaConsumer can commit when needed
     factory.getContainerProperties().setConsumerRebalanceListener(registry);
     factory.setCommonErrorHandler(deadLetterErrorHandler);
+    factory.setRecordInterceptor(new IqeTestMdcRecordInterceptor<>());
     return factory;
   }
 

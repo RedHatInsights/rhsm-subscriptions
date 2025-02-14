@@ -31,6 +31,7 @@ import com.redhat.swatch.export.api.ExportDelegate;
 import com.redhat.swatch.export.api.RbacDelegate;
 import java.util.List;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.candlepin.subscriptions.kafka.IqeTestMdcRecordInterceptor;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -86,6 +87,7 @@ public class ExportConfiguration {
     factory.getContainerProperties().setConsumerRebalanceListener(registry);
 
     factory.setCommonErrorHandler(subscriptionExportKafkaErrorHandler);
+    factory.setRecordInterceptor(new IqeTestMdcRecordInterceptor<>());
 
     return factory;
   }
