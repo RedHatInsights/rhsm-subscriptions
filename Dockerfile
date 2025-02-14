@@ -36,7 +36,7 @@ RUN ./gradlew ${GRADLE_TASKS} -x test ${GRADLE_BUILD_ARGS}
 
 RUN jar -xf ./build/libs/*.jar
 
-FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.21-1.1738663153
+FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.21-1.1739376163
 USER root
 RUN microdnf \
     --disablerepo=* \
