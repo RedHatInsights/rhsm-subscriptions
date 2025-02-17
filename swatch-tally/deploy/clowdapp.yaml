@@ -244,6 +244,7 @@ objects:
     # The name of the ClowdEnvironment providing the services
     envName: ${ENV_NAME}
     dependencies:
+      - swatch-migrations
       - host-inventory
       - swatch-contracts
       - swatch-billable-usage
@@ -274,9 +275,7 @@ objects:
         topicName: platform.export.requests
 
     database:
-      # Must specify both a name and a major postgres version
-      name: swatch-tally-db
-      version: 12
+      sharedDbAppName: swatch-migrations
 
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
@@ -291,20 +290,6 @@ objects:
             enabled: true
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          initContainers:
-            - env:
-                - name: JAVA_DEBUG
-                  value: ${JAVA_DEBUG}
-                - name: SPRING_PROFILES_ACTIVE
-                  value: liquibase-only
-              inheritEnv: true
-              resources:
-                requests:
-                  cpu: ${CPU_REQUEST}
-                  memory: ${MEMORY_REQUEST}
-                limits:
-                  cpu: ${CPU_LIMIT}
-                  memory: ${MEMORY_LIMIT}
           env:
             - name: JAVA_DEBUG
               value: ${JAVA_DEBUG}

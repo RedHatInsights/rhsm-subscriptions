@@ -2,7 +2,7 @@
 apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
-  name: swatch-producer-azure
+  name: swatch-migrations
 parameters:
   - name: IMAGE_PULL_SECRET
     value: quay-cloudservices-pull
@@ -22,66 +22,69 @@ parameters:
     value: quay.io/cloudservices/swatch-migrations
   - name: IMAGE_TAG
     value: latest
+  - name: SWATCH_MIGRATIONS_RUN_NUMBER
+    value: "1"
 
 objects:
-- apiVersion: cloud.redhat.com/v1alpha1
-  kind: ClowdJobInvocation
-  metadata:
-    name: swatch-migrations-cji
-  spec:
-    appName: swatch-migrations
-    jobs:
-      - swatch-migrations-job
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdApp
+    metadata:
+      name: swatch-migrations
+    spec:
+      envName: ${ENV_NAME}
+      pullSecrets:
+        name: ${IMAGE_PULL_SECRET}
 
-- apiVersion: cloud.redhat.com/v1alpha1
-  kind: ClowdApp
-  metadata:
-    name: swatch-migrations
-  spec:
-    # The name of the ClowdEnvironment providing the services
-    envName: ${ENV_NAME}
-    kafkaTopics: []
+      database:
+        name: swatch-tally-db
+        version: 12
 
-    pullSecrets:
-      name: ${IMAGE_PULL_SECRET}
+      jobs:
+        - name: swatch-migrations-job-${SWATCH_MIGRATIONS_RUN_NUMBER}
+          activeDeadlineSeconds: 1800
+          successfulJobsHistoryLimit: 2
+          podSpec:
+            image: ${IMAGE}:${IMAGE_TAG}
+            command: ["/opt/jboss/container/java/run/run-java.sh"]
+            env:
+              - name: DATABASE_HOST
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-tally-db
+                    key: db.host
+              - name: DATABASE_PORT
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-tally-db
+                    key: db.port
+              - name: DATABASE_USERNAME
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-tally-db
+                    key: db.user
+              - name: DATABASE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-tally-db
+                    key: db.password
+              - name: DATABASE_DATABASE
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-tally-db
+                    key: db.name
+            resources:
+              requests:
+                cpu: ${CPU_REQUEST}
+                memory: ${MEMORY_REQUEST}
+              limits:
+                cpu: ${CPU_LIMIT}
+                memory: ${CPU_LIMIT}
 
-    deployments: []
-  jobs:
-    - name: swatch-migrations-job
-      restartPolicy: Never
-      successfulJobsHistoryLimit: 2
-      podSpec:
-        image: ${IMAGE}:${IMAGE_TAG}
-        env:
-          - name: DATABASE_HOST
-            valueFrom:
-              secretKeyRef:
-                name: swatch-tally-db
-                key: db.host
-          - name: DATABASE_PORT
-            valueFrom:
-              secretKeyRef:
-                name: swatch-tally-db
-                key: db.port
-          - name: DATABASE_USERNAME
-            valueFrom:
-              secretKeyRef:
-                name: swatch-tally-db
-                key: db.user
-          - name: DATABASE_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: swatch-tally-db
-                key: db.password
-          - name: DATABASE_DATABASE
-            valueFrom:
-              secretKeyRef:
-                name: swatch-tally-db
-                key: db.name
-        resources:
-          requests:
-            cpu: ${CPU_REQUEST}
-            memory: ${MEMORY_REQUEST}
-          limits:
-            cpu: ${CPU_LIMIT}
-            memory: ${CPU_LIMIT}
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdJobInvocation
+    metadata:
+      name: swatch-migrations-${SWATCH_MIGRATIONS_RUN_NUMBER}
+    spec:
+      appName: swatch-migrations
+      jobs:
+        - swatch-migrations-job-${SWATCH_MIGRATIONS_RUN_NUMBER}

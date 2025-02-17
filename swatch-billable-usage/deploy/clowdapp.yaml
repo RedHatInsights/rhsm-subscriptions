@@ -88,7 +88,7 @@ objects:
   spec:
     envName: ${ENV_NAME}
     database:
-      sharedDbAppName: swatch-tally
+      sharedDbAppName: swatch-migrations
     dependencies:
       - swatch-contracts
       # wait for swatch-tally to initialize the db entities

@@ -133,7 +133,7 @@ objects:
         topicName: platform.inventory.host-ingress
 
     database:
-      sharedDbAppName: swatch-tally
+      sharedDbAppName: swatch-migrations
     dependencies:
       - swatch-tally
 

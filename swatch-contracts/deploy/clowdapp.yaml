@@ -117,8 +117,9 @@ objects:
         name: ${IMAGE_PULL_SECRET}
 
       database:
-        sharedDbAppName: swatch-tally
+        sharedDbAppName: swatch-migrations
       dependencies:
+        - swatch-migrations
         - swatch-tally
         - rbac
         - export-service
