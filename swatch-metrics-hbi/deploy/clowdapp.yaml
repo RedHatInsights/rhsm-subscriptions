@@ -22,7 +22,7 @@ parameters:
   - name: ENV_NAME
     value: env-swatch-metrics-hbi
   - name: REPLICAS
-    value: '1'
+    value: '0'
   - name: IMAGE
     value: quay.io/cloudservices/swatch-metrics-hbi
   - name: IMAGE_TAG
