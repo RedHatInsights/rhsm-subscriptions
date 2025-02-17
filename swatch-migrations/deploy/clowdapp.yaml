@@ -1,0 +1,87 @@
+---
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: swatch-producer-azure
+parameters:
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
+  - name: MEMORY_REQUEST
+    value: 256Mi
+  - name: MEMORY_LIMIT
+    value: 512Mi
+  - name: CPU_REQUEST
+    value: 100m
+  - name: CPU_LIMIT
+    value: 300m
+  - name: ENV_NAME
+    value: env-swatch-migrations
+  - name: REPLICAS
+    value: '1'
+  - name: IMAGE
+    value: quay.io/cloudservices/swatch-migrations
+  - name: IMAGE_TAG
+    value: latest
+
+objects:
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdJobInvocation
+  metadata:
+    name: swatch-migrations-cji
+  spec:
+    appName: swatch-migrations
+    jobs:
+      - swatch-migrations-job
+
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdApp
+  metadata:
+    name: swatch-migrations
+  spec:
+    # The name of the ClowdEnvironment providing the services
+    envName: ${ENV_NAME}
+    kafkaTopics: []
+
+    pullSecrets:
+      name: ${IMAGE_PULL_SECRET}
+
+    deployments: []
+  jobs:
+    - name: swatch-migrations-job
+      restartPolicy: Never
+      successfulJobsHistoryLimit: 2
+      podSpec:
+        image: ${IMAGE}:${IMAGE_TAG}
+        env:
+          - name: DATABASE_HOST
+            valueFrom:
+              secretKeyRef:
+                name: swatch-tally-db
+                key: db.host
+          - name: DATABASE_PORT
+            valueFrom:
+              secretKeyRef:
+                name: swatch-tally-db
+                key: db.port
+          - name: DATABASE_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: swatch-tally-db
+                key: db.user
+          - name: DATABASE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: swatch-tally-db
+                key: db.password
+          - name: DATABASE_DATABASE
+            valueFrom:
+              secretKeyRef:
+                name: swatch-tally-db
+                key: db.name
+        resources:
+          requests:
+            cpu: ${CPU_REQUEST}
+            memory: ${MEMORY_REQUEST}
+          limits:
+            cpu: ${CPU_LIMIT}
+            memory: ${CPU_LIMIT}
