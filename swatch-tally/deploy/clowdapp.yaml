@@ -220,7 +220,7 @@ parameters:
     value: 'grpc'
   - description: database secret name
     name: FLOORIST_DB_SECRET_NAME
-    value: swatch-tally-db
+    value: swatch-migrations-db
   - description: bucket secret name
     name: FLOORIST_BUCKET_SECRET_NAME
     required: true
@@ -633,22 +633,22 @@ objects:
           - name: POSTGRESQL_SERVICE_HOST
             valueFrom:
               secretKeyRef:
-                name: swatch-tally-db
+                name: swatch-migrations-db
                 key: db.host
           - name: POSTGRESQL_USER
             valueFrom:
               secretKeyRef:
-                name: swatch-tally-db
+                name: swatch-migrations-db
                 key: db.user
           - name: POSTGRESQL_DATABASE
             valueFrom:
               secretKeyRef:
-                name: swatch-tally-db
+                name: swatch-migrations-db
                 key: db.name
           - name: PGPASSWORD
             valueFrom:
               secretKeyRef:
-                name: swatch-tally-db
+                name: swatch-migrations-db
                 key: db.password
           - name: DB_CHANGELOG_CLEANUP_SQL
             value: ${DB_CHANGELOG_CLEANUP_SQL}
