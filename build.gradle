@@ -39,7 +39,6 @@ dependencies {
     implementation project(':swatch-core')
     implementation project(":api")
     implementation project(":clients:rh-marketplace-client")
-    implementation project(":clients:product-client")
     implementation project(":clients:prometheus-client")
     implementation project(":clients:rbac-client")
     implementation project(":clients:rhsm-client")
