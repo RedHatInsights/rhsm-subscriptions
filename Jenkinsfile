@@ -9,7 +9,7 @@ pipeline {
     }
     agent {
         kubernetes {
-            cloud 'ocp-c1'
+            cloud 'upshift'
             label 'swatch-17-kubedock-2023-12-06' // this value + unique identifier becomes the pod name
             idleMinutes 5  // how long the pod will live after no jobs have run on it
             defaultContainer 'openjdk17'
@@ -37,10 +37,10 @@ spec:
       - 99d
       resources:
         requests:
-          memory: "2Gi"
+          memory: "1Gi"
           cpu: "2"
         limits:
-          memory: "6Gi"
+          memory: "8Gi"
           cpu: "6"
       env:
       - name: DOCKER_HOST
@@ -100,7 +100,8 @@ spec:
             steps {
                 // The build task includes check, test, and assemble.  Linting happens during the check
                 // task and uses the spotless gradle plugin.
-                sh "./gradlew --no-daemon --no-parallel build testCodeCoverageReport"
+                sh "./gradlew build -x test"
+                sh "./gradlew --no-parallel test testCodeCoverageReport"
             }
         }
 
