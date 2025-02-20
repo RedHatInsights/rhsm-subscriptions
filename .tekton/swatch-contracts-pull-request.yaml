@@ -37,6 +37,8 @@ spec:
           memory: 8Gi
         limits:
           memory: 8Gi
+    - pipelineTaskName: run-tests
+      serviceAccountName: kubedock
   pipelineSpec:
     finally:
     - name: show-sbom
@@ -198,6 +200,28 @@ spec:
         operator: in
         values:
         - "true"
+      workspaces:
+      - name: source
+        workspace: workspace
+    - name: run-tests
+      runAfter:
+      - prefetch-dependencies
+      taskSpec:
+        steps:
+          - image: registry.access.redhat.com/ubi9/openjdk-17-runtime
+            name: builder
+            workingDir: $(workspaces.source.path)/source
+            script: DOCKER_HOST=tcp://127.0.0.1:2475 ./gradlew :test --tests=EventRecordRepositoryTest
+            computeResources:
+              limits:
+                memory: '6Gi'
+                cpu: 6
+              requests:
+                memory: '2Gi'
+                cpu: 2
+        sidecars:
+          - image: quay.io/kahowell/kubedock:latest
+            name: kubedock
       workspaces:
       - name: source
         workspace: workspace
