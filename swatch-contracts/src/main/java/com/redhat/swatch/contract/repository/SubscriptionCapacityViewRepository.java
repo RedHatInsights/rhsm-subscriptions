@@ -90,7 +90,9 @@ public class SubscriptionCapacityViewRepository
       searchCriteria = searchCriteria.and(billingProviderEquals(sanitizedBillingProvider));
     }
     if (Objects.nonNull(metricId)) {
-      searchCriteria = searchCriteria.and(hasMetricId(metricId));
+      Specification<SubscriptionCapacityView> metricOrUnlimitedSpec =
+          hasMetricId(metricId).or(hasUnlimitedUsage(true));
+      searchCriteria = searchCriteria.and(metricOrUnlimitedSpec);
     }
     if (Objects.nonNull(category)) {
       searchCriteria = searchCriteria.and(hasCategory(category));
@@ -176,5 +178,11 @@ public class SubscriptionCapacityViewRepository
                 Boolean.class,
                 root.get("metrics"),
                 builder.literal("$[*] ? (@." + key + " == \"" + value + "\")")));
+  }
+
+  public static Specification<SubscriptionCapacityView> hasUnlimitedUsage(
+      Boolean hasUnlimitedUsage) {
+    return (root, query, builder) ->
+        builder.equal(root.get(SubscriptionCapacityView_.hasUnlimitedUsage), hasUnlimitedUsage);
   }
 }
