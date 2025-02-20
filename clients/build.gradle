@@ -2,14 +2,10 @@ project(":clients:rh-marketplace-client") {
     apply plugin: "swatch.spring-boot-rest-client-conventions"
 }
 
-project(":clients:product-client") {
-    apply plugin: "swatch.spring-boot-rest-client-conventions"
-}
-
 project(":clients:quarkus:product-client") {
     apply plugin: "swatch.quarkus-rest-client-conventions"
     openApiGenerate {
-        inputSpec = "${rootDir}/clients/product-client/product-api-spec.yaml"
+        inputSpec = "${rootDir}/clients/quarkus/product-client/product-api-spec.yaml"
     }
 }
 
