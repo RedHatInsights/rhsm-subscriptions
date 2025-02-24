@@ -19,6 +19,15 @@ dependencies {
 // Workaround for https://github.com/quarkusio/quarkus/issues/38996 to force the compileJava order when building the projects in parallel
 compileJava.dependsOn tasks.compileQuarkusGeneratedSourcesJava
 
+quarkus {
+    buildForkOptions {
+        maxHeapSize = '2g'
+    }
+    codeGenForkOptions {
+        maxHeapSize = '1024m'
+    }
+}
+
 test {
     finalizedBy jacocoTestReport
     jacoco {
