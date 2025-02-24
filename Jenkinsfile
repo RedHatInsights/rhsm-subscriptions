@@ -102,11 +102,11 @@ spec:
                 script {
                     // The build task includes check, test, and assemble.  Linting happens during the check
                     // task and uses the spotless gradle plugin.
-                    def exitCode = sh(script: "./gradlew clean build --no-daemon --no-parallel --info --stacktrace -x test", returnStatus: true)
+                    def exitCode = sh(script: "./gradlew clean build --info --stacktrace -x test -x spotlessCheck -x checkstyleMain -x checkstyleTest", returnStatus: true)
                     if (exitCode != 0) {
                         error "Gradle build failed with exit code ${exitCode}"
                     }
-                    exitCode = sh(script: "./gradlew test --no-daemon --no-parallel --info --stacktrace testCodeCoverageReport", returnStatus: true)
+                    exitCode = sh(script: "./gradlew test --info --stacktrace testCodeCoverageReport", returnStatus: true)
                     if (exitCode != 0) {
                         error "Gradle test failed with exit code ${exitCode}"
                     }
