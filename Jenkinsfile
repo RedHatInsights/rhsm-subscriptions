@@ -99,10 +99,18 @@ spec:
         }
         stage('Build/Test/Lint') {
             steps {
-                // The build task includes check, test, and assemble.  Linting happens during the check
-                // task and uses the spotless gradle plugin.
-                sh "./gradlew build -x test"
-                sh "./gradlew --no-parallel test testCodeCoverageReport"
+                script {
+                    // The build task includes check, test, and assemble.  Linting happens during the check
+                    // task and uses the spotless gradle plugin.
+                    def exitCode = sh(script: "./gradlew build --info --stacktrace -x test", returnStatus: true)
+                    if (exitCode != 0) {
+                        error "Gradle build failed with exit code ${exitCode}"
+                    }
+                    exitCode = sh(script: "./gradlew build --info --stacktrace --no-parallel test testCodeCoverageReport", returnStatus: true)
+                    if (exitCode != 0) {
+                        error "Gradle test failed with exit code ${exitCode}"
+                    }
+                }
             }
         }
 
