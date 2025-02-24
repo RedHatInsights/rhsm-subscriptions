@@ -4,10 +4,33 @@ set -e
 : "${IQE_IMAGE_TAG:='""'}"
 
 if [[ -n $ghprbPullId ]]; then
+  iqe_pod=$(oc_wrapper get pods -n $NAMESPACE | grep iqe | cut -d' ' -f1)
+  logs=$(oc_wrapper logs -n $NAMESPACE $iqe_pod)
+
+  # Summary
+  summary=$(echo "$logs" | grep "warnings in " | grep "skipped" | sed -r 's/=//g')
+
+  # The test execution might fail for multiple reasons:
+  if [[ $logs == *"Build timed out"*  ]]; then
+    ## 1. the build timeout
+    result="Result: Build Timeout"
+  elif [[ $logs == *"FAILED tests"*  ]]; then
+    ## 2. test failures
+    result="Result: Failed"
+    failed_tests=$(echo -e '|Failures|\n|:-|\n')
+    for t in $(echo "$logs" | grep -oP '(?<=FAILED )tests/integration/[^ ]+' | sed 's|tests/||'); do
+      failed_tests=$(echo -e "$failed_tests \n|$t|")
+    done
+  else
+    result="Result: Success"
+  fi
 
   body=$(cat <<EOF
 ### IQE Tests Summary Report
-- tests image: https://quay.io/cloudservices/iqe-tests:${IQE_IMAGE_TAG}
+${summary}
+${result}
+IQE plugin image: https://quay.io/cloudservices/iqe-tests:${IQE_IMAGE_TAG}
+${failed_tests}
 EOF
   )
 
