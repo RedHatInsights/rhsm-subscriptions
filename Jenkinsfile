@@ -9,7 +9,6 @@ pipeline {
     }
     agent {
         kubernetes {
-            cloud 'ocp-c1'
             label 'swatch-17-kubedock-2023-12-06' // this value + unique identifier becomes the pod name
             idleMinutes 5  // how long the pod will live after no jobs have run on it
             defaultContainer 'openjdk17'
@@ -100,7 +99,8 @@ spec:
             steps {
                 // The build task includes check, test, and assemble.  Linting happens during the check
                 // task and uses the spotless gradle plugin.
-                sh "./gradlew --no-daemon --no-parallel build testCodeCoverageReport"
+                // The "quarkus.gradle-worker.no-process=true" needs to be added, so Quarkus does not spawn new Gradle daemons. Related to https://github.com/quarkusio/quarkus/issues/46477.
+                sh "./gradlew --no-daemon --no-parallel build testCodeCoverageReport -Dquarkus.gradle-worker.no-process=true"
             }
         }
 
