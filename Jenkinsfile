@@ -28,10 +28,10 @@ spec:
       - 99d
       resources:
         requests:
-          memory: "2Gi"
+          memory: "4Gi"
           cpu: "2"
         limits:
-          memory: "6Gi"
+          memory: "8Gi"
           cpu: "6"
       env:
       - name: DOCKER_HOST
