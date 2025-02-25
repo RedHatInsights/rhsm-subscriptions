@@ -341,6 +341,9 @@ objects:
           upstream swatch-api {
             server swatch-api-service:8000;
           }
+          upstream swatch-contracts {
+            server swatch-contracts-service:8000;
+          }      
 
           server {
             error_log  stderr;
@@ -354,6 +357,11 @@ objects:
                 auth_basic          off;
                 allow               all;
                 return              200;
+            }
+        
+            location /api/rhsm-subscriptions/v1/subscriptions/billing_account_ids {
+              rewrite ^/api/rhsm-subscriptions/v1/subscriptions/billing_account_ids$ /api/swatch-contracts/v1/subscriptions/billing_account_ids break;
+              proxy_pass http://swatch-contracts;
             }
 
             location ^~/ {
