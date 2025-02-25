@@ -3,7 +3,7 @@
 
 ext {
     quarkusVersion='3.18.3'
-    springVersion='3.4.2'
+    springVersion='3.4.3'
     resteasyVersion='6.2.10.Final'
     jacksonVersion='2.18.2'
     mapstructVersion='1.6.3'
@@ -16,7 +16,7 @@ ext {
 ext.plugins = [
         "com.adarshr:gradle-test-logger-plugin:4.0.0",
         "com.diffplug.spotless:spotless-plugin-gradle:7.0.2",
-        "com.netflix.nebula:nebula-release-plugin:19.0.10",
+        "com.netflix.nebula:nebula-release-plugin:20.0.2",
         "io.quarkus:gradle-application-plugin:${quarkusVersion}",
         // swagger-parser manually upgraded for compatibility with snakeyaml 2.0
         // see https://github.com/OpenAPITools/openapi-generator/issues/15876
@@ -37,7 +37,7 @@ libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-de
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:3.0.0"
-libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.30.21"
+libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.30.23"
 libraries["clowder-quarkus-config-source"] = "com.redhat.cloud.common:clowder-quarkus-config-source:2.7.1"
 libraries["guava"] = "com.google.guava:guava:33.4.0-jre"
 libraries["commons-lang3"] = "org.apache.commons:commons-lang3:3.17.0"
@@ -75,10 +75,10 @@ libraries["swagger-annotations"] = "io.swagger:swagger-annotations:1.6.15"
 libraries["swagger-ui"] = "org.webjars:swagger-ui:5.18.3"
 libraries["webjars-locator"] = "org.webjars:webjars-locator:0.52"
 libraries["wiremock"] = "com.github.tomakehurst:wiremock-standalone:3.0.1"
-libraries["awaitility"] = "org.awaitility:awaitility:4.2.2"
-libraries["splunk-otel-agent"] = 'com.splunk:splunk-otel-javaagent:2.12.0'
-libraries["testcontainers-postgresql"] = 'org.testcontainers:postgresql:1.20.4'
-libraries["kafka-streams-test-utils"] = "org.apache.kafka:kafka-streams-test-utils:7.8.1-ce"
+libraries["awaitility"] = "org.awaitility:awaitility:4.3.0"
+libraries["splunk-otel-agent"] = 'com.splunk:splunk-otel-javaagent:2.13.0'
+libraries["testcontainers-postgresql"] = 'org.testcontainers:postgresql:1.20.5'
+libraries["kafka-streams-test-utils"] = "org.apache.kafka:kafka-streams-test-utils:7.9.0-ce"
 libraries["slf4j-api"] = "org.slf4j:slf4j-api:2.0.16"
 libraries["snakeyaml"] = "org.yaml:snakeyaml:2.4"
 libraries["unleash-spring-boot-starter"] = "io.getunleash:springboot-unleash-starter:1.1.1"
