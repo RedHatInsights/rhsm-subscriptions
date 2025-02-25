@@ -2,8 +2,8 @@ name: "Build"
 on:
   - pull_request
 jobs:
-  validate-format:
-    name: Validate Format
+  build:
+    name: Validate Format / Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -14,8 +14,12 @@ jobs:
           java-version: 17
           check-latest: true
           cache: 'gradle'
-      - name: Format
+      - name: Validate Format
         run: ./gradlew spotlessCheck checkstyleMain checkstyleTest
+      - name: Build
+        run: ./gradlew build -x test
+      - name: Test
+        run: ./gradlew test -DexcludeTags=integration
   validate-floorplan-queries:
     name: Validate FloorPlan Queries
     runs-on: ubuntu-latest
