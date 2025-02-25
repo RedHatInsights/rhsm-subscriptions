@@ -21,10 +21,10 @@ compileJava.dependsOn tasks.compileQuarkusGeneratedSourcesJava
 
 quarkus {
     buildForkOptions {
-        maxHeapSize = '2g'
+        maxHeapSize = '4g'
     }
     codeGenForkOptions {
-        maxHeapSize = '1024m'
+        maxHeapSize = '4g'
     }
 }
 
