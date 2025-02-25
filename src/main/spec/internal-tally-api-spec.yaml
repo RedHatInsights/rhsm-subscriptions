@@ -24,6 +24,40 @@ servers:
         default: rhsm-subscriptions
 
 paths:
+  /v1/instances/billing_account_ids:
+    description: Fetch billing account IDs by Org
+    get:
+      operationId: fetchBillingAccountIdsForOrg
+      parameters:
+        - name: org_id
+          in: query
+          schema:
+            type: string
+          required: true
+        - name: product_tag
+          in: query
+          schema:
+            type: string
+          required: false
+        - name: billing_provider
+          in: query
+          schema:
+            type: string
+          required: false
+      responses:
+        '200':
+          description: List of billing account ids by org
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BillingAccountIdResponse"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [ swatchTally ]
   /v1/internal/tally/resend:
     description: 'Operations to resend specific tally snapshots to marketplaces'
     post:
@@ -408,6 +442,24 @@ components:
       properties:
         detail:
           type: string
+    BillingAccountIdResponse:
+      type: object
+      properties:
+        ids:
+          type: array
+          items:
+            $ref: "#/components/schemas/BillingAccountId"
+    BillingAccountId:
+      properties:
+        org_id:
+          type: string
+        product_tag:
+          type: string
+        billing_provider:
+          type: string
+        billing_account_id:
+          type: string
+
   securitySchemes:
     PskIdentity:
       type: apiKey
