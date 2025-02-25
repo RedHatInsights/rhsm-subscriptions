@@ -7,9 +7,7 @@ metadata:
     build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: false
-    # pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
-    #   == "main"
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch == "main"
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: rhsm-subscriptions
@@ -31,6 +29,21 @@ spec:
     value: .
   - name: revision
     value: '{{revision}}'
+  taskRunSpecs:
+    - pipelineTaskName: run-tests
+      computeResources:
+        requests:
+          memory: '2Gi'
+          cpu: 2
+        limits:
+          memory: '6Gi'
+          cpu: 6
+    - pipelineTaskName: build-container
+      computeResources:
+        requests:
+          memory: 8Gi
+        limits:
+          memory: 8Gi
   pipelineSpec:
     finally:
     - name: show-sbom
@@ -195,6 +208,20 @@ spec:
       workspaces:
       - name: source
         workspace: workspace
+    - name: run-tests
+      runAfter:
+        - prefetch-dependencies
+      taskSpec:
+        steps:
+          - image: registry.access.redhat.com/ubi9/openjdk-17-runtime
+            name: builder
+            workingDir: $(workspaces.source.path)/source
+            # "quarkus.gradle-worker.no-process=true" needs to be added, so Quarkus does not spawn new Gradle daemons
+            # Related to https://github.com/quarkusio/quarkus/issues/46477
+            script: ./gradlew clean build test -DexcludeTags=integration -Dquarkus.gradle-worker.no-process=true
+      workspaces:
+        - name: source
+          workspace: workspace
     - name: build-container
       params:
       - name: IMAGE
@@ -212,7 +239,7 @@ spec:
       - name: COMMIT_SHA
         value: $(tasks.clone-repository.results.commit)
       runAfter:
-      - prefetch-dependencies
+      - run-tests
       taskRef:
         params:
         - name: name
@@ -256,8 +283,6 @@ spec:
       params:
       - name: BINARY_IMAGE
         value: $(params.output-image)
-      - name: BASE_IMAGES
-        value: $(tasks.build-container.results.BASE_IMAGES_DIGESTS)
       runAfter:
       - build-container
       taskRef:
@@ -283,8 +308,10 @@ spec:
         workspace: workspace
     - name: deprecated-base-image-check
       params:
-      - name: BASE_IMAGES_DIGESTS
-        value: $(tasks.build-container.results.BASE_IMAGES_DIGESTS)
+      - name: IMAGE_URL
+        value: $(tasks.build-container.results.IMAGE_URL)
+      - name: IMAGE_DIGEST
+        value: $(tasks.build-container.results.IMAGE_DIGEST)
       runAfter:
       - build-container
       taskRef:
