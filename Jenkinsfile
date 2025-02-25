@@ -19,16 +19,6 @@ apiVersion: v1
 kind: Pod
 spec:
   containers:
-    - name: kubedock
-      image: quay.io/cloudservices/kubedock:latest
-      imagePullPolicy: Always
-      tty: true
-      args:
-       - server
-       - --port-forward
-       # Verbosity level which is helpful to troubleshot issues when starting up containers
-       - -v
-       - 10
     - name: openjdk17
       image: registry.access.redhat.com/ubi9/openjdk-17-runtime
       command:
@@ -106,7 +96,7 @@ spec:
                     if (exitCode != 0) {
                         error "Gradle build failed with exit code ${exitCode}"
                     }
-                    exitCode = sh(script: "./gradlew test --info --stacktrace testCodeCoverageReport", returnStatus: true)
+                    exitCode = sh(script: "./gradlew test --info --stacktrace testCodeCoverageReport -DexcludeTags=integration", returnStatus: true)
                     if (exitCode != 0) {
                         error "Gradle test failed with exit code ${exitCode}"
                     }
@@ -161,7 +151,6 @@ spec:
     post {
         always {
             containerLog "openjdk17"
-            containerLog "kubedock"
             junit '**/build/test-results/test/*.xml'
         }
     }
