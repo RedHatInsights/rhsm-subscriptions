@@ -44,6 +44,10 @@ DISABLE_OTEL: true
         disabled: true
 
 quarkus:
+  live-reload:
+    enabled: false
+  dev:
+    enabled: false
   # Exposing the health checks and metrics on :9000.
   management:
     enabled: true
