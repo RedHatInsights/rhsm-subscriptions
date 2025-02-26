@@ -70,9 +70,8 @@ public class ContractsV1Resource implements ContractsV1Api {
   /**
    * Checks if user is allowed access to the requested orgId. Only internal users can access org ids
    * other than their own.
-   *
-   * @param orgId
-   * @throws ForbiddenException
+   * @param orgId Org that is being acted on
+   * @throws ForbiddenException If user is not allowed to access org
    */
   private void validateOrgIdAccess(String orgId) throws ForbiddenException {
     Principal principal = securityContext.getUserPrincipal();
