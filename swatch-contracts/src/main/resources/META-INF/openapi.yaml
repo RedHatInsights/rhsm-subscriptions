@@ -1637,6 +1637,9 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/SkuCapacitySubscription"
+        billing_account_id:
+          description: "The billing account ID."
+          type: string
         billing_provider:
           $ref: '#/components/schemas/BillingProviderType'
         next_event_date:
