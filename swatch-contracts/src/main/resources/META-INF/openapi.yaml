@@ -1119,7 +1119,6 @@ paths:
         - subscriptions_v2
       security:
         - customer: [ ]
-
   /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}:
     description: 'Operations for capacity report for a given account and product'
     parameters:
@@ -1231,6 +1230,36 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       tags:
         - capacity
+  /api/swatch-contracts/v1/subscriptions/billing_account_ids:
+    description: Fetch billing account IDs by Org
+    get:
+      operationId: fetchBillingAccountIdsForOrg
+      parameters:
+        - name: org_id
+          in: query
+          schema:
+            type: string
+          required: true
+        - name: product_tag
+          in: query
+          schema:
+            type: string
+          required: false
+      responses:
+        '200':
+          description: List of billing account ids by org
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BillingAccountIdResponse"
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '500':
+          $ref: "#/components/responses/InternalServerError"
+      tags:
+        - contracts_v1
 
 components:
   schemas:
@@ -1267,6 +1296,24 @@ components:
           $ref: '../../../../../clients/rh-partner-gateway-client/rh-partner-gateway-api-spec.yaml#/components/schemas/PartnerEntitlementV1'
         subscription_id:
           description: The subscription ID provided by the Subscription API using the subscription number.
+          type: string
+    BillingAccountIdResponse:
+      type: object
+      properties:
+        ids:
+          type: array
+          items:
+            $ref: "#/components/schemas/BillingAccount"
+    BillingAccount:
+      type: object
+      properties:
+        org_id:
+          type: string
+        product_tag:
+          type: string
+        billing_provider:
+          type: string
+        billing_account_id:
           type: string
     ContractResponse:
       required:

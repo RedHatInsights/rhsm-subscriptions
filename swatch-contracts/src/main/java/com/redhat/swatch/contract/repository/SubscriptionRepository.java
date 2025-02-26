@@ -25,6 +25,7 @@ import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 @ApplicationScoped
@@ -35,6 +36,10 @@ public class SubscriptionRepository
   private static final Sort DEFAULT_SORT =
       Sort.by(SubscriptionEntity_.SUBSCRIPTION_ID)
           .and(SubscriptionEntity_.START_DATE, Sort.Direction.Descending);
+
+  private static final Sort BILLING_ACCCOUNT_SORT =
+      Sort.by(SubscriptionEntity_.BILLING_PROVIDER)
+          .and(SubscriptionEntity_.BILLING_ACCOUNT_ID, Sort.Direction.Ascending);
 
   public List<SubscriptionEntity> findByOfferingSku(String sku, int offset, int limit) {
     PanacheQuery<SubscriptionEntity> query = find("offering.sku = ?1", DEFAULT_SORT, sku);
@@ -79,5 +84,22 @@ public class SubscriptionRepository
     var searchCriteria = SubscriptionEntity.buildSearchSpecification(dbReportCriteria);
     searchCriteria = searchCriteria.and(SubscriptionEntity.hasUnlimitedUsage());
     return find(SubscriptionEntity.class, searchCriteria);
+  }
+
+  public List<BillingAccountInfoDTO> findBillingAccountInfo(
+      String orgId, Optional<String> productTag) {
+    StringBuilder query =
+        new StringBuilder(
+            "select distinct subscription.orgId, subscription.billingAccountId, subscription.billingProvider, productTag from SubscriptionEntity subscription join subscription.offering offering join offering.productTags productTag where orgId = ?1");
+    Object[] queryParams;
+    if (productTag.isPresent()) {
+      query.append(" and productTag = ?2");
+      queryParams = new Object[] {orgId, productTag.get()};
+    } else {
+      queryParams = new Object[] {orgId};
+    }
+    return find(query.toString(), BILLING_ACCCOUNT_SORT, queryParams)
+        .project(BillingAccountInfoDTO.class)
+        .list();
   }
 }
