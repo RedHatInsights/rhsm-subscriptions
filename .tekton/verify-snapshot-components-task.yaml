@@ -1,0 +1,44 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: verify-snapshot-components
+spec:
+  params:
+    - name: SNAPSHOT
+      description: The JSON string of the Snapshot under test
+  steps:
+    - name: verify-snapshot-components
+      image: quay.io/konflux-ci/konflux-test:stable
+      workingDir: /workspace
+      env:
+        - name: SNAPSHOT
+          value: $(params.SNAPSHOT)
+        - name: SNAPSHOT_URL
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['pac.test.appstudio.openshift.io/source-repo-url']
+        - name: SNAPSHOT_SHA
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['pac.test.appstudio.openshift.io/sha']
+      script: |
+        #!/bin/sh
+        set -e
+        components=$(jq -c '.components[]' <<< "${SNAPSHOT}")
+        snapshotUrlUrlWithoutSuffix=$(echo $SNAPSHOT_URL | sed 's/\.git$//')
+        while read components
+        do
+          # Variables
+          componentUrl=$(echo "$components" | jq -r '.source.git.url')
+          componentUrlWithoutSuffix=$(echo $componentUrl | sed 's/\.git$//')
+          name=$(echo "$components" | jq -r '.name')
+          componentSha=$(echo "$components" | jq -r '.source.git.revision')
+            # Check if component git url equals to snapshot git url, if yes check if the snapshot SHA equals to component SHA
+            if [[ \"$componentUrlWithoutSuffix\" == $snapshotUrlUrlWithoutSuffix ]]; then
+                if [[ $componentSha != $snapshotSha ]]; then
+                echo "FAIL: Component $name has different SHA: $componentSha than the snapshot, SHA: $snapshotSha."
+                exit 1
+                fi
+            fi
+          echo "SUCCESS: Component $name matches snapshot SHA."
+        done < <(echo "$components")
