@@ -163,7 +163,7 @@ public class SubscriptionTableControllerV2 {
     // As an improvement this should be pushed lower into the Repository layer
     sortCapacities(reportItems, sort, dir);
     var page = InMemoryPager.paginate(reportItems, offset, limit);
-    log.info("Report items {}", reportItems);
+    log.debug("Report items {}", reportItems);
     return new SkuCapacityReportV2()
         .data(page)
         .meta(
