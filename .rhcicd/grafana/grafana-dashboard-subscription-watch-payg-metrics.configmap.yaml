@@ -21,7 +21,6 @@ data:
       "editable": true,
       "fiscalYearStartMonth": 0,
       "graphTooltip": 0,
-      "id": 995732,
       "links": [],
       "panels": [
         {
@@ -196,7 +195,7 @@ data:
               "disableTextWrap": false,
               "editorMode": "code",
               "exemplar": false,
-              "expr": "sum(increase(swatch_metrics_ingested_usage_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\"}[$__range]))",
+              "expr": "sum(increase(swatch_metrics_ingested_usage_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\"}[$interval]))",
               "format": "table",
               "fullMetaSearch": false,
               "includeNullMetadata": true,
@@ -213,7 +212,7 @@ data:
                 "uid": "${datasource}"
               },
               "editorMode": "code",
-              "expr": "sum(increase(swatch_tally_tallied_usage_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\"}[$__range]))",
+              "expr": "sum(increase(swatch_tally_tallied_usage_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\"}[$interval]))",
               "format": "table",
               "hide": false,
               "instant": false,
@@ -227,7 +226,7 @@ data:
                 "uid": "${datasource}"
               },
               "editorMode": "code",
-              "expr": "sum(increase(swatch_contract_usage_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\"}[$__range]))",
+              "expr": "sum(increase(swatch_contract_usage_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\"}[$interval]))",
               "format": "table",
               "hide": false,
               "instant": false,
@@ -241,7 +240,7 @@ data:
                 "uid": "${datasource}"
               },
               "editorMode": "code",
-              "expr": "sum(increase(swatch_billable_usage_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\"}[$__range]))",
+              "expr": "sum(increase(swatch_billable_usage_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\"}[$interval]))",
               "format": "table",
               "hide": false,
               "instant": false,
@@ -255,7 +254,7 @@ data:
                 "uid": "${datasource}"
               },
               "editorMode": "code",
-              "expr": "sum(increase(swatch_producer_metered_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\", status=\"failed\"}[$__range]))",
+              "expr": "sum(increase(swatch_producer_metered_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\", status=\"failed\"}[$interval]))",
               "format": "table",
               "hide": false,
               "instant": false,
@@ -269,7 +268,7 @@ data:
                 "uid": "${datasource}"
               },
               "editorMode": "code",
-              "expr": "sum(increase(swatch_producer_metered_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\", status=\"succeeded\"}[$__range]))",
+              "expr": "sum(increase(swatch_producer_metered_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\", status=\"succeeded\"}[$interval]))",
               "format": "table",
               "hide": false,
               "instant": false,
@@ -338,8 +337,7 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green",
-                        "value": null
+                        "color": "green"
                       }
                     ]
                   }
@@ -373,7 +371,7 @@ data:
                     "uid": "PDD8BE47D10408F45"
                   },
                   "editorMode": "code",
-                  "expr": "sum(increase(swatch_metrics_ingested_usage_total{product=\"$product\", billing_provider=\"$billing_provider\"}[$__range])) by (metric_id)",
+                  "expr": "sum(increase(swatch_metrics_ingested_usage_total{product=\"$product\", billing_provider=\"$billing_provider\"}[$interval])) by (metric_id)",
                   "instant": false,
                   "legendFormat": "__auto",
                   "range": true,
@@ -430,8 +428,7 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green",
-                        "value": null
+                        "color": "green"
                       }
                     ]
                   }
@@ -465,7 +462,7 @@ data:
                     "uid": "PDD8BE47D10408F45"
                   },
                   "editorMode": "code",
-                  "expr": "sum(increase(swatch_tally_tallied_usage_total{product=\"$product\", billing_provider=\"$billing_provider\"}[$__range])) by (metric_id)",
+                  "expr": "sum(increase(swatch_tally_tallied_usage_total{product=\"$product\", billing_provider=\"$billing_provider\"}[$interval])) by (metric_id)",
                   "instant": false,
                   "legendFormat": "__auto",
                   "range": true,
@@ -522,8 +519,7 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green",
-                        "value": null
+                        "color": "green"
                       }
                     ]
                   }
@@ -557,7 +553,7 @@ data:
                     "uid": "PDD8BE47D10408F45"
                   },
                   "editorMode": "code",
-                  "expr": "sum(increase(swatch_contract_usage_total{product=\"$product\", billing_provider=\"$billing_provider\"}[$__range])) by (metric_id)",
+                  "expr": "sum(increase(swatch_contract_usage_total{product=\"$product\", billing_provider=\"$billing_provider\"}[$interval])) by (metric_id)",
                   "instant": false,
                   "legendFormat": "__auto",
                   "range": true,
@@ -614,8 +610,7 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green",
-                        "value": null
+                        "color": "green"
                       }
                     ]
                   }
@@ -649,7 +644,7 @@ data:
                     "uid": "PDD8BE47D10408F45"
                   },
                   "editorMode": "code",
-                  "expr": "sum(increase(swatch_billable_usage_total{product=\"$product\", billing_provider=\"$billing_provider\"}[$__range])) by (metric_id)",
+                  "expr": "sum(increase(swatch_billable_usage_total{product=\"$product\", billing_provider=\"$billing_provider\"}[$interval])) by (metric_id)",
                   "instant": false,
                   "legendFormat": "__auto",
                   "range": true,
@@ -706,8 +701,7 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green",
-                        "value": null
+                        "color": "green"
                       }
                     ]
                   }
@@ -741,7 +735,7 @@ data:
                     "uid": "PDD8BE47D10408F45"
                   },
                   "editorMode": "code",
-                  "expr": "sum(increase(swatch_producer_metered_total{product=\"$product\", billing_provider=\"$billing_provider\", status=\"succeeded\"}[$__range])) by (metric_id)",
+                  "expr": "sum(increase(swatch_producer_metered_total{product=\"$product\", billing_provider=\"$billing_provider\", status=\"succeeded\"}[$interval])) by (metric_id)",
                   "instant": false,
                   "legendFormat": "__auto",
                   "range": true,
@@ -798,8 +792,7 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green",
-                        "value": null
+                        "color": "green"
                       }
                     ]
                   }
@@ -954,7 +947,7 @@ data:
                     "uid": "PDD8BE47D10408F45"
                   },
                   "editorMode": "code",
-                  "expr": "sum(increase(swatch_producer_metered_total{product=\"$product\", billing_provider=\"$billing_provider\", status!=\"succeeded\",error_code=\"subscription_not_found\"}[$__range])) by (metric_id, error_code)",
+                  "expr": "sum(increase(swatch_producer_metered_total{product=\"$product\", billing_provider=\"$billing_provider\", status!=\"succeeded\",error_code=\"subscription_not_found\"}[$interval])) by (metric_id, error_code)",
                   "instant": false,
                   "legendFormat": "__auto",
                   "range": true,
@@ -1011,8 +1004,7 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green",
-                        "value": null
+                        "color": "green"
                       }
                     ]
                   }
@@ -1167,7 +1159,7 @@ data:
                     "uid": "PDD8BE47D10408F45"
                   },
                   "editorMode": "code",
-                  "expr": "sum(increase(swatch_producer_metered_total{product=\"$product\", billing_provider=\"$billing_provider\", status!=\"succeeded\",error_code!=\"subscription_not_found\"}[$__range])) by (metric_id, error_code)",
+                  "expr": "sum(increase(swatch_producer_metered_total{product=\"$product\", billing_provider=\"$billing_provider\", status!=\"succeeded\",error_code!=\"subscription_not_found\"}[$interval])) by (metric_id, error_code)",
                   "instant": false,
                   "legendFormat": "__auto",
                   "range": true,
@@ -1294,6 +1286,50 @@ data:
             "skipUrlSync": false,
             "sort": 0,
             "type": "query"
+          },
+          {
+            "auto": false,
+            "auto_count": 30,
+            "auto_min": "10s",
+            "current": {
+              "selected": true,
+              "text": "1d",
+              "value": "1d"
+            },
+            "hide": 0,
+            "name": "interval",
+            "options": [
+              {
+                "selected": false,
+                "text": "1h",
+                "value": "1h"
+              },
+              {
+                "selected": false,
+                "text": "6h",
+                "value": "6h"
+              },
+              {
+                "selected": false,
+                "text": "12h",
+                "value": "12h"
+              },
+              {
+                "selected": true,
+                "text": "1d",
+                "value": "1d"
+              },
+              {
+                "selected": false,
+                "text": "__range",
+                "value": "__range"
+              }
+            ],
+            "query": "'$__range',1h,2h,6h,12h,1d",
+            "queryValue": "",
+            "refresh": 2,
+            "skipUrlSync": false,
+            "type": "interval"
           }
         ]
       },
