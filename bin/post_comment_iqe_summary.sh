@@ -18,7 +18,7 @@ if [[ -n $ghprbPullId ]]; then
     ## 2. test failures
     result="Result: Failed"
     failed_tests=$(echo -e '|Failures|\n|:-|\n')
-    for t in $(echo "$logs" | grep -oP '(?<=FAILED )tests/integration/[^ ]+' | sed 's|tests/||'); do
+    for t in $(echo "$logs" | grep -oP '(?<=FAILED )tests/[^ ]+' | sed 's|tests/||'); do
       failed_tests=$(echo -e "$failed_tests \n|$t|")
     done
   else
