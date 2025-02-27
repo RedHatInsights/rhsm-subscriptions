@@ -23,6 +23,7 @@ package com.redhat.swatch.contract.resource.api.v1;
 import com.redhat.swatch.contract.openapi.model.BillingAccount;
 import com.redhat.swatch.contract.openapi.model.BillingAccountIdResponse;
 import com.redhat.swatch.contract.openapi.resource.ContractsV1Api;
+import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import com.redhat.swatch.contract.security.RhIdentityPrincipal;
 import io.quarkus.security.ForbiddenException;
@@ -61,7 +62,8 @@ public class ContractsV1Resource implements ContractsV1Api {
                     new BillingAccount()
                         .orgId(dto.orgId())
                         .billingAccountId(dto.billingAccountId())
-                        .billingProvider(dto.billingProvider().getValue())
+                        .billingProvider(Optional.ofNullable(dto.billingProvider()).map(
+                            BillingProvider::getValue).orElse(null))
                         .productTag(dto.productTag()))
             .toList();
     return new BillingAccountIdResponse().ids(ids);
