@@ -62,8 +62,10 @@ public class ContractsV1Resource implements ContractsV1Api {
                     new BillingAccount()
                         .orgId(dto.orgId())
                         .billingAccountId(dto.billingAccountId())
-                        .billingProvider(Optional.ofNullable(dto.billingProvider()).map(
-                            BillingProvider::getValue).orElse(null))
+                        .billingProvider(
+                            Optional.ofNullable(dto.billingProvider())
+                                .map(BillingProvider::getValue)
+                                .orElse(null))
                         .productTag(dto.productTag()))
             .toList();
     return new BillingAccountIdResponse().ids(ids);
@@ -72,6 +74,7 @@ public class ContractsV1Resource implements ContractsV1Api {
   /**
    * Checks if user is allowed access to the requested orgId. Only internal users can access org ids
    * other than their own.
+   *
    * @param orgId Org that is being acted on
    * @throws ForbiddenException If user is not allowed to access org
    */

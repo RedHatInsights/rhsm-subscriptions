@@ -58,7 +58,7 @@ public class ContractsV1ResourceTest {
 
   @BeforeEach
   public void updateSecurityContext() {
-    setSecurityContext(DEFAULT_ORG_ID, false);
+    setSecurityContext(false);
   }
 
   @Test
@@ -98,7 +98,7 @@ public class ContractsV1ResourceTest {
 
   @Test
   public void testFetchBillingAccountIdsForOrgByAssociateIsAllowed() {
-    setSecurityContext(DEFAULT_ORG_ID, true);
+    setSecurityContext(true);
     Assertions.assertNotNull(resource.fetchBillingAccountIdsForOrg("notMyOrg", "rosa"));
   }
 
@@ -130,10 +130,30 @@ public class ContractsV1ResourceTest {
         () -> resource.fetchBillingAccountIdsForOrg(null, "rosa"));
   }
 
-  private void setSecurityContext(String orgId, boolean isAssociate) {
+  @Test
+  public void testFetchBillingAccountIdsWithNullBillingProvider() {
+    var billingAccountInfoDTOs = new ArrayList<BillingAccountInfoDTO>();
+    billingAccountInfoDTOs.add(new BillingAccountInfoDTO(DEFAULT_ORG_ID, "account1", null, "rosa"));
+    when(subscriptionRepository.findBillingAccountInfo(any(), any()))
+        .thenReturn(billingAccountInfoDTOs);
+
+    var response = resource.fetchBillingAccountIdsForOrg(DEFAULT_ORG_ID, "rosa");
+
+    var expectedIds = new ArrayList<BillingAccount>();
+    expectedIds.add(
+        new BillingAccount()
+            .billingAccountId("account1")
+            .billingProvider(null)
+            .productTag("rosa")
+            .orgId(DEFAULT_ORG_ID));
+    assertEquals(1, response.getIds().size());
+    assertEquals(expectedIds, response.getIds());
+  }
+
+  private void setSecurityContext(boolean isAssociate) {
     RhIdentityPrincipal mockPrincipal = Mockito.mock(RhIdentityPrincipal.class);
     Identity identity = new Identity();
-    identity.setOrgId(orgId);
+    identity.setOrgId(ContractsV1ResourceTest.DEFAULT_ORG_ID);
     when(mockPrincipal.getIdentity()).thenReturn(identity);
     when(mockPrincipal.isAssociate()).thenReturn(isAssociate);
     when(securityContext.getUserPrincipal()).thenReturn(mockPrincipal);
