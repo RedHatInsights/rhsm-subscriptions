@@ -51,7 +51,7 @@ parameters:
     value: 'false'
   # allow overriding to support independent deploy with bonfire
   - name: DB_POD
-    value: swatch-tally
+    value: swatch-database
   - name: QUARKUS_PROFILE
     value: prod
   - name: UMB_KEYSTORE_PATH
@@ -117,8 +117,9 @@ objects:
         name: ${IMAGE_PULL_SECRET}
 
       database:
-        sharedDbAppName: swatch-tally
+        sharedDbAppName: swatch-database
       dependencies:
+        - swatch-database
         - swatch-tally
         - rbac
         - export-service

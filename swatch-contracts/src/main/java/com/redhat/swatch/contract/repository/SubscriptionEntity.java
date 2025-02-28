@@ -49,7 +49,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import org.apache.commons.lang3.ObjectUtils;
 
 /** SubscriptionEntity entities represent data from a Candlepin Pool */
 @Entity
@@ -349,7 +348,8 @@ public class SubscriptionEntity implements Serializable {
       // NOTE: we expect payg subscription records to always populate billingProviderId
       searchCriteria = searchCriteria.and(hasBillingProviderId());
     }
-    if (!ObjectUtils.isEmpty(dbReportCriteria.getProductTag())) {
+    if (Objects.nonNull(dbReportCriteria.getProductTag())
+        && !dbReportCriteria.getProductTag().isEmpty()) {
       searchCriteria = searchCriteria.and(productTagEquals(dbReportCriteria.getProductTag()));
     }
     if (Objects.nonNull(dbReportCriteria.getServiceLevel())
