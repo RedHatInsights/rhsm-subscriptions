@@ -100,6 +100,17 @@ public class SubscriptionTableControllerV2 {
       SkuCapacityReportSortV2 sort,
       SortDirection dir) {
 
+    log.info(
+        "Capacity report with criteria productId:{} offset:{} limit:{} category:{} servicelevel:{} usage:{} billingProviderType:{} billingAccountId:{} metricId:{}",
+        productId,
+        offset,
+        limit,
+        category,
+        serviceLevel,
+        usage,
+        billingProviderType,
+        billingAccountId,
+        metricId);
     var subscriptionSpec =
         SubscriptionCapacityViewRepository.buildSearchSpecification(
             getOrgId(),
@@ -152,7 +163,7 @@ public class SubscriptionTableControllerV2 {
     // As an improvement this should be pushed lower into the Repository layer
     sortCapacities(reportItems, sort, dir);
     var page = InMemoryPager.paginate(reportItems, offset, limit);
-
+    log.debug("Report items {}", reportItems);
     return new SkuCapacityReportV2()
         .data(page)
         .meta(
