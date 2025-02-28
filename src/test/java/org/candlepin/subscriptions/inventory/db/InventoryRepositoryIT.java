@@ -46,7 +46,7 @@ import org.springframework.test.context.ActiveProfiles;
     value =
         "The quay inventory DB repository is private and the Jenkins instance is not logged into Quay.io")
 @SpringBootTest
-@ActiveProfiles(value = {"worker"})
+@ActiveProfiles("worker")
 class InventoryRepositoryIT implements ExtendWithInventoryService, ExtendWithSwatchDatabase {
 
   private static final String ORG_ID = "org123";

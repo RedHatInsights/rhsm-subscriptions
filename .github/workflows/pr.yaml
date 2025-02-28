@@ -43,7 +43,7 @@ jobs:
       - name: Setup Postgresql Client
         run: sudo apt-get install -y postgresql-client
       - name: Execute migrations
-        run: ./gradlew :liquibaseUpdate
+        run: ./gradlew :swatch-database:run
       - name: Run validation
         run: |
           QUERY_NAMES=$(yamlpath --format=PLAIN --single --expression="objects.(kind==FloorPlan).spec.queries.prefix" swatch-tally/deploy/clowdapp.yaml | tail -c +2 | head -c -2)
