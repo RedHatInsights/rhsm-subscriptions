@@ -85,7 +85,7 @@ parameters:
   - name: CURL_CRON_MEMORY_REQUEST
     value: 10Mi
   - name: CURL_CRON_MEMORY_LIMIT
-    value: 50Mi
+    value: 20Mi
   - name: CURL_CRON_CPU_REQUEST
     value: 100m
   - name: CURL_CRON_CPU_LIMIT
