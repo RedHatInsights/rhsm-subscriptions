@@ -1,0 +1,17 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="202405031429-1" author="kflahert">
+        <comment>Inactivate testing contracts for Azure</comment>
+        <update tableName="contracts">
+            <column name="end_date" value="2024-04-01 04:00:00+00"/>
+            <column name="billing_account_id" value=""/>
+            <where>org_id = '17691289' and sku = 'RH02781HR'</where>
+        </update>
+    </changeSet>
+
+</databaseChangeLog>

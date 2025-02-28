@@ -41,6 +41,18 @@ parameters:
     value: 350m
   - name: CPU_LIMIT
     value: 1500m
+  - name: WAIT_IMAGE
+    value: quay.io/cloudservices/swatch-database
+  - name: WAIT_TAG
+    value: latest
+  - name: WAIT_MEMORY_REQUEST
+    value: 10Mi
+  - name: WAIT_MEMORY_LIMIT
+    value: 20Mi
+  - name: WAIT_CPU_REQUEST
+    value: 100m
+  - name: WAIT_CPU_LIMIT
+    value: 100m
   - name: ENV_NAME
     value: env-swatch-producer-red-hat-marketplace
   - name: ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC
@@ -138,6 +150,7 @@ objects:
   spec:
     envName: ${ENV_NAME}
     dependencies:
+      - swatch-database
       - swatch-tally
       - swatch-subscription-sync
       - rbac
@@ -151,7 +164,7 @@ objects:
         topicName: platform.rhsm-subscriptions.billable-usage
 
     database:
-      sharedDbAppName: swatch-tally
+      sharedDbAppName: swatch-database
 
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
@@ -165,22 +178,30 @@ objects:
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
           initContainers:
-            - env:
-                - name: JAVA_DEBUG
-                  value: ${JAVA_DEBUG}
-                - name: SPRING_PROFILES_ACTIVE
-                  value: liquibase-only
-                # Override liquibase disablement in the main container
-                - name: SPRING_LIQUIBASE_ENABLED
-                  value: 'true'
-              inheritEnv: true
+            - image: ${WAIT_IMAGE}:${WAIT_TAG}
+              command: ["/bin/sh","-c"]
+              args:
+                - >
+                  echo "Migrating using image swatch-database-$(MIGRATION_IMAGE_TAG)";
+                  /deployments/wait_for.sh job -lclowdjob=swatch-database-$(MIGRATION_JOB_ID)
+              env:
+                - name: MIGRATION_JOB_ID
+                  valueFrom:
+                    configMapKeyRef:
+                      name: migration-conf
+                      key: jobId
+                - name: MIGRATION_IMAGE_TAG
+                  valueFrom:
+                    configMapKeyRef:
+                      name: migration-conf
+                      key: imageTag
               resources:
                 requests:
-                  cpu: ${CPU_REQUEST}
-                  memory: ${MEMORY_REQUEST}
+                  cpu: ${WAIT_CPU_REQUEST}
+                  memory: ${WAIT_MEMORY_REQUEST}
                 limits:
-                  cpu: ${CPU_LIMIT}
-                  memory: ${MEMORY_LIMIT}
+                  cpu: ${WAIT_CPU_LIMIT}
+                  memory: ${WAIT_MEMORY_LIMIT}
           env:
             - name: JAVA_DEBUG
               value: ${JAVA_DEBUG}
@@ -248,27 +269,27 @@ objects:
             - name: DATABASE_HOST
               valueFrom:
                 secretKeyRef:
-                  name: swatch-tally-db
+                  name: swatch-database-db
                   key: db.host
             - name: DATABASE_PORT
               valueFrom:
                 secretKeyRef:
-                  name: swatch-tally-db
+                  name: swatch-database-db
                   key: db.port
             - name: DATABASE_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: swatch-tally-db
+                  name: swatch-database-db
                   key: db.user
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: swatch-tally-db
+                  name: swatch-database-db
                   key: db.password
             - name: DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
-                  name: swatch-tally-db
+                  name: swatch-database-db
                   key: db.name
             - name: DATABASE_CONNECTION_TIMEOUT_MS
               value: ${DATABASE_CONNECTION_TIMEOUT_MS}
