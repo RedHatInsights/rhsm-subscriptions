@@ -1,0 +1,4 @@
+spring:
+  liquibase:
+    change-log: classpath:/liquibase/changelog.xml
+    show-summary: summary

@@ -61,7 +61,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
-@ActiveProfiles({"worker", "test-inventory"})
+@ActiveProfiles({"worker", "test-inventory", "test-containers"})
 class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
 
   // Using this product ID because it has two valid metrics: Sockets and Cores

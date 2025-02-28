@@ -18,26 +18,29 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.deployment;
+package org.candlepin.subscriptions.liquibase;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import io.quarkus.liquibase.LiquibaseDataSource;
+import io.quarkus.liquibase.LiquibaseFactory;
+import io.quarkus.runtime.QuarkusApplication;
+import io.quarkus.runtime.annotations.QuarkusMain;
+import jakarta.inject.Inject;
+import lombok.extern.slf4j.Slf4j;
 
-import org.candlepin.subscriptions.spring.JobRunner;
-import org.candlepin.subscriptions.util.LiquibaseUpdateOnlyConfiguration;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+@QuarkusMain
+@Slf4j
+public class MigrationService implements QuarkusApplication {
+  @Inject
+  @LiquibaseDataSource("core")
+  LiquibaseFactory coreFactory;
 
-@SpringBootTest
-@ActiveProfiles({"liquibase-only", "test"})
-class LiquibaseDeploymentTest {
-  @MockitoBean JobRunner jobRunner;
-  @Autowired LiquibaseUpdateOnlyConfiguration configuration;
+  @Inject
+  @LiquibaseDataSource("contracts")
+  LiquibaseFactory contractsFactory;
 
-  @Test
-  void testDeployment() {
-    assertNotNull(configuration);
+  @Override
+  public int run(String... args) throws Exception {
+    log.info("Migration completed");
+    return 0;
   }
 }

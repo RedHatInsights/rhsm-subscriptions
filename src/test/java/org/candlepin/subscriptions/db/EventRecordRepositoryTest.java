@@ -48,7 +48,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
 @Transactional
-@ActiveProfiles({"worker", "test-inventory"})
+@ActiveProfiles({"worker", "test-inventory", "test-containers"})
 @Import(TestClockConfiguration.class)
 class EventRecordRepositoryTest implements ExtendWithSwatchDatabase {
   private static final Clock CLOCK = new TestClockConfiguration().adjustableClock().getClock();
