@@ -83,4 +83,11 @@ class OptInCheckerTest {
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
     assertTrue(checker.checkAccess(auth));
   }
+
+  @Test
+  @WithMockAssociatePrincipal
+  void testAssociateOptBypass() {
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    assertTrue(checker.checkAccess(auth));
+  }
 }
