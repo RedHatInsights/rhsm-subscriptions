@@ -25,4 +25,3 @@
     <dropColumn tableName="tally_snapshots" columnName="hypervisor_instance_count"/>
   </changeSet>
 </databaseChangeLog>
-
