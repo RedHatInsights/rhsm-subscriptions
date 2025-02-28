@@ -95,7 +95,7 @@ jobs:
       - name: Execute migrations
         id: run-migrations
         run: |
-          ./gradlew --no-daemon :liquibaseUpdate
+          ./gradlew --no-daemon :swatch-database:run
 
       - name: Run FloorPlan Query Validation
         run: |
