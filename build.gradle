@@ -11,21 +11,12 @@ plugins {
     id "swatch.spring-boot-conventions"
     id "org.sonarqube"
     id "com.netflix.nebula.release"
-    id 'swatch.liquibase-conventions'
     id 'jacoco-report-aggregation'
     id 'jvm-test-suite'
 }
 
 configurations {
     javaagent
-}
-
-liquibase {
-    activities {
-        main {
-            changelogFile 'liquibase/changelog.xml'
-        }
-    }
 }
 
 allprojects {
@@ -55,11 +46,11 @@ dependencies {
     implementation "com.fasterxml.jackson.module:jackson-module-jakarta-xmlbind-annotations"
     // used to connect to umb
     implementation "org.springframework.boot:spring-boot-starter-activemq"
-    implementation "org.liquibase:liquibase-core"
     implementation "org.postgresql:postgresql"
     implementation libraries["guava"]
-
+    implementation libraries["commons-collections4"]
     implementation libraries["mapstruct"]
+
     annotationProcessor libraries["mapstruct-processor"]
     testAnnotationProcessor libraries["mapstruct-processor"]
 
@@ -69,6 +60,15 @@ dependencies {
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation libraries["wiremock"]
     testImplementation libraries["awaitility"]
+
+    // Run liquibase during testing
+    testImplementation "org.liquibase:liquibase-core"
+    testRuntimeOnly(project(":swatch-database")) {
+        capabilities {
+            requireCapability("com.redhat.swatch:swatch-database-liquibase-test")
+        }
+    }
+
     testImplementation project(':swatch-core-test')
     testImplementation project(':swatch-common-testcontainers')
     testImplementation "org.hsqldb:hsqldb"
