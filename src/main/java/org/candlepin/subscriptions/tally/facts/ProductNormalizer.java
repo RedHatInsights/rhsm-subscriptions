@@ -35,6 +35,7 @@ import org.candlepin.subscriptions.tally.facts.product.SatelliteRoleProductRule;
 import org.candlepin.subscriptions.tally.facts.product.SystemProfileProductIdsProductRule;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 @Slf4j
 @Component
