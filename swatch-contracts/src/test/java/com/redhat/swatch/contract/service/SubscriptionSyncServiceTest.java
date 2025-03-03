@@ -326,7 +326,7 @@ class SubscriptionSyncServiceTest {
     // When syncing an org's subs, don't sync subscriptions that expired more than 2 months ago
     var dto = createDto("456", 10);
     dto.setEffectiveStartDate(toEpochMillis(NOW.minusMonths(14)));
-    dto.setEffectiveEndDate(toEpochMillis(NOW.minusMonths(2)));
+    dto.setEffectiveEndDate(toEpochMillis(NOW.minusDays(60)));
     Mockito.when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(dto));
 
     subscriptionSyncService.reconcileSubscriptionsWithSubscriptionService("100", false);
