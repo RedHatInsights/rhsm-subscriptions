@@ -1260,6 +1260,9 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       tags:
         - contracts_v1
+      security:
+        - support: [ ]
+        - customer: [ ]
 
 components:
   schemas:
