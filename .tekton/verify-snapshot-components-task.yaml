@@ -50,5 +50,5 @@ spec:
               exit 1
               fi
           fi
-          echo "SUCCESS: Component $name matches snapshot SHA."
+          echo "SUCCESS: Component $name with $componentSha matches snapshot SHA $snapshotSha"
         done < <(echo "$components")
