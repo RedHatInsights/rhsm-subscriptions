@@ -24,21 +24,31 @@ spec:
       script: |
         #!/bin/sh
         set -e
+        echo "SNAPSHOT URL: $SNAPSHOT_URL"
+        echo "SNAPSHOT SHA: $SNAPSHOT_SHA"
+        echo "SNAPSHOT: $SNAPSHOT"
         components=$(jq -c '.components[]' <<< "${SNAPSHOT}")
+        echo "components: $components"
         snapshotUrlUrlWithoutSuffix=$(echo $SNAPSHOT_URL | sed 's/\.git$//')
+        echo "snapshotUrlUrlWithoutSuffix: $snapshotUrlUrlWithoutSuffix"
         while read components
         do
           # Variables
           componentUrl=$(echo "$components" | jq -r '.source.git.url')
+          echo "componentUrl: $componentUrl"
           componentUrlWithoutSuffix=$(echo $componentUrl | sed 's/\.git$//')
+          echo "componentUrlWithoutSuffix: $componentUrlWithoutSuffix"
           name=$(echo "$components" | jq -r '.name')
+          echo "name: $name"
           componentSha=$(echo "$components" | jq -r '.source.git.revision')
-            # Check if component git url equals to snapshot git url, if yes check if the snapshot SHA equals to component SHA
-            if [[ \"$componentUrlWithoutSuffix\" == $snapshotUrlUrlWithoutSuffix ]]; then
-                if [[ $componentSha != $snapshotSha ]]; then
-                echo "FAIL: Component $name has different SHA: $componentSha than the snapshot, SHA: $snapshotSha."
-                exit 1
-                fi
-            fi
+          echo "componentSha: $componentSha"
+          echo "snapshotSha: $snapshotSha"
+          # Check if component git url equals to snapshot git url, if yes check if the snapshot SHA equals to component SHA
+          if [[ \"$componentUrlWithoutSuffix\" == $snapshotUrlUrlWithoutSuffix ]]; then
+              if [[ $componentSha != $snapshotSha ]]; then
+              echo "FAIL: Component $name has different SHA: $componentSha than the snapshot, SHA: $snapshotSha."
+              exit 1
+              fi
+          fi
           echo "SUCCESS: Component $name matches snapshot SHA."
         done < <(echo "$components")
