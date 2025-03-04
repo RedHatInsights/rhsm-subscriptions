@@ -30,14 +30,14 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.test.context.support.WithSecurityContextFactory;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 
-public class WithMockPskClientSecurityContextFactory
-    implements WithSecurityContextFactory<WithMockPskPrincipal> {
+public class WithMockAssociateSecurityContextFactory
+    implements WithSecurityContextFactory<WithMockAssociatePrincipal> {
 
   @Override
-  public SecurityContext createSecurityContext(WithMockPskPrincipal annotation) {
+  public SecurityContext createSecurityContext(WithMockAssociatePrincipal annotation) {
     SecurityContext context = SecurityContextHolder.createEmptyContext();
 
-    PskClientPrincipal principal = new PskClientPrincipal();
+    RhAssociatePrincipal principal = new RhAssociatePrincipal();
 
     List<SimpleGrantedAuthority> authorities =
         Arrays.stream(annotation.roles())
