@@ -266,6 +266,7 @@ public class SubscriptionTableController {
         mapper.map(Optional.ofNullable(sub.getServiceLevel()).orElse(ServiceLevel.EMPTY)));
     inventory.setUsage(mapper.map(Optional.ofNullable(sub.getUsage()).orElse(Usage.EMPTY)));
     inventory.setHasInfiniteQuantity(sub.getHasUnlimitedUsage());
+    inventory.setBillingAccountId(sub.getBillingAccountId());
     inventory.setBillingProvider(
         mapper.map(Optional.ofNullable(sub.getBillingProvider()).orElse(BillingProvider.EMPTY)));
     inventory.setQuantity(0);

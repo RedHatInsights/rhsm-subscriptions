@@ -59,7 +59,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
-import org.candlepin.clock.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -69,9 +68,9 @@ class SubscriptionTableControllerV2Test {
 
   private static final ProductId RHEL_FOR_X86 = ProductId.fromString("RHEL for x86");
   private static final String OFFERING_DESCRIPTION_SUFFIX = " test description";
+  private static final String BILLING_ACCOUNT_ID = "billing_account_id_123";
 
   @InjectMock SubscriptionCapacityViewRepository repository;
-  @Inject ApplicationClock clock;
   @Inject SubscriptionTableControllerV2 subscriptionTableControllerV2;
 
   private static final MeasurementSpec RH0180191 =
@@ -169,6 +168,10 @@ class SubscriptionTableControllerV2Test {
         "Wrong upcoming event type");
     assertEquals(
         expectedSub.getEndDate(), actualItem.getNextEventDate(), "Wrong upcoming event date");
+    assertEquals(
+        expectedSub.getBillingAccountId(),
+        actualItem.getBillingAccountId(),
+        "Wrong billing account ID");
   }
 
   @Test
@@ -203,7 +206,7 @@ class SubscriptionTableControllerV2Test {
     assertEquals(
         9, actualItem.getQuantity(), "Item should contain the sum of all subs' quantities");
     assertEquals(18, actualItem.getMeasurements().get(0), "Wrong Standard Capacity");
-    assertEquals(actualItem.getProductName(), actualItem.getProductName());
+    assertEquals(RH0180191.productName, actualItem.getProductName());
     assertEquals(
         SubscriptionEventType.SUBSCRIPTION_END,
         actualItem.getNextEventType(),
@@ -825,6 +828,7 @@ class SubscriptionTableControllerV2Test {
     subscription.setQuantity(quantity);
     subscription.setStartDate(subStart);
     subscription.setEndDate(subEnd);
+    subscription.setBillingAccountId(BILLING_ACCOUNT_ID);
     return subscription;
   }
 
@@ -864,11 +868,6 @@ class SubscriptionTableControllerV2Test {
       this.usage = usage;
       this.hasUnlimitedUsage = hasUnlimitedUsage;
       this.subscription = subscription;
-    }
-
-    public MeasurementSpec withMetric(String metric, Integer value) {
-      otherMetrics.put(metric, value);
-      return this;
     }
 
     public static MeasurementSpec offering(
