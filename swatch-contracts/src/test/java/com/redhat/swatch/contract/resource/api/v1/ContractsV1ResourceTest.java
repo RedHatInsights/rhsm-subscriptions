@@ -48,7 +48,7 @@ import org.mockito.Mockito;
 @TestSecurity(
     user = "owner123456",
     roles = {"customer"})
-public class ContractsV1ResourceTest {
+class ContractsV1ResourceTest {
 
   @Inject ContractsV1Resource resource;
   @InjectMock SubscriptionRepository subscriptionRepository;
@@ -57,12 +57,12 @@ public class ContractsV1ResourceTest {
   private static final String DEFAULT_ORG_ID = "org123";
 
   @BeforeEach
-  public void updateSecurityContext() {
+  void updateSecurityContext() {
     setSecurityContext(false);
   }
 
   @Test
-  public void testFetchBillingAccountIdsForUsersOwnOrg() {
+  void testFetchBillingAccountIdsForUsersOwnOrg() {
     var billingAccountInfoDTOs = new ArrayList<BillingAccountInfoDTO>();
     billingAccountInfoDTOs.add(
         new BillingAccountInfoDTO(DEFAULT_ORG_ID, "account1", BillingProvider.AWS, "rosa"));
@@ -91,19 +91,19 @@ public class ContractsV1ResourceTest {
   }
 
   @Test
-  public void testFetchBillingAccountIdsForNotUsersOrgIsForbidden() {
+  void testFetchBillingAccountIdsForNotUsersOrgIsForbidden() {
     assertThrows(
         ForbiddenException.class, () -> resource.fetchBillingAccountIdsForOrg("notMyOrg", "rosa"));
   }
 
   @Test
-  public void testFetchBillingAccountIdsForOrgByAssociateIsAllowed() {
+  void testFetchBillingAccountIdsForOrgByAssociateIsAllowed() {
     setSecurityContext(true);
     Assertions.assertNotNull(resource.fetchBillingAccountIdsForOrg("notMyOrg", "rosa"));
   }
 
   @Test
-  public void testFetchBillingAccountIdsWithoutProductTag() {
+  void testFetchBillingAccountIdsWithoutProductTag() {
     var billingAccountInfoDTOs = new ArrayList<BillingAccountInfoDTO>();
     billingAccountInfoDTOs.add(
         new BillingAccountInfoDTO(DEFAULT_ORG_ID, "account1", BillingProvider.AWS, "rosa"));
@@ -124,14 +124,14 @@ public class ContractsV1ResourceTest {
   }
 
   @Test
-  public void testFetchBillingAccountIdsWithoutOrgIdThrowsError() {
+  void testFetchBillingAccountIdsWithoutOrgIdThrowsError() {
     assertThrows(
         ConstraintViolationException.class,
         () -> resource.fetchBillingAccountIdsForOrg(null, "rosa"));
   }
 
   @Test
-  public void testFetchBillingAccountIdsWithNullBillingProvider() {
+  void testFetchBillingAccountIdsWithNullBillingProvider() {
     var billingAccountInfoDTOs = new ArrayList<BillingAccountInfoDTO>();
     billingAccountInfoDTOs.add(new BillingAccountInfoDTO(DEFAULT_ORG_ID, "account1", null, "rosa"));
     when(subscriptionRepository.findBillingAccountInfo(any(), any()))
