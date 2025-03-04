@@ -1263,6 +1263,7 @@ paths:
       security:
         - support: [ ]
         - customer: [ ]
+        - test: [ ]
 
 components:
   schemas:
