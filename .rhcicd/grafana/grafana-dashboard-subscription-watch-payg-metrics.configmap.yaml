@@ -1213,7 +1213,7 @@ data:
               "type": "prometheus",
               "uid": "${datasource}"
             },
-            "definition": "label_values(swatch_metrics_ingested_usage_total,product)",
+            "definition": "label_values(swatch_billable_usage_total,product)",
             "hide": 0,
             "includeAll": true,
             "label": "Product",
@@ -1222,7 +1222,7 @@ data:
             "options": [],
             "query": {
               "qryType": 5,
-              "query": "label_values(swatch_metrics_ingested_usage_total,product)",
+              "query": "label_values(swatch_billable_usage_total,product)",
               "refId": "PrometheusVariableQueryEditor-VariableQuery"
             },
             "refresh": 2,
@@ -1241,7 +1241,7 @@ data:
               "type": "prometheus",
               "uid": "${datasource}"
             },
-            "definition": "label_values(swatch_metrics_ingested_usage_total,metric_id)",
+            "definition": "label_values(swatch_billable_usage_total,metric_id)",
             "hide": 0,
             "includeAll": false,
             "label": "Metric",
@@ -1250,7 +1250,7 @@ data:
             "options": [],
             "query": {
               "qryType": 5,
-              "query": "label_values(swatch_metrics_ingested_usage_total,metric_id)",
+              "query": "label_values(swatch_billable_usage_total,metric_id)",
               "refId": "PrometheusVariableQueryEditor-VariableQuery"
             },
             "refresh": 2,
@@ -1269,7 +1269,7 @@ data:
               "type": "prometheus",
               "uid": "${datasource}"
             },
-            "definition": "label_values(swatch_metrics_ingested_usage_total,billing_provider)",
+            "definition": "label_values(swatch_billable_usage_total,billing_provider)",
             "hide": 0,
             "includeAll": false,
             "label": "Billing Provider",
@@ -1278,7 +1278,7 @@ data:
             "options": [],
             "query": {
               "qryType": 5,
-              "query": "label_values(swatch_metrics_ingested_usage_total,billing_provider)",
+              "query": "label_values(swatch_billable_usage_total,billing_provider)",
               "refId": "PrometheusVariableQueryEditor-VariableQuery"
             },
             "refresh": 2,
