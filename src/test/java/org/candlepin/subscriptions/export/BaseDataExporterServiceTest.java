@@ -64,9 +64,11 @@ import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
+@ActiveProfiles("test-containers")
 public abstract class BaseDataExporterServiceTest
     implements ExtendWithExportServiceWireMock, ExtendWithEmbeddedKafka, ExtendWithSwatchDatabase {
 

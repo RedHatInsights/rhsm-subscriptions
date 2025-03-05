@@ -35,6 +35,7 @@ dependencies {
     }
 
     testImplementation project(":swatch-core-test")
+    testImplementation project(":swatch-database") // to allow tests to run Liquibase
     testImplementation "org.springframework:spring-test"
 }
 

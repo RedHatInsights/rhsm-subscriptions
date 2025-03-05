@@ -22,7 +22,6 @@ package com.redhat.swatch.contract.model;
 
 import static com.redhat.swatch.contract.model.ContractSourcePartnerEnum.isAwsMarketplace;
 import static com.redhat.swatch.contract.model.ContractSourcePartnerEnum.isAzureMarketplace;
-import static org.apache.commons.lang3.StringUtils.EMPTY;
 
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.DimensionV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1;
@@ -128,7 +127,7 @@ public interface ContractEntityMapper {
       // for contracts created before ITPART-1180, the client ID is not provided,
       // so we need to default it to empty.
       var azureClientId =
-          Optional.ofNullable(entitlement.getPartnerIdentities().getClientId()).orElse(EMPTY);
+          Optional.ofNullable(entitlement.getPartnerIdentities().getClientId()).orElse("");
       return String.format(
           "%s;%s;%s;%s;%s",
           azureResourceId, azurePlanId, azureOfferId, azureCustomerId, azureClientId);

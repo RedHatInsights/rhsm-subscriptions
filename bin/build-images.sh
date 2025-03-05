@@ -8,11 +8,12 @@ valid_artifacts=('rhsm-subscriptions'
   'swatch-metrics'
   'swatch-billable-usage'
   'swatch-unleash-import'
-  'swatch-metrics-hbi')
+  'swatch-metrics-hbi'
+  'swatch-database')
 
 function build_failed() {
     # Return from the directory the script started in
-    popd
+    popd || exit 1
     exit 1
 }
 
@@ -63,19 +64,22 @@ while getopts ":hkt:" o; do
         h)
             usage
             ;;
+        *)
+            usage
+            ;;
     esac
 done
 shift $((OPTIND-1))
 
 projects=("$@")
 if [ ${#projects[@]} -eq 0 ]; then
-  projects+=(${valid_artifacts[@]})
+  projects+=("${valid_artifacts[@]}")
 fi
 
 function validate_artifact() {
-  for artifact in ${valid_artifacts[@]}
+  for artifact in "${valid_artifacts[@]}"
   do
-    if [[ $artifact == $1 ]]; then
+    if [[ "$artifact" == "$1" ]]; then
       return
     fi
   done
