@@ -1252,6 +1252,16 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BillingAccountIdResponse"
+              example:
+                ids:
+                  - billing_account_id: "151968c3-cf37-47f4-bd76-affbdfb91245"
+                    billing_provider: "aws"
+                    org_id: "123"
+                    product_tag: "rosa"
+                  - billing_account_id: "2cfa4d67-58c9-48c1-9673-bc539b4ea51a"
+                    billing_provider: "azure"
+                    org_id: "124"
+                    product_tag: "rhods"
         '400':
           $ref: "#/components/responses/BadRequest"
         '403':
