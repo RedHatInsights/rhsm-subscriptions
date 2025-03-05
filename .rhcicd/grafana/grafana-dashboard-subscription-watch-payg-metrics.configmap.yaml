@@ -195,7 +195,7 @@ data:
               "disableTextWrap": false,
               "editorMode": "code",
               "exemplar": false,
-              "expr": "sum(increase(swatch_metrics_ingested_usage_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\"}[$interval]))",
+              "expr": "sum(increase(swatch_billable_usage_total{metric_id=\"$metric_id\", product=\"$product\", billing_provider=\"$billing_provider\"}[$interval]))",
               "format": "table",
               "fullMetaSearch": false,
               "includeNullMetadata": true,
@@ -371,7 +371,7 @@ data:
                     "uid": "PDD8BE47D10408F45"
                   },
                   "editorMode": "code",
-                  "expr": "sum(increase(swatch_metrics_ingested_usage_total{product=\"$product\", billing_provider=\"$billing_provider\"}[$interval])) by (metric_id)",
+                  "expr": "sum(increase(swatch_billable_usage_total{product=\"$product\", billing_provider=\"$billing_provider\"}[$interval])) by (metric_id)",
                   "instant": false,
                   "legendFormat": "__auto",
                   "range": true,
