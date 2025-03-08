@@ -510,6 +510,7 @@ paths:
   /v1/subscriptions/billing_account_ids:
     description: Fetch billing account IDs by Org
     get:
+      operationId: fetchBillingAccountIdsForOrg
       parameters:
         - name: org_id
           in: query
@@ -872,7 +873,7 @@ components:
         ids:
           type: array
           items:
-            $ref: "#/components/schemas/BillingAccountIdResponse"
+            $ref: "#/components/schemas/BillingAccountIdInfo"
     BillingAccountIdInfo:
       properties:
         org_id:
