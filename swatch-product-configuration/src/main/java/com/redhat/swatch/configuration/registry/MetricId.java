@@ -28,10 +28,12 @@ import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Data
 // constructor is private so that the factory method is the only way to get a MetricId
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+@Slf4j
 public class MetricId implements Serializable {
 
   private final String value;
@@ -60,6 +62,19 @@ public class MetricId implements Serializable {
             () ->
                 new IllegalArgumentException(
                     String.format("MetricId: %s not found in configuration", value)));
+  }
+
+  /**
+   * Get the metric id value from a String. In case of it does not exist, it returns the string
+   * instead of throwing an exception.
+   */
+  public static String tryGetValueFromString(String metricId) {
+    try {
+      return MetricId.fromString(metricId).getValue();
+    } catch (IllegalArgumentException e) {
+      log.warn("Failed to get the MetricId.value from {}", metricId);
+      return metricId;
+    }
   }
 
   public static Set<MetricId> getAll() {

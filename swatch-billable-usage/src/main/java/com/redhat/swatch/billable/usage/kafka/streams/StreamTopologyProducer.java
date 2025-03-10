@@ -21,6 +21,7 @@
 package com.redhat.swatch.billable.usage.kafka.streams;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redhat.swatch.configuration.registry.MetricId;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.arc.profile.UnlessBuildProfile;
@@ -51,7 +52,8 @@ import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 @UnlessBuildProfile("test")
 public class StreamTopologyProducer {
 
-  public static final String USAGE_TOTAL_METRIC = "swatch_billable_usage_total";
+  public static final String USAGE_TOTAL_AGGREGATED_METRIC =
+      "swatch_billable_usage_total_aggregated";
 
   private final BillableUsageAggregationStreamProperties properties;
   private final ObjectMapper objectMapper;
@@ -104,7 +106,7 @@ public class StreamTopologyProducer {
     log.info("Sending aggregate to hourly topic: {}", aggregate);
     if (key.key().getProductId() != null && key.key().getMetricId() != null) {
       // add metrics for aggregation
-      var counter = Counter.builder(USAGE_TOTAL_METRIC);
+      var counter = Counter.builder(USAGE_TOTAL_AGGREGATED_METRIC);
       if (key.key().getBillingProvider() != null) {
         counter.tag("billing_provider", key.key().getBillingProvider());
       }
@@ -115,7 +117,11 @@ public class StreamTopologyProducer {
 
       counter
           .withRegistry(meterRegistry)
-          .withTags("product", key.key().getProductId(), "metric_id", key.key().getMetricId())
+          .withTags(
+              "product",
+              key.key().getProductId(),
+              "metric_id",
+              MetricId.tryGetValueFromString(key.key().getMetricId()))
           .increment(aggregate.getTotalValue().doubleValue());
     }
   }

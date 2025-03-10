@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.event;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.configuration.util.ProductTagLookupParams;
@@ -35,7 +36,6 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -62,8 +62,6 @@ import org.springframework.util.StringUtils;
 public class EventController {
 
   protected static final String INGESTED_USAGE_METRIC = "swatch_metrics_ingested_usage_total";
-  private static final Set<String> EXCLUDE_LOG_FOR_EVENT_SOURCES =
-      Set.of("prometheus", "rhelemeter");
   private final EventRecordRepository repo;
   private final ObjectMapper objectMapper;
   private final OptInController optInController;
@@ -241,9 +239,7 @@ public class EventController {
       try {
         Event eventToProcess =
             eventNormalizer.normalizeEvent(objectMapper.readValue(entry.getKey(), Event.class));
-        if (!EXCLUDE_LOG_FOR_EVENT_SOURCES.contains(eventToProcess.getEventSource())) {
-          log.info("Event processing in batch: " + entry.getKey());
-        }
+        log.info("Event processing in batch: {}", entry.getKey());
         processEvent(eventToProcess).ifPresent(e -> result.addEvent(e, entry.getValue()));
       } catch (Exception e) {
         log.warn(
@@ -406,8 +402,9 @@ public class EventController {
       counter.tag("billing_provider", event.getBillingProvider().value());
     }
     counter
+        .tag("metric_id", MetricId.tryGetValueFromString(measurement.getMetricId()))
         .withRegistry(meterRegistry)
-        .withTags("product", tag, "metric_id", measurement.getMetricId())
+        .withTags("product", tag)
         .increment(measurement.getValue());
   }
 

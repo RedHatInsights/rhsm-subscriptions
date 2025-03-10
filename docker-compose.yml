@@ -125,6 +125,12 @@ services:
       - UNLEASH_TOKEN=default:development.unleash-insecure-api-token
       - UNLEASH_URL=http://unleash:4242/api
       - UNLEASH_CACHE_DIR=/tmp/.unleashcache
+    healthcheck:
+      test: curl --fail http://localhost:8080/health
+      interval: 2s
+      timeout: 1m
+      retries: 5
+      start_period: 10s
     depends_on:
       kafka:
         condition: service_healthy
@@ -156,7 +162,7 @@ services:
       db:
         condition: service_healthy
       kafka-setup:
-        condition: service_healthy
+        condition: service_completed_successfully
       inventory:  # main inventory deployment runs the db migrations
         condition: service_healthy
     user: root

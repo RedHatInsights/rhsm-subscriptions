@@ -59,7 +59,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
-import org.candlepin.clock.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -69,9 +68,9 @@ class SubscriptionTableControllerV2Test {
 
   private static final ProductId RHEL_FOR_X86 = ProductId.fromString("RHEL for x86");
   private static final String OFFERING_DESCRIPTION_SUFFIX = " test description";
+  private static final String BILLING_ACCOUNT_ID = "billing_account_id_123";
 
   @InjectMock SubscriptionCapacityViewRepository repository;
-  @Inject ApplicationClock clock;
   @Inject SubscriptionTableControllerV2 subscriptionTableControllerV2;
 
   private static final MeasurementSpec RH0180191 =
@@ -91,7 +90,7 @@ class SubscriptionTableControllerV2Test {
           "RH0180194", "RHEL Server", 2, 2, ServiceLevel.STANDARD, Usage.PRODUCTION, false);
   private static final MeasurementSpec RH0180195_UNLIMITED_USAGE =
       MeasurementSpec.offering(
-          "RH0180192", "RHEL Server", null, null, ServiceLevel.STANDARD, Usage.PRODUCTION, true);
+          "RH0180195", "RHEL Server", null, null, ServiceLevel.STANDARD, Usage.PRODUCTION, true);
   private static final MeasurementSpec RH0180196_HYPERVISOR_SOCKETS =
       MeasurementSpec.offering(
           "RH0180196",
@@ -169,6 +168,10 @@ class SubscriptionTableControllerV2Test {
         "Wrong upcoming event type");
     assertEquals(
         expectedSub.getEndDate(), actualItem.getNextEventDate(), "Wrong upcoming event date");
+    assertEquals(
+        expectedSub.getBillingAccountId(),
+        actualItem.getBillingAccountId(),
+        "Wrong billing account ID");
   }
 
   @Test
@@ -203,7 +206,7 @@ class SubscriptionTableControllerV2Test {
     assertEquals(
         9, actualItem.getQuantity(), "Item should contain the sum of all subs' quantities");
     assertEquals(18, actualItem.getMeasurements().get(0), "Wrong Standard Capacity");
-    assertEquals(actualItem.getProductName(), actualItem.getProductName());
+    assertEquals(RH0180191.productName, actualItem.getProductName());
     assertEquals(
         SubscriptionEventType.SUBSCRIPTION_END,
         actualItem.getNextEventType(),
@@ -628,6 +631,35 @@ class SubscriptionTableControllerV2Test {
   }
 
   @Test
+  void testGetSkuCapacityReportLimitedAndUnlimitedQuantityWithMetric() {
+    var productId = RHEL_FOR_X86;
+    var expectedSub = stubSubscription("1234", "1235", 4);
+    var unlimitedSpec = RH0180195_UNLIMITED_USAGE.withSub(expectedSub);
+    var expectedNewerSub = stubSubscription("12345", "12345", 4, 5, 7);
+    var spec1 = RH0180191.withSub(expectedNewerSub);
+
+    givenCapacities(productId, spec1, unlimitedSpec);
+    givenSubscriptionsInRepository(expectedNewerSub, expectedSub);
+
+    when(repository.streamBy(any()))
+        .thenReturn(Stream.of(unlimitedSpec.subscription, expectedNewerSub));
+    givenOfferings(unlimitedSpec);
+
+    // When requesting a SKU capacity report for the eng product and metric
+    var actual =
+        subscriptionTableControllerV2.capacityReportBySkuV2(
+            productId, null, null, null, null, null, null, null, "Sockets", null, null);
+
+    // Then the report contains an inventory item containing the sub with HasInfiniteQuantity true
+    // and a sub with HasInfiniteQuantity false.
+    assertEquals(2, actual.getData().size(), "Wrong number of items returned");
+    var actualLimitedItem = actual.getData().get(1);
+    assertTrue(actualLimitedItem.getHasInfiniteQuantity(), "HasInfiniteQuantity should be false");
+    var actualUnlimitedItem = actual.getData().get(1);
+    assertTrue(actualUnlimitedItem.getHasInfiniteQuantity(), "HasInfiniteQuantity should be true");
+  }
+
+  @Test
   void testShouldSortUnlimitedLastAscending() {
     // Given an org with two active subs with different quantities for different SKUs,
     // and the subs have an eng product with a socket capacity of 2,
@@ -796,6 +828,7 @@ class SubscriptionTableControllerV2Test {
     subscription.setQuantity(quantity);
     subscription.setStartDate(subStart);
     subscription.setEndDate(subEnd);
+    subscription.setBillingAccountId(BILLING_ACCOUNT_ID);
     return subscription;
   }
 
@@ -835,11 +868,6 @@ class SubscriptionTableControllerV2Test {
       this.usage = usage;
       this.hasUnlimitedUsage = hasUnlimitedUsage;
       this.subscription = subscription;
-    }
-
-    public MeasurementSpec withMetric(String metric, Integer value) {
-      otherMetrics.put(metric, value);
-      return this;
     }
 
     public static MeasurementSpec offering(

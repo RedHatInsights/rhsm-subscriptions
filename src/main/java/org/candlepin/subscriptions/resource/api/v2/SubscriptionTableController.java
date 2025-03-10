@@ -91,6 +91,17 @@ public class SubscriptionTableController {
       String metricId,
       SkuCapacityReportSort sort,
       SortDirection dir) {
+    log.info(
+        "Capacity sku report with criteria productId:{} offset:{} limit:{} category:{} servicelevel:{} usage:{} billingProviderType:{} billingAccountId:{} metricId:{}",
+        productId,
+        offset,
+        limit,
+        category,
+        serviceLevel,
+        usage,
+        billingProviderType,
+        billingAccountId,
+        metricId);
     var subscriptionSpec =
         SubscriptionCapacityViewRepository.buildSearchSpecification(
             getOrgId(),
@@ -144,7 +155,7 @@ public class SubscriptionTableController {
     sortCapacities(reportItems, sort, dir);
     Pageable pageable = ResourceUtils.getPageable(offset, limit);
     var page = InMemoryPager.paginate(reportItems, pageable);
-
+    log.debug("Report items {}", reportItems);
     return new SkuCapacityReport()
         .data(page.getContent())
         .meta(
@@ -255,6 +266,7 @@ public class SubscriptionTableController {
         mapper.map(Optional.ofNullable(sub.getServiceLevel()).orElse(ServiceLevel.EMPTY)));
     inventory.setUsage(mapper.map(Optional.ofNullable(sub.getUsage()).orElse(Usage.EMPTY)));
     inventory.setHasInfiniteQuantity(sub.getHasUnlimitedUsage());
+    inventory.setBillingAccountId(sub.getBillingAccountId());
     inventory.setBillingProvider(
         mapper.map(Optional.ofNullable(sub.getBillingProvider()).orElse(BillingProvider.EMPTY)));
     inventory.setQuantity(0);
