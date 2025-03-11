@@ -458,7 +458,13 @@ class EventControllerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"prometheus", "rhelmeter"})
+  @ValueSource(
+      strings = {
+        "prometheus",
+        "rhelmeter",
+        "urn:redhat:source:console:app:aap-controller-billing",
+        "cost-management"
+      })
   void testMeterRegistryCounter(String eventSource) {
     var validProductTagEventRecord1 =
         """
