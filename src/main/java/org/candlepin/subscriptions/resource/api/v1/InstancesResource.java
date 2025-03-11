@@ -27,6 +27,7 @@ import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.UriInfo;
 import java.time.OffsetDateTime;
@@ -39,8 +40,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.HostRepository;
+import org.candlepin.subscriptions.db.HostTallyBucketRepository;
 import org.candlepin.subscriptions.db.TallyInstanceViewRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.DbReportCriteria;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
@@ -49,8 +52,12 @@ import org.candlepin.subscriptions.db.model.TallyInstanceView;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
+import org.candlepin.subscriptions.security.InsightsUserPrincipal;
+import org.candlepin.subscriptions.security.auth.ReportingAccessOrInternalRequired;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.util.ApiModelMapperV1;
+import org.candlepin.subscriptions.utilization.api.v1.model.BillingAccountIdInfo;
+import org.candlepin.subscriptions.utilization.api.v1.model.BillingAccountIdResponse;
 import org.candlepin.subscriptions.utilization.api.v1.model.BillingProviderType;
 import org.candlepin.subscriptions.utilization.api.v1.model.CloudProvider;
 import org.candlepin.subscriptions.utilization.api.v1.model.InstanceData;
@@ -84,6 +91,7 @@ public class InstancesResource implements InstancesApi {
   private final TallyInstanceViewRepository repository;
   private final HostRepository hostRepository;
   private final PageLinkCreator pageLinkCreator;
+  private final HostTallyBucketRepository hostTallyBucketRepository;
 
   @Context UriInfo uriInfo;
 
@@ -91,11 +99,13 @@ public class InstancesResource implements InstancesApi {
       ApiModelMapperV1 mapper,
       TallyInstanceViewRepository tallyInstanceViewRepository,
       HostRepository hostRepository,
-      PageLinkCreator pageLinkCreator) {
+      PageLinkCreator pageLinkCreator,
+      HostTallyBucketRepository hostTallyBucketRepository) {
     this.mapper = mapper;
     this.repository = tallyInstanceViewRepository;
     this.hostRepository = hostRepository;
     this.pageLinkCreator = pageLinkCreator;
+    this.hostTallyBucketRepository = hostTallyBucketRepository;
   }
 
   @Override
@@ -230,6 +240,45 @@ public class InstancesResource implements InstancesApi {
                 .billingAccountId(billingAccountId)
                 .measurements(measurements))
         .data(payload);
+  }
+
+  @jakarta.transaction.Transactional
+  @ReportingAccessOrInternalRequired
+  @Override
+  public BillingAccountIdResponse fetchBillingAccountIdsForOrg(
+      String orgId, String productTag, String billingProvider) {
+    Object principal = ResourceUtils.getPrincipal();
+    if (principal instanceof InsightsUserPrincipal userPrincipal
+        && !userPrincipal.getOrgId().equals(orgId)) {
+      throw new ForbiddenException("The user is not authorized to access this organization.");
+    }
+
+    List<BillingAccountIdInfo> billingAccountIds = new ArrayList<>();
+    hostTallyBucketRepository
+        .billingAccountIds(
+            DbReportCriteria.builder()
+                .orgId(orgId)
+                .productTag(productTag)
+                .billingProvider(BillingProvider.fromString(billingProvider))
+                .build())
+        .forEach(
+            x ->
+                billingAccountIds.add(
+                    new BillingAccountIdInfo()
+                        .orgId(orgId)
+                        .productTag(x.productId())
+                        .billingProvider(getBillingProviderString(x))
+                        .billingAccountId(x.billingAccountId())));
+    return new BillingAccountIdResponse().ids(billingAccountIds);
+  }
+
+  private String getBillingProviderString(
+      HostTallyBucketRepository.BillingAccountIdRecord idRecord) {
+    if (idRecord.billingProvider() == null) {
+      return null;
+    } else {
+      return idRecord.billingProvider().getValue();
+    }
   }
 
   protected void validateBeginningAndEndingDates(

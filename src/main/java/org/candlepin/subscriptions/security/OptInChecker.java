@@ -46,6 +46,9 @@ public class OptInChecker {
 
   public boolean checkAccess(Authentication authentication) {
     Object principal = authentication.getPrincipal();
+    if (RhAssociatePrincipal.class.isAssignableFrom(principal.getClass())) {
+      return true;
+    }
     if (!InsightsUserPrincipal.class.isAssignableFrom(principal.getClass())) {
       // Unrecognized principal.  Allow Spring Security to return Access Denied.
       return false;

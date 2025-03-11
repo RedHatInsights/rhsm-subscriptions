@@ -25,13 +25,13 @@ import java.lang.annotation.RetentionPolicy;
 import org.springframework.security.test.context.support.WithSecurityContext;
 
 /**
- * Creates a mock Psk Client principal for testing
+ * Creates a mock associate principal for testing
  *
  * <p>Defaults to granting role INTERNAL, but can be overridden.
  */
 @Retention(RetentionPolicy.RUNTIME)
-@WithSecurityContext(factory = WithMockPskClientSecurityContextFactory.class)
-public @interface WithMockPskPrincipal {
+@WithSecurityContext(factory = WithMockAssociateSecurityContextFactory.class)
+public @interface WithMockAssociatePrincipal {
 
   /**
    * Set client name
