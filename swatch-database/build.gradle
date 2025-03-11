@@ -1,5 +1,4 @@
 plugins {
-    id 'org.liquibase.gradle'
     id 'swatch.java-conventions'
     id 'application'
     id 'java-library'
@@ -39,55 +38,6 @@ java {
         usingSourceSet(sourceSets.liquibaseTestSupport)
         capability('com.redhat.swatch', 'swatch-database-liquibase-test', '1.0')
     }
-}
-
-// TODO Remove this.  The standalone app I wrote is more powerful making the plugin redundant
-// Gather database connection information from the environment if it is available.  Note that in
-// an actual OpenShift deployment, the migrations are run as a QuarkusApplication and **not**
-// through gradle.  I put the environment variable parsing in place on the off chance that a
-// developer needs to override the default values.
-def dbConfigProvider = providers.environmentVariablesPrefixedBy("DATABASE_")
-def config = dbConfigProvider.get()
-
-def database = config.getOrDefault('DATABASE_DATABASE', 'rhsm-subscriptions')
-def host = config.getOrDefault('DATABASE_HOST', 'localhost')
-def port = config.getOrDefault('DATABASE_PORT', '5432')
-def jdbcUrl = "jdbc:postgresql://${host}:${port}/${database}"
-
-def dbUsername = config.getOrDefault('DATABASE_USERNAME', 'rhsm-subscriptions')
-def dbPassword = config.getOrDefault('DATABASE_PASSWORD', 'rhsm-subscriptions')
-
-liquibase {
-    // force UTC time zone to be consistent with the app
-    jvmArgs "-Duser.timezone=UTC"
-    activities {
-        core {
-            // Unfortunately, changing the directory name that contains the changeset files (e.g.
-            // from "liquibase" to "core" changes the checksum for the changeset and the changeset
-            // shows up as not being applied.
-            changelogFile 'liquibase/changelog.xml'
-
-            url jdbcUrl
-            username dbUsername
-            password dbPassword
-            logLevel "info"
-        }
-        contracts {
-            databaseChangeLogTableName "DATABASECHANGELOG_SWATCH_CONTRACTS"
-            databaseChangeLogLockTableName "DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"
-
-            // Unfortunately, changing the directory name that contains the changeset files (e.g.
-            // from "liquibase" to "core" changes the checksum for the changeset and the changeset
-            // shows up as not being applied.
-            changelogFile 'db/changelog.xml'
-
-            url jdbcUrl
-            username dbUsername
-            password dbPassword
-            logLevel "info"
-        }
-    }
-    runList = 'core, contracts'
 }
 
 dependencies {
