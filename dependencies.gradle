@@ -4,7 +4,7 @@
 ext {
     quarkusVersion='3.19.2'
     springVersion='3.4.3'
-    resteasyVersion='6.2.10.Final'
+    resteasyVersion='6.2.12.Final'
     jacksonVersion='2.18.3'
     mapstructVersion='1.6.3'
     libraries = [:]
