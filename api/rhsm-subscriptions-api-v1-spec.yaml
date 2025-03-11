@@ -545,7 +545,7 @@ paths:
   /v1/subscriptions/billing_account_ids:
     description: Fetch billing account IDs by Org
     get:
-      operationId: fetchBillingAccountIdsForOrg
+      operationId: fetchSubscriptionBillingAccountIdsForOrg
       parameters:
         - name: org_id
           in: query
@@ -920,23 +920,6 @@ components:
       required:
         - first
         - last
-    BillingAccountIdResponse:
-      type: object
-      properties:
-        ids:
-          type: array
-          items:
-            $ref: "#/components/schemas/BillingAccountIdInfo"
-    BillingAccountIdInfo:
-      properties:
-        org_id:
-          type: string
-        product_tag:
-          type: string
-        billing_provider:
-          type: string
-        billing_account_id:
-          type: string
     TallyReportData:
       properties:
         data:

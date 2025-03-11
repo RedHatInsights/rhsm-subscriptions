@@ -92,8 +92,9 @@ class ContractsV1ResourceTest {
 
   @Test
   void testFetchBillingAccountIdsForNotUsersOrgIsForbidden() {
-    assertThrows(
+    ForbiddenException exception = assertThrows(
         ForbiddenException.class, () -> resource.fetchBillingAccountIdsForOrg("notMyOrg", "rosa"));
+    assertEquals("The user is not authorized to access this organization.", exception.getMessage());
   }
 
   @Test
