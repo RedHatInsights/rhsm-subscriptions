@@ -93,7 +93,7 @@ public class UpstreamProductData {
           .collect(Collectors.toUnmodifiableMap(Attr::name, attr -> attr, (a1, a2) -> a1));
 
   /** Ignore any product attribute whose value is in this set. */
-  private static final Set<String> ATTRIBUTE_DISALLOWED_VALUES = Set.of("n/a", "0", "n", "none");
+  private static final Set<String> ATTRIBUTE_DISALLOWED_VALUES = Set.of("n/a", "0", "none");
 
   private UpstreamProductData(String sku) {
     this.sku = sku;

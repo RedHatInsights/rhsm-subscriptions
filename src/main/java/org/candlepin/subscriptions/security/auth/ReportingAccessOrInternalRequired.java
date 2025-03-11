@@ -18,27 +18,29 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.security;
+package org.candlepin.subscriptions.security.auth;
 
+import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import org.springframework.security.test.context.support.WithSecurityContext;
+import java.lang.annotation.Target;
+import org.candlepin.subscriptions.security.RoleProvider;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
- * Creates a mock Psk Client principal for testing
+ * Must have the SWATCH_ADMIN_ROLE and account must be allowlisted for reporting.
  *
- * <p>Defaults to granting role INTERNAL, but can be overridden.
+ * @see RoleProvider
  */
+@Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-@WithSecurityContext(factory = WithMockPskClientSecurityContextFactory.class)
-public @interface WithMockPskPrincipal {
-
-  /**
-   * Set client name
-   *
-   * @return principal name
-   */
-  String value() default "";
-
-  String[] roles() default {RoleProvider.ROLE_INTERNAL};
-}
+@PreAuthorize(
+    "(hasAnyRole('"
+        + RoleProvider.SWATCH_ADMIN_ROLE
+        + "','"
+        + RoleProvider.SWATCH_REPORT_READER
+        + "') and "
+        + "@reportAccessService.providesAccessTo(authentication)) "
+        + "or "
+        + "hasRole('INTERNAL')")
+public @interface ReportingAccessOrInternalRequired {}
