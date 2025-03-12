@@ -227,6 +227,7 @@ spec:
     - name: run-tests
       runAfter:
       - prefetch-dependencies
+      - provision-eaas-space
       taskSpec:
         steps:
           - image: registry.access.redhat.com/ubi9/openjdk-17-runtime
