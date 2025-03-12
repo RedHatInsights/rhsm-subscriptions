@@ -38,6 +38,13 @@ spec:
           cpu: 4
         limits:
           memory: 16Gi
+    - pipelineTaskName: run-tests
+      computeResources:
+        requests:
+          memory: 16Gi
+          cpu: 4
+        limits:
+          memory: 16Gi
   pipelineSpec:
     finally:
     - name: show-sbom
@@ -275,6 +282,7 @@ spec:
         value: $(tasks.clone-repository.results.commit)
       runAfter:
       - prefetch-dependencies
+      - run-tests
       taskRef:
         params:
         - name: name
