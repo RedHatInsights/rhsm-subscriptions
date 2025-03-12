@@ -203,6 +203,21 @@ spec:
       workspaces:
       - name: source
         workspace: workspace
+    - name: provision-eaas-space
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/konflux-ci/build-definitions.git
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: task/eaas-provision-space/0.1/eaas-provision-space.yaml
+      params:
+        - name: ownerName
+          value: $(context.pipelineRun.name)
+        - name: ownerUid
+          value: $(context.pipelineRun.uid)
     - name: run-tests
       runAfter:
       - prefetch-dependencies
