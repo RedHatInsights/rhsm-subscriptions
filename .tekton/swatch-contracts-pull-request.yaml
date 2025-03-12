@@ -34,9 +34,10 @@ spec:
     - pipelineTaskName: build-container
       computeResources:
         requests:
-          memory: 8Gi
+          memory: 16Gi
+          cpu: 4
         limits:
-          memory: 8Gi
+          memory: 16Gi
   pipelineSpec:
     finally:
     - name: show-sbom
@@ -243,11 +244,16 @@ spec:
                   secretKeyRef:
                     name: $(tasks.provision-eaas-space.results.secretRef)
                     key: kubeconfig
+              - name: EAAS_NAMESPACE
+                valueFrom:
+                  secretKeyRef:
+                    name: $(tasks.provision-eaas-space.results.secretRef)
+                    key: namespace
             script: |
               #!/bin/bash -ex
 
               echo "$KUBECONFIG_VALUE" > "$KUBECONFIG"
-              /usr/local/bin/kubedock server --kubeconfig $KUBECONFIG
+              /usr/local/bin/kubedock server --kubeconfig $KUBECONFIG --namespace $EAAS_NAMESPACE
       workspaces:
       - name: source
         workspace: workspace
