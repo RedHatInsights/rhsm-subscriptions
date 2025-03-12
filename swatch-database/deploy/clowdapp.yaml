@@ -85,18 +85,16 @@ objects:
                   secretKeyRef:
                     name: swatch-database-db
                     key: db.name
-              - name: LIQUIBASE_COMMAND_USERNAME
+              - name: DATABASE_USERNAME
                 valueFrom:
                   secretKeyRef:
                     name: swatch-database-db
                     key: db.user
-              - name: LIQUIBASE_COMMAND_PASSWORD
+              - name: DATABASE_PASSWORD
                 valueFrom:
                   secretKeyRef:
                     name: swatch-database-db
                     key: db.password
-              - name: LIQUIBASE_COMMAND_URL
-                value: "jdbc:postgresql://$(DATABASE_HOST):$(DATABASE_PORT)/$(DATABASE_DATABASE)"
               - name: LIQUIBASE_LOG_LEVEL
                 value: "INFO"
             resources:
