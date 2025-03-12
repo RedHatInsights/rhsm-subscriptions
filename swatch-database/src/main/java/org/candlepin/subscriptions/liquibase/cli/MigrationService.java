@@ -33,9 +33,25 @@ import org.slf4j.LoggerFactory;
 
 public class MigrationService {
   private static final Logger log = LoggerFactory.getLogger(MigrationService.class);
+  public static final String HOST_VAR = "DATABASE_HOST";
+  public static final String PORT_VAR = "DATABASE_PORT";
+  public static final String DATABASE_VAR = "DATABASE_DATABASE";
+
+  public static final String USERNAME_VAR = "DATABASE_USERNAME";
+  public static final String PASSWORD_VAR = "DATABASE_PASSWORD";
+  public static final String LIQUIBASE_COMMAND_USERNAME = "liquibase.command.username";
+  public static final String LIQUIBASE_COMMAND_PASSWORD = "liquibase.command.password";
+  public static final String LIQUIBASE_COMMAND_URL = "liquibase.command.url";
+
+  private static String host = System.getenv(HOST_VAR);
+  private static String port = System.getenv(PORT_VAR);
+  private static String database = System.getenv(DATABASE_VAR);
+
+  private static String username = System.getenv(USERNAME_VAR);
+  private static String password = System.getenv(PASSWORD_VAR);
 
   // See https://docs.liquibase.com/parameters/home.html
-  public static final String[] DEFAULT_ARGS =
+  protected static final String[] DEFAULT_ARGS =
       new String[] {"--log-level=INFO", "--show-banner=false"};
 
   enum Context {
@@ -80,6 +96,50 @@ public class MigrationService {
     }
   }
 
+  /**
+   * Liquibase uses its own environment variables, but we want to continue using our own. By pushing
+   * the values from our custom environment variables into system properties, we can provide
+   * developers with the flexibility to completely control the Liquibase invocation through command
+   * line arguments since CLI arguments take priority over system properties. See the Configuration
+   * hierarchy section of <a href="https://docs.liquibase.com/parameters/home.html">the
+   * documentation</a>.
+   */
+  public static void populateSystemProperties() {
+    if (Objects.nonNull(username)) {
+      log.info(
+          "Setting system property {} from environment variable {}",
+          LIQUIBASE_COMMAND_USERNAME,
+          USERNAME_VAR);
+      System.setProperty(LIQUIBASE_COMMAND_USERNAME, username);
+    }
+
+    if (Objects.nonNull(password)) {
+      log.info(
+          "Setting system property {} from environment variable {}",
+          LIQUIBASE_COMMAND_PASSWORD,
+          PASSWORD_VAR);
+      System.setProperty(LIQUIBASE_COMMAND_PASSWORD, password);
+    }
+
+    if (Stream.of(host, port, database).allMatch(Objects::nonNull)) {
+      log.info(
+          "Setting systemp property {} from environment variables {}, {}, {}",
+          LIQUIBASE_COMMAND_URL,
+          HOST_VAR,
+          PORT_VAR,
+          DATABASE_VAR);
+      System.setProperty(
+          LIQUIBASE_COMMAND_URL, "jdbc:postgresql://%s:%s/%s".formatted(host, port, database));
+    } else if (Stream.of(host, port, database).allMatch(Objects::isNull)) {
+      log.debug("No DATABASE_* environment variables detected");
+    } else {
+      throw new IllegalStateException(
+          "DATABASE_HOST, DATABASE_PORT, and DATABASE_DATABASE must "
+              + "all be defined or undefined.  A mixture of defined and undefined variables is not "
+              + "allowed");
+    }
+  }
+
   public static void main(String[] invocationArgs) {
     // If nothing has been provided on the command line, assume we are running as a ClowdApp and
     // just perform a migration for all managed contexts
@@ -98,6 +158,8 @@ public class MigrationService {
               + "the context as the first argument followed by Liquibase commands and arguments");
       invocationArgs = new String[] {"update"};
     }
+
+    populateSystemProperties();
 
     // If the zeroth argument doesn't match a context, then all contexts will be run.  E.g. if
     // the zeroth argument is "update", update will be run for both contexts.
