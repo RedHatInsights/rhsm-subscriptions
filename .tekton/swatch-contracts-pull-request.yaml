@@ -37,8 +37,6 @@ spec:
           memory: 8Gi
         limits:
           memory: 8Gi
-    - pipelineTaskName: run-tests
-      serviceAccountName: kubedock
   pipelineSpec:
     finally:
     - name: show-sbom
@@ -235,8 +233,21 @@ spec:
                 memory: '2Gi'
                 cpu: 2
         sidecars:
-          - image: quay.io/kahowell/kubedock:latest
+          - image: quay.io/cloudservices/kubedock:latest
             name: kubedock
+            env:
+              - name: KUBECONFIG
+                value: /tmp/kubeconfig
+              - name: KUBECONFIG_VALUE
+                valueFrom:
+                  secretKeyRef:
+                    name: $(tasks.provision-eaas-space.results.secretRef)
+                    key: kubeconfig
+            script: |
+              #!/bin/bash -ex
+
+              echo "$KUBECONFIG_VALUE" > "$KUBECONFIG"
+              /usr/local/bin/kubedock server --kubeconfig $KUBECONFIG
       workspaces:
       - name: source
         workspace: workspace
