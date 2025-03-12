@@ -261,7 +261,7 @@ spec:
               #!/bin/bash -ex
 
               echo "$KUBECONFIG_VALUE" > "$KUBECONFIG"
-              /usr/local/bin/kubedock server --kubeconfig $KUBECONFIG --namespace $EAAS_NAMESPACE
+              /usr/local/bin/kubedock server --kubeconfig $KUBECONFIG --namespace $EAAS_NAMESPACE --port-forward -v=9
       workspaces:
       - name: source
         workspace: workspace
