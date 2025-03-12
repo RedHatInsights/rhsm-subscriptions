@@ -201,6 +201,63 @@ spec:
       workspaces:
       - name: source
         workspace: workspace
+    - name: provision-eaas-space
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/konflux-ci/build-definitions.git
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: task/eaas-provision-space/0.1/eaas-provision-space.yaml
+      params:
+        - name: ownerName
+          value: $(context.pipelineRun.name)
+        - name: ownerUid
+          value: $(context.pipelineRun.uid)
+    - name: run-tests
+      runAfter:
+      - prefetch-dependencies
+      - provision-eaas-space
+      taskSpec:
+        steps:
+          - image: registry.access.redhat.com/ubi9/openjdk-17-runtime
+            name: builder
+            workingDir: $(workspaces.source.path)/source
+            # from Jenkins file ./gradlew --no-daemon --no-parallel build testCodeCoverageReport -Dquarkus.gradle-worker.no-process=true
+            script: DOCKER_HOST=tcp://127.0.0.1:2475 ./gradlew :swatch-contracts:test :swatch-contracts:testCodeCoverageReport
+            computeResources:
+              limits:
+                memory: '6Gi'
+                cpu: 6
+              requests:
+                memory: '2Gi'
+                cpu: 2
+        sidecars:
+          - image: quay.io/cloudservices/kubedock:latest
+            name: kubedock
+            env:
+              - name: KUBECONFIG
+                value: /tmp/kubeconfig
+              - name: KUBECONFIG_VALUE
+                valueFrom:
+                  secretKeyRef:
+                    name: $(tasks.provision-eaas-space.results.secretRef)
+                    key: kubeconfig
+              - name: EAAS_NAMESPACE
+                valueFrom:
+                  secretKeyRef:
+                    name: $(tasks.provision-eaas-space.results.secretRef)
+                    key: namespace
+            script: |
+              #!/bin/bash -ex
+
+              echo "$KUBECONFIG_VALUE" > "$KUBECONFIG"
+              /usr/local/bin/kubedock server --kubeconfig $KUBECONFIG --namespace $EAAS_NAMESPACE --port-forward -v=9
+      workspaces:
+      - name: source
+        workspace: workspace
     - name: build-container
       params:
       - name: IMAGE
@@ -219,6 +276,7 @@ spec:
         value: $(tasks.clone-repository.results.commit)
       runAfter:
       - prefetch-dependencies
+      - run-tests
       taskRef:
         params:
         - name: name
