@@ -2,9 +2,9 @@
 // inspired by mockito's gradle structure, which dependabot uses as a test case
 
 ext {
-    quarkusVersion='3.19.2'
+    quarkusVersion='3.19.3'
     springVersion='3.4.3'
-    resteasyVersion='6.2.10.Final'
+    resteasyVersion='6.2.12.Final'
     jacksonVersion='2.18.3'
     mapstructVersion='1.6.3'
     libraries = [:]
@@ -37,7 +37,7 @@ libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-de
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:3.0.0"
-libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.30.37"
+libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.30.38"
 libraries["clowder-quarkus-config-source"] = "com.redhat.cloud.common:clowder-quarkus-config-source:2.7.1"
 libraries["guava"] = "com.google.guava:guava:33.4.0-jre"
 libraries["commons-lang3"] = "org.apache.commons:commons-lang3:3.17.0"
