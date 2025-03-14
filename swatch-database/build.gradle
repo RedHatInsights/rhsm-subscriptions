@@ -1,0 +1,46 @@
+import org.liquibase.gradle.LiquibaseTask
+
+plugins {
+    id 'swatch.java-conventions'
+    id 'application'
+}
+
+ext {
+    javaMainClass = "org.candlepin.subscriptions.liquibase.MigrationService"
+}
+
+application {
+    mainClassName = javaMainClass
+}
+
+jar {
+    manifest {
+        attributes(
+                "Main-Class": javaMainClass
+        )
+    }
+    // Add all dependencies so we have a self-contained JAR
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
+configurations {
+    liquibaseRuntime.extendsFrom runtimeClasspath
+}
+
+dependencies {
+    liquibaseRuntime sourceSets.main.output
+
+    implementation(libraries["liquibase-cli"]) {
+        // These classes are also bundled into liquibase-core
+        exclude group: 'org.liquibase', module: 'liquibase-standard'
+    }
+    implementation libraries["liquibase-core"]
+    implementation libraries["postgresql"]
+    implementation libraries["slf4j-api"]
+    implementation libraries["logback-classic"]
+}
+
+// custom task classes must be assembled into jars before liquibase can reference them
+project.tasks.withType(LiquibaseTask.class).each {it.dependsOn "assemble"}
