@@ -54,13 +54,13 @@ class HypervisorRelationshipServiceTest {
   }
 
   @Test
-  void testProcessGuest_PersistsRelationshipForUnmappedGuest() {
+  void testProcessHost_PersistsRelationshipForUnmappedGuest() {
     String orgId = "orgId";
     String subscriptionManagerId = "abc";
     String hypervisorUuid = "123";
 
     String hbiHostFactJson = "{\"data\":\"Test host fact data\"}";
-    service.processGuest(orgId, subscriptionManagerId, hypervisorUuid, hbiHostFactJson, true);
+    service.processHost(orgId, subscriptionManagerId, hypervisorUuid, true, hbiHostFactJson);
 
     ArgumentCaptor<HypervisorRelationship> captor =
         ArgumentCaptor.forClass(HypervisorRelationship.class);
@@ -71,20 +71,7 @@ class HypervisorRelationshipServiceTest {
     assertEquals(subscriptionManagerId, hypervisorRelationship.getId().getSubscriptionManagerId());
     assertEquals(hypervisorUuid, hypervisorRelationship.getHypervisorUuid());
     assertEquals(hbiHostFactJson, hypervisorRelationship.getFacts());
-  }
-
-  @Test
-  void testProcessGuest_RemovesRelationshipForMappedGuest() {
-    String orgId = "org1";
-    String subscriptionManagerId = "abc";
-    String hypervisorUuid = "123";
-
-    HypervisorRelationshipId expectedId =
-        new HypervisorRelationshipId(orgId, subscriptionManagerId);
-    service.processGuest(orgId, subscriptionManagerId, hypervisorUuid, "", false);
-
-    verify(repository, never()).persist(any(HypervisorRelationship.class));
-    verify(repository, times(1)).deleteById(expectedId);
+    assertTrue(hypervisorRelationship.isUnmappedGuest());
   }
 
   @Test
@@ -102,7 +89,7 @@ class HypervisorRelationshipServiceTest {
     hypervisorRelationship.setCreationDate(expectedCreateUpdateTime);
     hypervisorRelationship.setLastUpdated(expectedCreateUpdateTime);
 
-    service.mapHypervisor(orgId, submanId, factData);
+    service.processHost(orgId, submanId, null, false, factData);
     verify(repository, times(1)).findByIdOptional(hypervisorRelationship.getId());
     verify(repository, times(1)).persist(hypervisorRelationship);
   }
@@ -130,7 +117,7 @@ class HypervisorRelationshipServiceTest {
 
     when(clock.now()).thenReturn(expectedUpdateTime);
 
-    service.mapHypervisor(orgId, submanId, updatedFactData);
+    service.processHost(orgId, submanId, null, false, updatedFactData);
 
     verify(repository, times(1)).findByIdOptional(existingHypervisorRelationship.getId());
 
@@ -154,19 +141,15 @@ class HypervisorRelationshipServiceTest {
     String hypervisorSubmanId = "hypervisorSubmanId1";
     String nonHypervisorSubmanId = "hypervisorSubmanId2";
 
-    HypervisorRelationship guestRelationship = new HypervisorRelationship();
-    guestRelationship.setId(new HypervisorRelationshipId(orgId, "abc"));
-
-    when(repository.findByHypervisorUuid(orgId, hypervisorSubmanId))
-        .thenReturn(List.of(guestRelationship));
-    when(repository.findByHypervisorUuid(orgId, nonHypervisorSubmanId)).thenReturn(List.of());
+    when(repository.guestCount(orgId, hypervisorSubmanId)).thenReturn(1L);
+    when(repository.guestCount(orgId, nonHypervisorSubmanId)).thenReturn(0L);
 
     assertTrue(service.isHypervisor(orgId, hypervisorSubmanId));
     assertFalse(service.isHypervisor(orgId, nonHypervisorSubmanId));
   }
 
   @Test
-  void testIsUnmappedGuest() {
+  void testIsIsKnownHost() {
     String orgId = "org123";
     String unmappedGuestHypervisorUuid = "123";
     String mappedGuestHypervisorUuid = "abc";
@@ -179,8 +162,8 @@ class HypervisorRelationshipServiceTest {
             new HypervisorRelationshipId(orgId, unmappedGuestHypervisorUuid)))
         .thenReturn(Optional.empty());
 
-    assertTrue(service.isUnmappedGuest(orgId, unmappedGuestHypervisorUuid));
-    assertFalse(service.isUnmappedGuest(orgId, mappedGuestHypervisorUuid));
+    assertFalse(service.isKnownHost(orgId, unmappedGuestHypervisorUuid));
+    assertTrue(service.isKnownHost(orgId, mappedGuestHypervisorUuid));
   }
 
   @Test
@@ -188,7 +171,7 @@ class HypervisorRelationshipServiceTest {
     String orgId = "org123";
     String hypervisorUuid = "hypervisorUuid";
     List<HypervisorRelationship> unmapped = List.of(new HypervisorRelationship());
-    when(repository.findByHypervisorUuid(orgId, hypervisorUuid)).thenReturn(unmapped);
+    when(repository.findUnmappedGuests(orgId, hypervisorUuid)).thenReturn(unmapped);
     assertEquals(unmapped, service.getUnmappedGuests(orgId, hypervisorUuid));
   }
 }

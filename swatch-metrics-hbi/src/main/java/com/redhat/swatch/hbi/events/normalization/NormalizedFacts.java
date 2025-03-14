@@ -51,6 +51,8 @@ public class NormalizedFacts {
   private Set<String> productIds;
   private HardwareType hardwareType;
   private OffsetDateTime lastSeen;
+  private boolean isHypervisor;
+  private boolean isUnmappedGuest;
 
   public boolean isGuest() {
     return isVirtual() && StringUtils.isNotEmpty(getHypervisorUuid());

@@ -61,7 +61,6 @@ public class HypervisorRelationship extends PanacheEntityBase {
   @Column(name = "facts", columnDefinition = "jsonb")
   private String facts;
 
-  @JdbcTypeCode(SqlTypes.JSON)
-  @Column(name = "measurements", columnDefinition = "jsonb")
-  private String measurements;
+  @Column(name = "is_unmapped_guest")
+  private boolean isUnmappedGuest;
 }

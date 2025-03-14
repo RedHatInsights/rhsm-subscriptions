@@ -30,6 +30,7 @@ import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
+import com.redhat.swatch.hbi.events.exception.UnrecoverableMessageProcessingException;
 import com.redhat.swatch.hbi.events.normalization.FactNormalizer;
 import com.redhat.swatch.hbi.events.normalization.Host;
 import com.redhat.swatch.hbi.events.normalization.MeasurementNormalizer;
@@ -125,62 +126,77 @@ public class HbiEventConsumer {
             .orElse(ZonedDateTime.now())
             .toOffsetDateTime();
 
-    NormalizedFacts facts = factNormalizer.normalize(host);
-    Event event = buildEvent(hbiHostEvent.getType().toUpperCase(), facts, host, eventTimestamp);
-    // TODO: correlation id from the header?
+    try {
+
+      // Need to update the relationship always.
+      List<Event> toSend = updateHostRelationships(host, hbiHostEvent, eventTimestamp);
+
+      if (flags.emitEvents()) {
+        log.info("Emitting {} HBI events to swatch!", toSend.size());
+        toSend.forEach(eventToSend -> emitter.send(Message.of(eventToSend)));
+      } else {
+        log.info(
+            "Emitting HBI events to swatch is disabled. Not sending {} events.", toSend.size());
+        toSend.forEach(eventToSend -> log.info("EVENT: {}", eventToSend));
+      }
+    } catch (UnrecoverableMessageProcessingException e) {
+      log.warn("Unrecoverable message when processing incoming HBI event.", e);
+    }
+  }
+
+  @Transactional
+  public List<Event> updateHostRelationships(
+      Host targetHost, HbiHostCreateUpdateEvent originalHbiEvent, OffsetDateTime eventTimestamp) {
+    NormalizedFacts facts = factNormalizer.normalize(targetHost);
 
     List<Event> toSend = new ArrayList<>();
-    toSend.add(event);
+    toSend.add(updateHostRelationship(facts, targetHost, originalHbiEvent, eventTimestamp));
 
-    if (facts.isGuest()) {
-      updateGuestRelationship(facts, hbiHostEvent, event.getIsUnmappedGuest());
-    } else if (Boolean.TRUE.equals(event.getIsHypervisor())) {
-      toSend.addAll(updateHypervisorRelationship(facts, hbiHostEvent, eventTimestamp));
+    if (facts.isHypervisor()) {
+      toSend.addAll(updateHypervisorRelationships(facts, eventTimestamp));
+    } else if (facts.isGuest() && !facts.isUnmappedGuest()) {
+      updateGuestRelationships(facts, eventTimestamp).ifPresent(toSend::add);
     }
-
-    if (flags.emitEvents()) {
-      log.info("Emitting {} HBI events to swatch!", toSend.size());
-      toSend.forEach(eventToSend -> emitter.send(Message.of(eventToSend)));
-    } else {
-      log.info("Emitting HBI events to swatch is disabled. Not sending {} events.", toSend.size());
-      toSend.forEach(eventToSend -> log.info("EVENT: {}", eventToSend));
-    }
+    return toSend;
   }
 
-  @Transactional
-  public List<Event> updateHypervisorRelationship(
-      NormalizedFacts facts, HbiHostCreateUpdateEvent hbiHostEvent, OffsetDateTime eventTimestamp) {
-    List<Event> updateGuestEvents = new ArrayList<>();
-    try {
-      hypervisorRelationshipService.mapHypervisor(
-          facts.getOrgId(),
-          facts.getSubscriptionManagerId(),
-          objectMapper.writeValueAsString(hbiHostEvent.getHost()));
-      // Reprocess any unmapped guests and resend an event with updated measurements.
-      hypervisorRelationshipService
-          .getUnmappedGuests(facts.getOrgId(), facts.getSubscriptionManagerId())
-          .forEach(unmapped -> updateGuestEvents.add(refreshGuest(unmapped, eventTimestamp)));
-    } catch (JsonProcessingException e) {
-      // TODO Should this retry, or should it fail silently.
-      throw new RuntimeException(e);
-    }
-    return updateGuestEvents;
+  private Optional<Event> updateGuestRelationships(
+      NormalizedFacts guestFacts, OffsetDateTime eventTimestamp) {
+    // Make sure that the guest's hypervisor data is up to date.
+    Optional<HypervisorRelationship> hypervisor =
+        hypervisorRelationshipService.getRelationship(
+            guestFacts.getOrgId(), guestFacts.getHypervisorUuid());
+    return hypervisor.map(h -> refreshHost("HYPERVISOR_UPDATED", h, eventTimestamp));
   }
 
-  @Transactional
-  public void updateGuestRelationship(
-      NormalizedFacts facts, HbiHostCreateUpdateEvent hbiHostEvent, boolean isUnmappedGuest) {
+  private List<Event> updateHypervisorRelationships(
+      NormalizedFacts facts, OffsetDateTime eventTimestamp) {
+    // Reprocess any unmapped guests and resend an event with updated measurements.
+    return hypervisorRelationshipService
+        .getUnmappedGuests(facts.getOrgId(), facts.getSubscriptionManagerId())
+        .stream()
+        .map(unmapped -> refreshGuest(unmapped, eventTimestamp))
+        .toList();
+  }
+
+  private Event updateHostRelationship(
+      NormalizedFacts facts,
+      Host targetHost,
+      HbiHostCreateUpdateEvent hbiHostEvent,
+      OffsetDateTime eventTimestamp) {
     try {
-      hypervisorRelationshipService.processGuest(
+      hypervisorRelationshipService.processHost(
           facts.getOrgId(),
           facts.getSubscriptionManagerId(),
           facts.getHypervisorUuid(),
-          objectMapper.writeValueAsString(hbiHostEvent.getHost()),
-          isUnmappedGuest);
+          facts.isUnmappedGuest(),
+          objectMapper.writeValueAsString(hbiHostEvent.getHost()));
     } catch (JsonProcessingException e) {
-      // TODO Should this retry, or should it fail silently.
-      throw new RuntimeException(e);
+      throw new UnrecoverableMessageProcessingException(
+          "Unable to serialize host data from HBI host.", e);
     }
+
+    return buildEvent(hbiHostEvent.getType().toUpperCase(), facts, targetHost, eventTimestamp);
   }
 
   /**
@@ -190,21 +206,31 @@ public class HbiEventConsumer {
    * @return a new Event representing the host's new state.
    */
   private Event refreshGuest(HypervisorRelationship unmapped, OffsetDateTime hypervisorTimestamp) {
-    Host host = null;
+    return refreshHost("MAPPED_GUEST_UPDATE", unmapped, hypervisorTimestamp);
+  }
+
+  /**
+   * Refresh a host's measurements and create a new Event representing these changes.
+   *
+   * @param hostRelationship the unmapped guests hypervisor relationship.
+   * @return a new Event representing the host's new state.
+   */
+  private Event refreshHost(
+      String eventType, HypervisorRelationship hostRelationship, OffsetDateTime refreshTimestamp) {
     try {
-      host = new Host(objectMapper.readValue(unmapped.getFacts(), HbiHost.class));
+      Host host = new Host(objectMapper.readValue(hostRelationship.getFacts(), HbiHost.class));
       NormalizedFacts facts = factNormalizer.normalize(host);
-      Event event = buildEvent("HBI_MAPPED_GUEST_UPDATE", facts, host, hypervisorTimestamp);
-      hypervisorRelationshipService.processGuest(
-          unmapped.getId().getOrgId(),
-          unmapped.getId().getSubscriptionManagerId(),
-          unmapped.getHypervisorUuid(),
-          unmapped.getFacts(),
-          false);
+      Event event = buildEvent(eventType, facts, host, refreshTimestamp);
+      hypervisorRelationshipService.processHost(
+          facts.getOrgId(),
+          facts.getSubscriptionManagerId(),
+          facts.getHypervisorUuid(),
+          facts.isUnmappedGuest(),
+          hostRelationship.getFacts());
       return event;
     } catch (JsonProcessingException e) {
-      // TODO Throw proper exception.
-      throw new RuntimeException(e);
+      throw new UnrecoverableMessageProcessingException(
+          "Unable to serialize host data from HBI host.", e);
     }
   }
 
@@ -252,23 +278,16 @@ public class HbiEventConsumer {
   private Event buildEvent(
       String eventType, NormalizedFacts facts, Host hbiHost, OffsetDateTime eventTimestamp) {
 
-    boolean isHypervisor =
-        hypervisorRelationshipService.isHypervisor(
-            facts.getOrgId(), facts.getSubscriptionManagerId());
-    boolean isUnmappedGuest =
-        facts.isGuest()
-            && hypervisorRelationshipService.isUnmappedGuest(
-                facts.getOrgId(), facts.getHypervisorUuid());
-
     // TODO: Product ids/tags
+    // TODO: Move facts properties into normalizer
     NormalizedMeasurements measurements =
         measurementNormalizer.getMeasurements(
             facts,
             hbiHost.getSystemProfileFacts(),
             hbiHost.getRhsmFacts(),
             facts.getProductTags(),
-            isHypervisor,
-            isUnmappedGuest);
+            facts.isHypervisor(),
+            facts.isUnmappedGuest());
 
     return new Event()
         .withServiceType(EVENT_SERVICE_TYPE)
@@ -292,8 +311,8 @@ public class HbiEventConsumer {
         .withProductTag(facts.getProductTags())
         .withMeasurements(convertMeasurements(measurements))
         .withIsVirtual(facts.isVirtual())
-        .withIsUnmappedGuest(isUnmappedGuest)
-        .withIsHypervisor(isHypervisor)
+        .withIsUnmappedGuest(facts.isUnmappedGuest())
+        .withIsHypervisor(facts.isHypervisor())
         .withLastSeen(facts.getLastSeen());
   }
 }

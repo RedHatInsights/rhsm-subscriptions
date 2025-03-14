@@ -27,8 +27,8 @@
       <column name="facts" type="${json_type}">
         <constraints nullable="true"/>
       </column>
-      <column name="measurements" type="${json_type}">
-        <constraints nullable="true"/>
+      <column name="is_unmapped_guest" type="boolean" defaultValue="false">
+        <constraints nullable="false" />
       </column>
     </createTable>
 

@@ -23,7 +23,7 @@ dependencies {
     implementation 'io.quarkus:quarkus-hibernate-validator'
     implementation 'io.quarkus:quarkus-messaging-kafka'
     implementation 'io.quarkus:quarkus-opentelemetry'
-    implementation 'io.quarkus:quarkus-rest' // TODO: Remove later since REST API is temporary
+    implementation 'io.quarkus:quarkus-rest'
     implementation "com.fasterxml.jackson.core:jackson-databind"
     implementation libraries["clowder-quarkus-config-source"]
     implementation libraries["jackson-annotations"] // for json generated models

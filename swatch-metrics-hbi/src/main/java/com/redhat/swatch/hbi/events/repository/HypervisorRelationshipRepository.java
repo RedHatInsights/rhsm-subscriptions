@@ -23,6 +23,7 @@ package com.redhat.swatch.hbi.events.repository;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.List;
+import java.util.Objects;
 
 @ApplicationScoped
 public class HypervisorRelationshipRepository
@@ -34,5 +35,20 @@ public class HypervisorRelationshipRepository
 
   public List<HypervisorRelationship> findByHypervisorUuid(String orgId, String hypervisorUuid) {
     return list("id.orgId=?1 and hypervisorUuid=?2", orgId, hypervisorUuid);
+  }
+
+  public long guestCount(String orgId, String hypervisorUuid) {
+    if (Objects.isNull(hypervisorUuid) || hypervisorUuid.isBlank()) {
+      return 0;
+    }
+    return count("id.orgId=?1 and hypervisorUuid=?2", orgId, hypervisorUuid);
+  }
+
+  public List<HypervisorRelationship> findUnmappedGuests(String orgId, String hypervisorUuid) {
+    if (Objects.isNull(hypervisorUuid) || hypervisorUuid.isBlank()) {
+      return List.of();
+    }
+    return list(
+        "id.orgId=?1 and hypervisorUuid=?2 and isUnmappedGuest=true", orgId, hypervisorUuid);
   }
 }

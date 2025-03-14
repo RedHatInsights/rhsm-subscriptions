@@ -28,6 +28,7 @@ import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import org.candlepin.clock.ApplicationClock;
 
 @ApplicationScoped
@@ -42,58 +43,47 @@ public class HypervisorRelationshipService {
     this.repository = repository;
   }
 
-  /** Adds a relationship if a guest is unmapped, and removes it otherwise. */
+  /** Adds or updates a host relationship. */
   @Transactional
-  public void processGuest(
+  public void processHost(
       String orgId,
       String subscriptionManagerId,
       String hypervisorUuid,
-      String hbiHostFactJson,
-      boolean isUnmapped) {
+      boolean isUnmapped,
+      String hbiHostFactJson) {
     HypervisorRelationshipId id = new HypervisorRelationshipId(orgId, subscriptionManagerId);
-
-    if (isUnmapped) {
-      repository.persist(createOrUpdate(id, hypervisorUuid, hbiHostFactJson));
-    } else {
-      repository.deleteById(id);
-    }
-  }
-
-  /**
-   * Translate create/update the hypervisor mapping and return all unmapped guests for this
-   * hypervisor.
-   */
-  @Transactional
-  public void mapHypervisor(String orgId, String subscriptionManagerId, String hypervisorFacts) {
-    HypervisorRelationshipId id = new HypervisorRelationshipId(orgId, subscriptionManagerId);
-    repository.persist(createOrUpdate(id, null, hypervisorFacts));
+    repository.persist(createOrUpdate(id, hypervisorUuid, isUnmapped, hbiHostFactJson));
   }
 
   @Transactional
   public List<HypervisorRelationship> getUnmappedGuests(String orgId, String hypervisorUuid) {
-    return repository.findByHypervisorUuid(orgId, hypervisorUuid);
+    return repository.findUnmappedGuests(orgId, hypervisorUuid);
   }
 
   @Transactional
   public boolean isHypervisor(String orgId, String subscriptionManagerId) {
-    return !repository.findByHypervisorUuid(orgId, subscriptionManagerId).isEmpty();
+    return repository.guestCount(orgId, subscriptionManagerId) > 0;
   }
 
   @Transactional
-  public boolean isUnmappedGuest(String orgId, String hypervisorUUID) {
+  public boolean isKnownHost(String orgId, String subscriptionManagerId) {
     return repository
-        .findByIdOptional(new HypervisorRelationshipId(orgId, hypervisorUUID))
-        .isEmpty();
+        .findByIdOptional(new HypervisorRelationshipId(orgId, subscriptionManagerId))
+        .isPresent();
   }
 
   private HypervisorRelationship createOrUpdate(
-      HypervisorRelationshipId id, String hypervisorUuid, String hbiHostFactJson) {
+      HypervisorRelationshipId id,
+      String hypervisorUuid,
+      boolean isUnmapped,
+      String hbiHostFactJson) {
     HypervisorRelationship relationship = findOrDefault(id);
     OffsetDateTime now = clock.now();
     if (Objects.isNull(relationship.getCreationDate())) {
       relationship.setCreationDate(now);
     }
     relationship.setHypervisorUuid(hypervisorUuid);
+    relationship.setUnmappedGuest(isUnmapped);
     relationship.setLastUpdated(now);
     relationship.setFacts(hbiHostFactJson);
     return relationship;
@@ -108,5 +98,11 @@ public class HypervisorRelationshipService {
               newRelationship.setId(id);
               return newRelationship;
             });
+  }
+
+  @Transactional
+  public Optional<HypervisorRelationship> getRelationship(
+      String orgId, String subscriptionManagerId) {
+    return repository.findByIdOptional(new HypervisorRelationshipId(orgId, subscriptionManagerId));
   }
 }

@@ -33,7 +33,7 @@
     "provider_type": null,
     "created": "2024-10-18T15:22:14.086713+00:00",
     "updated": "2024-10-18T15:42:28.857787+00:00",
-    "stale_timestamp": "2024-10-19T21:42:28.857787+00:00",
+    "stale_timestamp": "2025-13-19T21:42:28.857787+00:00",
     "stale_warning_timestamp": "2024-10-25T16:42:28.857787+00:00",
     "culled_timestamp": "2024-11-01T16:42:28.857787+00:00",
     "reporter": "rhsm-conduit",

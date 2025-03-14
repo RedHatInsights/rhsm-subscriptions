@@ -50,20 +50,37 @@ class HypervisorRelationshipRepositoryTest {
     relationship1.setHypervisorUuid("uuid1");
     relationship1.setCreationDate(OffsetDateTime.now());
     relationship1.setLastUpdated(OffsetDateTime.now());
+    relationship1.setUnmappedGuest(true);
     relationship1.setFacts("{\"cores\":4,\"sockets\":2}");
-    relationship1.setMeasurements("{\"derivedCores\":4,\"derivedSockets\":2}");
 
     HypervisorRelationshipId id2 = new HypervisorRelationshipId("org1", "subman2");
     HypervisorRelationship relationship2 = new HypervisorRelationship();
     relationship2.setId(id2);
-    relationship2.setHypervisorUuid("uuid2");
     relationship2.setCreationDate(OffsetDateTime.now());
     relationship2.setLastUpdated(OffsetDateTime.now());
     relationship2.setFacts("{\"cores\":8,\"sockets\":4}");
-    relationship2.setMeasurements("{\"derivedCores\":8,\"derivedSockets\":4}");
+
+    HypervisorRelationshipId id3 = new HypervisorRelationshipId("org1", "subman3");
+    HypervisorRelationship relationship3 = new HypervisorRelationship();
+    relationship3.setId(id3);
+    relationship3.setHypervisorUuid("subman2");
+    relationship3.setCreationDate(OffsetDateTime.now());
+    relationship3.setLastUpdated(OffsetDateTime.now());
+    relationship3.setUnmappedGuest(false);
+    relationship3.setFacts("{\"cores\":8,\"sockets\":4}");
+
+    HypervisorRelationshipId id4 = new HypervisorRelationshipId("org3", "subman444");
+    HypervisorRelationship relationship4 = new HypervisorRelationship();
+    relationship4.setId(id4);
+    relationship4.setCreationDate(OffsetDateTime.now());
+    relationship4.setLastUpdated(OffsetDateTime.now());
+    relationship4.setUnmappedGuest(false);
+    relationship4.setFacts("{}");
 
     repository.persist(relationship1);
     repository.persist(relationship2);
+    repository.persist(relationship3);
+    repository.persist(relationship4);
   }
 
   @Transactional
@@ -75,24 +92,17 @@ class HypervisorRelationshipRepositoryTest {
   @Test
   @Transactional
   void testFindByOrgId_ReturnsCorrectNumberOfResults() {
-    List<HypervisorRelationship> results = repository.findByOrgId("org1");
-    assertEquals(2, results.size(), "Expected 2 results for org1");
+    assertEquals(0, repository.findByOrgId("org2").size(), "Expected 0 results for org2");
+    assertEquals(3, repository.findByOrgId("org1").size(), "Expected 3 results for org1");
   }
 
   @Test
   @Transactional
-  void testFindByOrgId_FirstResultHasCorrectOrgId() {
-    List<HypervisorRelationship> results = repository.findByOrgId("org1");
+  void testFindByOrgId_HasCorrectOrgId() {
+    List<HypervisorRelationship> results = repository.findByOrgId("org3");
+    assertEquals(1, results.size(), "Expected 1 result for org3");
     assertEquals(
-        "org1", results.get(0).getId().getOrgId(), "First result should have orgId 'org1'");
-  }
-
-  @Test
-  @Transactional
-  void testFindByOrgId_SecondResultHasCorrectOrgId() {
-    List<HypervisorRelationship> results = repository.findByOrgId("org1");
-    assertEquals(
-        "org1", results.get(1).getId().getOrgId(), "Second result should have orgId 'org1'");
+        "org3", results.get(0).getId().getOrgId(), "First result should have orgId 'org3'");
   }
 
   @Test
@@ -105,7 +115,6 @@ class HypervisorRelationshipRepositoryTest {
     relationship.setCreationDate(OffsetDateTime.now());
     relationship.setLastUpdated(OffsetDateTime.now());
     relationship.setFacts("{\"cores\":16,\"sockets\":8}");
-    relationship.setMeasurements("{\"derivedCores\":16,\"derivedSockets\":8}");
     repository.persist(relationship);
 
     assertTrue(
@@ -117,5 +126,27 @@ class HypervisorRelationshipRepositoryTest {
   void testFindByHypervisorUUID() {
     assertFalse(repository.findByHypervisorUuid("org1", "uuid1").isEmpty());
     assertTrue(repository.findByHypervisorUuid("org2", "uuid1").isEmpty());
+  }
+
+  @Test
+  @Transactional
+  void testGuestCount() {
+    assertEquals(0, repository.guestCount("org1", "unknown"));
+    assertEquals(0, repository.guestCount("org1", null));
+    assertEquals(0, repository.guestCount("org1", ""));
+    assertEquals(0, repository.guestCount("org1", "subman1"));
+    assertEquals(1, repository.guestCount("org1", "subman2"));
+  }
+
+  @Test
+  @Transactional
+  void testFindUnmappedGuests() {
+    assertEquals(0, repository.findUnmappedGuests("org1", "").size());
+    assertEquals(0, repository.findUnmappedGuests("org1", null).size());
+    assertEquals(0, repository.findUnmappedGuests("org1", "subman2").size());
+
+    List<HypervisorRelationship> unmapped = repository.findUnmappedGuests("org1", "uuid1");
+    assertEquals(1, unmapped.size());
+    assertEquals("subman1", unmapped.get(0).getId().getSubscriptionManagerId());
   }
 }

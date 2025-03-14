@@ -28,6 +28,7 @@ import com.redhat.swatch.hbi.events.normalization.facts.QpcFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SatelliteFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
+import com.redhat.swatch.hbi.events.services.HypervisorRelationshipService;
 import io.quarkus.runtime.util.StringUtil;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.time.OffsetDateTime;
@@ -35,6 +36,7 @@ import java.time.format.DateTimeParseException;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.json.Event.CloudProvider;
 import org.candlepin.subscriptions.json.Event.HardwareType;
@@ -49,10 +51,15 @@ public class FactNormalizer {
 
   private final ApplicationClock clock;
   private final ApplicationConfiguration appConfig;
+  private final HypervisorRelationshipService hypervisorRelationshipService;
 
-  public FactNormalizer(ApplicationClock clock, ApplicationConfiguration appConfig) {
+  public FactNormalizer(
+      ApplicationClock clock,
+      ApplicationConfiguration appConfig,
+      HypervisorRelationshipService hypervisorRelationshipService) {
     this.clock = clock;
     this.appConfig = appConfig;
+    this.hypervisorRelationshipService = hypervisorRelationshipService;
   }
 
   public NormalizedFacts normalize(Host host) {
@@ -81,28 +88,24 @@ public class FactNormalizer {
         new ProductNormalizer(
             systemProfileFacts, rhsmFacts, satelliteFacts, qpcFacts, skipRhsmFacts);
 
+    String subscriptionManagerId = host.getHbiHost().getSubscriptionManagerId();
+    boolean isHypervisor = hypervisorRelationshipService.isHypervisor(orgId, subscriptionManagerId);
+    boolean isUnmappedGuest =
+        isVirtual
+            && StringUtils.isNotEmpty(hypervisorUuid)
+            && !hypervisorRelationshipService.isKnownHost(orgId, hypervisorUuid);
+
     return NormalizedFacts.builder()
         .orgId(orgId)
         .inventoryId(inventoryId)
         .instanceId(determineInstanceId(host))
         .insightsId(host.getHbiHost().getInsightsId())
-        .subscriptionManagerId(host.getHbiHost().getSubscriptionManagerId())
+        .subscriptionManagerId(subscriptionManagerId)
         .displayName(host.getHbiHost().getDisplayName())
         .is3rdPartyMigrated(systemProfileFacts.getIs3rdPartyMigrated())
         .usage(
-            determineUsage(
-                orgId,
-                host.getHbiHost().getSubscriptionManagerId(),
-                satelliteFacts,
-                rhsmFacts,
-                skipRhsmFacts))
-        .sla(
-            determineSla(
-                orgId,
-                host.getHbiHost().getSubscriptionManagerId(),
-                satelliteFacts,
-                rhsmFacts,
-                skipRhsmFacts))
+            determineUsage(orgId, subscriptionManagerId, satelliteFacts, rhsmFacts, skipRhsmFacts))
+        .sla(determineSla(orgId, subscriptionManagerId, satelliteFacts, rhsmFacts, skipRhsmFacts))
         .cloudProviderType(cloudProviderType)
         .cloudProvider(
             Objects.nonNull(cloudProviderType)
@@ -112,6 +115,8 @@ public class FactNormalizer {
         .isVirtual(isVirtual)
         .hardwareType(determineHardwareType(systemProfileFacts, isVirtual))
         .hypervisorUuid(hypervisorUuid)
+        .isHypervisor(isHypervisor)
+        .isUnmappedGuest(isUnmappedGuest)
         .productTags(productNormalizer.getProductTags())
         .productIds(productNormalizer.getProductIds())
         .lastSeen(determineLastSeenDate(host))

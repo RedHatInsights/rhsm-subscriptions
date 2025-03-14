@@ -23,6 +23,7 @@ package com.redhat.swatch.hbi.events.normalization;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.common.model.HardwareMeasurementType;
 import com.redhat.swatch.common.model.ServiceLevel;
@@ -33,6 +34,7 @@ import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SatelliteFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
+import com.redhat.swatch.hbi.events.services.HypervisorRelationshipService;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -48,21 +50,26 @@ import org.candlepin.subscriptions.json.Event.CloudProvider;
 import org.candlepin.subscriptions.json.Event.HardwareType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class FactNormalizerTest {
 
   private ApplicationClock clock;
   private FactNormalizer normalizer;
+  @Mock private HypervisorRelationshipService hypervisorRelationshipService;
 
   @BeforeEach
   void setUp() {
     ApplicationConfiguration config = new ApplicationConfiguration();
     config.setHostLastSyncThreshold(Duration.ofHours(24));
     clock = config.applicationClock();
-    normalizer = new FactNormalizer(clock, config);
+    normalizer = new FactNormalizer(clock, config, hypervisorRelationshipService);
   }
 
   // Basic facts are facts that require no logic when deciding the value.
@@ -154,6 +161,40 @@ class FactNormalizerTest {
     }
     assertEquals(
         expectedHypervisorUuid, normalizer.normalize(new Host(hbiHost)).getHypervisorUuid());
+  }
+
+  static Stream<Arguments> isHypervisorNormalizationParams() {
+    return Stream.of(Arguments.of(true), Arguments.of(false));
+  }
+
+  @ParameterizedTest
+  @MethodSource("isHypervisorNormalizationParams")
+  void testIsHypervisorNormalization(boolean expectedHypervisor) {
+    HbiHost hbiHost = hbiHost();
+    when(hypervisorRelationshipService.isHypervisor(
+            hbiHost.getOrgId(), hbiHost.getSubscriptionManagerId()))
+        .thenReturn(expectedHypervisor);
+    NormalizedFacts facts = normalizer.normalize(new Host(hbiHost));
+    assertEquals(expectedHypervisor, facts.isHypervisor());
+    assertEquals(hbiHost.getSubscriptionManagerId(), facts.getSubscriptionManagerId());
+  }
+
+  static Stream<Arguments> isUnmappedGuestNormalizationParams() {
+    return Stream.of(Arguments.of(true), Arguments.of(false));
+  }
+
+  @ParameterizedTest
+  @MethodSource("isUnmappedGuestNormalizationParams")
+  void testIsUnmappedGuestNormalization(boolean isHypervisorKnown) {
+    final String expectedHypervisorUuid = UUID.randomUUID().toString();
+    HbiHost hbiHost = hbiHost();
+    hbiHost.getSystemProfile().put(SystemProfileFacts.HYPERVISOR_UUID_FACT, expectedHypervisorUuid);
+    hbiHost.getSystemProfile().put(SystemProfileFacts.INFRASTRUCTURE_TYPE_FACT, "virtual");
+    when(hypervisorRelationshipService.isKnownHost(hbiHost.getOrgId(), expectedHypervisorUuid))
+        .thenReturn(isHypervisorKnown);
+    NormalizedFacts facts = normalizer.normalize(new Host(hbiHost));
+    assertEquals(!isHypervisorKnown, facts.isUnmappedGuest());
+    assertEquals(expectedHypervisorUuid, facts.getHypervisorUuid());
   }
 
   static Stream<Arguments> isVirtualParams() {
