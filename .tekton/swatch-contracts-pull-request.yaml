@@ -7,8 +7,7 @@ metadata:
     build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
-      == "main"
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && (target_branch == "main" || target_branch == "hotfix")
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: rhsm-subscriptions
@@ -226,7 +225,7 @@ spec:
             name: builder
             workingDir: $(workspaces.source.path)/source
             # from Jenkins file ./gradlew --no-daemon --no-parallel build testCodeCoverageReport -Dquarkus.gradle-worker.no-process=true
-            script: DOCKER_HOST=tcp://127.0.0.1:2475 ./gradlew :swatch-contracts:test :swatch-contracts:testCodeCoverageReport
+            script: DOCKER_HOST=tcp://127.0.0.1:2475 ./gradlew :swatch-contracts:test
             computeResources:
               limits:
                 memory: '6Gi'
