@@ -54,8 +54,6 @@ spec:
                 expression { env.CHANGE_FORK }
                 not {
                   anyOf {
-                    // Kevin Howell
-                    changeRequest author: "kahowell"
                     // Lindsey Burnett
                     changeRequest author: "lindseyburnett"
                     // Alex Wood
@@ -66,8 +64,6 @@ spec:
                     changeRequest author: "kflahert"
                     // Barnaby Court
                     changeRequest author: "barnabycourt"
-                    // Nikhil Kathole
-                    changeRequest author: "ntkathole"
                     // Jose Carvajal
                     changeRequest author: "Sgitario"
                     // Kartik Shah
