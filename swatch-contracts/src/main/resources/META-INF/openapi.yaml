@@ -1119,7 +1119,6 @@ paths:
         - subscriptions_v2
       security:
         - customer: [ ]
-
   /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}:
     description: 'Operations for capacity report for a given account and product'
     parameters:
@@ -1231,6 +1230,50 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       tags:
         - capacity
+  /api/swatch-contracts/v1/subscriptions/billing_account_ids:
+    description: Fetch billing account IDs by Org
+    get:
+      operationId: fetchBillingAccountIdsForOrg
+      parameters:
+        - name: org_id
+          in: query
+          schema:
+            type: string
+          required: true
+        - name: product_tag
+          in: query
+          schema:
+            type: string
+          required: false
+      responses:
+        '200':
+          description: List of billing account ids by org
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BillingAccountIdResponse"
+              example:
+                ids:
+                  - billing_account_id: "151968c3-cf37-47f4-bd76-affbdfb91245"
+                    billing_provider: "aws"
+                    org_id: "123"
+                    product_tag: "rosa"
+                  - billing_account_id: "2cfa4d67-58c9-48c1-9673-bc539b4ea51a"
+                    billing_provider: "azure"
+                    org_id: "124"
+                    product_tag: "rhods"
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '500':
+          $ref: "#/components/responses/InternalServerError"
+      tags:
+        - contracts_v1
+      security:
+        - support: [ ]
+        - customer: [ ]
+        - test: [ ]
 
 components:
   schemas:
@@ -1267,6 +1310,24 @@ components:
           $ref: '../../../../../clients/rh-partner-gateway-client/rh-partner-gateway-api-spec.yaml#/components/schemas/PartnerEntitlementV1'
         subscription_id:
           description: The subscription ID provided by the Subscription API using the subscription number.
+          type: string
+    BillingAccountIdResponse:
+      type: object
+      properties:
+        ids:
+          type: array
+          items:
+            $ref: "#/components/schemas/BillingAccount"
+    BillingAccount:
+      type: object
+      properties:
+        org_id:
+          type: string
+        product_tag:
+          type: string
+        billing_provider:
+          type: string
+        billing_account_id:
           type: string
     ContractResponse:
       required:

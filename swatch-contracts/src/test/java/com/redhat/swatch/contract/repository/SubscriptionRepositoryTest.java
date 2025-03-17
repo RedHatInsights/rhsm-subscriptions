@@ -34,9 +34,12 @@ import jakarta.inject.Inject;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.candlepin.clock.ApplicationClock;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -432,6 +435,106 @@ class SubscriptionRepositoryTest {
 
     var result = subscriptionRepo.findByCriteria(criteria);
     assertEquals(5, result.size());
+  }
+
+  @TestTransaction
+  @Test
+  void testFindBillingAccountInfo() {
+    var expectedOrgId = "123";
+    OfferingEntity rosa =
+        createOffering(
+            "MCT3718", "rosa", 1066, ServiceLevel.SELF_SUPPORT, Usage.PRODUCTION, "ROLE");
+    offeringRepo.persist(rosa);
+
+    OfferingEntity openshift =
+        createOffering(
+            "MW3362",
+            "OpenShift-dedicated-metrics",
+            236,
+            ServiceLevel.SELF_SUPPORT,
+            Usage.PRODUCTION,
+            "ROLE");
+    offeringRepo.persist(openshift);
+
+    var expectedBillingAccountIds = new ArrayList<String>();
+    // Create subscriptions for our expected orgId and product_tag
+    for (int i = 0; i < 5; i++) {
+      SubscriptionEntity subscription =
+          createSubscription(
+              expectedOrgId, String.valueOf(new Random().nextInt()), "expectedSellerAcctId" + i);
+      subscription.setOffering(rosa);
+      subscriptionRepo.persistAndFlush(subscription);
+      expectedBillingAccountIds.add(subscription.getBillingAccountId());
+    }
+    // Create subscriptions for our expected orgId and different product_tag
+    for (int i = 0; i < 5; i++) {
+      SubscriptionEntity subscription =
+          createSubscription(
+              expectedOrgId, String.valueOf(new Random().nextInt()), "unexpectedSellerAcctId" + i);
+      subscription.setOffering(openshift);
+      subscriptionRepo.persistAndFlush(subscription);
+    }
+    // Create subscriptions for a different orgId and the expected product_tag
+    for (int i = 0; i < 5; i++) {
+      SubscriptionEntity subscription =
+          createSubscription("2", String.valueOf(new Random().nextInt()), "NotMySellerAcctId" + i);
+      subscription.setOffering(rosa);
+      subscriptionRepo.persistAndFlush(subscription);
+    }
+
+    var result = subscriptionRepo.findBillingAccountInfo(expectedOrgId, Optional.of("rosa"));
+    assertEquals(5, result.size());
+    var resultBillingAccountIds =
+        result.stream().map(BillingAccountInfoDTO::billingAccountId).collect(Collectors.toSet());
+    assertTrue(resultBillingAccountIds.containsAll(expectedBillingAccountIds));
+  }
+
+  @TestTransaction
+  @Test
+  void findBillingAccountInfoWithoutProductTag() {
+    var expectedOrgId = "123";
+    OfferingEntity rosa =
+        createOffering(
+            "MCT3718", "rosa", 1066, ServiceLevel.SELF_SUPPORT, Usage.PRODUCTION, "ROLE");
+    offeringRepo.persist(rosa);
+
+    OfferingEntity openshift =
+        createOffering(
+            "MW3362",
+            "OpenShift-dedicated-metrics",
+            236,
+            ServiceLevel.SELF_SUPPORT,
+            Usage.PRODUCTION,
+            "ROLE");
+    offeringRepo.persist(openshift);
+
+    var expectedBillingAccountIds = new ArrayList<String>();
+    // Create subscriptions for our expected orgId and rosa tag
+    for (int i = 0; i < 2; i++) {
+      SubscriptionEntity subscription =
+          createSubscription(
+              expectedOrgId, String.valueOf(new Random().nextInt()), "expectedSellerAcctId" + i);
+      subscription.setOffering(rosa);
+      subscriptionRepo.persistAndFlush(subscription);
+      expectedBillingAccountIds.add(subscription.getBillingAccountId());
+    }
+    // Create subscriptions for our expected orgId and openshift tag
+    for (int i = 0; i < 2; i++) {
+      SubscriptionEntity subscription =
+          createSubscription(
+              expectedOrgId,
+              String.valueOf(new Random().nextInt()),
+              "otherExpectedSellerAcctId" + i);
+      subscription.setOffering(openshift);
+      subscriptionRepo.persistAndFlush(subscription);
+      expectedBillingAccountIds.add(subscription.getBillingAccountId());
+    }
+
+    var result = subscriptionRepo.findBillingAccountInfo(expectedOrgId, Optional.empty());
+    assertEquals(4, result.size());
+    var resultBillingAccountIds =
+        result.stream().map(BillingAccountInfoDTO::billingAccountId).collect(Collectors.toSet());
+    assertTrue(resultBillingAccountIds.containsAll(expectedBillingAccountIds));
   }
 
   private OfferingEntity createOffering(String sku, int productId) {

@@ -542,6 +542,46 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InstanceResponse'
+  /v1/subscriptions/billing_account_ids:
+    description: Fetch billing account IDs by Org
+    get:
+      operationId: fetchSubscriptionBillingAccountIdsForOrg
+      parameters:
+        - name: org_id
+          in: query
+          schema:
+            type: string
+          required: true
+        - name: product_tag
+          in: query
+          schema:
+            type: string
+          required: false
+      responses:
+        '200':
+          description: List of billing account ids by org
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BillingAccountIdResponse"
+              example:
+                ids:
+                  - billing_account_id: "151968c3-cf37-47f4-bd76-affbdfb91245"
+                    billing_provider: "aws"
+                    org_id: "123"
+                    product_tag: "rosa"
+                  - billing_account_id: "2cfa4d67-58c9-48c1-9673-bc539b4ea51a"
+                    billing_provider: "azure"
+                    org_id: "124"
+                    product_tag: "rhods"
+        '400':
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags:
+        - contracts
   /v1/subscriptions/products/{product_id}:
     description: "Operations for total capacity by SKU for all of the org's active subscriptions for given Swatch product ID."
     parameters:

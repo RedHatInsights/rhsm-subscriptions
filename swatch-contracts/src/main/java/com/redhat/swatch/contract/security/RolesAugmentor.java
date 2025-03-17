@@ -28,7 +28,6 @@ import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.security.Principal;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -53,7 +52,8 @@ public class RolesAugmentor implements SecurityIdentityAugmentor {
     if (!identity.isAnonymous() && testApisEnabled) {
       roles.add("test");
     }
-    if (principal instanceof RhIdentityPrincipal && isAssociate((RhIdentityPrincipal) principal)) {
+    if (principal instanceof RhIdentityPrincipal
+        && ((RhIdentityPrincipal) principal).isAssociate()) {
       roles.add("support");
     }
     if (principal instanceof PskPrincipal) {
@@ -63,9 +63,5 @@ public class RolesAugmentor implements SecurityIdentityAugmentor {
       log.debug("Granting roles {} to user: {}", roles, principal.getName());
     }
     return Uni.createFrom().item(QuarkusSecurityIdentity.builder(identity).addRoles(roles).build());
-  }
-
-  private static boolean isAssociate(RhIdentityPrincipal principal) {
-    return Objects.equals("Associate", principal.getIdentity().getType());
   }
 }
