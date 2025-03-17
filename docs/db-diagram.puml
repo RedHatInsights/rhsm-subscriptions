@@ -1,0 +1,366 @@
+@startuml
+!theme plain
+top to bottom direction
+skinparam linetype ortho
+
+class account_services {
+   account_number: varchar(255)
+   service_type: varchar(255)
+   org_id: varchar(255)
+}
+class billable_usage_remittance {
+   account_number: varchar(32)
+   org_id: varchar(32)
+   product_id: varchar(32)
+   metric_id: varchar(255)
+   accumulation_period: varchar(255)
+   sla: varchar(255)
+   usage: varchar(255)
+   billing_provider: varchar(255)
+   billing_account_id: varchar(255)
+   remitted_pending_value: double precision
+   remittance_pending_date: timestamp with time zone
+   retry_after: timestamp with time zone
+   tally_id: uuid
+   billed_on: timestamp with time zone
+   error_code: varchar(255)
+   status: varchar(255)
+   uuid: uuid
+}
+class contract_metrics {
+   contract_uuid: uuid
+   metric_id: varchar
+   metric_value: double precision
+   id: uuid
+}
+class contracts {
+   subscription_number: varchar
+   last_updated: timestamp with time zone
+   start_date: timestamp with time zone
+   end_date: timestamp with time zone
+   org_id: varchar
+   sku: varchar
+   billing_provider: varchar
+   billing_account_id: varchar
+   product_id: varchar
+   vendor_product_code: varchar
+   billing_provider_id: varchar
+   uuid: uuid
+}
+class databasechangelog {
+   id: varchar(255)
+   author: varchar(255)
+   filename: varchar(255)
+   dateexecuted: timestamp
+   orderexecuted: integer
+   exectype: varchar(10)
+   md5sum: varchar(35)
+   description: varchar(255)
+   comments: varchar(255)
+   tag: varchar(255)
+   liquibase: varchar(20)
+   contexts: varchar(255)
+   labels: varchar(255)
+   deployment_id: varchar(10)
+   uuid: uuid
+}
+class databasechangelog_swatch_contracts {
+   id: varchar(255)
+   author: varchar(255)
+   filename: varchar(255)
+   dateexecuted: timestamp
+   orderexecuted: integer
+   exectype: varchar(10)
+   md5sum: varchar(35)
+   description: varchar(255)
+   comments: varchar(255)
+   tag: varchar(255)
+   liquibase: varchar(20)
+   contexts: varchar(255)
+   labels: varchar(255)
+   deployment_id: varchar(10)
+   uuid: uuid
+}
+class databasechangelog_swatch_metrics_hbi {
+   id: varchar(255)
+   author: varchar(255)
+   filename: varchar(255)
+   dateexecuted: timestamp
+   orderexecuted: integer
+   exectype: varchar(10)
+   md5sum: varchar(35)
+   description: varchar(255)
+   comments: varchar(255)
+   tag: varchar(255)
+   liquibase: varchar(20)
+   contexts: varchar(255)
+   labels: varchar(255)
+   deployment_id: varchar(10)
+}
+class databasechangeloglock {
+   locked: boolean
+   lockgranted: timestamp
+   lockedby: varchar(255)
+   id: integer
+}
+class databasechangeloglock_swatch_contracts {
+   locked: boolean
+   lockgranted: timestamp
+   lockedby: varchar(255)
+   id: integer
+}
+class databasechangeloglock_swatch_metrics_hbi {
+   locked: boolean
+   lockgranted: timestamp
+   lockedby: varchar(255)
+   id: integer
+}
+class events {
+   timestamp: timestamp with time zone
+   data: jsonb
+   event_type: varchar(60)
+   event_source: varchar(60)
+   instance_id: text
+   org_id: varchar(32)
+   metering_batch_id: uuid
+   record_date: timestamp with time zone
+   event_id: uuid
+}
+class host_tally_buckets {
+   cores: integer
+   sockets: integer
+   measurement_type: varchar(32)
+   version: integer
+   host_id: uuid
+   usage: varchar(255)
+   product_id: varchar(255)
+   sla: varchar(255)
+   as_hypervisor: boolean
+   billing_provider: varchar(255)
+   billing_account_id: varchar(255)
+}
+class hosts {
+   inventory_id: varchar(255)
+   insights_id: varchar(255)
+   org_id: varchar(255)
+   display_name: varchar(255)
+   subscription_manager_id: varchar(255)
+   is_guest: boolean
+   hypervisor_uuid: varchar(255)
+   hardware_type: varchar(32)
+   num_of_guests: integer
+   last_seen: timestamp with time zone
+   is_unmapped_guest: boolean
+   is_hypervisor: boolean
+   cloud_provider: varchar(32)
+   instance_type: varchar(255)
+   instance_id: varchar(255)
+   billing_provider: varchar(255)
+   billing_account_id: varchar(255)
+   last_applied_event_record_date: timestamp with time zone
+   id: uuid
+}
+class hypervisor_relationship {
+   hypervisor_uuid: varchar
+   creation_date: timestamp with time zone
+   last_updated: timestamp with time zone
+   facts: jsonb
+   measurements: jsonb
+   org_id: varchar
+   subscription_manager_id: varchar
+}
+class instance_measurements {
+   value: double precision
+   instance_id: uuid
+   host_id: uuid
+   metric_id: varchar(255)
+}
+class instance_monthly_totals {
+   value: double precision
+   instance_id: uuid
+   host_id: uuid
+   month: varchar(255)
+   metric_id: varchar(255)
+}
+class offering {
+   product_name: varchar(255)
+   product_family: varchar(255)
+   cores: integer
+   sockets: integer
+   hypervisor_cores: integer
+   hypervisor_sockets: integer
+   role: varchar(255)
+   sla: varchar(255)
+   usage: varchar(255)
+   description: varchar(255)
+   has_unlimited_usage: boolean
+   derived_sku: varchar(255)
+   metered: boolean
+   special_pricing_flag: varchar(255)
+   level_1: text
+   level_2: text
+   sku: varchar(255)
+}
+class org_config {
+   opt_in_type: varchar(255)
+   created: timestamp with time zone
+   updated: timestamp with time zone
+   org_id: varchar(255)
+}
+class sku_child_sku {
+   sku: varchar(255)
+   child_sku: varchar(255)
+   id: uuid
+}
+class sku_oid {
+   sku: varchar(255)
+   oid: integer
+   id: uuid
+}
+class sku_product_tag {
+   sku: varchar(255)
+   product_tag: varchar(255)
+   id: uuid
+}
+class subscription {
+   sku: varchar(255)
+   org_id: varchar(255)
+   quantity: bigint
+   end_date: timestamp with time zone
+   billing_provider_id: varchar(255)
+   subscription_number: varchar(255)
+   billing_provider: varchar(255)
+   billing_account_id: varchar(255)
+   subscription_id: varchar(255)
+   start_date: timestamp with time zone
+}
+class subscription_capacity_view {
+   subscription_id: varchar(255)
+   subscription_number: varchar(255)
+   sku: varchar(255)
+   has_unlimited_usage: boolean
+   product_name: varchar(255)
+   service_level: varchar
+   usage: varchar
+   org_id: varchar(255)
+   billing_provider: varchar(255)
+   billing_provider_id: varchar(255)
+   billing_account_id: varchar(255)
+   start_date: timestamp with time zone
+   end_date: timestamp with time zone
+   metrics: jsonb
+   product_tag: varchar(255)
+   quantity: bigint
+}
+class subscription_measurements {
+   value: double precision
+   subscription_id: varchar(255)
+   start_date: timestamp with time zone
+   metric_id: varchar(255)
+   measurement_type: varchar(255)
+}
+class tally_instance_non_payg_view {
+   org_id: varchar(255)
+   id: uuid
+   instance_id: varchar(255)
+   display_name: varchar(255)
+   host_billing_provider: varchar(255)
+   host_billing_account_id: varchar(255)
+   bucket_billing_provider: varchar(255)
+   bucket_billing_account_id: varchar(255)
+   last_seen: timestamp with time zone
+   last_applied_event_record_date: timestamp with time zone
+   num_of_guests: integer
+   product_id: varchar(255)
+   sla: varchar(255)
+   usage: varchar(255)
+   measurement_type: varchar
+   sockets: integer
+   cores: integer
+   subscription_manager_id: varchar(255)
+   inventory_id: varchar(255)
+   hypervisor_uuid: varchar(255)
+   metrics: jsonb
+}
+class tally_instance_payg_view {
+   org_id: varchar(255)
+   id: uuid
+   instance_id: varchar(255)
+   display_name: varchar(255)
+   host_billing_provider: varchar(255)
+   host_billing_account_id: varchar(255)
+   bucket_billing_provider: varchar(255)
+   bucket_billing_account_id: varchar(255)
+   last_seen: timestamp with time zone
+   last_applied_event_record_date: timestamp with time zone
+   num_of_guests: integer
+   product_id: varchar(255)
+   sla: varchar(255)
+   usage: varchar(255)
+   measurement_type: varchar
+   sockets: integer
+   cores: integer
+   subscription_manager_id: varchar(255)
+   inventory_id: varchar(255)
+   hypervisor_uuid: varchar(255)
+   month: varchar(255)
+   metrics: jsonb
+}
+class tally_instance_view {
+   org_id: varchar(255)
+   id: uuid
+   instance_id: varchar(255)
+   display_name: varchar(255)
+   host_billing_provider: varchar(255)
+   host_billing_account_id: varchar(255)
+   bucket_billing_provider: varchar(255)
+   bucket_billing_account_id: varchar(255)
+   last_seen: timestamp with time zone
+   last_applied_event_record_date: timestamp with time zone
+   num_of_guests: integer
+   product_id: varchar(255)
+   sla: varchar(255)
+   usage: varchar(255)
+   measurement_type: varchar
+   sockets: integer
+   cores: integer
+   subscription_manager_id: varchar(255)
+   inventory_id: varchar(255)
+   hypervisor_uuid: varchar(255)
+}
+class tally_measurements {
+   value: double precision
+   snapshot_id: uuid
+   measurement_type: varchar(255)
+   metric_id: varchar(255)
+}
+class tally_snapshots {
+   product_id: varchar(32)
+   granularity: varchar(32)
+   org_id: varchar(32)
+   snapshot_date: timestamp with time zone
+   unit_of_measure: varchar(32)
+   sla: varchar(255)
+   usage: varchar(255)
+   billing_provider: varchar(255)
+   billing_account_id: varchar(255)
+   id: uuid
+}
+class tally_state {
+   latest_event_record_date: timestamp with time zone
+   org_id: varchar(32)
+   service_type: varchar(32)
+}
+
+contract_metrics                          -[#595959,plain]-^  contracts                                : "contract_uuid:uuid"
+host_tally_buckets                        -[#595959,plain]-^  hosts                                    : "host_id:id"
+hosts                                     -[#595959,plain]-^  account_services                         : "org_id, instance_type:org_id, service_type"
+instance_measurements                     -[#595959,plain]-^  hosts                                    : "host_id:id"
+instance_monthly_totals                   -[#595959,plain]-^  hosts                                    : "host_id:id"
+sku_child_sku                             -[#595959,plain]-^  offering                                 : "sku"
+sku_oid                                   -[#595959,plain]-^  offering                                 : "sku"
+sku_product_tag                           -[#595959,plain]-^  offering                                 : "sku"
+subscription                              -[#595959,plain]-^  offering                                 : "sku"
+subscription_measurements                 -[#595959,plain]-^  subscription                             : "subscription_id, start_date"
+tally_measurements                        -[#595959,plain]-^  tally_snapshots                          : "snapshot_id:id"
+@enduml
