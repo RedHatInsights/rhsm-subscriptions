@@ -1,0 +1,5 @@
+docs_dir: docs/
+site_name: Subscription Watch Documentation
+plugins:
+- techdocs-core
+
