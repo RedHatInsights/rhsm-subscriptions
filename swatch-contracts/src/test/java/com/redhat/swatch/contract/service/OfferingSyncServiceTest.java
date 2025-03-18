@@ -271,6 +271,36 @@ class OfferingSyncServiceTest {
   }
 
   @Test
+  void testSyncOfferingWhenMeteredFlagChangedFromTrueToFalse() {
+    // Given an Offering that has metered true
+    // Using "RH02781MO" because it has the metered attribute as Y in
+    // tree-RH02781MO_attrs-true.json.
+    String sku = "RH02781MO";
+    OfferingEntity persisted = new OfferingEntity();
+    persisted.setSku(sku);
+    persisted.setProductName("RHEL Server");
+    persisted.setDescription(
+        "Red Hat Enterprise Linux for Third Party Linux Migration with Extended Life Cycle Support (On-Demand, Monthly Production Support)");
+    persisted.setProductFamily("RHEL");
+    persisted.setServiceLevel(ServiceLevel.PREMIUM);
+    persisted.setUsage(Usage.PRODUCTION);
+    persisted.setHasUnlimitedUsage(false);
+    persisted.setSpecialPricingFlag("MIGRATION_OFFERING");
+    persisted.setLevel1("RHEL");
+    persisted.setLevel2("Server");
+    persisted.setMetered(true);
+    persisted.setChildSkus(Set.of("SVCRH02781"));
+
+    when(repo.findByIdOptional(anyString())).thenReturn(Optional.of(persisted));
+
+    // When syncing the Offering,
+    SyncResult result = subject.syncOffering(sku);
+
+    // Then no persisting or capacity reconciliation should happen.
+    assertEquals(SyncResult.FETCHED_AND_SYNCED, result);
+  }
+
+  @Test
   void testSyncOfferingWithNoChangesFromUmbMessage() throws IOException {
     when(repo.findByIdOptional(any())).thenReturn(Optional.of(createTestOffering()));
     subject.syncUmbProductFromXml(read("mocked-product-message.xml"));

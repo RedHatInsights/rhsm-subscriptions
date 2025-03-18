@@ -2,31 +2,218 @@
   "products": [
     {
       "sku": "RH02781MO",
+      "name": null,
       "description": "Red Hat Enterprise Linux for Third Party Linux Migration with Extended Life Cycle Support (On-Demand, Monthly Production Support)",
       "status": "ACTIVE",
       "attributes": [
         {
-          "code": "PRODUCT_FAMILY",
-          "value": "RHEL"
+          "code": "SPECIAL_PRICING_FLAG",
+          "name": "Special Pricing Flag",
+          "description": null,
+          "contextCode": null,
+          "contextName": null,
+          "contextDescription": null,
+          "value": "MIGRATION_OFFERING",
+          "startDate": null
         },
         {
-          "code": "SOCKET_LIMIT",
-          "value": "Unlimited"
+          "code": "PRODUCT_FAMILY",
+          "name": "Product Family",
+          "description": null,
+          "contextCode": null,
+          "contextName": null,
+          "contextDescription": null,
+          "value": "RHEL",
+          "startDate": null
+        },
+        {
+          "code": "SERVICE_LEVEL",
+          "name": "Service Level",
+          "description": null,
+          "contextCode": null,
+          "contextName": null,
+          "contextDescription": null,
+          "value": "L1-L3",
+          "startDate": null
         },
         {
           "code": "SERVICE_TYPE",
-          "value": "Premium"
+          "name": "Service Type",
+          "description": null,
+          "contextCode": null,
+          "contextName": null,
+          "contextDescription": null,
+          "value": "Premium",
+          "startDate": null
+        },
+        {
+          "code": "USAGE",
+          "name": "Usage",
+          "description": null,
+          "contextCode": null,
+          "contextName": null,
+          "contextDescription": null,
+          "value": "Production",
+          "startDate": null
+        },
+        {
+          "code": "METERED",
+          "name": "Metered",
+          "description": null,
+          "contextCode": null,
+          "contextName": null,
+          "contextDescription": null,
+          "value": "N",
+          "startDate": null
         },
         {
           "code": "PRODUCT_NAME",
-          "value": "RHEL Server"
+          "name": "Product Name",
+          "description": null,
+          "contextCode": null,
+          "contextName": null,
+          "contextDescription": null,
+          "value": "RHEL Server",
+          "startDate": null
         },
         {
-          "code": "SPECIAL_PRICING_FLAG",
-          "value": "MIGRATION_OFFERING"
+          "code": "LEVEL_1",
+          "name": "LEVEL 1",
+          "description": null,
+          "contextCode": null,
+          "contextName": null,
+          "contextDescription": null,
+          "value": "RHEL",
+          "startDate": null
+        },
+        {
+          "code": "LEVEL_2",
+          "name": "LEVEL 2",
+          "description": null,
+          "contextCode": null,
+          "contextName": null,
+          "contextDescription": null,
+          "value": "Server",
+          "startDate": null
+        },
+        {
+          "code": "LEVEL_3",
+          "name": "LEVEL 3",
+          "description": null,
+          "contextCode": null,
+          "contextName": null,
+          "contextDescription": null,
+          "value": "Null",
+          "startDate": null
         }
       ],
       "roles": []
+    },
+    {
+      "sku": "SVCRH02781",
+      "name": null,
+      "description": "Red Hat Enterprise Linux for Third Party Linux Migration with Extended Life Cycle Support (On-Demand, Hourly Production Support)",
+      "itemType": "SPG",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "PRODUCT_FAMILY",
+          "name": "Product Family",
+          "description": null,
+          "contextCode": null,
+          "contextName": null,
+          "contextDescription": null,
+          "value": "RHEL",
+          "startDate": null
+        },
+        {
+          "code": "SERVICE_LEVEL",
+          "name": "Service Level",
+          "description": null,
+          "contextCode": null,
+          "contextName": null,
+          "contextDescription": null,
+          "value": "L1-L3",
+          "startDate": null
+        },
+        {
+          "code": "SERVICE_TYPE",
+          "name": "Service Type",
+          "description": null,
+          "contextCode": null,
+          "contextName": null,
+          "contextDescription": null,
+          "value": "Premium",
+          "startDate": null
+        },
+        {
+          "code": "USAGE",
+          "name": "Usage",
+          "description": null,
+          "contextCode": null,
+          "contextName": null,
+          "contextDescription": null,
+          "value": "Production",
+          "startDate": null
+        },
+        {
+          "code": "METERED",
+          "name": "Metered",
+          "description": null,
+          "contextCode": null,
+          "contextName": null,
+          "contextDescription": null,
+          "value": "Y",
+          "startDate": null
+        },
+        {
+          "code": "PRODUCT_NAME",
+          "name": "Product Name",
+          "description": null,
+          "contextCode": null,
+          "contextName": null,
+          "contextDescription": null,
+          "value": "RHEL Server",
+          "startDate": null
+        },
+        {
+          "code": "LEVEL_1",
+          "name": "LEVEL 1",
+          "description": null,
+          "contextCode": null,
+          "contextName": null,
+          "contextDescription": null,
+          "value": "RHEL",
+          "startDate": null
+        },
+        {
+          "code": "LEVEL_2",
+          "name": "LEVEL 2",
+          "description": null,
+          "contextCode": null,
+          "contextName": null,
+          "contextDescription": null,
+          "value": "Server",
+          "startDate": null
+        },
+        {
+          "code": "LEVEL_3",
+          "name": "LEVEL 3",
+          "description": null,
+          "contextCode": null,
+          "contextName": null,
+          "contextDescription": null,
+          "value": "Null",
+          "startDate": null
+        }
+      ]
+    }
+  ],
+  "parentMap": [
+    {
+      "parent": "RH02781MO",
+      "child": "SVCRH02781",
+      "duration": "30 days"
     }
   ]
 }

@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import static org.candlepin.subscriptions.tally.InventoryAccountUsageCollector.HBI_INSTANCE_TYPE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -29,6 +30,7 @@ import static org.mockito.Mockito.when;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import jakarta.persistence.EntityManager;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
@@ -40,7 +42,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.HostRepository;
@@ -64,6 +65,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.retry.RetryCallback;
@@ -72,6 +74,7 @@ import org.springframework.retry.RetryListener;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
@@ -84,18 +87,21 @@ class TallySnapshotControllerTest implements ExtendWithEmbeddedKafka {
   @MockitoBean EventRecordRepository eventRepo;
   @MockitoBean TallyStateRepository tallyStateRepo;
   @Autowired RetryTemplate collectorRetryTemplate;
-  @Autowired ApplicationClock clock;
-  @Autowired ApplicationProperties props;
+  @MockitoSpyBean ApplicationClock clock;
   @MockitoBean TallySnapshotRepository snapshotRepo;
   @Autowired HostRepository hostRepository;
   @Autowired MetricUsageCollector usageCollector;
   @Autowired TallySnapshotController controller;
   @Autowired AccountServiceInventoryRepository accountRepo;
+  private int numEventsCreated = 0;
 
   @BeforeEach
   void setupTest() {
+    numEventsCreated = 0;
     when(eventRepo.getEntityManager()).thenReturn(mockEntityManager);
     when(tallyStateRepo.save(any())).thenAnswer(a -> a.getArgument(0));
+    // configure clock to have consistent results
+    Mockito.doReturn(OffsetDateTime.of(2022, 1, 10, 15, 0, 0, 0, ZoneOffset.UTC)).when(clock).now();
   }
 
   @Test
@@ -166,7 +172,7 @@ class TallySnapshotControllerTest implements ExtendWithEmbeddedKafka {
     AccountServiceInventoryId inventoryId2 =
         AccountServiceInventoryId.builder().orgId(ORG_ID).serviceType("RHEL System").build();
     AccountServiceInventoryId inventoryId3 =
-        AccountServiceInventoryId.builder().orgId(ORG_ID).serviceType("HBI_HOST").build();
+        AccountServiceInventoryId.builder().orgId(ORG_ID).serviceType(HBI_INSTANCE_TYPE).build();
     accountRepo.saveAll(
         List.of(
             new AccountServiceInventory(inventoryId),
@@ -190,7 +196,7 @@ class TallySnapshotControllerTest implements ExtendWithEmbeddedKafka {
     activeInstance2.setInstanceId(instance1Id);
     activeInstance2.setInstanceType(SERVICE_TYPE);
     activeInstance2.setLastSeen(instanceDate);
-    activeInstance2.setInstanceType("HBI_HOST");
+    activeInstance2.setInstanceType(HBI_INSTANCE_TYPE);
     activeInstance2.setOrgId(ORG_ID);
     activeInstance2.setDisplayName(instance1Id);
 
@@ -213,10 +219,10 @@ class TallySnapshotControllerTest implements ExtendWithEmbeddedKafka {
     // Host 1: monthly totals should be amended.
     // Host 2: monthly totals should remain the same.
     Host instance1 = hosts.get(instance1Id);
-    double instance1ExpectedMonthyTotal =
+    double instance1ExpectedMonthlyTotal =
         monthId.equals(InstanceMonthlyTotalKey.formatMonthId(firstSnapshotHour)) ? 350.0 : 50.0;
     assertEquals(
-        instance1ExpectedMonthyTotal,
+        instance1ExpectedMonthlyTotal,
         instance1.getMonthlyTotal(
             InstanceMonthlyTotalKey.formatMonthId(instance1Event1.getTimestamp()),
             MetricIdUtils.getCores()));
@@ -231,7 +237,25 @@ class TallySnapshotControllerTest implements ExtendWithEmbeddedKafka {
     assertEquals(instance2.getLastAppliedEventRecordDate(), instance2Event1.getRecordDate());
 
     List<TallySnapshot> createdSnapshots = snapshotCaptor.getAllValues();
-    assertEquals(48, createdSnapshots.size());
+    // 48 is from:
+    // - 16 snapshots using granularity hourly from event "instance1Event1" that uses current hour
+    // - 16 snapshots using granularity hourly from event "instance2Event1" that uses current hour
+    // minus 1 hour
+    // - 16 snapshots using granularity daily from the two above events that uses first hour of the
+    // day
+    assertEquals(
+        48,
+        createdSnapshots.size(),
+        () -> {
+          StringBuilder builder = new StringBuilder();
+          builder
+              .append("Unexpected number of created snapshots. Found:")
+              .append(System.lineSeparator());
+          for (TallySnapshot snapshot : createdSnapshots) {
+            builder.append("- ").append(snapshot.toString()).append(System.lineSeparator());
+          }
+          return builder.toString();
+        });
 
     TallySnapshot eventOneHourly =
         createdSnapshots.stream()
@@ -283,7 +307,8 @@ class TallySnapshotControllerTest implements ExtendWithEmbeddedKafka {
             // pulling dates from persisted Host records for comparison. Otherwise,
             // the extra precision points added to OffsetDateTime will cause the test
             // to fail.
-            .withRecordDate(clock.now().truncatedTo(ChronoUnit.MICROS)));
+            .withRecordDate(
+                clock.now().plusMinutes(numEventsCreated++).truncatedTo(ChronoUnit.MICROS)));
   }
 
   private Measurement createMeasurement(Double value) {
@@ -297,7 +322,7 @@ class TallySnapshotControllerTest implements ExtendWithEmbeddedKafka {
   }
 
   /** A retry listener that tracks whether the RetryTemplate had failed during testing. */
-  private class TestingRetryListener implements RetryListener {
+  private static class TestingRetryListener implements RetryListener {
     private boolean retryOccurred;
 
     @Override

@@ -386,11 +386,9 @@ public class EventController {
       if (event.getProductTag() == null || event.getMeasurements() == null) {
         continue;
       }
-      if ("prometheus".equalsIgnoreCase(event.getEventSource())) {
-        for (String tag : event.getProductTag()) {
-          for (Measurement measurement : event.getMeasurements()) {
-            updateIngestedUsageCounterFor(event, tag, measurement);
-          }
+      for (String tag : event.getProductTag()) {
+        for (Measurement measurement : event.getMeasurements()) {
+          updateIngestedUsageCounterFor(event, tag, measurement);
         }
       }
     }
@@ -403,6 +401,7 @@ public class EventController {
     }
     counter
         .tag("metric_id", MetricId.tryGetValueFromString(measurement.getMetricId()))
+        .tag("event_source", event.getEventSource())
         .withRegistry(meterRegistry)
         .withTags("product", tag)
         .increment(measurement.getValue());

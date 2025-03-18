@@ -18,27 +18,10 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.security;
+package com.redhat.swatch.contract.repository;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import org.springframework.security.test.context.support.WithSecurityContext;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 
-/**
- * Creates a mock Psk Client principal for testing
- *
- * <p>Defaults to granting role INTERNAL, but can be overridden.
- */
-@Retention(RetentionPolicy.RUNTIME)
-@WithSecurityContext(factory = WithMockPskClientSecurityContextFactory.class)
-public @interface WithMockPskPrincipal {
-
-  /**
-   * Set client name
-   *
-   * @return principal name
-   */
-  String value() default "";
-
-  String[] roles() default {RoleProvider.ROLE_INTERNAL};
-}
+@RegisterForReflection
+public record BillingAccountInfoDTO(
+    String orgId, String billingAccountId, BillingProvider billingProvider, String productTag) {}

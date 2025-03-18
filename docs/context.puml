@@ -16,6 +16,8 @@ Boundary(swatch, "Susbscription watch") {
   System(metrics_ingress, "Metrics Ingress", "Services that sync system/instance telemetry data into Subscription watch.")
   System(tally, "Tally", "Service that tallies system usage based on telemetry data from various sources.")
   System(subscription_sync, "Subscription Sync", "Service that syncs subscription/offering data from RH IT services.")
+  System(contracts, "Contracts", "Service that handles prepaid PAYG contract data")
+  System(billable_usage, "Billable Usage", "Service that handles common billing/remittance data & logic.")
   System(billing_producers, "Billing Producers", "Services that notify billing services of hourly usage.")
 }
 

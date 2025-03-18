@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.resource.api.v1;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -30,6 +31,7 @@ import static org.mockito.Mockito.when;
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.core.UriInfo;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -38,16 +40,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.candlepin.subscriptions.db.HostRepository;
+import org.candlepin.subscriptions.db.HostTallyBucketRepository;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.TallyInstanceViewRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.DbReportCriteria;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.HostHardwareType;
 import org.candlepin.subscriptions.db.model.TallyInstanceNonPaygView;
 import org.candlepin.subscriptions.db.model.TallyInstancePaygView;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
+import org.candlepin.subscriptions.security.WithMockAssociatePrincipal;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
+import org.candlepin.subscriptions.utilization.api.v1.model.BillingAccountIdResponse;
 import org.candlepin.subscriptions.utilization.api.v1.model.BillingProviderType;
 import org.candlepin.subscriptions.utilization.api.v1.model.CloudProvider;
 import org.candlepin.subscriptions.utilization.api.v1.model.InstanceData;
@@ -63,6 +69,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -73,16 +80,18 @@ class InstancesResourceTest {
   private static final ProductId ROSA = ProductId.fromString("rosa");
   private static final ProductId RHEL_FOR_X86 = ProductId.fromString("RHEL for x86");
   private static final String SORT_BY_DISPLAY_NAME = "display_name";
+  private static final ProductId RHEL_FOR_ARM = ProductId.fromString("RHEL for ARM");
 
   @MockitoBean TallyInstanceViewRepository repository;
   @MockitoBean HostRepository hostRepository;
   @MockitoBean PageLinkCreator pageLinkCreator;
   @MockitoBean OrgConfigRepository orgConfigRepository;
+  @MockitoBean HostTallyBucketRepository hostTallyBucketRepository;
   @MockitoBean UriInfo uriInfo;
   @Autowired InstancesResource resource;
 
   @BeforeEach
-  public void setup() {
+  void setup() {
     when(orgConfigRepository.existsByOrgId("owner123456")).thenReturn(true);
   }
 
@@ -662,5 +671,68 @@ class InstancesResourceTest {
     assertThrows(
         AuthenticationCredentialsNotFoundException.class,
         () -> resource.getInstanceGuests("instance123", null, null));
+  }
+
+  @Test
+  @WithMockRedHatPrincipal(value = "123456")
+  void testBillingAcccountIdsAllowedWithMatchingOrg() {
+    List<HostTallyBucketRepository.BillingAccountIdRecord> idRecords =
+        (List.of(
+            new HostTallyBucketRepository.BillingAccountIdRecord(
+                RHEL_FOR_ARM.getValue(), BillingProvider.AWS, "account123456"),
+            new HostTallyBucketRepository.BillingAccountIdRecord(
+                RHEL_FOR_ARM.getValue(), BillingProvider.AWS, "account789")));
+    when(hostTallyBucketRepository.billingAccountIds(
+            any(DbReportCriteria.builder().build().getClass())))
+        .thenReturn(idRecords);
+    BillingAccountIdResponse reponse =
+        resource.fetchBillingAccountIdsForOrg(
+            "owner123456", RHEL_FOR_ARM.getValue(), BillingProvider.AWS.getValue());
+    assertThat(reponse.getIds()).hasSize(2);
+  }
+
+  @Test
+  @WithMockRedHatPrincipal(value = "123456")
+  void testAccessDeniedNotMatchingOrg() {
+    String productTag = RHEL_FOR_ARM.getValue();
+    String billingProvider = BillingProvider.AWS.getValue();
+    assertThrows(
+        ForbiddenException.class,
+        () -> {
+          resource.fetchBillingAccountIdsForOrg("owner789", productTag, billingProvider);
+        });
+  }
+
+  @Test
+  @WithMockRedHatPrincipal(
+      value = "123456",
+      roles = {})
+  void testAccessDeniedNotAdmin() {
+    willThrowAuthorizationDeniedException();
+  }
+
+  @Test
+  @WithMockAssociatePrincipal
+  void testAccessAllowedWithAssociate() {
+    BillingAccountIdResponse reponse =
+        resource.fetchBillingAccountIdsForOrg(
+            "owner789", RHEL_FOR_ARM.getValue(), BillingProvider.AWS.getValue());
+    assertThat(reponse.getIds()).isEmpty();
+  }
+
+  @Test
+  @WithMockAssociatePrincipal(roles = {})
+  void testAccessDeniedWithAssociateNotAdmin() {
+    willThrowAuthorizationDeniedException();
+  }
+
+  private void willThrowAuthorizationDeniedException() {
+    String productTag = RHEL_FOR_ARM.getValue();
+    String billingProvider = BillingProvider.AWS.getValue();
+    assertThrows(
+        AuthorizationDeniedException.class,
+        () -> {
+          resource.fetchBillingAccountIdsForOrg("owner789", productTag, billingProvider);
+        });
   }
 }

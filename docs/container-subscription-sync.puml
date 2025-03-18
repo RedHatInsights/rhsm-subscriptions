@@ -6,14 +6,14 @@ skinparam backgroundColor #FEFEFE
 
 LAYOUT_WITH_LEGEND()
 
-title Container diagram for Subscription watch Subscription Sync
+title Container diagram for Subscription watch Contracts
 
 Boundary(crc, console.redhat.com) {
   Boundary(swatch, "Subscription watch") {
-    System_Boundary(subscription_sync, "Subscription Sync") {
+    System_Boundary(subscription_sync, "swatch-contracts") {
       Container(subscription_sync_job, "Subscription Sync CronJob", "Java, Container", "CronJob for syncing subscription data.")
       Container(offering_sync_job, "Offering Sync CronJob", "Java, Container", "CronJob for syncing offering data.")
-      Container(capacity_ingress, "Capacity Ingress", "Java, Container", "Syncs subscription data from backoffice services.")
+      Container(contracts, "swatch-contracts", "Java, Container", "Syncs subscription data from backoffice services.")
       ContainerQueue(offering_sync_tasks, "platform.rhsm-subscriptions.offering-sync", "Kafka Topic")
       ContainerQueue(capacity_reconcile_tasks, "platform.rhsm-subscriptions.capacity-reconcile", "Kafka Topic")
       ContainerQueue(subscription_sync_tasks, "platform.rhsm-subscriptions.subscription-sync", "Kafka Topic")
@@ -25,7 +25,10 @@ Boundary(crc, console.redhat.com) {
 Boundary(rhit, "Red Hat IT") {
   System_Ext(rhit_subscriptions, "RH IT Subscription Service", "The internal RH Subscription API.")
   System_Ext(rhit_product, "RH IT Product Service", "The internal RH Product API which contains Offering definitions.")
+  System_Ext(partnergw, "IT Partner Services", "Handles Cloud Provider Listings and SaaS Subscription Lifecycle")
   ContainerQueue_Ext(rhit_umb_subscription, "VirtualTopic.canonical.subscription", "ActiveMQ VirtualTopic")
+  ContainerQueue_Ext(rhit_umb_product, "VirtualTopic.canonical.operationalProduct", "ActiveMQ VirtualTopic")
+  ContainerQueue_Ext(rhit_contracts, "VirtualTopic.services.partner-entitlement-gateway", "ActiveMQ VirtualTopic")
 }
 
 ' capacity ingress process
@@ -33,12 +36,17 @@ Rel(subscription_sync_job, subscription_sync_tasks, "Produces to")
 Rel(subscription_sync_job, capacity_reconcile_tasks, "Produces to")
 Rel(offering_sync_job, offering_sync_tasks, "Produces to")
 Rel(offering_sync_job, capacity_reconcile_tasks, "Produces to")
-Rel_Back(subscription_sync_tasks, capacity_ingress, "Consumes from")
-Rel_Back(capacity_reconcile_tasks, capacity_ingress, "Consumes from")
-Rel_Back(offering_sync_tasks, capacity_ingress, "Consumes from")
-Rel(capacity_ingress, db, "Reads from and writes to", "JDBC")
-Rel(capacity_ingress, rhit_subscriptions, "Reads from", "JSON/HTTPS")
-Rel_Back(capacity_ingress, rhit_umb_subscription, "Notifies", "XML")
-Rel(capacity_ingress, rhit_product, "Reads from", "JSON/HTTPS")
+Rel_Back(subscription_sync_tasks, contracts, "Consumes from")
+Rel_Back(capacity_reconcile_tasks, contracts, "Consumes from")
+Rel_Back(offering_sync_tasks, contracts, "Consumes from")
+Rel(contracts, db, "Reads from and writes to", "JDBC")
+Rel(contracts, rhit_subscriptions, "Reads from", "JSON/HTTPS")
+Rel_Back(contracts, rhit_umb_subscription, "Notifies", "XML")
+Rel_Back(contracts, rhit_umb_product, "Notifies", "XML")
+Rel_Back(contracts, rhit_contracts, "Notifies", "JSON")
+Rel(contracts, rhit_product, "Reads from", "JSON/HTTPS")
+Rel(contracts, partnergw, "Reads from", "JSON/HTTPS")
+Rel(rhit_product, rhit_umb_product, "Notifies", "XML")
 Rel(rhit_subscriptions, rhit_umb_subscription, "Notifies", "XML")
+Rel(partnergw, rhit_contracts, "Notifies", "JSON")
 @enduml

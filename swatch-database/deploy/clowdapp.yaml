@@ -1,0 +1,108 @@
+---
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: swatch-database
+parameters:
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
+  - name: MEMORY_REQUEST
+    value: 256Mi
+  - name: MEMORY_LIMIT
+    value: 512Mi
+  - name: CPU_REQUEST
+    value: 100m
+  - name: CPU_LIMIT
+    value: 300m
+  - name: WAIT_IMAGE
+    value: quay.io/cloudservices/rhsm-subscriptions
+  - name: WAIT_TAG
+    value: latest
+  - name: WAIT_MEMORY_REQUEST
+    value: 10Mi
+  - name: WAIT_MEMORY_LIMIT
+    value: 20Mi
+  - name: WAIT_CPU_REQUEST
+    value: 100m
+  - name: WAIT_CPU_LIMIT
+    value: 100m
+  - name: ENV_NAME
+    value: env-swatch-database
+  - name: REPLICAS
+    value: '1'
+  - name: IMAGE
+    value: quay.io/cloudservices/rhsm-subscriptions
+  - name: IMAGE_TAG
+    value: latest
+
+objects:
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdApp
+    metadata:
+      name: swatch-database
+    spec:
+      envName: ${ENV_NAME}
+      pullSecrets:
+        name: ${IMAGE_PULL_SECRET}
+
+      jobs:
+        - name: migrations-job
+          activeDeadlineSeconds: 1800
+          successfulJobsHistoryLimit: 2
+          podSpec:
+            image: ${IMAGE}:${IMAGE_TAG}
+            initContainers:
+              - image: ${WAIT_IMAGE}:${WAIT_TAG}
+                command: ["ls"]
+                resources:
+                  requests:
+                    cpu: ${WAIT_CPU_REQUEST}
+                    memory: ${WAIT_MEMORY_REQUEST}
+                  limits:
+                    cpu: ${WAIT_CPU_LIMIT}
+                    memory: ${WAIT_MEMORY_LIMIT}
+            command: ["ls"]
+            env:
+              - name: DATABASE_HOST
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-tally-db
+                    key: db.host
+              - name: DATABASE_PORT
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-tally-db
+                    key: db.port
+              - name: DATABASE_DATABASE
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-tally-db
+                    key: db.name
+              - name: DATABASE_USERNAME
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-tally-db
+                    key: db.user
+              - name: DATABASE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-tally-db
+                    key: db.password
+              - name: LIQUIBASE_LOG_LEVEL
+                value: "INFO"
+            resources:
+              requests:
+                cpu: ${CPU_REQUEST}
+                memory: ${MEMORY_REQUEST}
+              limits:
+                cpu: ${CPU_LIMIT}
+                memory: ${MEMORY_LIMIT}
+
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdJobInvocation
+    metadata:
+      name: swatch-database
+    spec:
+      appName: swatch-database
+      jobs:
+        - migrations-job
