@@ -36,6 +36,12 @@ spec:
           memory: 8Gi
         limits:
           memory: 8Gi
+    - pipelineTaskName: run-tests
+      computeResources:
+        requests:
+          memory: 8Gi
+        limits:
+          memory: 8Gi
   pipelineSpec:
     finally:
     - name: show-sbom
@@ -228,14 +234,7 @@ spec:
             name: builder
             workingDir: $(workspaces.source.path)/source
             # from Jenkins file ./gradlew --no-daemon --no-parallel build testCodeCoverageReport -Dquarkus.gradle-worker.no-process=true
-            script: DOCKER_HOST=tcp://127.0.0.1:2475 ./gradlew :swatch-contracts:test
-            computeResources:
-              limits:
-                memory: '6Gi'
-                cpu: 6
-              requests:
-                memory: '2Gi'
-                cpu: 2
+            script: DOCKER_HOST=tcp://127.0.0.1:2475 ./gradlew :swatch-contracts:dependencies
         sidecars:
           - image: quay.io/cloudservices/kubedock:latest
             name: kubedock
