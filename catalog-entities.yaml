@@ -1,0 +1,10 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: rhsm-subscriptions
+  annotations:
+    github.com/project-slug: RedHatInsights/rhsm-subscriptions
+spec:
+  type: url
+  targets:
+    - https://github.com/RedHatInsights/rhsm-subscriptions/blob/main/mkdocs.yml
