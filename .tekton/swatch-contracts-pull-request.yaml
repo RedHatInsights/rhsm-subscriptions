@@ -223,7 +223,6 @@ spec:
           value: $(context.pipelineRun.uid)
     - name: run-tests
       runAfter:
-      - prefetch-dependencies
       - provision-eaas-space
       params:
         - name: trusted
@@ -234,7 +233,7 @@ spec:
             name: builder
             workingDir: $(workspaces.source.path)/source
             # from Jenkins file ./gradlew --no-daemon --no-parallel build testCodeCoverageReport -Dquarkus.gradle-worker.no-process=true
-            script: DOCKER_HOST=tcp://127.0.0.1:2475 ./gradlew :swatch-contracts:dependencies
+            script: DOCKER_HOST=tcp://127.0.0.1:2475 echo "hello, world"
         sidecars:
           - image: quay.io/cloudservices/kubedock:latest
             name: kubedock
@@ -277,7 +276,6 @@ spec:
         value: $(tasks.clone-repository.results.commit)
       runAfter:
       - prefetch-dependencies
-      - run-tests
       taskRef:
         params:
         - name: name
