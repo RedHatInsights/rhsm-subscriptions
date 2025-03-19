@@ -207,7 +207,7 @@ spec:
           - name: url
             value: https://github.com/konflux-ci/build-definitions.git
           - name: revision
-            value: main
+            value: 4e4fa7355a6a51083954408e7e3b647e3bddb8d8
           - name: pathInRepo
             value: task/eaas-provision-space/0.1/eaas-provision-space.yaml
       params:
