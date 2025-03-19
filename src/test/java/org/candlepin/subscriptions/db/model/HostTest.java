@@ -198,6 +198,44 @@ class HostTest {
   }
 
   @Test
+  void testExistingBucketsAreUpdatedWhenDifferentMeasurementType() {
+    Host host = new Host();
+    host.setId(UUID.randomUUID());
+
+    HostTallyBucket b1 =
+        new HostTallyBucket(
+            null, // NOTE: it is important to pass null here to simulate a new bucket
+            "foo",
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.AWS,
+            "bar",
+            true,
+            1,
+            1,
+            HardwareMeasurementType.VIRTUAL);
+    HostTallyBucket b2 =
+        new HostTallyBucket(
+            null, // NOTE: it is important to pass null here to simulate a new bucket
+            "foo",
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.AWS,
+            "bar",
+            true,
+            1,
+            1,
+            HardwareMeasurementType.PHYSICAL);
+
+    host.addBucket(b1);
+    host.addBucket(b2);
+
+    assertEquals(1, host.getBuckets().size());
+    HostTallyBucket actualBucket = host.getBuckets().stream().findFirst().orElseThrow();
+    assertEquals(HardwareMeasurementType.PHYSICAL, actualBucket.getMeasurementType());
+  }
+
+  @Test
   void testIsMeteredTrueOrFalse() {
     Host host = new Host();
     HostTallyBucket hostTallyBucket = mock(HostTallyBucket.class);
