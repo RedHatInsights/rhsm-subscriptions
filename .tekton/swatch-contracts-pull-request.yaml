@@ -219,6 +219,9 @@ spec:
       runAfter:
       - prefetch-dependencies
       - provision-eaas-space
+      params:
+        - name: trusted
+          value: "true"
       taskSpec:
         steps:
           - image: registry.access.redhat.com/ubi9/openjdk-17-runtime
