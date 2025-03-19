@@ -8,7 +8,7 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && (target_branch == "main" || target_branch == "hotfix")
-  creationTimestamp:
+  creationTimestamp: null
   labels:
     appstudio.openshift.io/application: rhsm-subscriptions
     appstudio.openshift.io/component: swatch-contracts
@@ -30,12 +30,12 @@ spec:
   - name: revision
     value: '{{revision}}'
   taskRunSpecs:
-  - pipelineTaskName: build-container
-    computeResources:
-      requests:
-        memory: 8Gi
-      limits:
-        memory: 8Gi
+    - pipelineTaskName: build-container
+      computeResources:
+        requests:
+          memory: 8Gi
+        limits:
+          memory: 8Gi
   pipelineSpec:
     finally:
     - name: show-sbom
@@ -204,59 +204,59 @@ spec:
       taskRef:
         resolver: git
         params:
-        - name: url
-          value: https://github.com/konflux-ci/build-definitions.git
-        - name: revision
-          value: 4e4fa7355a6a51083954408e7e3b647e3bddb8d8
-        - name: pathInRepo
-          value: task/eaas-provision-space/0.1/eaas-provision-space.yaml
+          - name: url
+            value: https://github.com/konflux-ci/build-definitions.git
+          - name: revision
+            value: 4e4fa7355a6a51083954408e7e3b647e3bddb8d8
+          - name: pathInRepo
+            value: task/eaas-provision-space/0.1/eaas-provision-space.yaml
       params:
-      - name: ownerName
-        value: $(context.pipelineRun.name)
-      - name: ownerUid
-        value: $(context.pipelineRun.uid)
+        - name: ownerName
+          value: $(context.pipelineRun.name)
+        - name: ownerUid
+          value: $(context.pipelineRun.uid)
     - name: run-tests
       runAfter:
       - prefetch-dependencies
       - provision-eaas-space
       params:
-      - name: trusted
-        value: "true"
+        - name: trusted
+          value: "true"
       taskSpec:
         steps:
-        - image: registry.access.redhat.com/ubi9/openjdk-17-runtime
-          name: builder
-          workingDir: $(workspaces.source.path)/source
+          - image: registry.access.redhat.com/ubi9/openjdk-17-runtime
+            name: builder
+            workingDir: $(workspaces.source.path)/source
             # from Jenkins file ./gradlew --no-daemon --no-parallel build testCodeCoverageReport -Dquarkus.gradle-worker.no-process=true
-          script: DOCKER_HOST=tcp://127.0.0.1:2475 ./gradlew :swatch-contracts:test
-          computeResources:
-            limits:
-              memory: '6Gi'
-              cpu: 6
-            requests:
-              memory: '2Gi'
-              cpu: 2
+            script: DOCKER_HOST=tcp://127.0.0.1:2475 ./gradlew :swatch-contracts:test
+            computeResources:
+              limits:
+                memory: '6Gi'
+                cpu: 6
+              requests:
+                memory: '2Gi'
+                cpu: 2
         sidecars:
-        - image: quay.io/cloudservices/kubedock:latest
-          name: kubedock
-          env:
-          - name: KUBECONFIG
-            value: /tmp/kubeconfig
-          - name: KUBECONFIG_VALUE
-            valueFrom:
-              secretKeyRef:
-                name: $(tasks.provision-eaas-space.results.secretRef)
-                key: kubeconfig
-          - name: EAAS_NAMESPACE
-            valueFrom:
-              secretKeyRef:
-                name: $(tasks.provision-eaas-space.results.secretRef)
-                key: namespace
-          script: |
-            #!/bin/bash -ex
+          - image: quay.io/cloudservices/kubedock:latest
+            name: kubedock
+            env:
+              - name: KUBECONFIG
+                value: /tmp/kubeconfig
+              - name: KUBECONFIG_VALUE
+                valueFrom:
+                  secretKeyRef:
+                    name: $(tasks.provision-eaas-space.results.secretRef)
+                    key: kubeconfig
+              - name: EAAS_NAMESPACE
+                valueFrom:
+                  secretKeyRef:
+                    name: $(tasks.provision-eaas-space.results.secretRef)
+                    key: namespace
+            script: |
+              #!/bin/bash -ex
 
-            echo "$KUBECONFIG_VALUE" > "$KUBECONFIG"
-            /usr/local/bin/kubedock server --kubeconfig $KUBECONFIG --namespace $EAAS_NAMESPACE --port-forward -v=9
+              echo "$KUBECONFIG_VALUE" > "$KUBECONFIG"
+              /usr/local/bin/kubedock server --kubeconfig $KUBECONFIG --namespace $EAAS_NAMESPACE --port-forward -v=9
       workspaces:
       - name: source
         workspace: workspace
@@ -298,26 +298,26 @@ spec:
         workspace: workspace
     - name: rpms-signature-scan
       params:
-      - name: image-url
-        value: $(tasks.build-container.results.IMAGE_URL)
-      - name: image-digest
-        value: $(tasks.build-container.results.IMAGE_DIGEST)
+        - name: image-url
+          value: $(tasks.build-container.results.IMAGE_URL)
+        - name: image-digest
+          value: $(tasks.build-container.results.IMAGE_DIGEST)
       runAfter:
-      - build-container
+        - build-container
       taskRef:
         params:
-        - name: name
-          value: rpms-signature-scan
-        - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-rpms-signature-scan:0.2@sha256:d00d159c370e3c99447516970c316ef57dfd27c29e0ce3cff50727c9c40936d8
-        - name: kind
-          value: task
+          - name: name
+            value: rpms-signature-scan
+          - name: bundle
+            value: quay.io/konflux-ci/tekton-catalog/task-rpms-signature-scan:0.2@sha256:d00d159c370e3c99447516970c316ef57dfd27c29e0ce3cff50727c9c40936d8
+          - name: kind
+            value: task
         resolver: bundles
       when:
-      - input: $(params.skip-checks)
-        operator: in
-        values:
-        - "false"
+        - input: $(params.skip-checks)
+          operator: in
+          values:
+            - "false"
     - name: build-source-image
       params:
       - name: BINARY_IMAGE
@@ -452,10 +452,22 @@ spec:
         values:
         - "false"
     workspaces:
+    - name: workspace
     - name: git-auth
       optional: true
   taskRunTemplate: {}
   workspaces:
+  - name: workspace
+    volumeClaimTemplate:
+      metadata:
+        creationTimestamp: null
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+      status: {}
   - name: git-auth
     secret:
       secretName: '{{ git_auth_secret }}'
