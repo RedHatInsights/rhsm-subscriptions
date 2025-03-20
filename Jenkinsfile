@@ -17,6 +17,12 @@ apiVersion: v1
 kind: Pod
 spec:
   containers:
+    - name: jnlp
+      env:
+        - name: JAVA_OPTS
+          value: "-Xms512m -Xmx2048m"
+        - name: JENKINS_JAVA_OPTIONS
+          value: "-Xms512m -Xmx2048m"
     - name: kubedock
       image: quay.io/cloudservices/kubedock:latest
       imagePullPolicy: Always
