@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+  <changeSet author="kflahert" id="202503191200-1">
+    <comment>Add descriptions for account_services table columns</comment>
+    <setColumnRemarks tableName="account_services" columnName="account_number" remarks="Identifier for the account. Deprecated, use org_id instead." />
+    <setColumnRemarks tableName="account_services" columnName="service_type" remarks="Type of service associated with the account." />
+    <setColumnRemarks tableName="account_services" columnName="org_id" remarks="Identifier of the organization who has the service." />
+  </changeSet>
+
+  <changeSet author="kflahert" id="202503191200-2">
+    <comment>Add descriptions for billable_usage_remittance table columns</comment>
+    <setColumnRemarks tableName="billable_usage_remittance" columnName="org_id" remarks="Identifier of the organization to be billed for." />
+    <setColumnRemarks tableName="billable_usage_remittance" columnName="remitted_pending_value" remarks="The amount to be billed in metric units" />
+    <setColumnRemarks tableName="billable_usage_remittance" columnName="remittance_pending_date" remarks="The date when the remittance is pending submission to marketplace" />
+    <setColumnRemarks tableName="billable_usage_remittance" columnName="retry_after" remarks="Time after which the service should retry. Deprecated" />
+    <setColumnRemarks tableName="billable_usage_remittance" columnName="tally_id" remarks="Unique identifier for the tally record that caused the creation of the remittance" />
+    <setColumnRemarks tableName="billable_usage_remittance" columnName="billed_on" remarks="Date when the usage was billed to billing provider" />
+    <setColumnRemarks tableName="billable_usage_remittance" columnName="uuid" remarks="Unique identifier for the record." />
+    <setColumnRemarks tableName="billable_usage_remittance" columnName="product_id" remarks="Identifier of the product the usage is for." />
+    <setColumnRemarks tableName="billable_usage_remittance" columnName="metric_id" remarks="Identifier of the metric the usage for." />
+    <setColumnRemarks tableName="billable_usage_remittance" columnName="accumulation_period" remarks="The period of time for accumulating the usage data." />
+    <setColumnRemarks tableName="billable_usage_remittance" columnName="sla" remarks="Service Level Agreement for support of the service." />
+    <setColumnRemarks tableName="billable_usage_remittance" columnName="usage" remarks="The usage type of the billable usage." />
+    <setColumnRemarks tableName="billable_usage_remittance" columnName="billing_provider" remarks="The provider handling the billing for the service." />
+    <setColumnRemarks tableName="billable_usage_remittance" columnName="billing_account_id" remarks="Account identifier from billing provider used for billing purposes." />
+    <setColumnRemarks tableName="billable_usage_remittance" columnName="error_code" remarks="Error code for failed billing or service issues." />
+    <setColumnRemarks tableName="billable_usage_remittance" columnName="status" remarks="Current submission status of the billable usage remittance." />
+  </changeSet>
+
+  <changeSet author="kflahert" id="202503191200-3">
+    <comment>Add descriptions for events table columns</comment>
+    <setColumnRemarks tableName="events" columnName="timestamp" remarks="Date and time when the event was recorded." />
+    <setColumnRemarks tableName="events" columnName="data" remarks="Event data stored in JSON format." />
+    <setColumnRemarks tableName="events" columnName="instance_id" remarks="Identifier of the instance generating the event." />
+    <setColumnRemarks tableName="events" columnName="metering_batch_id" remarks="Identifier for the batch of events being processed." />
+    <setColumnRemarks tableName="events" columnName="record_date" remarks="Date when the event record was created." />
+    <setColumnRemarks tableName="events" columnName="event_id" remarks="Unique identifier for the event." />
+    <setColumnRemarks tableName="events" columnName="event_type" remarks="Type of event" />
+    <setColumnRemarks tableName="events" columnName="event_source" remarks="Source system that originally recorded the event" />
+    <setColumnRemarks tableName="events" columnName="org_id" remarks="Organization ID related to the event." />
+  </changeSet>
+
+  <changeSet author="kflahert" id="202503191200-4">
+    <comment>Add descriptions for host_tally_buckets table columns</comment>
+    <setColumnRemarks tableName="host_tally_buckets" columnName="cores" remarks="Number of cores for the host." />
+    <setColumnRemarks tableName="host_tally_buckets" columnName="sockets" remarks="Number of sockets for the host." />
+    <setColumnRemarks tableName="host_tally_buckets" columnName="version" remarks="Version number used for change management" />
+    <setColumnRemarks tableName="host_tally_buckets" columnName="host_id" remarks="Unique identifier for the host." />
+    <setColumnRemarks tableName="host_tally_buckets" columnName="as_hypervisor" remarks="Whether the host is functioning as a hypervisor." />
+    <setColumnRemarks tableName="host_tally_buckets" columnName="measurement_type" remarks="Type of measurement" />
+    <setColumnRemarks tableName="host_tally_buckets" columnName="usage" remarks="Usage type of the host" />
+    <setColumnRemarks tableName="host_tally_buckets" columnName="product_id" remarks="Identifier of the product associated with the host." />
+    <setColumnRemarks tableName="host_tally_buckets" columnName="sla" remarks="Service Level Agreement for the host." />
+    <setColumnRemarks tableName="host_tally_buckets" columnName="billing_provider" remarks="Billing provider for the host." />
+    <setColumnRemarks tableName="host_tally_buckets" columnName="billing_account_id" remarks="Billing account identifier used for billing the host usage." />
+  </changeSet>
+
+  <changeSet author="kflahert" id="202503191200-5">
+    <comment>Add descriptions for hosts table columns</comment>
+    <setColumnRemarks tableName="hosts" columnName="is_guest" remarks="Whether the host is a guest VM" />
+    <setColumnRemarks tableName="hosts" columnName="num_of_guests" remarks="Number of guest VMs on the host." />
+    <setColumnRemarks tableName="hosts" columnName="last_seen" remarks="Last time the host was seen in the system." />
+    <setColumnRemarks tableName="hosts" columnName="is_unmapped_guest" remarks="Whether the guest is not mapped to any known system." />
+    <setColumnRemarks tableName="hosts" columnName="is_hypervisor" remarks="Whether the host is functioning as a hypervisor." />
+    <setColumnRemarks tableName="hosts" columnName="last_applied_event_record_date" remarks="Date when the last event record was applied." />
+    <setColumnRemarks tableName="hosts" columnName="id" remarks="Unique identifier for the host." />
+    <setColumnRemarks tableName="hosts" columnName="inventory_id" remarks="Inventory identifier for the host." />
+    <setColumnRemarks tableName="hosts" columnName="insights_id" remarks="Insights identifier for the host." />
+    <setColumnRemarks tableName="hosts" columnName="org_id" remarks="Identifier of the organization that owns the host." />
+    <setColumnRemarks tableName="hosts" columnName="display_name" remarks="Display name for the host." />
+    <setColumnRemarks tableName="hosts" columnName="subscription_manager_id" remarks="Subscription manager identifier for the host." />
+    <setColumnRemarks tableName="hosts" columnName="hypervisor_uuid" remarks="UUID of the hypervisor if the host is a guest." />
+    <setColumnRemarks tableName="hosts" columnName="hardware_type" remarks="Hardware type of the host." />
+    <setColumnRemarks tableName="hosts" columnName="cloud_provider" remarks="Cloud provider name if the host is cloud-based." />
+    <setColumnRemarks tableName="hosts" columnName="instance_type" remarks="Instance type of the host in a cloud environment." />
+    <setColumnRemarks tableName="hosts" columnName="instance_id" remarks="Instance identifier for the host." />
+    <setColumnRemarks tableName="hosts" columnName="billing_provider" remarks="Billing provider for the host." />
+    <setColumnRemarks tableName="hosts" columnName="billing_account_id" remarks="Billing account identifier for the host." />
+  </changeSet>
+
+  <changeSet author="kflahert" id="202503191200-6">
+    <comment>Add descriptions for instance_measurements table columns</comment>
+    <setColumnRemarks tableName="instance_measurements" columnName="value" remarks="Measurement value for the instance." />
+    <setColumnRemarks tableName="instance_measurements" columnName="instance_id" remarks="Unique identifier for the instance. Deprecated in favor of host_id" />
+    <setColumnRemarks tableName="instance_measurements" columnName="host_id" remarks="Measurement value for the instance." />
+    <setColumnRemarks tableName="instance_measurements" columnName="metric_id" remarks="Identifier of the metric." />
+  </changeSet>
+
+  <changeSet author="kflahert" id="202503191200-7">
+    <comment>Add descriptions for instance_monthly_totals table columns</comment>
+    <setColumnRemarks tableName="instance_monthly_totals" columnName="value" remarks="Value tallied" />
+    <setColumnRemarks tableName="instance_monthly_totals" columnName="instance_id" remarks="Identifier of the metric being measured." />
+    <setColumnRemarks tableName="instance_monthly_totals" columnName="host_id" remarks="Unique identifier for the host." />
+    <setColumnRemarks tableName="instance_monthly_totals" columnName="month" remarks="Month for which the totals are recorded." />
+    <setColumnRemarks tableName="instance_monthly_totals" columnName="metric_id" remarks="Identifier of the metric for which the total is recorded." />
+  </changeSet>
+
+  <changeSet author="kflahert" id="202503191200-8">
+    <comment>Add descriptions for org_config table columns</comment>
+    <setColumnRemarks tableName="org_config" columnName="created" remarks="Date and time the configuration was created." />
+    <setColumnRemarks tableName="org_config" columnName="updated" remarks="Date and time the configuration was last updated." />
+    <setColumnRemarks tableName="org_config" columnName="opt_in_type" remarks="Type of opt-in configuration for the organization." />
+    <setColumnRemarks tableName="org_config" columnName="org_id" remarks="Identifier of the organization of the configuration." />
+  </changeSet>
+
+  <changeSet author="kflahert" id="202503191200-9">
+    <comment>Add descriptions for tally_measurements table columns</comment>
+    <setColumnRemarks tableName="tally_measurements" columnName="value" remarks="Value of the tally measurement." />
+    <setColumnRemarks tableName="tally_measurements" columnName="snapshot_id" remarks="Identifier of the tally snapshot this measurement belongs to." />
+    <setColumnRemarks tableName="tally_measurements" columnName="measurement_type" remarks="Type of measurement recorded for the tally." />
+    <setColumnRemarks tableName="tally_measurements" columnName="metric_id" remarks="Metric identifier associated with the tally." />
+  </changeSet>
+
+  <changeSet author="kflahert" id="202503191200-10">
+    <comment>Add descriptions for tally_snapshots table columns</comment>
+    <setColumnRemarks tableName="tally_snapshots" columnName="snapshot_date" remarks="Date when the tally snapshot was taken." />
+    <setColumnRemarks tableName="tally_snapshots" columnName="id" remarks="Unique identifier for the tally snapshot." />
+    <setColumnRemarks tableName="tally_snapshots" columnName="product_id" remarks="Identifier of the product related to the tally snapshot." />
+    <setColumnRemarks tableName="tally_snapshots" columnName="granularity" remarks="Granularity level in terms of time of the tally snapshot" />
+    <setColumnRemarks tableName="tally_snapshots" columnName="org_id" remarks="Organization Identifier for the tally snapshot." />
+    <setColumnRemarks tableName="tally_snapshots" columnName="unit_of_measure" remarks="Unit of measurement for the tally snapshot. Deprecated in favor of metric_id" />
+    <setColumnRemarks tableName="tally_snapshots" columnName="sla" remarks="Service Level Agreement for the tally snapshot." />
+    <setColumnRemarks tableName="tally_snapshots" columnName="usage" remarks="Usage type of the tally snapshot." />
+    <setColumnRemarks tableName="tally_snapshots" columnName="billing_provider" remarks="Billing provider for the tally snapshot." />
+    <setColumnRemarks tableName="tally_snapshots" columnName="billing_account_id" remarks="Billing account identifier for the tally snapshot provided by billing provider." />
+  </changeSet>
+  
+</databaseChangeLog>
