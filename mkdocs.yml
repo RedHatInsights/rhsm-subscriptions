@@ -5,4 +5,8 @@ plugins:
 
 nav:
 - Home: index.md
+- Api: api-documentation.md
+- Iqe EE Proxy: iqe-ee-proxy.md
+- Documentation:
+    - Important Doc: /docs/default/Component/swatch-internal-docs
 
