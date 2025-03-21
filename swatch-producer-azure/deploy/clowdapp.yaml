@@ -162,3 +162,13 @@ objects:
     name: swatch-psks
   data:
     self: cGxhY2Vob2xkZXI=
+
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: azure-marketplace-credentials
+    data:
+      # Decodes to:
+      # {"credentials":{"azure":{"clients":[{"tenantId":"test","clientId":"test","clientSecret":"test","publisher":"test"}]}}}
+      credentials: eyJjcmVkZW50aWFscyI6eyJhenVyZSI6eyJjbGllbnRzIjpbeyJ0ZW5hbnRJZCI6InRlc3QiLCJjbGllbnRJZCI6InRlc3QiLCJjbGllbnRTZWNyZXQiOiJ0ZXN0IiwicHVibGlzaGVyIjoidGVzdCJ9XX19fQ==
