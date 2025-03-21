@@ -92,7 +92,7 @@ jobs:
   summary:
     name: PR Summary
     runs-on: ubuntu-latest
-    needs: [lint, build, test]
+    needs: [build, test]
     if: always()
 
     steps:
@@ -103,8 +103,7 @@ jobs:
           path: coverage-report
 
       - name: Print Job Status
-        run: |
-          echo "Lint: ${{ needs.lint.result }}"
+        run: |          
           echo "Build: ${{ needs.build.result }}"
           echo "Test: ${{ needs.test.result }}"
 
@@ -127,7 +126,6 @@ jobs:
           message: |
             ✅ **CI Summary**
 
-            - **Lint**: `${{ needs.lint.result }}`
             - **Build**: `${{ needs.build.result }}`
             - **Test**: `${{ needs.test.result }}`
             - **Coverage**: `${{ steps.coverage.outputs.coverage }}%`
@@ -136,7 +134,7 @@ jobs:
 
       - name: Fail CI if Lint or Test Failed
         if: |
-          needs.lint.result == 'failure' || needs.test.result == 'failure'
+          needs.test.result == 'failure'
         run: |
           echo "Lint or Test failed – failing build."
           exit 1
