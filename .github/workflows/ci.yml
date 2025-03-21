@@ -34,7 +34,7 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: ${{ runner.os }}-gradle
 
-      - name: Run Gradle Check Task
+      - name: Run linting checks
         run: |
           ./gradlew --no-daemon --no-parallel spotlessCheck checkstyle -Dquarkus.gradle-worker.no-process=true
 
