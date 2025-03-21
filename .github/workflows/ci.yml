@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: PR Validation – Pre-Container
 
 on:
   push:
@@ -12,23 +12,90 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  validate-format:
+    name: Validate Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 17
+          cache: 'gradle'
+
+      - name: Run Spotless & Checkstyle
+        run: ./gradlew spotlessCheck checkstyleMain checkstyleTest
+
+  validate-floorplan-queries:
+    name: Validate FloorPlan Queries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Git config
+        run: |
+          git config --global user.name "$(git log -1 --pretty=format:'%an')"
+          git config --global user.email "$(git log -1 --pretty=format:'%ae')"
+
+      - name: Install JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 17
+          cache: 'gradle'
+
+      - name: Setup JBang
+        uses: jbangdev/setup-jbang@main
+
+      - name: Setup yamlpath
+        run: |
+          jbang trust add https://github.com/yaml-path/jbang/
+          curl -Ls https://sh.jbang.dev | bash -s - app install --fresh --force yamlpath@yaml-path/jbang
+
+      - name: Setup PostgreSQL DB
+        run: docker run -d -v ./init_dbs.sh:/usr/share/container-scripts/postgresql/start/set_passwords.sh:z -p 5432:5432 -e POSTGRESQL_ADMIN_PASSWORD=admin quay.io/centos7/postgresql-13-centos7:centos7
+
+      - name: Setup PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
+
+      - name: Execute migrations
+        run: ./gradlew :liquibaseUpdate
+
+      - name: Run FloorPlan Query Validation
+        run: |
+          QUERY_NAMES=$(yamlpath --format=PLAIN --single --expression="objects.(kind==FloorPlan).spec.queries.prefix" swatch-tally/deploy/clowdapp.yaml | tail -c +2 | head -c -2)
+          for rawQueryName in ${QUERY_NAMES[*]}; do
+            queryName=$(echo $rawQueryName | sed 's/,//g')
+            query=$(yamlpath --format=PLAIN --single --expression="objects.(kind==FloorPlan).spec.queries.(prefix == $queryName).query" swatch-tally/deploy/clowdapp.yaml | sed 's/;//g')
+            echo -e "Validating query: \n$query\n"
+            output=$(PGPASSWORD=rhsm-subscriptions psql -h localhost -U rhsm-subscriptions -d rhsm-subscriptions -c "$query;")
+            if [[ "$output" != *"(0 rows)"* ]]; then
+              echo -e "Error in query. Check the output for more information: \n$output"
+              exit 1
+            fi
+          done
+          echo "Queries validation was successful"
+
   build:
     name: Build
     runs-on: ubuntu-latest
+    needs: [validate-format, validate-floorplan-queries]
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
+          cache: 'gradle'
 
-      - name: Run Gradle Assemble Task
-        run: |
-          ./gradlew clean build -x test
+      - name: Run Gradle Assemble
+        run: ./gradlew clean build -x test
+
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -36,45 +103,24 @@ jobs:
           path: |
             **/build/libs/*.jar
             **/build/distributions/*
-      - name: Cache Gradle & build outputs
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-            **/.gradle
-            **/build
-          key: ${{ runner.os }}-gradle-${{ github.event.pull_request.number }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: ${{ runner.os }}-gradle
+
   test:
     name: Test & Coverage
     runs-on: ubuntu-latest
     needs: build
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
+          cache: 'gradle'
 
-      - name: Restore Gradle & build cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-            **/.gradle
-            **/build
-          key: ${{ runner.os }}-gradle-${{ github.event.pull_request.number }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: ${{ runner.os }}-gradle
-
-      - name: Run Gradle Test & Code Coverage
-        run: |
-          ./gradlew test
+      - name: Run Tests
+        run: ./gradlew test testCodeCoverageReport
 
       - name: Upload Code Coverage
         uses: actions/upload-artifact@v4
@@ -84,11 +130,12 @@ jobs:
             **/build/reports/jacoco/test/html/
             **/build/reports/jacoco/test/jacocoTestReport.xml
 
-      - name: Publish Test Results as PR Comment
+      - name: Publish Test Results to PR
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
-          files: '**/build/test-results/test/TEST-*.xml'
+          files: '**/build/test-results/test/*.xml'
+
   summary:
     name: PR Summary
     runs-on: ubuntu-latest
@@ -96,22 +143,21 @@ jobs:
     if: always()
 
     steps:
-      - name: Download test results
+      - name: Download Coverage
         uses: actions/download-artifact@v4
         with:
           name: code-coverage
           path: coverage-report
 
       - name: Print Job Status
-        run: |          
+        run: |
           echo "Build: ${{ needs.build.result }}"
           echo "Test: ${{ needs.test.result }}"
 
       - name: Extract Coverage %
         id: coverage
         run: |
-          COVERAGE=$(grep -oPm1 '(?<=<counter type="INSTRUCTION" missed=")[^"]+' coverage-report/jacocoTestReport.xml)
-          MISSED=$COVERAGE
+          MISSED=$(grep -oPm1 '(?<=<counter type="INSTRUCTION" missed=")[^"]+' coverage-report/jacocoTestReport.xml)
           COVERED=$(grep -oPm1 '(?<=covered=")[^"]+' coverage-report/jacocoTestReport.xml)
           TOTAL=$((MISSED + COVERED))
           PERCENT=$((100 * COVERED / TOTAL))
@@ -133,8 +179,7 @@ jobs:
             📦 [Download build artifacts](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
       - name: Fail CI if Lint or Test Failed
-        if: |
-          needs.test.result == 'failure'
+        if: needs.test.result == 'failure'
         run: |
           echo "Lint or Test failed – failing build."
           exit 1
