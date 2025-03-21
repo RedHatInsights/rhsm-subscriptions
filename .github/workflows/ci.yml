@@ -7,11 +7,14 @@ on:
     branches: [main, hotfix]
     types: [opened, synchronize, reopened]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  lint:
-    name: Check
+  build:
+    name: Build
     runs-on: ubuntu-latest
-    continue-on-error: true
 
     steps:
       - name: Checkout code
@@ -23,6 +26,16 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Run Gradle Assemble Task
+        run: |
+          ./gradlew clean build -x test
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            **/build/libs/*.jar
+            **/build/distributions/*
       - name: Cache Gradle & build outputs
         uses: actions/cache@v3
         with:
@@ -31,55 +44,12 @@ jobs:
             ~/.gradle/wrapper
             **/.gradle
             **/build
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          key: ${{ runner.os }}-gradle-${{ github.event.pull_request.number }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: ${{ runner.os }}-gradle
-
-      - name: Run linting checks
-        run: |
-          ./gradlew --no-daemon --no-parallel spotlessCheck checkstyle -Dquarkus.gradle-worker.no-process=true
-
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    needs: lint
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Restore Gradle & build cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-            **/.gradle
-            **/build
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: ${{ runner.os }}-gradle
-
-      - name: Run Gradle Assemble Task
-        run: |
-          ./gradlew assemble -Dquarkus.gradle-worker.no-process=true -Dquarkus.package.type=fast-jar
-
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-artifacts
-          path: |
-            **/build/libs/*.jar
-            **/build/distributions/*
-
   test:
     name: Test & Coverage
     runs-on: ubuntu-latest
-    needs: lint
+    needs: build
 
     steps:
       - name: Checkout code
@@ -99,13 +69,12 @@ jobs:
             ~/.gradle/wrapper
             **/.gradle
             **/build
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          key: ${{ runner.os }}-gradle-${{ github.event.pull_request.number }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: ${{ runner.os }}-gradle
 
       - name: Run Gradle Test & Code Coverage
         run: |
-          ./gradlew --no-daemon --no-parallel test testCodeCoverageReport \
-            -Dquarkus.gradle-worker.no-process=true
+          ./gradlew test
 
       - name: Upload Code Coverage
         uses: actions/upload-artifact@v4

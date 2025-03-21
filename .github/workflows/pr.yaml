@@ -1,4 +1,4 @@
-name: "Build"
+name: "Linting & FloorPlan validation"
 on:
   - pull_request
 jobs:
