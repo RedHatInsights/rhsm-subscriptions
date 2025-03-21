@@ -36,7 +36,7 @@ jobs:
 
       - name: Run Gradle Check Task
         run: |
-          ./gradlew --no-daemon --no-parallel check -Dquarkus.gradle-worker.no-process=true
+          ./gradlew --no-daemon --no-parallel spotlessCheck checkstyle -Dquarkus.gradle-worker.no-process=true
 
   build:
     name: Build
