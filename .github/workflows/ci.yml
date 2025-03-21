@@ -60,6 +60,20 @@ jobs:
           distribution: 'temurin'
           java-version: 17
 
+      - name: Cache Gradle & build outputs
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            buildSrc/.gradle
+            buildSrc/build
+            **/.gradle
+            **/build
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', 'buildSrc/**/*.kt', 'buildSrc/**/*.java') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
       - name: Setup JBang
         uses: jbangdev/setup-jbang@main
 
@@ -106,7 +120,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Restore Gradle Cache
+      - name: Cache Gradle & build outputs
         uses: actions/cache@v3
         with:
           path: |
@@ -145,7 +159,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Restore Gradle Cache
+      - name: Cache Gradle & build outputs
         uses: actions/cache@v3
         with:
           path: |
@@ -190,7 +204,7 @@ jobs:
           distribution: 'temurin'
           java-version: 17
 
-      - name: Restore Gradle Cache
+      - name: Cache Gradle & build outputs
         uses: actions/cache@v3
         with:
           path: |
