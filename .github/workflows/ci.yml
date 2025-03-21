@@ -2,42 +2,49 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [main, hotfix]
   pull_request:
-    branches: [main]
+    branches: [main, hotfix]
+    types: [opened, synchronize, reopened]
 
 jobs:
-  build:
+  lint:
+    name: Check
     runs-on: ubuntu-latest
+    continue-on-error: true
 
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+        name: checkout code
+      - uses: actions/setup-java@v4
+        name: setup JDK
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Lint (check)
-        id: lint
-        continue-on-error: true
+      - name: run gradle check task
         run: |
           ./gradlew --no-daemon --no-parallel check -Dquarkus.gradle-worker.no-process=true
 
-      - name: Build (assemble)
-        id: build
-        run: |
-          ./gradlew --no-daemon --no-parallel assemble
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: lint
 
-      - name: Test and Coverage
-        id: test
+    steps:
+      - uses: actions/checkout@v4
+        name: checkout code
+      - uses: actions/setup-java@v4
+        name: setup JDK
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: run gradle assemble task
         run: |
-          ./gradlew --no-daemon --no-parallel test testCodeCoverageReport -Dquarkus.gradle-worker.no-process=true
+          ./gradlew --no-daemon --no-parallel assemble -Dquarkus.gradle-worker.no-process=true
 
       - name: Upload Build Artifacts
-        if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
@@ -45,8 +52,26 @@ jobs:
             **/build/libs/*.jar
             **/build/distributions/*
 
-      - name: Upload Code Coverage Reports
-        if: success() || failure()
+  test:
+    name: Test & Coverage
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - uses: actions/checkout@v4
+        name: checkout code
+      - uses: actions/setup-java@v4
+        name: setup JDK
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: run gradle test and code coverage task
+        run: |
+          ./gradlew --no-daemon --no-parallel test testCodeCoverageReport \
+            -Dquarkus.gradle-worker.no-process=true
+
+      - name: upload code coverage
         uses: actions/upload-artifact@v4
         with:
           name: code-coverage
@@ -54,7 +79,8 @@ jobs:
             **/build/reports/jacoco/test/html/
             **/build/reports/jacoco/test/jacocoTestReport.xml
 
-      - name: Flag Lint Result (optional)
-        if: steps.lint.outcome == 'failure'
-        run: echo "⚠️ Lint failed, but build and test completed."
-
+      - name: Publish Test Results as PR Comment
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: '**/build/test-results/test/TEST-*.xml'
