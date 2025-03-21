@@ -9,7 +9,7 @@ dependencies {
     implementation libraries["jakarta-validation-api"] // for validation API in generated models
     implementation libraries["jakarta-persistence-api"]
     implementation "com.fasterxml.jackson.core:jackson-databind"
-    annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
+    implementation enforcedPlatform(libraries["quarkus-bom"])
     implementation libraries["jackson-module-jakarta-xmlbind-annotations"]
 
     testImplementation libraries["junit-jupiter"]
