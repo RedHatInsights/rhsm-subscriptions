@@ -163,7 +163,6 @@ objects:
   data:
     self: cGxhY2Vob2xkZXI=
 
-
 - apiVersion: v1
   kind: Secret
   metadata:
