@@ -35,6 +35,11 @@ spec:
        - 10
     - name: openjdk17
       image: registry.access.redhat.com/ubi9/openjdk-17-runtime
+      env:
+        - name: JAVA_OPTS
+          value: "-Xms512m -Xmx2048m"
+        - name: JENKINS_JAVA_OPTIONS
+          value: "-Xms512m -Xmx2048m"
       command:
       - sleep
       tty: true
@@ -101,12 +106,23 @@ spec:
                 input 'ok to test?'
             }
         }
-        stage('Build/Test/Lint') {
+        stage('Lint') {
             steps {
-                // The build task includes check, test, and assemble.  Linting happens during the check
-                // task and uses the spotless gradle plugin.
-                // The "quarkus.gradle-worker.no-process=true" needs to be added, so Quarkus does not spawn new Gradle daemons. Related to https://github.com/quarkusio/quarkus/issues/46477.
-                sh "./gradlew --no-daemon --no-parallel build testCodeCoverageReport -Dquarkus.gradle-worker.no-process=true"
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh "./gradlew --no-daemon --no-parallel check -Dquarkus.gradle-worker.no-process=true"
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh "./gradlew --no-daemon --no-parallel assemble -Dquarkus.gradle-worker.no-process=true"
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh "./gradlew --no-daemon --no-parallel test testCodeCoverageReport -Dquarkus.gradle-worker.no-process=true"
             }
         }
 
