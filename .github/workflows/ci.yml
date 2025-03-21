@@ -1,0 +1,60 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Lint (check)
+        id: lint
+        continue-on-error: true
+        run: |
+          ./gradlew --no-daemon --no-parallel check -Dquarkus.gradle-worker.no-process=true
+
+      - name: Build (assemble)
+        id: build
+        run: |
+          ./gradlew --no-daemon --no-parallel assemble
+
+      - name: Test and Coverage
+        id: test
+        run: |
+          ./gradlew --no-daemon --no-parallel test testCodeCoverageReport -Dquarkus.gradle-worker.no-process=true
+
+      - name: Upload Build Artifacts
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            **/build/libs/*.jar
+            **/build/distributions/*
+
+      - name: Upload Code Coverage Reports
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage
+          path: |
+            **/build/reports/jacoco/test/html/
+            **/build/reports/jacoco/test/jacocoTestReport.xml
+
+      - name: Flag Lint Result (optional)
+        if: steps.lint.outcome == 'failure'
+        run: echo "⚠️ Lint failed, but build and test completed."
+
