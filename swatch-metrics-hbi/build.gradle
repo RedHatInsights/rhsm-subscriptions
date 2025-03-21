@@ -6,6 +6,7 @@ description = 'The swatch-metrics-hbi service build definition'
 
 dependencies {
     annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
+    implementation enforcedPlatform(libraries["quarkus-bom"])
     implementation 'io.quarkus:quarkus-config-yaml'
     implementation libraries["unleash-quarkus"]
 
@@ -22,7 +23,6 @@ dependencies {
     implementation libraries["jackson-annotations"] // for json generated models
     implementation libraries["jakarta-validation-api"] // for validation API in generated models
     implementation project(':swatch-model-events')
-    annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
 
     testImplementation libraries["junit-jupiter"]
 }
