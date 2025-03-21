@@ -29,7 +29,7 @@ dependencies {
     implementation libraries["splunk-library-javalogging"]
     implementation project(':swatch-product-configuration')
     implementation project(":swatch-model-billable-usage")
-    implementation enforcedPlatform(libraries["quarkus-bom"])
+    annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
     annotationProcessor "org.hibernate.orm:hibernate-jpamodelgen"
     implementation libraries["mapstruct"]
     annotationProcessor libraries["mapstruct-processor"]
