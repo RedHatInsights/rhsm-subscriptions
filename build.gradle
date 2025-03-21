@@ -341,8 +341,6 @@ project(":api") {
     sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
 }
 
-tasks.check.dependsOn tasks.testCodeCoverageReport
-
 sonarqube {
     properties {
         property "sonar.coverage.jacoco.xmlReportPaths", "${rootProject.projectDir}/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml"
