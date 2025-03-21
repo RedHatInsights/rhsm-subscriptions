@@ -7,8 +7,7 @@ metadata:
     build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
-      == "main"
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && (target_branch == "main" || target_branch == "hotfix")
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: rhsm-subscriptions
@@ -32,6 +31,12 @@ spec:
     value: '{{revision}}'
   taskRunSpecs:
     - pipelineTaskName: build-container
+      computeResources:
+        requests:
+          memory: 8Gi
+        limits:
+          memory: 8Gi
+    - pipelineTaskName: run-tests
       computeResources:
         requests:
           memory: 8Gi
@@ -198,6 +203,58 @@ spec:
         operator: in
         values:
         - "true"
+      workspaces:
+      - name: source
+        workspace: workspace
+    - name: provision-eaas-space
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/konflux-ci/build-definitions.git
+          - name: revision
+            value: 4e4fa7355a6a51083954408e7e3b647e3bddb8d8
+          - name: pathInRepo
+            value: task/eaas-provision-space/0.1/eaas-provision-space.yaml
+      params:
+        - name: ownerName
+          value: $(context.pipelineRun.name)
+        - name: ownerUid
+          value: $(context.pipelineRun.uid)
+    - name: run-tests
+      runAfter:
+      - provision-eaas-space
+      params:
+        - name: trusted
+          value: "true"
+      taskSpec:
+        steps:
+          - image: registry.access.redhat.com/ubi9/openjdk-17-runtime
+            name: builder
+            workingDir: $(workspaces.source.path)/source
+            # from Jenkins file ./gradlew --no-daemon --no-parallel build testCodeCoverageReport -Dquarkus.gradle-worker.no-process=true
+            script: DOCKER_HOST=tcp://127.0.0.1:2475 echo "hello, world"
+        sidecars:
+          - image: quay.io/cloudservices/kubedock:latest
+            name: kubedock
+            env:
+              - name: KUBECONFIG
+                value: /tmp/kubeconfig
+              - name: KUBECONFIG_VALUE
+                valueFrom:
+                  secretKeyRef:
+                    name: $(tasks.provision-eaas-space.results.secretRef)
+                    key: kubeconfig
+              - name: EAAS_NAMESPACE
+                valueFrom:
+                  secretKeyRef:
+                    name: $(tasks.provision-eaas-space.results.secretRef)
+                    key: namespace
+            script: |
+              #!/bin/bash -ex
+
+              echo "$KUBECONFIG_VALUE" > "$KUBECONFIG"
+              /usr/local/bin/kubedock server --kubeconfig $KUBECONFIG --namespace $EAAS_NAMESPACE --port-forward -v=9
       workspaces:
       - name: source
         workspace: workspace
