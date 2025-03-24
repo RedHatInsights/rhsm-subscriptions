@@ -13,6 +13,7 @@ concurrency:
 
 env:
   ACTIONS_STEP_DEBUG: true
+
 jobs:
   validate-format:
     name: Validate Format
@@ -32,20 +33,6 @@ jobs:
           gradle-home-cache-includes: |
             buildSrc/.gradle
             buildSrc/build
-
-  # cache-validate-format:
-  #   uses: ./.github/workflows/cache-gradle.yml
-  #   with:
-  #     key-suffix: validate-format
-  #   needs: validate-format
-
-  run-format-checks:
-    name: Spotless & Checkstyle
-    runs-on: ubuntu-latest
-    # needs: cache-validate-format
-
-    steps:
-      - uses: actions/checkout@v4
 
       - name: Run Spotless & Checkstyle
         run: ./gradlew --no-daemon --no-parallel spotlessCheck checkstyleMain checkstyleTest
@@ -79,20 +66,6 @@ jobs:
           gradle-home-cache-includes: |
             buildSrc/.gradle
             buildSrc/build
-
-  # cache-floorplan:
-  #   uses: ./.github/workflows/cache-gradle.yml
-  #   with:
-  #     key-suffix: floorplan
-  #   needs: validate-floorplan-queries
-
-  run-floorplan-checks:
-    name: Run FloorPlan Query Validation
-    runs-on: ubuntu-latest
-    # needs: cache-floorplan
-
-    steps:
-      - uses: actions/checkout@v4
 
       - name: Setup JBang
         uses: jbangdev/setup-jbang@main
@@ -129,7 +102,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [run-format-checks, run-floorplan-checks]
+    needs: [validate-format, validate-floorplan-queries]
 
     steps:
       - uses: actions/checkout@v4
@@ -145,20 +118,6 @@ jobs:
           gradle-home-cache-includes: |
             buildSrc/.gradle
             buildSrc/build
-
-  # cache-build:
-  #   uses: ./.github/workflows/cache-gradle.yml
-  #   with:
-  #     key-suffix: build
-  #   needs: build
-
-  run-build:
-    name: Gradle Build
-    runs-on: ubuntu-latest
-    # needs: cache-build
-
-    steps:
-      - uses: actions/checkout@v4
 
       - name: Run Gradle Build
         run: ./gradlew --no-daemon --no-parallel build -x test
@@ -174,7 +133,7 @@ jobs:
   test:
     name: Test & Coverage
     runs-on: ubuntu-latest
-    needs: run-build
+    needs: [build]
 
     steps:
       - uses: actions/checkout@v4
@@ -190,20 +149,6 @@ jobs:
           gradle-home-cache-includes: |
             buildSrc/.gradle
             buildSrc/build
-
-  # cache-test:
-  #   uses: ./.github/workflows/cache-gradle.yml
-  #   with:
-  #     key-suffix: test
-  #   needs: test
-
-  run-tests:
-    name: Run Unit Tests
-    runs-on: ubuntu-latest
-    # needs: cache-test
-
-    steps:
-      - uses: actions/checkout@v4
 
       - name: Run Tests
         run: ./gradlew --no-daemon --no-parallel test testCodeCoverageReport
@@ -235,7 +180,7 @@ jobs:
   summary:
     name: PR Summary
     runs-on: ubuntu-latest
-    needs: run-tests
+    needs: [test]
     if: always()
 
     steps:
