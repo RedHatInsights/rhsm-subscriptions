@@ -202,28 +202,35 @@ jobs:
           name: checkstyle-report
           path: checkstyle-report
 
-      - name: Install XML Tools
-        run: sudo apt-get install -y libxml2-utils
-
-      - name: Extract Test & Coverage Summary
+      - name: JUnit Summary
         id: summary
-        run: |
-          TEST_XML=$(find junit-report -name "*.xml" | head -n1)
-          COVERAGE_XML=$(find coverage-report -name "jacocoTestReport.xml" | head -n1)
+        uses: mikepenz/action-junit-report@v5
+        with:
+          report_paths: '**/build/test-results/test/TEST-*.xml'
+          include_time_in_summary: true
 
-          TESTS=$(xmllint --xpath 'string(/testsuite/@tests)' "$TEST_XML")
-          FAILURES=$(xmllint --xpath 'string(/testsuite/@failures)' "$TEST_XML")
-          SKIPPED=$(xmllint --xpath 'string(/testsuite/@skipped)' "$TEST_XML")
+      # - name: Install XML Tools
+      #   run: sudo apt-get install -y libxml2-utils
 
-          MISSED=$(xmllint --xpath 'string(//counter[@type="INSTRUCTION"]/@missed)' "$COVERAGE_XML")
-          COVERED=$(xmllint --xpath 'string(//counter[@type="INSTRUCTION"]/@covered)' "$COVERAGE_XML")
-          TOTAL=$((MISSED + COVERED))
-          PERCENT=$((100 * COVERED / TOTAL))
+      # - name: Extract Test & Coverage Summary
+      #   id: summary
+      #   run: |
+      #     TEST_XML=$(find junit-report -name "*.xml" | head -n1)
+      #     COVERAGE_XML=$(find coverage-report -name "jacocoTestReport.xml" | head -n1)
 
-          echo "tests=$TESTS" >> $GITHUB_OUTPUT
-          echo "failures=$FAILURES" >> $GITHUB_OUTPUT
-          echo "skipped=$SKIPPED" >> $GITHUB_OUTPUT
-          echo "coverage=$PERCENT" >> $GITHUB_OUTPUT
+      #     TESTS=$(xmllint --xpath 'string(/testsuite/@tests)' "$TEST_XML")
+      #     FAILURES=$(xmllint --xpath 'string(/testsuite/@failures)' "$TEST_XML")
+      #     SKIPPED=$(xmllint --xpath 'string(/testsuite/@skipped)' "$TEST_XML")
+
+      #     MISSED=$(xmllint --xpath 'string(//counter[@type="INSTRUCTION"]/@missed)' "$COVERAGE_XML")
+      #     COVERED=$(xmllint --xpath 'string(//counter[@type="INSTRUCTION"]/@covered)' "$COVERAGE_XML")
+      #     TOTAL=$((MISSED + COVERED))
+      #     PERCENT=$((100 * COVERED / TOTAL))
+
+      #     echo "tests=$TESTS" >> $GITHUB_OUTPUT
+      #     echo "failures=$FAILURES" >> $GITHUB_OUTPUT
+      #     echo "skipped=$SKIPPED" >> $GITHUB_OUTPUT
+      #     echo "coverage=$PERCENT" >> $GITHUB_OUTPUT
 
       - name: Post PR Summary Comment
         if: github.event_name == 'pull_request'
@@ -232,13 +239,12 @@ jobs:
           header: "test-and-coverage-summary"
           message: |
             🧪 **JUnit Test Summary**
-            - Total Tests: `${{ steps.summary.outputs.tests }}`
-            - ❌ Failed: `${{ steps.summary.outputs.failures }}`
+            - Total Tests: `${{ steps.summary.outputs.total }}`
+            - ❌ Failed: `${{ steps.summary.outputs.failed }}`
             - ⚠️ Skipped: `${{ steps.summary.outputs.skipped }}`
             - 📄 [Download HTML Test Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
             📊 **Code Coverage**
-            - Instruction Coverage: `${{ steps.summary.outputs.coverage }}%`
             - 📄 [Download HTML Coverage Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
             🧹 **Checkstyle**
