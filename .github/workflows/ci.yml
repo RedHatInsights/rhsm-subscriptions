@@ -11,6 +11,8 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  ACTIONS_STEP_DEBUG: true
 jobs:
   validate-format:
     name: Validate Format
@@ -24,17 +26,23 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 17
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-home-cache-includes: |
+            buildSrc/.gradle
+            buildSrc/build
 
-  cache-validate-format:
-    uses: ./.github/workflows/cache-gradle.yml
-    with:
-      key-suffix: validate-format
-    needs: validate-format
+  # cache-validate-format:
+  #   uses: ./.github/workflows/cache-gradle.yml
+  #   with:
+  #     key-suffix: validate-format
+  #   needs: validate-format
 
   run-format-checks:
     name: Spotless & Checkstyle
     runs-on: ubuntu-latest
-    needs: cache-validate-format
+    # needs: cache-validate-format
 
     steps:
       - uses: actions/checkout@v4
@@ -65,17 +73,23 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 17
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-home-cache-includes: |
+            buildSrc/.gradle
+            buildSrc/build
 
-  cache-floorplan:
-    uses: ./.github/workflows/cache-gradle.yml
-    with:
-      key-suffix: floorplan
-    needs: validate-floorplan-queries
+  # cache-floorplan:
+  #   uses: ./.github/workflows/cache-gradle.yml
+  #   with:
+  #     key-suffix: floorplan
+  #   needs: validate-floorplan-queries
 
   run-floorplan-checks:
     name: Run FloorPlan Query Validation
     runs-on: ubuntu-latest
-    needs: cache-floorplan
+    # needs: cache-floorplan
 
     steps:
       - uses: actions/checkout@v4
@@ -125,17 +139,23 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 17
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-home-cache-includes: |
+            buildSrc/.gradle
+            buildSrc/build
 
-  cache-build:
-    uses: ./.github/workflows/cache-gradle.yml
-    with:
-      key-suffix: build
-    needs: build
+  # cache-build:
+  #   uses: ./.github/workflows/cache-gradle.yml
+  #   with:
+  #     key-suffix: build
+  #   needs: build
 
   run-build:
     name: Gradle Build
     runs-on: ubuntu-latest
-    needs: cache-build
+    # needs: cache-build
 
     steps:
       - uses: actions/checkout@v4
@@ -164,17 +184,23 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 17
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-home-cache-includes: |
+            buildSrc/.gradle
+            buildSrc/build
 
-  cache-test:
-    uses: ./.github/workflows/cache-gradle.yml
-    with:
-      key-suffix: test
-    needs: test
+  # cache-test:
+  #   uses: ./.github/workflows/cache-gradle.yml
+  #   with:
+  #     key-suffix: test
+  #   needs: test
 
   run-tests:
     name: Run Unit Tests
     runs-on: ubuntu-latest
-    needs: cache-test
+    # needs: cache-test
 
     steps:
       - uses: actions/checkout@v4
