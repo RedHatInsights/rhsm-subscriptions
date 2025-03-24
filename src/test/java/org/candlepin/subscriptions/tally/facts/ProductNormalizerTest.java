@@ -21,61 +21,70 @@
 package org.candlepin.subscriptions.tally.facts;
 
 import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.createQpcHost;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.createSystemProfileHost;
+import static org.candlepin.subscriptions.tally.facts.product.QpcProductRule.RHEL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Set;
-import java.util.stream.Stream;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
+import org.springframework.test.context.ActiveProfiles;
 
+@SpringBootTest
+@ActiveProfiles({"worker", "test"})
+@ExtendWith(OutputCaptureExtension.class)
 class ProductNormalizerTest {
 
-  static final String RHEL_FOR_X86 = "RHEL for x86";
-  static final String RHEL_FOR_ARM = "RHEL for ARM";
-  static final String RHEL_FOR_IBM_POWER = "RHEL for IBM Power";
-
-  ProductNormalizer productNormalizer = new ProductNormalizer();
-
-  @ParameterizedTest
-  @MethodSource("provideArchCombinations")
-  void testQpcSystemArchProduct(String arch, String expectedProduct) {
-    var inventoryHostFacts = createQpcHost("RHEL", arch, OffsetDateTime.now(Clock.systemUTC()));
-
-    boolean is3rdPartyMigrated = false;
-
-    var skipRhsm = false;
-    assertThat(
-        productNormalizer.normalizeProducts(inventoryHostFacts, is3rdPartyMigrated, skipRhsm),
-        Matchers.hasItem(expectedProduct));
-  }
-
-  private static Stream<Arguments> provideArchCombinations() {
-
-    return Stream.of(
-        Arguments.of("x86_64", RHEL_FOR_X86),
-        Arguments.of("i386", RHEL_FOR_X86),
-        Arguments.of("i686", RHEL_FOR_X86),
-        Arguments.of("i686", RHEL_FOR_X86),
-        Arguments.of("ppc64le", RHEL_FOR_IBM_POWER),
-        Arguments.of("aarch64", RHEL_FOR_ARM));
-  }
+  @Autowired ProductNormalizer productNormalizer;
 
   @Test
-  void testQpcProductIdFromEngId() {
-    var host = createQpcHost("RHEL", "Test", OffsetDateTime.now(Clock.systemUTC()));
+  void testProductIdFromEngId() {
+    // it should aggregate the RHEL product using the QPC product rule
+    var host = createQpcHost(RHEL, "Test", OffsetDateTime.now(Clock.systemUTC()));
+    // and RHEL for x86 from the System Profile product IDs product rule
     host.setSystemProfileProductIds("69");
-
     boolean is3rdPartyMigrated = false;
     var skipRhsm = false;
 
     var actual = productNormalizer.normalizeProducts(host, is3rdPartyMigrated, skipRhsm);
+    // "RHEL Ungrouped" is added after reconciling all the products from rules
     var expected = Set.of("RHEL Ungrouped", "RHEL for x86", "RHEL");
     assertEquals(expected, actual);
+  }
+
+  @Test
+  void testProductIdIsConfiguredButNotMatchedThenLogIsTraced(CapturedOutput output) {
+    // given a host using the product ID 479, but using third party migration enabled will not be
+    // matched
+    var host = createSystemProfileHost("org123", List.of(479), 1, 4, OffsetDateTime.now());
+    boolean is3rdPartyMigrated = true;
+    var skipRhsm = false;
+
+    var actual = productNormalizer.normalizeProducts(host, is3rdPartyMigrated, skipRhsm);
+
+    assertTrue(actual.isEmpty());
+    assertTrue(output.getAll().contains("No products matched for host with name"));
+  }
+
+  @Test
+  void testProductIdIsNotConfiguredAndNotMatchedThenLogIsNotTraced(CapturedOutput output) {
+    // given a host using the non-existing product ID 666
+    var host = createSystemProfileHost("org123", List.of(666), 1, 4, OffsetDateTime.now());
+    boolean is3rdPartyMigrated = true;
+    var skipRhsm = false;
+
+    var actual = productNormalizer.normalizeProducts(host, is3rdPartyMigrated, skipRhsm);
+
+    assertTrue(actual.isEmpty());
+    assertFalse(output.getAll().contains("No products matched for host with name"));
   }
 }
