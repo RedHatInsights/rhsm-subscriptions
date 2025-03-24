@@ -26,14 +26,14 @@ import java.util.List;
 import java.util.Objects;
 
 @ApplicationScoped
-public class HypervisorRelationshipRepository
-    implements PanacheRepositoryBase<HypervisorRelationship, HypervisorRelationshipId> {
+public class HbiHostRelationshipRepository
+    implements PanacheRepositoryBase<HbiHostRelationship, HbiHostRelationshipId> {
 
-  public List<HypervisorRelationship> findByOrgId(String orgId) {
+  public List<HbiHostRelationship> findByOrgId(String orgId) {
     return list("id.orgId", orgId);
   }
 
-  public List<HypervisorRelationship> findByHypervisorUuid(String orgId, String hypervisorUuid) {
+  public List<HbiHostRelationship> findByHypervisorUuid(String orgId, String hypervisorUuid) {
     return list("id.orgId=?1 and hypervisorUuid=?2", orgId, hypervisorUuid);
   }
 
@@ -44,7 +44,7 @@ public class HypervisorRelationshipRepository
     return count("id.orgId=?1 and hypervisorUuid=?2", orgId, hypervisorUuid);
   }
 
-  public List<HypervisorRelationship> findUnmappedGuests(String orgId, String hypervisorUuid) {
+  public List<HbiHostRelationship> findUnmappedGuests(String orgId, String hypervisorUuid) {
     if (Objects.isNull(hypervisorUuid) || hypervisorUuid.isBlank()) {
       return List.of();
     }

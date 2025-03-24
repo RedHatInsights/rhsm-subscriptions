@@ -36,7 +36,7 @@ import org.hibernate.type.SqlTypes;
 @EqualsAndHashCode(callSuper = false)
 @Entity
 @Table(
-    name = "hypervisor_relationship",
+    name = "hbi_host_relationship",
     uniqueConstraints = {
       @UniqueConstraint(
           columnNames = {"hypervisor_uuid"},
@@ -44,9 +44,9 @@ import org.hibernate.type.SqlTypes;
     })
 @Data
 @NoArgsConstructor
-public class HypervisorRelationship extends PanacheEntityBase {
+public class HbiHostRelationship extends PanacheEntityBase {
 
-  @EmbeddedId private HypervisorRelationshipId id;
+  @EmbeddedId private HbiHostRelationshipId id;
 
   @Column(name = "hypervisor_uuid")
   private String hypervisorUuid;

@@ -37,15 +37,15 @@ import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 @QuarkusTestResource(value = PostgresResource.class, restrictToAnnotatedClass = true)
-class HypervisorRelationshipRepositoryTest {
+class HbiHostRelationshipRepositoryTest {
 
-  @Inject HypervisorRelationshipRepository repository;
+  @Inject HbiHostRelationshipRepository repository;
 
   @BeforeEach
   @Transactional
   public void setUp() {
-    HypervisorRelationshipId id1 = new HypervisorRelationshipId("org1", "subman1");
-    HypervisorRelationship relationship1 = new HypervisorRelationship();
+    HbiHostRelationshipId id1 = new HbiHostRelationshipId("org1", "subman1");
+    HbiHostRelationship relationship1 = new HbiHostRelationship();
     relationship1.setId(id1);
     relationship1.setHypervisorUuid("uuid1");
     relationship1.setCreationDate(OffsetDateTime.now());
@@ -53,15 +53,15 @@ class HypervisorRelationshipRepositoryTest {
     relationship1.setUnmappedGuest(true);
     relationship1.setFacts("{\"cores\":4,\"sockets\":2}");
 
-    HypervisorRelationshipId id2 = new HypervisorRelationshipId("org1", "subman2");
-    HypervisorRelationship relationship2 = new HypervisorRelationship();
+    HbiHostRelationshipId id2 = new HbiHostRelationshipId("org1", "subman2");
+    HbiHostRelationship relationship2 = new HbiHostRelationship();
     relationship2.setId(id2);
     relationship2.setCreationDate(OffsetDateTime.now());
     relationship2.setLastUpdated(OffsetDateTime.now());
     relationship2.setFacts("{\"cores\":8,\"sockets\":4}");
 
-    HypervisorRelationshipId id3 = new HypervisorRelationshipId("org1", "subman3");
-    HypervisorRelationship relationship3 = new HypervisorRelationship();
+    HbiHostRelationshipId id3 = new HbiHostRelationshipId("org1", "subman3");
+    HbiHostRelationship relationship3 = new HbiHostRelationship();
     relationship3.setId(id3);
     relationship3.setHypervisorUuid("subman2");
     relationship3.setCreationDate(OffsetDateTime.now());
@@ -69,8 +69,8 @@ class HypervisorRelationshipRepositoryTest {
     relationship3.setUnmappedGuest(false);
     relationship3.setFacts("{\"cores\":8,\"sockets\":4}");
 
-    HypervisorRelationshipId id4 = new HypervisorRelationshipId("org3", "subman444");
-    HypervisorRelationship relationship4 = new HypervisorRelationship();
+    HbiHostRelationshipId id4 = new HbiHostRelationshipId("org3", "subman444");
+    HbiHostRelationship relationship4 = new HbiHostRelationship();
     relationship4.setId(id4);
     relationship4.setCreationDate(OffsetDateTime.now());
     relationship4.setLastUpdated(OffsetDateTime.now());
@@ -99,7 +99,7 @@ class HypervisorRelationshipRepositoryTest {
   @Test
   @Transactional
   void testFindByOrgId_HasCorrectOrgId() {
-    List<HypervisorRelationship> results = repository.findByOrgId("org3");
+    List<HbiHostRelationship> results = repository.findByOrgId("org3");
     assertEquals(1, results.size(), "Expected 1 result for org3");
     assertEquals(
         "org3", results.get(0).getId().getOrgId(), "First result should have orgId 'org3'");
@@ -108,8 +108,8 @@ class HypervisorRelationshipRepositoryTest {
   @Test
   @Transactional
   void testFindById_ReturnsCorrectResult() {
-    HypervisorRelationshipId id = new HypervisorRelationshipId("org123", "subman3");
-    HypervisorRelationship relationship = new HypervisorRelationship();
+    HbiHostRelationshipId id = new HbiHostRelationshipId("org123", "subman3");
+    HbiHostRelationship relationship = new HbiHostRelationship();
     relationship.setId(id);
     relationship.setHypervisorUuid("uuid3");
     relationship.setCreationDate(OffsetDateTime.now());
@@ -118,7 +118,7 @@ class HypervisorRelationshipRepositoryTest {
     repository.persist(relationship);
 
     assertTrue(
-        repository.findByIdOptional(new HypervisorRelationshipId("org123", "subman3")).isPresent());
+        repository.findByIdOptional(new HbiHostRelationshipId("org123", "subman3")).isPresent());
   }
 
   @Test
@@ -145,7 +145,7 @@ class HypervisorRelationshipRepositoryTest {
     assertEquals(0, repository.findUnmappedGuests("org1", null).size());
     assertEquals(0, repository.findUnmappedGuests("org1", "subman2").size());
 
-    List<HypervisorRelationship> unmapped = repository.findUnmappedGuests("org1", "uuid1");
+    List<HbiHostRelationship> unmapped = repository.findUnmappedGuests("org1", "uuid1");
     assertEquals(1, unmapped.size());
     assertEquals("subman1", unmapped.get(0).getId().getSubscriptionManagerId());
   }

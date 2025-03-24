@@ -34,7 +34,7 @@ import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SatelliteFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
-import com.redhat.swatch.hbi.events.services.HypervisorRelationshipService;
+import com.redhat.swatch.hbi.events.services.HbiHostRelationshipService;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -62,14 +62,14 @@ class FactNormalizerTest {
 
   private ApplicationClock clock;
   private FactNormalizer normalizer;
-  @Mock private HypervisorRelationshipService hypervisorRelationshipService;
+  @Mock private HbiHostRelationshipService hbiHostRelationshipService;
 
   @BeforeEach
   void setUp() {
     ApplicationConfiguration config = new ApplicationConfiguration();
     config.setHostLastSyncThreshold(Duration.ofHours(24));
     clock = config.applicationClock();
-    normalizer = new FactNormalizer(clock, config, hypervisorRelationshipService);
+    normalizer = new FactNormalizer(clock, config, hbiHostRelationshipService);
   }
 
   // Basic facts are facts that require no logic when deciding the value.
@@ -171,7 +171,7 @@ class FactNormalizerTest {
   @MethodSource("isHypervisorNormalizationParams")
   void testIsHypervisorNormalization(boolean expectedHypervisor) {
     HbiHost hbiHost = hbiHost();
-    when(hypervisorRelationshipService.isHypervisor(
+    when(hbiHostRelationshipService.isHypervisor(
             hbiHost.getOrgId(), hbiHost.getSubscriptionManagerId()))
         .thenReturn(expectedHypervisor);
     NormalizedFacts facts = normalizer.normalize(new Host(hbiHost));
@@ -190,7 +190,7 @@ class FactNormalizerTest {
     HbiHost hbiHost = hbiHost();
     hbiHost.getSystemProfile().put(SystemProfileFacts.HYPERVISOR_UUID_FACT, expectedHypervisorUuid);
     hbiHost.getSystemProfile().put(SystemProfileFacts.INFRASTRUCTURE_TYPE_FACT, "virtual");
-    when(hypervisorRelationshipService.isKnownHost(hbiHost.getOrgId(), expectedHypervisorUuid))
+    when(hbiHostRelationshipService.isKnownHost(hbiHost.getOrgId(), expectedHypervisorUuid))
         .thenReturn(isHypervisorKnown);
     NormalizedFacts facts = normalizer.normalize(new Host(hbiHost));
     assertEquals(!isHypervisorKnown, facts.isUnmappedGuest());

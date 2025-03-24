@@ -31,7 +31,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class HypervisorRelationshipId implements Serializable {
+public class HbiHostRelationshipId implements Serializable {
 
   @Column(name = "org_id")
   private String orgId;

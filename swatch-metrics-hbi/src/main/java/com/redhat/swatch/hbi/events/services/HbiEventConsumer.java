@@ -37,7 +37,7 @@ import com.redhat.swatch.hbi.events.normalization.MeasurementNormalizer;
 import com.redhat.swatch.hbi.events.normalization.NormalizedFacts;
 import com.redhat.swatch.hbi.events.normalization.NormalizedMeasurements;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
-import com.redhat.swatch.hbi.events.repository.HypervisorRelationship;
+import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
 import com.redhat.swatch.kafka.EmitterService;
 import io.smallrye.reactive.messaging.kafka.api.KafkaMessageMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -74,7 +74,7 @@ public class HbiEventConsumer {
   private final ApplicationConfiguration config;
   private final FactNormalizer factNormalizer;
   private final MeasurementNormalizer measurementNormalizer;
-  private final HypervisorRelationshipService hypervisorRelationshipService;
+  private final HbiHostRelationshipService hbiHostRelationshipService;
   private final ObjectMapper objectMapper;
 
   public HbiEventConsumer(
@@ -84,7 +84,7 @@ public class HbiEventConsumer {
       ApplicationConfiguration config,
       FactNormalizer factNormalizer,
       MeasurementNormalizer measurementNormalizer,
-      HypervisorRelationshipService hypervisorRelationshipService,
+      HbiHostRelationshipService hbiHostRelationshipService,
       ObjectMapper objectMapper) {
     this.emitter = new EmitterService<>(emitter);
     this.flags = flags;
@@ -92,7 +92,7 @@ public class HbiEventConsumer {
     this.config = config;
     this.factNormalizer = factNormalizer;
     this.measurementNormalizer = measurementNormalizer;
-    this.hypervisorRelationshipService = hypervisorRelationshipService;
+    this.hbiHostRelationshipService = hbiHostRelationshipService;
     this.objectMapper = objectMapper;
   }
 
@@ -163,8 +163,8 @@ public class HbiEventConsumer {
   private Optional<Event> updateGuestRelationships(
       NormalizedFacts guestFacts, OffsetDateTime eventTimestamp) {
     // Make sure that the guest's hypervisor data is up to date.
-    Optional<HypervisorRelationship> hypervisor =
-        hypervisorRelationshipService.getRelationship(
+    Optional<HbiHostRelationship> hypervisor =
+        hbiHostRelationshipService.getRelationship(
             guestFacts.getOrgId(), guestFacts.getHypervisorUuid());
     return hypervisor.map(h -> refreshHost("HYPERVISOR_UPDATED", h, eventTimestamp));
   }
@@ -172,7 +172,7 @@ public class HbiEventConsumer {
   private List<Event> updateHypervisorRelationships(
       NormalizedFacts facts, OffsetDateTime eventTimestamp) {
     // Reprocess any unmapped guests and resend an event with updated measurements.
-    return hypervisorRelationshipService
+    return hbiHostRelationshipService
         .getUnmappedGuests(facts.getOrgId(), facts.getSubscriptionManagerId())
         .stream()
         .map(unmapped -> refreshGuest(unmapped, eventTimestamp))
@@ -185,7 +185,7 @@ public class HbiEventConsumer {
       HbiHostCreateUpdateEvent hbiHostEvent,
       OffsetDateTime eventTimestamp) {
     try {
-      hypervisorRelationshipService.processHost(
+      hbiHostRelationshipService.processHost(
           facts.getOrgId(),
           facts.getSubscriptionManagerId(),
           facts.getHypervisorUuid(),
@@ -205,7 +205,7 @@ public class HbiEventConsumer {
    * @param unmapped the unmapped guests hypervisor relationship.
    * @return a new Event representing the host's new state.
    */
-  private Event refreshGuest(HypervisorRelationship unmapped, OffsetDateTime hypervisorTimestamp) {
+  private Event refreshGuest(HbiHostRelationship unmapped, OffsetDateTime hypervisorTimestamp) {
     return refreshHost("MAPPED_GUEST_UPDATE", unmapped, hypervisorTimestamp);
   }
 
@@ -216,12 +216,12 @@ public class HbiEventConsumer {
    * @return a new Event representing the host's new state.
    */
   private Event refreshHost(
-      String eventType, HypervisorRelationship hostRelationship, OffsetDateTime refreshTimestamp) {
+      String eventType, HbiHostRelationship hostRelationship, OffsetDateTime refreshTimestamp) {
     try {
       Host host = new Host(objectMapper.readValue(hostRelationship.getFacts(), HbiHost.class));
       NormalizedFacts facts = factNormalizer.normalize(host);
       Event event = buildEvent(eventType, facts, host, refreshTimestamp);
-      hypervisorRelationshipService.processHost(
+      hbiHostRelationshipService.processHost(
           facts.getOrgId(),
           facts.getSubscriptionManagerId(),
           facts.getHypervisorUuid(),

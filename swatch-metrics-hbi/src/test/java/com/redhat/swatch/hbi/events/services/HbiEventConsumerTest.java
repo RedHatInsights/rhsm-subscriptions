@@ -38,8 +38,8 @@ import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostFacts;
 import com.redhat.swatch.hbi.events.kafka.InMemoryMessageBrokerKafkaResource;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
-import com.redhat.swatch.hbi.events.repository.HypervisorRelationship;
-import com.redhat.swatch.hbi.events.repository.HypervisorRelationshipId;
+import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
+import com.redhat.swatch.hbi.events.repository.HbiHostRelationshipId;
 import com.redhat.swatch.hbi.events.test.resources.PostgresResource;
 import io.getunleash.Unleash;
 import io.quarkus.test.InjectMock;
@@ -83,7 +83,7 @@ class HbiEventConsumerTest {
   //  we need to disable the unleash service in the configuration
   //  file.
   @InjectMock Unleash unleash;
-  @InjectMock HypervisorRelationshipService hypervisorRelationshipService;
+  @InjectMock HbiHostRelationshipService hbiHostRelationshipService;
   @Inject @Any InMemoryConnector connector;
   @Inject ApplicationClock clock;
   @Inject ObjectMapper objectMapper;
@@ -177,10 +177,10 @@ class HbiEventConsumerTest {
                     new Measurement().withMetricId("cores").withValue(6.0),
                     new Measurement().withMetricId("sockets").withValue(1.0)));
 
-    when(hypervisorRelationshipService.isHypervisor(
+    when(hbiHostRelationshipService.isHypervisor(
             hbiHost.getOrgId(), hbiHost.getSubscriptionManagerId()))
         .thenReturn(false);
-    when(hypervisorRelationshipService.isKnownHost(
+    when(hbiHostRelationshipService.isKnownHost(
             hbiHost.getOrgId(), "bed420fa-59ef-44e5-af8a-62a24473a554"))
         .thenReturn(false);
 
@@ -338,11 +338,11 @@ class HbiEventConsumerTest {
     // and is within the configured 'hostLastSyncThreshold'.
     setRhsmSyncTimestamp(virtualHostHbiEvent, clock.now().minusHours(5));
 
-    HypervisorRelationshipId unmappedGuestRelationshipId =
-        new HypervisorRelationshipId(
+    HbiHostRelationshipId unmappedGuestRelationshipId =
+        new HbiHostRelationshipId(
             virtualHostHbiEvent.getHost().getOrgId(),
             virtualHostHbiEvent.getHost().getSubscriptionManagerId());
-    HypervisorRelationship unmappedGuestRelationship = new HypervisorRelationship();
+    HbiHostRelationship unmappedGuestRelationship = new HbiHostRelationship();
     unmappedGuestRelationship.setId(unmappedGuestRelationshipId);
     unmappedGuestRelationship.setHypervisorUuid(expectedHypervisorUuid);
     unmappedGuestRelationship.setFacts(
@@ -414,14 +414,14 @@ class HbiEventConsumerTest {
 
     // Stub out the repository calls for the incoming hypervisor. For this test we assume that
     // the guest was already processed and has a record already in the relationships table.
-    when(hypervisorRelationshipService.isHypervisor(
+    when(hbiHostRelationshipService.isHypervisor(
             hypervisorHbiHost.getOrgId(), hypervisorHbiHost.getSubscriptionManagerId()))
         .thenReturn(true);
     // When the guest is refreshed, make sure that the hypervisor is known.
-    when(hypervisorRelationshipService.isKnownHost(
+    when(hbiHostRelationshipService.isKnownHost(
             hypervisorHbiHost.getOrgId(), hypervisorHbiHost.getSubscriptionManagerId()))
         .thenReturn(true);
-    when(hypervisorRelationshipService.getUnmappedGuests(
+    when(hbiHostRelationshipService.getUnmappedGuests(
             hypervisorHbiHost.getOrgId(), hypervisorHbiHost.getSubscriptionManagerId()))
         .thenReturn(List.of(unmappedGuestRelationship));
 
@@ -474,15 +474,15 @@ class HbiEventConsumerTest {
                     new Measurement().withMetricId("sockets").withValue(2.0)));
 
     // Incoming host is not a hypervisor
-    when(hypervisorRelationshipService.isHypervisor(
+    when(hbiHostRelationshipService.isHypervisor(
             mappedGuest.getOrgId(), mappedGuest.getSubscriptionManagerId()))
         .thenReturn(false);
 
     // Incoming host's hypervisor is known
-    when(hypervisorRelationshipService.isKnownHost(mappedGuest.getOrgId(), expectedHypervisorUuid))
+    when(hbiHostRelationshipService.isKnownHost(mappedGuest.getOrgId(), expectedHypervisorUuid))
         .thenReturn(true);
 
-    verify(hypervisorRelationshipService, never()).getUnmappedGuests(anyString(), anyString());
+    verify(hbiHostRelationshipService, never()).getUnmappedGuests(anyString(), anyString());
 
     hbiEventsIn.send(virtualHostHbiEvent);
     assertSwatchEventSent(expectedMappedGuestEvent);
@@ -533,15 +533,14 @@ class HbiEventConsumerTest {
                     new Measurement().withMetricId("sockets").withValue(2.0)));
 
     // Incoming guest host is not a hypervisor.
-    when(hypervisorRelationshipService.isHypervisor(
+    when(hbiHostRelationshipService.isHypervisor(
             unmappedGuest.getOrgId(), unmappedGuest.getSubscriptionManagerId()))
         .thenReturn(false);
 
     // Incoming guest's host hypervisor is not currently known as a hypervisor, but has been seen
     // before. Because the hypervisor host has been seen before, the guest will now be considered
     // 'mapped'.
-    when(hypervisorRelationshipService.isKnownHost(
-            unmappedGuest.getOrgId(), expectedHypervisorUuid))
+    when(hbiHostRelationshipService.isKnownHost(unmappedGuest.getOrgId(), expectedHypervisorUuid))
         .thenReturn(true);
 
     var hypervisorEvent = getCreateUpdateEvent(HbiEventTestData.getPhysicalRhelHostCreatedEvent());
@@ -584,22 +583,20 @@ class HbiEventConsumerTest {
                     new Measurement().withMetricId("sockets").withValue(2.0)));
 
     // Ensure that the guest has a hypervisor relationship to update.
-    HypervisorRelationshipId hypervisorRelationshipId =
-        new HypervisorRelationshipId(
+    HbiHostRelationshipId hbiHostRelationshipId =
+        new HbiHostRelationshipId(
             hypervisorEvent.getHost().getOrgId(),
             hypervisorEvent.getHost().getSubscriptionManagerId());
-    HypervisorRelationship hypervisorRelationship = new HypervisorRelationship();
-    hypervisorRelationship.setId(hypervisorRelationshipId);
-    hypervisorRelationship.setFacts(objectMapper.writeValueAsString(hypervisorEvent.getHost()));
+    HbiHostRelationship hbiHostRelationship = new HbiHostRelationship();
+    hbiHostRelationship.setId(hbiHostRelationshipId);
+    hbiHostRelationship.setFacts(objectMapper.writeValueAsString(hypervisorEvent.getHost()));
 
-    when(hypervisorRelationshipService.getRelationship(
-            hypervisorRelationshipId.getOrgId(),
-            hypervisorRelationshipId.getSubscriptionManagerId()))
-        .thenReturn(Optional.of(hypervisorRelationship));
+    when(hbiHostRelationshipService.getRelationship(
+            hbiHostRelationshipId.getOrgId(), hbiHostRelationshipId.getSubscriptionManagerId()))
+        .thenReturn(Optional.of(hbiHostRelationship));
 
-    when(hypervisorRelationshipService.isHypervisor(
-            hypervisorRelationshipId.getOrgId(),
-            hypervisorRelationshipId.getSubscriptionManagerId()))
+    when(hbiHostRelationshipService.isHypervisor(
+            hbiHostRelationshipId.getOrgId(), hbiHostRelationshipId.getSubscriptionManagerId()))
         .thenReturn(true);
 
     hbiEventsIn.send(virtualGuestHbiEvent);

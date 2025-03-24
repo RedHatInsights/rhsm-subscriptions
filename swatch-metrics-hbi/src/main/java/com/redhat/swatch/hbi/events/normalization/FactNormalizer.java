@@ -28,7 +28,7 @@ import com.redhat.swatch.hbi.events.normalization.facts.QpcFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SatelliteFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
-import com.redhat.swatch.hbi.events.services.HypervisorRelationshipService;
+import com.redhat.swatch.hbi.events.services.HbiHostRelationshipService;
 import io.quarkus.runtime.util.StringUtil;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.time.OffsetDateTime;
@@ -51,15 +51,15 @@ public class FactNormalizer {
 
   private final ApplicationClock clock;
   private final ApplicationConfiguration appConfig;
-  private final HypervisorRelationshipService hypervisorRelationshipService;
+  private final HbiHostRelationshipService hbiHostRelationshipService;
 
   public FactNormalizer(
       ApplicationClock clock,
       ApplicationConfiguration appConfig,
-      HypervisorRelationshipService hypervisorRelationshipService) {
+      HbiHostRelationshipService hbiHostRelationshipService) {
     this.clock = clock;
     this.appConfig = appConfig;
-    this.hypervisorRelationshipService = hypervisorRelationshipService;
+    this.hbiHostRelationshipService = hbiHostRelationshipService;
   }
 
   public NormalizedFacts normalize(Host host) {
@@ -89,11 +89,11 @@ public class FactNormalizer {
             systemProfileFacts, rhsmFacts, satelliteFacts, qpcFacts, skipRhsmFacts);
 
     String subscriptionManagerId = host.getHbiHost().getSubscriptionManagerId();
-    boolean isHypervisor = hypervisorRelationshipService.isHypervisor(orgId, subscriptionManagerId);
+    boolean isHypervisor = hbiHostRelationshipService.isHypervisor(orgId, subscriptionManagerId);
     boolean isUnmappedGuest =
         isVirtual
             && StringUtils.isNotEmpty(hypervisorUuid)
-            && !hypervisorRelationshipService.isKnownHost(orgId, hypervisorUuid);
+            && !hbiHostRelationshipService.isKnownHost(orgId, hypervisorUuid);
 
     return NormalizedFacts.builder()
         .orgId(orgId)

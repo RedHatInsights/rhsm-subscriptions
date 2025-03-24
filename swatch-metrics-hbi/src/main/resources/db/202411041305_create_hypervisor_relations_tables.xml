@@ -8,7 +8,7 @@
   <property name="json_type" dbms="postgresql" value="jsonb"/>
 
   <changeSet id="202411251600" author="lburnett">
-    <createTable tableName="hypervisor_relationship">
+    <createTable tableName="hbi_host_relationship">
       <column name="org_id" type="VARCHAR">
         <constraints nullable="false"/>
       </column>
@@ -34,13 +34,13 @@
 
     <addPrimaryKey
       columnNames="org_id, subscription_manager_id"
-      constraintName="pk_hypervisor_relationship"
-      tableName="hypervisor_relationship"/>
+      constraintName="pk_hbi_host_relationship"
+      tableName="hbi_host_relationship"/>
 
     <addUniqueConstraint
       columnNames="hypervisor_uuid"
       constraintName="unique_hypervisor_uuid"
-      tableName="hypervisor_relationship"/>
+      tableName="hbi_host_relationship"/>
 
   </changeSet>
 
