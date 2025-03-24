@@ -36,7 +36,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.eq;
@@ -58,7 +57,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.Stream.Builder;
-import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostTallyBucketRepository;
@@ -78,17 +76,16 @@ import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollectorFactory;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
-import org.candlepin.subscriptions.tally.facts.ProductNormalizer;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Spy;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.util.StringUtils;
 
-@ExtendWith(MockitoExtension.class)
+@SpringBootTest
+@ActiveProfiles({"worker", "test", "test-inventory"})
 class InventoryAccountUsageCollectorTallyTest {
   private static final String TEST_PRODUCT = "RHEL for x86";
   public static final Integer TEST_PRODUCT_ID = 69;
@@ -100,20 +97,13 @@ class InventoryAccountUsageCollectorTallyTest {
   private static final String BILLING_ACCOUNT_ID_ANY = "_ANY";
   public static final String ORG_ID = "org123";
 
-  @Mock(strictness = LENIENT)
-  private InventoryRepository inventoryRepo;
-
-  @Mock private HostTallyBucketRepository hostBucketRepository;
-
-  @Mock(strictness = LENIENT)
-  private AccountServiceInventoryRepository accountServiceInventoryRepository;
-
-  @Mock private ApplicationProperties props;
-  @Spy private ApplicationClock clock = new ApplicationClock();
-  @InjectMocks private InventoryAccountUsageCollector collector;
-  @InjectMocks private InventoryDatabaseOperations inventory;
-  @InjectMocks private FactNormalizer factNormalizer;
-  @Spy private ProductNormalizer productNormalizer;
+  @MockitoBean InventoryRepository inventoryRepo;
+  @MockitoBean HostTallyBucketRepository hostBucketRepository;
+  @MockitoBean AccountServiceInventoryRepository accountServiceInventoryRepository;
+  @Autowired ApplicationProperties props;
+  @Autowired InventoryAccountUsageCollector collector;
+  @Autowired InventoryDatabaseOperations inventory;
+  @Autowired FactNormalizer factNormalizer;
 
   @Test
   void hypervisorCountsIgnoredForNonRhelProduct() {
