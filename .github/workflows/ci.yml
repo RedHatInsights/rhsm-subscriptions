@@ -185,47 +185,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-home-cache-includes: |
-            buildSrc/.gradle
-            buildSrc/build
-
-      - name: Run SonarCloud Scan for PR or Branch
-        env:
-          SONAR_TOKEN: ${{ secrets.CANDLEPIN_BOT_SONARCLOUD }}
+      - name: Install SonarScanner CLI
         run: |
+          curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+          unzip sonar-scanner.zip -d $HOME
+          echo "$HOME/sonar-scanner-5.0.1.3006-linux/bin" >> $GITHUB_PATH
+
+      - name: Set up SonarCloud Properties
+        run: |
+          echo "sonar.projectKey=rhsm-subscriptions" > sonar-project.properties
+          echo "sonar.organization=rhsm" >> sonar-project.properties
+          echo "sonar.host.url=https://sonarcloud.io" >> sonar-project.properties
+          echo "sonar.login=${{ secrets.CANDLEPIN_BOT_SONARCLOUD }}" >> sonar-project.properties
+          echo "sonar.sources=src" >> sonar-project.properties
+          echo "sonar.java.binaries=build" >> sonar-project.properties
+          
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            ./gradlew --no-daemon --no-parallel sonar \
-              -Duser.home=/tmp \
-              -Dsonar.host.url=https://sonarcloud.io \
-              -Dsonar.token=$SONAR_TOKEN \
-              -Dsonar.organization=rhsm \
-              -Dsonar.projectKey=rhsm-subscriptions \
-              -Dsonar.pullrequest.key=${{ github.event.pull_request.number }} \
-              -Dsonar.pullrequest.base=${{ github.event.pull_request.base.ref }} \
-              -Dsonar.pullrequest.branch=${{ github.event.pull_request.head.ref }}
+            echo "sonar.pullrequest.key=${{ github.event.pull_request.number }}" >> sonar-project.properties
+            echo "sonar.pullrequest.branch=${{ github.event.pull_request.head.ref }}" >> sonar-project.properties
+            echo "sonar.pullrequest.base=${{ github.event.pull_request.base.ref }}" >> sonar-project.properties
           else
-            ./gradlew --no-daemon --no-parallel sonar \
-              -Duser.home=/tmp \
-              -Dsonar.host.url=https://sonarcloud.io \
-              -Dsonar.token=$SONAR_TOKEN \
-              -Dsonar.organization=rhsm \
-              -Dsonar.projectKey=rhsm-subscriptions \
-              -Dsonar.branch.name=${{ github.ref_name }}
+            echo "sonar.branch.name=${{ github.ref_name }}" >> sonar-project.properties
           fi
 
+      - name: Run SonarScanner CLI
+        run: sonar-scanner -Dproject.settings=sonar-project.properties
+
       - name: Wait for SonarCloud Quality Gate
+        id: qualitygate
         uses: sonarsource/sonarqube-quality-gate-action@v1.1.0
         with:
-          scanMetadataReportFile: build/sonar/report-task.txt
+          scanMetadataReportFile: .scannerwork/report-task.txt
         env:
           SONAR_TOKEN: ${{ secrets.CANDLEPIN_BOT_SONARCLOUD }}
 
