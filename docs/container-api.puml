@@ -1,0 +1,27 @@
+@startuml
+!include <C4/C4_Container>
+
+' see https://forum.plantuml.net/8356/white-backgrounds-are-rendered-transparent-in-svg
+skinparam backgroundColor #FEFEFE
+
+LAYOUT_WITH_LEGEND()
+
+title Container diagram for Subscription watch API
+
+Person(customer, "Red Hat Customer")
+
+Boundary(crc, console.redhat.com) {
+  System(threescale, "3scale", "API gateway")
+  System(swatch, "Subscription watch API") {
+    Container(nginx, "swatch-api-nginx-proxy", "nginx, container", "Service that routes APIs to swatch microservices")
+    Container(api, "swatch-api", "Java, container", "Handles most customer-facing API requests")
+  }
+  System(microservices, "other swatch micro-services")
+}
+
+Rel(customer, threescale, "HTTP Request")
+Rel(threescale, nginx, "HTTP Request w/ x-rh-identity header")
+Rel(nginx, api, "")
+Rel(nginx, microservices, "")
+
+@enduml

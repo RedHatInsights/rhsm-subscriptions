@@ -1,0 +1,62 @@
+/*
+ * Copyright Red Hat, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Red Hat trademarks are not licensed under GPLv3. No permission is
+ * granted to use or replicate Red Hat trademarks that are incorporated
+ * in this software or its documentation.
+ */
+package org.candlepin.subscriptions.tally.facts.product;
+
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.util.ProductTagLookupParams;
+import java.util.Set;
+import org.apache.commons.collections4.CollectionUtils;
+import org.springframework.stereotype.Service;
+
+@Service
+public class RhsmProductsProductRule implements ProductRule {
+
+  @Override
+  public boolean appliesTo(ProductRuleContext context) {
+    return !context.skipRhsmFacts()
+        && (context.hostFacts().getSyspurposeRole() != null
+            || CollectionUtils.isNotEmpty(context.hostFacts().getProducts()));
+  }
+
+  @Override
+  public Set<String> getFilteredProductTags(ProductRuleContext context) {
+    var lookupParams =
+        ProductTagLookupParams.builder()
+            .engIds(context.hostFacts().getProducts())
+            .role(context.hostFacts().getSyspurposeRole())
+            .metricIds(APPLICABLE_METRIC_IDS)
+            .is3rdPartyMigration(context.is3rdPartyMigrated())
+            .isPaygEligibleProduct(false)
+            .build();
+
+    return SubscriptionDefinition.getAllProductTags(lookupParams);
+  }
+
+  @Override
+  public Set<String> getAllProductTagsFromConfiguration(ProductRuleContext context) {
+    var lookupParams =
+        ProductTagLookupParams.builder()
+            .engIds(context.hostFacts().getProducts())
+            .role(context.hostFacts().getSyspurposeRole())
+            .build();
+    return SubscriptionDefinition.getAllProductTags(lookupParams);
+  }
+}

@@ -25,10 +25,9 @@ import java.lang.annotation.RetentionPolicy;
 import org.springframework.security.test.context.support.WithSecurityContext;
 
 /**
- * Creates a mock Red Hat principal for testing, with account$value and orgId$value as account
- * number and org ID.
+ * Creates a mock Psk Client principal for testing
  *
- * <p>Defaults to granting ROLE_OPT_IN, but can be overridden.
+ * <p>Defaults to granting role INTERNAL, but can be overridden.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @WithSecurityContext(factory = WithMockPskClientSecurityContextFactory.class)

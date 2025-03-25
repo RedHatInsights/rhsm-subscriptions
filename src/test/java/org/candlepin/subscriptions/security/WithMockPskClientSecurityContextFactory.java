@@ -37,7 +37,7 @@ public class WithMockPskClientSecurityContextFactory
   public SecurityContext createSecurityContext(WithMockPskPrincipal annotation) {
     SecurityContext context = SecurityContextHolder.createEmptyContext();
 
-    var principal = annotation.value();
+    PskClientPrincipal principal = new PskClientPrincipal();
 
     List<SimpleGrantedAuthority> authorities =
         Arrays.stream(annotation.roles())

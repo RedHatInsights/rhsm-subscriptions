@@ -22,6 +22,7 @@ package com.redhat.swatch.contract.security;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.security.Principal;
+import java.util.Objects;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -52,6 +53,10 @@ public class RhIdentityPrincipal implements Principal {
           throw new IllegalArgumentException(
               String.format("Unsupported RhIdentity type %s", getIdentity().getType()));
     };
+  }
+
+  public boolean isAssociate() {
+    return Objects.equals("Associate", getIdentity().getType());
   }
 
   public String toString() {

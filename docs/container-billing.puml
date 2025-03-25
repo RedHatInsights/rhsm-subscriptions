@@ -6,28 +6,52 @@ skinparam backgroundColor #FEFEFE
 
 LAYOUT_WITH_LEGEND()
 
-title Container diagram for Subscription watch Billing Producers
+title Container diagram for Subscription watch SaaS Billing Services
 
 Person(customer, "Red Hat Customer")
+
+Boundary(backoffice, "Red Hat Backoffice") {
+  System_Ext(subprod, "IT Subscription/Product Services")
+  System_Ext(umb, "UMB", "RH IT Messaging Broker")
+  System_Ext(partnergw, "IT Partner Services", "Handles Cloud Provider Listings and SaaS Subscription Lifecycle")
+}
 
 Boundary(crc, console.redhat.com) {
   Boundary(swatch, "Subscription watch") {
     System(tally, "Tally", "System that tallies system usage based on telemetry.")
+    System(contracts, "swatch-contracts", "Manages customer subscription data for subscription watch")
     ContainerQueue(tally_summaries, "platform.rhsm-subscriptions.tally", "Kafka Topic")
-    System_Boundary(billing_producers, "Billing Producers") {
-      Container(rh_marketplace_worker, "RH Marketplace Worker", "Java, Container", "Notifies RH Marketplace of hourly usage.")
+    System_Boundary(billing_producers, "Billing Services") {
+      ContainerQueue(billable_usage_topic, "platform.rhsm-subscriptions.billable-usage", "Kafka Topic")
+      ContainerQueue(billable_usage_status, "platform.rhsm-subscriptions.billable-usage.status", "Kafka Topic")
+      Container(billable_usage, "swatch-billable-usage", "Java, container", "Handles billing & remittance")
+      Container(saas_marketplace_worker, "SaaS Marketplace Worker", "Java, container", "Notifies SaaS Marketplace of hourly usage.")
     }
   }
 }
 
-System_Ext(rh_marketplace, "marketplace.redhat.com", "Service responsible for billing the customer for PAYG usage.")
+System_Ext(saas_marketplace, "SaaS Marketplace", "Service responsible for billing the customer for PAYG usage.")
 
 ' tally process
 Rel(tally, tally_summaries, "Produces to")
 
-' RH marketplace notification
-Rel_Back(tally_summaries, rh_marketplace_worker, "Consumes from")
-Rel(rh_marketplace_worker, rh_marketplace, "Notifies", "JSON/HTTPS")
+' SaaS marketplace notification
+Rel(saas_marketplace_worker, saas_marketplace, "Notifies", "JSON/HTTPS")
+Rel(saas_marketplace_worker, billable_usage_topic, "Consumes from")
+Rel(saas_marketplace_worker, billable_usage_status, "Produces to")
+Rel(billable_usage, billable_usage_topic, "Consumes from")
+Rel(billable_usage, tally_summaries, "Consumes from")
+Rel(customer, saas_marketplace, "Uses", "HTTPS")
 
-Rel(customer, rh_marketplace, "Uses", "HTTPS")
+
+'title System Context diagram for SaaS Metering Dataflows
+
+Rel(partnergw, subprod, "Syncs subscription data")
+Rel(partnergw, umb, "Produces change notifications")
+Rel(subprod, umb, "Produces change notifications")
+Rel(contracts, umb, "Consumes change notifications")
+Rel(contracts, subprod, "Queries subscription & product data")
+Rel(contracts, partnergw, "Queries SaaS-specific subscription data")
+Rel(billable_usage, billable_usage_topic, "Produces message")
+
 @enduml

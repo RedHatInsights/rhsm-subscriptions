@@ -2,9 +2,9 @@
 // inspired by mockito's gradle structure, which dependabot uses as a test case
 
 ext {
-    quarkusVersion='3.19.2'
-    springVersion='3.4.3'
-    resteasyVersion='6.2.10.Final'
+    quarkusVersion='3.19.3'
+    springVersion='3.4.4'
+    resteasyVersion='6.2.12.Final'
     jacksonVersion='2.18.3'
     mapstructVersion='1.6.3'
     libraries = [:]
@@ -16,7 +16,7 @@ ext {
 ext.plugins = [
         "com.adarshr:gradle-test-logger-plugin:4.0.0",
         "com.diffplug.spotless:spotless-plugin-gradle:7.0.2",
-        "com.netflix.nebula:nebula-release-plugin:20.1.0",
+        "com.netflix.nebula:nebula-release-plugin:20.2.0",
         "io.quarkus:gradle-application-plugin:${quarkusVersion}",
         // swagger-parser manually upgraded for compatibility with snakeyaml 2.0
         // see https://github.com/OpenAPITools/openapi-generator/issues/15876
@@ -37,9 +37,9 @@ libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-de
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:3.0.0"
-libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.30.35"
+libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.31.7"
 libraries["clowder-quarkus-config-source"] = "com.redhat.cloud.common:clowder-quarkus-config-source:2.7.1"
-libraries["guava"] = "com.google.guava:guava:33.4.0-jre"
+libraries["guava"] = "com.google.guava:guava:33.4.5-jre"
 libraries["commons-lang3"] = "org.apache.commons:commons-lang3:3.17.0"
 libraries["hamcrest-all"] = "org.hamcrest:hamcrest-all:1.3"
 libraries["jackson-databind-nullable"] = "org.openapitools:jackson-databind-nullable:0.2.6"
@@ -72,15 +72,15 @@ libraries["resteasy-spring-boot-starter"] = "org.jboss.resteasy:resteasy-servlet
 libraries["resteasy-validator-provider"] = "org.jboss.resteasy:resteasy-validator-provider:${resteasyVersion}"
 libraries["splunk-library-javalogging"] = "com.splunk.logging:splunk-library-javalogging:1.11.8"
 libraries["swagger-annotations"] = "io.swagger:swagger-annotations:1.6.15"
-libraries["swagger-ui"] = "org.webjars:swagger-ui:5.20.0"
+libraries["swagger-ui"] = "org.webjars:swagger-ui:5.20.1"
 libraries["webjars-locator"] = "org.webjars:webjars-locator:0.52"
 libraries["wiremock"] = "com.github.tomakehurst:wiremock-standalone:3.0.1"
 libraries["awaitility"] = "org.awaitility:awaitility:4.3.0"
-libraries["splunk-otel-agent"] = 'com.splunk:splunk-otel-javaagent:2.13.1'
+libraries["splunk-otel-agent"] = 'com.splunk:splunk-otel-javaagent:2.14.0'
 libraries["testcontainers-postgresql"] = 'org.testcontainers:postgresql:1.20.6'
 libraries["kafka-streams-test-utils"] = "org.apache.kafka:kafka-streams-test-utils:7.9.0-ce"
 libraries["slf4j-api"] = "org.slf4j:slf4j-api:2.0.17"
 libraries["snakeyaml"] = "org.yaml:snakeyaml:2.4"
-libraries["unleash-spring-boot-starter"] = "io.getunleash:springboot-unleash-starter:1.1.1"
+libraries["unleash-spring-boot-starter"] = "io.getunleash:springboot-unleash-starter:1.2.0"
 libraries["unleash-quarkus"] = "io.quarkiverse.unleash:quarkus-unleash:1.10.0"
 libraries["caffeine"] = "com.github.ben-manes.caffeine:caffeine:3.2.0"

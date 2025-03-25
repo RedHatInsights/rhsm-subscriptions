@@ -21,105 +21,97 @@
 package org.candlepin.subscriptions.tally.facts;
 
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
-import com.redhat.swatch.configuration.util.MetricIdUtils;
-import com.redhat.swatch.configuration.util.ProductTagLookupParams;
-import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.function.BiFunction;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
+import org.candlepin.subscriptions.tally.facts.product.ProductRule;
+import org.candlepin.subscriptions.tally.facts.product.ProductRule.ProductRuleContext;
+import org.candlepin.subscriptions.tally.facts.product.QpcProductRule;
+import org.candlepin.subscriptions.tally.facts.product.RhsmProductsProductRule;
+import org.candlepin.subscriptions.tally.facts.product.SatelliteRoleProductRule;
+import org.candlepin.subscriptions.tally.facts.product.SystemProfileProductIdsProductRule;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
 public class ProductNormalizer {
 
-  private static final Set<String> APPLICABLE_METRIC_IDS =
-      Set.of(MetricIdUtils.getCores().toString(), MetricIdUtils.getSockets().toString());
+  private final List<ProductRule> productRules;
 
-  private Set<String> getSystemProfileProducts(
-      InventoryHostFacts hostFacts, boolean is3rdPartyMigrated) {
-    Collection<String> systemProfileProductIds = hostFacts.getSystemProfileProductIds();
-
-    if (systemProfileProductIds == null) {
-      return Set.of();
-    }
-
-    var lookupParams =
-        ProductTagLookupParams.builder()
-            .engIds(systemProfileProductIds)
-            .metricIds(APPLICABLE_METRIC_IDS)
-            .is3rdPartyMigration(is3rdPartyMigrated)
-            .isPaygEligibleProduct(false)
-            .build();
-
-    return SubscriptionDefinition.getAllProductTags(lookupParams);
+  @Autowired
+  public ProductNormalizer(
+      SystemProfileProductIdsProductRule systemProfileProductIdsProductRule,
+      SatelliteRoleProductRule satelliteRoleProductRule,
+      RhsmProductsProductRule rhsmProductsProductRule,
+      QpcProductRule qpcProductRule) {
+    this.productRules =
+        List.of(
+            systemProfileProductIdsProductRule,
+            satelliteRoleProductRule,
+            rhsmProductsProductRule,
+            qpcProductRule);
   }
 
-  private Set<String> getSatelliteRoleProducts(
-      InventoryHostFacts hostFacts, boolean is3rdPartyMigrated) {
-    String satelliteRole = hostFacts.getSatelliteRole();
+  public Set<String> normalizeProducts(
+      InventoryHostFacts hostFacts, boolean is3rdPartyMigrated, boolean skipRhsmFacts) {
 
-    if (satelliteRole == null) {
-      return Set.of();
+    ProductRuleContext context =
+        new ProductRuleContext(hostFacts, is3rdPartyMigrated, skipRhsmFacts);
+
+    // get products from rules / configuration
+    Set<String> productTags = getProductsFromRules(context);
+
+    // clean up the product tags
+    reconcileProducts(productTags);
+
+    // if no products were found, log a warning
+    if (productTags.isEmpty()) {
+      logTraceIfFoundConfiguredProductTags(context);
     }
 
-    var lookupParams =
-        ProductTagLookupParams.builder()
-            .role(satelliteRole)
-            .metricIds(APPLICABLE_METRIC_IDS)
-            .is3rdPartyMigration(is3rdPartyMigrated)
-            .isPaygEligibleProduct(false)
-            .build();
-
-    return SubscriptionDefinition.getAllProductTags(lookupParams);
+    return productTags;
   }
 
-  private Set<String> getRhsmProducts(InventoryHostFacts hostFacts, boolean is3rdPartyMigrated) {
-    String syspurposeRole = hostFacts.getSyspurposeRole();
-    Set<String> products = hostFacts.getProducts();
-
-    if (syspurposeRole == null && (products == null || products.isEmpty())) {
-      return Set.of();
+  private void logTraceIfFoundConfiguredProductTags(ProductRuleContext context) {
+    Set<String> candidateProductTags = getAllConfiguredProductTagsFromRules(context);
+    if (!candidateProductTags.isEmpty()) {
+      log.warn(
+          "No products matched for host with name '{}' and subscription-manager ID '{}'. "
+              + "The candidate products were '{}'",
+          context.hostFacts().getSubscriptionManagerId(),
+          context.hostFacts().getDisplayName(),
+          candidateProductTags);
     }
-
-    var lookupParams =
-        ProductTagLookupParams.builder()
-            .engIds(products)
-            .role(syspurposeRole)
-            .metricIds(APPLICABLE_METRIC_IDS)
-            .is3rdPartyMigration(is3rdPartyMigrated)
-            .isPaygEligibleProduct(false)
-            .build();
-
-    return SubscriptionDefinition.getAllProductTags(lookupParams);
   }
 
-  private void addQpcProducts(Set<String> products, InventoryHostFacts hostFacts) {
-    Set<String> qpcProducts = hostFacts.getQpcProducts();
+  private Set<String> getProductsFromRules(ProductRuleContext context) {
+    return getAllProductTagsFromRules(context, ProductRule::getFilteredProductTags);
+  }
 
-    if (qpcProducts == null || !qpcProducts.contains("RHEL")) {
-      return;
-    }
+  private Set<String> getAllConfiguredProductTagsFromRules(ProductRuleContext context) {
+    return getAllProductTagsFromRules(context, ProductRule::getAllProductTagsFromConfiguration);
+  }
 
-    if (hostFacts.getSystemProfileArch() != null
-        && CollectionUtils.isEmpty(hostFacts.getSystemProfileProductIds())) {
-      switch (hostFacts.getSystemProfileArch()) {
-        case "x86_64", "i686", "i386":
-          products.add("RHEL for x86");
-          break;
-        case "aarch64":
-          products.add("RHEL for ARM");
-          break;
-        case "ppc64le":
-          products.add("RHEL for IBM Power");
-          break;
-        default:
-          break;
+  private Set<String> getAllProductTagsFromRules(
+      ProductRuleContext context, BiFunction<ProductRule, ProductRuleContext, Set<String>> getter) {
+    Set<String> productTags = new HashSet<>();
+
+    for (ProductRule productRule : productRules) {
+      if (productRule.appliesTo(context)) {
+        productTags.addAll(getter.apply(productRule, context));
       }
     }
-    products.add("RHEL");
+
+    return productTags;
+  }
+
+  private void reconcileProducts(Set<String> productTags) {
+    normalizeRhelVariants(productTags);
+    SubscriptionDefinition.pruneIncludedProducts(productTags);
   }
 
   private void normalizeRhelVariants(Set<String> products) {
@@ -128,26 +120,6 @@ public class ProductNormalizer {
     if ((variantCount == 0 && hasRhel) || variantCount > 1) {
       products.add("RHEL Ungrouped");
     }
-  }
-
-  public Set<String> normalizeProducts(
-      InventoryHostFacts hostFacts, boolean is3rdPartyMigrated, boolean skipRhsmFacts) {
-
-    Set<String> productTags = new HashSet<>();
-
-    productTags.addAll(getSystemProfileProducts(hostFacts, is3rdPartyMigrated));
-    productTags.addAll(getSatelliteRoleProducts(hostFacts, is3rdPartyMigrated));
-
-    if (!skipRhsmFacts) {
-      productTags.addAll(getRhsmProducts(hostFacts, is3rdPartyMigrated));
-    }
-
-    addQpcProducts(productTags, hostFacts);
-    normalizeRhelVariants(productTags);
-
-    SubscriptionDefinition.pruneIncludedProducts(productTags);
-
-    return productTags;
   }
 
   private boolean isRhelVariant(String product) {
