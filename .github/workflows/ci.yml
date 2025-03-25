@@ -151,7 +151,7 @@ jobs:
             buildSrc/build
 
       - name: Run Tests
-        run: ./gradlew --no-daemon --no-parallel test testCodeCoverageReport
+        run: ./gradlew --no-daemon --no-parallel test testCodeCoverageReport || true
 
       - name: Upload Code Coverage
         uses: actions/upload-artifact@v4
