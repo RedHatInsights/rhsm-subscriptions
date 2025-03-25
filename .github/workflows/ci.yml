@@ -124,7 +124,6 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
 
-
     steps:
       - uses: actions/checkout@v4
 
@@ -143,7 +142,9 @@ jobs:
       - name: Run Gradle Build
         id: run-build
         run: |
-          ./gradlew --no-daemon --no-parallel build -x test || true
+          ./gradlew --no-daemon --no-parallel build -x test || exit_code=$?
+          echo "exit_code=${exit_code:-0}" >> $GITHUB_OUTPUT
+        continue-on-error: true
 
       - name: Fail job if build failed
         if: steps.run-build.outputs.exit_code != '0'
@@ -164,7 +165,6 @@ jobs:
     name: Test & Coverage
     runs-on: ubuntu-latest
 
-
     steps:
       - uses: actions/checkout@v4
 
@@ -183,7 +183,7 @@ jobs:
       - name: Run Tests
         id: run-tests
         run: |
-          ./gradlew --no-daemon --no-parallel :swatch-contracts:test --tests "com.redhat.swatch.contract.ForScienceTest" || exit_code=$?
+          ./gradlew --no-daemon --no-parallel :swatch-contracts:test || exit_code=$?
           echo "exit_code=${exit_code:-0}" >> $GITHUB_OUTPUT
         continue-on-error: true
 
@@ -206,16 +206,13 @@ jobs:
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
-          files: '**/build/test-results/test/*.xml'
+          files: '**/build/test-results/**/*.xml'
           check_name: 'JUnit Tests'
           comment_mode: off
           fail_on: 'errors'
           include_passed: false
           include_skipped: true
           report_individual_runs: true
-          detailed_summary: true
-          list_suites: failed
-          list_tests: failed
 
       - name: Fail job if tests failed
         if: steps.run-tests.outputs.exit_code != '0'
@@ -256,7 +253,7 @@ jobs:
         id: summary
         uses: mikepenz/action-junit-report@v5
         with:
-          report_paths: '**/build/test-results/test/*.xml'
+          report_paths: '**/build/test-results/**/*.xml'
           include_time_in_summary: true
 
       - name: Post PR Summary Comment
