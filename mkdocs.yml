@@ -5,4 +5,10 @@ plugins:
 
 nav:
 - Home: index.md
+- Api: api-documentation.md
+- Iqe EE Proxy: iqe-ee-proxy.md
+- Unleash: unleash.md
+- Kafka topic: kafka-topics.md
+- Swatch Internal Docs: /docs/default/Component/swatch-internal-docs
+- Swatch Support Scripts: /docs/default/Component/swatch-support-scripts
 
