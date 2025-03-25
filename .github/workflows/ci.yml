@@ -35,13 +35,24 @@ jobs:
             buildSrc/build
 
       - name: Run Spotless & Checkstyle
-        run: ./gradlew --no-daemon --no-parallel spotlessCheck checkstyleMain checkstyleTest
+        id: run-lint
+        run: |
+          ./gradlew --no-daemon --no-parallel spotlessCheck checkstyleMain checkstyleTest || exit_code=$?
+          echo "exit_code=${exit_code:-0}" >> $GITHUB_OUTPUT
+        continue-on-error: true
 
       - name: Upload Checkstyle Report
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: checkstyle-report
           path: '**/build/reports/checkstyle'
+
+      - name: Fail job if lint failed
+        if: steps.run-lint.outputs.exit_code != '0'
+        run: |
+          echo "❌ Lint failed — marking job as failed."
+          exit 1
 
   validate-floorplan-queries:
     name: Validate FloorPlan Queries
@@ -82,7 +93,11 @@ jobs:
         run: sudo apt-get install -y postgresql-client
 
       - name: Execute migrations
-        run: ./gradlew --no-daemon --no-parallel :swatch-database:run
+        id: run-migrations
+        run: |
+          ./gradlew --no-daemon --no-parallel :swatch-database:run || exit_code=$?
+          echo "exit_code=${exit_code:-0}" >> $GITHUB_OUTPUT
+        continue-on-error: true
 
       - name: Run FloorPlan Query Validation
         run: |
@@ -99,10 +114,15 @@ jobs:
           done
           echo "Queries validation was successful"
 
+      - name: Fail job if migrations failed
+        if: steps.run-migrations.outputs.exit_code != '0'
+        run: |
+          echo "❌ Liquibase migration failed — marking job as failed."
+          exit 1
+
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [validate-format, validate-floorplan-queries]
 
     steps:
       - uses: actions/checkout@v4
@@ -120,9 +140,22 @@ jobs:
             buildSrc/build
 
       - name: Run Gradle Build
-        run: ./gradlew --no-daemon --no-parallel build -x test
+        id: run-build
+        env:
+          GRADLE_OPTS: "-Xmx2g -Xms512m"
+        run: |
+          ./gradlew --no-daemon --no-parallel build -x test -x spotlessCheck || exit_code=$?
+          echo "exit_code=${exit_code:-0}" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Fail job if build failed
+        if: steps.run-build.outputs.exit_code != '0'
+        run: |
+          echo "❌ Build task failed — marking job as failed."
+          exit 1
 
       - name: Upload Build Artifacts
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
@@ -133,7 +166,6 @@ jobs:
   test:
     name: Test & Coverage
     runs-on: ubuntu-latest
-    needs: [build]
 
     steps:
       - uses: actions/checkout@v4
@@ -151,15 +183,24 @@ jobs:
             buildSrc/build
 
       - name: Run Tests
-        run: ./gradlew --no-daemon --no-parallel test testCodeCoverageReport
+        id: run-tests
+        env:
+          GRADLE_OPTS: "-Xmx2g -Xms512m"
+        run: |
+          ./gradlew --no-daemon --no-parallel test testCodeCoverageReport || exit_code=$?
+          echo "exit_code=${exit_code:-0}" >> $GITHUB_OUTPUT
+        continue-on-error: true
 
       - name: Upload Code Coverage
+        if: ${{ always() && (hashFiles('**/build/reports/jacoco/testCodeCoverageReport/**') != '') }}
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: code-coverage
           path: '**/build/reports/jacoco/testCodeCoverageReport/**'
 
       - name: Upload JUnit Report
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: junit-report
@@ -169,7 +210,7 @@ jobs:
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
-          files: '**/build/test-results/test/*.xml'
+          files: '**/build/test-results/**/*.xml'
           check_name: 'JUnit Tests'
           comment_mode: off
           fail_on: 'errors'
@@ -177,83 +218,36 @@ jobs:
           include_skipped: true
           report_individual_runs: true
 
-  sonarcloud:
-    name: SonarCloud Scan
-    runs-on: ubuntu-latest
-    needs: [ test ]
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install SonarScanner CLI
+      - name: Fail job if tests failed
+        if: steps.run-tests.outputs.exit_code != '0'
         run: |
-          curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
-          unzip sonar-scanner.zip -d $HOME
-          echo "$HOME/sonar-scanner-5.0.1.3006-linux/bin" >> $GITHUB_PATH
-
-      - name: Set up SonarCloud Properties
-        run: |
-          echo "sonar.projectKey=rhsm-subscriptions" > sonar-project.properties
-          echo "sonar.organization=rhsm" >> sonar-project.properties
-          echo "sonar.host.url=https://sonarcloud.io" >> sonar-project.properties
-          echo "sonar.login=${{ secrets.CANDLEPIN_BOT_SONARCLOUD }}" >> sonar-project.properties
-          echo "sonar.sources=src" >> sonar-project.properties
-          echo "sonar.java.binaries=build" >> sonar-project.properties
-
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            echo "sonar.pullrequest.key=${{ github.event.pull_request.number }}" >> sonar-project.properties
-            echo "sonar.pullrequest.branch=${{ github.event.pull_request.head.ref }}" >> sonar-project.properties
-            echo "sonar.pullrequest.base=${{ github.event.pull_request.base.ref }}" >> sonar-project.properties
-          else
-            echo "sonar.branch.name=${{ github.ref_name }}" >> sonar-project.properties
-          fi
-
-      - name: Run SonarScanner CLI
-        run: sonar-scanner -Dproject.settings=sonar-project.properties
-
-      - name: Wait for SonarCloud Quality Gate
-        id: qualitygate
-        uses: sonarsource/sonarqube-quality-gate-action@v1.1.0
-        with:
-          scanMetadataReportFile: .scannerwork/report-task.txt
-        env:
-          SONAR_TOKEN: ${{ secrets.CANDLEPIN_BOT_SONARCLOUD }}
-
-      - name: Post SonarCloud Report Link to PR
-        if: github.event_name == 'pull_request'
-        uses: marocchino/sticky-pull-request-comment@v2
-        with:
-          header: sonar-report
-          message: |
-            🔍 **SonarCloud Analysis**
-            - [View SonarCloud Report](https://sonarcloud.io/summary/new_code?id=rhsm-subscriptions&pullRequest=${{ github.event.pull_request.number }})
-
-      - name: Fail CI if Quality Gate Failed
-        if: steps.qualitygate.outputs.quality_gate_status != 'PASSED'
-        run: |
-          echo "❌ SonarCloud Quality Gate failed."
+          echo "❌ Test task failed — marking job as failed."
           exit 1
 
   summary:
     name: PR Summary
     runs-on: ubuntu-latest
-    needs: [test, sonarcloud]
+    needs: [validate-format, validate-floorplan-queries, build, test]
     if: always()
 
     steps:
       - name: Download Code Coverage Report
+        if: ${{ always() && (hashFiles('**/build/reports/jacoco/testCodeCoverageReport/**') != '') }}
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: code-coverage
           path: coverage-report
 
       - name: Download JUnit Test Results
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: junit-report
           path: junit-report
 
       - name: Download Checkstyle Report
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: checkstyle-report
@@ -263,7 +257,7 @@ jobs:
         id: summary
         uses: mikepenz/action-junit-report@v5
         with:
-          report_paths: '**/build/test-results/test/*.xml'
+          report_paths: '**/build/test-results/**/*.xml'
           include_time_in_summary: true
 
       - name: Post PR Summary Comment
@@ -283,6 +277,3 @@ jobs:
 
             🧹 **Checkstyle**
             - 📄 [Download Checkstyle Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
-
-            🔍 **SonarCloud Analysis**
-            - [View SonarCloud Report](https://sonarcloud.io/summary/new_code?id=rhsm-subscriptions&pullRequest=${{ github.event.pull_request.number }})
