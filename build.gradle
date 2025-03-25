@@ -353,3 +353,8 @@ sonarqube {
 bootRun {
     systemProperties = System.properties
 }
+
+tasks.withType(Test).configureEach {
+    def cores = Runtime.runtime.availableProcessors()
+    maxParallelForks = Math.max(1, (cores / 2) as int)
+}
