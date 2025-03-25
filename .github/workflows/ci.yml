@@ -82,7 +82,7 @@ jobs:
         run: sudo apt-get install -y postgresql-client
 
       - name: Execute migrations
-        run: ./gradlew --no-daemon --no-parallel :liquibaseUpdate
+        run: ./gradlew --no-daemon --no-parallel :swatch-database:run
 
       - name: Run FloorPlan Query Validation
         run: |
@@ -199,7 +199,7 @@ jobs:
           echo "sonar.login=${{ secrets.CANDLEPIN_BOT_SONARCLOUD }}" >> sonar-project.properties
           echo "sonar.sources=src" >> sonar-project.properties
           echo "sonar.java.binaries=build" >> sonar-project.properties
-          
+
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             echo "sonar.pullrequest.key=${{ github.event.pull_request.number }}" >> sonar-project.properties
             echo "sonar.pullrequest.branch=${{ github.event.pull_request.head.ref }}" >> sonar-project.properties
@@ -286,4 +286,3 @@ jobs:
 
             🔍 **SonarCloud Analysis**
             - [View SonarCloud Report](https://sonarcloud.io/summary/new_code?id=rhsm-subscriptions&pullRequest=${{ github.event.pull_request.number }})
-
