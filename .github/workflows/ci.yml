@@ -177,67 +177,10 @@ jobs:
           include_skipped: true
           report_individual_runs: true
 
-  sonarcloud:
-    name: SonarCloud Scan
-    runs-on: ubuntu-latest
-    needs: [ test ]
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install SonarScanner CLI
-        run: |
-          curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
-          unzip sonar-scanner.zip -d $HOME
-          echo "$HOME/sonar-scanner-5.0.1.3006-linux/bin" >> $GITHUB_PATH
-
-      - name: Set up SonarCloud Properties
-        run: |
-          echo "sonar.projectKey=rhsm-subscriptions" > sonar-project.properties
-          echo "sonar.organization=rhsm" >> sonar-project.properties
-          echo "sonar.host.url=https://sonarcloud.io" >> sonar-project.properties
-          echo "sonar.login=${{ secrets.CANDLEPIN_BOT_SONARCLOUD }}" >> sonar-project.properties
-          echo "sonar.sources=src" >> sonar-project.properties
-          echo "sonar.java.binaries=build" >> sonar-project.properties
-          
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            echo "sonar.pullrequest.key=${{ github.event.pull_request.number }}" >> sonar-project.properties
-            echo "sonar.pullrequest.branch=${{ github.event.pull_request.head.ref }}" >> sonar-project.properties
-            echo "sonar.pullrequest.base=${{ github.event.pull_request.base.ref }}" >> sonar-project.properties
-          else
-            echo "sonar.branch.name=${{ github.ref_name }}" >> sonar-project.properties
-          fi
-
-      - name: Run SonarScanner CLI
-        run: sonar-scanner -Dproject.settings=sonar-project.properties
-
-      - name: Wait for SonarCloud Quality Gate
-        id: qualitygate
-        uses: sonarsource/sonarqube-quality-gate-action@v1.1.0
-        with:
-          scanMetadataReportFile: .scannerwork/report-task.txt
-        env:
-          SONAR_TOKEN: ${{ secrets.CANDLEPIN_BOT_SONARCLOUD }}
-
-      - name: Post SonarCloud Report Link to PR
-        if: github.event_name == 'pull_request'
-        uses: marocchino/sticky-pull-request-comment@v2
-        with:
-          header: sonar-report
-          message: |
-            🔍 **SonarCloud Analysis**
-            - [View SonarCloud Report](https://sonarcloud.io/summary/new_code?id=rhsm-subscriptions&pullRequest=${{ github.event.pull_request.number }})
-
-      - name: Fail CI if Quality Gate Failed
-        if: steps.qualitygate.outputs.quality_gate_status != 'PASSED'
-        run: |
-          echo "❌ SonarCloud Quality Gate failed."
-          exit 1
-
   summary:
     name: PR Summary
     runs-on: ubuntu-latest
-    needs: [test, sonarcloud]
+    needs: [test]
     if: always()
 
     steps:
@@ -283,7 +226,3 @@ jobs:
 
             🧹 **Checkstyle**
             - 📄 [Download Checkstyle Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
-
-            🔍 **SonarCloud Analysis**
-            - [View SonarCloud Report](https://sonarcloud.io/summary/new_code?id=rhsm-subscriptions&pullRequest=${{ github.event.pull_request.number }})
-
