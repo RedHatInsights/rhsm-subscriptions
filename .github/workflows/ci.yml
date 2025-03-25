@@ -35,7 +35,11 @@ jobs:
             buildSrc/build
 
       - name: Run Spotless & Checkstyle
-        run: ./gradlew --no-daemon --no-parallel spotlessCheck checkstyleMain checkstyleTest
+        id: run-lint
+        run: |
+          ./gradlew --no-daemon --no-parallel spotlessCheck checkstyleMain checkstyleTest || exit_code=$?
+          echo "exit_code=${exit_code:-0}" >> $GITHUB_OUTPUT
+        continue-on-error: true
 
       - name: Upload Checkstyle Report
         continue-on-error: true
@@ -43,6 +47,12 @@ jobs:
         with:
           name: checkstyle-report
           path: '**/build/reports/checkstyle'
+
+      - name: Fail job if lint failed
+        if: steps.run-lint.outputs.exit_code != '0'
+        run: |
+          echo "❌ Lint failed — marking job as failed."
+          exit 1
 
   validate-floorplan-queries:
     name: Validate FloorPlan Queries
@@ -83,7 +93,11 @@ jobs:
         run: sudo apt-get install -y postgresql-client
 
       - name: Execute migrations
-        run: ./gradlew --no-daemon --no-parallel :liquibaseUpdate || true
+        id: run-migrations
+        run: |
+          ./gradlew --no-daemon --no-parallel :liquibaseUpdate || exit_code=$?
+          echo "exit_code=${exit_code:-0}" >> $GITHUB_OUTPUT
+        continue-on-error: true
 
       - name: Run FloorPlan Query Validation
         run: |
@@ -99,6 +113,12 @@ jobs:
             fi
           done
           echo "Queries validation was successful"
+
+      - name: Fail job if migrations failed
+        if: steps.run-migrations.outputs.exit_code != '0'
+        run: |
+          echo "❌ Liquibase migration failed — marking job as failed."
+          exit 1
 
   build:
     name: Build
@@ -121,7 +141,15 @@ jobs:
             buildSrc/build
 
       - name: Run Gradle Build
-        run: ./gradlew --no-daemon --no-parallel build -x test || true
+        id: run-build
+        run: |
+          ./gradlew --no-daemon --no-parallel build -x test || true
+
+      - name: Fail job if build failed
+        if: steps.run-build.outputs.exit_code != '0'
+        run: |
+          echo "❌ Build task failed — marking job as failed."
+          exit 1
 
       - name: Upload Build Artifacts
         continue-on-error: true
@@ -153,7 +181,11 @@ jobs:
             buildSrc/build
 
       - name: Run Tests
-        run: ./gradlew --no-daemon --no-parallel :swatch-contracts:test --tests "com.redhat.swatch.contract.ForScienceTest" || true
+        id: run-tests
+        run: |
+          ./gradlew --no-daemon --no-parallel :swatch-contracts:test --tests "com.redhat.swatch.contract.ForScienceTest" || exit_code=$?
+          echo "exit_code=${exit_code:-0}" >> $GITHUB_OUTPUT
+        continue-on-error: true
 
       - name: Upload Code Coverage
         if: ${{ always() && (hashFiles('**/build/reports/jacoco/testCodeCoverageReport/**') != '') }}
@@ -181,6 +213,25 @@ jobs:
           include_passed: false
           include_skipped: true
           report_individual_runs: true
+          detailed_summary: true
+          list_suites: failed
+          list_tests: failed
+          files: '**/build/test-results/test/*.xml'
+          check_name: 'JUnit Tests'
+          comment_mode: off
+          fail_on: 'errors'
+          include_passed: false
+          include_skipped: true
+          report_individual_runs: true
+          detailed_summary: true
+          list_suites: failed
+          list_tests: failed
+
+      - name: Fail job if tests failed
+        if: steps.run-tests.outputs.exit_code != '0'
+        run: |
+          echo "❌ Test task failed — marking job as failed."
+          exit 1
 
   summary:
     name: PR Summary
@@ -224,6 +275,12 @@ jobs:
         with:
           header: "test-and-coverage-summary"
           message: |
+            ✅ **Workflow Summary**
+            - 🧹 Lint: ${{ needs.validate-format.result == 'success' && '✅ Passed' || '❌ Failed' }}
+            - 🔃 Migrations: ${{ needs.validate-floorplan-queries.result == 'success' && '✅ Passed' || '❌ Failed' }}
+            - ⚙️ Build: ${{ needs.build.result == 'success' && '✅ Passed' || '❌ Failed' }}
+            - 🧪 Tests: ${{ needs.test.result == 'success' && '✅ Passed' || '❌ Failed' }}
+
             🧪 **JUnit Test Summary**
             - Total Tests: `${{ steps.summary.outputs.total }}`
             - ❌ Failed: `${{ steps.summary.outputs.failed }}`
