@@ -206,7 +206,7 @@ jobs:
         id: summary
         uses: mikepenz/action-junit-report@v5
         with:
-          report_paths: '**/build/test-results/test/TEST-*.xml'
+          report_paths: '**/build/test-results/test/*.xml'
           include_time_in_summary: true
 
       - name: Post PR Summary Comment
