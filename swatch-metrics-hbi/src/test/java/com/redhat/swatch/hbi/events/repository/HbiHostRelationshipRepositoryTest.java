@@ -91,14 +91,14 @@ class HbiHostRelationshipRepositoryTest {
 
   @Test
   @Transactional
-  void testFindByOrgId_ReturnsCorrectNumberOfResults() {
+  void testFindByOrgIdReturnsCorrectNumberOfResults() {
     assertEquals(0, repository.findByOrgId("org2").size(), "Expected 0 results for org2");
     assertEquals(3, repository.findByOrgId("org1").size(), "Expected 3 results for org1");
   }
 
   @Test
   @Transactional
-  void testFindByOrgId_HasCorrectOrgId() {
+  void testFindByOrgIdHasCorrectOrgId() {
     List<HbiHostRelationship> results = repository.findByOrgId("org3");
     assertEquals(1, results.size(), "Expected 1 result for org3");
     assertEquals(
@@ -107,7 +107,7 @@ class HbiHostRelationshipRepositoryTest {
 
   @Test
   @Transactional
-  void testFindById_ReturnsCorrectResult() {
+  void testFindByIdReturnsCorrectResult() {
     HbiHostRelationshipId id = new HbiHostRelationshipId("org123", "subman3");
     HbiHostRelationship relationship = new HbiHostRelationship();
     relationship.setId(id);

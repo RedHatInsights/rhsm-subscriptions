@@ -205,12 +205,9 @@ public class InventoryAccountUsageCollector {
     host.setOrgId(inventoryHostFacts.getOrgId());
     host.setDisplayName(inventoryHostFacts.getDisplayName());
     host.setSubscriptionManagerId(inventoryHostFacts.getSubscriptionManagerId());
-    // TAG: REQUIRES NORMALIZATION
     host.setGuest(normalizedFacts.isVirtual());
-    // TAG: REQUIRES NORMALIZATION
     host.setHypervisorUuid(normalizedFacts.getHypervisorUuid());
 
-    // TAG: REQUIRES NORMALIZATION
     if (normalizedFacts.getCores() != null) {
       host.getMeasurements()
           .put(
@@ -218,7 +215,6 @@ public class InventoryAccountUsageCollector {
               normalizedFacts.getCores().doubleValue());
     }
 
-    // TAG: REQUIRES NORMALIZATION
     if (normalizedFacts.getSockets() != null) {
       host.getMeasurements()
           .put(
@@ -226,11 +222,8 @@ public class InventoryAccountUsageCollector {
               normalizedFacts.getSockets().doubleValue());
     }
 
-    // TAG: REQUIRES NORMALIZATION
     host.setHypervisor(normalizedFacts.isHypervisor());
-    // TAG: REQUIRES NORMALIZATION
     host.setUnmappedGuest(normalizedFacts.isVirtual() && normalizedFacts.isHypervisorUnknown());
-    // DONE
     host.setCloudProvider(
         normalizedFacts.getCloudProviderType() == null
             ? null

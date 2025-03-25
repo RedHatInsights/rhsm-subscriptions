@@ -41,7 +41,7 @@ class EventRecordTest {
 
   @Test
   void testJsonOptionalVsNull() throws JsonProcessingException {
-    String testData2 =
+    String testData =
         """
         {
           "event_id":"99f6b275-6031-4967-84b6-147bd0191474",
@@ -56,11 +56,11 @@ class EventRecordTest {
             // string
             .replace("\n", "")
             .replace(" ", "");
-    EventRecord eventRecord = objectMapper.readValue(testData2, EventRecord.class);
+    EventRecord eventRecord = objectMapper.readValue(testData, EventRecord.class);
     Event event = eventRecord.getEvent();
     assertNotNull(event.getDisplayName());
     assertFalse(event.getDisplayName().isPresent());
     assertNull(event.getInventoryId());
-    assertEquals(testData2, objectMapper.writeValueAsString(eventRecord.getEvent()));
+    assertEquals(testData, objectMapper.writeValueAsString(eventRecord.getEvent()));
   }
 }

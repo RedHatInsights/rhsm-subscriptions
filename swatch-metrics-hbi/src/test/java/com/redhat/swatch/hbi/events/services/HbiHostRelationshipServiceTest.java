@@ -24,7 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationshipId;
@@ -54,7 +56,7 @@ class HbiHostRelationshipServiceTest {
   }
 
   @Test
-  void testProcessHost_PersistsRelationshipForUnmappedGuest() {
+  void testProcessHostPersistsRelationshipForUnmappedGuest() {
     String orgId = "orgId";
     String subscriptionManagerId = "abc";
     String hypervisorUuid = "123";

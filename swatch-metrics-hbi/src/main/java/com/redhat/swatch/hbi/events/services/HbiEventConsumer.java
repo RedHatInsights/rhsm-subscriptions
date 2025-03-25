@@ -278,8 +278,6 @@ public class HbiEventConsumer {
   private Event buildEvent(
       String eventType, NormalizedFacts facts, Host hbiHost, OffsetDateTime eventTimestamp) {
 
-    // TODO: Product ids/tags
-    // TODO: Move facts properties into normalizer
     NormalizedMeasurements measurements =
         measurementNormalizer.getMeasurements(
             facts,
