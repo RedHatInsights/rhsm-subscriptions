@@ -1,0 +1,299 @@
+name: PR Validation – Pre-Container
+
+on:
+  push:
+    branches: [main, hotfix]
+  pull_request:
+    branches: [main, hotfix]
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ACTIONS_STEP_DEBUG: true
+
+jobs:
+  validate-format:
+    name: Validate Format
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 17
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-home-cache-includes: |
+            buildSrc/.gradle
+            buildSrc/build
+
+      - name: Run Spotless & Checkstyle
+        run: ./gradlew --no-daemon --no-parallel spotlessCheck checkstyleMain checkstyleTest
+
+      - name: Upload Checkstyle Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkstyle-report
+          path: '**/build/reports/checkstyle'
+
+  validate-floorplan-queries:
+    name: Validate FloorPlan Queries
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Git config
+        run: |
+          git config --global user.name "$(git log -1 --pretty=format:'%an')"
+          git config --global user.email "$(git log -1 --pretty=format:'%ae')"
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 17
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-home-cache-includes: |
+            buildSrc/.gradle
+            buildSrc/build
+
+      - name: Setup JBang
+        uses: jbangdev/setup-jbang@main
+
+      - name: Setup yamlpath
+        run: |
+          jbang trust add https://github.com/yaml-path/jbang/
+          curl -Ls https://sh.jbang.dev | bash -s - app install --fresh --force yamlpath@yaml-path/jbang
+
+      - name: Setup PostgreSQL DB
+        run: docker run -d -v ./init_dbs.sh:/usr/share/container-scripts/postgresql/start/set_passwords.sh:z -p 5432:5432 -e POSTGRESQL_ADMIN_PASSWORD=admin quay.io/centos7/postgresql-13-centos7:centos7
+
+      - name: Setup PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
+
+      - name: Execute migrations
+        run: ./gradlew --no-daemon --no-parallel :liquibaseUpdate
+
+      - name: Run FloorPlan Query Validation
+        run: |
+          QUERY_NAMES=$(yamlpath --format=PLAIN --single --expression="objects.(kind==FloorPlan).spec.queries.prefix" swatch-tally/deploy/clowdapp.yaml | tail -c +2 | head -c -2)
+          for rawQueryName in ${QUERY_NAMES[*]}; do
+            queryName=$(echo $rawQueryName | sed 's/,//g')
+            query=$(yamlpath --format=PLAIN --single --expression="objects.(kind==FloorPlan).spec.queries.(prefix == $queryName).query" swatch-tally/deploy/clowdapp.yaml | sed 's/;//g')
+            echo -e "Validating query: \n$query\n"
+            output=$(PGPASSWORD=rhsm-subscriptions psql -h localhost -U rhsm-subscriptions -d rhsm-subscriptions -c "$query;")
+            if [[ "$output" != *"(0 rows)"* ]]; then
+              echo -e "Error in query. Check the output for more information: \n$output"
+              exit 1
+            fi
+          done
+          echo "Queries validation was successful"
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [validate-format, validate-floorplan-queries]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 17
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-home-cache-includes: |
+            buildSrc/.gradle
+            buildSrc/build
+
+      - name: Run Gradle Build
+        run: ./gradlew --no-daemon --no-parallel build -x test
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            **/build/libs/*.jar
+            **/build/distributions/*
+
+  test:
+    name: Test & Coverage
+    runs-on: ubuntu-latest
+    needs: [build]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 17
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-home-cache-includes: |
+            buildSrc/.gradle
+            buildSrc/build
+
+      - name: Run Tests
+        run: ./gradlew --no-daemon --no-parallel test testCodeCoverageReport
+
+      - name: Upload Code Coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage
+          path: '**/build/reports/jacoco/testCodeCoverageReport/**'
+
+      - name: Upload JUnit Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-report
+          path: '**/build/reports/tests/test'
+
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: '**/build/test-results/test/*.xml'
+          check_name: 'JUnit Tests'
+          comment_mode: off
+          fail_on: 'errors'
+          include_passed: false
+          include_skipped: true
+          report_individual_runs: true
+
+  sonarcloud:
+    name: SonarCloud Scan
+    runs-on: ubuntu-latest
+    needs: [ test ]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-home-cache-includes: |
+            buildSrc/.gradle
+            buildSrc/build
+
+      - name: Run SonarCloud Scan for PR or Branch
+        env:
+          SONAR_TOKEN: ${{ secrets.CANDLEPIN_BOT_SONARCLOUD }}
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            ./gradlew --no-daemon --no-parallel sonar \
+              -Duser.home=/tmp \
+              -Dsonar.host.url=https://sonarcloud.io \
+              -Dsonar.token=$SONAR_TOKEN \
+              -Dsonar.organization=rhsm \
+              -Dsonar.projectKey=rhsm-subscriptions \
+              -Dsonar.pullrequest.key=${{ github.event.pull_request.number }} \
+              -Dsonar.pullrequest.base=${{ github.event.pull_request.base.ref }} \
+              -Dsonar.pullrequest.branch=${{ github.event.pull_request.head.ref }}
+          else
+            ./gradlew --no-daemon --no-parallel sonar \
+              -Duser.home=/tmp \
+              -Dsonar.host.url=https://sonarcloud.io \
+              -Dsonar.token=$SONAR_TOKEN \
+              -Dsonar.organization=rhsm \
+              -Dsonar.projectKey=rhsm-subscriptions \
+              -Dsonar.branch.name=${{ github.ref_name }}
+          fi
+
+      - name: Wait for SonarCloud Quality Gate
+        uses: sonarsource/sonarqube-quality-gate-action@v1.1.0
+        with:
+          scanMetadataReportFile: build/sonar/report-task.txt
+        env:
+          SONAR_TOKEN: ${{ secrets.CANDLEPIN_BOT_SONARCLOUD }}
+
+      - name: Post SonarCloud Report Link to PR
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: sonar-report
+          message: |
+            🔍 **SonarCloud Analysis**
+            - [View SonarCloud Report](https://sonarcloud.io/summary/new_code?id=rhsm-subscriptions&pullRequest=${{ github.event.pull_request.number }})
+
+      - name: Fail CI if Quality Gate Failed
+        if: steps.qualitygate.outputs.quality_gate_status != 'PASSED'
+        run: |
+          echo "❌ SonarCloud Quality Gate failed."
+          exit 1
+
+  summary:
+    name: PR Summary
+    runs-on: ubuntu-latest
+    needs: [test, sonarcloud]
+    if: always()
+
+    steps:
+      - name: Download Code Coverage Report
+        uses: actions/download-artifact@v4
+        with:
+          name: code-coverage
+          path: coverage-report
+
+      - name: Download JUnit Test Results
+        uses: actions/download-artifact@v4
+        with:
+          name: junit-report
+          path: junit-report
+
+      - name: Download Checkstyle Report
+        uses: actions/download-artifact@v4
+        with:
+          name: checkstyle-report
+          path: checkstyle-report
+
+      - name: JUnit Summary
+        id: summary
+        uses: mikepenz/action-junit-report@v5
+        with:
+          report_paths: '**/build/test-results/test/*.xml'
+          include_time_in_summary: true
+
+      - name: Post PR Summary Comment
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: "test-and-coverage-summary"
+          message: |
+            🧪 **JUnit Test Summary**
+            - Total Tests: `${{ steps.summary.outputs.total }}`
+            - ❌ Failed: `${{ steps.summary.outputs.failed }}`
+            - ⚠️ Skipped: `${{ steps.summary.outputs.skipped }}`
+            - 📄 [Download HTML Test Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            📊 **Code Coverage**
+            - 📄 [Download HTML Coverage Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            🧹 **Checkstyle**
+            - 📄 [Download Checkstyle Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            🔍 **SonarCloud Analysis**
+            - [View SonarCloud Report](https://sonarcloud.io/summary/new_code?id=rhsm-subscriptions&pullRequest=${{ github.event.pull_request.number }})
+
