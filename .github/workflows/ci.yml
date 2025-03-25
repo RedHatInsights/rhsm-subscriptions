@@ -144,7 +144,7 @@ jobs:
         env:
           GRADLE_OPTS: "-Xmx2g -Xms512m"
         run: |
-          ./gradlew --no-daemon --no-parallel build -x test -x spotlessCheck || exit_code=$?
+          ./gradlew --no-daemon --no-parallel build -x test || exit_code=$?
           echo "exit_code=${exit_code:-0}" >> $GITHUB_OUTPUT
         continue-on-error: true
 
@@ -185,9 +185,10 @@ jobs:
       - name: Run Tests
         id: run-tests
         env:
-          GRADLE_OPTS: "-Xmx2g -Xms512m"
+          GRADLE_OPTS: "-Xmx4g -Xms512m"
         run: |
-          ./gradlew --no-daemon --no-parallel test testCodeCoverageReport || exit_code=$?
+          ./gradlew --no-daemon test || exit_code=$?
+          ./gradlew --no-daemon --no-parallel testCodeCoverageReport
           echo "exit_code=${exit_code:-0}" >> $GITHUB_OUTPUT
         continue-on-error: true
 
