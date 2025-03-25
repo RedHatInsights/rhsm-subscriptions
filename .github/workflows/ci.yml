@@ -141,6 +141,8 @@ jobs:
 
       - name: Run Gradle Build
         id: run-build
+        env:
+          GRADLE_OPTS: "-Xmx2g -Xms512m"
         run: |
           ./gradlew --no-daemon --no-parallel build -x test || exit_code=$?
           echo "exit_code=${exit_code:-0}" >> $GITHUB_OUTPUT
@@ -182,6 +184,8 @@ jobs:
 
       - name: Run Tests
         id: run-tests
+        env:
+          GRADLE_OPTS: "-Xmx2g -Xms512m"
         run: |
           ./gradlew --no-daemon --no-parallel :swatch-contracts:test || exit_code=$?
           echo "exit_code=${exit_code:-0}" >> $GITHUB_OUTPUT
@@ -267,6 +271,8 @@ jobs:
             - 🔃 Migrations: ${{ needs.validate-floorplan-queries.result == 'success' && '✅ Passed' || '❌ Failed' }}
             - ⚙️ Build: ${{ needs.build.result == 'success' && '✅ Passed' || '❌ Failed' }}
             - 🧪 Tests: ${{ needs.test.result == 'success' && '✅ Passed' || '❌ Failed' }}
+
+            ---
 
             🧪 **JUnit Test Summary**
             - Total Tests: `${{ steps.summary.outputs.total }}`
