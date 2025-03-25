@@ -216,16 +216,6 @@ jobs:
           detailed_summary: true
           list_suites: failed
           list_tests: failed
-          files: '**/build/test-results/test/*.xml'
-          check_name: 'JUnit Tests'
-          comment_mode: off
-          fail_on: 'errors'
-          include_passed: false
-          include_skipped: true
-          report_individual_runs: true
-          detailed_summary: true
-          list_suites: failed
-          list_tests: failed
 
       - name: Fail job if tests failed
         if: steps.run-tests.outputs.exit_code != '0'
