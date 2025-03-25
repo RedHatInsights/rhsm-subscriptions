@@ -16,6 +16,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - id: set-matrix
+        run: |
+          files=$(find . -name 'build.gradle*' -not -path "./buildSrc/*" | sed 's|^./||')
+          json=$(jq -n --argjson paths "$(printf '%s\n' $files | jq -R . | jq -s .)" '{include: $paths}')
+          echo "matrix=$json" >> $GITHUB_OUTPUT
+
+  build-subprojects:
+    name: Build & Test ${{ matrix.path }}
+    needs: detect-subprojects
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJson(needs.detect-subprojects.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+
       - name: Upload Code Coverage
         if: ${{ always() && (hashFiles('**/build/reports/jacoco/testCodeCoverageReport/**') != '') }}
         continue-on-error: true
@@ -49,11 +64,48 @@ jobs:
           echo "❌ One or more tasks failed — marking job as failed."
           exit 1
 
-      - id: set-matrix
+      - name: Run Gradle Tasks
+        id: run-build
+        env:
+          GRADLE_OPTS: "-Xmx2g -Xms512m"
         run: |
+          exit_code=0
           cd $(dirname "${{ matrix.path }}")
           ./gradlew --no-daemon --no-parallel spotlessCheck checkstyleMain checkstyleTest || exit_code=$?
           ./gradlew --no-daemon --no-parallel build -x test || exit_code=$?
           ./gradlew --no-daemon test || exit_code=$?
           ./gradlew --no-daemon --no-parallel testCodeCoverageReport || true
           echo "exit_code=${exit_code:-0}" >> $GITHUB_OUTPUT
+
+      - name: Upload Code Coverage
+        if: ${{ always() && (hashFiles('**/build/reports/jacoco/testCodeCoverageReport/**') != '') }}
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-${{ matrix.path }}
+          path: '**/build/reports/jacoco/testCodeCoverageReport/**'
+
+      - name: Upload JUnit Report
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-report-${{ matrix.path }}
+          path: '**/build/reports/tests/test'
+
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: '**/build/test-results/**/*.xml'
+          check_name: 'JUnit Tests (${{ matrix.path }})'
+          comment_mode: off
+          fail_on: 'errors'
+          include_passed: false
+          include_skipped: true
+          report_individual_runs: true
+
+      - name: Fail job if any task failed
+        if: steps.run-build.outputs.exit_code != '0'
+        run: |
+          echo "❌ One or more tasks failed — marking job as failed."
+          exit 1
