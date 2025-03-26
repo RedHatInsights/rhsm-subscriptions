@@ -13,6 +13,7 @@ concurrency:
 
 env:
   ACTIONS_STEP_DEBUG: true
+  GITHUB_TOKEN: ${{ github.actor == 'dependabot[bot]' && secrets.DEPENDABOT_BOT_TOKEN || secrets.GITHUB_TOKEN }}
 
 jobs:
   validate-format:
@@ -27,6 +28,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 17
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -71,6 +73,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 17
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -132,6 +135,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 17
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -175,6 +179,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 17
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -187,7 +192,7 @@ jobs:
         env:
           GRADLE_OPTS: "-Xmx4g -Xms512m"
         run: |
-          ./gradlew test || exit_code=$?
+          ./gradlew --no-daemon test || exit_code=$?
           echo "exit_code=${exit_code:-0}" >> $GITHUB_OUTPUT
         continue-on-error: true
 
@@ -220,7 +225,7 @@ jobs:
           path: '**/build/reports/jacoco/testCodeCoverageReport/**'
 
       - name: Publish Test Results
-        if: github.actor != 'dependabot[bot]' && always() && (hashFiles('**/build/test-results/test/TEST-*.xml') != '')
+        if: always() && (hashFiles('**/build/test-results/test/TEST-*.xml') != '')
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           files: '**/build/test-results/test/TEST-*.xml'
@@ -234,6 +239,7 @@ jobs:
         run: |
           echo "❌ Test task failed — marking job as failed."
           exit 1
+
   summary:
     name: PR Summary
     runs-on: ubuntu-latest
@@ -270,7 +276,7 @@ jobs:
           report_paths: 'junit-report/TEST-*.xml'
 
       - name: Post PR Summary Comment
-        if: github.actor != 'dependabot[bot]' && github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request'
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           header: "test-and-coverage-summary"
@@ -280,9 +286,7 @@ jobs:
             - ❌ Failed: `${{ steps.summary.outputs.failed }}`
             - ⚠️ Skipped: `${{ steps.summary.outputs.skipped }}`
             - 📄 [Download HTML Test Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
-
             📊 **Code Coverage**
             - 📄 [Download HTML Coverage Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
-
             🧹 **Checkstyle**
             - 📄 [Download Checkstyle Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
