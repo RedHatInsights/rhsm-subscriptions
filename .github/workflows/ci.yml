@@ -187,9 +187,28 @@ jobs:
         env:
           GRADLE_OPTS: "-Xmx4g -Xms512m"
         run: |
-          ./gradlew --no-daemon test || exit_code=$?
-          ./gradlew --no-daemon --no-parallel testCodeCoverageReport
+          ./gradlew test || exit_code=$?
           echo "exit_code=${exit_code:-0}" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Upload JUnit Report
+        if: always() && (hashFiles('**/build/test-results/test/TEST-*.xml') != '')
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-report
+          path: '**/build/test-results/test/TEST-*.xml'
+
+      - name: Upload Gradle HTML Test Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-html-report
+          path: '**/build/reports/tests/test/index.html'
+
+      - name: Generate Code Coverage Report
+        if: steps.run-tests.outputs.exit_code == '0'
+        run: ./gradlew --no-parallel testCodeCoverageReport
         continue-on-error: true
 
       - name: Upload Code Coverage
@@ -200,23 +219,14 @@ jobs:
           name: code-coverage
           path: '**/build/reports/jacoco/testCodeCoverageReport/**'
 
-      - name: Upload JUnit Report
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: junit-report
-          path: '**/build/reports/tests/test'
-
       - name: Publish Test Results
+        if: github.actor != 'dependabot[bot]' && always() && (hashFiles('**/build/test-results/test/TEST-*.xml') != '')
         uses: EnricoMi/publish-unit-test-result-action@v2
-        if: always()
         with:
-          files: '**/build/test-results/**/*.xml'
+          files: '**/build/test-results/test/TEST-*.xml'
           check_name: 'JUnit Tests'
           comment_mode: off
           fail_on: 'errors'
-          include_passed: false
-          include_skipped: true
           report_individual_runs: true
 
       - name: Fail job if tests failed
@@ -224,7 +234,6 @@ jobs:
         run: |
           echo "❌ Test task failed — marking job as failed."
           exit 1
-
   summary:
     name: PR Summary
     runs-on: ubuntu-latest
@@ -258,11 +267,10 @@ jobs:
         id: summary
         uses: mikepenz/action-junit-report@v5
         with:
-          report_paths: '**/build/test-results/**/*.xml'
-          include_time_in_summary: true
+          report_paths: 'junit-report/TEST-*.xml'
 
       - name: Post PR Summary Comment
-        if: github.event_name == 'pull_request'
+        if: github.actor != 'dependabot[bot]' && github.event_name == 'pull_request'
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           header: "test-and-coverage-summary"
