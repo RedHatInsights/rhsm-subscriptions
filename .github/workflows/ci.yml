@@ -192,12 +192,19 @@ jobs:
         continue-on-error: true
 
       - name: Upload JUnit Report
-        if: ${{ always() && (hashFiles('**/build/reports/tests/test/TEST-*.xml') != '') }}
+        if: always() && (hashFiles('**/build/test-results/test/TEST-*.xml') != '')
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: junit-report
-          path: '**/build/reports/tests/test'
+          path: '**/build/test-results/test/TEST-*.xml'
+
+      - name: Upload Gradle HTML Test Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-html-report
+          path: '**/build/reports/tests/test/index.html'
 
       - name: Generate Code Coverage Report
         if: steps.run-tests.outputs.exit_code == '0'
@@ -220,8 +227,6 @@ jobs:
           check_name: 'JUnit Tests'
           comment_mode: off
           fail_on: 'errors'
-          include_passed: false
-          include_skipped: true
           report_individual_runs: true
 
       - name: Fail job if tests failed
@@ -262,8 +267,7 @@ jobs:
         id: summary
         uses: mikepenz/action-junit-report@v5
         with:
-          report_paths: 'junit-report/**/*.xml'
-          include_time_in_summary: true
+          report_paths: 'junit-report/TEST-*.xml'
 
       - name: Post PR Summary Comment
         if: github.actor != 'dependabot[bot]' && github.event_name == 'pull_request'
