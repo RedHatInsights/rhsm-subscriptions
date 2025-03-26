@@ -188,8 +188,20 @@ jobs:
           GRADLE_OPTS: "-Xmx4g -Xms512m"
         run: |
           ./gradlew --no-daemon :swatch-contracts:test || exit_code=$?
-          ./gradlew --no-daemon --no-parallel :swatch-contracts:testCodeCoverageReport
           echo "exit_code=${exit_code:-0}" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Upload JUnit Report
+        if: ${{ always() && (hashFiles('**/build/reports/tests/test/TEST-*.xml') != '') }}
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-report
+          path: '**/build/reports/tests/test'
+
+      - name: Generate Code Coverage Report
+        if: steps.run-tests.outputs.exit_code == '0'
+        run: ./gradlew --no-daemon --no-parallel :swatch-contracts:testCodeCoverageReport
         continue-on-error: true
 
       - name: Upload Code Coverage
@@ -199,14 +211,6 @@ jobs:
         with:
           name: code-coverage
           path: '**/build/reports/jacoco/testCodeCoverageReport/**'
-
-      - name: Upload JUnit Report
-        if: ${{ always() && (hashFiles('**/build/reports/tests/test/TEST-*.xml') != '') }}
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: junit-report
-          path: '**/build/reports/tests/test'
 
       - name: Publish Test Results
         if: github.actor != 'dependabot[bot]' && always() && (hashFiles('**/build/test-results/test/TEST-*.xml') != '')
