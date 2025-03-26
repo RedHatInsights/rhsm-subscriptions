@@ -228,6 +228,7 @@ jobs:
           comment_mode: off
           fail_on: 'errors'
           report_individual_runs: true
+          large_files: true
 
       - name: Fail job if tests failed
         if: steps.run-tests.outputs.exit_code != '0'
