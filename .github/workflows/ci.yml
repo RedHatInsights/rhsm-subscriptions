@@ -3,7 +3,7 @@ name: PR Validation – Pre-Container
 on:
   push:
     branches: [main, hotfix]
-  pull_request:
+  pull_request_target:
     branches: [main, hotfix]
     types: [opened, synchronize, reopened]
 
