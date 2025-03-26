@@ -35,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.times;
 
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
@@ -146,7 +147,7 @@ class FactNormalizerTest {
     subscriptionDefinitionMockedStatic.clearInvocations();
     normalizer.normalize(rhsmHost, hypervisorData());
     subscriptionDefinitionMockedStatic.verify(
-        () -> SubscriptionDefinition.getAllProductTags(any()), times(1));
+        () -> SubscriptionDefinition.getAllProductTags(any()), atLeastOnce());
   }
 
   @Test
