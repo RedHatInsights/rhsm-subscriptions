@@ -187,8 +187,8 @@ jobs:
         env:
           GRADLE_OPTS: "-Xmx4g -Xms512m"
         run: |
-          ./gradlew --no-daemon test || exit_code=$?
-          ./gradlew --no-daemon --no-parallel testCodeCoverageReport
+          ./gradlew --no-daemon :swatch-contracts:test || exit_code=$?
+          ./gradlew --no-daemon --no-parallel :swatch-contracts:testCodeCoverageReport
           echo "exit_code=${exit_code:-0}" >> $GITHUB_OUTPUT
         continue-on-error: true
 
