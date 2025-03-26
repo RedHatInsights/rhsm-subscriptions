@@ -262,7 +262,7 @@ jobs:
           include_time_in_summary: true
 
       - name: Post PR Summary Comment
-        if: github.event_name == 'pull_request'
+        if: github.actor != 'dependabot[bot]' && github.event_name == 'pull_request'
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           header: "test-and-coverage-summary"
