@@ -201,6 +201,7 @@ jobs:
           path: '**/build/reports/jacoco/testCodeCoverageReport/**'
 
       - name: Upload JUnit Report
+        if: ${{ always() && (hashFiles('**/build/reports/tests/test/TEST-*.xml') != '') }}
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
@@ -208,10 +209,10 @@ jobs:
           path: '**/build/reports/tests/test'
 
       - name: Publish Test Results
+        if: github.actor != 'dependabot[bot]' && always() && (hashFiles('**/build/test-results/test/TEST-*.xml') != '')
         uses: EnricoMi/publish-unit-test-result-action@v2
-        if: always()
         with:
-          files: '**/build/test-results/**/*.xml'
+          files: '**/build/test-results/test/TEST-*.xml'
           check_name: 'JUnit Tests'
           comment_mode: off
           fail_on: 'errors'
@@ -224,7 +225,6 @@ jobs:
         run: |
           echo "❌ Test task failed — marking job as failed."
           exit 1
-
   summary:
     name: PR Summary
     runs-on: ubuntu-latest
@@ -258,7 +258,7 @@ jobs:
         id: summary
         uses: mikepenz/action-junit-report@v5
         with:
-          report_paths: '**/build/test-results/**/*.xml'
+          report_paths: 'junit-report/**/*.xml'
           include_time_in_summary: true
 
       - name: Post PR Summary Comment
