@@ -1,0 +1,56 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: run-tests
+spec:
+  params:
+    - name: SERVICE
+      description: The service to be tested. By default, it will run all the tests.
+      default: ""
+    - name: PROVISION_EAAS_SPACE_SECRET_REF
+      description: The secret ref of the "provision-eaas-space" task output
+  workspaces:
+    - name: source
+  steps:
+    - image: registry.access.redhat.com/ubi9/openjdk-17-runtime
+      name: builder
+      workingDir: $(workspaces.source.path)/source
+      env:
+        - name: SERVICE
+          value: $(params.SERVICE)
+        - name: DOCKER_HOST
+          value: tcp://127.0.0.1:2475
+      script: |
+        #!/bin/bash
+        if [ -n "$SERVICE" ]; then
+          GRADLE_OPTS=":${SERVICE}:"
+        fi
+        ./gradlew ${GRADLE_OPTS}test
+      computeResources:
+        limits:
+          memory: '6Gi'
+          cpu: 6
+        requests:
+          memory: '2Gi'
+          cpu: 2
+  sidecars:
+    - image: quay.io/cloudservices/kubedock:latest
+      name: kubedock
+      env:
+        - name: KUBECONFIG
+          value: /tmp/kubeconfig
+        - name: KUBECONFIG_VALUE
+          valueFrom:
+            secretKeyRef:
+              name: $(params.PROVISION_EAAS_SPACE_SECRET_REF)
+              key: kubeconfig
+        - name: EAAS_NAMESPACE
+          valueFrom:
+            secretKeyRef:
+              name: $(params.PROVISION_EAAS_SPACE_SECRET_REF)
+              key: namespace
+      script: |
+        #!/bin/bash -ex
+
+        echo "$KUBECONFIG_VALUE" > "$KUBECONFIG"
+        /usr/local/bin/kubedock server --kubeconfig $KUBECONFIG --namespace $EAAS_NAMESPACE --port-forward -v=9      
