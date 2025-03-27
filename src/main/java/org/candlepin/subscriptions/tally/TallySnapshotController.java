@@ -250,7 +250,9 @@ public class TallySnapshotController {
           usageCollector.reconcileSystemDataWithHbi(
               orgId,
               SubscriptionDefinition.filterVariants(
-                      variant -> !variant.getSubscription().isPaygEligible())
+                      variant ->
+                          variant.getSubscription() != null
+                              && !variant.getSubscription().isPaygEligible())
                   .stream()
                   .map(Variant::getTag)
                   .collect(Collectors.toUnmodifiableSet()));

@@ -56,7 +56,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
-@ActiveProfiles({"test", "worker"})
+@ActiveProfiles({"worker", "test"})
 class AccountResetServiceTest {
   @Autowired private EventRecordRepository eventRecordRepo;
   @Autowired private HostRepository hostRepo;
@@ -70,6 +70,12 @@ class AccountResetServiceTest {
   @BeforeEach
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   void setUp() {
+    hostRepo.deleteAll();
+    accountServiceInventoryRepository.deleteAll();
+    eventRecordRepo.deleteAll();
+    tallySnapshotRepository.deleteAll();
+    subscriptionRepository.deleteAll();
+    tallyStateRepository.deleteAll();
     accountServiceInventoryRepository.save(new AccountServiceInventory("org123", "HBI_HOST"));
 
     Host host = new Host("inventory123", "insights123", "org123", "subman123");
