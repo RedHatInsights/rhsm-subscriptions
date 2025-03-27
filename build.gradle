@@ -63,11 +63,7 @@ dependencies {
 
     // Run liquibase during testing
     testImplementation "org.liquibase:liquibase-core"
-    testRuntimeOnly(project(":swatch-database")) {
-        capabilities {
-            requireCapability("com.redhat.swatch:swatch-database-liquibase-test")
-        }
-    }
+    testRuntimeOnly(project(":swatch-database-migrations"))
 
     testImplementation project(':swatch-core-test')
     testImplementation project(':swatch-common-testcontainers')

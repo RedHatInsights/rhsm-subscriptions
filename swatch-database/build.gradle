@@ -1,7 +1,6 @@
 plugins {
     id 'swatch.java-conventions'
     id 'application'
-    id 'java-library'
 }
 
 ext {
@@ -24,22 +23,6 @@ jar {
     }
 }
 
-sourceSets {
-    liquibaseTestSupport {
-        java {
-            srcDir 'src/main/java'
-        }
-    }
-}
-
-java {
-    // See https://docs.gradle.org/current/userguide/feature_variants.html
-    registerFeature('liquibaseTestSupport') {
-        usingSourceSet(sourceSets.liquibaseTestSupport)
-        capability('com.redhat.swatch', 'swatch-database-liquibase-test', '1.0')
-    }
-}
-
 dependencies {
     // Classpath for running with ./gradlew :swatch-database run or with the jar file
     runtimeOnly libraries["postgresql"]
@@ -50,11 +33,5 @@ dependencies {
     }
     implementation libraries["slf4j-api"]
     implementation libraries["liquibase-core"]
-
-    // Classpath for when other projects pull this one in for creating the DB schema during tests
-    // Be very careful not to pollute the classpath since this project is consumed by both
-    // Quarkus and Spring projects
-    liquibaseTestSupportApi libraries["slf4j-api"]
-    liquibaseTestSupportApi libraries["liquibase-core"]
-    liquibaseTestSupportRuntimeOnly sourceSets.main.output
+    implementation project(':swatch-database-migrations')
 }

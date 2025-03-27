@@ -64,11 +64,7 @@ dependencies {
     // Run liquibase during tests
     testRuntimeOnly("io.quarkus:quarkus-liquibase")
 
-    testRuntimeOnly(project(":swatch-database")) {
-        capabilities {
-            requireCapability("com.redhat.swatch:swatch-database-liquibase-test")
-        }
-    }
+    testRuntimeOnly(project(":swatch-database-migrations"))
 
     testAnnotationProcessor libraries["mapstruct-processor"]
     // if you are using mapstruct in test code
