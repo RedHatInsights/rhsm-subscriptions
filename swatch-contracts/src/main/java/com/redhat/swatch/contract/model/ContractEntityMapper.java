@@ -46,7 +46,7 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
 
 @Mapper(
-    componentModel = "cdi",
+    componentModel = "jakarta-cdi",
     collectionMappingStrategy = CollectionMappingStrategy.ADDER_PREFERRED,
     builder = @Builder(disableBuilder = true),
     uses = {ContractOfferingMapper.class})
