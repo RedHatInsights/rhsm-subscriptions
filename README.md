@@ -186,7 +186,7 @@ SERVER_PORT=8001 \
 ENABLE_SPLUNK_HEC=true \
 SPLUNK_HEC_URL=https://localhost:8088 \
 SPLUNK_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75 \
-./gradlew :swatch-producer-azure:quarkusDev
+./mvnw quarkus:dev
 ```
 
 Some of these environment variables are our own (e.g. `SPLUNK_HEC_URL`) and are
@@ -258,14 +258,14 @@ We can start the Wiremock service via:
 podman-compose -f config/wiremock/docker-compose.yml up -d
 ```
 
-Next, we start the swatch metrics app using: `SERVER_PORT=8002 QUARKUS_MANAGEMENT_PORT=9002 EVENT_SOURCE=telemeter PROM_URL="http://localhost:8101/api/v1/" ./gradlew :swatch-metrics:quarkusDev`
+Next, we start the swatch metrics app using: `SERVER_PORT=8002 QUARKUS_MANAGEMENT_PORT=9002 EVENT_SOURCE=telemeter PROM_URL="http://localhost:8101/api/v1/" ./mvnw quarkus:dev`
 
 Finally, when syncing all the accounts by: `curl -v -H 'Origin: https://service.redhat.com' -X PUT http://localhost:8002/api/swatch-metrics/v1/internal/metering/sync`, we should see some events in the service logs and the Kafka topic.
 
 ### Build and Run rhsm-subscriptions
 
 ```
-./gradlew :bootRun
+./mvnw spring-boot:run
 ```
 
 Spring Boot [defines many properties](https://docs.spring.io/spring-boot/docs/2.3.4.RELEASE/reference/htmlsingle/#common-application-properties)
@@ -278,7 +278,7 @@ We also define a number of service-specific properties (see [Environment Variabl
 For example, the `server.port` (or `SERVER_PORT` env var) property changes the listening port:
 
 ```
-SERVER_PORT=9090 ./gradlew :bootRun
+SERVER_PORT=9090 ./mvnw spring-boot:run
 ```
 
 ### Profiles
@@ -297,7 +297,7 @@ We have a number of profiles. Each profile activates a subset of components in t
 These can be specified most easily via the `SPRING_PROFILES_ACTIVE` environment variable. For example:
 
 ```
-SPRING_PROFILES_ACTIVE=api,kafka-queue ./gradlew bootRun
+SPRING_PROFILES_ACTIVE=api,kafka-queue ./mvnw spring-boot:run
 ```
 
 Each profile has a `@Configuration` class that controls which components get activated, See ApplicationConfiguration for more details.
@@ -339,7 +339,7 @@ to the RBAC service is bypassed and all users recieve the 'subscriptions:*:*' ro
 can be enabled by setting `RHSM_RBAC_USE_STUB=true`
 
 ```sh
-RHSM_RBAC_USE_STUB=true ./gradlew bootRun
+RHSM_RBAC_USE_STUB=true ./mvnw spring-boot:run
 ```
 
 ### Environment Variables
@@ -441,7 +441,7 @@ to a mock Clowder JSON file.
 
 E.g.
 ```
-$ ACG_CONFIG=$(pwd)/swatch-core/src/test/resources/test-clowder-config.json ./gradlew bootRun
+$ ACG_CONFIG=$(pwd)/swatch-core/src/test/resources/test-clowder-config.json ./mvnw spring-boot:run
 ```
 
 Note that there are 3 properties which `ClowderJsonEnvironmentPostProcessor` actually **creates**.
