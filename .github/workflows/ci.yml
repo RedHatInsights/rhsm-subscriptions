@@ -132,7 +132,7 @@ jobs:
         env:
           GRADLE_OPTS: "-Xmx2g -Xms512m"
         run: |
-          ./gradlew --no-daemon --no-parallel build -x test
+          ./gradlew --no-daemon --no-parallel fail -x test
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
