@@ -48,7 +48,6 @@ import org.junit.jupiter.api.Test;
 @Transactional
 @QuarkusTest
 class BillableUsageRemittanceRepositoryTest {
-
   private static final String BILLING_PROVIDER_AWS = "AWS";
   private static final String BILLING_PROVIDER_RED_HAT = "RED_HAT";
 
@@ -353,6 +352,41 @@ class BillableUsageRemittanceRepositoryTest {
     List<RemittanceSummaryProjection> results = repository.getRemittanceSummaries(filter1);
     assertEquals(2, results.size());
     assertTrue(results.containsAll(List.of(expectedSummary1, expectedSummary2)));
+  }
+
+  @Test
+  void findByIdInAndStatusNotPending() {
+    BillableUsageRemittanceEntity pendingRemittance =
+        remittance("org123", "product1", BILLING_PROVIDER_AWS, 12.0, clock.startOfCurrentMonth());
+    pendingRemittance.setStatus(RemittanceStatus.PENDING);
+
+    BillableUsageRemittanceEntity succeededRemittance =
+        remittance(
+            "org123",
+            "product1",
+            BILLING_PROVIDER_RED_HAT,
+            15.0,
+            clock.startOfCurrentMonth().plusDays(1));
+    succeededRemittance.setStatus(RemittanceStatus.SUCCEEDED);
+
+    BillableUsageRemittanceEntity failedRemittance =
+        remittance(
+            "org456", "product2", BILLING_PROVIDER_RED_HAT, 10.0, clock.endOfCurrentQuarter());
+    failedRemittance.setStatus(RemittanceStatus.FAILED);
+
+    repository.persist(List.of(pendingRemittance, succeededRemittance, failedRemittance));
+
+    List<String> ids =
+        List.of(
+            pendingRemittance.getUuid().toString(),
+            succeededRemittance.getUuid().toString(),
+            failedRemittance.getUuid().toString());
+
+    List<BillableUsageRemittanceEntity> results = repository.findByIdInAndStatusNotPending(ids);
+
+    assertEquals(2, results.size());
+    assertTrue(results.containsAll(List.of(succeededRemittance, failedRemittance)));
+    assertFalse(results.contains(pendingRemittance));
   }
 
   @Test
