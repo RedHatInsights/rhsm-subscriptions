@@ -363,18 +363,6 @@ objects:
               rewrite ^/api/rhsm-subscriptions/v1/subscriptions/billing_account_ids$ /api/swatch-contracts/v1/subscriptions/billing_account_ids break;
               proxy_pass http://swatch-contracts;
             }
-        
-            location /api/rhsm-subscriptions/v1/subscriptions/products {
-              proxy_pass http://swatch-contracts;
-            }
-    
-            location /api/rhsm-subscriptions/v2/subscriptions/products {
-              proxy_pass http://swatch-contracts;
-            }
-    
-            location /api/rhsm-subscriptions/v1/capacity/products {
-              proxy_pass http://swatch-contracts;
-            }
 
             location ^~/ {
               proxy_pass http://swatch-api;
