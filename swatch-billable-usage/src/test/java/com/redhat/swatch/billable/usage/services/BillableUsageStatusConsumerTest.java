@@ -83,29 +83,17 @@ class BillableUsageStatusConsumerTest {
   @Test
   void testWhenConsumeThenUsageStatusUpdatedSucceeded() {
     var existingRemittances = givenExistingRemittance();
-    var message = new BillableUsageAggregate();
-    message.setStatus(Status.SUCCEEDED);
-    message.setBilledOn(BILLED_ON);
-    message.setRemittanceUuids(
-        existingRemittances.stream()
-            .map(BillableUsageRemittanceEntity::getUuid)
-            .map(UUID::toString)
-            .collect(Collectors.toList()));
-    whenSendResponse(message);
+    var successMessage =
+        createBillableUsageAggregate(Status.SUCCEEDED, null, BILLED_ON, existingRemittances);
+    whenSendResponse(successMessage);
     Awaitility.await().untilAsserted(this::verifyUpdateForSuccess);
   }
 
   @Test
   void testWhenConsumeThenUsageStatusUpdatedFailed() {
     var existingRemittances = givenExistingRemittance();
-    var message = new BillableUsageAggregate();
-    message.setStatus(Status.FAILED);
-    message.setErrorCode(ErrorCode.INACTIVE);
-    message.setRemittanceUuids(
-        existingRemittances.stream()
-            .map(BillableUsageRemittanceEntity::getUuid)
-            .map(UUID::toString)
-            .collect(Collectors.toList()));
+    var message =
+        createBillableUsageAggregate(Status.FAILED, ErrorCode.INACTIVE, null, existingRemittances);
     whenSendResponse(message);
     Awaitility.await().untilAsserted(() -> verifyUpdateForFailure(RemittanceErrorCode.INACTIVE));
     verifyRemittancesHaveNotRetryAfterSet(message.getRemittanceUuids());
@@ -114,17 +102,10 @@ class BillableUsageStatusConsumerTest {
   @Test
   void testWhenUsageThatFailedWithSubscriptionNotFoundThenUsageSetToFailed() {
     var existingRemittances = givenExistingRemittance();
-    var message = new BillableUsageAggregate();
-    message.setAggregateKey(new BillableUsageAggregateKey());
-    message.getAggregateKey().setBillingProvider("aws");
-    message.setStatus(Status.FAILED);
-    message.setErrorCode(ErrorCode.SUBSCRIPTION_NOT_FOUND);
-    message.setRemittanceUuids(
-        existingRemittances.stream()
-            .map(BillableUsageRemittanceEntity::getUuid)
-            .map(UUID::toString)
-            .toList());
-    whenSendResponse(message);
+    var failedMessage =
+        createBillableUsageAggregate(
+            Status.FAILED, ErrorCode.SUBSCRIPTION_NOT_FOUND, null, existingRemittances);
+    whenSendResponse(failedMessage);
     Awaitility.await()
         .untilAsserted(() -> verifyUpdateForFailure(RemittanceErrorCode.SUBSCRIPTION_NOT_FOUND));
   }
@@ -132,19 +113,57 @@ class BillableUsageStatusConsumerTest {
   @Test
   void testWhenUsageThatFailedWithMarketplaceRateLimitThenUsageSetFailed() {
     var existingRemittances = givenExistingRemittance();
-    var message = new BillableUsageAggregate();
+    var message =
+        createBillableUsageAggregate(
+            Status.FAILED, ErrorCode.MARKETPLACE_RATE_LIMIT, null, existingRemittances);
     message.setAggregateKey(new BillableUsageAggregateKey());
     message.getAggregateKey().setBillingProvider("aws");
-    message.setStatus(Status.FAILED);
-    message.setErrorCode(ErrorCode.MARKETPLACE_RATE_LIMIT);
-    message.setRemittanceUuids(
-        existingRemittances.stream()
-            .map(BillableUsageRemittanceEntity::getUuid)
-            .map(UUID::toString)
-            .toList());
     whenSendResponse(message);
     Awaitility.await()
         .untilAsserted(() -> verifyUpdateForFailure(RemittanceErrorCode.MARKETPLACE_RATE_LIMIT));
+  }
+
+  @Test
+  void testWhenConsumeSuccessStatusThenExistingFailedRemittanceNotUpdated() {
+    var existingRemittances = givenExistingRemittance();
+    var failedMessage =
+        createBillableUsageAggregate(Status.FAILED, ErrorCode.INACTIVE, null, existingRemittances);
+
+    whenSendResponse(failedMessage);
+    Awaitility.await().untilAsserted(() -> verifyUpdateForFailure(RemittanceErrorCode.INACTIVE));
+
+    var successMessage =
+        createBillableUsageAggregate(Status.SUCCEEDED, null, BILLED_ON, existingRemittances);
+
+    whenSendResponse(successMessage);
+    Awaitility.await().untilAsserted(() -> verifyUpdateForFailure(RemittanceErrorCode.INACTIVE));
+  }
+
+  @Test
+  void testWhenConsumeFailedStatusThenExistingSuccessRemittanceNotUpdated() {
+    var existingRemittances = givenExistingRemittance();
+    var successMessage =
+        createBillableUsageAggregate(Status.SUCCEEDED, null, BILLED_ON, existingRemittances);
+
+    whenSendResponse(successMessage);
+    Awaitility.await().untilAsserted(this::verifyUpdateForSuccess);
+
+    var failedMessage =
+        createBillableUsageAggregate(Status.FAILED, ErrorCode.INACTIVE, null, existingRemittances);
+
+    whenSendResponse(failedMessage);
+    Awaitility.await().untilAsserted(this::verifyUpdateForSuccess);
+  }
+
+  @Test
+  void testWhenConsumeFailedStatusThenExistingGratisRemittanceNotUpdated() {
+    var existingGratisRemittances = givenExistingGratisRemittance();
+    var failedMessage =
+        createBillableUsageAggregate(
+            Status.FAILED, ErrorCode.INACTIVE, null, existingGratisRemittances);
+
+    whenSendResponse(failedMessage);
+    Awaitility.await().untilAsserted(this::verifyGratisStatus);
   }
 
   @Transactional
@@ -176,6 +195,24 @@ class BillableUsageStatusConsumerTest {
     return List.of(remittance, remittance2);
   }
 
+  @Transactional
+  List<BillableUsageRemittanceEntity> givenExistingGratisRemittance() {
+    var remittance = new BillableUsageRemittanceEntity();
+    remittance.setOrgId(ORG_ID);
+    remittance.setProductId("rosa");
+    remittance.setMetricId("Cores");
+    remittance.setAccumulationPeriod("mm-AAAA");
+    remittance.setSla("_ANY");
+    remittance.setUsage("_ANY");
+    remittance.setBillingProvider("aws");
+    remittance.setBillingAccountId("123");
+    remittance.setRemittancePendingDate(OffsetDateTime.now());
+    remittance.setRemittedPendingValue(2.0);
+    remittance.setStatus(RemittanceStatus.GRATIS);
+    remittanceRepository.persist(remittance);
+    return List.of(remittance);
+  }
+
   private void whenSendResponse(BillableUsageAggregate response) {
     source.send(response);
     Awaitility.await().untilAsserted(() -> verify(consumer).process(response));
@@ -188,6 +225,16 @@ class BillableUsageStatusConsumerTest {
             result -> {
               assertEquals(RemittanceStatus.SUCCEEDED, result.getStatus());
               assertEquals(BILLED_ON, result.getBilledOn());
+              assertNull(result.getErrorCode());
+            });
+  }
+
+  @Transactional
+  void verifyGratisStatus() {
+    remittanceRepository.findAll().stream()
+        .forEach(
+            result -> {
+              assertEquals(RemittanceStatus.GRATIS, result.getStatus());
               assertNull(result.getErrorCode());
             });
   }
@@ -213,5 +260,29 @@ class BillableUsageStatusConsumerTest {
     uuids.stream()
         .map(uuid -> remittanceRepository.findById(UUID.fromString(uuid)))
         .forEach(assertion);
+  }
+
+  private BillableUsageAggregate createBillableUsageAggregate(
+      Status status,
+      ErrorCode errorCode,
+      OffsetDateTime billedOn,
+      List<BillableUsageRemittanceEntity> remittances) {
+    var aggregate = new BillableUsageAggregate();
+    aggregate.setStatus(status);
+    if (errorCode != null) {
+      aggregate.setErrorCode(errorCode);
+    }
+    if (billedOn != null) {
+      aggregate.setBilledOn(billedOn);
+    }
+    aggregate.setRemittanceUuids(
+        remittances.stream()
+            .map(BillableUsageRemittanceEntity::getUuid)
+            .map(UUID::toString)
+            .collect(Collectors.toList()));
+    BillableUsageAggregateKey key = new BillableUsageAggregateKey();
+    key.setBillingProvider("aws");
+    aggregate.setAggregateKey(key);
+    return aggregate;
   }
 }
