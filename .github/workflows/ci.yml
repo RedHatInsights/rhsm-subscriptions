@@ -39,22 +39,14 @@ jobs:
       - name: Run Spotless & Checkstyle
         id: run-lint
         run: |
-          ./gradlew --no-daemon --no-parallel spotlessCheck checkstyleMain checkstyleTest || exit_code=$?
-          echo "exit_code=${exit_code:-0}" >> $GITHUB_OUTPUT
-        continue-on-error: true
+          ./gradlew --no-daemon --no-parallel spotlessCheck checkstyleMain checkstyleTest
 
       - name: Upload Checkstyle Report
-        continue-on-error: true
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: checkstyle-report
           path: '**/build/reports/checkstyle'
-
-      - name: Fail job if lint failed
-        if: steps.run-lint.outputs.exit_code != '0'
-        run: |
-          echo "❌ Lint failed — marking job as failed."
-          exit 1
 
   validate-floorplan-queries:
     name: Validate FloorPlan Queries
@@ -98,9 +90,7 @@ jobs:
       - name: Execute migrations
         id: run-migrations
         run: |
-          ./gradlew --no-daemon --no-parallel :liquibaseUpdate || exit_code=$?
-          echo "exit_code=${exit_code:-0}" >> $GITHUB_OUTPUT
-        continue-on-error: true
+          ./gradlew --no-daemon --no-parallel :liquibaseUpdate
 
       - name: Run FloorPlan Query Validation
         run: |
@@ -116,12 +106,6 @@ jobs:
             fi
           done
           echo "Queries validation was successful"
-
-      - name: Fail job if migrations failed
-        if: steps.run-migrations.outputs.exit_code != '0'
-        run: |
-          echo "❌ Liquibase migration failed — marking job as failed."
-          exit 1
 
   build:
     name: Build
@@ -148,18 +132,9 @@ jobs:
         env:
           GRADLE_OPTS: "-Xmx2g -Xms512m"
         run: |
-          ./gradlew --no-daemon --no-parallel build -x test || exit_code=$?
-          echo "exit_code=${exit_code:-0}" >> $GITHUB_OUTPUT
-        continue-on-error: true
-
-      - name: Fail job if build failed
-        if: steps.run-build.outputs.exit_code != '0'
-        run: |
-          echo "❌ Build task failed — marking job as failed."
-          exit 1
+          ./gradlew --no-daemon --no-parallel build -x test
 
       - name: Upload Build Artifacts
-        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
@@ -192,13 +167,10 @@ jobs:
         env:
           GRADLE_OPTS: "-Xmx4g -Xms512m"
         run: |
-          ./gradlew --no-daemon test || exit_code=$?
-          echo "exit_code=${exit_code:-0}" >> $GITHUB_OUTPUT
-        continue-on-error: true
+          ./gradlew --no-daemon test
 
       - name: Upload JUnit Report
         if: always() && (hashFiles('**/build/test-results/test/TEST-*.xml') != '')
-        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: junit-report
@@ -212,13 +184,10 @@ jobs:
           path: '**/build/reports/tests/test/index.html'
 
       - name: Generate Code Coverage Report
-        if: steps.run-tests.outputs.exit_code == '0'
         run: ./gradlew --no-parallel testCodeCoverageReport
-        continue-on-error: true
 
       - name: Upload Code Coverage
         if: ${{ always() && (hashFiles('**/build/reports/jacoco/testCodeCoverageReport/**') != '') }}
-        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: code-coverage
@@ -233,12 +202,6 @@ jobs:
           comment_mode: off
           fail_on: 'errors'
           report_individual_runs: true
-
-      - name: Fail job if tests failed
-        if: steps.run-tests.outputs.exit_code != '0'
-        run: |
-          echo "❌ Test task failed — marking job as failed."
-          exit 1
 
   summary:
     name: PR Summary
