@@ -18,15 +18,10 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.hbi.events;
+package com.redhat.swatch.hbi.events.dtos.hbi;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class HbiHostEvent {
-  private String type;
+public enum EventType {
+  CREATED,
+  UPDATED,
+  DELETE;
 }

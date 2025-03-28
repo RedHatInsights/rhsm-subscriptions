@@ -20,11 +20,12 @@
  */
 package com.redhat.swatch.hbi.events;
 
+import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
 import io.quarkus.kafka.client.serialization.ObjectMapperDeserializer;
 
 /** Provides quarkus a hint that we want to use Jackson to serialize BillableUsage objects. */
-public class HbiHostEventDeserializer extends ObjectMapperDeserializer<HbiHostEvent> {
+public class HbiHostEventDeserializer extends ObjectMapperDeserializer<HbiEvent> {
   public HbiHostEventDeserializer() {
-    super(HbiHostEvent.class);
+    super(HbiEvent.class);
   }
 }
