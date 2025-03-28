@@ -72,3 +72,6 @@ bonfire
 .kube
 
 stub/__files/
+
+# maven
+.mvn/wrapper/maven-wrapper.jar
