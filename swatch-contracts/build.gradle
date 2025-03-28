@@ -1,6 +1,5 @@
 plugins {
     id 'swatch.quarkus-conventions'
-    id 'swatch.liquibase-conventions'
     id 'org.openapi.generator'
     id 'jsonschema2pojo'
 }
@@ -8,15 +7,6 @@ plugins {
 repositories {
     mavenCentral()
     mavenLocal()
-}
-
-liquibase {
-    activities {
-        main {
-            databaseChangeLogTableName "DATABASECHANGELOG_SWATCH_CONTRACTS"
-            databaseChangeLogLockTableName "DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"
-        }
-    }
 }
 
 dependencies {
@@ -28,8 +18,7 @@ dependencies {
     implementation 'io.quarkus:quarkus-security'
     implementation 'io.quarkus:quarkus-smallrye-fault-tolerance'
     implementation 'io.quarkus:quarkus-smallrye-openapi'
-    implementation("io.quarkus:quarkus-liquibase")
-    implementation("io.quarkus:quarkus-jdbc-postgresql")
+    implementation 'io.quarkus:quarkus-jdbc-postgresql'
     implementation 'io.quarkus:quarkus-messaging-amqp'
     implementation 'io.quarkus:quarkus-messaging-kafka'
     implementation 'io.smallrye.reactive:smallrye-reactive-messaging-in-memory'
@@ -71,6 +60,16 @@ dependencies {
     testImplementation("io.quarkus:quarkus-test-kafka-companion")
     testImplementation 'org.testcontainers:postgresql'
     testImplementation project(':swatch-common-testcontainers')
+
+    // Run liquibase during tests
+    testRuntimeOnly("io.quarkus:quarkus-liquibase")
+
+    testRuntimeOnly(project(":swatch-database")) {
+        capabilities {
+            requireCapability("com.redhat.swatch:swatch-database-liquibase-test")
+        }
+    }
+
     testAnnotationProcessor libraries["mapstruct-processor"]
     // if you are using mapstruct in test code
     annotationProcessor libraries["lombok-mapstruct-binding"]

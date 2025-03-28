@@ -98,7 +98,7 @@ jobs:
       - name: Execute migrations
         id: run-migrations
         run: |
-          ./gradlew --no-daemon --no-parallel :liquibaseUpdate || exit_code=$?
+          ./gradlew --no-daemon --no-parallel :swatch-database:run || exit_code=$?
           echo "exit_code=${exit_code:-0}" >> $GITHUB_OUTPUT
         continue-on-error: true
 
@@ -233,6 +233,7 @@ jobs:
           comment_mode: off
           fail_on: 'errors'
           report_individual_runs: true
+          large_files: true
 
       - name: Fail job if tests failed
         if: steps.run-tests.outputs.exit_code != '0'
