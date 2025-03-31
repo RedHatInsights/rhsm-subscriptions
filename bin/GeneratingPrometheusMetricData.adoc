@@ -42,8 +42,8 @@ With this set up, you can now point the metering and tally services at this inst
 [source,bash]
 ----
 # Run the metering job
-PROM_URL="http://localhost:9090/api/v1/" SPRING_PROFILES_ACTIVE=metering-job,kafka-queue ./gradlew :bootRun
+PROM_URL="http://localhost:9090/api/v1/" SPRING_PROFILES_ACTIVE=metering-job,kafka-queue ./mvnw spring-boot:run
 
 # Run the swatch services.
-SUBSCRIPTION_USE_STUB=true USER_USE_STUB=true DEV_MODE=true PROM_URL="http://localhost:9090/api/v1/" ./gradlew :bootRun
+SUBSCRIPTION_USE_STUB=true USER_USE_STUB=true DEV_MODE=true PROM_URL="http://localhost:9090/api/v1/" ./mvnw spring-boot:run
 ----

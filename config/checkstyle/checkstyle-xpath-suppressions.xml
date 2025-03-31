@@ -8,9 +8,7 @@
 <!--
 The easiest way to write these expressions is to downnload the checkstyle release jar and
 then run it against the source file to show the AST.  E.g.
-
 java -jar checkstyle-10.20.1-all.jar -t MyClass.java
-
 This only works for checks that have Treewalker as parent module.
 -->
 
@@ -18,14 +16,10 @@ This only works for checks that have Treewalker as parent module.
   <!--
   Allow parameters that reference the x-rh-* headers.  The parameter name regex that Checkstyle
   enforces is
-
   ^[a-z]([a-z0-9][a-zA-Z0-9]*)?$
-
   which does not allow for a capital letter to immediately follow the initial lower-case letter.
   My reading of the Google style guide [1]
-
   suggests that this enforcement is overly strict
-
   [1] Sections 5.2.6 thereafter https://google.github.io/styleguide/javaguide.html#s5.3-camel-case
   -->
 

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.redhat.swatch</groupId>
+    <artifactId>swatch-quarkus-parent</artifactId>
+    <version>1.1.0-SNAPSHOT</version>
+    <relativePath>../../swatch-quarkus-parent/pom.xml</relativePath>
+  </parent>
+
+  <artifactId>quarkus-clients-parent</artifactId>
+  <name>SWATCH - Clients - Quarkus - Parent</name>
+  <packaging>pom</packaging>
+
+  <modules>
+    <module>azure-marketplace-client</module>
+    <module>contracts-client</module>
+    <module>export-client</module>
+    <module>product-client</module>
+    <module>prometheus-client</module>
+    <module>rbac-client</module>
+    <module>rh-partner-gateway-client</module>
+    <module>subscription-client</module>
+  </modules>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-resteasy-client-jackson</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-micrometer</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.openapitools</groupId>
+      <artifactId>jackson-databind-nullable</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.rest-assured</groupId>
+      <artifactId>rest-assured</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit5</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit5-mockito</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

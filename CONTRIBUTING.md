@@ -42,14 +42,14 @@ Preferred Package Structure
 # Build
 
 Requirements to build the repository are:
-- Gradle
+- Maven
 - Java 17
 - Podman with socket listening (instructions [here](#podman-installation-instructions)) / or Docker installed
 
 Once we have all the requirements properly installed and configured, we can build the repository by doing:
 
 ```shell
-./gradle clean build
+./mvnw clean install
 ```
 
 -------------
@@ -66,7 +66,7 @@ and set _Class count to use import with '\*'_ to `999`. Do the same with _Names 
 Before submitting pull requests, remember to format your changes using:
 
 ```shell
-./gradlew spotlessApply
+./mvnw spotless:apply
 ```
 
 Otherwise, the CI will detect your changes are not formatted and reject your pull request.
@@ -76,17 +76,13 @@ Otherwise, the CI will detect your changes are not formatted and reject your pul
 
 We use [liquibase](https://docs.liquibase.com/) to manage our DB schema.
 
-* `./gradlew :swatch-database:liquibaseUpdate` runs DB migrations
-* `./gradlew :swatch-database:liquibaseRollbackCount -PliquibaseCommandValue=1` rolls back a single DB changeset
+* `mvn -f swatch-database/pom.xml exec:java` runs DB migrations
 
 You can use a prefix to target different subprojects when they have liquibase enabled:
 
 ```shell
-./gradlew swatch-contracts:liquibaseUpdate
+mvn -f swatch-database/pom.xml exec:java
 ```
-
-There are various other tasks, see `./gradlew help tasks | grep liquibase`. Note that we don't use
-Liquibase Hub or Liquibase Pro.
 
 DB migrations should be written to roll back cleanly (exceptions should be discussed with the team).
 
