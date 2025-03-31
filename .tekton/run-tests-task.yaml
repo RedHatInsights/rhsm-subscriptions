@@ -23,9 +23,9 @@ spec:
       script: |
         #!/bin/bash
         if [ -n "$SERVICE" ]; then
-          GRADLE_OPTS=":${SERVICE}:"
+          SUBMODULE="-pl ${SERVICE} -am"
         fi
-        ./gradlew ${GRADLE_OPTS}test
+        ./mvnw verify ${SUBMODULE}
       computeResources:
         limits:
           memory: '6Gi'

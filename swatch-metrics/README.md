@@ -5,13 +5,13 @@
 Without additional configuration values, swatch-metrics will use "telemeter" as the EVENT_SOURCE, which indicates metrics are sourced from the OpenShift Telemeter observatorium instance.
 
 ```
-EVENT_SOURCE=telemeter PROM_URL="http://localhost:8082/api/v1" ./gradlew :swatch-metrics:quarkusDev
+EVENT_SOURCE=telemeter PROM_URL="http://localhost:8082/api/v1" ./mvnw quarkus:dev
 ```
 
 ## Running in "rhelemeter" mode
 
 ```
-EVENT_SOURCE=rhelemeter PROM_URL="http://localhost:8082/api/v1" ./gradlew :swatch-metrics:quarkusDev
+EVENT_SOURCE=rhelemeter PROM_URL="http://localhost:8082/api/v1" ./mvnw quarkus:dev
 ```
 
 ## PromQL Templates

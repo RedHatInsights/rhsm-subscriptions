@@ -98,7 +98,7 @@ fi
 # Exit script if a podman command fails
 trap build_failed ERR
 
-./gradlew clean
+./mvnw clean
 for p in "${projects[@]}"; do
   echo "Building ${p}"
 

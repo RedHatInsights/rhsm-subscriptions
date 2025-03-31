@@ -3,7 +3,6 @@
 #
 # Before building the container image run:
 #
-# ./gradlew build
 #
 # Then, build the image with:
 #
@@ -89,28 +88,14 @@ RUN microdnf \
   git
 WORKDIR /stage
 
-COPY gradlew .
-COPY gradle gradle
-COPY build.gradle settings.gradle dependencies.gradle ./
-COPY buildSrc buildSrc
-# The commented out commands are used for quarkus offline as we need the subprojects to run at top level
-# Have to add too many files to have quarkus offline run
-# We can revist once we refactor the codebases a bit
-
-#COPY swatch-billable-usage/build.gradle swatch-billable-usage/build.gradle
-#COPY swatch-producer-azure/build.gradle swatch-producer-azure/build.gradle
-#COPY swatch-producer-aws/build.gradle swatch-producer-aws/build.gradle
-#COPY clients clients
-#COPY clients-core/build.gradle clients-core/build.gradle
-#COPY swatch-common-config-workaround/build.gradle swatch-common-config-workaround/build.gradle
-#COPY swatch-common-resteasy/build.gradle swatch-common-resteasy/build.gradle
-#COPY swatch-product-configuration/build.gradle swatch-product-configuration/build.gradle
-#RUN ./gradlew quarkusGoOffline
+COPY mvnw .
+COPY .mvn .mvn
+COPY pom.xml ./
 
 COPY . .
-ARG GRADLE_BUILD_ARGS=''
-ARG GRADLE_TASKS='assemble'
-RUN ./gradlew ${GRADLE_TASKS} -x test ${GRADLE_BUILD_ARGS}
+ARG MAVEN_BUILD_ARGS=''
+ARG MAVEN_TASKS='clean package'
+RUN ./mvnw ${MAVEN_TASKS} -DskipTests ${MAVEN_BUILD_ARGS}
 
 FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.22-1
 USER root
@@ -131,10 +116,10 @@ USER default
 ENV LANGUAGE='en_US:en'
 
 # We make four distinct layers so if there are application changes the library layers can be re-used
-COPY --from=0 --chown=default:root --chmod=775 /stage/swatch-billable-usage/build/quarkus-app/lib/ /deployments/lib/
-COPY --from=0 --chown=default:root --chmod=775 /stage/swatch-billable-usage/build/quarkus-app/*.jar /deployments/
-COPY --from=0 --chown=default:root --chmod=775 /stage/swatch-billable-usage/build/quarkus-app/app/ /deployments/app/
-COPY --from=0 --chown=default:root --chmod=775 /stage/swatch-billable-usage/build/quarkus-app/quarkus/ /deployments/quarkus/
+COPY --from=0 --chown=default:root --chmod=775 /stage/swatch-billable-usage/target/quarkus-app/lib/ /deployments/lib/
+COPY --from=0 --chown=default:root --chmod=775 /stage/swatch-billable-usage/target/quarkus-app/*.jar /deployments/
+COPY --from=0 --chown=default:root --chmod=775 /stage/swatch-billable-usage/target/quarkus-app/app/ /deployments/app/
+COPY --from=0 --chown=default:root --chmod=775 /stage/swatch-billable-usage/target/quarkus-app/quarkus/ /deployments/quarkus/
 
 # Required by Red Hat OpenShift Software Certification Policy Guide
 COPY --from=0 /stage/LICENSE /licenses/

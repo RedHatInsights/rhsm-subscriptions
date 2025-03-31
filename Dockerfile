@@ -12,29 +12,17 @@ RUN microdnf \
   git
 WORKDIR /stage
 
-COPY gradlew .
-COPY gradle gradle
-COPY build.gradle settings.gradle dependencies.gradle ./
-COPY buildSrc buildSrc
-# The commented out commands are used for quarkus offline as we need the subprojects to run at top level
-# Have to add too many files to have quarkus offline run
-# We can revist once we refactor the codebases a bit
-
-#COPY swatch-contracts/build.gradle swatch-contracts/build.gradle
-#COPY swatch-producer-aws/build.gradle swatch-producer-aws/build.gradle
-#COPY clients clients
-#COPY clients-core/build.gradle clients-core/build.gradle
-#COPY swatch-common-config-workaround/build.gradle swatch-common-config-workaround/build.gradle
-#COPY swatch-common-resteasy/build.gradle swatch-common-resteasy/build.gradle
-#COPY swatch-product-configuration/build.gradle swatch-product-configuration/build.gradle
-#RUN ./gradlew quarkusGoOffline
+COPY mvnw .
+COPY .mvn .mvn
+COPY pom.xml ./
 
 COPY . .
-ARG GRADLE_BUILD_ARGS=''
-ARG GRADLE_TASKS='assemble'
-RUN ./gradlew ${GRADLE_TASKS} -x test ${GRADLE_BUILD_ARGS}
+ARG MAVEN_BUILD_ARGS=''
+ARG MAVEN_TASKS='clean package'
+RUN ./mvnw ${MAVEN_TASKS} -DskipTests ${MAVEN_BUILD_ARGS}
 
-RUN jar -xf ./build/libs/*.jar
+RUN (cd /stage/swatch-tally && exec jar -xf ./target/*.jar)
+RUN ls -al /stage/swatch-tally
 
 FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.22-1
 USER root
@@ -50,11 +38,11 @@ RUN microdnf \
 
 # TODO: Investigate layertools? See https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#container-images.efficient-images.layering
 # and https://spring.io/guides/topicals/spring-boot-docker/#_spring_boot_layer_index
-COPY --from=0 /stage/BOOT-INF/lib /deployments/lib
-COPY --from=0 /stage/META-INF /deployments/META-INF
-COPY --from=0 /stage/BOOT-INF/classes /deployments/
+COPY --from=0 /stage/swatch-tally/BOOT-INF/lib /deployments/lib
+COPY --from=0 /stage/swatch-tally/META-INF /deployments/META-INF
+COPY --from=0 /stage/swatch-tally/BOOT-INF/classes /deployments/
 
-COPY --from=0 /stage/build/javaagent/* /opt/
+# COPY --from=0 /stage/swatch-tally/build/javaagent/* /opt/
 
 # Required by Red Hat OpenShift Software Certification Policy Guide
 COPY --from=0 /stage/LICENSE /licenses/

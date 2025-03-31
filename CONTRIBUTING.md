@@ -42,14 +42,14 @@ Preferred Package Structure
 # Build
 
 Requirements to build the repository are:
-- Gradle
+- Maven
 - Java 17
 - Podman with socket listening (instructions [here](#podman-installation-instructions)) / or Docker installed
 
 Once we have all the requirements properly installed and configured, we can build the repository by doing:
 
 ```shell
-./gradle clean build
+./mvnw clean install
 ```
 
 -------------
@@ -66,7 +66,7 @@ and set _Class count to use import with '\*'_ to `999`. Do the same with _Names 
 Before submitting pull requests, remember to format your changes using:
 
 ```shell
-./gradlew spotlessApply
+./mvnw spotless:apply
 ```
 
 Otherwise, the CI will detect your changes are not formatted and reject your pull request.
