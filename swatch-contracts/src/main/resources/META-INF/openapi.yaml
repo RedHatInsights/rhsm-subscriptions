@@ -1442,6 +1442,27 @@ components:
           type: array
           items:
             type: string
+    OperationalProductEvent:
+      properties:
+        occurredOn:
+          description: timestamp that event occurred
+          example: '2023-05-29T16:00:54.279Z'
+          type: string
+        productCode:
+          description: Sku of Pproduct
+          type: string
+        productCategory:
+          description: Parent or Child SKU
+          type: string
+          enum:
+            - Parent SKU
+            - Child SKU
+        eventType:
+          description: Create or update product
+          type: string
+          enum:
+            - Create
+            - Update
     PartnerEntitlementContract:
       properties:
         action:

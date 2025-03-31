@@ -30,8 +30,10 @@ import com.redhat.swatch.contract.config.ProductDenylist;
 import com.redhat.swatch.contract.exception.ServiceException;
 import com.redhat.swatch.contract.model.OfferingSyncTask;
 import com.redhat.swatch.contract.model.SyncResult;
+import com.redhat.swatch.contract.openapi.model.OperationalProductEvent;
 import com.redhat.swatch.contract.product.UpstreamProductData;
 import com.redhat.swatch.contract.product.umb.CanonicalMessage;
+import com.redhat.swatch.contract.product.umb.ProductAttribute;
 import com.redhat.swatch.contract.product.umb.UmbOperationalProduct;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.OfferingRepository;
@@ -296,6 +298,24 @@ public class OfferingSyncService {
             .getPayload()
             .getSync()
             .getOperationalProduct());
+  }
+
+  /**
+   * Sync offering state based on a Json UMB event.
+   *
+   * <p>See syncRootSku and syncChildSku for more details.
+   *
+   * @param productEvent UMB event for product
+   * @return result describing results of sync (for testing purposes)
+   */
+  @Transactional
+  public SyncResult syncUmbProductFromEvent(OperationalProductEvent productEvent) throws JsonProcessingException {
+    // The event from the Product Service UMB topic only has the SKU and no attributes
+    UmbOperationalProduct product = UmbOperationalProduct.builder()
+            .sku(productEvent.getProductCode())
+            .attributes(new ProductAttribute[]{})
+            .build();
+    return syncUmbProduct(product);
   }
 
   private SyncResult syncUmbProduct(UmbOperationalProduct umbOperationalProduct) {
