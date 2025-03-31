@@ -83,6 +83,7 @@ public class CreateUpdateHostHandler implements HbiEventHandler<HbiHostCreateUpd
 
   @Override
   public List<Event> handleEvent(HbiEvent hbiEvent) {
+    log.debug("Handling HBI host created/updated event {}", hbiEvent);
     HbiHostCreateUpdateEvent hbiHostEvent = (HbiHostCreateUpdateEvent) hbiEvent;
     Host host = new Host(hbiHostEvent.getHost());
 
@@ -103,7 +104,7 @@ public class CreateUpdateHostHandler implements HbiEventHandler<HbiHostCreateUpd
     String billingModel = host.getRhsmFacts().map(RhsmFacts::getBillingModel).orElse(null);
     boolean validBillingModel = Objects.isNull(billingModel) || !"marketplace".equals(billingModel);
     if (!validBillingModel) {
-      log.info(
+      log.warn(
           "Incoming HBI event will be skipped do to an invalid billing model: {}", billingModel);
       return true;
     }
@@ -111,7 +112,7 @@ public class CreateUpdateHostHandler implements HbiEventHandler<HbiHostCreateUpd
     String hostType = host.getSystemProfileFacts().getHostType();
     boolean validHostType = Objects.isNull(hostType) || !"edge".equals(hostType);
     if (!validHostType) {
-      log.info("Incoming HBI event will be skipped do to an invalid host type: {}", hostType);
+      log.warn("Incoming HBI event will be skipped do to an invalid host type: {}", hostType);
       return true;
     }
 
@@ -120,7 +121,7 @@ public class CreateUpdateHostHandler implements HbiEventHandler<HbiHostCreateUpd
     boolean isNotStale =
         clock.now().isBefore(staleTimestamp.plusDays(config.getCullingOffset().toDays()));
     if (!isNotStale) {
-      log.info("Incoming HBI event will be skipped because it is stale.");
+      log.warn("Incoming HBI event will be skipped because it is stale.");
       return true;
     }
     return false;

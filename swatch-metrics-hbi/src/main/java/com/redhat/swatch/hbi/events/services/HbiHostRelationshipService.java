@@ -29,6 +29,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import org.candlepin.clock.ApplicationClock;
 
 @ApplicationScoped
@@ -100,5 +101,9 @@ public class HbiHostRelationshipService {
   @Transactional
   public Optional<HbiHostRelationship> getRelationship(String orgId, String subscriptionManagerId) {
     return repository.findByIdOptional(new HbiHostRelationshipId(orgId, subscriptionManagerId));
+  }
+
+  public void deleteHostRelationship(String orgId, UUID inventoryUuid) {
+    repository.deleteById(new HbiHostRelationshipId(orgId, inventoryUuid.toString()));
   }
 }
