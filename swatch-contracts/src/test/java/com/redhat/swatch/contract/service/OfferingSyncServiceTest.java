@@ -46,6 +46,7 @@ import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.contract.config.ProductDenylist;
 import com.redhat.swatch.contract.model.OfferingSyncTask;
 import com.redhat.swatch.contract.model.SyncResult;
+import com.redhat.swatch.contract.openapi.model.OperationalProductEvent;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.OfferingRepository;
 import com.redhat.swatch.contract.test.resources.ProductUseStubService;
@@ -314,6 +315,19 @@ class OfferingSyncServiceTest {
     testOffering.setDerivedSku("new");
     when(repo.findByIdOptional(any())).thenReturn(Optional.of(testOffering));
     subject.syncUmbProductFromXml(read("mocked-product-message.xml"));
+    var actual = ArgumentCaptor.forClass(OfferingEntity.class);
+    verify(repo).merge(actual.capture());
+    // this shows that the eng ids were derived from the product service's definition of the SVC sku
+    assertEquals(30, actual.getValue().getProductIds().size());
+  }
+
+  @Test
+  void testSyncOfferingFromProductEventUmbMessage() throws IOException {
+    OfferingEntity testOffering = createTestOffering();
+    when(repo.findByIdOptional(any())).thenReturn(Optional.of(testOffering));
+    ObjectMapper mapper = new ObjectMapper();
+    OperationalProductEvent event = mapper.readValue(read("mocked-product-event.json"),OperationalProductEvent.class);
+    subject.syncUmbProductFromEvent(event);
     var actual = ArgumentCaptor.forClass(OfferingEntity.class);
     verify(repo).merge(actual.capture());
     // this shows that the eng ids were derived from the product service's definition of the SVC sku
