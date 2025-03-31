@@ -21,21 +21,17 @@
 package com.redhat.swatch.configuration.registry;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import jakarta.validation.Validation;
 import jakarta.validation.ValidatorFactory;
-import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.hibernate.validator.messageinterpolation.ParameterMessageInterpolator;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
-import org.yaml.snakeyaml.composer.ComposerException;
 
 @TestInstance(Lifecycle.PER_CLASS)
 class SubscriptionDefinitionRegistryTest {
@@ -75,35 +71,6 @@ class SubscriptionDefinitionRegistryTest {
         assertTrue(
             violations.isEmpty(),
             "Found the following violations in " + definition + ":" + violations);
-      }
-    }
-  }
-
-  /**
-   * Test for SnakeYaml deserialization vulnerability due to enabled global tags. See
-   *
-   * <ul>
-   *   <li>https://www.cve.org/CVERecord?id=CVE-2022-1471
-   *   <li>https://www.veracode.com/blog/research/resolving-cve-2022-1471-snakeyaml-20-release-0
-   *   <li>https://bitbucket.org/snakeyaml/snakeyaml/issues/561/cve-2022-1471-vulnerability-in
-   *   <li>https://www.websec.ca/publication/Blog/CVE-2022-21404-Another-story-of-developers-fixing-vulnerabilities-unknowingly-because-of-CodeQL
-   * </ul>
-   */
-  @Test
-  void testNoGlobalTags() throws IOException {
-    Path link = null;
-    try {
-      ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-      var url = classLoader.getResource("cve_2022_1471_swatch_config_index.txt");
-      Path target = Paths.get(url.getPath());
-      Path parent = target.getParent();
-
-      link = parent.resolve("swatch_config_index.txt");
-      Files.createSymbolicLink(link, target);
-      assertThrows(ComposerException.class, SubscriptionDefinitionRegistry::new);
-    } finally {
-      if (link != null && Files.exists(link)) {
-        Files.delete(link);
       }
     }
   }

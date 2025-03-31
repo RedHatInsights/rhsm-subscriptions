@@ -9,7 +9,7 @@ If you want to learn more about Quarkus, please visit its website: https://quark
 You can run your application in dev mode that enables live coding using:
 
 ```shell script
-./gradlew :swatch-billable-usage:quarkusDev
+./mvnw quarkus:dev
 ```
 
 > **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only
@@ -20,7 +20,7 @@ You can run your application in dev mode that enables live coding using:
 The application can be packaged using:
 
 ```shell script
-./gradlew build
+./mvnw clean install
 ```
 
 It produces the `quarkus-run.jar` file in the `build/quarkus-app/` directory.
@@ -32,7 +32,7 @@ The application is now runnable using `java -jar build/quarkus-app/quarkus-run.j
 If you want to build an _über-jar_, execute the following command:
 
 ```shell script
-./gradlew build -Dquarkus.package.type=uber-jar
+./mvnw clean install -Dquarkus.package.type=uber-jar
 ```
 
 The application, packaged as an _über-jar_, is now runnable using `java -jar build/*-runner.jar`.
@@ -42,14 +42,14 @@ The application, packaged as an _über-jar_, is now runnable using `java -jar bu
 You can create a native executable using:
 
 ```shell script
-./gradlew build -Dquarkus.package.type=native
+./mvnw clean install -Dquarkus.package.type=native
 ```
 
 Or, if you don't have GraalVM installed, you can run the native executable build in a container
 using:
 
 ```shell script
-./gradlew build -Dquarkus.package.type=native -Dquarkus.native.container-build=true
+./mvnw clean install -Dquarkus.package.type=native -Dquarkus.native.container-build=true
 ```
 
 You can then execute your native executable with: `./build/swatch-billable-usage-1.0-SNAPSHOT-runner`

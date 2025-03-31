@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <artifactId>swatch-parent</artifactId>
+    <groupId>com.redhat.swatch</groupId>
+    <version>1.1.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>clients-parent</artifactId>
+  <name>SWATCH - Clients - Parent</name>
+  <packaging>pom</packaging>
+
+  <modules>
+    <module>billable-usage-client</module>
+    <module>contracts-client</module>
+    <module>export-client</module>
+    <module>prometheus-client</module>
+    <module>rbac-client</module>
+    <module>rh-marketplace-client</module>
+    <module>rh-partner-gateway-client</module>
+    <module>rhsm-client</module>
+    <module>subscription-client</module>
+    <module>quarkus</module>
+  </modules>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>add-source</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>add-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>${project.build.directory}/generated/src/gen/java</source>
+              </sources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>
