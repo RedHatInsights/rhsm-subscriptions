@@ -3,7 +3,7 @@ repos:
     hooks:
       - id: spotless
         name: spotless
-        entry: ./gradlew -q spotlessCheck
+        entry: ./mvnw spotless:check
         language: script
         pass_filenames: false
         types: [java]

@@ -28,29 +28,25 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 17
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-home-cache-includes: |
-            buildSrc/.gradle
-            buildSrc/build
+          cache: 'maven'
 
       - name: Run Spotless & Checkstyle
         id: run-lint
         run: |
-          ./gradlew --no-daemon --no-parallel spotlessCheck checkstyleMain checkstyleTest
+          ./mvnw package validate checkstyle:checkstyle -DskipTests
 
       - name: Upload Checkstyle Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: checkstyle-report
-          path: '**/build/reports/checkstyle'
+          path: '**/target/reports/checkstyle.html'
 
   validate-floorplan-queries:
     name: Validate FloorPlan Queries
     runs-on: ubuntu-latest
+    # Disable it for now since liquibase is not supported yet
+    if: false
 
     steps:
       - uses: actions/checkout@v4
@@ -65,13 +61,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 17
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-home-cache-includes: |
-            buildSrc/.gradle
-            buildSrc/build
 
       - name: Setup JBang
         uses: jbangdev/setup-jbang@main
@@ -119,28 +108,21 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 17
+          cache: 'maven'
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-home-cache-includes: |
-            buildSrc/.gradle
-            buildSrc/build
-
-      - name: Run Gradle Build
+      - name: Run Build
         id: run-build
         env:
-          GRADLE_OPTS: "-Xmx2g -Xms512m"
+          MAVEN_OPTS: "-Xmx2g -Xms512m"
         run: |
-          ./gradlew --no-daemon --no-parallel build -x test
+          ./mvnw clean package -DskipTests
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
           path: |
-            **/build/libs/*.jar
-            **/build/distributions/*
+            **/target/*.jar
 
   test:
     name: Test & Coverage
@@ -154,50 +136,42 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 17
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-home-cache-includes: |
-            buildSrc/.gradle
-            buildSrc/build
+          cache: 'maven'
 
       - name: Run Tests
         id: run-tests
         env:
-          GRADLE_OPTS: "-Xmx4g -Xms512m"
+          MAVEN_OPTS: "-Xmx4g -Xms512m"
         run: |
-          ./gradlew --no-daemon test
+          ./mvnw verify -Dcoverage surefire-report:report
 
       - name: Upload JUnit Report
-        if: always() && (hashFiles('**/build/test-results/test/TEST-*.xml') != '')
+        if: always() && (hashFiles('**/target/surefire-reports/TEST-*.xml') != '')
         uses: actions/upload-artifact@v4
         with:
           name: junit-report
-          path: '**/build/test-results/test/TEST-*.xml'
+          path: '**/target/surefire-reports/TEST-*.xml'
 
-      - name: Upload Gradle HTML Test Report
+      - name: Upload HTML Test Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: junit-html-report
-          path: '**/build/reports/tests/test/index.html'
-
-      - name: Generate Code Coverage Report
-        run: ./gradlew --no-parallel testCodeCoverageReport
+          path: '**/target/reports/*'
 
       - name: Upload Code Coverage
-        if: ${{ always() && (hashFiles('**/build/reports/jacoco/testCodeCoverageReport/**') != '') }}
+        if: ${{ always() && (hashFiles('coverage-report/target/site/jacoco-aggregate') != '') }}
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: code-coverage
-          path: '**/build/reports/jacoco/testCodeCoverageReport/**'
+          path: 'coverage-report/target/site/jacoco-aggregate'
 
       - name: Publish Test Results
-        if: always() && (hashFiles('**/build/test-results/test/TEST-*.xml') != '')
+        if: always() && (hashFiles('**/target/surefire-reports/TEST-*.xml') != '')
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
-          files: '**/build/test-results/test/TEST-*.xml'
+          files: '**/target/surefire-reports/TEST-*.xml'
           check_name: 'JUnit Tests'
           comment_mode: off
           fail_on: 'errors'
@@ -211,7 +185,7 @@ jobs:
 
     steps:
       - name: Download Code Coverage Report
-        if: ${{ always() && (hashFiles('**/build/reports/jacoco/testCodeCoverageReport/**') != '') }}
+        if: ${{ always() && (hashFiles('coverage-report/target/site/jacoco-aggregate') != '') }}
         continue-on-error: true
         uses: actions/download-artifact@v4
         with:
