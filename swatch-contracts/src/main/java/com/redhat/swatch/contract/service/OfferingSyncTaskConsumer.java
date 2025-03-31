@@ -21,7 +21,7 @@
 package com.redhat.swatch.contract.service;
 
 import static com.redhat.swatch.contract.config.Channels.OFFERING_SYNC_TASK_TOPIC;
-import static com.redhat.swatch.contract.config.Channels.OFFERING_SYNC_TASK_UMB;
+import static com.redhat.swatch.contract.config.Channels.OFFERING_SYNC_TASK_CANONICAL_UMB;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.redhat.swatch.contract.model.OfferingSyncTask;
@@ -54,7 +54,7 @@ public class OfferingSyncTaskConsumer {
   }
 
   @Blocking
-  @Incoming(OFFERING_SYNC_TASK_UMB)
+  @Incoming(OFFERING_SYNC_TASK_CANONICAL_UMB)
   public void consumeFromUmb(String productMessageXml) throws JsonProcessingException {
     log.debug("Received message from UMB offering product{}", productMessageXml);
     if (!umbEnabled) {
