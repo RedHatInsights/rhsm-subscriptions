@@ -65,6 +65,11 @@ class UuidValidatorTest {
   }
 
   @Test
+  void thisTestWillFail() {
+    assertTrue(1 == 2);
+  }
+
+  @Test
   void testValidUuid() {
     assertTrue(validatedThing.mySingleMethod("b682126b-88d8-40b7-ada6-212f0e65e30a"));
     assertTrue(validatedThing.mySingleMethod("B682126B-88D8-40B7-ADA6-212F0E65E30A"));
