@@ -73,4 +73,8 @@ bonfire
 
 stub/__files/
 
+# python tests
 pytest_swatch/*
+
+# maven
+.mvn/wrapper/maven-wrapper.jar

@@ -9,7 +9,7 @@ If you want to learn more about Quarkus, please visit its website: https://quark
 You can run your application in dev mode that enables live coding using:
 
 ```shell script
-../gradlew :swatch-contracts:quarkusDev
+./mvnw quarkus:dev
 ```
 
 > **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only
@@ -20,7 +20,7 @@ You can run your application in dev mode that enables live coding using:
 The application can be packaged using:
 
 ```shell script
-../gradlew build
+./mvnw clean install
 ```
 
 It produces the `quarkus-run.jar` file in the `build/quarkus-app/` directory.
