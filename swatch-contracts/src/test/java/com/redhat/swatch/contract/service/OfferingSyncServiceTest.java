@@ -326,7 +326,8 @@ class OfferingSyncServiceTest {
     OfferingEntity testOffering = createTestOffering();
     when(repo.findByIdOptional(any())).thenReturn(Optional.of(testOffering));
     ObjectMapper mapper = new ObjectMapper();
-    OperationalProductEvent event = mapper.readValue(read("mocked-product-event.json"),OperationalProductEvent.class);
+    OperationalProductEvent event =
+        mapper.readValue(read("mocked-product-event.json"), OperationalProductEvent.class);
     subject.syncUmbProductFromEvent(event);
     var actual = ArgumentCaptor.forClass(OfferingEntity.class);
     verify(repo).merge(actual.capture());
