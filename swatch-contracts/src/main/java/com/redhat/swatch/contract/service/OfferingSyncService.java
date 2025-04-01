@@ -309,11 +309,13 @@ public class OfferingSyncService {
    * @return result describing results of sync (for testing purposes)
    */
   @Transactional
-  public SyncResult syncUmbProductFromEvent(OperationalProductEvent productEvent) throws JsonProcessingException {
+  public SyncResult syncUmbProductFromEvent(OperationalProductEvent productEvent)
+      throws JsonProcessingException {
     // The event from the Product Service UMB topic only has the SKU and no attributes
-    UmbOperationalProduct product = UmbOperationalProduct.builder()
+    UmbOperationalProduct product =
+        UmbOperationalProduct.builder()
             .sku(productEvent.getProductCode())
-            .attributes(new ProductAttribute[]{})
+            .attributes(new ProductAttribute[] {})
             .build();
     return syncUmbProduct(product);
   }

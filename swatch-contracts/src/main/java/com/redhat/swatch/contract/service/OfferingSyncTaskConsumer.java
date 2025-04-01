@@ -20,8 +20,8 @@
  */
 package com.redhat.swatch.contract.service;
 
-import static com.redhat.swatch.contract.config.Channels.OFFERING_SYNC_TASK_TOPIC;
 import static com.redhat.swatch.contract.config.Channels.OFFERING_SYNC_TASK_CANONICAL_UMB;
+import static com.redhat.swatch.contract.config.Channels.OFFERING_SYNC_TASK_TOPIC;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.redhat.swatch.contract.model.OfferingSyncTask;
