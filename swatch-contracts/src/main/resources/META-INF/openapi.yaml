@@ -1455,7 +1455,7 @@ components:
           example: '2023-05-29T16:00:54.279Z'
           type: string
         productCode:
-          description: Sku of Pproduct
+          description: Sku of Product
           type: string
         productCategory:
           description: Parent or Child SKU
