@@ -94,11 +94,11 @@ public class BillableUsageService {
     ContractCoverage contractCoverage = DEFAULT_CONTRACT_COVERAGE;
     if (SubscriptionDefinition.isContractEnabled(usage.getProductId())) {
       contractCoverage = getContractCoverage(usage);
+      updateCoveredUsageMeter(usage, contractCoverage);
       log.debug("Adjusting usage based on contracted amount of {}", contractCoverage.getTotal());
     }
 
-    Quantity<BillingUnit> contractAmount =
-        Quantity.fromContractCoverage(usage, contractCoverage.getTotal());
+    Quantity<BillingUnit> contractAmount = Quantity.fromValue(usage, contractCoverage.getTotal());
     double applicableUsage =
         Quantity.of(usage.getCurrentTotal())
             .subtract(contractAmount)
@@ -123,7 +123,7 @@ public class BillableUsageService {
 
     if (usageCalc.getRemittedValue() > 0) {
       createRemittance(usage, usageCalc, contractCoverage);
-      updateUsageMeter(usage, usageCalc, contractAmount);
+      updateBillableUsageMeter(usage, usageCalc);
     } else {
       log.debug("Nothing to remit. Remittance record will not be created.");
     }
@@ -250,31 +250,48 @@ public class BillableUsageService {
     usage.setUuid(newRemittance.getUuid());
   }
 
-  private void updateUsageMeter(
-      BillableUsage usage,
-      BillableUsageCalculation usageCalc,
-      Quantity<BillingUnit> contractAmount) {
-    if (usage.getProductId() == null
-        || usage.getMetricId() == null
-        || usage.getBillingProvider() == null
-        || usage.getStatus() == null) {
+  private void updateBillableUsageMeter(BillableUsage usage, BillableUsageCalculation usageCalc) {
+    incrementMetric(BILLABLE_USAGE_METRIC, usage, usageCalc.getRemittedValue());
+  }
+
+  private void updateCoveredUsageMeter(BillableUsage usage, ContractCoverage contractCoverage) {
+    if (usage.getValue() == null || usage.getCurrentTotal() == null) {
       return;
     }
+
+    double newUsageMetric = usage.getValue();
+    double previousTotalUsageMetric = usage.getCurrentTotal() - newUsageMetric;
+    double contractCoveredMetric =
+        Quantity.fromValue(usage, contractCoverage.getTotal()).toMetricUnits();
+    if (previousTotalUsageMetric > contractCoveredMetric) {
+      // the metric was already covered by a previous usage, so we don't need to
+      // increase again this metric
+      return;
+    }
+
+    double remainingCoverage = contractCoveredMetric - previousTotalUsageMetric;
+    incrementMetric(COVERED_USAGE_METRIC, usage, Math.min(remainingCoverage, newUsageMetric));
+  }
+
+  private void incrementMetric(String metric, BillableUsage usage, double value) {
+    if (usage.getProductId() == null
+        || usage.getMetricId() == null
+        || usage.getBillingProvider() == null) {
+      return;
+    }
+
+    var builder = Counter.builder(metric);
     List<String> tags =
         new ArrayList<>(
             List.of(
                 "product", usage.getProductId(),
                 "metric_id", MetricId.tryGetValueFromString(usage.getMetricId()),
-                "billing_provider", usage.getBillingProvider().value(),
-                "status", usage.getStatus().value()));
-    Counter.builder(COVERED_USAGE_METRIC)
-        .withRegistry(meterRegistry)
-        .withTags(tags.toArray(new String[0]))
-        .increment(contractAmount.toMetricUnits());
+                "billing_provider", usage.getBillingProvider().value()));
 
-    Counter.builder(BILLABLE_USAGE_METRIC)
-        .withRegistry(meterRegistry)
-        .withTags(tags.toArray(new String[0]))
-        .increment(usageCalc.getRemittedValue());
+    if (usage.getStatus() != null) {
+      builder.tag("status", usage.getStatus().value());
+    }
+
+    builder.withRegistry(meterRegistry).withTags(tags.toArray(new String[0])).increment(value);
   }
 }
