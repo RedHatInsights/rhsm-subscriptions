@@ -104,6 +104,7 @@ public class CapacityResource implements CapacityApi {
       @NotNull OffsetDateTime ending,
       Integer offset,
       @Min(1) Integer limit,
+      String billingAccountId,
       ReportCategory reportCategory,
       ServiceLevelType sla,
       UsageType usage) {
@@ -136,6 +137,7 @@ public class CapacityResource implements CapacityApi {
             orgId,
             productId,
             metricId,
+            billingAccountId,
             hypervisorReportCategory,
             sanitizedServiceLevel,
             sanitizedUsage,
@@ -161,6 +163,7 @@ public class CapacityResource implements CapacityApi {
     meta.setGranularity(granularityType);
     meta.setProduct(productId.toString());
     meta.setMetricId(metricId.toString());
+    meta.setBillingAccountId(billingAccountId);
     meta.setCategory(reportCategory);
     meta.setCount(capacities.size());
 
@@ -192,6 +195,7 @@ public class CapacityResource implements CapacityApi {
       String orgId,
       ProductId product,
       MetricId metricId,
+      String billingAccountId,
       HypervisorReportCategory hypervisorReportCategory,
       ServiceLevel sla,
       Usage usage,
@@ -209,6 +213,7 @@ public class CapacityResource implements CapacityApi {
         DbReportCriteria.builder()
             .orgId(orgId)
             .productTag(product.toString())
+            .billingAccountId(billingAccountId)
             .serviceLevel(sla)
             .usage(usage)
             .beginning(reportBegin)

@@ -105,14 +105,16 @@ public class CapacityResourceV1 implements CapacityApi {
       @NotNull OffsetDateTime ending,
       Integer offset,
       @Min(1) Integer limit,
+      String billingAccountId,
       ReportCategory reportCategory,
       ServiceLevelType sla,
       UsageType usage) {
 
     log.debug(
-        "Get capacity report for product {} by metric {} in range [{}, {}] for category {}",
+        "Get capacity report for product {} by metric {} and billing account {} in range [{}, {}] for category {}",
         productId,
         metricId,
+        billingAccountId,
         beginning,
         ending,
         reportCategory);
@@ -137,6 +139,7 @@ public class CapacityResourceV1 implements CapacityApi {
             orgId,
             productId,
             metricId,
+            billingAccountId,
             hypervisorReportCategory,
             sanitizedServiceLevel,
             sanitizedUsage,
@@ -162,6 +165,7 @@ public class CapacityResourceV1 implements CapacityApi {
     meta.setGranularity(granularityType);
     meta.setProduct(productId.toString());
     meta.setMetricId(metricId.toString());
+    meta.setBillingAccountId(billingAccountId);
     meta.setCategory(reportCategory);
     meta.setCount(capacities.size());
 
@@ -193,6 +197,7 @@ public class CapacityResourceV1 implements CapacityApi {
       String orgId,
       ProductId product,
       MetricId metricId,
+      String billingAccountId,
       HypervisorReportCategory hypervisorReportCategory,
       ServiceLevel sla,
       Usage usage,
@@ -216,6 +221,7 @@ public class CapacityResourceV1 implements CapacityApi {
             .ending(reportEnd)
             .hypervisorReportCategory(hypervisorReportCategory)
             .metricId(metricId == null ? null : metricId.toString())
+            .billingAccountId(billingAccountId)
             .build();
 
     var subscriptions = subscriptionRepository.findByCriteria(dbReportCriteria, Sort.empty());

@@ -1149,6 +1149,12 @@ paths:
       summary: "Fetch a capacity report for an account and product."
       operationId: getCapacityReportByMetricId
       parameters:
+        - name: billing_account_id
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/BillingAccountId"
+          description: "The billing account ID for the product we wish to query"
         - name: granularity
           in: query
           required: true
@@ -1833,6 +1839,8 @@ components:
             product:
               type: string
             metric_id:
+              type: string
+            billing_account_id:
               type: string
             granularity:
               $ref: '#/components/schemas/GranularityType'
