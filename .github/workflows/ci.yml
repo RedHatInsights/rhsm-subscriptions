@@ -264,19 +264,14 @@ jobs:
 
             🧹 **[Checkstyle](${{ needs.validate-format.outputs.checkstyle-report-url }})**
 
-            🧪 **[JUnit Test Summary](${{ needs.test.outputs.html-report-url }})**
-              |  |  |
-              |--|--|
-              | ∑ Total Tests | ${{ steps.test-report.outputs.total }} |
-              | ❌ Failed | ${{ steps.test-report.outputs.failed }} |
-              | 😴 Skipped | ${{ steps.test-report.outputs.skipped }} |
+            🧪 **[JUnit](${{ needs.test.outputs.html-report-url }})**
 
-            ${{ steps.test-report.outputs.summary }}
+              ${{ steps.test-report.outputs.summary }}
 
-            <details>
-              <summary>Test summary</summary>
-              ${{ steps.test-report.outputs.detailed_summary }}
-            </details>
+              <details>
+                <summary>Details</summary>
+                ${{ steps.test-report.outputs.detailed_summary }}
+              </details>
 
       # If the unit tests fail, we don't run coverage so post the coverage report separately
       - name: Post Coverage Summary Comment
