@@ -41,7 +41,7 @@ jobs:
       - name: Run Spotless & Checkstyle
         id: run-lint
         run: |
-          ./gradlew --no-daemon --no-parallel spotlessCheck checkstyleMain checkstyleTest
+          ./gradlew --no-daemon spotlessCheck checkstyleMain checkstyleTest
 
       - name: Upload Checkstyle Report
         id: checkstyle-report-upload
@@ -93,7 +93,7 @@ jobs:
       - name: Execute migrations
         id: run-migrations
         run: |
-          ./gradlew --no-daemon --no-parallel :liquibaseUpdate
+          ./gradlew --no-daemon :liquibaseUpdate
 
       - name: Run FloorPlan Query Validation
         run: |
@@ -135,7 +135,7 @@ jobs:
         env:
           GRADLE_OPTS: "-Xmx2g -Xms512m"
         run: |
-          ./gradlew --no-daemon --no-parallel build -x test
+          ./gradlew --no-daemon build -x test
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
@@ -199,7 +199,7 @@ jobs:
           path: '**/build/reports/tests/**'
 
       - name: Generate Code Coverage Report
-        run: ./gradlew --no-parallel testCodeCoverageReport
+        run: ./gradlew testCodeCoverageReport
 
       - name: Upload Code Coverage
         id: coverage-report-upload
