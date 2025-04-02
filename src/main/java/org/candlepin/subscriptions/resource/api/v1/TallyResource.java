@@ -167,6 +167,7 @@ public class TallyResource implements TallyApi {
                 ending,
                 offset,
                 limit,
+                billingAcctId,
                 category,
                 sla,
                 usageType)
@@ -264,6 +265,7 @@ public class TallyResource implements TallyApi {
       OffsetDateTime ending,
       Integer offset,
       Integer limit,
+      String billingAccountId,
       ReportCategory category,
       ServiceLevelType sla,
       UsageType usageType) {
@@ -277,6 +279,7 @@ public class TallyResource implements TallyApi {
             ending,
             offset,
             limit,
+            billingAccountId,
             Optional.ofNullable(category).map(c -> ReportCategory.valueOf(c.name())).orElse(null),
             Optional.ofNullable(sla).map(s -> ServiceLevelType.valueOf(s.name())).orElse(null),
             Optional.ofNullable(usageType).map(ut -> UsageType.valueOf(ut.name())).orElse(null));

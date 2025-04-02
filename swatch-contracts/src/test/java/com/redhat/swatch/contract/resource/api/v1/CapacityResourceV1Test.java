@@ -89,7 +89,7 @@ class CapacityResourceV1Test {
   @InjectMock UriInfo uriInfo;
 
   @BeforeEach
-  public void updateSecurityContext() {
+  void updateSecurityContext() {
     SecurityContext mockSecurityContext = Mockito.mock(SecurityContext.class);
     Principal mockPrincipal = Mockito.mock(Principal.class);
     resource.setTestSecurityContext(mockSecurityContext);
@@ -160,6 +160,7 @@ class CapacityResourceV1Test {
             max,
             null,
             null,
+            null,
             ReportCategory.PHYSICAL,
             null,
             null);
@@ -194,6 +195,7 @@ class CapacityResourceV1Test {
             GranularityType.DAILY,
             min,
             max,
+            null,
             null,
             null,
             null,
@@ -234,7 +236,46 @@ class CapacityResourceV1Test {
             null,
             null,
             null,
+            null,
             UsageType.PRODUCTION);
+
+    assertEquals(9, report.getData().size());
+  }
+
+  @Test
+  void testReportByMetricIdShouldUseBillableAccountQueryParam() {
+
+    var dbReportCriteria =
+        DbReportCriteria.builder()
+            .orgId("owner123456")
+            .productTag(RHEL_FOR_ARM.toString())
+            .billingAccountId("account123456")
+            .serviceLevel(ServiceLevel._ANY)
+            .usage(Usage._ANY)
+            .beginning(min)
+            .ending(max)
+            .metricId(METRIC_ID_CORES.toString())
+            .build();
+
+    SubscriptionEntity s = new SubscriptionEntity();
+    s.setSubscriptionMeasurements(basicMeasurement());
+
+    when(subscriptionRepository.findByCriteria(eq(dbReportCriteria), any(Sort.class)))
+        .thenReturn(List.of(s));
+
+    CapacityReportByMetricId report =
+        resource.getCapacityReportByMetricId(
+            RHEL_FOR_ARM,
+            METRIC_ID_CORES,
+            GranularityType.DAILY,
+            min,
+            max,
+            null,
+            null,
+            "account123456",
+            null,
+            null,
+            null);
 
     assertEquals(9, report.getData().size());
   }
@@ -266,6 +307,7 @@ class CapacityResourceV1Test {
             GranularityType.DAILY,
             min,
             max,
+            null,
             null,
             null,
             null,
@@ -302,6 +344,7 @@ class CapacityResourceV1Test {
             GranularityType.DAILY,
             min,
             max,
+            null,
             null,
             null,
             null,
@@ -362,6 +405,7 @@ class CapacityResourceV1Test {
             null,
             null,
             null,
+            null,
             null);
 
     CapacitySnapshotByMetricId capacitySnapshot = report.getData().get(0);
@@ -412,6 +456,7 @@ class CapacityResourceV1Test {
             null,
             null,
             null,
+            null,
             null);
 
     CapacitySnapshotByMetricId capacitySnapshot = report.getData().get(0);
@@ -455,6 +500,7 @@ class CapacityResourceV1Test {
             max,
             null,
             null,
+            null,
             ReportCategory.VIRTUAL,
             null,
             null);
@@ -486,6 +532,7 @@ class CapacityResourceV1Test {
             GranularityType.DAILY,
             min,
             max,
+            null,
             null,
             null,
             ReportCategory.PHYSICAL,
@@ -534,6 +581,7 @@ class CapacityResourceV1Test {
             null,
             null,
             null,
+            null,
             null);
 
     CapacitySnapshotByMetricId capacitySnapshot = report.getData().get(0);
@@ -575,6 +623,7 @@ class CapacityResourceV1Test {
             GranularityType.DAILY,
             min,
             max,
+            null,
             null,
             null,
             ReportCategory.VIRTUAL,
@@ -622,6 +671,7 @@ class CapacityResourceV1Test {
             max,
             null,
             null,
+            null,
             ReportCategory.PHYSICAL,
             null,
             null);
@@ -644,6 +694,7 @@ class CapacityResourceV1Test {
                   max,
                   11,
                   10,
+                  null,
                   null,
                   null,
                   null);
@@ -673,7 +724,17 @@ class CapacityResourceV1Test {
 
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
-            RHEL_FOR_ARM, METRIC_ID_CORES, GranularityType.DAILY, min, max, 1, 1, null, null, null);
+            RHEL_FOR_ARM,
+            METRIC_ID_CORES,
+            GranularityType.DAILY,
+            min,
+            max,
+            1,
+            1,
+            null,
+            null,
+            null,
+            null);
 
     assertEquals(1, report.getData().size());
     assertEquals(
@@ -695,6 +756,7 @@ class CapacityResourceV1Test {
               GranularityType.DAILY,
               min,
               max,
+              null,
               null,
               null,
               null,
@@ -731,6 +793,7 @@ class CapacityResourceV1Test {
             "owner123456",
             RHEL_FOR_ARM,
             METRIC_ID_CORES,
+            null,
             HypervisorReportCategory.HYPERVISOR,
             ServiceLevel.STANDARD,
             Usage.PRODUCTION,
@@ -796,6 +859,7 @@ class CapacityResourceV1Test {
             null,
             null,
             null,
+            null,
             null);
 
     CapacitySnapshotByMetricId capacitySnapshot = report.getData().get(0);
@@ -818,6 +882,7 @@ class CapacityResourceV1Test {
                     null,
                     null,
                     null,
+                    null,
                     null));
 
     assertEquals(
@@ -831,7 +896,17 @@ class CapacityResourceV1Test {
     assertDoesNotThrow(
         () ->
             resource.getCapacityReportByMetricId(
-                productId, METRIC_ID_CORES, granularity, min, max, null, null, null, null, null));
+                productId,
+                METRIC_ID_CORES,
+                granularity,
+                min,
+                max,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null));
   }
 
   private static Stream<Arguments> generateFinestGranularityCases() {
