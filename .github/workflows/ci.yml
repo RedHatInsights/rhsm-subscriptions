@@ -34,6 +34,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
+          add-job-summary: 'on-failure'
           gradle-home-cache-includes: |
             buildSrc/.gradle
             buildSrc/build
@@ -72,6 +73,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
+          add-job-summary: 'on-failure'
           gradle-home-cache-includes: |
             buildSrc/.gradle
             buildSrc/build
@@ -126,6 +128,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
+          add-job-summary: 'on-failure'
           gradle-home-cache-includes: |
             buildSrc/.gradle
             buildSrc/build
@@ -165,6 +168,10 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
+          # The gradle job summaries are pretty low information and if the test build fails, you
+          # already know gradle failed and want to see the test results summary right at the top
+          # and not a summary that tells you "Gradle failed, sorry"
+          add-job-summary: 'never'
           gradle-home-cache-includes: |
             buildSrc/.gradle
             buildSrc/build
