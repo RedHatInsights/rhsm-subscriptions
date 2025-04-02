@@ -258,6 +258,28 @@ jobs:
           report_paths: 'junit-report/**/TEST-*.xml'
           detailed_summary: true
 
+      # With hearty thanks to https://stackoverflow.com/a/70816724/6124862
+      - name: Fetch JUnit Test Report link
+        id: junitAnnotations
+        run: |
+          URI="https://api.github.com"
+          API_HEADER="Accept: application/vnd.github.v3+json"
+          AUTH_HEADER="Authorization: token ${{ secrets.GITHUB_TOKEN }}"
+
+          echo "::debug::Read job"
+          job_body=$(curl -sSL -H "${AUTH_HEADER}" -H "$API_HEADER" "$URI/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs")
+          check_run_url=$(echo "$job_body" | jq -r '.jobs[] | select(.name == "Test & Coverage") | .check_run_url')
+
+          echo "::debug::Fetching check run ${check_run_url}"
+          check_suite_body=$(curl -sSL -H "${AUTH_HEADER}" -H "$API_HEADER" "${check_run_url}")
+          check_suite_id=$(echo "$check_suite_body" | jq '.check_suite.id')
+
+          echo "::debug::Fetching check suite ${check_suite_id}"
+          check_runs_body=$(curl -sSL -H "${AUTH_HEADER}" -H "$API_HEADER" "$URI/repos/${GITHUB_REPOSITORY}/check-suites/${check_suite_id}/check-runs")
+          details_url=$(echo "$check_runs_body" | jq -r '.check_runs[] | select (.name == "JUnit Test Report") | .details_url')
+
+          echo "DETAILS_URL=$details_url" >> "$GITHUB_OUTPUT"
+
       - name: Post PR Summary Comment
         # We want to use .outcome because it is the success state of the task before continue-on-error
         # is applied.
@@ -276,7 +298,11 @@ jobs:
               ${{ steps.test-report.outputs.summary }}
 
               <details>
-                <summary>Details</summary>
+                <summary>
+                  <a href="${{ steps.junitAnnotations.outputs.DETAILS_URL }}">
+                  Details
+                  </a>
+                </summary>
                 ${{ steps.test-report.outputs.detailed_summary }}
               </details>
 
