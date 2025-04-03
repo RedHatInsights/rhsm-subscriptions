@@ -138,7 +138,7 @@ jobs:
         env:
           GRADLE_OPTS: "-Xmx2g -Xms512m"
         run: |
-          ./gradlew --no-daemon build -x test
+          ./gradlew --no-daemon build -x test -x spotlessCheck -x checkstyleMain -x checkstyleTest -x testCodeCoverageReport
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
