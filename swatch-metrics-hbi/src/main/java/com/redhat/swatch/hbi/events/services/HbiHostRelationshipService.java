@@ -24,8 +24,11 @@ import com.redhat.swatch.hbi.events.repository.HbiHost;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationshipId;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationshipRepository;
+import com.redhat.swatch.hbi.events.repository.HbiHostRepository;
 import com.redhat.swatch.hbi.events.repository.HbiHypervisorGuestRelationship;
+import com.redhat.swatch.hbi.events.repository.HbiHypervisorGuestRelationshipRepository;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -37,13 +40,21 @@ import org.candlepin.clock.ApplicationClock;
 @ApplicationScoped
 public class HbiHostRelationshipService {
 
-  private ApplicationClock clock;
-  private HbiHostRelationshipRepository repository;
+  private final ApplicationClock clock;
+  private final HbiHostRelationshipRepository repository;
+  private final HbiHostRepository hbiHostRepository;
+  private final HbiHypervisorGuestRelationshipRepository relationshipRepository;
 
+  @Inject
   public HbiHostRelationshipService(
-      ApplicationClock clock, HbiHostRelationshipRepository repository) {
+      ApplicationClock clock,
+      HbiHostRelationshipRepository repository,
+      HbiHostRepository hbiHostRepository,
+      HbiHypervisorGuestRelationshipRepository relationshipRepository) {
     this.clock = clock;
     this.repository = repository;
+    this.hbiHostRepository = hbiHostRepository;
+    this.relationshipRepository = relationshipRepository;
   }
 
   /** Adds or updates a host relationship. */
@@ -94,7 +105,8 @@ public class HbiHostRelationshipService {
     return relationship;
   }
 
-  private HbiHost upsertHost(
+  @Transactional
+  public HbiHost upsertHost(
       UUID id,
       String orgId,
       String subscriptionManagerId,
@@ -102,47 +114,50 @@ public class HbiHostRelationshipService {
       boolean isUnmapped,
       String hbiMessageJson) {
 
-    HbiHost guest = HbiHost.findById(id);
     OffsetDateTime now = OffsetDateTime.now();
 
-    if (guest == null) {
-      guest =
-          HbiHost.builder()
-              .id(id)
-              .orgId(orgId)
-              .subscriptionManagerId(subscriptionManagerId)
-              .creationDate(now)
-              .build();
-    }
+    // Try to find existing host
+    Optional<HbiHost> maybeGuest = hbiHostRepository.findById(id);
+    HbiHost guest =
+        maybeGuest.orElseGet(
+            () ->
+                HbiHost.builder()
+                    .id(id)
+                    .orgId(orgId)
+                    .subscriptionManagerId(subscriptionManagerId)
+                    .creationDate(now)
+                    .build());
 
     guest.setLastUpdated(now);
     guest.setHbiMessage(hbiMessageJson);
-    guest.persistAndFlush();
 
-    // Try to create dependency relationship
+    // Save or update guest
+    guest = hbiHostRepository.merge(guest);
+
+    // If we have a hypervisor relationship to check
     if (hypervisorUuid != null && !isUnmapped) {
-      HbiHost hypervisor =
-          HbiHost.find("orgId = ?1 and subscriptionManagerId = ?2", orgId, hypervisorUuid)
-              .firstResult();
+      Optional<HbiHost> maybeHypervisor =
+          hbiHostRepository.findByOrgIdAndSubscriptionManagerId(orgId, hypervisorUuid);
 
-      if (hypervisor != null) {
+      if (maybeHypervisor.isPresent()) {
+        HbiHost hypervisor = maybeHypervisor.get();
+
         boolean alreadyLinked =
-            HbiHypervisorGuestRelationship.count(
-                    "hypervisor = ?1 and guest = ?2", hypervisor, guest)
-                > 0;
+            relationshipRepository.existsByHypervisorAndGuest(hypervisor, guest);
 
         if (!alreadyLinked) {
-          HbiHypervisorGuestRelationship.builder()
-              .id(UUID.randomUUID())
-              .hypervisor(hypervisor)
-              .guest(guest)
-              .build()
-              .persistAndFlush();
+          HbiHypervisorGuestRelationship relationship =
+              HbiHypervisorGuestRelationship.builder()
+                  .id(UUID.randomUUID())
+                  .hypervisor(hypervisor)
+                  .guest(guest)
+                  .build();
+
+          relationshipRepository.persist(relationship);
         }
+
+        // TODO: Handle relationship updates if changed
       }
-
-      // TODO if there's a change in relationship
-
     }
 
     return guest;

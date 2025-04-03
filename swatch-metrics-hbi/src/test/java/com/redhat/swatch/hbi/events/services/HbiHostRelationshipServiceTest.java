@@ -31,6 +31,8 @@ import static org.mockito.Mockito.when;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationshipId;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationshipRepository;
+import com.redhat.swatch.hbi.events.repository.HbiHostRepository;
+import com.redhat.swatch.hbi.events.repository.HbiHypervisorGuestRelationshipRepository;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -46,13 +48,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class HbiHostRelationshipServiceTest {
 
   @Mock private HbiHostRelationshipRepository repository;
+  @Mock private HbiHostRepository hbiHostRepository;
+  @Mock private HbiHypervisorGuestRelationshipRepository relationshipRepository;
   @Mock private ApplicationClock clock;
 
   HbiHostRelationshipService service;
 
   @BeforeEach
   void setUp() {
-    service = new HbiHostRelationshipService(clock, repository);
+    service =
+        new HbiHostRelationshipService(
+            clock, repository, hbiHostRepository, relationshipRepository);
   }
 
   @Test

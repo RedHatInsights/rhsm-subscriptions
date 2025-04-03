@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.hbi.events.repository;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -46,7 +45,7 @@ import org.hibernate.type.SqlTypes;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class HbiHost extends PanacheEntityBase {
+public class HbiHost {
 
   @Id private UUID id;
 
@@ -112,7 +111,5 @@ public class HbiHost extends PanacheEntityBase {
     return Optional.ofNullable(hypervisorLink).map(HbiHypervisorGuestRelationship::getHypervisor);
   }
 
-  // TODO define a findNumOfGuests db call without having to load the whole guest list in memory to
-  // do a .size() on
 
 }

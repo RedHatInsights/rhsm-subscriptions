@@ -18,36 +18,13 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.hbi.events.repository;
+package com.redhat.swatch.hbi.events;
 
-import jakarta.persistence.*;
-import java.util.UUID;
-import lombok.*;
+import jakarta.persistence.EntityManager;
 
-@Entity
-@Table(name = "hbi_hypervisor_guest_relationship")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class HbiHypervisorGuestRelationship {
-
-  @Id private UUID id;
-
-  @ToString.Exclude
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(
-      name = "hypervisor_host_id",
-      nullable = false,
-      foreignKey = @ForeignKey(name = "fk_hypervisor_host_id"))
-  private HbiHost hypervisor;
-
-  @ToString.Exclude
-  @OneToOne(fetch = FetchType.LAZY)
-  @JoinColumn(
-      name = "guest_host_id",
-      nullable = false,
-      foreignKey = @ForeignKey(name = "fk_guest_host_id"),
-      unique = true) // Ensure 1-to-1 mapping from guest to hypervisor
-  private HbiHost guest;
+public class TestUtil {
+  public static void flushAndClear(EntityManager em) {
+    em.flush();
+    em.clear();
+  }
 }
