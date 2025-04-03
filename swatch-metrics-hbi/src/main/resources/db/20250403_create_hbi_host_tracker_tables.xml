@@ -12,15 +12,18 @@
       <column name="id" type="UUID">
         <constraints primaryKey="true" nullable="false"/>
       </column>
-      <column name="org_id" type="VARCHAR(64)">
+      <column name="org_id" type="VARCHAR">
         <constraints nullable="false"/>
       </column>
-      <column name="subscription_manager_id" type="VARCHAR(64)">
-        <constraints nullable="true"/>
+      <column name="subscription_manager_id" type="VARCHAR">
+        <constraints nullable="false"/>
       </column>
-      <column name="inventory_id" type="VARCHAR(128)"/>
-      <column name="display_name" type="VARCHAR(256)"/>
-      <column name="facts" type="JSONB"/>
+      <column name="inventory_id" type="VARCHAR">
+        <constraints nullable="false"/>
+      </column>
+      <column name="hbi_message" type="${json_type}">
+        <constraints nullable="false"/>
+      </column>
       <column name="creation_date" type="TIMESTAMP WITH TIME ZONE">
         <constraints nullable="false"/>
       </column>
@@ -33,9 +36,14 @@
       constraintName="uq_subscription_manager_id"/>
     <addUniqueConstraint tableName="hbi_host" columnNames="inventory_id"
       constraintName="uq_inventory_id"/>
+
+    <rollback>
+      <dropTable tableName="hbi_host"/>
+    </rollback>
   </changeSet>
 
-  <changeSet id="20250402-dependency" author="lburnett">
+
+  <changeSet id="20250402-relations" author="lburnett">
     <createTable tableName="hypervisor_guest_relationship">
       <column name="id" type="UUID">
         <constraints primaryKey="true" nullable="false"/>
@@ -59,6 +67,11 @@
       referencedTableName="hbi_host"
       referencedColumnNames="id"
       constraintName="fk_guest_host_id"/>
+
+    <rollback>
+      <dropTable tableName="hypervisor_guest_relationship"/>
+    </rollback>
   </changeSet>
+
 
 </databaseChangeLog>

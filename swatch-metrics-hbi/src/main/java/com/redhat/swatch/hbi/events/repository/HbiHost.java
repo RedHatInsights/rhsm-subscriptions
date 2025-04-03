@@ -58,13 +58,10 @@ public class HbiHost extends PanacheEntityBase {
   @Column(name = "inventory_id")
   private String inventoryId;
 
-  @Column(name = "display_name")
-  private String displayName;
-
   @Lob
   @JdbcTypeCode(SqlTypes.JSON)
-  @Column(name = "facts")
-  private String facts;
+  @Column(name = "hbi_message")
+  private String hbi_message;
 
   @Column(name = "creation_date", nullable = false)
   private OffsetDateTime creationDate;
