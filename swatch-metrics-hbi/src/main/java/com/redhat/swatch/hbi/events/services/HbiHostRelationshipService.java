@@ -20,15 +20,18 @@
  */
 package com.redhat.swatch.hbi.events.services;
 
+import com.redhat.swatch.hbi.events.repository.HbiHost;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationshipId;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationshipRepository;
+import com.redhat.swatch.hbi.events.repository.HypervisorGuestRelationship;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import org.candlepin.clock.ApplicationClock;
 
 @ApplicationScoped
@@ -53,6 +56,10 @@ public class HbiHostRelationshipService {
       String hbiHostFactJson) {
     HbiHostRelationshipId id = new HbiHostRelationshipId(orgId, subscriptionManagerId);
     repository.persist(createOrUpdate(id, hypervisorUuid, isUnmapped, hbiHostFactJson));
+
+    // TODO figure this out.
+    UUID uuid = uuidFrom(orgId, subscriptionManagerId);
+    upsertHost(uuid, orgId, subscriptionManagerId, hypervisorUuid, isUnmapped, hbiHostFactJson);
   }
 
   @Transactional
@@ -86,6 +93,56 @@ public class HbiHostRelationshipService {
     return relationship;
   }
 
+  private HbiHost upsertHost(
+      UUID id,
+      String orgId,
+      String subscriptionManagerId,
+      String hypervisorUuid,
+      boolean isUnmapped,
+      String hbiHostFactJson) {
+
+    HbiHost guest = HbiHost.findById(id);
+    OffsetDateTime now = OffsetDateTime.now();
+
+    if (guest == null) {
+      guest =
+          HbiHost.builder()
+              .id(id)
+              .orgId(orgId)
+              .subscriptionManagerId(subscriptionManagerId)
+              .creationDate(now)
+              .build();
+    }
+
+    guest.setLastUpdated(now);
+    guest.setFacts(hbiHostFactJson);
+    guest.persistAndFlush();
+
+    // Try to create dependency relationship
+    if (hypervisorUuid != null && !isUnmapped) {
+      HbiHost hypervisor =
+          HbiHost.find("orgId = ?1 and subscriptionManagerId = ?2", orgId, hypervisorUuid)
+              .firstResult();
+
+      if (hypervisor != null) {
+        boolean alreadyLinked =
+            HypervisorGuestRelationship.count("hypervisor = ?1 and guest = ?2", hypervisor, guest)
+                > 0;
+
+        if (!alreadyLinked) {
+          HypervisorGuestRelationship.builder()
+              .id(UUID.randomUUID())
+              .hypervisor(hypervisor)
+              .guest(guest)
+              .build()
+              .persistAndFlush();
+        }
+      }
+    }
+
+    return guest;
+  }
+
   private HbiHostRelationship findOrDefault(HbiHostRelationshipId id) {
     return repository
         .findByIdOptional(id)
@@ -100,5 +157,10 @@ public class HbiHostRelationshipService {
   @Transactional
   public Optional<HbiHostRelationship> getRelationship(String orgId, String subscriptionManagerId) {
     return repository.findByIdOptional(new HbiHostRelationshipId(orgId, subscriptionManagerId));
+  }
+
+  // TODO not this...
+  private UUID uuidFrom(String orgId, String submanId) {
+    return UUID.nameUUIDFromBytes((orgId + submanId).getBytes());
   }
 }

@@ -1,0 +1,64 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <property name="json_type" dbms="h2" value="json"/>
+  <property name="json_type" dbms="postgresql" value="jsonb"/>
+
+  <changeSet id="20250402-hbi_host" author="lburnett">
+    <createTable tableName="hbi_host">
+      <column name="id" type="UUID">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="org_id" type="VARCHAR(64)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="subscription_manager_id" type="VARCHAR(64)">
+        <constraints nullable="true"/>
+      </column>
+      <column name="inventory_id" type="VARCHAR(128)"/>
+      <column name="display_name" type="VARCHAR(256)"/>
+      <column name="facts" type="JSONB"/>
+      <column name="creation_date" type="TIMESTAMP WITH TIME ZONE">
+        <constraints nullable="false"/>
+      </column>
+      <column name="last_updated" type="TIMESTAMP WITH TIME ZONE">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+
+    <addUniqueConstraint tableName="hbi_host" columnNames="subscription_manager_id"
+      constraintName="uq_subscription_manager_id"/>
+    <addUniqueConstraint tableName="hbi_host" columnNames="inventory_id"
+      constraintName="uq_inventory_id"/>
+  </changeSet>
+
+  <changeSet id="20250402-dependency" author="lburnett">
+    <createTable tableName="hypervisor_guest_relationship">
+      <column name="id" type="UUID">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="hypervisor_host_id" type="UUID">
+        <constraints nullable="false"/>
+      </column>
+      <column name="guest_host_id" type="UUID">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+
+    <addForeignKeyConstraint baseTableName="hypervisor_guest_relationship"
+      baseColumnNames="hypervisor_host_id"
+      referencedTableName="hbi_host"
+      referencedColumnNames="id"
+      constraintName="fk_hypervisor_host_id"/>
+
+    <addForeignKeyConstraint baseTableName="hypervisor_guest_relationship"
+      baseColumnNames="guest_host_id"
+      referencedTableName="hbi_host"
+      referencedColumnNames="id"
+      constraintName="fk_guest_host_id"/>
+  </changeSet>
+
+</databaseChangeLog>
