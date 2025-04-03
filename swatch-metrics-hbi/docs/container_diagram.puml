@@ -1,0 +1,20 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+LAYOUT_WITH_LEGEND()
+
+' SYSTEMS
+System_Boundary(swatch, "Swatch System") {
+    Container(swatchMetricsHbi, "swatch-metrics-hbi", "Quarkus App", "Consumes HBI messages, maintains state, derives relationships, emits normalized data")
+    ContainerDb(hbiDb, "rhsm-subscriptions", "PostgreSQL", "Stores HBI hosts and hypervisor/guest mappings")
+}
+
+' EXTERNAL SYSTEMS
+Container(kafkaInbound, "Kafka Topic: hbi", "Kafka", "Inbound HBI host messages")
+Container(kafkaOutbound, "Kafka Topic: platform.rhsm-subscription.events", "Kafka", "Emitted normalized subscription usage")
+
+' RELATIONSHIPS
+Rel(kafkaInbound, swatchMetricsHbi, "Consumes HBI messages", "Kafka")
+Rel(swatchMetricsHbi, hbiDb, "Stores host data and hypervisor relationships", "JPA/PostgreSQL")
+Rel(swatchMetricsHbi, kafkaOutbound, "Emits normalized subscription events", "Kafka")
+
+@enduml
