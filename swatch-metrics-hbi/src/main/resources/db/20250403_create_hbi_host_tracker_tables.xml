@@ -6,29 +6,34 @@
 
   <property name="json_type" dbms="h2" value="json"/>
   <property name="json_type" dbms="postgresql" value="jsonb"/>
-
   <changeSet id="20250403-01" author="lburnett">
     <createTable tableName="hbi_host">
-      <column name="id" type="UUID">
+      <column name="id" type="UUID" remarks="Primary key identifier">
         <constraints primaryKey="true" nullable="false"/>
       </column>
-      <column name="org_id" type="VARCHAR">
+
+      <column name="org_id" type="VARCHAR" remarks="Org ID this host belongs to">
         <constraints nullable="false"/>
       </column>
-      <column name="subscription_manager_id" type="VARCHAR">
-        <!-- Enforce partial uniqueness with an index -->
+
+      <!-- Enforce partial uniqueness with an index -->
+      <column name="subscription_manager_id" type="VARCHAR"
+        remarks="subscription_manager_id (nullable, partially unique)">
         <constraints nullable="true"/>
       </column>
-      <column name="inventory_id" type="VARCHAR">
+      <column name="inventory_id" type="VARCHAR" remarks="HBI system's ID for this host">
         <constraints nullable="false"/>
       </column>
-      <column name="hbi_message" type="${json_type}">
+      <column name="hbi_message" type="${json_type}"
+        remarks="Raw HBI message received">
         <constraints nullable="false"/>
       </column>
-      <column name="creation_date" type="TIMESTAMP WITH TIME ZONE">
+      <column name="creation_date" type="TIMESTAMP WITH TIME ZONE"
+        remarks="Timestamp when the host was first seen by this swatch service">
         <constraints nullable="false"/>
       </column>
-      <column name="last_updated" type="TIMESTAMP WITH TIME ZONE">
+      <column name="last_updated" type="TIMESTAMP WITH TIME ZONE"
+        remarks="Timestamp when the host was last seen by this swatch service">
         <constraints nullable="false"/>
       </column>
     </createTable>
@@ -61,14 +66,17 @@
   </changeSet>
 
   <changeSet id="20250403-03" author="lburnett">
-    <createTable tableName="hbi_hypervisor_guest_relationship">
-      <column name="id" type="UUID">
+    <createTable tableName="hbi_hypervisor_guest_relationship"
+      remarks="Represents a dependency relationship between hosts. When a host's subscription_manager_id matches the hypervisor_uuid field of another HBI host.">
+      <column name="id" type="UUID" remarks="Primary key for the relationship record">
         <constraints primaryKey="true" nullable="false"/>
       </column>
-      <column name="hypervisor_host_id" type="UUID">
+      <column name="hypervisor_host_id" type="UUID"
+        remarks="FK to hbi_host.id; the hypervisor host">
         <constraints nullable="false"/>
       </column>
-      <column name="guest_host_id" type="UUID">
+      <column name="guest_host_id" type="UUID"
+        remarks="FK to hbi_host.id; the guest host mapped to this hypervisor">
         <constraints nullable="false"/>
       </column>
     </createTable>

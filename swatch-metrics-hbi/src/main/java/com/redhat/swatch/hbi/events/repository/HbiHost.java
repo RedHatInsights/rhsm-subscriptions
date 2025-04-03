@@ -110,6 +110,4 @@ public class HbiHost {
   public Optional<HbiHost> getHypervisor() {
     return Optional.ofNullable(hypervisorLink).map(HbiHypervisorGuestRelationship::getHypervisor);
   }
-
-
 }
