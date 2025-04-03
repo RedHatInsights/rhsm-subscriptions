@@ -85,4 +85,7 @@ public class HbiHost extends PanacheEntityBase {
     return Optional.ofNullable(hypervisorLink).map(HypervisorGuestRelationship::getHypervisor);
   }
 
+  // TODO define a findNumOfGuests db call without having to load the whole guest list in memory to
+  // do a .size() on
+
 }
