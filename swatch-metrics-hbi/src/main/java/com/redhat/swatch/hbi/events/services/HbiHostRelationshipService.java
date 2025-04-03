@@ -70,7 +70,6 @@ public class HbiHostRelationshipService {
   @Transactional
   public boolean isHypervisor(String orgId, String subscriptionManagerId) {
 
-
     return repository.guestCount(orgId, subscriptionManagerId) > 0;
   }
 
@@ -141,8 +140,7 @@ public class HbiHostRelationshipService {
         }
       }
 
-      //TODO if there's a change in relationship
-
+      // TODO if there's a change in relationship
 
     }
 
