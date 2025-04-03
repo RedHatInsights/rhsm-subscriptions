@@ -24,6 +24,7 @@ import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.*;
@@ -52,6 +53,10 @@ public class HbiHost extends PanacheEntityBase {
   @Column(name = "org_id", nullable = false)
   private String orgId;
 
+  /**
+   * NOTE: subscriptionManagerId is nullable, but must be unique when present. This is enforced via
+   * a partial unique index in the Liquibase changelog.
+   */
   @Column(name = "subscription_manager_id")
   private String subscriptionManagerId;
 
@@ -61,7 +66,7 @@ public class HbiHost extends PanacheEntityBase {
   @Lob
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "hbi_message")
-  private String hbi_message;
+  private String hbiMessage;
 
   @Column(name = "creation_date", nullable = false)
   private OffsetDateTime creationDate;
@@ -76,17 +81,22 @@ public class HbiHost extends PanacheEntityBase {
     if (creationDate == null) {
       creationDate = lastUpdated;
     }
+
+    // TODO this needs to be actually set by incoming hbi message
+    if (Objects.isNull(this.inventoryId)) {
+      this.inventoryId = UUID.randomUUID().toString();
+    }
   }
 
   @ToString.Exclude
   @EqualsAndHashCode.Exclude
   @OneToMany(mappedBy = "hypervisor", fetch = FetchType.LAZY)
-  private List<HypervisorGuestRelationship> guestLinks;
+  private List<HbiHypervisorGuestRelationship> guestLinks;
 
   @ToString.Exclude
   @EqualsAndHashCode.Exclude
   @OneToOne(mappedBy = "guest", fetch = FetchType.LAZY)
-  private HypervisorGuestRelationship hypervisorLink;
+  private HbiHypervisorGuestRelationship hypervisorLink;
 
   @Transient
   public boolean isUnmappedGuest() {
@@ -95,11 +105,11 @@ public class HbiHost extends PanacheEntityBase {
 
   public List<HbiHost> getGuests() {
     if (guestLinks == null) return List.of();
-    return guestLinks.stream().map(HypervisorGuestRelationship::getGuest).toList();
+    return guestLinks.stream().map(HbiHypervisorGuestRelationship::getGuest).toList();
   }
 
   public Optional<HbiHost> getHypervisor() {
-    return Optional.ofNullable(hypervisorLink).map(HypervisorGuestRelationship::getHypervisor);
+    return Optional.ofNullable(hypervisorLink).map(HbiHypervisorGuestRelationship::getHypervisor);
   }
 
   // TODO define a findNumOfGuests db call without having to load the whole guest list in memory to

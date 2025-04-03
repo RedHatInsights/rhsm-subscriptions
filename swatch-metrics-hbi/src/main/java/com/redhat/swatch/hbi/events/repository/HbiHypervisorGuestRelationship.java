@@ -26,12 +26,12 @@ import java.util.UUID;
 import lombok.*;
 
 @Entity
-@Table(name = "hypervisor_guest_relationship")
+@Table(name = "hbi_hypervisor_guest_relationship")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class HypervisorGuestRelationship extends PanacheEntityBase {
+public class HbiHypervisorGuestRelationship extends PanacheEntityBase {
 
   @Id private UUID id;
 

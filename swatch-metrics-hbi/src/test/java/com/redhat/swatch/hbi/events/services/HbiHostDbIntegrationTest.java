@@ -23,7 +23,7 @@ package com.redhat.swatch.hbi.events.services;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.redhat.swatch.hbi.events.repository.HbiHost;
-import com.redhat.swatch.hbi.events.repository.HypervisorGuestRelationship;
+import com.redhat.swatch.hbi.events.repository.HbiHypervisorGuestRelationship;
 import io.quarkus.hibernate.orm.panache.Panache;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
@@ -36,7 +36,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-public class HbiHostRelationshipScenariosTest {
+public class HbiHostDbIntegrationTest {
 
   private static final String PLACEHOLDER_FACTS =
       "{\"number_of_cpus\": 16, \"cores_per_socket\": 8}";
@@ -48,7 +48,7 @@ public class HbiHostRelationshipScenariosTest {
   @BeforeEach
   @Transactional
   void clearDb() {
-    HypervisorGuestRelationship.deleteAll();
+    HbiHypervisorGuestRelationship.deleteAll();
     HbiHost.deleteAll();
   }
 
@@ -76,7 +76,7 @@ public class HbiHostRelationshipScenariosTest {
     assertAll(
         () -> assertEquals(id, host.getId(), "UUID should match"),
         () -> assertEquals(orgId, host.getOrgId(), "orgId should match"),
-        () -> assertEquals(PLACEHOLDER_FACTS, host.getFacts(), "Facts should match"),
+        () -> assertEquals(PLACEHOLDER_FACTS, host.getHbiMessage(), "Facts should match"),
         () -> assertTrue(host.getGuests().isEmpty(), "Should have no guests"),
         () -> assertTrue(host.getHypervisor().isEmpty(), "Should not be linked to a hypervisor"));
   }
@@ -147,7 +147,7 @@ public class HbiHostRelationshipScenariosTest {
 
     assertAll(
         () -> assertEquals(orgId, guest.getOrgId(), "Org ID should match"),
-        () -> assertEquals(PLACEHOLDER_FACTS, guest.getFacts(), "Facts should match"),
+        () -> assertEquals(PLACEHOLDER_FACTS, guest.getHbiMessage(), "Facts should match"),
         () -> assertTrue(guest.isUnmappedGuest(), "Guest should be marked as unmapped"),
         () ->
             assertTrue(guest.getGuests().isEmpty(), "Guest should not have any downstream guests"),
@@ -209,8 +209,7 @@ public class HbiHostRelationshipScenariosTest {
         "Hypervisor should have guest");
   }
 
-  // TODO
-  @Disabled("Is a null subman id a valid use case?")
+  @Disabled
   @Test
   @DisplayName("Guest with hypervisor_uuid but no subman_id is stored without relationships")
   @Transactional
@@ -239,7 +238,7 @@ public class HbiHostRelationshipScenariosTest {
     assertTrue(guest.getHypervisor().isEmpty(), "Guest should have no linked hypervisor");
   }
 
-  @Disabled("Is a null subman id a valid use case?")
+  @Disabled
   @Test
   @DisplayName(
       "Standalone host with no subman_id or hypervisor_uuid is stored without relationships")

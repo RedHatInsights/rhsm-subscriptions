@@ -24,7 +24,7 @@ import com.redhat.swatch.hbi.events.repository.HbiHost;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationshipId;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationshipRepository;
-import com.redhat.swatch.hbi.events.repository.HypervisorGuestRelationship;
+import com.redhat.swatch.hbi.events.repository.HbiHypervisorGuestRelationship;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
@@ -100,7 +100,7 @@ public class HbiHostRelationshipService {
       String subscriptionManagerId,
       String hypervisorUuid,
       boolean isUnmapped,
-      String hbiHostFactJson) {
+      String hbiMessageJson) {
 
     HbiHost guest = HbiHost.findById(id);
     OffsetDateTime now = OffsetDateTime.now();
@@ -116,7 +116,7 @@ public class HbiHostRelationshipService {
     }
 
     guest.setLastUpdated(now);
-    guest.setFacts(hbiHostFactJson);
+    guest.setHbiMessage(hbiMessageJson);
     guest.persistAndFlush();
 
     // Try to create dependency relationship
@@ -127,11 +127,12 @@ public class HbiHostRelationshipService {
 
       if (hypervisor != null) {
         boolean alreadyLinked =
-            HypervisorGuestRelationship.count("hypervisor = ?1 and guest = ?2", hypervisor, guest)
+            HbiHypervisorGuestRelationship.count(
+                    "hypervisor = ?1 and guest = ?2", hypervisor, guest)
                 > 0;
 
         if (!alreadyLinked) {
-          HypervisorGuestRelationship.builder()
+          HbiHypervisorGuestRelationship.builder()
               .id(UUID.randomUUID())
               .hypervisor(hypervisor)
               .guest(guest)

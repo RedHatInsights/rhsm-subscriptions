@@ -7,7 +7,7 @@
   <property name="json_type" dbms="h2" value="json"/>
   <property name="json_type" dbms="postgresql" value="jsonb"/>
 
-  <changeSet id="20250402-hbi_host" author="lburnett">
+  <changeSet id="20250403-01" author="lburnett">
     <createTable tableName="hbi_host">
       <column name="id" type="UUID">
         <constraints primaryKey="true" nullable="false"/>
@@ -16,7 +16,8 @@
         <constraints nullable="false"/>
       </column>
       <column name="subscription_manager_id" type="VARCHAR">
-        <constraints nullable="false"/>
+        <!-- Enforce partial uniqueness with an index -->
+        <constraints nullable="true"/>
       </column>
       <column name="inventory_id" type="VARCHAR">
         <constraints nullable="false"/>
@@ -32,8 +33,6 @@
       </column>
     </createTable>
 
-    <addUniqueConstraint tableName="hbi_host" columnNames="subscription_manager_id"
-      constraintName="uq_subscription_manager_id"/>
     <addUniqueConstraint tableName="hbi_host" columnNames="inventory_id"
       constraintName="uq_inventory_id"/>
 
@@ -43,8 +42,26 @@
   </changeSet>
 
 
-  <changeSet id="20250402-relations" author="lburnett">
-    <createTable tableName="hypervisor_guest_relationship">
+  <!--
+  This partial unique index ensures that subscription_manager_id values are unique
+  only when they are NOT NULL. Multiple rows can still have NULL values,
+  but any non-null value must be distinct. This is necessary because a standard
+  UNIQUE constraint cannot express conditional uniqueness in PostgreSQL.
+-->
+  <changeSet id="20250403-02" author="lburnett" dbms="postgresql">
+    <!-- Partial unique indexes are not supported in H2; skipping -->
+    <sql>
+      CREATE UNIQUE INDEX idx_uq_subscription_manager_id_not_null
+        ON hbi_host (subscription_manager_id) WHERE subscription_manager_id IS NOT NULL;
+    </sql>
+
+    <rollback>
+      DROP INDEX IF EXISTS idx_uq_subscription_manager_id_not_null;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="20250403-03" author="lburnett">
+    <createTable tableName="hbi_hypervisor_guest_relationship">
       <column name="id" type="UUID">
         <constraints primaryKey="true" nullable="false"/>
       </column>
@@ -56,20 +73,20 @@
       </column>
     </createTable>
 
-    <addForeignKeyConstraint baseTableName="hypervisor_guest_relationship"
+    <addForeignKeyConstraint baseTableName="hbi_hypervisor_guest_relationship"
       baseColumnNames="hypervisor_host_id"
       referencedTableName="hbi_host"
       referencedColumnNames="id"
       constraintName="fk_hypervisor_host_id"/>
 
-    <addForeignKeyConstraint baseTableName="hypervisor_guest_relationship"
+    <addForeignKeyConstraint baseTableName="hbi_hypervisor_guest_relationship"
       baseColumnNames="guest_host_id"
       referencedTableName="hbi_host"
       referencedColumnNames="id"
       constraintName="fk_guest_host_id"/>
 
     <rollback>
-      <dropTable tableName="hypervisor_guest_relationship"/>
+      <dropTable tableName="hbi_hypervisor_guest_relationship"/>
     </rollback>
   </changeSet>
 
