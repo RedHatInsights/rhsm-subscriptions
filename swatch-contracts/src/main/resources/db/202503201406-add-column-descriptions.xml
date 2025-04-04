@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+
+  <changeSet author="kflahert" id="202503201406-1">
+    <comment>Add descriptions for contract_metrics table columns</comment>
+    <setColumnRemarks tableName="contract_metrics" columnName="contract_uuid" remarks="Unique identifier for the contract." />
+    <setColumnRemarks tableName="contract_metrics" columnName="metric_id" remarks="Metric identifier related to the contract." />
+    <setColumnRemarks tableName="contract_metrics" columnName="metric_value" remarks="Value that is covered by the contract" />
+    <setColumnRemarks tableName="contract_metrics" columnName="id" remarks="Unique identifier for the contract metric record." />
+  </changeSet>
+
+  <changeSet author="kflahert" id="202503201406-2">
+    <comment>Add descriptions for contracts table columns</comment>
+    <setColumnRemarks tableName="contracts" columnName="subscription_number" remarks="Subscription number for the contract." />
+    <setColumnRemarks tableName="contracts" columnName="last_updated" remarks="Date and time when the contract was last updated." />
+    <setColumnRemarks tableName="contracts" columnName="start_date" remarks="The start date of the contract." />
+    <setColumnRemarks tableName="contracts" columnName="end_date" remarks="The end date of the contract." />
+    <setColumnRemarks tableName="contracts" columnName="org_id" remarks="Identifier of the organization that has the contract." />
+    <setColumnRemarks tableName="contracts" columnName="sku" remarks="Stock Keeping Unit (SKU) for the contract." />
+    <setColumnRemarks tableName="contracts" columnName="billing_provider" remarks="Billing provider for the contract." />
+    <setColumnRemarks tableName="contracts" columnName="billing_account_id" remarks="Account identifier from the billing provider used for billing of the contract." />
+    <setColumnRemarks tableName="contracts" columnName="product_id" remarks="Identifier of the product associated with the contract." />
+    <setColumnRemarks tableName="contracts" columnName="vendor_product_code" remarks="Vendor-specific product code for the contract." />
+    <setColumnRemarks tableName="contracts" columnName="billing_provider_id" remarks="Compound identifiers of the billing provider for the contract. Separated by semicolon." />
+    <setColumnRemarks tableName="contracts" columnName="uuid" remarks="Unique identifier for the contract record." />
+  </changeSet>
+
+  <changeSet author="kflahert" id="202503201406-3">
+    <comment>Add descriptions for offering table columns</comment>
+    <setColumnRemarks tableName="offering" columnName="cores" remarks="Number of cores for the offering." />
+    <setColumnRemarks tableName="offering" columnName="sockets" remarks="Number of sockets for the offering." />
+    <setColumnRemarks tableName="offering" columnName="hypervisor_cores" remarks="Number of cores on the hypervisor for the offering." />
+    <setColumnRemarks tableName="offering" columnName="hypervisor_sockets" remarks="Number of sockets on the hypervisor for the offering." />
+    <setColumnRemarks tableName="offering" columnName="has_unlimited_usage" remarks="Whether the offering provides unlimited usage." />
+    <setColumnRemarks tableName="offering" columnName="metered" remarks="Whether the offering is metered for usage." />
+    <setColumnRemarks tableName="offering" columnName="level_1" remarks="First level data for the offering." />
+    <setColumnRemarks tableName="offering" columnName="level_2" remarks="Second level data for the offering." />
+    <setColumnRemarks tableName="offering" columnName="product_name" remarks="Name of the product in the offering." />
+    <setColumnRemarks tableName="offering" columnName="product_family" remarks="Product family the offering belongs to." />
+    <setColumnRemarks tableName="offering" columnName="role" remarks="Role of the offering." />
+    <setColumnRemarks tableName="offering" columnName="sla" remarks="Service Level Agreement for the offering." />
+    <setColumnRemarks tableName="offering" columnName="usage" remarks="Usage type of the offering." />
+    <setColumnRemarks tableName="offering" columnName="description" remarks="Description of the offering." />
+    <setColumnRemarks tableName="offering" columnName="derived_sku" remarks="SKU derived from the offering." />
+    <setColumnRemarks tableName="offering" columnName="special_pricing_flag" remarks="Flag indicating if special pricing applies to the offering." />
+    <setColumnRemarks tableName="offering" columnName="sku" remarks="Stock Keeping Unit (SKU) for the offering." />
+  </changeSet>
+
+  <changeSet author="kflahert" id="202503201406-4">
+    <comment>Add descriptions for sku_child_sku table columns</comment>
+    <setColumnRemarks tableName="sku_child_sku" columnName="id" remarks="Unique identifier for the sku_child_sku." />
+    <setColumnRemarks tableName="sku_child_sku" columnName="sku" remarks="Parent SKU for the child SKU." />
+    <setColumnRemarks tableName="sku_child_sku" columnName="child_sku" remarks="Child SKU related to the parent SKU." />
+  </changeSet>
+
+  <changeSet author="kflahert" id="202503201406-5">
+    <comment>Add descriptions for sku_oid table columns</comment>
+    <setColumnRemarks tableName="sku_oid" columnName="oid" remarks="Object ID for the SKU-Product mapping." />
+    <setColumnRemarks tableName="sku_oid" columnName="id" remarks="Unique identifier for the SKU-Object relationship." />
+    <setColumnRemarks tableName="sku_oid" columnName="sku" remarks="SKU for the object." />
+  </changeSet>
+
+  <changeSet author="kflahert" id="202503201406-6">
+    <comment>Add descriptions for sku_product_tag table columns</comment>
+    <setColumnRemarks tableName="sku_product_tag" columnName="id" remarks="Unique identifier for the sku_product_tag relationship." />
+    <setColumnRemarks tableName="sku_product_tag" columnName="sku" remarks="SKU associated with the product tag." />
+    <setColumnRemarks tableName="sku_product_tag" columnName="product_tag" remarks="Product tag related to the SKU." />
+  </changeSet>
+
+  <changeSet author="kflahert" id="202503201406-7">
+    <comment>Add descriptions for subscription table columns</comment>
+    <setColumnRemarks tableName="subscription" columnName="quantity" remarks="Quantity of the subscription." />
+    <setColumnRemarks tableName="subscription" columnName="end_date" remarks="Subscription end date." />
+    <setColumnRemarks tableName="subscription" columnName="start_date" remarks="Subscription start date." />
+    <setColumnRemarks tableName="subscription" columnName="sku" remarks="SKU for the subscription." />
+    <setColumnRemarks tableName="subscription" columnName="org_id" remarks="Identifier of the organization that owns the subscription." />
+    <setColumnRemarks tableName="subscription" columnName="billing_provider_id" remarks="Compound identifiers of the billing provider for the subscription. Separated by semicolon." />
+    <setColumnRemarks tableName="subscription" columnName="subscription_number" remarks="Subscription number." />
+    <setColumnRemarks tableName="subscription" columnName="billing_provider" remarks="Billing provider for the subscription." />
+    <setColumnRemarks tableName="subscription" columnName="billing_account_id" remarks="Billing account identifier for the subscription. Provided by billing provider." />
+    <setColumnRemarks tableName="subscription" columnName="subscription_id" remarks="Identifier for the subscription." />
+  </changeSet>
+
+  <changeSet author="kflahert" id="202503201406-8">
+    <comment>Add descriptions for subscription_measurements table columns</comment>
+    <setColumnRemarks tableName="subscription_measurements" columnName="value" remarks="Measurement value for the subscription." />
+    <setColumnRemarks tableName="subscription_measurements" columnName="start_date" remarks="Start date for the subscription the measurement belongs to." />
+    <setColumnRemarks tableName="subscription_measurements" columnName="subscription_id" remarks="Identifier for which subscription this measurement belongs to." />
+    <setColumnRemarks tableName="subscription_measurements" columnName="metric_id" remarks="Metric identifier for the measurement." />
+    <setColumnRemarks tableName="subscription_measurements" columnName="measurement_type" remarks="Type of measurement." />
+  </changeSet>
+
+</databaseChangeLog>
