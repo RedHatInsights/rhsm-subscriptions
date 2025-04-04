@@ -102,6 +102,12 @@ public class OptInController {
     return getOptInConfig(orgId);
   }
 
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  public boolean isOptedIn(String orgId) {
+    OptInConfig optInConfig = getOptInConfig(orgId);
+    return optInConfig.getData().getOptInComplete();
+  }
+
   private OptInConfig buildDto(OptInConfigMeta meta, OptInConfigDataOrg orgData) {
     return new OptInConfig()
         .data(new OptInConfigData().org(orgData).optInComplete(Objects.nonNull(orgData)))
