@@ -1,0 +1,31 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+LAYOUT_WITH_LEGEND()
+
+' Container Boundary
+Container_Boundary(swatchMetricsHbi, "swatch-metrics-hbi") {
+
+    Component(hbiConsumer, "HbiKafkaConsumer", "Kafka Consumer", "Consumes HBI host messages from the 'hbi' topic")
+    Component(hostRepository, "HbiHostRepository", "JPA Repository", "Manages persistence of host metadata in PostgreSQL")
+    Component(relationshipRepository, "HbiHypervisorGuestRelationshipRepository", "JPA Repository", "Stores hypervisor/guest relationships in PostgreSQL")
+    Component(normalizer, "HostNormalizerService", "Service", "Normalizes host metadata and usage, applying hypervisor/guest mapping logic")
+    Component(eventPublisher, "SubscriptionEventPublisher", "Kafka Producer", "Emits normalized subscription usage to 'platform.rhsm-subscription.events'")
+}
+
+' External Dependencies
+System_Ext(kafka, "Kafka")
+System_Ext(database, "rhsm-subscriptions (PostgreSQL)")
+
+' Relationships
+Rel(kafka, hbiConsumer, "Receives messages from 'hbi'")
+Rel(hbiConsumer, hostRepository, "Stores host metadata")
+Rel(hbiConsumer, relationshipRepository, "Updates guest/hypervisor mappings")
+Rel(hbiConsumer, normalizer, "Passes raw HBI message")
+Rel(normalizer, relationshipRepository, "Reads relationships")
+Rel(normalizer, hostRepository, "Reads hosts")
+Rel(normalizer, eventPublisher, "Passes normalized event")
+Rel(eventPublisher, kafka, "Publishes to 'platform.rhsm-subscription.events'")
+Rel(hostRepository, database, "Reads/Writes", "JPA/PostgreSQL")
+Rel(relationshipRepository, database, "Reads/Writes", "JPA/PostgreSQL")
+
+@enduml
