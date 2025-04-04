@@ -843,6 +843,7 @@ class TallyResourceTest {
             eq(ending),
             any(),
             any(),
+            any(),
             eq(resolvedReportCategory),
             eq(resolvedSla),
             eq(resolvedUsage)))
