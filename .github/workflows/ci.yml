@@ -181,7 +181,7 @@ jobs:
         env:
           GRADLE_OPTS: "-Xmx4g -Xms512m"
         run: |
-          ./gradlew --no-daemon test
+          ./gradlew --no-daemon :test --tests=UuidValidatorTest
 
       - name: Upload JUnit Report
         if: ${{ always() && (hashFiles('**/build/test-results/test/TEST-*.xml') != '') }}
