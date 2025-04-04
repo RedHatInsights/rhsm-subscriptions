@@ -1,0 +1,16 @@
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+    <changeSet id="202001081600-1" author="khowell">
+        <comment>Drop entitlement_quantity column</comment>
+        <dropColumn tableName="offering" columnName="entitlement_quantity"/>
+    </changeSet>
+
+    <changeSet id="202001081600-2" author="khowell">
+        <comment>Add unique constraint for sku_child_sku</comment>
+        <addUniqueConstraint tableName="sku_child_sku" columnNames="sku,child_sku"/>
+    </changeSet>
+
+</databaseChangeLog>
