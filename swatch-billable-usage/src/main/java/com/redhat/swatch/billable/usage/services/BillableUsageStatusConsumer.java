@@ -26,6 +26,7 @@ import com.redhat.swatch.billable.usage.configuration.Channels;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
 import com.redhat.swatch.billable.usage.data.RemittanceErrorCode;
 import com.redhat.swatch.billable.usage.data.RemittanceStatus;
+import com.redhat.swatch.billable.usage.exceptions.ErrorCode;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import java.util.Objects;
@@ -61,10 +62,29 @@ public class BillableUsageStatusConsumer {
             .map(code -> RemittanceErrorCode.fromString(code.value()))
             .orElse(null);
 
+    var finalizedRemittances =
+        remittanceRepository.findByIdInAndStatusNotPending(
+            billableUsageAggregate.getRemittanceUuids());
+
+    var remittanceUuidsToUpdate = billableUsageAggregate.getRemittanceUuids();
+
+    finalizedRemittances.forEach(
+        remittance -> {
+          log.warn(
+              "Error Code: {} - Remittance {} has finalized status {} and will not be updated to {}",
+              ErrorCode.REMITTANCE_NOT_PENDING.getCode(),
+              remittance.getUuid(),
+              remittance.getStatus(),
+              status);
+          remittanceUuidsToUpdate.remove(remittance.getUuid().toString());
+        });
+
+    if (remittanceUuidsToUpdate.isEmpty()) {
+      log.info("No remittances to update for aggregate {}", billableUsageAggregate);
+      return;
+    }
+
     remittanceRepository.updateStatusByIdIn(
-        billableUsageAggregate.getRemittanceUuids(),
-        status,
-        billableUsageAggregate.getBilledOn(),
-        errorCode);
+        remittanceUuidsToUpdate, status, billableUsageAggregate.getBilledOn(), errorCode);
   }
 }
