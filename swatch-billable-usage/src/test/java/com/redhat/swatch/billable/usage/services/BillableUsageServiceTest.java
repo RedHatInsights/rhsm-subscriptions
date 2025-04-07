@@ -227,20 +227,21 @@ class BillableUsageServiceTest {
   static Stream<Arguments> contractRemittanceParameters() {
     OffsetDateTime startOfUsage = CLOCK.startOfCurrentMonth();
     return Stream.of(
-        // arguments(currentUsage, currentRemittance, expectedRemitted, expectedBilledValue)
+        // arguments(currentUsage, currentRemittance, expectedCoveredByContract, expectedRemitted,
+        // expectedBilledValue)
         // NOTES:
         //    - currantUsage is the sum of all snapshots, NOT the value from BillableUsage.
         //    - Test setup mocks contracts as follows:
         //        100 coverage from 2019-05-01T00:00Z to 2019-05-15T23:59:59.999999999Z
         //        200 coverage from 2019-05-16T00:00Z onwards
-        arguments(startOfUsage, 50.0, 0.0, 0.0, 0.0),
-        arguments(startOfUsage.plusDays(5), 150.0, 0.0, 50.0, 50.0),
-        arguments(startOfUsage.plusDays(13), 200.0, 50.0, 50.0, 50.0),
+        arguments(startOfUsage, 50.0, 0.0, 50.0, 0.0, 0.0),
+        arguments(startOfUsage.plusDays(5), 150.0, 0.0, 100.0, 50.0, 50.0),
+        arguments(startOfUsage.plusDays(13), 200.0, 50.0, 100.0, 50.0, 50.0),
         // NOTE: Contract bumps to 200 here.
-        arguments(startOfUsage.plusDays(20), 300.0, 100.0, 0.0, 0.0),
-        arguments(CLOCK.endOfCurrentMonth(), 350.00, 100.0, 50.0, 50.0),
+        arguments(startOfUsage.plusDays(20), 300.0, 100.0, 200.0, 0.0, 0.0),
+        arguments(CLOCK.endOfCurrentMonth(), 350.00, 100.0, 200.0, 50.0, 50.0),
         // NOTE: New month so simulate remittance reset, contract remains at 200.
-        arguments(CLOCK.startOfCurrentMonth().plusMonths(1), 150.0, 0.0, 0.0, 0.0));
+        arguments(CLOCK.startOfCurrentMonth().plusMonths(1), 150.0, 0.0, 150.0, 0.0, 0.0));
   }
 
   @ParameterizedTest
@@ -249,6 +250,7 @@ class BillableUsageServiceTest {
       OffsetDateTime usageDate,
       Double currentUsage,
       Double currentRemittance,
+      Double expectedCoveredByContract,
       Double expectedRemitted,
       Double expectedBilledValue)
       throws Exception {
@@ -256,6 +258,7 @@ class BillableUsageServiceTest {
         usageDate,
         currentUsage,
         currentRemittance,
+        expectedCoveredByContract,
         expectedRemitted,
         expectedBilledValue,
         1.0,
@@ -265,7 +268,8 @@ class BillableUsageServiceTest {
   static Stream<Arguments> contractedRemittanceWithBillingFactorParameters() {
     OffsetDateTime startOfUsage = CLOCK.startOfCurrentMonth();
     return Stream.of(
-        // arguments(currentUsage, currentRemittance, expectedRemitted, expectedBilledValue)
+        // arguments(currentUsage, currentRemittance, expectedCoveredByContract, expectedRemitted,
+        // expectedBilledValue)
         // NOTES:
         //    - currantUsage is the sum of all snapshots, NOT the value from BillableUsage.
         //    - Test setup mocks contracts as follows:
@@ -281,13 +285,14 @@ class BillableUsageServiceTest {
         // unbilled = gtez(applicable_usage - (current_remittance / prev_billing_factor))
         //          = gtez(0 - (0/0.5)
         //          = 0 (measurement units)
+        // covered = contract / 0.5 = 200 (measurement units)
         // billed = ceil(unbilled) * billing_factor
         //        = ceil(0) * 0.5
         //        = 0.0 (billable units)
         // remitted = billed / billable_factor
         //          = 0.0 / 0.5
         //          = 0.0
-        arguments(startOfUsage, 100.0, 0.0, 0.0, 0.0),
+        arguments(startOfUsage, 100.0, 0.0, 100.0, 0.0, 0.0),
 
         // contract = 100 (billable_units)
         // applicable_contract = 100 / 0.5 = 200 (measurement units)
@@ -297,13 +302,14 @@ class BillableUsageServiceTest {
         // unbilled = gtez(applicable_usage - (current_remittance / billing_factor))
         //          = gtez(50 - (0.0/0.5))
         //          = 50 (measurement units)
+        // covered = contract / 0.5 = 200 (measurement units)
         // billed = ceil(unbilled) * billing_factor
         //        = ceil(50) * 0.5
         //        = 25 (billable units)
         // remitted = billed / billing_factor
         //          = 25 / 0.5
         //          = 50
-        arguments(startOfUsage.plusDays(10), 250.0, 0.0, 50.0, 25.0),
+        arguments(startOfUsage.plusDays(10), 250.0, 0.0, 200.0, 50.0, 25.0),
 
         // contract = 100 (billable_units)
         // applicable_contract = 100 / 0.5 = 200 (measurement units)
@@ -313,13 +319,14 @@ class BillableUsageServiceTest {
         // unbilled = gtez(applicable_usage - (current_remittance))
         //          = gtez(200 - (50))
         //          = 150 (measurement units)
+        // covered = contract / 0.5 = 200 (measurement units)
         // billed = ceil(unbilled) * billing_factor
         //        = ceil(150) * 0.5
         //        = 75 (billable units)
         // remitted = billed / billing_factor
         //          = 75 / 0.5
         //          = 100
-        arguments(startOfUsage.plusDays(5), 400.0, 50.0, 150.0, 75.0),
+        arguments(startOfUsage.plusDays(5), 400.0, 50.0, 200.0, 150.0, 75.0),
 
         // NOTE: Contract rolls to 200 here.
         //
@@ -332,13 +339,14 @@ class BillableUsageServiceTest {
         //          = gtez(100 - (100.0/0.5))
         //          = gtez(-100)
         //          = 0 (measurement units)
+        // covered = contract / 0.5 = 400 (measurement units)
         // billed = ceil(unbilled) * billing_factor
         //        = ceil(0) * 0.5
         //        = 0 (billable units)
         // remitted = billed / billing_factor
         //          = 0 / 0.5
         //          = 0.0
-        arguments(startOfUsage.plusDays(20), 500.0, 200.0, 0.0, 0.0),
+        arguments(startOfUsage.plusDays(20), 500.0, 200.0, 400.0, 0.0, 0.0),
 
         // contract = 200 (billable_units)
         // applicable_contract = 200 / 0.5 = 400 (measurement units)
@@ -349,13 +357,14 @@ class BillableUsageServiceTest {
         //          = gtez(201.25 - (100.0/0.5))
         //          = gtez(1.25)
         //          = 1.25 (measurement units)
+        // covered = contract / 0.5 = 400 (measurement units)
         // billed = ceil(unbilled) * billing_factor
         //        = ceil(1.25) * 0.5
         //        = 1 (billable units)
         // remitted = billed / billing_factor
         //          = 1 / 0.5
         //          = 2
-        arguments(CLOCK.endOfCurrentMonth(), 601.25, 200.0, 2.0, 1.0),
+        arguments(CLOCK.endOfCurrentMonth(), 601.25, 200.0, 400.0, 2.0, 1.0),
 
         // NOTE: New billing month so simulate remittance of 0 with 200 contract.
         //
@@ -368,13 +377,14 @@ class BillableUsageServiceTest {
         //          = gtez(0 - (0.0/0.5))
         //          = gtez(0)
         //          = 0 (measurement units)
+        // covered = contract / 0.5 = 400 (measurement units)
         // billed = ceil(unbilled) * billing_factor
         //        = ceil(0) * 0.5
         //        = 0 (billable units)
         // remitted = billed + current_remittance
         //          = 0 + 0
         //          = 0
-        arguments(CLOCK.startOfCurrentMonth().plusMonths(1), 400.0, 0.0, 0.0, 0.0));
+        arguments(CLOCK.startOfCurrentMonth().plusMonths(1), 400.0, 0.0, 400.0, 0.0, 0.0));
   }
 
   @ParameterizedTest
@@ -383,6 +393,7 @@ class BillableUsageServiceTest {
       OffsetDateTime usageDate,
       Double currentUsage,
       Double currentRemittance,
+      Double expectedCoveredByContract,
       Double expectedRemitted,
       Double expectedBilledValue)
       throws Exception {
@@ -390,6 +401,7 @@ class BillableUsageServiceTest {
         usageDate,
         currentUsage,
         currentRemittance,
+        expectedCoveredByContract,
         expectedRemitted,
         expectedBilledValue,
         0.5,
@@ -424,6 +436,7 @@ class BillableUsageServiceTest {
         usageDate,
         currentUsage,
         currentRemittance,
+        0.0,
         expectedRemitted,
         expectedBilledValue,
         1.0,
@@ -474,6 +487,7 @@ class BillableUsageServiceTest {
         usageDate,
         currentUsage,
         currentRemittance,
+        0.0,
         expectedRemitted,
         expectedBilledValue,
         0.5,
@@ -625,6 +639,7 @@ class BillableUsageServiceTest {
       OffsetDateTime usageDate,
       Double currentUsage,
       Double currentRemittance,
+      Double expectedCoveredByContract,
       Double expectedRemitted,
       Double expectedBilledValue,
       Double billingFactor,
@@ -663,27 +678,9 @@ class BillableUsageServiceTest {
 
     thenUsageIsSent(usage, expectedBilledValue);
     thenBillableMeterMatches(usage, expectedRemitted);
-    if (expectedRemitted > 0 && !contracts.isEmpty()) {
-      thenCoveredMeterMatches(usage, getCoveredAmount(usage, contracts, usageDate));
+    if (!contracts.isEmpty()) {
+      thenCoveredMeterMatches(usage, expectedCoveredByContract);
     }
-  }
-
-  private double getCoveredAmount(
-      BillableUsage usage, List<Contract> contracts, OffsetDateTime usageDate) {
-    return contracts.stream()
-        .filter(
-            x ->
-                (x.getStartDate() == null
-                        || x.getStartDate().isBefore(usageDate)
-                        || x.getStartDate().isEqual(usageDate))
-                    && (x.getEndDate() == null
-                        || x.getEndDate().isAfter(usageDate)
-                        || x.getEndDate().isEqual(usageDate)))
-        .map(Contract::getMetrics)
-        .flatMap(List::stream)
-        .filter(x -> x.getMetricId().equals(MetricId.fromString(usage.getMetricId()).toString()))
-        .mapToDouble(m -> m.getValue() / usage.getBillingFactor())
-        .sum();
   }
 
   private void thenUsageIsSent(BillableUsage usage, double expectedValue) {

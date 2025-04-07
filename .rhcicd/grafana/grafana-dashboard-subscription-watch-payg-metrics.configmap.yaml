@@ -797,128 +797,7 @@ data:
                     ]
                   }
                 },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "{metric_id=\"Instance-Hours\", status=\"failed\"}"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Instance-Hours (failed)"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "{metric_id=\"Instance-Hours\", status=\"succeeded\"}"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Instance-Hours (succeeded)"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "{metric_id=\"Managed-Nodes\", status=\"failed\"}"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Managed-Nodes (failed)"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "{metric_id=\"Managed-Nodes\", status=\"succeeded\"}"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Managed-Nodes (succeeded)"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "{metric_id=\"Cores\", status=\"failed\"}"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Cores (failed)"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "{metric_id=\"Cores\", status=\"succeeded\"}"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Cores (succeeded)"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "{metric_id=\"Sockets\", status=\"failed\"}"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Sockets (failed)"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "{metric_id=\"Sockets\", status=\"succeeded\"}"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Sockets (succeeded)"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "{metric_id=\"vCPUs\", status=\"failed\"}"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "vCPUs (failed)"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "{metric_id=\"vCPUs\", status=\"succeeded\"}"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "vCPUs (succeeded)"
-                      }
-                    ]
-                  }
-                ]
+                "overrides": []
               },
               "gridPos": {
                 "h": 8,
@@ -947,7 +826,7 @@ data:
                     "uid": "PDD8BE47D10408F45"
                   },
                   "editorMode": "code",
-                  "expr": "sum(increase(swatch_producer_metered_total{product=\"$product\", billing_provider=\"$billing_provider\", status!=\"succeeded\",error_code=\"subscription_not_found\"}[$interval])) by (metric_id, error_code)",
+                  "expr": "sum(increase(swatch_producer_metered_total{product=\"$product\", billing_provider=\"$billing_provider\", status!=\"succeeded\",error_code=\"subscription_not_found\"}[$interval])) by (metric_id)",
                   "instant": false,
                   "legendFormat": "__auto",
                   "range": true,
@@ -1009,128 +888,7 @@ data:
                     ]
                   }
                 },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "{metric_id=\"Instance-Hours\", status=\"failed\"}"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Instance-Hours (failed)"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "{metric_id=\"Instance-Hours\", status=\"succeeded\"}"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Instance-Hours (succeeded)"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "{metric_id=\"Managed-Nodes\", status=\"failed\"}"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Managed-Nodes (failed)"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "{metric_id=\"Managed-Nodes\", status=\"succeeded\"}"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Managed-Nodes (succeeded)"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "{metric_id=\"Cores\", status=\"failed\"}"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Cores (failed)"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "{metric_id=\"Cores\", status=\"succeeded\"}"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Cores (succeeded)"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "{metric_id=\"Sockets\", status=\"failed\"}"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Sockets (failed)"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "{metric_id=\"Sockets\", status=\"succeeded\"}"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Sockets (succeeded)"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "{metric_id=\"vCPUs\", status=\"failed\"}"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "vCPUs (failed)"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "{metric_id=\"vCPUs\", status=\"succeeded\"}"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "vCPUs (succeeded)"
-                      }
-                    ]
-                  }
-                ]
+                "overrides": []
               },
               "gridPos": {
                 "h": 8,
@@ -1159,7 +917,7 @@ data:
                     "uid": "PDD8BE47D10408F45"
                   },
                   "editorMode": "code",
-                  "expr": "sum(increase(swatch_producer_metered_total{product=\"$product\", billing_provider=\"$billing_provider\", status!=\"succeeded\",error_code!=\"subscription_not_found\"}[$interval])) by (metric_id, error_code)",
+                  "expr": "sum(increase(swatch_producer_metered_total{product=\"$product\", billing_provider=\"$billing_provider\", status!=\"succeeded\",error_code!=\"subscription_not_found\",error_code!=\"marketplace_rate_limit\"}[$interval])) by (metric_id, error_code)",
                   "instant": false,
                   "legendFormat": "__auto",
                   "range": true,
@@ -1167,6 +925,104 @@ data:
                 }
               ],
               "title": "Remitted Failed with Unknown",
+              "type": "timeseries"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  }
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 90
+              },
+              "id": 79,
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "PDD8BE47D10408F45"
+                  },
+                  "disableTextWrap": false,
+                  "editorMode": "code",
+                  "expr": "sum(increase(swatch_producer_metered_total{product=\"$product\", billing_provider=\"$billing_provider\", status!=\"succeeded\",error_code=\"marketplace_rate_limit\"}[$interval])) by (metric_id)",
+                  "fullMetaSearch": false,
+                  "includeNullMetadata": true,
+                  "instant": false,
+                  "legendFormat": "__auto",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "Remitted Failed with Marketplace Rate Limit",
               "type": "timeseries"
             }
           ],

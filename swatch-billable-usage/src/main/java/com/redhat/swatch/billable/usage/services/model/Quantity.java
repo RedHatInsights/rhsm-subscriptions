@@ -85,8 +85,7 @@ public class Quantity<U extends Unit> {
     return new Quantity<>(value, new MetricUnit());
   }
 
-  public static Quantity<BillingUnit> fromContractCoverage(
-      BillableUsage referenceUsage, double value) {
+  public static Quantity<BillingUnit> fromValue(BillableUsage referenceUsage, double value) {
     return new Quantity<>(value, new BillingUnit(referenceUsage));
   }
 
