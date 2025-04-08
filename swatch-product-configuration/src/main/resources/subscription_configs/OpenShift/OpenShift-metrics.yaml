@@ -25,6 +25,10 @@ metrics:
       queryKey: default
       queryParams:
         instanceKey: _id
-        product: ocp
+        productLabelRegex: ^ocp$
         metric: cluster:usage:workload:capacity_physical_cpu_hours
         metadataMetric: ocm_subscription
+        billingModel: marketplace
+        meteredByRh: false
+        meteredByRhOperator: "!="
+

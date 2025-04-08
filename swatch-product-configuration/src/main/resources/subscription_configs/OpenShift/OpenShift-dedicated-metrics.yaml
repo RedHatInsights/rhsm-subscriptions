@@ -26,9 +26,13 @@ metrics:
       queryKey: default
       queryParams:
         instanceKey: _id
-        product: osd
+        productLabelRegex: ^osd$
         metric: cluster:usage:workload:capacity_physical_cpu_hours
         metadataMetric: ocm_subscription
+        billingModel: marketplace
+        meteredByRh: false
+        meteredByRhOperator: "!="
+
   - id: Instance-hours
     type: counter
     rhmMetricId: redhat.com:openshift_dedicated:cluster_hour
@@ -36,6 +40,10 @@ metrics:
       queryKey: default
       queryParams:
         instanceKey: _id
-        product: osd
+        productLabelRegex: ^osd$
         metric: cluster:usage:workload:capacity_physical_instance_hours
         metadataMetric: ocm_subscription
+        billingModel: marketplace
+        meteredByRh: false
+        meteredByRhOperator: "!="
+

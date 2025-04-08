@@ -20,8 +20,8 @@ serviceType: rosa Instance
 
 contractEnabled: true
 
-metrics:
-  # ROSA Classic (moa) does not bill control plane hours, so we don't look for it on Instance-hours
+# These queries do not use the billing_model label since ROSA Classic is "standard" and HCP is "marketplace"
+metrics: # ROSA Classic (moa) does not bill control plane hours, so we don't look for it on Instance-hours
   - id: Instance-hours
     type: counter
     awsDimension: control_plane
@@ -39,9 +39,12 @@ metrics:
     azureDimension: four_vcpu_hour
     billingFactor: 0.25
     prometheus:
-      queryKey: rosa
+      queryKey: default
       queryParams:
         instanceKey: _id
         productLabelRegex: (moa-hostedcontrolplane|moa)
         metric: rosa:cluster:vcpu_hours
         metadataMetric: ocm_subscription
+        support: Premium|Standard|Self-Support|None
+        meteredByRh: false
+        meteredByRhOperator: "!="

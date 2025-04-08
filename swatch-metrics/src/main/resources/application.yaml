@@ -189,51 +189,73 @@ rhsm-subscriptions:
       metric:
         accountQueryTemplates:
           default: >-
-            group(min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{product='#{metric.prometheus.queryParams[product]}', external_organization != '', billing_model='marketplace'}[1h]))
-            by (external_organization)
-          addonSamples: >-
-            group(min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{resource_type="addon", resource_name='#{metric.prometheus.queryParams[resourceName]}', external_organization != '', billing_model='marketplace'}[1h]))
-            by (external_organization)
+            group(
+              min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{
+                #{#metric.prometheus.queryParams[productLabelRegex] != null}
+                  product=~"#{metric.prometheus.queryParams[productLabelRegex]}",
+                #{/}
+                #{#metric.prometheus.queryParams[resourceName] != null}
+                  resource_type="addon",
+                  resource_name="#{metric.prometheus.queryParams[resourceName]}",
+                #{/}
+                external_organization != "",
+                #{#metric.prometheus.queryParams[support] != null}
+                  support=~"#{metric.prometheus.queryParams[support]}",
+                #{/}
+                #{#metric.prometheus.queryParams[billingModel] != null}
+                  billing_model="#{metric.prometheus.queryParams[billingModel]}",
+                #{/}
+                #{#metric.prometheus.queryParams[meteredByRh] != null}
+                  metered_by_rh#{metric.prometheus.queryParams[meteredByRhOperator] != null ? metric.prometheus.queryParams[meteredByRhOperator] : '='}#{metric.prometheus.queryParams[meteredByRh]},
+                #{/}
+              }[1h])
+            ) by (external_organization)
           rhelemeter: >-
             group(min_over_time({product=~'#{metric.prometheus.queryParams[productLabelRegex]}', external_organization != '', billing_model='marketplace'}[1h]))
-            by (external_organization)
-          # NB: This query does not use the billing_model label since ROSA Classic is "standard" and HCP is "marketplace"
-          rosa: >-
-            group(min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{product=~'#{metric.prometheus.queryParams[productLabelRegex]}', external_organization != ''}[1h]))
             by (external_organization)
         queryTemplates:
           default: >-
             max(#{metric.prometheus.queryParams[metric]}) by (#{metric.prometheus.queryParams[instanceKey]})
-            * on(#{metric.prometheus.queryParams[instanceKey]}) group_right
-            min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{product="#{metric.prometheus.queryParams[product]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", metered_by_rh!='false'}[1h])
-          addonSamples: >-
-            max(#{metric.prometheus.queryParams[metric]}) by (#{metric.prometheus.queryParams[instanceKey]})
-            * on(#{metric.prometheus.queryParams[instanceKey]}) group_right
-            min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{resource_type="addon",resource_name="#{metric.prometheus.queryParams[resourceName]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", metered_by_rh!='false'}[1h])
-          rhelemeter: >-
-            sum_over_time((max by (#{metric.prometheus.queryParams[instanceKey]}) (#{metric.prometheus.queryParams[metric]}))[1h:10m])
-            /
-            scalar(count_over_time(vector(1)[1h:10m]))
-
-            * on (#{metric.prometheus.queryParams[instanceKey]}) group_right
-            topk by (#{metric.prometheus.queryParams[instanceKey]}) (
-              1,
-                group without (swatch_placeholder_label) (
-                  min_over_time(
-                  #{metric.prometheus.queryParams[metric]}{
+              * on(#{metric.prometheus.queryParams[instanceKey]}) group_right
+              min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{
+                #{#metric.prometheus.queryParams[productLabelRegex] != null}
                   product=~"#{metric.prometheus.queryParams[productLabelRegex]}",
-                  external_organization="#{runtime[orgId]}",
-                  billing_model="marketplace",
-                  metered_by_rh!='false'
-                  }[1h]
+                #{/}
+                #{#metric.prometheus.queryParams[resourceName] != null}
+                  resource_type="addon",
+                  resource_name="#{metric.prometheus.queryParams[resourceName]}",
+                #{/}
+                external_organization="#{runtime[orgId]}",
+                #{#metric.prometheus.queryParams[support] != null}
+                  support=~"#{metric.prometheus.queryParams[support]}",
+                #{/}
+                #{#metric.prometheus.queryParams[billingModel] != null}
+                  billing_model="#{metric.prometheus.queryParams[billingModel]}",
+                #{/}
+                #{#metric.prometheus.queryParams[meteredByRh] != null}
+                  metered_by_rh#{metric.prometheus.queryParams[meteredByRhOperator] != null ? metric.prometheus.queryParams[meteredByRhOperator] : '='}#{metric.prometheus.queryParams[meteredByRh]},
+                #{/}
+              }[1h])
+            rhelemeter: >-
+              sum_over_time((max by (#{metric.prometheus.queryParams[instanceKey]}) (#{metric.prometheus.queryParams[metric]}))[1h:10m])
+              /
+              scalar(count_over_time(vector(1)[1h:10m]))
+              * on (#{metric.prometheus.queryParams[instanceKey]}) group_right
+              topk by (#{metric.prometheus.queryParams[instanceKey]}) (
+                1,
+                  group without (swatch_placeholder_label) (
+                    min_over_time(
+                    #{metric.prometheus.queryParams[metric]}{
+                    product=~"#{metric.prometheus.queryParams[productLabelRegex]}",
+                    external_organization="#{runtime[orgId]}",
+                    billing_model="marketplace",
+                    metered_by_rh!='false'
+                    }[1h]
+                  )
                 )
               )
-            )
-          # NB: This query does not use the billing_model label since ROSA Classic is "standard" and HCP is "marketplace"
-          rosa: max(#{metric.prometheus.queryParams[metric]}) by (#{metric.prometheus.queryParams[instanceKey]})
-            * on(#{metric.prometheus.queryParams[instanceKey]}) group_right
-            min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{product=~"#{metric.prometheus.queryParams[productLabelRegex]}", external_organization="#{runtime[orgId]}", support=~"Premium|Standard|Self-Support|None", metered_by_rh!='false'}[1h])
         maxAttempts: ${OPENSHIFT_MAX_ATTEMPTS:50}
+
         backOffMaxInterval: ${OPENSHIFT_BACK_OFF_MAX_INTERVAL:50000}
         backOffInitialInterval: ${OPENSHIFT_BACK_OFF_INITIAL_INTERVAL:1000}
         backOffMultiplier: ${OPENSHIFT_BACK_OFF_MULTIPLIER:1.5}

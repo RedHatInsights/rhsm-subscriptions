@@ -24,9 +24,14 @@ metrics:
     awsDimension: cluster_cpu_hour
     azureDimension: cluster_cpu_hour
     prometheus:
-      queryKey: addonSamples
+      queryKey: default
       queryParams:
         instanceKey: _id
         resourceName: addon-open-data-hub
+        productLabelRegex: ^addon-open-data-hub$
         metric: cluster:usage:workload:capacity_virtual_cpu_hours
         metadataMetric: ocm_subscription_resource
+        billingModel: marketplace
+        meteredByRh: false
+        meteredByRhOperator: "!="
+
