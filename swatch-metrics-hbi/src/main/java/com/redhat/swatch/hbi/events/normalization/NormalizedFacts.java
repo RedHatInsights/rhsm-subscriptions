@@ -23,6 +23,7 @@ package com.redhat.swatch.hbi.events.normalization;
 import com.redhat.swatch.common.model.HardwareMeasurementType;
 import java.time.OffsetDateTime;
 import java.util.Set;
+import java.util.UUID;
 import lombok.Builder;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
@@ -34,7 +35,7 @@ import org.candlepin.subscriptions.json.Event.HardwareType;
 public class NormalizedFacts {
 
   private String orgId;
-  private String inventoryId;
+  private UUID inventoryId;
   private String instanceId;
   private String insightsId;
   private String subscriptionManagerId;

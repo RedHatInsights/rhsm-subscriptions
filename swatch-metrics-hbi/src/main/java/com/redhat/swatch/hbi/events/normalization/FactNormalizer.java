@@ -31,10 +31,12 @@ import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
 import com.redhat.swatch.hbi.events.services.HbiHostRelationshipService;
 import io.quarkus.runtime.util.StringUtil;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.candlepin.clock.ApplicationClock;
@@ -53,6 +55,7 @@ public class FactNormalizer {
   private final ApplicationConfiguration appConfig;
   private final HbiHostRelationshipService hbiHostRelationshipService;
 
+  @Inject
   public FactNormalizer(
       ApplicationClock clock,
       ApplicationConfiguration appConfig,
@@ -69,8 +72,7 @@ public class FactNormalizer {
     SystemProfileFacts systemProfileFacts = host.getSystemProfileFacts();
 
     String orgId = host.getHbiHost().getOrgId();
-    String inventoryId =
-        Objects.nonNull(host.getHbiHost().getId()) ? host.getHbiHost().getId().toString() : null;
+    UUID inventoryId = host.getHbiHost().getId();
     String syncTimestamp = rhsmFacts.map(RhsmFacts::getSyncTimestamp).orElse(null);
     HardwareMeasurementType cloudProviderType = determineCloudProviderType(systemProfileFacts);
     String hypervisorUuid = determineHypervisorUuid(systemProfileFacts, satelliteFacts);
@@ -93,8 +95,7 @@ public class FactNormalizer {
     boolean isUnmappedGuest =
         isVirtual
             && StringUtils.isNotEmpty(hypervisorUuid)
-            && !hbiHostRelationshipService.isKnownHost(orgId, hypervisorUuid);
-
+            && hbiHostRelationshipService.findHypervisor(orgId, hypervisorUuid).isEmpty();
     return NormalizedFacts.builder()
         .orgId(orgId)
         .inventoryId(inventoryId)

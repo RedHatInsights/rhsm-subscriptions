@@ -22,6 +22,7 @@ package com.redhat.swatch.hbi.events.repository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.hbi.events.test.resources.PostgresResource;
@@ -30,7 +31,12 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,47 +46,56 @@ import org.junit.jupiter.api.Test;
 class HbiHostRelationshipRepositoryTest {
 
   @Inject HbiHostRelationshipRepository repository;
+  private HbiHostRelationship hypervisor;
+  private HbiHostRelationship mappedGuest;
+  private HbiHostRelationship unmappedGuest;
 
   @BeforeEach
   @Transactional
   public void setUp() {
-    HbiHostRelationshipId id1 = new HbiHostRelationshipId("org1", "subman1");
-    HbiHostRelationship relationship1 = new HbiHostRelationship();
-    relationship1.setId(id1);
-    relationship1.setHypervisorUuid("uuid1");
-    relationship1.setCreationDate(OffsetDateTime.now());
-    relationship1.setLastUpdated(OffsetDateTime.now());
-    relationship1.setUnmappedGuest(true);
-    relationship1.setFacts("{\"cores\":4,\"sockets\":2}");
+    // Match the MICROS of the DB, otherwise it would be rounded.
+    OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
+    hypervisor = new HbiHostRelationship();
+    hypervisor.setOrgId("org1");
+    hypervisor.setInventoryId(UUID.randomUUID());
+    hypervisor.setSubscriptionManagerId(UUID.randomUUID().toString());
+    hypervisor.setCreationDate(now);
+    hypervisor.setLastUpdated(now);
+    hypervisor.setLatestHbiEventData("{\"cores\": 8, \"sockets\": 4}");
 
-    HbiHostRelationshipId id2 = new HbiHostRelationshipId("org1", "subman2");
-    HbiHostRelationship relationship2 = new HbiHostRelationship();
-    relationship2.setId(id2);
-    relationship2.setCreationDate(OffsetDateTime.now());
-    relationship2.setLastUpdated(OffsetDateTime.now());
-    relationship2.setFacts("{\"cores\":8,\"sockets\":4}");
+    mappedGuest = new HbiHostRelationship();
+    mappedGuest.setOrgId("org1");
+    mappedGuest.setInventoryId(UUID.randomUUID());
+    mappedGuest.setSubscriptionManagerId(UUID.randomUUID().toString());
+    mappedGuest.setHypervisorUuid(hypervisor.getSubscriptionManagerId());
+    mappedGuest.setCreationDate(now);
+    mappedGuest.setLastUpdated(now);
+    mappedGuest.setUnmappedGuest(false);
+    mappedGuest.setLatestHbiEventData("{\"cores\": 8, \"sockets\": 4}");
 
-    HbiHostRelationshipId id3 = new HbiHostRelationshipId("org1", "subman3");
-    HbiHostRelationship relationship3 = new HbiHostRelationship();
-    relationship3.setId(id3);
-    relationship3.setHypervisorUuid("subman2");
-    relationship3.setCreationDate(OffsetDateTime.now());
-    relationship3.setLastUpdated(OffsetDateTime.now());
-    relationship3.setUnmappedGuest(false);
-    relationship3.setFacts("{\"cores\":8,\"sockets\":4}");
+    unmappedGuest = new HbiHostRelationship();
+    unmappedGuest.setOrgId("org1");
+    unmappedGuest.setInventoryId(UUID.randomUUID());
+    unmappedGuest.setSubscriptionManagerId(UUID.randomUUID().toString());
+    unmappedGuest.setHypervisorUuid(UUID.randomUUID().toString());
+    unmappedGuest.setCreationDate(now);
+    unmappedGuest.setLastUpdated(now);
+    unmappedGuest.setUnmappedGuest(true);
+    unmappedGuest.setLatestHbiEventData("{\"cores\": 4, \"sockets\": 2}");
 
-    HbiHostRelationshipId id4 = new HbiHostRelationshipId("org3", "subman444");
-    HbiHostRelationship relationship4 = new HbiHostRelationship();
-    relationship4.setId(id4);
-    relationship4.setCreationDate(OffsetDateTime.now());
-    relationship4.setLastUpdated(OffsetDateTime.now());
-    relationship4.setUnmappedGuest(false);
-    relationship4.setFacts("{}");
+    HbiHostRelationship org3Host = new HbiHostRelationship();
+    org3Host.setOrgId("org3");
+    org3Host.setInventoryId(UUID.randomUUID());
+    org3Host.setSubscriptionManagerId(UUID.randomUUID().toString());
+    org3Host.setCreationDate(now);
+    org3Host.setLastUpdated(now);
+    org3Host.setUnmappedGuest(false);
+    org3Host.setLatestHbiEventData("{}");
 
-    repository.persist(relationship1);
-    repository.persist(relationship2);
-    repository.persist(relationship3);
-    repository.persist(relationship4);
+    repository.persist(unmappedGuest);
+    repository.persist(hypervisor);
+    repository.persist(mappedGuest);
+    repository.persist(org3Host);
   }
 
   @Transactional
@@ -91,41 +106,20 @@ class HbiHostRelationshipRepositoryTest {
 
   @Test
   @Transactional
-  void testFindByOrgIdReturnsCorrectNumberOfResults() {
-    assertEquals(0, repository.findByOrgId("org2").size(), "Expected 0 results for org2");
-    assertEquals(3, repository.findByOrgId("org1").size(), "Expected 3 results for org1");
-  }
-
-  @Test
-  @Transactional
-  void testFindByOrgIdHasCorrectOrgId() {
-    List<HbiHostRelationship> results = repository.findByOrgId("org3");
-    assertEquals(1, results.size(), "Expected 1 result for org3");
-    assertEquals(
-        "org3", results.get(0).getId().getOrgId(), "First result should have orgId 'org3'");
-  }
-
-  @Test
-  @Transactional
   void testFindByIdReturnsCorrectResult() {
-    HbiHostRelationshipId id = new HbiHostRelationshipId("org123", "subman3");
-    HbiHostRelationship relationship = new HbiHostRelationship();
-    relationship.setId(id);
-    relationship.setHypervisorUuid("uuid3");
-    relationship.setCreationDate(OffsetDateTime.now());
-    relationship.setLastUpdated(OffsetDateTime.now());
-    relationship.setFacts("{\"cores\":16,\"sockets\":8}");
-    repository.persist(relationship);
-
-    assertTrue(
-        repository.findByIdOptional(new HbiHostRelationshipId("org123", "subman3")).isPresent());
+    Optional<HbiHostRelationship> found = repository.findByIdOptional(mappedGuest.getId());
+    assertTrue(found.isPresent());
+    assertRelationship(mappedGuest, found.get());
   }
 
   @Test
   @Transactional
-  void testFindByHypervisorUUID() {
-    assertFalse(repository.findByHypervisorUuid("org1", "uuid1").isEmpty());
-    assertTrue(repository.findByHypervisorUuid("org2", "uuid1").isEmpty());
+  void testFindByOrgIdAndInventoryIdReturnsCorrectResult() {
+    Optional<HbiHostRelationship> found =
+        repository.findByOrgIdAndInventoryId(
+            unmappedGuest.getOrgId(), unmappedGuest.getInventoryId());
+    assertTrue(found.isPresent());
+    assertRelationship(unmappedGuest, found.get());
   }
 
   @Test
@@ -134,8 +128,10 @@ class HbiHostRelationshipRepositoryTest {
     assertEquals(0, repository.guestCount("org1", "unknown"));
     assertEquals(0, repository.guestCount("org1", null));
     assertEquals(0, repository.guestCount("org1", ""));
-    assertEquals(0, repository.guestCount("org1", "subman1"));
-    assertEquals(1, repository.guestCount("org1", "subman2"));
+    // NOTE: Even though the guest is unmapped, there it still counts as a guest
+    // based on the incoming hypervisorUuid match on the guest.
+    assertEquals(1, repository.guestCount("org1", unmappedGuest.getHypervisorUuid()));
+    assertEquals(1, repository.guestCount("org1", mappedGuest.getHypervisorUuid()));
   }
 
   @Test
@@ -143,10 +139,91 @@ class HbiHostRelationshipRepositoryTest {
   void testFindUnmappedGuests() {
     assertEquals(0, repository.findUnmappedGuests("org1", "").size());
     assertEquals(0, repository.findUnmappedGuests("org1", null).size());
-    assertEquals(0, repository.findUnmappedGuests("org1", "subman2").size());
+    assertEquals(0, repository.findUnmappedGuests("org1", mappedGuest.getHypervisorUuid()).size());
 
-    List<HbiHostRelationship> unmapped = repository.findUnmappedGuests("org1", "uuid1");
+    List<HbiHostRelationship> unmapped =
+        repository.findUnmappedGuests("org1", unmappedGuest.getHypervisorUuid());
     assertEquals(1, unmapped.size());
-    assertEquals("subman1", unmapped.get(0).getId().getSubscriptionManagerId());
+    assertRelationship(unmappedGuest, unmapped.get(0));
+  }
+
+  @Test
+  @Transactional
+  void testPersistHypervisorWithMultipleGuestRelationship() {
+    // Add a couple guests
+    repository.persist(createGuestRelationship("org1", hypervisor.getSubscriptionManagerId()));
+    repository.persist(createGuestRelationship("org1", hypervisor.getSubscriptionManagerId()));
+    repository.flush();
+
+    assertEquals(3, repository.guestCount("org1", hypervisor.getSubscriptionManagerId()));
+  }
+
+  @Test
+  @Transactional
+  void testFindByOrgIdAndSubscriptionManagerIdReturnsCorrectResult() {
+    assertFalse(
+        repository
+            .findByOrgIdAndSubscriptionManagerId(
+                "unknownOrg", unmappedGuest.getSubscriptionManagerId())
+            .isPresent());
+    assertFalse(
+        repository
+            .findByOrgIdAndSubscriptionManagerId(
+                unmappedGuest.getOrgId(), UUID.randomUUID().toString())
+            .isPresent());
+
+    Optional<HbiHostRelationship> existing =
+        repository.findByOrgIdAndSubscriptionManagerId(
+            unmappedGuest.getOrgId(), unmappedGuest.getSubscriptionManagerId());
+    assertTrue(existing.isPresent());
+    assertRelationship(unmappedGuest, existing.get());
+  }
+
+  @Test
+  @Transactional
+  void testInventoryIdCanNotExistBetweenTwoOrgs() {
+    assertThrows(
+        ConstraintViolationException.class,
+        () -> {
+          HbiHostRelationship rel = createRelationship("org2", hypervisor.getInventoryId());
+          repository.persist(rel);
+          // Because the test function declares the transaction, the flush call will
+          // trigger the exception instead of the persist call.
+          repository.flush();
+        });
+  }
+
+  private HbiHostRelationship createRelationship(String orgId, UUID inventoryId) {
+    HbiHostRelationship relationship = new HbiHostRelationship();
+    relationship.setOrgId(orgId);
+    relationship.setInventoryId(inventoryId);
+    relationship.setSubscriptionManagerId(UUID.randomUUID().toString());
+    relationship.setCreationDate(OffsetDateTime.now());
+    relationship.setLastUpdated(OffsetDateTime.now());
+    relationship.setUnmappedGuest(false);
+    return relationship;
+  }
+
+  private HbiHostRelationship createGuestRelationship(String orgId, String hypervisorUuid) {
+    HbiHostRelationship relationship = new HbiHostRelationship();
+    relationship.setOrgId(orgId);
+    relationship.setInventoryId(UUID.randomUUID());
+    relationship.setSubscriptionManagerId(UUID.randomUUID().toString());
+    relationship.setHypervisorUuid(hypervisorUuid);
+    relationship.setCreationDate(OffsetDateTime.now());
+    relationship.setLastUpdated(OffsetDateTime.now());
+    relationship.setUnmappedGuest(false);
+    relationship.setLatestHbiEventData("{\"cores\": 4, \"sockets\": 2}");
+    return relationship;
+  }
+
+  private void assertRelationship(HbiHostRelationship expected, HbiHostRelationship actual) {
+    assertEquals(expected.getOrgId(), actual.getOrgId());
+    assertEquals(expected.getSubscriptionManagerId(), actual.getSubscriptionManagerId());
+    assertEquals(expected.getHypervisorUuid(), actual.getHypervisorUuid());
+    assertEquals(expected.getLatestHbiEventData(), actual.getLatestHbiEventData());
+    assertEquals(expected.isUnmappedGuest(), actual.isUnmappedGuest());
+    assertEquals(expected.getCreationDate(), actual.getCreationDate());
+    assertEquals(expected.getLastUpdated(), actual.getLastUpdated());
   }
 }

@@ -24,31 +24,37 @@ import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 
 @ApplicationScoped
 public class HbiHostRelationshipRepository
-    implements PanacheRepositoryBase<HbiHostRelationship, HbiHostRelationshipId> {
+    implements PanacheRepositoryBase<HbiHostRelationship, UUID> {
 
-  public List<HbiHostRelationship> findByOrgId(String orgId) {
-    return list("id.orgId", orgId);
-  }
-
-  public List<HbiHostRelationship> findByHypervisorUuid(String orgId, String hypervisorUuid) {
-    return list("id.orgId=?1 and hypervisorUuid=?2", orgId, hypervisorUuid);
+  public Optional<HbiHostRelationship> findByOrgIdAndInventoryId(String orgId, UUID inventoryId) {
+    return find("orgId=?1 and inventoryId=?2", orgId, inventoryId).firstResultOptional();
   }
 
   public long guestCount(String orgId, String hypervisorUuid) {
     if (Objects.isNull(hypervisorUuid) || hypervisorUuid.isBlank()) {
       return 0;
     }
-    return count("id.orgId=?1 and hypervisorUuid=?2", orgId, hypervisorUuid);
+    return count("orgId=?1 and hypervisorUuid=?2", orgId, hypervisorUuid);
   }
 
   public List<HbiHostRelationship> findUnmappedGuests(String orgId, String hypervisorUuid) {
     if (Objects.isNull(hypervisorUuid) || hypervisorUuid.isBlank()) {
       return List.of();
     }
-    return list(
-        "id.orgId=?1 and hypervisorUuid=?2 and isUnmappedGuest=true", orgId, hypervisorUuid);
+    return list("orgId=?1 and hypervisorUuid=?2 and isUnmappedGuest=true", orgId, hypervisorUuid);
+  }
+
+  public Optional<HbiHostRelationship> findByOrgIdAndSubscriptionManagerId(
+      String orgId, String subscriptionManagerId) {
+    if (Objects.isNull(subscriptionManagerId) || subscriptionManagerId.isBlank()) {
+      return Optional.empty();
+    }
+    return find("orgId=?1 and subscriptionManagerId=?2", orgId, subscriptionManagerId)
+        .firstResultOptional();
   }
 }

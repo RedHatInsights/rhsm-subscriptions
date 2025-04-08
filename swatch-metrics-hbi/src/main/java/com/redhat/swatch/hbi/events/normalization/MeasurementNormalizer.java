@@ -120,6 +120,7 @@ public class MeasurementNormalizer {
       Set<String> productTags,
       boolean isHypervisor,
       boolean isUnmappedGuest) {
+
     // modulo-2 rounding only applied to physical or hypervisors
     if (!normalizedFacts.isVirtual() || isHypervisor) {
       if (currentCalculatedSockets != null && (currentCalculatedSockets % 2) == 1) {

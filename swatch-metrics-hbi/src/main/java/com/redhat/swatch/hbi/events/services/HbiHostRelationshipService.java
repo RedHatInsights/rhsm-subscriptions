@@ -21,7 +21,6 @@
 package com.redhat.swatch.hbi.events.services;
 
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
-import com.redhat.swatch.hbi.events.repository.HbiHostRelationshipId;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationshipRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -29,13 +28,16 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
 
+@Slf4j
 @ApplicationScoped
 public class HbiHostRelationshipService {
 
-  private ApplicationClock clock;
-  private HbiHostRelationshipRepository repository;
+  private final ApplicationClock clock;
+  private final HbiHostRelationshipRepository repository;
 
   public HbiHostRelationshipService(
       ApplicationClock clock, HbiHostRelationshipRepository repository) {
@@ -47,12 +49,15 @@ public class HbiHostRelationshipService {
   @Transactional
   public void processHost(
       String orgId,
+      UUID inventoryId,
       String subscriptionManagerId,
       String hypervisorUuid,
       boolean isUnmapped,
       String hbiHostFactJson) {
-    HbiHostRelationshipId id = new HbiHostRelationshipId(orgId, subscriptionManagerId);
-    repository.persist(createOrUpdate(id, hypervisorUuid, isUnmapped, hbiHostFactJson));
+    HbiHostRelationship relationship = findOrDefault(orgId, inventoryId);
+    repository.persist(
+        updateRelationship(
+            relationship, subscriptionManagerId, hypervisorUuid, isUnmapped, hbiHostFactJson));
   }
 
   @Transactional
@@ -65,40 +70,39 @@ public class HbiHostRelationshipService {
     return repository.guestCount(orgId, subscriptionManagerId) > 0;
   }
 
-  @Transactional
-  public boolean isKnownHost(String orgId, String subscriptionManagerId) {
-    return repository
-        .findByIdOptional(new HbiHostRelationshipId(orgId, subscriptionManagerId))
-        .isPresent();
-  }
-
-  private HbiHostRelationship createOrUpdate(
-      HbiHostRelationshipId id, String hypervisorUuid, boolean isUnmapped, String hbiHostFactJson) {
-    HbiHostRelationship relationship = findOrDefault(id);
+  private HbiHostRelationship updateRelationship(
+      HbiHostRelationship toUpdate,
+      String subscriptionManagerId,
+      String hypervisorUuid,
+      boolean isUnmapped,
+      String hbiEventJson) {
     OffsetDateTime now = clock.now();
-    if (Objects.isNull(relationship.getCreationDate())) {
-      relationship.setCreationDate(now);
+    if (Objects.isNull(toUpdate.getCreationDate())) {
+      toUpdate.setCreationDate(now);
     }
-    relationship.setHypervisorUuid(hypervisorUuid);
-    relationship.setUnmappedGuest(isUnmapped);
-    relationship.setLastUpdated(now);
-    relationship.setFacts(hbiHostFactJson);
-    return relationship;
+    toUpdate.setSubscriptionManagerId(subscriptionManagerId);
+    toUpdate.setHypervisorUuid(hypervisorUuid);
+    toUpdate.setUnmappedGuest(isUnmapped);
+    toUpdate.setLastUpdated(now);
+    toUpdate.setLatestHbiEventData(hbiEventJson);
+    return toUpdate;
   }
 
-  private HbiHostRelationship findOrDefault(HbiHostRelationshipId id) {
+  private HbiHostRelationship findOrDefault(String orgId, UUID inventoryId) {
     return repository
-        .findByIdOptional(id)
+        .findByOrgIdAndInventoryId(orgId, inventoryId)
         .orElseGet(
             () -> {
+              log.info("Creating new HbiHostRelationship for {}:{}", orgId, inventoryId);
               HbiHostRelationship newRelationship = new HbiHostRelationship();
-              newRelationship.setId(id);
+              newRelationship.setOrgId(orgId);
+              newRelationship.setInventoryId(inventoryId);
               return newRelationship;
             });
   }
 
   @Transactional
-  public Optional<HbiHostRelationship> getRelationship(String orgId, String subscriptionManagerId) {
-    return repository.findByIdOptional(new HbiHostRelationshipId(orgId, subscriptionManagerId));
+  public Optional<HbiHostRelationship> findHypervisor(String orgId, String hypervisorId) {
+    return repository.findByOrgIdAndSubscriptionManagerId(orgId, hypervisorId);
   }
 }

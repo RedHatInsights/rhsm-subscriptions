@@ -22,11 +22,13 @@ package com.redhat.swatch.hbi.events.repository;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
-import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -39,14 +41,23 @@ import org.hibernate.type.SqlTypes;
     name = "hbi_host_relationship",
     uniqueConstraints = {
       @UniqueConstraint(
-          columnNames = {"hypervisor_uuid"},
-          name = "unique_hypervisor_uuid")
+          columnNames = {"inventory_id"},
+          name = "unique_inventory_id")
     })
 @Data
 @NoArgsConstructor
 public class HbiHostRelationship extends PanacheEntityBase {
 
-  @EmbeddedId private HbiHostRelationshipId id;
+  @Id @GeneratedValue private UUID id;
+
+  @Column(name = "inventory_id")
+  private UUID inventoryId;
+
+  @Column(name = "org_id")
+  private String orgId;
+
+  @Column(name = "subscription_manager_id")
+  private String subscriptionManagerId;
 
   @Column(name = "hypervisor_uuid")
   private String hypervisorUuid;
@@ -58,8 +69,8 @@ public class HbiHostRelationship extends PanacheEntityBase {
   private OffsetDateTime lastUpdated;
 
   @JdbcTypeCode(SqlTypes.JSON)
-  @Column(name = "facts", columnDefinition = "jsonb")
-  private String facts;
+  @Column(name = "latest_hbi_event_data", columnDefinition = "jsonb")
+  private String latestHbiEventData;
 
   @Column(name = "is_unmapped_guest")
   private boolean isUnmappedGuest;

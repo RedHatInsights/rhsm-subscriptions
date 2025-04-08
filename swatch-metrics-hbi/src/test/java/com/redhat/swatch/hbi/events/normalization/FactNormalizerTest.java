@@ -34,6 +34,7 @@ import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SatelliteFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
+import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
 import com.redhat.swatch.hbi.events.services.HbiHostRelationshipService;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -42,6 +43,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -79,7 +81,7 @@ class FactNormalizerTest {
     Host host = new Host(hbiHost());
     NormalizedFacts normalizedFacts = normalizer.normalize(host);
     assertEquals(host.getHbiHost().getOrgId(), normalizedFacts.getOrgId());
-    assertEquals(host.getHbiHost().getId().toString(), normalizedFacts.getInventoryId());
+    assertEquals(host.getHbiHost().getId(), normalizedFacts.getInventoryId());
     assertEquals(host.getHbiHost().getInsightsId(), normalizedFacts.getInsightsId());
     assertEquals(
         host.getHbiHost().getSubscriptionManagerId(), normalizedFacts.getSubscriptionManagerId());
@@ -190,8 +192,9 @@ class FactNormalizerTest {
     HbiHost hbiHost = hbiHost();
     hbiHost.getSystemProfile().put(SystemProfileFacts.HYPERVISOR_UUID_FACT, expectedHypervisorUuid);
     hbiHost.getSystemProfile().put(SystemProfileFacts.INFRASTRUCTURE_TYPE_FACT, "virtual");
-    when(hbiHostRelationshipService.isKnownHost(hbiHost.getOrgId(), expectedHypervisorUuid))
-        .thenReturn(isHypervisorKnown);
+    when(hbiHostRelationshipService.findHypervisor(hbiHost.getOrgId(), expectedHypervisorUuid))
+        .thenReturn(isHypervisorKnown ? Optional.of(new HbiHostRelationship()) : Optional.empty());
+
     NormalizedFacts facts = normalizer.normalize(new Host(hbiHost));
     assertEquals(!isHypervisorKnown, facts.isUnmappedGuest());
     assertEquals(expectedHypervisorUuid, facts.getHypervisorUuid());

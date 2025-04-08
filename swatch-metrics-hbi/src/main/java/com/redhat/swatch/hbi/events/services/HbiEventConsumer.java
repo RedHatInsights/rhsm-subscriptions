@@ -132,7 +132,7 @@ public class HbiEventConsumer {
       List<Event> toSend = updateHostRelationships(host, hbiHostEvent, eventTimestamp);
 
       if (flags.emitEvents()) {
-        log.info("Emitting {} HBI events to swatch!", toSend.size());
+        log.info("Emitting {} HBI events to swatch! {}", toSend.size(), toSend);
         toSend.forEach(eventToSend -> emitter.send(Message.of(eventToSend)));
       } else {
         log.info(
@@ -164,7 +164,7 @@ public class HbiEventConsumer {
       NormalizedFacts guestFacts, OffsetDateTime eventTimestamp) {
     // Make sure that the guest's hypervisor data is up to date.
     Optional<HbiHostRelationship> hypervisor =
-        hbiHostRelationshipService.getRelationship(
+        hbiHostRelationshipService.findHypervisor(
             guestFacts.getOrgId(), guestFacts.getHypervisorUuid());
     return hypervisor.map(h -> refreshHost("HYPERVISOR_UPDATED", h, eventTimestamp));
   }
@@ -187,6 +187,7 @@ public class HbiEventConsumer {
     try {
       hbiHostRelationshipService.processHost(
           facts.getOrgId(),
+          facts.getInventoryId(),
           facts.getSubscriptionManagerId(),
           facts.getHypervisorUuid(),
           facts.isUnmappedGuest(),
@@ -218,15 +219,17 @@ public class HbiEventConsumer {
   private Event refreshHost(
       String eventType, HbiHostRelationship hostRelationship, OffsetDateTime refreshTimestamp) {
     try {
-      Host host = new Host(objectMapper.readValue(hostRelationship.getFacts(), HbiHost.class));
+      Host host =
+          new Host(objectMapper.readValue(hostRelationship.getLatestHbiEventData(), HbiHost.class));
       NormalizedFacts facts = factNormalizer.normalize(host);
       Event event = buildEvent(eventType, facts, host, refreshTimestamp);
       hbiHostRelationshipService.processHost(
           facts.getOrgId(),
+          facts.getInventoryId(),
           facts.getSubscriptionManagerId(),
           facts.getHypervisorUuid(),
           facts.isUnmappedGuest(),
-          hostRelationship.getFacts());
+          hostRelationship.getLatestHbiEventData());
       return event;
     } catch (JsonProcessingException e) {
       throw new UnrecoverableMessageProcessingException(
@@ -295,7 +298,9 @@ public class HbiEventConsumer {
         .withExpiration(Optional.of(eventTimestamp.plusHours(1)))
         .withOrgId(facts.getOrgId())
         .withInstanceId(facts.getInstanceId())
-        .withInventoryId(Optional.ofNullable(facts.getInventoryId()))
+        .withInventoryId(
+            Optional.ofNullable(
+                Objects.nonNull(facts.getInventoryId()) ? facts.getInventoryId().toString() : null))
         .withInsightsId(Optional.ofNullable(facts.getInsightsId()))
         .withSubscriptionManagerId(Optional.ofNullable(facts.getSubscriptionManagerId()))
         .withDisplayName(Optional.ofNullable(facts.getDisplayName()))

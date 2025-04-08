@@ -24,16 +24,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
-import com.redhat.swatch.hbi.events.repository.HbiHostRelationshipId;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationshipRepository;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.candlepin.clock.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -56,28 +57,38 @@ class HbiHostRelationshipServiceTest {
   }
 
   @Test
-  void testProcessHostPersistsRelationshipForUnmappedGuest() {
+  void testProcessHostPersistsRelationship() {
     String orgId = "orgId";
+    UUID inventoryId = UUID.randomUUID();
     String subscriptionManagerId = "abc";
     String hypervisorUuid = "123";
-
     String hbiHostFactJson = "{\"data\":\"Test host fact data\"}";
-    service.processHost(orgId, subscriptionManagerId, hypervisorUuid, true, hbiHostFactJson);
+    when(clock.now()).thenReturn(OffsetDateTime.now());
+
+    service.processHost(
+        orgId, inventoryId, subscriptionManagerId, hypervisorUuid, true, hbiHostFactJson);
 
     ArgumentCaptor<HbiHostRelationship> captor = ArgumentCaptor.forClass(HbiHostRelationship.class);
     verify(repository, times(1)).persist(captor.capture());
+
     HbiHostRelationship hbiHostRelationship = captor.getValue();
     assertNotNull(hbiHostRelationship);
-    assertEquals(orgId, hbiHostRelationship.getId().getOrgId());
-    assertEquals(subscriptionManagerId, hbiHostRelationship.getId().getSubscriptionManagerId());
+    assertEquals(orgId, hbiHostRelationship.getOrgId());
+    assertEquals(inventoryId, hbiHostRelationship.getInventoryId());
+    assertEquals(subscriptionManagerId, hbiHostRelationship.getSubscriptionManagerId());
     assertEquals(hypervisorUuid, hbiHostRelationship.getHypervisorUuid());
-    assertEquals(hbiHostFactJson, hbiHostRelationship.getFacts());
+    assertEquals(hbiHostFactJson, hbiHostRelationship.getLatestHbiEventData());
     assertTrue(hbiHostRelationship.isUnmappedGuest());
+    assertNotNull(hbiHostRelationship.getCreationDate());
+    assertNotNull(hbiHostRelationship.getLastUpdated());
+    // Should be the same when initially created.
+    assertEquals(hbiHostRelationship.getCreationDate(), hbiHostRelationship.getLastUpdated());
   }
 
   @Test
   void testMapHypervisor_createsNewRelationship() {
     String orgId = "org_1";
+    UUID inventoryId = UUID.randomUUID();
     String submanId = "123";
     String factData = "{\"data\":\"Test hypervisor fact data\"}";
 
@@ -85,32 +96,39 @@ class HbiHostRelationshipServiceTest {
     when(clock.now()).thenReturn(expectedCreateUpdateTime);
 
     HbiHostRelationship hbiHostRelationship = new HbiHostRelationship();
-    hbiHostRelationship.setId(new HbiHostRelationshipId(orgId, submanId));
-    hbiHostRelationship.setFacts(factData);
+    hbiHostRelationship.setOrgId(orgId);
+    hbiHostRelationship.setInventoryId(inventoryId);
+    hbiHostRelationship.setSubscriptionManagerId(submanId);
+    hbiHostRelationship.setLatestHbiEventData(factData);
     hbiHostRelationship.setCreationDate(expectedCreateUpdateTime);
     hbiHostRelationship.setLastUpdated(expectedCreateUpdateTime);
 
-    service.processHost(orgId, submanId, null, false, factData);
-    verify(repository, times(1)).findByIdOptional(hbiHostRelationship.getId());
-    verify(repository, times(1)).persist(hbiHostRelationship);
+    service.processHost(orgId, inventoryId, submanId, null, false, factData);
+    verify(repository, times(1))
+        .findByOrgIdAndInventoryId(
+            hbiHostRelationship.getOrgId(), hbiHostRelationship.getInventoryId());
+    verify(repository, times(1)).persist(any(HbiHostRelationship.class));
   }
 
   @Test
   void testMapHypervisor_updatesExistingRelationship() {
     String orgId = "org_1";
+    UUID inventoryId = UUID.randomUUID();
     String submanId = "123";
-
-    HbiHostRelationshipId relationshipId = new HbiHostRelationshipId(orgId, submanId);
 
     OffsetDateTime initialCreateUpdateTime = OffsetDateTime.now();
     HbiHostRelationship existingHbiHostRelationship = new HbiHostRelationship();
-    existingHbiHostRelationship.setId(relationshipId);
-    existingHbiHostRelationship.setFacts("{\"data\":\"Initial Fact Data\"}");
+    existingHbiHostRelationship.setId(UUID.randomUUID());
+    existingHbiHostRelationship.setOrgId(orgId);
+    existingHbiHostRelationship.setInventoryId(inventoryId);
+    existingHbiHostRelationship.setSubscriptionManagerId(submanId);
+    existingHbiHostRelationship.setLatestHbiEventData("{\"data\":\"Initial Fact Data\"}");
     existingHbiHostRelationship.setHypervisorUuid("hypervisor_123");
     existingHbiHostRelationship.setCreationDate(initialCreateUpdateTime);
     existingHbiHostRelationship.setLastUpdated(initialCreateUpdateTime);
 
-    when(repository.findByIdOptional(existingHbiHostRelationship.getId()))
+    when(repository.findByOrgIdAndInventoryId(
+            existingHbiHostRelationship.getOrgId(), existingHbiHostRelationship.getInventoryId()))
         .thenReturn(Optional.of(existingHbiHostRelationship));
 
     OffsetDateTime expectedUpdateTime = initialCreateUpdateTime.plusMinutes(1);
@@ -118,9 +136,11 @@ class HbiHostRelationshipServiceTest {
 
     when(clock.now()).thenReturn(expectedUpdateTime);
 
-    service.processHost(orgId, submanId, null, false, updatedFactData);
+    service.processHost(orgId, inventoryId, submanId, null, false, updatedFactData);
 
-    verify(repository, times(1)).findByIdOptional(existingHbiHostRelationship.getId());
+    verify(repository, times(1))
+        .findByOrgIdAndInventoryId(
+            existingHbiHostRelationship.getOrgId(), existingHbiHostRelationship.getInventoryId());
 
     ArgumentCaptor<HbiHostRelationship> persistCaptor =
         ArgumentCaptor.forClass(HbiHostRelationship.class);
@@ -128,10 +148,17 @@ class HbiHostRelationshipServiceTest {
 
     HbiHostRelationship persistedHbiHostRelationship = persistCaptor.getValue();
     assertEquals(existingHbiHostRelationship.getId(), persistedHbiHostRelationship.getId());
+    assertEquals(existingHbiHostRelationship.getOrgId(), persistedHbiHostRelationship.getOrgId());
+    assertEquals(
+        existingHbiHostRelationship.getInventoryId(),
+        persistedHbiHostRelationship.getInventoryId());
+    assertEquals(
+        existingHbiHostRelationship.getSubscriptionManagerId(),
+        persistedHbiHostRelationship.getSubscriptionManagerId());
     assertEquals(
         existingHbiHostRelationship.getHypervisorUuid(),
         persistedHbiHostRelationship.getHypervisorUuid());
-    assertEquals(updatedFactData, persistedHbiHostRelationship.getFacts());
+    assertEquals(updatedFactData, persistedHbiHostRelationship.getLatestHbiEventData());
     assertEquals(initialCreateUpdateTime, persistedHbiHostRelationship.getCreationDate());
     assertEquals(expectedUpdateTime, persistedHbiHostRelationship.getLastUpdated());
   }
@@ -147,22 +174,6 @@ class HbiHostRelationshipServiceTest {
 
     assertTrue(service.isHypervisor(orgId, hypervisorSubmanId));
     assertFalse(service.isHypervisor(orgId, nonHypervisorSubmanId));
-  }
-
-  @Test
-  void testIsIsKnownHost() {
-    String orgId = "org123";
-    String unmappedGuestHypervisorUuid = "123";
-    String mappedGuestHypervisorUuid = "abc";
-
-    // A record must exist for the hypervisor's subman ID.
-    when(repository.findByIdOptional(new HbiHostRelationshipId(orgId, mappedGuestHypervisorUuid)))
-        .thenReturn(Optional.of(new HbiHostRelationship()));
-    when(repository.findByIdOptional(new HbiHostRelationshipId(orgId, unmappedGuestHypervisorUuid)))
-        .thenReturn(Optional.empty());
-
-    assertFalse(service.isKnownHost(orgId, unmappedGuestHypervisorUuid));
-    assertTrue(service.isKnownHost(orgId, mappedGuestHypervisorUuid));
   }
 
   @Test

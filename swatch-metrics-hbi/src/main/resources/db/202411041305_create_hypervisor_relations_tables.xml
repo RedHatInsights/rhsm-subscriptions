@@ -9,11 +9,17 @@
 
   <changeSet id="202411251600" author="lburnett">
     <createTable tableName="hbi_host_relationship">
+      <column name="id" type="UUID">
+        <constraints nullable="false" primaryKey="true" />
+      </column>
+      <column name="inventory_id" type="UUID">
+        <constraints nullable="false" />
+      </column>
       <column name="org_id" type="VARCHAR">
         <constraints nullable="false"/>
       </column>
       <column name="subscription_manager_id" type="VARCHAR">
-        <constraints nullable="false"/>
+        <constraints nullable="true"/>
       </column>
       <column name="hypervisor_uuid" type="VARCHAR">
         <constraints nullable="true"/>
@@ -24,23 +30,17 @@
       <column name="last_updated" type="TIMESTAMP WITH TIME ZONE">
         <constraints nullable="false"/>
       </column>
-      <column name="facts" type="${json_type}">
-        <constraints nullable="true"/>
+      <column name="latest_hbi_event_data" type="${json_type}">
+        <constraints nullable="false"/>
       </column>
       <column name="is_unmapped_guest" type="boolean" defaultValue="false">
         <constraints nullable="false" />
       </column>
     </createTable>
 
-    <addPrimaryKey
-      columnNames="org_id, subscription_manager_id"
-      constraintName="pk_hbi_host_relationship"
-      tableName="hbi_host_relationship"/>
-
     <addUniqueConstraint
-      columnNames="hypervisor_uuid"
-      constraintName="unique_hypervisor_uuid"
-      tableName="hbi_host_relationship"/>
+      tableName="hbi_host_relationship"
+      columnNames="inventory_id" />
 
   </changeSet>
 
