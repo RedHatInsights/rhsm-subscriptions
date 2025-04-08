@@ -25,7 +25,8 @@ import lombok.Getter;
 @Getter
 public enum ErrorCode {
   CONTRACTS_SERVICE_ERROR(2200, "Swatch Contracts Service Error"),
-  CONTRACT_NOT_AVAILABLE(3004, "Expected contract missing");
+  CONTRACT_NOT_AVAILABLE(3004, "Expected contract missing"),
+  REMITTANCE_NOT_PENDING(4001, "Remittance status is not in pending and cannot be updated.");
 
   private static final String CODE_PREFIX = "BILLABLE_USAGE";
 
