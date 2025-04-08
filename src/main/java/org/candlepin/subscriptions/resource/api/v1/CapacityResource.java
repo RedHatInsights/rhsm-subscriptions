@@ -110,9 +110,10 @@ public class CapacityResource implements CapacityApi {
       UsageType usage) {
 
     log.debug(
-        "Get capacity report for product {} by metric {} in range [{}, {}] for category {}",
+        "Get capacity report for product {} by metric {} and billing account {} in range [{}, {}] for category {}",
         productId,
         metricId,
+        billingAccountId,
         beginning,
         ending,
         reportCategory);
