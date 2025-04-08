@@ -19,6 +19,8 @@ jobs:
   validate-format:
     name: Validate Format
     runs-on: ubuntu-latest
+    outputs:
+      checkstyle-report-url: ${{ steps.checkstyle-report-upload.outputs.artifact-url }}
 
     steps:
       - uses: actions/checkout@v4
@@ -32,6 +34,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
+          add-job-summary: 'on-failure'
           gradle-home-cache-includes: |
             buildSrc/.gradle
             buildSrc/build
@@ -39,14 +42,15 @@ jobs:
       - name: Run Spotless & Checkstyle
         id: run-lint
         run: |
-          ./gradlew --no-daemon --no-parallel spotlessCheck checkstyleMain checkstyleTest
+          ./gradlew --no-daemon spotlessCheck checkstyleMain checkstyleTest
 
       - name: Upload Checkstyle Report
-        if: always()
+        id: checkstyle-report-upload
+        if: ${{ always() && (hashFiles('**/build/reports/checkstyle/**')) }}
         uses: actions/upload-artifact@v4
         with:
           name: checkstyle-report
-          path: '**/build/reports/checkstyle'
+          path: '${{ github.workspace }}/**/build/reports/checkstyle'
 
   validate-floorplan-queries:
     name: Validate FloorPlan Queries
@@ -69,6 +73,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
+          add-job-summary: 'on-failure'
           gradle-home-cache-includes: |
             buildSrc/.gradle
             buildSrc/build
@@ -90,7 +95,7 @@ jobs:
       - name: Execute migrations
         id: run-migrations
         run: |
-          ./gradlew --no-daemon --no-parallel :liquibaseUpdate
+          ./gradlew --no-daemon :liquibaseUpdate
 
       - name: Run FloorPlan Query Validation
         run: |
@@ -123,6 +128,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
+          add-job-summary: 'on-failure'
           gradle-home-cache-includes: |
             buildSrc/.gradle
             buildSrc/build
@@ -132,7 +138,7 @@ jobs:
         env:
           GRADLE_OPTS: "-Xmx2g -Xms512m"
         run: |
-          ./gradlew --no-daemon --no-parallel build -x test
+          ./gradlew --no-daemon build -x test -x spotlessCheck -x checkstyleMain -x checkstyleTest -x testCodeCoverageReport
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
@@ -145,6 +151,10 @@ jobs:
   test:
     name: Test & Coverage
     runs-on: ubuntu-latest
+    outputs:
+      html-report-url: ${{ steps.html-report-upload.outputs.artifact-url }}
+      coverage-report-url: ${{ steps.coverage-report-upload.outputs.artifact-url }}
+      coverage-report-uploaded: ${{ steps.coverage-report-upload.outcome }}
 
     steps:
       - uses: actions/checkout@v4
@@ -158,6 +168,10 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
+          # The gradle job summaries are pretty low information and if the test build fails, you
+          # already know gradle failed and want to see the test results summary right at the top
+          # and not a summary that tells you "Gradle failed, sorry"
+          add-job-summary: 'never'
           gradle-home-cache-includes: |
             buildSrc/.gradle
             buildSrc/build
@@ -170,38 +184,38 @@ jobs:
           ./gradlew --no-daemon test
 
       - name: Upload JUnit Report
-        if: always() && (hashFiles('**/build/test-results/test/TEST-*.xml') != '')
+        if: ${{ always() && (hashFiles('**/build/test-results/test/TEST-*.xml') != '') }}
         uses: actions/upload-artifact@v4
         with:
           name: junit-report
           path: '**/build/test-results/test/TEST-*.xml'
 
       - name: Upload Gradle HTML Test Report
-        if: always()
+        id: html-report-upload
+        if: ${{ always() && (hashFiles('**/build/reports/tests/**')) }}
         uses: actions/upload-artifact@v4
         with:
           name: junit-html-report
-          path: '**/build/reports/tests/test/index.html'
+          # Unfortunately all the reports get dropped into the top-level of the zip file, so if you
+          # aren't careful and unzip the file in your home directory it will splatter its contents
+          # all over the place.  There's an issue about this at https://github.com/actions/upload-artifact/issues/174
+          # but no progress and the workarounds I tried didn't work.  Probably something worth
+          # getting back to another day.  The path in the archive starts after the first wildcard
+          # so if we do something like '${{ github.workspace }}/*/rhsm-subscriptions/**/build/reports/tests/**'
+          # but I don't know what the directory structure above the repo directory actually is.
+          path: '**/build/reports/tests/**'
 
       - name: Generate Code Coverage Report
-        run: ./gradlew --no-parallel testCodeCoverageReport
+        run: ./gradlew testCodeCoverageReport
 
       - name: Upload Code Coverage
+        id: coverage-report-upload
         if: ${{ always() && (hashFiles('**/build/reports/jacoco/testCodeCoverageReport/**') != '') }}
         uses: actions/upload-artifact@v4
         with:
           name: code-coverage
           path: '**/build/reports/jacoco/testCodeCoverageReport/**'
 
-      - name: Publish Test Results
-        if: always() && (hashFiles('**/build/test-results/test/TEST-*.xml') != '')
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        with:
-          files: '**/build/test-results/test/TEST-*.xml'
-          check_name: 'JUnit Tests'
-          comment_mode: off
-          fail_on: 'errors'
-          report_individual_runs: true
 
   summary:
     name: PR Summary
@@ -211,14 +225,16 @@ jobs:
 
     steps:
       - name: Download Code Coverage Report
-        if: ${{ always() && (hashFiles('**/build/reports/jacoco/testCodeCoverageReport/**') != '') }}
+        id: download-coverage
         continue-on-error: true
         uses: actions/download-artifact@v4
+        if: ${{ needs.test.outputs.coverage-report-uploaded == 'success' }}
         with:
           name: code-coverage
           path: coverage-report
 
       - name: Download JUnit Test Results
+        id: download-junit
         continue-on-error: true
         uses: actions/download-artifact@v4
         with:
@@ -226,30 +242,78 @@ jobs:
           path: junit-report
 
       - name: Download Checkstyle Report
+        id: download-checkstyle
         continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: checkstyle-report
           path: checkstyle-report
 
-      - name: JUnit Summary
-        id: summary
+      - name: JUnit Test Report
+        id: test-report
         uses: mikepenz/action-junit-report@v5
+        # See https://stackoverflow.com/a/70549615/6124862
+        if: ${{ steps.download-junit.outcome == 'success' }}
         with:
-          report_paths: 'junit-report/TEST-*.xml'
+          report_paths: 'junit-report/**/TEST-*.xml'
+          detailed_summary: true
+
+      # With hearty thanks to https://stackoverflow.com/a/70816724/6124862
+      - name: Fetch JUnit Test Report link
+        id: junitAnnotations
+        run: |
+          URI="https://api.github.com"
+          API_HEADER="Accept: application/vnd.github.v3+json"
+          AUTH_HEADER="Authorization: token ${{ secrets.GITHUB_TOKEN }}"
+
+          echo "::debug::Read job"
+          job_body=$(curl -sSL -H "${AUTH_HEADER}" -H "$API_HEADER" "$URI/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs")
+          check_run_url=$(echo "$job_body" | jq -r '.jobs[] | select(.name == "Test & Coverage") | .check_run_url')
+
+          echo "::debug::Fetching check run ${check_run_url}"
+          check_suite_body=$(curl -sSL -H "${AUTH_HEADER}" -H "$API_HEADER" "${check_run_url}")
+          check_suite_id=$(echo "$check_suite_body" | jq '.check_suite.id')
+
+          echo "::debug::Fetching check suite ${check_suite_id}"
+          check_runs_body=$(curl -sSL -H "${AUTH_HEADER}" -H "$API_HEADER" "$URI/repos/${GITHUB_REPOSITORY}/check-suites/${check_suite_id}/check-runs")
+          details_url=$(echo "$check_runs_body" | jq -r '.check_runs[] | select (.name == "JUnit Test Report") | .details_url')
+
+          echo "DETAILS_URL=$details_url" >> "$GITHUB_OUTPUT"
 
       - name: Post PR Summary Comment
-        if: github.event_name == 'pull_request'
+        # We want to use .outcome because it is the success state of the task before continue-on-error
+        # is applied.
+        # See https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#steps-context
+        if: ${{ github.event_name == 'pull_request' }}
         uses: marocchino/sticky-pull-request-comment@v2
         with:
-          header: "test-and-coverage-summary"
+          header: "test-summary"
           message: |
-            🧪 **JUnit Test Summary**
-            - Total Tests: `${{ steps.summary.outputs.total }}`
-            - ❌ Failed: `${{ steps.summary.outputs.failed }}`
-            - ⚠️ Skipped: `${{ steps.summary.outputs.skipped }}`
-            - 📄 [Download HTML Test Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
-            📊 **Code Coverage**
-            - 📄 [Download HTML Coverage Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
-            🧹 **Checkstyle**
-            - 📄 [Download Checkstyle Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            ⛏️ **[Workflow Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}?pr=${{ github.event.pull_request.number }})**
+
+            🧹 **[Checkstyle](${{ needs.validate-format.outputs.checkstyle-report-url }})**
+
+            🧪 **[JUnit](${{ needs.test.outputs.html-report-url }})**
+
+              ${{ steps.test-report.outputs.summary }}
+
+              <details>
+                <summary>
+                  <a href="${{ steps.junitAnnotations.outputs.DETAILS_URL }}">
+                  Details
+                  </a>
+                </summary>
+                ${{ steps.test-report.outputs.detailed_summary }}
+              </details>
+
+      # If the unit tests fail, we don't run coverage so post the coverage report separately
+      - name: Post Coverage Summary Comment
+        # We want to use .outcome because it is the success state of the task before continue-on-error
+        # is applied.
+        # See https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#steps-context
+        if: ${{ github.event_name == 'pull_request' && steps.download-coverage.outcome == 'success' }}
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: "coverage-summary"
+          message: |
+            📊 **[Code Coverage](${{ needs.test.outputs.coverage-report-url }})**

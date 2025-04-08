@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/openjdk-17:1.22-1.1743431273
+FROM registry.access.redhat.com/ubi9/openjdk-17:1.22-1.1743605866
 
 USER root
 # Add git, so that the build can determine the git hash
@@ -36,7 +36,7 @@ RUN ./gradlew ${GRADLE_TASKS} -x test ${GRADLE_BUILD_ARGS}
 
 RUN jar -xf ./build/libs/*.jar
 
-FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.22-1
+FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.22-1.1743605825
 USER root
 RUN microdnf \
     --disablerepo=* \
