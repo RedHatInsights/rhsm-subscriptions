@@ -178,5 +178,6 @@
     <include file="/liquibase/202412041537-primary-keys-on-all-tables.xml"/>
     <include file="/liquibase/202501081035-remove-backup-tables.xml"/>
     <include file="/liquibase/202412091327-drop-hardware-measurement-type-from-billable-usage-remittance.xml"/>
+    <include file="/liquibase/202503191200-add-column-descriptions.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
