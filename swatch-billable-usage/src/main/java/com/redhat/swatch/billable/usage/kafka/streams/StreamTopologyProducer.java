@@ -22,12 +22,13 @@ package com.redhat.swatch.billable.usage.kafka.streams;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.configuration.registry.MetricId;
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.arc.profile.UnlessBuildProfile;
 import io.quarkus.kafka.client.serialization.ObjectMapperSerde;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.serialization.Serdes;
@@ -106,22 +107,23 @@ public class StreamTopologyProducer {
     log.info("Sending aggregate to hourly topic: {}", aggregate);
     if (key.key().getProductId() != null && key.key().getMetricId() != null) {
       // add metrics for aggregation
-      var counter = Counter.builder(USAGE_TOTAL_AGGREGATED_METRIC);
+      List<String> tags =
+          new ArrayList<>(
+              List.of(
+                  "product",
+                  key.key().getProductId(),
+                  "metric_id",
+                  MetricId.tryGetValueFromString(key.key().getMetricId())));
       if (key.key().getBillingProvider() != null) {
-        counter.tag("billing_provider", key.key().getBillingProvider());
+        tags.addAll(List.of("billing_provider", key.key().getBillingProvider()));
       }
 
       if (aggregate.getStatus() != null) {
-        counter.tag("status", aggregate.getStatus().toString());
+        tags.addAll(List.of("status", aggregate.getStatus().toString()));
       }
 
-      counter
-          .withRegistry(meterRegistry)
-          .withTags(
-              "product",
-              key.key().getProductId(),
-              "metric_id",
-              MetricId.tryGetValueFromString(key.key().getMetricId()))
+      meterRegistry
+          .counter(USAGE_TOTAL_AGGREGATED_METRIC, tags.toArray(new String[0]))
           .increment(aggregate.getTotalValue().doubleValue());
     }
   }

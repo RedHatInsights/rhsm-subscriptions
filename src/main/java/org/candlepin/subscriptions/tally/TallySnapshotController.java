@@ -26,7 +26,6 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import io.micrometer.core.annotation.Timed;
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.OffsetDateTime;
 import java.util.Collection;
@@ -203,7 +202,6 @@ public class TallySnapshotController {
   }
 
   private void recordTallyCount(List<TallySnapshot> snapshots) {
-    var count = Counter.builder(TALLIED_USAGE_TOTAL_METRIC).withRegistry(meterRegistry);
     // Only increment the counter at the finest granularity level to prevent over-counting
     snapshots.stream()
         .filter(this::filterByFinestGranularityAndNotAnySnapshots)
@@ -218,15 +216,17 @@ public class TallySnapshotController {
                     .entrySet()
                     .forEach(
                         entry -> {
-                          var c =
-                              count.withTags(
+                          List<String> tags =
+                              List.of(
                                   "product",
                                   snap.getProductId(),
                                   "metric_id",
                                   MetricId.tryGetValueFromString(entry.getKey().getMetricId()),
                                   "billing_provider",
                                   snap.getBillingProvider().getValue());
-                          c.increment(entry.getValue());
+                          meterRegistry
+                              .counter(TALLIED_USAGE_TOTAL_METRIC, tags.toArray(new String[0]))
+                              .increment(entry.getValue());
                         }));
   }
 

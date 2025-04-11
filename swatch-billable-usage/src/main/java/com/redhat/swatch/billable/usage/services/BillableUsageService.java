@@ -35,7 +35,6 @@ import com.redhat.swatch.billable.usage.services.model.MetricUnit;
 import com.redhat.swatch.billable.usage.services.model.Quantity;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -280,7 +279,6 @@ public class BillableUsageService {
       return;
     }
 
-    var builder = Counter.builder(metric);
     List<String> tags =
         new ArrayList<>(
             List.of(
@@ -289,9 +287,9 @@ public class BillableUsageService {
                 "billing_provider", usage.getBillingProvider().value()));
 
     if (usage.getStatus() != null) {
-      builder.tag("status", usage.getStatus().value());
+      tags.addAll(List.of("status", usage.getStatus().value()));
     }
 
-    builder.withRegistry(meterRegistry).withTags(tags.toArray(new String[0])).increment(value);
+    meterRegistry.counter(metric, tags.toArray(new String[0])).increment(value);
   }
 }

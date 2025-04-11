@@ -30,7 +30,6 @@ import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Sets;
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -77,13 +76,16 @@ class TallySnapshotControllerMetricsTest {
 
     controller.produceSnapshotsForOrg("123");
 
-    var counter =
-        Counter.builder(TALLIED_USAGE_TOTAL_METRIC)
-            .tags("product", "RHEL for x86", "billing_provider", BillingProvider.RED_HAT.getValue())
-            .withRegistry(registry);
-
     for (var s : Set.of("Cores", "Sockets")) {
-      var c = counter.withTag("metric_id", s);
+      var c =
+          registry.counter(
+              TALLIED_USAGE_TOTAL_METRIC,
+              "product",
+              "RHEL for x86",
+              "billing_provider",
+              BillingProvider.RED_HAT.getValue(),
+              "metric_id",
+              s);
       assertEquals(10.0, c.count());
     }
   }
@@ -123,14 +125,16 @@ class TallySnapshotControllerMetricsTest {
         .thenReturn(Map.of("123", snapList));
 
     controller.produceHourlySnapshotsForOrg("123");
-
-    var counter =
-        Counter.builder(TALLIED_USAGE_TOTAL_METRIC)
-            .tags("product", "rosa", "billing_provider", BillingProvider.RED_HAT.getValue())
-            .withRegistry(registry);
-
     for (var s : Set.of("Cores", "Sockets")) {
-      var c = counter.withTag("metric_id", s);
+      var c =
+          registry.counter(
+              TALLIED_USAGE_TOTAL_METRIC,
+              "product",
+              "rosa",
+              "billing_provider",
+              BillingProvider.RED_HAT.getValue(),
+              "metric_id",
+              s);
       assertEquals(10.0, c.count());
     }
   }
