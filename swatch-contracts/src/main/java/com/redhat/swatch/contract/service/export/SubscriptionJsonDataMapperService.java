@@ -57,7 +57,10 @@ public class SubscriptionJsonDataMapperService
     item.setProductName(dataItem.getProductName());
     item.setSubscriptionNumber(dataItem.getSubscriptionNumber());
     item.setQuantity((double) dataItem.getQuantity());
-
+    item.setBillingAccountId(dataItem.getBillingAccountId());
+    if (dataItem.getBillingProvider() != null) {
+      item.setBillingProvider(dataItem.getBillingProvider().getValue());
+    }
     // aggregate metrics
     item.setMeasurements(groupMetrics(mapper, dataItem, request));
 
