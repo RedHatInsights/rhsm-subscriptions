@@ -5,7 +5,7 @@ plugins {
 dependencies {
     implementation enforcedPlatform(libraries["quarkus-bom"])
     api 'io.quarkus:quarkus-smallrye-health'
-    testImplementation libraries["junit-jupiter"]
+    testImplementation 'io.quarkus:quarkus-junit5'
 }
 
 description = 'Shared health checks for swatch services'
