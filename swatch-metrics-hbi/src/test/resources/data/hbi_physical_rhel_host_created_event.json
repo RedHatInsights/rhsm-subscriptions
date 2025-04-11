@@ -1,0 +1,78 @@
+{
+  "type": "created",
+  "host": {
+    "id": "18ebb8c0-a597-41b6-85d2-62003ebaacd3",
+    "display_name": "testhost.example.com",
+    "ansible_host": null,
+    "account": null,
+    "org_id": "12345678",
+    "insights_id": "4a6a184e-6204-47d9-b888-26db9b5e8c81",
+    "subscription_manager_id": "6bfc8a3d-464f-4853-a301-4b1715480799",
+    "satellite_id": null,
+    "fqdn": "testhost.example.com",
+    "ip_addresses": null,
+    "mac_addresses": null,
+    "facts": [
+      {
+        "namespace": "rhsm",
+        "facts": {
+          "orgId": "12345678",
+          "MEMORY": 1,
+          "RH_PROD": [
+            "69"
+          ],
+          "IS_VIRTUAL": false,
+          "ARCHITECTURE": "x86_64",
+          "SYNC_TIMESTAMP": "2024-10-18T16:42:27.185484784Z",
+          "SYSPURPOSE_SLA": "Self-Support",
+          "SYSPURPOSE_USAGE": "Development/Test"
+        }
+      }
+    ],
+    "provider_id": null,
+    "provider_type": null,
+    "created": "2024-10-18T16:22:14.086713+00:00",
+    "updated": "2024-10-18T16:42:28.857787+00:00",
+    "stale_timestamp": "2024-10-19T21:42:28.857787+00:00",
+    "stale_warning_timestamp": "2024-10-25T16:42:28.857787+00:00",
+    "culled_timestamp": "2024-11-01T16:42:28.857787+00:00",
+    "reporter": "rhsm-conduit",
+    "tags": [],
+    "system_profile": {
+      "arch": "x86_64",
+      "owner_id": "6bfc8a3d-464f-4853-a301-4b1715480799",
+      "conversions": {
+        "activity": false
+      },
+      "is_marketplace": false,
+      "cores_per_socket": 1,
+      "number_of_sockets": 2,
+      "infrastructure_type": "physical",
+      "system_memory_bytes": 5120
+    },
+    "per_reporter_staleness": {
+      "rhsm-conduit": {
+        "last_check_in": "2024-10-18T16:42:28.821635+00:00",
+        "stale_timestamp": "2024-10-19T21:42:28.821635+00:00",
+        "check_in_succeeded": true,
+        "stale_warning_timestamp": "2024-10-25T16:42:28.821635+00:00",
+        "culled_timestamp": "2024-11-01T16:42:28.821635+00:00"
+      },
+      "rhsm-system-profile-bridge": {
+        "last_check_in": "2024-10-18T16:22:14.065333+00:00",
+        "stale_timestamp": "2024-10-19T21:22:14.065333+00:00",
+        "check_in_succeeded": true,
+        "stale_warning_timestamp": "2024-10-25T16:22:14.065333+00:00",
+        "culled_timestamp": "2024-11-01T16:22:14.065333+00:00"
+      }
+    },
+    "groups": []
+  },
+  "timestamp": "2024-10-18T16:42:29.134663+00:00",
+  "platform_metadata": {
+    "request_id": "8f752a10-3ed0-48b0-b55f-7d26e4ea50e5"
+  },
+  "metadata": {
+    "request_id": "8f752a10-3ed0-48b0-b55f-7d26e4ea50e5"
+  }
+}

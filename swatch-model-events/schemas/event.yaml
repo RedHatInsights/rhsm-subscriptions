@@ -271,3 +271,25 @@ properties:
       This should match 'isMigrationProduct' values of the swatch product defined in swatch-product-configuration project subscription_configs.
     type: boolean
     default: false
+  isHypervisor:
+    description: Describes whether this host is an active hypervisor
+    type: boolean
+    required: false
+    default: false
+  isVirtual:
+    description: Describes whether this system is a virtual guest.
+    type: boolean
+    required: false
+    default: false
+  isUnmappedGuest:
+    description: Describes whether this virtual guest has a hypervisor know to swatch.
+    type: boolean
+    required: false
+    default: false
+  lastSeen:
+    description: The last time the host was last seen by the source.
+    type: string
+    format: date-time
+    required: false
+    examples:
+      - 2024-08-29T12:00:00Z
