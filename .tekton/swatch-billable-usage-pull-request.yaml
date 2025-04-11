@@ -11,20 +11,20 @@ metadata:
   creationTimestamp:
   labels:
     appstudio.openshift.io/application: rhsm-subscriptions
-    appstudio.openshift.io/component: swatch-api
+    appstudio.openshift.io/component: swatch-billable-usage
     pipelines.appstudio.openshift.io/type: build
-  name: swatch-api-on-pull-request
+  name: swatch-billable-usage-on-pull-request
   namespace: rh-subs-watch-tenant
 spec:
   params:
     - name: dockerfile
-      value: swatch-api/src/main/docker/Dockerfile.jvm
+      value: swatch-billable-usage/src/main/docker/Dockerfile.jvm
     - name: git-url
       value: '{{source_url}}'
     - name: image-expires-after
       value: 5d
     - name: output-image
-      value: quay.io/redhat-user-workloads/rh-subs-watch-tenant/rhsm-subscriptions/swatch-api:on-pr-{{revision}}
+      value: quay.io/redhat-user-workloads/rh-subs-watch-tenant/rhsm-subscriptions/swatch-billable-usage:on-pr-{{revision}}
     - name: path-context
       value: .
     - name: revision
@@ -222,7 +222,7 @@ spec:
           - provision-eaas-space
         params:
           - name: SERVICE
-            value: swatch-api
+            value: swatch-billable-usage
           - name: PROVISION_EAAS_SPACE_SECRET_REF
             value: $(tasks.provision-eaas-space.results.secretRef)
         taskRef:
