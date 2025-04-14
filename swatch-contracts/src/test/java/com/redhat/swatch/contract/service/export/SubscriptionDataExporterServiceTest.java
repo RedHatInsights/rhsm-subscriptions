@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.contract.service.export;
 
-import static com.redhat.swatch.contract.repository.ReportCategory.HYPERVISOR;
 import static com.redhat.swatch.contract.service.export.SubscriptionDataExporterService.PRODUCT_ID;
 import static com.redhat.swatch.export.ExportRequestHandler.ADMIN_ROLE;
 import static com.redhat.swatch.export.ExportRequestHandler.MISSING_PERMISSIONS;
@@ -41,18 +40,14 @@ import com.redhat.swatch.clients.rbac.RbacApiException;
 import com.redhat.swatch.clients.rbac.RbacService;
 import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
-import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import com.redhat.swatch.contract.config.Channels;
 import com.redhat.swatch.contract.model.SubscriptionsExportCsvItem;
 import com.redhat.swatch.contract.model.SubscriptionsExportJson;
 import com.redhat.swatch.contract.model.SubscriptionsExportJsonItem;
-import com.redhat.swatch.contract.model.SubscriptionsExportJsonMeasurement;
 import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.OfferingRepository;
-import com.redhat.swatch.contract.repository.SubscriptionCapacityView;
-import com.redhat.swatch.contract.repository.SubscriptionCapacityViewMetric;
 import com.redhat.swatch.contract.repository.SubscriptionCapacityViewRepository;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionMeasurementKey;
@@ -72,7 +67,6 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -100,6 +94,7 @@ class SubscriptionDataExporterServiceTest {
   private static final String RHEL_FOR_X86 = "RHEL for x86";
   private static final String ROSA = "rosa";
   private static final String ORG_ID = "13259775";
+  private static final String BILLING_ACCOUNT_ID = "123";
   private static final LoggerCaptor LOGGER_CAPTOR = new LoggerCaptor();
 
   @Inject SubscriptionRepository subscriptionRepository;
@@ -281,79 +276,6 @@ class SubscriptionDataExporterServiceTest {
     thenErrorLogWithMessage("Error handling export request");
   }
 
-  @Test
-  public void testJsonMapDataItem() {
-    SubscriptionCapacityView subscriptionCapacityView = givenPopulatedSubscriptionCapacityView();
-
-    List<Object> result = jsonDataMapperService.mapDataItem(subscriptionCapacityView, null);
-
-    assertEquals(1, result.size());
-    SubscriptionsExportJsonItem jsonItem = (SubscriptionsExportJsonItem) result.get(0);
-    assertEquals(
-        subscriptionCapacityView.getSubscriptionNumber(), jsonItem.getSubscriptionNumber());
-    assertEquals(subscriptionCapacityView.getSku(), jsonItem.getSku());
-    assertEquals(subscriptionCapacityView.getProductName(), jsonItem.getProductName());
-    assertEquals(subscriptionCapacityView.getQuantity(), jsonItem.getQuantity());
-    assertEquals(subscriptionCapacityView.getBillingAccountId(), jsonItem.getBillingAccountId());
-    assertEquals(
-        subscriptionCapacityView.getBillingProvider().getValue(), jsonItem.getBillingProvider());
-    assertEquals(subscriptionCapacityView.getUsage().getValue(), jsonItem.getUsage());
-    assertEquals(subscriptionCapacityView.getServiceLevel().getValue(), jsonItem.getServiceLevel());
-
-    SubscriptionsExportJsonMeasurement measurement = jsonItem.getMeasurements().get(0);
-    SubscriptionCapacityViewMetric metric = subscriptionCapacityView.getMetrics().iterator().next();
-    assertEquals(metric.getMetricId(), measurement.getMetricId());
-    assertEquals(metric.getCapacity(), measurement.getCapacity());
-  }
-
-  @Test
-  public void testCsvMapDataItem() {
-    SubscriptionCapacityView subscriptionCapacityView = givenPopulatedSubscriptionCapacityView();
-
-    List<Object> result = csvDataMapperService.mapDataItem(subscriptionCapacityView, null);
-
-    assertEquals(1, result.size());
-    SubscriptionsExportCsvItem csvItem = (SubscriptionsExportCsvItem) result.get(0);
-    assertEquals(subscriptionCapacityView.getSubscriptionId(), csvItem.getSubscriptionId());
-    assertEquals(subscriptionCapacityView.getSubscriptionNumber(), csvItem.getSubscriptionNumber());
-    assertEquals(subscriptionCapacityView.getSku(), csvItem.getSku());
-    assertEquals(subscriptionCapacityView.getProductName(), csvItem.getProductName());
-    assertEquals(subscriptionCapacityView.getQuantity(), csvItem.getQuantity());
-    assertEquals(subscriptionCapacityView.getBillingAccountId(), csvItem.getBillingAccountId());
-    assertEquals(
-        subscriptionCapacityView.getBillingProvider().getValue(), csvItem.getBillingProvider());
-    assertEquals(subscriptionCapacityView.getUsage().getValue(), csvItem.getUsage());
-    assertEquals(subscriptionCapacityView.getServiceLevel().getValue(), csvItem.getServiceLevel());
-
-    SubscriptionCapacityViewMetric metric = subscriptionCapacityView.getMetrics().iterator().next();
-    assertEquals(metric.getMetricId(), csvItem.getMetricId());
-    assertEquals(metric.getCapacity(), csvItem.getCapacity());
-  }
-
-  private SubscriptionCapacityView givenPopulatedSubscriptionCapacityView() {
-    SubscriptionCapacityView subscriptionCapacityView = new SubscriptionCapacityView();
-
-    subscriptionCapacityView.setSubscriptionNumber("sub-num");
-    subscriptionCapacityView.setStartDate(OffsetDateTime.now().minusDays(1));
-    subscriptionCapacityView.setEndDate(OffsetDateTime.now().plusDays(1));
-    subscriptionCapacityView.setQuantity(10);
-    subscriptionCapacityView.setSku("sku-value");
-    subscriptionCapacityView.setBillingAccountId("billing-account-123");
-    subscriptionCapacityView.setBillingProvider(BillingProvider.AWS);
-    subscriptionCapacityView.setProductName("Sample Product");
-    subscriptionCapacityView.setUsage(Usage.PRODUCTION);
-    subscriptionCapacityView.setServiceLevel(ServiceLevel.PREMIUM);
-
-    SubscriptionCapacityViewMetric metric = new SubscriptionCapacityViewMetric();
-    metric.setMeasurementType(String.valueOf(HYPERVISOR));
-    metric.setMetricId(MetricId.fromString("CORES").toUpperCaseFormatted());
-    metric.setCapacity((double) 40);
-    var measurements = new HashSet<SubscriptionCapacityViewMetric>();
-    measurements.add(metric);
-    subscriptionCapacityView.setMetrics(measurements);
-    return subscriptionCapacityView;
-  }
-
   private void givenExportServiceReturnsGatewayTimeout() {
     wireMockResource.mockRequestToReturnGatewayTimeout(request);
   }
@@ -366,9 +288,13 @@ class SubscriptionDataExporterServiceTest {
         .forEach(
             subscription -> {
               if (isCsvFormat) {
-                data.addAll(csvDataMapperService.mapDataItem(subscription, null));
+                List<Object> items = csvDataMapperService.mapDataItem(subscription, null);
+                items.forEach(i -> verifyCsvDataItem((SubscriptionsExportCsvItem) i));
+                data.addAll(items);
               } else {
-                data.addAll(jsonDataMapperService.mapDataItem(subscription, null));
+                List<Object> items = jsonDataMapperService.mapDataItem(subscription, null);
+                items.forEach(i -> verifyJsonDataItem((SubscriptionsExportJsonItem) i));
+                data.addAll(items);
               }
             });
 
@@ -378,6 +304,16 @@ class SubscriptionDataExporterServiceTest {
       verifyRequestWasSentToExportServiceWithUploadJsonData(
           new SubscriptionsExportJson().withData(data));
     }
+  }
+
+  private void verifyCsvDataItem(SubscriptionsExportCsvItem item) {
+    assertEquals(BillingProvider.AWS.getValue(), item.getBillingProvider());
+    assertEquals(BILLING_ACCOUNT_ID, item.getBillingAccountId());
+  }
+
+  private void verifyJsonDataItem(SubscriptionsExportJsonItem item) {
+    assertEquals(BillingProvider.AWS.getValue(), item.getBillingProvider());
+    assertEquals(BILLING_ACCOUNT_ID, item.getBillingAccountId());
   }
 
   private void verifyRequestWasSentToExportServiceWithUploadCsvData(List<Object> data) {
@@ -410,7 +346,7 @@ class SubscriptionDataExporterServiceTest {
     offering.getProductTags().clear();
     offering.getProductTags().add(productId);
     updateOffering();
-    subscription.setBillingAccountId("123");
+    subscription.setBillingAccountId(BILLING_ACCOUNT_ID);
     subscription.setSubscriptionMeasurements(
         Map.of(
             new SubscriptionMeasurementKey(MetricIdUtils.getCores().toString(), "HYPERVISOR"),
