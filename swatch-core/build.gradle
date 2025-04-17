@@ -13,6 +13,7 @@ dependencies {
     // API exports swatch-product-configuration classes to all projects that include swatch-core
     api project(":swatch-product-configuration")
     api project(":swatch-model-events") // for Events generated models
+    api project(":swatch-common-trace-response") // for tracing purposes
     implementation "org.hibernate.validator:hibernate-validator"
     implementation "jakarta.validation:jakarta.validation-api"
     implementation "org.springframework.boot:spring-boot-starter"

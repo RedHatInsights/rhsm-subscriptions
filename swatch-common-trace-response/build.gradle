@@ -3,9 +3,12 @@ plugins {
 }
 
 dependencies {
-    implementation enforcedPlatform(libraries["quarkus-bom"])
-    implementation 'io.quarkus:quarkus-rest-jackson'
-    implementation('io.opentelemetry:opentelemetry-api')
+    implementation libraries["slf4j-api"]
+    implementation libraries["jakarta-ws-rs"]
+    implementation libraries["opentelemetry-api"]
+
+    testImplementation libraries["junit-jupiter"]
+    testImplementation libraries["mockito-junit-jupiter"]
 }
 
-description = 'Shared header logic for quarkus swatch services'
+description = 'Shared tracing logic for swatch services'

@@ -18,54 +18,22 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.deployment;
+package com.redhat.swatch.aws;
 
 import static com.redhat.swatch.traceresponse.TraceResponseFilter.TRACE_RESPONSE_HEADER;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.startsWith;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import io.restassured.RestAssured;
-import org.apache.commons.lang3.StringUtils;
-import org.candlepin.subscriptions.resource.ApiConfiguration;
-import org.junit.jupiter.api.BeforeEach;
+import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles({"api", "test"})
-class ApiDeploymentTest {
-  @LocalServerPort private int port;
-
-  @BeforeEach
-  public void init() {
-    RestAssured.port = this.port;
-  }
-
-  @Autowired ApiConfiguration configuration;
-
-  @Test
-  void testDeployment() {
-    assertNotNull(configuration);
-  }
-
-  @Test
-  void testApiSupportsLargeRequests() {
-    given()
-        .header("X-Correlation-ID", StringUtils.repeat("Z", 20000))
-        .when()
-        .get("/does-not-exist")
-        .then()
-        .statusCode(401);
-  }
-
+@QuarkusTest
+public class AwsDeploymentTest {
   @Test
   void testTraceResponseHeader() {
     given()
-        .get("/api/rhsm-subscriptions/v1/version")
+        .queryParam("position", "1")
+        .post("/api/swatch-producer-aws/internal/kafka_seek_position")
         .then()
         .header(TRACE_RESPONSE_HEADER, startsWith("00-"));
   }

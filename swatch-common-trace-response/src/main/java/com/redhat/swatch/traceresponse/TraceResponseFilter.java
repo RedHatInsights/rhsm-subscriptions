@@ -22,34 +22,41 @@ package com.redhat.swatch.traceresponse;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanContext;
-import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerResponseContext;
+import jakarta.ws.rs.container.ContainerResponseFilter;
+import jakarta.ws.rs.ext.Provider;
+import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
-import org.jboss.resteasy.reactive.server.ServerResponseFilter;
 
-/** See https://w3c.github.io/trace-context/#traceresponse-header for reference and format */
-@ApplicationScoped
+/**
+ * See <a href="https://w3c.github.io/trace-context/#traceresponse-header"></a> for reference and
+ * format.
+ */
+@Provider
 @Slf4j
-public class TraceResponseFilter {
+public class TraceResponseFilter implements ContainerResponseFilter {
 
-  @ServerResponseFilter
-  public void responseBasicHeaderFilter(ContainerResponseContext responseContext) {
+  public static final String TRACE_RESPONSE_HEADER = "traceresponse";
+
+  @Override
+  public void filter(
+      ContainerRequestContext containerRequestContext,
+      ContainerResponseContext containerResponseContext)
+      throws IOException {
     SpanContext spanContext = Span.current().getSpanContext();
-    responseContext
+    log.debug(
+        "Sent: [{}: {}] {} {}",
+        TRACE_RESPONSE_HEADER,
+        containerResponseContext.getHeaderString("traceresponse"),
+        containerResponseContext.getStatusInfo(),
+        containerResponseContext.getEntity());
+    containerResponseContext
         .getHeaders()
         .putSingle(
-            "traceresponse",
+            TRACE_RESPONSE_HEADER,
             String.format(
                 "00-%s-%s-%s  ",
                 spanContext.getTraceId(), spanContext.getSpanId(), spanContext.getTraceFlags()));
-  }
-
-  @ServerResponseFilter
-  public void responseLoggingFilter(ContainerResponseContext responseContext) {
-    log.debug(
-        "Sent: [traceresponse: {}] {} {}",
-        responseContext.getHeaderString("traceresponse"),
-        responseContext.getStatusInfo(),
-        responseContext.getEntity());
   }
 }
