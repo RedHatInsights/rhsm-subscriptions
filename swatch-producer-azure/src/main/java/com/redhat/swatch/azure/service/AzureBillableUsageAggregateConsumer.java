@@ -49,6 +49,8 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -297,29 +299,29 @@ public class AzureBillableUsageAggregateConsumer {
 
   private void incrementMeteredTotal(BillableUsageAggregate usage) {
     // add metrics for aggregation
-    var counter = Counter.builder(METERED_TOTAL_METRIC);
+    List<String> tags =
+        new ArrayList<>(
+            List.of(
+                "product",
+                usage.getAggregateKey().getProductId(),
+                "metric_id",
+                MetricId.tryGetValueFromString(usage.getAggregateKey().getMetricId())));
     if (usage.getAggregateKey().getBillingProvider() != null) {
-      counter.tag("billing_provider", usage.getAggregateKey().getBillingProvider());
+      tags.addAll(List.of("billing_provider", usage.getAggregateKey().getBillingProvider()));
     }
 
     if (usage.getStatus() != null) {
-      counter.tag("status", usage.getStatus().toString());
+      tags.addAll(List.of("status", usage.getStatus().toString()));
     }
 
     if (usage.getErrorCode() != null) {
-      counter.tag("error_code", usage.getErrorCode().toString());
+      tags.addAll(List.of("error_code", usage.getErrorCode().toString()));
     }
 
-    counter
-        .withRegistry(meterRegistry)
-        .withTags(
-            "product",
-            usage.getAggregateKey().getProductId(),
-            "metric_id",
-            MetricId.tryGetValueFromString(usage.getAggregateKey().getMetricId()))
-        .increment(
-            usage.getTotalValue().doubleValue()
-                / getBillingFactor(
-                    usage.getAggregateKey().getProductId(), usage.getAggregateKey().getMetricId()));
+    double amount =
+        usage.getTotalValue().doubleValue()
+            / getBillingFactor(
+                usage.getAggregateKey().getProductId(), usage.getAggregateKey().getMetricId());
+    meterRegistry.counter(METERED_TOTAL_METRIC, tags.toArray(new String[0])).increment(amount);
   }
 }
