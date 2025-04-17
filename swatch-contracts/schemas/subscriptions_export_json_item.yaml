@@ -13,6 +13,10 @@ properties:
     type: string
   subscription_number:
     type: string
+  billing_provider:
+    type: string
+  billing_account_id:
+    type: string
   quantity:
     type: number
   measurements:

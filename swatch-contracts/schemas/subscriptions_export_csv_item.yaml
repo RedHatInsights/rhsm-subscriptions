@@ -29,3 +29,7 @@ properties:
     type: string
   usage:
     type: string
+  billing_provider:
+    type: string
+  billing_account_id:
+    type: string
