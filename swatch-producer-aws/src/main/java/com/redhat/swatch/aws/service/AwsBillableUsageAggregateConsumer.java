@@ -32,11 +32,10 @@ import com.redhat.swatch.aws.exception.SubscriptionRecentlyTerminatedException;
 import com.redhat.swatch.aws.exception.UsageTimestampOutOfBoundsException;
 import com.redhat.swatch.clients.contracts.api.model.AwsUsageContext;
 import com.redhat.swatch.clients.contracts.api.resources.ApiException;
-import com.redhat.swatch.clients.contracts.api.resources.DefaultApi;
 import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.Variant;
-import com.redhat.swatch.contracts.client.ContractsClient;
+import com.redhat.swatch.contracts.client.ContractsApi;
 import com.redhat.swatch.faulttolerance.api.RetryWithExponentialBackoff;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -75,7 +74,7 @@ public class AwsBillableUsageAggregateConsumer {
   private final Counter acceptedCounter;
   private final Counter rejectedCounter;
   private final Counter ignoreCounter;
-  private final DefaultApi contractsApi;
+  private final ContractsApi contractsApi;
   private final AwsMarketplaceMeteringClientFactory awsMarketplaceMeteringClientFactory;
   private final Optional<Boolean> isDryRun;
   private final Duration awsUsageWindow;
@@ -84,7 +83,7 @@ public class AwsBillableUsageAggregateConsumer {
 
   public AwsBillableUsageAggregateConsumer(
       MeterRegistry meterRegistry,
-      @ContractsClient DefaultApi contractsApi,
+      ContractsApi contractsApi,
       AwsMarketplaceMeteringClientFactory awsMarketplaceMeteringClientFactory,
       @ConfigProperty(name = "ENABLE_AWS_DRY_RUN") Optional<Boolean> isDryRun,
       @ConfigProperty(name = "AWS_MARKETPLACE_USAGE_WINDOW") Duration awsUsageWindow,

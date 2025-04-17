@@ -33,11 +33,10 @@ import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEvent;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEventStatusEnum;
 import com.redhat.swatch.clients.contracts.api.model.AzureUsageContext;
 import com.redhat.swatch.clients.contracts.api.resources.ApiException;
-import com.redhat.swatch.clients.contracts.api.resources.DefaultApi;
 import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.Variant;
-import com.redhat.swatch.contracts.client.ContractsClient;
+import com.redhat.swatch.contracts.client.ContractsApi;
 import com.redhat.swatch.faulttolerance.api.RetryWithExponentialBackoff;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -71,7 +70,7 @@ public class AzureBillableUsageAggregateConsumer {
   private final MeterRegistry meterRegistry;
   private final Counter acceptedCounter;
   private final Counter rejectedCounter;
-  private final DefaultApi contractsApi;
+  private final ContractsApi contractsApi;
   private final Optional<Boolean> isDryRun;
   private final Duration azureUsageWindow;
   private final AzureMarketplaceService azureMarketplaceService;
@@ -79,7 +78,7 @@ public class AzureBillableUsageAggregateConsumer {
   @Inject
   public AzureBillableUsageAggregateConsumer(
       MeterRegistry meterRegistry,
-      @ContractsClient DefaultApi contractsApi,
+      ContractsApi contractsApi,
       AzureMarketplaceService azureMarketplaceService,
       BillableUsageStatusProducer billableUsageStatusProducer,
       @ConfigProperty(name = "ENABLE_AZURE_DRY_RUN") Optional<Boolean> isDryRun,

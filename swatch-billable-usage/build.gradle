@@ -17,6 +17,7 @@ dependencies {
     implementation("io.quarkus:quarkus-jdbc-postgresql")
     implementation project(":clients:quarkus:contracts-client")
     implementation project(':swatch-common-config-workaround')
+    implementation project(':swatch-common-resteasy')
     implementation project(':swatch-common-resteasy-client')
     implementation project(':swatch-common-clock')
     implementation project(':swatch-common-panache')

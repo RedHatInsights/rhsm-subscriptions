@@ -39,12 +39,12 @@ import com.redhat.swatch.billable.usage.data.RemittanceStatus;
 import com.redhat.swatch.clients.contracts.api.model.Contract;
 import com.redhat.swatch.clients.contracts.api.model.Metric;
 import com.redhat.swatch.clients.contracts.api.resources.ApiException;
-import com.redhat.swatch.clients.contracts.api.resources.DefaultApi;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinitionRegistry;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import com.redhat.swatch.contracts.client.ContractsApi;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.test.InjectMock;
@@ -67,7 +67,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.billable.usage.AccumulationPeriodFormatter;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -93,7 +92,7 @@ class BillableUsageServiceTest {
 
   @InjectMock BillingProducer producer;
   @InjectSpy BillableUsageRemittanceRepository remittanceRepo;
-  @InjectMock @RestClient DefaultApi contractsApi;
+  @InjectMock ContractsApi contractsApi;
 
   @Inject ApplicationClock clock;
   @Inject BillableUsageService service;

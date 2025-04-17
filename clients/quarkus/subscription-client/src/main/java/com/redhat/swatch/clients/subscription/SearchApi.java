@@ -20,24 +20,16 @@
  */
 package com.redhat.swatch.clients.subscription;
 
-import static java.lang.annotation.ElementType.FIELD;
-import static java.lang.annotation.ElementType.METHOD;
-import static java.lang.annotation.ElementType.PARAMETER;
-import static java.lang.annotation.ElementType.TYPE;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
+import com.redhat.swatch.clients.subscription.api.model.Subscription;
+import com.redhat.swatch.clients.subscription.api.resources.ApiException;
+import jakarta.ws.rs.ProcessingException;
+import java.util.List;
 
-import jakarta.inject.Qualifier;
-import java.lang.annotation.Retention;
-import java.lang.annotation.Target;
+public interface SearchApi {
 
-/**
- * Annotation to disambiguate the injection of the {@link
- * com.redhat.swatch.clients.subscription.api.resources.SearchApi} client. When used, the CDI
- * context the real ProductApi or the stubProductApi depending on the configuration property will
- * use the ProductApi instance produced by {@link SearchApiFactory} that will resolve either
- * "rhsm-subscriptions.product.use-stub".
- */
-@Qualifier
-@Retention(RUNTIME)
-@Target({METHOD, FIELD, PARAMETER, TYPE})
-public @interface SearchClient {}
+  List<Subscription> getSubscriptionBySubscriptionNumber(String subscriptionNumber)
+      throws ApiException, ProcessingException;
+
+  List<Subscription> searchSubscriptionsByOrgId(String orgId, Integer index, Integer pageSize)
+      throws ApiException, ProcessingException;
+}

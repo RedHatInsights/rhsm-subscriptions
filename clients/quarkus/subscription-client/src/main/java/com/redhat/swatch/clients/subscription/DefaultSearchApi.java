@@ -18,31 +18,31 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.service;
+package com.redhat.swatch.clients.subscription;
 
-import static org.mockito.Mockito.only;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import com.redhat.swatch.clients.subscription.SearchApi;
+import com.redhat.swatch.clients.subscription.api.model.Subscription;
 import com.redhat.swatch.clients.subscription.api.resources.ApiException;
-import io.quarkus.test.InjectMock;
-import io.quarkus.test.junit.QuarkusTest;
-import jakarta.inject.Inject;
-import java.util.Collections;
-import org.junit.jupiter.api.Test;
+import com.redhat.swatch.clients.subscription.api.resources.DefaultApi;
+import jakarta.ws.rs.ProcessingException;
+import java.util.List;
 
-@QuarkusTest
-class SubscriptionServiceTest {
+public class DefaultSearchApi implements SearchApi {
 
-  @InjectMock SearchApi searchApi;
+  private final DefaultApi proxied;
 
-  @Inject SubscriptionService subject;
+  public DefaultSearchApi(DefaultApi proxied) {
+    this.proxied = proxied;
+  }
 
-  @Test
-  void verifySearchByOrgIdTest() throws ApiException {
-    when(searchApi.searchSubscriptionsByOrgId("123", 0, 1)).thenReturn(Collections.emptyList());
-    subject.getSubscriptionsByOrgId("123", 0, 1);
-    verify(searchApi, only()).searchSubscriptionsByOrgId("123", 0, 1);
+  @Override
+  public List<Subscription> getSubscriptionBySubscriptionNumber(String subscriptionNumber)
+      throws ProcessingException, ApiException {
+    return proxied.getSubscriptionBySubscriptionNumber(subscriptionNumber);
+  }
+
+  @Override
+  public List<Subscription> searchSubscriptionsByOrgId(
+      String orgId, Integer index, Integer pageSize) throws ProcessingException, ApiException {
+    return proxied.searchSubscriptionsByOrgId(orgId, index, pageSize);
   }
 }

@@ -25,12 +25,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.redhat.swatch.clients.product.ProductClient;
+import com.redhat.swatch.clients.product.ProductApi;
 import com.redhat.swatch.clients.product.api.resources.ApiException;
-import com.redhat.swatch.clients.product.api.resources.ProductApi;
 import com.redhat.swatch.contract.test.resources.ProductUseStubService;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
@@ -38,7 +38,7 @@ import org.junit.jupiter.api.Test;
 class ProductApiConfigurationUsingStubsTest {
   private static final String SKU = "SKU00790";
 
-  @ProductClient ProductApi productApi;
+  @Inject ProductApi productApi;
 
   @Test
   void testGetEngineeringProductsForSkusToUseStubResources() throws ApiException {

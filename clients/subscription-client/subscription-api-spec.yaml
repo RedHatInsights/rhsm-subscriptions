@@ -19,8 +19,6 @@ paths:
     get:
       summary: "Get a single subscription"
       operationId: "getSubscriptionBySubscriptionNumber"
-      tags:
-        - search
       responses:
         '200':
           description: "The operation completed successfully"
@@ -54,8 +52,6 @@ paths:
     get:
       summary: "List the requested data"
       operationId: "SearchSubscriptionsByOrgId"
-      tags:
-        - search
       responses:
         '200':
           description: "The operation completed successfully"

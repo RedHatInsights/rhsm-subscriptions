@@ -35,7 +35,6 @@ import com.redhat.swatch.clients.contracts.api.model.RpcResponse;
 import com.redhat.swatch.clients.contracts.api.model.StatusResponse;
 import com.redhat.swatch.clients.contracts.api.model.SubscriptionResponse;
 import com.redhat.swatch.clients.contracts.api.model.TerminationRequest;
-import com.redhat.swatch.clients.contracts.api.resources.DefaultApi;
 import jakarta.ws.rs.ProcessingException;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -46,7 +45,7 @@ import java.util.List;
  * Stub class implementing Contracts API that we can use to development against if the real thing is
  * unavailable.
  */
-public class StubContractsApi implements DefaultApi {
+public class StubContractsApi implements ContractsApi {
 
   private static final String CONTRACT_METRIC_ID = "four_vcpu_0";
 

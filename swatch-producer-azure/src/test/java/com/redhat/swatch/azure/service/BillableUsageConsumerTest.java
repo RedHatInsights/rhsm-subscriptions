@@ -41,8 +41,8 @@ import com.redhat.swatch.clients.contracts.api.model.AzureUsageContext;
 import com.redhat.swatch.clients.contracts.api.model.Error;
 import com.redhat.swatch.clients.contracts.api.model.Errors;
 import com.redhat.swatch.clients.contracts.api.resources.ApiException;
-import com.redhat.swatch.clients.contracts.api.resources.DefaultApi;
 import com.redhat.swatch.configuration.registry.Usage;
+import com.redhat.swatch.contracts.client.ContractsApi;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.test.InjectMock;
@@ -63,7 +63,6 @@ import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -89,7 +88,7 @@ class BillableUsageConsumerTest {
       new AzureUsageContext().azureResourceId("id").offerId("product").planId("plan");
   public static final UsageEventOkResponse USAGE_EVENT_RESPONSE = getDefaultUsageEventResponse();
 
-  @InjectMock @RestClient DefaultApi contractsApi;
+  @InjectMock ContractsApi contractsApi;
   @InjectMock AzureMarketplaceService marketplaceService;
 
   @Inject MeterRegistry meterRegistry;

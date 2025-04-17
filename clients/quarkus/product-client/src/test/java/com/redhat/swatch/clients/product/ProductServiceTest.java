@@ -33,7 +33,6 @@ import com.redhat.swatch.clients.product.api.model.EngineeringProducts;
 import com.redhat.swatch.clients.product.api.model.RESTProductTree;
 import com.redhat.swatch.clients.product.api.model.SkuEngProduct;
 import com.redhat.swatch.clients.product.api.resources.ApiException;
-import com.redhat.swatch.clients.product.api.resources.ProductApi;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;

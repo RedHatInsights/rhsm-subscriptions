@@ -22,7 +22,6 @@ package com.redhat.swatch.clients.subscription;
 
 import com.redhat.swatch.clients.subscription.api.model.Subscription;
 import com.redhat.swatch.clients.subscription.api.model.SubscriptionProduct;
-import com.redhat.swatch.clients.subscription.api.resources.SearchApi;
 import jakarta.ws.rs.ProcessingException;
 import java.util.List;
 

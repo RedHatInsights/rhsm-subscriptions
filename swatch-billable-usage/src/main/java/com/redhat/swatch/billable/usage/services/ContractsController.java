@@ -27,10 +27,9 @@ import com.redhat.swatch.billable.usage.services.model.ContractCoverage;
 import com.redhat.swatch.clients.contracts.api.model.Contract;
 import com.redhat.swatch.clients.contracts.api.model.Metric;
 import com.redhat.swatch.clients.contracts.api.resources.ApiException;
-import com.redhat.swatch.clients.contracts.api.resources.DefaultApi;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
-import com.redhat.swatch.contracts.client.ContractsClient;
+import com.redhat.swatch.contracts.client.ContractsApi;
 import com.redhat.swatch.faulttolerance.api.RetryWithExponentialBackoff;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -44,7 +43,7 @@ import org.candlepin.subscriptions.billable.usage.BillableUsage;
 @Slf4j
 @ApplicationScoped
 public class ContractsController {
-  @ContractsClient DefaultApi contractsApi;
+  @Inject ContractsApi contractsApi;
   @Inject ApplicationClock clock;
 
   @RetryWithExponentialBackoff(

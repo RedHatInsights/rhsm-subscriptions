@@ -26,7 +26,6 @@ import com.redhat.swatch.clients.product.api.model.EngineeringProducts;
 import com.redhat.swatch.clients.product.api.model.RESTProductTree;
 import com.redhat.swatch.clients.product.api.model.SkuEngProduct;
 import com.redhat.swatch.clients.product.api.resources.ApiException;
-import com.redhat.swatch.clients.product.api.resources.ProductApi;
 import jakarta.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.InputStream;

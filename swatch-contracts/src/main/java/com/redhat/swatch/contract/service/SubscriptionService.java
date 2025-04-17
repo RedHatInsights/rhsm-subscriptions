@@ -20,10 +20,9 @@
  */
 package com.redhat.swatch.contract.service;
 
-import com.redhat.swatch.clients.subscription.SearchClient;
+import com.redhat.swatch.clients.subscription.SearchApi;
 import com.redhat.swatch.clients.subscription.api.model.Subscription;
 import com.redhat.swatch.clients.subscription.api.resources.ApiException;
-import com.redhat.swatch.clients.subscription.api.resources.SearchApi;
 import com.redhat.swatch.contract.config.ApplicationConfiguration;
 import com.redhat.swatch.contract.exception.ErrorCode;
 import com.redhat.swatch.contract.exception.ExternalServiceException;
@@ -50,7 +49,7 @@ public class SubscriptionService {
       "Error during attempt to request subscription info";
   public static final String API_EXCEPTION_FROM_SUBSCRIPTION_SERVICE =
       "Api exception from subscription service: {}";
-  @Inject @SearchClient SearchApi subscriptionApi;
+  @Inject SearchApi subscriptionApi;
   @Inject ApplicationConfiguration properties;
 
   @RetryWithExponentialBackoff(
