@@ -62,7 +62,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
-import org.jboss.resteasy.reactive.common.jaxrs.UriBuilderImpl;
+import org.jboss.resteasy.specimpl.ResteasyUriBuilderImpl;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -95,7 +95,7 @@ class CapacityResourceV1Test {
     resource.setTestSecurityContext(mockSecurityContext);
     when(mockSecurityContext.getUserPrincipal()).thenReturn(mockPrincipal);
     when(mockPrincipal.getName()).thenReturn("owner123456");
-    when(uriInfo.getRequestUriBuilder()).thenReturn(new UriBuilderImpl());
+    when(uriInfo.getRequestUriBuilder()).thenReturn(new ResteasyUriBuilderImpl());
   }
 
   private static SubscriptionEntity datedSubscription(OffsetDateTime start, OffsetDateTime end) {
