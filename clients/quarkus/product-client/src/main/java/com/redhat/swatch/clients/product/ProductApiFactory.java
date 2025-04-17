@@ -23,9 +23,11 @@ package com.redhat.swatch.clients.product;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.clients.product.api.resources.ProductApi;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.Produces;
+import jakarta.enterprise.inject.spi.DeploymentException;
+import java.util.function.Predicate;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 @ApplicationScoped
 public class ProductApiFactory {
@@ -36,11 +38,15 @@ public class ProductApiFactory {
       @ConfigProperty(name = "rhsm-subscriptions.product.use-stub", defaultValue = "false")
           boolean useStub,
       ObjectMapper objectMapper,
-      @RestClient ProductApi productApi) {
+      Instance<ProductApi> productApiInstances) {
     if (useStub) {
       return new StubProductApi(objectMapper);
     }
 
-    return productApi;
+    // Disambiguate the api implementation to exclude the stub
+    return productApiInstances.stream()
+        .filter(Predicate.not(StubProductApi.class::isInstance))
+        .findFirst()
+        .orElseThrow(() -> new DeploymentException("Default product rest client is not available"));
   }
 }

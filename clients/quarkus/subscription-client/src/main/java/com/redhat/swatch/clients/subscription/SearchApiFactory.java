@@ -22,9 +22,11 @@ package com.redhat.swatch.clients.subscription;
 
 import com.redhat.swatch.clients.subscription.api.resources.SearchApi;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.Produces;
+import jakarta.enterprise.inject.spi.DeploymentException;
+import java.util.function.Predicate;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 @ApplicationScoped
 public class SearchApiFactory {
@@ -36,11 +38,15 @@ public class SearchApiFactory {
               name = "rhsm-subscriptions.subscription-client.use-stub",
               defaultValue = "false")
           boolean useStub,
-      @RestClient SearchApi searchApi) {
+      Instance<SearchApi> searchApiInstances) {
     if (useStub) {
       return new StubSearchApi();
     }
 
-    return searchApi;
+    // Disambiguate the api implementation to exclude the stub
+    return searchApiInstances.stream()
+        .filter(Predicate.not(StubSearchApi.class::isInstance))
+        .findFirst()
+        .orElseThrow(() -> new DeploymentException("Default search rest client is not available"));
   }
 }

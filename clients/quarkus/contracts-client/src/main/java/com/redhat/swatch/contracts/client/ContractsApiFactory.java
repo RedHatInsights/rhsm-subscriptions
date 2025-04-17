@@ -22,9 +22,11 @@ package com.redhat.swatch.contracts.client;
 
 import com.redhat.swatch.clients.contracts.api.resources.DefaultApi;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.Produces;
+import jakarta.enterprise.inject.spi.DeploymentException;
+import java.util.function.Predicate;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 @ApplicationScoped
 public class ContractsApiFactory {
@@ -34,11 +36,16 @@ public class ContractsApiFactory {
   public DefaultApi getApi(
       @ConfigProperty(name = "rhsm-subscriptions.contracts.use-stub", defaultValue = "false")
           boolean useStub,
-      @RestClient DefaultApi contractsApi) {
+      Instance<DefaultApi> contractsApiInstances) {
     if (useStub) {
       return new StubContractsApi();
     }
 
-    return contractsApi;
+    // Disambiguate the api implementation to exclude the stub
+    return contractsApiInstances.stream()
+        .filter(Predicate.not(StubContractsApi.class::isInstance))
+        .findFirst()
+        .orElseThrow(
+            () -> new DeploymentException("Default contracts rest client is not available"));
   }
 }
