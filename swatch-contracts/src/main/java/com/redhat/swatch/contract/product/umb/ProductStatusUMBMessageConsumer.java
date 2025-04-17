@@ -45,20 +45,19 @@ public class ProductStatusUMBMessageConsumer {
 
   @Blocking
   @Incoming(OFFERING_SYNC_TASK_SERVICE_UMB)
-  public void consumeMessage(String dtoProduct) {
+  public void consumeMessage(Object message) {
+
     log.info("Consumer was called");
     if (umbEnabled) {
-      consumeProduct(dtoProduct);
+      consumeProduct(message);
     }
   }
 
-  public SyncResult consumeProduct(String dtoProduct) {
-    // process UMB operational product.
-    log.info(dtoProduct);
-
+  public SyncResult consumeProduct(Object message) {
     try {
+
       OperationalProductEvent productEvent =
-          mapper.readValue(dtoProduct, OperationalProductEvent.class);
+          mapper.convertValue(message, OperationalProductEvent.class);
 
       return service.syncUmbProductFromEvent(productEvent);
     } catch (Exception e) {
