@@ -7,7 +7,7 @@ plugins {
 dependencies {
     compileOnly libraries["lombok"]
     implementation 'io.quarkus:quarkus-micrometer-registry-prometheus'
-    implementation 'io.quarkus:quarkus-rest-jackson'
+    implementation 'io.quarkus:quarkus-resteasy-jackson'
     implementation 'io.quarkus:quarkus-opentelemetry'
     implementation 'io.quarkus:quarkus-oidc-client'
     implementation 'io.quarkus:quarkus-kafka-streams'
