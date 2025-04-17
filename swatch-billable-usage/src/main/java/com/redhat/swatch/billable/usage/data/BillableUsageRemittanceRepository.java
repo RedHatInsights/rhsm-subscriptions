@@ -95,6 +95,10 @@ public class BillableUsageRemittanceRepository
     delete("orgId = ?1", orgId);
   }
 
+  public List<BillableUsageRemittanceEntity> findByIdInAndStatusNotPending(List<String> uuids) {
+    return find("uuid in (?1) and status != ?2", uuids, RemittanceStatus.PENDING).list();
+  }
+
   @Transactional
   public void updateStatusByIdIn(
       List<String> uuids,

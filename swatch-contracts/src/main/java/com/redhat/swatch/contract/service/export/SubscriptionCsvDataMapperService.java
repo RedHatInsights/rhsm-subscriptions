@@ -52,6 +52,10 @@ public class SubscriptionCsvDataMapperService
               var item = new SubscriptionsExportCsvItem();
               item.setSubscriptionId(dataItem.getSubscriptionId());
               item.setSubscriptionNumber(dataItem.getSubscriptionNumber());
+              if (dataItem.getBillingProvider() != null) {
+                item.setBillingProvider(dataItem.getBillingProvider().getValue());
+              }
+              item.setBillingAccountId(dataItem.getBillingAccountId());
               item.setBegin(dataItem.getStartDate());
               item.setEnd(dataItem.getEndDate());
               item.setQuantity((double) dataItem.getQuantity());

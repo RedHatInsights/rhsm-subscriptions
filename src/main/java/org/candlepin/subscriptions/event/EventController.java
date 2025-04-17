@@ -25,7 +25,6 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.configuration.util.ProductTagLookupParams;
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -395,15 +394,17 @@ public class EventController {
   }
 
   private void updateIngestedUsageCounterFor(Event event, String tag, Measurement measurement) {
-    var counter = Counter.builder(INGESTED_USAGE_METRIC);
+    List<String> tags =
+        new ArrayList<>(
+            List.of(
+                "metric_id", MetricId.tryGetValueFromString(measurement.getMetricId()),
+                "event_source", event.getEventSource(),
+                "product", tag));
     if (event.getBillingProvider() != null) {
-      counter.tag("billing_provider", event.getBillingProvider().value());
+      tags.addAll(List.of("billing_provider", event.getBillingProvider().value()));
     }
-    counter
-        .tag("metric_id", MetricId.tryGetValueFromString(measurement.getMetricId()))
-        .tag("event_source", event.getEventSource())
-        .withRegistry(meterRegistry)
-        .withTags("product", tag)
+    meterRegistry
+        .counter(INGESTED_USAGE_METRIC, tags.toArray(new String[0]))
         .increment(measurement.getValue());
   }
 
