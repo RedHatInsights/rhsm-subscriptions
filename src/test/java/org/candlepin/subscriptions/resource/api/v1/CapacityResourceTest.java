@@ -159,6 +159,7 @@ class CapacityResourceTest {
             max,
             null,
             null,
+            null,
             ReportCategory.PHYSICAL,
             null,
             null);
@@ -193,6 +194,7 @@ class CapacityResourceTest {
             GranularityType.DAILY,
             min,
             max,
+            null,
             null,
             null,
             null,
@@ -233,6 +235,7 @@ class CapacityResourceTest {
             null,
             null,
             null,
+            null,
             UsageType.PRODUCTION);
 
     assertEquals(9, report.getData().size());
@@ -265,6 +268,7 @@ class CapacityResourceTest {
             GranularityType.DAILY,
             min,
             max,
+            null,
             null,
             null,
             null,
@@ -301,6 +305,7 @@ class CapacityResourceTest {
             GranularityType.DAILY,
             min,
             max,
+            null,
             null,
             null,
             null,
@@ -360,6 +365,7 @@ class CapacityResourceTest {
             null,
             null,
             null,
+            null,
             null);
 
     CapacitySnapshotByMetricId capacitySnapshot = report.getData().get(0);
@@ -409,6 +415,7 @@ class CapacityResourceTest {
             null,
             null,
             null,
+            null,
             null);
 
     CapacitySnapshotByMetricId capacitySnapshot = report.getData().get(0);
@@ -452,6 +459,7 @@ class CapacityResourceTest {
             max,
             null,
             null,
+            null,
             ReportCategory.VIRTUAL,
             null,
             null);
@@ -483,6 +491,7 @@ class CapacityResourceTest {
             GranularityType.DAILY,
             min,
             max,
+            null,
             null,
             null,
             ReportCategory.PHYSICAL,
@@ -531,6 +540,7 @@ class CapacityResourceTest {
             null,
             null,
             null,
+            null,
             null);
 
     CapacitySnapshotByMetricId capacitySnapshot = report.getData().get(0);
@@ -572,6 +582,7 @@ class CapacityResourceTest {
             GranularityType.DAILY,
             min,
             max,
+            null,
             null,
             null,
             ReportCategory.VIRTUAL,
@@ -619,6 +630,7 @@ class CapacityResourceTest {
             max,
             null,
             null,
+            null,
             ReportCategory.PHYSICAL,
             null,
             null);
@@ -641,6 +653,7 @@ class CapacityResourceTest {
                   max,
                   11,
                   10,
+                  null,
                   null,
                   null,
                   null);
@@ -670,7 +683,17 @@ class CapacityResourceTest {
 
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
-            RHEL_FOR_ARM, METRIC_ID_CORES, GranularityType.DAILY, min, max, 1, 1, null, null, null);
+            RHEL_FOR_ARM,
+            METRIC_ID_CORES,
+            GranularityType.DAILY,
+            min,
+            max,
+            1,
+            1,
+            null,
+            null,
+            null,
+            null);
 
     assertEquals(1, report.getData().size());
     assertEquals(
@@ -694,6 +717,7 @@ class CapacityResourceTest {
               null,
               null,
               null,
+              null,
               null);
         });
   }
@@ -712,6 +736,7 @@ class CapacityResourceTest {
               GranularityType.DAILY,
               min,
               max,
+              null,
               null,
               null,
               null,
@@ -748,6 +773,7 @@ class CapacityResourceTest {
             "owner123456",
             RHEL_FOR_ARM,
             METRIC_ID_CORES,
+            null,
             HypervisorReportCategory.HYPERVISOR,
             ServiceLevel.STANDARD,
             Usage.PRODUCTION,
@@ -811,6 +837,7 @@ class CapacityResourceTest {
             null,
             null,
             null,
+            null,
             null);
 
     CapacitySnapshotByMetricId capacitySnapshot = report.getData().get(0);
@@ -833,6 +860,7 @@ class CapacityResourceTest {
                     null,
                     null,
                     null,
+                    null,
                     null));
 
     assertEquals(
@@ -846,7 +874,17 @@ class CapacityResourceTest {
     assertDoesNotThrow(
         () ->
             resource.getCapacityReportByMetricId(
-                productId, METRIC_ID_CORES, granularity, min, max, null, null, null, null, null));
+                productId,
+                METRIC_ID_CORES,
+                granularity,
+                min,
+                max,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null));
   }
 
   private static Stream<Arguments> generateFinestGranularityCases() {

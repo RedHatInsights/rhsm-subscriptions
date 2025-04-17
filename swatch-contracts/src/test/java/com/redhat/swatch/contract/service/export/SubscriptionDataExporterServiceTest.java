@@ -24,6 +24,7 @@ import static com.redhat.swatch.contract.service.export.SubscriptionDataExporter
 import static com.redhat.swatch.export.ExportRequestHandler.ADMIN_ROLE;
 import static com.redhat.swatch.export.ExportRequestHandler.MISSING_PERMISSIONS;
 import static com.redhat.swatch.export.ExportRequestHandler.SWATCH_APP;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -43,6 +44,7 @@ import com.redhat.swatch.configuration.util.MetricIdUtils;
 import com.redhat.swatch.contract.config.Channels;
 import com.redhat.swatch.contract.model.SubscriptionsExportCsvItem;
 import com.redhat.swatch.contract.model.SubscriptionsExportJson;
+import com.redhat.swatch.contract.model.SubscriptionsExportJsonItem;
 import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.OfferingRepository;
@@ -92,6 +94,7 @@ class SubscriptionDataExporterServiceTest {
   private static final String RHEL_FOR_X86 = "RHEL for x86";
   private static final String ROSA = "rosa";
   private static final String ORG_ID = "13259775";
+  private static final String BILLING_ACCOUNT_ID = "123";
   private static final LoggerCaptor LOGGER_CAPTOR = new LoggerCaptor();
 
   @Inject SubscriptionRepository subscriptionRepository;
@@ -285,9 +288,13 @@ class SubscriptionDataExporterServiceTest {
         .forEach(
             subscription -> {
               if (isCsvFormat) {
-                data.addAll(csvDataMapperService.mapDataItem(subscription, null));
+                List<Object> items = csvDataMapperService.mapDataItem(subscription, null);
+                items.forEach(i -> verifyCsvDataItem((SubscriptionsExportCsvItem) i));
+                data.addAll(items);
               } else {
-                data.addAll(jsonDataMapperService.mapDataItem(subscription, null));
+                List<Object> items = jsonDataMapperService.mapDataItem(subscription, null);
+                items.forEach(i -> verifyJsonDataItem((SubscriptionsExportJsonItem) i));
+                data.addAll(items);
               }
             });
 
@@ -297,6 +304,16 @@ class SubscriptionDataExporterServiceTest {
       verifyRequestWasSentToExportServiceWithUploadJsonData(
           new SubscriptionsExportJson().withData(data));
     }
+  }
+
+  private void verifyCsvDataItem(SubscriptionsExportCsvItem item) {
+    assertEquals(BillingProvider.AWS.getValue(), item.getBillingProvider());
+    assertEquals(BILLING_ACCOUNT_ID, item.getBillingAccountId());
+  }
+
+  private void verifyJsonDataItem(SubscriptionsExportJsonItem item) {
+    assertEquals(BillingProvider.AWS.getValue(), item.getBillingProvider());
+    assertEquals(BILLING_ACCOUNT_ID, item.getBillingAccountId());
   }
 
   private void verifyRequestWasSentToExportServiceWithUploadCsvData(List<Object> data) {
@@ -329,7 +346,7 @@ class SubscriptionDataExporterServiceTest {
     offering.getProductTags().clear();
     offering.getProductTags().add(productId);
     updateOffering();
-    subscription.setBillingAccountId("123");
+    subscription.setBillingAccountId(BILLING_ACCOUNT_ID);
     subscription.setSubscriptionMeasurements(
         Map.of(
             new SubscriptionMeasurementKey(MetricIdUtils.getCores().toString(), "HYPERVISOR"),
