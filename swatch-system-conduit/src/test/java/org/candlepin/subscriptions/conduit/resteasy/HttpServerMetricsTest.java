@@ -20,46 +20,21 @@
  */
 package org.candlepin.subscriptions.conduit.resteasy;
 
-import static org.apache.commons.codec.binary.Base64.encodeBase64;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.candlepin.subscriptions.security.IdentityHeaderAuthenticationFilter.RH_IDENTITY_HEADER;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.nio.charset.StandardCharsets;
+import org.candlepin.subscriptions.ConduitBaseTest;
 import org.candlepin.subscriptions.conduit.InventoryController;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.test.web.server.LocalManagementPort;
-import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-@SpringBootTest(
-    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-    properties = {
-      "DEV_MODE=true",
-      // enable grabbing metrics in tests
-      "management.prometheus.metrics.export.enabled=true",
-      // use a random port in management server
-      "management.server.port=0",
-    })
-@ActiveProfiles({"rhsm-conduit", "test"})
-class HttpServerMetricsTest {
-
-  private static final String IDENTITY_TEMPLATE =
-      "{\"identity\":{\"type\":\"User\",\"internal\":{\"org_id\":\"%s\"}}}";
-  private static final String ORG_ID = "org123";
-  private static final String LOCALHOST = "http://localhost:";
-
-  @LocalServerPort private int port;
-
-  @LocalManagementPort private int mgt;
+class HttpServerMetricsTest extends ConduitBaseTest {
 
   @Autowired private TestRestTemplate restTemplate;
 
@@ -133,29 +108,9 @@ class HttpServerMetricsTest {
             + "uri=\"/api/rhsm-subscriptions/v1/internal/organizations/org123/inventory\"} 1");
   }
 
-  private HttpEntity<Void> request() {
-    HttpHeaders headers = new HttpHeaders();
-    headers.set(RH_IDENTITY_HEADER, user());
-
-    return new HttpEntity<>(headers);
-  }
-
-  private String user() {
-    String identity = String.format(IDENTITY_TEMPLATE, ORG_ID);
-    return new String(encodeBase64(identity.getBytes(StandardCharsets.UTF_8)));
-  }
-
   private String getMetrics() {
     return restTemplate
         .exchange(managementBasePath() + "/metrics", HttpMethod.GET, request(), String.class)
         .getBody();
-  }
-
-  private String apiBasePath() {
-    return LOCALHOST + port + "/api/rhsm-subscriptions/v1";
-  }
-
-  private String managementBasePath() {
-    return LOCALHOST + mgt;
   }
 }

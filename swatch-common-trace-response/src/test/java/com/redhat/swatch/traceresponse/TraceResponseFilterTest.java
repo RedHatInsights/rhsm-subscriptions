@@ -18,22 +18,21 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resteasy;
+package com.redhat.swatch.traceresponse;
 
-import static org.candlepin.subscriptions.resteasy.TraceResponseFilter.TRACE_RESPONSE_HEADER;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.when;
+import static com.redhat.swatch.traceresponse.TraceResponseFilter.TRACE_RESPONSE_HEADER;
 
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.core.MultivaluedHashMap;
 import jakarta.ws.rs.core.MultivaluedMap;
 import java.io.IOException;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,14 +47,14 @@ class TraceResponseFilterTest {
   @BeforeEach
   void setup() {
     headers.clear();
-    when(responseContext.getHeaders()).thenReturn(headers);
+    Mockito.when(responseContext.getHeaders()).thenReturn(headers);
   }
 
   @Test
   void testPopulateHeader() throws IOException {
     filter.filter(requestContext, responseContext);
     String traceResponse = (String) headers.getFirst(TRACE_RESPONSE_HEADER);
-    assertNotNull(traceResponse);
-    assertTrue(traceResponse.startsWith("00-"));
+    Assertions.assertNotNull(traceResponse);
+    Assertions.assertTrue(traceResponse.startsWith("00-"));
   }
 }
