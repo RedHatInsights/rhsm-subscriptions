@@ -72,3 +72,5 @@ bonfire
 .kube
 
 stub/__files/
+
+pytest_swatch/*

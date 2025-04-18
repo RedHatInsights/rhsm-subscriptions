@@ -193,7 +193,6 @@ public class InventoryAccountUsageCollector {
 
     if (inventoryHostFacts.getInventoryId() != null) {
       host.setInventoryId(inventoryHostFacts.getInventoryId().toString());
-
       // fallback logic to set the instance ID if and only if the instanceId is not set yet:
       if (host.getInstanceId() == null) {
         // We assume that the instance ID for any given HBI host record is the inventory ID; compare
