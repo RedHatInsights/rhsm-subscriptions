@@ -57,6 +57,7 @@ public class MigrationService {
   enum Context {
     CONTRACTS("contracts"),
     CORE("core"),
+    METRICS_HBI("metrics-hbi"),
     ALL("_ALL");
 
     public final String value;
@@ -162,12 +163,12 @@ public class MigrationService {
     populateSystemProperties();
 
     // If the zeroth argument doesn't match a context, then all contexts will be run.  E.g. if
-    // the zeroth argument is "update", update will be run for both contexts.
+    // the zeroth argument is "update", update will be run for all contexts.
     Context userContext = Context.fromString(invocationArgs[0]);
 
     Context[] migrationContexts;
     if (userContext == Context.ALL) {
-      migrationContexts = new Context[] {Context.CONTRACTS, Context.CORE};
+      migrationContexts = new Context[] {Context.CONTRACTS, Context.CORE, Context.METRICS_HBI};
     } else {
       migrationContexts = new Context[] {userContext};
       // Strip the context off.  We don't want to send that to the Liquibase CLI
