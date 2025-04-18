@@ -203,6 +203,18 @@ services:
     volumes:
       - './bin/wait-for:/unleash/wait-for:z'
       - './.unleash:/.unleash:z'
+  artemis:
+    image: apache/activemq-artemis:latest-alpine
+    container_name: artemis
+    environment:
+      - ARTEMIS_USER=guest
+      - ARTEMIS_PASSWORD=guest
+      - ANONYMOUS_LOGIN=true
+    ports:
+      - "61616:61616"  # core messaging (TCP)
+      - "5672:5672"    # AMQP
+      - "8161:8161"    # Web console
+    restart: unless-stopped
 networks:
   swatch-network:
     name: swatch-network
