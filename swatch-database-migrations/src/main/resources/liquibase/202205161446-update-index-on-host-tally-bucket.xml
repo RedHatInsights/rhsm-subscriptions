@@ -1,0 +1,15 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+
+    <changeSet id="202205161446-1" author="ksynvrit">
+        <dropPrimaryKey tableName="host_tally_buckets" />
+        <addPrimaryKey constraintName="host_tally_bucket_pkey"
+                       tableName="host_tally_buckets"
+                       columnNames="host_id,product_id,usage,sla,billing_provider,billing_account_id,as_hypervisor"/>
+    </changeSet>
+
+</databaseChangeLog>

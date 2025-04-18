@@ -40,5 +40,7 @@ public interface ExtendWithSwatchDatabase {
   static void registerSwatchDbProperties(DynamicPropertyRegistry registry) {
     registry.add("DATABASE_HOST", swatchDatabase::getHost);
     registry.add("DATABASE_PORT", swatchDatabase::getFirstMappedPort);
+    registry.add("spring.liquibase.change-log", () -> "classpath:/liquibase/changelog.xml");
+    registry.add("spring.liquibase.show-summary", () -> "summary");
   }
 }
