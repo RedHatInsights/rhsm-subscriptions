@@ -20,7 +20,9 @@
  */
 package org.candlepin.subscriptions.deployment;
 
+import static com.redhat.swatch.traceresponse.TraceResponseFilter.TRACE_RESPONSE_HEADER;
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.CoreMatchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import io.restassured.RestAssured;
@@ -58,5 +60,13 @@ class ApiDeploymentTest {
         .get("/does-not-exist")
         .then()
         .statusCode(401);
+  }
+
+  @Test
+  void testTraceResponseHeader() {
+    given()
+        .get("/api/rhsm-subscriptions/v1/version")
+        .then()
+        .header(TRACE_RESPONSE_HEADER, startsWith("00-"));
   }
 }

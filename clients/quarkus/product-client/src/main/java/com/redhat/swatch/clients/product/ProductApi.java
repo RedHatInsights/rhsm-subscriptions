@@ -20,24 +20,15 @@
  */
 package com.redhat.swatch.clients.product;
 
-import static java.lang.annotation.ElementType.FIELD;
-import static java.lang.annotation.ElementType.METHOD;
-import static java.lang.annotation.ElementType.PARAMETER;
-import static java.lang.annotation.ElementType.TYPE;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
+import com.redhat.swatch.clients.product.api.model.EngineeringProductMap;
+import com.redhat.swatch.clients.product.api.model.RESTProductTree;
+import com.redhat.swatch.clients.product.api.resources.ApiException;
+import jakarta.ws.rs.ProcessingException;
 
-import jakarta.inject.Qualifier;
-import java.lang.annotation.Retention;
-import java.lang.annotation.Target;
+public interface ProductApi {
+  EngineeringProductMap getEngineeringProductsForSkus(String sku)
+      throws ApiException, ProcessingException;
 
-/**
- * Annotation to disambiguate the injection of the {@link
- * com.redhat.swatch.clients.product.api.resources.ProductApi} client. When used, the CDI context
- * will use the ProductApi instance produced by {@link ProductApiFactory} that will resolve either
- * the real ProductApi or the stubProductApi depending on the configuration property
- * "rhsm-subscriptions.product.use-stub".
- */
-@Qualifier
-@Retention(RUNTIME)
-@Target({METHOD, FIELD, PARAMETER, TYPE})
-public @interface ProductClient {}
+  RESTProductTree getProductTree(String sku, Boolean attributes)
+      throws ApiException, ProcessingException;
+}

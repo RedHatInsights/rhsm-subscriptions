@@ -22,16 +22,17 @@ package com.redhat.swatch.contracts.client;
 
 import com.redhat.swatch.clients.contracts.api.resources.DefaultApi;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.Dependent;
 import jakarta.enterprise.inject.Produces;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
-@ApplicationScoped
+@Dependent
 public class ContractsApiFactory {
 
-  @ContractsClient
+  @ApplicationScoped
   @Produces
-  public DefaultApi getApi(
+  public ContractsApi getApi(
       @ConfigProperty(name = "rhsm-subscriptions.contracts.use-stub", defaultValue = "false")
           boolean useStub,
       @RestClient DefaultApi contractsApi) {
@@ -39,6 +40,6 @@ public class ContractsApiFactory {
       return new StubContractsApi();
     }
 
-    return contractsApi;
+    return new DefaultContractsApi(contractsApi);
   }
 }

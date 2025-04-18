@@ -11,8 +11,6 @@ paths:
     get:
       summary: "Get SKU parent/child hierarchy"
       operationId: "getProductTree"
-      tags:
-        - product
       parameters:
         - name: sku
           required: true
@@ -35,8 +33,6 @@ paths:
     get:
       summary: "GET Engineering Products associated with SKUs"
       operationId: "getEngineeringProductsForSkus"
-      tags:
-        - product
       parameters:
         - name: "sku"
           required: true

@@ -24,7 +24,6 @@ import com.redhat.swatch.clients.product.api.model.EngineeringProduct;
 import com.redhat.swatch.clients.product.api.model.RESTProductTree;
 import com.redhat.swatch.clients.product.api.model.SkuEngProduct;
 import com.redhat.swatch.clients.product.api.resources.ApiException;
-import com.redhat.swatch.clients.product.api.resources.ProductApi;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -44,7 +43,7 @@ public class ProductService implements ProductDataSource {
 
   private final ProductApi productApi;
 
-  public ProductService(@ProductClient ProductApi productApi) {
+  public ProductService(ProductApi productApi) {
     this.productApi = productApi;
   }
 

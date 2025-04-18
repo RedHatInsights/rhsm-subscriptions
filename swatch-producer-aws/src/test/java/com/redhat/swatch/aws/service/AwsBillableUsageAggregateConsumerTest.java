@@ -39,10 +39,10 @@ import com.redhat.swatch.aws.openapi.model.Error;
 import com.redhat.swatch.aws.openapi.model.Errors;
 import com.redhat.swatch.clients.contracts.api.model.AwsUsageContext;
 import com.redhat.swatch.clients.contracts.api.resources.ApiException;
-import com.redhat.swatch.clients.contracts.api.resources.DefaultApi;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.Usage;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import com.redhat.swatch.contracts.client.ContractsApi;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -66,7 +66,6 @@ import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -121,7 +120,7 @@ class AwsBillableUsageAggregateConsumerTest {
                   .build())
           .build();
 
-  @InjectMock @RestClient DefaultApi contractsApi;
+  @InjectMock ContractsApi contractsApi;
   @InjectMock AwsMarketplaceMeteringClientFactory clientFactory;
   MarketplaceMeteringClient meteringClient;
   @InjectMock BillableUsageStatusProducer billableUsageStatusProducer;

@@ -18,31 +18,22 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.service;
+package com.redhat.swatch.billable.usage;
 
-import static org.mockito.Mockito.only;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static com.redhat.swatch.traceresponse.TraceResponseFilter.TRACE_RESPONSE_HEADER;
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.CoreMatchers.startsWith;
 
-import com.redhat.swatch.clients.subscription.SearchApi;
-import com.redhat.swatch.clients.subscription.api.resources.ApiException;
-import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
-import jakarta.inject.Inject;
-import java.util.Collections;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-class SubscriptionServiceTest {
-
-  @InjectMock SearchApi searchApi;
-
-  @Inject SubscriptionService subject;
-
+public class BillableUsageDeploymentTest {
   @Test
-  void verifySearchByOrgIdTest() throws ApiException {
-    when(searchApi.searchSubscriptionsByOrgId("123", 0, 1)).thenReturn(Collections.emptyList());
-    subject.getSubscriptionsByOrgId("123", 0, 1);
-    verify(searchApi, only()).searchSubscriptionsByOrgId("123", 0, 1);
+  void testTraceResponseHeader() {
+    given()
+        .put("/api/swatch-billable-usage/internal/rpc/remittance/reset_billable_usage_remittance")
+        .then()
+        .header(TRACE_RESPONSE_HEADER, startsWith("00-"));
   }
 }

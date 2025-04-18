@@ -25,11 +25,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.clients.contracts.api.resources.ApiException;
-import com.redhat.swatch.clients.contracts.api.resources.DefaultApi;
-import com.redhat.swatch.contracts.client.ContractsClient;
+import com.redhat.swatch.contracts.client.ContractsApi;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -42,7 +42,7 @@ class ContractsApiConfigurationUsingStubsTest {
   private static final String CONTRACTS_USE_STUB = "rhsm-subscriptions.contracts.use-stub";
   private static final String ORG_ID = "org999";
 
-  @ContractsClient DefaultApi contractsApi;
+  @Inject ContractsApi contractsApi;
 
   @Test
   void testGetContractReturnsEmptyForOrg999() throws ApiException {

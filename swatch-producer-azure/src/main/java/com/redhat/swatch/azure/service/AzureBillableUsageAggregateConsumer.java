@@ -33,10 +33,10 @@ import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEvent;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEventStatusEnum;
 import com.redhat.swatch.clients.contracts.api.model.AzureUsageContext;
 import com.redhat.swatch.clients.contracts.api.resources.ApiException;
-import com.redhat.swatch.clients.contracts.api.resources.DefaultApi;
 import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.Variant;
+import com.redhat.swatch.contracts.client.ContractsApi;
 import com.redhat.swatch.faulttolerance.api.RetryWithExponentialBackoff;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -59,7 +59,6 @@ import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.slf4j.MDC;
 
 @Slf4j
@@ -71,7 +70,7 @@ public class AzureBillableUsageAggregateConsumer {
   private final MeterRegistry meterRegistry;
   private final Counter acceptedCounter;
   private final Counter rejectedCounter;
-  private final DefaultApi internalSubscriptionsApi;
+  private final ContractsApi contractsApi;
   private final Optional<Boolean> isDryRun;
   private final Duration azureUsageWindow;
   private final AzureMarketplaceService azureMarketplaceService;
@@ -79,7 +78,7 @@ public class AzureBillableUsageAggregateConsumer {
   @Inject
   public AzureBillableUsageAggregateConsumer(
       MeterRegistry meterRegistry,
-      @RestClient DefaultApi contractsApi,
+      ContractsApi contractsApi,
       AzureMarketplaceService azureMarketplaceService,
       BillableUsageStatusProducer billableUsageStatusProducer,
       @ConfigProperty(name = "ENABLE_AZURE_DRY_RUN") Optional<Boolean> isDryRun,
@@ -87,7 +86,7 @@ public class AzureBillableUsageAggregateConsumer {
     this.meterRegistry = meterRegistry;
     this.acceptedCounter = meterRegistry.counter("swatch_azure_marketplace_batch_accepted_total");
     this.rejectedCounter = meterRegistry.counter("swatch_azure_marketplace_batch_rejected_total");
-    this.internalSubscriptionsApi = contractsApi;
+    this.contractsApi = contractsApi;
     this.azureMarketplaceService = azureMarketplaceService;
     this.billableUsageStatusProducer = billableUsageStatusProducer;
     this.isDryRun = isDryRun;
@@ -226,7 +225,7 @@ public class AzureBillableUsageAggregateConsumer {
   public AzureUsageContext lookupAzureUsageContext(BillableUsageAggregate billableUsageAggregate)
       throws AzureUsageContextLookupException {
     try {
-      return internalSubscriptionsApi.getAzureMarketplaceContext(
+      return contractsApi.getAzureMarketplaceContext(
           billableUsageAggregate.getWindowTimestamp(),
           billableUsageAggregate.getAggregateKey().getProductId(),
           billableUsageAggregate.getAggregateKey().getOrgId(),

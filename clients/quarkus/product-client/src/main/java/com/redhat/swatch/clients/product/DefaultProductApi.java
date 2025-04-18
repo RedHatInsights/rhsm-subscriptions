@@ -20,28 +20,29 @@
  */
 package com.redhat.swatch.clients.product;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redhat.swatch.clients.product.api.model.EngineeringProductMap;
+import com.redhat.swatch.clients.product.api.model.RESTProductTree;
+import com.redhat.swatch.clients.product.api.resources.ApiException;
 import com.redhat.swatch.clients.product.api.resources.DefaultApi;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.context.Dependent;
-import jakarta.enterprise.inject.Produces;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
+import jakarta.ws.rs.ProcessingException;
 
-@Dependent
-public class ProductApiFactory {
+public class DefaultProductApi implements ProductApi {
 
-  @ApplicationScoped
-  @Produces
-  public ProductApi getApi(
-      @ConfigProperty(name = "rhsm-subscriptions.product.use-stub", defaultValue = "false")
-          boolean useStub,
-      ObjectMapper objectMapper,
-      @RestClient DefaultApi productApi) {
-    if (useStub) {
-      return new StubProductApi(objectMapper);
-    }
+  private final DefaultApi proxied;
 
-    return new DefaultProductApi(productApi);
+  public DefaultProductApi(DefaultApi proxied) {
+    this.proxied = proxied;
+  }
+
+  @Override
+  public EngineeringProductMap getEngineeringProductsForSkus(String sku)
+      throws ApiException, ProcessingException {
+    return proxied.getEngineeringProductsForSkus(sku);
+  }
+
+  @Override
+  public RESTProductTree getProductTree(String sku, Boolean attributes)
+      throws ApiException, ProcessingException {
+    return proxied.getProductTree(sku, attributes);
   }
 }

@@ -20,27 +20,28 @@
  */
 package com.redhat.swatch.clients.subscription;
 
-import com.redhat.swatch.clients.subscription.api.resources.SearchApi;
+import com.redhat.swatch.clients.subscription.api.resources.DefaultApi;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.Dependent;
 import jakarta.enterprise.inject.Produces;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
-@ApplicationScoped
+@Dependent
 public class SearchApiFactory {
 
-  @SearchClient
+  @ApplicationScoped
   @Produces
   public SearchApi getApi(
       @ConfigProperty(
               name = "rhsm-subscriptions.subscription-client.use-stub",
               defaultValue = "false")
           boolean useStub,
-      @RestClient SearchApi searchApi) {
+      @RestClient DefaultApi searchApi) {
     if (useStub) {
       return new StubSearchApi();
     }
 
-    return searchApi;
+    return new DefaultSearchApi(searchApi);
   }
 }
