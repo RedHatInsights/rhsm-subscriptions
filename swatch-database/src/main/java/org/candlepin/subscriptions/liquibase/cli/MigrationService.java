@@ -163,7 +163,7 @@ public class MigrationService {
     populateSystemProperties();
 
     // If the zeroth argument doesn't match a context, then all contexts will be run.  E.g. if
-    // the zeroth argument is "update", update will be run for both contexts.
+    // the zeroth argument is "update", update will be run for all contexts.
     Context userContext = Context.fromString(invocationArgs[0]);
 
     Context[] migrationContexts;
