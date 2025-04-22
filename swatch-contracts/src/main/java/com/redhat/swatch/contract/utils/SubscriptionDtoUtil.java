@@ -27,6 +27,7 @@ import com.redhat.swatch.contract.repository.BillingProvider;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import liquibase.util.StringUtil;
 
 /** Utility class to assist in pulling nested data out of the Subscription DTO. */
 public class SubscriptionDtoUtil {
@@ -52,7 +53,7 @@ public class SubscriptionDtoUtil {
         products.stream()
             .filter(x -> x.getParentSubscriptionProductId() == null)
             .distinct()
-            .filter(x -> Objects.nonNull(x.getSku()) && !x.getSku().isEmpty())
+            .filter(x -> !StringUtil.isEmpty(x.getSku()))
             .map(SubscriptionProduct::getSku)
             .toList();
 

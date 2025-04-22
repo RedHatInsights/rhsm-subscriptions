@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202205191543-1" author="khowell">
+    <comment>Recreate host_tally_buckets billing_provider column with default.</comment>
+    <dropColumn tableName="host_tally_buckets" columnName="billing_provider"/>
+    <addColumn tableName="host_tally_buckets">
+      <column name="billing_provider" type="VARCHAR(255)" defaultValue="_ANY">
+        <constraints nullable="false"/>
+      </column>
+    </addColumn>
+  </changeSet>
+
+  <changeSet id="202205191543-2" author="khowell">
+    <comment>Recreate host_tally_buckets billing_account_id with default.</comment>
+    <dropColumn tableName="host_tally_buckets" columnName="billing_account_id"/>
+    <addColumn tableName="host_tally_buckets">
+      <column name="billing_account_id" type="VARCHAR(255)" defaultValue="_ANY">
+        <constraints nullable="false"/>
+      </column>
+    </addColumn>
+  </changeSet>
+
+  <changeSet id="202205191543-3" author="khowell">
+    <comment>Recreate tally_snapshots billing_provider column with default.</comment>
+    <dropColumn tableName="tally_snapshots" columnName="billing_provider"/>
+    <addColumn tableName="tally_snapshots">
+      <column name="billing_provider" type="VARCHAR(255)" defaultValue="_ANY">
+        <constraints nullable="false"/>
+      </column>
+    </addColumn>
+  </changeSet>
+
+  <changeSet id="202205191543-4" author="khowell">
+    <comment>Recreate tally_snapshots billing_account_id with default.</comment>
+    <dropColumn tableName="tally_snapshots" columnName="billing_account_id"/>
+    <addColumn tableName="tally_snapshots">
+      <column name="billing_account_id" type="VARCHAR(255)" defaultValue="_ANY">
+        <constraints nullable="false"/>
+      </column>
+    </addColumn>
+  </changeSet>
+
+</databaseChangeLog>
+  <!-- vim: set expandtab sts=4 sw=4 ai: -->
