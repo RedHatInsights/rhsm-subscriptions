@@ -1,0 +1,14 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+<changeSet id="202402161401-01" author="karshah">
+    <comment>Change product_id to valid value for rosa sku.</comment>
+    <update tableName="contracts">
+        <column name="product_id" value="rosa"/>
+        <where>sku='MW02393'</where>
+    </update>
+</changeSet>
+</databaseChangeLog>

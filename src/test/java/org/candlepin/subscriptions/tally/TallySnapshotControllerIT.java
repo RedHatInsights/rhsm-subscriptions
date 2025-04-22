@@ -77,7 +77,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest(properties = {"CONTRACT_USE_STUB=true", "HOURLY_TALLY_EVENT_BATCH_SIZE=2"})
-@ActiveProfiles({"worker", "kafka-queue", "api", "test-inventory", "capacity-ingress"})
+@ActiveProfiles(value = {"worker", "kafka-queue", "api", "test-inventory", "capacity-ingress"})
 @ExtendWith(OutputCaptureExtension.class)
 class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithEmbeddedKafka {
   static final String INSTANCE_ID = "i-123456";

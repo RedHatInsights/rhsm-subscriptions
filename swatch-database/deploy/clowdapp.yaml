@@ -15,7 +15,7 @@ parameters:
   - name: CPU_LIMIT
     value: 300m
   - name: WAIT_IMAGE
-    value: quay.io/cloudservices/swatch-database
+    value: quay.io/cloudservices/rhsm-subscriptions
   - name: WAIT_TAG
     value: latest
   - name: WAIT_MEMORY_REQUEST
@@ -31,7 +31,7 @@ parameters:
   - name: REPLICAS
     value: '1'
   - name: IMAGE
-    value: quay.io/cloudservices/swatch-database
+    value: quay.io/cloudservices/rhsm-subscriptions
   - name: IMAGE_TAG
     value: latest
 
@@ -45,10 +45,6 @@ objects:
       pullSecrets:
         name: ${IMAGE_PULL_SECRET}
 
-      database:
-        name: swatch-database-db
-        version: 13
-
       jobs:
         - name: migrations-job
           activeDeadlineSeconds: 1800
@@ -57,10 +53,7 @@ objects:
             image: ${IMAGE}:${IMAGE_TAG}
             initContainers:
               - image: ${WAIT_IMAGE}:${WAIT_TAG}
-                command: ["/deployments/wait_for.sh"]
-                args:
-                  - "service"
-                  - "swatch-database-db"
+                command: ["ls"]
                 resources:
                   requests:
                     cpu: ${WAIT_CPU_REQUEST}
@@ -68,32 +61,32 @@ objects:
                   limits:
                     cpu: ${WAIT_CPU_LIMIT}
                     memory: ${WAIT_MEMORY_LIMIT}
-            command: ["/opt/jboss/container/java/run/run-java.sh"]
+            command: ["ls"]
             env:
               - name: DATABASE_HOST
                 valueFrom:
                   secretKeyRef:
-                    name: swatch-database-db
+                    name: swatch-tally-db
                     key: db.host
               - name: DATABASE_PORT
                 valueFrom:
                   secretKeyRef:
-                    name: swatch-database-db
+                    name: swatch-tally-db
                     key: db.port
               - name: DATABASE_DATABASE
                 valueFrom:
                   secretKeyRef:
-                    name: swatch-database-db
+                    name: swatch-tally-db
                     key: db.name
               - name: DATABASE_USERNAME
                 valueFrom:
                   secretKeyRef:
-                    name: swatch-database-db
+                    name: swatch-tally-db
                     key: db.user
               - name: DATABASE_PASSWORD
                 valueFrom:
                   secretKeyRef:
-                    name: swatch-database-db
+                    name: swatch-tally-db
                     key: db.password
               - name: LIQUIBASE_LOG_LEVEL
                 value: "INFO"

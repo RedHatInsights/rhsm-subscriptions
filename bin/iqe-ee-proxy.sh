@@ -58,8 +58,9 @@ oc create configmap caddyfile \
     --from-file=${TMP_DIR}/Caddyfile
 cat $(dirname $0)/caddy.yaml | oc apply -f -
 
-oc wait --for=condition=Available deployment/swatch-database-db
-oc port-forward deployment/swatch-database-db 5432:5432 &
+oc wait --for=condition=Available deployment/swatch-tally-db
+oc port-forward deployment/swatch-tally-db 5432:5432 &
 
 oc wait --for=condition=Available deployment/caddy
 oc port-forward deployment/caddy 9000:9000 8000:8000 5000:5000
+
