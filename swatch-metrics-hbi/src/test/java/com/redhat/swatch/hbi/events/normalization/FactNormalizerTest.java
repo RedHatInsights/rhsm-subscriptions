@@ -114,6 +114,13 @@ class FactNormalizerTest {
         Arguments.of("aws", HardwareMeasurementType.AWS, CloudProvider.AWS),
         Arguments.of("AwS", HardwareMeasurementType.AWS, CloudProvider.AWS),
         Arguments.of("Not Known", null, null),
+        Arguments.of("Azure", HardwareMeasurementType.AZURE, CloudProvider.AZURE),
+        Arguments.of("AZURE", HardwareMeasurementType.AZURE, CloudProvider.AZURE),
+        Arguments.of("GOOGLE", HardwareMeasurementType.GOOGLE, CloudProvider.GOOGLE),
+        Arguments.of("Google", HardwareMeasurementType.GOOGLE, CloudProvider.GOOGLE),
+        Arguments.of("GCP", HardwareMeasurementType.GOOGLE, CloudProvider.GOOGLE),
+        Arguments.of("Alibaba", HardwareMeasurementType.ALIBABA, CloudProvider.ALIBABA),
+        Arguments.of("ALIBABA", HardwareMeasurementType.ALIBABA, CloudProvider.ALIBABA),
         Arguments.of(null, null, null));
   }
 
