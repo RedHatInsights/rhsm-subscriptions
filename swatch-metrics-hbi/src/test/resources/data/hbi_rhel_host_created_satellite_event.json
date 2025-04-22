@@ -1,0 +1,130 @@
+{
+  "type": "created",
+  "host": {
+    "id": "78ff2ed2-f993-4711-af6f-55b80102a6f3",
+    "display_name": "host_from_satellite",
+    "ansible_host": null,
+    "account": "87654321",
+    "org_id": "12345678",
+    "insights_id": "1829c5c9-c206-4e0e-a5c4-6fc72ed371af",
+    "subscription_manager_id": "979b6f3a-4c2b-4a97-890d-1087a7bc45e7",
+    "satellite_id": "979b6f3a-4c2b-4a97-890d-1087a7bc45e7",
+    "fqdn": "host_from_satellite",
+    "bios_uuid": "1829c5c9-c206-4e0e-a5c4-6fc72ed371af",
+    "ip_addresses": [
+      "0.0.0.0"
+    ],
+    "mac_addresses": [
+      "00:00:00:00:00:00"
+    ],
+    "facts": [
+      {
+        "namespace": "yupana",
+        "facts": {
+          "org_id": "12345678",
+          "source": "Satellite",
+          "account": "87654321"
+        }
+      },
+      {
+        "namespace": "satellite",
+        "facts": {
+          "organization_id": 1,
+          "satellite_version": "6.7.2",
+          "virtual_host_name": "host_from_satellite",
+          "virtual_host_uuid": "bed420fa-59ef-44e5-af8a-62a24473a554",
+          "infrastructure_type": null,
+          "system_purpose_role": "",
+          "system_purpose_sla": "Premium",
+          "distribution_version": "7.8",
+          "system_purpose_usage": "Production",
+          "satellite_instance_id": "1fdbd055-61e6-4bc6-9247-991b0bbe9775",
+          "is_hostname_obfuscated": false,
+          "is_simple_content_access": false
+        }
+      }
+    ],
+    "provider_id": null,
+    "provider_type": null,
+    "created": "2024-10-17T11:44:35.442325+00:00",
+    "updated": "2024-10-17T11:44:35.442327+00:00",
+    "stale_timestamp": "2024-10-18T16:44:35.442327+00:00",
+    "stale_warning_timestamp": "2024-10-24T11:44:35.442327+00:00",
+    "culled_timestamp": "2024-10-31T11:44:35.442327+00:00",
+    "reporter": "satellite",
+    "tags": [
+      {
+        "namespace": "satellite",
+        "key": "organization_id",
+        "value": "1"
+      },
+      {
+        "namespace": "satellite",
+        "key": "satellite_instance_id",
+        "value": "1fdbd055-61e6-4bc6-9247-991b0bbe9775"
+      }
+    ],
+    "system_profile": {
+      "arch": "x86_64",
+      "cpu_flags": [
+        "fpu",
+        "vme"
+      ],
+      "os_release": "7.8",
+      "bios_vendor": "SeaBIOS",
+      "bios_version": "1.11.0-2.el7",
+      "number_of_cpus": 6,
+      "cores_per_socket": 6,
+      "operating_system": {
+        "name": "RHEL",
+        "major": 7,
+        "minor": 8
+      },
+      "bios_release_date": "04/01/2014",
+      "number_of_sockets": 1,
+      "os_kernel_version": "3.10.0",
+      "satellite_managed": true,
+      "installed_packages": [
+        "acl-2.2.51-15.el7.x86_64"
+      ],
+      "installed_products": [
+        {
+          "id": "69",
+          "name": "Red Hat Enterprise Linux Server"
+        },
+        {
+          "id": "408",
+          "name": "Red Hat Ansible Engine"
+        }
+      ],
+      "network_interfaces": [
+        {
+          "name": "eth0",
+          "mac_address": "00:00:00:00:00:00",
+          "ipv4_addresses": [
+            "0.0.0.0"
+          ],
+          "ipv6_addresses": []
+        }
+      ],
+      "infrastructure_type": "virtual",
+      "subscription_status": "Partially entitled",
+      "system_memory_bytes": 20868997120,
+      "katello_agent_running": false
+    },
+    "per_reporter_staleness": {
+      "satellite": {
+        "last_check_in": "2024-10-17T11:44:35.416484+00:00",
+        "stale_timestamp": "2024-10-18T16:44:35.416484+00:00",
+        "check_in_succeeded": true,
+        "stale_warning_timestamp": "2024-10-24T11:44:35.416484+00:00",
+        "culled_timestamp": "2024-10-31T11:44:35.416484+00:00"
+      }
+    },
+    "groups": []
+  },
+  "timestamp": "2024-10-17T11:44:35.452369+00:00",
+  "metadata": {
+    "request_id": "fdb717ff-da42-473c-ac6f-6664dc99a855"
+  }
+}

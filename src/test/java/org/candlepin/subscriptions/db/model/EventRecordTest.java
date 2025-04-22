@@ -42,7 +42,20 @@ class EventRecordTest {
   @Test
   void testJsonOptionalVsNull() throws JsonProcessingException {
     String testData =
-        "{\"event_id\":\"99f6b275-6031-4967-84b6-147bd0191474\",\"display_name\":null,\"conversion\":false}";
+        """
+        {
+          "event_id":"99f6b275-6031-4967-84b6-147bd0191474",
+          "display_name":null,
+          "conversion":false,
+          "isHypervisor":false,
+          "isVirtual":false,
+          "isUnmappedGuest":false
+         }
+        """
+            // Replace line breaks and spaces to match the expected format when writing value as
+            // string
+            .replace("\n", "")
+            .replace(" ", "");
     EventRecord eventRecord = objectMapper.readValue(testData, EventRecord.class);
     Event event = eventRecord.getEvent();
     assertNotNull(event.getDisplayName());

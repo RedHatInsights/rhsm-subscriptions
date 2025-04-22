@@ -1,0 +1,71 @@
+{
+  "type": "created",
+  "host": {
+    "id": "84a15422-20a4-4303-a3ea-4a67b2c95ef4",
+    "display_name": "qpctesthost",
+    "ansible_host": null,
+    "account": "87654321",
+    "org_id": "12345678",
+    "insights_id": null,
+    "subscription_manager_id": "313dc07a-9d1d-4f4e-9989-c418edca2689",
+    "satellite_id": null,
+    "fqdn": "qpctesthost",
+    "ip_addresses": [
+      "192.168.1.1"
+    ],
+    "mac_addresses": [
+      "00:01:02:aa:99:8a"
+    ],
+    "facts": [
+      {
+        "namespace": "qpc",
+        "facts": {
+          "source_types": [
+            "network"
+          ],
+          "rh_products_installed": [
+            "EAP",
+            "RHEL"
+          ]
+        }
+      }
+    ],
+    "provider_id": null,
+    "provider_type": null,
+    "created": "2024-10-22T15:14:30.560618+00:00",
+    "updated": "2024-10-22T15:14:30.560623+00:00",
+    "stale_timestamp": "2024-10-23T20:14:30.560623+00:00",
+    "stale_warning_timestamp": "2024-10-29T15:14:30.560623+00:00",
+    "culled_timestamp": "2024-11-05T15:14:30.560623+00:00",
+    "reporter": "satellite",
+    "tags": [],
+    "system_profile": {
+      "arch": "x86_64",
+      "os_release": "7.9",
+      "number_of_cpus": 4,
+      "cores_per_socket": 1,
+      "operating_system": {
+        "name": "RHEL",
+        "major": 7,
+        "minor": 9
+      },
+      "number_of_sockets": 4,
+      "infrastructure_type": "virtual",
+      "system_memory_bytes": 12429021184
+    },
+    "per_reporter_staleness": {
+      "satellite": {
+        "last_check_in": "2024-10-22T15:14:30.536791+00:00",
+        "stale_timestamp": "2024-10-23T20:14:30.536791+00:00",
+        "check_in_succeeded": true,
+        "stale_warning_timestamp": "2024-10-29T15:14:30.536791+00:00",
+        "culled_timestamp": "2024-11-05T15:14:30.536791+00:00"
+      }
+    },
+    "groups": []
+  },
+  "timestamp": "2024-10-22T15:14:30.566613+00:00",
+  "metadata": {
+    "request_id": "f3c688e9-f7a5-43f1-a46c-7144c4883e5f"
+  }
+}

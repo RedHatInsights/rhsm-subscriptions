@@ -1,31 +1,71 @@
 plugins {
     id 'swatch.quarkus-conventions'
+    id 'swatch.liquibase-conventions'
 }
 
 description = 'The swatch-metrics-hbi service build definition'
 
+
+liquibase {
+    activities {
+        main {
+            databaseChangeLogTableName "DATABASECHANGELOG_SWATCH_METRICS_HBI"
+            databaseChangeLogLockTableName "DATABASECHANGELOGLOCK_SWATCH_METRICS_HBI"
+        }
+    }
+}
+
 dependencies {
     annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
-    implementation 'io.quarkus:quarkus-config-yaml'
-    implementation libraries["unleash-quarkus"]
+    annotationProcessor "org.hibernate.orm:hibernate-jpamodelgen"
 
-    implementation project(':swatch-common-config-workaround')
-    implementation libraries["clowder-quarkus-config-source"]
+    implementation 'io.quarkus:quarkus-config-yaml'
+    implementation 'io.quarkus:quarkus-hibernate-validator'
     implementation 'io.quarkus:quarkus-messaging-kafka'
-    implementation 'io.quarkus:quarkus-rest' // TODO: Remove later since REST API is temporary
-    implementation project(':swatch-common-smallrye-fault-tolerance')
-    implementation project(':swatch-common-kafka')
-    implementation libraries["quarkus-logging-splunk"]
-    implementation libraries["splunk-library-javalogging"]
     implementation 'io.quarkus:quarkus-opentelemetry'
+    implementation 'io.quarkus:quarkus-rest'
     implementation "com.fasterxml.jackson.core:jackson-databind"
+    implementation libraries["clowder-quarkus-config-source"]
     implementation libraries["jackson-annotations"] // for json generated models
     implementation libraries["jakarta-validation-api"] // for validation API in generated models
+    implementation libraries["quarkus-logging-splunk"]
+    implementation libraries["splunk-library-javalogging"]
+    implementation libraries["unleash-quarkus"]
+    implementation project(':swatch-common-clock')
+    implementation project(':swatch-common-config-workaround')
+    implementation project(':swatch-common-kafka')
+    implementation project(':swatch-common-models')
+    implementation project(':swatch-product-configuration')
+    implementation project(':swatch-common-panache')
+    implementation project(':swatch-common-smallrye-fault-tolerance')
     implementation project(':swatch-model-events')
     annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
-
+    implementation("io.quarkus:quarkus-liquibase")
+    implementation("io.quarkus:quarkus-jdbc-postgresql")
+    implementation 'io.quarkus:quarkus-hibernate-validator'
+    implementation project(':swatch-common-panache')
+    annotationProcessor "org.hibernate.orm:hibernate-jpamodelgen"
+    testImplementation("io.quarkus:quarkus-jdbc-h2")
     testImplementation libraries["junit-jupiter"]
+    testImplementation 'io.smallrye.reactive:smallrye-reactive-messaging-in-memory'
+    testImplementation libraries["awaitility"]
+    testImplementation libraries["junit-jupiter"]
+    testImplementation("io.quarkus:quarkus-jdbc-h2")
+
+    //TODO better way to import these
+    testImplementation 'io.quarkus:quarkus-junit5'
+    testImplementation 'io.quarkus:quarkus-rest-client'
+    testImplementation 'org.mockito:mockito-core:5.0.0'
+    testImplementation 'io.rest-assured:rest-assured:5.3.0'
+    // Quarkus test extensions
+    testImplementation 'io.quarkus:quarkus-junit5'
+    testImplementation 'io.quarkus:quarkus-hibernate-orm-panache'
+    testImplementation 'io.quarkus:quarkus-liquibase'
+    testImplementation 'org.testcontainers:postgresql'
+    testImplementation 'org.testcontainers:testcontainers'
+    testImplementation project(':swatch-common-testcontainers')
 }
+
 
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'

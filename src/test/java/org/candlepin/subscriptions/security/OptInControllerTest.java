@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.security;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -190,6 +191,17 @@ class OptInControllerTest {
     OptInConfig dto = controller.getOptInConfigForOrgId("org123");
     assertNotNull(dto.getData().getOrg());
     assertEquals("org123", dto.getData().getOrg().getOrgId());
+  }
+
+  @Test
+  void testIsOptedIn() {
+    String existingOrg = "existing";
+    OptInConfig existingConfig = controller.optIn(existingOrg, OptInType.API);
+    assertTrue(existingConfig.getData().getOptInComplete());
+
+    String nonExistingOrg = "non-existing";
+    assertTrue(controller.isOptedIn(existingOrg));
+    assertFalse(controller.isOptedIn(nonExistingOrg));
   }
 
   private OrgConfig setupExistingOrgConfig(String org) {
