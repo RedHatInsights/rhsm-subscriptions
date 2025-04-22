@@ -72,8 +72,11 @@ class MeasurementNormalizerTest {
         Arguments.of(2, 6, 12), // normal
         Arguments.of(null, 6, null), // sockets null
         Arguments.of(2, null, null), // coresPerSocket null
-        Arguments.of(null, null, null) // both null
-        );
+        Arguments.of(null, null, null), // both null
+        Arguments.of(0, 6, 0), // sockets is zero
+        Arguments.of(2, 0, 0), // coresPerSocket is zero
+        Arguments.of(0, 0, 0) // both sockets and coresPerSocket are zero
+    );
   }
 
   @Test
