@@ -15,7 +15,6 @@ idea {
         // Do not index the bin directories that IntelliJ drops its .class files and copies resource files to
         // See https://docs.gradle.org/current/dsl/org.gradle.plugins.ide.idea.model.IdeaModule.html
         excludeDirs += file("bin")
-        excludeDirs += file("build")
     }
 }
 

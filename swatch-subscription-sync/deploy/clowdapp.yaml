@@ -41,18 +41,6 @@ parameters:
     value: 1744Mi
   - name: CPU_REQUEST
     value: 500m
-  - name: WAIT_IMAGE
-    value: quay.io/cloudservices/swatch-database
-  - name: WAIT_TAG
-    value: latest
-  - name: WAIT_MEMORY_REQUEST
-    value: 10Mi
-  - name: WAIT_MEMORY_LIMIT
-    value: 20Mi
-  - name: WAIT_CPU_REQUEST
-    value: 100m
-  - name: WAIT_CPU_LIMIT
-    value: 100m
   - name: CPU_LIMIT
     value: '900m'
   - name: DATABASE_CONNECTION_TIMEOUT_MS
@@ -122,7 +110,7 @@ parameters:
   - name: CURL_CRON_MEMORY_REQUEST
     value: 10Mi
   - name: CURL_CRON_MEMORY_LIMIT
-    value: 20Mi
+    value: 50Mi
   - name: CURL_CRON_CPU_REQUEST
     value: 100m
   - name: CURL_CRON_CPU_LIMIT
@@ -135,9 +123,10 @@ parameters:
     value: 'http://localhost:4317'
   - name: OTEL_EXPORTER_OTLP_PROTOCOL
     value: 'grpc'
-    # allow overriding to support independent deploy with bonfire
+
+# allow overriding to support independent deploy with bonfire
   - name: DB_POD
-    value: swatch-database
+    value: swatch-tally
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -154,9 +143,8 @@ objects:
 #        - rhsm
 
       database:
-        sharedDbAppName: swatch-database
+        sharedDbAppName: swatch-tally
       dependencies:
-        - swatch-database
         - swatch-tally
         - rbac
 
@@ -179,18 +167,22 @@ objects:
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
           initContainers:
-            - image: ${WAIT_IMAGE}:${WAIT_TAG}
-              command: ["/deployments/wait_for.sh"]
-              args:
-                - "job"
-                - "-ljob=swatch-database-migrations-job"
+            - env:
+                - name: JAVA_DEBUG
+                  value: ${JAVA_DEBUG}
+                - name: SPRING_PROFILES_ACTIVE
+                  value: liquibase-only
+                  # Override liquibase disablement in the main container
+                - name: SPRING_LIQUIBASE_ENABLED
+                  value: 'true'
+              inheritEnv: true
               resources:
                 requests:
-                  cpu: ${WAIT_CPU_REQUEST}
-                  memory: ${WAIT_MEMORY_REQUEST}
+                  cpu: ${CPU_REQUEST}
+                  memory: ${MEMORY_REQUEST}
                 limits:
-                  cpu: ${WAIT_CPU_LIMIT}
-                  memory: ${WAIT_MEMORY_LIMIT}
+                  cpu: ${CPU_LIMIT}
+                  memory: ${MEMORY_LIMIT}
           env:
             - name: JAVA_DEBUG
               value: ${JAVA_DEBUG}

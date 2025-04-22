@@ -19,18 +19,6 @@ parameters:
     value: 200m
   - name: CPU_LIMIT
     value: '1'
-  - name: WAIT_IMAGE
-    value: quay.io/cloudservices/swatch-database
-  - name: WAIT_TAG
-    value: latest
-  - name: WAIT_MEMORY_REQUEST
-    value: 10Mi
-  - name: WAIT_MEMORY_LIMIT
-    value: 20Mi
-  - name: WAIT_CPU_REQUEST
-    value: 100m
-  - name: WAIT_CPU_LIMIT
-    value: 100m
   - name: ENV_NAME
     value: env-swatch-metrics-hbi
   - name: REPLICAS
@@ -74,7 +62,7 @@ parameters:
   - name: LOGGING_SHOW_SQL_QUERIES
     value: 'false'
   - name: DB_POD
-    value: 'swatch-database'
+    value: 'swatch-tally'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -98,10 +86,10 @@ objects:
       name: ${IMAGE_PULL_SECRET}
 
     database:
-      sharedDbAppName: swatch-database
+      sharedDbAppName: swatch-tally
 
     dependencies:
-      - swatch-database
+      - swatch-tally
 
     deployments:
       - name: service
@@ -111,19 +99,6 @@ objects:
             enabled: true
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          initContainers:
-            - image: ${WAIT_IMAGE}:${WAIT_TAG}
-              command: [ "/deployments/wait_for.sh" ]
-              args:
-                - "job"
-                - "-ljob=swatch-database-migrations-job"
-              resources:
-                requests:
-                  cpu: ${WAIT_CPU_REQUEST}
-                  memory: ${WAIT_MEMORY_REQUEST}
-                limits:
-                  cpu: ${WAIT_CPU_LIMIT}
-                  memory: ${WAIT_MEMORY_LIMIT}
           livenessProbe:
             failureThreshold: 3
             httpGet:

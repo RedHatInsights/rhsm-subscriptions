@@ -17,24 +17,24 @@ Additionally, the following labels are used to track PR status:
 Preferred Package Structure
 ---------------------------
 
-* config
+* config 
 * resource
-  * http "entrypoints", extend resteasy Resource interfaces that are generated with openapi generator
+  * http "entrypoints", extend resteasy Resource interfaces that are generated with openapi generator 
   * resource should have an injected service and not inject a repository class directly
 * model
-  * Dtos and other pojos
-* MapStruct mappers
-* exception
+  * Dtos and other pojos 
+* MapStruct mappers 
+* exception 
   * extending Exception
-* service
-  * Business logic, orchestration, things that aren't appropriate in the other packages
-  * entities should be converted to DTO in this layer prior to being returned to resource classes
-  * kafka producer and consumers live here
-  * umb communication lives here
-  * interact with the database by having a service class inject a repository class
-* repository
-  * PanacheRepository and JpaRepository
-  * JPA entities
+* service 
+  * Business logic, orchestration, things that aren't appropriate in the other packages 
+  * entities should be converted to DTO in this layer prior to being returned to resource classes 
+  * kafka producer and consumers live here 
+  * umb communication lives here 
+  * interact with the database by having a service class inject a repository class 
+* repository 
+  * PanacheRepository and JpaRepository 
+  * JPA entities 
     * Class names should have "Entity" suffix to differentiate them from their DTO counterparts
 * security
   * authentication, authorization, RBAC, etc.
@@ -76,8 +76,8 @@ Otherwise, the CI will detect your changes are not formatted and reject your pul
 
 We use [liquibase](https://docs.liquibase.com/) to manage our DB schema.
 
-* `./gradlew :swatch-database:liquibaseUpdate` runs DB migrations
-* `./gradlew :swatch-database:liquibaseRollbackCount -PliquibaseCommandValue=1` rolls back a single DB changeset
+* `./gradlew :liquibaseUpdate` runs DB migrations
+* `./gradlew :liquibaseRollbackCount -PliquibaseCommandValue=1` rolls back a single DB changeset
 
 You can use a prefix to target different subprojects when they have liquibase enabled:
 
@@ -108,7 +108,7 @@ The `includedSubscriptions` property only applies to metrics that aren't sourced
 -------------
 # Podman installation instructions
 
-Since we're using Testcontainers to set up services during test execution, besides installing podman, you also need to enable podman socket with
+Since we're using Testcontainers to set up services during test execution, besides installing podman, you also need to enable podman socket with 
 Docker REST API.
 
 First, you need to install podman. For Linux systems, you need to do:
@@ -153,16 +153,16 @@ This section aims to add some tips of known differences between Spring Boot and 
 
 ### **kafka**: `KafkaTemplate.send` (Spring Boot) is not the same than `Emitter.send` (Quarkus)
 
-The `KafkaTemplate.send` method is blocking where `Emitter.send` is not.
+The `KafkaTemplate.send` method is blocking where `Emitter.send` is not. 
 Actually, if you don't handle the response from `Emitter.send`, the message might not be sent.
-The correct equivalent method in Quarkus is `MutinyEmitter.sendAndWait` and it needs to be used by a method annotated with `@Blocking`.
+The correct equivalent method in Quarkus is `MutinyEmitter.sendAndWait` and it needs to be used by a method annotated with `@Blocking`. 
 
 ### **kafka**: does not support chain transactions with Hibernate ORM
 
 Related to https://github.com/quarkusio/quarkus/issues/40530
-An alternative solution is to use [the Outbox Pattern](https://spring.io/blog/2023/10/24/a-use-case-for-transactions-adapting-to-transactional-outbox-pattern), where we first insert the data into the database in a single
-transaction, then query the data again and send the message. If the message fails to be sent, we delete the created
-record in database.
+An alternative solution is to use [the Outbox Pattern](https://spring.io/blog/2023/10/24/a-use-case-for-transactions-adapting-to-transactional-outbox-pattern), where we first insert the data into the database in a single 
+transaction, then query the data again and send the message. If the message fails to be sent, we delete the created 
+record in database. 
 Example:
 
 ```java
@@ -296,7 +296,7 @@ public interface ClientApi {
 }
 ```
 
-Internally, the Quarkus REST Client extension will modify the path from "/access/" to "/access" which would make some servers to not found the endpoint.
+Internally, the Quarkus REST Client extension will modify the path from "/access/" to "/access" which would make some servers to not found the endpoint. 
 The workaround is to move the `@Path` annotation at method level:
 ```java
 @RegisterRestClient
@@ -307,7 +307,7 @@ public interface ClientApi {
 }
 ```
 
-Now, the URL will be correctly set by preserving the trailing slash.
+Now, the URL will be correctly set by preserving the trailing slash. 
 
 Note that since we're using the OpenAPI generator to generate the REST Client interfaces, we can't easily change where to put the `@Path` annotation. The only workaround that I'm aware is to configure the API manifest to include different endpoints in the same client interface:
 ```java

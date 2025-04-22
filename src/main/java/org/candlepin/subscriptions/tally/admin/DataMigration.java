@@ -29,16 +29,6 @@ import java.util.Optional;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 
-/**
- * Implement this interface for long-running database migrations that need to be triggered and run
- * in the background. Once the migration is complete, remove the implementing class. For code
- * archeologists, previous implementations were
- *
- * <ul>
- *   <li>HardwareMeasurementMigration
- *   <li>OrgIdToTallySnapshotMigration
- * </ul>
- */
 public abstract class DataMigration {
   private static final String LIQUIBASE_CHANGELOG_INSERT =
       "insert into databasechangelog(id, author, filename, dateexecuted, orderexecuted, exectype, md5sum, description, comments, tag, liquibase, contexts, labels, deployment_id)\n"

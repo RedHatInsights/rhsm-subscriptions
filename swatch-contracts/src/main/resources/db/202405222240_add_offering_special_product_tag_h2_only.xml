@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+  <changeSet id="202405222240-01" author="lburnett" dbms="h2">
+    <comment>Add SPECIAL_PRICING_FLAG column to the OFFERING table for tests only (since it is still
+      managed by the
+      monolith)
+    </comment>
+    <addColumn tableName="offering">
+      <column name="special_pricing_flag" type="VARCHAR(255)"/>
+    </addColumn>
+    <rollback>
+      <dropColumn tableName="offering" columnName="special_pricing_flag"/>
+    </rollback>
+  </changeSet>
+</databaseChangeLog>
+
+
+  <!-- vim: set expandtab sts=4 sw=4 ai: -->
+

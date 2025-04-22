@@ -80,7 +80,7 @@ quarkus:
         format: '%d %-5p [%c{3.}] (%t) %s%e%n'
         batch-interval: ${SPLUNK_HEC_BATCH_INTERVAL:10S}
   swagger-ui:
-    path: /api/swatch-metrics/internal/swagger-ui
+    path: /api/${quarkus.application.name}/internal/swagger-ui
     always-include: true
   smallrye-openapi:
     path: /api/${quarkus.application.name}/internal/openapi
