@@ -29,7 +29,9 @@ import java.time.ZonedDateTime;
 import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
+@ToString
 @Getter
 @Setter
 @JsonTypeInfo(use = Id.DEDUCTION)
