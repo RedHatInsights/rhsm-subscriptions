@@ -34,9 +34,6 @@ parameters:
     value: quay.io/cloudservices/swatch-database
   - name: IMAGE_TAG
     value: latest
-  - name: JOB_SUFFIX
-    from: '[a-z]{10}'
-    generate: expression
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -53,7 +50,7 @@ objects:
         version: 13
 
       jobs:
-        - name: migrations-job-${JOB_SUFFIX}
+        - name: migrations-job
           activeDeadlineSeconds: 1800
           successfulJobsHistoryLimit: 2
           podSpec:
@@ -111,8 +108,8 @@ objects:
   - apiVersion: cloud.redhat.com/v1alpha1
     kind: ClowdJobInvocation
     metadata:
-      name: swatch-database-${JOB_SUFFIX}
+      name: swatch-database
     spec:
       appName: swatch-database
       jobs:
-        - migrations-job-${JOB_SUFFIX}
+        - migrations-job
