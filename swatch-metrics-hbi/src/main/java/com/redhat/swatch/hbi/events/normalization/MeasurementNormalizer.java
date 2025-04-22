@@ -63,9 +63,10 @@ public class MeasurementNormalizer {
   private Integer normalizeCores(SystemProfileFacts systemProfileFacts, Set<String> productTags) {
     Integer applicableCores = getSystemProfileCores(systemProfileFacts, productTags);
     if (Boolean.TRUE.equals(systemProfileFacts.getIsMarketplace())) {
-      applicableCores = 0;
+      return 0;
     }
-    return normalizeNullMetric(applicableCores, systemProfileFacts.getCoresPerSocket());
+
+    return applicableCores;
   }
 
   private Integer normalizeSockets(
@@ -84,33 +85,37 @@ public class MeasurementNormalizer {
             isHypervisor,
             isUnmappedGuest);
     if (Boolean.TRUE.equals(systemProfileFacts.getIsMarketplace())) {
-      applicableSockets = 0;
+      return 0;
     }
-    return normalizeNullMetric(applicableSockets, systemProfileFacts.getSockets());
+
+    return applicableSockets;
   }
 
   private Integer getSystemProfileCores(
       SystemProfileFacts systemProfileFacts, Set<String> productTags) {
-    Integer spSockets = systemProfileFacts.getSockets();
-    Integer spCoresPerSocket = systemProfileFacts.getCoresPerSocket();
 
-    Integer applicableCores = null;
-    if (spSockets != null && spSockets != 0 && spCoresPerSocket != null && spCoresPerSocket != 0) {
-      applicableCores = spCoresPerSocket * spSockets;
-    }
-
+    // Only calculate vCPUs for x86 virtual guests
     if ("x86_64".equals(systemProfileFacts.getArch())
         && HardwareMeasurementType.VIRTUAL
             .toString()
             .equalsIgnoreCase(systemProfileFacts.getInfrastructureType())) {
-      applicableCores = calculateVirtualCPU(productTags, systemProfileFacts);
+      return calculateVirtualCPU(productTags, systemProfileFacts);
     }
-    return applicableCores;
+
+    // Physical or other virtual types: use basic formula, but only if both values are present
+    Integer spSockets = systemProfileFacts.getSockets();
+    Integer spCoresPerSocket = systemProfileFacts.getCoresPerSocket();
+
+    if (spSockets != null && spSockets != 0 && spCoresPerSocket != null && spCoresPerSocket != 0) {
+      return spCoresPerSocket * spSockets;
+    }
+
+    return null;
   }
 
   private Integer getSystemProfileSockets(SystemProfileFacts systemProfileFacts) {
     Integer spSockets = systemProfileFacts.getSockets();
-    return spSockets != null && spSockets != 0 ? spSockets : null;
+    return (spSockets != null && spSockets != 0) ? spSockets : null;
   }
 
   private Integer normalizeSocketCount(
@@ -146,13 +151,24 @@ public class MeasurementNormalizer {
     //  For x86, guests: if we know the number of threads per core and is greater than one,
     //  then we divide the number of cores by that number.
     //  Otherwise, we divide by two.
-    int cpu = systemProfileFacts.getCoresPerSocket() * systemProfileFacts.getSockets();
+    Integer coresPerSocket = systemProfileFacts.getCoresPerSocket();
+    Integer sockets = systemProfileFacts.getSockets();
 
-    var threadsPerCore = THREADS_PER_CORE_DEFAULT;
+    if (coresPerSocket == null || sockets == null) {
+      log.warn(
+          "Missing coresPerSocket ({}) or sockets ({}). Returning null.", coresPerSocket, sockets);
+      return null;
+    }
+
+    int cpu = coresPerSocket * sockets;
+    double threadsPerCore = THREADS_PER_CORE_DEFAULT;
+
     if (appConfig.isUseCpuSystemFactsForAllProducts()
         || products.contains(OPEN_SHIFT_CONTAINER_PLATFORM)) {
-      if (isGreaterThanZero(systemProfileFacts.getThreadsPerCore())) {
-        threadsPerCore = systemProfileFacts.getThreadsPerCore();
+
+      Integer systemThreadsPerCore = systemProfileFacts.getThreadsPerCore();
+      if (isGreaterThanZero(systemThreadsPerCore)) {
+        threadsPerCore = systemThreadsPerCore;
 
         if (threadsPerCore != THREADS_PER_CORE_DEFAULT) {
           log.warn(
@@ -160,20 +176,17 @@ public class MeasurementNormalizer {
               threadsPerCore,
               String.join(", ", products));
         }
-      } else if (isGreaterThanZero(
-          systemProfileFacts.getCpus(),
-          systemProfileFacts.getSockets(),
-          systemProfileFacts.getCoresPerSocket())) {
-        threadsPerCore =
-            (double) systemProfileFacts.getCpus()
-                / (systemProfileFacts.getSockets() * systemProfileFacts.getCoresPerSocket());
+
+      } else if (isGreaterThanZero(systemProfileFacts.getCpus(), sockets, coresPerSocket)) {
+        threadsPerCore = (double) systemProfileFacts.getCpus() / (sockets * coresPerSocket);
+
         if (threadsPerCore != THREADS_PER_CORE_DEFAULT) {
           log.warn(
-              "Using '{}' threads per core from formula 'number of cpus as {}' / ('number of sockets as {}' * 'cores per socket as {}') profile for products '{}' to calculate vCPUs",
+              "Using '{}' threads per core from derived formula: cpus={} / (sockets={} * coresPerSocket={}) for products '{}'",
               threadsPerCore,
               systemProfileFacts.getCpus(),
-              systemProfileFacts.getSockets(),
-              systemProfileFacts.getCoresPerSocket(),
+              sockets,
+              coresPerSocket,
               String.join(", ", products));
         }
       }
@@ -213,12 +226,6 @@ public class MeasurementNormalizer {
 
   private boolean isGreaterThanZero(Integer... values) {
     return Arrays.stream(values).allMatch(value -> value != null && value > 0);
-  }
-
-  private Integer normalizeNullMetric(Integer currentValue, Integer replacementValue) {
-    return currentValue == null && replacementValue != null && replacementValue != 0
-        ? replacementValue
-        : currentValue;
   }
 
   private boolean startsWithIgnoreCase(String value, String match) {

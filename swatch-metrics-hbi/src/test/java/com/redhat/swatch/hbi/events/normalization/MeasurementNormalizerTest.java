@@ -54,20 +54,26 @@ class MeasurementNormalizerTest {
     measurementNormalizer = new MeasurementNormalizer(appConfig);
   }
 
-  @Test
-  void testNormalizeCores() {
-    int systemProfileCorePerSocket = 6;
-    int systemProfileSockets = 2;
-
-    SystemProfileFacts systemProfileFacts =
-        physicalSystemProfile(systemProfileSockets, systemProfileCorePerSocket);
+  @ParameterizedTest
+  @MethodSource("coreSocketInputs")
+  void testNormalizeCoresWithNulls(Integer sockets, Integer coresPerSocket, Integer expectedCores) {
+    SystemProfileFacts systemProfileFacts = physicalSystemProfile(sockets, coresPerSocket);
     RhsmFacts rhsmFacts = rhsmFacts();
     NormalizedFacts normalizedFacts = hostFacts(UUID.randomUUID().toString(), false);
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
             normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of(), false, false);
-    // sockets * coresPerSocket
-    assertEquals(12, normalized.getCores().orElse(null));
+
+    assertEquals(expectedCores, normalized.getCores().orElse(null));
+  }
+
+  static Stream<Arguments> coreSocketInputs() {
+    return Stream.of(
+        Arguments.of(2, 6, 12), // normal
+        Arguments.of(null, 6, null), // sockets null
+        Arguments.of(2, null, null), // coresPerSocket null
+        Arguments.of(null, null, null) // both null
+        );
   }
 
   @Test
