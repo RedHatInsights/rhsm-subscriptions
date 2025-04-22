@@ -102,7 +102,6 @@ public class FactNormalizer {
 
   private void normalizeSatelliteFacts(
       NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
-
     handleSla(normalizedFacts, hostFacts, hostFacts.getSatelliteSla());
     handleUsage(normalizedFacts, hostFacts, hostFacts.getSatelliteUsage());
   }
