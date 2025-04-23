@@ -40,7 +40,7 @@ import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.candlepin.clock.ApplicationClock;
-import org.candlepin.subscriptions.json.Event.CloudProvider;
+import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.HardwareType;
 
 /**
@@ -108,10 +108,7 @@ public class FactNormalizer {
             determineUsage(orgId, subscriptionManagerId, satelliteFacts, rhsmFacts, skipRhsmFacts))
         .sla(determineSla(orgId, subscriptionManagerId, satelliteFacts, rhsmFacts, skipRhsmFacts))
         .cloudProviderType(cloudProviderType)
-        .cloudProvider(
-            Objects.nonNull(cloudProviderType)
-                ? CloudProvider.fromValue(cloudProviderType.name())
-                : null)
+        .cloudProvider(toEventCloudProvider(cloudProviderType))
         .syncTimestamp(syncTimestamp)
         .isVirtual(isVirtual)
         .hardwareType(determineHardwareType(systemProfileFacts, isVirtual))
@@ -122,6 +119,20 @@ public class FactNormalizer {
         .productIds(productNormalizer.getProductIds())
         .lastSeen(determineLastSeenDate(host))
         .build();
+  }
+
+  private Event.CloudProvider toEventCloudProvider(HardwareMeasurementType measurementType) {
+    if (Objects.isNull(measurementType)) {
+      return null;
+    }
+
+    return switch (measurementType) {
+      case AWS, AWS_CLOUDIGRADE -> Event.CloudProvider.AWS;
+      case AZURE -> Event.CloudProvider.AZURE;
+      case ALIBABA -> Event.CloudProvider.ALIBABA;
+      case GOOGLE -> Event.CloudProvider.GOOGLE;
+      default -> null;
+    };
   }
 
   private String determineInstanceId(Host hbiHost) {
