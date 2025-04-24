@@ -200,43 +200,6 @@ spec:
       workspaces:
       - name: source
         workspace: workspace
-    - name: provision-eaas-space
-      runAfter:
-      - prefetch-dependencies
-      taskRef:
-        resolver: git
-        params:
-          - name: url
-            value: https://github.com/konflux-ci/build-definitions.git
-          - name: revision
-            value: 4e4fa7355a6a51083954408e7e3b647e3bddb8d8
-          - name: pathInRepo
-            value: task/eaas-provision-space/0.1/eaas-provision-space.yaml
-      params:
-        - name: ownerName
-          value: $(context.pipelineRun.name)
-        - name: ownerUid
-          value: $(context.pipelineRun.uid)
-    - name: run-tests
-      runAfter:
-      - provision-eaas-space
-      params:
-        - name: SERVICE
-          value: swatch-billable-usage
-        - name: PROVISION_EAAS_SPACE_SECRET_REF
-          value: $(tasks.provision-eaas-space.results.secretRef)
-      taskRef:
-        resolver: git
-        params:
-          - name: url
-            value: https://github.com/RedHatInsights/rhsm-subscriptions
-          - name: revision
-            value: $(params.revision)
-          - name: pathInRepo
-            value: .tekton/run-tests-task.yaml
-      workspaces:
-      - name: source
-        workspace: workspace
     - name: build-container
       params:
       - name: IMAGE
@@ -254,7 +217,7 @@ spec:
       - name: COMMIT_SHA
         value: $(tasks.clone-repository.results.commit)
       runAfter:
-      - run-tests
+        - prefetch-dependencies
       taskRef:
         params:
         - name: name
@@ -495,7 +458,7 @@ spec:
         - ReadWriteOnce
         resources:
           requests:
-            storage: 2Gi
+            storage: 1Gi
       status: {}
   - name: git-auth
     secret:
