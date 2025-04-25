@@ -37,7 +37,7 @@ libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-de
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:3.0.0"
-libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.31.22"
+libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.31.28"
 libraries["clowder-quarkus-config-source"] = "com.redhat.cloud.common:clowder-quarkus-config-source:2.7.1"
 libraries["guava"] = "com.google.guava:guava:33.4.8-jre"
 libraries["commons-lang3"] = "org.apache.commons:commons-lang3:3.17.0"
@@ -72,7 +72,7 @@ libraries["resteasy-spring-boot-starter"] = "org.jboss.resteasy:resteasy-servlet
 libraries["resteasy-validator-provider"] = "org.jboss.resteasy:resteasy-validator-provider:${resteasyVersion}"
 libraries["splunk-library-javalogging"] = "com.splunk.logging:splunk-library-javalogging:1.11.8"
 libraries["swagger-annotations"] = "io.swagger:swagger-annotations:1.6.15"
-libraries["swagger-ui"] = "org.webjars:swagger-ui:5.20.7"
+libraries["swagger-ui"] = "org.webjars:swagger-ui:5.21.0"
 libraries["webjars-locator"] = "org.webjars:webjars-locator:0.52"
 libraries["wiremock"] = "com.github.tomakehurst:wiremock-standalone:3.0.1"
 libraries["awaitility"] = "org.awaitility:awaitility:4.3.0"
@@ -81,6 +81,6 @@ libraries["testcontainers-postgresql"] = 'org.testcontainers:postgresql:1.20.6'
 libraries["kafka-streams-test-utils"] = "org.apache.kafka:kafka-streams-test-utils:7.9.0-ce"
 libraries["slf4j-api"] = "org.slf4j:slf4j-api:2.0.17"
 libraries["snakeyaml"] = "org.yaml:snakeyaml:2.4"
-libraries["unleash-spring-boot-starter"] = "io.getunleash:springboot-unleash-starter:1.2.0"
+libraries["unleash-spring-boot-starter"] = "io.getunleash:springboot-unleash-starter:1.2.3"
 libraries["unleash-quarkus"] = "io.quarkiverse.unleash:quarkus-unleash:1.10.0"
 libraries["caffeine"] = "com.github.ben-manes.caffeine:caffeine:3.2.0"

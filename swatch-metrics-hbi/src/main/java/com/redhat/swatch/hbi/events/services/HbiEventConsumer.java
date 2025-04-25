@@ -108,7 +108,7 @@ public class HbiEventConsumer {
       return;
     }
 
-    log.info("Received create/update host event from HBI - {}", hbiEvent);
+    logHbiEvent(hbiEvent);
     HbiHostCreateUpdateEvent hbiHostEvent = (HbiHostCreateUpdateEvent) hbiEvent;
 
     Host host = new Host(hbiHostEvent.getHost());
@@ -317,5 +317,16 @@ public class HbiEventConsumer {
         .withIsUnmappedGuest(facts.isUnmappedGuest())
         .withIsHypervisor(facts.isHypervisor())
         .withLastSeen(facts.getLastSeen());
+  }
+
+  private void logHbiEvent(HbiEvent hbiEvent) {
+    String eventString;
+    try {
+      eventString = objectMapper.writeValueAsString(hbiEvent);
+    } catch (JsonProcessingException e) {
+      // Just log the object via toString if serialization fails.
+      eventString = hbiEvent.toString();
+    }
+    log.info("Received create/update host event from HBI - {}", eventString);
   }
 }

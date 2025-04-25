@@ -22,7 +22,9 @@ package com.redhat.swatch.hbi.events.dtos.hbi;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
+@ToString
 @Getter
 @Setter
 public class HbiHostCreateUpdateEvent extends HbiEvent {

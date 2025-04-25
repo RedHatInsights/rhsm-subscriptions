@@ -146,8 +146,6 @@ public class MeasurementNormalizer {
     //  For x86, guests: if we know the number of threads per core and is greater than one,
     //  then we divide the number of cores by that number.
     //  Otherwise, we divide by two.
-    int cpu = systemProfileFacts.getCoresPerSocket() * systemProfileFacts.getSockets();
-
     var threadsPerCore = THREADS_PER_CORE_DEFAULT;
     if (appConfig.isUseCpuSystemFactsForAllProducts()
         || products.contains(OPEN_SHIFT_CONTAINER_PLATFORM)) {
@@ -178,6 +176,15 @@ public class MeasurementNormalizer {
         }
       }
     }
+
+    if (!isGreaterThanZero(
+        systemProfileFacts.getCoresPerSocket(), systemProfileFacts.getSockets())) {
+      log.warn(
+          "Unable to calculate virtual CPU because cores/sockets were 0 or null. Defaulting to 'null'");
+      return null;
+    }
+
+    int cpu = systemProfileFacts.getCoresPerSocket() * systemProfileFacts.getSockets();
     return (int) Math.ceil(cpu / threadsPerCore);
   }
 
