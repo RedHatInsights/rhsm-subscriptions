@@ -12,13 +12,13 @@ parameters:
   - name: IMAGE_PULL_SECRET
     value: quay-cloudservices-pull
   - name: MEMORY_REQUEST
-    value: 512Mi
+    value: 1000Mi
   - name: MEMORY_LIMIT
-    value: 512Mi
+    value: 1400Mi
   - name: CPU_REQUEST
-    value: 200m
+    value: 350m
   - name: CPU_LIMIT
-    value: '1'
+    value: 1500m
   - name: ENV_NAME
     value: env-swatch-metrics-hbi
   - name: REPLICAS
