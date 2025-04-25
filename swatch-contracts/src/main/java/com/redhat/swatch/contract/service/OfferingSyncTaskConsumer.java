@@ -50,17 +50,17 @@ public class OfferingSyncTaskConsumer {
     String sku = task.getSku();
     log.info("Sync for offeringSku={} triggered by OfferingSyncTask", sku);
 
-    service.syncOffering(sku);
+    service.syncOffering(sku, OFFERING_SYNC_TASK_TOPIC);
   }
 
   @Blocking
   @Incoming(OFFERING_SYNC_TASK_CANONICAL_UMB)
   public void consumeFromUmb(String productMessageXml) throws JsonProcessingException {
-    log.debug("Received message from UMB offering product{}", productMessageXml);
+    log.info("Received message from UMB offering sync canonical. product {}", productMessageXml);
     if (!umbEnabled) {
       log.debug("UMB processing is not enabled");
       return;
     }
-    service.syncUmbProductFromXml(productMessageXml);
+    service.syncUmbProductFromXml(productMessageXml, OFFERING_SYNC_TASK_CANONICAL_UMB);
   }
 }

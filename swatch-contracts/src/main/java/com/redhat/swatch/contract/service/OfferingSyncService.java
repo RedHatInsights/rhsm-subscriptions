@@ -103,7 +103,7 @@ public class OfferingSyncService {
    */
   @Transactional
   @Timed("swatch_contracts_sync_offering")
-  public SyncResult syncOffering(String sku) {
+  public SyncResult syncOffering(String sku, String requestMessageTopic) {
     Timer.Sample syncTime = Timer.start();
 
     if (productDenylist.productIdMatches(sku)) {
@@ -115,7 +115,9 @@ public class OfferingSyncService {
 
     try {
       SyncResult result =
-          getUpstreamOffering(sku).map(this::syncOffering).orElse(SyncResult.SKIPPED_NOT_FOUND);
+          getUpstreamOffering(sku, requestMessageTopic)
+              .map(this::syncOffering)
+              .orElse(SyncResult.SKIPPED_NOT_FOUND);
       Duration syncDuration = Duration.ofNanos(syncTime.stop(syncTimer));
       log.info(SYNC_LOG_TEMPLATE, result, sku, syncDuration.toMillis());
       return result;
@@ -132,10 +134,11 @@ public class OfferingSyncService {
    * @return An Offering with information filled by an upstream service, or empty if the product was
    *     not found.
    */
-  private Optional<OfferingEntity> getUpstreamOffering(String sku) {
+  private Optional<OfferingEntity> getUpstreamOffering(String sku, String requestMessageTopic) {
     log.debug("Retrieving product tree for offeringSku=\"{}\"", sku);
     try {
-      var offering = UpstreamProductData.offeringFromUpstream(sku, productService);
+      var offering =
+          UpstreamProductData.offeringFromUpstream(sku, productService, requestMessageTopic);
       discoverProductTagsBySku(offering);
       return offering;
     } catch (ServiceException e) {
@@ -259,7 +262,7 @@ public class OfferingSyncService {
             objectMapper, offeringsJson, derivedSkuDataJsonArray, engProdJsonArray);
     productDataSource
         .getTopLevelSkus()
-        .map(sku -> enrichUpstreamOfferingData(sku, productDataSource))
+        .map(sku -> enrichUpstreamOfferingData(sku, productDataSource, "SaveOfferings"))
         .filter(Optional::isPresent)
         .map(Optional::get)
         .forEach(offeringRepository::persist);
@@ -267,9 +270,10 @@ public class OfferingSyncService {
   }
 
   private Optional<OfferingEntity> enrichUpstreamOfferingData(
-      String sku, JsonProductDataSource productDataSource) {
+      String sku, JsonProductDataSource productDataSource, String requestMessageTopic) {
     try {
-      var offering = UpstreamProductData.offeringFromUpstream(sku, productDataSource);
+      var offering =
+          UpstreamProductData.offeringFromUpstream(sku, productDataSource, requestMessageTopic);
       discoverProductTagsBySku(offering);
       return offering;
     } catch (ServiceException e) {
@@ -291,13 +295,17 @@ public class OfferingSyncService {
    * @return result describing results of sync (for testing purposes)
    */
   @Transactional
-  public SyncResult syncUmbProductFromXml(String productXml) throws JsonProcessingException {
-    return syncUmbProduct(
+  public SyncResult syncUmbProductFromXml(String productXml, String requestMessageTopic)
+      throws JsonProcessingException {
+
+    UmbOperationalProduct operationalProduct =
         umbMessageMapper
             .readValue(productXml, CanonicalMessage.class)
             .getPayload()
             .getSync()
-            .getOperationalProduct());
+            .getOperationalProduct();
+
+    return syncUmbProduct(operationalProduct, requestMessageTopic);
   }
 
   /**
@@ -309,24 +317,30 @@ public class OfferingSyncService {
    * @return result describing results of sync (for testing purposes)
    */
   @Transactional
-  public SyncResult syncUmbProductFromEvent(OperationalProductEvent productEvent)
-      throws JsonProcessingException {
+  public SyncResult syncUmbProductFromEvent(
+      OperationalProductEvent productEvent, String requestMessageTopic) {
+
     // The event from the Product Service UMB topic only has the SKU and no attributes
     UmbOperationalProduct product =
         UmbOperationalProduct.builder()
             .sku(productEvent.getProductCode())
             .attributes(new ProductAttribute[] {})
             .build();
-    return syncUmbProduct(product);
+
+    return syncUmbProduct(product, requestMessageTopic);
   }
 
-  private SyncResult syncUmbProduct(UmbOperationalProduct umbOperationalProduct) {
-    log.info("Received UMB message for productSku={}", umbOperationalProduct.getSku());
+  private SyncResult syncUmbProduct(
+      UmbOperationalProduct umbOperationalProduct, String requestMessageTopic) {
+    log.info(
+        "Received UMB message on {} for productSku={}",
+        requestMessageTopic,
+        umbOperationalProduct.getSku());
     if (umbOperationalProduct.getSku().startsWith("SVC")) {
       syncChildSku(umbOperationalProduct.getSku());
       return SyncResult.FETCHED_AND_SYNCED;
     } else {
-      SyncResult result = syncRootSku(umbOperationalProduct);
+      SyncResult result = syncRootSku(umbOperationalProduct, requestMessageTopic);
       if (result == SyncResult.FETCHED_AND_SYNCED) {
         // we must assume that any SKU we get a message for may be a derived SKU,
         // but we'll check our cache of product data and only actually operate on offerings having
@@ -344,12 +358,13 @@ public class OfferingSyncService {
    * @param umbOperationalProduct product definition from a UMB message
    * @see UpstreamProductData#offeringFromUmbData
    */
-  private SyncResult syncRootSku(UmbOperationalProduct umbOperationalProduct) {
+  private SyncResult syncRootSku(
+      UmbOperationalProduct umbOperationalProduct, String requestMessageTopic) {
     Optional<OfferingEntity> existing =
         offeringRepository.findByIdOptional(umbOperationalProduct.getSku());
     Optional<OfferingEntity> newState =
         UpstreamProductData.offeringFromUmbData(
-            umbOperationalProduct, existing.orElse(null), productService);
+            umbOperationalProduct, existing.orElse(null), productService, requestMessageTopic);
     if (newState.isPresent()) {
       discoverProductTagsBySku(newState);
       return syncOffering(newState.get(), existing);

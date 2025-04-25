@@ -229,7 +229,7 @@ public class SubscriptionSyncService {
     // the subscription that uses that offering
     if (subscriptionOptional.isEmpty() && offeringRepository.findByIdOptional(sku).isEmpty()) {
       log.debug("Sku={} not in Offering repository, syncing offering.", sku);
-      return SyncResult.isSynced(offeringSyncService.syncOffering(sku));
+      return SyncResult.isSynced(offeringSyncService.syncOffering(sku, "SubscriptionSync"));
     }
     return true;
   }

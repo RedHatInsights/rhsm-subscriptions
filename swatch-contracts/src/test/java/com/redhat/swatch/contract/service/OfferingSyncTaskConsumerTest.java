@@ -20,7 +20,9 @@
  */
 package com.redhat.swatch.contract.service;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -43,14 +45,15 @@ class OfferingSyncTaskConsumerTest {
   @Test
   void testConsumeFromTopic() {
     // Given a SKU is not denied and retrievable from upstream,
-    when(service.syncOffering(anyString())).thenReturn(SyncResult.FETCHED_AND_SYNCED);
+    when(service.syncOffering(anyString(), any(String.class)))
+        .thenReturn(SyncResult.FETCHED_AND_SYNCED);
 
     // When a non denylisted SKU is received,
     String sku = "RH00604F5";
     consumer.consumeFromTopic(new OfferingSyncTask(sku));
 
     // Then the offering should be synced.
-    verify(service).syncOffering(sku);
+    verify(service).syncOffering(eq(sku), any(String.class));
   }
 
   @Test
@@ -58,6 +61,6 @@ class OfferingSyncTaskConsumerTest {
     String productMessageXml =
         "<?xml version=\"1.0\"?> <CanonicalMessage><Payload><Sync><OperationalProduct><Sku>RH0180191</Sku><SkuDescription>Test</SkuDescription><Role>test</Role><ProductRelationship><ParentProduct><Sku>RH0180191</Sku></ParentProduct><ChildProduct><Sku>SVCRH01</Sku></ChildProduct><ChildProduct><Sku>SVCRH01V4</Sku></ChildProduct></ProductRelationship><Attribute><Code>USAGE</Code><Name>Usage</Name><Value>Production</Value></Attribute></OperationalProduct></Sync></Payload></CanonicalMessage>";
     consumer.consumeFromUmb(productMessageXml);
-    verify(service).syncUmbProductFromXml(productMessageXml);
+    verify(service).syncUmbProductFromXml(eq(productMessageXml), any(String.class));
   }
 }

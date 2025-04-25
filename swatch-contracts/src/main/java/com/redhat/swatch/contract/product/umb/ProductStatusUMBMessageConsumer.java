@@ -47,9 +47,11 @@ public class ProductStatusUMBMessageConsumer {
   @Incoming(OFFERING_SYNC_TASK_SERVICE_UMB)
   public void consumeMessage(Object message) {
 
-    log.info("Consumer was called");
+    log.info("Received message from UMB offering sync service.  product {}", message);
     if (umbEnabled) {
       consumeProduct(message);
+    } else {
+      log.debug("UMB processing is not enabled");
     }
   }
 
@@ -59,7 +61,7 @@ public class ProductStatusUMBMessageConsumer {
       OperationalProductEvent productEvent =
           mapper.convertValue(message, OperationalProductEvent.class);
 
-      return service.syncUmbProductFromEvent(productEvent);
+      return service.syncUmbProductFromEvent(productEvent, OFFERING_SYNC_TASK_SERVICE_UMB);
     } catch (Exception e) {
       log.warn("Unable to read UMB message from JSON.", e);
       return SyncResult.FAILED;
