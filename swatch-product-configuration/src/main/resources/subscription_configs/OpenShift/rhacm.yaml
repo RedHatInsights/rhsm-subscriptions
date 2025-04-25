@@ -5,10 +5,10 @@ id: rhacm
 
 variants:
   - tag: rhacm
-    #TODO what roles
-    roles:
-      - moa-hostedcontrolplane
-      - moa
+    level1:
+      - OpenShift
+    level2:
+      - "ACM - Advanced Cluster Management"
 
 defaults:
   variant: rhacm
@@ -20,7 +20,7 @@ serviceType: rhacm Instance
 contractEnabled: true
 
 metrics:
-  - id: Cores
+  - id: vCPUs
     type: counter
     awsDimension: acm_vcpu_hours
     prometheus:
