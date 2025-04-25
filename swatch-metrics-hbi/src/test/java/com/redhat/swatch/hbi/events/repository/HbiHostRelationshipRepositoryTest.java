@@ -193,6 +193,15 @@ class HbiHostRelationshipRepositoryTest {
         });
   }
 
+  @Test
+  @Transactional
+  void testDeleteByInventoryId() {
+    UUID inventoryId = UUID.randomUUID();
+    repository.persist(createRelationship("org1", inventoryId));
+    repository.flush();
+    assertEquals(1L, repository.deleteByInventoryId(inventoryId));
+  }
+
   private HbiHostRelationship createRelationship(String orgId, UUID inventoryId) {
     HbiHostRelationship relationship = new HbiHostRelationship();
     relationship.setOrgId(orgId);
@@ -201,6 +210,7 @@ class HbiHostRelationshipRepositoryTest {
     relationship.setCreationDate(OffsetDateTime.now());
     relationship.setLastUpdated(OffsetDateTime.now());
     relationship.setUnmappedGuest(false);
+    relationship.setLatestHbiEventData("{}");
     return relationship;
   }
 
