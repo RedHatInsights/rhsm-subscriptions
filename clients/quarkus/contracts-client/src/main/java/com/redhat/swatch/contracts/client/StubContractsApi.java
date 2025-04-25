@@ -29,6 +29,7 @@ import com.redhat.swatch.clients.contracts.api.model.Metric;
 import com.redhat.swatch.clients.contracts.api.model.MetricResponse;
 import com.redhat.swatch.clients.contracts.api.model.OfferingProductTags;
 import com.redhat.swatch.clients.contracts.api.model.OfferingResponse;
+import com.redhat.swatch.clients.contracts.api.model.OperationalProductEvent;
 import com.redhat.swatch.clients.contracts.api.model.PartnerEntitlementContract;
 import com.redhat.swatch.clients.contracts.api.model.RhmUsageContext;
 import com.redhat.swatch.clients.contracts.api.model.RpcResponse;
@@ -190,6 +191,17 @@ public class StubContractsApi implements DefaultApi {
 
   @Override
   public OfferingResponse syncOffering(String sku) throws ProcessingException {
+    return null;
+  }
+
+  @Override
+  public OfferingResponse syncUmbProductFromXml(String productXml) throws ProcessingException {
+    return null;
+  }
+
+  @Override
+  public OfferingResponse syncUmbProductFromEvent(OperationalProductEvent productEvent)
+      throws ProcessingException {
     return null;
   }
 

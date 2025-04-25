@@ -746,6 +746,52 @@ paths:
         - support: [ ]
         - test: [ ]
         - service: [ ]
+  /api/swatch-contracts/internal/rpc/offerings/umb/syncUmbProductFromXml:
+    description: Syncs umb product xml from the upstream source.
+    put:
+      summary: Syncs product from Xml from the upstream source.
+      operationId: syncUmbProductFromXml
+      requestBody:
+        content:
+          application/xml:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: UMB product to be synced.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfferingResponse"
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+      security:
+        - support: [ ]
+        - test: [ ]
+        - service: [ ]
+  /api/swatch-contracts/internal/rpc/offerings/umb/syncUmbProductFromEvent:
+    description: Syncs umb product json event from the upstream source.
+    put:
+      operationId: syncUmbProductFromEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OperationalProductEvent'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfferingResponse'
+          description: success
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+      security:
+        - support: [ ]
+        - test: [ ]
+        - service: [ ]
   /api/swatch-contracts/internal/rpc/offerings/reconcile/{sku}:
     description: Reconcile capacity for an offering from the upstream source.
     parameters:
