@@ -55,8 +55,7 @@ EXTRA_DEPLOY_ARGS="--timeout 1800 ${IMAGES}"
 OPTIONAL_DEPS_METHOD=none
 
 # Propagate commit sha into the IQE pod
-git status
-export IQE_ENV_VARS="${IQE_ENV_VARS:+$IQE_ENV_VARS,}GITHUB_SHA=${GIT_COMMIT}"
+export IQE_ENV_VARS="${IQE_ENV_VARS:+$IQE_ENV_VARS,}GITHUB_SHA=$GIT_BRANCH"
 
 # set CLI option for --no-remove-resources
 export COMPONENTS_W_RESOURCES="app:rhsm app:export-service"
