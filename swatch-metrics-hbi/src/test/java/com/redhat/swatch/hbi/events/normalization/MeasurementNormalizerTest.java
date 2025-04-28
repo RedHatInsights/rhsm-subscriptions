@@ -54,106 +54,84 @@ class MeasurementNormalizerTest {
     measurementNormalizer = new MeasurementNormalizer(appConfig);
   }
 
-  @Test
-  void testNormalizeCores() {
-    int systemProfileCorePerSocket = 6;
-    int systemProfileSockets = 2;
+  static Stream<Arguments> physicalCoresProfiles() {
+    return Stream.of(
+        Arguments.of(physicalSystemProfile(null, null), null),
+        // Default to null for 0 cores per socket.
+        Arguments.of(physicalSystemProfile(null, 0), null),
+        // Default null to cores per socket fact.
+        Arguments.of(physicalSystemProfile(null, 6), 6),
+        // No cores per socket fact.
+        Arguments.of(physicalSystemProfile(2, null), null),
+        // sockets * coresPerSocket
+        Arguments.of(physicalSystemProfile(2, 6), 12));
+  }
 
-    SystemProfileFacts systemProfileFacts =
-        physicalSystemProfile(systemProfileSockets, systemProfileCorePerSocket);
+  @ParameterizedTest
+  @MethodSource("physicalCoresProfiles")
+  void testNormalizePhysicalCores(SystemProfileFacts systemProfileFacts, Integer expectedCores) {
     RhsmFacts rhsmFacts = rhsmFacts();
     NormalizedFacts normalizedFacts = hostFacts(UUID.randomUUID().toString(), false);
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
             normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of(), false, false);
-    // sockets * coresPerSocket
-    assertEquals(12, normalized.getCores().orElse(null));
+    assertEquals(expectedCores, normalized.getCores().orElse(null));
   }
 
-  @Test
-  void testNormalizeCoresWhenNotEnoughFacts() {
-    int systemProfileSockets = 2;
-
-    SystemProfileFacts systemProfileFacts = physicalSystemProfile(systemProfileSockets, null);
-    RhsmFacts rhsmFacts = rhsmFacts();
-    NormalizedFacts normalizedFacts = hostFacts(UUID.randomUUID().toString(), false);
-    NormalizedMeasurements normalized =
-        measurementNormalizer.getMeasurements(
-            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of(), false, false);
-    // Null sockets when cores can not be calculated.
-    assertTrue(normalized.getCores().isEmpty());
-  }
-
-  @Test
-  void testApplyx8664VirtualCpusAsCoresDefault() {
-    // Must be VIRTUAL and have an arch of x86_64 (not OCP)
-    int systemProfileCorePerSocket = 6;
-    int systemProfileSockets = 2;
-
-    SystemProfileFacts systemProfileFacts =
-        virtualSystemProfile(
-            "x86_64", systemProfileSockets, systemProfileCorePerSocket, null, null);
-    RhsmFacts rhsmFacts = rhsmFacts();
-    NormalizedFacts normalizedFacts = hostFacts(UUID.randomUUID().toString(), true);
-    NormalizedMeasurements normalized =
-        measurementNormalizer.getMeasurements(
-            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), Set.of(), false, false);
-    // Default threadsPerCore = 2
-    // (sockets * coresPerSocket) / threadsPerCore
-    assertEquals(6, normalized.getCores().orElse(null));
-  }
-
-  @Test
-  void testApplyX86VirtualCpusAsCoresOcpUseThreadsPerCoreIfFactExists() {
-    // Must be VIRTUAL and have an arch of x86_64 and have tag OCP.
-    int systemProfileCorePerSocket = 6;
-    int systemProfileSockets = 2;
-    int threadsPerCore = 4;
-
-    SystemProfileFacts systemProfileFacts =
-        virtualSystemProfile(
-            "x86_64", systemProfileSockets, systemProfileCorePerSocket, threadsPerCore, null);
-    RhsmFacts rhsmFacts = rhsmFacts();
-    NormalizedFacts normalizedFacts = hostFacts(UUID.randomUUID().toString(), true);
-    NormalizedMeasurements normalized =
-        measurementNormalizer.getMeasurements(
-            normalizedFacts,
-            systemProfileFacts,
-            Optional.of(rhsmFacts),
+  static Stream<Arguments> virtualCoresProfiles() {
+    return Stream.of(
+        // virtual cores for non x86_64 doesn't use threads/cpus: 4 * 2 = 8
+        Arguments.of(virtualSystemProfile("arm", 4, 2, null, null), Set.of(), 8),
+        // No virtual cores when no facts set and not x86_64
+        Arguments.of(virtualSystemProfile("arm", null, null, null, null), Set.of(), null),
+        // No virtual cores when 0 and not x86_64
+        Arguments.of(virtualSystemProfile("arm", null, 0, null, null), Set.of(), null),
+        // Default to cores per socket when cores per socket > 0 and not x86_64
+        Arguments.of(virtualSystemProfile("arm", null, 2, null, null), Set.of(), 2),
+        // Must be VIRTUAL and have an arch of x86_64 (not OCP)
+        // Default threadsPerCore = 2
+        // (sockets * coresPerSocket) / threadsPerCore
+        Arguments.of(virtualSystemProfile("x86_64", 4, 6, null, null), Set.of(), 12),
+        // No virtual cores for x86_64 when no facts set.
+        Arguments.of(virtualSystemProfile("x86_64", null, null, null, null), Set.of(), null),
+        // No virtual cores for x84_64 when no cores per socket is 0.
+        Arguments.of(virtualSystemProfile("x86_64", null, 0, null, null), Set.of(), null),
+        // Default to cores per socket when cores per socket > 0 and not x86_64
+        Arguments.of(virtualSystemProfile("x86_64", null, 2, null, null), Set.of(), 2),
+        // When VIRTUAL and has an arch of x86_64 and is OCP.
+        // (sockets * coresPerSocket) / threadsPerCore
+        // ceil(12 / 4) = 3
+        Arguments.of(
+            virtualSystemProfile("x86_64", 2, 6, 4, null),
             Set.of(MeasurementNormalizer.OPEN_SHIFT_CONTAINER_PLATFORM),
-            false,
-            false);
-    // (sockets * coresPerSocket) / threadsPerCore
-    // ceil(12 / 4) = 3
-    assertEquals(3, normalized.getCores().orElse(null));
+            3),
+
+        // VIRTUAL, has an arch of x86_64 and has an OCP tag.
+        // If threadsPerCore does not exist, but cpus does exist, calculate threadsPerCore as
+        // cpus / (sockets * corePerSocket).
+        //
+        // threadsPerCore = cpus / (sockets * coresPerSocket) = 0.333333333
+        // (sockets * coresPerSocket) / threadsPerCore
+        // ceil(12 / 0.333333333) = 36
+        Arguments.of(
+            virtualSystemProfile("x86_64", 2, 6, null, 4),
+            Set.of(MeasurementNormalizer.OPEN_SHIFT_CONTAINER_PLATFORM),
+            36)
+        //        Arguments.of(virtualSystemProfile("x86_64", sockets, coresPerSocket,
+        // threadsPerCore, cpus), 0),
+        );
   }
 
-  @Test
-  void testApplyX86VirtualCpusAsCoresOcpCalculateThreadsPerCoreIfFactDoesNotExist() {
-    // Must be VIRTUAL and have an arch of x86_64 and have tag OCP.
-    // If threadsPerCore does not exist, but cpus are, calculate threadsPerCore as
-    // cpus / (sockets * corePerSocket)
-    int systemProfileCorePerSocket = 6;
-    int systemProfileSockets = 2;
-    int cpus = 4;
-
-    SystemProfileFacts systemProfileFacts =
-        virtualSystemProfile(
-            "x86_64", systemProfileSockets, systemProfileCorePerSocket, null, cpus);
+  @ParameterizedTest
+  @MethodSource("virtualCoresProfiles")
+  void testNormalizeVirtualCores(
+      SystemProfileFacts systemProfileFacts, Set<String> tags, Integer expectedCores) {
     RhsmFacts rhsmFacts = rhsmFacts();
     NormalizedFacts normalizedFacts = hostFacts(UUID.randomUUID().toString(), true);
     NormalizedMeasurements normalized =
         measurementNormalizer.getMeasurements(
-            normalizedFacts,
-            systemProfileFacts,
-            Optional.of(rhsmFacts),
-            Set.of(MeasurementNormalizer.OPEN_SHIFT_CONTAINER_PLATFORM),
-            false,
-            false);
-    // threadsPerCore = cpus / (sockets * coresPerSocket) = 0.333333333
-    // (sockets * coresPerSocket) / threadsPerCore
-    // ceil(12 / 0.333333333) = 36
-    assertEquals(36, normalized.getCores().orElse(null));
+            normalizedFacts, systemProfileFacts, Optional.of(rhsmFacts), tags, false, false);
+    assertEquals(expectedCores, normalized.getCores().orElse(null));
   }
 
   @Test
@@ -191,9 +169,15 @@ class MeasurementNormalizerTest {
     assertEquals(3, normalized.getCores().orElse(null));
   }
 
-  @Test
-  void testNormalizeSocketsWhenFactDoesNotExist() {
-    SystemProfileFacts systemProfileFacts = physicalSystemProfile(null, null);
+  static Stream<Arguments> systemProfilesWithNullSocketsAndCoresPerSocket() {
+    return Stream.of(
+        Arguments.of(physicalSystemProfile(null, null)),
+        Arguments.of(virtualSystemProfile("x86_64", null, null, null, null)));
+  }
+
+  @ParameterizedTest
+  @MethodSource("systemProfilesWithNullSocketsAndCoresPerSocket")
+  void testNormalizeSocketsWhenFactDoesNotExist(SystemProfileFacts systemProfileFacts) {
     RhsmFacts rhsmFacts = rhsmFacts();
     NormalizedFacts normalizedFacts = hostFacts(UUID.randomUUID().toString(), false);
     NormalizedMeasurements normalized =
@@ -338,7 +322,7 @@ class MeasurementNormalizerTest {
     assertEquals(expectedCores, normalized.getCores().orElse(null));
   }
 
-  private SystemProfileFacts physicalSystemProfile(Integer sockets, Integer coresPerSocket) {
+  private static SystemProfileFacts physicalSystemProfile(Integer sockets, Integer coresPerSocket) {
     return new SystemProfileFacts(
         "host_type",
         "hypervisor_uuid",
@@ -354,7 +338,7 @@ class MeasurementNormalizerTest {
         Set.of());
   }
 
-  private SystemProfileFacts virtualSystemProfile(
+  private static SystemProfileFacts virtualSystemProfile(
       String arch, Integer sockets, Integer coresPerSocket, Integer threadsPerCore, Integer cpus) {
     return new SystemProfileFacts(
         "host_type",

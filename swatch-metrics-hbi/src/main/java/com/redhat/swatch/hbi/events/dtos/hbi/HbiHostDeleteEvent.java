@@ -24,7 +24,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
+@ToString
 @Getter
 @Setter
 public class HbiHostDeleteEvent extends HbiEvent {

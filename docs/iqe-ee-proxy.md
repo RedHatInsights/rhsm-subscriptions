@@ -10,9 +10,7 @@ https://insights-qe.pages.redhat.com/iqe-core-docs/tutorial/part3.html#download-
 3. Run the script  
 `python3.12 ./get-iqe.py`
 4. Create a file in the iqe-workspace directory named iqe_env:  
-`export ENV_FOR_DYNACONF=clowder_smoke`  
-`export DYNACONF_IQE_VAULT_OIDC_HEADLESS=true`  
-`export DYNACONF_SETTINGS__pre_check=0`    
+`export ENV_FOR_DYNACONF=clowder_smoke`
 `export NAMESPACE=[current namespace]`    
 5. Activate the venv while in the iqe-workspace directory:  
 `source activate_iqe_venv && source ./iqe_env`  
