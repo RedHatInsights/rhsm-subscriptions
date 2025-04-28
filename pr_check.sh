@@ -63,6 +63,9 @@ for EXTRA_COMPONENT_NAME in $EXTRA_COMPONENTS; do
   export EXTRA_DEPLOY_ARGS="${EXTRA_DEPLOY_ARGS} --set-template-ref ${EXTRA_COMPONENT_NAME}=${GIT_COMMIT}"
 done
 
+# Propagate git branch into the IQE pod env variables
+export IQE_ENV_VARS="${IQE_ENV_VARS:+$IQE_ENV_VARS,}GIT_BRANCH=$GIT_BRANCH"
+
 # Delete comment about the IQE tests output if exists
 source bin/delete_comment_iqe_summary.sh
 
