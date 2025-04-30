@@ -276,6 +276,14 @@ class SubscriptionDataExporterServiceTest {
     thenErrorLogWithMessage("Error handling export request");
   }
 
+  @Test
+  void testSubscriptionsWithoutMeasurementsShouldBeExported() {
+    givenSubscriptionWithoutMeasurements(RHEL_FOR_X86);
+    givenExportRequestWithPermissions(Format.CSV);
+    whenReceiveExportRequest();
+    verifyRequestWasSentToExportService();
+  }
+
   private void givenExportServiceReturnsGatewayTimeout() {
     wireMockResource.mockRequestToReturnGatewayTimeout(request);
   }
@@ -334,23 +342,15 @@ class SubscriptionDataExporterServiceTest {
   }
 
   @Transactional
+  void givenSubscriptionWithoutMeasurements(String productId) {
+    SubscriptionEntity subscription = buildSubscription(ORG_ID, productId);
+    subscription.setSubscriptionMeasurements(Map.of());
+    subscriptionRepository.persist(subscription);
+  }
+
+  @Transactional
   void givenSubscriptionWithMeasurement(String orgId, String productId) {
-    SubscriptionEntity subscription = new SubscriptionEntity();
-    subscription.setSubscriptionId(UUID.randomUUID().toString());
-    subscription.setSubscriptionNumber(UUID.randomUUID().toString());
-    subscription.setStartDate(OffsetDateTime.parse("2024-04-23T11:48:15.888129Z"));
-    subscription.setEndDate(OffsetDateTime.parse("2028-05-23T11:48:15.888129Z"));
-    subscription.setOffering(offering);
-    subscription.setOrgId(orgId);
-    subscription.setBillingProvider(BillingProvider.AWS);
-    offering.getProductTags().clear();
-    offering.getProductTags().add(productId);
-    updateOffering();
-    subscription.setBillingAccountId(BILLING_ACCOUNT_ID);
-    subscription.setSubscriptionMeasurements(
-        Map.of(
-            new SubscriptionMeasurementKey(MetricIdUtils.getCores().toString(), "HYPERVISOR"),
-            5.0));
+    SubscriptionEntity subscription = buildSubscription(orgId, productId);
     subscriptionRepository.persist(subscription);
   }
 
@@ -482,6 +482,26 @@ class SubscriptionDataExporterServiceTest {
       Assertions.fail("Failed to serialize the export data", e);
       return null;
     }
+  }
+
+  private SubscriptionEntity buildSubscription(String orgId, String productId) {
+    SubscriptionEntity subscription = new SubscriptionEntity();
+    subscription.setSubscriptionId(UUID.randomUUID().toString());
+    subscription.setSubscriptionNumber(UUID.randomUUID().toString());
+    subscription.setStartDate(OffsetDateTime.parse("2024-04-23T11:48:15.888129Z"));
+    subscription.setEndDate(OffsetDateTime.parse("2028-05-23T11:48:15.888129Z"));
+    subscription.setOffering(offering);
+    subscription.setOrgId(orgId);
+    subscription.setBillingProvider(BillingProvider.AWS);
+    offering.getProductTags().clear();
+    offering.getProductTags().add(productId);
+    updateOffering();
+    subscription.setBillingAccountId(BILLING_ACCOUNT_ID);
+    subscription.setSubscriptionMeasurements(
+        Map.of(
+            new SubscriptionMeasurementKey(MetricIdUtils.getCores().toString(), "HYPERVISOR"),
+            5.0));
+    return subscription;
   }
 
   private void thenErrorLogWithMessage(String str) {
