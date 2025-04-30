@@ -6,9 +6,11 @@ metadata:
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
+    pipelinesascode.tekton.dev/cancel-in-progress: "true"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    # pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && (target_branch == "main" || target_branch == "hotfix")
-  creationTimestamp:
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
+      == "main"
+  creationTimestamp: null
   labels:
     appstudio.openshift.io/application: rhsm-subscriptions
     appstudio.openshift.io/component: swatch-metrics-hbi
@@ -26,7 +28,9 @@ spec:
   - name: image-expires-after
     value: 5d
   - name: dockerfile
-    value: /swatch-metrics-hbi/src/main/docker/Dockerfile.jvm
+    value: swatch-metrics-hbi/src/main/docker/Dockerfile.jvm
+  - name: path-context
+    value: .
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while reducing network traffic.
@@ -81,11 +85,13 @@ spec:
       name: output-image
       type: string
     - default: .
-      description: Path to the source code of an application's component from where to build image.
+      description: Path to the source code of an application's component from where
+        to build image.
       name: path-context
       type: string
     - default: Dockerfile
-      description: Path to the Dockerfile inside the context specified by parameter path-context
+      description: Path to the Dockerfile inside the context specified by parameter
+        path-context
       name: dockerfile
       type: string
     - default: "false"
@@ -105,7 +111,8 @@ spec:
       name: prefetch-input
       type: string
     - default: ""
-      description: Image tag expiration time, time values could be something like 1h, 2d, 3w for hours, days, and weeks, respectively.
+      description: Image tag expiration time, time values could be something like
+        1h, 2d, 3w for hours, days, and weeks, respectively.
       name: image-expires-after
     - default: "false"
       description: Build a source image.
@@ -122,6 +129,11 @@ spec:
     - default: ""
       description: Path to a file with build arguments for buildah, see https://www.mankier.com/1/buildah-build#--build-arg-file
       name: build-args-file
+      type: string
+    - default: "false"
+      description: Whether to enable privileged mode, should be used only with remote
+        VMs
+      name: privileged-nested
       type: string
     results:
     - description: ""
@@ -208,43 +220,6 @@ spec:
         workspace: git-auth
       - name: netrc
         workspace: netrc
-    - name: provision-eaas-space
-      runAfter:
-        - prefetch-dependencies
-      taskRef:
-        resolver: git
-        params:
-          - name: url
-            value: https://github.com/konflux-ci/build-definitions.git
-          - name: revision
-            value: 4e4fa7355a6a51083954408e7e3b647e3bddb8d8
-          - name: pathInRepo
-            value: task/eaas-provision-space/0.1/eaas-provision-space.yaml
-      params:
-        - name: ownerName
-          value: $(context.pipelineRun.name)
-        - name: ownerUid
-          value: $(context.pipelineRun.uid)
-    - name: run-tests
-      runAfter:
-        - provision-eaas-space
-      params:
-        - name: SERVICE
-          value: swatch-metrics-hbi
-        - name: PROVISION_EAAS_SPACE_SECRET_REF
-          value: $(tasks.provision-eaas-space.results.secretRef)
-      taskRef:
-        resolver: git
-        params:
-          - name: url
-            value: https://github.com/RedHatInsights/rhsm-subscriptions
-          - name: revision
-            value: $(params.revision)
-          - name: pathInRepo
-            value: .tekton/run-tests-task.yaml
-      workspaces:
-        - name: source
-          workspace: workspace
     - name: build-container
       params:
       - name: IMAGE
@@ -266,8 +241,10 @@ spec:
         - $(params.build-args[*])
       - name: BUILD_ARGS_FILE
         value: $(params.build-args-file)
+      - name: PRIVILEGED_NESTED
+        value: $(params.privileged-nested)
       runAfter:
-      - run-tests
+      - prefetch-dependencies
       taskRef:
         params:
         - name: name
@@ -314,28 +291,6 @@ spec:
         operator: in
         values:
         - "true"
-    - name: rpms-signature-scan
-      params:
-      - name: image-url
-        value: $(tasks.build-container.results.IMAGE_URL)
-      - name: image-digest
-        value: $(tasks.build-container.results.IMAGE_DIGEST)
-      runAfter:
-      - build-container
-      taskRef:
-        params:
-        - name: name
-          value: rpms-signature-scan
-        - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-rpms-signature-scan:0.2@sha256:d01508e7a0df9059af2ef455e3e81588a70e0b24cd4a5def35af3cc1537bf84a
-        - name: kind
-          value: task
-        resolver: bundles
-      when:
-      - input: $(params.skip-checks)
-        operator: in
-        values:
-        - "false"
     - name: build-source-image
       params:
       - name: BINARY_IMAGE
@@ -392,7 +347,7 @@ spec:
       - name: image-url
         value: $(tasks.build-image-index.results.IMAGE_URL)
       runAfter:
-      - build-container
+      - build-image-index
       taskRef:
         params:
         - name: name
@@ -430,11 +385,11 @@ spec:
     - name: sast-snyk-check
       params:
       - name: image-digest
-        value: $(tasks.build-container.results.IMAGE_DIGEST)
+        value: $(tasks.build-image-index.results.IMAGE_DIGEST)
       - name: image-url
-        value: $(tasks.build-container.results.IMAGE_URL)
+        value: $(tasks.build-image-index.results.IMAGE_URL)
       runAfter:
-      - build-container
+      - build-image-index
       taskRef:
         params:
         - name: name
@@ -452,54 +407,6 @@ spec:
       workspaces:
       - name: workspace
         workspace: workspace
-    - name: sast-shell-check
-      params:
-        - name: image-digest
-          value: $(tasks.build-image-index.results.IMAGE_DIGEST)
-        - name: image-url
-          value: $(tasks.build-image-index.results.IMAGE_URL)
-      runAfter:
-        - build-image-index
-      taskRef:
-        params:
-          - name: name
-            value: sast-shell-check
-          - name: bundle
-            value: quay.io/konflux-ci/tekton-catalog/task-sast-shell-check:0.1@sha256:188a4f6a582ac43d4de46c3998ded3c2a8ee237fb0604d90559a3b6e0aa62b0f
-          - name: kind
-            value: task
-        resolver: bundles
-      when:
-        - input: $(params.skip-checks)
-          operator: in
-          values:
-            - "false"
-      workspaces:
-        - name: workspace
-          workspace: workspace
-    - name: sast-unicode-check
-      params:
-        - name: image-url
-          value: $(tasks.build-image-index.results.IMAGE_URL)
-      runAfter:
-        - build-image-index
-      taskRef:
-        params:
-          - name: name
-            value: sast-unicode-check
-          - name: bundle
-            value: quay.io/konflux-ci/tekton-catalog/task-sast-unicode-check:0.2@sha256:e4a5215b45b1886a185a9db8ab392f8440c2b0848f76d719885637cf8d2628ed
-          - name: kind
-            value: task
-        resolver: bundles
-      when:
-        - input: $(params.skip-checks)
-          operator: in
-          values:
-            - "false"
-      workspaces:
-        - name: workspace
-          workspace: workspace
     - name: clamav-scan
       params:
       - name: image-digest
@@ -522,6 +429,121 @@ spec:
         operator: in
         values:
         - "false"
+    - name: sast-coverity-check
+      params:
+      - name: image-digest
+        value: $(tasks.build-image-index.results.IMAGE_DIGEST)
+      - name: image-url
+        value: $(tasks.build-image-index.results.IMAGE_URL)
+      - name: IMAGE
+        value: $(params.output-image)
+      - name: DOCKERFILE
+        value: $(params.dockerfile)
+      - name: CONTEXT
+        value: $(params.path-context)
+      - name: HERMETIC
+        value: $(params.hermetic)
+      - name: PREFETCH_INPUT
+        value: $(params.prefetch-input)
+      - name: IMAGE_EXPIRES_AFTER
+        value: $(params.image-expires-after)
+      - name: COMMIT_SHA
+        value: $(tasks.clone-repository.results.commit)
+      - name: BUILD_ARGS
+        value:
+        - $(params.build-args[*])
+      - name: BUILD_ARGS_FILE
+        value: $(params.build-args-file)
+      runAfter:
+      - coverity-availability-check
+      taskRef:
+        params:
+        - name: name
+          value: sast-coverity-check
+        - name: bundle
+          value: quay.io/konflux-ci/tekton-catalog/task-sast-coverity-check:0.3@sha256:fe1f5bfb484c075b44bae3abd02e270eea2bfb1fbd50006bd9556cac75977d5a
+        - name: kind
+          value: task
+        resolver: bundles
+      when:
+      - input: $(params.skip-checks)
+        operator: in
+        values:
+        - "false"
+      - input: $(tasks.coverity-availability-check.results.STATUS)
+        operator: in
+        values:
+        - success
+      workspaces:
+      - name: source
+        workspace: workspace
+    - name: coverity-availability-check
+      runAfter:
+      - build-image-index
+      taskRef:
+        params:
+        - name: name
+          value: coverity-availability-check
+        - name: bundle
+          value: quay.io/konflux-ci/tekton-catalog/task-coverity-availability-check:0.2@sha256:8b58c4fae00c0dfe3937abfb8a9a61aa3c408cca4278b817db53d518428d944e
+        - name: kind
+          value: task
+        resolver: bundles
+      when:
+      - input: $(params.skip-checks)
+        operator: in
+        values:
+        - "false"
+    - name: sast-shell-check
+      params:
+      - name: image-digest
+        value: $(tasks.build-image-index.results.IMAGE_DIGEST)
+      - name: image-url
+        value: $(tasks.build-image-index.results.IMAGE_URL)
+      runAfter:
+      - build-image-index
+      taskRef:
+        params:
+        - name: name
+          value: sast-shell-check
+        - name: bundle
+          value: quay.io/konflux-ci/tekton-catalog/task-sast-shell-check:0.1@sha256:188a4f6a582ac43d4de46c3998ded3c2a8ee237fb0604d90559a3b6e0aa62b0f
+        - name: kind
+          value: task
+        resolver: bundles
+      when:
+      - input: $(params.skip-checks)
+        operator: in
+        values:
+        - "false"
+      workspaces:
+      - name: workspace
+        workspace: workspace
+    - name: sast-unicode-check
+      params:
+      - name: image-digest
+        value: $(tasks.build-image-index.results.IMAGE_DIGEST)
+      - name: image-url
+        value: $(tasks.build-image-index.results.IMAGE_URL)
+      runAfter:
+      - build-image-index
+      taskRef:
+        params:
+        - name: name
+          value: sast-unicode-check
+        - name: bundle
+          value: quay.io/konflux-ci/tekton-catalog/task-sast-unicode-check:0.2@sha256:e4a5215b45b1886a185a9db8ab392f8440c2b0848f76d719885637cf8d2628ed
+        - name: kind
+          value: task
+        resolver: bundles
+      when:
+      - input: $(params.skip-checks)
+        operator: in
+        values:
+        - "false"
+      workspaces:
+      - name: workspace
+        workspace: workspace
     - name: apply-tags
       params:
       - name: IMAGE
@@ -561,18 +583,41 @@ spec:
       workspaces:
       - name: workspace
         workspace: workspace
+    - name: rpms-signature-scan
+      params:
+      - name: image-url
+        value: $(tasks.build-image-index.results.IMAGE_URL)
+      - name: image-digest
+        value: $(tasks.build-image-index.results.IMAGE_DIGEST)
+      runAfter:
+      - build-image-index
+      taskRef:
+        params:
+        - name: name
+          value: rpms-signature-scan
+        - name: bundle
+          value: quay.io/konflux-ci/tekton-catalog/task-rpms-signature-scan:0.2@sha256:d01508e7a0df9059af2ef455e3e81588a70e0b24cd4a5def35af3cc1537bf84a
+        - name: kind
+          value: task
+        resolver: bundles
+      when:
+      - input: $(params.skip-checks)
+        operator: in
+        values:
+        - "false"
     workspaces:
     - name: workspace
     - name: git-auth
       optional: true
     - name: netrc
       optional: true
-  taskRunTemplate: {}
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-swatch-metrics-hbi
   workspaces:
   - name: workspace
     volumeClaimTemplate:
       metadata:
-        creationTimestamp:
+        creationTimestamp: null
       spec:
         accessModes:
         - ReadWriteOnce
