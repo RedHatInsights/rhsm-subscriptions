@@ -272,15 +272,17 @@ public class PrometheusMeteringController {
                 .build());
 
     if (!matchingTags.contains(productTag)) {
-      // Warn that the event doesn't match the context of the product tag we're currently working
-      // in.
       log.warn(
-          "Starting product tag {} does not match derived product tags {} based on data contents. Skipping event creation.",
+          "Starting product tag {} does not match derived product tags {} based on data contents.",
           productTag,
           matchingTags);
-      // Clear the product tag before producing Event message to force Event ingestion to determine
-      // a product tag during normalization
-      productTag = null;
+
+      if (matchingTags.isEmpty()) {
+        role = null; // No match at all, clear role for fallback logic
+      } else {
+        log.warn("Mismatched product tags. Clearing productTag to trigger reconciliation.");
+        productTag = null; // Clear to allow ingestion to rederive correct context
+      }
     }
 
     log.info("Creating Event for product {}", productTag);
