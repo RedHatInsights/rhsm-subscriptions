@@ -216,14 +216,12 @@ class SubscriptionDefinitionTest {
 
   @Test
   void testVariantRoleLookup() {
-    var subscriptionsDef =
-        SubscriptionDefinition.lookupSubscriptionByRole("moa-hostedcontrolplane");
+    var rosa = SubscriptionDefinition.lookupSubscriptionByRole("moa-hostedcontrolplane");
 
     var expected = "rosa";
-    var containsExpected =
-        subscriptionsDef.stream().anyMatch(subscription -> expected.equals(subscription.getId()));
+    var actual = rosa.orElseThrow().getId();
 
-    assertTrue(containsExpected, "Expected variant not found");
+    assertEquals(expected, actual);
   }
 
   @Test

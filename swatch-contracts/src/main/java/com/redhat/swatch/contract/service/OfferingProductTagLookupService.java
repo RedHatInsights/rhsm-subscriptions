@@ -90,11 +90,7 @@ public class OfferingProductTagLookupService {
           null);
     }
 
-    if (offering.getProductTags() != null && !offering.getProductTags().isEmpty()) {
-      productTags.setData(offering.getProductTags().stream().toList());
-    } else {
-      processProductTagsBySku(offering, productTags);
-    }
+    processProductTagsBySku(offering, productTags);
     return productTags;
   }
 }

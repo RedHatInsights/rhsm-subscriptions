@@ -5,9 +5,6 @@ id: rhacm
 
 variants:
   - tag: rhacm
-    roles:
-      - moa-hostedcontrolplane
-      - moa
     level1:
       - OpenShift
     level2:
