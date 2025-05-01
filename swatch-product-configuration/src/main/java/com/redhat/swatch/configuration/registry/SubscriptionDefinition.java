@@ -63,7 +63,7 @@ public class SubscriptionDefinition {
           .expireAfterAccess(3, TimeUnit.HOURS)
           .build(SubscriptionDefinition::cacheSubscriptionByTag);
 
-  protected static LoadingCache<String, Optional<SubscriptionDefinition>> roleCache =
+  protected static LoadingCache<String, List<SubscriptionDefinition>> roleCache =
       Caffeine.newBuilder()
           .expireAfterAccess(3, TimeUnit.HOURS)
           .build(SubscriptionDefinition::cacheSubscriptionByRole);
@@ -305,14 +305,14 @@ public class SubscriptionDefinition {
     return engIdCache.get(engProductId);
   }
 
-  protected static Optional<SubscriptionDefinition> cacheSubscriptionByRole(String role) {
+  protected static List<SubscriptionDefinition> cacheSubscriptionByRole(String role) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .filter(
             subscription ->
                 !subscription.getVariants().isEmpty()
                     && subscription.getVariants().stream()
                         .anyMatch(variant -> variant.getRoles().contains(role)))
-        .collect(MoreCollectors.toOptional());
+        .toList();
   }
 
   /**
@@ -321,7 +321,7 @@ public class SubscriptionDefinition {
    * @param role a String with the role value
    * @return Optional&lt;Subscription&gt;
    */
-  public static Optional<SubscriptionDefinition> lookupSubscriptionByRole(String role) {
+  public static List<SubscriptionDefinition> lookupSubscriptionByRole(String role) {
     return roleCache.get(role);
   }
 
