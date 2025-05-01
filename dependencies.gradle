@@ -26,7 +26,7 @@ ext.plugins = [
         "org.liquibase:liquibase-core:4.31.1",
         "org.liquibase:liquibase-gradle-plugin:3.0.1",
         "org.kordamp.gradle:jandex-gradle-plugin:2.0.0",
-        "org.openapitools:openapi-generator-gradle-plugin:7.12.0",
+        "org.openapitools:openapi-generator-gradle-plugin:7.13.0",
         "org.springframework.boot:spring-boot-gradle-plugin:${springVersion}",
         "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:6.1.0.5360",
 ]
@@ -37,7 +37,7 @@ libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-de
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:3.0.0"
-libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.31.28"
+libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.31.30"
 libraries["clowder-quarkus-config-source"] = "com.redhat.cloud.common:clowder-quarkus-config-source:2.7.1"
 libraries["guava"] = "com.google.guava:guava:33.4.8-jre"
 libraries["commons-lang3"] = "org.apache.commons:commons-lang3:3.17.0"
