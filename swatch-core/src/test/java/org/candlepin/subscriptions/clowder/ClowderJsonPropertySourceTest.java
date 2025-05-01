@@ -144,7 +144,7 @@ class ClowderJsonPropertySourceTest {
     var clowder = new ClowderJsonPropertySource(jsonFromResource(TEST_CLOWDER_CONFIG_JSON));
     clowder.addToEnvironment(environment, logFactory.getLog(ClowderJsonPropertySource.class));
 
-    assertEquals("swatch-database-db", environment.getProperty("clowder.database.name"));
+    assertEquals("swatch-tally-db", environment.getProperty("clowder.database.name"));
   }
 
   private MapPropertySource getPropertySource(String name, String value) {

@@ -95,7 +95,7 @@ jobs:
       - name: Execute migrations
         id: run-migrations
         run: |
-          ./gradlew --no-daemon :swatch-database:run
+          ./gradlew --no-daemon :liquibaseUpdate
 
       - name: Run FloorPlan Query Validation
         run: |
@@ -219,6 +219,8 @@ jobs:
 
   summary:
     name: PR Summary
+    permissions:
+      pull-requests: write
     runs-on: ubuntu-latest
     needs: [validate-format, validate-floorplan-queries, build, test]
     if: always()

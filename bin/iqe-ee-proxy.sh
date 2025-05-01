@@ -48,8 +48,9 @@ if ! grep $NAMESPACE /etc/hosts -q; then
 fi
 
 oc port-forward $(oc get pod -o name | grep kafka-0) 9092:9092 &
+oc port-forward $(oc get pod -o name | grep featureflags | grep -v featureflags-db) 4242:4242 &
 oc port-forward $(oc get service -o name | grep kafka-bridge-bridge-service) 8080:8080 &
-oc port-forward $(oc get service -o name | grep wiremock-service) 8101:8101 &
+oc port-forward $(oc get service -o name | grep wiremock-service) 8101:8000 &
 oc port-forward $(oc get service -o name | grep swatch-mock-prometheus-test-service) 9090:9090 &
 
 
@@ -57,8 +58,9 @@ oc create configmap caddyfile \
     --from-file=${TMP_DIR}/Caddyfile
 cat $(dirname $0)/caddy.yaml | oc apply -f -
 
-oc wait --for=condition=Available deployment/swatch-database-db
-oc port-forward deployment/swatch-database-db 5432:5432 &
+oc wait --for=condition=Available deployment/swatch-tally-db
+oc port-forward deployment/swatch-tally-db 5432:5432 &
 
 oc wait --for=condition=Available deployment/caddy
 oc port-forward deployment/caddy 9000:9000 8000:8000 5000:5000
+
