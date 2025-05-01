@@ -69,7 +69,8 @@ class SubscriptionDefinitionTest {
             "Rhods Cluster",
             "rosa Instance",
             "RHEL System",
-            "Ansible Managed Node");
+            "Ansible Managed Node",
+            "rhacm Instance");
 
     var actual = SubscriptionDefinition.getAllServiceTypes();
 
