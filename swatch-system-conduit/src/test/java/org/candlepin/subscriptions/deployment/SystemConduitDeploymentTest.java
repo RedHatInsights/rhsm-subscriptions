@@ -20,28 +20,21 @@
  */
 package org.candlepin.subscriptions.deployment;
 
+import static com.redhat.swatch.traceresponse.TraceResponseFilter.TRACE_RESPONSE_HEADER;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.candlepin.subscriptions.ConduitBaseTest;
 import org.candlepin.subscriptions.SystemConduitApplication;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest(
-    useMainMethod = SpringBootTest.UseMainMethod.ALWAYS,
-    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles({"test"})
-class SystemConduitDeploymentTest {
-
-  private static final String LOCALHOST = "http://localhost:";
+class SystemConduitDeploymentTest extends ConduitBaseTest {
 
   @Autowired SystemConduitApplication configuration;
-  @LocalServerPort int port;
 
   private final TestRestTemplate restTemplate =
       new TestRestTemplate(TestRestTemplate.HttpClientOption.ENABLE_REDIRECTS);
@@ -55,9 +48,23 @@ class SystemConduitDeploymentTest {
   void testSwaggerPage() {
     ResponseEntity<String> response =
         restTemplate.getForEntity(
-            LOCALHOST + port + "/api/swatch-system-conduit/internal/swagger-ui", String.class);
+            basePath() + "/api/swatch-system-conduit/internal/swagger-ui", String.class);
     assertTrue(response.getStatusCode().is2xxSuccessful());
     assertNotNull(response.getBody());
     assertTrue(response.getBody().contains("API Docs"));
+  }
+
+  @Test
+  void testTraceResponseHeader() {
+    ResponseEntity<Object> response =
+        restTemplate.exchange(
+            apiBasePath() + "/internal/organizations-sync-list/123",
+            HttpMethod.GET,
+            request(),
+            Object.class);
+    assertTrue(response.getHeaders().containsKey(TRACE_RESPONSE_HEADER));
+    String traceResponse = response.getHeaders().getFirst(TRACE_RESPONSE_HEADER);
+    assertNotNull(traceResponse);
+    assertTrue(traceResponse.startsWith("00-"));
   }
 }
