@@ -388,7 +388,7 @@ public class ContractsResource implements DefaultApi {
     SyncResult result = null;
     try {
       log.info("Sync for offering {}", sku);
-      result = offeringSyncService.syncOffering(sku, "fromContractSyncOffering");
+      result = offeringSyncService.syncOffering(sku);
       response.detail(String.format("%s for offeringSku=\"%s\".", result, sku));
     } catch (RuntimeException e) {
       if (e.getCause() instanceof ApiException apiException) {
@@ -437,9 +437,7 @@ public class ContractsResource implements DefaultApi {
     SyncResult result = null;
     try {
       log.info("Sync for umb product XML {}", productXml);
-      result =
-          offeringSyncService.syncUmbProductFromXml(
-              productXml, "from rest api sync umb product from xml");
+      result = offeringSyncService.syncUmbProductFromXml(productXml);
       response.detail(String.format("%s for sync product\"%s\".", result, productXml));
     } catch (JsonProcessingException e) {
       throw new BadRequestException(e.getMessage());
@@ -455,9 +453,7 @@ public class ContractsResource implements DefaultApi {
     SyncResult result = null;
     try {
       log.info("Sync product from event {}", productEvent);
-      result =
-          offeringSyncService.syncUmbProductFromEvent(
-              productEvent, "fromRestAPI sync umb product from event");
+      result = offeringSyncService.syncUmbProductFromEvent(productEvent);
 
       response.detail(String.format("%s for sync product\"%s\".", result, productEvent));
     } catch (RuntimeException e) {

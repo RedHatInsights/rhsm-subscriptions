@@ -27,7 +27,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
@@ -235,8 +234,7 @@ class SubscriptionSyncServiceTest {
     String sku = "MW0001";
     when(denylist.productIdMatches(sku)).thenReturn(false);
     when(offeringRepository.findByIdOptional(sku)).thenReturn(Optional.empty());
-    when(offeringSyncService.syncOffering(eq(sku), any(String.class)))
-        .thenReturn(SyncResult.SKIPPED_NOT_FOUND);
+    when(offeringSyncService.syncOffering(sku)).thenReturn(SyncResult.SKIPPED_NOT_FOUND);
     subscriptionSyncService.syncSubscription(sku, new SubscriptionEntity(), Optional.empty());
     verify(subscriptionRepository, never()).persist(any(SubscriptionEntity.class));
   }
@@ -596,14 +594,13 @@ class SubscriptionSyncServiceTest {
 
     when(denylist.productIdMatches(any())).thenReturn(false);
     when(offeringRepository.findByIdOptional(SKU)).thenReturn(Optional.empty());
-    when(offeringSyncService.syncOffering(eq(SKU), any(String.class)))
-        .thenReturn(SyncResult.FETCHED_AND_SYNCED);
+    when(offeringSyncService.syncOffering(SKU)).thenReturn(SyncResult.FETCHED_AND_SYNCED);
     OfferingEntity offering = OfferingEntity.builder().sku(SKU).build();
     when(offeringRepository.findById(SKU)).thenReturn(offering);
 
     subscriptionSyncService.syncSubscription(SKU, incoming, Optional.empty());
 
-    verify(offeringSyncService).syncOffering(eq(SKU), any(String.class));
+    verify(offeringSyncService).syncOffering(SKU);
     verify(subscriptionRepository).merge(incoming);
     assertNull(incoming.getBillingAccountId());
   }
@@ -614,14 +611,13 @@ class SubscriptionSyncServiceTest {
 
     when(denylist.productIdMatches(any())).thenReturn(false);
     when(offeringRepository.findByIdOptional(SKU)).thenReturn(Optional.empty());
-    when(offeringSyncService.syncOffering(eq(SKU), any(String.class)))
-        .thenReturn(SyncResult.FAILED);
+    when(offeringSyncService.syncOffering(SKU)).thenReturn(SyncResult.FAILED);
     OfferingEntity offering = OfferingEntity.builder().sku(SKU).build();
     when(offeringRepository.findById(SKU)).thenReturn(offering);
 
     subscriptionSyncService.syncSubscription(SKU, incoming, Optional.empty());
 
-    verify(offeringSyncService).syncOffering(eq(SKU), any(String.class));
+    verify(offeringSyncService).syncOffering(SKU);
     verify(subscriptionRepository, times(0)).persist(incoming);
   }
 
@@ -755,8 +751,7 @@ class SubscriptionSyncServiceTest {
     offering.setProductIds(Set.of(productIds));
     when(offeringRepository.findByIdOptional(SKU)).thenReturn(Optional.of(offering));
     when(offeringRepository.findById(SKU)).thenReturn(offering);
-    when(offeringSyncService.syncOffering(eq(SKU), any(String.class)))
-        .thenReturn(SyncResult.FETCHED_AND_SYNCED);
+    when(offeringSyncService.syncOffering(SKU)).thenReturn(SyncResult.FETCHED_AND_SYNCED);
     return offering;
   }
 

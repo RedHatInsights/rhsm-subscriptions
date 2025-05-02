@@ -28,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -131,7 +130,7 @@ class ContractsResourceTest {
   void testSyncOffering() {
     var result = resource.syncOffering(SKU);
     assertNotNull(result);
-    verify(offeringSyncService).syncOffering(eq(SKU), any(String.class));
+    verify(offeringSyncService).syncOffering(SKU);
   }
 
   @Test
@@ -151,11 +150,11 @@ class ContractsResourceTest {
 
   @Test
   void testSyncSkuErrorResult() {
-    when(offeringSyncService.syncOffering(any(String.class), any(String.class)))
+    when(offeringSyncService.syncOffering(any(String.class)))
         .thenReturn(SyncResult.SKIPPED_NOT_FOUND);
     assertThrows(NotFoundException.class, () -> resource.syncOffering("TEST_SKU"));
 
-    when(offeringSyncService.syncOffering(any(String.class), any(String.class)))
+    when(offeringSyncService.syncOffering(any(String.class)))
         .thenReturn(SyncResult.SKIPPED_DENYLISTED);
     assertThrows(ForbiddenException.class, () -> resource.syncOffering("TEST_SKU"));
 
@@ -166,19 +165,19 @@ class ContractsResourceTest {
     when(ae.getResponse()).thenReturn(r);
 
     when(r.getStatus()).thenReturn(404);
-    doThrow(rtex).when(offeringSyncService).syncOffering(any(String.class), any(String.class));
+    doThrow(rtex).when(offeringSyncService).syncOffering(any(String.class));
     assertThrows(NotFoundException.class, () -> resource.syncOffering("TEST_SKU"));
 
     when(r.getStatus()).thenReturn(403);
-    doThrow(rtex).when(offeringSyncService).syncOffering(any(String.class), any(String.class));
+    doThrow(rtex).when(offeringSyncService).syncOffering(any(String.class));
     assertThrows(ForbiddenException.class, () -> resource.syncOffering("TEST_SKU"));
 
     when(r.getStatus()).thenReturn(400);
-    doThrow(rtex).when(offeringSyncService).syncOffering(any(String.class), any(String.class));
+    doThrow(rtex).when(offeringSyncService).syncOffering(any(String.class));
     assertThrows(BadRequestException.class, () -> resource.syncOffering("TEST_SKU"));
 
     when(r.getStatus()).thenReturn(0);
-    doThrow(rtex).when(offeringSyncService).syncOffering(any(String.class), any(String.class));
+    doThrow(rtex).when(offeringSyncService).syncOffering(any(String.class));
     assertThrows(InternalServerErrorException.class, () -> resource.syncOffering("TEST_SKU"));
   }
 

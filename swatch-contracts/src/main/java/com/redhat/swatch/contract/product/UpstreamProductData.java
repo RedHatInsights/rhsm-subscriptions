@@ -115,18 +115,18 @@ public class UpstreamProductData {
    *     not found.
    */
   public static Optional<OfferingEntity> offeringFromUpstream(
-      String sku, ProductDataSource productDataSource, String requestMessageTopic) {
+      String sku, ProductDataSource productDataSource, String requestSource) {
     log.info(
         "Received request on Message topic: {} to retrieving product tree for offeringSku=\"{}\"",
-        requestMessageTopic,
+        requestSource,
         sku);
 
     try {
       return productDataSource
           .getTree(sku)
           .map(UpstreamProductData::createFromTree)
-          .map(mid -> mid.fetchAndAddDerivedTreeIfExists(productDataSource, requestMessageTopic))
-          .map(mid -> mid.fetchAndAddEngProdsIfExist(productDataSource, requestMessageTopic))
+          .map(mid -> mid.fetchAndAddDerivedTreeIfExists(productDataSource, requestSource))
+          .map(mid -> mid.fetchAndAddEngProdsIfExist(productDataSource, requestSource))
           .map(UpstreamProductData::toOffering);
     } catch (ApiException e) {
       throw new ServiceException(
@@ -197,11 +197,10 @@ public class UpstreamProductData {
   public static Optional<OfferingEntity> offeringFromUmbData(
       UmbOperationalProduct product,
       OfferingEntity existingData,
-      ProductDataSource productDataSource,
-      String requestMessageTopic) {
+      ProductDataSource productDataSource) {
     if (existingData == null) {
       log.debug("Must sync SKU={} from data source because no existing data", product.getSku());
-      return offeringUpstream(product.getSku(), productDataSource, requestMessageTopic);
+      return offeringUpstream(product.getSku(), productDataSource, product.getRequestSource());
     }
     UpstreamProductData umbData = createFromUmbMessage(product);
     UpstreamProductData existingProductData = UpstreamProductData.createFromOffering(existingData);
@@ -213,7 +212,7 @@ public class UpstreamProductData {
             "Must sync SKU={} from data source because attribute={} is not defined in UMB message, but may be defined in child/derived SKU",
             product.getSku(),
             attr);
-        return offeringUpstream(product.getSku(), productDataSource, requestMessageTopic);
+        return offeringUpstream(product.getSku(), productDataSource, product.getRequestSource());
       }
     }
     if (!Objects.equals(umbData.children, existingProductData.children)) {
@@ -222,7 +221,7 @@ public class UpstreamProductData {
           product.getSku(),
           existingProductData.children,
           umbData.children);
-      return offeringUpstream(product.getSku(), productDataSource, requestMessageTopic);
+      return offeringUpstream(product.getSku(), productDataSource, product.getRequestSource());
     }
     String umbDerivedSku = umbData.attrs.get(Attr.DERIVED_SKU);
     String existingDerivedSku = existingProductData.attrs.get(Attr.DERIVED_SKU);
@@ -232,7 +231,7 @@ public class UpstreamProductData {
           product.getSku(),
           existingDerivedSku,
           umbDerivedSku);
-      return offeringUpstream(product.getSku(), productDataSource, requestMessageTopic);
+      return offeringUpstream(product.getSku(), productDataSource, product.getRequestSource());
     }
     existingProductData.attrs.forEach(umbData::putIfNoConflict);
     umbData.engOids.addAll(existingProductData.engOids);
@@ -240,9 +239,9 @@ public class UpstreamProductData {
   }
 
   private static Optional<OfferingEntity> offeringUpstream(
-      String sku, ProductDataSource productDataSource, String requestMessageTopic) {
+      String sku, ProductDataSource productDataSource, String requestSource) {
     try {
-      return UpstreamProductData.offeringFromUpstream(sku, productDataSource, requestMessageTopic);
+      return UpstreamProductData.offeringFromUpstream(sku, productDataSource, requestSource);
     } catch (ServiceException e) {
       log.warn("Error enriching upstream offering data for SKU: {}", sku, e);
       return Optional.empty();
@@ -390,11 +389,11 @@ public class UpstreamProductData {
    * @return this UpstreamProductData (not the derived product), for chaining.
    */
   private UpstreamProductData fetchAndAddDerivedTreeIfExists(
-      ProductDataSource productDataSource, String requestMessageTopic) {
+      ProductDataSource productDataSource, String requestSource) {
     String derivedSku = attrs.get(Attr.DERIVED_SKU);
     log.info(
-        "Received request on Message topic: {} to retrieve tree for derviedSku=\"{}\"",
-        requestMessageTopic,
+        "Received request from source: {} to retrieve tree for derviedSku=\"{}\"",
+        requestSource,
         derivedSku);
     if (derivedSku != null) {
       try {
@@ -421,7 +420,7 @@ public class UpstreamProductData {
   }
 
   private UpstreamProductData fetchAndAddEngProdsIfExist(
-      ProductDataSource productDataSource, String requestMessageTopic) {
+      ProductDataSource productDataSource, String requestSource) {
     /*
     Engineering Product OIDs need be fetched for all SKUs, including derived SKUs. For *most*
     VDC SKUs like RH00001 and its child SVCRH00001, neither of them will have associated engOIDs.
@@ -430,8 +429,8 @@ public class UpstreamProductData {
     */
     Set<String> allSkus = allSkus();
     log.info(
-        "Received request on Message topic: {} to retrieve engOids for skus=\"{}\" of offeringSku=\"{}\"",
-        requestMessageTopic,
+        "Received request from source: {} to retrieve engOids for skus=\"{}\" of offeringSku=\"{}\"",
+        requestSource,
         allSkus,
         sku);
     try {
