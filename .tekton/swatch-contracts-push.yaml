@@ -196,6 +196,50 @@ spec:
         workspace: git-auth
       - name: netrc
         workspace: netrc
+    - name: provision-eaas-space
+      params:
+      - name: ownerName
+        value: $(context.pipelineRun.name)
+      - name: ownerUid
+        value: $(context.pipelineRun.uid)
+      runAfter:
+      - prefetch-dependencies
+      taskRef:
+        resolver: git
+        params:
+        - name: url
+          value: https://github.com/konflux-ci/build-definitions.git
+        - name: revision
+          value: 4e4fa7355a6a51083954408e7e3b647e3bddb8d8
+        - name: pathInRepo
+          value: task/eaas-provision-space/0.1/eaas-provision-space.yaml
+      when:
+      - input: $(tasks.init.results.build)
+        operator: in
+        values:
+          - "true"
+    - name: run-tests
+      params:
+      - name: SERVICE
+        value: swatch-contracts
+      - name: PROVISION_EAAS_SPACE_SECRET_REF
+        value: $(tasks.provision-eaas-space.results.secretRef)
+      runAfter:
+      - provision-eaas-space
+      taskRef:
+        resolver: git
+        params:
+        - name: url
+          value: https://github.com/RedHatInsights/rhsm-subscriptions
+        - name: revision
+          value: $(params.revision)
+        - name: pathInRepo
+          value: .tekton/run-tests-task.yaml
+      when:
+      - input: $(tasks.init.results.build)
+        operator: in
+        values:
+          - "true"
     - name: build-container
       params:
       - name: IMAGE
@@ -224,7 +268,7 @@ spec:
       - name: CACHI2_ARTIFACT
         value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
       runAfter:
-      - prefetch-dependencies
+      - run-tests
       taskRef:
         params:
         - name: name

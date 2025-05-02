@@ -9,12 +9,9 @@ spec:
       default: ""
     - name: PROVISION_EAAS_SPACE_SECRET_REF
       description: The secret ref of the "provision-eaas-space" task output
-  workspaces:
-    - name: source
   steps:
     - image: registry.access.redhat.com/ubi9/openjdk-17-runtime
       name: builder
-      workingDir: $(workspaces.source.path)/source
       env:
         - name: SERVICE
           value: $(params.SERVICE)
