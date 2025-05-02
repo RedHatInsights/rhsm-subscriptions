@@ -2,7 +2,7 @@
 // inspired by mockito's gradle structure, which dependabot uses as a test case
 
 ext {
-    quarkusVersion='3.22.1'
+    quarkusVersion='3.21.3'
     springVersion='3.4.5'
     resteasyVersion='6.2.12.Final'
     jacksonVersion='2.19.0'
