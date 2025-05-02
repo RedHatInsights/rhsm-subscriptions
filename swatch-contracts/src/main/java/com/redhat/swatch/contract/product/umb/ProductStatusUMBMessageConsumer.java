@@ -61,7 +61,7 @@ public class ProductStatusUMBMessageConsumer {
       OperationalProductEvent productEvent =
           mapper.convertValue(message, OperationalProductEvent.class);
 
-      return service.syncUmbProductFromEvent(productEvent, OFFERING_SYNC_TASK_SERVICE_UMB);
+      return service.syncUmbProductFromEvent(productEvent);
     } catch (Exception e) {
       log.warn("Unable to read UMB message from JSON.", e);
       return SyncResult.FAILED;

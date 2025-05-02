@@ -50,7 +50,7 @@ public class OfferingSyncTaskConsumer {
     String sku = task.getSku();
     log.info("Sync for offeringSku={} triggered by OfferingSyncTask", sku);
 
-    service.syncOffering(sku, OFFERING_SYNC_TASK_TOPIC);
+    service.syncOffering(sku);
   }
 
   @Blocking
@@ -61,6 +61,6 @@ public class OfferingSyncTaskConsumer {
       log.debug("UMB processing is not enabled");
       return;
     }
-    service.syncUmbProductFromXml(productMessageXml, OFFERING_SYNC_TASK_CANONICAL_UMB);
+    service.syncUmbProductFromXml(productMessageXml);
   }
 }

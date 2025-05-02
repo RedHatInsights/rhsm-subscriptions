@@ -44,7 +44,6 @@ import org.junit.jupiter.api.Test;
 class UpstreamProductDataTest {
 
   private final ProductService stub = new ProductService(new StubProductApi(new ObjectMapper()));
-  private static String REQUEST_MESSAGE_TOPIC = "TopicName";
 
   @Test
   void testOfferingFromUpstreamForOcpOffering() {
@@ -67,7 +66,9 @@ class UpstreamProductDataTest {
 
     // When getting the upstream Offering,
     var actual =
-        UpstreamProductData.offeringFromUpstream(sku, stub, REQUEST_MESSAGE_TOPIC).orElseThrow();
+        UpstreamProductData.offeringFromUpstream(
+                sku, stub, UmbOperationalProduct.OTHER_REQUEST_SOURCE)
+            .orElseThrow();
 
     // Then the resulting Offering has the expected child SKUs, engProd OIDs, and values.
     assertEquals(expected, actual);
@@ -91,7 +92,9 @@ class UpstreamProductDataTest {
 
     // When getting the upstream Offering,
     var actual =
-        UpstreamProductData.offeringFromUpstream(sku, stub, REQUEST_MESSAGE_TOPIC).orElseThrow();
+        UpstreamProductData.offeringFromUpstream(
+                sku, stub, UmbOperationalProduct.OTHER_REQUEST_SOURCE)
+            .orElseThrow();
 
     // Then the resulting Offering has the expected child SKUs, values, and no engProdIds.
     assertEquals(expected, actual);
@@ -105,7 +108,9 @@ class UpstreamProductDataTest {
 
     // When given the result of a standard,
     var actual =
-        UpstreamProductData.offeringFromUpstream(sku, stub, REQUEST_MESSAGE_TOPIC).orElseThrow();
+        UpstreamProductData.offeringFromUpstream(
+                sku, stub, UmbOperationalProduct.OTHER_REQUEST_SOURCE)
+            .orElseThrow();
 
     // Then cores equals 16
     assertEquals(16, actual.getCores());
@@ -143,7 +148,9 @@ class UpstreamProductDataTest {
 
     // When getting the upstream Offering,
     var actual =
-        UpstreamProductData.offeringFromUpstream(sku, stub, REQUEST_MESSAGE_TOPIC).orElseThrow();
+        UpstreamProductData.offeringFromUpstream(
+                sku, stub, UmbOperationalProduct.OTHER_REQUEST_SOURCE)
+            .orElseThrow();
 
     // Then the resulting Offering has the expected hypervisor sockets from derived sku,
     // and engOIDs from the derived sku child.
@@ -177,7 +184,9 @@ class UpstreamProductDataTest {
 
     // When getting the upstream Offering,
     var actual =
-        UpstreamProductData.offeringFromUpstream(sku, stub, REQUEST_MESSAGE_TOPIC).orElseThrow();
+        UpstreamProductData.offeringFromUpstream(
+                sku, stub, UmbOperationalProduct.OTHER_REQUEST_SOURCE)
+            .orElseThrow();
 
     // Then the resulting Offering has the expected child SKUs, values, and engProdIds.
     assertEquals(expected, actual);
@@ -208,7 +217,9 @@ class UpstreamProductDataTest {
 
     // When getting the upstream Offering,
     var actual =
-        UpstreamProductData.offeringFromUpstream(sku, stub, REQUEST_MESSAGE_TOPIC).orElseThrow();
+        UpstreamProductData.offeringFromUpstream(
+                sku, stub, UmbOperationalProduct.OTHER_REQUEST_SOURCE)
+            .orElseThrow();
 
     // Then the resulting Offering has the expected child SKUs, engProd OIDs, and values.
     assertEquals(expected, actual);
@@ -220,7 +231,9 @@ class UpstreamProductDataTest {
     var sku = "BOGUS";
 
     // When attempting to get the upstream Offering,
-    var actual = UpstreamProductData.offeringFromUpstream(sku, stub, REQUEST_MESSAGE_TOPIC);
+    var actual =
+        UpstreamProductData.offeringFromUpstream(
+            sku, stub, UmbOperationalProduct.OTHER_REQUEST_SOURCE);
 
     // Then there is no resulting offering.
     assertTrue(actual.isEmpty(), "When a sku doesn't exist upstream, return an empty Optional.");
@@ -233,7 +246,9 @@ class UpstreamProductDataTest {
 
     // When getting the upstream offering,
     var actual =
-        UpstreamProductData.offeringFromUpstream(sku, stub, REQUEST_MESSAGE_TOPIC).orElseThrow();
+        UpstreamProductData.offeringFromUpstream(
+                sku, stub, UmbOperationalProduct.OTHER_REQUEST_SOURCE)
+            .orElseThrow();
 
     // Then hasUnlimitedUsage should be true
     assertTrue(actual.isHasUnlimitedUsage());
@@ -246,7 +261,9 @@ class UpstreamProductDataTest {
 
     // When getting the upstream offering,
     var actual =
-        UpstreamProductData.offeringFromUpstream(sku, stub, REQUEST_MESSAGE_TOPIC).orElseThrow();
+        UpstreamProductData.offeringFromUpstream(
+                sku, stub, UmbOperationalProduct.OTHER_REQUEST_SOURCE)
+            .orElseThrow();
 
     // Then hasUnlimitedUsage should be true
     assertTrue(actual.isHasUnlimitedUsage());
@@ -291,8 +308,7 @@ class UpstreamProductDataTest {
                         })
                     .build(),
                 existingData,
-                mockDataSource,
-                null)
+                mockDataSource)
             .orElseThrow();
     // these are the only fields that can be updated by UMB messages without consulting the RHIT
     // product service. (Changes to child SKUs or derived SKU need to consult RHIT product
@@ -347,8 +363,7 @@ class UpstreamProductDataTest {
                         })
                     .build(),
                 existingData,
-                mockDataSource,
-                REQUEST_MESSAGE_TOPIC)
+                mockDataSource)
             .orElseThrow();
     assertNull(actual.getHypervisorSockets());
     assertNull(actual.getHypervisorCores());
