@@ -42,39 +42,23 @@ public class SubscriptionCsvDataMapperService
 
   @Override
   public List<Object> mapDataItem(SubscriptionCapacityView dataItem, ExportServiceRequest request) {
-    if (dataItem.getMetrics().isEmpty()) {
-      return List.of();
+    var metrics = SubscriptionDataExporterService.groupMetrics(mapper, dataItem, request);
+    if (metrics.isEmpty()) {
+      // when there are no metrics, we return the raw item without any measurements.
+      return List.of(buildSubscriptionItem(dataItem));
     }
 
-    return SubscriptionDataExporterService.groupMetrics(mapper, dataItem, request).stream()
+    // when there are metrics, we return a different row by each metric.
+    return metrics.stream()
         .map(
             m -> {
-              var item = new SubscriptionsExportCsvItem();
-              item.setSubscriptionId(dataItem.getSubscriptionId());
-              item.setSubscriptionNumber(dataItem.getSubscriptionNumber());
-              if (dataItem.getBillingProvider() != null) {
-                item.setBillingProvider(dataItem.getBillingProvider().getValue());
-              }
-              item.setBillingAccountId(dataItem.getBillingAccountId());
-              item.setBegin(dataItem.getStartDate());
-              item.setEnd(dataItem.getEndDate());
-              item.setQuantity((double) dataItem.getQuantity());
+              var item = buildSubscriptionItem(dataItem);
               item.setMetricId(m.getMetricId());
               if (SubscriptionCapacityViewRepository.PHYSICAL.equals(m.getMeasurementType())) {
                 item.setHypervisorCapacity(m.getCapacity());
               } else {
                 item.setCapacity(m.getCapacity());
               }
-
-              // map offering
-              item.setSku(dataItem.getSku());
-              Optional.ofNullable(dataItem.getUsage())
-                  .map(Usage::getValue)
-                  .ifPresent(item::setUsage);
-              Optional.ofNullable(dataItem.getServiceLevel())
-                  .map(ServiceLevel::getValue)
-                  .ifPresent(item::setServiceLevel);
-              item.setProductName(dataItem.getProductName());
               return (Object) item;
             })
         .toList();
@@ -88,5 +72,27 @@ public class SubscriptionCsvDataMapperService
   @Override
   public Class<?> getExportItemClass() {
     return SubscriptionsExportCsvItem.class;
+  }
+
+  private SubscriptionsExportCsvItem buildSubscriptionItem(SubscriptionCapacityView dataItem) {
+    var item = new SubscriptionsExportCsvItem();
+    item.setSubscriptionId(dataItem.getSubscriptionId());
+    item.setSubscriptionNumber(dataItem.getSubscriptionNumber());
+    if (dataItem.getBillingProvider() != null) {
+      item.setBillingProvider(dataItem.getBillingProvider().getValue());
+    }
+    item.setBillingAccountId(dataItem.getBillingAccountId());
+    item.setBegin(dataItem.getStartDate());
+    item.setEnd(dataItem.getEndDate());
+    item.setQuantity((double) dataItem.getQuantity());
+
+    // map offering
+    item.setSku(dataItem.getSku());
+    Optional.ofNullable(dataItem.getUsage()).map(Usage::getValue).ifPresent(item::setUsage);
+    Optional.ofNullable(dataItem.getServiceLevel())
+        .map(ServiceLevel::getValue)
+        .ifPresent(item::setServiceLevel);
+    item.setProductName(dataItem.getProductName());
+    return item;
   }
 }

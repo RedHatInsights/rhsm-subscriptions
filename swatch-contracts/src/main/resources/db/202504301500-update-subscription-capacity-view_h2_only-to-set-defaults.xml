@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+  <changeSet id="202504301500-01" author="jcarvaja" dbms="h2" runOnChange="true">
+    <comment>
+      Use defaults for the metrics in the view subscription_capacity_view
+    </comment>
+    <dropView viewName="subscription_capacity_view" ifExists="true"/>
+    <createView
+            replaceIfExists="true"
+            viewName="subscription_capacity_view">
+        <![CDATA[select distinct s.subscription_id,
+                        s.subscription_number,
+                        s.sku,
+                        o.has_unlimited_usage,
+                        o.description as product_name,
+                        o.sla as service_level,
+                        o.usage,
+                        s.org_id,
+                        s.billing_provider,
+                        s.billing_provider_id,
+                        s.billing_account_id,
+                        s.start_date,
+                        s.end_date,
+                        CONCAT('[{"metric_id":"', sm.metric_id, '","value":',COALESCE(sm.value,0), ',"measurement_type":"',sm.measurement_type , '"}]') as metrics,
+                        spt.product_tag,
+                        s.quantity as quantity
+                 from subscription s
+                        inner join offering o on s.sku=o.sku
+                        inner join sku_product_tag spt on s.sku = spt.sku
+                        left join subscription_measurements sm on s.subscription_id = sm.subscription_id and s.start_date=sm.start_date
+                 where s.start_date <= now() and (s.end_date is null or s.end_date >= now())
+                 group by s.subscription_id, s.subscription_number, s.sku, o.has_unlimited_usage, o.description, o.sla, o.usage , s.org_id, s.billing_provider, s.billing_provider_id, s.billing_account_id, spt.product_tag,s.quantity, sm.metric_id, sm.value, sm.measurement_type, s.start_date, s.end_date
+                 order by s.subscription_id asc
+      ]]>
+    </createView>
+  </changeSet>
+</databaseChangeLog>

@@ -21,4 +21,5 @@
   <include file="db/202407081616-add-level-columns-for-offering-table_h2_only.xml"/>
   <include file="db/202410171500-move-subscription-capacity-view_h2_only.xml"/>
   <include file="db/202412051144-primary-keys-on-changelog-table.xml"/>
+  <include file="db/202504301500-update-subscription-capacity-view_h2_only-to-set-defaults.xml"/>
 </databaseChangeLog>
