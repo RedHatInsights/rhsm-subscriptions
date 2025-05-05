@@ -8,7 +8,7 @@ metadata:
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "main"
+      == "main" && source_branch == "awood/SWATCH-2820-migrations-again"
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: rhsm-subscriptions
