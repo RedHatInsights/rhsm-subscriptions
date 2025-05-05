@@ -430,7 +430,7 @@ public class ContractsResource implements DefaultApi {
     return response;
   }
 
-  @RolesAllowed({"test", "support", "service"})
+  @RolesAllowed({"test"})
   @Override
   public OfferingResponse syncUmbProductFromXml(String productXml) throws ProcessingException {
     var response = new OfferingResponse();
@@ -446,7 +446,7 @@ public class ContractsResource implements DefaultApi {
   }
 
   @Override
-  @RolesAllowed({"test", "support", "service"})
+  @RolesAllowed({"test"})
   public OfferingResponse syncUmbProductFromEvent(OperationalProductEvent productEvent)
       throws ProcessingException {
     var response = new OfferingResponse();

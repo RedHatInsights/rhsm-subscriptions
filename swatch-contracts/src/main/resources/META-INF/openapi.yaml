@@ -766,9 +766,7 @@ paths:
         default:
           $ref: '#/components/responses/ErrorResponse'
       security:
-        - support: [ ]
         - test: [ ]
-        - service: [ ]
   /api/swatch-contracts/internal/rpc/offerings/umb/syncUmbProductFromEvent:
     description: Syncs umb product json event from the upstream source.
     put:
@@ -789,9 +787,7 @@ paths:
         default:
           $ref: '#/components/responses/ErrorResponse'
       security:
-        - support: [ ]
         - test: [ ]
-        - service: [ ]
   /api/swatch-contracts/internal/rpc/offerings/reconcile/{sku}:
     description: Reconcile capacity for an offering from the upstream source.
     parameters:
