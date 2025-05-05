@@ -24,12 +24,15 @@ import static com.redhat.swatch.contract.config.Channels.OFFERING_SYNC_TASK_CANO
 import static com.redhat.swatch.contract.config.Channels.OFFERING_SYNC_TASK_TOPIC;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.redhat.swatch.contract.config.Channels;
 import com.redhat.swatch.contract.model.OfferingSyncTask;
+import com.redhat.swatch.contract.product.UpstreamProductData;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.slf4j.MDC;
 
 @ApplicationScoped
 @Slf4j
@@ -61,6 +64,12 @@ public class OfferingSyncTaskConsumer {
       log.debug("UMB processing is not enabled");
       return;
     }
-    service.syncUmbProductFromXml(productMessageXml);
+
+    try {
+      MDC.put(UpstreamProductData.REQUEST_SOURCE, Channels.OFFERING_SYNC_TASK_CANONICAL_UMB);
+      service.syncUmbProductFromXml(productMessageXml);
+    } finally {
+      MDC.remove(UpstreamProductData.REQUEST_SOURCE);
+    }
   }
 }

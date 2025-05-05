@@ -38,15 +38,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @JsonNaming(PropertyNamingStrategies.UpperCamelCaseStrategy.class)
 public class UmbOperationalProduct {
-  public static String OTHER_REQUEST_SOURCE = "UNKNOWN";
-
   private String sku;
   private String skuDescription;
   private String role;
   private ProductRelationship productRelationship;
   private Identifiers identifiers;
-
-  private String requestSource;
 
   @JsonProperty("Attribute")
   @JacksonXmlElementWrapper(useWrapping = false)

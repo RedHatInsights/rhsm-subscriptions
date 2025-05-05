@@ -65,10 +65,7 @@ class UpstreamProductDataTest {
     expected.setMetered(false);
 
     // When getting the upstream Offering,
-    var actual =
-        UpstreamProductData.offeringFromUpstream(
-                sku, stub, UmbOperationalProduct.OTHER_REQUEST_SOURCE)
-            .orElseThrow();
+    var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
 
     // Then the resulting Offering has the expected child SKUs, engProd OIDs, and values.
     assertEquals(expected, actual);
@@ -91,10 +88,7 @@ class UpstreamProductDataTest {
     expected.setMetered(false);
 
     // When getting the upstream Offering,
-    var actual =
-        UpstreamProductData.offeringFromUpstream(
-                sku, stub, UmbOperationalProduct.OTHER_REQUEST_SOURCE)
-            .orElseThrow();
+    var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
 
     // Then the resulting Offering has the expected child SKUs, values, and no engProdIds.
     assertEquals(expected, actual);
@@ -107,10 +101,7 @@ class UpstreamProductDataTest {
     var sku = "MW00330";
 
     // When given the result of a standard,
-    var actual =
-        UpstreamProductData.offeringFromUpstream(
-                sku, stub, UmbOperationalProduct.OTHER_REQUEST_SOURCE)
-            .orElseThrow();
+    var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
 
     // Then cores equals 16
     assertEquals(16, actual.getCores());
@@ -147,10 +138,7 @@ class UpstreamProductDataTest {
     expected.setMetered(false);
 
     // When getting the upstream Offering,
-    var actual =
-        UpstreamProductData.offeringFromUpstream(
-                sku, stub, UmbOperationalProduct.OTHER_REQUEST_SOURCE)
-            .orElseThrow();
+    var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
 
     // Then the resulting Offering has the expected hypervisor sockets from derived sku,
     // and engOIDs from the derived sku child.
@@ -183,10 +171,7 @@ class UpstreamProductDataTest {
     expected.setMetered(true);
 
     // When getting the upstream Offering,
-    var actual =
-        UpstreamProductData.offeringFromUpstream(
-                sku, stub, UmbOperationalProduct.OTHER_REQUEST_SOURCE)
-            .orElseThrow();
+    var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
 
     // Then the resulting Offering has the expected child SKUs, values, and engProdIds.
     assertEquals(expected, actual);
@@ -216,10 +201,7 @@ class UpstreamProductDataTest {
     expected.setMetered(false);
 
     // When getting the upstream Offering,
-    var actual =
-        UpstreamProductData.offeringFromUpstream(
-                sku, stub, UmbOperationalProduct.OTHER_REQUEST_SOURCE)
-            .orElseThrow();
+    var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
 
     // Then the resulting Offering has the expected child SKUs, engProd OIDs, and values.
     assertEquals(expected, actual);
@@ -231,9 +213,7 @@ class UpstreamProductDataTest {
     var sku = "BOGUS";
 
     // When attempting to get the upstream Offering,
-    var actual =
-        UpstreamProductData.offeringFromUpstream(
-            sku, stub, UmbOperationalProduct.OTHER_REQUEST_SOURCE);
+    var actual = UpstreamProductData.offeringFromUpstream(sku, stub);
 
     // Then there is no resulting offering.
     assertTrue(actual.isEmpty(), "When a sku doesn't exist upstream, return an empty Optional.");
@@ -245,10 +225,7 @@ class UpstreamProductDataTest {
     var sku = "MW00210MO";
 
     // When getting the upstream offering,
-    var actual =
-        UpstreamProductData.offeringFromUpstream(
-                sku, stub, UmbOperationalProduct.OTHER_REQUEST_SOURCE)
-            .orElseThrow();
+    var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
 
     // Then hasUnlimitedUsage should be true
     assertTrue(actual.isHasUnlimitedUsage());
@@ -260,10 +237,7 @@ class UpstreamProductDataTest {
     var sku = "MW00210M1";
 
     // When getting the upstream offering,
-    var actual =
-        UpstreamProductData.offeringFromUpstream(
-                sku, stub, UmbOperationalProduct.OTHER_REQUEST_SOURCE)
-            .orElseThrow();
+    var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
 
     // Then hasUnlimitedUsage should be true
     assertTrue(actual.isHasUnlimitedUsage());

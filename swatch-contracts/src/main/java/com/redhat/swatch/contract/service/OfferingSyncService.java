@@ -54,6 +54,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.slf4j.MDC;
 
 /** Update {@link OfferingEntity}s from product service responses. */
 @ApplicationScoped
@@ -135,9 +136,7 @@ public class OfferingSyncService {
   private Optional<OfferingEntity> getUpstreamOffering(String sku) {
     log.debug("Retrieving product tree for offeringSku=\"{}\"", sku);
     try {
-      var offering =
-          UpstreamProductData.offeringFromUpstream(
-              sku, productService, UmbOperationalProduct.OTHER_REQUEST_SOURCE);
+      var offering = UpstreamProductData.offeringFromUpstream(sku, productService);
       discoverProductTagsBySku(offering);
       return offering;
     } catch (ServiceException e) {
@@ -271,9 +270,7 @@ public class OfferingSyncService {
   private Optional<OfferingEntity> enrichUpstreamOfferingData(
       String sku, JsonProductDataSource productDataSource) {
     try {
-      var offering =
-          UpstreamProductData.offeringFromUpstream(
-              sku, productDataSource, UmbOperationalProduct.OTHER_REQUEST_SOURCE);
+      var offering = UpstreamProductData.offeringFromUpstream(sku, productDataSource);
       discoverProductTagsBySku(offering);
       return offering;
     } catch (ServiceException e) {
@@ -303,7 +300,6 @@ public class OfferingSyncService {
             .getPayload()
             .getSync()
             .getOperationalProduct();
-    operationalProduct.setRequestSource(Channels.OFFERING_SYNC_TASK_CANONICAL_UMB);
 
     return syncUmbProduct(operationalProduct);
   }
@@ -323,7 +319,6 @@ public class OfferingSyncService {
     UmbOperationalProduct product =
         UmbOperationalProduct.builder()
             .sku(productEvent.getProductCode())
-            .requestSource(Channels.OFFERING_SYNC_TASK_SERVICE_UMB)
             .attributes(new ProductAttribute[] {})
             .build();
 
@@ -331,9 +326,10 @@ public class OfferingSyncService {
   }
 
   private SyncResult syncUmbProduct(UmbOperationalProduct umbOperationalProduct) {
+
     log.info(
         "Received UMB message on {} for productSku={}",
-        umbOperationalProduct.getRequestSource(),
+        MDC.get(UpstreamProductData.REQUEST_SOURCE),
         umbOperationalProduct.getSku());
     if (umbOperationalProduct.getSku().startsWith("SVC")) {
       syncChildSku(umbOperationalProduct.getSku());

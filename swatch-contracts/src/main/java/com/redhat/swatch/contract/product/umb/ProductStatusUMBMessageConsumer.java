@@ -23,15 +23,19 @@ package com.redhat.swatch.contract.product.umb;
 import static com.redhat.swatch.contract.config.Channels.OFFERING_SYNC_TASK_SERVICE_UMB;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redhat.swatch.contract.config.Channels;
 import com.redhat.swatch.contract.model.SyncResult;
 import com.redhat.swatch.contract.openapi.model.OperationalProductEvent;
+import com.redhat.swatch.contract.product.UpstreamProductData;
 import com.redhat.swatch.contract.service.OfferingSyncService;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import java.util.LinkedHashMap;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.slf4j.MDC;
 
 @ApplicationScoped
 @Slf4j
@@ -45,17 +49,25 @@ public class ProductStatusUMBMessageConsumer {
 
   @Blocking
   @Incoming(OFFERING_SYNC_TASK_SERVICE_UMB)
-  public void consumeMessage(Object message) {
+  public void consumeMessage(LinkedHashMap message) {
 
-    log.info("Received message from UMB offering sync service.  product {}", message);
+    log.info(
+        "Received message from UMB offering sync service.  product {} - {}",
+        message,
+        message.getClass().getName());
     if (umbEnabled) {
-      consumeProduct(message);
+      try {
+        MDC.put(UpstreamProductData.REQUEST_SOURCE, Channels.OFFERING_SYNC_TASK_SERVICE_UMB);
+        consumeProduct(message);
+      } finally {
+        MDC.remove(UpstreamProductData.REQUEST_SOURCE);
+      }
     } else {
       log.debug("UMB processing is not enabled");
     }
   }
 
-  public SyncResult consumeProduct(Object message) {
+  public SyncResult consumeProduct(LinkedHashMap message) {
     try {
 
       OperationalProductEvent productEvent =
