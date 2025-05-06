@@ -132,7 +132,8 @@ parameters:
     value: public
   - name: DEVTEST_EVENT_EDITING_ENABLED
     value: 'false'
-
+  - name: EGRESS_IMAGE
+    value: quay.io/cloudservices/rhsm-subscriptions-egress
   - name: EGRESS_IMAGE_TAG
     value: fec6dc2
   # Using a value of 'select 1' makes this job a no-op by default.
@@ -632,7 +633,7 @@ objects:
       - name: db-changelog-cleanup-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
         restartPolicy: Never
         podSpec:
-          image: quay.io/cloudservices/rhsm-subscriptions-egress:${EGRESS_IMAGE_TAG}
+          image: ${EGRESS_IMAGE}:${EGRESS_IMAGE_TAG}
           name: db-changelog-cleanup
           command: ["/bin/sh", "-c"]
           args:
