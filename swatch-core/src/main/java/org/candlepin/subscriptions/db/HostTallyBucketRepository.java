@@ -40,6 +40,7 @@ import org.candlepin.subscriptions.db.model.HostBucketKey_;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.HostTallyBucket_;
 import org.candlepin.subscriptions.db.model.Host_;
+import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.CrudRepository;
@@ -77,7 +78,15 @@ public interface HostTallyBucketRepository
     var hostPath = root.join(HostTallyBucket_.host);
 
     List<Predicate> predicates = new ArrayList<>();
+    // Criteria: b.org_id = ?
     predicates.add(criteriaBuilder.equal(hostPath.get(Host_.ORG_ID), criteria.getOrgId()));
+    // And Criteria: b.billing_provider != _ANY
+    predicates.add(
+        criteriaBuilder.notEqual(key.get(HostBucketKey_.BILLING_PROVIDER), BillingProvider._ANY));
+    // And Criteria: b.billing_account_id != _ANY
+    predicates.add(
+        criteriaBuilder.notEqual(key.get(HostBucketKey_.BILLING_ACCOUNT_ID), ResourceUtils.ANY));
+    // if billing provider is set, then: and Criteria: b.billing_provider = ?
     if (Objects.nonNull(criteria.getBillingProvider())
         && !criteria.getBillingProvider().equals(BillingProvider._ANY)
         && !criteria.getBillingProvider().equals(BillingProvider.EMPTY)) {
