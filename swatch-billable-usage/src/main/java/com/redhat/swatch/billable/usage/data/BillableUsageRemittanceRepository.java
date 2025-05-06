@@ -25,6 +25,7 @@ import com.redhat.swatch.panache.Specification;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -106,10 +107,11 @@ public class BillableUsageRemittanceRepository
       OffsetDateTime billedOn,
       RemittanceErrorCode errorCode) {
     update(
-        "status = ?1, billedOn=?2, errorCode=?3 where uuid in (?4)",
+        "status = ?1, billedOn=?2, errorCode=?3, updatedAt=?4 where uuid in (?5)",
         status,
         billedOn,
         errorCode,
+        OffsetDateTime.now(ZoneOffset.UTC),
         uuids);
   }
 

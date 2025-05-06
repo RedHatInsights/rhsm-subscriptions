@@ -26,9 +26,12 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -93,4 +96,13 @@ public class BillableUsageRemittanceEntity implements Serializable {
 
   @Column(name = "billed_on")
   private OffsetDateTime billedOn;
+
+  @Column(name = "updated_at")
+  private OffsetDateTime updatedAt;
+
+  @PreUpdate
+  @PrePersist
+  public void onCreateOrUpdate() {
+    this.updatedAt = OffsetDateTime.now(ZoneId.of("UTC"));
+  }
 }
