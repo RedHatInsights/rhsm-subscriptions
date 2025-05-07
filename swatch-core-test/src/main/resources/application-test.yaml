@@ -17,7 +17,6 @@ rhsm-subscriptions:
     use-stub: true
   contracts:
     client:
-      use-stub: true
       psk: placeholder
 logging:
   level:
