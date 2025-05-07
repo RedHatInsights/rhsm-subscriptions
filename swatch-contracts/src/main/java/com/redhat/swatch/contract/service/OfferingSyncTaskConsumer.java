@@ -59,7 +59,7 @@ public class OfferingSyncTaskConsumer {
   @Blocking
   @Incoming(OFFERING_SYNC_TASK_CANONICAL_UMB)
   public void consumeFromUmb(String productMessageXml) throws JsonProcessingException {
-    log.info("Received message from UMB offering sync canonical. product {}", productMessageXml);
+    log.debug("Received message from UMB offering sync canonical. product {}", productMessageXml);
     if (!umbEnabled) {
       log.debug("UMB processing is not enabled");
       return;

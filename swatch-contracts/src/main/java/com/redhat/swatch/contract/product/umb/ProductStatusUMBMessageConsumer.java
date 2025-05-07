@@ -51,7 +51,7 @@ public class ProductStatusUMBMessageConsumer {
   @Incoming(OFFERING_SYNC_TASK_SERVICE_UMB)
   public void consumeMessage(LinkedHashMap message) {
 
-    log.info(
+    log.debug(
         "Received message from UMB offering sync service.  product {} - {}",
         message,
         message.getClass().getName());
