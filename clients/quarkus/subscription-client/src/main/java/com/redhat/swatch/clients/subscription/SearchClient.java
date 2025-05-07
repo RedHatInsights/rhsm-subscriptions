@@ -35,7 +35,7 @@ import java.lang.annotation.Target;
  * com.redhat.swatch.clients.subscription.api.resources.SearchApi} client. When used, the CDI
  * context the real ProductApi or the stubProductApi depending on the configuration property will
  * use the ProductApi instance produced by {@link SearchApiFactory} that will resolve either
- * "rhsm-subscriptions.product.use-stub".
+ * "rhsm-subscriptions.subscription-client.use-stub".
  */
 @Qualifier
 @Retention(RUNTIME)

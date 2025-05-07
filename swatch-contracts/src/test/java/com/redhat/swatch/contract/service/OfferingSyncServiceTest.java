@@ -49,10 +49,10 @@ import com.redhat.swatch.contract.model.SyncResult;
 import com.redhat.swatch.contract.openapi.model.OperationalProductEvent;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.OfferingRepository;
-import com.redhat.swatch.contract.test.resources.ProductUseStubService;
+import com.redhat.swatch.contract.test.resources.WireMockResource;
 import io.quarkus.test.InjectMock;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import io.smallrye.reactive.messaging.memory.InMemorySink;
 import jakarta.enterprise.inject.Any;
@@ -71,7 +71,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 @QuarkusTest
-@TestProfile(ProductUseStubService.class)
+@QuarkusTestResource(value = WireMockResource.class, restrictToAnnotatedClass = true)
 class OfferingSyncServiceTest {
 
   @InjectMock OfferingRepository repo;
