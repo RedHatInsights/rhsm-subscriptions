@@ -48,7 +48,6 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
 
 /**
  * Provides an easier way to translate an operational product, its children, and their derived
@@ -119,10 +118,7 @@ public class UpstreamProductData {
    */
   public static Optional<OfferingEntity> offeringFromUpstream(
       String sku, ProductDataSource productDataSource) {
-    log.info(
-        "Received request on Message topic: {} to retrieving product tree for offeringSku=\"{}\"",
-        MDC.get(REQUEST_SOURCE),
-        sku);
+    log.info("Retrieving product tree for offeringSku=\"{}\"", sku);
 
     try {
       return productDataSource
@@ -393,10 +389,7 @@ public class UpstreamProductData {
    */
   private UpstreamProductData fetchAndAddDerivedTreeIfExists(ProductDataSource productDataSource) {
     String derivedSku = attrs.get(Attr.DERIVED_SKU);
-    log.info(
-        "Received request from source: {} to retrieve tree for derviedSku=\"{}\"",
-        MDC.get(REQUEST_SOURCE),
-        derivedSku);
+    log.info("Received request from source: to retrieve tree for derviedSku={}", derivedSku);
     if (derivedSku != null) {
       try {
         // derived SKUs are marketing SKUs, so need to get its service SKUs too and add
@@ -429,11 +422,7 @@ public class UpstreamProductData {
     to fetch engOIDs for derived SKUs.
     */
     Set<String> allSkus = allSkus();
-    log.info(
-        "Received request from source: {} to retrieve engOids for skus=\"{}\" of offeringSku=\"{}\"",
-        MDC.get(REQUEST_SOURCE),
-        allSkus,
-        sku);
+    log.info("Retrieving engOids for skus=\"{}\" of offeringSku=\"{}\"", allSkus, sku);
     try {
       Map<String, List<EngineeringProduct>> engProds =
           productDataSource.getEngineeringProductsForSkus(allSkus);

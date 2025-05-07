@@ -54,7 +54,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.reactive.messaging.Channel;
-import org.slf4j.MDC;
 
 /** Update {@link OfferingEntity}s from product service responses. */
 @ApplicationScoped
@@ -327,10 +326,7 @@ public class OfferingSyncService {
 
   private SyncResult syncUmbProduct(UmbOperationalProduct umbOperationalProduct) {
 
-    log.info(
-        "Received UMB message on {} for productSku={}",
-        MDC.get(UpstreamProductData.REQUEST_SOURCE),
-        umbOperationalProduct.getSku());
+    log.info("Received UMB message on for productSku={}", umbOperationalProduct.getSku());
     if (umbOperationalProduct.getSku().startsWith("SVC")) {
       syncChildSku(umbOperationalProduct.getSku());
       return SyncResult.FETCHED_AND_SYNCED;
