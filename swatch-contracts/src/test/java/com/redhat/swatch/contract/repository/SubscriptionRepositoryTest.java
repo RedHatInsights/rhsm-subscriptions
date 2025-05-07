@@ -481,6 +481,14 @@ class SubscriptionRepositoryTest {
       subscription.setOffering(rosa);
       subscriptionRepo.persistAndFlush(subscription);
     }
+    // Create subscriptions that have expected orgId and product_tag but are expired
+    for (int i = 0; i < 5; i++) {
+      SubscriptionEntity subscription =
+          createOldSubscription(
+              expectedOrgId, String.valueOf(new Random().nextInt()), "expectedSellerAcctId" + i);
+      subscription.setOffering(rosa);
+      subscriptionRepo.persistAndFlush(subscription);
+    }
 
     var result = subscriptionRepo.findBillingAccountInfo(expectedOrgId, Optional.of("rosa"));
     assertEquals(5, result.size());
@@ -580,6 +588,20 @@ class SubscriptionRepositoryTest {
     // at the same resolution as the JVM
     OffsetDateTime startDate = now.truncatedTo(ChronoUnit.SECONDS);
     return createSubscription(orgId, subId, billingAccountId, startDate, startDate.plusDays(30));
+  }
+
+  private SubscriptionEntity createOldSubscription(
+      String orgId, String subId, String billingAccountId) {
+
+    // Truncate to avoid issues around nanosecond mismatches -- HSQLDB doesn't store timestamps
+    // at the same resolution as the JVM
+    OffsetDateTime startDate = now.truncatedTo(ChronoUnit.SECONDS);
+    return createSubscription(
+        orgId,
+        subId,
+        billingAccountId,
+        startDate.minusYears(1),
+        startDate.plusDays(30).minusYears(1));
   }
 
   private SubscriptionEntity createSubscription(
