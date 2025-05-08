@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.resource.api.v1;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -30,27 +31,34 @@ import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.ForbiddenException;
-import jakarta.ws.rs.core.UriInfo;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.HostTallyBucketRepository;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.TallyInstanceViewRepository;
+import org.candlepin.subscriptions.db.model.AccountServiceInventory;
+import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
 import org.candlepin.subscriptions.db.model.BillingProvider;
-import org.candlepin.subscriptions.db.model.DbReportCriteria;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
+import org.candlepin.subscriptions.db.model.HostBucketKey;
 import org.candlepin.subscriptions.db.model.HostHardwareType;
+import org.candlepin.subscriptions.db.model.HostTallyBucket;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyInstanceNonPaygView;
 import org.candlepin.subscriptions.db.model.TallyInstancePaygView;
-import org.candlepin.subscriptions.resteasy.PageLinkCreator;
+import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.security.WithMockAssociatePrincipal;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.utilization.api.v1.model.BillingAccountIdResponse;
@@ -81,18 +89,23 @@ class InstancesResourceTest {
   private static final ProductId RHEL_FOR_X86 = ProductId.fromString("RHEL for x86");
   private static final String SORT_BY_DISPLAY_NAME = "display_name";
   private static final ProductId RHEL_FOR_ARM = ProductId.fromString("RHEL for ARM");
+  private static final String ORG_ID = "owner123456";
+  private static final String INSTANCE_TYPE = "TEST";
+  private static final String BILLING_ACCOUNT_ID_ANY = ResourceUtils.ANY;
 
   @MockitoBean TallyInstanceViewRepository repository;
-  @MockitoBean HostRepository hostRepository;
-  @MockitoBean PageLinkCreator pageLinkCreator;
   @MockitoBean OrgConfigRepository orgConfigRepository;
-  @MockitoBean HostTallyBucketRepository hostTallyBucketRepository;
-  @MockitoBean UriInfo uriInfo;
+  @MockitoBean HostRepository hostRepository;
+  @Autowired AccountServiceInventoryRepository accountServiceInventoryRepository;
+  @Autowired HostTallyBucketRepository hostTallyBucketRepository;
   @Autowired InstancesResource resource;
 
+  @Transactional
   @BeforeEach
   void setup() {
-    when(orgConfigRepository.existsByOrgId("owner123456")).thenReturn(true);
+    when(orgConfigRepository.existsByOrgId(ORG_ID)).thenReturn(true);
+    hostTallyBucketRepository.deleteAll();
+    accountServiceInventoryRepository.deleteAll();
   }
 
   @WithMockRedHatPrincipal("123456")
@@ -117,7 +130,7 @@ class InstancesResourceTest {
 
     Mockito.when(
             repository.findAllBy(
-                eq("owner123456"),
+                eq(ORG_ID),
                 any(),
                 any(),
                 any(),
@@ -210,7 +223,7 @@ class InstancesResourceTest {
 
     Mockito.when(
             repository.findAllBy(
-                eq("owner123456"),
+                eq(ORG_ID),
                 any(),
                 any(),
                 any(),
@@ -296,7 +309,7 @@ class InstancesResourceTest {
 
     Mockito.when(
             repository.findAllBy(
-                eq("owner123456"),
+                eq(ORG_ID),
                 any(),
                 any(),
                 any(),
@@ -387,7 +400,7 @@ class InstancesResourceTest {
 
     Mockito.when(
             repository.findAllBy(
-                eq("owner123456"),
+                eq(ORG_ID),
                 any(),
                 any(),
                 any(),
@@ -423,7 +436,7 @@ class InstancesResourceTest {
 
     Mockito.when(
             repository.findAllBy(
-                eq("owner123456"),
+                eq(ORG_ID),
                 any(),
                 any(),
                 any(),
@@ -443,7 +456,7 @@ class InstancesResourceTest {
 
     verify(repository)
         .findAllBy(
-            eq("owner123456"),
+            eq(ORG_ID),
             any(),
             any(),
             any(),
@@ -674,33 +687,79 @@ class InstancesResourceTest {
   }
 
   @Test
+  @WithMockAssociatePrincipal
+  void testBillingAccountIdsForOrg() {
+    // given buckets for different org IDs
+    givenTallyBucket("org1", RHEL_FOR_ARM, BillingProvider.AWS, "account1");
+    givenTallyBucket("org2", RHEL_FOR_ARM, BillingProvider.AWS, "account2");
+
+    // filter by org1 works:
+    var response = whenFetchBillingAccountIdsForOrg("org1", RHEL_FOR_ARM, BillingProvider.AWS);
+    thenBillingAccountIdResponseContains(response, "account1");
+
+    // filter by org2 also works:
+    response = whenFetchBillingAccountIdsForOrg("org2", RHEL_FOR_ARM, BillingProvider.AWS);
+    thenBillingAccountIdResponseContains(response, "account2");
+  }
+
+  @Test
   @WithMockRedHatPrincipal(value = "123456")
-  void testBillingAcccountIdsAllowedWithMatchingOrg() {
-    List<HostTallyBucketRepository.BillingAccountIdRecord> idRecords =
-        (List.of(
-            new HostTallyBucketRepository.BillingAccountIdRecord(
-                RHEL_FOR_ARM.getValue(), BillingProvider.AWS, "account123456"),
-            new HostTallyBucketRepository.BillingAccountIdRecord(
-                RHEL_FOR_ARM.getValue(), BillingProvider.AWS, "account789")));
-    when(hostTallyBucketRepository.billingAccountIds(
-            any(DbReportCriteria.builder().build().getClass())))
-        .thenReturn(idRecords);
-    BillingAccountIdResponse reponse =
-        resource.fetchBillingAccountIdsForOrg(
-            "owner123456", RHEL_FOR_ARM.getValue(), BillingProvider.AWS.getValue());
-    assertThat(reponse.getIds()).hasSize(2);
+  void testBillingAccountIdsForOrgFilterByProductTag() {
+    givenTallyBucket(RHEL_FOR_ARM, BillingProvider.AWS, "account1");
+    givenTallyBucket(RHEL_FOR_X86, BillingProvider.AWS, "account2");
+
+    var response = whenFetchBillingAccountIdsForOrg(RHEL_FOR_ARM, BillingProvider.AWS);
+    thenBillingAccountIdResponseContains(response, "account1");
+
+    response = whenFetchBillingAccountIdsForOrg(RHEL_FOR_X86, BillingProvider.AWS);
+    thenBillingAccountIdResponseContains(response, "account2");
+
+    // when filtering by no products
+    response = whenFetchBillingAccountIdsForOrg(null, BillingProvider.AWS);
+    thenBillingAccountIdResponseContains(response, "account1", "account2");
+  }
+
+  @Test
+  @WithMockRedHatPrincipal(value = "123456")
+  void testBillingAccountIdsForOrgFilterByBillingProvider() {
+    givenTallyBucket(RHEL_FOR_ARM, BillingProvider._ANY, "account1");
+    givenTallyBucket(RHEL_FOR_ARM, BillingProvider._ANY, BILLING_ACCOUNT_ID_ANY);
+    givenTallyBucket(RHEL_FOR_ARM, BillingProvider.AWS, "account1");
+    givenTallyBucket(RHEL_FOR_ARM, BillingProvider.AWS, BILLING_ACCOUNT_ID_ANY);
+
+    givenTallyBucket(RHEL_FOR_ARM, BillingProvider._ANY, "account2");
+    givenTallyBucket(RHEL_FOR_ARM, BillingProvider._ANY, BILLING_ACCOUNT_ID_ANY);
+    givenTallyBucket(RHEL_FOR_ARM, BillingProvider.AZURE, "account2");
+    givenTallyBucket(RHEL_FOR_ARM, BillingProvider.AZURE, BILLING_ACCOUNT_ID_ANY);
+
+    // filter by empty/not set/any should behave the same
+    var response = whenFetchBillingAccountIdsForOrg(RHEL_FOR_ARM, null);
+    thenBillingAccountIdResponseContains(response, "account1", "account2");
+
+    response = whenFetchBillingAccountIdsForOrg(RHEL_FOR_ARM, BillingProvider._ANY);
+    thenBillingAccountIdResponseContains(response, "account1", "account2");
+
+    response = whenFetchBillingAccountIdsForOrg(RHEL_FOR_ARM, BillingProvider.EMPTY);
+    thenBillingAccountIdResponseContains(response, "account1", "account2");
+
+    // filter by non-existing
+    response = whenFetchBillingAccountIdsForOrg(RHEL_FOR_ARM, BillingProvider.RED_HAT);
+    thenBillingAccountIdResponseContains(response);
+
+    // filter by an existing value
+    response = whenFetchBillingAccountIdsForOrg(RHEL_FOR_ARM, BillingProvider.AWS);
+    thenBillingAccountIdResponseContains(response, "account1");
+
+    response = whenFetchBillingAccountIdsForOrg(RHEL_FOR_ARM, BillingProvider.AZURE);
+    thenBillingAccountIdResponseContains(response, "account2");
   }
 
   @Test
   @WithMockRedHatPrincipal(value = "123456")
   void testAccessDeniedNotMatchingOrg() {
-    String productTag = RHEL_FOR_ARM.getValue();
-    String billingProvider = BillingProvider.AWS.getValue();
     assertThrows(
         ForbiddenException.class,
-        () -> {
-          resource.fetchBillingAccountIdsForOrg("owner789", productTag, billingProvider);
-        });
+        () -> whenFetchBillingAccountIdsForOrg("owner789", RHEL_FOR_ARM, BillingProvider.AWS));
   }
 
   @Test
@@ -714,16 +773,80 @@ class InstancesResourceTest {
   @Test
   @WithMockAssociatePrincipal
   void testAccessAllowedWithAssociate() {
-    BillingAccountIdResponse reponse =
-        resource.fetchBillingAccountIdsForOrg(
-            "owner789", RHEL_FOR_ARM.getValue(), BillingProvider.AWS.getValue());
-    assertThat(reponse.getIds()).isEmpty();
+    var response = whenFetchBillingAccountIdsForOrg("owner789", RHEL_FOR_ARM, BillingProvider.AWS);
+    assertThat(response.getIds()).isEmpty();
   }
 
   @Test
   @WithMockAssociatePrincipal(roles = {})
   void testAccessDeniedWithAssociateNotAdmin() {
     willThrowAuthorizationDeniedException();
+  }
+
+  private void givenTallyBucket(
+      ProductId productId, BillingProvider billingProvider, String billingAccountId) {
+    givenTallyBucket(ORG_ID, productId, billingProvider, billingAccountId);
+  }
+
+  private void givenTallyBucket(
+      String orgId, ProductId productId, BillingProvider billingProvider, String billingAccountId) {
+    givenAccountForOrg(orgId);
+
+    Host host = new Host();
+    host.setOrgId(orgId);
+    host.setDisplayName(UUID.randomUUID().toString());
+    host.setInstanceType(INSTANCE_TYPE);
+    host.setInstanceId(UUID.randomUUID().toString());
+
+    HostBucketKey key = new HostBucketKey();
+    key.setProductId(productId.getValue());
+    key.setBillingProvider(billingProvider);
+    key.setBillingAccountId(billingAccountId);
+    key.setUsage(Usage.DEVELOPMENT_TEST);
+    key.setSla(ServiceLevel.PREMIUM);
+    key.setAsHypervisor(false);
+
+    HostTallyBucket bucket = new HostTallyBucket();
+    bucket.setKey(key);
+    bucket.setMeasurementType(HardwareMeasurementType.VIRTUAL);
+    bucket.setHost(host);
+    hostTallyBucketRepository.save(bucket);
+  }
+
+  private void givenAccountForOrg(String orgId) {
+    var inventoryId =
+        AccountServiceInventoryId.builder().orgId(orgId).serviceType(INSTANCE_TYPE).build();
+    if (!accountServiceInventoryRepository.existsById(inventoryId)) {
+      var inventory = new AccountServiceInventory();
+      inventory.setId(inventoryId);
+      accountServiceInventoryRepository.save(inventory);
+    }
+  }
+
+  private BillingAccountIdResponse whenFetchBillingAccountIdsForOrg(
+      ProductId product, BillingProvider billingProvider) {
+    return whenFetchBillingAccountIdsForOrg(ORG_ID, product, billingProvider);
+  }
+
+  private BillingAccountIdResponse whenFetchBillingAccountIdsForOrg(
+      String orgId, ProductId product, BillingProvider billingProvider) {
+    return resource.fetchBillingAccountIdsForOrg(
+        orgId,
+        Optional.ofNullable(product).map(ProductId::getValue).orElse(null),
+        Optional.ofNullable(billingProvider).map(BillingProvider::getValue).orElse(null));
+  }
+
+  private void thenBillingAccountIdResponseContains(
+      BillingAccountIdResponse response, String... billingAccountIds) {
+    assertThat(response.getIds()).hasSize(billingAccountIds.length);
+    for (String expectedBillingAccountId : billingAccountIds) {
+      assertTrue(
+          response.getIds().stream()
+              .anyMatch(i -> expectedBillingAccountId.equals(i.getBillingAccountId())),
+          () ->
+              "Billing account id '%s' not found in: %s"
+                  .formatted(expectedBillingAccountId, response));
+    }
   }
 
   private void willThrowAuthorizationDeniedException() {

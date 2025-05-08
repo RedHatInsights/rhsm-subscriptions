@@ -65,6 +65,8 @@ public class UpstreamProductData {
   private static final String UNLIMITED_CORES_OR_SOCKETS = "Unlimited";
   private static final String YES = "y";
 
+  public static final String REQUEST_SOURCE = "request_source";
+
   /** List of opProd attribute codes used in the making of an Offering. */
   // Non-standard attribute codes are prefixed by "X_". They are not actually attribute codes
   // from an opProd, but pretending as if they are will let us use the merge capabilities of Maps.
@@ -116,7 +118,7 @@ public class UpstreamProductData {
    */
   public static Optional<OfferingEntity> offeringFromUpstream(
       String sku, ProductDataSource productDataSource) {
-    log.debug("Retrieving product tree for offeringSku=\"{}\"", sku);
+    log.info("Retrieving product tree for offeringSku=\"{}\"", sku);
 
     try {
       return productDataSource
@@ -387,6 +389,7 @@ public class UpstreamProductData {
    */
   private UpstreamProductData fetchAndAddDerivedTreeIfExists(ProductDataSource productDataSource) {
     String derivedSku = attrs.get(Attr.DERIVED_SKU);
+    log.info("Received request from source: to retrieve tree for derviedSku={}", derivedSku);
     if (derivedSku != null) {
       try {
         // derived SKUs are marketing SKUs, so need to get its service SKUs too and add
@@ -419,7 +422,7 @@ public class UpstreamProductData {
     to fetch engOIDs for derived SKUs.
     */
     Set<String> allSkus = allSkus();
-    log.debug("Retrieving engOids for skus=\"{}\" of offeringSku=\"{}\"", allSkus, sku);
+    log.info("Retrieving engOids for skus=\"{}\" of offeringSku=\"{}\"", allSkus, sku);
     try {
       Map<String, List<EngineeringProduct>> engProds =
           productDataSource.getEngineeringProductsForSkus(allSkus);

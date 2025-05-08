@@ -43,6 +43,10 @@ parameters:
     value: 1000Mi
   - name: MEMORY_LIMIT
     value: 1400Mi
+  - name: JOB_MEMORY_REQUEST
+    value: 1000Mi
+  - name: JOB_MEMORY_LIMIT
+    value: 1400Mi
   - name: CPU_REQUEST
     value: 350m
   - name: CPU_LIMIT
@@ -140,7 +144,8 @@ parameters:
     value: public
   - name: DEVTEST_EVENT_EDITING_ENABLED
     value: 'false'
-
+  - name: EGRESS_IMAGE
+    value: quay.io/cloudservices/rhsm-subscriptions-egress
   - name: EGRESS_IMAGE_TAG
     value: fec6dc2
   # Using a value of 'select 1' makes this job a no-op by default.
@@ -213,7 +218,7 @@ parameters:
   - name: CURL_CRON_MEMORY_REQUEST
     value: 10Mi
   - name: CURL_CRON_MEMORY_LIMIT
-    value: 20Mi
+    value: 50Mi
   - name: CURL_CRON_CPU_REQUEST
     value: 100m
   - name: CURL_CRON_CPU_LIMIT

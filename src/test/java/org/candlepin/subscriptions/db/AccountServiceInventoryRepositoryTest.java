@@ -50,8 +50,6 @@ class AccountServiceInventoryRepositoryTest {
 
   @Autowired AccountServiceInventoryRepository repo;
 
-  @Autowired HostRepository hostRepo;
-
   @Transactional
   @BeforeAll
   void setupTestData() {

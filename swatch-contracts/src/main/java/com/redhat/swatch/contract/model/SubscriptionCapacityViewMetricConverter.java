@@ -78,7 +78,7 @@ public class SubscriptionCapacityViewMetricConverter
               });
       return metrics;
     } catch (JsonProcessingException e) {
-      throw new IllegalArgumentException("Error parsing metrics", e);
+      throw new IllegalArgumentException("Error parsing metrics with value: " + s, e);
     }
   }
 

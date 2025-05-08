@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.resteasy;
 
+import com.redhat.swatch.traceresponse.TraceResponseFilter;
 import org.jboss.resteasy.plugins.providers.RegisterBuiltin;
 import org.jboss.resteasy.plugins.spring.SpringBeanProcessor;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -43,5 +44,10 @@ public class ResteasyProviderRegistrar {
     var springBeanProcessor = (SpringBeanProcessor) postProcessor;
     RegisterBuiltin.register(springBeanProcessor.getProviderFactory());
     return springBeanProcessor;
+  }
+
+  @Bean
+  public TraceResponseFilter traceResponseFilter() {
+    return new TraceResponseFilter();
   }
 }

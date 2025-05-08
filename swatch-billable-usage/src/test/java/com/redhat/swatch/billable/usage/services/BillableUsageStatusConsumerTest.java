@@ -22,7 +22,9 @@ package com.redhat.swatch.billable.usage.services;
 
 import static com.redhat.swatch.billable.usage.kafka.InMemoryMessageBrokerKafkaResource.IN_MEMORY_CONNECTOR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 
 import com.redhat.swatch.billable.usage.configuration.Channels;
@@ -44,6 +46,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.awaitility.Awaitility;
 import org.candlepin.subscriptions.billable.usage.BillableUsage.ErrorCode;
 import org.candlepin.subscriptions.billable.usage.BillableUsage.Status;
@@ -82,18 +85,18 @@ class BillableUsageStatusConsumerTest {
 
   @Test
   void testWhenConsumeThenUsageStatusUpdatedSucceeded() {
-    var existingRemittances = givenExistingRemittance();
+    var existingRemittance = givenExistingRemittance();
     var successMessage =
-        createBillableUsageAggregate(Status.SUCCEEDED, null, BILLED_ON, existingRemittances);
+        createBillableUsageAggregate(Status.SUCCEEDED, null, BILLED_ON, existingRemittance);
     whenSendResponse(successMessage);
     Awaitility.await().untilAsserted(this::verifyUpdateForSuccess);
   }
 
   @Test
   void testWhenConsumeThenUsageStatusUpdatedFailed() {
-    var existingRemittances = givenExistingRemittance();
+    var existingRemittance = givenExistingRemittance();
     var message =
-        createBillableUsageAggregate(Status.FAILED, ErrorCode.INACTIVE, null, existingRemittances);
+        createBillableUsageAggregate(Status.FAILED, ErrorCode.INACTIVE, null, existingRemittance);
     whenSendResponse(message);
     Awaitility.await().untilAsserted(() -> verifyUpdateForFailure(RemittanceErrorCode.INACTIVE));
     verifyRemittancesHaveNotRetryAfterSet(message.getRemittanceUuids());
@@ -101,10 +104,10 @@ class BillableUsageStatusConsumerTest {
 
   @Test
   void testWhenUsageThatFailedWithSubscriptionNotFoundThenUsageSetToFailed() {
-    var existingRemittances = givenExistingRemittance();
+    var existingRemittance = givenExistingRemittance();
     var failedMessage =
         createBillableUsageAggregate(
-            Status.FAILED, ErrorCode.SUBSCRIPTION_NOT_FOUND, null, existingRemittances);
+            Status.FAILED, ErrorCode.SUBSCRIPTION_NOT_FOUND, null, existingRemittance);
     whenSendResponse(failedMessage);
     Awaitility.await()
         .untilAsserted(() -> verifyUpdateForFailure(RemittanceErrorCode.SUBSCRIPTION_NOT_FOUND));
@@ -112,10 +115,10 @@ class BillableUsageStatusConsumerTest {
 
   @Test
   void testWhenUsageThatFailedWithMarketplaceRateLimitThenUsageSetFailed() {
-    var existingRemittances = givenExistingRemittance();
+    var existingRemittance = givenExistingRemittance();
     var message =
         createBillableUsageAggregate(
-            Status.FAILED, ErrorCode.MARKETPLACE_RATE_LIMIT, null, existingRemittances);
+            Status.FAILED, ErrorCode.MARKETPLACE_RATE_LIMIT, null, existingRemittance);
     message.setAggregateKey(new BillableUsageAggregateKey());
     message.getAggregateKey().setBillingProvider("aws");
     whenSendResponse(message);
@@ -125,15 +128,15 @@ class BillableUsageStatusConsumerTest {
 
   @Test
   void testWhenConsumeSuccessStatusThenExistingFailedRemittanceNotUpdated() {
-    var existingRemittances = givenExistingRemittance();
+    var existingRemittance = givenExistingRemittance();
     var failedMessage =
-        createBillableUsageAggregate(Status.FAILED, ErrorCode.INACTIVE, null, existingRemittances);
+        createBillableUsageAggregate(Status.FAILED, ErrorCode.INACTIVE, null, existingRemittance);
 
     whenSendResponse(failedMessage);
     Awaitility.await().untilAsserted(() -> verifyUpdateForFailure(RemittanceErrorCode.INACTIVE));
 
     var successMessage =
-        createBillableUsageAggregate(Status.SUCCEEDED, null, BILLED_ON, existingRemittances);
+        createBillableUsageAggregate(Status.SUCCEEDED, null, BILLED_ON, existingRemittance);
 
     whenSendResponse(successMessage);
     Awaitility.await().untilAsserted(() -> verifyUpdateForFailure(RemittanceErrorCode.INACTIVE));
@@ -141,15 +144,15 @@ class BillableUsageStatusConsumerTest {
 
   @Test
   void testWhenConsumeFailedStatusThenExistingSuccessRemittanceNotUpdated() {
-    var existingRemittances = givenExistingRemittance();
+    var existingRemittance = givenExistingRemittance();
     var successMessage =
-        createBillableUsageAggregate(Status.SUCCEEDED, null, BILLED_ON, existingRemittances);
+        createBillableUsageAggregate(Status.SUCCEEDED, null, BILLED_ON, existingRemittance);
 
     whenSendResponse(successMessage);
     Awaitility.await().untilAsserted(this::verifyUpdateForSuccess);
 
     var failedMessage =
-        createBillableUsageAggregate(Status.FAILED, ErrorCode.INACTIVE, null, existingRemittances);
+        createBillableUsageAggregate(Status.FAILED, ErrorCode.INACTIVE, null, existingRemittance);
 
     whenSendResponse(failedMessage);
     Awaitility.await().untilAsserted(this::verifyUpdateForSuccess);
@@ -157,60 +160,41 @@ class BillableUsageStatusConsumerTest {
 
   @Test
   void testWhenConsumeFailedStatusThenExistingGratisRemittanceNotUpdated() {
-    var existingGratisRemittances = givenExistingGratisRemittance();
+    var existingGratisRemittance = givenExistingGratisRemittance();
     var failedMessage =
         createBillableUsageAggregate(
-            Status.FAILED, ErrorCode.INACTIVE, null, existingGratisRemittances);
+            Status.FAILED, ErrorCode.INACTIVE, null, existingGratisRemittance);
 
     whenSendResponse(failedMessage);
     Awaitility.await().untilAsserted(this::verifyGratisStatus);
   }
 
-  @Transactional
-  List<BillableUsageRemittanceEntity> givenExistingRemittance() {
-    var remittance = new BillableUsageRemittanceEntity();
-    remittance.setOrgId(ORG_ID);
-    remittance.setProductId("rosa");
-    remittance.setMetricId("Cores");
-    remittance.setAccumulationPeriod("mm-AAAA");
-    remittance.setSla("_ANY");
-    remittance.setUsage("_ANY");
-    remittance.setBillingProvider("aws");
-    remittance.setBillingAccountId("123");
-    remittance.setRemittancePendingDate(OffsetDateTime.now());
-    remittance.setRemittedPendingValue(2.0);
-    remittanceRepository.persist(remittance);
-    var remittance2 = new BillableUsageRemittanceEntity();
-    remittance2.setOrgId(ORG_ID);
-    remittance2.setProductId("rosa");
-    remittance2.setMetricId("Cores");
-    remittance2.setAccumulationPeriod("mm-AAAA");
-    remittance2.setSla("_ANY");
-    remittance2.setUsage("_ANY");
-    remittance2.setBillingProvider("aws");
-    remittance2.setBillingAccountId("123");
-    remittance2.setRemittancePendingDate(OffsetDateTime.now().minusDays(3));
-    remittance2.setRemittedPendingValue(4.0);
-    remittanceRepository.persist(remittance2);
-    return List.of(remittance, remittance2);
+  @Test
+  void testWhenHandlingStatusThenUpdatedAtIsPopulated() {
+    var existingRemittance = givenExistingRemittance();
+    OffsetDateTime createdAt = existingRemittance.getUpdatedAt();
+    // check the updatedAt was updated when creating the entity
+    assertNotNull(createdAt);
+    // check the updatedAt was updated when updating an entity
+    var successMessage =
+        createBillableUsageAggregate(Status.SUCCEEDED, null, BILLED_ON, existingRemittance);
+    whenSendResponse(successMessage);
+    Awaitility.await().untilAsserted(() -> verifyRemittanceHasUpdatedAtHigherThan(createdAt));
   }
 
   @Transactional
-  List<BillableUsageRemittanceEntity> givenExistingGratisRemittance() {
-    var remittance = new BillableUsageRemittanceEntity();
-    remittance.setOrgId(ORG_ID);
-    remittance.setProductId("rosa");
-    remittance.setMetricId("Cores");
-    remittance.setAccumulationPeriod("mm-AAAA");
-    remittance.setSla("_ANY");
-    remittance.setUsage("_ANY");
-    remittance.setBillingProvider("aws");
-    remittance.setBillingAccountId("123");
-    remittance.setRemittancePendingDate(OffsetDateTime.now());
-    remittance.setRemittedPendingValue(2.0);
+  BillableUsageRemittanceEntity givenExistingRemittance() {
+    var remittance = buildBillableUsageRemittanceEntity();
+    remittanceRepository.persist(remittance);
+    return remittance;
+  }
+
+  @Transactional
+  BillableUsageRemittanceEntity givenExistingGratisRemittance() {
+    var remittance = buildBillableUsageRemittanceEntity();
     remittance.setStatus(RemittanceStatus.GRATIS);
     remittanceRepository.persist(remittance);
-    return List.of(remittance);
+    return remittance;
   }
 
   private void whenSendResponse(BillableUsageAggregate response) {
@@ -227,6 +211,17 @@ class BillableUsageStatusConsumerTest {
               assertEquals(BILLED_ON, result.getBilledOn());
               assertNull(result.getErrorCode());
             });
+  }
+
+  @Transactional
+  void verifyRemittanceHasUpdatedAtHigherThan(OffsetDateTime createdAt) {
+    remittanceRepository.findAll().stream()
+        .forEach(
+            result ->
+                assertTrue(
+                    result.getUpdatedAt().isAfter(createdAt),
+                    "Updated at '%s' was not updated. Previous value was: '%s'"
+                        .formatted(result.getUpdatedAt(), createdAt)));
   }
 
   @Transactional
@@ -266,7 +261,7 @@ class BillableUsageStatusConsumerTest {
       Status status,
       ErrorCode errorCode,
       OffsetDateTime billedOn,
-      List<BillableUsageRemittanceEntity> remittances) {
+      BillableUsageRemittanceEntity... remittances) {
     var aggregate = new BillableUsageAggregate();
     aggregate.setStatus(status);
     if (errorCode != null) {
@@ -276,7 +271,7 @@ class BillableUsageStatusConsumerTest {
       aggregate.setBilledOn(billedOn);
     }
     aggregate.setRemittanceUuids(
-        remittances.stream()
+        Stream.of(remittances)
             .map(BillableUsageRemittanceEntity::getUuid)
             .map(UUID::toString)
             .collect(Collectors.toList()));
@@ -284,5 +279,20 @@ class BillableUsageStatusConsumerTest {
     key.setBillingProvider("aws");
     aggregate.setAggregateKey(key);
     return aggregate;
+  }
+
+  private static BillableUsageRemittanceEntity buildBillableUsageRemittanceEntity() {
+    var remittance = new BillableUsageRemittanceEntity();
+    remittance.setOrgId(ORG_ID);
+    remittance.setProductId("rosa");
+    remittance.setMetricId("Cores");
+    remittance.setAccumulationPeriod("mm-AAAA");
+    remittance.setSla("_ANY");
+    remittance.setUsage("_ANY");
+    remittance.setBillingProvider("aws");
+    remittance.setBillingAccountId("123");
+    remittance.setRemittancePendingDate(OffsetDateTime.now());
+    remittance.setRemittedPendingValue(2.0);
+    return remittance;
   }
 }
