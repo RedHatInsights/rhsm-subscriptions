@@ -457,6 +457,7 @@ class SubscriptionRepositoryTest {
     offeringRepo.persist(openshift);
 
     var expectedBillingAccountIds = new ArrayList<String>();
+    var notExpectedBillingAccountIds = new ArrayList<String>();
     // Create subscriptions for our expected orgId and product_tag
     for (int i = 0; i < 5; i++) {
       SubscriptionEntity subscription =
@@ -473,6 +474,7 @@ class SubscriptionRepositoryTest {
               expectedOrgId, String.valueOf(new Random().nextInt()), "unexpectedSellerAcctId" + i);
       subscription.setOffering(openshift);
       subscriptionRepo.persistAndFlush(subscription);
+      notExpectedBillingAccountIds.add(subscription.getBillingAccountId());
     }
     // Create subscriptions for a different orgId and the expected product_tag
     for (int i = 0; i < 5; i++) {
@@ -480,21 +482,45 @@ class SubscriptionRepositoryTest {
           createSubscription("2", String.valueOf(new Random().nextInt()), "NotMySellerAcctId" + i);
       subscription.setOffering(rosa);
       subscriptionRepo.persistAndFlush(subscription);
+      notExpectedBillingAccountIds.add(subscription.getBillingAccountId());
     }
     // Create subscriptions that have expected orgId and product_tag but are expired
     for (int i = 0; i < 5; i++) {
       SubscriptionEntity subscription =
           createOldSubscription(
-              expectedOrgId, String.valueOf(new Random().nextInt()), "expectedSellerAcctId" + i);
+              expectedOrgId, String.valueOf(new Random().nextInt()), "oldSellerAcctId" + i);
       subscription.setOffering(rosa);
       subscriptionRepo.persistAndFlush(subscription);
+      notExpectedBillingAccountIds.add(subscription.getBillingAccountId());
     }
 
+    SubscriptionEntity subscription =
+        createActiveSubscriptionWithNoEndDate(
+            expectedOrgId, String.valueOf(new Random().nextInt()), "expectedSellerAcctId123");
+    subscription.setOffering(rosa);
+    subscriptionRepo.persistAndFlush(subscription);
+    expectedBillingAccountIds.add(subscription.getBillingAccountId());
+
+    SubscriptionEntity futureSubscription =
+        futureSubscriptionWithEndDate(
+            expectedOrgId, String.valueOf(new Random().nextInt()), "futureSellerAcctId123");
+    subscription.setOffering(rosa);
+    subscriptionRepo.persistAndFlush(futureSubscription);
+    notExpectedBillingAccountIds.add(subscription.getBillingAccountId());
+
+    SubscriptionEntity futureSubscription2 =
+        futureSubscriptionWithNoEndDate(
+            expectedOrgId, String.valueOf(new Random().nextInt()), "futureSellerAcctId1234");
+    subscription.setOffering(rosa);
+    subscriptionRepo.persistAndFlush(futureSubscription2);
+    notExpectedBillingAccountIds.add(subscription.getBillingAccountId());
+
     var result = subscriptionRepo.findBillingAccountInfo(expectedOrgId, Optional.of("rosa"));
-    assertEquals(5, result.size());
+    assertEquals(6, result.size());
     var resultBillingAccountIds =
         result.stream().map(BillingAccountInfoDTO::billingAccountId).collect(Collectors.toSet());
     assertTrue(resultBillingAccountIds.containsAll(expectedBillingAccountIds));
+    assertFalse(resultBillingAccountIds.containsAll(notExpectedBillingAccountIds));
   }
 
   @TestTransaction
@@ -602,6 +628,34 @@ class SubscriptionRepositoryTest {
         billingAccountId,
         startDate.minusYears(1),
         startDate.plusDays(30).minusYears(1));
+  }
+
+  private SubscriptionEntity createActiveSubscriptionWithNoEndDate(
+      String orgId, String subId, String billingAccountId) {
+
+    // Truncate to avoid issues around nanosecond mismatches -- HSQLDB doesn't store timestamps
+    // at the same resolution as the JVM
+    OffsetDateTime startDate = now.truncatedTo(ChronoUnit.SECONDS);
+    return createSubscription(orgId, subId, billingAccountId, startDate.minusYears(1), null);
+  }
+
+  private SubscriptionEntity futureSubscriptionWithNoEndDate(
+      String orgId, String subId, String billingAccountId) {
+
+    // Truncate to avoid issues around nanosecond mismatches -- HSQLDB doesn't store timestamps
+    // at the same resolution as the JVM
+    OffsetDateTime startDate = now.truncatedTo(ChronoUnit.SECONDS);
+    return createSubscription(orgId, subId, billingAccountId, startDate.plusDays(30), null);
+  }
+
+  private SubscriptionEntity futureSubscriptionWithEndDate(
+      String orgId, String subId, String billingAccountId) {
+
+    // Truncate to avoid issues around nanosecond mismatches -- HSQLDB doesn't store timestamps
+    // at the same resolution as the JVM
+    OffsetDateTime startDate = now.truncatedTo(ChronoUnit.SECONDS);
+    return createSubscription(
+        orgId, subId, billingAccountId, startDate.plusDays(30), startDate.plusDays(60));
   }
 
   private SubscriptionEntity createSubscription(

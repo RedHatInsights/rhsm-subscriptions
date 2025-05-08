@@ -95,7 +95,7 @@ public class SubscriptionRepository
                 + "join offering.productTags productTag "
                 + "where orgId = ?1 "
                 + "and subscription.startDate <= CURRENT_TIMESTAMP "
-                + "and subscription.endDate >= CURRENT_TIMESTAMP");
+                + "and (subscription.endDate >= CURRENT_TIMESTAMP or subscription.endDate is null)");
     Object[] queryParams;
     if (productTag.isPresent()) {
       query.append(" and productTag = ?2");
