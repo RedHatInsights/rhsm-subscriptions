@@ -30,7 +30,6 @@ import com.redhat.swatch.clients.contracts.api.resources.ApiException;
 import com.redhat.swatch.clients.contracts.api.resources.DefaultApi;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
-import com.redhat.swatch.contracts.client.ContractsClient;
 import com.redhat.swatch.faulttolerance.api.RetryWithExponentialBackoff;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -40,11 +39,12 @@ import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 @Slf4j
 @ApplicationScoped
 public class ContractsController {
-  @ContractsClient DefaultApi contractsApi;
+  @RestClient DefaultApi contractsApi;
   @Inject ApplicationClock clock;
 
   @RetryWithExponentialBackoff(

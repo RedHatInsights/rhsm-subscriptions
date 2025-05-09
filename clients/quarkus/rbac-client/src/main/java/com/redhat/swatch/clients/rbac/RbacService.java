@@ -21,19 +21,22 @@
 package com.redhat.swatch.clients.rbac;
 
 import com.redhat.swatch.clients.rbac.api.model.Access;
+import com.redhat.swatch.clients.rbac.api.resources.AccessApi;
+import com.redhat.swatch.clients.rbac.api.resources.ApiException;
+import jakarta.enterprise.context.ApplicationScoped;
 import java.util.List;
 import java.util.stream.Stream;
-import lombok.AllArgsConstructor;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 /** Provides RBAC functionality. */
-@AllArgsConstructor
+@ApplicationScoped
 public class RbacService {
 
-  private final RbacApi api;
+  @RestClient AccessApi accessApi;
 
-  public List<String> getPermissions(String rbacAppName) throws RbacApiException {
+  public List<String> getPermissions(String rbacAppName, String identity) throws RbacApiException {
     // Get all permissions for the configured application name.
-    try (Stream<Access> accessStream = api.getCurrentUserAccess(rbacAppName).stream()) {
+    try (Stream<Access> accessStream = getCurrentIdentityAccess(rbacAppName, identity).stream()) {
       return accessStream
           .filter(access -> access != null && hasText(access.getPermission()))
           .map(Access::getPermission)
@@ -41,14 +44,12 @@ public class RbacService {
     }
   }
 
-  public List<String> getPermissions(String rbacAppName, String identity) throws RbacApiException {
-    // Get all permissions for the configured application name.
-    try (Stream<Access> accessStream =
-        api.getCurrentIdentityAccess(rbacAppName, identity).stream()) {
-      return accessStream
-          .filter(access -> access != null && hasText(access.getPermission()))
-          .map(Access::getPermission)
-          .toList();
+  private List<Access> getCurrentIdentityAccess(String application, String identityCode)
+      throws RbacApiException {
+    try {
+      return accessApi.getPrincipalAccess(application, null, identityCode, null, null).getData();
+    } catch (ApiException apie) {
+      throw new RbacApiException("Unable to get current identity access.", apie);
     }
   }
 

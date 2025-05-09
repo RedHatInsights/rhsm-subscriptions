@@ -44,11 +44,6 @@ public class ContractsApiFactory implements FactoryBean<DefaultApi> {
 
   @Override
   public DefaultApi getObject() throws Exception {
-    if (properties.isUseStub()) {
-      log.info("Using stub Contracts API client");
-      return new StubContactsApi();
-    }
-
     ApiClient client = Configuration.getDefaultApiClient();
     client.setHttpClient(
         HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));

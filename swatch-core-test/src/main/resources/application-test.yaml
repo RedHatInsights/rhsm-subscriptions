@@ -13,13 +13,8 @@ rhsm-subscriptions:
     platform: hsqldb
   account-batch-size: 2
   subscription-sync-enabled: true
-  user-service:
-    use-stub: true
-  product:
-    use-stub: true
   contracts:
     client:
-      use-stub: true
       psk: placeholder
 logging:
   level:

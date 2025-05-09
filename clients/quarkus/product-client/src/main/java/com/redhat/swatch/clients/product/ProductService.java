@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +45,7 @@ public class ProductService implements ProductDataSource {
 
   private final ProductApi productApi;
 
-  public ProductService(@ProductClient ProductApi productApi) {
+  public ProductService(@RestClient ProductApi productApi) {
     this.productApi = productApi;
   }
 
