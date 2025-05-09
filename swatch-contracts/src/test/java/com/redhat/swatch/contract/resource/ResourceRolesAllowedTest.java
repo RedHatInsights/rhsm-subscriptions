@@ -24,8 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.redhat.swatch.clients.product.StubProductApi;
-import com.redhat.swatch.clients.subscription.StubSearchApi;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.config.SmallRyeConfigBuilder;
 import io.smallrye.openapi.api.SmallRyeOpenAPI;
@@ -60,8 +58,6 @@ class ResourceRolesAllowedTest {
   private static final Set<Class<? extends Annotation>> HTTP_METHOD_ANNOTATION_CLASSES =
       Set.of(
           DELETE.class, GET.class, HEAD.class, OPTIONS.class, PATCH.class, POST.class, PUT.class);
-  private static final Set<Class<?>> IGNORE_RESOURCES =
-      Set.of(StubProductApi.class, StubSearchApi.class);
 
   @TestFactory
   Stream<DynamicTest> testResourceMethodAnnotatedWithAppropriateRoles() throws IOException {
@@ -152,10 +148,6 @@ class ResourceRolesAllowedTest {
     var allBeans = CDI.current().getBeanManager().getBeans(Object.class);
     return allBeans.stream()
         .filter(this::hasJaxRsAnnotation)
-        .filter(
-            bean ->
-                IGNORE_RESOURCES.stream()
-                    .noneMatch(clazz -> bean.getBeanClass().isAssignableFrom(clazz)))
         .flatMap(bean -> Arrays.stream(bean.getBeanClass().getDeclaredMethods()))
         .filter(this::hasJaxRsAnnotation)
         .toList();

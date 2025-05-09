@@ -334,14 +334,6 @@ for a discussion of extension points.
 rhsm-subscriptions uses an RBAC service to determine application authorization. The
 RBAC service can via configured by environment variables (see below).
 
-For development purposes, the RBAC service can be stubbed out so that the connection
-to the RBAC service is bypassed and all users recieve the 'subscriptions:*:*' role. This
-can be enabled by setting `RHSM_RBAC_USE_STUB=true`
-
-```sh
-RHSM_RBAC_USE_STUB=true ./gradlew bootRun
-```
-
 ### Environment Variables
 
 * `DEV_MODE`: disable anti-CSRF, account filtering, and RBAC role check
@@ -380,7 +372,6 @@ RHSM_RBAC_USE_STUB=true ./gradlew bootRun
 * `KAFKA_CONSUMER_RECONNECT_BACKOFF_MS`: kafka consumer reconnect backoff in milliseconds
 * `KAFKA_CONSUMER_RECONNECT_BACKOFF_MAX_MS`: kafka consumer reconnect max backoff in milliseconds
 * `KAFKA_API_RECONNECT_TIMEOUT_MS`: kafka connection timeout in milliseconds
-* `RHSM_RBAC_USE_STUB`: stub out the rbac service
 * `RHSM_RBAC_APPLICATION_NAME`: name of the RBAC permission application name (`<APP_NAME>:*:*`),
   by default this property is set to 'subscriptions'.
 * `RHSM_RBAC_URL`: RBAC service url
@@ -530,7 +521,6 @@ cat <<BONFIRE >>  ~/.config/bonfire/config.yaml
         REPLICAS: 1
         DEV_MODE: "true"
         swatch-tally/IMAGE: quay.io/cloudservices/rhsm-subscriptions
-        RHSM_RBAC_USE_STUB: "true"
 
     - name: swatch-producer-red-hat-marketplace
       host: local
@@ -572,7 +562,6 @@ cat <<BONFIRE >>  ~/.config/bonfire/config.yaml
       parameters:
         REPLICAS: 1
         swatch-api/IMAGE: quay.io/cloudservices/rhsm-subscriptions
-        RHSM_RBAC_USE_STUB: "true"
 
     - name: swatch-producer-aws
       host: local

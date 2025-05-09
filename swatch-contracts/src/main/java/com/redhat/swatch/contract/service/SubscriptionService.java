@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.contract.service;
 
-import com.redhat.swatch.clients.subscription.SearchClient;
 import com.redhat.swatch.clients.subscription.api.model.Subscription;
 import com.redhat.swatch.clients.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.subscription.api.resources.SearchApi;
@@ -40,6 +39,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 /** The Subscription Service wrapper for all subscription service interfaces. */
 @ApplicationScoped
@@ -50,7 +50,7 @@ public class SubscriptionService {
       "Error during attempt to request subscription info";
   public static final String API_EXCEPTION_FROM_SUBSCRIPTION_SERVICE =
       "Api exception from subscription service: {}";
-  @Inject @SearchClient SearchApi subscriptionApi;
+  @Inject @RestClient SearchApi subscriptionApi;
   @Inject ApplicationConfiguration properties;
 
   @RetryWithExponentialBackoff(

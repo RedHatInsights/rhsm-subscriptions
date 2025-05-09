@@ -18,39 +18,50 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.clients.product;
+package com.redhat.swatch.contract.test.resources;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+import com.github.tomakehurst.wiremock.extension.ResponseDefinitionTransformerV2;
+import com.github.tomakehurst.wiremock.http.ResponseDefinition;
+import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
+import com.redhat.swatch.clients.product.ProductService;
 import com.redhat.swatch.clients.product.api.model.EngineeringProductMap;
 import com.redhat.swatch.clients.product.api.model.EngineeringProducts;
-import com.redhat.swatch.clients.product.api.model.RESTProductTree;
 import com.redhat.swatch.clients.product.api.model.SkuEngProduct;
-import com.redhat.swatch.clients.product.api.resources.ApiException;
-import com.redhat.swatch.clients.product.api.resources.ProductApi;
-import jakarta.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Assertions;
 
 @Slf4j
-public class StubProductApi implements ProductApi {
-  private final ObjectMapper objectMapper;
+public class ProductStubForEngProductsWiremockExtension implements ResponseDefinitionTransformerV2 {
 
-  public StubProductApi(ObjectMapper objectMapper) {
-    this.objectMapper = objectMapper;
+  protected static final String NAME = "product-stub-for-engproducts-wiremock-extension";
+  private static final ObjectMapper MAPPER = new ObjectMapper();
+
+  @Override
+  public String getName() {
+    return NAME;
   }
 
   @Override
-  public EngineeringProductMap getEngineeringProductsForSkus(String sku) throws ApiException {
-    List<String> skuList = List.of(sku.split(","));
-    List<SkuEngProduct> sepList = new ArrayList<>(skuList.size());
+  public boolean applyGlobally() {
+    return false;
+  }
 
-    for (String skuItem : skuList) {
+  @Override
+  public ResponseDefinition transform(ServeEvent serveEvent) {
+    String[] skus =
+        serveEvent.getRequest().getUrl().replace("/mock/product/engproducts/sku=", "").split(",");
+    List<SkuEngProduct> sepList = new ArrayList<>(skus.length);
+    for (String skuItem : skus) {
       String resName = String.format("/product-stub-data/engprods-%s.json", skuItem);
-      EngineeringProductMap prodMap = readJsonResource(resName, EngineeringProductMap.class);
+      EngineeringProductMap prodMap = readJsonResource(resName);
       // If the SKU exists, then add the correct data.
       if (prodMap != null && prodMap.getEntries() != null) {
         sepList.addAll(prodMap.getEntries());
@@ -71,44 +82,42 @@ public class StubProductApi implements ProductApi {
     EngineeringProductMap epm = new EngineeringProductMap();
     epm.setEntries(sepList);
 
-    return epm;
+    return new ResponseDefinitionBuilder()
+        .withStatus(200)
+        .withHeader("Content-Type", "application/json")
+        .withBody(writeJsonResource(epm))
+        .build();
   }
 
-  @Override
-  public RESTProductTree getProductTree(String sku, Boolean attributes) throws ApiException {
-    // The real call will not include attributes unless you ask for it,
-    // but this will always return attributes no matter what.
-    String resName = String.format("/product-stub-data/tree-%s_attrs-true.json", sku);
-    return readJsonResource(resName, RESTProductTree.class);
+  private static String writeJsonResource(EngineeringProductMap epm) {
+    try {
+      return MAPPER.writeValueAsString(epm);
+    } catch (JsonProcessingException e) {
+      Assertions.fail("Failed to write JSON object to JSON response", e);
+      return null;
+    }
   }
 
-  /**
-   * Given a json resource and a type, returns an object of that type.
-   *
-   * @param resName Name of the resource
-   * @param clazz The type of object to deserialize into
-   * @param <T> The type of object to deserialize into
-   * @return The object if the json resource was found, null if not.
-   * @throws ApiException if deserialization failed.
-   */
-  private <T> T readJsonResource(String resName, Class<T> clazz) throws ApiException {
-    try (InputStream res = this.getClass().getResourceAsStream(resName)) {
+  private static EngineeringProductMap readJsonResource(String resName) {
+    try (InputStream res = ProductService.class.getResourceAsStream(resName)) {
       if (res == null) {
         log.warn(
-            "Could not find resource=\"{}\" for class=\"{}\"", resName, this.getClass().getName());
+            "Could not find resource=\"{}\" for class=\"{}\"",
+            resName,
+            ProductService.class.getName());
         return null;
       }
-      return objectMapper.readValue(res, clazz);
+      return MAPPER.readValue(res, EngineeringProductMap.class);
     } catch (IOException e) {
-      log.error(
+      Assertions.fail(
           "Found resource=\""
               + resName
               + "\" but failed to create an instance of class=\""
-              + clazz.getName()
+              + EngineeringProductMap.class.getName()
               + "\".",
           e);
-
-      throw new ApiException(Response.serverError().build());
     }
+
+    return null;
   }
 }

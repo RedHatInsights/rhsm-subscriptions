@@ -22,7 +22,9 @@ package com.redhat.swatch.contract.test.resources;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
@@ -45,7 +47,8 @@ public class WireMockResource implements QuarkusTestResourceLifecycleManager {
   public static final String CLIENT_KEYSTORE_RESOURCE =
       String.format("file:%s", CLIENT_KEYSTORE_PATH);
   private static final String TRUSTSTORE_PATH = String.format("%s/test-ca.jks", BASE_KEYSTORE_PATH);
-  public static final String STORE_PASSWORD = "password";
+  private static final String STORE_PASSWORD = "password";
+
   private WireMockServer wireMockServer;
 
   @Override
@@ -60,7 +63,10 @@ public class WireMockResource implements QuarkusTestResourceLifecycleManager {
                 .needClientAuth(true)
                 .trustStorePath(TRUSTSTORE_PATH)
                 .trustStorePassword(STORE_PASSWORD)
-                .notifier(new ConsoleNotifier(true)));
+                .notifier(new ConsoleNotifier(true))
+                .extensions(
+                    new ProductStubForTreeWiremockExtension(),
+                    new ProductStubForEngProductsWiremockExtension()));
     setup(wireMockServer);
     wireMockServer.start();
     var config = new HashMap<String, String>();
@@ -77,6 +83,7 @@ public class WireMockResource implements QuarkusTestResourceLifecycleManager {
     config.put(
         "ENTITLEMENT_GATEWAY_URL", String.format("%s/mock/partnerApi", wireMockServer.baseUrl()));
     config.put("SUBSCRIPTION_URL", String.format("%s/mock/subscription", wireMockServer.baseUrl()));
+    config.put("PRODUCT_URL", String.format("%s/mock/product", wireMockServer.baseUrl()));
     return config;
   }
 
@@ -84,6 +91,18 @@ public class WireMockResource implements QuarkusTestResourceLifecycleManager {
     wireMockServer.resetAll();
     stubForRhPartnerApi(wireMockServer);
     stubForSubscriptionService(wireMockServer);
+    stubForProductApi(wireMockServer);
+  }
+
+  private static void stubForProductApi(WireMockServer wireMockServer) {
+    wireMockServer.stubFor(
+        get(urlPathMatching("/mock/product/products.*"))
+            .willReturn(aResponse().withTransformers(ProductStubForTreeWiremockExtension.NAME)));
+
+    wireMockServer.stubFor(
+        get(urlPathMatching("/mock/product/engproducts.*"))
+            .willReturn(
+                aResponse().withTransformers(ProductStubForEngProductsWiremockExtension.NAME)));
   }
 
   private static void stubForSubscriptionService(WireMockServer wireMockServer) {

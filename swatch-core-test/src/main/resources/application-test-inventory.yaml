@@ -12,10 +12,6 @@ rhsm-subscriptions:
     tasks:
       topic: platform.rhsm-subscriptions.subscription-sync
       kafka-group-id: subscription-worker
-  user-service:
-    use-stub: true
-  product:
-    use-stub: true
 logging:
   level:
     org:

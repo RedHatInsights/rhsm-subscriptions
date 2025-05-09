@@ -107,8 +107,6 @@ parameters:
     value: 'false'
   - name: RH_MARKETPLACE_BILLABLE_USAGE_KAFKA_SEEK_OVERRIDE_TIMESTAMP
     value: ''
-  - name: RHSM_RBAC_USE_STUB
-    value: 'false'
   - name: DEV_MODE
     value: 'false'
   - name: KAFKA_BILLABLE_USAGE_REPLICAS

@@ -746,6 +746,48 @@ paths:
         - support: [ ]
         - test: [ ]
         - service: [ ]
+  /api/swatch-contracts/internal/rpc/offerings/umb/syncUmbProductFromXml:
+    description: Syncs umb product xml from the upstream source.
+    put:
+      summary: Syncs product from Xml from the upstream source.
+      operationId: syncUmbProductFromXml
+      requestBody:
+        content:
+          application/xml:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: UMB product to be synced.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfferingResponse"
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+      security:
+        - test: [ ]
+  /api/swatch-contracts/internal/rpc/offerings/umb/syncUmbProductFromEvent:
+    description: Syncs umb product json event from the upstream source.
+    put:
+      operationId: syncUmbProductFromEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OperationalProductEvent'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfferingResponse'
+          description: success
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+      security:
+        - test: [ ]
   /api/swatch-contracts/internal/rpc/offerings/reconcile/{sku}:
     description: Reconcile capacity for an offering from the upstream source.
     parameters:
@@ -1448,6 +1490,27 @@ components:
           type: array
           items:
             type: string
+    OperationalProductEvent:
+      properties:
+        occurredOn:
+          description: timestamp that event occurred
+          example: '2023-05-29T16:00:54.279Z'
+          type: string
+        productCode:
+          description: Sku of Product
+          type: string
+        productCategory:
+          description: Parent or Child SKU
+          type: string
+          enum:
+            - Parent SKU
+            - Child SKU
+        eventType:
+          description: Create or update product
+          type: string
+          enum:
+            - Create
+            - Update
     PartnerEntitlementContract:
       properties:
         action:
