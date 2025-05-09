@@ -15,7 +15,7 @@ parameters:
   - name: CPU_LIMIT
     value: 300m
   - name: WAIT_IMAGE
-    value: quay.io/cloudservices/rhsm-subscriptions
+    value: quay.io/cloudservices/swatch-database
   - name: WAIT_TAG
     value: latest
   - name: WAIT_MEMORY_REQUEST
@@ -31,11 +31,22 @@ parameters:
   - name: REPLICAS
     value: '1'
   - name: IMAGE
-    value: quay.io/cloudservices/rhsm-subscriptions
+    value: quay.io/cloudservices/swatch-database
   - name: IMAGE_TAG
     value: latest
+  - name: JOB_SUFFIX
+    from: '[a-z]{10}'
+    generate: expression
 
 objects:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: migration-conf
+    data:
+      imageTag: ${IMAGE_TAG}
+      jobId: ${JOB_SUFFIX}
+
   - apiVersion: cloud.redhat.com/v1alpha1
     kind: ClowdApp
     metadata:
@@ -45,15 +56,22 @@ objects:
       pullSecrets:
         name: ${IMAGE_PULL_SECRET}
 
+      database:
+        name: swatch-database-db
+        version: 13
+
       jobs:
-        - name: migrations-job
+        - name: migrations-job-${JOB_SUFFIX}
           activeDeadlineSeconds: 1800
           successfulJobsHistoryLimit: 2
           podSpec:
             image: ${IMAGE}:${IMAGE_TAG}
             initContainers:
               - image: ${WAIT_IMAGE}:${WAIT_TAG}
-                command: ["ls"]
+                command: ["/deployments/wait_for.sh"]
+                args:
+                  - "service"
+                  - "swatch-database-db"
                 resources:
                   requests:
                     cpu: ${WAIT_CPU_REQUEST}
@@ -61,32 +79,32 @@ objects:
                   limits:
                     cpu: ${WAIT_CPU_LIMIT}
                     memory: ${WAIT_MEMORY_LIMIT}
-            command: ["ls"]
+            command: ["/opt/jboss/container/java/run/run-java.sh"]
             env:
               - name: DATABASE_HOST
                 valueFrom:
                   secretKeyRef:
-                    name: swatch-tally-db
+                    name: swatch-database-db
                     key: db.host
               - name: DATABASE_PORT
                 valueFrom:
                   secretKeyRef:
-                    name: swatch-tally-db
+                    name: swatch-database-db
                     key: db.port
               - name: DATABASE_DATABASE
                 valueFrom:
                   secretKeyRef:
-                    name: swatch-tally-db
+                    name: swatch-database-db
                     key: db.name
               - name: DATABASE_USERNAME
                 valueFrom:
                   secretKeyRef:
-                    name: swatch-tally-db
+                    name: swatch-database-db
                     key: db.user
               - name: DATABASE_PASSWORD
                 valueFrom:
                   secretKeyRef:
-                    name: swatch-tally-db
+                    name: swatch-database-db
                     key: db.password
               - name: LIQUIBASE_LOG_LEVEL
                 value: "INFO"
@@ -101,8 +119,8 @@ objects:
   - apiVersion: cloud.redhat.com/v1alpha1
     kind: ClowdJobInvocation
     metadata:
-      name: swatch-database
+      name: swatch-database-${JOB_SUFFIX}
     spec:
       appName: swatch-database
       jobs:
-        - migrations-job
+        - migrations-job-${JOB_SUFFIX}

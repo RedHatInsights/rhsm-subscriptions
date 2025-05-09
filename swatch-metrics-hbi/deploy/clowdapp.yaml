@@ -19,6 +19,18 @@ parameters:
     value: 350m
   - name: CPU_LIMIT
     value: 1500m
+  - name: WAIT_IMAGE
+    value: quay.io/cloudservices/swatch-database
+  - name: WAIT_TAG
+    value: latest
+  - name: WAIT_MEMORY_REQUEST
+    value: 10Mi
+  - name: WAIT_MEMORY_LIMIT
+    value: 20Mi
+  - name: WAIT_CPU_REQUEST
+    value: 100m
+  - name: WAIT_CPU_LIMIT
+    value: 100m
   - name: ENV_NAME
     value: env-swatch-metrics-hbi
   - name: REPLICAS
@@ -62,7 +74,7 @@ parameters:
   - name: LOGGING_SHOW_SQL_QUERIES
     value: 'false'
   - name: DB_POD
-    value: 'swatch-tally'
+    value: 'swatch-database'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -86,10 +98,10 @@ objects:
       name: ${IMAGE_PULL_SECRET}
 
     database:
-      sharedDbAppName: swatch-tally
+      sharedDbAppName: swatch-database
 
     dependencies:
-      - swatch-tally
+      - swatch-database
 
     deployments:
       - name: service
@@ -99,6 +111,31 @@ objects:
             enabled: true
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
+          initContainers:
+            - image: ${WAIT_IMAGE}:${WAIT_TAG}
+              command: ["/bin/sh","-c"]
+              args:
+                - >
+                  echo "Migrating using image swatch-database-$(MIGRATION_IMAGE_TAG)";
+                  /deployments/wait_for.sh job -lclowdjob=swatch-database-$(MIGRATION_JOB_ID)
+              env:
+                - name: MIGRATION_JOB_ID
+                  valueFrom:
+                    configMapKeyRef:
+                      name: migration-conf
+                      key: jobId
+                - name: MIGRATION_IMAGE_TAG
+                  valueFrom:
+                    configMapKeyRef:
+                      name: migration-conf
+                      key: imageTag
+              resources:
+                requests:
+                  cpu: ${WAIT_CPU_REQUEST}
+                  memory: ${WAIT_MEMORY_REQUEST}
+                limits:
+                  cpu: ${WAIT_CPU_LIMIT}
+                  memory: ${WAIT_MEMORY_LIMIT}
           livenessProbe:
             failureThreshold: 3
             httpGet:
