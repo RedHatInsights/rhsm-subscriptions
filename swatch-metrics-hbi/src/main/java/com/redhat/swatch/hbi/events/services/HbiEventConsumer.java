@@ -327,6 +327,6 @@ public class HbiEventConsumer {
       // Just log the object via toString if serialization fails.
       eventString = hbiEvent.toString();
     }
-    log.info("Received create/update host event from HBI - {}", eventString);
+    log.debug("Received create/update host event from HBI - {}", eventString);
   }
 }
