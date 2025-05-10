@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.db;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -241,6 +242,17 @@ class HostTallyBucketRepositoryTest {
     host.setDisplayName(orgId);
     host.setMeasurement(MetricIdUtils.getSockets().getValue(), 1.0);
     host.setMeasurement(MetricIdUtils.getCores().getValue(), 1.0);
+    host.setLastSeen(OffsetDateTime.now());
+    return host;
+  }
+
+  private Host createOldHost(String inventoryId, String orgId) {
+    Host host =
+        new Host(inventoryId + "_old", "INSIGHTS_" + inventoryId, orgId, "SUBMAN_" + inventoryId);
+    host.setDisplayName(orgId);
+    host.setMeasurement(MetricIdUtils.getSockets().getValue(), 1.0);
+    host.setMeasurement(MetricIdUtils.getCores().getValue(), 1.0);
+    host.setLastSeen(OffsetDateTime.now().minusMonths(1));
     return host;
   }
 
@@ -275,24 +287,29 @@ class HostTallyBucketRepositoryTest {
     billingAccountIdTestRecords.stream()
         .forEach(
             testRecord -> {
-              Host h = createHost(testRecord.inventoryId, testRecord.orgId);
-              HostTallyBucket bucket = new HostTallyBucket();
-              bucket.setKey(
-                  new HostBucketKey(
-                      h,
-                      testRecord.productId,
-                      ServiceLevel._ANY,
-                      Usage._ANY,
-                      testRecord.billingProvider,
-                      testRecord.billingAccountId,
-                      false));
-              bucket.setHost(h);
-              h.addBucket(bucket);
-              if (testRecord.orgId == "org1") {
-                account1.getServiceInstances().put(h.getInstanceId(), h);
-              } else {
-                account2.getServiceInstances().put(h.getInstanceId(), h);
-              }
+              Stream.of(
+                      createHost(testRecord.inventoryId, testRecord.orgId),
+                      createOldHost(testRecord.inventoryId, testRecord.orgId))
+                  .forEach(
+                      host -> {
+                        HostTallyBucket bucket = new HostTallyBucket();
+                        bucket.setKey(
+                            new HostBucketKey(
+                                host,
+                                testRecord.productId,
+                                ServiceLevel._ANY,
+                                Usage._ANY,
+                                testRecord.billingProvider,
+                                testRecord.billingAccountId,
+                                false));
+                        bucket.setHost(host);
+                        host.addBucket(bucket);
+                        if (testRecord.orgId == "org1") {
+                          account1.getServiceInstances().put(host.getInstanceId(), host);
+                        } else {
+                          account2.getServiceInstances().put(host.getInstanceId(), host);
+                        }
+                      });
             });
     accountRepo.save(account1);
     accountRepo.save(account2);
