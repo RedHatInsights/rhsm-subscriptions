@@ -278,10 +278,6 @@ public class OfferingSyncService {
     }
   }
 
-  public void deleteOffering(String sku) {
-    offeringRepository.deleteById(sku);
-  }
-
   /**
    * Sync offering state based on a UMB message.
    *
