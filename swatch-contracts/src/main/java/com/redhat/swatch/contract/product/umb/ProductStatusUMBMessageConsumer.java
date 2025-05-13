@@ -31,7 +31,7 @@ import com.redhat.swatch.contract.service.OfferingSyncService;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import java.util.LinkedHashMap;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -49,12 +49,8 @@ public class ProductStatusUMBMessageConsumer {
 
   @Blocking
   @Incoming(OFFERING_SYNC_TASK_SERVICE_UMB)
-  public void consumeMessage(LinkedHashMap message) {
-
-    log.debug(
-        "Received message from UMB offering sync service.  product {} - {}",
-        message,
-        message.getClass().getName());
+  public void consumeMessage(Map<String, Object> message) {
+    log.debug("Received message from UMB offering sync service.  product {}", message);
     if (umbEnabled) {
       try {
         MDC.put(UpstreamProductData.REQUEST_SOURCE, Channels.OFFERING_SYNC_TASK_SERVICE_UMB);
@@ -67,9 +63,8 @@ public class ProductStatusUMBMessageConsumer {
     }
   }
 
-  public SyncResult consumeProduct(LinkedHashMap message) {
+  public SyncResult consumeProduct(Map<String, Object> message) {
     try {
-
       OperationalProductEvent productEvent =
           mapper.convertValue(message, OperationalProductEvent.class);
 
