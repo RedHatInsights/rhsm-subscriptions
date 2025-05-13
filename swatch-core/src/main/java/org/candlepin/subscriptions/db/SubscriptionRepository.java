@@ -110,6 +110,9 @@ public interface SubscriptionRepository
             Specification.where(
                 subscriptionIsActiveBetween(
                     dbReportCriteria.getBeginning(), dbReportCriteria.getEnding())));
+    // subscriptions may have multiple active subscriptions at once,
+    // so we need to extract only the most recent one
+    searchCriteria = searchCriteria.and(byMostRecentSubscription());
     if (Objects.nonNull(dbReportCriteria.getOrgId())) {
       searchCriteria = searchCriteria.and(orgIdEquals(dbReportCriteria.getOrgId()));
     }
@@ -162,6 +165,24 @@ public interface SubscriptionRepository
   @Override
   @EntityGraph(attributePaths = {"subscriptionMeasurements"})
   List<Subscription> findAll(Specification<Subscription> spec, Sort sort);
+
+  private static Specification<Subscription> byMostRecentSubscription() {
+    return (root, query, builder) -> {
+      var subquery = query.subquery(OffsetDateTime.class);
+      var subRoot = subquery.from(Subscription.class);
+
+      subquery
+          .select(builder.greatest(subRoot.get(Subscription_.startDate)))
+          .where(
+              builder.and(
+                  builder.equal(
+                      subRoot.get(Subscription_.subscriptionId),
+                      root.get(Subscription_.subscriptionId)),
+                  builder.equal(subRoot.get(Subscription_.orgId), root.get(Subscription_.orgId))));
+
+      return builder.equal(root.get(Subscription_.startDate), subquery);
+    };
+  }
 
   private static Specification<Subscription> hasUnlimitedUsage() {
     return (root, query, builder) -> {
