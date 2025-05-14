@@ -50,7 +50,7 @@ public class ProductStatusUMBMessageConsumer {
   @Blocking
   @Incoming(OFFERING_SYNC_TASK_SERVICE_UMB)
   public void consumeMessage(Map<String, Object> message) {
-    log.debug("Received message from UMB offering sync service.  product {}", message);
+    log.info("Received message from UMB offering sync service.  product {}", message);
     if (umbEnabled) {
       try {
         MDC.put(UpstreamProductData.REQUEST_SOURCE, Channels.OFFERING_SYNC_TASK_SERVICE_UMB);
