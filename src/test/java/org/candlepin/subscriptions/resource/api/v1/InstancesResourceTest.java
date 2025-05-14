@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.HostTallyBucketRepository;
@@ -100,12 +101,16 @@ class InstancesResourceTest {
   @Autowired HostTallyBucketRepository hostTallyBucketRepository;
   @Autowired InstancesResource resource;
 
+  @Autowired ApplicationClock clock;
+  private OffsetDateTime now;
+
   @Transactional
   @BeforeEach
   void setup() {
     when(orgConfigRepository.existsByOrgId(ORG_ID)).thenReturn(true);
     hostTallyBucketRepository.deleteAll();
     accountServiceInventoryRepository.deleteAll();
+    now = clock.now();
   }
 
   @WithMockRedHatPrincipal("123456")
@@ -692,6 +697,7 @@ class InstancesResourceTest {
     // given buckets for different org IDs
     givenTallyBucket("org1", RHEL_FOR_ARM, BillingProvider.AWS, "account1");
     givenTallyBucket("org2", RHEL_FOR_ARM, BillingProvider.AWS, "account2");
+    givenOldTallyBucket("org3", RHEL_FOR_ARM, BillingProvider.AWS, "account3");
 
     // filter by org1 works:
     var response = whenFetchBillingAccountIdsForOrg("org1", RHEL_FOR_ARM, BillingProvider.AWS);
@@ -700,6 +706,9 @@ class InstancesResourceTest {
     // filter by org2 also works:
     response = whenFetchBillingAccountIdsForOrg("org2", RHEL_FOR_ARM, BillingProvider.AWS);
     thenBillingAccountIdResponseContains(response, "account2");
+
+    response = whenFetchBillingAccountIdsForOrg("org3", RHEL_FOR_ARM, BillingProvider.AWS);
+    assertTrue(response.getIds().isEmpty());
   }
 
   @Test
@@ -790,13 +799,27 @@ class InstancesResourceTest {
 
   private void givenTallyBucket(
       String orgId, ProductId productId, BillingProvider billingProvider, String billingAccountId) {
-    givenAccountForOrg(orgId);
+    createTallyBucket(orgId, now, productId, billingProvider, billingAccountId);
+  }
 
+  private void givenOldTallyBucket(
+      String orgId, ProductId productId, BillingProvider billingProvider, String billingAccountId) {
+    createTallyBucket(orgId, now.minusMonths(1), productId, billingProvider, billingAccountId);
+  }
+
+  private void createTallyBucket(
+      String orgId,
+      OffsetDateTime lastSeenDate,
+      ProductId productId,
+      BillingProvider billingProvider,
+      String billingAccountId) {
+    givenAccountForOrg(orgId);
     Host host = new Host();
     host.setOrgId(orgId);
     host.setDisplayName(UUID.randomUUID().toString());
     host.setInstanceType(INSTANCE_TYPE);
     host.setInstanceId(UUID.randomUUID().toString());
+    host.setLastSeen(lastSeenDate);
 
     HostBucketKey key = new HostBucketKey();
     key.setProductId(productId.getValue());
