@@ -1,6 +1,7 @@
 #!/bin/bash
 
-valid_artifacts=('rhsm-subscriptions'
+valid_artifacts=(
+  'rhsm-subscriptions'
   'swatch-system-conduit'
   'swatch-producer-aws'
   'swatch-contracts'
@@ -12,8 +13,15 @@ valid_artifacts=('rhsm-subscriptions'
 
 function build_failed() {
     # Return from the directory the script started in
-    popd
+    popd || exit 1
     exit 1
+}
+
+function push_and_clean() {
+  podman push "$1"
+  if [ $keep -eq 0 ]; then
+    podman rmi "$1"
+  fi
 }
 
 function print_valid_artifacts() {
@@ -34,7 +42,19 @@ function get_docker_file_path() {
       echo "Unable to find docker file: ${docker_file}"
       build_failed
   fi
-  echo $docker_file
+  echo "$docker_file"
+}
+
+function validate_artifact() {
+  for artifact in "${valid_artifacts[@]}"
+  do
+    if [[ $artifact == "$1" ]]; then
+      return
+    fi
+  done
+  echo "ERROR: Invalid build artifact specified: $1"
+  print_valid_artifacts
+  build_failed
 }
 
 function usage() {
@@ -63,26 +83,18 @@ while getopts ":hkt:" o; do
         h)
             usage
             ;;
+        *)
+            usage
+            exit 1
+            ;;
     esac
 done
 shift $((OPTIND-1))
 
 projects=("$@")
 if [ ${#projects[@]} -eq 0 ]; then
-  projects+=(${valid_artifacts[@]})
+  projects+=("${valid_artifacts[@]}")
 fi
-
-function validate_artifact() {
-  for artifact in ${valid_artifacts[@]}
-  do
-    if [[ $artifact == $1 ]]; then
-      return
-    fi
-  done
-  echo "ERROR: Invalid build artifact specified: $1"
-  print_valid_artifacts
-  build_failed
-}
 
 # Validate that all applicable projects are valid.
 for p in "${projects[@]}"; do
@@ -99,24 +111,28 @@ fi
 trap build_failed ERR
 
 ./gradlew clean
+
+echo "Building swatch-build"
+
+docker_file=$(get_docker_file_path "swatch-build")
+podman build . -f "$docker_file" \
+  --build-arg-file bin/dev-argfile.conf \
+  -t "swatch-build:$tag" \
+  --label "git-commit=${commit}" --ulimit nofile=65535:65535
+
 for p in "${projects[@]}"; do
   echo "Building ${p}"
 
   docker_file=$(get_docker_file_path "$p")
   podman build . -f "$docker_file" \
     --build-arg-file bin/dev-argfile.conf \
-    -t quay.io/$quay_user/$p:$tag \
-    --label "git-commit=${commit}" --ulimit nofile=2048:2048
+    --build-arg=SWATCH_BUILD_TAG="${commit}" \
+    -t "quay.io/$quay_user/$p:$tag" \
+    --label "git-commit=${commit}" --ulimit nofile=2048:4096
 done
-
-function push_and_clean() {
-  podman push "$1"
-  if [ $keep -eq 0 ]; then
-    podman rmi "$1"
-  fi
-}
 
 # Do all builds (and make sure they succeed before any pushes)
 for p in "${projects[@]}"; do
   push_and_clean "quay.io/$quay_user/$p:$tag"
 done
+podman rmi "swatch-build:$tag"
