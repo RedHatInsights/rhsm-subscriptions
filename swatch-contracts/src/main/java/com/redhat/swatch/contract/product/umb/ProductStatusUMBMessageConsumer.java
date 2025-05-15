@@ -68,7 +68,7 @@ public class ProductStatusUMBMessageConsumer {
 
       service.syncUmbProductFromEvent(productEvent);
     } catch (Exception e) {
-      log.warn("Unable to read UMB message from JSON.", e);
+      log.error("Unable to read UMB product message for JSON: {}", message, e);
     }
   }
 }
