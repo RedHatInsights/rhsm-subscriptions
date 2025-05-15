@@ -10,20 +10,14 @@ from proton.reactor import Container
 class SendAMQPMessage(MessagingHandler):
     def __init__(self, broker, address, content, content_type, debug):
         super().__init__()
+
         self.server = f"amqp://{broker}"
         self.address = address
         self.debug = debug
         self.content_type = content_type or "application/json"
 
-        body = content
-        if self.content_type == "application/json":
-            try:
-                body = json.loads(content)
-            except json.JSONDecodeError as e:
-                raise ValueError(f"Invalid JSON message content: {e}")
-
         self.message = Message(
-            body=body,
+            body=content,
             content_type=self.content_type
         )
 
