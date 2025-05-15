@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.contract.resource;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.redhat.swatch.clients.product.api.resources.ApiException;
 import com.redhat.swatch.configuration.registry.Variant;
@@ -35,7 +34,6 @@ import com.redhat.swatch.contract.openapi.model.ContractResponse;
 import com.redhat.swatch.contract.openapi.model.MetricResponse;
 import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
 import com.redhat.swatch.contract.openapi.model.OfferingResponse;
-import com.redhat.swatch.contract.openapi.model.OperationalProductEvent;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.RhmUsageContext;
 import com.redhat.swatch.contract.openapi.model.RpcResponse;
@@ -426,39 +424,6 @@ public class ContractsResource implements DefaultApi {
     } catch (RuntimeException e) {
       log.error("Error enqueueing offerings to be synced. See log for details.", e);
       response.setDetail("Error enqueueing offerings to be synced");
-    }
-    return response;
-  }
-
-  @RolesAllowed({"test"})
-  @Override
-  public OfferingResponse syncUmbProductFromXml(String productXml) throws ProcessingException {
-    var response = new OfferingResponse();
-    SyncResult result = null;
-    try {
-      log.info("Sync for umb product XML {}", productXml);
-      result = offeringSyncService.syncUmbProductFromXml(productXml);
-      response.detail(String.format("%s for sync product\"%s\".", result, productXml));
-    } catch (JsonProcessingException e) {
-      throw new BadRequestException(e.getMessage());
-    }
-    return response;
-  }
-
-  @Override
-  @RolesAllowed({"test"})
-  public OfferingResponse syncUmbProductFromEvent(OperationalProductEvent productEvent)
-      throws ProcessingException {
-    var response = new OfferingResponse();
-    SyncResult result = null;
-    try {
-      log.info("Sync product from event {}", productEvent);
-      result = offeringSyncService.syncUmbProductFromEvent(productEvent);
-
-      response.detail(String.format("%s for sync product\"%s\".", result, productEvent));
-    } catch (RuntimeException e) {
-      log.error("Error UMB Product from Event offerings to be synced. See log for details.", e);
-      response.setDetail("Error UMB Product from Event offerings to be synced");
     }
     return response;
   }

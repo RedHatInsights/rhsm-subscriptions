@@ -278,10 +278,6 @@ public class OfferingSyncService {
     }
   }
 
-  public void deleteOffering(String sku) {
-    offeringRepository.deleteById(sku);
-  }
-
   /**
    * Sync offering state based on a UMB message.
    *
@@ -325,8 +321,7 @@ public class OfferingSyncService {
   }
 
   private SyncResult syncUmbProduct(UmbOperationalProduct umbOperationalProduct) {
-
-    log.info("Received UMB message on for productSku={}", umbOperationalProduct.getSku());
+    log.info("Received UMB message for productSku={}", umbOperationalProduct.getSku());
     if (umbOperationalProduct.getSku().startsWith("SVC")) {
       syncChildSku(umbOperationalProduct.getSku());
       return SyncResult.FETCHED_AND_SYNCED;

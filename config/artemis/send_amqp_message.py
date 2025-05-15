@@ -8,20 +8,17 @@ from proton.reactor import Container
 
 
 class SendAMQPMessage(MessagingHandler):
-    def __init__(self, broker, address, content, debug):
+    def __init__(self, broker, address, content, content_type, debug):
         super().__init__()
+
         self.server = f"amqp://{broker}"
         self.address = address
         self.debug = debug
-
-        try:
-            body = json.loads(content)
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON for message content: {e}")
+        self.content_type = content_type or "application/json"
 
         self.message = Message(
-            body=body,
-            content_type="application/json"
+            body=content,
+            content_type=self.content_type
         )
 
     def on_start(self, event):
@@ -39,7 +36,7 @@ class SendAMQPMessage(MessagingHandler):
 
     def on_sendable(self, event):
         if self.debug:
-            print(f"📤 Sending message to '{self.address}': {self.message.body}")
+            print(f"📤 Sending '{self.content_type}' message to '{self.address}': {self.message.body}")
         event.sender.send(self.message)
         event.sender.close()
         event.connection.close()
@@ -56,12 +53,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Send a message over AMQP.")
     parser.add_argument("--broker", required=True, help="AMQP broker address (e.g. localhost:5672)")
     parser.add_argument("--address", required=True, help="Queue or topic name to send to")
-    parser.add_argument("--content", required=True, help="JSON string as message body")
+    parser.add_argument("--content", required=True, help="string as message body")
+    parser.add_argument("--content_type", required=False, help="content type")
     parser.add_argument("--debug", action="store_true", help="Enable debug output")
 
     args = parser.parse_args()
 
     try:
-        Container(SendAMQPMessage(args.broker, args.address, args.content, args.debug)).run()
+        Container(SendAMQPMessage(args.broker, args.address, args.content, args.content_type, args.debug)).run()
     except ValueError as e:
         print(f"Error: {e}")
