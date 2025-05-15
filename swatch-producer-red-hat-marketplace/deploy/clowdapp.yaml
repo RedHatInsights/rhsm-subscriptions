@@ -26,7 +26,7 @@ parameters:
   - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
     value: ''
   - name: REPLICAS
-    value: '1'
+    value: '0'
   - name: IMAGE
     value: quay.io/cloudservices/rhsm-subscriptions
   - name: IMAGE_TAG
