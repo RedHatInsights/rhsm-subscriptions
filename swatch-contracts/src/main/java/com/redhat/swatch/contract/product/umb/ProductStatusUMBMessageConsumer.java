@@ -24,14 +24,12 @@ import static com.redhat.swatch.contract.config.Channels.OFFERING_SYNC_TASK_SERV
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.contract.config.Channels;
-import com.redhat.swatch.contract.model.SyncResult;
 import com.redhat.swatch.contract.openapi.model.OperationalProductEvent;
 import com.redhat.swatch.contract.product.UpstreamProductData;
 import com.redhat.swatch.contract.service.OfferingSyncService;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -49,8 +47,8 @@ public class ProductStatusUMBMessageConsumer {
 
   @Blocking
   @Incoming(OFFERING_SYNC_TASK_SERVICE_UMB)
-  public void consumeMessage(Map<String, Object> message) {
-    log.debug("Received message from UMB offering sync service.  product {}", message);
+  public void consumeMessage(String message) {
+    log.info("Received message from UMB offering sync service.  product {}", message);
     if (umbEnabled) {
       try {
         MDC.put(UpstreamProductData.REQUEST_SOURCE, Channels.OFFERING_SYNC_TASK_SERVICE_UMB);
@@ -63,15 +61,14 @@ public class ProductStatusUMBMessageConsumer {
     }
   }
 
-  public SyncResult consumeProduct(Map<String, Object> message) {
+  public void consumeProduct(String message) {
     try {
       OperationalProductEvent productEvent =
-          mapper.convertValue(message, OperationalProductEvent.class);
+          mapper.readValue(message, OperationalProductEvent.class);
 
-      return service.syncUmbProductFromEvent(productEvent);
+      service.syncUmbProductFromEvent(productEvent);
     } catch (Exception e) {
-      log.warn("Unable to read UMB message from JSON.", e);
-      return SyncResult.FAILED;
+      log.error("Unable to read UMB product message for JSON: {}", message, e);
     }
   }
 }
