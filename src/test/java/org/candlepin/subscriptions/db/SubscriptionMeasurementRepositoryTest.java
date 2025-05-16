@@ -139,6 +139,45 @@ class SubscriptionMeasurementRepositoryTest {
   }
 
   @Test
+  void testFilterByMostRecentSubscription() {
+    // Same subscription ID; but most recent start date, so it should use this quantity,
+    // not the one from the setUp method.
+    var mostRecentSubscription =
+        Subscription.builder()
+            .subscriptionId("subscription123")
+            .subscriptionNumber("subscriptionNumber123")
+            .orgId("org123")
+            .billingProvider(BillingProvider.RED_HAT)
+            .quantity(3)
+            .offering(subscription.getOffering())
+            .startDate(START.plusMonths(1))
+            .endDate(START.plusYears(1))
+            .build();
+    mostRecentSubscription.getSubscriptionMeasurements().put(physicalCores, 8.0);
+
+    subscriptionRepository.saveAndFlush(mostRecentSubscription);
+
+    var criteria =
+        DbReportCriteria.builder()
+            .orgId("org123")
+            .productTag("RHEL")
+            .beginning(START.minusYears(2))
+            .ending(START.plusYears(2))
+            .build();
+
+    var result =
+        subscriptionRepository.findByCriteria(criteria, Sort.unsorted()).stream().findFirst();
+
+    result.ifPresentOrElse(
+        x -> {
+          assertEquals(3.0, x.getQuantity());
+          assertEquals(8.0, x.getSubscriptionMeasurements().get(physicalCores));
+          assertEquals(1, x.getSubscriptionMeasurements().size());
+        },
+        () -> fail("No matching subscription"));
+  }
+
+  @Test
   void testFiltersOutSubsBeforeRange() {
     var specification =
         SubscriptionRepository.buildSearchSpecification(

@@ -338,10 +338,33 @@ public class SubscriptionEntity implements Serializable {
     };
   }
 
+  private static Specification<SubscriptionEntity> byMostRecentSubscription() {
+    return (root, query, builder) -> {
+      var subquery = query.subquery(OffsetDateTime.class);
+      var subRoot = subquery.from(SubscriptionEntity.class);
+
+      subquery
+          .select(builder.greatest(subRoot.get(SubscriptionEntity_.startDate)))
+          .where(
+              builder.and(
+                  builder.equal(
+                      subRoot.get(SubscriptionEntity_.subscriptionId),
+                      root.get(SubscriptionEntity_.subscriptionId)),
+                  builder.equal(
+                      subRoot.get(SubscriptionEntity_.orgId),
+                      root.get(SubscriptionEntity_.orgId))));
+
+      return builder.equal(root.get(SubscriptionEntity_.startDate), subquery);
+    };
+  }
+
   public static Specification<SubscriptionEntity> buildSearchSpecification(
       DbReportCriteria dbReportCriteria) {
     Specification<SubscriptionEntity> searchCriteria =
         subscriptionIsActiveBetween(dbReportCriteria.getBeginning(), dbReportCriteria.getEnding());
+    // subscriptions may have multiple active subscriptions at once,
+    // so we need to extract only the most recent one
+    searchCriteria = searchCriteria.and(byMostRecentSubscription());
     if (Objects.nonNull(dbReportCriteria.getOrgId())) {
       searchCriteria = searchCriteria.and(orgIdEquals(dbReportCriteria.getOrgId()));
     }

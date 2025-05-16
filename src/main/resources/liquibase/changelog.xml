@@ -179,5 +179,6 @@
     <include file="/liquibase/202501081035-remove-backup-tables.xml"/>
     <include file="/liquibase/202412091327-drop-hardware-measurement-type-from-billable-usage-remittance.xml"/>
     <include file="/liquibase/202504291554-add-updated-at-column-to-billable-usage-remittance.xml"/>
+    <include file="/liquibase/202505131100-update-subscription-capacity-view-to-filter-start-date.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
