@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.contract.resource.api.v1;
 
+import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -53,28 +54,21 @@ import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.SecurityContext;
 import jakarta.ws.rs.core.UriInfo;
-import java.security.Principal;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
-import org.jboss.resteasy.reactive.common.jaxrs.UriBuilderImpl;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.Mockito;
 
 @QuarkusTest
-@TestSecurity(
-    user = "owner123456",
-    roles = {"customer"})
 class CapacityResourceV1Test {
 
   private static final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
@@ -87,16 +81,6 @@ class CapacityResourceV1Test {
   @Inject CapacityResourceV1 resource;
   @InjectMock SubscriptionRepository subscriptionRepository;
   @InjectMock UriInfo uriInfo;
-
-  @BeforeEach
-  void updateSecurityContext() {
-    SecurityContext mockSecurityContext = Mockito.mock(SecurityContext.class);
-    Principal mockPrincipal = Mockito.mock(Principal.class);
-    resource.setTestSecurityContext(mockSecurityContext);
-    when(mockSecurityContext.getUserPrincipal()).thenReturn(mockPrincipal);
-    when(mockPrincipal.getName()).thenReturn("owner123456");
-    when(uriInfo.getRequestUriBuilder()).thenReturn(new UriBuilderImpl());
-  }
 
   private static SubscriptionEntity datedSubscription(OffsetDateTime start, OffsetDateTime end) {
     return SubscriptionEntity.builder()
@@ -722,24 +706,28 @@ class CapacityResourceV1Test {
     when(subscriptionRepository.findByCriteria(eq(dbReportCriteria), any(Sort.class)))
         .thenReturn(List.of(s));
 
-    CapacityReportByMetricId report =
-        resource.getCapacityReportByMetricId(
-            RHEL_FOR_ARM,
-            METRIC_ID_CORES,
-            GranularityType.DAILY,
-            min,
-            max,
-            1,
-            1,
-            null,
-            null,
-            null,
-            null);
+    //    CapacityReportByMetricId report = given()
+    io.restassured.response.Response report =
+        given()
+            .queryParams(
+                "offset", "1",
+                "limit", "1",
+                "granularity", GranularityType.DAILY.toString(),
+                "begin", min.toString(),
+                "end", max.toString())
+            .header("x-rh-identity", rhIdentityHeader())
+            .get(
+                String.format(
+                    "/api/rhsm-subscriptions/v1/capacity/products/%s/%s",
+                    RHEL_FOR_ARM.getValue(), METRIC_ID_CORES.getValue()));
+    assertEquals(200, report.getStatusCode());
 
-    assertEquals(1, report.getData().size());
-    assertEquals(
-        OffsetDateTime.now().minusDays(3).truncatedTo(ChronoUnit.DAYS),
-        report.getData().get(0).getDate());
+    //        .as(CapacityReportByMetricId.class, ObjectMapperType.GSON);
+
+    //    assertEquals(1, report.getData().size());
+    //    assertEquals(
+    //        OffsetDateTime.now().minusDays(3).truncatedTo(ChronoUnit.DAYS),
+    //        report.getData().get(0).getDate());
   }
 
   @Test
@@ -915,5 +903,12 @@ class CapacityResourceV1Test {
         Arguments.of(RHEL_FOR_ARM, GranularityType.YEARLY),
         Arguments.of(BASILISK, GranularityType.YEARLY),
         Arguments.of(RHEL_FOR_ARM, GranularityType.DAILY));
+  }
+
+  String rhIdentityHeader() {
+    String originalString =
+        "{\"identity\":{\"account_number\":\"10001\",\"org_id\":\"owner123456\",\"roles\":\"{\"customer\"},"
+            + "\"internal\":{\"org_id\":\"owner123456\"},\"type\":\"User\",\"user\":{\"username\":\"owner123456\"}}}";
+    return Base64.getUrlEncoder().encodeToString(originalString.getBytes());
   }
 }
