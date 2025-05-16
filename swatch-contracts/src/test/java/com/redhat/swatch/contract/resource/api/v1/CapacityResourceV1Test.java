@@ -20,90 +20,69 @@
  */
 package com.redhat.swatch.contract.resource.api.v1;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static com.redhat.swatch.contract.security.RhIdentityHeaderAuthenticationMechanism.RH_IDENTITY_HEADER;
+import static com.redhat.swatch.contract.security.RhIdentityUtils.CUSTOMER_IDENTITY_HEADER;
+import static io.restassured.RestAssured.given;
+import static java.util.Objects.isNull;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
 
-import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
-import com.redhat.swatch.contract.exception.SubscriptionsException;
 import com.redhat.swatch.contract.openapi.model.CapacityReportByMetricId;
 import com.redhat.swatch.contract.openapi.model.CapacitySnapshotByMetricId;
 import com.redhat.swatch.contract.openapi.model.GranularityType;
 import com.redhat.swatch.contract.openapi.model.ReportCategory;
 import com.redhat.swatch.contract.openapi.model.ServiceLevelType;
 import com.redhat.swatch.contract.openapi.model.UsageType;
-import com.redhat.swatch.contract.repository.DbReportCriteria;
-import com.redhat.swatch.contract.repository.Granularity;
 import com.redhat.swatch.contract.repository.HypervisorReportCategory;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionMeasurementKey;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
+import com.redhat.swatch.contract.test.resources.DisableRbacResource;
 import io.quarkus.panache.common.Sort;
-import io.quarkus.security.ForbiddenException;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.security.TestSecurity;
-import jakarta.inject.Inject;
-import jakarta.ws.rs.BadRequestException;
-import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.SecurityContext;
-import jakarta.ws.rs.core.UriInfo;
-import java.security.Principal;
+import io.quarkus.test.junit.TestProfile;
+import io.restassured.response.ExtractableResponse;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
-import org.jboss.resteasy.reactive.common.jaxrs.UriBuilderImpl;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.Mockito;
 
 @QuarkusTest
-@TestSecurity(
-    user = "owner123456",
-    roles = {"customer"})
+@TestProfile(DisableRbacResource.class)
 class CapacityResourceV1Test {
 
-  private static final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
-  private static final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
+  private static final OffsetDateTime min =
+      OffsetDateTime.now().withOffsetSameInstant(ZoneOffset.UTC).minusDays(4);
+  private static final OffsetDateTime max =
+      OffsetDateTime.now().withOffsetSameInstant(ZoneOffset.UTC).plusDays(4);
   private static final ProductId BASILISK = ProductId.fromString("BASILISK");
   private static final ProductId RHEL_FOR_ARM = ProductId.fromString("RHEL for ARM");
   private static final MetricId METRIC_ID_CORES = MetricId.fromString("Cores");
   private static final MetricId METRIC_ID_SOCKETS = MetricId.fromString("Sockets");
 
-  @Inject CapacityResourceV1 resource;
   @InjectMock SubscriptionRepository subscriptionRepository;
-  @InjectMock UriInfo uriInfo;
-
-  @BeforeEach
-  void updateSecurityContext() {
-    SecurityContext mockSecurityContext = Mockito.mock(SecurityContext.class);
-    Principal mockPrincipal = Mockito.mock(Principal.class);
-    resource.setTestSecurityContext(mockSecurityContext);
-    when(mockSecurityContext.getUserPrincipal()).thenReturn(mockPrincipal);
-    when(mockPrincipal.getName()).thenReturn("owner123456");
-    when(uriInfo.getRequestUriBuilder()).thenReturn(new UriBuilderImpl());
-  }
 
   private static SubscriptionEntity datedSubscription(OffsetDateTime start, OffsetDateTime end) {
     return SubscriptionEntity.builder()
         .subscriptionId("subscription123")
         .startDate(start)
         .endDate(end)
-        .orgId("owner123456")
+        .orgId("org123")
         .build();
   }
 
@@ -121,235 +100,199 @@ class CapacityResourceV1Test {
     return s;
   }
 
-  Map<SubscriptionMeasurementKey, Double> createMeasurement(
+  private static SubscriptionEntity basicSubscription() {
+    return SubscriptionEntity.builder()
+        .startDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1))
+        .endDate(max.truncatedTo(ChronoUnit.DAYS).minusSeconds(1))
+        .orgId("org123")
+        .subscriptionMeasurements(basicMeasurement())
+        .build();
+  }
+
+  static Map<SubscriptionMeasurementKey, Double> createMeasurement(
       String type, MetricId metric, double value) {
     return Map.of(new SubscriptionMeasurementKey(metric.toString(), type), value);
   }
 
-  private Map<SubscriptionMeasurementKey, Double> basicMeasurement() {
+  private static Map<SubscriptionMeasurementKey, Double> basicMeasurement() {
     return createMeasurement("PHYSICAL", METRIC_ID_CORES, 42.0);
   }
 
   @Test
   void testReportByMetricIdShouldUseQueryBasedOnHeaderAndParameters() {
-
-    var dbReportCriteria =
-        DbReportCriteria.builder()
-            .orgId("owner123456")
-            .productTag(RHEL_FOR_ARM.toString())
-            .serviceLevel(ServiceLevel._ANY)
-            .usage(Usage._ANY)
-            .beginning(min)
-            .ending(max)
-            .hypervisorReportCategory(HypervisorReportCategory.NON_HYPERVISOR)
-            .metricId(METRIC_ID_CORES.toString())
-            .build();
-
-    SubscriptionEntity s = new SubscriptionEntity();
-    s.setSubscriptionMeasurements(basicMeasurement());
-
-    when(subscriptionRepository.findByCriteria(eq(dbReportCriteria), any(Sort.class)))
-        .thenReturn(List.of(s));
+    when(subscriptionRepository.findByCriteria(
+            argThat(
+                argument ->
+                    argument.getOrgId().equals("org123")
+                        && argument
+                            .getHypervisorReportCategory()
+                            .equals(HypervisorReportCategory.NON_HYPERVISOR.toString())),
+            any(Sort.class)))
+        .thenReturn(List.of(basicSubscription()));
 
     CapacityReportByMetricId report =
-        resource.getCapacityReportByMetricId(
-            RHEL_FOR_ARM,
-            METRIC_ID_CORES,
-            GranularityType.DAILY,
-            min,
-            max,
-            null,
-            null,
-            null,
-            ReportCategory.PHYSICAL,
-            null,
-            null);
+        given()
+            .queryParams(
+                "granularity", GranularityType.DAILY.toString(),
+                "beginning", min.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "ending", max.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "category", ReportCategory.PHYSICAL.toString())
+            .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+            .get(
+                String.format(
+                    "/api/rhsm-subscriptions/v1/capacity/products/%s/%s",
+                    RHEL_FOR_ARM.getValue(), METRIC_ID_CORES.getValue()))
+            .then()
+            .statusCode(200)
+            .extract()
+            .as(CapacityReportByMetricId.class);
 
     assertEquals(9, report.getData().size());
   }
 
   @Test
   void testReportByMetricIdShouldUseSlaQueryParam() {
-
-    var dbReportCriteria =
-        DbReportCriteria.builder()
-            .orgId("owner123456")
-            .productTag(RHEL_FOR_ARM.toString())
-            .serviceLevel(ServiceLevel.PREMIUM)
-            .usage(Usage._ANY)
-            .beginning(min)
-            .ending(max)
-            .metricId(METRIC_ID_CORES.toString())
-            .build();
-
-    SubscriptionEntity s = new SubscriptionEntity();
-    s.setSubscriptionMeasurements(basicMeasurement());
-
-    when(subscriptionRepository.findByCriteria(eq(dbReportCriteria), any(Sort.class)))
-        .thenReturn(List.of(s));
+    when(subscriptionRepository.findByCriteria(
+            argThat(
+                argument ->
+                    argument.getOrgId().equals("org123")
+                        && argument.getServiceLevel().equals(ServiceLevelType.PREMIUM.toString())),
+            any(Sort.class)))
+        .thenReturn(List.of(basicSubscription()));
 
     CapacityReportByMetricId report =
-        resource.getCapacityReportByMetricId(
-            RHEL_FOR_ARM,
-            METRIC_ID_CORES,
-            GranularityType.DAILY,
-            min,
-            max,
-            null,
-            null,
-            null,
-            null,
-            ServiceLevelType.PREMIUM,
-            null);
+        given()
+            .queryParams(
+                "granularity", GranularityType.DAILY.toString(),
+                "beginning", min.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "ending", max.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "sla", ServiceLevelType.PREMIUM.toString())
+            .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+            .get(
+                String.format(
+                    "/api/rhsm-subscriptions/v1/capacity/products/%s/%s",
+                    RHEL_FOR_ARM.getValue(), METRIC_ID_CORES.getValue()))
+            .then()
+            .statusCode(200)
+            .extract()
+            .as(CapacityReportByMetricId.class);
 
     assertEquals(9, report.getData().size());
   }
 
   @Test
   void testReportByMetricIdShouldUseUsageQueryParam() {
-
-    var dbReportCriteria =
-        DbReportCriteria.builder()
-            .orgId("owner123456")
-            .productTag(RHEL_FOR_ARM.toString())
-            .serviceLevel(ServiceLevel._ANY)
-            .usage(Usage.PRODUCTION)
-            .beginning(min)
-            .ending(max)
-            .metricId(METRIC_ID_CORES.toString())
-            .build();
-
-    SubscriptionEntity s = new SubscriptionEntity();
-    s.setSubscriptionMeasurements(basicMeasurement());
-
-    when(subscriptionRepository.findByCriteria(eq(dbReportCriteria), any(Sort.class)))
-        .thenReturn(List.of(s));
+    when(subscriptionRepository.findByCriteria(
+            argThat(
+                argument ->
+                    argument.getOrgId().equals("org123")
+                        && argument.getUsage().equals(Usage.PRODUCTION.getValue())),
+            any(Sort.class)))
+        .thenReturn(List.of(basicSubscription()));
 
     CapacityReportByMetricId report =
-        resource.getCapacityReportByMetricId(
-            RHEL_FOR_ARM,
-            METRIC_ID_CORES,
-            GranularityType.DAILY,
-            min,
-            max,
-            null,
-            null,
-            null,
-            null,
-            null,
-            UsageType.PRODUCTION);
+        given()
+            .queryParams(
+                "granularity", GranularityType.DAILY.toString(),
+                "beginning", min.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "ending", max.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "usage", UsageType.PRODUCTION.toString())
+            .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+            .get(
+                String.format(
+                    "/api/rhsm-subscriptions/v1/capacity/products/%s/%s",
+                    RHEL_FOR_ARM.getValue(), METRIC_ID_CORES.getValue()))
+            .then()
+            .statusCode(200)
+            .extract()
+            .as(CapacityReportByMetricId.class);
 
     assertEquals(9, report.getData().size());
   }
 
   @Test
-  void testReportByMetricIdShouldUseBillableAccountQueryParam() {
-
-    var dbReportCriteria =
-        DbReportCriteria.builder()
-            .orgId("owner123456")
-            .productTag(RHEL_FOR_ARM.toString())
-            .billingAccountId("account123456")
-            .serviceLevel(ServiceLevel._ANY)
-            .usage(Usage._ANY)
-            .beginning(min)
-            .ending(max)
-            .metricId(METRIC_ID_CORES.toString())
-            .build();
-
-    SubscriptionEntity s = new SubscriptionEntity();
-    s.setSubscriptionMeasurements(basicMeasurement());
-
-    when(subscriptionRepository.findByCriteria(eq(dbReportCriteria), any(Sort.class)))
-        .thenReturn(List.of(s));
+  void testReportByMetricIdShouldUseBillingAccountQueryParam() {
+    when(subscriptionRepository.findByCriteria(
+            argThat(
+                argument ->
+                    argument.getOrgId().equals("org123")
+                        && argument.getBillingAccountId().equals("account123456")),
+            any(Sort.class)))
+        .thenReturn(List.of(basicSubscription()));
 
     CapacityReportByMetricId report =
-        resource.getCapacityReportByMetricId(
-            RHEL_FOR_ARM,
-            METRIC_ID_CORES,
-            GranularityType.DAILY,
-            min,
-            max,
-            null,
-            null,
-            "account123456",
-            null,
-            null,
-            null);
+        given()
+            .queryParams(
+                "granularity", GranularityType.DAILY.toString(),
+                "beginning", min.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "ending", max.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "billing_account_id", "account123456")
+            .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+            .get(
+                String.format(
+                    "/api/rhsm-subscriptions/v1/capacity/products/%s/%s",
+                    RHEL_FOR_ARM.getValue(), METRIC_ID_CORES.getValue()))
+            .then()
+            .statusCode(200)
+            .extract()
+            .as(CapacityReportByMetricId.class);
 
     assertEquals(9, report.getData().size());
   }
 
   @Test
   void testReportByMetricIdShouldTreatEmptySlaAsNull() {
-
-    var dbReportCriteria =
-        DbReportCriteria.builder()
-            .orgId("owner123456")
-            .productTag(RHEL_FOR_ARM.toString())
-            .serviceLevel(ServiceLevel._ANY)
-            .usage(Usage._ANY)
-            .beginning(min)
-            .ending(max)
-            .metricId(METRIC_ID_CORES.toString())
-            .build();
-
-    SubscriptionEntity s = new SubscriptionEntity();
-    s.setSubscriptionMeasurements(basicMeasurement());
-
-    when(subscriptionRepository.findByCriteria(eq(dbReportCriteria), any(Sort.class)))
-        .thenReturn(List.of(s));
+    when(subscriptionRepository.findByCriteria(
+            argThat(
+                argument ->
+                    argument.getOrgId().equals("org123") && isNull(argument.getServiceLevel())),
+            any(Sort.class)))
+        .thenReturn(List.of(basicSubscription()));
 
     CapacityReportByMetricId report =
-        resource.getCapacityReportByMetricId(
-            RHEL_FOR_ARM,
-            METRIC_ID_CORES,
-            GranularityType.DAILY,
-            min,
-            max,
-            null,
-            null,
-            null,
-            null,
-            ServiceLevelType.EMPTY,
-            null);
+        given()
+            .queryParams(
+                "granularity", GranularityType.DAILY.toString(),
+                "beginning", min.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "ending", max.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "sla", ServiceLevelType.EMPTY.toString())
+            .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+            .get(
+                String.format(
+                    "/api/rhsm-subscriptions/v1/capacity/products/%s/%s",
+                    RHEL_FOR_ARM.getValue(), METRIC_ID_CORES.getValue()))
+            .then()
+            .statusCode(200)
+            .extract()
+            .as(CapacityReportByMetricId.class);
 
     assertEquals(9, report.getData().size());
   }
 
   @Test
   void testReportByMetricIdShouldTreatEmptyUsageAsNull() {
-
-    var dbReportCriteria =
-        DbReportCriteria.builder()
-            .orgId("owner123456")
-            .productTag(RHEL_FOR_ARM.toString())
-            .serviceLevel(ServiceLevel._ANY)
-            .usage(Usage._ANY)
-            .beginning(min)
-            .ending(max)
-            .metricId(METRIC_ID_CORES.toString())
-            .build();
-
-    SubscriptionEntity s = new SubscriptionEntity();
-    s.setSubscriptionMeasurements(basicMeasurement());
-
-    when(subscriptionRepository.findByCriteria(eq(dbReportCriteria), any(Sort.class)))
-        .thenReturn(List.of(s));
+    when(subscriptionRepository.findByCriteria(
+            argThat(
+                argument -> argument.getOrgId().equals("org123") && isNull(argument.getUsage())),
+            any(Sort.class)))
+        .thenReturn(List.of(basicSubscription()));
 
     CapacityReportByMetricId report =
-        resource.getCapacityReportByMetricId(
-            RHEL_FOR_ARM,
-            METRIC_ID_CORES,
-            GranularityType.DAILY,
-            min,
-            max,
-            null,
-            null,
-            null,
-            null,
-            null,
-            UsageType.EMPTY);
+        given()
+            .queryParams(
+                "granularity", GranularityType.DAILY.toString(),
+                "beginning", min.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "ending", max.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "usage", UsageType.EMPTY.toString())
+            .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+            .get(
+                String.format(
+                    "/api/rhsm-subscriptions/v1/capacity/products/%s/%s",
+                    RHEL_FOR_ARM.getValue(), METRIC_ID_CORES.getValue()))
+            .then()
+            .statusCode(200)
+            .extract()
+            .as(CapacityReportByMetricId.class);
 
     assertEquals(9, report.getData().size());
   }
@@ -375,38 +318,30 @@ class CapacityResourceV1Test {
                     SubscriptionEntity.builder()
                         .startDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1))
                         .endDate(max.truncatedTo(ChronoUnit.DAYS).minusSeconds(1))
-                        .orgId("owner123456")
+                        .orgId("org123")
                         .subscriptionMeasurements(m)
                         .build())
             .toList();
 
-    var dbReportCriteria =
-        DbReportCriteria.builder()
-            .orgId("owner123456")
-            .productTag(RHEL_FOR_ARM.toString())
-            .serviceLevel(null)
-            .usage(null)
-            .beginning(min)
-            .ending(max)
-            .metricId(METRIC_ID_CORES.toString())
-            .build();
-
-    when(subscriptionRepository.findByCriteria(eq(dbReportCriteria), any(Sort.class)))
+    when(subscriptionRepository.findByCriteria(
+            argThat(argument -> argument.getOrgId().equals("org123")), any(Sort.class)))
         .thenReturn(subs);
 
     CapacityReportByMetricId report =
-        resource.getCapacityReportByMetricId(
-            RHEL_FOR_ARM,
-            METRIC_ID_CORES,
-            GranularityType.DAILY,
-            min,
-            max,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null);
+        given()
+            .queryParams(
+                "granularity", GranularityType.DAILY.toString(),
+                "beginning", min.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "ending", max.withOffsetSameInstant(ZoneOffset.UTC).toString())
+            .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+            .get(
+                String.format(
+                    "/api/rhsm-subscriptions/v1/capacity/products/%s/%s",
+                    RHEL_FOR_ARM.getValue(), METRIC_ID_CORES.getValue()))
+            .then()
+            .statusCode(200)
+            .extract()
+            .as(CapacityReportByMetricId.class);
 
     CapacitySnapshotByMetricId capacitySnapshot = report.getData().get(0);
     assertEquals(64, capacitySnapshot.getValue());
@@ -431,33 +366,25 @@ class CapacityResourceV1Test {
                         .build())
             .toList();
 
-    var dbReportCriteria =
-        DbReportCriteria.builder()
-            .orgId("owner123456")
-            .productTag(RHEL_FOR_ARM.toString())
-            .serviceLevel(null)
-            .usage(null)
-            .beginning(min)
-            .ending(max)
-            .metricId(METRIC_ID_SOCKETS.toString())
-            .build();
-
-    when(subscriptionRepository.findByCriteria(eq(dbReportCriteria), any(Sort.class)))
+    when(subscriptionRepository.findByCriteria(
+            argThat(argument -> argument.getOrgId().equals("org123")), any(Sort.class)))
         .thenReturn(subs);
 
     CapacityReportByMetricId report =
-        resource.getCapacityReportByMetricId(
-            RHEL_FOR_ARM,
-            METRIC_ID_SOCKETS,
-            GranularityType.DAILY,
-            min,
-            max,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null);
+        given()
+            .queryParams(
+                "granularity", GranularityType.DAILY.toString(),
+                "beginning", min.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "ending", max.withOffsetSameInstant(ZoneOffset.UTC).toString())
+            .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+            .get(
+                String.format(
+                    "/api/rhsm-subscriptions/v1/capacity/products/%s/%s",
+                    RHEL_FOR_ARM.getValue(), METRIC_ID_SOCKETS.getValue()))
+            .then()
+            .statusCode(200)
+            .extract()
+            .as(CapacityReportByMetricId.class);
 
     CapacitySnapshotByMetricId capacitySnapshot = report.getData().get(0);
     assertEquals(7, capacitySnapshot.getValue());
@@ -474,36 +401,26 @@ class CapacityResourceV1Test {
 
     List.of(sock, cores, hypCore, hypSock).forEach(newMeasurements::putAll);
 
-    var enhanced = enhancedSubscription(newMeasurements);
-
-    var dbReportCriteria =
-        DbReportCriteria.builder()
-            .orgId("owner123456")
-            .productTag(RHEL_FOR_ARM.toString())
-            .serviceLevel(null)
-            .usage(null)
-            .beginning(min)
-            .ending(max)
-            .hypervisorReportCategory(HypervisorReportCategory.NON_HYPERVISOR)
-            .metricId(METRIC_ID_SOCKETS.toString())
-            .build();
-
-    when(subscriptionRepository.findByCriteria(eq(dbReportCriteria), any(Sort.class)))
-        .thenReturn(List.of(enhanced));
+    when(subscriptionRepository.findByCriteria(
+            argThat(argument -> argument.getOrgId().equals("org123")), any(Sort.class)))
+        .thenReturn(List.of(enhancedSubscription(newMeasurements)));
 
     CapacityReportByMetricId report =
-        resource.getCapacityReportByMetricId(
-            RHEL_FOR_ARM,
-            METRIC_ID_SOCKETS,
-            GranularityType.DAILY,
-            min,
-            max,
-            null,
-            null,
-            null,
-            ReportCategory.VIRTUAL,
-            null,
-            null);
+        given()
+            .queryParams(
+                "granularity", GranularityType.DAILY.toString(),
+                "beginning", min.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "ending", max.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "category", ReportCategory.VIRTUAL.toString())
+            .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+            .get(
+                String.format(
+                    "/api/rhsm-subscriptions/v1/capacity/products/%s/%s",
+                    RHEL_FOR_ARM.getValue(), METRIC_ID_SOCKETS.getValue()))
+            .then()
+            .statusCode(200)
+            .extract()
+            .as(CapacityReportByMetricId.class);
 
     CapacitySnapshotByMetricId capacitySnapshot = report.getData().get(0);
     assertEquals(2, capacitySnapshot.getValue());
@@ -520,24 +437,26 @@ class CapacityResourceV1Test {
 
     List.of(sock, cores, hypCore, hypSock).forEach(newMeasurements::putAll);
 
-    var enhanced = enhancedSubscription(newMeasurements);
-
-    when(subscriptionRepository.findByCriteria(any(DbReportCriteria.class), any()))
-        .thenReturn(List.of(enhanced));
+    when(subscriptionRepository.findByCriteria(
+            argThat(argument -> argument.getOrgId().equals("org123")), any(Sort.class)))
+        .thenReturn(List.of(enhancedSubscription(newMeasurements)));
 
     CapacityReportByMetricId report =
-        resource.getCapacityReportByMetricId(
-            RHEL_FOR_ARM,
-            METRIC_ID_SOCKETS,
-            GranularityType.DAILY,
-            min,
-            max,
-            null,
-            null,
-            null,
-            ReportCategory.PHYSICAL,
-            null,
-            null);
+        given()
+            .queryParams(
+                "granularity", GranularityType.DAILY.toString(),
+                "beginning", min.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "ending", max.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "category", ReportCategory.PHYSICAL.toString())
+            .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+            .get(
+                String.format(
+                    "/api/rhsm-subscriptions/v1/capacity/products/%s/%s",
+                    RHEL_FOR_ARM.getValue(), METRIC_ID_SOCKETS.getValue()))
+            .then()
+            .statusCode(200)
+            .extract()
+            .as(CapacityReportByMetricId.class);
 
     CapacitySnapshotByMetricId capacitySnapshot = report.getData().get(0);
     assertEquals(2, capacitySnapshot.getValue());
@@ -554,35 +473,25 @@ class CapacityResourceV1Test {
 
     List.of(sock, cores, hypCore, hypSock).forEach(newMeasurements::putAll);
 
-    var enhanced = enhancedSubscription(newMeasurements);
-
-    var dbReportCriteria =
-        DbReportCriteria.builder()
-            .orgId("owner123456")
-            .productTag(RHEL_FOR_ARM.toString())
-            .serviceLevel(null)
-            .usage(null)
-            .beginning(min)
-            .ending(max)
-            .metricId(METRIC_ID_CORES.toString())
-            .build();
-
-    when(subscriptionRepository.findByCriteria(eq(dbReportCriteria), any(Sort.class)))
-        .thenReturn(List.of(enhanced));
+    when(subscriptionRepository.findByCriteria(
+            argThat(argument -> argument.getOrgId().equals("org123")), any(Sort.class)))
+        .thenReturn(List.of(enhancedSubscription(newMeasurements)));
 
     CapacityReportByMetricId report =
-        resource.getCapacityReportByMetricId(
-            RHEL_FOR_ARM,
-            METRIC_ID_CORES,
-            GranularityType.DAILY,
-            min,
-            max,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null);
+        given()
+            .queryParams(
+                "granularity", GranularityType.DAILY.toString(),
+                "beginning", min.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "ending", max.withOffsetSameInstant(ZoneOffset.UTC).toString())
+            .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+            .get(
+                String.format(
+                    "/api/rhsm-subscriptions/v1/capacity/products/%s/%s",
+                    RHEL_FOR_ARM.getValue(), METRIC_ID_CORES.getValue()))
+            .then()
+            .statusCode(200)
+            .extract()
+            .as(CapacityReportByMetricId.class);
 
     CapacitySnapshotByMetricId capacitySnapshot = report.getData().get(0);
     assertEquals(28, capacitySnapshot.getValue());
@@ -599,36 +508,26 @@ class CapacityResourceV1Test {
 
     List.of(sock, cores, hypCore, hypSock).forEach(newMeasurements::putAll);
 
-    var enhanced = enhancedSubscription(newMeasurements);
-
-    var dbReportCriteria =
-        DbReportCriteria.builder()
-            .orgId("owner123456")
-            .productTag(RHEL_FOR_ARM.toString())
-            .serviceLevel(null)
-            .usage(null)
-            .beginning(min)
-            .ending(max)
-            .hypervisorReportCategory(HypervisorReportCategory.NON_HYPERVISOR)
-            .metricId(METRIC_ID_CORES.toString())
-            .build();
-
-    when(subscriptionRepository.findByCriteria(eq(dbReportCriteria), any(Sort.class)))
-        .thenReturn(List.of(enhanced));
+    when(subscriptionRepository.findByCriteria(
+            argThat(argument -> argument.getOrgId().equals("org123")), any(Sort.class)))
+        .thenReturn(List.of(enhancedSubscription(newMeasurements)));
 
     CapacityReportByMetricId report =
-        resource.getCapacityReportByMetricId(
-            RHEL_FOR_ARM,
-            METRIC_ID_CORES,
-            GranularityType.DAILY,
-            min,
-            max,
-            null,
-            null,
-            null,
-            ReportCategory.VIRTUAL,
-            null,
-            null);
+        given()
+            .queryParams(
+                "granularity", GranularityType.DAILY.toString(),
+                "beginning", min.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "ending", max.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "category", ReportCategory.VIRTUAL.toString())
+            .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+            .get(
+                String.format(
+                    "/api/rhsm-subscriptions/v1/capacity/products/%s/%s",
+                    RHEL_FOR_ARM.getValue(), METRIC_ID_CORES.getValue()))
+            .then()
+            .statusCode(200)
+            .extract()
+            .as(CapacityReportByMetricId.class);
 
     CapacitySnapshotByMetricId capacitySnapshot = report.getData().get(0);
     assertEquals(8, capacitySnapshot.getValue());
@@ -645,36 +544,26 @@ class CapacityResourceV1Test {
 
     List.of(sock, cores, hypCore, hypSock).forEach(newMeasurements::putAll);
 
-    var enhanced = enhancedSubscription(newMeasurements);
-
-    var dbReportCriteria =
-        DbReportCriteria.builder()
-            .orgId("owner123456")
-            .productTag(RHEL_FOR_ARM.toString())
-            .serviceLevel(null)
-            .usage(null)
-            .beginning(min)
-            .ending(max)
-            .hypervisorReportCategory(HypervisorReportCategory.NON_HYPERVISOR)
-            .metricId(METRIC_ID_CORES.toString())
-            .build();
-
-    when(subscriptionRepository.findByCriteria(eq(dbReportCriteria), any(Sort.class)))
-        .thenReturn(List.of(enhanced));
+    when(subscriptionRepository.findByCriteria(
+            argThat(argument -> argument.getOrgId().equals("org123")), any(Sort.class)))
+        .thenReturn(List.of(enhancedSubscription(newMeasurements)));
 
     CapacityReportByMetricId report =
-        resource.getCapacityReportByMetricId(
-            RHEL_FOR_ARM,
-            METRIC_ID_CORES,
-            GranularityType.DAILY,
-            min,
-            max,
-            null,
-            null,
-            null,
-            ReportCategory.PHYSICAL,
-            null,
-            null);
+        given()
+            .queryParams(
+                "granularity", GranularityType.DAILY.toString(),
+                "beginning", min.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "ending", max.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "category", ReportCategory.PHYSICAL.toString())
+            .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+            .get(
+                String.format(
+                    "/api/rhsm-subscriptions/v1/capacity/products/%s/%s",
+                    RHEL_FOR_ARM.getValue(), METRIC_ID_CORES.getValue()))
+            .then()
+            .statusCode(200)
+            .extract()
+            .as(CapacityReportByMetricId.class);
 
     CapacitySnapshotByMetricId capacitySnapshot = report.getData().get(0);
     assertEquals(8, capacitySnapshot.getValue());
@@ -682,87 +571,67 @@ class CapacityResourceV1Test {
 
   @Test
   void testReportByMetricIdShouldThrowExceptionOnBadOffset() {
-    SubscriptionsException e =
-        assertThrows(
-            SubscriptionsException.class,
-            () -> {
-              resource.getCapacityReportByMetricId(
-                  RHEL_FOR_ARM,
-                  METRIC_ID_CORES,
-                  GranularityType.DAILY,
-                  min,
-                  max,
-                  11,
-                  10,
-                  null,
-                  null,
-                  null,
-                  null);
-            });
-    assertEquals(Response.Status.BAD_REQUEST, e.getStatus());
+    given()
+        .queryParams(
+            "offset", "11",
+            "limit", "10",
+            "granularity", GranularityType.DAILY.toString(),
+            "beginning", min.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+            "ending", max.withOffsetSameInstant(ZoneOffset.UTC).toString())
+        .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+        .get(
+            String.format(
+                "/api/rhsm-subscriptions/v1/capacity/products/%s/%s",
+                RHEL_FOR_ARM.getValue(), METRIC_ID_CORES.getValue()))
+        .then()
+        .body("title", equalTo("Offset must be divisible by limit"))
+        .statusCode(400);
   }
 
   @Test
   void testReportByMetricIdShouldRespectOffsetAndLimit() {
-
-    var dbReportCriteria =
-        DbReportCriteria.builder()
-            .orgId("owner123456")
-            .productTag(RHEL_FOR_ARM.toString())
-            .serviceLevel(ServiceLevel._ANY)
-            .usage(Usage._ANY)
-            .beginning(min)
-            .ending(max)
-            .metricId(METRIC_ID_CORES.toString())
-            .build();
-
-    SubscriptionEntity s = new SubscriptionEntity();
-    s.setSubscriptionMeasurements(basicMeasurement());
-
-    when(subscriptionRepository.findByCriteria(eq(dbReportCriteria), any(Sort.class)))
-        .thenReturn(List.of(s));
+    when(subscriptionRepository.findByCriteria(
+            argThat(argument -> argument.getOrgId().equals("org123")), any(Sort.class)))
+        .thenReturn(List.of(basicSubscription()));
 
     CapacityReportByMetricId report =
-        resource.getCapacityReportByMetricId(
-            RHEL_FOR_ARM,
-            METRIC_ID_CORES,
-            GranularityType.DAILY,
-            min,
-            max,
-            1,
-            1,
-            null,
-            null,
-            null,
-            null);
+        given()
+            .queryParams(
+                "offset", "1",
+                "limit", "1",
+                "granularity", GranularityType.DAILY.toString(),
+                "beginning", min.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "ending", max.withOffsetSameInstant(ZoneOffset.UTC).toString())
+            .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+            .get(
+                String.format(
+                    "/api/rhsm-subscriptions/v1/capacity/products/%s/%s",
+                    RHEL_FOR_ARM.getValue(), METRIC_ID_CORES.getValue()))
+            .then()
+            .statusCode(200)
+            .extract()
+            .as(CapacityReportByMetricId.class);
 
     assertEquals(1, report.getData().size());
     assertEquals(
-        OffsetDateTime.now().minusDays(3).truncatedTo(ChronoUnit.DAYS),
-        report.getData().get(0).getDate());
+        min.truncatedTo(ChronoUnit.DAYS).plusDays(1),
+        report.getData().get(0).getDate().truncatedTo(ChronoUnit.DAYS));
   }
 
   @Test
-  @TestSecurity(
-      user = "owner123456",
-      roles = {"test"})
   void testReportByMetricIdAccessDeniedWhenUserIsNotAConsumer() {
-    assertThrows(
-        ForbiddenException.class,
-        () -> {
-          resource.getCapacityReportByMetricId(
-              RHEL_FOR_ARM,
-              METRIC_ID_CORES,
-              GranularityType.DAILY,
-              min,
-              max,
-              null,
-              null,
-              null,
-              null,
-              null,
-              null);
-        });
+    given()
+        .queryParams(
+            "granularity", GranularityType.DAILY.toString(),
+            "beginning", min.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+            "ending", max.withOffsetSameInstant(ZoneOffset.UTC).toString())
+        .header(RH_IDENTITY_HEADER, "placeholder")
+        .get(
+            String.format(
+                "/api/rhsm-subscriptions/v1/capacity/products/%s/%s",
+                RHEL_FOR_ARM.getValue(), METRIC_ID_CORES.getValue()))
+        .then()
+        .statusCode(401);
   }
 
   @Test
@@ -770,40 +639,33 @@ class CapacityResourceV1Test {
     OffsetDateTime begin = OffsetDateTime.parse("2020-12-03T10:15:30+00:00");
     OffsetDateTime end = OffsetDateTime.parse("2020-12-17T10:15:30+00:00");
     var s = datedSubscription(begin, end);
-
-    var dbReportCriteria =
-        DbReportCriteria.builder()
-            .orgId("owner123456")
-            .productTag(RHEL_FOR_ARM.toString())
-            .serviceLevel(ServiceLevel._ANY)
-            .usage(Usage.PRODUCTION)
-            .beginning(min)
-            .ending(max)
-            .hypervisorReportCategory(HypervisorReportCategory.HYPERVISOR)
-            .metricId(METRIC_ID_CORES.toString())
-            .build();
-
     s.setSubscriptionMeasurements(basicMeasurement());
 
-    when(subscriptionRepository.findByCriteria(eq(dbReportCriteria), any(Sort.class)))
+    when(subscriptionRepository.findByCriteria(
+            argThat(argument -> argument.getOrgId().equals("org123")), any(Sort.class)))
         .thenReturn(List.of(s));
 
-    List<CapacitySnapshotByMetricId> actual =
-        resource.getCapacitiesByMetricId(
-            "owner123456",
-            RHEL_FOR_ARM,
-            METRIC_ID_CORES,
-            null,
-            HypervisorReportCategory.HYPERVISOR,
-            ServiceLevel.STANDARD,
-            Usage.PRODUCTION,
-            Granularity.WEEKLY,
-            begin,
-            end);
+    ExtractableResponse actual =
+        given()
+            .queryParams(
+                "granularity", GranularityType.WEEKLY.toString(),
+                "beginning", begin.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "ending", end.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "category", ReportCategory.HYPERVISOR.toString(),
+                "sla", ServiceLevelType.STANDARD.toString(),
+                "usage", UsageType.PRODUCTION.toString())
+            .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+            .get(
+                String.format(
+                    "/api/rhsm-subscriptions/v1/capacity/products/%s/%s",
+                    RHEL_FOR_ARM.getValue(), METRIC_ID_CORES.getValue()))
+            .then()
+            .statusCode(200)
+            .extract();
 
     // Add one because we generate reports including both endpoints on the timeline
     long expected = ChronoUnit.WEEKS.between(begin, end) + 1;
-    assertEquals(expected, actual.size());
+    assertEquals(expected, actual.body().jsonPath().getList("data").size());
   }
 
   @Test
@@ -824,43 +686,33 @@ class CapacityResourceV1Test {
         OfferingEntity.builder().sku("limitedsku").hasUnlimitedUsage(false).build();
     limited.setOffering(limitedOffering);
 
-    var dbReportCriteria =
-        DbReportCriteria.builder()
-            .orgId("owner123456")
-            .productTag(RHEL_FOR_ARM.toString())
-            .serviceLevel(null)
-            .usage(null)
-            .beginning(min)
-            .ending(max)
-            .metricId(METRIC_ID_CORES.toString())
-            .build();
-
-    when(subscriptionRepository.findByCriteria(eq(dbReportCriteria), any(Sort.class)))
+    when(subscriptionRepository.findByCriteria(
+            argThat(
+                argument ->
+                    argument.getOrgId().equals("org123")
+                        && argument.getMetricId().equals(METRIC_ID_CORES.toString())),
+            any(Sort.class)))
         .thenReturn(List.of(limited));
 
-    var criteria =
-        DbReportCriteria.builder()
-            .orgId("owner123456")
-            .productTag(RHEL_FOR_ARM.toString())
-            .beginning(min)
-            .ending(max)
-            .build();
-
-    when(subscriptionRepository.findUnlimited(criteria)).thenReturn(List.of(unlimited));
+    when(subscriptionRepository.findUnlimited(
+            argThat(argument -> argument.getOrgId().equals("org123"))))
+        .thenReturn(List.of(unlimited));
 
     CapacityReportByMetricId report =
-        resource.getCapacityReportByMetricId(
-            RHEL_FOR_ARM,
-            METRIC_ID_CORES,
-            GranularityType.DAILY,
-            min,
-            max,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null);
+        given()
+            .queryParams(
+                "granularity", GranularityType.DAILY.toString(),
+                "beginning", min.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "ending", max.withOffsetSameInstant(ZoneOffset.UTC).toString())
+            .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+            .get(
+                String.format(
+                    "/api/rhsm-subscriptions/v1/capacity/products/%s/%s",
+                    RHEL_FOR_ARM.getValue(), METRIC_ID_CORES.getValue()))
+            .then()
+            .statusCode(200)
+            .extract()
+            .as(CapacityReportByMetricId.class);
 
     CapacitySnapshotByMetricId capacitySnapshot = report.getData().get(0);
     assertEquals(4, capacitySnapshot.getValue());
@@ -868,45 +720,37 @@ class CapacityResourceV1Test {
 
   @Test
   void testValidateGranularityIncompatible() {
-    var thrownException =
-        Assertions.assertThrows(
-            BadRequestException.class,
-            () ->
-                resource.getCapacityReportByMetricId(
-                    RHEL_FOR_ARM,
-                    METRIC_ID_CORES,
-                    GranularityType.HOURLY,
-                    min,
-                    max,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null));
-
-    assertEquals(
-        String.format("%s does not support granularity %s", RHEL_FOR_ARM, GranularityType.HOURLY),
-        thrownException.getMessage());
+    given()
+        .queryParams(
+            "granularity", GranularityType.HOURLY.toString(),
+            "beginning", min.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+            "ending", max.withOffsetSameInstant(ZoneOffset.UTC).toString())
+        .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+        .get(
+            String.format(
+                "/api/rhsm-subscriptions/v1/capacity/products/%s/%s",
+                RHEL_FOR_ARM.getValue(), METRIC_ID_CORES.getValue()))
+        .then()
+        .statusCode(400);
   }
 
   @ParameterizedTest
   @MethodSource("generateFinestGranularityCases")
   void testValidateGranularity(ProductId productId, GranularityType granularity) {
-    assertDoesNotThrow(
-        () ->
-            resource.getCapacityReportByMetricId(
-                productId,
-                METRIC_ID_CORES,
-                granularity,
-                min,
-                max,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null));
+    given()
+        .queryParams(
+            "granularity", granularity.toString(),
+            "beginning", min.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+            "ending", max.withOffsetSameInstant(ZoneOffset.UTC).toString())
+        .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+        .get(
+            String.format(
+                "/api/rhsm-subscriptions/v1/capacity/products/%s/%s",
+                productId.toString(), METRIC_ID_CORES.getValue()))
+        .then()
+        .statusCode(200)
+        .extract()
+        .as(CapacityReportByMetricId.class);
   }
 
   private static Stream<Arguments> generateFinestGranularityCases() {

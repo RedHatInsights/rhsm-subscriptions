@@ -20,46 +20,32 @@
  */
 package com.redhat.swatch.contract.resource.api.v1;
 
+import static com.redhat.swatch.contract.security.RhIdentityHeaderAuthenticationMechanism.RH_IDENTITY_HEADER;
+import static com.redhat.swatch.contract.security.RhIdentityUtils.ASSOCIATE_IDENTITY_HEADER;
+import static com.redhat.swatch.contract.security.RhIdentityUtils.CUSTOMER_IDENTITY_HEADER;
+import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.contract.openapi.model.BillingAccount;
+import com.redhat.swatch.contract.openapi.model.BillingAccountIdResponse;
 import com.redhat.swatch.contract.repository.BillingAccountInfoDTO;
 import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
-import com.redhat.swatch.contract.security.Identity;
-import com.redhat.swatch.contract.security.RhIdentityPrincipal;
-import io.quarkus.security.ForbiddenException;
+import com.redhat.swatch.contract.test.resources.DisableRbacResource;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.security.TestSecurity;
-import jakarta.inject.Inject;
-import jakarta.validation.ConstraintViolationException;
-import jakarta.ws.rs.core.SecurityContext;
+import io.quarkus.test.junit.TestProfile;
 import java.util.ArrayList;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 @QuarkusTest
-@TestSecurity(
-    user = "owner123456",
-    roles = {"customer"})
+@TestProfile(DisableRbacResource.class)
 class ContractsV1ResourceTest {
 
-  @Inject ContractsV1Resource resource;
   @InjectMock SubscriptionRepository subscriptionRepository;
-  @InjectMock SecurityContext securityContext;
-
   private static final String DEFAULT_ORG_ID = "org123";
-
-  @BeforeEach
-  void updateSecurityContext() {
-    setSecurityContext(false);
-  }
 
   @Test
   void testFetchBillingAccountIdsForUsersOwnOrg() {
@@ -71,7 +57,15 @@ class ContractsV1ResourceTest {
     when(subscriptionRepository.findBillingAccountInfo(any(), any()))
         .thenReturn(billingAccountInfoDTOs);
 
-    var response = resource.fetchBillingAccountIdsForOrg(DEFAULT_ORG_ID, "rosa");
+    var response =
+        given()
+            .queryParams("org_id", DEFAULT_ORG_ID, "product_tag", "rosa")
+            .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+            .get("/api/swatch-contracts/v1/subscriptions/billing_account_ids")
+            .then()
+            .statusCode(200)
+            .extract()
+            .as(BillingAccountIdResponse.class);
 
     var expectedIds = new ArrayList<BillingAccount>();
     expectedIds.add(
@@ -92,17 +86,28 @@ class ContractsV1ResourceTest {
 
   @Test
   void testFetchBillingAccountIdsForNotUsersOrgIsForbidden() {
-    ForbiddenException exception =
-        assertThrows(
-            ForbiddenException.class,
-            () -> resource.fetchBillingAccountIdsForOrg("notMyOrg", "rosa"));
-    assertEquals("The user is not authorized to access this organization.", exception.getMessage());
+    given()
+        .queryParams(
+            "org_id", "notMyOrg",
+            "product_tag", "rosa")
+        .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+        .get("/api/swatch-contracts/v1/subscriptions/billing_account_ids")
+        .then()
+        .statusCode(403);
   }
 
   @Test
   void testFetchBillingAccountIdsForOrgByAssociateIsAllowed() {
-    setSecurityContext(true);
-    Assertions.assertNotNull(resource.fetchBillingAccountIdsForOrg("notMyOrg", "rosa"));
+    given()
+        .queryParams(
+            "org_id", "notMyOrg",
+            "product_tag", "rosa")
+        .header(RH_IDENTITY_HEADER, ASSOCIATE_IDENTITY_HEADER)
+        .get("/api/swatch-contracts/v1/subscriptions/billing_account_ids")
+        .then()
+        .statusCode(200)
+        .extract()
+        .as(BillingAccountIdResponse.class);
   }
 
   @Test
@@ -113,7 +118,15 @@ class ContractsV1ResourceTest {
     when(subscriptionRepository.findBillingAccountInfo(any(), any()))
         .thenReturn(billingAccountInfoDTOs);
 
-    var response = resource.fetchBillingAccountIdsForOrg(DEFAULT_ORG_ID, null);
+    var response =
+        given()
+            .queryParams("org_id", DEFAULT_ORG_ID)
+            .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+            .get("/api/swatch-contracts/v1/subscriptions/billing_account_ids")
+            .then()
+            .statusCode(200)
+            .extract()
+            .as(BillingAccountIdResponse.class);
 
     var expectedIds = new ArrayList<BillingAccount>();
     expectedIds.add(
@@ -128,9 +141,12 @@ class ContractsV1ResourceTest {
 
   @Test
   void testFetchBillingAccountIdsWithoutOrgIdThrowsError() {
-    assertThrows(
-        ConstraintViolationException.class,
-        () -> resource.fetchBillingAccountIdsForOrg(null, "rosa"));
+    given()
+        .queryParams("product_tag", "rosa")
+        .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+        .get("/api/swatch-contracts/v1/subscriptions/billing_account_ids")
+        .then()
+        .statusCode(400);
   }
 
   @Test
@@ -140,7 +156,15 @@ class ContractsV1ResourceTest {
     when(subscriptionRepository.findBillingAccountInfo(any(), any()))
         .thenReturn(billingAccountInfoDTOs);
 
-    var response = resource.fetchBillingAccountIdsForOrg(DEFAULT_ORG_ID, "rosa");
+    var response =
+        given()
+            .queryParams("org_id", DEFAULT_ORG_ID, "product_tag", "rosa")
+            .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+            .get("/api/swatch-contracts/v1/subscriptions/billing_account_ids")
+            .then()
+            .statusCode(200)
+            .extract()
+            .as(BillingAccountIdResponse.class);
 
     var expectedIds = new ArrayList<BillingAccount>();
     expectedIds.add(
@@ -151,14 +175,5 @@ class ContractsV1ResourceTest {
             .orgId(DEFAULT_ORG_ID));
     assertEquals(1, response.getIds().size());
     assertEquals(expectedIds, response.getIds());
-  }
-
-  private void setSecurityContext(boolean isAssociate) {
-    RhIdentityPrincipal mockPrincipal = Mockito.mock(RhIdentityPrincipal.class);
-    Identity identity = new Identity();
-    identity.setOrgId(ContractsV1ResourceTest.DEFAULT_ORG_ID);
-    when(mockPrincipal.getIdentity()).thenReturn(identity);
-    when(mockPrincipal.isAssociate()).thenReturn(isAssociate);
-    when(securityContext.getUserPrincipal()).thenReturn(mockPrincipal);
   }
 }

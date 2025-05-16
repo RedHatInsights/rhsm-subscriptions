@@ -303,9 +303,4 @@ public class CapacityResourceV1 implements CapacityApi {
   private String getOrgId() {
     return securityContext.getUserPrincipal().getName();
   }
-
-  // for unit tests where no REST session
-  void setTestSecurityContext(SecurityContext securityContext) {
-    this.securityContext = securityContext;
-  }
 }
