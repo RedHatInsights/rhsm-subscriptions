@@ -20,52 +20,78 @@
  */
 package com.redhat.swatch.contract.config;
 
-import io.quarkus.arc.Unremovable;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.http.HttpClientResponse;
-import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.ws.rs.client.ClientRequestContext;
+import jakarta.ws.rs.client.ClientRequestFilter;
+import jakarta.ws.rs.client.ClientResponseContext;
+import jakarta.ws.rs.client.ClientResponseFilter;
+import jakarta.ws.rs.ext.Provider;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.jboss.resteasy.reactive.client.api.ClientLogger;
 
 /** ClientLogger implementation that only logs requests for a matching URI */
+@Provider
 @Slf4j
-@Unremovable
-@ApplicationScoped
-public class DebugClientLogger implements ClientLogger {
+public class DebugClientLogger implements ClientRequestFilter, ClientResponseFilter {
 
+  protected static final String URI_FILTER_PROPERTY = "rest-client-debug-logging.uri-filter";
+  protected static final String LOG_RESPONSES_PROPERTY = "rest-client-debug-logging.log-responses";
   private static final String EMPTY_BODY = "(empty)";
+  private static final String OMIT_BODY = "(omit)";
 
-  @ConfigProperty(name = "rest-client-debug-logging.uri-filter")
+  @ConfigProperty(name = URI_FILTER_PROPERTY)
   Pattern uriFilterPattern;
 
-  @Override
-  public void setBodySize(int bodySize) {
-    // intentionally ignored
-  }
+  @ConfigProperty(name = LOG_RESPONSES_PROPERTY, defaultValue = "false")
+  boolean logResponse;
 
   @Override
-  public void logResponse(HttpClientResponse response, boolean redirect) {
-    if (uriFilterPattern.matcher(response.request().getURI()).matches()) {
-      response.bodyHandler(body -> log.debug("Response: \n{}", bodyToString(body)));
-    }
-  }
-
-  @Override
-  public void logRequest(HttpClientRequest request, Buffer body, boolean omitBody) {
-    if (uriFilterPattern.matcher(request.getURI()).matches()) {
+  public void filter(ClientRequestContext requestContext) throws IOException {
+    if (appliesTo(requestContext)) {
       log.debug(
           "Request method={} URI={}: \n{}",
-          request.getMethod(),
-          request.absoluteURI(),
-          bodyToString(body));
+          requestContext.getMethod(),
+          requestContext.getUri().toString(),
+          bodyToString(requestContext.getEntity()));
     }
   }
 
-  private String bodyToString(Buffer body) {
-    return Optional.ofNullable(body).map(Buffer::toString).orElse(EMPTY_BODY);
+  @Override
+  public void filter(ClientRequestContext requestContext, ClientResponseContext responseContext)
+      throws IOException {
+    if (appliesTo(requestContext)) {
+      String responseBody = OMIT_BODY;
+      if (logResponse) {
+        // InputStream can only be consumed once, so to log the response body,
+        // we need to copy the content, log it, and then copy it back to a new input stream.
+        InputStream originalStream = responseContext.getEntityStream();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        originalStream.transferTo(baos);
+        byte[] entityBytes = baos.toByteArray();
+        responseBody = new String(entityBytes, StandardCharsets.UTF_8);
+        responseContext.setEntityStream(new ByteArrayInputStream(entityBytes));
+      }
+
+      log.debug(
+          "Response method={} URI={}: \n{}",
+          requestContext.getMethod(),
+          requestContext.getUri().toString(),
+          bodyToString(responseBody));
+    }
+  }
+
+  private boolean appliesTo(ClientRequestContext requestContext) {
+    String uri = requestContext.getUri().toString();
+    return uriFilterPattern.matcher(uri).matches();
+  }
+
+  private String bodyToString(Object body) {
+    return Optional.ofNullable(body).map(Object::toString).orElse(EMPTY_BODY);
   }
 }
