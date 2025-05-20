@@ -349,6 +349,38 @@ class SubscriptionRepositoryTest {
 
   @TestTransaction
   @Test
+  void testFilterByMostRecentSubscription() {
+    var old = createSubscription("org123", "sub123", "seller123");
+    old.setStartDate(now.minusDays(10).truncatedTo(ChronoUnit.SECONDS));
+
+    var recent = createSubscription("org123", "sub123", "seller123");
+    recent.setStartDate(now.truncatedTo(ChronoUnit.SECONDS));
+
+    var offering =
+        createOffering("testSku1", "rosa", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
+    offeringRepo.persist(offering);
+
+    List.of(old, recent)
+        .forEach(
+            x -> {
+              x.setOffering(offering);
+              subscriptionRepo.persistAndFlush(x);
+            });
+
+    var resultList =
+        subscriptionRepo.findByCriteria(
+            DbReportCriteria.builder()
+                .orgId("org123")
+                .beginning(now)
+                .ending(now.plusDays(1))
+                .build(),
+            Sort.by(SubscriptionEntity_.START_DATE).descending());
+    assertEquals(1, resultList.size());
+    assertTrue(resultList.contains(recent));
+  }
+
+  @TestTransaction
+  @Test
   void testMatchesOnFirstPartOfMultipartBillingAccountId() {
     OfferingEntity o1 =
         createOffering("testSku1", "rosa", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
