@@ -55,7 +55,7 @@ dependencies {
     //TODO better way to import these
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.quarkus:quarkus-rest-client'
-    testImplementation 'org.mockito:mockito-core:5.17.0'
+    testImplementation 'org.mockito:mockito-core:5.18.0'
     testImplementation 'io.rest-assured:rest-assured:5.5.2'
     // Quarkus test extensions
     testImplementation 'io.quarkus:quarkus-junit5'
