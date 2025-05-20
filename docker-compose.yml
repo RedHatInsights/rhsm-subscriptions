@@ -1,6 +1,14 @@
 ---
 version: '3.8'
 services:
+  wiremock:
+    image: docker.io/wiremock/wiremock:latest
+    ports:
+      - "127.0.0.1:8006:8080"
+    networks:
+      swatch-network:
+        aliases:
+          - wiremock
   db:
     # Use the same version as in https://gitlab.cee.redhat.com/service/app-interface/-/blob/ff61d457898da76ebd4abf21fe3ce7b5c74c87a5/data/services/insights/rhsm/namespaces/rhsm-prod.yml#L179
     # When updating the image, remember to also update the following locations:
