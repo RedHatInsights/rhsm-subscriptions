@@ -96,7 +96,7 @@ class ProductServiceTest {
     productMap.addEntriesItem(engProds);
     when(productApi.getEngineeringProductsForSkus(anyString())).thenReturn(productMap);
 
-    List<EngineeringProduct> actualEngProds = subject.getEngineeringProductsForSku(sku);
+    List<EngineeringProduct> actualEngProds = getEngineeringProductsForSku(sku);
 
     verify(productApi).getEngineeringProductsForSkus(sku);
     assertEquals(
@@ -118,7 +118,7 @@ class ProductServiceTest {
     productMap.addEntriesItem(engProds);
     when(productApi.getEngineeringProductsForSkus(anyString())).thenReturn(productMap);
 
-    List<EngineeringProduct> actualEngProds = subject.getEngineeringProductsForSku(sku);
+    List<EngineeringProduct> actualEngProds = getEngineeringProductsForSku(sku);
 
     verify(productApi).getEngineeringProductsForSkus(sku);
     assertTrue(
@@ -205,5 +205,10 @@ class ProductServiceTest {
     assertTrue(
         actualEngProds.get(sku2).isEmpty(),
         sku2 + " should have an empty eng prods list because it wasn't found.");
+  }
+
+  public List<EngineeringProduct> getEngineeringProductsForSku(String sku) throws ApiException {
+    Collection<String> skus = Collections.singletonList(sku);
+    return subject.getEngineeringProductsForSkus(skus).get(sku);
   }
 }

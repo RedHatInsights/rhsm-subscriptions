@@ -25,6 +25,8 @@ import com.redhat.swatch.clients.product.api.model.RESTProductTree;
 import com.redhat.swatch.clients.product.api.model.SkuEngProduct;
 import com.redhat.swatch.clients.product.api.resources.ApiException;
 import com.redhat.swatch.clients.product.api.resources.ProductApi;
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -57,6 +59,8 @@ public class ProductService implements ProductDataSource {
    * @return An optional containing the product tree, or an empty if the pro
    * @throws ApiException if fails to make API call
    */
+  @Timed("rhsm_subscriptions_clients_product_requests_time")
+  @Counted("rhsm_subscriptions_clients_product_requests_count")
   @Override
   public Optional<RESTProductTree> getTree(String sku) throws ApiException {
     LOGGER.debug("Retrieving product tree for sku={}", sku);
@@ -74,11 +78,8 @@ public class ProductService implements ProductDataSource {
     return skuTree;
   }
 
-  public List<EngineeringProduct> getEngineeringProductsForSku(String sku) throws ApiException {
-    Collection<String> skus = Collections.singletonList(sku);
-    return getEngineeringProductsForSkus(skus).get(sku);
-  }
-
+  @Timed("rhsm_subscriptions_clients_product_requests_time")
+  @Counted("rhsm_subscriptions_clients_product_requests_count")
   @Override
   public Map<String, List<EngineeringProduct>> getEngineeringProductsForSkus(
       Collection<String> skus) throws ApiException {
