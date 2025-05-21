@@ -1,0 +1,6 @@
+id,product_name,product_id
+0e0f0716-e55a-41fe-82b8-b648ea81a0d7,OpenShift Dedicated,OpenShift-dedicated-metrics
+dd5ecd10-e282-4b03-8ae3-79969a1d955e,OpenShift Container Platform,OpenShift-metrics
+6f90e680-1cdb-4dcc-a291-179fbcf25580,Advanced Cluster Security - Kubernetes,rhacs
+91fafeb0-3850-4848-892e-802205e2bb53,OpenShift Data Science,rhods
+4775cf8b-4001-4d09-9b06-9f81d5859e26,OpenShift Online,rosa

@@ -1,0 +1,11 @@
+id,metric_id,subscription_id,query_params
+50903f74-f109-49f2-ae73-2569f9894de1,Cores,openshift-dedicated-metrics,"{""metric"": ""cluster:usage:workload:capacity_physical_cpu_hours"", ""product"": ""osd"", ""instanceKey"": ""_id"", ""metadataMetric"": ""ocm_subscription""}"
+e73df000-eb0a-437b-8bea-021a84fef0f6,Instance-hours,openshift-dedicated-metrics,"{""metric"": ""cluster:usage:workload:capacity_physical_instance_hours"", ""product"": ""osd"", ""instanceKey"": ""_id"", ""metadataMetric"": ""ocm_subscription""}"
+b5399d4e-208c-4c0c-9849-b98eec3ccee5,Cores,OpenShift-metrics,"{""metric"": ""cluster:usage:workload:capacity_physical_cpu_hours"", ""product"": ""ocp"", ""instanceKey"": ""_id"", ""metadataMetric"": ""ocm_subscription""}"
+e2d05bd5-7e62-4909-81a0-4259d447fac9,vCPUs,rhacm,"{""metric"": ""acm_capacity_effective_cpu_cores:sum"", ""instanceKey"": ""_id"", ""metadataMetric"": ""ocm_subscription"", ""productLabelRegex"": ""(moa-hostedcontrolplane|moa)""}"
+005a5b73-6817-4853-9155-c7c3552785d3,Cores,rhacs,"{""metric"": ""rhacs:rox_central_cluster_metrics_cpu_capacity:avg_over_time1h"", ""product"": ""rhacs"", ""instanceKey"": ""_id"", ""metadataMetric"": ""ocm_subscription""}"
+7b062a4b-3d1c-438c-aa7f-6483a17cae3a,Cores,rhods,"{""metric"": ""cluster:usage:workload:capacity_virtual_cpu_hours"", ""instanceKey"": ""_id"", ""resourceName"": ""addon-open-data-hub"", ""metadataMetric"": ""ocm_subscription_resource""}"
+1bf2d895-e753-477e-ab9c-3cbf9aa2f8ca,vCPUs,rhel-for-x86-els-payg,"{""metric"": ""system_cpu_logical_count"", ""instanceKey"": ""billing_marketplace_instance_id"", ""productLabelRegex"": "".*(^|,)(204)($|,).*""}"
+79bde759-fc0f-4d2b-a65a-a98d70fa8263,vCPUs,rhel-for-x86-els-payg-addon,"{""metric"": ""system_cpu_logical_count"", ""instanceKey"": ""billing_marketplace_instance_id"", ""productLabelRegex"": "".*(^|,)(204)($|,).*""}"
+3f1ec787-3078-4daf-8471-7cf9e0a69744,Instance-hours,rosa,"{""metric"": ""cluster:usage:workload:capacity_physical_instance_hours"", ""product"": ""moa-hostedcontrolplane"", ""instanceKey"": ""_id"", ""metadataMetric"": ""ocm_subscription""}"
+9ba176a6-6654-4929-b466-a1cf2daacded,Cores,rosa,"{""metric"": ""rosa:cluster:vcpu_hours"", ""instanceKey"": ""_id"", ""metadataMetric"": ""ocm_subscription"", ""productLabelRegex"": ""(moa-hostedcontrolplane|moa)""}"

@@ -1,0 +1,23 @@
+id,platform,service_type,contract_enabled,vdc_type,is_payg
+openshift-container-platform,OpenShift,,false,false,false
+rhacm,OpenShift,rhacm Instance,true,false,true
+rhel-aus-addon,RHEL,,false,true,false
+rhel-for-arm,RHEL,,false,true,false
+rhel-for-ibm-power,RHEL,,false,true,false
+rhel-for-ibm-z,RHEL,,false,true,false
+rhel-for-sap-x86,RHEL,,false,true,false
+rhel-for-x86,RHEL,,false,true,false
+rhel-for-x86-els,RHEL,,false,true,false
+rhel-for-x86-eus,RHEL,,false,true,false
+rhel-for-x86-ha,RHEL,,false,true,false
+rhel-for-x86-rs,RHEL,,false,true,false
+satellite-capsule,RHEL,,false,false,false
+satellite-server,RHEL,,false,false,false
+ansible-aap-managed,Ansible,Ansible Managed Node,true,false,true
+rosa,OpenShift,rosa Instance,true,false,true
+OpenShift-metrics,OpenShift,OpenShift Cluster,false,false,true
+openshift-dedicated-metrics,OpenShift,OpenShift Cluster,false,false,true
+rhacs,OpenShift,Rhacs Cluster,false,false,true
+rhods,OpenShift,Rhods Cluster,false,false,true
+rhel-for-x86-els-payg,RHEL,RHEL System,true,true,false
+rhel-for-x86-els-payg-addon,RHEL,RHEL System,true,true,false

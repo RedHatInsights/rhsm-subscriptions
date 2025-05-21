@@ -1,0 +1,25 @@
+id,eng_id,product_id
+35f4ff18-7b08-44e2-a7ec-0306b4e00999,290,OpenShift Container Platform
+57ca64ee-1bf3-42da-8896-904c1bf259c6,251,rhel-aus-addon
+3cdfb493-4bb4-4302-b8a6-b25050fd4ed5,419,RHEL for ARM
+0f78b674-7492-45d7-9197-a4182fac5fd7,74,RHEL for IBM Power
+d782bd48-aa71-4c4d-925e-9102d1fd40cf,279,RHEL for IBM Power
+e1d3e3d9-0d2d-4628-8f3a-933a72213950,420,RHEL for IBM Power
+3d10fc88-730a-4d71-ab27-250a561656e0,72,RHEL for IBM z
+2501f306-2f1d-4e1f-bc58-0232bf43e974,388,rhel-for-sap-x86
+af835c7f-c31d-48cd-9a91-da43d6d7266c,389,rhel-for-sap-x86
+68c7bf65-e7f4-4c8d-a08f-de5977d4f203,241,rhel-for-sap-x86
+f300cc7d-3a6e-4ba9-9bb9-3aba27a8f6f2,146,rhel-for-sap-x86
+f5b34b0f-21a0-4c42-a555-9743aa9c74c1,69,RHEL for x86
+1fa3baeb-1d8a-48a7-a108-c99d43bc3592,479,RHEL for x86
+ce71d045-ea21-4656-96d5-99ac252b81cb,71,RHEL Workstation
+aa574e98-c3b8-4896-8fc1-82848adacfc0,76,RHEL Compute Node
+73c700eb-28d6-49e1-8417-b22aaed79358,204,rhel-for-x86-els-converted
+b13f239b-e276-4295-ae85-c2187acd76fd,204,rhel-for-x86-els-unconverted
+b0b8e846-1aef-4627-97d9-b8fdc6803e43,204,rhel-for-x86-els-payg
+cbe9cf26-9027-46f9-86fb-1f1adfb2df53,204,rhel-for-x86-els-payg-addon
+faa936a0-307f-4173-aa91-b35285416d13,70,rhel-for-x86-eus
+1b23ca7d-71e1-48cf-866f-94995b21bbaf,83,rhel-for-x86-ha
+38e7571e-a909-47b9-92c2-e3ca126e90e2,90,rhel-for-x86-rs
+319bf3e2-cd87-4141-9c5d-fecf1e27e907,269,Satellite Capsule
+37e79947-a33d-41d5-a877-d3adde61d02f,250,Satellite Server

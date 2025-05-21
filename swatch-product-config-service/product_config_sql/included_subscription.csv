@@ -1,0 +1,15 @@
+id,subscription_id,included_id
+fcafbc9b-c958-438c-a145-43cc9259e2f2,openshift-container-platform,rhel-for-x86
+456703e5-88fc-440e-afd0-6abce94157dd,openshift-container-platform,rhel-for-ibm-z
+2d3a65d0-145f-47cf-97a2-f31638c893c1,openshift-container-platform,rhel-for-ibm-power
+f0fcafaa-5d0d-4994-bc83-701716fb463c,openshift-container-platform,rhel-for-x86-eus
+a1e1e530-10a6-45de-acac-e219734d1a72,openshift-container-platform,rhel-for-x86-ha
+b8c45016-1890-4136-adef-d0b5eca886c1,openshift-container-platform,rhel-for-x86-rs
+4dec9f0c-ddd5-4cdc-a7d7-0674c88715c1,satellite-capsule,rhel-for-x86
+595470de-70f3-45f2-9d09-6d8f4404e67c,satellite-capsule,rhel-for-x86-eus
+9eb545df-fcc6-423d-912f-5ffc1255ac21,satellite-capsule,rhel-for-x86-ha
+20211d2c-8738-4c4d-a9db-551113398aa3,satellite-capsule,rhel-for-x86-rs
+03013e89-9c16-4de3-8e70-826e1d297e21,satellite-server,rhel-for-x86
+0d683e15-1f39-479e-91b5-397bbd66fea6,satellite-server,rhel-for-x86-eus
+f1bb769b-8372-4084-92e1-4d055c34b6eb,satellite-server,rhel-for-x86-ha
+9240801c-8969-4f78-83f4-846be841650f,satellite-server,rhel-for-x86-rs

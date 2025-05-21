@@ -1,0 +1,26 @@
+subscription_id,id,level1,level2,is_migration
+openshift-dedicated-metrics,OpenShift-dedicated-metrics,,,
+OpenShift-metrics,OpenShift-metrics,,,
+openshift-container-platform,OpenShift Container Platform,,,
+rhacm,rhacm,OpenShift,ACM - Advanced Cluster Management,
+rhacs,rhacs,,,
+rhods,rhods,,,
+rhel-aus-addon,rhel-aus-addon,,,
+rhel-for-arm,RHEL for ARM,,,
+rhel-for-ibm-power,RHEL for IBM Power,,,
+rhel-for-ibm-z,RHEL for IBM z,,,
+rhel-for-sap-x86,rhel-for-sap-x86,,,
+rhel-for-x86,RHEL for x86,,,
+rhel-for-x86,RHEL Workstation,,,
+rhel-for-x86,RHEL Compute Node,,,
+rhel-for-x86-els,rhel-for-x86-els-converted,,,true
+rhel-for-x86-els,rhel-for-x86-els-unconverted,,,false
+rhel-for-x86-els-payg,rhel-for-x86-els-payg,,,true
+rhel-for-x86-els-payg-addon,rhel-for-x86-els-payg-addon,,,false
+rhel-for-x86-eus,rhel-for-x86-eus,,,
+rhel-for-x86-ha,rhel-for-x86-ha,,,
+rhel-for-x86-rs,rhel-for-x86-rs,,,
+satellite-capsule,Satellite Capsule,,,
+satellite-server,Satellite Server,,,
+ansible-aap-managed,ansible-aap-managed,Ansible,Ansible Automation Platform,
+rosa,rosa,,,

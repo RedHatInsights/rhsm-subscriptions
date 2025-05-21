@@ -1,0 +1,10 @@
+id,role,product_id
+561828fc-eac2-4adb-bf0f-0123587bfe24,osd,OpenShift-dedicated-metrics
+ab1cd856-f8af-40bc-af04-e1e5a8a730c7,ocp,OpenShift-metrics
+9c7b63bd-ecbe-4a69-9f52-f366133549f6,rhacs,rhacs
+9682cae5-82e8-476b-a351-87d7387561d9,addon-open-data-hub,rhods
+cc8ede4d-a006-476e-b516-982df6e83418,Red Hat Enterprise Linux Server,RHEL for x86
+e7b31fe7-2d1b-4d37-b630-f8ee84e1e2c5,Red Hat Enterprise Linux Workstation,RHEL Workstation
+a529e84a-e6ff-40c3-8e76-8804d5546339,Red Hat Enterprise Linux Compute Node,RHEL Compute Node
+cff9fb75-308f-48d1-9a3e-2549b9d7acf5,moa-hostedcontrolplane,rosa
+33e49384-4f92-4dd6-b7eb-cb1054da3a32,moa,rosa

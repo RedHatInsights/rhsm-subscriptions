@@ -1,0 +1,23 @@
+id,subscription_id,product_id,sla,usage
+03a444e7-95ec-4b5f-899a-37cd41c54f2e,rhel-for-x86-eus,"","",""
+1f75e853-8a0b-4e3d-b0ae-bdadfb853211,rhel-for-x86-ha,"","",""
+f4933e7e-f37f-45a0-9883-baf3162fd368,rhel-for-x86-rs,"","",""
+ba19ff8a-70d9-4664-9861-4149dd8f3d72,satellite-capsule,"","",""
+b5dd7cf4-ed07-45df-a0af-2b54f6b2b16d,satellite-server,"","",""
+d8a25046-dbf4-4b7d-b121-7c36257bbffc,ansible-aap-managed,"","",""
+d8bb4e79-7ca0-4a69-87d2-ef476d3bfd27,rhods,rhods,PREMIUM,PRODUCTION
+2cd761ff-dd97-4eb5-bdcc-484ac9fa565c,rhacs,rhacs,PREMIUM,PRODUCTION
+3d9ff4a0-791a-4457-9791-38007a763792,OpenShift-metrics,OpenShift-metrics,PREMIUM,PRODUCTION
+e3764565-e825-47eb-9986-d78714826ed6,rhacm,rhacm,PREMIUM,PRODUCTION
+360c563d-0b40-4199-a2af-0762a32a3504,openshift-container-platform,OpenShift Container Platform,"",""
+6da345f1-a3a6-4cd3-bad5-e3c6e285b6e6,openshift-dedicated-metrics,OpenShift-dedicated-metrics,PREMIUM,PRODUCTION
+f52e82da-d8b0-44f6-ac70-98b58cb4d08d,rosa,rosa,PREMIUM,PRODUCTION
+63fe0f1e-9a10-4580-b63d-9d295a85f443,rhel-for-x86,RHEL for x86,"",""
+873c8c8b-60d4-4450-a01a-58f75599bc4a,rhel-aus-addon,rhel-aus-addon,"",""
+0b4fc911-67a7-4a47-984b-ddcc4f922271,rhel-for-ibm-power,RHEL for IBM Power,"",""
+b75daff8-3a55-4bc1-9148-79c197fbd385,rhel-for-x86-els-payg,rhel-for-x86-els-payg,PREMIUM,PRODUCTION
+5c9a5c6d-4dd6-4019-8b79-b9e13990c505,rhel-for-arm,RHEL for ARM,"",""
+d3518bad-4769-42d6-ab70-5d6eaef1bd33,rhel-for-ibm-z,RHEL for IBM z,"",""
+0d6dc7b4-b2b3-4eb4-8ef1-c6e098ee8879,rhel-for-x86-els,rhel-for-x86-els-unconverted,"",""
+5b73325a-094f-40f3-ad4d-8013fa059f70,rhel-for-sap-x86,rhel-for-sap-x86,"",""
+16592210-2432-4e6b-88ff-64f669af68df,rhel-for-x86-els-payg-addon,rhel-for-x86-els-payg-addon,PREMIUM,PRODUCTION
