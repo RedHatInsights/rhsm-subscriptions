@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xsi:schemaLocation="
+       http://www.liquibase.org/xml/ns/dbchangelog
+       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <changeSet id="001-create-subscription-table" author="lburnett">
+        <createTable tableName="subscription">
+            <column name="id" type="text">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="platform" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="service_type" type="text"/>
+            <column name="contract_enabled" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="vdc_type" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="is_payg" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="002-create-product-table" author="lburnett">
+        <createTable tableName="product">
+            <column name="subscription_id" type="text">
+                <constraints nullable="false" foreignKeyName="products_subscription_id_fkey"
+                             references="subscription(id)"/>
+            </column>
+            <column name="id" type="text">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="level1" type="text"/>
+            <column name="level2" type="text"/>
+            <column name="is_migration" type="boolean"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="003-create-product-role-table" author="lburnett">
+        <createTable tableName="product_role">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="role" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="product_id" type="text">
+                <constraints foreignKeyName="product_role_product_product_id_fk"
+                             references="product(id)"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="004-create-product-product-name-table" author="lburnett">
+        <createTable tableName="product_product_name">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="product_name" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="product_id" type="text">
+                <constraints foreignKeyName="product_product_name_product_product_id_fk"
+                             references="product(id)"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="005-create-subscription-default-table" author="lburnett">
+        <createTable tableName="subscription_default">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="subscription_id" type="text">
+                <constraints nullable="false" unique="true"
+                             foreignKeyName="defaults_subscription_id_fkey"
+                             references="subscription(id)"/>
+            </column>
+            <column name="product_id" type="text"/>
+            <column name="sla" type="text"/>
+            <column name="usage" type="text"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="006-create-metric-table" author="lburnett">
+        <createTable tableName="metric">
+            <column name="uuid" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="id" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="subscription_id" type="text">
+                <constraints nullable="false" foreignKeyName="metrics_subscription_id_fkey"
+                             references="subscription(id)"/>
+            </column>
+            <column name="rhm_metric_id" type="text"/>
+            <column name="aws_dimension" type="text"/>
+            <column name="azure_dimension" type="text"/>
+            <column name="billing_factor" type="numeric(10,4)" defaultValueNumeric="1"/>
+            <column name="enable_gratis_usage" type="boolean"/>
+            <column name="prometheus" type="text"/>
+            <column name="type" type="text">
+                <constraints checkConstraint="type IN ('gauge', 'counter')"/>
+            </column>
+        </createTable>
+        <addUniqueConstraint
+                tableName="metric"
+                columnNames="id, subscription_id"
+                constraintName="metrics_id_subscription_id_key"
+        />
+    </changeSet>
+
+    <changeSet id="007-create-product-eng-id-table" author="lburnett">
+        <createTable tableName="product_eng_id">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="eng_id" type="integer">
+                <constraints nullable="false"/>
+            </column>
+            <column name="product_id" type="text">
+                <constraints foreignKeyName="product_eng_id_product_product_id_fk"
+                             references="product(id)"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="008-create-included-subscription-table" author="lburnett">
+        <createTable tableName="included_subscription">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="subscription_id" type="text">
+                <constraints nullable="false" foreignKeyName="included_subscriptions_subscription_id_fkey"
+                             references="subscription(id)"/>
+            </column>
+            <column name="included_id" type="text">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="009-create-prometheus-query-param-table" author="lburnett">
+        <createTable tableName="prometheus_query_param">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="metric_id" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="subscription_id" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="query_params" type="jsonb">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addUniqueConstraint
+                tableName="prometheus_query_param"
+                columnNames="metric_id, subscription_id"
+                constraintName="prometheus_query_param_metric_sub_unique"
+        />
+        <addForeignKeyConstraint
+                baseTableName="prometheus_query_param"
+                baseColumnNames="metric_id, subscription_id"
+                referencedTableName="metric"
+                referencedColumnNames="id, subscription_id"
+                constraintName="prometheus_query_param_metric_sub_fk"
+                onDelete="CASCADE"
+        />
+    </changeSet>
+
+</databaseChangeLog>
