@@ -37,7 +37,7 @@ libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-de
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:3.0.0"
-libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.31.46"
+libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.31.47"
 libraries["clowder-quarkus-config-source"] = "com.redhat.cloud.common:clowder-quarkus-config-source:2.7.1"
 libraries["guava"] = "com.google.guava:guava:33.4.8-jre"
 libraries["commons-lang3"] = "org.apache.commons:commons-lang3:3.17.0"
@@ -65,7 +65,7 @@ libraries["jackson-module-jakarta-xmlbind-annotations"] = "com.fasterxml.jackson
 libraries["jackson-datatype-jsr310"] = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${jacksonVersion}"
 libraries["jakarta-validation-api"] = "jakarta.validation:jakarta.validation-api:3.1.1"
 libraries["jakarta-persistence-api"] = "jakarta.persistence:jakarta.persistence-api:3.2.0"
-libraries["hibernate-validator"] = "org.hibernate.validator:hibernate-validator:8.0.2.Final"
+libraries["hibernate-validator"] = "org.hibernate.validator:hibernate-validator:9.0.0.Final"
 libraries["resteasy-client"] = "org.jboss.resteasy:resteasy-client:${resteasyVersion}"
 libraries["resteasy-multipart-provider"] = "org.jboss.resteasy:resteasy-multipart-provider:${resteasyVersion}"
 libraries["resteasy-spring-boot-starter"] = "org.jboss.resteasy:resteasy-servlet-spring-boot-starter:6.3.0.Final"
@@ -85,4 +85,4 @@ libraries["unleash-spring-boot-starter"] = "io.getunleash:springboot-unleash-sta
 libraries["unleash-quarkus"] = "io.quarkiverse.unleash:quarkus-unleash:1.10.0"
 libraries["caffeine"] = "com.github.ben-manes.caffeine:caffeine:3.2.0"
 libraries["opentelemetry-api"] = "io.opentelemetry:opentelemetry-api:1.50.0"
-libraries["mockito-junit-jupiter"] = "org.mockito:mockito-junit-jupiter:5.17.0"
+libraries["mockito-junit-jupiter"] = "org.mockito:mockito-junit-jupiter:5.18.0"
