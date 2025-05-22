@@ -20,6 +20,8 @@
  */
 package com.redhat.swatch.contract;
 
+import static com.redhat.swatch.contract.security.RhIdentityHeaderAuthenticationMechanism.RH_IDENTITY_HEADER;
+import static com.redhat.swatch.contract.security.RhIdentityUtils.CUSTOMER_IDENTITY_HEADER;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -34,7 +36,6 @@ import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.service.ContractService;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.security.TestSecurity;
 import io.restassured.http.ContentType;
 import java.util.List;
 import org.apache.http.HttpStatus;
@@ -46,9 +47,6 @@ class ContractsHttpEndpointTest {
   @InjectMock ContractService contractService;
 
   @Test
-  @TestSecurity(
-      user = "placeholder",
-      roles = {"service"})
   void whenGetContract_thenContractShouldBeFound() {
     Contract contract = new Contract();
     contract.setOrgId("org123");
@@ -57,6 +55,7 @@ class ContractsHttpEndpointTest {
     given()
         .contentType(ContentType.JSON)
         .param("org_id", "org123")
+        .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
         .when()
         .get("/api/swatch-contracts/internal/contracts")
         .then()
@@ -66,9 +65,6 @@ class ContractsHttpEndpointTest {
   }
 
   @Test
-  @TestSecurity(
-      user = "placeholder",
-      roles = {"test"})
   void whenCreateContract_thenCreatedContractShouldBeReturned() {
     Contract newContract = new Contract();
     newContract.setOrgId("org123");
@@ -81,6 +77,7 @@ class ContractsHttpEndpointTest {
     given()
         .contentType(ContentType.JSON)
         .body(request)
+        .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
         .when()
         .post("/api/swatch-contracts/internal/contracts")
         .then()
@@ -88,26 +85,21 @@ class ContractsHttpEndpointTest {
   }
 
   @Test
-  @TestSecurity(
-      user = "placeholder",
-      roles = {"test"})
   void whenDeleteContract_thenSuccess() {
     given()
         .contentType(ContentType.JSON)
         .when()
+        .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
         .delete("/api/swatch-contracts/internal/contracts/123")
         .then()
         .statusCode(HttpStatus.SC_NO_CONTENT);
   }
 
   @Test
-  @TestSecurity(
-      user = "placeholder",
-      roles = {"test"})
   void whenOriginHeaderIsInvalid_thenReturnsForbidden() {
     given()
         .contentType(ContentType.JSON)
-        .header("Origin", "wrong")
+        .headers("Origin", "wrong", RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
         .when()
         .delete("/api/swatch-contracts/internal/contracts/123")
         .then()
@@ -115,9 +107,6 @@ class ContractsHttpEndpointTest {
   }
 
   @Test
-  @TestSecurity(
-      user = "placeholder",
-      roles = {"test"})
   void createPartnerEntitlementContract() {
     StatusResponse statusResponse = new StatusResponse();
     statusResponse.setMessage("Contract created successfully");
@@ -146,6 +135,7 @@ class ContractsHttpEndpointTest {
     given()
         .contentType(ContentType.JSON)
         .body(contract)
+        .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
         .when()
         .post("/api/swatch-contracts/internal/rpc/partner/contracts")
         .then()
@@ -153,11 +143,9 @@ class ContractsHttpEndpointTest {
   }
 
   @Test
-  @TestSecurity(
-      user = "placeholder",
-      roles = {"test"})
   void deleteContractsByOrgId() {
     given()
+        .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
         .when()
         .delete("/api/swatch-contracts/internal/rpc/reset/contracts/org123")
         .then()
