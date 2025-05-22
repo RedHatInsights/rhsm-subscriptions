@@ -20,31 +20,22 @@
  */
 package com.redhat.swatch.contract.service;
 
-import static com.redhat.swatch.contract.config.Channels.OFFERING_SYNC_TASK_CANONICAL_UMB;
 import static com.redhat.swatch.contract.config.Channels.OFFERING_SYNC_TASK_TOPIC;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.redhat.swatch.contract.config.Channels;
 import com.redhat.swatch.contract.model.OfferingSyncTask;
-import com.redhat.swatch.contract.product.UpstreamProductData;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.slf4j.MDC;
 
 @ApplicationScoped
 @Slf4j
 public class OfferingSyncTaskConsumer {
 
   private final OfferingSyncService service;
-  private final boolean umbEnabled;
 
-  public OfferingSyncTaskConsumer(
-      OfferingSyncService service, @ConfigProperty(name = "UMB_ENABLED") boolean umbEnabled) {
+  public OfferingSyncTaskConsumer(OfferingSyncService service) {
     this.service = service;
-    this.umbEnabled = umbEnabled;
   }
 
   @Blocking
@@ -54,22 +45,5 @@ public class OfferingSyncTaskConsumer {
     log.info("Sync for offeringSku={} triggered by OfferingSyncTask", sku);
 
     service.syncOffering(sku);
-  }
-
-  @Blocking
-  @Incoming(OFFERING_SYNC_TASK_CANONICAL_UMB)
-  public void consumeFromUmb(String productMessageXml) throws JsonProcessingException {
-    log.debug("Received message from UMB offering sync canonical. product {}", productMessageXml);
-    if (!umbEnabled) {
-      log.debug("UMB processing is not enabled");
-      return;
-    }
-
-    try {
-      MDC.put(UpstreamProductData.REQUEST_SOURCE, Channels.OFFERING_SYNC_TASK_CANONICAL_UMB);
-      service.syncUmbProductFromXml(productMessageXml);
-    } finally {
-      MDC.remove(UpstreamProductData.REQUEST_SOURCE);
-    }
   }
 }

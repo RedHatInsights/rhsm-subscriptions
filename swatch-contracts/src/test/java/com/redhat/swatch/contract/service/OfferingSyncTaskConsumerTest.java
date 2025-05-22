@@ -24,7 +24,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.redhat.swatch.contract.model.OfferingSyncTask;
 import com.redhat.swatch.contract.model.SyncResult;
 import com.redhat.swatch.contract.test.resources.EnableUmbResource;
@@ -51,13 +50,5 @@ class OfferingSyncTaskConsumerTest {
 
     // Then the offering should be synced.
     verify(service).syncOffering(sku);
-  }
-
-  @Test
-  void testConsumeFromUmbWhenValidProductTopic() throws JsonProcessingException {
-    String productMessageXml =
-        "<?xml version=\"1.0\"?> <CanonicalMessage><Payload><Sync><OperationalProduct><Sku>RH0180191</Sku><SkuDescription>Test</SkuDescription><Role>test</Role><ProductRelationship><ParentProduct><Sku>RH0180191</Sku></ParentProduct><ChildProduct><Sku>SVCRH01</Sku></ChildProduct><ChildProduct><Sku>SVCRH01V4</Sku></ChildProduct></ProductRelationship><Attribute><Code>USAGE</Code><Name>Usage</Name><Value>Production</Value></Attribute></OperationalProduct></Sync></Payload></CanonicalMessage>";
-    consumer.consumeFromUmb(productMessageXml);
-    verify(service).syncUmbProductFromXml(productMessageXml);
   }
 }

@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.contract.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.redhat.swatch.clients.product.JsonProductDataSource;
@@ -276,27 +275,6 @@ public class OfferingSyncService {
       log.error("Unable to retrieve offering from upstream ", e);
       return Optional.empty();
     }
-  }
-
-  /**
-   * Sync offering state based on a UMB message.
-   *
-   * <p>See syncRootSku and syncChildSku for more details.
-   *
-   * @param productXml UMB message for product
-   * @return result describing results of sync (for testing purposes)
-   */
-  @Transactional
-  public SyncResult syncUmbProductFromXml(String productXml) throws JsonProcessingException {
-
-    UmbOperationalProduct operationalProduct =
-        umbMessageMapper
-            .readValue(productXml, CanonicalMessage.class)
-            .getPayload()
-            .getSync()
-            .getOperationalProduct();
-
-    return syncUmbProduct(operationalProduct);
   }
 
   /**

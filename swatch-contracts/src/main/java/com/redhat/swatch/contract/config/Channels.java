@@ -29,7 +29,6 @@ public final class Channels {
   public static final String SUBSCRIPTION_SYNC_TASK_UMB = "subscription-sync-umb";
   public static final String OFFERING_SYNC = "offering-sync";
   public static final String OFFERING_SYNC_TASK_TOPIC = "offering-sync-task";
-  public static final String OFFERING_SYNC_TASK_CANONICAL_UMB = "offering-sync-canonical-umb";
   public static final String OFFERING_SYNC_TASK_SERVICE_UMB = "offering-sync-service-umb";
   public static final String EXPORT_REQUESTS_TOPIC = "export-requests";
 

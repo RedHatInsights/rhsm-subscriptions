@@ -44,8 +44,6 @@ public class UmbProperties extends TlsProperties {
 
   private String subscriptionTopic = "VirtualTopic.canonical.subscription";
 
-  private String productTopic = "VirtualTopic.canonical.operationalProduct";
-
   /**
    * Factory method that produces queue names that match UMB convention for VirtualTopics when
    * needed.
@@ -66,9 +64,5 @@ public class UmbProperties extends TlsProperties {
 
   public String getSubscriptionTopic() {
     return getConsumerTopic(subscriptionTopic);
-  }
-
-  public String getProductTopic() {
-    return getConsumerTopic(productTopic);
   }
 }
