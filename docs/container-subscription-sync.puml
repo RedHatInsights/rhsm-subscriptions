@@ -27,7 +27,7 @@ Boundary(rhit, "Red Hat IT") {
   System_Ext(rhit_product, "RH IT Product Service", "The internal RH Product API which contains Offering definitions.")
   System_Ext(partnergw, "IT Partner Services", "Handles Cloud Provider Listings and SaaS Subscription Lifecycle")
   ContainerQueue_Ext(rhit_umb_subscription, "VirtualTopic.canonical.subscription", "ActiveMQ VirtualTopic")
-  ContainerQueue_Ext(rhit_umb_product, "VirtualTopic.canonical.operationalProduct", "ActiveMQ VirtualTopic")
+  ContainerQueue_Ext(rhit_umb_product, "VirtualTopic.services.productservice.Product", "ActiveMQ VirtualTopic")
   ContainerQueue_Ext(rhit_contracts, "VirtualTopic.services.partner-entitlement-gateway", "ActiveMQ VirtualTopic")
 }
 
