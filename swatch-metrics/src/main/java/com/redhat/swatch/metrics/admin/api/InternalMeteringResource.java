@@ -160,7 +160,7 @@ public class InternalMeteringResource implements DefaultApi {
     if (optionalDate.isPresent()) {
       OffsetDateTime date = optionalDate.get();
       if (!date.isEqual(clock.startOfHour(date))) {
-        throw new IllegalArgumentException(
+        throw new BadRequestException(
             String.format("Date must start at top of the hour: %s", date));
       }
       return date;
@@ -171,16 +171,16 @@ public class InternalMeteringResource implements DefaultApi {
 
   private OffsetDateTime getStartDate(OffsetDateTime endDate, Integer rangeInMinutes) {
     if (rangeInMinutes == null) {
-      throw new IllegalArgumentException("Required argument: rangeInMinutes");
+      throw new BadRequestException("Required argument: rangeInMinutes");
     }
 
     if (rangeInMinutes < 0) {
-      throw new IllegalArgumentException("Invalid value specified (Must be >= 0): rangeInMinutes");
+      throw new BadRequestException("Invalid value specified (Must be >= 0): rangeInMinutes");
     }
 
     OffsetDateTime result = endDate.minusMinutes(rangeInMinutes);
     if (!result.isEqual(clock.startOfHour(result))) {
-      throw new IllegalArgumentException(
+      throw new BadRequestException(
           String.format(
               "endDate %s - range %s produces time not at top of the hour: %s",
               endDate, rangeInMinutes, result));
