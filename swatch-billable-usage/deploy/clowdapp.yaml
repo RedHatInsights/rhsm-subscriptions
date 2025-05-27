@@ -19,6 +19,18 @@ parameters:
     value: 200m
   - name: CPU_LIMIT
     value: '1'
+  - name: MIGRATION_IMAGE
+    value: quay.io/cloudservices/swatch-database
+  - name: MIGRATION_TAG
+    value: latest
+  - name: MIGRATION_MEMORY_REQUEST
+    value: 256Mi
+  - name: MIGRATION_MEMORY_LIMIT
+    value: 512Mi
+  - name: MIGRATION_CPU_REQUEST
+    value: 100m
+  - name: MIGRATION_CPU_LIMIT
+    value: 500m
   - name: ENV_NAME
     value: env-swatch-billable-usage
   - name: REPLICAS
@@ -77,6 +89,9 @@ parameters:
     value: '1'
   - name: DISABLE_OTEL
     value: 'false'
+  # allow overriding to support independent deploy with bonfire
+  - name: DB_POD
+    value: swatch-database
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -88,11 +103,10 @@ objects:
   spec:
     envName: ${ENV_NAME}
     database:
-      sharedDbAppName: swatch-tally
+      sharedDbAppName: swatch-database
     dependencies:
+      - swatch-database
       - swatch-contracts
-      # wait for swatch-tally to initialize the db entities
-      - swatch-tally
 
     kafkaTopics:
       - replicas: ${{KAFKA_BILLABLE_USAGE_REPLICAS}}
@@ -131,6 +145,18 @@ objects:
             enabled: true
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
+          initContainers:
+            - image: ${MIGRATION_IMAGE}:${MIGRATION_TAG}
+              command: ["/opt/jboss/container/java/run/run-java.sh"]
+              args: ["core", "update"]
+              inheritEnv: true
+              resources:
+                requests:
+                  cpu: ${MIGRATION_CPU_REQUEST}
+                  memory: ${MIGRATION_MEMORY_REQUEST}
+                limits:
+                  cpu: ${MIGRATION_CPU_LIMIT}
+                  memory: ${MIGRATION_MEMORY_LIMIT}
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -211,6 +237,31 @@ objects:
               value: ${BILLING_PRODUCER_MAX_ATTEMPTS}
             - name: DISABLE_OTEL
               value: ${DISABLE_OTEL}
+            - name: DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: ${DB_POD}-db
+                  key: db.host
+            - name: DATABASE_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: ${DB_POD}-db
+                  key: db.port
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: ${DB_POD}-db
+                  key: db.user
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ${DB_POD}-db
+                  key: db.password
+            - name: DATABASE_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: ${DB_POD}-db
+                  key: db.name
           volumeMounts:
             - name: logs
               mountPath: /logs

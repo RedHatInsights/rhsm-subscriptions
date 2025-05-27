@@ -19,6 +19,18 @@ parameters:
     value: 350m
   - name: CPU_LIMIT
     value: 1500m
+  - name: MIGRATION_IMAGE
+    value: quay.io/cloudservices/swatch-database
+  - name: MIGRATION_TAG
+    value: latest
+  - name: MIGRATION_MEMORY_REQUEST
+    value: 256Mi
+  - name: MIGRATION_MEMORY_LIMIT
+    value: 512Mi
+  - name: MIGRATION_CPU_REQUEST
+    value: 100m
+  - name: MIGRATION_CPU_LIMIT
+    value: 500m
   - name: ENV_NAME
     value: env-swatch-metrics-hbi
   - name: REPLICAS
@@ -62,7 +74,7 @@ parameters:
   - name: LOGGING_SHOW_SQL_QUERIES
     value: 'false'
   - name: DB_POD
-    value: 'swatch-tally'
+    value: 'swatch-database'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -86,10 +98,10 @@ objects:
       name: ${IMAGE_PULL_SECRET}
 
     database:
-      sharedDbAppName: swatch-tally
+      sharedDbAppName: swatch-database
 
     dependencies:
-      - swatch-tally
+      - swatch-database
 
     deployments:
       - name: service
@@ -99,6 +111,18 @@ objects:
             enabled: true
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
+          initContainers:
+            - image: ${MIGRATION_IMAGE}:${MIGRATION_TAG}
+              command: ["/opt/jboss/container/java/run/run-java.sh"]
+              args: ["core", "update"]
+              inheritEnv: true
+              resources:
+                requests:
+                  cpu: ${MIGRATION_CPU_REQUEST}
+                  memory: ${MIGRATION_MEMORY_REQUEST}
+                limits:
+                  cpu: ${MIGRATION_CPU_LIMIT}
+                  memory: ${MIGRATION_MEMORY_LIMIT}
           livenessProbe:
             failureThreshold: 3
             httpGet:

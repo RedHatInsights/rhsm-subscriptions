@@ -48,7 +48,7 @@ class ClowderJsonEnvironmentPostProcessorTest {
     addClowderJson();
 
     postProcessor.postProcessEnvironment(environment, null);
-    assertEquals("swatch-tally-db", environment.getProperty("clowder.database.name"));
+    assertEquals("swatch-database-db", environment.getProperty("clowder.database.name"));
   }
 
   @Test
@@ -61,7 +61,7 @@ class ClowderJsonEnvironmentPostProcessorTest {
     postProcessor.postProcessEnvironment(environment, null);
 
     assertEquals("default", environment.getProperty("testDefault"));
-    assertEquals("swatch-tally-db", environment.getProperty("testNoDefault"));
+    assertEquals("swatch-database-db", environment.getProperty("testNoDefault"));
   }
 
   private void addClowderJson() {
