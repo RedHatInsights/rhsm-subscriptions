@@ -1,19 +1,10 @@
 plugins {
     id 'swatch.quarkus-conventions'
-    id 'swatch.liquibase-conventions'
 }
 
 description = 'The swatch-metrics-hbi service build definition'
 
 
-liquibase {
-    activities {
-        main {
-            databaseChangeLogTableName "DATABASECHANGELOG_SWATCH_METRICS_HBI"
-            databaseChangeLogLockTableName "DATABASECHANGELOGLOCK_SWATCH_METRICS_HBI"
-        }
-    }
-}
 
 dependencies {
     annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
@@ -39,8 +30,8 @@ dependencies {
     implementation project(':swatch-common-panache')
     implementation project(':swatch-common-smallrye-fault-tolerance')
     implementation project(':swatch-model-events')
+    implementation libraries["commons-lang3"]
     annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
-    implementation("io.quarkus:quarkus-liquibase")
     implementation("io.quarkus:quarkus-jdbc-postgresql")
     implementation 'io.quarkus:quarkus-hibernate-validator'
     implementation project(':swatch-common-panache')
@@ -60,7 +51,7 @@ dependencies {
     // Quarkus test extensions
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.quarkus:quarkus-hibernate-orm-panache'
-    testImplementation 'io.quarkus:quarkus-liquibase'
+    testRuntimeOnly("io.quarkus:quarkus-liquibase")
     testImplementation 'org.testcontainers:postgresql'
     testImplementation 'org.testcontainers:testcontainers'
     testImplementation project(':swatch-common-testcontainers')
