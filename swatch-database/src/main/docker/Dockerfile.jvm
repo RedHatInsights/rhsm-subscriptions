@@ -86,8 +86,7 @@ RUN microdnf \
   --enablerepo=ubi-9-appstream-rpms \
   --enablerepo=ubi-9-baseos-rpms \
   install -y \
-  git \
-  unzip
+  git
 WORKDIR /stage
 
 COPY gradlew .
@@ -102,23 +101,11 @@ RUN ./gradlew ${GRADLE_TASKS} -x test ${GRADLE_BUILD_ARGS}
 
 FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.22-1.1747241887
 USER root
-
-COPY <<EOF /etc/yum.repos.d/kubernetes.repo
-[kubernetes]
-name=Kubernetes
-baseurl=https://pkgs.k8s.io/core:/stable:/v1.32/rpm/
-enabled=1
-gpgcheck=1
-gpgkey=https://pkgs.k8s.io/core:/stable:/v1.32/rpm/repodata/repomd.xml.key
-EOF
-
-# kubectl and jq are used by wait_for.sh
 RUN microdnf \
   --disablerepo=* \
-  --enablerepo=kubernetes \
   --enablerepo=ubi-9-appstream-rpms \
   --enablerepo=ubi-9-baseos-rpms \
-  install -y tar rsync kubectl jq
+  install -y tar rsync
 RUN microdnf \
   --disablerepo=* \
   --enablerepo=ubi-9-appstream-rpms \
@@ -135,8 +122,6 @@ COPY --from=0 --chown=default:root --chmod=775 /stage/swatch-database/build/libs
 
 # Required by Red Hat OpenShift Software Certification Policy Guide
 COPY --from=0 /stage/LICENSE /licenses/
-
-# RUN chmod 775 /deployments /deployments/*
 
 EXPOSE 8080
 # Custom JVM properties
