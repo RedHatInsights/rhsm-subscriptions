@@ -28,8 +28,8 @@ objects:
         # any secrets by looking for a secret with 'db.host' starting with '<name>-<env>' where
         # env is usually 'stage' or 'prod'
 
-        # In our case, we want to fall back to the legacy name "swatch-tally-db".  Eventually, we
+        # In our case, we want to fall back to the legacy name "swatch-tally".  Eventually, we
         # will rename the secret to swatch-database-db but that will be a subsequent step so that
         # we don't incur an outage
-        name: swatch-tally-db
+        name: swatch-tally
         version: 13
