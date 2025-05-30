@@ -13,7 +13,7 @@ Read more about the prerequisites in [here](../../CONTRIBUTING.md#build).
 - splunk: instructions [here](../../README.md#splunk).
 - Opentelemetry (OTEL) Exporter: instructions [here](../../README.md#opentelemetry-otel-exporter).
 - Wiremock (for prometheus): instructions [here](../../README.md#wiremock-service).
-- perform database migrations: `./gradlew liquibaseUpdate --no-daemon`
+- perform database migrations: `./gradlew :swatch-database:run`
 - build all the swatch services: `./gradlew clean build -x test`
 
 ## Run SWATCH Services
