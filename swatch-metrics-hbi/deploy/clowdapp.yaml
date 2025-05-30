@@ -114,7 +114,7 @@ objects:
           initContainers:
             - image: ${MIGRATION_IMAGE}:${MIGRATION_TAG}
               command: ["/opt/jboss/container/java/run/run-java.sh"]
-              args: ["core", "update"]
+              args: ["metrics-hbi", "update"]
               inheritEnv: true
               resources:
                 requests:
