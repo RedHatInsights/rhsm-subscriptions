@@ -31,16 +31,17 @@ import com.redhat.swatch.contract.openapi.model.UsageType;
 import com.redhat.swatch.contract.openapi.resource.SubscriptionsV2Api;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.validation.constraints.Min;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.SecurityContext;
 import java.time.OffsetDateTime;
-import lombok.AllArgsConstructor;
 
 /** Subscriptions Table API implementation. */
 @ApplicationScoped
-@AllArgsConstructor
 public class SubscriptionResourceV2 implements SubscriptionsV2Api {
-
-  private SubscriptionTableControllerV2 subscriptionTableController;
+  @Context SecurityContext securityContext;
+  @Inject SubscriptionTableControllerV2 subscriptionTableController;
 
   @RolesAllowed({"customer"})
   @Override
@@ -58,8 +59,8 @@ public class SubscriptionResourceV2 implements SubscriptionsV2Api {
       String metricId,
       SkuCapacityReportSortV2 sort,
       SortDirection dir) {
-
     return subscriptionTableController.capacityReportBySkuV2(
+        securityContext.getUserPrincipal().getName(),
         productId,
         offset,
         limit,

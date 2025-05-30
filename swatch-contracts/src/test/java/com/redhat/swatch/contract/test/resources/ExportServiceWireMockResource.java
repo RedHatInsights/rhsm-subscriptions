@@ -122,6 +122,7 @@ public class ExportServiceWireMockResource implements QuarkusTestResourceLifecyc
                                     "/app/export/v1/%s/subscriptions/%s/upload",
                                     request.getData().getResourceRequest().getExportRequestUUID(),
                                     request.getData().getResourceRequest().getUUID())))
+                        .withHeader("x-rh-exports-psk", equalTo("placeholder"))
                         .withRequestBody(equalTo(expected))));
   }
 

@@ -48,8 +48,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.Min;
-import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.SecurityContext;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -73,8 +71,6 @@ public class SubscriptionTableControllerV2 {
   private final SubscriptionCapacityViewRepository repository;
   private final ApplicationClock clock;
 
-  @Context SecurityContext securityContext;
-
   @Inject
   SubscriptionTableControllerV2(
       ApiModelMapperV2 mapper,
@@ -88,6 +84,7 @@ public class SubscriptionTableControllerV2 {
   @SuppressWarnings("java:S107")
   @Transactional
   public SkuCapacityReportV2 capacityReportBySkuV2(
+      String orgId,
       ProductId productId,
       @Min(0) Integer offset,
       @Min(1) Integer limit,
@@ -113,7 +110,7 @@ public class SubscriptionTableControllerV2 {
         metricId);
     var subscriptionSpec =
         SubscriptionCapacityViewRepository.buildSearchSpecification(
-            getOrgId(),
+            orgId,
             productId,
             mapper.map(category),
             mapper.map(serviceLevel),
@@ -347,14 +344,5 @@ public class SubscriptionTableControllerV2 {
     public int getPosition(MetricId metricId) {
       return positionOfMetrics.get(metricId);
     }
-  }
-
-  private String getOrgId() {
-    return securityContext.getUserPrincipal().getName();
-  }
-
-  // for unit testing since we have no REST request
-  protected void setSecurityContext(SecurityContext securityContext) {
-    this.securityContext = securityContext;
   }
 }

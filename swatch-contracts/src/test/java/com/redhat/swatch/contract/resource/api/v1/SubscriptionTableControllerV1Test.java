@@ -59,8 +59,6 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.SecurityContext;
-import java.security.Principal;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -69,7 +67,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -78,6 +75,7 @@ class SubscriptionTableControllerV1Test {
 
   private static final ProductId RHEL_FOR_X86 = ProductId.fromString("RHEL for x86");
   private static final String OFFERING_DESCRIPTION_SUFFIX = " test description";
+  private static final String ORG_ID = "123456";
 
   @InjectMock SubscriptionRepository subscriptionRepository;
   @Inject ApplicationClock clock;
@@ -178,15 +176,6 @@ class SubscriptionTableControllerV1Test {
     return flattened;
   }
 
-  @BeforeEach
-  public void updateSecurityContext() {
-    SecurityContext mockSecurityContext = Mockito.mock(SecurityContext.class);
-    Principal mockPrincipal = Mockito.mock(Principal.class);
-    subscriptionTableControllerV1.setTestSecurityContext(mockSecurityContext);
-    when(mockSecurityContext.getUserPrincipal()).thenReturn(mockPrincipal);
-    when(mockPrincipal.getName()).thenReturn("123456");
-  }
-
   @Test
   void testGetSkuCapacityReportSingleSub() {
     // Given an org with one active sub with a quantity of 4 and has an eng product with a socket
@@ -202,7 +191,8 @@ class SubscriptionTableControllerV1Test {
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReportV1 actual =
         subscriptionTableControllerV1.capacityReportBySkuV1(
-            productId, null, null, null, null, null, null, null, null, null, null, null, null);
+            ORG_ID, productId, null, null, null, null, null, null, null, null, null, null, null,
+            null);
 
     // Then the report contains a single inventory item containing the sub and appropriate
     // quantity and capacities.
@@ -239,7 +229,8 @@ class SubscriptionTableControllerV1Test {
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReportV1 actual =
         subscriptionTableControllerV1.capacityReportBySkuV1(
-            productId, null, null, null, null, null, null, null, null, null, null, null, null);
+            ORG_ID, productId, null, null, null, null, null, null, null, null, null, null, null,
+            null);
 
     // Then the report contains a single inventory item containing the subs and appropriate
     // quantity and capacities.
@@ -287,6 +278,7 @@ class SubscriptionTableControllerV1Test {
     // When requesting a SKU capacity report for the eng product, sorted by SKU
     SkuCapacityReportV1 actual =
         subscriptionTableControllerV1.capacityReportBySkuV1(
+            ORG_ID,
             productId,
             null,
             null,
@@ -350,7 +342,20 @@ class SubscriptionTableControllerV1Test {
     // When requesting a SKU capacity report for an eng product,
     SkuCapacityReportV1 actual =
         subscriptionTableControllerV1.capacityReportBySkuV1(
-            RHEL_FOR_X86, null, null, null, null, null, null, null, null, null, null, null, null);
+            ORG_ID,
+            RHEL_FOR_X86,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null);
 
     // Then the report contains no inventory items.
     assertEquals(0, actual.getData().size(), "An empty inventory list should be returned.");
@@ -371,6 +376,7 @@ class SubscriptionTableControllerV1Test {
 
     SkuCapacityReportV1 report =
         subscriptionTableControllerV1.capacityReportBySkuV1(
+            ORG_ID,
             RHEL_FOR_X86,
             null,
             null,
@@ -392,6 +398,7 @@ class SubscriptionTableControllerV1Test {
     // By default, our mock will return empty collections for findAll and findUnlimited which is
     // what we want in this case.
     subscriptionTableControllerV1.capacityReportBySkuV1(
+        ORG_ID,
         RHEL_FOR_X86,
         null,
         null,
@@ -453,6 +460,7 @@ class SubscriptionTableControllerV1Test {
 
     SkuCapacityReportV1 reportForUnmatchedSLA =
         subscriptionTableControllerV1.capacityReportBySkuV1(
+            ORG_ID,
             productId,
             null,
             null,
@@ -471,6 +479,7 @@ class SubscriptionTableControllerV1Test {
     givenSubscriptionsInRepository(expectedNewerSub);
     SkuCapacityReportV1 reportForMatchingSLA =
         subscriptionTableControllerV1.capacityReportBySkuV1(
+            ORG_ID,
             productId,
             null,
             null,
@@ -502,6 +511,7 @@ class SubscriptionTableControllerV1Test {
 
     SkuCapacityReportV1 reportForUnmatchedUsage =
         subscriptionTableControllerV1.capacityReportBySkuV1(
+            ORG_ID,
             productId,
             null,
             null,
@@ -520,6 +530,7 @@ class SubscriptionTableControllerV1Test {
     givenSubscriptionsInRepository(expectedNewerSub);
     SkuCapacityReportV1 reportForMatchingUsage =
         subscriptionTableControllerV1.capacityReportBySkuV1(
+            ORG_ID,
             productId,
             null,
             null,
@@ -591,6 +602,7 @@ class SubscriptionTableControllerV1Test {
 
     SkuCapacityReportV1 reportWithOffsetAndLimit =
         subscriptionTableControllerV1.capacityReportBySkuV1(
+            ORG_ID,
             productId,
             0,
             2,
@@ -630,6 +642,7 @@ class SubscriptionTableControllerV1Test {
 
     SkuCapacityReportV1 reportForMatchingCores =
         subscriptionTableControllerV1.capacityReportBySkuV1(
+            ORG_ID,
             productId,
             null,
             null,
@@ -647,6 +660,7 @@ class SubscriptionTableControllerV1Test {
 
     SkuCapacityReportV1 reportForMatchingSockets =
         subscriptionTableControllerV1.capacityReportBySkuV1(
+            ORG_ID,
             productId,
             null,
             null,
@@ -670,6 +684,7 @@ class SubscriptionTableControllerV1Test {
             SubscriptionsException.class,
             () ->
                 subscriptionTableControllerV1.capacityReportBySkuV1(
+                    ORG_ID,
                     RHEL_FOR_X86,
                     11,
                     10,
@@ -693,6 +708,7 @@ class SubscriptionTableControllerV1Test {
 
     SkuCapacityReportV1 report =
         subscriptionTableControllerV1.capacityReportBySkuV1(
+            ORG_ID,
             RHEL_FOR_X86,
             null,
             null,
@@ -717,6 +733,7 @@ class SubscriptionTableControllerV1Test {
 
     SkuCapacityReportV1 report =
         subscriptionTableControllerV1.capacityReportBySkuV1(
+            ORG_ID,
             ProductId.fromString("OpenShift-metrics"),
             null,
             null,
@@ -741,6 +758,7 @@ class SubscriptionTableControllerV1Test {
 
     SkuCapacityReportV1 report =
         subscriptionTableControllerV1.capacityReportBySkuV1(
+            ORG_ID,
             ProductId.fromString("ansible-aap-managed"),
             null,
             null,
@@ -776,7 +794,8 @@ class SubscriptionTableControllerV1Test {
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReportV1 actual =
         subscriptionTableControllerV1.capacityReportBySkuV1(
-            productId, null, null, null, null, null, null, null, null, null, null, null, null);
+            ORG_ID, productId, null, null, null, null, null, null, null, null, null, null, null,
+            null);
 
     // Then the report contains a single inventory item containing the sub and HasInfiniteQuantity
     // should be true.
@@ -806,6 +825,7 @@ class SubscriptionTableControllerV1Test {
     // When requesting a SKU capacity report for the eng product, sorted by quantity
     SkuCapacityReportV1 actual =
         subscriptionTableControllerV1.capacityReportBySkuV1(
+            ORG_ID,
             productId,
             null,
             null,
@@ -856,6 +876,7 @@ class SubscriptionTableControllerV1Test {
     // When requesting a SKU capacity report for the eng product, sorted by quantity
     SkuCapacityReportV1 actual =
         subscriptionTableControllerV1.capacityReportBySkuV1(
+            ORG_ID,
             productId,
             null,
             null,
@@ -901,7 +922,8 @@ class SubscriptionTableControllerV1Test {
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReportV1 actual =
         subscriptionTableControllerV1.capacityReportBySkuV1(
-            productId, null, null, null, null, null, null, null, null, null, null, null, null);
+            ORG_ID, productId, null, null, null, null, null, null, null, null, null, null, null,
+            null);
 
     // Then the report contains a single inventory item containing the sub and appropriate
     // quantity and capacities.
@@ -927,7 +949,8 @@ class SubscriptionTableControllerV1Test {
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReportV1 actual =
         subscriptionTableControllerV1.capacityReportBySkuV1(
-            productId, null, null, null, null, null, null, null, null, null, null, null, null);
+            ORG_ID, productId, null, null, null, null, null, null, null, null, null, null, null,
+            null);
 
     // Then the report contains a single inventory item containing the sub and appropriate
     // quantity and capacities.
@@ -953,7 +976,8 @@ class SubscriptionTableControllerV1Test {
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReportV1 actual =
         subscriptionTableControllerV1.capacityReportBySkuV1(
-            productId, null, null, null, null, null, null, null, null, null, null, null, null);
+            ORG_ID, productId, null, null, null, null, null, null, null, null, null, null, null,
+            null);
 
     // Then the report contains a single inventory item containing the sub and appropriate
     // quantity and capacities.

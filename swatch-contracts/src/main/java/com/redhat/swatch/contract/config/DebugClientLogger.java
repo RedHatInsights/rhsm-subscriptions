@@ -24,6 +24,7 @@ import jakarta.ws.rs.client.ClientRequestContext;
 import jakarta.ws.rs.client.ClientRequestFilter;
 import jakarta.ws.rs.client.ClientResponseContext;
 import jakarta.ws.rs.client.ClientResponseFilter;
+import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.ext.Provider;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -32,6 +33,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -42,6 +44,8 @@ public class DebugClientLogger implements ClientRequestFilter, ClientResponseFil
 
   protected static final String URI_FILTER_PROPERTY = "rest-client-debug-logging.uri-filter";
   protected static final String LOG_RESPONSES_PROPERTY = "rest-client-debug-logging.log-responses";
+  protected static final String LOG_HEADERS_PROPERTY = "rest-client-debug-logging.log-headers";
+
   private static final String EMPTY_BODY = "(empty)";
   private static final String OMIT_BODY = "(omit)";
 
@@ -51,13 +55,17 @@ public class DebugClientLogger implements ClientRequestFilter, ClientResponseFil
   @ConfigProperty(name = LOG_RESPONSES_PROPERTY, defaultValue = "false")
   boolean logResponse;
 
+  @ConfigProperty(name = LOG_HEADERS_PROPERTY, defaultValue = "false")
+  boolean logHeaders;
+
   @Override
   public void filter(ClientRequestContext requestContext) throws IOException {
     if (appliesTo(requestContext)) {
       log.debug(
-          "Request method={} URI={}: \n{}",
+          "Request method={} URI={} headers={}: \n{}",
           requestContext.getMethod(),
           requestContext.getUri().toString(),
+          mapToString(requestContext.getStringHeaders()),
           bodyToString(requestContext.getEntity()));
     }
   }
@@ -79,9 +87,10 @@ public class DebugClientLogger implements ClientRequestFilter, ClientResponseFil
       }
 
       log.debug(
-          "Response method={} URI={}: \n{}",
+          "Response method={} URI={} headers={}: \n{}",
           requestContext.getMethod(),
           requestContext.getUri().toString(),
+          mapToString(responseContext.getHeaders()),
           bodyToString(responseBody));
     }
   }
@@ -93,5 +102,17 @@ public class DebugClientLogger implements ClientRequestFilter, ClientResponseFil
 
   private String bodyToString(Object body) {
     return Optional.ofNullable(body).map(Object::toString).orElse(EMPTY_BODY);
+  }
+
+  public String mapToString(MultivaluedMap<String, String> map) {
+    if (!logHeaders) {
+      return OMIT_BODY;
+    }
+
+    return "{"
+        + map.entrySet().stream()
+            .map(entry -> entry.getKey() + "=" + entry.getValue())
+            .collect(Collectors.joining(", "))
+        + "}";
   }
 }
