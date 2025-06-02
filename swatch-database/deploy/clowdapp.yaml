@@ -8,6 +8,9 @@ parameters:
     value: quay-cloudservices-pull
   - name: ENV_NAME
     value: env-swatch-database
+  - name: DATABASE
+    value: rhsm-stage
+#    value: swatch-tally
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -31,5 +34,5 @@ objects:
         # In our case, we want to fall back to the legacy name "swatch-tally".  Eventually, we
         # will rename the secret to swatch-database-db but that will be a subsequent step so that
         # we don't incur an outage
-        name: swatch-tally
+        name: ${DATABASE}
         version: 13
