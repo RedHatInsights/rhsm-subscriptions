@@ -103,9 +103,9 @@ objects:
   spec:
     envName: ${ENV_NAME}
     database:
-      sharedDbAppName: swatch-database
+      sharedDbAppName: ${DB_POD}
     dependencies:
-      - swatch-database
+      - ${DB_POD}
       - swatch-contracts
 
     kafkaTopics:
