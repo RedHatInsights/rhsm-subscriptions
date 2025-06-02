@@ -9,7 +9,7 @@ parameters:
   - name: ENV_NAME
     value: env-swatch-database
   - name: DATABASE
-    value: rhsm-stage
+    value: rhsm
 #    value: swatch-tally
 
 objects:
