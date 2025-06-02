@@ -149,14 +149,10 @@ objects:
     spec:
       envName: ${ENV_NAME}
 
-# Needs to stay commented out until there's an rhsm ClowdApp deployed in stage/prod
-#      dependencies:
-#        - rhsm
-
       database:
-        sharedDbAppName: swatch-database
+        sharedDbAppName: ${DB_POD}
       dependencies:
-        - swatch-database
+        - ${DB_POD}
         - swatch-tally
         - rbac
 

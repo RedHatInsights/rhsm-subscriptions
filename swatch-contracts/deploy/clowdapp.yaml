@@ -129,9 +129,9 @@ objects:
         name: ${IMAGE_PULL_SECRET}
 
       database:
-        sharedDbAppName: swatch-database
+        sharedDbAppName: ${DB_POD}
       dependencies:
-        - swatch-database
+        - ${DB_POD}
         - swatch-tally
         - rbac
         - export-service
@@ -152,11 +152,6 @@ objects:
         - replicas: ${{KAFKA_SUBSCRIPTIONS_EXPORT_REPLICAS}}
           partitions: ${{KAFKA_SUBSCRIPTIONS_EXPORT_PARTITIONS}}
           topicName: platform.export.requests
-
-      # Creates a database if local mode, or uses RDS in production
-      # database:
-      #   name: ${DB_POD}
-      #   version: 12
 
       deployments:
         - name: service
