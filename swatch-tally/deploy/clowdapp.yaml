@@ -256,7 +256,7 @@ objects:
     # The name of the ClowdEnvironment providing the services
     envName: ${ENV_NAME}
     dependencies:
-      - swatch-database
+      - ${DB_POD}
       - host-inventory
       - swatch-contracts
       - swatch-billable-usage
@@ -287,7 +287,7 @@ objects:
         topicName: platform.export.requests
 
     database:
-      sharedDbAppName: swatch-database
+      sharedDbAppName: ${DB_POD}
 
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
@@ -746,10 +746,10 @@ objects:
     envName: ${ENV_NAME}
 
     database:
-      sharedDbAppName: swatch-database
+      sharedDbAppName: ${DB_POD}
 
     dependencies:
-      - swatch-database
+      - ${DB_POD}
 
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
@@ -776,22 +776,22 @@ objects:
           - name: POSTGRESQL_SERVICE_HOST
             valueFrom:
               secretKeyRef:
-                name: swatch-database-db
+                name: ${DB_POD}-db
                 key: db.host
           - name: POSTGRESQL_USER
             valueFrom:
               secretKeyRef:
-                name: swatch-database-db
+                name: ${DB_POD}-db
                 key: db.user
           - name: POSTGRESQL_DATABASE
             valueFrom:
               secretKeyRef:
-                name: swatch-database-db
+                name: ${DB_POD}-db
                 key: db.name
           - name: PGPASSWORD
             valueFrom:
               secretKeyRef:
-                name: swatch-database-db
+                name: ${DB_POD}-db
                 key: db.password
           - name: DB_CHANGELOG_CLEANUP_SQL
             value: ${DB_CHANGELOG_CLEANUP_SQL}
