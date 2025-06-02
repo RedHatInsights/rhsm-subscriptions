@@ -50,8 +50,6 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.SecurityContext;
-import java.security.Principal;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -59,7 +57,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -69,6 +66,7 @@ class SubscriptionTableControllerV2Test {
   private static final ProductId RHEL_FOR_X86 = ProductId.fromString("RHEL for x86");
   private static final String OFFERING_DESCRIPTION_SUFFIX = " test description";
   private static final String BILLING_ACCOUNT_ID = "billing_account_id_123";
+  private static final String ORG_ID = "123456";
 
   @InjectMock SubscriptionCapacityViewRepository repository;
   @Inject SubscriptionTableControllerV2 subscriptionTableControllerV2;
@@ -128,15 +126,6 @@ class SubscriptionTableControllerV2Test {
             });
   }
 
-  @BeforeEach
-  public void updateSecurityContext() {
-    SecurityContext mockSecurityContext = Mockito.mock(SecurityContext.class);
-    Principal mockPrincipal = Mockito.mock(Principal.class);
-    subscriptionTableControllerV2.setSecurityContext(mockSecurityContext);
-    when(mockSecurityContext.getUserPrincipal()).thenReturn(mockPrincipal);
-    when(mockPrincipal.getName()).thenReturn("123456");
-  }
-
   @Test
   void testGetSkuCapacityReportSingleSub() {
     // Given an org with one active sub with a quantity of 4 and has an eng product with a socket
@@ -151,7 +140,7 @@ class SubscriptionTableControllerV2Test {
     // When requesting a SKU capacity report for the eng product,
     var actual =
         subscriptionTableControllerV2.capacityReportBySkuV2(
-            productId, null, null, null, null, null, null, null, null, null, null);
+            ORG_ID, productId, null, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the sub and appropriate
     // quantity and capacities.
@@ -193,7 +182,7 @@ class SubscriptionTableControllerV2Test {
     // When requesting a SKU capacity report for the eng product,
     var actual =
         subscriptionTableControllerV2.capacityReportBySkuV2(
-            productId, null, null, null, null, null, null, null, null, null, null);
+            ORG_ID, productId, null, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the subs and appropriate
     // quantity and capacities.
@@ -242,6 +231,7 @@ class SubscriptionTableControllerV2Test {
     // When requesting a SKU capacity report for the eng product, sorted by SKU
     var actual =
         subscriptionTableControllerV2.capacityReportBySkuV2(
+            ORG_ID,
             productId,
             null,
             null,
@@ -305,7 +295,7 @@ class SubscriptionTableControllerV2Test {
     // When requesting a SKU capacity report for an eng product,
     var actual =
         subscriptionTableControllerV2.capacityReportBySkuV2(
-            RHEL_FOR_X86, null, null, null, null, null, null, null, null, null, null);
+            ORG_ID, RHEL_FOR_X86, null, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains no inventory items.
     assertEquals(0, actual.getData().size(), "An empty inventory list should be returned.");
@@ -326,6 +316,7 @@ class SubscriptionTableControllerV2Test {
 
     var report =
         subscriptionTableControllerV2.capacityReportBySkuV2(
+            ORG_ID,
             RHEL_FOR_X86,
             null,
             null,
@@ -355,6 +346,7 @@ class SubscriptionTableControllerV2Test {
 
     var reportForUnmatchedSLA =
         subscriptionTableControllerV2.capacityReportBySkuV2(
+            ORG_ID,
             productId,
             null,
             null,
@@ -371,6 +363,7 @@ class SubscriptionTableControllerV2Test {
     givenSubscriptionsInRepository(expectedNewerSub);
     var reportForMatchingSLA =
         subscriptionTableControllerV2.capacityReportBySkuV2(
+            ORG_ID,
             productId,
             null,
             null,
@@ -400,6 +393,7 @@ class SubscriptionTableControllerV2Test {
 
     var reportForUnmatchedUsage =
         subscriptionTableControllerV2.capacityReportBySkuV2(
+            ORG_ID,
             productId,
             null,
             null,
@@ -416,6 +410,7 @@ class SubscriptionTableControllerV2Test {
     givenSubscriptionsInRepository(expectedNewerSub);
     var reportForMatchingUsage =
         subscriptionTableControllerV2.capacityReportBySkuV2(
+            ORG_ID,
             productId,
             null,
             null,
@@ -461,7 +456,18 @@ class SubscriptionTableControllerV2Test {
 
     var reportWithOffsetAndLimit =
         subscriptionTableControllerV2.capacityReportBySkuV2(
-            productId, 0, 2, null, null, null, null, null, null, SkuCapacityReportSortV2.SKU, null);
+            ORG_ID,
+            productId,
+            0,
+            2,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            SkuCapacityReportSortV2.SKU,
+            null);
     assertEquals(2, reportWithOffsetAndLimit.getData().size());
     assertEquals(5, reportWithOffsetAndLimit.getMeta().getCount());
   }
@@ -488,6 +494,7 @@ class SubscriptionTableControllerV2Test {
 
     var reportForMatchingCores =
         subscriptionTableControllerV2.capacityReportBySkuV2(
+            ORG_ID,
             productId,
             null,
             null,
@@ -503,6 +510,7 @@ class SubscriptionTableControllerV2Test {
 
     var reportForMatchingSockets =
         subscriptionTableControllerV2.capacityReportBySkuV2(
+            ORG_ID,
             productId,
             null,
             null,
@@ -524,6 +532,7 @@ class SubscriptionTableControllerV2Test {
             SubscriptionsException.class,
             () ->
                 subscriptionTableControllerV2.capacityReportBySkuV2(
+                    ORG_ID,
                     RHEL_FOR_X86,
                     11,
                     10,
@@ -545,6 +554,7 @@ class SubscriptionTableControllerV2Test {
 
     var report =
         subscriptionTableControllerV2.capacityReportBySkuV2(
+            ORG_ID,
             RHEL_FOR_X86,
             null,
             null,
@@ -567,6 +577,7 @@ class SubscriptionTableControllerV2Test {
 
     var report =
         subscriptionTableControllerV2.capacityReportBySkuV2(
+            ORG_ID,
             ProductId.fromString("OpenShift-metrics"),
             null,
             null,
@@ -589,6 +600,7 @@ class SubscriptionTableControllerV2Test {
 
     var report =
         subscriptionTableControllerV2.capacityReportBySkuV2(
+            ORG_ID,
             ProductId.fromString("ansible-aap-managed"),
             null,
             null,
@@ -621,7 +633,7 @@ class SubscriptionTableControllerV2Test {
     // When requesting a SKU capacity report for the eng product,
     var actual =
         subscriptionTableControllerV2.capacityReportBySkuV2(
-            productId, null, null, null, null, null, null, null, null, null, null);
+            ORG_ID, productId, null, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the sub and HasInfiniteQuantity
     // should be true.
@@ -648,7 +660,7 @@ class SubscriptionTableControllerV2Test {
     // When requesting a SKU capacity report for the eng product and metric
     var actual =
         subscriptionTableControllerV2.capacityReportBySkuV2(
-            productId, null, null, null, null, null, null, null, "Sockets", null, null);
+            ORG_ID, productId, null, null, null, null, null, null, null, "Sockets", null, null);
 
     // Then the report contains an inventory item containing the sub with HasInfiniteQuantity true
     // and a sub with HasInfiniteQuantity false.
@@ -677,6 +689,7 @@ class SubscriptionTableControllerV2Test {
     // When requesting a SKU capacity report for the eng product, sorted by quantity
     var actual =
         subscriptionTableControllerV2.capacityReportBySkuV2(
+            ORG_ID,
             productId,
             null,
             null,
@@ -722,6 +735,7 @@ class SubscriptionTableControllerV2Test {
     // When requesting a SKU capacity report for the eng product, sorted by quantity
     var actual =
         subscriptionTableControllerV2.capacityReportBySkuV2(
+            ORG_ID,
             productId,
             null,
             null,
@@ -765,6 +779,7 @@ class SubscriptionTableControllerV2Test {
     // When requesting a SKU capacity report for the eng product,
     var actual =
         subscriptionTableControllerV2.capacityReportBySkuV2(
+            ORG_ID,
             productId,
             null,
             null,

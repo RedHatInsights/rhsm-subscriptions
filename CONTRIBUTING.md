@@ -257,18 +257,6 @@ quarkus.hibernate-orm.log.sql=${LOGGING_SHOW_SQL_QUERIES:false}
 
 Where "LOGGING_SHOW_SQL_QUERIES" is the common property that we use for all our services (Spring Boot and Quarkus services).
 
-### **rest-client**: disable the provider auto-discovery
-
-Since having multiple clients in the classpath will cause that the exception mappers for all of these clients will be configured for all.
-
-```
-# Disable the auto-discovery of providers (for ex: exception mappers).
-# All the clients must use either the "quarkus.rest-client.*.providers" property or the `@RegisterProvider` instead.
-quarkus.rest-client.provider-autodiscovery=false
-```
-
-The generated client from openapi already uses the `@RegisterProdiver` annotation, so nothing else should be needed.
-
 ### **rest-client**: default timeout is set to 30 seconds
 
 In Spring Boot, we're using the Apache HTTP client for the REST client implementations with no request timeouts, where, in Quarkus, the default timeout is 30 seconds.

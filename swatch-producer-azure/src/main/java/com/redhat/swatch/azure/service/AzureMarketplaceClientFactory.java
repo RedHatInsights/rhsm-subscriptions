@@ -26,7 +26,6 @@ import com.redhat.swatch.azure.http.AzureMarketplaceHeaderProvider;
 import com.redhat.swatch.azure.service.model.AzureClient;
 import com.redhat.swatch.clients.azure.marketplace.api.resources.AzureMarketplaceApi;
 import io.quarkus.oidc.client.OidcClients;
-import io.quarkus.rest.client.reactive.QuarkusRestClientBuilder;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.net.URI;
@@ -34,6 +33,7 @@ import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.microprofile.rest.client.RestClientBuilder;
 
 @Slf4j
 @ApplicationScoped
@@ -59,7 +59,7 @@ public class AzureMarketplaceClientFactory {
             client -> {
               try {
                 var apiBuilder =
-                    QuarkusRestClientBuilder.newBuilder()
+                    RestClientBuilder.newBuilder()
                         .baseUri(new URI(azureMarketplaceProperties.getMarketplaceBaseUrl()));
                 if (!azureMarketplaceProperties.isDisableAzureOidc()) {
                   apiBuilder.register(

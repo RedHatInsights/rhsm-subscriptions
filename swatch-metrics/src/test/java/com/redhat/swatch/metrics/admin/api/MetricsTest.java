@@ -90,7 +90,7 @@ class MetricsTest {
 
     // synchronous
     meterProductForOrgIdAndRange(VALID_PRODUCT, "org1", end, 120, true)
-        .statusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+        .statusCode(HttpStatus.SC_BAD_REQUEST);
 
     // Avoid additional exception by enabling synchronous operations.
     when(applicationConfiguration.isEnableSynchronousOperations()).thenReturn(true);
@@ -149,14 +149,14 @@ class MetricsTest {
   void testEndDateMustBeAtStartOfHour() {
     OffsetDateTime endDate = clock.now();
     meterProductForOrgIdAndRange(VALID_PRODUCT, "org1", endDate, 120, false)
-        .statusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+        .statusCode(HttpStatus.SC_BAD_REQUEST);
   }
 
   @Test
   void testBadRangeThrowsException() {
     OffsetDateTime endDate = clock.startOfCurrentHour();
     meterProductForOrgIdAndRange(VALID_PRODUCT, "org1", endDate, 13, false)
-        .statusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+        .statusCode(HttpStatus.SC_BAD_REQUEST);
   }
 
   @Test
