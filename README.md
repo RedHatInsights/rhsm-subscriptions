@@ -262,7 +262,37 @@ Next, we start the swatch metrics app using: `SERVER_PORT=8002 QUARKUS_MANAGEMEN
 
 Finally, when syncing all the accounts by: `curl -v -H 'Origin: https://service.redhat.com' -X PUT http://localhost:8002/api/swatch-metrics/v1/internal/metering/sync`, we should see some events in the service logs and the Kafka topic.
 
+### Database
+
+Make sure your database is configured first.  You can do that using the
+swatch-database application.
+
+```
+./gradlew :swatch-database:run
+```
+
+That command will call `liquibase update`.  If you have other Liquibase
+commands you can call them using `--args`.  E.g.
+
+```
+./gradlew :swatch-database:run --args 'status'
+```
+
+Be aware that we have several Liquibase managed applications.  We represent this
+with profiles in swatch-database.  If the profile name is given as the first
+argument, then all subsequent Liquibase commands will apply only to that
+profile.  E.g.
+
+```
+./gradlew :swatch-database:run --args 'core rollbackCountSql --count=1'
+```
+
+will generate a rollback SQL script just for the changesets in the "core"
+profile.
+
 ### Build and Run rhsm-subscriptions
+
+Run the application like so
 
 ```
 ./gradlew :bootRun
@@ -288,7 +318,6 @@ We have a number of profiles. Each profile activates a subset of components in t
 - `api`: Run the user-facing API
 - `capacity-ingress`: Run the internal only capacity ingress API
 - `kafka-queue`: Run with a kafka queue (instead of the default in-memory queue)
-- `liquibase-only`: Run the Liquibase migrations and stop
 - `rh-marketplace`: Run the worker responsible for processing tally summaries and
   emitting usage to Red Hat Marketplace.
 - `purge-snapshots`: Run the retention job and exit
