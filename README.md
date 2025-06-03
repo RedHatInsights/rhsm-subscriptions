@@ -624,6 +624,13 @@ cat <<BONFIRE >>  ~/.config/bonfire/config.yaml
       parameters:
         REPLICAS: 1
         swatch-billable-usage/IMAGE: quay.io/cloudservices/swatch-billable-usage
+
+    - name: swatch-database
+      host: local
+      repo: $(pwd)/rhsm-subscriptions/swatch-database
+      path: /deploy/clowdapp.yaml
+      parameters:
+        swatch-database/IMAGE: quay.io/cloudservices/swatch-database
 BONFIRE
 ```
 
