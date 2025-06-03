@@ -10,7 +10,6 @@ parameters:
     value: env-swatch-database
   - name: DATABASE
     value: rhsm
-#    value: swatch-tally
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
