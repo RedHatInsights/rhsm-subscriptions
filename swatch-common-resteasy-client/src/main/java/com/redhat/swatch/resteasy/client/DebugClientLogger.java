@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.config;
+package com.redhat.swatch.resteasy.client;
 
 import jakarta.ws.rs.client.ClientRequestContext;
 import jakarta.ws.rs.client.ClientRequestFilter;
@@ -42,14 +42,14 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 @Slf4j
 public class DebugClientLogger implements ClientRequestFilter, ClientResponseFilter {
 
-  protected static final String URI_FILTER_PROPERTY = "rest-client-debug-logging.uri-filter";
-  protected static final String LOG_RESPONSES_PROPERTY = "rest-client-debug-logging.log-responses";
-  protected static final String LOG_HEADERS_PROPERTY = "rest-client-debug-logging.log-headers";
+  public static final String URI_FILTER_PROPERTY = "rest-client-debug-logging.uri-filter";
+  public static final String LOG_RESPONSES_PROPERTY = "rest-client-debug-logging.log-responses";
+  public static final String LOG_HEADERS_PROPERTY = "rest-client-debug-logging.log-headers";
 
   private static final String EMPTY_BODY = "(empty)";
   private static final String OMIT_BODY = "(omit)";
 
-  @ConfigProperty(name = URI_FILTER_PROPERTY)
+  @ConfigProperty(name = URI_FILTER_PROPERTY, defaultValue = ".*")
   Pattern uriFilterPattern;
 
   @ConfigProperty(name = LOG_RESPONSES_PROPERTY, defaultValue = "false")

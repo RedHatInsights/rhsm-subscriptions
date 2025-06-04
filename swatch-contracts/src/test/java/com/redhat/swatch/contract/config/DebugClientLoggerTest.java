@@ -20,8 +20,8 @@
  */
 package com.redhat.swatch.contract.config;
 
-import static com.redhat.swatch.contract.config.DebugClientLogger.LOG_RESPONSES_PROPERTY;
-import static com.redhat.swatch.contract.config.DebugClientLogger.URI_FILTER_PROPERTY;
+import static com.redhat.swatch.resteasy.client.DebugClientLogger.LOG_RESPONSES_PROPERTY;
+import static com.redhat.swatch.resteasy.client.DebugClientLogger.URI_FILTER_PROPERTY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -33,6 +33,7 @@ import com.redhat.swatch.clients.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.subscription.api.resources.SearchApi;
 import com.redhat.swatch.contract.test.resources.InjectWireMock;
 import com.redhat.swatch.contract.test.resources.WireMockResource;
+import com.redhat.swatch.resteasy.client.DebugClientLogger;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
