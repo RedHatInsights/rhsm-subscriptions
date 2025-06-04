@@ -31,15 +31,15 @@ import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
-import com.redhat.swatch.hbi.events.normalization.FactNormalizer;
-import com.redhat.swatch.hbi.events.normalization.MeasurementNormalizer;
 import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationshipRepository;
-import com.redhat.swatch.hbi.events.services.HbiHostRelationshipService;
 import com.redhat.swatch.hbi.events.test.helpers.HbiEventTestData;
 import com.redhat.swatch.hbi.events.test.helpers.HbiEventTestHelper;
 import com.redhat.swatch.hbi.events.test.helpers.SwatchEventTestHelper;
+import io.quarkus.test.InjectMock;
+import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -48,48 +48,23 @@ import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.HardwareType;
 import org.candlepin.subscriptions.json.Event.Sla;
 import org.candlepin.subscriptions.json.Event.Usage;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
+@QuarkusTest
 class DeleteHostHandlerTest {
 
-  @Mock private HbiHostRelationshipRepository relationshipRepo;
-  private HbiEventTestHelper hbiEventTestHelper;
-  private SwatchEventTestHelper swatchEventHelper;
-  private DeleteHostHandler handler;
+  @InjectMock HbiHostRelationshipRepository relationshipRepo;
+  @Inject DeleteHostHandler handler;
 
-  @BeforeEach
-  void setUp() {
-    hbiEventTestHelper = new HbiEventTestHelper();
-    swatchEventHelper = new SwatchEventTestHelper(hbiEventTestHelper.getClock());
-
-    HbiHostRelationshipService relService =
-        new HbiHostRelationshipService(hbiEventTestHelper.getClock(), relationshipRepo);
-    FactNormalizer factNormalizer =
-        new FactNormalizer(
-            hbiEventTestHelper.getClock(), hbiEventTestHelper.getConfig(), relService);
-    MeasurementNormalizer measurementNormalizer =
-        new MeasurementNormalizer(hbiEventTestHelper.getConfig());
-    handler =
-        new DeleteHostHandler(
-            hbiEventTestHelper.getConfig(),
-            hbiEventTestHelper.getClock(),
-            factNormalizer,
-            measurementNormalizer,
-            relService,
-            hbiEventTestHelper.getObjectMapper());
-  }
+  @Inject HbiEventTestHelper hbiEventTestHelper;
+  @Inject SwatchEventTestHelper swatchEventHelper;
 
   /**
    * Test that when a DeleteHostEvent is processed, that the associated relationship is deleted from
    * the database and that a single swatch delete event is created.
    */
   @Test
-  void testNonHypervisorHostDeletedEventWhenRelationshipExists() throws Exception {
+  void testNonHypervisorHostDeletedEventWhenRelationshipExists() {
     HbiHostCreateUpdateEvent initialHostCreateEvent =
         hbiEventTestHelper.getCreateUpdateEvent(HbiEventTestData.getPhysicalRhelHostCreatedEvent());
     HbiHostRelationship hostRelationship =
@@ -129,7 +104,7 @@ class DeleteHostHandlerTest {
    * was deleted and all guests are updated to 'unmapped' from 'mapped'.
    */
   @Test
-  void testPhysicalHypervisorHostDeletedEventWithNoMappedGuests() throws Exception {
+  void testPhysicalHypervisorHostDeletedEventWithNoMappedGuests() {
     HbiHostCreateUpdateEvent initialHypervisorCreateEvent =
         hbiEventTestHelper.getCreateUpdateEvent(HbiEventTestData.getPhysicalRhelHostCreatedEvent());
 
@@ -229,7 +204,7 @@ class DeleteHostHandlerTest {
    * the associated hypervisor.
    */
   @Test
-  void testMappedGuestDeleteEventUpdatesHypervisor() throws Exception {
+  void testMappedGuestDeleteEventUpdatesHypervisor() {
     HbiHostCreateUpdateEvent initialHypervisorCreateEvent =
         hbiEventTestHelper.getCreateUpdateEvent(HbiEventTestData.getPhysicalRhelHostCreatedEvent());
 

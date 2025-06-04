@@ -20,68 +20,60 @@
  */
 package com.redhat.swatch.hbi.events.processing;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
-import com.redhat.swatch.hbi.events.processing.handlers.CreateUpdateHostHandler;
-import com.redhat.swatch.hbi.events.processing.handlers.DeleteHostHandler;
-import java.util.stream.Stream;
-import org.junit.jupiter.api.BeforeEach;
+import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
+import com.redhat.swatch.hbi.events.test.helpers.HbiEventTestData;
+import com.redhat.swatch.hbi.events.test.helpers.HbiEventTestHelper;
+import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
+import java.time.OffsetDateTime;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
-public class HbiEventProcessorTest {
+@QuarkusTest
+class HbiEventProcessorTest {
 
-  @Mock private CreateUpdateHostHandler createUpdateHostHandler;
-  @Mock private DeleteHostHandler deleteHostHandler;
-
-  private HbiEventProcessor processor;
-
-  @BeforeEach
-  void setUp() {
-    when(createUpdateHostHandler.getHbiEventClass()).thenReturn(HbiHostCreateUpdateEvent.class);
-    when(deleteHostHandler.getHbiEventClass()).thenReturn(HbiHostDeleteEvent.class);
-    processor = new HbiEventProcessor(createUpdateHostHandler, deleteHostHandler);
-  }
-
-  @Test
-  void processThrowsExceptionWhenAHandlerIsNotRegistered() {
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> {
-          processor.process(new NotSupportedHbiEvent());
-        });
-  }
+  @Inject ObjectMapper objectMapper;
+  @Inject ApplicationConfiguration config;
+  @Inject HbiEventProcessor processor;
+  @Inject HbiEventTestHelper hbiEventHelper;
 
   @Test
   void processReturnsEmptyListOfEventsWhenHbiEventIsSkipped() {
-    HbiHostCreateUpdateEvent hbiHostEvent = new HbiHostCreateUpdateEvent();
-    when(createUpdateHostHandler.skipEvent(hbiHostEvent)).thenReturn(true);
+    var hbiHostEvent =
+        hbiEventHelper.getCreateUpdateEvent(HbiEventTestData.getPhysicalRhelHostCreatedEvent());
+    // Force the 'host_type' system profile fact to 'edge' so that it will be skipped.
+    hbiHostEvent.getHost().getSystemProfile().put(SystemProfileFacts.HOST_TYPE_FACT, "edge");
     assertTrue(processor.process(hbiHostEvent).isEmpty());
   }
 
-  static Stream<Arguments> eventSupportTestParams() {
-    return Stream.of(
-        Arguments.arguments(new HbiHostCreateUpdateEvent(), true),
-        Arguments.arguments(new HbiHostDeleteEvent(), true),
-        Arguments.arguments(new NotSupportedHbiEvent(), false));
+  @Test
+  void testCreateUpdateEventIsSupported() {
+    HbiHostCreateUpdateEvent event =
+        hbiEventHelper.createTemplatedGuestCreatedEvent(
+            "org123", UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID().toString());
+    assertNotNull(processor.process(event));
   }
 
-  @ParameterizedTest
-  @MethodSource("eventSupportTestParams")
-  void testEventSupport(HbiEvent event, boolean isSupported) {
-    assertEquals(isSupported, processor.supports(event));
+  @Test
+  void testDeleteEventIsSupported() {
+    HbiHostDeleteEvent event =
+        hbiEventHelper.createHostDeleteEvent("org123", UUID.randomUUID(), OffsetDateTime.now());
+    assertNotNull(processor.process(event));
+  }
+
+  @Test
+  void testProcessThrowsExceptionWhenHbiEventIsNotSupported() {
+    assertThrows(
+        UnsupportedHbiEventException.class, () -> processor.process(new NotSupportedHbiEvent()));
   }
 
   private static class NotSupportedHbiEvent extends HbiEvent {}

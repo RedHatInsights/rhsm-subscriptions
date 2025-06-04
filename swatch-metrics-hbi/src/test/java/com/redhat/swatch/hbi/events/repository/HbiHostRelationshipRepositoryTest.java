@@ -153,7 +153,6 @@ class HbiHostRelationshipRepositoryTest {
     // Add a couple guests
     repository.persist(createGuestRelationship("org1", hypervisor.getSubscriptionManagerId()));
     repository.persist(createGuestRelationship("org1", hypervisor.getSubscriptionManagerId()));
-    repository.flush();
 
     assertEquals(3, repository.guestCount("org1", hypervisor.getSubscriptionManagerId()));
   }

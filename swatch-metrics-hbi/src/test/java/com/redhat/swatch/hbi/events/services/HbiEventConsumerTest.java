@@ -27,7 +27,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
@@ -85,19 +84,16 @@ class HbiEventConsumerTest {
   @Inject @Any InMemoryConnector connector;
   @Inject ApplicationClock clock;
   @Inject ObjectMapper objectMapper;
-  @Inject ApplicationConfiguration config;
   @InjectSpy HbiHostRelationshipRepository repo;
+  @Inject HbiEventTestHelper hbiEventTestHelper;
+  @Inject SwatchEventTestHelper swatchEventTestHelper;
   private InMemorySource<HbiEvent> hbiEventsIn;
   private InMemorySink<Event> swatchEventsOut;
-  private HbiEventTestHelper hbiEventTestHelper;
-  private SwatchEventTestHelper swatchEventTestHelper;
 
   @BeforeEach
   @Transactional
   void setup() {
     System.out.println("Setting up HbiEventConsumerTest");
-    hbiEventTestHelper = new HbiEventTestHelper(clock, config, objectMapper);
-    swatchEventTestHelper = new SwatchEventTestHelper(clock);
     hbiEventsIn = connector.source(HBI_HOST_EVENTS_IN);
     swatchEventsOut = connector.sink(SWATCH_EVENTS_OUT);
     swatchEventsOut.clear();

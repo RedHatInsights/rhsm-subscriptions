@@ -71,8 +71,8 @@ public class FactNormalizer {
     Optional<QpcFacts> qpcFacts = host.getQpcFacts();
     SystemProfileFacts systemProfileFacts = host.getSystemProfileFacts();
 
-    String orgId = host.getHbiHost().getOrgId();
-    UUID inventoryId = host.getHbiHost().getId();
+    String orgId = host.getOrgId();
+    UUID inventoryId = host.getInventoryId();
     String syncTimestamp = rhsmFacts.map(RhsmFacts::getSyncTimestamp).orElse(null);
     HardwareMeasurementType cloudProviderType = determineCloudProviderType(systemProfileFacts);
     String hypervisorUuid = determineHypervisorUuid(systemProfileFacts, satelliteFacts);
@@ -90,7 +90,7 @@ public class FactNormalizer {
         new ProductNormalizer(
             systemProfileFacts, rhsmFacts, satelliteFacts, qpcFacts, skipRhsmFacts);
 
-    String subscriptionManagerId = host.getHbiHost().getSubscriptionManagerId();
+    String subscriptionManagerId = host.getSubscriptionManagerId();
     boolean isHypervisor = hbiHostRelationshipService.isHypervisor(orgId, subscriptionManagerId);
     boolean isUnmappedGuest =
         isVirtual
@@ -100,9 +100,9 @@ public class FactNormalizer {
         .orgId(orgId)
         .inventoryId(inventoryId)
         .instanceId(determineInstanceId(host))
-        .insightsId(host.getHbiHost().getInsightsId())
+        .insightsId(host.getInsightsId())
         .subscriptionManagerId(subscriptionManagerId)
-        .displayName(host.getHbiHost().getDisplayName())
+        .displayName(host.getDisplayName())
         .is3rdPartyMigrated(systemProfileFacts.getIs3rdPartyMigrated())
         .usage(
             determineUsage(orgId, subscriptionManagerId, satelliteFacts, rhsmFacts, skipRhsmFacts))
@@ -137,13 +137,13 @@ public class FactNormalizer {
 
   private String determineInstanceId(Host hbiHost) {
     String id = null;
-    if (hbiHost.getHbiHost().getProviderId() != null) {
+    if (hbiHost.getProviderId() != null) {
       // will use the provider ID from HBI
-      id = hbiHost.getHbiHost().getProviderId();
+      id = hbiHost.getProviderId();
     }
 
-    if (id == null && hbiHost.getHbiHost().getId() != null) {
-      id = hbiHost.getHbiHost().getId().toString();
+    if (id == null && hbiHost.getInventoryId() != null) {
+      id = hbiHost.getInventoryId().toString();
     }
     return id;
   }
@@ -293,13 +293,12 @@ public class FactNormalizer {
   }
 
   private OffsetDateTime determineLastSeenDate(Host host) {
-    if (Objects.nonNull(host) && !StringUtil.isNullOrEmpty(host.getHbiHost().getUpdated())) {
+    if (Objects.nonNull(host) && !StringUtil.isNullOrEmpty(host.getUpdatedDate())) {
       try {
-        return OffsetDateTime.parse(host.getHbiHost().getUpdated());
+        return OffsetDateTime.parse(host.getUpdatedDate());
       } catch (DateTimeParseException e) {
         log.warn(
-            "Unable to determine lastSeenDate for {}; defaulting to null.",
-            host.getHbiHost().getUpdated());
+            "Unable to determine lastSeenDate for {}; defaulting to null.", host.getUpdatedDate());
       }
     }
     return null;

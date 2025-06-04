@@ -23,8 +23,8 @@ package com.redhat.swatch.hbi.events.processing.handlers;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
-import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
+import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.exception.UnrecoverableMessageProcessingException;
 import com.redhat.swatch.hbi.events.normalization.FactNormalizer;
 import com.redhat.swatch.hbi.events.normalization.Host;
@@ -35,6 +35,7 @@ import com.redhat.swatch.hbi.events.normalization.NormalizedMeasurements;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
 import com.redhat.swatch.hbi.events.services.HbiEventConsumer;
 import com.redhat.swatch.hbi.events.services.HbiHostRelationshipService;
+import jakarta.enterprise.context.ApplicationScoped;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,7 +49,8 @@ import org.candlepin.subscriptions.json.Event.Sla;
 import org.candlepin.subscriptions.json.Event.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 
-public abstract class HostEventHandler<E extends HbiEvent> implements HbiEventHandler<E> {
+@ApplicationScoped
+public class HostEventHandlerService {
 
   protected final ApplicationClock clock;
   protected final ApplicationConfiguration config;
@@ -57,7 +59,7 @@ public abstract class HostEventHandler<E extends HbiEvent> implements HbiEventHa
   protected final HbiHostRelationshipService relationshipService;
   protected final ObjectMapper objectMapper;
 
-  public HostEventHandler(
+  public HostEventHandlerService(
       ApplicationConfiguration config,
       ApplicationClock clock,
       FactNormalizer factNormalizer,
@@ -80,7 +82,7 @@ public abstract class HostEventHandler<E extends HbiEvent> implements HbiEventHa
    * @param refreshTimestamp the timestamp for the new swatch event.
    * @return a new Event representing the host's new state.
    */
-  protected Event refreshHost(
+  private Event refreshHost(
       NormalizedEventType eventType,
       HbiHostRelationship hostRelationship,
       OffsetDateTime refreshTimestamp) {
@@ -101,6 +103,82 @@ public abstract class HostEventHandler<E extends HbiEvent> implements HbiEventHa
       throw new UnrecoverableMessageProcessingException(
           "Unable to serialize host data from HBI host.", e);
     }
+  }
+
+  public List<Event> updateHostRelationshipAndAllDependants(
+      Host targetHost, HbiHostCreateUpdateEvent originalHbiEvent, OffsetDateTime eventTimestamp) {
+    NormalizedFacts facts = factNormalizer.normalize(targetHost);
+
+    List<Event> toSend = new ArrayList<>();
+    // Need to update the host relationship always.
+    toSend.add(updateHostRelationship(facts, targetHost, originalHbiEvent, eventTimestamp));
+
+    // Update the dependant relationships based on what type of host it is.
+    if (facts.isHypervisor()) {
+      // Incoming event was for a hypervisor. Update all existing guest relationships
+      // for this host so that the mapped/unmapped status of the guests change.
+      toSend.addAll(
+          updateUnmappedGuestRelationships(
+              facts.getOrgId(), facts.getSubscriptionManagerId(), eventTimestamp));
+    } else if (facts.isGuest() && !facts.isUnmappedGuest()) {
+      // Incoming event was for a mapped guest. Update the hypervisor relationship
+      // so that any applicable changes are sent via the swatch event.
+      updateHypervisorRelationship(facts.getOrgId(), facts.getHypervisorUuid(), eventTimestamp)
+          .ifPresent(toSend::add);
+    }
+    return toSend;
+  }
+
+  /**
+   * Updates the target host's current relationship, or creates a new one if it does not exist.
+   *
+   * @param facts the normalized facts of the target host.
+   * @param targetHost the target HBI host data from the HBI event.
+   * @param hbiHostEvent the host event that triggered the update.
+   * @param eventTimestamp the originating event timestamp.
+   * @return a new swatch event representing the changes to the host.
+   */
+  private Event updateHostRelationship(
+      NormalizedFacts facts,
+      Host targetHost,
+      HbiHostCreateUpdateEvent hbiHostEvent,
+      OffsetDateTime eventTimestamp) {
+    try {
+      // TODO Can the Host event be omitted?
+      relationshipService.processHost(
+          facts.getOrgId(),
+          facts.getInventoryId(),
+          facts.getSubscriptionManagerId(),
+          facts.getHypervisorUuid(),
+          facts.isUnmappedGuest(),
+          objectMapper.writeValueAsString(hbiHostEvent.getHost()));
+    } catch (JsonProcessingException e) {
+      throw new UnrecoverableMessageProcessingException(
+          "Unable to serialize host data from HBI host.", e);
+    }
+
+    return buildEvent(NormalizedEventType.from(hbiHostEvent), facts, targetHost, eventTimestamp);
+  }
+
+  public Event createDeleteHostEvent(
+      HbiHostRelationship deletedHostRelationship, OffsetDateTime deleteTimestamp) {
+    Host host;
+    try {
+      host =
+          new Host(
+              objectMapper.readValue(
+                  deletedHostRelationship.getLatestHbiEventData(), HbiHost.class));
+    } catch (Exception e) {
+      throw new UnrecoverableMessageProcessingException(
+          "Unable to serialize host data from HBI host.", e);
+    }
+
+    NormalizedFacts facts = factNormalizer.normalize(host);
+    return buildEvent(NormalizedEventType.INSTANCE_DELETED, facts, host, deleteTimestamp);
+  }
+
+  public Optional<HbiHostRelationship> removeHostRelationship(String orgId, UUID inventoryUuid) {
+    return relationshipService.deleteHostRelationship(orgId, inventoryUuid);
   }
 
   protected Optional<Event> updateHypervisorRelationship(

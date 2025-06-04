@@ -20,42 +20,27 @@
  */
 package com.redhat.swatch.hbi.events.processing.handlers;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
-import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
-import com.redhat.swatch.hbi.events.exception.UnrecoverableMessageProcessingException;
-import com.redhat.swatch.hbi.events.normalization.FactNormalizer;
-import com.redhat.swatch.hbi.events.normalization.Host;
-import com.redhat.swatch.hbi.events.normalization.MeasurementNormalizer;
 import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
-import com.redhat.swatch.hbi.events.normalization.NormalizedFacts;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
-import com.redhat.swatch.hbi.events.services.HbiHostRelationshipService;
-import jakarta.inject.Singleton;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.json.Event;
 
 @Slf4j
-@Singleton
-public class DeleteHostHandler extends HostEventHandler<HbiHostDeleteEvent> {
+@ApplicationScoped
+public class DeleteHostHandler implements HbiEventHandler<HbiHostDeleteEvent> {
 
-  public static final String INSTANCE_DELETED_EVENT_TYPE = "INSTANCE_DELETED";
+  private final HostEventHandlerService handlerService;
 
-  public DeleteHostHandler(
-      ApplicationConfiguration config,
-      ApplicationClock clock,
-      FactNormalizer factNormalizer,
-      MeasurementNormalizer measurementNormalizer,
-      HbiHostRelationshipService relationshipService,
-      ObjectMapper objectMapper) {
-    super(config, clock, factNormalizer, measurementNormalizer, relationshipService, objectMapper);
+  public DeleteHostHandler(HostEventHandlerService handlerService) {
+    this.handlerService = handlerService;
   }
 
   @Override
@@ -72,27 +57,29 @@ public class DeleteHostHandler extends HostEventHandler<HbiHostDeleteEvent> {
    *     deletion of the HBI host.
    */
   @Override
+  @Transactional
   public List<Event> handleEvent(HbiHostDeleteEvent deleteEvent) {
     log.debug("Handling hbi host delete event: {}", deleteEvent);
     Optional<HbiHostRelationship> deleted =
-        relationshipService.deleteHostRelationship(deleteEvent.getOrgId(), deleteEvent.getId());
+        handlerService.removeHostRelationship(deleteEvent.getOrgId(), deleteEvent.getId());
 
     List<Event> hostChangeEvents = new ArrayList<>();
 
     if (deleted.isPresent()) {
       OffsetDateTime eventDate = deleteEvent.getTimestamp().toOffsetDateTime();
       // Add an event to notify that the host instance has been deleted.
-      hostChangeEvents.add(createDeleteHostEvent(deleted.get(), eventDate));
+      hostChangeEvents.add(handlerService.createDeleteHostEvent(deleted.get(), eventDate));
 
       if (StringUtils.isBlank(deleted.get().getHypervisorUuid())) {
         // Update any mapped guest relationships that are still associated with this hypervisor
         // and may not yet be deleted.
         hostChangeEvents.addAll(
-            updateMappedGuestRelationships(
+            handlerService.updateMappedGuestRelationships(
                 deleted.get().getOrgId(), deleted.get().getSubscriptionManagerId(), eventDate));
       } else {
         // Update the associated hypervisor if it exists.
-        updateHypervisorRelationship(
+        handlerService
+            .updateHypervisorRelationship(
                 deleted.get().getOrgId(), deleted.get().getHypervisorUuid(), eventDate)
             .ifPresent(hostChangeEvents::add);
       }
@@ -108,31 +95,8 @@ public class DeleteHostHandler extends HostEventHandler<HbiHostDeleteEvent> {
     return hostChangeEvents;
   }
 
-  @Override
-  public boolean skipEvent(HbiHostDeleteEvent deleteEvent) {
-    // All delete events will be processed and will be forwarded to Swatch.
-    return false;
-  }
-
-  private Event createDeleteHostEvent(
-      HbiHostRelationship deletedHostRelationship, OffsetDateTime deleteTimestamp) {
-    Host host;
-    try {
-      host =
-          new Host(
-              objectMapper.readValue(
-                  deletedHostRelationship.getLatestHbiEventData(), HbiHost.class));
-    } catch (Exception e) {
-      throw new UnrecoverableMessageProcessingException(
-          "Unable to serialize host data from HBI host.", e);
-    }
-
-    NormalizedFacts facts = factNormalizer.normalize(host);
-    return buildEvent(NormalizedEventType.INSTANCE_DELETED, facts, host, deleteTimestamp);
-  }
-
   private Event createMinimalDeleteEvent(HbiHostDeleteEvent deleteEvent) {
-    return buildMinimalEvent(
+    return handlerService.buildMinimalEvent(
         NormalizedEventType.INSTANCE_DELETED,
         deleteEvent.getOrgId(),
         deleteEvent.getId(),

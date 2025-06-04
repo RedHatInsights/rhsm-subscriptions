@@ -20,41 +20,37 @@
  */
 package com.redhat.swatch.hbi.events.processing.handlers;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
-import com.redhat.swatch.hbi.events.exception.UnrecoverableMessageProcessingException;
-import com.redhat.swatch.hbi.events.normalization.FactNormalizer;
 import com.redhat.swatch.hbi.events.normalization.Host;
-import com.redhat.swatch.hbi.events.normalization.MeasurementNormalizer;
-import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
-import com.redhat.swatch.hbi.events.normalization.NormalizedFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
-import com.redhat.swatch.hbi.events.services.HbiHostRelationshipService;
-import jakarta.inject.Singleton;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.json.Event;
 
 @Slf4j
-@Singleton
-public class CreateUpdateHostHandler extends HostEventHandler<HbiHostCreateUpdateEvent> {
+@ApplicationScoped
+public class CreateUpdateHostHandler implements HbiEventHandler<HbiHostCreateUpdateEvent> {
+
+  private final HostEventHandlerService handlerService;
+  private final ApplicationClock clock;
+  private final ApplicationConfiguration config;
 
   public CreateUpdateHostHandler(
-      ApplicationConfiguration config,
+      HostEventHandlerService handlerService,
       ApplicationClock clock,
-      FactNormalizer factNormalizer,
-      MeasurementNormalizer measurementNormalizer,
-      HbiHostRelationshipService relationshipService,
-      ObjectMapper objectMapper) {
-    super(config, clock, factNormalizer, measurementNormalizer, relationshipService, objectMapper);
+      ApplicationConfiguration config) {
+    this.handlerService = handlerService;
+    this.clock = clock;
+    this.config = config;
   }
 
   @Override
@@ -63,24 +59,25 @@ public class CreateUpdateHostHandler extends HostEventHandler<HbiHostCreateUpdat
   }
 
   @Override
+  @Transactional
   public List<Event> handleEvent(HbiHostCreateUpdateEvent hbiHostEvent) {
     log.debug("Handling HBI host created/updated event {}", hbiHostEvent);
 
     Host host = new Host(hbiHostEvent.getHost());
+    if (skipEvent(host)) {
+      return List.of();
+    }
 
     OffsetDateTime eventTimestamp =
         Optional.ofNullable(hbiHostEvent.getTimestamp())
             .orElse(ZonedDateTime.now())
             .toOffsetDateTime();
 
-    return updateHostRelationships(host, hbiHostEvent, eventTimestamp);
+    return handlerService.updateHostRelationshipAndAllDependants(
+        host, hbiHostEvent, eventTimestamp);
   }
 
-  @Override
-  public boolean skipEvent(HbiHostCreateUpdateEvent hbiHostEvent) {
-    Host host = new Host(hbiHostEvent.getHost());
-
-    // NOTE: Filtering based org will be done before swatch events are persisted on ingestion.
+  private boolean skipEvent(Host host) {
     String billingModel = host.getRhsmFacts().map(RhsmFacts::getBillingModel).orElse(null);
     boolean validBillingModel = Objects.isNull(billingModel) || !"marketplace".equals(billingModel);
     if (!validBillingModel) {
@@ -96,59 +93,18 @@ public class CreateUpdateHostHandler extends HostEventHandler<HbiHostCreateUpdat
       return true;
     }
 
-    OffsetDateTime staleTimestamp =
-        OffsetDateTime.parse(hbiHostEvent.getHost().getStaleTimestamp());
-    boolean isNotStale =
-        clock.now().isBefore(staleTimestamp.plusDays(config.getCullingOffset().toDays()));
-    if (!isNotStale) {
+    if (isStale(host.getStaleTimestamp())) {
       log.warn("Incoming HBI event will be skipped because it is stale.");
       return true;
     }
     return false;
   }
 
-  private List<Event> updateHostRelationships(
-      Host targetHost, HbiHostCreateUpdateEvent originalHbiEvent, OffsetDateTime eventTimestamp) {
-    NormalizedFacts facts = factNormalizer.normalize(targetHost);
-
-    List<Event> toSend = new ArrayList<>();
-    // Need to update the host relationship always.
-    toSend.add(updateHostRelationship(facts, targetHost, originalHbiEvent, eventTimestamp));
-
-    // Update the dependant relationships based on what type of host it is.
-    if (facts.isHypervisor()) {
-      // Incoming event was for a hypervisor. Update all existing guest relationships
-      // for this host so that the mapped/unmapped status of the guests change.
-      toSend.addAll(
-          updateUnmappedGuestRelationships(
-              facts.getOrgId(), facts.getSubscriptionManagerId(), eventTimestamp));
-    } else if (facts.isGuest() && !facts.isUnmappedGuest()) {
-      // Incoming event was for a mapped guest. Update the hypervisor relationship
-      // so that any applicable changes are sent via the swatch event.
-      updateHypervisorRelationship(facts.getOrgId(), facts.getHypervisorUuid(), eventTimestamp)
-          .ifPresent(toSend::add);
+  private boolean isStale(String hbiHostStaleTimestamp) {
+    if (StringUtils.isBlank(hbiHostStaleTimestamp)) {
+      return false;
     }
-    return toSend;
-  }
-
-  private Event updateHostRelationship(
-      NormalizedFacts facts,
-      Host targetHost,
-      HbiHostCreateUpdateEvent hbiHostEvent,
-      OffsetDateTime eventTimestamp) {
-    try {
-      relationshipService.processHost(
-          facts.getOrgId(),
-          facts.getInventoryId(),
-          facts.getSubscriptionManagerId(),
-          facts.getHypervisorUuid(),
-          facts.isUnmappedGuest(),
-          objectMapper.writeValueAsString(hbiHostEvent.getHost()));
-    } catch (JsonProcessingException e) {
-      throw new UnrecoverableMessageProcessingException(
-          "Unable to serialize host data from HBI host.", e);
-    }
-
-    return buildEvent(NormalizedEventType.from(hbiHostEvent), facts, targetHost, eventTimestamp);
+    OffsetDateTime staleTimestamp = OffsetDateTime.parse(hbiHostStaleTimestamp);
+    return clock.now().isAfter(staleTimestamp.plusDays(config.getCullingOffset().toDays()));
   }
 }

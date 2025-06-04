@@ -29,6 +29,7 @@ import com.redhat.swatch.faulttolerance.api.RetryWithExponentialBackoff;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
 import com.redhat.swatch.hbi.events.exception.UnrecoverableMessageProcessingException;
 import com.redhat.swatch.hbi.events.processing.HbiEventProcessor;
+import com.redhat.swatch.hbi.events.processing.UnsupportedHbiEventException;
 import com.redhat.swatch.kafka.EmitterService;
 import io.smallrye.reactive.messaging.kafka.api.KafkaMessageMetadata;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
@@ -73,11 +74,6 @@ public class HbiEventConsumer {
       maxDelay = "${SWATCH_EVENT_PRODUCER_BACK_OFF_MAX_INTERVAL:60s}",
       factor = "${SWATCH_EVENT_PRODUCER_BACK_OFF_MULTIPLIER:2}")
   public void consume(HbiEvent hbiEvent, KafkaMessageMetadata<?> metadata) {
-    if (!hbiEventProcessor.supports(hbiEvent)) {
-      log.info("HBI Event not supported! Skipping: {}", hbiEvent.getType());
-      return;
-    }
-
     logHbiEvent(hbiEvent);
 
     try {
@@ -97,6 +93,8 @@ public class HbiEventConsumer {
             "Emitting HBI events to swatch is disabled. Not sending {} events.", toSend.size());
         toSend.forEach(eventToSend -> log.info("EVENT: {}", eventToSend));
       }
+    } catch (UnsupportedHbiEventException unsupportedException) {
+      log.warn("HBI Event not supported!", unsupportedException);
     } catch (UnrecoverableMessageProcessingException e) {
       log.warn(
           "Unrecoverable message when processing incoming HBI event. Event will not be retried.",

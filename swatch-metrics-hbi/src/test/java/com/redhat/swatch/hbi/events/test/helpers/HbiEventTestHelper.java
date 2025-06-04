@@ -27,39 +27,23 @@ import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
-import java.time.Clock;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.LocalDateTime;
+import jakarta.enterprise.context.ApplicationScoped;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.UUID;
 import lombok.Getter;
 import org.candlepin.clock.ApplicationClock;
 
 /** Provides utility test helpers for HBI Event based tests. */
+@ApplicationScoped
 @Getter
 public class HbiEventTestHelper {
   private final ObjectMapper objectMapper;
   private final ApplicationClock clock;
   private final ApplicationConfiguration config;
 
-  public HbiEventTestHelper() {
-    clock = createClock();
-
-    objectMapper = new ObjectMapper();
-    objectMapper.findAndRegisterModules();
-
-    config = new ApplicationConfiguration();
-    config.setHostLastSyncThreshold(Duration.ofHours(24));
-    config.setCullingOffset(Duration.ofDays(14));
-  }
-
-  public HbiEventTestHelper(
-      ApplicationClock clock, ApplicationConfiguration config, ObjectMapper objectMapper) {
-    this.clock = clock;
+  public HbiEventTestHelper(ApplicationConfiguration config, ObjectMapper objectMapper) {
     this.config = config;
+    this.clock = config.applicationClock();
     this.objectMapper = objectMapper;
   }
 
@@ -141,12 +125,5 @@ public class HbiEventTestHelper {
         RhsmFacts.RHSM_FACTS_NAMESPACE,
         RhsmFacts.SYNC_TIMESTAMP_FACT,
         syncTimestamp.toString());
-  }
-
-  private ApplicationClock createClock() {
-    ZoneId utc = ZoneId.of("UTC");
-    LocalDateTime reference = LocalDateTime.of(2025, 5, 12, 12, 25, 0, 0);
-    ZonedDateTime timeUtc = reference.atZone(utc);
-    return new ApplicationClock(Clock.fixed(Instant.from(timeUtc), utc));
   }
 }

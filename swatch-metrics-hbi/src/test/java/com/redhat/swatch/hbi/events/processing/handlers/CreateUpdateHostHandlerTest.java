@@ -28,17 +28,17 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
-import com.redhat.swatch.hbi.events.normalization.FactNormalizer;
-import com.redhat.swatch.hbi.events.normalization.MeasurementNormalizer;
 import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationshipRepository;
-import com.redhat.swatch.hbi.events.services.HbiHostRelationshipService;
 import com.redhat.swatch.hbi.events.test.helpers.HbiEventTestData;
 import com.redhat.swatch.hbi.events.test.helpers.HbiEventTestHelper;
 import com.redhat.swatch.hbi.events.test.helpers.SwatchEventTestHelper;
+import io.quarkus.test.InjectMock;
+import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -51,42 +51,18 @@ import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.HardwareType;
 import org.candlepin.subscriptions.json.Event.Sla;
 import org.candlepin.subscriptions.json.Event.Usage;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
+@QuarkusTest
 class CreateUpdateHostHandlerTest {
-  @Mock private HbiHostRelationshipRepository relationshipRepo;
-  private HbiEventTestHelper hbiEventHelper;
-  private SwatchEventTestHelper swatchEventHelper;
-  private CreateUpdateHostHandler handler;
+  @InjectMock HbiHostRelationshipRepository relationshipRepo;
+  @Inject CreateUpdateHostHandler handler;
 
-  @BeforeEach
-  void setUp() {
-    hbiEventHelper = new HbiEventTestHelper();
-    swatchEventHelper = new SwatchEventTestHelper(hbiEventHelper.getClock());
-
-    HbiHostRelationshipService relService =
-        new HbiHostRelationshipService(hbiEventHelper.getClock(), relationshipRepo);
-    FactNormalizer factNormalizer =
-        new FactNormalizer(hbiEventHelper.getClock(), hbiEventHelper.getConfig(), relService);
-    MeasurementNormalizer measurementNormalizer =
-        new MeasurementNormalizer(hbiEventHelper.getConfig());
-    handler =
-        new CreateUpdateHostHandler(
-            hbiEventHelper.getConfig(),
-            hbiEventHelper.getClock(),
-            factNormalizer,
-            measurementNormalizer,
-            relService,
-            hbiEventHelper.getObjectMapper());
-  }
+  @Inject HbiEventTestHelper hbiEventHelper;
+  @Inject SwatchEventTestHelper swatchEventHelper;
 
   static Stream<Arguments> skipEventTestArgs() {
     ApplicationClock clock = new ApplicationClock();
@@ -120,7 +96,8 @@ class CreateUpdateHostHandlerTest {
     setBillingModel(hbiEvent, billingModel);
     setHostType(hbiEvent, hostType);
 
-    assertEquals(shouldBeFiltered, handler.skipEvent(hbiEvent));
+    int expectedEvents = shouldBeFiltered ? 0 : 1;
+    assertEquals(expectedEvents, handler.handleEvent(hbiEvent).size());
   }
 
   @Test
@@ -208,7 +185,7 @@ class CreateUpdateHostHandlerTest {
   }
 
   @Test
-  void testIncomingHypervisorReCalculatesAllUnmappedGuests() throws Exception {
+  void testIncomingHypervisorReCalculatesAllUnmappedGuests() {
     var hypervisorEvent =
         hbiEventHelper.getCreateUpdateEvent(HbiEventTestData.getPhysicalRhelHostCreatedEvent());
     var hypervisorRelationship = withHypervisor(hypervisorEvent);

@@ -21,14 +21,11 @@
 package com.redhat.swatch.hbi.events.processing;
 
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
-import com.redhat.swatch.hbi.events.processing.handlers.CreateUpdateHostHandler;
-import com.redhat.swatch.hbi.events.processing.handlers.DeleteHostHandler;
 import com.redhat.swatch.hbi.events.processing.handlers.HbiEventHandler;
+import io.quarkus.arc.All;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.transaction.Transactional;
-import java.util.HashMap;
+import jakarta.inject.Inject;
 import java.util.List;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.json.Event;
 
@@ -36,42 +33,21 @@ import org.candlepin.subscriptions.json.Event;
 @ApplicationScoped
 public class HbiEventProcessor {
 
-  private Map<Class<? extends HbiEvent>, HbiEventHandler<? extends HbiEvent>> handlers;
+  @Inject @All List<HbiEventHandler<?>> handlers;
 
-  public HbiEventProcessor(
-      CreateUpdateHostHandler createUpdateHostHandler, DeleteHostHandler deleteHostHandler) {
-    // Register any message handlers here.
-    initHandlers(createUpdateHostHandler, deleteHostHandler);
-  }
+  public HbiEventProcessor() {}
 
-  @Transactional
-  public <E extends HbiEvent> List<Event> process(E hbiEvent) {
-    if (!supports(hbiEvent)) {
-      throw new IllegalArgumentException("Unsupported HBI event: " + hbiEvent.getClass());
-    }
-
+  public <E extends HbiEvent> List<Event> process(E hbiEvent) throws UnsupportedHbiEventException {
     log.info("Processing host event from HBI - {}", hbiEvent);
-    HbiEventHandler<E> handler = getHandler(hbiEvent.getClass());
-    if (handler.skipEvent(hbiEvent)) {
-      log.debug("Filtering HBI event: {}", hbiEvent);
-      return List.of();
-    }
-    return handler.handleEvent(hbiEvent);
-  }
-
-  public boolean supports(HbiEvent hbiEvent) {
-    return this.handlers.containsKey(hbiEvent.getClass());
-  }
-
-  private void initHandlers(HbiEventHandler<?>... eventHandlers) {
-    this.handlers = new HashMap<>();
-    for (HbiEventHandler<?> handler : eventHandlers) {
-      this.handlers.put(handler.getHbiEventClass(), handler);
-    }
+    return getHandler(hbiEvent).handleEvent(hbiEvent);
   }
 
   @SuppressWarnings("unchecked")
-  private <E extends HbiEvent> HbiEventHandler<E> getHandler(Class<?> hbiEventClass) {
-    return (HbiEventHandler<E>) this.handlers.get(hbiEventClass);
+  private <E extends HbiEvent> HbiEventHandler<E> getHandler(HbiEvent hbiEvent) {
+    return (HbiEventHandler<E>)
+        this.handlers.stream()
+            .filter(h -> h.getHbiEventClass().isAssignableFrom(hbiEvent.getClass()))
+            .findFirst()
+            .orElseThrow(() -> new UnsupportedHbiEventException(hbiEvent));
   }
 }

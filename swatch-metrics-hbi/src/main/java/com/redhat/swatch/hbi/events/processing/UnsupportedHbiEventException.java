@@ -18,32 +18,15 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.hbi.events.processing.handlers;
+package com.redhat.swatch.hbi.events.processing;
 
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
-import java.util.List;
-import org.candlepin.subscriptions.json.Event;
 
-/**
- * Defines a handler interface for processing HBI events and generating a corresponding list of
- * Swatch events.
- *
- * @param <E> the specific type of HBI event that this handler processes
- */
-public interface HbiEventHandler<E extends HbiEvent> {
+public class UnsupportedHbiEventException extends RuntimeException {
 
-  /**
-   * Retrieves the class type of the HBI event this handler is responsible for processing.
-   *
-   * @return the class of the HBI event type associated with this handler
-   */
-  Class<E> getHbiEventClass();
-
-  /**
-   * Processes the provided HBI event and returns a list of resulting Swatch events.
-   *
-   * @param hbiEvent the HBI event to be handled
-   * @return a list of Swatch events generated as a result of handling the provided HBI event
-   */
-  List<Event> handleEvent(E hbiEvent);
+  public UnsupportedHbiEventException(HbiEvent event) {
+    super(
+        String.format(
+            "Unsupported HBI event: type=%s class=%s", event.getType(), event.getClass()));
+  }
 }
