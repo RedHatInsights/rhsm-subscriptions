@@ -43,7 +43,8 @@ openApiGenerate {
 
 dependencies {
     implementation enforcedPlatform(libraries["quarkus-bom"])
-    api 'io.quarkus:quarkus-rest-client-jackson'
+    api 'io.quarkus:quarkus-resteasy-client-jackson'
+    api 'io.quarkus:quarkus-micrometer'
     api libraries["jackson-databind-nullable"]
     testImplementation 'io.rest-assured:rest-assured'
     testImplementation 'io.quarkus:quarkus-junit5'

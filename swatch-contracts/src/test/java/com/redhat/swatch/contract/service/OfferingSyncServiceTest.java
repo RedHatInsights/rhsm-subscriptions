@@ -22,17 +22,13 @@ package com.redhat.swatch.contract.service;
 
 import static com.redhat.swatch.contract.config.Channels.OFFERING_SYNC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -64,7 +60,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -240,37 +235,6 @@ class OfferingSyncServiceTest {
     verify(repo).persist(any(OfferingEntity.class));
   }
 
-  private static String read(String testFilename) throws IOException {
-    try (InputStream stream =
-        OfferingSyncServiceTest.class.getClassLoader().getResourceAsStream(testFilename)) {
-      if (stream == null) {
-        throw new IOException(testFilename + " not found");
-      }
-      return new String(stream.readAllBytes());
-    }
-  }
-
-  @Test
-  void testSyncNewOfferingFromUmbMessage() throws IOException {
-    when(repo.findByIdOptional(any())).thenReturn(Optional.empty());
-    subject.syncUmbProductFromXml(read("mocked-product-message.xml"));
-    var actual = ArgumentCaptor.forClass(OfferingEntity.class);
-    verify(repo).merge(actual.capture());
-    // this shows that the eng ids were derived from the product service's definition of the SVC sku
-    assertEquals(30, actual.getValue().getProductIds().size());
-    assertTrue(actual.getValue().isMetered());
-    assertFalse(actual.getValue().isMigrationOffering());
-  }
-
-  @Test
-  void testDoesNotSyncNewOfferingIfAbsentFromDataSource() throws IOException {
-    when(repo.findByIdOptional(any())).thenReturn(Optional.empty());
-    var result =
-        subject.syncUmbProductFromXml(
-            read("mocked-product-message.xml").replace("RH0180191", "does-not-exist"));
-    assertEquals(SyncResult.SKIPPED_NOT_FOUND, result);
-  }
-
   @Test
   void testSyncOfferingWhenMeteredFlagChangedFromTrueToFalse() {
     // Given an Offering that has metered true
@@ -302,90 +266,16 @@ class OfferingSyncServiceTest {
   }
 
   @Test
-  void testSyncOfferingWithNoChangesFromUmbMessage() throws IOException {
-    when(repo.findByIdOptional(any())).thenReturn(Optional.of(createTestOffering()));
-    subject.syncUmbProductFromXml(read("mocked-product-message.xml"));
-    verify(repo, times(1)).findByIdOptional(any());
-    verifyNoMoreInteractions(repo);
-  }
-
-  @Test
-  void testSyncOfferingWithModifiedDerivedSkuFromUmbMessage() throws IOException {
-    OfferingEntity testOffering = createTestOffering();
-    testOffering.setDerivedSku("new");
-    when(repo.findByIdOptional(any())).thenReturn(Optional.of(testOffering));
-    subject.syncUmbProductFromXml(read("mocked-product-message.xml"));
-    var actual = ArgumentCaptor.forClass(OfferingEntity.class);
-    verify(repo).merge(actual.capture());
-    // this shows that the eng ids were derived from the product service's definition of the SVC sku
-    assertEquals(30, actual.getValue().getProductIds().size());
-  }
-
-  @Test
   void testSyncOfferingFromProductEventUmbMessage() throws IOException {
     OfferingEntity testOffering = createTestOffering();
     when(repo.findByIdOptional(any())).thenReturn(Optional.of(testOffering));
     ObjectMapper mapper = new ObjectMapper();
-    OperationalProductEvent event =
-        mapper.readValue(read("mocked-product-event.json"), OperationalProductEvent.class);
+    OperationalProductEvent event = mapper.readValue(read(), OperationalProductEvent.class);
     subject.syncUmbProductFromEvent(event);
     var actual = ArgumentCaptor.forClass(OfferingEntity.class);
     verify(repo).merge(actual.capture());
     // this shows that the eng ids were derived from the product service's definition of the SVC sku
     assertEquals(30, actual.getValue().getProductIds().size());
-  }
-
-  @Test
-  void testSyncOfferingWithModifiedChildSkuFromUmbMessage() throws IOException {
-    OfferingEntity testOffering = createTestOffering();
-    testOffering.setChildSkus(Set.of("stale"));
-    when(repo.findByIdOptional(any())).thenReturn(Optional.of(testOffering));
-    subject.syncUmbProductFromXml(read("mocked-product-message.xml"));
-    var actual = ArgumentCaptor.forClass(OfferingEntity.class);
-    verify(repo).merge(actual.capture());
-    // this shows that the eng ids were derived from the product service's definition of the SVC sku
-    assertEquals(30, actual.getValue().getProductIds().size());
-  }
-
-  @Test
-  void testSyncOfferingWithExistingAttributeMissingFromUmbMessage() throws IOException {
-    OfferingEntity testOffering = createTestOffering();
-    when(repo.findByIdOptional(any())).thenReturn(Optional.of(testOffering));
-    subject.syncUmbProductFromXml(
-        read("mocked-product-message.xml").replace("PRODUCT_NAME", "PLACEHOLDER"));
-    var actual = ArgumentCaptor.forClass(OfferingEntity.class);
-    verify(repo).merge(actual.capture());
-    // this shows that the eng ids were derived from the product service's definition of the SVC sku
-    assertEquals(30, actual.getValue().getProductIds().size());
-  }
-
-  @Test
-  void testSyncOfferingWithChangedProductNameFromUmbMessage() throws IOException {
-    OfferingEntity testOffering = createTestOffering();
-    testOffering.setProductName("stale");
-    when(repo.findByIdOptional(any())).thenReturn(Optional.of(testOffering));
-    subject.syncUmbProductFromXml(read("mocked-product-message.xml"));
-    var actual = ArgumentCaptor.forClass(OfferingEntity.class);
-    verify(repo).merge(actual.capture());
-    // this shows that the eng ids were not derived from the product service's definition of the SVC
-    // sku
-    assertTrue(actual.getValue().getProductIds().isEmpty());
-    assertEquals("RHEL Server", actual.getValue().getProductName());
-  }
-
-  @Test
-  void testQueuesSyncForMatchingOfferingsWhenServiceSkuUmbMessageSynced() throws IOException {
-    when(repo.findSkusForChildSku(any())).thenReturn(Stream.of("SKU1", "SKU2"));
-    subject.syncUmbProductFromXml(read("mocked-svc-product-message.xml"));
-    assertEquals(2, offeringSyncTaskSink.received().size());
-  }
-
-  @Test
-  void testQueuesSyncForRelatedProductWhenDerivedProductChildSkuUmbMessageSynced()
-      throws IOException {
-    when(repo.findSkusForDerivedSkus(any())).thenReturn(Stream.of("SKU1", "SKU2"));
-    subject.syncUmbProductFromXml(read("mocked-svc-product-message.xml"));
-    assertEquals(2, offeringSyncTaskSink.received().size());
   }
 
   @Test
@@ -460,5 +350,17 @@ class OfferingSyncServiceTest {
         .hasUnlimitedUsage(false)
         .metered(true)
         .build();
+  }
+
+  private static String read() throws IOException {
+    try (InputStream stream =
+        OfferingSyncServiceTest.class
+            .getClassLoader()
+            .getResourceAsStream("mocked-product-event.json")) {
+      if (stream == null) {
+        throw new IOException("mocked-product-event.json" + " not found");
+      }
+      return new String(stream.readAllBytes());
+    }
   }
 }

@@ -35,6 +35,18 @@ parameters:
     value: 200m
   - name: CPU_LIMIT
     value: 300m
+  - name: MIGRATION_IMAGE
+    value: quay.io/cloudservices/swatch-database
+  - name: MIGRATION_TAG
+    value: latest
+  - name: MIGRATION_MEMORY_REQUEST
+    value: 256Mi
+  - name: MIGRATION_MEMORY_LIMIT
+    value: 512Mi
+  - name: MIGRATION_CPU_REQUEST
+    value: 100m
+  - name: MIGRATION_CPU_LIMIT
+    value: 500m
   - name: DATABASE_CONNECTION_TIMEOUT_MS
     value: '30000'
   - name: DATABASE_MAX_POOL_SIZE
@@ -69,6 +81,8 @@ parameters:
     value: 'http://localhost:4317'
   - name: OTEL_EXPORTER_OTLP_PROTOCOL
     value: 'grpc'
+  - name: DB_POD
+    value: swatch-database
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -83,11 +97,12 @@ objects:
     spec:
       envName: ${ENV_NAME}
       dependencies:
+        - ${DB_POD}
         - swatch-tally
         - rbac
 
       database:
-        sharedDbAppName: swatch-tally
+        sharedDbAppName: ${DB_POD}
 
       deployments:
         - name: service
@@ -98,56 +113,17 @@ objects:
           podSpec:
             image: ${IMAGE}:${IMAGE_TAG}
             initContainers:
-              - image: ${IMAGE}:${IMAGE_TAG}
-                env:
-                  - name: JAVA_DEBUG
-                    value: ${JAVA_DEBUG}
-                  - name: SPRING_PROFILES_ACTIVE
-                    value: liquibase-only
-                  - name: JAVA_MAX_MEM_RATIO
-                    value: '85'
-                  - name: GC_MAX_METASPACE_SIZE
-                    value: '256'
-                  - name: DATABASE_HOST
-                    valueFrom:
-                      secretKeyRef:
-                        name: swatch-tally-db
-                        key: db.host
-                  - name: DATABASE_PORT
-                    valueFrom:
-                      secretKeyRef:
-                        name: swatch-tally-db
-                        key: db.port
-                  - name: DATABASE_USERNAME
-                    valueFrom:
-                      secretKeyRef:
-                        name: swatch-tally-db
-                        key: db.user
-                  - name: DATABASE_PASSWORD
-                    valueFrom:
-                      secretKeyRef:
-                        name: swatch-tally-db
-                        key: db.password
-                  - name: DATABASE_DATABASE
-                    valueFrom:
-                      secretKeyRef:
-                        name: swatch-tally-db
-                        key: db.name
-                  - name: OTEL_EXPORTER_OTLP_ENDPOINT
-                    value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
-                  - name: OTEL_EXPORTER_OTLP_PROTOCOL
-                    value: ${OTEL_EXPORTER_OTLP_PROTOCOL}
-                  - name: OTEL_SERVICE_NAME
-                    value: ${OTEL_SERVICE_NAME}
-                  - name: OTEL_JAVAAGENT_ENABLED
-                    value: ${OTEL_JAVAAGENT_ENABLED}
+              - image: ${MIGRATION_IMAGE}:${MIGRATION_TAG}
+                command: ["/opt/jboss/container/java/run/run-java.sh"]
+                args: ["core", "update"]
+                inheritEnv: true
                 resources:
                   requests:
-                    cpu: ${CPU_REQUEST}
-                    memory: ${MEMORY_REQUEST}
+                    cpu: ${MIGRATION_CPU_REQUEST}
+                    memory: ${MIGRATION_MEMORY_REQUEST}
                   limits:
-                    cpu: ${CPU_LIMIT}
-                    memory: ${MEMORY_LIMIT}
+                    cpu: ${MIGRATION_CPU_LIMIT}
+                    memory: ${MIGRATION_MEMORY_LIMIT}
             env:
               - name: JAVA_DEBUG
                 value: ${JAVA_DEBUG}
@@ -174,27 +150,27 @@ objects:
               - name: DATABASE_HOST
                 valueFrom:
                   secretKeyRef:
-                    name: swatch-tally-db
+                    name: ${DB_POD}-db
                     key: db.host
               - name: DATABASE_PORT
                 valueFrom:
                   secretKeyRef:
-                    name: swatch-tally-db
+                    name: ${DB_POD}-db
                     key: db.port
               - name: DATABASE_USERNAME
                 valueFrom:
                   secretKeyRef:
-                    name: swatch-tally-db
+                    name: ${DB_POD}-db
                     key: db.user
               - name: DATABASE_PASSWORD
                 valueFrom:
                   secretKeyRef:
-                    name: swatch-tally-db
+                    name: ${DB_POD}-db
                     key: db.password
               - name: DATABASE_DATABASE
                 valueFrom:
                   secretKeyRef:
-                    name: swatch-tally-db
+                    name: ${DB_POD}-db
                     key: db.name
               - name: DATABASE_CONNECTION_TIMEOUT_MS
                 value: ${DATABASE_CONNECTION_TIMEOUT_MS}
@@ -345,7 +321,7 @@ objects:
           }
           upstream swatch-contracts {
             server swatch-contracts-service:8000;
-          }      
+          }
 
           server {
             error_log  stderr;
@@ -360,7 +336,7 @@ objects:
                 allow               all;
                 return              200;
             }
-        
+
             location /api/rhsm-subscriptions/v1/subscriptions/billing_account_ids {
               rewrite ^/api/rhsm-subscriptions/v1/subscriptions/billing_account_ids$ /api/swatch-contracts/v1/subscriptions/billing_account_ids break;
               proxy_pass http://swatch-contracts;

@@ -55,8 +55,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.Min;
-import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.SecurityContext;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -81,8 +79,6 @@ public class SubscriptionTableControllerV1 {
   public static final String HYPERVISOR =
       HardwareMeasurementType.HYPERVISOR.toString().toUpperCase();
 
-  @Context SecurityContext securityContext;
-
   @Inject
   SubscriptionTableControllerV1(
       ApiModelMapperV1 mapper,
@@ -97,6 +93,7 @@ public class SubscriptionTableControllerV1 {
   @SuppressWarnings("java:S107")
   @Transactional
   public SkuCapacityReportV1 capacityReportBySkuV1(
+      String orgId,
       ProductId productId,
       @Min(0) Integer offset,
       @Min(1) Integer limit,
@@ -129,7 +126,6 @@ public class SubscriptionTableControllerV1 {
     HypervisorReportCategory hypervisorReportCategory =
         HypervisorReportCategory.mapCategory(mapper.map(category));
 
-    var orgId = getOrgId();
     log.info(
         "Finding all subscription capacities for "
             + "orgId={}, "
@@ -221,6 +217,7 @@ public class SubscriptionTableControllerV1 {
     if (productId.isOnDemand() && reportItems.isEmpty()) {
       reportItems.addAll(
           getOnDemandSkuCapacities(
+              orgId,
               productId,
               sanitizedServiceLevel,
               sanitizedUsage,
@@ -251,6 +248,7 @@ public class SubscriptionTableControllerV1 {
 
   @SuppressWarnings("java:S107")
   private Collection<SkuCapacityV1> getOnDemandSkuCapacities(
+      String orgId,
       ProductId productId,
       ServiceLevel serviceLevel,
       Usage usage,
@@ -264,7 +262,7 @@ public class SubscriptionTableControllerV1 {
     var subscriptions =
         subscriptionRepository.findByCriteria(
             DbReportCriteria.builder()
-                .orgId(getOrgId())
+                .orgId(orgId)
                 .productTag(productId.getValue())
                 .serviceLevel(serviceLevel)
                 .usage(usage)
@@ -432,14 +430,5 @@ public class SubscriptionTableControllerV1 {
       }
     }
     return left.getTotalCapacity().compareTo(right.getTotalCapacity());
-  }
-
-  private String getOrgId() {
-    return securityContext.getUserPrincipal().getName();
-  }
-
-  // for unit testing since we have no REST request
-  protected void setTestSecurityContext(SecurityContext securityContext) {
-    this.securityContext = securityContext;
   }
 }

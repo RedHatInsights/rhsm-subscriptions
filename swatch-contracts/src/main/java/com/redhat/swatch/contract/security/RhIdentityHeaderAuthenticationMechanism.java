@@ -50,7 +50,7 @@ import lombok.extern.slf4j.Slf4j;
 @Priority(1)
 @ApplicationScoped
 public class RhIdentityHeaderAuthenticationMechanism implements HttpAuthenticationMechanism {
-  private static final String RH_IDENTITY_HEADER = "x-rh-identity";
+  public static final String RH_IDENTITY_HEADER = "x-rh-identity";
 
   @Inject RhIdentityPrincipalFactory identityFactory;
 

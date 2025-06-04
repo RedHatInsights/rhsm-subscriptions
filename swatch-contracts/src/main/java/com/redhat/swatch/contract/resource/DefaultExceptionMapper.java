@@ -31,8 +31,6 @@ import jakarta.ws.rs.core.UriInfo;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
 import lombok.extern.slf4j.Slf4j;
-import org.jboss.resteasy.reactive.RestResponse;
-import org.jboss.resteasy.reactive.common.NotImplementedYet;
 
 @Slf4j
 @Provider
@@ -44,9 +42,7 @@ public class DefaultExceptionMapper implements ExceptionMapper<Exception> {
   public Response toResponse(Exception exception) {
     log.error(
         "Request '{}' failed with error '{}'", info.getPath(), exception.getMessage(), exception);
-    if (exception instanceof NotImplementedYet) {
-      return Response.status(RestResponse.Status.NOT_IMPLEMENTED).build();
-    } else if (exception instanceof ServiceException e) {
+    if (exception instanceof ServiceException e) {
       return Response.status(e.getStatus()).entity(e.error()).build();
     } else if (exception instanceof ClientErrorException clientErrorException) {
       return Response.status(clientErrorException.getResponse().getStatus()).build();

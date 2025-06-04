@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import jakarta.ws.rs.core.UriInfo;
 import java.util.Arrays;
 import java.util.Collections;
-import org.jboss.resteasy.reactive.common.jaxrs.UriBuilderImpl;
+import org.jboss.resteasy.specimpl.ResteasyUriBuilderImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,7 +40,7 @@ class PageLinkCreatorTest {
 
   @BeforeEach
   void setupUriInfo() {
-    Mockito.when(uriInfo.getRequestUriBuilder()).thenReturn(new UriBuilderImpl());
+    Mockito.when(uriInfo.getRequestUriBuilder()).thenReturn(new ResteasyUriBuilderImpl());
   }
 
   @Test

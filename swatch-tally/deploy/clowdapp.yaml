@@ -43,14 +43,22 @@ parameters:
     value: 1000Mi
   - name: MEMORY_LIMIT
     value: 1400Mi
-  - name: JOB_MEMORY_REQUEST
-    value: 1000Mi
-  - name: JOB_MEMORY_LIMIT
-    value: 1400Mi
   - name: CPU_REQUEST
     value: 350m
   - name: CPU_LIMIT
     value: 1500m
+  - name: MIGRATION_IMAGE
+    value: quay.io/cloudservices/swatch-database
+  - name: MIGRATION_TAG
+    value: latest
+  - name: MIGRATION_MEMORY_REQUEST
+    value: 256Mi
+  - name: MIGRATION_MEMORY_LIMIT
+    value: 512Mi
+  - name: MIGRATION_CPU_REQUEST
+    value: 100m
+  - name: MIGRATION_CPU_LIMIT
+    value: 400m
   - name: PROM_URL
     value: http://localhost:8082
   - name: DATABASE_CONNECTION_TIMEOUT_MS
@@ -221,7 +229,7 @@ parameters:
     value: 'grpc'
   - description: database secret name
     name: FLOORIST_DB_SECRET_NAME
-    value: swatch-tally-db
+    value: swatch-database-db
   - description: bucket secret name
     name: FLOORIST_BUCKET_SECRET_NAME
     required: true
@@ -233,6 +241,9 @@ parameters:
     description: Disable Floorist cronjob execution
     required: true
     value: 'false'
+  # allow overriding to support independent deploy with bonfire
+  - name: DB_POD
+    value: swatch-database
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -245,6 +256,7 @@ objects:
     # The name of the ClowdEnvironment providing the services
     envName: ${ENV_NAME}
     dependencies:
+      - ${DB_POD}
       - host-inventory
       - swatch-contracts
       - swatch-billable-usage
@@ -275,9 +287,7 @@ objects:
         topicName: platform.export.requests
 
     database:
-      # Must specify both a name and a major postgres version
-      name: swatch-tally-db
-      version: 12
+      sharedDbAppName: ${DB_POD}
 
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
@@ -293,19 +303,17 @@ objects:
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
           initContainers:
-            - env:
-                - name: JAVA_DEBUG
-                  value: ${JAVA_DEBUG}
-                - name: SPRING_PROFILES_ACTIVE
-                  value: liquibase-only
+            - image: ${MIGRATION_IMAGE}:${MIGRATION_TAG}
+              command: ["/opt/jboss/container/java/run/run-java.sh"]
+              args: ["core", "update"]
               inheritEnv: true
               resources:
                 requests:
-                  cpu: ${CPU_REQUEST}
-                  memory: ${MEMORY_REQUEST}
+                  cpu: ${MIGRATION_CPU_REQUEST}
+                  memory: ${MIGRATION_MEMORY_REQUEST}
                 limits:
-                  cpu: ${CPU_LIMIT}
-                  memory: ${MEMORY_LIMIT}
+                  cpu: ${MIGRATION_CPU_LIMIT}
+                  memory: ${MIGRATION_MEMORY_LIMIT}
           env:
             - name: JAVA_DEBUG
               value: ${JAVA_DEBUG}
@@ -376,6 +384,31 @@ objects:
               value: ${DATABASE_CONNECTION_TIMEOUT_MS}
             - name: DATABASE_MAX_POOL_SIZE
               value: ${DATABASE_MAX_POOL_SIZE}
+            - name: DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: ${DB_POD}-db
+                  key: db.host
+            - name: DATABASE_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: ${DB_POD}-db
+                  key: db.port
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: ${DB_POD}-db
+                  key: db.user
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ${DB_POD}-db
+                  key: db.password
+            - name: DATABASE_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: ${DB_POD}-db
+                  key: db.name
             - name: INVENTORY_DATABASE_HOST
               valueFrom:
                 secretKeyRef:
@@ -614,70 +647,6 @@ objects:
             cpu: ${CURL_CRON_CPU_LIMIT}
             memory: ${CURL_CRON_MEMORY_LIMIT}
 
-
-
-- apiVersion: cloud.redhat.com/v1alpha1
-  kind: ClowdApp
-  metadata:
-    name: swatch-db-changelog-cleanup
-  spec:
-    # The name of the ClowdEnvironment providing the services
-    envName: ${ENV_NAME}
-    kafkaTopics: []
-
-    pullSecrets:
-      name: ${IMAGE_PULL_SECRET}
-
-    deployments: []
-    jobs:
-      - name: db-changelog-cleanup-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
-        restartPolicy: Never
-        podSpec:
-          image: ${EGRESS_IMAGE}:${EGRESS_IMAGE_TAG}
-          name: db-changelog-cleanup
-          command: ["/bin/sh", "-c"]
-          args:
-          - psql -h $POSTGRESQL_SERVICE_HOST -U $POSTGRESQL_USER $POSTGRESQL_DATABASE -c "$DB_CHANGELOG_CLEANUP_SQL"
-          resources:
-            requests:
-              cpu: 250m
-              memory: 256Mi
-            limits:
-              cpu: 500m
-              memory: 256Mi
-          env:
-          - name: POSTGRESQL_SERVICE_HOST
-            valueFrom:
-              secretKeyRef:
-                name: swatch-tally-db
-                key: db.host
-          - name: POSTGRESQL_USER
-            valueFrom:
-              secretKeyRef:
-                name: swatch-tally-db
-                key: db.user
-          - name: POSTGRESQL_DATABASE
-            valueFrom:
-              secretKeyRef:
-                name: swatch-tally-db
-                key: db.name
-          - name: PGPASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: swatch-tally-db
-                key: db.password
-          - name: DB_CHANGELOG_CLEANUP_SQL
-            value: ${DB_CHANGELOG_CLEANUP_SQL}
-
-- apiVersion: cloud.redhat.com/v1alpha1
-  kind: ClowdJobInvocation
-  metadata:
-    name: db-changelog-cleanup-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
-  spec:
-    appName: swatch-db-changelog-cleanup
-    jobs:
-      - db-changelog-cleanup-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
-
 - apiVersion: v1
   kind: Secret
   metadata:
@@ -767,3 +736,71 @@ objects:
           sku,
           product_tag
         from sku_product_tag
+
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdApp
+  metadata:
+    name: swatch-db-changelog-cleanup
+  spec:
+    # The name of the ClowdEnvironment providing the services
+    envName: ${ENV_NAME}
+
+    database:
+      sharedDbAppName: ${DB_POD}
+
+    dependencies:
+      - ${DB_POD}
+
+    pullSecrets:
+      name: ${IMAGE_PULL_SECRET}
+
+    kafkaTopics: []
+    deployments: []
+    jobs:
+      - name: db-changelog-cleanup-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+        restartPolicy: Never
+        podSpec:
+          image: ${EGRESS_IMAGE}:${EGRESS_IMAGE_TAG}
+          name: db-changelog-cleanup
+          command: ["/bin/sh", "-c"]
+          args:
+          - psql -h $POSTGRESQL_SERVICE_HOST -U $POSTGRESQL_USER $POSTGRESQL_DATABASE -c "$DB_CHANGELOG_CLEANUP_SQL"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 50Mi
+            limits:
+              cpu: 100m
+              memory: 100Mi
+          env:
+          - name: POSTGRESQL_SERVICE_HOST
+            valueFrom:
+              secretKeyRef:
+                name: ${DB_POD}-db
+                key: db.host
+          - name: POSTGRESQL_USER
+            valueFrom:
+              secretKeyRef:
+                name: ${DB_POD}-db
+                key: db.user
+          - name: POSTGRESQL_DATABASE
+            valueFrom:
+              secretKeyRef:
+                name: ${DB_POD}-db
+                key: db.name
+          - name: PGPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: ${DB_POD}-db
+                key: db.password
+          - name: DB_CHANGELOG_CLEANUP_SQL
+            value: ${DB_CHANGELOG_CLEANUP_SQL}
+
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdJobInvocation
+  metadata:
+    name: db-changelog-cleanup-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+  spec:
+    appName: swatch-db-changelog-cleanup
+    jobs:
+      - db-changelog-cleanup-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}

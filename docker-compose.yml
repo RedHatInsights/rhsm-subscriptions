@@ -1,8 +1,15 @@
 ---
 version: '3.8'
 services:
+  nginx:
+    image: docker.io/library/nginx:latest
+    ports:
+      - "8000:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:z
   wiremock:
     image: docker.io/wiremock/wiremock:latest
+    container_name: wiremock
     ports:
       - "127.0.0.1:8006:8080"
     networks:
@@ -14,7 +21,7 @@ services:
     # When updating the image, remember to also update the following locations:
     # - SwatchPostgreSQLContainer.POSTGRESQL_IMAGE
     # - .github/workflows/pr.yaml (step "Setup Postgresql Database")
-    image: quay.io/centos7/postgresql-13-centos7:centos7
+    image: quay.io/sclorg/postgresql-13-c9s:c9s
     environment:
       - POSTGRES_HOST_AUTH_METHOD=trust
       - POSTGRESQL_MAX_CONNECTIONS=5000
