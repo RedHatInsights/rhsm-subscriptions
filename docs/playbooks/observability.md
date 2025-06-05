@@ -13,8 +13,8 @@ Read more about the prerequisites in [here](../../CONTRIBUTING.md#build).
 - splunk: instructions [here](../../README.md#splunk).
 - Opentelemetry (OTEL) Exporter: instructions [here](../../README.md#opentelemetry-otel-exporter).
 - Wiremock (for prometheus): instructions [here](../../README.md#wiremock-service).
-- perform database migrations: `./gradlew :swatch-database:run`
-- build all the swatch services: `./gradlew clean build -x test`
+- perform database migrations: `./mvnw -f swatch-database/pom.xml exec:java`
+- build all the swatch services: `./mvnw clean install -DskipTests`
 
 ## Run SWATCH Services
 
@@ -30,7 +30,7 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 \
 DISABLE_OTEL=false \
 EVENT_SOURCE=telemeter \
 PROM_URL="http://localhost:8101/api/v1/" \
-./gradlew :swatch-metrics:quarkusDev
+./mvnw quarkus:dev
 ```
 
 - **swatch-tally**: port 8003
@@ -58,7 +58,7 @@ SPLUNK_HEC_URL=https://localhost:8088 \
 SPLUNK_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75 \
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 \
 DISABLE_OTEL=false \
-./gradlew :swatch-billable-usage:quarkusDev
+./mvnw quarkus:dev
 ```
 
 - **swatch-system-conduit**: port 8005

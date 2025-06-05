@@ -20,7 +20,7 @@
 
   <property name="charset" value="UTF-8"/>
 
-  <property name="severity" value="${org.checkstyle.google.severity}" default="warning"/>
+  <property name="severity" value="${org.checkstyle.google.severity}" default="error"/>
 
   <property name="fileExtensions" value="java, properties, xml"/>
   <!-- Excludes all 'module-info.java' files              -->
@@ -54,7 +54,7 @@
 
   <module name="LineLength">
     <property name="fileExtensions" value="java"/>
-    <property name="max" value="100"/>
+    <property name="max" value="80"/>
     <property name="ignorePattern"
              value="^package.*|^import.*|href\s*=\s*&quot;[^&quot;]*&quot;|http://|https://|ftp://"/>
   </module>
@@ -419,9 +419,7 @@
     </module>
     <!-- https://checkstyle.org/filters/suppressionxpathfilter.html -->
     <module name="SuppressionXpathFilter">
-      <property name="file" value="${org.checkstyle.google.suppressionxpathfilter.config}"
-             default="checkstyle-xpath-suppressions.xml" />
-      <property name="optional" value="true"/>
+      <property name="file" value="config/checkstyle/checkstyle-xpath-suppressions.xml"/>
     </module>
     <module name="SuppressWarningsHolder" />
     <module name="SuppressionCommentFilter">

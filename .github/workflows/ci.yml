@@ -30,19 +30,12 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 17
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          add-job-summary: 'on-failure'
-          gradle-home-cache-includes: |
-            buildSrc/.gradle
-            buildSrc/build
+          cache: 'maven'
 
       - name: Run Spotless & Checkstyle
         id: run-lint
         run: |
-          ./gradlew --no-daemon spotlessCheck checkstyleMain checkstyleTest
+          ./mvnw package validate checkstyle:checkstyle -DskipTests
 
       - name: Upload Checkstyle Report
         id: checkstyle-report-upload
@@ -50,7 +43,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: checkstyle-report
-          path: '${{ github.workspace }}/**/build/reports/checkstyle'
+          path: '${{ github.workspace }}/**/target/reports/checkstyle.html'
 
   validate-floorplan-queries:
     name: Validate FloorPlan Queries
@@ -69,14 +62,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 17
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          add-job-summary: 'on-failure'
-          gradle-home-cache-includes: |
-            buildSrc/.gradle
-            buildSrc/build
+          cache: 'maven'
 
       - name: Setup JBang
         uses: jbangdev/setup-jbang@main
@@ -92,10 +78,13 @@ jobs:
       - name: Setup PostgreSQL client
         run: sudo apt-get install -y postgresql-client
 
+      - name: Install Dependencies
+        id: install-dependencies
+        run: mvn install -DskipTests
+
       - name: Execute migrations
         id: run-migrations
-        run: |
-          ./gradlew --no-daemon :swatch-database:run
+        run: mvn -f swatch-database/pom.xml exec:java
 
       - name: Run FloorPlan Query Validation
         run: |
@@ -124,29 +113,21 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 17
+          cache: 'maven'
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          add-job-summary: 'on-failure'
-          gradle-home-cache-includes: |
-            buildSrc/.gradle
-            buildSrc/build
-
-      - name: Run Gradle Build
+      - name: Run Build
         id: run-build
         env:
-          GRADLE_OPTS: "-Xmx2g -Xms512m"
+          MAVEN_OPTS: "-Xmx2g -Xms512m"
         run: |
-          ./gradlew --no-daemon build -x test -x spotlessCheck -x checkstyleMain -x checkstyleTest -x testCodeCoverageReport
+          ./mvnw clean package -DskipTests
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
           path: |
-            **/build/libs/*.jar
-            **/build/distributions/*
+            **/target/*.jar
 
   test:
     name: Test & Coverage
@@ -164,58 +145,46 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 17
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          # The gradle job summaries are pretty low information and if the test build fails, you
-          # already know gradle failed and want to see the test results summary right at the top
-          # and not a summary that tells you "Gradle failed, sorry"
-          add-job-summary: 'never'
-          gradle-home-cache-includes: |
-            buildSrc/.gradle
-            buildSrc/build
+          cache: 'maven'
 
       - name: Run Tests
         id: run-tests
         env:
-          GRADLE_OPTS: "-Xmx4g -Xms512m"
+          MAVEN_OPTS: "-Xmx4g -Xms512m"
         run: |
-          ./gradlew --no-daemon test
+          ./mvnw verify -Dcoverage surefire-report:report
 
       - name: Upload JUnit Report
-        if: ${{ always() && (hashFiles('**/build/test-results/test/TEST-*.xml') != '') }}
+        if: always() && (hashFiles('**/target/surefire-reports/TEST-*.xml') != '')
         uses: actions/upload-artifact@v4
         with:
           name: junit-report
-          path: '**/build/test-results/test/TEST-*.xml'
+          path: '**/target/surefire-reports/TEST-*.xml'
 
-      - name: Upload Gradle HTML Test Report
-        id: html-report-upload
-        if: ${{ always() && (hashFiles('**/build/reports/tests/**')) }}
+      - name: Upload HTML Test Report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: junit-html-report
-          # Unfortunately all the reports get dropped into the top-level of the zip file, so if you
-          # aren't careful and unzip the file in your home directory it will splatter its contents
-          # all over the place.  There's an issue about this at https://github.com/actions/upload-artifact/issues/174
-          # but no progress and the workarounds I tried didn't work.  Probably something worth
-          # getting back to another day.  The path in the archive starts after the first wildcard
-          # so if we do something like '${{ github.workspace }}/*/rhsm-subscriptions/**/build/reports/tests/**'
-          # but I don't know what the directory structure above the repo directory actually is.
-          path: '**/build/reports/tests/**'
-
-      - name: Generate Code Coverage Report
-        run: ./gradlew testCodeCoverageReport
+          path: '**/target/reports/*'
 
       - name: Upload Code Coverage
-        id: coverage-report-upload
-        if: ${{ always() && (hashFiles('**/build/reports/jacoco/testCodeCoverageReport/**') != '') }}
+        if: ${{ always() && (hashFiles('coverage-report/target/site/jacoco-aggregate') != '') }}
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: code-coverage
-          path: '**/build/reports/jacoco/testCodeCoverageReport/**'
+          path: 'coverage-report/target/site/jacoco-aggregate'
 
+      - name: Publish Test Results
+        if: always() && (hashFiles('**/target/surefire-reports/TEST-*.xml') != '')
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: '**/target/surefire-reports/TEST-*.xml'
+          check_name: 'JUnit Tests'
+          comment_mode: off
+          fail_on: 'errors'
+          report_individual_runs: true
 
   summary:
     name: PR Summary
