@@ -1,10 +1,10 @@
 {
-  "id": "facd486d-17fb-44a2-bd56-370ae2e53682",
+  "id": "18ebb8c0-a597-41b6-85d2-62003ebaacd3",
   "timestamp": "2024-11-07T13:00:47.888233+00:00",
   "type": "delete",
   "account": null,
   "org_id": "12345678",
-  "insights_id": null,
+  "insights_id": "4a6a184e-6204-47d9-b888-26db9b5e8c81",
   "request_id": null,
   "platform_metadata": null,
   "metadata": {

@@ -1,0 +1,13 @@
+{
+  "id": null,
+  "timestamp": null,
+  "type": "delete",
+  "account": null,
+  "org_id": null,
+  "insights_id": null,
+  "request_id": null,
+  "platform_metadata": null,
+  "metadata": {
+    "request_id": null
+  }
+}
