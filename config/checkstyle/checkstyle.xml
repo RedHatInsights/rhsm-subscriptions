@@ -419,7 +419,8 @@
     </module>
     <!-- https://checkstyle.org/filters/suppressionxpathfilter.html -->
     <module name="SuppressionXpathFilter">
-      <property name="file" value="config/checkstyle/checkstyle-xpath-suppressions.xml"/>
+      <property name="file" value="${org.checkstyle.google.suppressionxpathfilter.config}"
+         default="checkstyle-xpath-suppressions.xml" />
     </module>
     <module name="SuppressWarningsHolder" />
     <module name="SuppressionCommentFilter">

@@ -533,6 +533,9 @@
         <configuration>
           <configLocation>${maven.multiModuleProjectDirectory}/config/checkstyle/checkstyle.xml</configLocation>
           <suppressionsLocation>${maven.multiModuleProjectDirectory}/config/checkstyle/checkstyle-suppressions.xml</suppressionsLocation>
+          <propertyExpansion>
+            org.checkstyle.google.suppressionxpathfilter.config=${maven.multiModuleProjectDirectory}/config/checkstyle/checkstyle-xpath-suppressions.xml
+          </propertyExpansion>
           <consoleOutput>true</consoleOutput>
           <failsOnError>true</failsOnError>
           <sourceDirectories>
