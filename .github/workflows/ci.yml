@@ -176,16 +176,6 @@ jobs:
           name: code-coverage
           path: 'coverage-report/target/site/jacoco-aggregate'
 
-      - name: Publish Test Results
-        if: always() && (hashFiles('**/target/surefire-reports/TEST-*.xml') != '')
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        with:
-          files: '**/target/surefire-reports/TEST-*.xml'
-          check_name: 'JUnit Tests'
-          comment_mode: off
-          fail_on: 'errors'
-          report_individual_runs: true
-
   summary:
     name: PR Summary
     permissions:

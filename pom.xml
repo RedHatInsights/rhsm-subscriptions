@@ -29,27 +29,27 @@
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
     <opentelemetry-api.version>1.44.1</opentelemetry-api.version>
-    <awssdk-bom.version>2.31.57</awssdk-bom.version>
+    <awssdk-bom.version>2.31.60</awssdk-bom.version>
     <guava.version>33.4.6-jre</guava.version>
     <liquibase.version>4.32.0</liquibase.version>
     <postgresql.version>42.7.6</postgresql.version>
     <testcontainers-postgresql.version>1.21.1</testcontainers-postgresql.version>
-    <junit.version>5.12.2</junit.version>
+    <junit.version>5.13.0</junit.version>
     <mockito.version>5.18.0</mockito.version>
     <rest-assured.version>5.5.5</rest-assured.version>
     <hibernate-validator.version>8.0.2.Final</hibernate-validator.version>
     <swagger-parser.version>2.1.29</swagger-parser.version>
     <swagger-ui.version>5.22.0</swagger-ui.version>
-    <splunk-otel-javaagent.version>2.15.0</splunk-otel-javaagent.version>
+    <splunk-otel-javaagent.version>2.16.0</splunk-otel-javaagent.version>
 
     <!-- Plugins -->
     <compiler-plugin.version>3.13.0</compiler-plugin.version>
-    <surefire-plugin.version>3.5.0</surefire-plugin.version>
+    <surefire-plugin.version>3.5.3</surefire-plugin.version>
     <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
     <maven-assembly-plugin.version>3.7.1</maven-assembly-plugin.version>
     <exec-maven-plugin.version>3.5.1</exec-maven-plugin.version>
     <openapi-generator.version>7.11.0</openapi-generator.version>
-    <spotless.version>2.44.3</spotless.version>
+    <spotless.version>2.44.5</spotless.version>
     <checkstyle.version>3.6.0</checkstyle.version>
     <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
     <maven-antrun-plugin.version>3.1.0</maven-antrun-plugin.version>
@@ -314,7 +314,7 @@
       <dependency>
         <groupId>org.projectlombok</groupId>
         <artifactId>lombok</artifactId>
-        <version>1.18.36</version>
+        <version>1.18.38</version>
       </dependency>
       <dependency>
         <groupId>org.hibernate.validator</groupId>
@@ -408,7 +408,7 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>build-helper-maven-plugin</artifactId>
-          <version>3.2.0</version>
+          <version>3.6.1</version>
         </plugin>
 
         <plugin>
@@ -533,6 +533,9 @@
         <configuration>
           <configLocation>${maven.multiModuleProjectDirectory}/config/checkstyle/checkstyle.xml</configLocation>
           <suppressionsLocation>${maven.multiModuleProjectDirectory}/config/checkstyle/checkstyle-suppressions.xml</suppressionsLocation>
+          <propertyExpansion>
+            org.checkstyle.google.suppressionxpathfilter.config=${maven.multiModuleProjectDirectory}/config/checkstyle/checkstyle-xpath-suppressions.xml
+          </propertyExpansion>
           <consoleOutput>true</consoleOutput>
           <failsOnError>true</failsOnError>
           <sourceDirectories>
@@ -544,7 +547,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>10.21.4</version>
+            <version>10.25.0</version>
           </dependency>
         </dependencies>
       </plugin>
