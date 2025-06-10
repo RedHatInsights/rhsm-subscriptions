@@ -29,6 +29,7 @@
 # everything directly under the config directory except what Gradle is
 # going to use or files used for developer deployment (certificates and key)
 config/*
+!config/artemis
 !config/codestyle
 !config/checkstyle
 !config/kafka

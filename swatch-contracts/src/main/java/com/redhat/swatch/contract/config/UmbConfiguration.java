@@ -45,14 +45,25 @@ public class UmbConfiguration {
   @ConfigProperty(name = "TRUSTSTORE_PASSWORD")
   Optional<String> truststorePassword;
 
-  @ConfigProperty(name = "UMB_PORT")
-  Optional<String> umbPort;
+  @ConfigProperty(name = "UMB_PORT", defaultValue = "5671")
+  int umbPort;
+
+  @ConfigProperty(name = "UMB_DISABLE_SSL")
+  boolean disableSsl;
 
   @Produces
   @Identifier("umb")
   AmqpClientOptions amqpClientOptions() {
     var options = new AmqpClientOptions();
-    options.setPort(Integer.parseInt(umbPort.get()));
+    options.setPort(umbPort);
+    if (!disableSsl) {
+      configureAmqpSslOptions(options);
+    }
+
+    return options;
+  }
+
+  private void configureAmqpSslOptions(AmqpClientOptions options) {
     if (truststorePath.isPresent() && truststorePassword.isPresent()) {
       var trustOptions = new PfxOptions();
       trustOptions.setPath(truststorePath.get());
@@ -65,6 +76,5 @@ public class UmbConfiguration {
       keyCertOptions.setPassword(keystorePassword.get());
       options.setSsl(true).setPfxKeyCertOptions(keyCertOptions);
     }
-    return options;
   }
 }
