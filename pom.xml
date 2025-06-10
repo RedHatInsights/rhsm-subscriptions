@@ -29,7 +29,7 @@
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
     <opentelemetry-api.version>1.44.1</opentelemetry-api.version>
-    <awssdk-bom.version>2.31.57</awssdk-bom.version>
+    <awssdk-bom.version>2.31.60</awssdk-bom.version>
     <guava.version>33.4.6-jre</guava.version>
     <liquibase.version>4.32.0</liquibase.version>
     <postgresql.version>42.7.6</postgresql.version>
@@ -40,7 +40,7 @@
     <hibernate-validator.version>8.0.2.Final</hibernate-validator.version>
     <swagger-parser.version>2.1.29</swagger-parser.version>
     <swagger-ui.version>5.22.0</swagger-ui.version>
-    <splunk-otel-javaagent.version>2.15.0</splunk-otel-javaagent.version>
+    <splunk-otel-javaagent.version>2.16.0</splunk-otel-javaagent.version>
 
     <!-- Plugins -->
     <compiler-plugin.version>3.13.0</compiler-plugin.version>
@@ -533,6 +533,9 @@
         <configuration>
           <configLocation>${maven.multiModuleProjectDirectory}/config/checkstyle/checkstyle.xml</configLocation>
           <suppressionsLocation>${maven.multiModuleProjectDirectory}/config/checkstyle/checkstyle-suppressions.xml</suppressionsLocation>
+          <propertyExpansion>
+            org.checkstyle.google.suppressionxpathfilter.config=${maven.multiModuleProjectDirectory}/config/checkstyle/checkstyle-xpath-suppressions.xml
+          </propertyExpansion>
           <consoleOutput>true</consoleOutput>
           <failsOnError>true</failsOnError>
           <sourceDirectories>
@@ -544,7 +547,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>10.21.4</version>
+            <version>10.25.0</version>
           </dependency>
         </dependencies>
       </plugin>
