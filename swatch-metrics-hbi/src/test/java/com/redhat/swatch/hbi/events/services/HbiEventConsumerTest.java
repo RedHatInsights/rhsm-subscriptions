@@ -74,7 +74,7 @@ import org.junit.jupiter.api.Test;
 @QuarkusTestResource(
     value = InMemoryMessageBrokerKafkaResource.class,
     restrictToAnnotatedClass = true)
-@QuarkusTestResource(value = PostgresResource.class, restrictToAnnotatedClass = true)
+@QuarkusTestResource(value = PostgresResource.class)
 class HbiEventConsumerTest {
   // NOTE:
   //  In order to mock the unleash service used in FeatureFlags

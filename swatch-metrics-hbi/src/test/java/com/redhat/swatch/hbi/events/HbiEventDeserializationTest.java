@@ -38,7 +38,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 @QuarkusTest
-@QuarkusTestResource(value = PostgresResource.class, restrictToAnnotatedClass = true)
+@QuarkusTestResource(value = PostgresResource.class)
 class HbiEventDeserializationTest {
 
   @Inject ObjectMapper objectMapper;

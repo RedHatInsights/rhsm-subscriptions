@@ -42,7 +42,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@QuarkusTestResource(value = PostgresResource.class, restrictToAnnotatedClass = true)
+@QuarkusTestResource(value = PostgresResource.class)
 class HbiHostRelationshipRepositoryTest {
 
   @Inject HbiHostRelationshipRepository repository;
