@@ -22,7 +22,6 @@ package com.redhat.swatch.hbi.events.processing.handlers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.exception.UnrecoverableMessageProcessingException;
@@ -42,6 +41,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import lombok.AllArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.json.Event;
@@ -49,30 +49,15 @@ import org.candlepin.subscriptions.json.Event.Sla;
 import org.candlepin.subscriptions.json.Event.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 
+@AllArgsConstructor
 @ApplicationScoped
 public class HostEventHandlerService {
 
-  protected final ApplicationClock clock;
-  protected final ApplicationConfiguration config;
-  protected final FactNormalizer factNormalizer;
-  protected final MeasurementNormalizer measurementNormalizer;
-  protected final HbiHostRelationshipService relationshipService;
-  protected final ObjectMapper objectMapper;
-
-  public HostEventHandlerService(
-      ApplicationConfiguration config,
-      ApplicationClock clock,
-      FactNormalizer factNormalizer,
-      MeasurementNormalizer measurementNormalizer,
-      HbiHostRelationshipService relationshipService,
-      ObjectMapper objectMapper) {
-    this.config = config;
-    this.clock = clock;
-    this.factNormalizer = factNormalizer;
-    this.measurementNormalizer = measurementNormalizer;
-    this.relationshipService = relationshipService;
-    this.objectMapper = objectMapper;
-  }
+  private final ApplicationClock clock;
+  private final FactNormalizer factNormalizer;
+  private final MeasurementNormalizer measurementNormalizer;
+  private final HbiHostRelationshipService relationshipService;
+  private final ObjectMapper objectMapper;
 
   /**
    * Refresh a host's measurements and create a new Event representing these changes.
