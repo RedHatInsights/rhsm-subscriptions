@@ -138,6 +138,11 @@
       <artifactId>swatch-common-testcontainers</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-database-migrations</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
