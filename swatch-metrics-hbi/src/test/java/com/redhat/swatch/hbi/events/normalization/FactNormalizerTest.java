@@ -80,12 +80,11 @@ class FactNormalizerTest {
   void testNormalizationOfBasicFacts() {
     Host host = new Host(hbiHost());
     NormalizedFacts normalizedFacts = normalizer.normalize(host);
-    assertEquals(host.getHbiHost().getOrgId(), normalizedFacts.getOrgId());
-    assertEquals(host.getHbiHost().getId(), normalizedFacts.getInventoryId());
-    assertEquals(host.getHbiHost().getInsightsId(), normalizedFacts.getInsightsId());
-    assertEquals(
-        host.getHbiHost().getSubscriptionManagerId(), normalizedFacts.getSubscriptionManagerId());
-    assertEquals(host.getHbiHost().getDisplayName(), normalizedFacts.getDisplayName());
+    assertEquals(host.getOrgId(), normalizedFacts.getOrgId());
+    assertEquals(host.getInventoryId(), normalizedFacts.getInventoryId());
+    assertEquals(host.getInsightsId(), normalizedFacts.getInsightsId());
+    assertEquals(host.getSubscriptionManagerId(), normalizedFacts.getSubscriptionManagerId());
+    assertEquals(host.getDisplayName(), normalizedFacts.getDisplayName());
     assertEquals(clock.startOfToday().minusHours(1).toString(), normalizedFacts.getSyncTimestamp());
   }
 
