@@ -31,17 +31,14 @@ import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
-import com.redhat.swatch.hbi.events.kafka.InMemoryMessageBrokerKafkaResource;
 import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationshipRepository;
 import com.redhat.swatch.hbi.events.test.helpers.HbiEventTestData;
 import com.redhat.swatch.hbi.events.test.helpers.HbiEventTestHelper;
 import com.redhat.swatch.hbi.events.test.helpers.SwatchEventTestHelper;
-import com.redhat.swatch.hbi.events.test.resources.PostgresResource;
 import io.getunleash.Unleash;
 import io.quarkus.test.InjectMock;
-import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectSpy;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
@@ -71,10 +68,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@QuarkusTestResource(
-    value = InMemoryMessageBrokerKafkaResource.class,
-    restrictToAnnotatedClass = true)
-@QuarkusTestResource(value = PostgresResource.class)
 class HbiEventConsumerTest {
   // NOTE:
   //  In order to mock the unleash service used in FeatureFlags

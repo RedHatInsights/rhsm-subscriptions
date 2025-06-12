@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
+import com.redhat.swatch.hbi.events.kafka.InMemoryMessageBrokerKafkaResource;
 import com.redhat.swatch.hbi.events.test.helpers.HbiEventTestData;
 import com.redhat.swatch.hbi.events.test.resources.PostgresResource;
 import io.quarkus.test.common.QuarkusTestResource;
@@ -38,7 +39,8 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 @QuarkusTest
-@QuarkusTestResource(value = PostgresResource.class)
+@QuarkusTestResource(PostgresResource.class)
+@QuarkusTestResource(InMemoryMessageBrokerKafkaResource.class)
 class HbiEventDeserializationTest {
 
   @Inject ObjectMapper objectMapper;
