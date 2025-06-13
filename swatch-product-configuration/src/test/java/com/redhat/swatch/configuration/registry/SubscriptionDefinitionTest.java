@@ -318,7 +318,7 @@ class SubscriptionDefinitionTest {
       name = "[{index}] level1={0}, level2={1}, productName={2}, expectedProductTagsCsv={3}")
   @CsvSource({
     "Ansible,Ansible Automation Platform,'',ansible-aap-managed",
-    "'','',OpenShift Online,rosa"
+    "'OpenShift','ROSA - RH OpenShift on AWS',OpenShift Online,rosa"
   })
   void testLevelLookupWithProductName(
       String level1, String level2, String productName, String expectedProductTagsCsv) {
