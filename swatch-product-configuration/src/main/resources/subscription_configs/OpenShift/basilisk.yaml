@@ -9,6 +9,10 @@ variants:
       - BASILISK
     productNames:
       - BASILISK
+    level1:
+      - BASILISK
+    level2:
+      - BASILISK
 
 defaults:
   variant: basilisk

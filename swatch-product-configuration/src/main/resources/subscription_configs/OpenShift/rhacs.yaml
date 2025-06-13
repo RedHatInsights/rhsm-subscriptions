@@ -8,7 +8,10 @@ variants:
       - rhacs
     productNames:
       - Advanced Cluster Security - Kubernetes
-
+    level1:
+      - OpenShift
+    level2:
+      - "ACS - Advanced Cluster Security"
 defaults:
   variant: rhacs
   sla: PREMIUM

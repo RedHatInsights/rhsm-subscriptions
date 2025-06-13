@@ -9,7 +9,10 @@ variants:
       - addon-open-data-hub
     productNames:
       - OpenShift Data Science
-
+    level1:
+      - "AI Platforms"
+    level2:
+      - "OpenShift AI"
 defaults:
   variant: rhods
   sla: PREMIUM

@@ -9,6 +9,10 @@ variants:
       - osd
     productNames:
       - OpenShift Dedicated
+    level1:
+      - OpenShift
+    level2:
+      - "OSD - OpenShift Dedicated"
 
 defaults:
   variant: OpenShift-dedicated-metrics
