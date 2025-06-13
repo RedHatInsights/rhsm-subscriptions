@@ -34,7 +34,7 @@
     <liquibase.version>4.32.0</liquibase.version>
     <postgresql.version>42.7.7</postgresql.version>
     <testcontainers-postgresql.version>1.21.1</testcontainers-postgresql.version>
-    <junit.version>5.13.0</junit.version>
+    <junit.version>5.13.1</junit.version>
     <mockito.version>5.18.0</mockito.version>
     <rest-assured.version>5.5.5</rest-assured.version>
     <hibernate-validator.version>8.0.2.Final</hibernate-validator.version>
