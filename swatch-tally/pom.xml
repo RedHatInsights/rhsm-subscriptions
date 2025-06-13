@@ -15,7 +15,6 @@
 
   <properties>
     <tally_api_spec_file>${maven.multiModuleProjectDirectory}/src/main/spec/internal-tally-api-spec.yaml</tally_api_spec_file>
-    <swatch_producer_rhm_api_spec_file>${maven.multiModuleProjectDirectory}/src/main/spec/internal-swatch-producer-red-hat-marketplace-api-spec.yaml</swatch_producer_rhm_api_spec_file>
   </properties>
 
   <dependencies>
@@ -100,10 +99,6 @@
     <dependency>
       <groupId>com.redhat.swatch</groupId>
       <artifactId>api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.redhat.swatch.clients.spring</groupId>
-      <artifactId>rh-marketplace-client</artifactId>
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch.clients.spring</groupId>
@@ -333,28 +328,6 @@
           </execution>
 
           <execution>
-            <id>buildApiProducerRHM</id>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-            <configuration>
-              <generatorName>jaxrs-spec</generatorName>
-              <inputSpec>${swatch_producer_rhm_api_spec_file}</inputSpec>
-              <configurationFile>${maven.multiModuleProjectDirectory}/src/main/spec//internal-swatch-producer-red-hat-marketplace-api-config.json</configurationFile>
-              <output>${project.build.directory}/generated/rhm</output>
-              <generateModelTests>false</generateModelTests>
-              <generateApiTests>false</generateApiTests>
-              <configOptions>
-                <interfaceOnly>true</interfaceOnly>
-                <generatePom>false</generatePom>
-                <dateLibrary>java8</dateLibrary>
-                <useJakartaEe>true</useJakartaEe>
-                <useTags>true</useTags>
-              </configOptions>
-            </configuration>
-          </execution>
-
-          <execution>
             <id>generateApiDocsTally</id>
             <goals>
               <goal>generate</goal>
@@ -381,24 +354,6 @@
               <generateApiTests>false</generateApiTests>
               <configOptions>
                 <outputFileName>internal-tally-openapi.json</outputFileName>
-                <useJakartaEe>true</useJakartaEe>
-              </configOptions>
-            </configuration>
-          </execution>
-
-          <execution>
-            <id>generateOpenApiJsonProducerRhM</id>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-            <configuration>
-              <inputSpec>${swatch_producer_rhm_api_spec_file}</inputSpec>
-              <generatorName>openapi</generatorName>
-              <output>${project.build.directory}/openapijson</output>
-              <generateModelTests>false</generateModelTests>
-              <generateApiTests>false</generateApiTests>
-              <configOptions>
-                <outputFileName>internal-swatch-producer-red-hat-marketplace-openapi.json</outputFileName>
                 <useJakartaEe>true</useJakartaEe>
               </configOptions>
             </configuration>
