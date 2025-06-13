@@ -27,13 +27,11 @@ Boundary(swatch, "Swatch services") {
   System(billable_usage, "swatch-billable-usage", "Normalizes, aggregates and tracks billable SaaS usage")
   System(producer_aws, "swatch-producer-aws", "Reports billable usage to AWS")
   System(producer_azure, "swatch-producer-azure", "Reports billable usage to Azure")
-  System(producer_rhm, "swatch-producer-rhm", "Reports billable usage to Red Hat Marketplace")
 }
 
 Boundary(cloud_providers, "SaaS Billing Providers") {
   System_Ext(aws, "AWS Marketplace")
   System_Ext(azure, "Azure Marketplace")
-  System_Ext(rhm, "Red Hat Marketplace")
 }
 
 Rel(metrics, observatorium, "Queries")
@@ -53,6 +51,5 @@ Rel(billable_usage, contracts, "Queries pre-paid capacity")
 Rel(tally, producer_rhm, "Produces message")
 Rel(producer_aws, aws, "Submits via HTTP")
 Rel(producer_azure, azure, "Submits via HTTP")
-Rel(producer_rhm, rhm, "Submits via HTTP")
 
 @enduml

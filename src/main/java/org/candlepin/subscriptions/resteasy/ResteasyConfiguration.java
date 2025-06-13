@@ -54,9 +54,5 @@ public class ResteasyConfiguration implements WebMvcConfigurer {
     registry
         .addViewController("/api/swatch-tally/internal/swagger-ui")
         .setViewName("redirect:/api/swatch-tally/internal/swagger-ui/index.html");
-    registry
-        .addViewController("/api/swatch-producer-red-hat-marketplace/internal/swagger-ui")
-        .setViewName(
-            "redirect:/api/swatch-producer-red-hat-marketplace/internal/swagger-ui/index.html");
   }
 }
