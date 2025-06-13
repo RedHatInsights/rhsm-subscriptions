@@ -7,8 +7,6 @@ variants:
   - tag: OpenShift-dedicated-metrics
     roles:
       - osd
-    productNames:
-      - OpenShift Dedicated
     level1:
       - OpenShift
     level2:

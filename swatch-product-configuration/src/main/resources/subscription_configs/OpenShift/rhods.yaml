@@ -7,8 +7,6 @@ variants:
   - tag: rhods
     roles:
       - addon-open-data-hub
-    productNames:
-      - OpenShift Data Science
     level1:
       - "AI Platforms"
     level2:

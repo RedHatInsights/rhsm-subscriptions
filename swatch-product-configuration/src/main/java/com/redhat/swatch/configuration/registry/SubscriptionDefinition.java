@@ -245,7 +245,7 @@ public class SubscriptionDefinition {
   }
 
   /**
-   * In order to get a product tag, you must supply either level, role, engId, or productName data.
+   * In order to get a product tag, you must supply either level, role, or engId data.
    *
    * @param params the search parameters to use
    * @return Set&amp;lt;Variant&amp;gt;

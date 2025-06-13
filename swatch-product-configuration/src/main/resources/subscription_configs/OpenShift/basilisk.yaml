@@ -7,8 +7,6 @@ variants:
   - tag: BASILISK
     roles:
       - BASILISK
-    productNames:
-      - BASILISK
     level1:
       - BASILISK
     level2:
