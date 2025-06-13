@@ -274,7 +274,7 @@
       <dependency>
         <groupId>com.redhat.cloud.event</groupId>
         <artifactId>event-schemas</artifactId>
-        <version>1.4.11</version>
+        <version>1.4.12</version>
       </dependency>
       <dependency>
         <groupId>com.splunk.logging</groupId>
