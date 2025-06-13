@@ -314,36 +314,6 @@ class SubscriptionDefinitionTest {
     assertEquals(expected, actual);
   }
 
-  @ParameterizedTest(
-      name = "[{index}] level1={0}, level2={1}, productName={2}, expectedProductTagsCsv={3}")
-  @CsvSource({
-    "Ansible,Ansible Automation Platform,'',ansible-aap-managed",
-    "'','',OpenShift Online,rosa"
-  })
-  void testLevelLookupWithProductName(
-      String level1, String level2, String productName, String expectedProductTagsCsv) {
-
-    ProductTagLookupParams params =
-        ProductTagLookupParams.builder()
-            .level1(level1)
-            .level2(level2)
-            .productName(productName)
-            .isPaygEligibleProduct(true)
-            .build();
-
-    Set<String> expectedProductTags = new HashSet<>();
-
-    if (!expectedProductTagsCsv.isEmpty()) {
-      expectedProductTags =
-          Arrays.stream(expectedProductTagsCsv.split(",")).collect(Collectors.toSet());
-    }
-
-    var expected = expectedProductTags;
-    var actual = SubscriptionDefinition.getAllProductTags(params);
-
-    assertEquals(expected, actual);
-  }
-
   @ParameterizedTest(name = "[{index}] level1={0}, level2={1}, expectedProductTagsCsv={2}")
   @CsvSource({
     "'', '', ''",
@@ -352,9 +322,11 @@ class SubscriptionDefinitionTest {
     "'', 'Ansible Automation Platform', ''",
     "'', 'Bad Ansible Automation Platform', ''",
     "Ansible, 'Ansible Automation Platform', ansible-aap-managed",
+    "Ansible, Ansible Automation Platform, ansible-aap-managed",
     "Ansible, 'Bad Ansible Automation Platform', ''",
     "Bad Ansible, 'Ansible Automation Platform', ''",
-    "Bad Ansible, 'Bad Ansible Automation Platform', ''"
+    "Bad Ansible, 'Bad Ansible Automation Platform', ''",
+    "'OpenShift','ROSA - RH OpenShift on AWS',rosa"
   })
   void testLevelLookups(String level1, String level2, String expectedProductTagsCsv) {
 
@@ -417,7 +389,6 @@ class SubscriptionDefinitionTest {
             .metricIds(Set.of())
             .engIds(Set.of("69", "83", "408"))
             .role(null)
-            .productName("NULL")
             .level1("Ansible")
             .level2("Ansible Automation Platform")
             .isPaygEligibleProduct(true)

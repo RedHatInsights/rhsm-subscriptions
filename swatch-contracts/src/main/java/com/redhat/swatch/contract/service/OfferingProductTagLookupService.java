@@ -62,7 +62,6 @@ public class OfferingProductTagLookupService {
         ProductTagLookupParams.builder()
             .role(offering.getRole())
             .engIds(offering.getProductIds())
-            .productName(offering.getProductName())
             .isPaygEligibleProduct(offering.isMetered())
             .is3rdPartyMigration(offering.isMigrationOffering())
             .level1(offering.getLevel1())
