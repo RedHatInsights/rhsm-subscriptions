@@ -318,8 +318,6 @@ We have a number of profiles. Each profile activates a subset of components in t
 - `api`: Run the user-facing API
 - `capacity-ingress`: Run the internal only capacity ingress API
 - `kafka-queue`: Run with a kafka queue (instead of the default in-memory queue)
-- `rh-marketplace`: Run the worker responsible for processing tally summaries and
-  emitting usage to Red Hat Marketplace.
 - `purge-snapshots`: Run the retention job and exit
 - `worker`: Process jobs off the job queue
 
@@ -551,13 +549,6 @@ cat <<BONFIRE >>  ~/.config/bonfire/config.yaml
         REPLICAS: 1
         DEV_MODE: "true"
         swatch-tally/IMAGE: quay.io/cloudservices/rhsm-subscriptions
-
-    - name: swatch-producer-red-hat-marketplace
-      host: local
-      repo: $(pwd)/rhsm-subscriptions/swatch-producer-red-hat-marketplace
-      path: /deploy/clowdapp.yaml
-      parameters:
-        REPLICAS: 1
 
     - name: swatch-metrics
       host: local
@@ -841,7 +832,6 @@ Service that syncs system data from Hosted Candlepin into HBI.
 |                  | platform.rhsm-subscriptions.billable-usage           | swatch-billable-usage               |
 | worker           | platform.rhsm-subscriptions.service-instance-ingress | swatch-tally                        |
 | purge-snapshots  |                                                      |                                     |
-| rh-marketplace   | platform.rhsm-subscriptions.billable-usage           | swatch-producer-red-hat-marketplace |
 |                  | platform.rhsm-subscriptions.billable-usage           | swatch-producer-aws                 |
 | capacity-ingress | platform.rhsm-subscriptions.subscription-sync        | swatch-contracts                    |
 | capacity-ingress | platform.rhsm-subscriptions.offering-sync            | swatch-contracts                    |

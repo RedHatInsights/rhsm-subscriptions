@@ -13,7 +13,6 @@ spring:
       - capacity-ingress
       - rhsm-conduit
       - worker
-      - rh-marketplace
       - kafka-queue
   jms:
     listener:

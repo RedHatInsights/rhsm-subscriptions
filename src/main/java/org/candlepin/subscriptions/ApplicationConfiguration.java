@@ -39,7 +39,6 @@ import org.candlepin.subscriptions.clowder.KafkaSslBeanPostProcessor;
 import org.candlepin.subscriptions.clowder.RdsSslBeanPostProcessor;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
 import org.candlepin.subscriptions.resource.ApiConfiguration;
-import org.candlepin.subscriptions.rhmarketplace.RhMarketplaceWorkerConfiguration;
 import org.candlepin.subscriptions.security.AuthProperties;
 import org.candlepin.subscriptions.security.SecurityConfiguration;
 import org.candlepin.subscriptions.subscription.SubscriptionConfiguration;
@@ -64,11 +63,9 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
   ApiConfiguration.class,
   CapacityIngressConfiguration.class,
   TallyWorkerConfiguration.class,
-  RhMarketplaceWorkerConfiguration.class,
   DevModeConfiguration.class,
   SecurityConfiguration.class,
   SubscriptionConfiguration.class,
-  // NOTE(khowell): actually not needed in RH marketplace worker
   RhsmSubscriptionsDataSourceConfiguration.class,
   UtilConfiguration.class,
 })
