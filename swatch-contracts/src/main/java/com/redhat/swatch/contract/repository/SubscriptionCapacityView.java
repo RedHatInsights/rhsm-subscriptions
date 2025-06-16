@@ -94,7 +94,7 @@ public class SubscriptionCapacityView implements Serializable {
   @Column(name = "quantity")
   private long quantity;
 
-  @Column(name = "metrics", insertable = false, updatable = false)
+  @Column(name = "metrics", insertable = false, updatable = false, columnDefinition = "jsonb")
   @Convert(converter = SubscriptionCapacityViewMetricConverter.class)
   private Set<SubscriptionCapacityViewMetric> metrics = new HashSet<>();
 }
