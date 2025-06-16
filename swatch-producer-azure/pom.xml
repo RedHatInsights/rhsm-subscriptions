@@ -177,7 +177,7 @@
               <apiPackage>com.redhat.swatch.azure.openapi.resource</apiPackage>
               <invokerPackage>com.redhat.swatch.azure.openapi</invokerPackage>
               <groupId>com.redhat.swatch.azure</groupId>
-              <output>${project.build.directory}/generated</output>
+              <output>${project.build.directory}/generated-sources</output>
               <generateApiTests>false</generateApiTests>
               <generateModelTests>false</generateModelTests>
               <configOptions>
@@ -202,25 +202,6 @@
                   BillableUsage=org.candlepin.subscriptions.billable.usage.BillableUsage
                 </importMapping>
               </importMappings>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>build-helper-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>add-source</id>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>add-source</goal>
-            </goals>
-            <configuration>
-              <sources>
-                <source>${project.build.directory}/generated/src/gen/java</source>
-              </sources>
             </configuration>
           </execution>
         </executions>

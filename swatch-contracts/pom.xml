@@ -248,7 +248,7 @@
               <apiPackage>com.redhat.swatch.contract.openapi.resource</apiPackage>
               <invokerPackage>com.redhat.swatch.contract.openapi</invokerPackage>
               <groupId>com.redhat.swatch.contract</groupId>
-              <output>${project.build.directory}/generated</output>
+              <output>${project.build.directory}/generated-sources</output>
               <generateApiTests>false</generateApiTests>
               <generateModelTests>false</generateModelTests>
               <configOptions>
@@ -298,7 +298,7 @@
         <artifactId>jsonschema2pojo-maven-plugin</artifactId>
         <configuration>
           <targetPackage>com.redhat.swatch.contract.model</targetPackage>
-          <outputDirectory>${project.build.directory}/generated/src/gen/java</outputDirectory>
+          <outputDirectory>${project.build.directory}/generated-sources/src/main/java</outputDirectory>
           <includeAdditionalProperties>false</includeAdditionalProperties>
           <includeJsr303Annotations>true</includeJsr303Annotations>
           <initializeCollections>false</initializeCollections>
