@@ -30,6 +30,10 @@
                 <dataFileInclude>**/jacoco.exec</dataFileInclude>
               </dataFileIncludes>
               <outputDirectory>${project.reporting.outputDirectory}/jacoco-aggregate</outputDirectory>
+              <excludes>
+                <exclude>**/*Test*.class</exclude>
+                <exclude>**/test/**</exclude>
+              </excludes>
             </configuration>
           </execution>
         </executions>

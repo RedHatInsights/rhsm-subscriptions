@@ -62,6 +62,7 @@
     <sonar.branch.target>main</sonar.branch.target>
     <sonar.coverage.jacoco.xmlReportPaths>${maven.multiModuleProjectDirectory}/coverage-report/target/site/jacoco-aggregate/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     <sonar.java.binaries>${project.build.directory}</sonar.java.binaries>
+    <sonar.coverage.exclusions>**/generated-sources/**,**/*Test*.java,**/test/**</sonar.coverage.exclusions>
   </properties>
 
   <repositories>
