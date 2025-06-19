@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+  <changeSet id="202506191100-01" author="jcarvaja">
+    <comment>Add table for host service type mapping.</comment>
+    <createTable tableName="host_tally_service_type">
+      <column name="host_id" type="uuid">
+        <constraints referencedTableName="hosts" referencedColumnNames="id"
+          nullable="false" foreignKeyName="host_id_service_type_fk" deleteCascade="true"/>
+      </column>
+      <column name="service_type" type="VARCHAR(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="last_applied_event_record_date" type="TIMESTAMP WITH TIME ZONE"/>
+    </createTable>
+    <addPrimaryKey constraintName="host_tally_service_type_pkey"
+      tableName="host_tally_service_type"
+      columnNames="host_id,service_type"/>
+  </changeSet>
+
+  <changeSet id="202506191100-02" author="jcarvaja" dbms="postgresql">
+    <comment>
+      Update last_applied_event_record_date from tally_instance_view
+    </comment>
+    <dropView viewName="tally_instance_non_payg_view" />
+    <dropView viewName="tally_instance_payg_view" />
+    <dropView viewName="tally_instance_view" />
+    <createView
+      replaceIfExists="true"
+      viewName="tally_instance_view">
+      select distinct h.org_id,
+                      h.id,
+                      h.instance_id as instance_id,
+                      h.display_name,
+                      h.billing_provider as host_billing_provider,
+                      h.billing_account_id as host_billing_account_id,
+                      b.billing_provider as bucket_billing_provider,
+                      b.billing_account_id as bucket_billing_account_id,
+                      h.last_seen,
+                      mhstd.max_last_applied_event_record_date AS last_applied_event_record_date,
+                      coalesce(h.num_of_guests, 0) AS num_of_guests,
+                      b.product_id,
+                      b.sla,
+                      b.usage,
+                      coalesce(b.measurement_type, 'EMPTY') AS measurement_type,
+                      b.sockets,
+                      b.cores,
+                      h.subscription_manager_id,
+                      h.inventory_id,
+                      h.hypervisor_uuid
+      from hosts h
+      join host_tally_buckets b on h.id = b.host_id
+      left join lateral (
+        SELECT MAX(last_applied_event_record_date) AS max_last_applied_event_record_date
+        FROM host_tally_service_type
+        WHERE host_id = h.id
+      ) mhstd ON true
+    </createView>
+    <createView
+      replaceIfExists="true"
+      viewName="tally_instance_non_payg_view">
+      select distinct v.*,
+                      jsonb_agg(jsonb_build_object('metric_id',m.metric_id,'value',m.value)) as metrics
+      from tally_instance_view v
+             left outer join instance_measurements m on v.id = m.host_id
+      group by v.org_id,
+               v.id,
+               v.instance_id,
+               v.display_name,
+               v.host_billing_provider,
+               v.host_billing_account_id,
+               v.bucket_billing_provider,
+               v.bucket_billing_account_id,
+               v.last_seen,
+               v.last_applied_event_record_date,
+               v.num_of_guests,
+               v.product_id,
+               v.sla,
+               v."usage",
+               v.measurement_type,
+               v.sockets,
+               v.cores,
+               v.subscription_manager_id,
+               v.inventory_id,
+               v.hypervisor_uuid
+    </createView>
+    <createView
+      replaceIfExists="true"
+      viewName="tally_instance_payg_view">
+      select distinct v.*,
+                      m."month",
+                      jsonb_agg(jsonb_build_object('metric_id',m.metric_id,'value',m.value)) as metrics
+      from tally_instance_view v
+             left outer join instance_monthly_totals m on v.id = m.host_id
+      group by v.org_id,
+               v.id,
+               v.instance_id,
+               v.display_name,
+               v.host_billing_provider,
+               v.host_billing_account_id,
+               v.bucket_billing_provider,
+               v.bucket_billing_account_id,
+               v.last_seen,
+               v.last_applied_event_record_date,
+               v.num_of_guests,
+               v.product_id,
+               v.sla,
+               v."usage",
+               v.measurement_type,
+               v.sockets,
+               v.cores,
+               v.subscription_manager_id,
+               v.inventory_id,
+               v.hypervisor_uuid,
+               m."month"
+    </createView>
+    <rollback>
+      <dropView viewName="tally_instance_non_payg_view" />
+      <dropView viewName="tally_instance_payg_view" />
+      <dropView viewName="tally_instance_view" />
+      <createView
+        replaceIfExists="true"
+        viewName="tally_instance_view">
+        select distinct h.org_id,
+        h.id,
+        h.instance_id as instance_id,
+        h.display_name,
+        h.billing_provider as host_billing_provider,
+        h.billing_account_id as host_billing_account_id,
+        b.billing_provider as bucket_billing_provider,
+        b.billing_account_id as bucket_billing_account_id,
+        h.last_seen,
+        h.last_applied_event_record_date,
+        coalesce(h.num_of_guests, 0) AS num_of_guests,
+        b.product_id,
+        b.sla,
+        b.usage,
+        coalesce(b.measurement_type, 'EMPTY') AS measurement_type,
+        b.sockets,
+        b.cores,
+        h.subscription_manager_id,
+        h.inventory_id,
+        h.hypervisor_uuid
+        from hosts h
+        join host_tally_buckets b on h.id = b.host_id
+      </createView>
+      <createView
+        replaceIfExists="true"
+        viewName="tally_instance_non_payg_view">
+        select distinct v.*,
+        jsonb_agg(jsonb_build_object('metric_id',m.metric_id,'value',m.value)) as metrics
+        from tally_instance_view v
+        left outer join instance_measurements m on v.id = m.host_id
+        group by v.org_id,
+        v.id,
+        v.instance_id,
+        v.display_name,
+        v.host_billing_provider,
+        v.host_billing_account_id,
+        v.bucket_billing_provider,
+        v.bucket_billing_account_id,
+        v.last_seen,
+        v.last_applied_event_record_date,
+        v.num_of_guests,
+        v.product_id,
+        v.sla,
+        v."usage",
+        v.measurement_type,
+        v.sockets,
+        v.cores,
+        v.subscription_manager_id,
+        v.inventory_id
+      </createView>
+      <createView
+        replaceIfExists="true"
+        viewName="tally_instance_payg_view">
+        select distinct v.*,
+        m."month",
+        jsonb_agg(jsonb_build_object('metric_id',m.metric_id,'value',m.value)) as metrics
+        from tally_instance_view v
+        left outer join instance_monthly_totals m on v.id = m.host_id
+        group by v.org_id,
+        v.id,
+        v.instance_id,
+        v.display_name,
+        v.host_billing_provider,
+        v.host_billing_account_id,
+        v.bucket_billing_provider,
+        v.bucket_billing_account_id,
+        v.last_seen,
+        v.last_applied_event_record_date,
+        v.num_of_guests,
+        v.product_id,
+        v.sla,
+        v."usage",
+        v.measurement_type,
+        v.sockets,
+        v.cores,
+        v.subscription_manager_id,
+        v.inventory_id,
+        m."month"
+      </createView>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202506191100-03" author="jcarvaja" dbms="hsqldb">
+    <comment>
+      Update last_applied_event_record_date from tally_instance_view
+    </comment>
+    <dropView viewName="tally_instance_non_payg_view" />
+    <dropView viewName="tally_instance_payg_view" />
+    <dropView viewName="tally_instance_view" />
+    <createView
+      replaceIfExists="true"
+      viewName="tally_instance_view">
+      WITH MaxHostServiceTypeDate AS (
+        SELECT host_id,
+               MAX(last_applied_event_record_date) AS max_last_applied_event_record_date
+        FROM host_tally_service_type
+        GROUP BY host_id
+      )
+      select distinct h.org_id,
+                      h.id,
+                      h.instance_id as instance_id,
+                      h.display_name,
+                      h.billing_provider as host_billing_provider,
+                      h.billing_account_id as host_billing_account_id,
+                      b.billing_provider as bucket_billing_provider,
+                      b.billing_account_id as bucket_billing_account_id,
+                      h.last_seen,
+                      mhstd.max_last_applied_event_record_date AS last_applied_event_record_date,
+                      coalesce(h.num_of_guests, 0) AS num_of_guests,
+                      b.product_id,
+                      b.sla,
+                      b.usage,
+                      coalesce(b.measurement_type, 'EMPTY') AS measurement_type,
+                      b.sockets,
+                      b.cores,
+                      h.subscription_manager_id,
+                      h.inventory_id,
+                      h.hypervisor_uuid
+      from hosts h
+             join host_tally_buckets b on h.id = b.host_id
+             inner join MaxHostServiceTypeDate mhstd ON h.id = mhstd.host_id
+    </createView>
+    <createView
+      replaceIfExists="true"
+      viewName="tally_instance_non_payg_view">
+      select distinct v.*,
+                      CONCAT('[{"metric_id":"', m.metric_id, '","value":',m.value , '}]') as metrics
+      from tally_instance_view v
+             left outer join instance_measurements m on v.id = m.host_id
+    </createView>
+    <createView
+      replaceIfExists="true"
+      viewName="tally_instance_payg_view">
+      select distinct v.*,
+                      m.month,
+                      CONCAT('[{"metric_id":"', m.metric_id, '","value":',m.value , '}]') as metrics
+      from tally_instance_view v
+             left outer join instance_monthly_totals m on v.id = m.host_id
+    </createView>
+    <rollback>
+      <dropView viewName="tally_instance_non_payg_view" />
+      <dropView viewName="tally_instance_payg_view" />
+      <dropView viewName="tally_instance_view" />
+      <createView
+        replaceIfExists="true"
+        viewName="tally_instance_view">
+        select distinct h.org_id,
+        h.id,
+        h.instance_id as instance_id,
+        h.display_name,
+        h.billing_provider as host_billing_provider,
+        h.billing_account_id as host_billing_account_id,
+        b.billing_provider as bucket_billing_provider,
+        b.billing_account_id as bucket_billing_account_id,
+        h.last_seen,
+        h.last_applied_event_record_date,
+        coalesce(h.num_of_guests, 0) AS num_of_guests,
+        b.product_id,
+        b.sla,
+        b.usage,
+        coalesce(b.measurement_type, 'EMPTY') AS measurement_type,
+        b.sockets,
+        b.cores,
+        h.subscription_manager_id,
+        h.inventory_id,
+        h.hypervisor_uuid
+        from hosts h
+        join host_tally_buckets b on h.id = b.host_id
+      </createView>
+      <createView
+        replaceIfExists="true"
+        viewName="tally_instance_non_payg_view">
+        select distinct v.*,
+        CONCAT('[{"metric_id":"', m.metric_id, '","value":',m.value , '}]') as metrics
+        from tally_instance_view v
+        left outer join instance_measurements m on v.id = m.host_id
+      </createView>
+      <createView
+        replaceIfExists="true"
+        viewName="tally_instance_payg_view">
+        select distinct v.*,
+        m.month,
+        CONCAT('[{"metric_id":"', m.metric_id, '","value":',m.value , '}]') as metrics
+        from tally_instance_view v
+        left outer join instance_monthly_totals m on v.id = m.host_id
+      </createView>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202506191100-04" author="jcarvaja">
+    <comment>Populate hosts to host_tally_service_type.</comment>
+    <sql>
+      insert into host_tally_service_type(host_id, service_type, last_applied_event_record_date)
+      select id, instance_type, last_applied_event_record_date
+      from hosts
+      where last_applied_event_record_date is not null;
+    </sql>
+    <dropColumn tableName="hosts" columnName="last_applied_event_record_date"/>
+  </changeSet>
+</databaseChangeLog>
