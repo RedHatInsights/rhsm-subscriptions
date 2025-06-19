@@ -28,6 +28,7 @@ import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import com.redhat.swatch.configuration.util.ProductTagLookupParams;
+import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -184,7 +185,7 @@ public class MetricUsageCollector {
             });
 
     addBucketsFromEvent(instance, event);
-    instance.setLastAppliedEventRecordDate(event.getRecordDate());
+    instance.setLastAppliedEventRecordDate(event.getServiceType(), event.getRecordDate());
 
     // If the usage was already applied, there's no need to update the
     // metadata from the Event since it will already be in the most up to
@@ -362,8 +363,10 @@ public class MetricUsageCollector {
           host.addBucket(bucket);
         });
     // mark as deleted the buckets that are not active
+    // and are only related to the incoming event product.
     for (HostTallyBucket bucket : host.getBuckets()) {
-      if (!activeHostBucketKeys.contains(bucket.getKey())) {
+      if (!activeHostBucketKeys.contains(bucket.getKey())
+          && event.getProductTag().contains(bucket.getKey().getProductId())) {
         bucket.setStale(true);
       }
     }
@@ -501,9 +504,11 @@ public class MetricUsageCollector {
   }
 
   private boolean isEventAlreadyAppliedToHost(Host host, Event event) {
-    return Objects.nonNull(host.getLastAppliedEventRecordDate())
-        && (host.getLastAppliedEventRecordDate().equals(event.getRecordDate())
-            || host.getLastAppliedEventRecordDate().isAfter(event.getRecordDate()));
+    OffsetDateTime lastAppliedEventRecordDate =
+        host.getLastAppliedEventRecordDate(event.getServiceType());
+    return Objects.nonNull(lastAppliedEventRecordDate)
+        && (lastAppliedEventRecordDate.equals(event.getRecordDate())
+            || lastAppliedEventRecordDate.isAfter(event.getRecordDate()));
   }
 
   private AccountUsageCalculation loadHourlyAccountCalculation(Event event) {
