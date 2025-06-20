@@ -78,13 +78,9 @@ jobs:
       - name: Setup PostgreSQL client
         run: sudo apt-get install -y postgresql-client
 
-      - name: Install Dependencies
-        id: install-dependencies
-        run: mvn install -DskipTests
-
       - name: Execute migrations
         id: run-migrations
-        run: mvn -f swatch-database/pom.xml exec:java
+        run: mvn install -Prun-migrations
 
       - name: Run FloorPlan Query Validation
         run: |
