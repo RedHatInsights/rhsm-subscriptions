@@ -214,23 +214,31 @@
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <parameters>true</parameters>
-          <annotationProcessorPaths>
-            <path>
-              <groupId>org.hibernate.orm</groupId>
-              <artifactId>hibernate-jpamodelgen</artifactId>
-            </path>
-            <path>
-              <groupId>org.projectlombok</groupId>
-              <artifactId>lombok</artifactId>
-            </path>
-            <path>
-              <groupId>org.mapstruct</groupId>
-              <artifactId>mapstruct-processor</artifactId>
-            </path>
-          </annotationProcessorPaths>
-        </configuration>
+        <executions>
+          <execution>
+            <id>default-compile</id>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <parameters>true</parameters>
+              <annotationProcessorPaths>
+                <path>
+                  <groupId>org.hibernate.orm</groupId>
+                  <artifactId>hibernate-jpamodelgen</artifactId>
+                </path>
+                <path>
+                  <groupId>org.projectlombok</groupId>
+                  <artifactId>lombok</artifactId>
+                </path>
+                <path>
+                  <groupId>org.mapstruct</groupId>
+                  <artifactId>mapstruct-processor</artifactId>
+                </path>
+              </annotationProcessorPaths>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
 
       <plugin>
@@ -248,7 +256,7 @@
               <apiPackage>com.redhat.swatch.contract.openapi.resource</apiPackage>
               <invokerPackage>com.redhat.swatch.contract.openapi</invokerPackage>
               <groupId>com.redhat.swatch.contract</groupId>
-              <output>${project.build.directory}/generated</output>
+              <output>${project.build.directory}/generated-sources</output>
               <generateApiTests>false</generateApiTests>
               <generateModelTests>false</generateModelTests>
               <configOptions>
@@ -298,7 +306,7 @@
         <artifactId>jsonschema2pojo-maven-plugin</artifactId>
         <configuration>
           <targetPackage>com.redhat.swatch.contract.model</targetPackage>
-          <outputDirectory>${project.build.directory}/generated/src/gen/java</outputDirectory>
+          <outputDirectory>${project.build.directory}/generated-sources/src/main/java</outputDirectory>
           <includeAdditionalProperties>false</includeAdditionalProperties>
           <includeJsr303Annotations>true</includeJsr303Annotations>
           <initializeCollections>false</initializeCollections>

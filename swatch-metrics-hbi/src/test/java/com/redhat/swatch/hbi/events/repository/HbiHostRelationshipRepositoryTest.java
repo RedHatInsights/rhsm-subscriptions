@@ -25,8 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.redhat.swatch.hbi.events.test.resources.PostgresResource;
-import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -42,7 +40,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@QuarkusTestResource(value = PostgresResource.class, restrictToAnnotatedClass = true)
 class HbiHostRelationshipRepositoryTest {
 
   @Inject HbiHostRelationshipRepository repository;
@@ -153,7 +150,6 @@ class HbiHostRelationshipRepositoryTest {
     // Add a couple guests
     repository.persist(createGuestRelationship("org1", hypervisor.getSubscriptionManagerId()));
     repository.persist(createGuestRelationship("org1", hypervisor.getSubscriptionManagerId()));
-    repository.flush();
 
     assertEquals(3, repository.guestCount("org1", hypervisor.getSubscriptionManagerId()));
   }
@@ -193,6 +189,15 @@ class HbiHostRelationshipRepositoryTest {
         });
   }
 
+  @Test
+  @Transactional
+  void testDeleteByInventoryId() {
+    UUID inventoryId = UUID.randomUUID();
+    repository.persist(createRelationship("org1", inventoryId));
+    repository.flush();
+    assertEquals(1L, repository.deleteByInventoryId(inventoryId));
+  }
+
   private HbiHostRelationship createRelationship(String orgId, UUID inventoryId) {
     HbiHostRelationship relationship = new HbiHostRelationship();
     relationship.setOrgId(orgId);
@@ -201,6 +206,7 @@ class HbiHostRelationshipRepositoryTest {
     relationship.setCreationDate(OffsetDateTime.now());
     relationship.setLastUpdated(OffsetDateTime.now());
     relationship.setUnmappedGuest(false);
+    relationship.setLatestHbiEventData("{}");
     return relationship;
   }
 

@@ -43,10 +43,11 @@ public class HbiHostRelationshipRepository
   }
 
   public List<HbiHostRelationship> findUnmappedGuests(String orgId, String hypervisorUuid) {
-    if (Objects.isNull(hypervisorUuid) || hypervisorUuid.isBlank()) {
-      return List.of();
-    }
-    return list("orgId=?1 and hypervisorUuid=?2 and isUnmappedGuest=true", orgId, hypervisorUuid);
+    return findGuests(orgId, hypervisorUuid, true);
+  }
+
+  public List<HbiHostRelationship> findMappedGuests(String orgId, String hypervisorUuid) {
+    return findGuests(orgId, hypervisorUuid, false);
   }
 
   public Optional<HbiHostRelationship> findByOrgIdAndSubscriptionManagerId(
@@ -56,5 +57,21 @@ public class HbiHostRelationshipRepository
     }
     return find("orgId=?1 and subscriptionManagerId=?2", orgId, subscriptionManagerId)
         .firstResultOptional();
+  }
+
+  public long deleteByInventoryId(UUID inventoryId) {
+    return delete("inventoryId=?1", inventoryId);
+  }
+
+  private List<HbiHostRelationship> findGuests(
+      String orgId, String hypervisorUuid, boolean isUnmappedGuest) {
+    if (Objects.isNull(hypervisorUuid) || hypervisorUuid.isBlank()) {
+      return List.of();
+    }
+    return list(
+        "orgId=?1 and hypervisorUuid=?2 and isUnmappedGuest=?3",
+        orgId,
+        hypervisorUuid,
+        isUnmappedGuest);
   }
 }

@@ -23,7 +23,7 @@ package com.redhat.swatch.hbi.events.configuration;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.hbi.events.normalization.MeasurementNormalizer;
-import jakarta.enterprise.context.Dependent;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import java.time.Duration;
 import lombok.Getter;
@@ -31,7 +31,7 @@ import lombok.Setter;
 import org.candlepin.clock.ApplicationClock;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
-@Dependent
+@ApplicationScoped
 @Getter
 @Setter
 public class ApplicationConfiguration {

@@ -23,7 +23,6 @@ package com.redhat.swatch.hbi.events.services;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationshipRepository;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -46,7 +45,6 @@ public class HbiHostRelationshipService {
   }
 
   /** Adds or updates a host relationship. */
-  @Transactional
   public void processHost(
       String orgId,
       UUID inventoryId,
@@ -60,12 +58,14 @@ public class HbiHostRelationshipService {
             relationship, subscriptionManagerId, hypervisorUuid, isUnmapped, hbiHostFactJson));
   }
 
-  @Transactional
   public List<HbiHostRelationship> getUnmappedGuests(String orgId, String hypervisorUuid) {
     return repository.findUnmappedGuests(orgId, hypervisorUuid);
   }
 
-  @Transactional
+  public List<HbiHostRelationship> getMappedGuests(String orgId, String hypervisorUuid) {
+    return repository.findMappedGuests(orgId, hypervisorUuid);
+  }
+
   public boolean isHypervisor(String orgId, String subscriptionManagerId) {
     return repository.guestCount(orgId, subscriptionManagerId) > 0;
   }
@@ -101,8 +101,19 @@ public class HbiHostRelationshipService {
             });
   }
 
-  @Transactional
   public Optional<HbiHostRelationship> findHypervisor(String orgId, String hypervisorId) {
     return repository.findByOrgIdAndSubscriptionManagerId(orgId, hypervisorId);
+  }
+
+  public Optional<HbiHostRelationship> deleteHostRelationship(String orgId, UUID inventoryId) {
+    log.info("Deleting host relationship with inventoryId={}", inventoryId);
+    Optional<HbiHostRelationship> toDelete =
+        repository.findByOrgIdAndInventoryId(orgId, inventoryId);
+    toDelete.ifPresent(repository::delete);
+    return toDelete;
+  }
+
+  public long getTotal() {
+    return repository.count();
   }
 }
