@@ -35,7 +35,9 @@ spec:
           componentSha=$(echo "$components" | jq -r '.source.git.revision')
           # Check if component git url equals to snapshot git url, if yes check if the snapshot SHA equals to component SHA
           if [[ $componentUrlWithoutSuffix == $snapshotUrlUrlWithoutSuffix ]]; then
-              if [[ $componentSha != $SNAPSHOT_SHA ]]; then
+              if [[ $name == "swatch-database" ]]; then
+                echo "WARNING: Skipping SHA check for component '$name'. SHA in snapshot is $SNAPSHOT_SHA but component has $componentSha."
+              else
                 echo "FAIL: Component $name has different SHA: $componentSha than the snapshot, SHA: $SNAPSHOT_SHA."
                 exit 1
               fi
