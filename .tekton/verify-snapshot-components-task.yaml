@@ -32,19 +32,10 @@ spec:
           componentUrl=$(echo "$components" | jq -r '.source.git.url')
           componentUrlWithoutSuffix=$(echo $componentUrl | sed 's/\.git$//')
           name=$(echo "$components" | jq -r '.name')
-
-          # Skip swatch-database with warning
-          if [[ "$name" == "swatch-database" ]]; then
-            echo "WARNING: Component $name is excluded from snapshot SHA validation. Skipping."
-            continue
-          fi
-
           componentSha=$(echo "$components" | jq -r '.source.git.revision')
           # Check if component git url equals to snapshot git url, if yes check if the snapshot SHA equals to component SHA
           if [[ $componentUrlWithoutSuffix == $snapshotUrlUrlWithoutSuffix ]]; then
-              if [[ $name == "swatch-database" ]]; then
-                echo "WARNING: Skipping SHA check for component '$name'. SHA in snapshot is $SNAPSHOT_SHA but component has $componentSha."
-              else
+              if [[ $componentSha != $SNAPSHOT_SHA ]]; then
                 echo "FAIL: Component $name has different SHA: $componentSha than the snapshot, SHA: $SNAPSHOT_SHA."
                 exit 1
               fi
