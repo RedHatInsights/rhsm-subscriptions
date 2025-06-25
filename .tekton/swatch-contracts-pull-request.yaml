@@ -312,7 +312,7 @@ spec:
         - name: name
           value: deprecated-image-check
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-deprecated-image-check:0.5@sha256:270a79138a98e43c366d3722978cb5940d2bcb822ba6b60377330f863b7a1e62
+          value: quay.io/konflux-ci/tekton-catalog/task-deprecated-image-check:0.5@sha256:3c8b81fa868e27c6266e7660a4bfb4c822846dcf4304606e71e20893b0d3e515
         - name: kind
           value: task
         resolver: bundles
@@ -354,7 +354,7 @@ spec:
         - name: name
           value: ecosystem-cert-preflight-checks
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-ecosystem-cert-preflight-checks:0.2@sha256:a6df9cc4b7792fbe53764a0033d7a914f256e81ce5dc9e3fd4f23d141461a6e6
+          value: quay.io/konflux-ci/tekton-catalog/task-ecosystem-cert-preflight-checks:0.2@sha256:b550ff4f0b634512ce5200074be7afd7a5a6c05b783620c626e2a3035cd56448
         - name: kind
           value: task
         resolver: bundles
