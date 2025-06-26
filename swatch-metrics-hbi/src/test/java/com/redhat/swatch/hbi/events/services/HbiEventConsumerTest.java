@@ -24,6 +24,8 @@ import static com.redhat.swatch.hbi.events.configuration.Channels.HBI_HOST_EVENT
 import static com.redhat.swatch.hbi.events.configuration.Channels.SWATCH_EVENTS_OUT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,6 +34,7 @@ import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
 import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
+import com.redhat.swatch.hbi.events.processing.HbiEventProcessor;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationshipRepository;
 import com.redhat.swatch.hbi.events.test.helpers.HbiEventTestData;
@@ -80,6 +83,7 @@ class HbiEventConsumerTest {
   @InjectSpy HbiHostRelationshipRepository repo;
   @Inject HbiEventTestHelper hbiEventTestHelper;
   @Inject SwatchEventTestHelper swatchEventTestHelper;
+  @InjectSpy HbiEventProcessor hbiEventProcessor;
   private InMemorySource<HbiEvent> hbiEventsIn;
   private InMemorySink<Event> swatchEventsOut;
 
@@ -477,6 +481,18 @@ class HbiEventConsumerTest {
     verifyRelationshipDeleted(
         hypervisorEvent.getHost().getOrgId(), hypervisorEvent.getHost().getId());
     assertRelationshipExists(guestRelationship);
+  }
+
+  @Test
+  void testDoesNotRetryOnUnknownEvents() {
+    // Send the unknown event
+    var event = hbiEventTestHelper.createEventOfTypeUnknown();
+    hbiEventsIn.send(event);
+    // Then wait for the consumer
+    Awaitility.await()
+        .await()
+        .pollDelay(Duration.ofMillis(500))
+        .untilAsserted(() -> verify(hbiEventProcessor, times(1)).process(event));
   }
 
   private HbiHostCreateUpdateEvent getCreateUpdateEvent(String messageJson) {

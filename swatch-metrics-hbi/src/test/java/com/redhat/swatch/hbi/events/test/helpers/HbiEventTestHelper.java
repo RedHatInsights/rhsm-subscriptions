@@ -22,6 +22,7 @@ package com.redhat.swatch.hbi.events.test.helpers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
+import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostFacts;
@@ -56,6 +57,14 @@ public class HbiEventTestHelper {
     // Override the syncTimestamp fact so that it aligns with the current time
     // and is within the configured 'hostLastSyncThreshold'.
     setRhsmSyncTimestamp(event, clock.now().minusHours(5));
+    return event;
+  }
+
+  public HbiEvent createEventOfTypeUnknown() {
+    // we use the create/update event template on purpose to ensure
+    // we don't deduct the type by the json schema.
+    var event = getCreateUpdateEvent(HbiEventTestData.getPhysicalRhelHostCreatedEvent());
+    event.setType("unknown");
     return event;
   }
 

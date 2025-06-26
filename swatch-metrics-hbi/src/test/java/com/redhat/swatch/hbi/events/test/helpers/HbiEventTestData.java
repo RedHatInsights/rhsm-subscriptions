@@ -44,6 +44,10 @@ public class HbiEventTestData {
     return loadEventFileAsString("data/hbi_physical_rhel_host_created_event.json");
   }
 
+  public static String getPhysicalRhelHostUpdatedEvent() {
+    return loadEventFileAsString("data/hbi_physical_rhel_host_updated_event.json");
+  }
+
   public static String getVirtualRhelHostCreatedEvent() {
     return loadEventFileAsString("data/hbi_virtual_rhel_host_created_event.json");
   }
@@ -54,6 +58,10 @@ public class HbiEventTestData {
 
   public static String getHostDeletedEvent() {
     return loadEventFileAsString("data/hbi_physical_rhel_host_deleted_event.json");
+  }
+
+  public static String getHostUnknownEvent() {
+    return loadEventFileAsString("data/hbi_unknown_event.json");
   }
 
   public static String getHostDeletedTemplate() {
