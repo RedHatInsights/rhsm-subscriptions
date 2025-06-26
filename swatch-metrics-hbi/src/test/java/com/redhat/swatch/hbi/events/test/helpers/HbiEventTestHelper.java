@@ -61,11 +61,12 @@ public class HbiEventTestHelper {
   }
 
   public HbiEvent createEventOfTypeUnknown() {
-    // we use the create/update event template on purpose to ensure
-    // we don't deduct the type by the json schema.
-    var event = getCreateUpdateEvent(HbiEventTestData.getPhysicalRhelHostCreatedEvent());
-    event.setType("unknown");
-    return event;
+    return new HbiEvent() {
+      @Override
+      public String getType() {
+        return "unknown";
+      }
+    };
   }
 
   public HbiHostCreateUpdateEvent createTemplatedGuestCreatedEvent(
