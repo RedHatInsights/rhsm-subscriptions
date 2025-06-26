@@ -29,12 +29,12 @@
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
     <opentelemetry-api.version>1.44.1</opentelemetry-api.version>
-    <awssdk-bom.version>2.31.68</awssdk-bom.version>
+    <awssdk-bom.version>2.31.70</awssdk-bom.version>
     <guava.version>33.4.8-jre</guava.version>
     <liquibase.version>4.32.0</liquibase.version>
     <postgresql.version>42.7.7</postgresql.version>
     <testcontainers-postgresql.version>1.21.2</testcontainers-postgresql.version>
-    <junit.version>5.13.1</junit.version>
+    <junit.version>5.13.2</junit.version>
     <mockito.version>5.18.0</mockito.version>
     <rest-assured.version>5.5.5</rest-assured.version>
     <hibernate-validator.version>9.0.1.Final</hibernate-validator.version>
@@ -90,43 +90,6 @@
       </snapshots>
     </repository>
   </repositories>
-
-  <modules>
-    <module>swatch-spring-parent</module>
-    <module>swatch-quarkus-parent</module>
-    <module>swatch-product-configuration</module>
-    <module>api</module>
-    <module>clients-core</module>
-    <module>clients</module>
-    <module>swatch-core</module>
-    <module>swatch-core-test</module>
-    <module>swatch-common-clock</module>
-    <module>swatch-common-export</module>
-    <module>swatch-common-config-workaround</module>
-    <module>swatch-common-resteasy</module>
-    <module>swatch-common-resteasy-client</module>
-    <module>swatch-common-panache</module>
-    <module>swatch-common-kafka</module>
-    <module>swatch-common-smallrye-fault-tolerance</module>
-    <module>swatch-common-splunk</module>
-    <module>swatch-common-trace-response</module>
-    <module>swatch-common-health</module>
-    <module>swatch-common-models</module>
-    <module>swatch-common-testcontainers</module>
-    <module>swatch-model-events</module>
-    <module>swatch-model-billable-usage</module>
-    <module>swatch-database-migrations</module>
-    <!-- Services -->
-    <module>swatch-database</module>
-    <module>swatch-tally</module>
-    <module>swatch-system-conduit</module>
-    <module>swatch-billable-usage</module>
-    <module>swatch-contracts</module>
-    <module>swatch-metrics</module>
-    <module>swatch-metrics-hbi</module>
-    <module>swatch-producer-aws</module>
-    <module>swatch-producer-azure</module>
-  </modules>
 
   <dependencyManagement>
     <dependencies>
@@ -481,6 +444,12 @@
           <artifactId>jandex-maven-plugin</artifactId>
           <version>3.3.1</version>
         </plugin>
+
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>exec-maven-plugin</artifactId>
+          <version>${exec-maven-plugin.version}</version>
+        </plugin>
       </plugins>
     </pluginManagement>
 
@@ -556,7 +525,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>10.25.0</version>
+            <version>10.26.0</version>
           </dependency>
         </dependencies>
       </plugin>
@@ -564,6 +533,63 @@
   </build>
 
   <profiles>
+    <profile>
+      <id>build</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+        <property>
+          <name>coverage</name>
+        </property>
+      </activation>
+      <modules>
+        <module>swatch-spring-parent</module>
+        <module>swatch-quarkus-parent</module>
+        <module>swatch-product-configuration</module>
+        <module>api</module>
+        <module>clients-core</module>
+        <module>clients</module>
+        <module>swatch-core</module>
+        <module>swatch-core-test</module>
+        <module>swatch-common-clock</module>
+        <module>swatch-common-export</module>
+        <module>swatch-common-config-workaround</module>
+        <module>swatch-common-resteasy</module>
+        <module>swatch-common-resteasy-client</module>
+        <module>swatch-common-panache</module>
+        <module>swatch-common-kafka</module>
+        <module>swatch-common-smallrye-fault-tolerance</module>
+        <module>swatch-common-splunk</module>
+        <module>swatch-common-trace-response</module>
+        <module>swatch-common-health</module>
+        <module>swatch-common-models</module>
+        <module>swatch-common-testcontainers</module>
+        <module>swatch-model-events</module>
+        <module>swatch-model-billable-usage</module>
+        <module>swatch-database-migrations</module>
+        <!-- Services -->
+        <module>swatch-database</module>
+        <module>swatch-tally</module>
+        <module>swatch-system-conduit</module>
+        <module>swatch-billable-usage</module>
+        <module>swatch-contracts</module>
+        <module>swatch-metrics</module>
+        <module>swatch-metrics-hbi</module>
+        <module>swatch-producer-aws</module>
+        <module>swatch-producer-azure</module>
+      </modules>
+    </profile>
+
+    <profile>
+      <id>run-migrations</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <modules>
+        <module>swatch-database-migrations</module>
+        <module>swatch-database</module>
+      </modules>
+    </profile>
+
     <profile>
       <id>coverage</id>
       <activation>
