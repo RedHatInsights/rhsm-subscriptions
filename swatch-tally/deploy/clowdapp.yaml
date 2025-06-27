@@ -208,7 +208,7 @@ parameters:
   - name: CONTRACT_CLIENT_MAX_ATTEMPTS
     value: '1'
   - name: CURL_CRON_IMAGE
-    value: quay.io/app-sre/ubi8-ubi-minimal
+    value: registry.access.redhat.com/ubi8/ubi-minimal
   - name: CURL_CRON_IMAGE_TAG
     value: latest
   - name: CURL_CRON_MEMORY_REQUEST
