@@ -22,8 +22,12 @@ package com.redhat.swatch.hbi.events.services;
 
 import static com.redhat.swatch.hbi.events.configuration.Channels.HBI_HOST_EVENTS_IN;
 import static com.redhat.swatch.hbi.events.configuration.Channels.SWATCH_EVENTS_OUT;
+import static com.redhat.swatch.hbi.events.services.HbiEventConsumer.COUNTER_EVENTS_METRIC;
+import static com.redhat.swatch.hbi.events.services.HbiEventConsumer.TIMED_EVENTS_METRIC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,12 +36,14 @@ import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
 import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
+import com.redhat.swatch.hbi.events.processing.HbiEventProcessor;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationshipRepository;
 import com.redhat.swatch.hbi.events.test.helpers.HbiEventTestData;
 import com.redhat.swatch.hbi.events.test.helpers.HbiEventTestHelper;
 import com.redhat.swatch.hbi.events.test.helpers.SwatchEventTestHelper;
 import io.getunleash.Unleash;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectSpy;
@@ -80,22 +86,24 @@ class HbiEventConsumerTest {
   @InjectSpy HbiHostRelationshipRepository repo;
   @Inject HbiEventTestHelper hbiEventTestHelper;
   @Inject SwatchEventTestHelper swatchEventTestHelper;
+  @InjectSpy HbiEventProcessor hbiEventProcessor;
+  @Inject MeterRegistry meterRegistry;
   private InMemorySource<HbiEvent> hbiEventsIn;
   private InMemorySink<Event> swatchEventsOut;
 
   @BeforeEach
   @Transactional
   void setup() {
-    System.out.println("Setting up HbiEventConsumerTest");
+    when(unleash.isEnabled(FeatureFlags.EMIT_EVENTS)).thenReturn(true);
     hbiEventsIn = connector.source(HBI_HOST_EVENTS_IN);
     swatchEventsOut = connector.sink(SWATCH_EVENTS_OUT);
     swatchEventsOut.clear();
     repo.deleteAll();
+    meterRegistry.clear();
   }
 
   @Test
   void testSwatchEventSentWithOrgIdAsMessageKey() {
-    when(unleash.isEnabled(FeatureFlags.EMIT_EVENTS)).thenReturn(true);
     var hbiEvent =
         hbiEventTestHelper.getCreateUpdateEvent(HbiEventTestData.getPhysicalRhelHostCreatedEvent());
     hbiEventsIn.send(hbiEvent);
@@ -115,8 +123,6 @@ class HbiEventConsumerTest {
 
   @Test
   void testPhysicalRhelEvent() throws Exception {
-    when(unleash.isEnabled(FeatureFlags.EMIT_EVENTS)).thenReturn(true);
-
     var hbiEvent =
         hbiEventTestHelper.getCreateUpdateEvent(HbiEventTestData.getPhysicalRhelHostCreatedEvent());
 
@@ -139,8 +145,6 @@ class HbiEventConsumerTest {
 
   @Test
   void testValidSatelliteReportedVirtualUnmappedRhelHost() throws Exception {
-    when(unleash.isEnabled(FeatureFlags.EMIT_EVENTS)).thenReturn(true);
-
     String hypervisorUuid = "bed420fa-59ef-44e5-af8a-62a24473a554";
     HbiHostCreateUpdateEvent hbiEvent =
         hbiEventTestHelper.getCreateUpdateEvent(
@@ -176,7 +180,6 @@ class HbiEventConsumerTest {
 
   @Test
   void testRhsmFactsAreNotConsideredWhenOutsideOfTheSyncThreshold() throws Exception {
-    when(unleash.isEnabled(FeatureFlags.EMIT_EVENTS)).thenReturn(true);
     // The test event has a syncTimestamp outside the configured 'hostLastSyncThreshold'.
     var hbiEvent = getCreateUpdateEvent(HbiEventTestData.getPhysicalRhelHostCreatedEvent());
     OffsetDateTime eventTimestamp = hbiEvent.getTimestamp().toOffsetDateTime();
@@ -207,7 +210,6 @@ class HbiEventConsumerTest {
 
   @Test
   void testQpcRhelHostCreatedEvent() throws Exception {
-    when(unleash.isEnabled(FeatureFlags.EMIT_EVENTS)).thenReturn(true);
     var hbiEvent =
         hbiEventTestHelper.getCreateUpdateEvent(HbiEventTestData.getQpcRhelHostCreatedEvent());
 
@@ -245,8 +247,6 @@ class HbiEventConsumerTest {
    */
   @Test
   void testIncomingHypervisorReCalculatesForAllUnmappedGuests() throws Exception {
-    when(unleash.isEnabled(FeatureFlags.EMIT_EVENTS)).thenReturn(true);
-
     var virtualHostHbiEvent =
         hbiEventTestHelper.getCreateUpdateEvent(HbiEventTestData.getVirtualRhelHostCreatedEvent());
     var hypervisorEvent =
@@ -329,8 +329,6 @@ class HbiEventConsumerTest {
   @Test
   void testIncomingRhelGuestWithKnownHypervisorProducesGuestHostCreatedAndHypervisorUpdatedEvents()
       throws Exception {
-    when(unleash.isEnabled(FeatureFlags.EMIT_EVENTS)).thenReturn(true);
-
     var hypervisorHostHbiEvent =
         hbiEventTestHelper.getCreateUpdateEvent(HbiEventTestData.getPhysicalRhelHostCreatedEvent());
 
@@ -400,7 +398,6 @@ class HbiEventConsumerTest {
 
   @Test
   void testDeleteEventWithoutRelationshipProducesMinimalSwatchEvent() {
-    when(unleash.isEnabled(FeatureFlags.EMIT_EVENTS)).thenReturn(true);
     HbiHostDeleteEvent hbiEvent =
         HbiEventTestData.getEvent(
             objectMapper, HbiEventTestData.getHostDeletedEvent(), HbiHostDeleteEvent.class);
@@ -414,8 +411,6 @@ class HbiEventConsumerTest {
 
   @Test
   void testDeleteWithHypervisorGuestRelationships() throws Exception {
-    when(unleash.isEnabled(FeatureFlags.EMIT_EVENTS)).thenReturn(true);
-
     var virtualHostHbiEvent =
         hbiEventTestHelper.getCreateUpdateEvent(HbiEventTestData.getVirtualRhelHostCreatedEvent());
     var hypervisorEvent =
@@ -477,6 +472,42 @@ class HbiEventConsumerTest {
     verifyRelationshipDeleted(
         hypervisorEvent.getHost().getOrgId(), hypervisorEvent.getHost().getId());
     assertRelationshipExists(guestRelationship);
+  }
+
+  @Test
+  void testDoesNotRetryOnUnknownEvents() {
+    // Send the unknown event
+    var event = hbiEventTestHelper.createEventOfTypeUnknown();
+    hbiEventsIn.send(event);
+    // Then wait for the consumer
+    Awaitility.await()
+        .await()
+        .pollDelay(Duration.ofMillis(500))
+        .untilAsserted(
+            () -> {
+              verify(hbiEventProcessor, times(1)).process(event);
+              thenCounterMetricExists(event.getType(), "unsupported");
+            });
+  }
+
+  @Test
+  void testTimedAndCountedMetricsAreUpdated() {
+    // given event
+    var hbiEvent =
+        hbiEventTestHelper.getCreateUpdateEvent(HbiEventTestData.getPhysicalRhelHostCreatedEvent());
+    // when event is sent
+    hbiEventsIn.send(hbiEvent);
+    // and is processed
+    assertSwatchEventSent(
+        swatchEventTestHelper.buildPhysicalRhelEvent(
+            hbiEvent.getHost(),
+            NormalizedEventType.INSTANCE_CREATED,
+            hbiEvent.getTimestamp().toOffsetDateTime(),
+            false,
+            buildMeasurements(2.0, 2.0)));
+    // then
+    thenTimedMetricExists();
+    thenCounterMetricExists(hbiEvent.getType());
   }
 
   private HbiHostCreateUpdateEvent getCreateUpdateEvent(String messageJson) {
@@ -544,5 +575,34 @@ class HbiEventConsumerTest {
   @Transactional
   public void verifyRelationshipDeleted(String orgId, UUID inventoryId) {
     assertTrue(repo.findByOrgIdAndInventoryId(orgId, inventoryId).isEmpty());
+  }
+
+  private void thenCounterMetricExists(String type) {
+    thenCounterMetricExists(type, "none");
+  }
+
+  private void thenCounterMetricExists(String type, String errorMessage) {
+    var metric =
+        meterRegistry.getMeters().stream()
+            .filter(
+                m ->
+                    COUNTER_EVENTS_METRIC.equals(m.getId().getName())
+                        && type.equals(m.getId().getTag("type"))
+                        && (errorMessage == null
+                            || errorMessage.equals(m.getId().getTag("error-message"))))
+            .findFirst();
+
+    assertTrue(
+        metric.isPresent(), () -> "Counter metric not found. Found: " + meterRegistry.getMeters());
+    assertEquals(1.0, metric.get().measure().iterator().next().getValue());
+  }
+
+  private void thenTimedMetricExists() {
+    var metric =
+        meterRegistry.getMeters().stream()
+            .filter(m -> TIMED_EVENTS_METRIC.equals(m.getId().getName()))
+            .findFirst();
+
+    assertTrue(metric.isPresent());
   }
 }

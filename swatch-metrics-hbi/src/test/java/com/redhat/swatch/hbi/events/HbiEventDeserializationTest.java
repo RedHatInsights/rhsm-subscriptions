@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
+import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostUnknownEvent;
 import com.redhat.swatch.hbi.events.kafka.InMemoryMessageBrokerKafkaResource;
 import com.redhat.swatch.hbi.events.test.helpers.HbiEventTestData;
 import com.redhat.swatch.hbi.events.test.resources.PostgresResource;
@@ -48,6 +49,11 @@ class HbiEventDeserializationTest {
   private static Stream<Arguments> eventTypeDeserializationParams() {
     return Stream.of(
         Arguments.of(HbiEventTestData.getHostDeletedEvent(), "delete", HbiHostDeleteEvent.class),
+        Arguments.of(HbiEventTestData.getHostUnknownEvent(), "unknown", HbiHostUnknownEvent.class),
+        Arguments.of(
+            HbiEventTestData.getPhysicalRhelHostUpdatedEvent(),
+            "updated",
+            HbiHostCreateUpdateEvent.class),
         Arguments.of(
             HbiEventTestData.getPhysicalRhelHostCreatedEvent(),
             "created",

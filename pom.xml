@@ -20,7 +20,7 @@
     <codegen.skipIfSpecIsUnchanged>true</codegen.skipIfSpecIsUnchanged>
 
     <!-- Dependencies -->
-    <quarkus.platform.version>3.23.4</quarkus.platform.version>
+    <quarkus.platform.version>3.24.1</quarkus.platform.version>
     <spring.boot.version>3.5.3</spring.boot.version>
     <resteasy.version>6.2.12.Final</resteasy.version>
     <jackson.version>2.19.1</jackson.version>
@@ -29,7 +29,7 @@
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
     <opentelemetry-api.version>1.44.1</opentelemetry-api.version>
-    <awssdk-bom.version>2.31.70</awssdk-bom.version>
+    <awssdk-bom.version>2.31.72</awssdk-bom.version>
     <guava.version>33.4.8-jre</guava.version>
     <liquibase.version>4.32.0</liquibase.version>
     <postgresql.version>42.7.7</postgresql.version>
@@ -39,7 +39,7 @@
     <rest-assured.version>5.5.5</rest-assured.version>
     <hibernate-validator.version>9.0.1.Final</hibernate-validator.version>
     <swagger-parser.version>2.1.30</swagger-parser.version>
-    <swagger-ui.version>5.25.2</swagger-ui.version>
+    <swagger-ui.version>5.25.3</swagger-ui.version>
     <splunk-otel-javaagent.version>2.16.0</splunk-otel-javaagent.version>
 
     <!-- Plugins -->
@@ -48,7 +48,7 @@
     <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
     <maven-assembly-plugin.version>3.7.1</maven-assembly-plugin.version>
     <exec-maven-plugin.version>3.5.1</exec-maven-plugin.version>
-    <openapi-generator.version>7.13.0</openapi-generator.version>
+    <openapi-generator.version>7.14.0</openapi-generator.version>
     <spotless.version>2.44.5</spotless.version>
     <checkstyle.version>3.6.0</checkstyle.version>
     <jacoco-maven-plugin.version>0.8.13</jacoco-maven-plugin.version>
