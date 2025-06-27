@@ -34,10 +34,15 @@ import lombok.ToString;
 @ToString
 @Getter
 @Setter
-@JsonTypeInfo(use = Id.DEDUCTION)
+@JsonTypeInfo(
+    use = Id.NAME,
+    property = "type",
+    defaultImpl = HbiHostUnknownEvent.class,
+    visible = true)
 @JsonSubTypes({
-  @Type(value = HbiHostDeleteEvent.class, name = "HbiHostDeleteEvent"),
-  @Type(value = HbiHostCreateUpdateEvent.class, name = "HbiHostCreateUpdateEvent"),
+  @Type(value = HbiHostDeleteEvent.class, name = "delete"),
+  @Type(value = HbiHostCreateUpdateEvent.class, name = "created"),
+  @Type(value = HbiHostCreateUpdateEvent.class, name = "updated"),
 })
 public abstract class HbiEvent {
 
