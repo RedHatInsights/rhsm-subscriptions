@@ -27,6 +27,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.hbi.events.TestingApplicationConfiguration;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
@@ -65,7 +66,7 @@ class CreateUpdateHostHandlerTest {
   @Inject SwatchEventTestHelper swatchEventHelper;
 
   static Stream<Arguments> skipEventTestArgs() {
-    ApplicationClock clock = new ApplicationClock();
+    ApplicationClock clock = TestingApplicationConfiguration.fixedClock();
     OffsetDateTime notStale = clock.now().plusMonths(1);
     OffsetDateTime stale = clock.now().minusMonths(2);
     return Stream.of(
