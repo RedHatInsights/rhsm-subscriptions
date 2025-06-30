@@ -33,7 +33,6 @@ import jakarta.persistence.criteria.MapJoin;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.validation.constraints.NotNull;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -79,11 +78,12 @@ public interface HostRepository
   @Query(
       value =
           """
-      select
-      h from Host h
+      select h
+      from Host h
       left join fetch h.measurements
       left join fetch h.buckets
       left join fetch h.monthlyTotals
+      left join fetch h.lastAppliedEventRecordDateByServiceType
       where h.orgId=:orgId
         and h.instanceType='HBI_HOST'
       order by coalesce(h.hypervisorUuid, h.subscriptionManagerId), h.hypervisorUuid, h.inventoryId, h.id
@@ -547,24 +547,22 @@ public interface HostRepository
   Page<Host> getGuestHostsByHypervisorInstanceId(
       @Param("orgId") String orgId, @Param("instanceId") String instanceId, Pageable pageable);
 
-  /**
-   * We want to obtain the max last seen host record for the hourly tally. This helps in determining
-   * whether we need to reevaluate the earlier event measurements.
-   *
-   * @param orgId the orgId
-   * @param serviceType the service type
-   * @return an Optional of the maximum last-seen date
-   */
-  @Query(
-      value =
-          "select max(h.lastSeen) from Host h where h.orgId=:orgId and h.instanceType=:serviceType")
-  Optional<OffsetDateTime> findMaxLastSeenDate(
-      @Param("orgId") String orgId, @Param("serviceType") String serviceType);
-
   Optional<Host> findById(UUID id);
 
   void deleteByOrgId(String orgId);
 
-  @Query
-  Stream<Host> findAllByOrgIdAndInstanceIdIn(String orgId, Set<String> instanceIds);
+  @Query(
+      value =
+          """
+      select h from Host h
+      left join fetch h.measurements
+      left join fetch h.buckets
+      left join fetch h.monthlyTotals
+      left join fetch h.lastAppliedEventRecordDateByServiceType
+      where h.orgId=:orgId
+      and h.instanceId in :instanceIds
+          """)
+  @QueryHints(value = {@QueryHint(name = HINT_FETCH_SIZE, value = "1024")})
+  Stream<Host> findAllByOrgIdAndInstanceIdIn(
+      @Param("orgId") String orgId, @Param("instanceIds") Set<String> instanceIds);
 }

@@ -24,9 +24,11 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.sql.Types;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -172,14 +174,26 @@ public class MergeHostsMigration extends DataMigration {
       primaryHost.setBillingAccountId(host.getBillingAccountId());
     }
     // keep the latest applied event record date
-    if (primaryHost.getLastAppliedEventRecordDate() == null
-        || host.getLastAppliedEventRecordDate() != null
-            && primaryHost
-                    .getLastAppliedEventRecordDate()
-                    .compareTo(host.getLastAppliedEventRecordDate())
-                < 0) {
-      primaryHost.setLastAppliedEventRecordDate(host.getLastAppliedEventRecordDate());
+    Set<String> allServiceTypes = new HashSet<>();
+    allServiceTypes.addAll(primaryHost.getLastAppliedEventRecordDateByServiceType().keySet());
+    allServiceTypes.addAll(host.getLastAppliedEventRecordDateByServiceType().keySet());
+    for (String serviceType : allServiceTypes) {
+      OffsetDateTime lastAppliedEventRecord =
+          primaryHost.getLastAppliedEventRecordDateByServiceType().get(serviceType);
+      OffsetDateTime secondaryLastAppliedEventRecord =
+          host.getLastAppliedEventRecordDateByServiceType().get(serviceType);
+
+      if (lastAppliedEventRecord == null
+          || (secondaryLastAppliedEventRecord != null
+              && lastAppliedEventRecord.isBefore(secondaryLastAppliedEventRecord))) {
+        lastAppliedEventRecord = secondaryLastAppliedEventRecord;
+      }
+
+      if (lastAppliedEventRecord != null) {
+        primaryHost.setLastAppliedEventRecordDate(serviceType, lastAppliedEventRecord);
+      }
     }
+
     // HBI_HOST will always win if there are different values
     if (primaryHost.getInstanceType() == null
         || !primaryHost.getInstanceType().equals("HBI_HOST") && host.getInstanceType() != null) {

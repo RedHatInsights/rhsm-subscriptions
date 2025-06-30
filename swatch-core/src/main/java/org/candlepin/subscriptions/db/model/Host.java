@@ -149,8 +149,13 @@ public class Host implements Serializable {
    * Used to track the last Event that was applied to the monthly totals. The expected value will be
    * Event.recordDate.
    */
+  @ElementCollection(fetch = FetchType.EAGER)
+  @CollectionTable(
+      name = "host_tally_service_type",
+      joinColumns = @JoinColumn(name = "host_id", referencedColumnName = "id"))
+  @MapKeyColumn(name = "service_type")
   @Column(name = "last_applied_event_record_date")
-  private OffsetDateTime lastAppliedEventRecordDate;
+  private Map<String, OffsetDateTime> lastAppliedEventRecordDateByServiceType = new HashMap<>();
 
   public Host() {}
 
@@ -276,6 +281,14 @@ public class Host implements Serializable {
     keys.stream()
         .filter(key -> Objects.equals(key.getMonth(), monthIdentifier))
         .forEach(key -> monthlyTotals.put(key, 0.0));
+  }
+
+  public OffsetDateTime getLastAppliedEventRecordDate(String serviceType) {
+    return lastAppliedEventRecordDateByServiceType.get(serviceType);
+  }
+
+  public void setLastAppliedEventRecordDate(String serviceType, OffsetDateTime recordDate) {
+    lastAppliedEventRecordDateByServiceType.put(serviceType, recordDate);
   }
 
   @Override

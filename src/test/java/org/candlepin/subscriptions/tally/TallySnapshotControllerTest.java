@@ -226,7 +226,9 @@ class TallySnapshotControllerTest implements ExtendWithEmbeddedKafka {
         instance1.getMonthlyTotal(
             InstanceMonthlyTotalKey.formatMonthId(instance1Event1.getTimestamp()),
             MetricIdUtils.getCores()));
-    assertEquals(instance1.getLastAppliedEventRecordDate(), instance1Event2.getRecordDate());
+    assertEquals(
+        instance1.getLastAppliedEventRecordDate(instance1Event2.getEvent().getServiceType()),
+        instance1Event2.getRecordDate());
 
     Host instance2 = hosts.get(instance2Event1.getInstanceId());
     assertEquals(
@@ -234,7 +236,9 @@ class TallySnapshotControllerTest implements ExtendWithEmbeddedKafka {
         instance2.getMonthlyTotal(
             InstanceMonthlyTotalKey.formatMonthId(instance2Event1.getTimestamp()),
             MetricIdUtils.getCores()));
-    assertEquals(instance2.getLastAppliedEventRecordDate(), instance2Event1.getRecordDate());
+    assertEquals(
+        instance2.getLastAppliedEventRecordDate(instance2Event1.getEvent().getServiceType()),
+        instance2Event1.getRecordDate());
 
     List<TallySnapshot> createdSnapshots = snapshotCaptor.getAllValues();
     // 48 is from:
