@@ -54,7 +54,6 @@ public class Variant {
 
   @Builder.Default private Set<String> roles = new HashSet<>();
   @Builder.Default private Set<Integer> engineeringIds = new HashSet<>();
-  @Builder.Default private Set<String> productNames = new HashSet<>();
   private String level1;
   private String level2;
 

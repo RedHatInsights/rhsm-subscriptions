@@ -245,7 +245,7 @@ public class SubscriptionDefinition {
   }
 
   /**
-   * In order to get a product tag, you must supply either level, role, engId, or productName data.
+   * In order to get a product tag, you must supply either level, role, or engId data.
    *
    * @param params the search parameters to use
    * @return Set&amp;lt;Variant&amp;gt;
@@ -270,8 +270,7 @@ public class SubscriptionDefinition {
             .filter(
                 createLevelPredicate(params)
                     .or(createRolePredicate(params))
-                    .or(createEngIdPredicate(params))
-                    .or(createProductNamePredicate(params)))
+                    .or(createEngIdPredicate(params)))
             .collect(Collectors.toSet());
 
     if (filteredVariants.isEmpty()) {
@@ -473,23 +472,6 @@ public class SubscriptionDefinition {
       return !isNullOrEmpty(paramRole)
           && !isNullOrEmpty(variantRoles)
           && variantRoles.contains(paramRole);
-    };
-  }
-
-  /**
-   * Returns a predicate that only evaluates to true if product name parameter is specified and
-   * matches a variant
-   *
-   * @param params ProductTagLookupParams
-   * @return a Predicate as described above
-   */
-  private static Predicate<Variant> createProductNamePredicate(ProductTagLookupParams params) {
-    return variant -> {
-      String paramProductName = params.getProductName();
-      Set<String> variantProductNames = variant.getProductNames();
-      return !isNullOrEmpty(paramProductName)
-          && !isNullOrEmpty(variantProductNames)
-          && variantProductNames.contains(paramProductName);
     };
   }
 

@@ -65,9 +65,10 @@ class OfferingProductTagLookupServiceTest {
 
   @Test
   void
-      findProductTagsBySkuWhenSkuPresentWithNoRoleOrEngIDsThenItShouldNotUseProductNameWhenMeteredFlagIsFalse() {
+      findProductTagsBySkuWhenSkuPresentWithNoRoleOrEngIDsThenItShouldNotUseLevelWhenMeteredFlagIsFalse() {
     OfferingEntity offering = new OfferingEntity();
-    offering.setProductName("OpenShift Online");
+    offering.setLevel1("OpenShift");
+    offering.setLevel2("ROSA - RH OpenShift on AWS");
     offering.setRole(null);
     offering.setProductIds(null);
     offering.setMetered(false);
@@ -80,9 +81,10 @@ class OfferingProductTagLookupServiceTest {
 
   @Test
   void
-      findProductTagsBySkuWhenSkuPresentWithNoRoleOrEngIDsThenItShouldUseProductNameWhenMeteredFlagIsTrue() {
+      findProductTagsBySkuWhenSkuPresentWithNoRoleOrEngIDsThenItShouldUseLevelWhenMeteredFlagIsTrue() {
     OfferingEntity offering = new OfferingEntity();
-    offering.setProductName("OpenShift Online");
+    offering.setLevel1("OpenShift");
+    offering.setLevel2("ROSA - RH OpenShift on AWS");
     offering.setRole(null);
     offering.setProductIds(null);
     offering.setMetered(true);
