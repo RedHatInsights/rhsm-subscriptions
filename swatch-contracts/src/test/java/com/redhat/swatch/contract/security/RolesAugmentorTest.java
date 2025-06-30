@@ -42,6 +42,10 @@ class RolesAugmentorTest {
     }
   }
 
+  private QuarkusSecurityIdentity securityIdentityForAnonymous() {
+    return QuarkusSecurityIdentity.builder().setAnonymous(true).build();
+  }
+
   @Test
   void testRoleGrantedToRhIdentityWhenEnabled() {
     var augmentor = new RolesAugmentor();
@@ -54,20 +58,35 @@ class RolesAugmentorTest {
             .map(SecurityIdentity::getRoles)
             .subscribe()
             .withSubscriber(UniAssertSubscriber.create());
-    subscriber.assertCompleted().assertItem(Set.of("test"));
+    subscriber.assertCompleted().assertItem(Set.of("service", "test"));
   }
 
   @Test
-  void testRoleNotGrantedToRhIdentityWhenDisabled() {
+  void testNoRolesForAnonymous() {
     var augmentor = new RolesAugmentor();
     augmentor.testApisEnabled = false;
     var subscriber =
         augmentor
-            .augment(securityIdentityForRhIdentityJson(RhIdentityUtils.X509_IDENTITY_JSON), null)
+            .augment(securityIdentityForAnonymous(), null)
             .map(SecurityIdentity::getRoles)
             .subscribe()
             .withSubscriber(UniAssertSubscriber.create());
     subscriber.assertCompleted().assertItem(Set.of());
+  }
+
+  @Test
+  void testNoTestRoleGrantedToRhIdentityWhenDisabled() {
+    var augmentor = new RolesAugmentor();
+    augmentor.testApisEnabled = false;
+    SecurityIdentity x509Identity =
+        securityIdentityForRhIdentityJson(RhIdentityUtils.X509_IDENTITY_JSON);
+    var subscriber =
+        augmentor
+            .augment(x509Identity, null)
+            .map(SecurityIdentity::getRoles)
+            .subscribe()
+            .withSubscriber(UniAssertSubscriber.create());
+    subscriber.assertCompleted().assertItem(Set.of("service"));
   }
 
   @Test
@@ -90,6 +109,20 @@ class RolesAugmentorTest {
         augmentor
             .augment(
                 QuarkusSecurityIdentity.builder().setPrincipal(new PskPrincipal()).build(), null)
+            .map(SecurityIdentity::getRoles)
+            .subscribe()
+            .withSubscriber(UniAssertSubscriber.create());
+    subscriber.assertCompleted().assertItem(Set.of("service"));
+  }
+
+  @Test
+  void serviceRoleGrantedToX509() {
+    var augmentor = new RolesAugmentor();
+    SecurityIdentity x509Identity =
+        securityIdentityForRhIdentityJson(RhIdentityUtils.X509_IDENTITY_JSON);
+    var subscriber =
+        augmentor
+            .augment(x509Identity, null)
             .map(SecurityIdentity::getRoles)
             .subscribe()
             .withSubscriber(UniAssertSubscriber.create());
