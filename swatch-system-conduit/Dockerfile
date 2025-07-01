@@ -16,10 +16,13 @@ COPY mvnw .
 COPY .mvn .mvn
 COPY pom.xml ./
 
+RUN --mount=type=cache,target=/root/.m2 \
+    ./mvnw -P download dependency:resolve-plugins dependency:resolve --fail-never
 COPY . .
 ARG MAVEN_BUILD_ARGS=''
 ARG MAVEN_TASKS='clean package'
-RUN ./mvnw ${MAVEN_TASKS} -DskipTests ${MAVEN_BUILD_ARGS}
+RUN --mount=type=cache,target=/root/.m2 \
+    ./mvnw ${MAVEN_TASKS} -DskipTests ${MAVEN_BUILD_ARGS}
 
 # See https://stackoverflow.com/a/786515
 RUN (cd /stage/swatch-system-conduit && exec jar -xf ./target/*.jar)
