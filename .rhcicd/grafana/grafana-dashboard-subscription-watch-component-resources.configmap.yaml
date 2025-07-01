@@ -1,0 +1,1030 @@
+apiVersion: v1
+data:
+  grafana-dashboard-subscription-watch-component-resources.json: |-
+    {
+        "annotations": {
+          "list": [
+            {
+              "builtIn": 1,
+              "datasource": {
+                "type": "grafana",
+                "uid": "-- Grafana --"
+              },
+              "enable": true,
+              "hide": true,
+              "iconColor": "rgba(0, 211, 255, 1)",
+              "name": "Annotations & Alerts",
+              "type": "dashboard"
+            }
+          ]
+        },
+        "editable": true,
+        "fiscalYearStartMonth": 0,
+        "graphTooltip": 0,
+        "id": 1026062,
+        "links": [],
+        "panels": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${datasource}"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "axisBorderShow": true,
+                  "axisCenteredZero": false,
+                  "axisColorMode": "text",
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "fillOpacity": 60,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "viz": false
+                  },
+                  "lineWidth": 2,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "off"
+                  }
+                },
+                "mappings": [],
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "purple"
+                    }
+                  ]
+                }
+              },
+              "overrides": []
+            },
+            "gridPos": {
+              "h": 15,
+              "w": 24,
+              "x": 0,
+              "y": 0
+            },
+            "id": 17,
+            "options": {
+              "barRadius": 0,
+              "barWidth": 1,
+              "fullHighlight": false,
+              "groupWidth": 1,
+              "legend": {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "right",
+                "showLegend": true
+              },
+              "orientation": "auto",
+              "showValue": "always",
+              "stacking": "none",
+              "tooltip": {
+                "hideZeros": false,
+                "mode": "single",
+                "sort": "none"
+              },
+              "xField": "container",
+              "xTickLabelRotation": -45,
+              "xTickLabelSpacing": 0
+            },
+            "pluginVersion": "11.6.3",
+            "targets": [
+              {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+                },
+                "editorMode": "code",
+                "exemplar": false,
+                "expr": "max by (container, namespace) (\n  kube_pod_container_resource_requests{resource=\"cpu\", namespace =~ \"rhsm-stage|rhsm-prod\"} * 1000\n)",
+                "format": "table",
+                "instant": true,
+                "legendFormat": "__auto",
+                "range": false,
+                "refId": "resource request"
+              },
+              {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+                },
+                "editorMode": "code",
+                "exemplar": false,
+                "expr": "max by (container, namespace) (\n  kube_pod_container_resource_limits{resource=\"cpu\", namespace =~ \"rhsm-stage|rhsm-prod\"} * 1000\n)",
+                "format": "table",
+                "hide": false,
+                "instant": true,
+                "legendFormat": "__auto",
+                "range": false,
+                "refId": "resource limit"
+              },
+              {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+                },
+                "editorMode": "code",
+                "exemplar": false,
+                "expr": "avg by (container,namespace) (\n  avg_over_time(\n    node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{\n      cluster = \"\",\n      namespace =~ \"rhsm-stage|rhsm-prod\"\n    }[14d:]\n  ) * 1000\n)",
+                "format": "table",
+                "hide": false,
+                "instant": true,
+                "legendFormat": "__auto",
+                "range": false,
+                "refId": "avg cpu"
+              },
+              {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+                },
+                "editorMode": "code",
+                "exemplar": false,
+                "expr": "max by (container,namespace) (\nmax_over_time(\nnode_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{\ncluster = \"\",\nnamespace =~ \"rhsm-stage|rhsm-prod\"\n}[14d:]\n) * 1000\n)",
+                "format": "table",
+                "hide": false,
+                "instant": true,
+                "legendFormat": "__auto",
+                "range": false,
+                "refId": "max cpu"
+              }
+            ],
+            "title": "Panel Title",
+            "transformations": [
+              {
+                "id": "merge",
+                "options": {}
+              },
+              {
+                "id": "organize",
+                "options": {
+                  "excludeByName": {
+                    "Time": true
+                  },
+                  "includeByName": {},
+                  "indexByName": {
+                    "Time": 0,
+                    "Value #avg cpu": 4,
+                    "Value #max cpu": 5,
+                    "Value #resource limit": 6,
+                    "Value #resource request": 3,
+                    "container": 1,
+                    "namespace": 2
+                  },
+                  "renameByName": {
+                    "Value #avg cpu": "AVG CPU",
+                    "Value #max cpu": "MAX CPU",
+                    "Value #resource limit": "CPU Limit",
+                    "Value #resource request": "CPU Request"
+                  }
+                }
+              }
+            ],
+            "type": "barchart"
+          },
+          {
+            "collapsed": true,
+            "gridPos": {
+              "h": 1,
+              "w": 24,
+              "x": 0,
+              "y": 15
+            },
+            "id": 16,
+            "panels": [],
+            "title": "Row title",
+            "type": "row"
+          },
+          {
+            "collapsed": true,
+            "gridPos": {
+              "h": 1,
+              "w": 24,
+              "x": 0,
+              "y": 16
+            },
+            "id": 12,
+            "panels": [
+              {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+                },
+                "fieldConfig": {
+                  "defaults": {
+                    "custom": {
+                      "align": "auto",
+                      "cellOptions": {
+                        "type": "json-view"
+                      },
+                      "filterable": true,
+                      "inspect": false
+                    },
+                    "fieldMinMax": false,
+                    "mappings": [],
+                    "thresholds": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green"
+                        },
+                        {
+                          "color": "red",
+                          "value": 80
+                        }
+                      ]
+                    }
+                  },
+                  "overrides": [
+                    {
+                      "matcher": {
+                        "id": "byName",
+                        "options": "namespace"
+                      },
+                      "properties": [
+                        {
+                          "id": "custom.width",
+                          "value": 131
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "gridPos": {
+                  "h": 9,
+                  "w": 10,
+                  "x": 1,
+                  "y": 2
+                },
+                "id": 9,
+                "options": {
+                  "cellHeight": "sm",
+                  "footer": {
+                    "countRows": false,
+                    "enablePagination": false,
+                    "fields": "",
+                    "reducer": [
+                      "sum"
+                    ],
+                    "show": false
+                  },
+                  "showHeader": true,
+                  "sortBy": [
+                    {
+                      "desc": false,
+                      "displayName": "container"
+                    }
+                  ]
+                },
+                "pluginVersion": "11.6.3",
+                "targets": [
+                  {
+                    "adhocFilters": [],
+                    "datasource": {
+                      "type": "prometheus",
+                      "uid": "${datasource}"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "max by (container, namespace) (\n  kube_pod_container_resource_requests{resource=\"cpu\", namespace =~ \"rhsm-stage|rhsm-prod\"} * 1000\n)",
+                    "format": "table",
+                    "instant": true,
+                    "interval": "",
+                    "legendFormat": "__auto",
+                    "range": false,
+                    "refId": "A"
+                  }
+                ],
+                "title": "CPU Resource Request",
+                "transformations": [
+                  {
+                    "id": "organize",
+                    "options": {
+                      "excludeByName": {
+                        "Time": true
+                      },
+                      "includeByName": {},
+                      "indexByName": {},
+                      "renameByName": {}
+                    }
+                  }
+                ],
+                "type": "table"
+              },
+              {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+                },
+                "fieldConfig": {
+                  "defaults": {
+                    "custom": {
+                      "align": "auto",
+                      "cellOptions": {
+                        "type": "auto"
+                      },
+                      "filterable": true,
+                      "inspect": false
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green"
+                        },
+                        {
+                          "color": "red",
+                          "value": 80
+                        }
+                      ]
+                    }
+                  },
+                  "overrides": []
+                },
+                "gridPos": {
+                  "h": 9,
+                  "w": 10,
+                  "x": 11,
+                  "y": 2
+                },
+                "id": 14,
+                "options": {
+                  "cellHeight": "sm",
+                  "footer": {
+                    "countRows": false,
+                    "fields": "",
+                    "reducer": [
+                      "sum"
+                    ],
+                    "show": false
+                  },
+                  "showHeader": true,
+                  "sortBy": [
+                    {
+                      "desc": false,
+                      "displayName": "container"
+                    }
+                  ]
+                },
+                "pluginVersion": "11.6.3",
+                "targets": [
+                  {
+                    "adhocFilters": [],
+                    "datasource": {
+                      "type": "prometheus",
+                      "uid": "${datasource}"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "max by (container, namespace) (\n  kube_pod_container_resource_limits{resource=\"cpu\", namespace =~ \"rhsm-stage|rhsm-prod\"} * 1000\n)",
+                    "format": "table",
+                    "instant": true,
+                    "interval": "",
+                    "legendFormat": "__auto",
+                    "range": false,
+                    "refId": "A"
+                  }
+                ],
+                "title": "CPU Resource Limit",
+                "transformations": [
+                  {
+                    "id": "organize",
+                    "options": {
+                      "excludeByName": {
+                        "Time": true
+                      },
+                      "includeByName": {},
+                      "indexByName": {},
+                      "renameByName": {}
+                    }
+                  }
+                ],
+                "type": "table"
+              },
+              {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+                },
+                "fieldConfig": {
+                  "defaults": {
+                    "custom": {
+                      "align": "auto",
+                      "cellOptions": {
+                        "type": "auto"
+                      },
+                      "filterable": true,
+                      "inspect": false
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green"
+                        },
+                        {
+                          "color": "red",
+                          "value": 80
+                        }
+                      ]
+                    }
+                  },
+                  "overrides": []
+                },
+                "gridPos": {
+                  "h": 9,
+                  "w": 10,
+                  "x": 1,
+                  "y": 20
+                },
+                "id": 10,
+                "options": {
+                  "cellHeight": "sm",
+                  "footer": {
+                    "countRows": false,
+                    "fields": "",
+                    "reducer": [
+                      "sum"
+                    ],
+                    "show": false
+                  },
+                  "showHeader": true,
+                  "sortBy": [
+                    {
+                      "desc": false,
+                      "displayName": "container"
+                    }
+                  ]
+                },
+                "pluginVersion": "11.6.3",
+                "targets": [
+                  {
+                    "adhocFilters": [],
+                    "datasource": {
+                      "type": "prometheus",
+                      "uid": "${datasource}"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "max by (container, namespace) (\n  kube_pod_container_resource_requests{resource=\"memory\", namespace =~ \"rhsm-stage|rhsm-prod\"} / (1024*1024)\n)",
+                    "format": "table",
+                    "instant": true,
+                    "interval": "",
+                    "legendFormat": "__auto",
+                    "range": false,
+                    "refId": "A"
+                  }
+                ],
+                "title": "Mem Resource Request",
+                "transformations": [
+                  {
+                    "id": "organize",
+                    "options": {
+                      "excludeByName": {
+                        "Time": true
+                      },
+                      "includeByName": {},
+                      "indexByName": {},
+                      "renameByName": {}
+                    }
+                  }
+                ],
+                "type": "table"
+              },
+              {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+                },
+                "fieldConfig": {
+                  "defaults": {
+                    "custom": {
+                      "align": "auto",
+                      "cellOptions": {
+                        "type": "auto"
+                      },
+                      "filterable": true,
+                      "inspect": false
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green"
+                        },
+                        {
+                          "color": "red",
+                          "value": 80
+                        }
+                      ]
+                    }
+                  },
+                  "overrides": []
+                },
+                "gridPos": {
+                  "h": 9,
+                  "w": 10,
+                  "x": 11,
+                  "y": 20
+                },
+                "id": 13,
+                "options": {
+                  "cellHeight": "sm",
+                  "footer": {
+                    "countRows": false,
+                    "fields": "",
+                    "reducer": [
+                      "sum"
+                    ],
+                    "show": false
+                  },
+                  "showHeader": true,
+                  "sortBy": [
+                    {
+                      "desc": false,
+                      "displayName": "container"
+                    }
+                  ]
+                },
+                "pluginVersion": "11.6.3",
+                "targets": [
+                  {
+                    "adhocFilters": [],
+                    "datasource": {
+                      "type": "prometheus",
+                      "uid": "${datasource}"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "max by (container, namespace) (\n  kube_pod_container_resource_limits{resource=\"memory\", namespace =~ \"rhsm-stage|rhsm-prod\"} / (1024*1024)\n)",
+                    "format": "table",
+                    "instant": true,
+                    "interval": "",
+                    "legendFormat": "__auto",
+                    "range": false,
+                    "refId": "A"
+                  }
+                ],
+                "title": "Mem Resource Limit",
+                "transformations": [
+                  {
+                    "id": "organize",
+                    "options": {
+                      "excludeByName": {
+                        "Time": true
+                      },
+                      "includeByName": {},
+                      "indexByName": {},
+                      "renameByName": {}
+                    }
+                  }
+                ],
+                "type": "table"
+              }
+            ],
+            "title": "Configured Quota Requests & Limits",
+            "type": "row"
+          },
+          {
+            "collapsed": true,
+            "gridPos": {
+              "h": 1,
+              "w": 24,
+              "x": 0,
+              "y": 17
+            },
+            "id": 15,
+            "panels": [
+              {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+                },
+                "fieldConfig": {
+                  "defaults": {
+                    "custom": {
+                      "align": "auto",
+                      "cellOptions": {
+                        "type": "auto"
+                      },
+                      "filterable": true,
+                      "inspect": false
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green"
+                        },
+                        {
+                          "color": "red",
+                          "value": 80
+                        }
+                      ]
+                    }
+                  },
+                  "overrides": []
+                },
+                "gridPos": {
+                  "h": 9,
+                  "w": 10,
+                  "x": 1,
+                  "y": 3
+                },
+                "id": 8,
+                "options": {
+                  "cellHeight": "sm",
+                  "footer": {
+                    "countRows": false,
+                    "fields": "",
+                    "reducer": [
+                      "sum"
+                    ],
+                    "show": false
+                  },
+                  "showHeader": true,
+                  "sortBy": [
+                    {
+                      "desc": false,
+                      "displayName": "container"
+                    }
+                  ]
+                },
+                "pluginVersion": "11.6.3",
+                "targets": [
+                  {
+                    "adhocFilters": [],
+                    "datasource": {
+                      "type": "prometheus",
+                      "uid": "${datasource}"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "avg by (container,namespace) (\n  avg_over_time(\n    node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{\n      cluster = \"\",\n      namespace =~ \"rhsm-stage|rhsm-prod\"\n    }[14d:]\n  ) * 1000\n)",
+                    "format": "table",
+                    "instant": true,
+                    "interval": "",
+                    "legendFormat": "__auto",
+                    "range": false,
+                    "refId": "A"
+                  }
+                ],
+                "title": "AVG CPU",
+                "transformations": [
+                  {
+                    "id": "organize",
+                    "options": {
+                      "excludeByName": {
+                        "Time": true
+                      },
+                      "includeByName": {},
+                      "indexByName": {},
+                      "renameByName": {}
+                    }
+                  }
+                ],
+                "type": "table"
+              },
+              {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+                },
+                "fieldConfig": {
+                  "defaults": {
+                    "custom": {
+                      "align": "auto",
+                      "cellOptions": {
+                        "type": "auto"
+                      },
+                      "filterable": true,
+                      "inspect": false
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green"
+                        },
+                        {
+                          "color": "red",
+                          "value": 80
+                        }
+                      ]
+                    }
+                  },
+                  "overrides": []
+                },
+                "gridPos": {
+                  "h": 9,
+                  "w": 10,
+                  "x": 11,
+                  "y": 3
+                },
+                "id": 7,
+                "options": {
+                  "cellHeight": "sm",
+                  "footer": {
+                    "countRows": false,
+                    "fields": "",
+                    "reducer": [
+                      "sum"
+                    ],
+                    "show": false
+                  },
+                  "showHeader": true,
+                  "sortBy": [
+                    {
+                      "desc": false,
+                      "displayName": "container"
+                    }
+                  ]
+                },
+                "pluginVersion": "11.6.3",
+                "targets": [
+                  {
+                    "adhocFilters": [],
+                    "datasource": {
+                      "type": "prometheus",
+                      "uid": "${datasource}"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "max by (container,namespace) (\nmax_over_time(\nnode_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{\ncluster = \"\",\nnamespace =~ \"rhsm-stage|rhsm-prod\"\n}[14d:]\n) * 1000\n)",
+                    "format": "table",
+                    "instant": true,
+                    "interval": "",
+                    "legendFormat": "__auto",
+                    "range": false,
+                    "refId": "A"
+                  }
+                ],
+                "title": "Max CPU",
+                "transformations": [
+                  {
+                    "id": "organize",
+                    "options": {
+                      "excludeByName": {
+                        "Time": true
+                      },
+                      "includeByName": {},
+                      "indexByName": {},
+                      "renameByName": {}
+                    }
+                  }
+                ],
+                "type": "table"
+              }
+            ],
+            "title": "CPU Usage",
+            "type": "row"
+          },
+          {
+            "collapsed": true,
+            "gridPos": {
+              "h": 1,
+              "w": 24,
+              "x": 0,
+              "y": 18
+            },
+            "id": 11,
+            "panels": [
+              {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+                },
+                "fieldConfig": {
+                  "defaults": {
+                    "custom": {
+                      "align": "auto",
+                      "cellOptions": {
+                        "type": "auto"
+                      },
+                      "filterable": true,
+                      "inspect": false
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green"
+                        },
+                        {
+                          "color": "red",
+                          "value": 80
+                        }
+                      ]
+                    }
+                  },
+                  "overrides": []
+                },
+                "gridPos": {
+                  "h": 9,
+                  "w": 10,
+                  "x": 1,
+                  "y": 30
+                },
+                "id": 6,
+                "options": {
+                  "cellHeight": "sm",
+                  "footer": {
+                    "countRows": false,
+                    "fields": "",
+                    "reducer": [
+                      "sum"
+                    ],
+                    "show": false
+                  },
+                  "showHeader": true,
+                  "sortBy": [
+                    {
+                      "desc": false,
+                      "displayName": "container"
+                    }
+                  ]
+                },
+                "pluginVersion": "11.6.3",
+                "targets": [
+                  {
+                    "adhocFilters": [],
+                    "datasource": {
+                      "type": "prometheus",
+                      "uid": "${datasource}"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "avg by (container,namespace) (\n  avg_over_time(\n    container_memory_working_set_bytes{\n      cluster = \"\",\n      container!=\"POD\", container!=\"\",\n      namespace =~ \"rhsm-stage|rhsm-prod\"\n    }[14d:]\n  ) / 1024 / 1024\n)",
+                    "format": "table",
+                    "instant": true,
+                    "interval": "",
+                    "legendFormat": "__auto",
+                    "range": false,
+                    "refId": "A"
+                  }
+                ],
+                "title": "AVG Memory",
+                "transformations": [
+                  {
+                    "id": "organize",
+                    "options": {
+                      "excludeByName": {
+                        "Time": true
+                      },
+                      "includeByName": {},
+                      "indexByName": {},
+                      "renameByName": {}
+                    }
+                  }
+                ],
+                "type": "table"
+              },
+              {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "${datasource}"
+                },
+                "fieldConfig": {
+                  "defaults": {
+                    "custom": {
+                      "align": "auto",
+                      "cellOptions": {
+                        "type": "auto"
+                      },
+                      "filterable": true,
+                      "inspect": false
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green"
+                        },
+                        {
+                          "color": "red",
+                          "value": 80
+                        }
+                      ]
+                    }
+                  },
+                  "overrides": []
+                },
+                "gridPos": {
+                  "h": 9,
+                  "w": 10,
+                  "x": 11,
+                  "y": 30
+                },
+                "id": 5,
+                "options": {
+                  "cellHeight": "sm",
+                  "footer": {
+                    "countRows": false,
+                    "fields": "",
+                    "reducer": [
+                      "sum"
+                    ],
+                    "show": false
+                  },
+                  "showHeader": true,
+                  "sortBy": [
+                    {
+                      "desc": true,
+                      "displayName": "container"
+                    }
+                  ]
+                },
+                "pluginVersion": "11.6.3",
+                "targets": [
+                  {
+                    "adhocFilters": [],
+                    "datasource": {
+                      "type": "prometheus",
+                      "uid": "${datasource}"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "max by (container,namespace) (\nmax_over_time(\ncontainer_memory_working_set_bytes{\ncluster = \"\",\ncontainer!=\"POD\", container!=\"\",\nnamespace =~ \"rhsm-stage|rhsm-prod\"\n}[14d:]\n) / 1024 / 1024\n)",
+                    "format": "table",
+                    "instant": true,
+                    "interval": "",
+                    "legendFormat": "__auto",
+                    "range": false,
+                    "refId": "A"
+                  }
+                ],
+                "title": "Max Memory",
+                "transformations": [
+                  {
+                    "id": "organize",
+                    "options": {
+                      "excludeByName": {
+                        "Time": true
+                      },
+                      "includeByName": {},
+                      "indexByName": {},
+                      "renameByName": {}
+                    }
+                  }
+                ],
+                "type": "table"
+              }
+            ],
+            "title": "Memory Usage",
+            "type": "row"
+          }
+        ],
+        "preload": false,
+        "schemaVersion": 41,
+        "tags": [],
+        "templating": {
+          "list": [
+            {
+              "current": {
+                "text": "crcs02ue1-prometheus",
+                "value": "PDD8BE47D10408F45"
+              },
+              "name": "datasource",
+              "options": [],
+              "query": "prometheus",
+              "refresh": 1,
+              "regex": "/crc[sp]\\d[^-]*-prometheus/",
+              "type": "datasource"
+            }
+          ]
+        },
+        "time": {
+          "from": "now-30d",
+          "to": "now"
+        },
+        "timepicker": {},
+        "timezone": "UTC",
+        "title": "Subscription Watch - Component Resource Utilization",
+        "uid": "eeqmrem4qx7uob",
+        "version": 25
+      }
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: grafana-dashboard-subscription-watch-component-resources
+  annotations:
+    grafana-folder: /grafana-dashboard-definitions/Insights
+  labels:
+    grafana_dashboard: "true"
