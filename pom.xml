@@ -534,6 +534,11 @@
 
   <profiles>
     <profile>
+      <!-- Profile with no modules so we can download the dependencies during container build -->
+      <id>download</id>
+    </profile>
+
+    <profile>
       <id>build</id>
       <activation>
         <activeByDefault>true</activeByDefault>
