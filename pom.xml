@@ -29,7 +29,7 @@
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
     <opentelemetry-api.version>1.44.1</opentelemetry-api.version>
-    <awssdk-bom.version>2.31.76</awssdk-bom.version>
+    <awssdk-bom.version>2.31.77</awssdk-bom.version>
     <guava.version>33.4.8-jre</guava.version>
     <liquibase.version>4.32.0</liquibase.version>
     <postgresql.version>42.7.7</postgresql.version>
@@ -442,7 +442,7 @@
         <plugin>
           <groupId>io.smallrye</groupId>
           <artifactId>jandex-maven-plugin</artifactId>
-          <version>3.3.1</version>
+          <version>3.3.2</version>
         </plugin>
 
         <plugin>
