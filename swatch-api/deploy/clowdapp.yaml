@@ -27,26 +27,12 @@ parameters:
     value: 'false'
   - name: REPLICAS
     value: '1'
-  - name: MEMORY_REQUEST
-    value: 800Mi
-  - name: MEMORY_LIMIT
-    value: 800Mi
-  - name: CPU_REQUEST
-    value: 200m
-  - name: CPU_LIMIT
-    value: 300m
+
   - name: MIGRATION_IMAGE
     value: quay.io/cloudservices/swatch-database
   - name: MIGRATION_TAG
     value: latest
-  - name: MIGRATION_MEMORY_REQUEST
-    value: 256Mi
-  - name: MIGRATION_MEMORY_LIMIT
-    value: 512Mi
-  - name: MIGRATION_CPU_REQUEST
-    value: 100m
-  - name: MIGRATION_CPU_LIMIT
-    value: 500m
+
   - name: DATABASE_CONNECTION_TIMEOUT_MS
     value: '30000'
   - name: DATABASE_MAX_POOL_SIZE
@@ -83,6 +69,26 @@ parameters:
     value: 'grpc'
   - name: DB_POD
     value: swatch-database
+  - name: CPU_REQUEST_API_SERVICE
+    value: 200m
+  - name: CPU_LIMIT_API_SERVICE
+    value: 300m
+  - name: MEM_REQUEST_API_SERVICE
+    value: 800Mi
+  - name: MEM_LIMIT_API_SERVICE
+    value: 800Mi
+  - name: CPU_REQUEST_MIGRATION
+    value: 100m
+  - name: CPU_LIMIT_MIGRATION
+    value: 500m
+  - name: MEM_REQUEST_MIGRATION
+    value: 256Mi
+  - name: MEM_LIMIT_MIGRATION
+    value: 512Mi
+  - name: CPU_REQUEST_NGINX_PROXY
+  - name: CPU_LIMIT_NGINX_PROXY
+  - name: MEM_REQUEST_NGINX_PROXY
+  - name: MEM_LIMIT_NGINX_PROXY
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -119,11 +125,11 @@ objects:
                 inheritEnv: true
                 resources:
                   requests:
-                    cpu: ${MIGRATION_CPU_REQUEST}
-                    memory: ${MIGRATION_MEMORY_REQUEST}
+                    cpu: ${CPU_REQUEST_MIGRATION}
+                    memory: ${MEM_REQUEST_MIGRATION}
                   limits:
-                    cpu: ${MIGRATION_CPU_LIMIT}
-                    memory: ${MIGRATION_MEMORY_LIMIT}
+                    cpu: ${CPU_LIMIT_MIGRATION}
+                    memory: ${MEM_LIMIT_MIGRATION}
             env:
               - name: JAVA_DEBUG
                 value: ${JAVA_DEBUG}
@@ -242,11 +248,11 @@ objects:
               timeoutSeconds: 5
             resources:
               requests:
-                cpu: ${CPU_REQUEST}
-                memory: ${MEMORY_REQUEST}
+                cpu: ${CPU_REQUEST_API_SERVICE}
+                memory: ${MEM_REQUEST_API_SERVICE}
               limits:
-                cpu: ${CPU_LIMIT}
-                memory: ${MEMORY_LIMIT}
+                cpu: ${CPU_LIMIT_API_SERVICE}
+                memory: ${MEM_LIMIT_API_SERVICE}
             volumeMounts:
               - name: logs
                 mountPath: /logs
@@ -286,6 +292,13 @@ objects:
             - name: swatch-api-nginx-conf
               configMap:
                 name: nginx-conf
+            resources:
+              requests:
+                cpu: ${CPU_REQUEST_NGINX_PROXY}
+                memory: ${MEM_REQUEST_NGINX_PROXY}
+              limits:
+                cpu: ${CPU_LIMIT_NGINX_PROXY}
+                memory: ${MEM_LIMIT_NGINX_PROXY}
 
   - kind: Service
     apiVersion: v1
