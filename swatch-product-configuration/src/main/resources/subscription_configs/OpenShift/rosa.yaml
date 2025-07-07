@@ -8,8 +8,10 @@ variants:
     roles:
       - moa-hostedcontrolplane
       - moa
-    productNames:
-      - OpenShift Online
+    level1:
+      - OpenShift
+    level2:
+      - "ROSA - RH OpenShift on AWS"
 
 defaults:
   variant: rosa
