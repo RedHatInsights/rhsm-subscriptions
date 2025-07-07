@@ -318,8 +318,6 @@ We have a number of profiles. Each profile activates a subset of components in t
 - `api`: Run the user-facing API
 - `capacity-ingress`: Run the internal only capacity ingress API
 - `kafka-queue`: Run with a kafka queue (instead of the default in-memory queue)
-- `rh-marketplace`: Run the worker responsible for processing tally summaries and
-  emitting usage to Red Hat Marketplace.
 - `purge-snapshots`: Run the retention job and exit
 - `worker`: Process jobs off the job queue
 
