@@ -25,7 +25,7 @@ RUN ./mvnw ${MAVEN_TASKS} -DskipTests ${MAVEN_BUILD_ARGS}
 RUN (cd /stage/swatch-system-conduit && exec jar -xf ./target/*.jar)
 RUN ls -al /stage/swatch-system-conduit
 
-FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.22-1.1749462971
+FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.22-1.1751404495
 USER root
 RUN microdnf \
     --disablerepo=* \
