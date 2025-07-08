@@ -1,0 +1,21 @@
+# `pipx install tmuxp`, then run `tmuxp load iqe-local.yaml`
+session_name: iqe-local
+windows:
+  - window_name: swatch
+    focus: True
+    layout: tiled
+    panes:
+      - shell_command:
+        - make swatch-contracts
+      - shell_command:
+        - make swatch-billable-usage
+      - shell_command:
+        - make swatch-producer-aws
+      - shell_command:
+        - make swatch-producer-azure
+      - shell_command:
+        - make swatch-metrics-hbi
+  - window_name: proxy
+    layout: main-horizontal
+    panes:
+      - podman logs -f rhsm-subscriptions_nginx_1
