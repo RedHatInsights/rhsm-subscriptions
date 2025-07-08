@@ -112,7 +112,7 @@ services:
     depends_on:
       - kafka-rest
   kafka-bridge:
-    image: quay.io/strimzi/kafka-bridge:latest
+    image: quay.io/strimzi/kafka-bridge:0.31.2
     entrypoint: /opt/strimzi/bin/kafka_bridge_run.sh
     command: --config-file=config/application-kafka-bridge.properties
     ports:
