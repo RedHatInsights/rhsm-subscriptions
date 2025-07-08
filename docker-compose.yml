@@ -8,8 +8,12 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:z
   wiremock:
-    image: docker.io/wiremock/wiremock:latest
-    container_name: wiremock
+    extends:
+      file: config/wiremock/docker-compose.yml
+      service: wiremock
+    volumes:
+      - ./config/wiremock/__files:/home/wiremock/__files:z
+      - ./config/wiremock/mappings:/home/wiremock/mappings:z
     ports:
       - "127.0.0.1:8006:8080"
     networks:
