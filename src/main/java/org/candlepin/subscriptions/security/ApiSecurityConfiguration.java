@@ -84,11 +84,14 @@ public class ApiSecurityConfiguration {
         "/**/*openapi.yaml",
         "/**/*openapi.json",
         "/**/version",
+        "/**/error",
         "/api-docs/**",
-        "/webjars/**",
         "/**/*spec.yaml",
+        // Swagger UI:
         "/**/swagger-ui",
         "/**/swagger-ui/index.html",
+        "/**/favicon.ico",
+        "/webjars/**",
       };
 
   // NOTE: intentionally not annotated w/ @Bean; @Bean causes an extra use as an application filter

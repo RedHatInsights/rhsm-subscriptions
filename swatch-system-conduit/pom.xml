@@ -242,30 +242,35 @@
       </plugin>
 
       <plugin>
-        <artifactId>maven-resources-plugin</artifactId>
+        <groupId>io.swagger.codegen.v3</groupId>
+        <artifactId>swagger-codegen-maven-plugin</artifactId>
         <executions>
           <execution>
-            <id>copy-openapi-to-resources</id>
-            <phase>process-resources</phase>
+            <id>generate-api-spec-yaml</id>
             <goals>
-              <goal>copy-resources</goal>
+              <goal>generate</goal>
             </goals>
             <configuration>
-              <outputDirectory>${project.build.outputDirectory}</outputDirectory>
-              <resources>
-                <resource>
-                  <directory>${project.build.directory}/openapijson</directory>
-                  <includes>
-                    <include>internal-organizations-sync-openapi.json</include>
-                  </includes>
-                </resource>
-                <resource>
-                  <directory>${project.basedir}/${openapi.spec.folder}</directory>
-                  <includes>
-                    <include>${openapi.spec.api}</include>
-                  </includes>
-                </resource>
-              </resources>
+              <inputSpec>${project.basedir}/${openapi.spec.folder}/${openapi.spec.api}</inputSpec>
+              <language>openapi-yaml</language>
+              <output>${project.build.directory}/classes/swagger</output>
+              <configOptions>
+                <outputFile>generated-api-spec.yaml</outputFile>
+              </configOptions>
+            </configuration>
+          </execution>
+          <execution>
+            <id>generate-api-spec-json</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpec>${project.basedir}/${openapi.spec.folder}/${openapi.spec.api}</inputSpec>
+              <language>openapi</language>
+              <output>${project.build.directory}/classes/swagger</output>
+              <configOptions>
+                <outputFile>generated-api-spec.json</outputFile>
+              </configOptions>
             </configuration>
           </execution>
         </executions>

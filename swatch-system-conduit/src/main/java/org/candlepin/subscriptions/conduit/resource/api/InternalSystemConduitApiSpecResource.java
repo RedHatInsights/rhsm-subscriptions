@@ -36,10 +36,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class InternalSystemConduitApiSpecResource implements RootApi {
 
-  @Value("classpath:internal-organizations-sync-api-spec.yaml")
+  @Value("classpath:swagger/generated-api-spec.yaml")
   private Resource internalApiYaml;
 
-  @Value("classpath:internal-organizations-sync-openapi.json")
+  @Value("classpath:swagger/generated-api-spec.json")
   private Resource internalApiJson;
 
   @Override
