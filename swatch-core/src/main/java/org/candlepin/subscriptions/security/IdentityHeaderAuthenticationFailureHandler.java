@@ -57,7 +57,13 @@ public class IdentityHeaderAuthenticationFailureHandler implements Authenticatio
       throws IOException {
 
     Error error = buildError(authException);
-    log.error(SECURITY_STACKTRACE, "{}: {}", error.getTitle(), error.getDetail(), authException);
+    log.error(
+        SECURITY_STACKTRACE,
+        "Request '{}' failed with '{}': {}",
+        servletRequest.getRequestURI(),
+        error.getTitle(),
+        error.getDetail(),
+        authException);
 
     Response r = ExceptionUtil.toResponse(error);
     servletResponse.setContentType(r.getMediaType().toString());

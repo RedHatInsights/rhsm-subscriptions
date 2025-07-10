@@ -433,6 +433,69 @@
           </execution>
         </executions>
       </plugin>
+
+      <plugin>
+        <groupId>io.swagger.codegen.v3</groupId>
+        <artifactId>swagger-codegen-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>generate-tally-api-spec-yaml</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpec>${tally_api_spec_file}</inputSpec>
+              <language>openapi-yaml</language>
+              <output>${project.build.directory}/classes/swagger</output>
+              <configOptions>
+                <outputFile>generated-tally-api-spec.yaml</outputFile>
+              </configOptions>
+            </configuration>
+          </execution>
+          <execution>
+            <id>generate-tally-api-spec-json</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpec>${tally_api_spec_file}</inputSpec>
+              <language>openapi</language>
+              <output>${project.build.directory}/classes/swagger</output>
+              <configOptions>
+                <outputFile>generated-tally-api-spec.json</outputFile>
+              </configOptions>
+            </configuration>
+          </execution>
+          <execution>
+            <id>generate-producer-rhm-api-spec-yaml</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpec>${swatch_producer_rhm_api_spec_file}</inputSpec>
+              <language>openapi-yaml</language>
+              <output>${project.build.directory}/classes/swagger</output>
+              <configOptions>
+                <outputFile>generated-swatch-producer-red-hat-marketplace-openapi.yaml</outputFile>
+              </configOptions>
+            </configuration>
+          </execution>
+          <execution>
+            <id>generate-producer-rhm-api-spec-json</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpec>${swatch_producer_rhm_api_spec_file}</inputSpec>
+              <language>openapi</language>
+              <output>${project.build.directory}/classes/swagger</output>
+              <configOptions>
+                <outputFile>generated-swatch-producer-red-hat-marketplace-openapi.json</outputFile>
+              </configOptions>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 </project>
