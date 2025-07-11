@@ -83,8 +83,10 @@ public class FactNormalizer {
                         && hostUnregistered(OffsetDateTime.parse(syncTimestamp)))
             .orElse(false);
 
-    normalizedFacts.setProducts(
-        productNormalizer.normalizeProducts(hostFacts, is3rdPartyMigrated, skipRhsmFacts));
+    Set<String> products =
+        productNormalizer.normalizeProducts(hostFacts, is3rdPartyMigrated, skipRhsmFacts);
+    log.debug("FactNormalizer.normalize - products from ProductNormalizer: {}", products);
+    normalizedFacts.setProducts(products);
 
     normalizeClassification(normalizedFacts, hostFacts, guestData);
     normalizeHardwareType(normalizedFacts, hostFacts);
@@ -97,6 +99,10 @@ public class FactNormalizer {
     normalizeMarketplace(normalizedFacts, hostFacts);
     normalizeNullSocketsAndCores(normalizedFacts, hostFacts);
     normalizeUnits(normalizedFacts, hostFacts);
+
+    log.debug(
+        "FactNormalizer.normalize - final normalized facts products: {}",
+        normalizedFacts.getProducts());
     return normalizedFacts;
   }
 

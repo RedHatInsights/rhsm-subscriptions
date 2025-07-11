@@ -266,6 +266,8 @@ public class InventoryAccountUsageCollector {
       }
     } else {
       NormalizedFacts normalizedFacts = factNormalizer.normalize(hbiSystem, orgHostsData);
+      System.out.println("hbiSystem: " + hbiSystem);
+      System.out.println("orgHostsData: " + orgHostsData);
       Set<Key> usageKeys = createHostUsageKeys(applicableProducts, normalizedFacts);
       if (swatchSystem != null) {
         log.debug("Updating system w/ inventoryId={}", hbiSystem.getInventoryId());

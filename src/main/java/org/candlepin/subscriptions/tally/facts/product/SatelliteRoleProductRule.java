@@ -39,7 +39,6 @@ public class SatelliteRoleProductRule implements ProductRule {
         ProductTagLookupParams.builder()
             .role(context.hostFacts().getSatelliteRole())
             .metricIds(APPLICABLE_METRIC_IDS)
-            .is3rdPartyMigration(context.is3rdPartyMigrated())
             .isPaygEligibleProduct(false)
             .build();
 

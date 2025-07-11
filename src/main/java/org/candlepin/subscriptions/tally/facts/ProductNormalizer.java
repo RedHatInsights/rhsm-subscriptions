@@ -62,17 +62,26 @@ public class ProductNormalizer {
     ProductRuleContext context =
         new ProductRuleContext(hostFacts, is3rdPartyMigrated, skipRhsmFacts);
 
+    log.debug("ProductNormalizer.normalizeProducts - hostFacts: {}", hostFacts);
+    log.debug(
+        "ProductNormalizer.normalizeProducts - is3rdPartyMigrated: {}, skipRhsmFacts: {}",
+        is3rdPartyMigrated,
+        skipRhsmFacts);
+
     // get products from rules / configuration
     Set<String> productTags = getProductsFromRules(context);
+    log.debug("ProductNormalizer.normalizeProducts - products from rules: {}", productTags);
 
     // clean up the product tags
     reconcileProducts(productTags);
+    log.debug("ProductNormalizer.normalizeProducts - products after reconcile: {}", productTags);
 
     // if no products were found, log a warning
     if (productTags.isEmpty()) {
       logTraceIfFoundConfiguredProductTags(context);
     }
 
+    log.debug("ProductNormalizer.normalizeProducts - final products: {}", productTags);
     return productTags;
   }
 
@@ -101,17 +110,38 @@ public class ProductNormalizer {
     Set<String> productTags = new HashSet<>();
 
     for (ProductRule productRule : productRules) {
+      log.debug(
+          "ProductNormalizer.getAllProductTagsFromRules - checking rule: {}",
+          productRule.getClass().getSimpleName());
       if (productRule.appliesTo(context)) {
-        productTags.addAll(getter.apply(productRule, context));
+        Set<String> ruleProducts = getter.apply(productRule, context);
+        log.debug(
+            "ProductNormalizer.getAllProductTagsFromRules - rule {} applies, products: {}",
+            productRule.getClass().getSimpleName(),
+            ruleProducts);
+        productTags.addAll(ruleProducts);
+      } else {
+        log.debug(
+            "ProductNormalizer.getAllProductTagsFromRules - rule {} does not apply",
+            productRule.getClass().getSimpleName());
       }
     }
 
+    log.debug(
+        "ProductNormalizer.getAllProductTagsFromRules - total products from all rules: {}",
+        productTags);
     return productTags;
   }
 
   private void reconcileProducts(Set<String> productTags) {
+    log.debug(
+        "ProductNormalizer.reconcileProducts - before normalizeRhelVariants: {}", productTags);
     normalizeRhelVariants(productTags);
+    log.debug("ProductNormalizer.reconcileProducts - after normalizeRhelVariants: {}", productTags);
+    log.debug(
+        "ProductNormalizer.reconcileProducts - before pruneIncludedProducts: {}", productTags);
     SubscriptionDefinition.pruneIncludedProducts(productTags);
+    log.debug("ProductNormalizer.reconcileProducts - after pruneIncludedProducts: {}", productTags);
   }
 
   private void normalizeRhelVariants(Set<String> products) {

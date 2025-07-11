@@ -42,6 +42,7 @@ import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
@@ -795,6 +796,108 @@ class FactNormalizerTest {
     assertTrue(normalizedFacts.isMarketplace());
     assertEquals(0, normalizedFacts.getCores());
     assertEquals(0, normalizedFacts.getSockets());
+  }
+
+  @Test
+  void testDebugSpecificHostFactsMissingRhelForX86() {
+    // Test with the exact InventoryHostFacts data provided by the user
+    // This host has systemProfileProductIds=[479] and satelliteRole="Red Hat Enterprise Linux
+    // Server"
+    // but should still get "RHEL for x86" from the satellite role
+
+    InventoryHostFacts hostFacts = new InventoryHostFacts();
+    hostFacts.setInventoryId(UUID.fromString("09a90cff-50d3-47f9-9df3-32c4827806ea"));
+    hostFacts.setModifiedOn(OffsetDateTime.parse("2025-07-11T03:22:51.416842Z"));
+    hostFacts.setAccount("88888888");
+    hostFacts.setDisplayName("oracle-ecc02");
+    hostFacts.setOrgId("77777777");
+    hostFacts.setSyncTimestamp("");
+    hostFacts.setProducts(""); // Empty string for empty products
+    hostFacts.setSystemProfileInfrastructureType("virtual");
+    hostFacts.setSystemProfileCoresPerSocket(1);
+    hostFacts.setSystemProfileSockets(4);
+    hostFacts.setSystemProfileCpus(4);
+    hostFacts.setSystemProfileThreadsPerCore(1);
+    hostFacts.setSystemProfileArch("x86_64");
+    hostFacts.setMarketplace(false);
+    hostFacts.setConversionsActivity(true);
+    hostFacts.setVirtual(false);
+    hostFacts.setHypervisorUuid(null);
+    hostFacts.setSatelliteHypervisorUuid(null);
+    hostFacts.setSatelliteRole("Red Hat Enterprise Linux Server");
+    hostFacts.setSatelliteSla("Standard");
+    hostFacts.setSatelliteUsage("Production");
+    hostFacts.setGuestId(null);
+    hostFacts.setSubscriptionManagerId("575b9f67-3b56-4c03-b54f-38b30d2132da");
+    hostFacts.setInsightsId("575b9f67-3b56-4c03-b54f-38b30d2132da");
+    hostFacts.setProviderId(null);
+    hostFacts.setQpcProducts(""); // Empty string for empty QPC products
+    hostFacts.setSystemProfileProductIds("479"); // String representation of product ID
+    hostFacts.setSyspurposeRole(null);
+    hostFacts.setSyspurposeSla(null);
+    hostFacts.setSyspurposeUsage(null);
+    hostFacts.setSyspurposeUnits(null);
+    hostFacts.setBillingModel(null);
+    hostFacts.setCloudProvider(null);
+    hostFacts.setStaleTimestamp(OffsetDateTime.parse("2025-07-12T08:22:51.211788Z"));
+    hostFacts.setHardwareSubmanId("575b9f67-3b56-4c03-b54f-38b30d2132da");
+
+    OrgHostsData orgHostsData = new OrgHostsData("placeholder");
+
+    // Debug: Check the key fields that affect product normalization
+    System.out.println("=== DEBUG: Key fields for product normalization ===");
+    System.out.println("conversionsActivity: " + hostFacts.isConversionsActivity());
+    System.out.println("syncTimestamp: '" + hostFacts.getSyncTimestamp() + "'");
+    System.out.println("satelliteRole: '" + hostFacts.getSatelliteRole() + "'");
+    System.out.println("systemProfileProductIds: '" + hostFacts.getSystemProfileProductIds() + "'");
+    System.out.println("qpcProducts: '" + hostFacts.getQpcProducts() + "'");
+    System.out.println("products: '" + hostFacts.getProducts() + "'");
+
+    // Debug: Test ProductNormalizer directly
+    System.out.println("=== DEBUG: Testing ProductNormalizer directly ===");
+    boolean is3rdPartyMigrated = hostFacts.isConversionsActivity();
+    boolean skipRhsmFacts =
+        hostFacts.getSyncTimestamp() != null && hostFacts.getSyncTimestamp().length() > 0;
+
+    System.out.println("is3rdPartyMigrated: " + is3rdPartyMigrated);
+    System.out.println("skipRhsmFacts: " + skipRhsmFacts);
+
+    // Get the ProductNormalizer from the FactNormalizer
+    org.candlepin.subscriptions.tally.facts.ProductNormalizer productNormalizer =
+        (org.candlepin.subscriptions.tally.facts.ProductNormalizer)
+            org.springframework.test.util.ReflectionTestUtils.getField(
+                normalizer, "productNormalizer");
+
+    java.util.Set<String> productNormalizerResult =
+        productNormalizer.normalizeProducts(hostFacts, is3rdPartyMigrated, skipRhsmFacts);
+    System.out.println("ProductNormalizer result: " + productNormalizerResult);
+
+    NormalizedFacts normalizedFacts = normalizer.normalize(hostFacts, orgHostsData);
+
+    // Debug output to see what products were found
+    System.out.println("=== DEBUG: Final NormalizedFacts ===");
+    System.out.println("NormalizedFacts products: " + normalizedFacts.getProducts());
+    System.out.println("NormalizedFacts orgId: " + normalizedFacts.getOrgId());
+    System.out.println("NormalizedFacts cores: " + normalizedFacts.getCores());
+    System.out.println("NormalizedFacts sockets: " + normalizedFacts.getSockets());
+    System.out.println("NormalizedFacts isVirtual: " + normalizedFacts.isVirtual());
+    System.out.println("NormalizedFacts isMarketplace: " + normalizedFacts.isMarketplace());
+
+    // The host has satelliteRole="Red Hat Enterprise Linux Server" which should map to "RHEL for
+    // x86"
+    // via the SatelliteRoleProductRule and then through ProductNormalizer
+    assertTrue(
+        normalizedFacts.getProducts().contains("RHEL for x86"),
+        "Expected 'RHEL for x86' to be included in normalized products. Actual products: "
+            + normalizedFacts.getProducts());
+
+    // Also check if any other RHEL products are present
+    boolean hasAnyRhelProduct =
+        normalizedFacts.getProducts().stream().anyMatch(product -> product.startsWith("RHEL"));
+    assertTrue(
+        hasAnyRhelProduct,
+        "Expected at least one RHEL product to be present in normalized facts. Actual products: "
+            + normalizedFacts.getProducts());
   }
 
   private InventoryHostFacts givenInventoryHostFactsForX86AndVirtual() {
