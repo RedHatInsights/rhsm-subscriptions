@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/openjdk-17:1.22-1.1751404498
+FROM registry.access.redhat.com/ubi9/openjdk-17:1.22-1.1752066189
 
 USER root
 # Add git, so that the build can determine the git hash
