@@ -56,7 +56,7 @@ public class TestingApplicationConfiguration extends ApplicationConfiguration {
     return fixedClock();
   }
 
-  private ApplicationClock fixedClock() {
+  public static ApplicationClock fixedClock() {
     ZoneId utc = ZoneId.of("UTC");
     LocalDateTime reference = LocalDateTime.of(2025, 5, 12, 12, 25, 0, 0);
     ZonedDateTime timeUtc = reference.atZone(utc);

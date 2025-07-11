@@ -44,6 +44,7 @@ import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.HostTallyBucketRepository;
+import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.TallyStateRepository;
 import org.candlepin.subscriptions.db.model.AccountServiceInventory;
 import org.candlepin.subscriptions.db.model.EventRecord;
@@ -84,6 +85,7 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   static final String USER_ID = "123";
   static final String ORG_ID = "owner" + USER_ID;
   static final String ROSA = "rosa";
+  static final String RHACM = "rhacm";
   static final String ANSIBLE = "ansible-aap-managed";
   static final String PHYSICAL = "PHYSICAL";
 
@@ -94,6 +96,7 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
 
   @Autowired EventRecordRepository eventRecordRepository;
   @Autowired OptInResource optInResource;
+  @Autowired TallySnapshotRepository tallySnapshotRepository;
   @Autowired HostTallyBucketRepository hostTallyBucketRepository;
   @Autowired AccountServiceInventoryRepository accountServiceInventoryRepository;
   @Autowired TallyStateRepository tallyStateRepository;
@@ -104,14 +107,17 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   OffsetDateTime start;
   OffsetDateTime end;
   ExpectedReport expectedReport = new ExpectedReport();
-  ProductId product;
-  String serviceType;
-  String metric;
+  List<ProductData> products = new ArrayList<>();
 
   @Transactional
   @BeforeEach
   public void setup() {
     expectedReport.clear();
+    products.clear();
+    tallySnapshotRepository.deleteAll();
+    eventRecordRepository.deleteAll();
+    hostTallyBucketRepository.deleteAll();
+    tallyStateRepository.deleteAll();
   }
 
   /**
@@ -121,24 +127,24 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   @WithMockRedHatPrincipal(value = USER_ID)
   @Test
   void testProduceHourlySnapshotsForOrgFromEventsUpdatingTheSameBucket(CapturedOutput output) {
-    givenProduct(ROSA);
+    var rosa = givenProduct(ROSA);
     givenOrgAndAccountInConfig();
     givenFiveDaysOfRangeForReport();
     // prevent retally
     givenExistingHostInformation();
     // first tx
     // host_tally_buckets created with STANDARD
-    givenEventAtDay(1, 2, Event.Sla.STANDARD);
+    givenEventAtDay(rosa, 1, 2, Event.Sla.STANDARD);
     // do nothing
-    givenEventAtDay(2, 2, Event.Sla.STANDARD);
+    givenEventAtDay(rosa, 2, 2, Event.Sla.STANDARD);
 
     // second tx
     // host_tally_buckets deleted with STANDARD
     // host_tally_buckets created with PREMIUM
-    givenEventAtDay(3, 2, Event.Sla.PREMIUM);
+    givenEventAtDay(rosa, 3, 2, Event.Sla.PREMIUM);
     // host_tally_buckets deleted with PREMIUM
     // host_tally_buckets created with STANDARD
-    givenEventAtDay(4, 2, Event.Sla.STANDARD);
+    givenEventAtDay(rosa, 4, 2, Event.Sla.STANDARD);
 
     whenProduceHourlySnapshotsForOrg();
     assertFalse(output.getAll().contains("Could not collect"));
@@ -147,27 +153,44 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   @WithMockRedHatPrincipal(value = USER_ID)
   @Test
   void testProduceHourlySnapshotsForOrgFromEvents() {
-    givenProduct(ROSA);
+    var rosa = givenProduct(ROSA);
     givenOrgAndAccountInConfig();
     givenFiveDaysOfRangeForReport();
     // prevent retally
     givenExistingHostInformation();
-    givenEventAtDay(1, 78.4390);
-    givenEventAtDay(3, 89.716);
+    givenEventAtDay(rosa, 1, 78.4390);
+    givenEventAtDay(rosa, 3, 89.716);
 
     whenProduceHourlySnapshotsForOrg();
 
     assertDailyTallyReportData();
 
-    givenEventAtDay(4, 10.0);
+    givenEventAtDay(rosa, 4, 10.0);
     whenProduceHourlySnapshotsForOrg();
     assertDailyTallyReportData();
 
     // Process an amendment.
-    givenEventAtDay(1, -78.4390);
-    givenEventAtDay(1, 100.0);
+    givenEventAtDay(rosa, 1, -78.4390);
+    givenEventAtDay(rosa, 1, 100.0);
     whenProduceHourlySnapshotsForOrg();
     assertDailyTallyReportData();
+  }
+
+  @WithMockRedHatPrincipal(value = USER_ID)
+  @Test
+  void testProduceHourlySnapshotsForOrgFromValidEventsUsingDifferentProduct() {
+    var rosa = givenProduct(ROSA);
+    var acm = givenProduct(RHACM);
+    givenOrgAndAccountInConfig();
+    givenFiveDaysOfRangeForReport();
+    givenExistingHostInformation();
+    givenEventAtDay(rosa, 1, 78.4390);
+    givenEventAtDay(acm, 1, 89.716);
+
+    whenProduceHourlySnapshotsForOrg();
+
+    assertDailyTallyReportData();
+    assertFoundHostTallyBucketsForAllProducts();
   }
 
   @WithMockRedHatPrincipal(value = USER_ID)
@@ -186,22 +209,25 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   @WithMockRedHatPrincipal(value = USER_ID)
   @Test
   void testAnsibleTallyReportWithGranularityHourly() {
-    givenProduct(ANSIBLE);
+    var ansible = givenProduct(ANSIBLE);
     givenOrgAndAccountInConfig();
     givenFiveDaysOfRangeForReport();
     givenExistingHostInformation();
-    givenEventAtDay(1, 2, Event.Sla.STANDARD);
+    givenEventAtDay(ansible, 1, 2, Event.Sla.STANDARD);
 
     whenProduceHourlySnapshotsForOrg();
 
     assertHourlyTallyReportData();
   }
 
-  private void givenProduct(String productTag) {
+  private ProductData givenProduct(String productTag) {
     Variant variant = Variant.findByTag(productTag).orElseThrow();
-    this.product = ProductId.fromString(productTag);
-    this.serviceType = variant.getSubscription().getServiceType();
-    this.metric = variant.getSubscription().getMetrics().iterator().next().getId();
+    ProductData productData = new ProductData();
+    productData.id = ProductId.fromString(productTag);
+    productData.serviceType = variant.getSubscription().getServiceType();
+    productData.metric = variant.getSubscription().getMetrics().iterator().next().getId();
+    this.products.add(productData);
+    return productData;
   }
 
   private UUID givenInventoryHostWithProductIds(String... productIds) {
@@ -230,7 +256,10 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
 
   private void givenOrgAndAccountInConfig() {
     optInResource.putOptInConfig();
-    tallyStateRepository.save(new TallyState(ResourceUtils.getOrgId(), serviceType, clock.now()));
+    for (var product : products) {
+      tallyStateRepository.save(
+          new TallyState(ResourceUtils.getOrgId(), product.serviceType, clock.now()));
+    }
   }
 
   private void givenExistingHostInformation() {
@@ -238,31 +267,33 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
     host.setOrgId(ORG_ID);
     host.setInstanceId("1c474d4e-c277-472c-94ab-8229a40417eb");
     host.setDisplayName("name");
-    host.setInstanceType(serviceType);
+    host.setInstanceType("any");
     host.setLastSeen(clock.startOfCurrentMonth().minusMonths(1));
-    AccountServiceInventory service = new AccountServiceInventory(ORG_ID, serviceType);
+    AccountServiceInventory service = new AccountServiceInventory(ORG_ID, "any");
     service.getServiceInstances().put(host.getInstanceId(), host);
     accountServiceInventoryRepository.save(service);
   }
 
-  private void givenEventAtDay(int dayAt, double value) {
-    givenEventAtDay(dayAt, value, Event.Sla.PREMIUM);
+  private void givenEventAtDay(ProductData product, int dayAt, double value) {
+    givenEventAtDay(product, dayAt, value, Event.Sla.PREMIUM);
   }
 
-  private void givenEventAtDay(int dayAt, double value, Event.Sla sla) {
+  private void givenEventAtDay(ProductData product, int dayAt, double value, Event.Sla sla) {
     Event event = new Event();
     event.setEventId(UUID.randomUUID());
     event.setTimestamp(start.plusDays(dayAt));
+    event.setRecordDate(event.getTimestamp());
     event.setSla(sla);
     event.setRole(Event.Role.MOA_HOSTEDCONTROLPLANE);
-    event.setProductTag(Set.of(product.getValue()));
+    event.setProductTag(Set.of(product.id.getValue()));
     event.setOrgId(ORG_ID);
-    event.setEventType("snapshot_" + metric.toLowerCase() + "_" + product.getValue().toLowerCase());
+    event.setEventType(
+        "snapshot_" + product.metric.toLowerCase() + "_" + product.id.getValue().toLowerCase());
     event.setInstanceId(INSTANCE_ID);
     event.setEventSource("any");
     event.setExpiration(Optional.of(event.getTimestamp().plusHours(5)));
-    event.setMeasurements(List.of(measurement(value)));
-    event.setServiceType(serviceType);
+    event.setMeasurements(List.of(measurement(product.metric, value)));
+    event.setServiceType(product.serviceType);
     event.setBillingProvider(Event.BillingProvider.AWS);
     event.setBillingAccountId(Optional.of("mktp-123"));
 
@@ -288,24 +319,26 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   }
 
   private void assertTallyReportData(GranularityType granularity) {
-    TallyReportData report =
-        tallyResource.getTallyReportData(
-            product,
-            MetricId.fromString(metric),
-            granularity,
-            start,
-            end,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            true,
-            null);
+    for (var product : products) {
+      TallyReportData report =
+          tallyResource.getTallyReportData(
+              product.id,
+              MetricId.fromString(product.metric),
+              granularity,
+              start,
+              end,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              true,
+              null);
 
-    expectedReport.assertReport(granularity, report);
+      expectedReport.assertReport(product, granularity, report);
+    }
   }
 
   private void assertAllHostTallyBucketsHaveExpectedProduct(
@@ -319,11 +352,29 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
             .allMatch(h -> expectedProduct.equals(h.getKey().getProductId())));
   }
 
-  private Measurement measurement(Double value) {
+  private void assertFoundHostTallyBucketsForAllProducts() {
+    List<HostTallyBucket> allHostTallyBuckets = new ArrayList<>();
+    hostTallyBucketRepository.findAll().forEach(allHostTallyBuckets::add);
+    assertFalse(allHostTallyBuckets.isEmpty());
+    for (var product : products) {
+      assertTrue(
+          allHostTallyBuckets.stream()
+              .anyMatch(h -> product.id.getValue().equals(h.getKey().getProductId())),
+          () -> "No buckets found for product " + product.id + ". Found: " + allHostTallyBuckets);
+    }
+  }
+
+  private Measurement measurement(String metricId, Double value) {
     Measurement measurement = new Measurement();
-    measurement.setMetricId(metric);
+    measurement.setMetricId(metricId);
     measurement.setValue(value);
     return measurement;
+  }
+
+  private class ProductData {
+    ProductId id;
+    String serviceType;
+    String metric;
   }
 
   private class ExpectedReport {
@@ -333,8 +384,10 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
       rawEvents.add(event);
     }
 
-    public void assertReport(GranularityType granularity, TallyReportData report) {
-      Map<OffsetDateTime, Measurement> measurementsByDate = groupsEventsByGranularity(granularity);
+    public void assertReport(
+        ProductData product, GranularityType granularity, TallyReportData report) {
+      Map<OffsetDateTime, Measurement> measurementsByDate =
+          groupsEventsByGranularity(product.metric, granularity);
 
       int nextValue = 0;
       for (var point : report.getData()) {
@@ -347,7 +400,9 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
             point.getValue(),
             "Unexpected value in data point at '"
                 + point.getDate()
-                + "'. Expected was "
+                + "' with value "
+                + point.getValue()
+                + ". Expected was "
                 + nextValue
                 + ". Report was: "
                 + report);
@@ -367,7 +422,7 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
     }
 
     private Map<OffsetDateTime, Measurement> groupsEventsByGranularity(
-        GranularityType granularity) {
+        String metricId, GranularityType granularity) {
       Map<OffsetDateTime, Measurement> measurementsByDate = new HashMap<>();
       for (Event event : rawEvents) {
         OffsetDateTime timestamp = event.getTimestamp();
@@ -375,10 +430,11 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
           timestamp = clock.startOfDay(event.getTimestamp());
         }
 
-        Measurement current = measurementsByDate.getOrDefault(timestamp, measurement(0.0));
+        Measurement current =
+            measurementsByDate.getOrDefault(timestamp, measurement(metricId, 0.0));
         measurementsByDate.put(timestamp, current);
         event.getMeasurements().stream()
-            .filter(m -> m.getMetricId().equals(metric))
+            .filter(m -> m.getMetricId().equals(metricId))
             .forEach(m -> current.setValue(current.getValue() + m.getValue()));
       }
 

@@ -34,7 +34,6 @@ public class ProductTagLookupParams {
 
   Set<Integer> engIds;
   String role;
-  String productName;
   Set<String> metricIds;
   Boolean isPaygEligibleProduct;
   Boolean is3rdPartyMigration;
@@ -46,7 +45,6 @@ public class ProductTagLookupParams {
   private ProductTagLookupParams(
       Set<Integer> engIds,
       String role,
-      String productName,
       Set<String> metricIds,
       Boolean isPaygEligibleProduct,
       Boolean is3rdPartyMigration,
@@ -55,7 +53,6 @@ public class ProductTagLookupParams {
       String level2) {
     this.engIds = engIds;
     this.role = role;
-    this.productName = productName;
     this.metricIds = metricIds;
     this.isPaygEligibleProduct = isPaygEligibleProduct;
     this.is3rdPartyMigration = is3rdPartyMigration;
@@ -72,7 +69,6 @@ public class ProductTagLookupParams {
 
     private Set<Integer> engIds = new HashSet<>();
     private String role;
-    private String productName;
     private Set<String> metricIds = new HashSet<>();
     private Boolean isPaygEligibleProduct;
     private Boolean is3rdPartyMigration;
@@ -114,11 +110,6 @@ public class ProductTagLookupParams {
       return this;
     }
 
-    public ProductTagLookupParamsBuilder productName(String productName) {
-      this.productName = productName;
-      return this;
-    }
-
     public ProductTagLookupParamsBuilder metricIds(Set<String> metricIds) {
       if (metricIds == null) {
         return this;
@@ -156,7 +147,6 @@ public class ProductTagLookupParams {
       return new ProductTagLookupParams(
           this.engIds,
           this.role,
-          this.productName,
           this.metricIds,
           this.isPaygEligibleProduct,
           this.is3rdPartyMigration,

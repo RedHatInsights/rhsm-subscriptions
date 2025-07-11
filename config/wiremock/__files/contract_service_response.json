@@ -1,0 +1,11 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "ANY",
+    "urlPattern": "/mock/contractApi/api/swatch-contracts/internal.*"
+  },
+  "response": {
+    "proxyBaseUrl": "http://localhost:8000",
+    "proxyUrlPrefixToRemove": "/mock/contractApi"
+  }
+}

@@ -40,34 +40,28 @@ import org.springframework.stereotype.Component;
 public class ApiSpecController {
   // The name these files are served as is controlled by the corresponding Resource
   // implementation (and ultimately in the openAPI spec itself)
-  @Value("classpath:rhsm-subscriptions-api-v1-spec.yaml")
+  @Value("classpath:swagger/generated-api-spec-v1.yaml")
   private Resource openApiV1Yaml;
 
-  @Value("classpath:rhsm-subscriptions-api-v1-openapi.json")
+  @Value("classpath:swagger/generated-api-spec-v1.json")
   private Resource openApiV1Json;
 
-  @Value("classpath:rhsm-subscriptions-api-v2-spec.yaml")
+  @Value("classpath:swagger/generated-api-spec-v2.yaml")
   private Resource openApiV2Yaml;
 
-  @Value("classpath:rhsm-subscriptions-api-v2-openapi.json")
+  @Value("classpath:swagger/generated-api-spec-v2.json")
   private Resource openApiV2Json;
 
-  @Value("classpath:internal-tally-api-spec.yaml")
+  @Value("classpath:swagger/generated-tally-api-spec.yaml")
   private Resource internalTallyApiYaml;
 
-  @Value("classpath:internal-tally-openapi.json")
+  @Value("classpath:swagger/generated-tally-api-spec.json")
   private Resource internalTallyApiJson;
 
-  @Value("classpath:internal-billing-api-spec.yaml")
-  private Resource internalBillingApiYaml;
-
-  @Value("classpath:internal-billing-openapi.json")
-  private Resource internalBillingApiJson;
-
-  @Value("classpath:internal-swatch-producer-red-hat-marketplace-openapi.json")
+  @Value("classpath:swagger/generated-swatch-producer-red-hat-marketplace-openapi.yaml")
   private Resource internalProducerRedHatMarketplaceApiYaml;
 
-  @Value("classpath:internal-producer-red-hat-marketplace-api-openapi.json")
+  @Value("classpath:swagger/generated-swatch-producer-red-hat-marketplace-openapi.json")
   private Resource internalProducerRedHatMarketplaceApiJson;
 
   private String getResourceAsString(Resource r) {
@@ -104,14 +98,6 @@ public class ApiSpecController {
 
   public String getInternalTallyApiJson() {
     return getResourceAsString(internalTallyApiJson);
-  }
-
-  public String getInternalBillingApiYaml() {
-    return getResourceAsString(internalBillingApiYaml);
-  }
-
-  public String getInternalBillingApiJson() {
-    return getResourceAsString(internalBillingApiJson);
   }
 
   public String getInternalProducerRHMApiYaml() {

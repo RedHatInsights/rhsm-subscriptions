@@ -31,7 +31,9 @@ import com.redhat.swatch.hbi.events.exception.UnrecoverableMessageProcessingExce
 import com.redhat.swatch.hbi.events.processing.HbiEventProcessor;
 import com.redhat.swatch.hbi.events.processing.UnsupportedHbiEventException;
 import com.redhat.swatch.kafka.EmitterService;
-import io.smallrye.reactive.messaging.kafka.api.KafkaMessageMetadata;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.List;
@@ -48,6 +50,10 @@ public class HbiEventConsumer {
 
   public static final String EVENT_SERVICE_TYPE = "HBI_HOST";
   public static final String EVENT_SOURCE = "HBI_EVENT";
+  public static final String EVENTS_METRIC = "rhsm-subscriptions.metrics-hbi.events";
+  public static final String TIMED_EVENTS_METRIC = EVENTS_METRIC + ".timed";
+  public static final String COUNTER_EVENTS_METRIC = EVENTS_METRIC + ".counter";
+
   private final FeatureFlags flags;
 
   @SuppressWarnings("java:S1068")
@@ -55,27 +61,30 @@ public class HbiEventConsumer {
 
   private final HbiEventProcessor hbiEventProcessor;
   private final ObjectMapper objectMapper;
+  private final MeterRegistry meterRegistry;
 
   public HbiEventConsumer(
       @Channel(SWATCH_EVENTS_OUT) Emitter<Event> emitter,
       FeatureFlags flags,
       HbiEventProcessor hbiEventProcessor,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper,
+      MeterRegistry meterRegistry) {
     this.emitter = new EmitterService<>(emitter);
     this.flags = flags;
     this.hbiEventProcessor = hbiEventProcessor;
     this.objectMapper = objectMapper;
+    this.meterRegistry = meterRegistry;
   }
 
+  @Timed(TIMED_EVENTS_METRIC)
   @Incoming(HBI_HOST_EVENTS_IN)
   @RetryWithExponentialBackoff(
       maxRetries = "${SWATCH_EVENT_PRODUCER_MAX_ATTEMPTS:1}",
       delay = "${SWATCH_EVENT_PRODUCER_BACK_OFF_INITIAL_INTERVAL:1s}",
       maxDelay = "${SWATCH_EVENT_PRODUCER_BACK_OFF_MAX_INTERVAL:60s}",
       factor = "${SWATCH_EVENT_PRODUCER_BACK_OFF_MULTIPLIER:2}")
-  public void consume(HbiEvent hbiEvent, KafkaMessageMetadata<?> metadata) {
+  public void consume(HbiEvent hbiEvent) {
     logHbiEvent(hbiEvent);
-
     try {
       List<Event> toSend = hbiEventProcessor.process(hbiEvent);
       if (flags.emitEvents()) {
@@ -93,12 +102,15 @@ public class HbiEventConsumer {
             "Emitting HBI events to swatch is disabled. Not sending {} events.", toSend.size());
         toSend.forEach(eventToSend -> log.info("EVENT: {}", eventToSend));
       }
+      incrementCounter(hbiEvent.getType());
     } catch (UnsupportedHbiEventException unsupportedException) {
       log.warn("HBI Event not supported!", unsupportedException);
+      incrementCounterWithError(hbiEvent.getType(), "unsupported");
     } catch (UnrecoverableMessageProcessingException e) {
       log.warn(
           "Unrecoverable message when processing incoming HBI event. Event will not be retried.",
           e);
+      incrementCounterWithError(hbiEvent.getType(), e.getMessage());
     }
   }
 
@@ -114,5 +126,19 @@ public class HbiEventConsumer {
       }
       log.debug("Received host event from HBI - {}", eventString);
     }
+  }
+
+  private void incrementCounter(String type) {
+    doIncrementCounter(type, "none");
+  }
+
+  private void incrementCounterWithError(String type, String errorMessage) {
+    doIncrementCounter(type, errorMessage);
+  }
+
+  private void doIncrementCounter(String type, String errorMessage) {
+    meterRegistry
+        .counter(COUNTER_EVENTS_METRIC, Tags.of("type", type).and("error-message", errorMessage))
+        .increment();
   }
 }

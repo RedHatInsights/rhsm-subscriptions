@@ -7,8 +7,10 @@ variants:
   - tag: OpenShift-metrics
     roles:
       - ocp
-    productNames:
-      - OpenShift Container Platform
+    level1:
+      - OpenShift
+    level2:
+      - "OCP - OpenShift Container Platform"
 
 defaults:
   variant: OpenShift-metrics

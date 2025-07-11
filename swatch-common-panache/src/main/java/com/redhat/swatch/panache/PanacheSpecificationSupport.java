@@ -27,6 +27,7 @@ import io.quarkus.panache.common.Sort;
 import io.quarkus.panache.common.Sort.Column;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.Nulls;
 import jakarta.persistence.criteria.Order;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Root;
@@ -34,7 +35,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
-import org.hibernate.query.NullPrecedence;
 import org.hibernate.query.criteria.JpaOrder;
 
 /**
@@ -99,8 +99,8 @@ public interface PanacheSpecificationSupport<Entity, Id> extends PanacheReposito
     if (column.getNullPrecedence() != null) {
       var jpaNullPrecedence =
           switch (column.getNullPrecedence()) {
-            case NULLS_FIRST -> NullPrecedence.FIRST;
-            case NULLS_LAST -> NullPrecedence.LAST;
+            case NULLS_FIRST -> Nulls.FIRST;
+            case NULLS_LAST -> Nulls.LAST;
           };
       ((JpaOrder) order).nullPrecedence(jpaNullPrecedence);
     }

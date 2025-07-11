@@ -52,9 +52,13 @@ public class RolesAugmentor implements SecurityIdentityAugmentor {
     if (!identity.isAnonymous() && testApisEnabled) {
       roles.add("test");
     }
-    if (principal instanceof RhIdentityPrincipal
-        && ((RhIdentityPrincipal) principal).isAssociate()) {
-      roles.add("support");
+    if (principal instanceof RhIdentityPrincipal) {
+      if (((RhIdentityPrincipal) principal).isAssociate()) {
+        roles.add("support");
+      }
+      if ("X509".equals(((RhIdentityPrincipal) principal).getIdentity().getType())) {
+        roles.add("service");
+      }
     }
     if (principal instanceof PskPrincipal) {
       roles.add("service");

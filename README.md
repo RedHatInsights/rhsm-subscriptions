@@ -786,34 +786,52 @@ Once you extract it from the .yaml that's checked into this repo, you can import
 
 Links to Swagger UI and API specs:
 
-* [Customer-facing API][customer-api]
-  ([source](api/rhsm-subscriptions-api-spec.yaml))
+* [Customer-facing v1 API][customer-v1-api]
+  ([source](api/rhsm-subscriptions-api-v1-spec.yaml))
+* [Customer-facing v2 API][customer-v2-api]
+  ([source](api/rhsm-subscriptions-api-v2-spec.yaml))
 * [Internal Billing Producer API][billing-api]
   ([source](swatch-billable-usage/src/main/resources/META-INF/openapi.yaml))
 * [Internal Metering API][metering-api]
-  ([source](src/main/spec/internal-metering-api-spec.yaml))
-* [Internal Subscriptions API][subscriptions-api]
-  ([source](src/main/spec/internal-subscriptions-sync-api-spec.yaml))
+  ([source](swatch-metrics/src/main/resources/META-INF/openapi.yaml))
 * [Internal Tally API][tally-api]
   ([source](src/main/spec/internal-tally-api-spec.yaml))
 * [Internal Contracts API][contracts-api]
   ([source](swatch-contracts/src/main/resources/META-INF/openapi.yaml))
+* [Internal RHM Producer API][rhm-api]
+  ([source](src/main/spec/internal-swatch-producer-red-hat-marketplace-api-spec.yaml))
 * [Internal AWS Producer API][aws-api]
-  ([source](swatch-producer-aws/src/main/resources/openapi.yaml))
+  ([source](swatch-producer-aws/src/main/resources/META-INF/openapi.yaml))
 * [Internal Azure Producer API][azure-api]
   ([source](swatch-producer-azure/src/main/resources/META-INF/openapi.yaml))
 * [Internal System Conduit API][conduit-api]
   ([source](swatch-system-conduit/src/main/spec/internal-organizations-sync-api-spec.yaml))
 
-[customer-api]:       https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/api/rhsm-subscriptions-api-spec.yaml
-[billing-api]:        https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/src/main/spec/internal-billing-api-spec.yaml
-[metering-api]:       https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/src/main/spec/internal-metering-api-spec.yaml
-[subscriptions-api]:  https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/src/main/spec/internal-subscriptions-sync-api-spec.yaml
+[customer-v1-api]:    https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/api/rhsm-subscriptions-api-v1-spec.yaml
+[customer-v2-api]:    https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/api/rhsm-subscriptions-api-v2-spec.yaml
+[billing-api]:        https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/swatch-billable-usage/src/main/resources/META-INF/openapi.yaml
+[metering-api]:       https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/swatch-metrics/src/main/resources/META-INF/openapi.yaml
 [tally-api]:          https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/src/main/spec/internal-tally-api-spec.yaml
 [contracts-api]:      https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/swatch-contracts/src/main/resources/META-INF/openapi.yaml
-[aws-api]:            https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/swatch-producer-aws/src/main/resources/openapi.yaml
+[aws-api]:            https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/swatch-producer-aws/src/main/resources/META-INF/openapi.yaml
 [conduit-api]:        https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/swatch-system-conduit/src/main/spec/internal-organizations-sync-api-spec.yaml
 [azure-api]:          https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/swatch-producer-azure/src/main/resources/META-INF/openapi.yaml
+[rhm-api]:            https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/src/main/spec/internal-swatch-producer-red-hat-marketplace-api-spec.yaml
+
+### Using embedded Swagger from services
+
+| API                           | URL                                                                                                |
+|-------------------------------|----------------------------------------------------------------------------------------------------|
+| Customer-facing v1 API        | http://swatch-api-service/api-docs/index.html                                                      |
+| Customer-facing v2 API        |                                                                                                    |
+| Internal Tally API            | http://swatch-tally-service/api/swatch-tally/internal/swagger-ui/index.html                        |
+| Internal RHM Producer API     | http://swatch-tally-service/api/swatch-producer-red-hat-marketplace/internal/swagger-ui/index.html |
+| Internal Billing Producer API | http://swatch-billable-usage-service/api/swatch-billable-usage/internal/swagger-ui/                |
+| Internal Metering API         | http://swatch-metrics-service/api/swatch-metrics/internal/swagger-ui/                              |
+| Internal Contracts API        | http://swatch-contracts-service/api/swatch-contracts/internal/swagger-ui/                          |
+| Internal AWS Producer API     | http://swatch-producer-aws-service/api/swatch-producer-aws/internal/swagger-ui/                    |
+| Internal Azure Producer API   | http://swatch-producer-azure-service/api/swatch-producer-azure/internal/swagger-ui/                |
+| Internal System Conduit API   | http://swatch-system-conduit-service/api/swatch-system-conduit/internal/swagger-ui/index.html      |
 
 ## Kafka topics
 <details>

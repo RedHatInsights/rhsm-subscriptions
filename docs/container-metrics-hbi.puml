@@ -1,0 +1,49 @@
+@startuml
+!include <C4/C4_Container>
+
+' see https://forum.plantuml.net/8356/white-backgrounds-are-rendered-transparent-in-svg
+skinparam backgroundColor #FEFEFE
+
+' styling
+AddBoundaryTag("internal", $borderStyle=DottedLine())
+UpdateSystemBoundaryStyle($borderStyle=SolidLine())
+
+LAYOUT_WITH_LEGEND()
+
+title Container diagram for Swatch Metrics HBI
+
+Person_Ext(customer, "Red Hat Customer")
+System_Ext(customer_system, "Customer System", "Customer system or service instance (e.g. RHEL System")
+
+Boundary(crc, "console.redhat.com") {
+  Boundary(swatch, "Subscription watch", $tags="internal") {
+    System_Boundary(swath-metrics-hbi, "Swatch Metrics HBI") {
+      Container(hbi_event_consumer, "HBI Event Consumer", "Kafka Consumer", "Processes incoming HBI host events.")
+      Container(fact_normalization, "Fact Normalization", "", "")
+    }
+    ContainerDb(db, "Swatch DB", "Postgres Database", "Stores HBI host relationship data along with host data from the last known HBI event.")
+  }
+
+  Boundary(kafka, "Kafka Service", $tags="internal") {
+    ContainerQueue(swatch_event_topic, "Swatch Event Topic", "platform.rhsm-subscriptions.service-instance-ingress")
+    ContainerQueue(hbi_host_event_topic, "HBI Host event topic", "platform.inventory.events")
+  }
+
+  System_Ext(hbi, "Host Based Inventory", "Sends created/updated/delete events when a host state changes.") {
+  }
+}
+
+' external dataflows
+Rel(customer, customer_system, "Provisions/Uses")
+Rel(customer_system, hbi, "Reports to")
+
+' HBI data flow
+Rel(hbi, hbi_host_event_topic, "Report Host State Change")
+
+' swatch-metrics-hbi dataflow
+Rel(hbi_event_consumer, hbi_host_event_topic, "(1) Consumes from")
+Rel(hbi_event_consumer, fact_normalization, "(2) Normalize incoming host facts")
+Rel(hbi_event_consumer, db, "(3) Create/Update/Delete relationships")
+Rel(hbi_event_consumer, swatch_event_topic, "(4) Produces to")
+
+@enduml
