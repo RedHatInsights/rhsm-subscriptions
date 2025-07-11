@@ -40,7 +40,6 @@ public class SystemProfileProductIdsProductRule implements ProductRule {
         ProductTagLookupParams.builder()
             .engIds(context.hostFacts().getSystemProfileProductIds())
             .metricIds(APPLICABLE_METRIC_IDS)
-            .is3rdPartyMigration(context.is3rdPartyMigrated())
             .isPaygEligibleProduct(false)
             .build();
 

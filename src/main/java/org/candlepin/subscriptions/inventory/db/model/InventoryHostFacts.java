@@ -26,11 +26,13 @@ import java.util.Set;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 import org.springframework.util.StringUtils;
 
 /** Represents an inventory host's facts. */
 @Getter
 @Setter
+@ToString
 public class InventoryHostFacts {
   private UUID inventoryId;
   private OffsetDateTime modifiedOn;
