@@ -12,6 +12,7 @@ objects:
       "ignore-check.kube-linter.io/no-liveness-probe": "probes not required on Job pods"
       "ignore-check.kube-linter.io/no-readiness-probe": "probes not required on Job pods"
   spec:
+    backoffLimit: 1 # Defaults to 6 and retries on test failures
     template:
       spec:
         imagePullSecrets:
