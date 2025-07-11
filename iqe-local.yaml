@@ -1,21 +1,43 @@
 # `pipx install tmuxp`, then run `tmuxp load iqe-local.yaml`
+#
+# Add something like this to your tmux.conf to send ctrl-C to
+# all windows at once
+#
+# bind C-e command-prompt -p "Command:" \
+#         "run \"tmux list-panes -s -F '##{session_name}:##{window_index}.##{pane_index}' \
+#                | xargs -I PANE tmux send-keys -t PANE '%1' Enter\""
+# Then you can run <prefix> C-e and type in "C-c" to kill all the processes
+
 session_name: iqe-local
 windows:
-  - window_name: swatch
-    focus: True
-    layout: tiled
+  - window_name: swatch-tally
+    panes:
+      - shell_command:
+        - make swatch-tally
+  - window_name: swatch-contracts
     panes:
       - shell_command:
         - make swatch-contracts
+  - window_name: swatch-billable-usage
+    panes:
       - shell_command:
         - make swatch-billable-usage
+  - window_name: swatch-producer-aws
+    panes:
       - shell_command:
         - make swatch-producer-aws
+  - window_name: swatch-producer-azure
+    panes:
       - shell_command:
         - make swatch-producer-azure
+  - window_name: swatch-metrics-hbi
+    panes:
       - shell_command:
         - make swatch-metrics-hbi
+  - window_name: swatch-metrics
+    panes:
+      - shell_command:
+        - make swatch-metrics
   - window_name: proxy
-    layout: main-horizontal
     panes:
       - podman logs -f rhsm-subscriptions_nginx_1

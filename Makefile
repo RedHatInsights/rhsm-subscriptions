@@ -1,6 +1,13 @@
 SHELL=/bin/bash
 
-.PHONY: swatch-contracts swatch-billable-usage swatch-producer-aws swatch-producer-azure swatch-metrics-hbi
+.PHONY: \
+	swatch-contracts \
+	swatch-billable-usage \
+	swatch-producer-aws \
+	swatch-producer-azure \
+	swatch-tally \
+	swatch-metrics-hbi \
+	swatch-metrics
 
 # Add a profile(s) to use like so:
 # make swatch-contracts PROFILES=dev,other_profile
@@ -21,20 +28,32 @@ define QUARKUS_PROXY
 	./mvnw -f $(1)/pom.xml quarkus:dev
 endef
 
+define SPRING_PROXY
+	SERVER_PORT=$(2) MANAGEMENT_SERVER_PORT=$(shell echo $$((1000 + $(2)))) \
+	SPRING_PROFILES_ACTIVE=$(subst $(space),$(comma),$(PROFILES)) \
+	./mvnw -f $(1)/pom.xml spring-boot:run
+endef
+
 # $@ is a variable set to the target name
 # If you add a new target here, be sure to add it to .PHONY at the top
 # Otherwise, make will think the target name refers to the directory
+swatch-tally:
+	$(call SPRING_PROXY,$@,8010)
+
 swatch-contracts:
-	$(call QUARKUS_PROXY,$@,8001)
+	$(call QUARKUS_PROXY,$@,8011)
 
 swatch-billable-usage:
-	$(call QUARKUS_PROXY,$@,8002)
+	$(call QUARKUS_PROXY,$@,8012)
 
 swatch-producer-aws:
-	$(call QUARKUS_PROXY,$@,8003)
+	$(call QUARKUS_PROXY,$@,8013)
 
 swatch-producer-azure:
-	$(call QUARKUS_PROXY,$@,8004)
+	$(call QUARKUS_PROXY,$@,8014)
 
 swatch-metrics-hbi:
-	$(call QUARKUS_PROXY,$@,8006)
+	$(call QUARKUS_PROXY,$@,8015)
+
+swatch-metrics:
+	$(call QUARKUS_PROXY,$@,8016)
