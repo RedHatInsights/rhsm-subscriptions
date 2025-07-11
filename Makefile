@@ -61,7 +61,7 @@ swatch-billable-usage:
 	$(call QUARKUS_PROXY,$@,8012)
 
 swatch-producer-aws:
-	$(call QUARKUS_PROXY,$@,8013)
+	AWS_SHARED_CREDENTIALS_FILE=$(CURDIR)/config/moto/local-config.ini $(call QUARKUS_PROXY,$@,8013)
 
 swatch-producer-azure:
 	$(call QUARKUS_PROXY,$@,8014)

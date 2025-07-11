@@ -1,0 +1,16 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "ANY",
+    "urlPattern": "/mock/aws.*",
+    "bodyPatterns": [
+      {
+        "doesNotContain": "_UseWiremock_"
+      }
+    ]
+  },
+  "response": {
+    "proxyBaseUrl": "http://host.containers.internal:5000",
+    "proxyUrlPrefixToRemove": "/mock/aws"
+  }
+}

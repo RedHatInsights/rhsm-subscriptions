@@ -38,6 +38,7 @@ config/*
 !config/splunk
 !config/export-service
 !config/wiremock
+!config/moto
 config/export-service/tmp
 
 #VS Code
