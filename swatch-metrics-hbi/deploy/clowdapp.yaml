@@ -19,16 +19,6 @@ parameters:
     value: 350m
   - name: CPU_LIMIT
     value: 1500m
-  - name: MIGRATION_IMAGE
-    value: quay.io/cloudservices/swatch-database
-  - name: MIGRATION_MEMORY_REQUEST
-    value: 256Mi
-  - name: MIGRATION_MEMORY_LIMIT
-    value: 512Mi
-  - name: MIGRATION_CPU_REQUEST
-    value: 100m
-  - name: MIGRATION_CPU_LIMIT
-    value: 500m
   - name: ENV_NAME
     value: env-swatch-metrics-hbi
   - name: REPLICAS
@@ -109,18 +99,6 @@ objects:
             enabled: true
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          initContainers:
-            - image: ${MIGRATION_IMAGE}:${IMAGE_TAG}
-              command: ["/opt/jboss/container/java/run/run-java.sh"]
-              args: ["metrics_hbi", "update"]
-              inheritEnv: true
-              resources:
-                requests:
-                  cpu: ${MIGRATION_CPU_REQUEST}
-                  memory: ${MIGRATION_MEMORY_REQUEST}
-                limits:
-                  cpu: ${MIGRATION_CPU_LIMIT}
-                  memory: ${MIGRATION_MEMORY_LIMIT}
           livenessProbe:
             failureThreshold: 3
             httpGet:
