@@ -7,7 +7,9 @@ SHELL=/bin/bash
 	swatch-producer-azure \
 	swatch-tally \
 	swatch-metrics-hbi \
-	swatch-metrics
+	swatch-metrics \
+	run-migrations \
+	build
 
 # Add a profile(s) to use like so:
 # make swatch-contracts PROFILES=dev,other_profile
@@ -21,22 +23,34 @@ empty:=
 space:=$(empty) $(empty)
 
 # $1 is the directory with the application to start.
+define BUILD
+    $(if $(filter build,$(MAKECMDGOALS)),./mvnw clean install -DskipTests -am -pl $(1))
+endef
+
+# $1 is the directory with the application to start.
 # $2 is the port number to start on.  The management port will be $2 + 1000
 define QUARKUS_PROXY
+    $(call BUILD,$(1))
 	QUARKUS_HTTP_PORT=$(2) QUARKUS_MANAGEMENT_PORT=$(shell echo $$((1000 + $(2)))) \
 	QUARKUS_HTTP_HOST=0.0.0.0 QUARKUS_PROFILE=$(subst $(space),$(comma),$(PROFILES)) \
-	./mvnw -f $(1)/pom.xml quarkus:dev
+	./mvnw -pl $(1) quarkus:dev
 endef
 
 define SPRING_PROXY
+    $(call BUILD,$(1))
 	SERVER_PORT=$(2) MANAGEMENT_SERVER_PORT=$(shell echo $$((1000 + $(2)))) \
 	SPRING_PROFILES_ACTIVE=$(subst $(space),$(comma),$(PROFILES)) \
-	./mvnw -f $(1)/pom.xml spring-boot:run
+	./mvnw -pl $(1) spring-boot:run
 endef
 
 # $@ is a variable set to the target name
 # If you add a new target here, be sure to add it to .PHONY at the top
 # Otherwise, make will think the target name refers to the directory
+run-migrations:
+	./mvnw clean install -Prun-migrations
+# Empty target for build flag
+build:
+	@:
 swatch-tally:
 	$(call SPRING_PROXY,$@,8010)
 
