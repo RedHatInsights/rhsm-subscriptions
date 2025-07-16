@@ -45,6 +45,6 @@ sudo bash -c "echo 127.0.0.1 sts.amazonaws.com >> /etc/hosts"
 Then when running the application, override its truststore, for example by setting java properties:
 
 ```properties
-javax.net.ssl.trustStore=$(git rev-parse --show-toplevel)/swatch-producer-aws/mock-aws/test-ca.jks
+javax.net.ssl.trustStore=$(git rev-parse --show-toplevel)/config/moto/test-ca.jks
 javax.net.ssl.trustStorePassword=password
 ```

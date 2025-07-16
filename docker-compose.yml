@@ -222,6 +222,14 @@ services:
     volumes:
       - './bin/wait-for:/unleash/wait-for:z'
       - './.unleash:/.unleash:z'
+  moto:
+    extends:
+      file: config/moto/docker-compose.yml
+      service: moto
+    networks:
+      swatch-network:
+        aliases:
+          - wiremock
 networks:
   swatch-network:
     name: swatch-network
