@@ -39,6 +39,7 @@ config/*
 !config/export-service
 !config/wiremock
 !config/moto
+!config/prometheus
 config/export-service/tmp
 
 #VS Code

@@ -1,0 +1,8 @@
+---
+version: '3.8'
+services:
+  prometheus:
+    image: quay.io/redhat-services-prod/rh-subs-watch-tenant/prometheus:eac5c45
+    container_name: prometheus
+    ports:
+      - "127.0.0.1:9090:8000"
