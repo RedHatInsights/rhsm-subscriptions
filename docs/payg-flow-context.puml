@@ -48,7 +48,6 @@ Rel(tally, billable_usage, "Produces message")
 Rel(billable_usage, producer_aws, "Produces message")
 Rel(billable_usage, producer_azure, "Produces message")
 Rel(billable_usage, contracts, "Queries pre-paid capacity")
-Rel(tally, producer_rhm, "Produces message")
 Rel(producer_aws, aws, "Submits via HTTP")
 Rel(producer_azure, azure, "Submits via HTTP")
 
