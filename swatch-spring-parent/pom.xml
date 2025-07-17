@@ -70,11 +70,6 @@
       </dependency>
       <dependency>
         <groupId>com.redhat.swatch.clients.spring</groupId>
-        <artifactId>rh-marketplace-client</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.redhat.swatch.clients.spring</groupId>
         <artifactId>rh-partner-gateway-client</artifactId>
         <version>${project.version}</version>
       </dependency>

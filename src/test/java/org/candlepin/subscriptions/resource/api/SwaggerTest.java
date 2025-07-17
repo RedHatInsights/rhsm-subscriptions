@@ -47,7 +47,7 @@ class SwaggerTest {
       new TestRestTemplate(TestRestTemplate.HttpClientOption.ENABLE_REDIRECTS);
 
   @ParameterizedTest
-  @ValueSource(strings = {"swatch-tally", "swatch-producer-red-hat-marketplace"})
+  @ValueSource(strings = {"swatch-tally"})
   void testSwaggerPage(String app) {
     ResponseEntity<String> response =
         restTemplate.getForEntity(

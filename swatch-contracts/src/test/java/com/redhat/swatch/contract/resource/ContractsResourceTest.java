@@ -44,7 +44,6 @@ import com.redhat.swatch.contract.model.SyncResult;
 import com.redhat.swatch.contract.openapi.model.AwsUsageContext;
 import com.redhat.swatch.contract.openapi.model.AzureUsageContext;
 import com.redhat.swatch.contract.openapi.model.OfferingResponse;
-import com.redhat.swatch.contract.openapi.model.RhmUsageContext;
 import com.redhat.swatch.contract.openapi.model.RpcResponse;
 import com.redhat.swatch.contract.openapi.model.ServiceLevelType;
 import com.redhat.swatch.contract.openapi.model.UsageType;
@@ -445,67 +444,6 @@ class ContractsResourceTest {
     assertEquals("resourceId", azureUsageContext.getAzureResourceId());
     assertEquals("planId", azureUsageContext.getPlanId());
     assertEquals("offerId", azureUsageContext.getOfferId());
-  }
-
-  @Test
-  void incrementsRhmMissingSubscriptionsCounter() {
-    when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(Collections.emptyList());
-    given()
-        .queryParams(
-            "orgId",
-            ORG_ID,
-            "date",
-            OffsetDateTime.now().withOffsetSameInstant(ZoneOffset.UTC).toString(),
-            "productId",
-            ROSA,
-            "sla",
-            ServiceLevelType.PREMIUM.toString(),
-            "usage",
-            UsageType.PRODUCTION.toString())
-        .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
-        .get("/api/swatch-contracts/internal/subscriptions/rhmUsageContext")
-        .then()
-        .statusCode(404);
-
-    thenMissingSubscriptionsMetricIs("red hat", 1.0);
-  }
-
-  @Test
-  void incrementsRhmAmbiguousSubscriptionsCounter() {
-    SubscriptionEntity sub1 = new SubscriptionEntity();
-    sub1.setBillingProviderId("account123");
-    sub1.setStartDate(OffsetDateTime.now());
-    sub1.setEndDate(sub1.getStartDate().plusMonths(1));
-
-    SubscriptionEntity sub2 = new SubscriptionEntity();
-    sub2.setBillingProviderId("account123");
-    sub2.setStartDate(OffsetDateTime.now());
-    sub2.setEndDate(sub2.getStartDate().plusMonths(1));
-
-    when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(List.of(sub1, sub2));
-
-    RhmUsageContext rhmUsageContext =
-        given()
-            .queryParams(
-                "orgId",
-                ORG_ID,
-                "date",
-                OffsetDateTime.now().withOffsetSameInstant(ZoneOffset.UTC).toString(),
-                "productId",
-                ROSA,
-                "sla",
-                ServiceLevelType.PREMIUM.toString(),
-                "usage",
-                UsageType.PRODUCTION.toString())
-            .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
-            .get("/api/swatch-contracts/internal/subscriptions/rhmUsageContext")
-            .then()
-            .statusCode(200)
-            .extract()
-            .as(RhmUsageContext.class);
-
-    thenAmbiguousSubscriptionsMetricIs("red hat", 1.0);
-    assertEquals("account123", rhmUsageContext.getRhSubscriptionId());
   }
 
   @Test

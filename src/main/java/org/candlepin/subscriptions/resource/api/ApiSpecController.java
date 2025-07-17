@@ -58,12 +58,6 @@ public class ApiSpecController {
   @Value("classpath:swagger/generated-tally-api-spec.json")
   private Resource internalTallyApiJson;
 
-  @Value("classpath:swagger/generated-swatch-producer-red-hat-marketplace-openapi.yaml")
-  private Resource internalProducerRedHatMarketplaceApiYaml;
-
-  @Value("classpath:swagger/generated-swatch-producer-red-hat-marketplace-openapi.json")
-  private Resource internalProducerRedHatMarketplaceApiJson;
-
   private String getResourceAsString(Resource r) {
     try (InputStream is = r.getInputStream()) {
       return IOUtils.toString(is, StandardCharsets.UTF_8);
@@ -98,13 +92,5 @@ public class ApiSpecController {
 
   public String getInternalTallyApiJson() {
     return getResourceAsString(internalTallyApiJson);
-  }
-
-  public String getInternalProducerRHMApiYaml() {
-    return getResourceAsString(internalProducerRedHatMarketplaceApiYaml);
-  }
-
-  public String getInternalProducerRHMApiJson() {
-    return getResourceAsString(internalProducerRedHatMarketplaceApiJson);
   }
 }

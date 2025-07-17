@@ -4707,107 +4707,6 @@ data:
                 "type": "prometheus",
                 "uid": "${datasource}"
               },
-              "description": "Billable Usage service emits messages with usage data for swatch billing provider services to consume.  This widget monitors the rh-marketplace-worker consumer group (consumed by the swatch-producer-red-hat-marketplace service)",
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 10,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "never",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "normal"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "mappings": [],
-                  "min": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
-                  },
-                  "unit": "none"
-                },
-                "overrides": []
-              },
-              "gridPos": {
-                "h": 9,
-                "w": 6,
-                "x": 12,
-                "y": 241
-              },
-              "id": 84,
-              "options": {
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.3",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.rhsm-subscriptions.billable-usage\", group=\"swatch-producer-rh-marketplace\"}) by (group, partition)",
-                  "format": "time_series",
-                  "instant": false,
-                  "interval": "",
-                  "intervalFactor": 1,
-                  "legendFormat": "partition {{ partition }}",
-                  "refId": "A"
-                }
-              ],
-              "title": "RH Marketplace Billable Usage Lag",
-              "type": "timeseries"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
               "fieldConfig": {
                 "defaults": {
                   "color": {
@@ -5543,7 +5442,7 @@ data:
               "type": "stat"
             }
           ],
-          "title": "Billing Provider Integration (swatch-producer-{aws,red-hat-marketplace})",
+          "title": "Billing Provider Integration (swatch-producer-{aws})",
           "type": "row"
         }
       ],
