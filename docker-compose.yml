@@ -236,7 +236,7 @@ services:
     networks:
       swatch-network:
         aliases:
-          - wiremock
+          - moto
 networks:
   swatch-network:
     name: swatch-network
