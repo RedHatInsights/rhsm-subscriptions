@@ -36,10 +36,18 @@ define QUARKUS_PROXY
 	./mvnw -pl $(1) quarkus:dev
 endef
 
+# Take note that we're using SPRING_PROFILES_INCLUDE rather that
+# SPRING_PROFILES_ACTIVE The INCLUDE directive will take the specified profiles
+# and add them to the list of profiles in use.  In other words, it is additive
+# to other methods of giving profiles such as through definitions in
+# applications.properties.  The ACTIVE directive defines the totality of
+# profiles that will be in use.  Our Spring profile organization is so complex
+# that I don't want to force developers to have to remember the full listing
+# of profiles they want to use.
 define SPRING_PROXY
     $(call BUILD,$(1))
 	SERVER_PORT=$(2) MANAGEMENT_SERVER_PORT=$(shell echo $$((1000 + $(2)))) \
-	SPRING_PROFILES_ACTIVE=$(subst $(space),$(comma),$(PROFILES)) \
+	SPRING_PROFILES_INCLUDE=$(subst $(space),$(comma),$(PROFILES)) \
 	./mvnw -pl $(1) spring-boot:run
 endef
 
