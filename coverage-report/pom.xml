@@ -90,11 +90,6 @@
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch.clients.quarkus</groupId>
-      <artifactId>prometheus-client</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.redhat.swatch.clients.quarkus</groupId>
       <artifactId>rbac-client</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -180,22 +175,7 @@
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch.clients.spring</groupId>
-      <artifactId>billable-usage-client</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.redhat.swatch.clients.spring</groupId>
-      <artifactId>contracts-client</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.redhat.swatch.clients.spring</groupId>
       <artifactId>export-client</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.redhat.swatch.clients.spring</groupId>
-      <artifactId>prometheus-client</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

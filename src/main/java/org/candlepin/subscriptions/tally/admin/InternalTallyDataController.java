@@ -38,8 +38,6 @@ import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.tally.AccountResetService;
 import org.candlepin.subscriptions.tally.TallySnapshotController;
-import org.candlepin.subscriptions.tally.billing.BillableUsageController;
-import org.candlepin.subscriptions.tally.contracts.ContractsController;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.utilization.api.v1.model.OptInConfig;
 import org.springframework.stereotype.Component;
@@ -53,17 +51,12 @@ public class InternalTallyDataController {
   private final CaptureSnapshotsTaskManager tasks;
   private final ObjectMapper objectMapper;
   private final OptInController controller;
-  private final ContractsController contractsController;
-  private final BillableUsageController billableUsageController;
   private final TallySnapshotController snapshotController;
   private final EventNormalizer eventNormalizer;
   private final DataMigrationRunner dataMigrationRunner;
   private final MergeHostsMigration mergeHostsMigration;
 
   public void deleteDataAssociatedWithOrg(String orgId) {
-    // we first delete the contracts and if it works, we continue with the rest of the data.
-    contractsController.deleteContractsWithOrg(orgId);
-    billableUsageController.deleteRemittancesWithOrg(orgId);
     accountResetService.deleteDataForOrg(orgId);
   }
 

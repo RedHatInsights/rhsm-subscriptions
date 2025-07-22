@@ -35,8 +35,6 @@ import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.tally.AccountResetService;
 import org.candlepin.subscriptions.tally.TallySnapshotController;
-import org.candlepin.subscriptions.tally.billing.BillableUsageController;
-import org.candlepin.subscriptions.tally.contracts.ContractsController;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.junit.jupiter.api.Test;
@@ -52,8 +50,6 @@ class InternalTallyDataControllerTest {
   private static final ApplicationClock CLOCK = new TestClockConfiguration().adjustableClock();
   private static final String ORG_ID = "org1";
 
-  @MockitoBean ContractsController contractsController;
-  @MockitoBean BillableUsageController billableUsageController;
   @MockitoBean AccountResetService accountResetService;
   @MockitoBean TallySnapshotController snapshotController;
   @MockitoBean CaptureSnapshotsTaskManager tasks;
@@ -65,8 +61,6 @@ class InternalTallyDataControllerTest {
   @Test
   void testDeleteDataAssociatedWithOrg() {
     controller.deleteDataAssociatedWithOrg(ORG_ID);
-    verify(contractsController).deleteContractsWithOrg(ORG_ID);
-    verify(billableUsageController).deleteRemittancesWithOrg(ORG_ID);
     verify(accountResetService).deleteDataForOrg(ORG_ID);
   }
 

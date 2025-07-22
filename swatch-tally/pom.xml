@@ -102,27 +102,11 @@
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch.clients.spring</groupId>
-      <artifactId>prometheus-client</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.redhat.swatch.clients.spring</groupId>
       <artifactId>rbac-client</artifactId>
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch.clients.spring</groupId>
-      <artifactId>rhsm-client</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.redhat.swatch.clients.spring</groupId>
-      <artifactId>contracts-client</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.redhat.swatch.clients.spring</groupId>
       <artifactId>export-client</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.redhat.swatch.clients.spring</groupId>
-      <artifactId>billable-usage-client</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
