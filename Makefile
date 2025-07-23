@@ -14,8 +14,8 @@ SHELL=/bin/bash
 # Add a profile(s) to use like so:
 # make swatch-contracts PROFILES=dev,other_profile
 #
-# Add the wiremock profile automatically
-override PROFILES+=wiremock
+# Add the local profile automatically
+override PROFILES+=local
 QUARKUS_PARENT_PROFILE?=dev
 
 # See section 8.1 of the make manual
