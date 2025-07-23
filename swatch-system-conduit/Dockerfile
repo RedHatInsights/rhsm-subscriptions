@@ -28,7 +28,7 @@ RUN --mount=type=cache,target=/root/.m2 \
 RUN (cd /stage/swatch-system-conduit && exec jar -xf ./target/*.jar)
 RUN ls -al /stage/swatch-system-conduit
 
-FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.22-1.1752066188
+FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.22-1.1752621169
 USER root
 RUN microdnf \
     --disablerepo=* \
