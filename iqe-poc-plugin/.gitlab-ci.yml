@@ -1,0 +1,7 @@
+variables:
+  PLUGIN: poc
+
+include:
+  - project: insights-qe/iqe-gitlab-includes
+    ref: master
+    file: /all.yml
