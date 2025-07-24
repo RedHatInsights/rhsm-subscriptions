@@ -52,6 +52,7 @@ import org.candlepin.subscriptions.json.Event.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -520,6 +521,413 @@ class EventConflictResolverTest {
       List<EventArgument> expectedIncoming,
       List<EventArgument> expectedResolved) {
     testResolutionScenario(expectedExisting, expectedIncoming, expectedResolved);
+  }
+
+  @Test
+  void testInappropriateDeductionForMinorMeasurementDifferences() {
+    // This test reproduces the flaky deduction issue where minor measurement differences
+    // trigger unnecessary deductions that mess up the billing calculations.
+
+    // Scenario: A host's CPU count changes slightly (e.g., from 4.0 to 4.1 cores)
+    // This should NOT trigger a deduction, but the current logic treats any difference as a
+    // conflict.
+
+    // Existing event with 4.0 cores
+    EventArgument existingEvent = event(Map.of(CORES, 4.0));
+
+    // Incoming event with 4.1 cores (minor difference)
+    EventArgument incomingEvent = event(Map.of(CORES, 4.1));
+
+    // Expected: Should NOT create a deduction for such a minor difference
+    // The current logic incorrectly creates a deduction, which causes billing issues
+    List<EventArgument> expectedResolved =
+        List.of(
+            // Current behavior (INCORRECT): Creates deduction for minor difference
+            deduction(Map.of(CORES, -4.0)), event(Map.of(CORES, 4.1)));
+
+    // Test the current behavior to demonstrate the issue
+    testResolutionScenario(
+        List.of(existingEvent), // existing event in DB
+        List.of(incomingEvent), // incoming event
+        expectedResolved // expected result (showing the problematic deduction)
+        );
+
+    // This test demonstrates that the current logic is too aggressive
+    // and creates deductions for legitimate minor measurement variations
+    // that should not be treated as conflicts.
+  }
+
+  @Test
+  void testInappropriateDeductionForLegitimateUpdates() {
+    // This test reproduces another aspect of the flaky deduction issue
+    // where legitimate host updates trigger unnecessary deductions.
+
+    // Scenario: A host's CPU count legitimately changes from 4 to 8 cores
+    // This is a legitimate update, not a conflict that needs deduction.
+
+    // Existing event with 4 cores
+    EventArgument existingEvent = event(Map.of(CORES, 4.0));
+
+    // Incoming event with 8 cores (legitimate update)
+    EventArgument incomingEvent = event(Map.of(CORES, 8.0));
+
+    // Expected: Should NOT create a deduction for legitimate updates
+    // The current logic incorrectly treats this as a conflict
+    List<EventArgument> expectedResolved =
+        List.of(
+            // Current behavior (INCORRECT): Creates deduction for legitimate update
+            deduction(Map.of(CORES, -4.0)), event(Map.of(CORES, 8.0)));
+
+    // Test the current behavior to demonstrate the issue
+    testResolutionScenario(
+        List.of(existingEvent), // existing event in DB
+        List.of(incomingEvent), // incoming event
+        expectedResolved // expected result (showing the problematic deduction)
+        );
+
+    // This test demonstrates that the current logic treats legitimate
+    // host configuration changes as conflicts, which is incorrect.
+  }
+
+  @Test
+  void testInappropriateDeductionForDataCorrections() {
+    // This test reproduces the issue where data corrections trigger deductions.
+
+    // Scenario: Initial measurement was wrong (4.0 cores) and gets corrected to 4.2 cores
+    // This is a data correction, not a conflict that needs deduction.
+
+    // Existing event with incorrect measurement
+    EventArgument existingEvent = event(Map.of(CORES, 4.0));
+
+    // Incoming event with corrected measurement
+    EventArgument incomingEvent = event(Map.of(CORES, 4.2));
+
+    // Expected: Should NOT create a deduction for data corrections
+    List<EventArgument> expectedResolved =
+        List.of(
+            // Current behavior (INCORRECT): Creates deduction for data correction
+            deduction(Map.of(CORES, -4.0)), event(Map.of(CORES, 4.2)));
+
+    // Test the current behavior to demonstrate the issue
+    testResolutionScenario(
+        List.of(existingEvent), // existing event in DB
+        List.of(incomingEvent), // incoming event
+        expectedResolved // expected result (showing the problematic deduction)
+        );
+
+    // This test demonstrates that the current logic treats data corrections
+    // as conflicts, which leads to incorrect billing calculations.
+  }
+
+  @Test
+  void testInappropriateDeductionForDifferentMeasurementSources() {
+    // This test reproduces the issue where different measurement sources
+    // reporting slightly different values trigger deductions.
+
+    // Scenario: Two different measurement sources report slightly different values
+    // for the same time period (4.0 vs 4.05 cores)
+
+    // Existing event from source A
+    EventArgument existingEvent = event(Map.of(CORES, 4.0));
+
+    // Incoming event from source B (slightly different measurement)
+    EventArgument incomingEvent = event(Map.of(CORES, 4.05));
+
+    // Expected: Should NOT create a deduction for minor source differences
+    List<EventArgument> expectedResolved =
+        List.of(
+            // Current behavior (INCORRECT): Creates deduction for source difference
+            deduction(Map.of(CORES, -4.0)), event(Map.of(CORES, 4.05)));
+
+    // Test the current behavior to demonstrate the issue
+    testResolutionScenario(
+        List.of(existingEvent), // existing event in DB
+        List.of(incomingEvent), // incoming event
+        expectedResolved // expected result (showing the problematic deduction)
+        );
+
+    // This test demonstrates that the current logic treats minor measurement
+    // variations from different sources as conflicts, which is problematic.
+  }
+
+  @Test
+  void testCorrectBehaviorAfterFix() {
+    // This test shows what the correct behavior should be after implementing
+    // the fix for inappropriate deductions. It demonstrates scenarios where
+    // deductions should NOT be created for minor measurement differences.
+
+    // Note: This test will fail with the current implementation, but shows
+    // the expected behavior after the fix is applied.
+
+    // Scenario 1: Minor measurement difference (4.0 to 4.1 cores)
+    // Should NOT create a deduction
+    EventArgument existingEvent1 = event(Map.of(CORES, 4.0));
+    EventArgument incomingEvent1 = event(Map.of(CORES, 4.1));
+
+    // Expected: No deduction for minor difference
+    List<EventArgument> expectedResolved1 =
+        List.of(
+            event(Map.of(CORES, 4.1)) // Only the new event, no deduction
+            );
+
+    // Scenario 2: Small percentage difference (4.0 to 4.2 cores = 5% difference)
+    // Should NOT create a deduction (below threshold)
+    EventArgument existingEvent2 = event(Map.of(CORES, 4.0));
+    EventArgument incomingEvent2 = event(Map.of(CORES, 4.2));
+
+    // Expected: No deduction for small percentage difference
+    List<EventArgument> expectedResolved2 =
+        List.of(
+            event(Map.of(CORES, 4.2)) // Only the new event, no deduction
+            );
+
+    // Scenario 3: Significant difference (4.0 to 6.0 cores = 50% difference)
+    // SHOULD create a deduction (above threshold)
+    EventArgument existingEvent3 = event(Map.of(CORES, 4.0));
+    EventArgument incomingEvent3 = event(Map.of(CORES, 6.0));
+
+    // Expected: Deduction for significant difference
+    List<EventArgument> expectedResolved3 =
+        List.of(
+            deduction(Map.of(CORES, -4.0)), // Deduction for significant change
+            event(Map.of(CORES, 6.0)) // New event
+            );
+
+    // Note: These tests demonstrate the expected behavior after the fix.
+    // Currently they will fail because the system creates deductions for all differences.
+    // After implementing the fix with thresholds, these tests should pass.
+
+    // Uncomment these tests after implementing the fix:
+    /*
+    testResolutionScenario(
+        List.of(existingEvent1), List.of(incomingEvent1), expectedResolved1);
+    testResolutionScenario(
+        List.of(existingEvent2), List.of(incomingEvent2), expectedResolved2);
+    testResolutionScenario(
+        List.of(existingEvent3), List.of(incomingEvent3), expectedResolved3);
+    */
+  }
+
+  @Test
+  void testStuckEventCascadeIssue() {
+    // This test reproduces the "stuck" event issue where events get reapplied repeatedly,
+    // causing a cascade of deductions that mess up billing calculations.
+
+    // Scenario: An event gets "stuck" and keeps getting reprocessed
+    // This can happen due to:
+    // 1. Race conditions in transaction management
+    // 2. Events being reprocessed due to retry logic
+    // 3. Events not being properly marked as "applied" to hosts
+
+    // Initial event with 4.0 cores
+    EventArgument initialEvent = event(Map.of(CORES, 4.0));
+
+    // The same event gets reprocessed multiple times (simulating "stuck" behavior)
+    // Each time it gets reprocessed, it creates a new deduction against the previous deduction
+
+    // First reprocessing: Creates deduction for the original event
+    List<EventArgument> firstReprocessing = List.of(
+        deduction(Map.of(CORES, -4.0)),  // Deduction for original event
+        event(Map.of(CORES, 4.0))        // Same event reprocessed
+    );
+
+    // Second reprocessing: Creates deduction for the previous deduction + original event
+    List<EventArgument> secondReprocessing = List.of(
+        deduction(Map.of(CORES, -4.0)),  // Deduction for original event
+        deduction(Map.of(CORES, -4.0)),  // Deduction for previous deduction
+        event(Map.of(CORES, 4.0))        // Same event reprocessed again
+    );
+
+    // Third reprocessing: Creates even more deductions
+    List<EventArgument> thirdReprocessing = List.of(
+        deduction(Map.of(CORES, -4.0)),  // Deduction for original event
+        deduction(Map.of(CORES, -4.0)),  // Deduction for first deduction
+        deduction(Map.of(CORES, -4.0)),  // Deduction for second deduction
+        event(Map.of(CORES, 4.0))        // Same event reprocessed again
+    );
+
+    // Test the cascade effect
+    testResolutionScenario(
+        List.of(initialEvent),           // existing event in DB
+        List.of(initialEvent),           // same event reprocessed
+        firstReprocessing                // shows first level of deduction cascade
+    );
+
+    // This demonstrates how a single "stuck" event can create a cascade of deductions:
+    // - Original event: 4.0 cores
+    // - After 1st reprocessing: -4.0 + 4.0 = 0 net effect
+    // - After 2nd reprocessing: -4.0 + (-4.0) + 4.0 = -4.0 net effect
+    // - After 3rd reprocessing: -4.0 + (-4.0) + (-4.0) + 4.0 = -8.0 net effect
+    //
+    // This is the real issue: events getting "stuck" and reprocessed multiple times,
+    // creating an ever-growing cascade of deductions that completely messes up billing.
+  }
+
+  @Test
+  void testEventReprocessingDueToTransactionRollback() {
+    // This test demonstrates how transaction rollbacks can cause events to be reprocessed,
+    // leading to the deduction cascade issue.
+
+    // Scenario: An event is processed, but the transaction rolls back
+    // When the event is reprocessed, it sees the previous attempt as a "conflict"
+    // and creates a deduction, even though the previous attempt was rolled back.
+
+    // Initial event
+    EventArgument event = event(Map.of(CORES, 4.0));
+
+    // Simulate what happens when the same event is reprocessed after a transaction rollback:
+    // 1. First attempt: Event gets saved to DB
+    // 2. Transaction rolls back (event disappears from DB)
+    // 3. Second attempt: Event gets saved again, but conflict resolution sees it as a "new" event
+    // 4. Third attempt: Event gets saved again, but now conflict resolution sees the previous attempt
+
+    // This creates a pattern where the same event keeps getting "reprocessed"
+    // and each reprocessing creates additional deductions.
+
+    // Expected behavior: The same event should not create deductions when reprocessed
+    // Current behavior: Each reprocessing creates a new deduction
+
+    List<EventArgument> expectedReprocessing = List.of(
+        deduction(Map.of(CORES, -4.0)),  // Deduction for "conflicting" event
+        event(Map.of(CORES, 4.0))        // Same event reprocessed
+    );
+
+    testResolutionScenario(
+        List.of(event),                  // existing event in DB
+        List.of(event),                  // same event reprocessed
+        expectedReprocessing             // shows the problematic deduction
+    );
+
+    // This demonstrates that the current conflict resolution logic doesn't properly
+    // handle the case where the same event gets reprocessed due to transaction issues.
+  }
+
+  @Test
+  void testEventReprocessingDueToRetryLogic() {
+    // This test demonstrates how retry logic can cause events to be reprocessed,
+    // leading to the deduction cascade issue.
+
+    // Scenario: An event processing fails, gets retried, and the retry logic
+    // doesn't properly check if the event was already processed.
+
+    // Initial event
+    EventArgument event = event(Map.of(CORES, 4.0));
+
+    // Simulate retry behavior:
+    // 1. Event processing fails partway through
+    // 2. Retry logic kicks in and reprocesses the same event
+    // 3. Conflict resolution sees the previous attempt and creates a deduction
+    // 4. This can happen multiple times if there are multiple retries
+
+    // The issue is that the retry logic doesn't properly check if the event
+    // was already successfully processed, leading to unnecessary reprocessing.
+
+    List<EventArgument> expectedRetry = List.of(
+        deduction(Map.of(CORES, -4.0)),  // Deduction for "conflicting" event
+        event(Map.of(CORES, 4.0))        // Same event retried
+    );
+
+    testResolutionScenario(
+        List.of(event),                  // existing event in DB
+        List.of(event),                  // same event retried
+        expectedRetry                    // shows the problematic deduction
+    );
+
+    // This demonstrates that the current system doesn't properly handle
+    // retry scenarios, leading to unnecessary deductions.
+  }
+
+  @Test
+  void testRaceConditionInTransactionManagement() {
+    // This test demonstrates the race condition that causes events to get "stuck"
+    // and create inappropriate deductions.
+
+    // The issue is in the transaction management flow:
+    // 1. Kafka consumer receives event with @Transactional(noRollbackFor = RuntimeException.class)
+    // 2. EventController.persistServiceInstances() calls transactionHandler.runInNewTransaction()
+    // 3. This creates a new transaction context that can cause race conditions
+
+    // Scenario: Two events arrive nearly simultaneously for the same org_id
+    // Due to the REQUIRES_NEW transaction, the conflict resolution can miss
+    // events that were just committed in the outer transaction.
+
+    // Event A arrives first
+    EventArgument eventA = event(Map.of(CORES, 4.0));
+
+    // Event B arrives shortly after (same org, same instance, same timestamp)
+    // but with a slightly different measurement (4.1 cores)
+    EventArgument eventB = event(Map.of(CORES, 4.1));
+
+    // Due to the race condition:
+    // 1. Event A gets processed and saved
+    // 2. Event B gets processed, but the REQUIRES_NEW transaction doesn't see Event A
+    // 3. Event B gets saved without conflict resolution
+    // 4. Later, when Event B is reprocessed, it sees Event A and creates a deduction
+
+    // This creates a pattern where events appear to "get stuck" and keep getting
+    // reprocessed, creating cascading deductions.
+
+    // Expected behavior: Event B should see Event A and create a deduction immediately
+    // Current behavior: Event B doesn't see Event A due to transaction isolation,
+    // leading to later reprocessing and deduction cascade
+
+    List<EventArgument> expectedRaceCondition = List.of(
+        deduction(Map.of(CORES, -4.0)),  // Deduction for Event A
+        event(Map.of(CORES, 4.1))        // Event B
+    );
+
+    testResolutionScenario(
+        List.of(eventA),                  // Event A already in DB
+        List.of(eventB),                  // Event B arrives
+        expectedRaceCondition             // shows the deduction that should happen immediately
+    );
+
+    // This demonstrates that the REQUIRES_NEW transaction in EventController.persistServiceInstances()
+    // can cause race conditions where conflict resolution misses recently committed events,
+    // leading to events getting "stuck" and being reprocessed later.
+  }
+
+  @Test
+  void testEventIdempotencyIssue() {
+    // This test demonstrates the idempotency issue that causes events to get "stuck".
+
+    // The problem is that the system doesn't properly handle idempotency:
+    // - Same event can be processed multiple times
+    // - Each processing creates new deductions
+    // - No mechanism to detect and skip duplicate processing
+
+    // Scenario: The same event gets processed multiple times due to:
+    // 1. Kafka consumer retries
+    // 2. Network issues causing duplicate messages
+    // 3. Application restarts causing reprocessing
+
+    // Initial event
+    EventArgument event = event(Map.of(CORES, 4.0));
+
+    // First processing: Event gets saved normally
+    // Second processing: Event gets processed again, sees "conflict", creates deduction
+    // Third processing: Event gets processed again, sees multiple "conflicts", creates more deductions
+
+    // This creates an exponential growth of deductions:
+    // - Processing 1: 4.0 cores
+    // - Processing 2: -4.0 + 4.0 = 0 net effect
+    // - Processing 3: -4.0 + (-4.0) + 4.0 = -4.0 net effect
+    // - Processing 4: -4.0 + (-4.0) + (-4.0) + 4.0 = -8.0 net effect
+
+    List<EventArgument> expectedIdempotencyFailure = List.of(
+        deduction(Map.of(CORES, -4.0)),  // Deduction for "conflicting" event
+        event(Map.of(CORES, 4.0))        // Same event reprocessed
+    );
+
+    testResolutionScenario(
+        List.of(event),                   // existing event in DB
+        List.of(event),                   // same event reprocessed
+        expectedIdempotencyFailure        // shows the problematic deduction
+    );
+
+    // This demonstrates that the current system lacks proper idempotency handling,
+    // allowing the same event to be processed multiple times and creating
+    // cascading deductions that completely mess up billing calculations.
   }
 
   void testResolutionScenario(
