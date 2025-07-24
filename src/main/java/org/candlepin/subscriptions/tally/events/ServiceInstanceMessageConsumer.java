@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.tally.billing;
+package org.candlepin.subscriptions.tally.events;
 
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;

@@ -13,9 +13,6 @@ rhsm-subscriptions:
     platform: hsqldb
   account-batch-size: 2
   subscription-sync-enabled: true
-  contracts:
-    client:
-      psk: placeholder
 logging:
   level:
     org:
