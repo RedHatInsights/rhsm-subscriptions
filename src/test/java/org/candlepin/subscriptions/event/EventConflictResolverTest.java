@@ -746,21 +746,27 @@ class EventConflictResolverTest {
         event(Map.of(CORES, 4.0))        // Same event reprocessed again
     );
 
-    // Test the cascade effect
+    // AFTER THE FIX: The same event should NOT create deductions when reprocessed
+    // This prevents the cascade of deductions that mess up billing
+    List<EventArgument> expectedAfterFix = List.of(
+        event(Map.of(CORES, 4.0))        // Same event reprocessed, but NO deduction
+    );
+
+    // Test the fix - no deductions should be created for reprocessed events
     testResolutionScenario(
         List.of(initialEvent),           // existing event in DB
         List.of(initialEvent),           // same event reprocessed
-        firstReprocessing                // shows first level of deduction cascade
+        expectedAfterFix                 // shows that no deductions are created
     );
 
-    // This demonstrates how a single "stuck" event can create a cascade of deductions:
+    // This demonstrates how the fix prevents the deduction cascade:
     // - Original event: 4.0 cores
-    // - After 1st reprocessing: -4.0 + 4.0 = 0 net effect
-    // - After 2nd reprocessing: -4.0 + (-4.0) + 4.0 = -4.0 net effect
-    // - After 3rd reprocessing: -4.0 + (-4.0) + (-4.0) + 4.0 = -8.0 net effect
+    // - After 1st reprocessing: 4.0 cores (no deduction)
+    // - After 2nd reprocessing: 4.0 cores (no deduction)
+    // - After 3rd reprocessing: 4.0 cores (no deduction)
     //
-    // This is the real issue: events getting "stuck" and reprocessed multiple times,
-    // creating an ever-growing cascade of deductions that completely messes up billing.
+    // The fix prevents events from getting "stuck" and creating cascading deductions
+    // that completely mess up billing calculations.
   }
 
   @Test
@@ -784,22 +790,21 @@ class EventConflictResolverTest {
     // This creates a pattern where the same event keeps getting "reprocessed"
     // and each reprocessing creates additional deductions.
 
-    // Expected behavior: The same event should not create deductions when reprocessed
+    // AFTER THE FIX: The same event should not create deductions when reprocessed
     // Current behavior: Each reprocessing creates a new deduction
 
-    List<EventArgument> expectedReprocessing = List.of(
-        deduction(Map.of(CORES, -4.0)),  // Deduction for "conflicting" event
-        event(Map.of(CORES, 4.0))        // Same event reprocessed
+    List<EventArgument> expectedAfterFix = List.of(
+        event(Map.of(CORES, 4.0))        // Same event reprocessed, but NO deduction
     );
 
     testResolutionScenario(
         List.of(event),                  // existing event in DB
         List.of(event),                  // same event reprocessed
-        expectedReprocessing             // shows the problematic deduction
+        expectedAfterFix                 // shows that no deductions are created
     );
 
-    // This demonstrates that the current conflict resolution logic doesn't properly
-    // handle the case where the same event gets reprocessed due to transaction issues.
+    // This demonstrates that the fix properly handles reprocessed events
+    // without creating unnecessary deductions.
   }
 
   @Test
@@ -819,22 +824,21 @@ class EventConflictResolverTest {
     // 3. Conflict resolution sees the previous attempt and creates a deduction
     // 4. This can happen multiple times if there are multiple retries
 
-    // The issue is that the retry logic doesn't properly check if the event
-    // was already successfully processed, leading to unnecessary reprocessing.
+    // AFTER THE FIX: The retry logic should not create unnecessary deductions
+    // for the same event being reprocessed.
 
-    List<EventArgument> expectedRetry = List.of(
-        deduction(Map.of(CORES, -4.0)),  // Deduction for "conflicting" event
-        event(Map.of(CORES, 4.0))        // Same event retried
+    List<EventArgument> expectedAfterFix = List.of(
+        event(Map.of(CORES, 4.0))        // Same event retried, but NO deduction
     );
 
     testResolutionScenario(
         List.of(event),                  // existing event in DB
         List.of(event),                  // same event retried
-        expectedRetry                    // shows the problematic deduction
+        expectedAfterFix                 // shows that no deductions are created
     );
 
-    // This demonstrates that the current system doesn't properly handle
-    // retry scenarios, leading to unnecessary deductions.
+    // This demonstrates that the fix properly handles retry scenarios
+    // without creating unnecessary deductions.
   }
 
   @Test

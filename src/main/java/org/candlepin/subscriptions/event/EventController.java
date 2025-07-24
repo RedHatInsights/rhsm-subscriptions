@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.event;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
@@ -161,69 +162,47 @@ public class EventController {
   }
 
   /**
-   * Parses json list into event objects to be persisted into database. Saves events in a new
-   * transaction so that exceptions can be caught, and we can re-attempt to save. If saveAll() fails
-   * on events then we try one by one so that we know where to retry and the records that can be
-   * saved are persisted. Throws BatchListenerFailedException which tells kafka to Retry or put
-   * record on dead letter topic. <a
+   * Parses json list into event objects to be persisted into database. Saves events using the
+   * existing transaction context to prevent race conditions in conflict resolution. If saveAll() fails
+   * on events then we try one by one using isolated transactions so that we know where to retry and
+   * the records that can be saved are persisted. Throws BatchListenerFailedException which tells
+   * kafka to Retry or put record on dead letter topic. <a
    * href="https://docs.spring.io/spring-kafka/docs/latest-ga/reference/html/#recovering-batch-eh">
    * See more in the documentation</a>
    *
    * @param eventJsonList a List of Events in JSON form
-   * @throws BatchListenerFailedException tells kafka where in batch to retry or send failed record
-   *     to dead letter topic. The index field of the exception is where kafka will retry.
+   * @throws BatchListenerFailedException tells kafka to retry or put record on dead letter topic
    */
-  public void persistServiceInstances(List<String> eventJsonList)
-      throws BatchListenerFailedException {
-    ServiceInstancesResult result = parseServiceInstancesResult(eventJsonList);
-    List<EventRecord> savedEvents = new ArrayList<>();
-    try {
-      if (!result.indexedEvents.isEmpty()) {
-        // Check to see if any of the incoming Events are in conflict and if so, resolve them.
-        savedEvents.addAll(
-            transactionHandler.runInNewTransaction(
-                () -> {
-                  List<EventRecord> resolved =
-                      resolveEventConflicts(
-                          result.indexedEvents.stream().map(Pair::getKey).toList());
-                  return repo.saveAll(resolved);
-                }));
-        log.debug("Adding/Updating {} metric events", savedEvents.size());
+  public void persistServiceInstances(List<String> eventJsonList) {
+    List<EventRecord> eventsToSave = new ArrayList<>();
+    List<Integer> failedIndices = new ArrayList<>();
+
+    for (int i = 0; i < eventJsonList.size(); i++) {
+      try {
+        Event event = objectMapper.readValue(eventJsonList.get(i), Event.class);
+        eventsToSave.add(new EventRecord(event));
+      } catch (JsonProcessingException e) {
+        log.error("Failed to parse event JSON at index {}: {}", i, eventJsonList.get(i), e);
+        failedIndices.add(i);
       }
-    } catch (Exception saveAllException) {
-      log.warn(
-          "Failed to save events. Retrying individually {} events.", result.indexedEvents.size());
-      result.indexedEvents.forEach(
-          indexedPair -> {
-            try {
-              savedEvents.addAll(
-                  transactionHandler.runInNewTransaction(
-                      () ->
-                          repo.saveAll(
-                              eventConflictResolver.resolveIncomingEvents(
-                                  List.of(indexedPair.getKey())))));
-            } catch (Exception individualSaveException) {
-              log.warn(
-                  "Failed to save individual event record: {} with error {}.",
-                  indexedPair.getKey(),
-                  ExceptionUtils.getStackTrace(individualSaveException));
-              throw new BatchListenerFailedException(
-                  individualSaveException.getMessage(), indexedPair.getValue());
-            }
-          });
     }
 
-    // create the ingested usage metrics for created events
-    updateIngestedUsage(savedEvents);
+    if (!eventsToSave.isEmpty()) {
+      try {
+        // Use existing transaction context to prevent race conditions in conflict resolution
+        // This ensures that conflict resolution can see recently committed events
+        List<EventRecord> resolvedEvents = eventConflictResolver.resolveIncomingEvents(
+            eventsToSave.stream().map(EventRecord::getEvent).toList());
+        repo.saveAll(resolvedEvents);
+      } catch (Exception e) {
+        log.error("Failed to save events in batch, attempting individual saves", e);
+        failedIndices.addAll(saveEventsIndividually(eventsToSave));
+      }
+    }
 
-    if (result
-        .failedOnIndex
-        .map(index -> index.compareTo(eventJsonList.size() - 1) < 0)
-        .orElse(false)) {
-      // We want to skip retrying the failed json parsing event so set index to plus 1.
+    if (!failedIndices.isEmpty()) {
       throw new BatchListenerFailedException(
-          "Failed to parse event json. Skipping to next index in batch.",
-          result.failedOnIndex.get() + 1);
+          "Failed to process events at indices: " + failedIndices, failedIndices.get(0));
     }
   }
 
@@ -406,6 +385,38 @@ public class EventController {
     meterRegistry
         .counter(INGESTED_USAGE_METRIC, tags.toArray(new String[0]))
         .increment(measurement.getValue());
+  }
+
+  /**
+   * Save events individually using isolated transactions for retry logic.
+   * This method is called when batch save fails and we need to retry individual events.
+   *
+   * @param eventsToSave the events to save individually
+   * @return list of indices that failed to save
+   */
+  private List<Integer> saveEventsIndividually(List<EventRecord> eventsToSave) {
+    List<Integer> failedIndices = new ArrayList<>();
+
+    for (int i = 0; i < eventsToSave.size(); i++) {
+      final int index = i; // Make effectively final for lambda
+      try {
+        // Use isolated transaction for individual retries to ensure proper error handling
+        List<EventRecord> savedEvents = transactionHandler.runInNewTransaction(() -> {
+          List<EventRecord> resolved = eventConflictResolver.resolveIncomingEvents(
+              List.of(eventsToSave.get(index).getEvent()));
+          return repo.saveAll(resolved);
+        });
+
+        // Update ingested usage for successfully saved events
+        updateIngestedUsage(savedEvents);
+
+      } catch (Exception e) {
+        log.warn("Failed to save individual event at index {}: {}", index, e.getMessage());
+        failedIndices.add(index);
+      }
+    }
+
+    return failedIndices;
   }
 
   private static class ServiceInstancesResult {

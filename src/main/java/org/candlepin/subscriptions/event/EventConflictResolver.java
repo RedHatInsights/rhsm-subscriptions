@@ -88,7 +88,7 @@ public class EventConflictResolver {
   }
 
   public List<EventRecord> resolveIncomingEvents(List<Event> incomingEvents) {
-    log.info("Resolving existing events for incoming batch.");
+    log.info("Resolving existing events for incoming batch of {} events.", incomingEvents.size());
     Map<EventKey, List<Event>> eventsToResolve =
         incomingEvents.stream()
             .flatMap(event -> normalizer.flattenEventUsage(event).stream())
@@ -96,6 +96,9 @@ public class EventConflictResolver {
                 Collectors.groupingBy(
                     EventKey::fromEvent, LinkedHashMap::new, Collectors.toList()));
     Map<EventKey, List<Event>> allConflicting = getConflictingEvents(eventsToResolve.keySet());
+
+    log.debug("Found {} event keys to resolve, {} have existing conflicts",
+        eventsToResolve.size(), allConflicting.size());
 
     // Resolve any conflicting events.
     List<EventRecord> resolvedEvents = new ArrayList<>();
@@ -116,11 +119,24 @@ public class EventConflictResolver {
 
                   if (!amendmentRequired(event, conflictingEvent, conflictKey.getMetricId())) {
                     log.debug(
-                        "The incoming event does require amendments for {}: {}",
+                        "Amendment not required for event {} with conflict key {}: {}",
+                        event.getInstanceId(),
                         conflictKey.getMetricId(),
                         event);
+                    // Still add the event, just don't create a deduction
+                    newlyResolvedEvents.add(event);
+                    allConflicting.putIfAbsent(key, new ArrayList<>());
+                    allConflicting.get(key).addAll(newlyResolvedEvents);
+                    resolvedEvents.addAll(newlyResolvedEvents.stream().map(EventRecord::new).toList());
+                    tracker.track(event);
                     return;
                   }
+
+                  log.debug(
+                      "Creating deduction for event {} with conflict key {}: {}",
+                      event.getInstanceId(),
+                      conflictKey.getMetricId(),
+                      event);
 
                   Event deductionEvent = createRecordFrom(conflictingEvent);
                   deductionEvent.setProductTag(Set.of(conflictKey.getProductTag()));
@@ -131,6 +147,9 @@ public class EventConflictResolver {
                           .withValue(conflictingMeasurement.getValue() * -1);
                   deductionEvent.setMeasurements(List.of(measurement));
                   newlyResolvedEvents.add(deductionEvent);
+                } else {
+                  log.debug("No conflicts found for event {} with conflict key {}",
+                      event.getInstanceId(), conflictKey.getMetricId());
                 }
 
                 newlyResolvedEvents.add(event);
@@ -170,7 +189,92 @@ public class EventConflictResolver {
     boolean measurementEqual =
         Objects.equals(incomingMeasurement.getValue(), conflictingMeasurement.getValue());
 
-    return !measurementEqual || !incomingEventDescriptor.equals(resolvedEventDescriptor);
+    // If measurements are equal and descriptors are equal, no amendment needed
+    if (measurementEqual && incomingEventDescriptor.equals(resolvedEventDescriptor)) {
+      return false;
+    }
+
+    // Check if this is likely a reprocessed event (same event being processed multiple times)
+    // This prevents the "stuck" event cascade issue
+    if (isLikelyReprocessedEvent(incomingEvent, resolvedEvent)) {
+      log.debug("Detected likely reprocessed event, skipping amendment to prevent deduction cascade. " +
+          "Incoming: {}, Resolved: {}", incomingEvent.getInstanceId(), resolvedEvent.getInstanceId());
+      return false;
+    }
+
+    // Check if the measurement difference is significant enough to warrant a deduction
+    // This prevents inappropriate deductions for minor measurement differences
+    if (measurementEqual && !incomingEventDescriptor.equals(resolvedEventDescriptor)) {
+      // Only different descriptors, but same measurements - this might be a legitimate update
+      log.debug("Same measurements but different descriptors, allowing amendment for legitimate updates");
+      return true;
+    }
+
+    if (!measurementEqual) {
+      double difference = Math.abs(incomingMeasurement.getValue() - conflictingMeasurement.getValue());
+      double relativeDifference = difference / Math.max(Math.abs(incomingMeasurement.getValue()),
+                                                       Math.abs(conflictingMeasurement.getValue()));
+
+      // If the relative difference is very small (< 1%), it might be a minor fluctuation
+      // that shouldn't trigger a deduction
+      if (relativeDifference < 0.01) {
+        log.debug("Measurement difference is very small ({}%), skipping amendment to prevent " +
+            "inappropriate deductions. Incoming: {}, Resolved: {}",
+            relativeDifference * 100, incomingMeasurement.getValue(), conflictingMeasurement.getValue());
+        return false;
+      }
+
+      log.debug("Significant measurement difference detected ({}%), amendment required. " +
+          "Incoming: {}, Resolved: {}",
+          relativeDifference * 100, incomingMeasurement.getValue(), conflictingMeasurement.getValue());
+    }
+
+    return true;
+  }
+
+  /**
+   * Check if this is likely a reprocessed event to prevent deduction cascades.
+   * This helps prevent the "stuck" event issue where the same event gets processed multiple times.
+   */
+  private boolean isLikelyReprocessedEvent(Event incomingEvent, Event resolvedEvent) {
+    // Check if events have the same core identifying characteristics
+    boolean sameCore = Objects.equals(incomingEvent.getOrgId(), resolvedEvent.getOrgId()) &&
+                      Objects.equals(incomingEvent.getInstanceId(), resolvedEvent.getInstanceId()) &&
+                      Objects.equals(incomingEvent.getTimestamp(), resolvedEvent.getTimestamp()) &&
+                      Objects.equals(incomingEvent.getEventSource(), resolvedEvent.getEventSource()) &&
+                      Objects.equals(incomingEvent.getEventType(), resolvedEvent.getEventType());
+
+    if (!sameCore) {
+      return false;
+    }
+
+    // Check if measurements are very similar (within 0.1% tolerance)
+    if (incomingEvent.getMeasurements().size() == 1 && resolvedEvent.getMeasurements().size() == 1) {
+      Measurement incomingMeasurement = incomingEvent.getMeasurements().get(0);
+      Measurement resolvedMeasurement = resolvedEvent.getMeasurements().get(0);
+
+      if (Objects.equals(incomingMeasurement.getMetricId(), resolvedMeasurement.getMetricId())) {
+        double difference = Math.abs(incomingMeasurement.getValue() - resolvedMeasurement.getValue());
+        double relativeDifference = difference / Math.max(Math.abs(incomingMeasurement.getValue()),
+                                                         Math.abs(resolvedMeasurement.getValue()));
+
+        // If measurements are nearly identical, this is likely a reprocessed event
+        // BUT only if all other metadata is also identical
+        if (relativeDifference < 0.001) { // 0.1% tolerance
+          // Additional check: ensure all metadata is identical
+          boolean sameMetadata = Objects.equals(incomingEvent.getHardwareType(), resolvedEvent.getHardwareType()) &&
+                                Objects.equals(incomingEvent.getSla(), resolvedEvent.getSla()) &&
+                                Objects.equals(incomingEvent.getUsage(), resolvedEvent.getUsage()) &&
+                                Objects.equals(incomingEvent.getBillingProvider(), resolvedEvent.getBillingProvider()) &&
+                                Objects.equals(incomingEvent.getBillingAccountId(), resolvedEvent.getBillingAccountId()) &&
+                                Objects.equals(incomingEvent.getProductTag(), resolvedEvent.getProductTag());
+
+          return sameMetadata;
+        }
+      }
+    }
+
+    return false;
   }
 
   private Measurement findMeasurement(Event event, String metricId) {
