@@ -726,38 +726,42 @@ class EventConflictResolverTest {
     // Each time it gets reprocessed, it creates a new deduction against the previous deduction
 
     // First reprocessing: Creates deduction for the original event
-    List<EventArgument> firstReprocessing = List.of(
-        deduction(Map.of(CORES, -4.0)),  // Deduction for original event
-        event(Map.of(CORES, 4.0))        // Same event reprocessed
-    );
+    List<EventArgument> firstReprocessing =
+        List.of(
+            deduction(Map.of(CORES, -4.0)), // Deduction for original event
+            event(Map.of(CORES, 4.0)) // Same event reprocessed
+            );
 
     // Second reprocessing: Creates deduction for the previous deduction + original event
-    List<EventArgument> secondReprocessing = List.of(
-        deduction(Map.of(CORES, -4.0)),  // Deduction for original event
-        deduction(Map.of(CORES, -4.0)),  // Deduction for previous deduction
-        event(Map.of(CORES, 4.0))        // Same event reprocessed again
-    );
+    List<EventArgument> secondReprocessing =
+        List.of(
+            deduction(Map.of(CORES, -4.0)), // Deduction for original event
+            deduction(Map.of(CORES, -4.0)), // Deduction for previous deduction
+            event(Map.of(CORES, 4.0)) // Same event reprocessed again
+            );
 
     // Third reprocessing: Creates even more deductions
-    List<EventArgument> thirdReprocessing = List.of(
-        deduction(Map.of(CORES, -4.0)),  // Deduction for original event
-        deduction(Map.of(CORES, -4.0)),  // Deduction for first deduction
-        deduction(Map.of(CORES, -4.0)),  // Deduction for second deduction
-        event(Map.of(CORES, 4.0))        // Same event reprocessed again
-    );
+    List<EventArgument> thirdReprocessing =
+        List.of(
+            deduction(Map.of(CORES, -4.0)), // Deduction for original event
+            deduction(Map.of(CORES, -4.0)), // Deduction for first deduction
+            deduction(Map.of(CORES, -4.0)), // Deduction for second deduction
+            event(Map.of(CORES, 4.0)) // Same event reprocessed again
+            );
 
     // AFTER THE FIX: The same event should NOT create deductions when reprocessed
     // This prevents the cascade of deductions that mess up billing
-    List<EventArgument> expectedAfterFix = List.of(
-        event(Map.of(CORES, 4.0))        // Same event reprocessed, but NO deduction
-    );
+    List<EventArgument> expectedAfterFix =
+        List.of(
+            event(Map.of(CORES, 4.0)) // Same event reprocessed, but NO deduction
+            );
 
     // Test the fix - no deductions should be created for reprocessed events
     testResolutionScenario(
-        List.of(initialEvent),           // existing event in DB
-        List.of(initialEvent),           // same event reprocessed
-        expectedAfterFix                 // shows that no deductions are created
-    );
+        List.of(initialEvent), // existing event in DB
+        List.of(initialEvent), // same event reprocessed
+        expectedAfterFix // shows that no deductions are created
+        );
 
     // This demonstrates how the fix prevents the deduction cascade:
     // - Original event: 4.0 cores
@@ -785,7 +789,8 @@ class EventConflictResolverTest {
     // 1. First attempt: Event gets saved to DB
     // 2. Transaction rolls back (event disappears from DB)
     // 3. Second attempt: Event gets saved again, but conflict resolution sees it as a "new" event
-    // 4. Third attempt: Event gets saved again, but now conflict resolution sees the previous attempt
+    // 4. Third attempt: Event gets saved again, but now conflict resolution sees the previous
+    // attempt
 
     // This creates a pattern where the same event keeps getting "reprocessed"
     // and each reprocessing creates additional deductions.
@@ -793,15 +798,16 @@ class EventConflictResolverTest {
     // AFTER THE FIX: The same event should not create deductions when reprocessed
     // Current behavior: Each reprocessing creates a new deduction
 
-    List<EventArgument> expectedAfterFix = List.of(
-        event(Map.of(CORES, 4.0))        // Same event reprocessed, but NO deduction
-    );
+    List<EventArgument> expectedAfterFix =
+        List.of(
+            event(Map.of(CORES, 4.0)) // Same event reprocessed, but NO deduction
+            );
 
     testResolutionScenario(
-        List.of(event),                  // existing event in DB
-        List.of(event),                  // same event reprocessed
-        expectedAfterFix                 // shows that no deductions are created
-    );
+        List.of(event), // existing event in DB
+        List.of(event), // same event reprocessed
+        expectedAfterFix // shows that no deductions are created
+        );
 
     // This demonstrates that the fix properly handles reprocessed events
     // without creating unnecessary deductions.
@@ -827,15 +833,16 @@ class EventConflictResolverTest {
     // AFTER THE FIX: The retry logic should not create unnecessary deductions
     // for the same event being reprocessed.
 
-    List<EventArgument> expectedAfterFix = List.of(
-        event(Map.of(CORES, 4.0))        // Same event retried, but NO deduction
-    );
+    List<EventArgument> expectedAfterFix =
+        List.of(
+            event(Map.of(CORES, 4.0)) // Same event retried, but NO deduction
+            );
 
     testResolutionScenario(
-        List.of(event),                  // existing event in DB
-        List.of(event),                  // same event retried
-        expectedAfterFix                 // shows that no deductions are created
-    );
+        List.of(event), // existing event in DB
+        List.of(event), // same event retried
+        expectedAfterFix // shows that no deductions are created
+        );
 
     // This demonstrates that the fix properly handles retry scenarios
     // without creating unnecessary deductions.
@@ -875,18 +882,20 @@ class EventConflictResolverTest {
     // Current behavior: Event B doesn't see Event A due to transaction isolation,
     // leading to later reprocessing and deduction cascade
 
-    List<EventArgument> expectedRaceCondition = List.of(
-        deduction(Map.of(CORES, -4.0)),  // Deduction for Event A
-        event(Map.of(CORES, 4.1))        // Event B
-    );
+    List<EventArgument> expectedRaceCondition =
+        List.of(
+            deduction(Map.of(CORES, -4.0)), // Deduction for Event A
+            event(Map.of(CORES, 4.1)) // Event B
+            );
 
     testResolutionScenario(
-        List.of(eventA),                  // Event A already in DB
-        List.of(eventB),                  // Event B arrives
-        expectedRaceCondition             // shows the deduction that should happen immediately
-    );
+        List.of(eventA), // Event A already in DB
+        List.of(eventB), // Event B arrives
+        expectedRaceCondition // shows the deduction that should happen immediately
+        );
 
-    // This demonstrates that the REQUIRES_NEW transaction in EventController.persistServiceInstances()
+    // This demonstrates that the REQUIRES_NEW transaction in
+    // EventController.persistServiceInstances()
     // can cause race conditions where conflict resolution misses recently committed events,
     // leading to events getting "stuck" and being reprocessed later.
   }
@@ -910,7 +919,8 @@ class EventConflictResolverTest {
 
     // First processing: Event gets saved normally
     // Second processing: Event gets processed again, sees "conflict", creates deduction
-    // Third processing: Event gets processed again, sees multiple "conflicts", creates more deductions
+    // Third processing: Event gets processed again, sees multiple "conflicts", creates more
+    // deductions
 
     // This creates an exponential growth of deductions:
     // - Processing 1: 4.0 cores
@@ -918,16 +928,17 @@ class EventConflictResolverTest {
     // - Processing 3: -4.0 + (-4.0) + 4.0 = -4.0 net effect
     // - Processing 4: -4.0 + (-4.0) + (-4.0) + 4.0 = -8.0 net effect
 
-    List<EventArgument> expectedIdempotencyFailure = List.of(
-        deduction(Map.of(CORES, -4.0)),  // Deduction for "conflicting" event
-        event(Map.of(CORES, 4.0))        // Same event reprocessed
-    );
+    List<EventArgument> expectedIdempotencyFailure =
+        List.of(
+            deduction(Map.of(CORES, -4.0)), // Deduction for "conflicting" event
+            event(Map.of(CORES, 4.0)) // Same event reprocessed
+            );
 
     testResolutionScenario(
-        List.of(event),                   // existing event in DB
-        List.of(event),                   // same event reprocessed
-        expectedIdempotencyFailure        // shows the problematic deduction
-    );
+        List.of(event), // existing event in DB
+        List.of(event), // same event reprocessed
+        expectedIdempotencyFailure // shows the problematic deduction
+        );
 
     // This demonstrates that the current system lacks proper idempotency handling,
     // allowing the same event to be processed multiple times and creating

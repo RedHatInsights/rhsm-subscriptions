@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.event;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
@@ -163,10 +163,10 @@ public class EventController {
 
   /**
    * Parses json list into event objects to be persisted into database. Saves events using the
-   * existing transaction context to prevent race conditions in conflict resolution. If saveAll() fails
-   * on events then we try one by one using isolated transactions so that we know where to retry and
-   * the records that can be saved are persisted. Throws BatchListenerFailedException which tells
-   * kafka to Retry or put record on dead letter topic. <a
+   * existing transaction context to prevent race conditions in conflict resolution. If saveAll()
+   * fails on events then we try one by one using isolated transactions so that we know where to
+   * retry and the records that can be saved are persisted. Throws BatchListenerFailedException
+   * which tells kafka to Retry or put record on dead letter topic. <a
    * href="https://docs.spring.io/spring-kafka/docs/latest-ga/reference/html/#recovering-batch-eh">
    * See more in the documentation</a>
    *
@@ -191,8 +191,9 @@ public class EventController {
       try {
         // Use existing transaction context to prevent race conditions in conflict resolution
         // This ensures that conflict resolution can see recently committed events
-        List<EventRecord> resolvedEvents = eventConflictResolver.resolveIncomingEvents(
-            eventsToSave.stream().map(EventRecord::getEvent).toList());
+        List<EventRecord> resolvedEvents =
+            eventConflictResolver.resolveIncomingEvents(
+                eventsToSave.stream().map(EventRecord::getEvent).toList());
         repo.saveAll(resolvedEvents);
       } catch (Exception e) {
         log.error("Failed to save events in batch, attempting individual saves", e);
@@ -388,8 +389,8 @@ public class EventController {
   }
 
   /**
-   * Save events individually using isolated transactions for retry logic.
-   * This method is called when batch save fails and we need to retry individual events.
+   * Save events individually using isolated transactions for retry logic. This method is called
+   * when batch save fails and we need to retry individual events.
    *
    * @param eventsToSave the events to save individually
    * @return list of indices that failed to save
@@ -401,11 +402,14 @@ public class EventController {
       final int index = i; // Make effectively final for lambda
       try {
         // Use isolated transaction for individual retries to ensure proper error handling
-        List<EventRecord> savedEvents = transactionHandler.runInNewTransaction(() -> {
-          List<EventRecord> resolved = eventConflictResolver.resolveIncomingEvents(
-              List.of(eventsToSave.get(index).getEvent()));
-          return repo.saveAll(resolved);
-        });
+        List<EventRecord> savedEvents =
+            transactionHandler.runInNewTransaction(
+                () -> {
+                  List<EventRecord> resolved =
+                      eventConflictResolver.resolveIncomingEvents(
+                          List.of(eventsToSave.get(index).getEvent()));
+                  return repo.saveAll(resolved);
+                });
 
         // Update ingested usage for successfully saved events
         updateIngestedUsage(savedEvents);
