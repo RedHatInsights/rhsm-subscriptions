@@ -1,4 +1,4 @@
 # This profile needs to be activated as long as other profiles in the last order
-# For example: SPRING_PROFILES_ACTIVE=worker,api,kafka-queue,local
+# For example: SPRING_PROFILES_ACTIVE=worker,api,kafka-queue,dev
 SERVER_PORT: 8010
 METRICS_SERVER_PORT: 9010

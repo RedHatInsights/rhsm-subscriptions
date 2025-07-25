@@ -8,6 +8,7 @@ SHELL=/bin/bash
 	swatch-tally \
 	swatch-metrics-hbi \
 	swatch-metrics \
+	swatch-system-conduit \
 	run-migrations \
 	build
 
@@ -15,8 +16,7 @@ SHELL=/bin/bash
 # make swatch-contracts PROFILES=dev,other_profile
 #
 # Add the local profile automatically
-override PROFILES+=local
-QUARKUS_PARENT_PROFILE?=dev
+override PROFILES+=dev
 
 # See section 8.1 of the make manual
 comma:=,
@@ -45,7 +45,6 @@ define QUARKUS_PROXY
     $(call BUILD,$(1))
 	QUARKUS_HTTP_PORT=$(2) QUARKUS_MANAGEMENT_PORT=$(shell echo $$((1000 + $(2)))) \
 	QUARKUS_HTTP_HOST=0.0.0.0 QUARKUS_PROFILE=$(subst $(space),$(comma),$(PROFILES)) \
-	QUARKUS_CONFIG_PROFILE_PARENT=$(QUARKUS_PARENT_PROFILE) \
 	./mvnw -pl $(1) quarkus:dev
 endef
 
@@ -72,6 +71,7 @@ run-migrations:
 # Empty target for build flag
 build:
 	@:
+
 swatch-tally:
 	$(call SPRING_PROXY,$@,8010)
 
@@ -92,3 +92,6 @@ swatch-metrics-hbi:
 
 swatch-metrics:
 	$(call QUARKUS_PROXY,$@,8016)
+
+swatch-system-conduit:
+	$(call SPRING_PROXY,$@,8017)
