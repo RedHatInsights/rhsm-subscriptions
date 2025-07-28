@@ -110,6 +110,8 @@ services:
         bin/kafka-topics.sh --bootstrap-server=kafka:29092 --create --if-not-exists --partitions 1 --replication-factor 1 --topic platform.inventory.events
         bin/kafka-topics.sh --bootstrap-server=kafka:29092 --create --if-not-exists --partitions 1 --replication-factor 1 --topic platform.notifications.ingress
         bin/kafka-topics.sh --bootstrap-server=kafka:29092 --create --if-not-exists --partitions 1 --replication-factor 1 --topic platform.rhsm-subscriptions.service-instance-ingress
+        bin/kafka-topics.sh --bootstrap-server=kafka:29092 --create --if-not-exists --partitions 1 --replication-factor 1 --topic platform.rhsm-subscriptions.billable-usage
+        bin/kafka-topics.sh --bootstrap-server=kafka:29092 --create --if-not-exists --partitions 1 --replication-factor 1 --topic platform.rhsm-subscriptions.billable-usage-hourly-aggregate
       "
     depends_on:
       kafka:
