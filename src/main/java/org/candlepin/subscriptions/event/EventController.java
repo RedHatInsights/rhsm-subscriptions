@@ -180,14 +180,12 @@ public class EventController {
     try {
       if (!result.indexedEvents.isEmpty()) {
         // Check to see if any of the incoming Events are in conflict and if so, resolve them.
-        savedEvents.addAll(
-            transactionHandler.runInNewTransaction(
-                () -> {
-                  List<EventRecord> resolved =
-                      resolveEventConflicts(
-                          result.indexedEvents.stream().map(Pair::getKey).toList());
-                  return repo.saveAll(resolved);
-                }));
+        // FIXED: Removed REQUIRES_NEW transaction to ensure conflict resolution happens in same transaction
+        // This prevents the intra-batch conflict bug where conflict resolver couldn't see uncommitted events
+        List<EventRecord> resolved =
+            resolveEventConflicts(
+                result.indexedEvents.stream().map(Pair::getKey).toList());
+        savedEvents.addAll(repo.saveAll(resolved));
         log.debug("Adding/Updating {} metric events", savedEvents.size());
       }
     } catch (Exception saveAllException) {
@@ -196,12 +194,12 @@ public class EventController {
       result.indexedEvents.forEach(
           indexedPair -> {
             try {
+              // FIXED: Removed REQUIRES_NEW transaction for individual retries as well
+              // Only use REQUIRES_NEW for individual event retries, not batch processing
               savedEvents.addAll(
-                  transactionHandler.runInNewTransaction(
-                      () ->
-                          repo.saveAll(
-                              eventConflictResolver.resolveIncomingEvents(
-                                  List.of(indexedPair.getKey())))));
+                  repo.saveAll(
+                      eventConflictResolver.resolveIncomingEvents(
+                          List.of(indexedPair.getKey()))));
             } catch (Exception individualSaveException) {
               log.warn(
                   "Failed to save individual event record: {} with error {}.",
