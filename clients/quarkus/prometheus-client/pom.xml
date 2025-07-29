@@ -26,7 +26,7 @@
             </goals>
             <configuration>
               <inputSpec>
-                ${maven.multiModuleProjectDirectory}/clients/prometheus-client/prometheus-api-spec.yaml
+                ${maven.multiModuleProjectDirectory}/clients/quarkus/prometheus-client/prometheus-api-spec.yaml
               </inputSpec>
               <generatorName>java</generatorName>
               <modelPackage>com.redhat.swatch.clients.prometheus.api.model</modelPackage>
