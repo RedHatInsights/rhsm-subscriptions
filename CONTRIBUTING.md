@@ -94,7 +94,8 @@ This repository includes pre-commit hooks that automatically format your Java co
 The pre-commit hooks will automatically:
 - Run `./mvnw spotless:apply` to format your Java code before each commit
 - Run `./mvnw spotless:check` to verify formatting is correct
-- Block the commit if formatting issues are found
+- Run `./mvnw checkstyle:checkstyle` to validate code style compliance
+- Block the commit if formatting or style issues are found
 
 ### Manual execution
 
@@ -102,12 +103,14 @@ You can also run the hooks manually:
 - `pre-commit run --all-files` - Run all hooks on all files
 - `pre-commit run spotless-apply` - Just apply formatting
 - `pre-commit run spotless-check` - Just check formatting
+- `pre-commit run checkstyle` - Just run checkstyle validation
 
 ### Benefits
 
 - **Automatic formatting**: No need to remember to run spotless manually
 - **Consistent code style**: Ensures all commits follow the same formatting rules
-- **CI compatibility**: Prevents formatting-related CI failures
+- **Style validation**: Catches checkstyle violations before they reach CI
+- **CI compatibility**: Prevents formatting and style-related CI failures
 - **Efficient**: Only processes Java files, skips other file types
 
 -------------

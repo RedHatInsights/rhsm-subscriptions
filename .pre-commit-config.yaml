@@ -13,3 +13,9 @@ repos:
         language: script
         pass_filenames: false
         types: [java]
+      - id: checkstyle
+        name: checkstyle
+        entry: ./mvnw checkstyle:checkstyle
+        language: script
+        pass_filenames: false
+        types: [java]
