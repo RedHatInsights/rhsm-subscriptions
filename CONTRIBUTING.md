@@ -71,6 +71,45 @@ Before submitting pull requests, remember to format your changes using:
 
 Otherwise, the CI will detect your changes are not formatted and reject your pull request.
 
+## Pre-commit Hooks (Recommended)
+
+This repository includes pre-commit hooks that automatically format your Java code before each commit. This ensures consistent code formatting across the project.
+
+### Setup
+
+1. **Install pre-commit** (if not already installed):
+   ```shell
+   pip install pre-commit
+   # or with pipx (recommended)
+   pipx install pre-commit
+   ```
+
+2. **Install the pre-commit hooks**:
+   ```shell
+   pre-commit install
+   ```
+
+### How it works
+
+The pre-commit hooks will automatically:
+- Run `./mvnw spotless:apply` to format your Java code before each commit
+- Run `./mvnw spotless:check` to verify formatting is correct
+- Block the commit if formatting issues are found
+
+### Manual execution
+
+You can also run the hooks manually:
+- `pre-commit run --all-files` - Run all hooks on all files
+- `pre-commit run spotless-apply` - Just apply formatting
+- `pre-commit run spotless-check` - Just check formatting
+
+### Benefits
+
+- **Automatic formatting**: No need to remember to run spotless manually
+- **Consistent code style**: Ensures all commits follow the same formatting rules
+- **CI compatibility**: Prevents formatting-related CI failures
+- **Efficient**: Only processes Java files, skips other file types
+
 -------------
 # DB migrations
 
