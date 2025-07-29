@@ -1,0 +1,22 @@
+name: Run EE Job Script on Merge to Main
+
+on:
+  push:
+    branches: [main]
+  pull_request: # Just for testing purposes
+    branches: [main]
+
+jobs:
+  run-my-script:
+    name: Run script
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run shell script
+        run: bash ./ephemeral_post_merge_job.sh
+
+      - name: Print successful run statement
+        run: echo "EE post merge run finished successfully!"
