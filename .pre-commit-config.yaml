@@ -1,8 +1,14 @@
 repos:
   - repo: local
     hooks:
-      - id: spotless
-        name: spotless
+      - id: spotless-apply
+        name: spotless-apply
+        entry: ./mvnw spotless:apply
+        language: script
+        pass_filenames: false
+        types: [java]
+      - id: spotless-check
+        name: spotless-check
         entry: ./mvnw spotless:check
         language: script
         pass_filenames: false
