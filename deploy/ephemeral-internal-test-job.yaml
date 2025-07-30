@@ -1,0 +1,121 @@
+---
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: rhsm-ephemeral-test-job
+objects:
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    name: rhsm-ephemeral-test-job-${IMAGE_TAG}-${UID}
+    annotations:
+      "ignore-check.kube-linter.io/no-liveness-probe": "probes not required on Job pods"
+      "ignore-check.kube-linter.io/no-readiness-probe": "probes not required on Job pods"
+  spec:
+    backoffLimit: 1 # Defaults to 6 and retries on test failures
+    template:
+      spec:
+        imagePullSecrets:
+        - name: quay-cloudservices-pull
+        restartPolicy: Never
+        volumes:
+        - name: sel-shm
+          emptyDir:
+            medium: Memory
+        containers:
+        - name: rhsm-ephemeral-tests-${IMAGE_TAG}-${UID}
+          args:
+          - run
+          env:
+          - name: ENV_FOR_DYNACONF
+            value: ${ENV_FOR_DYNACONF}
+          - name: IQE_PLUGINS
+            value: ${IQE_PLUGINS}
+          - name: IQE_MARKER_EXPRESSION
+            value: ${IQE_MARKER_EXPRESSION}
+          - name: IQE_FILTER_EXPRESSION
+            value: ${IQE_FILTER_EXPRESSION}
+          - name: IQE_LOG_LEVEL
+            value: ${IQE_LOG_LEVEL}
+          - name: IQE_REQUIREMENTS
+            value: ${IQE_REQUIREMENTS}
+          - name: IQE_REQUIREMENTS_PRIORITY
+            value: ${IQE_REQUIREMENTS_PRIORITY}
+          - name: IQE_TEST_IMPORTANCE
+            value: ${IQE_TEST_IMPORTANCE}
+          - name: IQE_PARALLEL_WORKER_COUNT
+            value: ${IQE_PARALLEL_WORKER_COUNT}
+          - name: IQE_RP_ARGS
+            value: "true"
+          - name: IQE_IBUTSU_SOURCE
+            value: "rhsm-ee-${IMAGE_TAG}"
+          - name: DYNACONF_IQE_VAULT_LOADER_ENABLED
+            value: "true"
+          - name: DYNACONF_IQE_VAULT_VERIFY
+            value: "true"
+          - name: DYNACONF_IQE_VAULT_URL
+            valueFrom:
+              secretKeyRef:
+                key: url
+                name: iqe-vault
+                optional: true
+          - name: DYNACONF_IQE_VAULT_MOUNT_POINT
+            valueFrom:
+              secretKeyRef:
+                key: mountPoint
+                name: iqe-vault
+                optional: true
+          - name: DYNACONF_IQE_VAULT_ROLE_ID
+            valueFrom:
+              secretKeyRef:
+                key: roleId
+                name: iqe-vault
+                optional: true
+          - name: DYNACONF_IQE_VAULT_SECRET_ID
+            valueFrom:
+              secretKeyRef:
+                key: secretId
+                name: iqe-vault
+                optional: true
+          image: ${IQE_IMAGE}
+          imagePullPolicy: Always
+          resources:
+            limits:
+              cpu: "1"
+              memory: 6Gi
+            requests:
+              cpu: 500m
+              memory: 2Gi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+
+
+parameters:
+- name: IMAGE_TAG
+  value: ''
+  required: true
+- name: UID
+  description: "Unique job name suffix"
+  generate: expression
+  from: "[a-z0-9]{6}"
+- name: IQE_IMAGE
+  description: "container image path for the iqe plugin"
+  value: quay.io/cloudservices/iqe-tests:rhsm-subscriptions
+- name: ENV_FOR_DYNACONF
+  value: ephemeral
+- name: IQE_PLUGINS
+  value: rhsm_subscriptions
+- name: IQE_MARKER_EXPRESSION
+  value: ephemeral
+- name: IQE_FILTER_EXPRESSION
+  value: ''
+- name: IQE_LOG_LEVEL
+  value: info
+- name: IQE_REQUIREMENTS
+  value: ''
+- name: IQE_REQUIREMENTS_PRIORITY
+  value: ''
+- name: IQE_TEST_IMPORTANCE
+  value: ''
+- name: IQE_PARALLEL_WORKER_COUNT
+  value: '6'
