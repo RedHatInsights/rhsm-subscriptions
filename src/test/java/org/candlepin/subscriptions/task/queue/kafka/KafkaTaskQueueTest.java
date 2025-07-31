@@ -30,7 +30,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @DirtiesContext
-@ActiveProfiles({"worker", "test", "kafka-test", "capacity-ingress"})
+@ActiveProfiles({"worker", "test", "kafka-test"})
 class KafkaTaskQueueTest extends KafkaTaskQueueTester implements ExtendWithEmbeddedKafka {
   @Test
   void testSendAndReceiveTaskMessageWithOrg() {

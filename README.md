@@ -316,7 +316,6 @@ SERVER_PORT=9090 ./mvnw spring-boot:run
 We have a number of profiles. Each profile activates a subset of components in the codebase.
 
 - `api`: Run the user-facing API
-- `capacity-ingress`: Run the internal only capacity ingress API
 - `kafka-queue`: Run with a kafka queue (instead of the default in-memory queue)
 - `purge-snapshots`: Run the retention job and exit
 - `worker`: Process jobs off the job queue
@@ -512,7 +511,6 @@ Adjust as desired:
 
 ```
 oc process -f templates/rhsm-subscriptions-api.yml | oc create -f -
-oc process -f templates/rhsm-subscriptions-capacity-ingress.yml | oc create -f -
 oc process -f templates/rhsm-subscriptions-scheduler.yml | oc create -f -
 oc process -f templates/rhsm-subscriptions-worker.yml | oc create -f -
 ```
@@ -558,15 +556,6 @@ cat <<BONFIRE >>  ~/.config/bonfire/config.yaml
         DEV_MODE: "true"
         REPLICAS: 1
         swatch-metrics/IMAGE: quay.io/cloudservices/rhsm-subscriptions
-
-    - name: swatch-subscription-sync
-      host: local
-      repo: $(pwd)/swatch-subscription-sync
-      path: /deploy/clowdapp.yaml
-      parameters:
-        DEV_MODE: "true"
-        REPLICAS: 1
-        swatch-subscription-sync/IMAGE: quay.io/cloudservices/rhsm-subscriptions
 
     - name: swatch-system-conduit
       host: local
@@ -832,24 +821,24 @@ Links to Swagger UI and API specs:
 <summary>Topics with their associated profiles and pods</summary>
 Service that syncs system data from Hosted Candlepin into HBI.
 
-| profile          | topic(s)                                             | openshift pod                       |
-|------------------|------------------------------------------------------|-------------------------------------|
-|                  | platform.rhsm-subscriptions.metering-tasks           | swatch-metrics                      |
-|                  | platform.rhsm-subscriptions.service-instance-ingress | swatch-metrics                      |
-|                  | platform.rhsm-subscriptions.metering-rhel-tasks      | swatch-metrics-rhel                 |
-|                  | platform.rhsm-subscriptions.service-instance-ingress | swatch-metrics-rhel                 |
-| orgsync          | platform.rhsm-conduit.tasks                          | swatch-system-conduit-sync          |
-| orgsync          | platform.rhsm-conduit.tasks                          | swatch-system-conduit               |
-|                  | platform.inventory.host-ingress                      | swatch-system-conduit               |
-| worker           | platform.rhsm-subscriptions.tasks                    | swatch-tally                        |
-| worker           | platform.rhsm-subscriptions.tally                    | swatch-tally                        |
-|                  | platform.rhsm-subscriptions.billable-usage           | swatch-billable-usage               |
-| worker           | platform.rhsm-subscriptions.service-instance-ingress | swatch-tally                        |
-| purge-snapshots  |                                                      |                                     |
-|                  | platform.rhsm-subscriptions.billable-usage           | swatch-producer-aws                 |
-| capacity-ingress | platform.rhsm-subscriptions.subscription-sync        | swatch-contracts                    |
-| capacity-ingress | platform.rhsm-subscriptions.offering-sync            | swatch-contracts                    |
-| capacity-ingress | platform.rhsm-subscriptions.capacity-reconcile       | swatch-contracts                    |
+| profile         | topic(s)                                             | openshift pod                       |
+|-----------------|------------------------------------------------------|-------------------------------------|
+|                 | platform.rhsm-subscriptions.metering-tasks           | swatch-metrics                      |
+|                 | platform.rhsm-subscriptions.service-instance-ingress | swatch-metrics                      |
+|                 | platform.rhsm-subscriptions.metering-rhel-tasks      | swatch-metrics-rhel                 |
+|                 | platform.rhsm-subscriptions.service-instance-ingress | swatch-metrics-rhel                 |
+| orgsync         | platform.rhsm-conduit.tasks                          | swatch-system-conduit-sync          |
+| orgsync         | platform.rhsm-conduit.tasks                          | swatch-system-conduit               |
+|                 | platform.inventory.host-ingress                      | swatch-system-conduit               |
+| worker          | platform.rhsm-subscriptions.tasks                    | swatch-tally                        |
+| worker          | platform.rhsm-subscriptions.tally                    | swatch-tally                        |
+|                 | platform.rhsm-subscriptions.billable-usage           | swatch-billable-usage               |
+| worker          | platform.rhsm-subscriptions.service-instance-ingress | swatch-tally                        |
+| purge-snapshots |                                                      |                                     |
+|                 | platform.rhsm-subscriptions.billable-usage           | swatch-producer-aws                 |
+|                 | platform.rhsm-subscriptions.subscription-sync        | swatch-contracts                    |
+|                 | platform.rhsm-subscriptions.offering-sync            | swatch-contracts                    |
+|                 | platform.rhsm-subscriptions.capacity-reconcile       | swatch-contracts                    |
 </details>
 
 ## BASILISK (placeholder/testing PAYG product)

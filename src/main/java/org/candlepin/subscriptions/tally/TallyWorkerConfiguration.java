@@ -31,6 +31,7 @@ import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostRepository;
+import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.export.ExportConfiguration;
 import org.candlepin.subscriptions.inventory.db.InventoryDataSourceConfiguration;
@@ -38,6 +39,7 @@ import org.candlepin.subscriptions.json.EnabledOrgsRequest;
 import org.candlepin.subscriptions.json.EnabledOrgsResponse;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.TallySummary;
+import org.candlepin.subscriptions.resteasy.ResteasyConfiguration;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.tally.facts.ProductNormalizer;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
@@ -50,6 +52,7 @@ import org.candlepin.subscriptions.tracing.TracingConfiguration;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -89,6 +92,8 @@ import org.springframework.util.backoff.FixedBackOff;
 @EnableAsync
 @Profile("worker")
 @Import({
+  ResteasyConfiguration.class,
+  RhsmSubscriptionsDataSourceConfiguration.class,
   TallyTaskQueueConfiguration.class,
   TaskConsumerConfiguration.class,
   InventoryDataSourceConfiguration.class,
@@ -115,6 +120,12 @@ public class TallyWorkerConfiguration {
   public static final String ENABLED_ORGS_CONSUMER_FACTORY_BEAN = "enabledOrgsConsumerFactory";
   public static final String ENABLED_ORGS_KAFKA_LISTENER_CONTAINER_FACTORY_BEAN =
       "kafkaEnabledOrgsListenerContainerFactory";
+
+  @Bean
+  @ConditionalOnMissingBean
+  KafkaConsumerRegistry kafkaConsumerRegistry() {
+    return new KafkaConsumerRegistry();
+  }
 
   @Bean
   public FactNormalizer factNormalizer(
