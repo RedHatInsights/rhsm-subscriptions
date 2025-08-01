@@ -96,7 +96,7 @@ public class CapacityResourceV1 implements CapacityApi {
   }
 
   @Override
-  @RolesAllowed({"customer"})
+  @RolesAllowed({"customer", "service"})
   public CapacityReportByMetricId getCapacityReportByMetricId(
       ProductId productId,
       MetricId metricId,

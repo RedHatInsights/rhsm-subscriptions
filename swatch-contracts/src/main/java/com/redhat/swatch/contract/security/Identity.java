@@ -45,4 +45,7 @@ public class Identity {
   private SamlAssertions samlAssertions;
 
   private X509Properties x509;
+
+  @JsonProperty("service_account")
+  private ServiceAccount serviceAccount;
 }
