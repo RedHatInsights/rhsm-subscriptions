@@ -33,6 +33,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 @ApplicationScoped
 public class BillableUsageRemittanceRepository
@@ -140,6 +141,22 @@ public class BillableUsageRemittanceRepository
     return update(query, parameters);
   }
 
+  public Stream<BillableUsageRemittanceEntity> findStaleInProgress(long days) {
+    var searchCriteria =
+        Specification.where(
+            beforeUpdatedAtDate(OffsetDateTime.now(ZoneOffset.UTC).minusDays(days)));
+    searchCriteria = searchCriteria.and(inProgress());
+    return find(BillableUsageRemittanceEntity.class, searchCriteria).stream();
+  }
+
+  public Stream<BillableUsageRemittanceEntity> findStaleSent(long days) {
+    var searchCriteria =
+        Specification.where(
+            beforeUpdatedAtDate(OffsetDateTime.now(ZoneOffset.UTC).minusDays(days)));
+    searchCriteria = searchCriteria.and(sent());
+    return find(BillableUsageRemittanceEntity.class, searchCriteria).stream();
+  }
+
   private Specification<BillableUsageRemittanceEntity> buildSearchSpecification(
       BillableUsageRemittanceFilter filter) {
 
@@ -193,6 +210,17 @@ public class BillableUsageRemittanceRepository
                 root.get(BillableUsageRemittanceEntity_.status), RemittanceStatus.FAILED));
   }
 
+  private Specification<BillableUsageRemittanceEntity> inProgress() {
+    return (root, query, builder) ->
+        builder.equal(
+            root.get(BillableUsageRemittanceEntity_.status), RemittanceStatus.IN_PROGRESS);
+  }
+
+  private Specification<BillableUsageRemittanceEntity> sent() {
+    return (root, query, builder) ->
+        builder.equal(root.get(BillableUsageRemittanceEntity_.status), RemittanceStatus.SENT);
+  }
+
   private static Specification<BillableUsageRemittanceEntity> matchingProductId(String productId) {
     return (root, query, builder) ->
         builder.equal(root.get(BillableUsageRemittanceEntity_.productId), productId);
@@ -232,6 +260,12 @@ public class BillableUsageRemittanceRepository
     return (root, query, builder) ->
         builder.greaterThanOrEqualTo(
             root.get(BillableUsageRemittanceEntity_.remittancePendingDate), beginning);
+  }
+
+  private static Specification<BillableUsageRemittanceEntity> beforeUpdatedAtDate(
+      OffsetDateTime before) {
+    return (root, query, builder) ->
+        builder.lessThanOrEqualTo(root.get(BillableUsageRemittanceEntity_.updatedAt), before);
   }
 
   private static Specification<BillableUsageRemittanceEntity> matchingAccumulationPeriod(

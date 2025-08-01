@@ -20,15 +20,18 @@
  */
 package com.redhat.swatch.billable.usage.admin.api;
 
+import static com.redhat.swatch.billable.usage.data.RemittanceErrorCode.SENDING_TO_AGGREGATE_TOPIC;
 import static java.util.Optional.ofNullable;
 
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceFilter;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
 import com.redhat.swatch.billable.usage.data.RemittanceErrorCode;
+import com.redhat.swatch.billable.usage.data.RemittanceStatus;
 import com.redhat.swatch.billable.usage.data.RemittanceSummaryProjection;
 import com.redhat.swatch.billable.usage.model.RemittanceMapper;
 import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
 import com.redhat.swatch.billable.usage.openapi.model.TallyRemittance;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
@@ -44,8 +47,14 @@ import lombok.extern.slf4j.Slf4j;
 @ApplicationScoped
 @AllArgsConstructor
 public class InternalBillableUsageController {
+  public static final String USAGE_STATUS_PUSH_TO_FAILED_METRIC =
+      "rhsm-subscriptions.swatch-billable-usage-push-in-progress-to-failed-status";
+  public static final String USAGE_STATUS_PUSH_TO_UNKNOWN_METRIC =
+      "rhsm-subscriptions.swatch-billable-usage-push-sent-to-unknown-status";
+
   private final BillableUsageRemittanceRepository remittanceRepository;
   private final RemittanceMapper remittanceMapper;
+  private final MeterRegistry meterRegistry;
 
   public List<MonthlyRemittance> getRemittances(BillableUsageRemittanceFilter filter) {
     if (filter.getOrgId() == null) {
@@ -83,6 +92,38 @@ public class InternalBillableUsageController {
       Set<String> billingAccountIds) {
     return remittanceRepository.resetBillableUsageRemittance(
         productId, start, end, orgIds, billingAccountIds);
+  }
+
+  @Transactional
+  public void reconcileBillableUsageRemittances(long days) {
+    remittanceRepository
+        .findStaleInProgress(days)
+        .forEach(
+            entity -> {
+              entity.setStatus(RemittanceStatus.FAILED);
+              entity.setErrorCode(SENDING_TO_AGGREGATE_TOPIC);
+              remittanceRepository.updateStatusByIdIn(
+                  List.of(entity.getUuid().toString()),
+                  entity.getStatus(),
+                  entity.getBilledOn(),
+                  entity.getErrorCode());
+              meterRegistry.counter(USAGE_STATUS_PUSH_TO_FAILED_METRIC).increment();
+              log.info("Billable Usage Remittance Stuck Status Change: {}", entity);
+            });
+
+    remittanceRepository
+        .findStaleSent(days)
+        .forEach(
+            entity -> {
+              entity.setStatus(RemittanceStatus.UNKNOWN);
+              remittanceRepository.updateStatusByIdIn(
+                  List.of(entity.getUuid().toString()),
+                  entity.getStatus(),
+                  entity.getBilledOn(),
+                  null);
+              meterRegistry.counter(USAGE_STATUS_PUSH_TO_UNKNOWN_METRIC).increment();
+              log.info("Billable Usage Remittance Stuck Status Change: {}", entity);
+            });
   }
 
   @Transactional

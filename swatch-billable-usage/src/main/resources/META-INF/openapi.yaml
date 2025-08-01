@@ -197,6 +197,23 @@ paths:
           $ref: "../../../../../spec/error-responses.yaml#/$defs/Unauthorized"
         '500':
           $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+
+  /api/swatch-billable-usage/internal/rpc/remittance/reconcile:
+    post:
+      operationId: reconcileRemittances
+      summary: 'Reconcile existing remittances matching the configured stuck policy.'
+      responses:
+        '201':
+          description: 'The process for reconciling remittances has completed.'
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
+        '401':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/Unauthorized"
+        '500':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+
 components:
   schemas:
     AccountRemittances:
