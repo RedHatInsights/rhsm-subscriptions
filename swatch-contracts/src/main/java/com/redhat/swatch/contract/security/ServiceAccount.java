@@ -26,26 +26,13 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/** DTO for the identity field of an x-rh-identity JSON document. */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Identity {
-  private String type;
+public class ServiceAccount {
+  @JsonProperty("client_id")
+  private String clientId;
 
-  public String getType() {
-    return type != null ? type : "User";
-  }
-
-  @JsonProperty("org_id")
-  private String orgId;
-
-  @JsonProperty("associate")
-  private SamlAssertions samlAssertions;
-
-  private X509Properties x509;
-
-  @JsonProperty("service_account")
-  private ServiceAccount serviceAccount;
+  private String username;
 }
