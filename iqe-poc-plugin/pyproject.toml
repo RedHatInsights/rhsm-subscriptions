@@ -1,0 +1,59 @@
+[project]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Framework :: Pytest",
+  "Intended Audience :: Developers",
+  "Topic :: Software Development :: Testing",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Operating System :: OS Independent",
+  "Private :: Do Not Upload",
+]
+version = "1.0.0"
+keywords = ["pytest", "plugin", "iqe"]
+# List of maintainers.
+maintainers = [
+  {name = "Maintainer Name", email = "foo@redhat.com"},
+]
+name = "iqe-poc-plugin"
+readme = "README.md"
+dependencies = [
+    "iqe-core"
+]
+
+[project.entry-points."iqe.application_plugins"]
+"poc" = "iqe_poc:Applicationpoc"
+
+[project.entry-points.pytest11]
+"iqe_poc_plugin" = "iqe_poc.pytest_plugin"
+
+# If plugin holds some collections
+# [project.entry-points."iqe.application_collections"]
+
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling", "hatch-vcs"]
+
+[tool.hatch.build.targets.wheel]
+# plugin and API directories must be part of package.
+packages = ["iqe_poc"]
+
+[tool.hatch.envs.default]
+python = "3.12"
+
+[tool.hatch.envs.default.env-vars]
+PIP_INDEX = "https://pypi.org/simple/"
+PIP_INDEX_URL = "https://pypi.org/simple/"
+REQUESTS_CA_BUNDLE = "/etc/pki/tls/certs/ca-bundle.crt"
+
+[tool.hatch.version]
+raw-options.version_scheme = "calver-by-date"
+source = "vcs"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+extend-select = ["F", "I", "UP", "RUF"]

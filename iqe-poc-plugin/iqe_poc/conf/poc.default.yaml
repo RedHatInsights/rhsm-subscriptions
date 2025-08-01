@@ -1,0 +1,18 @@
+# Default configuration for POC plugin
+# This file contains default settings for the POC plugin
+
+# Plugin configuration
+plugin:
+  name: "poc"
+  version: "1.0.0"
+  description: "POC plugin for IQE testing"
+
+# Test configuration
+test:
+  timeout: 30
+  retries: 3
+
+# Logging configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

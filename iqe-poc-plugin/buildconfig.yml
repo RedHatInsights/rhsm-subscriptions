@@ -1,0 +1,72 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: "iqe plugin build config"
+
+parameters:
+- name: "REF"
+  required: false
+  value: main
+- name: "PLUGIN_NAME"
+  required: true
+- name: "REPOSITORY"
+  required: false
+  value: "quay.io/cloudservices/iqe-tests"
+- name: "TAG"
+  required: true
+- name: "PUSH_SECRET"
+  required: false
+  value: "quay-cloudservices-push"
+- name: "PULL_SECRET"
+  required: false
+  value: "quay-cloudservices-push"
+
+objects:
+
+- kind: "BuildConfig"
+  apiVersion: "build.openshift.io/v1"
+  metadata:
+    name: "iqe-${PLUGIN_NAME}-plugin"
+    labels:
+      iqe: "plugin"
+  spec:
+    nodeSelector: {}
+    output:
+      to:
+        kind: "DockerImage"
+        name: "${REPOSITORY}:${TAG}"
+      pushSecret:
+        name: "${PUSH_SECRET}"
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "512Mi"
+      limits:
+        cpu: "500m"
+        memory: "1Gi"
+    successfulBuildsHistoryLimit: 1
+    failedBuildsHistoryLimit: 1
+    strategy:
+      type: "Docker"
+      dockerStrategy:
+        pullSecret:
+          name: "${PULL_SECRET}"
+        noCache: true
+        forcePull: true
+        dockerfilePath: "Dockerfile"
+    source:
+      type: "Git"
+      git:
+        uri: "https://gitlab.cee.redhat.com/insights-qe/iqe-${PLUGIN_NAME}-plugin.git"
+        ref: "${REF}"
+      sourceSecret:
+        name: "rh-root-cert"
+    triggers:
+      - type: "ImageChange"
+        imageChange:
+          from:
+            kind: "ImageStreamTag"
+            name: "iqe-core:latest"
+    runPolicy: "Serial"
+  status:
+    lastVersion: 0
