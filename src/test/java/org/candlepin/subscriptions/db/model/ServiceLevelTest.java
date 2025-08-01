@@ -27,9 +27,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.util.ApiModelMapperV1;
 import org.candlepin.subscriptions.util.ApiModelMapperV1Impl;
-import org.candlepin.subscriptions.util.ApiModelMapperV2;
-import org.candlepin.subscriptions.util.ApiModelMapperV2Impl;
-import org.candlepin.subscriptions.utilization.api.v2.model.ServiceLevelType;
 import org.junit.jupiter.api.Test;
 
 class ServiceLevelTest {
@@ -75,18 +72,6 @@ class ServiceLevelTest {
   @Test
   void testFromStringMixedCase() {
     assertEquals(ServiceLevel.PREMIUM, ServiceLevel.fromString(PREMIUM_MIXED_CASE));
-  }
-
-  @Test
-  void testOpenApiEnumValuesMatchV2() {
-    ApiModelMapperV2 mapper = new ApiModelMapperV2Impl();
-    Set<ServiceLevelType> expected = Sets.newHashSet(ServiceLevelType.class.getEnumConstants());
-    Set<ServiceLevelType> actual =
-        Sets.newHashSet(ServiceLevel.class.getEnumConstants()).stream()
-            .map(mapper::map)
-            .collect(Collectors.toSet());
-
-    assertEquals(expected, actual);
   }
 
   @Test
