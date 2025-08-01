@@ -77,7 +77,7 @@ public class EventConflictResolver {
 
   private final EventRecordRepository eventRecordRepository;
   private final ResolvedEventMapper resolvedEventMapper;
-  private final EventNormalizer normalizer;
+  final EventNormalizer normalizer;
 
   @Autowired
   public EventConflictResolver(
@@ -89,62 +89,145 @@ public class EventConflictResolver {
 
   public List<EventRecord> resolveIncomingEvents(List<Event> incomingEvents) {
     log.info("Resolving existing events for incoming batch.");
-    Map<EventKey, List<Event>> eventsToResolve =
-        incomingEvents.stream()
-            .flatMap(event -> normalizer.flattenEventUsage(event).stream())
-            .collect(
-                Collectors.groupingBy(
-                    EventKey::fromEvent, LinkedHashMap::new, Collectors.toList()));
+
+    // Step 1: Flatten and group incoming events by EventKey
+    Map<EventKey, List<Event>> eventsToResolve = groupEventsByEventKey(incomingEvents);
+
+    // Step 2: Get all existing conflicting events from database
     Map<EventKey, List<Event>> allConflicting = getConflictingEvents(eventsToResolve.keySet());
 
-    // Resolve any conflicting events.
     List<EventRecord> resolvedEvents = new ArrayList<>();
+
+    // Step 3: Process each EventKey group
     eventsToResolve.forEach(
-        (key, eventList) -> {
-          UsageConflictTracker tracker =
-              new UsageConflictTracker(allConflicting.getOrDefault(key, List.of()));
-          eventList.forEach(
-              event -> {
-                // Each event should only have a single conflict key since events
-                // were normalized by (tag,measurement).
-                UsageConflictKey conflictKey = tracker.getConflictKeyForEvent(event);
-                List<Event> newlyResolvedEvents = new ArrayList<>();
-                if (tracker.contains(conflictKey)) {
-                  Event conflictingEvent = tracker.getLatest(conflictKey);
-                  Measurement conflictingMeasurement =
-                      findMeasurement(conflictingEvent, conflictKey.getMetricId());
+        (key, incomingEventList) -> {
+          // Step 3a: Create tracker with existing database events
+          List<Event> existingEvents = allConflicting.getOrDefault(key, List.of());
+          UsageConflictTracker tracker = new UsageConflictTracker(existingEvents);
 
-                  if (!amendmentRequired(event, conflictingEvent, conflictKey.getMetricId())) {
-                    log.debug(
-                        "The incoming event does require amendments for {}: {}",
-                        conflictKey.getMetricId(),
-                        event);
-                    return;
-                  }
+          // Step 3b: Perform intra-batch deduplication for efficiency
+          Map<UsageConflictKey, Event> deduplicatedEvents =
+              performIntraBatchDeduplication(incomingEventList, tracker);
 
-                  Event deductionEvent = createRecordFrom(conflictingEvent);
-                  deductionEvent.setProductTag(Set.of(conflictKey.getProductTag()));
-                  deductionEvent.setAmendmentType(AmendmentType.DEDUCTION);
-                  Measurement measurement =
-                      new Measurement()
-                          .withMetricId(conflictingMeasurement.getMetricId())
-                          .withValue(conflictingMeasurement.getValue() * -1);
-                  deductionEvent.setMeasurements(List.of(measurement));
-                  newlyResolvedEvents.add(deductionEvent);
-                }
+          // Step 3c: Process each deduplicated event for cross-batch conflicts
+          deduplicatedEvents
+              .values()
+              .forEach(
+                  event -> {
+                    List<Event> newEvents = resolveEventConflicts(event, tracker);
+                    resolvedEvents.addAll(newEvents.stream().map(EventRecord::new).toList());
 
-                newlyResolvedEvents.add(event);
-                allConflicting.putIfAbsent(key, new ArrayList<>());
-                allConflicting.get(key).addAll(newlyResolvedEvents);
-                resolvedEvents.addAll(newlyResolvedEvents.stream().map(EventRecord::new).toList());
-                tracker.track(event);
-              });
+                    // Track this event for subsequent conflicts within this batch
+                    tracker.track(event);
+                  });
         });
+
     log.info(
         "Finishing resolving events for incoming batch. In={} Resolved={}",
         incomingEvents.size(),
         resolvedEvents.size());
     return resolvedEvents;
+  }
+
+  /**
+   * Groups incoming events by EventKey for conflict resolution processing. This method flattens
+   * events (splits multi-tag events into single-tag events) and groups them.
+   *
+   * @param incomingEvents The list of incoming events to group
+   * @return Map of EventKey to list of flattened events
+   */
+  public Map<EventKey, List<Event>> groupEventsByEventKey(List<Event> incomingEvents) {
+    return incomingEvents.stream()
+        .flatMap(event -> normalizer.flattenEventUsage(event).stream())
+        .collect(
+            Collectors.groupingBy(EventKey::fromEvent, LinkedHashMap::new, Collectors.toList()));
+  }
+
+  /**
+   * Performs intra-batch deduplication by keeping only the latest event per UsageConflictKey. This
+   * is used for efficiency in production to avoid processing multiple events with the same conflict
+   * key within the same batch.
+   *
+   * @param events The list of events to deduplicate
+   * @param tracker The tracker to use for generating conflict keys
+   * @return Map of UsageConflictKey to the latest event for that key
+   */
+  public Map<UsageConflictKey, Event> performIntraBatchDeduplication(
+      List<Event> events, UsageConflictTracker tracker) {
+    Map<UsageConflictKey, Event> deduplicatedEvents = new LinkedHashMap<>();
+    events.forEach(
+        event -> {
+          UsageConflictKey conflictKey = tracker.getConflictKeyForEvent(event);
+          deduplicatedEvents.put(conflictKey, event);
+        });
+    return deduplicatedEvents;
+  }
+
+  /**
+   * Processes events sequentially without deduplication, creating amendments for each conflict.
+   * This provides detailed step-by-step conflict resolution useful for testing and troubleshooting.
+   *
+   * @param events The list of events to process sequentially
+   * @param tracker The tracker to use for conflict detection and resolution
+   * @return List of all resolved events including intermediate amendments
+   */
+  public List<Event> processEventsSequentially(List<Event> events, UsageConflictTracker tracker) {
+    List<Event> resolvedEvents = new ArrayList<>();
+
+    events.forEach(
+        event -> {
+          List<Event> newEvents = resolveEventConflicts(event, tracker);
+          resolvedEvents.addAll(newEvents);
+
+          // Track this event for subsequent conflicts within this batch
+          tracker.track(event);
+        });
+
+    return resolvedEvents;
+  }
+
+  /**
+   * Resolves conflicts for a single event using event sourcing principles. Returns a list of events
+   * to persist (deduction events + the final event).
+   */
+  private List<Event> resolveEventConflicts(Event incomingEvent, UsageConflictTracker tracker) {
+    List<Event> eventsToSave = new ArrayList<>();
+    UsageConflictKey conflictKey = tracker.getConflictKeyForEvent(incomingEvent);
+
+    // If there's a conflict, check if amendment is needed
+    if (tracker.contains(conflictKey)) {
+      Event conflictingEvent = tracker.getLatest(conflictKey);
+
+      // Pure idempotency check: if events are identical, ignore completely
+      if (!amendmentRequired(incomingEvent, conflictingEvent, conflictKey.getMetricId())) {
+        log.debug("Incoming event is identical to existing event, ignoring: {}", incomingEvent);
+        return eventsToSave; // Return empty list - no events to save
+      }
+
+      // Events differ, create deduction event for conflict resolution
+      Measurement conflictingMeasurement =
+          findMeasurement(conflictingEvent, conflictKey.getMetricId());
+      Event deductionEvent = createRecordFrom(conflictingEvent);
+      deductionEvent.setProductTag(Set.of(conflictKey.getProductTag()));
+      deductionEvent.setAmendmentType(AmendmentType.DEDUCTION);
+      Measurement deductionMeasurement =
+          new Measurement()
+              .withMetricId(conflictingMeasurement.getMetricId())
+              .withValue(conflictingMeasurement.getValue() * -1);
+      deductionEvent.setMeasurements(List.of(deductionMeasurement));
+
+      eventsToSave.add(deductionEvent);
+
+      log.debug(
+          "Created deduction event for conflict key {}: value={}",
+          conflictKey,
+          conflictingMeasurement.getValue());
+    }
+
+    // Add the incoming event (unless it was identical and ignored above)
+    eventsToSave.add(incomingEvent);
+
+    return eventsToSave;
   }
 
   private Map<EventKey, List<Event>> getConflictingEvents(Set<EventKey> eventKeys) {

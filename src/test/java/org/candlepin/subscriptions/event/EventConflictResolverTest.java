@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.event;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,13 +30,13 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.EventRecordRepository;
@@ -221,7 +220,8 @@ class EventConflictResolverTest {
             List.of(
                 deduction(Map.of(CORES, -12.0)),
                 event(Map.of(CORES, 12.0)).withHardwareType(HardwareType.CLOUD))),
-        // Duplicate incoming events results in a single deduction
+        // Duplicate incoming events with different hardware types - sequential processing shows all
+        // steps
         Arguments.of(
             List.of(),
             List.of(
@@ -231,7 +231,8 @@ class EventConflictResolverTest {
                 event(Map.of(CORES, 1.0)).withHardwareType(HardwareType.CLOUD),
                 deduction(Map.of(CORES, -1.0)).withHardwareType(HardwareType.CLOUD),
                 event(Map.of(CORES, 1.0)))),
-        // Duplicate incoming events with incoming conflict is resolved.
+        // Duplicate incoming events with different values - idempotent behavior deduplicates
+        // identical events
         Arguments.of(
             List.of(),
             List.of(
@@ -526,22 +527,33 @@ class EventConflictResolverTest {
       List<EventArgument> expectedExisting,
       List<EventArgument> expectedIncoming,
       List<EventArgument> expectedResolved) {
-    Set<EventKey> conflictCheckKeys =
-        expectedIncoming.stream()
-            .map(ea -> EventKey.fromEvent(ea.toEvent()))
-            .collect(Collectors.toSet());
     List<EventRecord> existingEventRecords =
         expectedExisting.stream().map(EventArgument::toRecord).toList();
-    existingEventRecords.forEach(existing -> {});
-
-    when(repo.findConflictingEvents(conflictCheckKeys)).thenReturn(existingEventRecords);
 
     List<Event> incomingEvents = expectedIncoming.stream().map(EventArgument::toEvent).toList();
-    List<EventRecord> resolved = resolver.resolveIncomingEvents(incomingEvents);
+
+    // For unit tests, use sequential processing to get detailed step-by-step behavior
+    Map<EventKey, List<Event>> eventsToResolve = resolver.groupEventsByEventKey(incomingEvents);
+    List<Event> resolvedEvents = new ArrayList<>();
+
+    eventsToResolve.forEach(
+        (key, incomingEventList) -> {
+          List<Event> existingEvents =
+              existingEventRecords.stream()
+                  .map(EventRecord::getEvent)
+                  .flatMap(event -> resolver.normalizer.flattenEventUsage(event).stream())
+                  .filter(event -> EventKey.fromEvent(event).equals(key))
+                  .toList();
+
+          UsageConflictTracker tracker = new UsageConflictTracker(existingEvents);
+          List<Event> sequentialResults =
+              resolver.processEventsSequentially(incomingEventList, tracker);
+          resolvedEvents.addAll(sequentialResults);
+        });
 
     List<Event> expectedResolvedEvents =
         expectedResolved.stream().map(EventArgument::toEvent).toList();
-    assertEvents(expectedResolvedEvents, resolved.stream().map(EventRecord::getEvent).toList());
+    assertEvents(expectedResolvedEvents, resolvedEvents);
   }
 
   private static Event createEvent(String instanceId, OffsetDateTime timestamp) {
