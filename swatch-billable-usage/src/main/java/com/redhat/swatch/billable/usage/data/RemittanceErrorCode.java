@@ -38,7 +38,8 @@ public enum RemittanceErrorCode {
   USAGE_CONTEXT_LOOKUP("usage_context_lookup"),
   UNKNOWN("unknown"),
   UNSUPPORTED_METRIC("unsupported_metric"),
-  MARKETPLACE_RATE_LIMIT("marketplace_rate_limit");
+  MARKETPLACE_RATE_LIMIT("marketplace_rate_limit"),
+  SENDING_TO_AGGREGATE_TOPIC("error_sending_to_aggregate_topic");
 
   private static final Map<String, RemittanceErrorCode> VALUE_ENUM_MAP =
       Arrays.stream(RemittanceErrorCode.values())
@@ -48,6 +49,11 @@ public enum RemittanceErrorCode {
 
   RemittanceErrorCode(String value) {
     this.value = value;
+  }
+
+  @Override
+  public String toString() {
+    return value;
   }
 
   /**
