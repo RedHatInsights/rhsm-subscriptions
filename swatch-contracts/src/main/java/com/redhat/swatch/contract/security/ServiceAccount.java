@@ -20,46 +20,19 @@
  */
 package com.redhat.swatch.contract.security;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import java.security.Principal;
-import java.util.Objects;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Represents a principal authenticated via x-rh-identity.
- *
- * <p>This is the decoded x-rh-identity data currently supported.
- */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RhIdentityPrincipal implements Principal {
-  private Identity identity;
+public class ServiceAccount {
+  @JsonProperty("client_id")
+  private String clientId;
 
-  /* Base64 encoded header value retained so that it can be easily forwarded to rbac service */
-  @JsonIgnore private String headerValue;
-
-  @Override
-  public String getName() {
-    return switch (identity.getType()) {
-      case "Associate" -> identity.getSamlAssertions().getEmail();
-      case "X509" -> identity.getX509().getSubjectDn();
-      case "User", "ServiceAccount" -> identity.getOrgId();
-      default ->
-          throw new IllegalArgumentException(
-              String.format("Unsupported RhIdentity type %s", getIdentity().getType()));
-    };
-  }
-
-  public boolean isAssociate() {
-    return Objects.equals("Associate", getIdentity().getType());
-  }
-
-  public String toString() {
-    return getName();
-  }
+  private String username;
 }

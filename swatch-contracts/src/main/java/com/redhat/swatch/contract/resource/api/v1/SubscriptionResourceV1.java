@@ -43,7 +43,7 @@ public class SubscriptionResourceV1 implements SubscriptionsV1Api {
   @Context SecurityContext securityContext;
   @Inject SubscriptionTableControllerV1 subscriptionTableController;
 
-  @RolesAllowed({"customer"})
+  @RolesAllowed({"customer", "service"})
   @Override
   public SkuCapacityReportV1 getSkuCapacityReportV1(
       ProductId productId,
