@@ -20,10 +20,8 @@
  */
 package org.candlepin.subscriptions.event;
 
-import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.Setter;
 
 /**
  * A UsageConflictKey represents specific usage shared across multiple Events. Usage conflicts are
@@ -45,8 +43,8 @@ public class UsageConflictKey {
   }
 
   /**
-   * Legacy constructor for backward compatibility with tests.
-   * When instanceId is not provided, it defaults to null.
+   * Legacy constructor for backward compatibility with tests. When instanceId is not provided, it
+   * defaults to null.
    */
   public UsageConflictKey(String productTag, String metricId) {
     this(productTag, metricId, null);
@@ -56,8 +54,6 @@ public class UsageConflictKey {
   public String toString() {
     return String.format(
         "UsageConflictKey{productTag='%s', metricId='%s', instanceId='%s'}",
-        productTag,
-        metricId,
-        instanceId);
+        productTag, metricId, instanceId);
   }
 }

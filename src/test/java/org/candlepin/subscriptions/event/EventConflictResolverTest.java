@@ -23,6 +23,10 @@ package org.candlepin.subscriptions.event;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -30,6 +34,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
 import java.time.OffsetDateTime;
 import java.util.Comparator;
 import java.util.List;
@@ -82,10 +88,21 @@ class EventConflictResolverTest {
   }
 
   @Mock private EventRecordRepository repo;
+  @Mock private EntityManager entityManager;
+  @Mock private Query query;
   private EventConflictResolver resolver;
 
   @BeforeEach
   void setupTest() {
+    // Set up lenient mock EntityManager to return empty results for native queries
+    // This is needed as a fallback when findConflictingEvents calls getEntityManager directly
+    lenient().when(repo.getEntityManager()).thenReturn(entityManager);
+    lenient()
+        .when(entityManager.createNativeQuery(anyString(), eq(EventRecord.class)))
+        .thenReturn(query);
+    lenient().when(query.setParameter(anyString(), any())).thenReturn(query);
+    lenient().when(query.getResultList()).thenReturn(List.of());
+
     this.resolver = new EventConflictResolver(repo, Mappers.getMapper(ResolvedEventMapper.class));
   }
 
@@ -248,14 +265,10 @@ class EventConflictResolverTest {
         // Event conflict with existing amendment resolves to additional amendment.
         Arguments.of(
             List.of(
-                event(Map.of(CORES, 5.0)).withTimestamp(CLOCK.now()).withRecordDate(CLOCK.now()),
-                deduction(Map.of(CORES, -5.0))
-                    .withTimestamp(CLOCK.now())
-                    .withRecordDate(CLOCK.now().plusMinutes(1)),
-                event(Map.of(CORES, 15.0))
-                    .withTimestamp(CLOCK.now())
-                    .withRecordDate(CLOCK.now().plusMinutes(2))),
-            List.of(event(Map.of(CORES, 20.0)).withTimestamp(CLOCK.now())),
+                event(Map.of(CORES, 5.0)),
+                deduction(Map.of(CORES, -5.0)),
+                event(Map.of(CORES, 15.0))),
+            List.of(event(Map.of(CORES, 20.0))),
             List.of(deduction(Map.of(CORES, -15.0)), event(Map.of(CORES, 20.0)))),
         // Conflict with different measurement value yields amendment plus incoming value
         // for single instance only. Net new event for other instance.
@@ -714,11 +727,6 @@ class EventConflictResolverTest {
 
     EventArgument withBillingAccountId(String billingAccountId) {
       this.billingAccountId = billingAccountId;
-      return this;
-    }
-
-    EventArgument withRecordDate(OffsetDateTime recordDate) {
-      this.recordDate = recordDate;
       return this;
     }
   }

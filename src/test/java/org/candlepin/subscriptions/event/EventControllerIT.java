@@ -26,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventRecord;
@@ -85,7 +84,8 @@ class EventControllerIT implements ExtendWithSwatchDatabase {
         Event event = objectMapper.readValue(eventJson, Event.class);
         Event normalizedEvent = eventNormalizer.normalizeEvent(event);
         // Process each event individually - this simulates the fallback processing
-        List<EventRecord> resolved = eventController.resolveEventConflicts(List.of(normalizedEvent));
+        List<EventRecord> resolved =
+            eventController.resolveEventConflicts(List.of(normalizedEvent));
         eventRecordRepository.saveAll(resolved);
       } catch (Exception e) {
         throw new RuntimeException("Failed to process event", e);

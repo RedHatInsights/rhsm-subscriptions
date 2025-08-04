@@ -28,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement;
@@ -53,7 +52,6 @@ class UsageConflictTrackerTest {
     assertTrue(tracker.contains(key));
     assertFalse(tracker.contains(new UsageConflictKey("T2", "M2", "instance1")));
   }
-
 
   @Test
   void testGetLatestEqualsLastTrackedWhenRecordDatesAreTheSame() {

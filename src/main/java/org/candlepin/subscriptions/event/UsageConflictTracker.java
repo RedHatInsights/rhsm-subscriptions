@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.event;
 
-import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,15 +64,11 @@ public class UsageConflictTracker {
       return;
     }
 
-    // For events with different timestamps, use normal "latest wins" logic
-    // For events with the same timestamp, preserve the original baseline
-    if (!event.getTimestamp().equals(existing.getTimestamp())) {
-      // Different timestamps - this is sequential processing, track the new event
-      keyToLatestEvent.put(key, event);
-    }
-    // Same timestamp - preserve existing event as the baseline for intra-batch conflicts
+    // Always track the most recent event for idempotent behavior
+    // When events have the same timestamp (top of hour), the last one processed
+    // represents the latest effective measurement for conflict resolution
+    keyToLatestEvent.put(key, event);
   }
-
 
   public UsageConflictKey getConflictKeyForEvent(Event event) {
     if (event.getMeasurements().size() > 1) {

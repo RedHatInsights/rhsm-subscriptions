@@ -25,6 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -35,6 +37,7 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -66,6 +69,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 @ActiveProfiles({"worker", "test"})
 class EventControllerTest {
   @Mock EntityManager mockEntityManager;
+  @Mock Query mockQuery;
   @Autowired ObjectMapper mapper;
   @MockitoBean private EventRecordRepository eventRecordRepository;
   @MockitoBean private OptInController optInController;
@@ -210,6 +214,10 @@ class EventControllerTest {
                  }
         """;
     when(eventRecordRepository.getEntityManager()).thenReturn(mockEntityManager);
+    when(mockEntityManager.createNativeQuery(anyString(), eq(EventRecord.class)))
+        .thenReturn(mockQuery);
+    when(mockQuery.setParameter(anyString(), any())).thenReturn(mockQuery);
+    when(mockQuery.getResultList()).thenReturn(List.of());
   }
 
   @Test
