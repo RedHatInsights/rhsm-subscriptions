@@ -559,6 +559,501 @@ class EventControllerIT implements ExtendWithSwatchDatabase {
   }
 
   /**
+   * Test monthly aggregation progression with amendments matching the design document diagram. This
+   * test validates that amended events properly contribute to monthly totals, simulating the
+   * progression shown: 20→21→23→24→35 cores monthly total.
+   */
+  @Test
+  void testMonthlyAggregationWithAmendmentProgression() {
+    // Progressive amendment events throughout October 2023 (matching design doc timeline)
+
+    // 10am Tally: 20 cores (Initial)
+    String event10am =
+        """
+        {
+          "sla": "Premium",
+          "org_id": "org123",
+          "timestamp": "2023-10-25T10:00:00Z",
+          "event_type": "snapshot_rhel_cores",
+          "expiration": "2023-10-25T11:00:00Z",
+          "instance_id": "test_instance_456",
+          "display_name": "test_server",
+          "event_source": "prometheus",
+          "measurements": [
+            {
+              "metric_id": "cores",
+              "value": 20.0
+            }
+          ],
+          "service_type": "RHEL System",
+          "product_tag": ["rosa"]
+        }
+        """;
+
+    // 11am Tally: 21 cores (Amendment: 20→21)
+    String event11am =
+        """
+        {
+          "sla": "Premium",
+          "org_id": "org123",
+          "timestamp": "2023-10-25T11:00:00Z",
+          "event_type": "snapshot_rhel_cores",
+          "expiration": "2023-10-25T12:00:00Z",
+          "instance_id": "test_instance_456",
+          "display_name": "test_server",
+          "event_source": "prometheus",
+          "measurements": [
+            {
+              "metric_id": "cores",
+              "value": 21.0
+            }
+          ],
+          "service_type": "RHEL System",
+          "product_tag": ["rosa"]
+        }
+        """;
+
+    // 12pm Tally: 23 cores (Amendment: 21→23)
+    String event12pm =
+        """
+        {
+          "sla": "Premium",
+          "org_id": "org123",
+          "timestamp": "2023-10-25T12:00:00Z",
+          "event_type": "snapshot_rhel_cores",
+          "expiration": "2023-10-25T13:00:00Z",
+          "instance_id": "test_instance_456",
+          "display_name": "test_server",
+          "event_source": "prometheus",
+          "measurements": [
+            {
+              "metric_id": "cores",
+              "value": 23.0
+            }
+          ],
+          "service_type": "RHEL System",
+          "product_tag": ["rosa"]
+        }
+        """;
+
+    // 1pm Tally: 35 cores (Amendment: 23→35)
+    String event1pm =
+        """
+        {
+          "sla": "Premium",
+          "org_id": "org123",
+          "timestamp": "2023-10-25T13:00:00Z",
+          "event_type": "snapshot_rhel_cores",
+          "expiration": "2023-10-25T14:00:00Z",
+          "instance_id": "test_instance_456",
+          "display_name": "test_server",
+          "event_source": "prometheus",
+          "measurements": [
+            {
+              "metric_id": "cores",
+              "value": 35.0
+            }
+          ],
+          "service_type": "RHEL System",
+          "product_tag": ["rosa"]
+        }
+        """;
+
+    // Process events sequentially (simulating real-time amendment progression)
+    eventController.persistServiceInstances(List.of(event10am));
+    eventController.persistServiceInstances(List.of(event11am));
+    eventController.persistServiceInstances(List.of(event12pm));
+    eventController.persistServiceInstances(List.of(event1pm));
+
+    List<EventRecord> allEvents = eventRecordRepository.findAll();
+
+    // Expected: 4 non-amendment events + 3 amendment events (deductions)
+    List<EventRecord> nonAmendmentEvents =
+        allEvents.stream().filter(e -> e.getEvent().getAmendmentType() == null).toList();
+    List<EventRecord> amendmentEvents =
+        allEvents.stream().filter(e -> e.getEvent().getAmendmentType() != null).toList();
+
+    assertEquals(4, nonAmendmentEvents.size()); // All progression events
+    assertEquals(3, amendmentEvents.size()); // Three deductions for amendments
+
+    // Verify amendment progression values match design document
+    List<EventRecord> sortedAmendments =
+        amendmentEvents.stream()
+            .sorted((a, b) -> a.getEvent().getTimestamp().compareTo(b.getEvent().getTimestamp()))
+            .toList();
+
+    // Amendments should be: -20.0, -21.0, -23.0 (deducting previous values)
+    assertEquals(-20.0, sortedAmendments.get(0).getEvent().getMeasurements().get(0).getValue());
+    assertEquals(-21.0, sortedAmendments.get(1).getEvent().getMeasurements().get(0).getValue());
+    assertEquals(-23.0, sortedAmendments.get(2).getEvent().getMeasurements().get(0).getValue());
+
+    // Verify final state shows progression to 35 cores
+    List<EventRecord> sortedNonAmendments =
+        nonAmendmentEvents.stream()
+            .sorted((a, b) -> a.getEvent().getTimestamp().compareTo(b.getEvent().getTimestamp()))
+            .toList();
+
+    assertEquals(20.0, sortedNonAmendments.get(0).getEvent().getMeasurements().get(0).getValue());
+    assertEquals(21.0, sortedNonAmendments.get(1).getEvent().getMeasurements().get(0).getValue());
+    assertEquals(23.0, sortedNonAmendments.get(2).getEvent().getMeasurements().get(0).getValue());
+    assertEquals(35.0, sortedNonAmendments.get(3).getEvent().getMeasurements().get(0).getValue());
+  }
+
+  /**
+   * Test time granularity scenarios matching the design document. This validates hourly, daily, and
+   * monthly measurement aggregations with amendments.
+   */
+  @Test
+  void testTimeGranularityWithAmendments() {
+    // Hourly measurement: 1 core
+    String hourlyEvent =
+        """
+        {
+          "sla": "Premium",
+          "org_id": "org123",
+          "timestamp": "2023-10-25T13:35:40Z",
+          "event_type": "snapshot_rhel_cores",
+          "expiration": "2023-10-25T14:35:40Z",
+          "instance_id": "test_instance_456",
+          "display_name": "test_server",
+          "event_source": "prometheus",
+          "measurements": [
+            {
+              "metric_id": "cores",
+              "value": 1.0
+            }
+          ],
+          "service_type": "RHEL System",
+          "product_tag": ["rosa"]
+        }
+        """;
+
+    // Daily aggregation amendment: 35 cores
+    String dailyAmendment =
+        """
+        {
+          "sla": "Premium",
+          "org_id": "org123",
+          "timestamp": "2023-10-25T13:35:40Z",
+          "event_type": "snapshot_rhel_cores",
+          "expiration": "2023-10-25T14:35:40Z",
+          "instance_id": "test_instance_456",
+          "display_name": "test_server_daily",
+          "event_source": "prometheus",
+          "measurements": [
+            {
+              "metric_id": "cores",
+              "value": 35.0
+            }
+          ],
+          "service_type": "RHEL System",
+          "product_tag": ["rosa"]
+        }
+        """;
+
+    // Monthly aggregation confirmation: 35 cores
+    String monthlyConfirmation =
+        """
+        {
+          "sla": "Premium",
+          "org_id": "org123",
+          "timestamp": "2023-10-25T13:35:40Z",
+          "event_type": "snapshot_rhel_cores",
+          "expiration": "2023-10-25T14:35:40Z",
+          "instance_id": "test_instance_456",
+          "display_name": "test_server_monthly",
+          "event_source": "prometheus",
+          "measurements": [
+            {
+              "metric_id": "cores",
+              "value": 35.0
+            }
+          ],
+          "service_type": "RHEL System",
+          "product_tag": ["rosa"]
+        }
+        """;
+
+    // Process granularity events
+    eventController.persistServiceInstances(List.of(hourlyEvent));
+    eventController.persistServiceInstances(List.of(dailyAmendment));
+    eventController.persistServiceInstances(List.of(monthlyConfirmation));
+
+    List<EventRecord> allEvents = eventRecordRepository.findAll();
+
+    // Should have events for different granularities with proper amendments
+    List<EventRecord> nonAmendmentEvents =
+        allEvents.stream().filter(e -> e.getEvent().getAmendmentType() == null).toList();
+    List<EventRecord> amendmentEvents =
+        allEvents.stream().filter(e -> e.getEvent().getAmendmentType() != null).toList();
+
+    assertEquals(3, nonAmendmentEvents.size()); // Hourly, daily, monthly
+    assertEquals(2, amendmentEvents.size()); // Two amendments (1.0→35.0, 35.0→35.0)
+
+    // Verify the granularity progression
+    List<EventRecord> sortedEvents =
+        nonAmendmentEvents.stream()
+            .sorted((a, b) -> a.getEvent().getRecordDate().compareTo(b.getEvent().getRecordDate()))
+            .toList();
+
+    // Verify measurement values match design document expectations
+    assertEquals(1.0, sortedEvents.get(0).getEvent().getMeasurements().get(0).getValue());
+    assertEquals(35.0, sortedEvents.get(1).getEvent().getMeasurements().get(0).getValue());
+    assertEquals(35.0, sortedEvents.get(2).getEvent().getMeasurements().get(0).getValue());
+  }
+
+  /**
+   * Test multi-instance amendment scenarios. This validates that amendments work correctly across
+   * different instances, similar to the design document's multiple instance configurations.
+   */
+  @Test
+  void testMultiInstanceAmendmentScenarios() {
+    // Instance 1: 2 Core configuration
+    String instance1Initial =
+        """
+        {
+          "sla": "Premium",
+          "org_id": "org123",
+          "timestamp": "2023-10-25T11:00:00Z",
+          "event_type": "snapshot_rhel_cores",
+          "expiration": "2023-10-25T12:00:00Z",
+          "instance_id": "instance_2core",
+          "display_name": "server_2core",
+          "event_source": "prometheus",
+          "measurements": [
+            {
+              "metric_id": "cores",
+              "value": 2.0
+            }
+          ],
+          "service_type": "RHEL System",
+          "product_tag": ["rosa"]
+        }
+        """;
+
+    // Instance 2: 12 Core configuration
+    String instance2Initial =
+        """
+        {
+          "sla": "Premium",
+          "org_id": "org123",
+          "timestamp": "2023-10-25T12:00:00Z",
+          "event_type": "snapshot_rhel_cores",
+          "expiration": "2023-10-25T13:00:00Z",
+          "instance_id": "instance_12core",
+          "display_name": "server_12core",
+          "event_source": "prometheus",
+          "measurements": [
+            {
+              "metric_id": "cores",
+              "value": 12.0
+            }
+          ],
+          "service_type": "RHEL System",
+          "product_tag": ["rosa"]
+        }
+        """;
+
+    // Instance 3: 1 Core configuration
+    String instance3Initial =
+        """
+        {
+          "sla": "Premium",
+          "org_id": "org123",
+          "timestamp": "2023-10-25T13:00:00Z",
+          "event_type": "snapshot_rhel_cores",
+          "expiration": "2023-10-25T14:00:00Z",
+          "instance_id": "instance_1core",
+          "display_name": "server_1core",
+          "event_source": "prometheus",
+          "measurements": [
+            {
+              "metric_id": "cores",
+              "value": 1.0
+            }
+          ],
+          "service_type": "RHEL System",
+          "product_tag": ["rosa"]
+        }
+        """;
+
+    // Amendment to Instance 1: 2→4 cores
+    String instance1Amendment =
+        """
+        {
+          "sla": "Premium",
+          "org_id": "org123",
+          "timestamp": "2023-10-25T11:30:00Z",
+          "event_type": "snapshot_rhel_cores",
+          "expiration": "2023-10-25T12:30:00Z",
+          "instance_id": "instance_2core",
+          "display_name": "server_2core",
+          "event_source": "prometheus",
+          "measurements": [
+            {
+              "metric_id": "cores",
+              "value": 4.0
+            }
+          ],
+          "service_type": "RHEL System",
+          "product_tag": ["rosa"]
+        }
+        """;
+
+    // Amendment to Instance 2: 12→16 cores
+    String instance2Amendment =
+        """
+        {
+          "sla": "Premium",
+          "org_id": "org123",
+          "timestamp": "2023-10-25T12:30:00Z",
+          "event_type": "snapshot_rhel_cores",
+          "expiration": "2023-10-25T13:30:00Z",
+          "instance_id": "instance_12core",
+          "display_name": "server_12core",
+          "event_source": "prometheus",
+          "measurements": [
+            {
+              "metric_id": "cores",
+              "value": 16.0
+            }
+          ],
+          "service_type": "RHEL System",
+          "product_tag": ["rosa"]
+        }
+        """;
+
+    // Process all instances and amendments
+    eventController.persistServiceInstances(List.of(instance1Initial));
+    eventController.persistServiceInstances(List.of(instance2Initial));
+    eventController.persistServiceInstances(List.of(instance3Initial));
+    eventController.persistServiceInstances(List.of(instance1Amendment));
+    eventController.persistServiceInstances(List.of(instance2Amendment));
+
+    List<EventRecord> allEvents = eventRecordRepository.findAll();
+
+    // Expected: 5 non-amendment events + 2 amendment events
+    List<EventRecord> nonAmendmentEvents =
+        allEvents.stream().filter(e -> e.getEvent().getAmendmentType() == null).toList();
+    List<EventRecord> amendmentEvents =
+        allEvents.stream().filter(e -> e.getEvent().getAmendmentType() != null).toList();
+
+    assertEquals(5, nonAmendmentEvents.size()); // 3 initial + 2 amendments
+    assertEquals(2, amendmentEvents.size()); // 2 deductions
+
+    // Verify amendments are instance-specific
+    List<String> amendmentInstanceIds =
+        amendmentEvents.stream().map(e -> e.getEvent().getInstanceId()).sorted().toList();
+
+    assertEquals(List.of("instance_12core", "instance_2core"), amendmentInstanceIds);
+
+    // Verify amendment values
+    List<Double> amendmentValues =
+        amendmentEvents.stream()
+            .map(e -> e.getEvent().getMeasurements().get(0).getValue())
+            .sorted()
+            .toList();
+
+    assertEquals(List.of(-12.0, -2.0), amendmentValues); // Deductions for 12→16 and 2→4
+
+    // Verify instance 3 (1 core) was not affected by amendments
+    List<EventRecord> instance3Events =
+        allEvents.stream()
+            .filter(e -> "instance_1core".equals(e.getEvent().getInstanceId()))
+            .toList();
+
+    assertEquals(1, instance3Events.size()); // Only initial event, no amendments
+    assertEquals(1.0, instance3Events.get(0).getEvent().getMeasurements().get(0).getValue());
+  }
+
+  /**
+   * Test record date vs timestamp ordering scenarios. This validates that the timestamp-based
+   * comparison fix works correctly when events have different record dates but same timestamps.
+   */
+  @Test
+  void testRecordDateVsTimestampOrdering() {
+    // Both events have same timestamp but will have different record dates
+    String event1 =
+        """
+        {
+          "sla": "Premium",
+          "org_id": "org123",
+          "timestamp": "2023-10-25T13:35:40Z",
+          "event_type": "snapshot_rhel_cores",
+          "expiration": "2023-10-25T14:35:40Z",
+          "instance_id": "test_instance_456",
+          "display_name": "test_server",
+          "event_source": "prometheus",
+          "measurements": [
+            {
+              "metric_id": "cores",
+              "value": 2.0
+            }
+          ],
+          "service_type": "RHEL System",
+          "product_tag": ["rosa"]
+        }
+        """;
+
+    String event2 =
+        """
+        {
+          "sla": "Premium",
+          "org_id": "org123",
+          "timestamp": "2023-10-25T13:35:40Z",
+          "event_type": "snapshot_rhel_cores",
+          "expiration": "2023-10-25T14:35:40Z",
+          "instance_id": "test_instance_456",
+          "display_name": "test_server",
+          "event_source": "prometheus",
+          "measurements": [
+            {
+              "metric_id": "cores",
+              "value": 4.0
+            }
+          ],
+          "service_type": "RHEL System",
+          "product_tag": ["rosa"]
+        }
+        """;
+
+    // Process events with slight delay to ensure different record dates
+    eventController.persistServiceInstances(List.of(event1));
+
+    // Small delay to ensure different record dates
+    try {
+      Thread.sleep(10);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
+    eventController.persistServiceInstances(List.of(event2));
+
+    List<EventRecord> allEvents = eventRecordRepository.findAll();
+
+    // Should have proper conflict resolution based on record date when timestamps are equal
+    List<EventRecord> nonAmendmentEvents =
+        allEvents.stream().filter(e -> e.getEvent().getAmendmentType() == null).toList();
+    List<EventRecord> amendmentEvents =
+        allEvents.stream().filter(e -> e.getEvent().getAmendmentType() != null).toList();
+
+    assertEquals(2, nonAmendmentEvents.size()); // Both events
+    assertEquals(1, amendmentEvents.size()); // One deduction
+
+    // Verify the deduction value is correct
+    assertEquals(-2.0, amendmentEvents.get(0).getEvent().getMeasurements().get(0).getValue());
+
+    // Verify final values are present
+    List<Double> finalValues =
+        nonAmendmentEvents.stream()
+            .map(e -> e.getEvent().getMeasurements().get(0).getValue())
+            .sorted()
+            .toList();
+
+    assertEquals(List.of(2.0, 4.0), finalValues);
+  }
+
+  /**
    * Test the sequence of all EventConflictTypes to ensure proper timestamp-based ordering. This
    * test validates our core timestamp fix by ensuring events are processed in the correct
    * chronological order regardless of transaction boundaries.

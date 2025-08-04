@@ -71,17 +71,15 @@ public class UsageConflictTracker {
       int recordDateCompare =
           compareRecordDates(event.getRecordDate(), currentLatest.getRecordDate());
       if (eventTimestamp.isAfter(latestTimestamp)
-          || (eventTimestamp.equals(latestTimestamp) && recordDateCompare > 0)
-          || (eventTimestamp.equals(latestTimestamp) && recordDateCompare == 0)) {
-        // On exact tie, prefer the event encountered later in the stream (last-wins)
+          || (eventTimestamp.equals(latestTimestamp) && recordDateCompare > 0)) {
         keyToLatestEvent.put(key, event);
       }
     }
   }
 
   /**
-   * Compares two recordDates for ordering, treating null as "most recent" (since null means the
-   * event hasn't been persisted yet).
+   * Compares two recordDates for ordering, treating null as "least recent" (since null means the
+   * event hasn't been persisted yet and therefore has no established record date).
    *
    * @return positive if first is later, negative if second is later, 0 if equal
    */
@@ -90,10 +88,10 @@ public class UsageConflictTracker {
       return 0;
     }
     if (first == null) {
-      return 1; // null (unpersisted) is considered "later"
+      return -1; // null (unpersisted) is considered "earlier"
     }
     if (second == null) {
-      return -1;
+      return 1;
     }
     return first.compareTo(second);
   }
