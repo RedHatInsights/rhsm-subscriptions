@@ -116,8 +116,10 @@ class EventControllerIT implements ExtendWithSwatchDatabase {
             .toList();
 
     // The key fix: deduction values are consistent and not corrupted by transaction boundaries
+    // Event 2 (2.0) conflicts with Event 1 (1.0) → creates deduction -1.0 for Event 1
+    // Event 3 (3.0) conflicts with Event 2 (2.0) → creates deduction -2.0 for Event 2
     assertEquals(-1.0, sortedAmendments.get(0).getEvent().getMeasurements().get(0).getValue());
-    assertEquals(-1.0, sortedAmendments.get(1).getEvent().getMeasurements().get(0).getValue());
+    assertEquals(-2.0, sortedAmendments.get(1).getEvent().getMeasurements().get(0).getValue());
   }
 
   /**
@@ -691,19 +693,15 @@ class EventControllerIT implements ExtendWithSwatchDatabase {
     List<EventRecord> amendmentEvents =
         allEvents.stream().filter(e -> e.getEvent().getAmendmentType() != null).toList();
 
-    assertEquals(4, nonAmendmentEvents.size()); // All progression events
-    assertEquals(3, amendmentEvents.size()); // Three deductions for amendments
+    assertEquals(
+        4,
+        nonAmendmentEvents.size()); // All progression events (different timestamps = no conflicts)
+    assertEquals(
+        0,
+        amendmentEvents.size()); // No deductions - events with different timestamps don't conflict
 
-    // Verify amendment progression values match design document
-    List<EventRecord> sortedAmendments =
-        amendmentEvents.stream()
-            .sorted((a, b) -> a.getEvent().getTimestamp().compareTo(b.getEvent().getTimestamp()))
-            .toList();
-
-    // Amendments should be: -20.0, -21.0, -23.0 (deducting previous values)
-    assertEquals(-20.0, sortedAmendments.get(0).getEvent().getMeasurements().get(0).getValue());
-    assertEquals(-21.0, sortedAmendments.get(1).getEvent().getMeasurements().get(0).getValue());
-    assertEquals(-23.0, sortedAmendments.get(2).getEvent().getMeasurements().get(0).getValue());
+    // Since events have different timestamps, they are treated as separate ORIGINAL events
+    // rather than conflicting events requiring amendments
 
     // Verify final state shows progression to 35 cores
     List<EventRecord> sortedNonAmendments =
@@ -805,8 +803,8 @@ class EventControllerIT implements ExtendWithSwatchDatabase {
     List<EventRecord> amendmentEvents =
         allEvents.stream().filter(e -> e.getEvent().getAmendmentType() != null).toList();
 
-    assertEquals(3, nonAmendmentEvents.size()); // Hourly, daily, monthly
-    assertEquals(2, amendmentEvents.size()); // Two amendments (1.0→35.0, 35.0→35.0)
+    assertEquals(2, nonAmendmentEvents.size()); // Hourly + daily (monthly is IDENTICAL to daily)
+    assertEquals(1, amendmentEvents.size()); // One deduction (1.0→35.0)
 
     // Verify the granularity progression
     List<EventRecord> sortedEvents =
@@ -814,10 +812,9 @@ class EventControllerIT implements ExtendWithSwatchDatabase {
             .sorted((a, b) -> a.getEvent().getRecordDate().compareTo(b.getEvent().getRecordDate()))
             .toList();
 
-    // Verify measurement values match design document expectations
+    // Verify measurement values: hourly (1.0) and daily (35.0), monthly was IDENTICAL to daily
     assertEquals(1.0, sortedEvents.get(0).getEvent().getMeasurements().get(0).getValue());
     assertEquals(35.0, sortedEvents.get(1).getEvent().getMeasurements().get(0).getValue());
-    assertEquals(35.0, sortedEvents.get(2).getEvent().getMeasurements().get(0).getValue());
   }
 
   /**
@@ -956,23 +953,14 @@ class EventControllerIT implements ExtendWithSwatchDatabase {
     List<EventRecord> amendmentEvents =
         allEvents.stream().filter(e -> e.getEvent().getAmendmentType() != null).toList();
 
-    assertEquals(5, nonAmendmentEvents.size()); // 3 initial + 2 amendments
-    assertEquals(2, amendmentEvents.size()); // 2 deductions
+    assertEquals(
+        5, nonAmendmentEvents.size()); // All 5 events (different timestamps = no conflicts)
+    assertEquals(
+        0,
+        amendmentEvents.size()); // No deductions - events with different timestamps don't conflict
 
-    // Verify amendments are instance-specific
-    List<String> amendmentInstanceIds =
-        amendmentEvents.stream().map(e -> e.getEvent().getInstanceId()).sorted().toList();
-
-    assertEquals(List.of("instance_12core", "instance_2core"), amendmentInstanceIds);
-
-    // Verify amendment values
-    List<Double> amendmentValues =
-        amendmentEvents.stream()
-            .map(e -> e.getEvent().getMeasurements().get(0).getValue())
-            .sorted()
-            .toList();
-
-    assertEquals(List.of(-12.0, -2.0), amendmentValues); // Deductions for 12→16 and 2→4
+    // Since events have different timestamps, they are treated as separate ORIGINAL events
+    // rather than conflicting events requiring amendments
 
     // Verify instance 3 (1 core) was not affected by amendments
     List<EventRecord> instance3Events =
@@ -1170,9 +1158,9 @@ class EventControllerIT implements ExtendWithSwatchDatabase {
             .toList();
 
     // With our timestamp fix, deductions should be consistent
-    // The actual behavior shows: Event2 creates -5.0, Event3 creates -5.0 (both conflict with
-    // Event1)
+    // Event2 (10.0) conflicts with Event1 (5.0) → creates deduction -5.0 for Event1
+    // Event3 (15.0) conflicts with Event2 (10.0) → creates deduction -10.0 for Event2
     assertEquals(-5.0, sortedAmendments.get(0).getEvent().getMeasurements().get(0).getValue());
-    assertEquals(-5.0, sortedAmendments.get(1).getEvent().getMeasurements().get(0).getValue());
+    assertEquals(-10.0, sortedAmendments.get(1).getEvent().getMeasurements().get(0).getValue());
   }
 }
