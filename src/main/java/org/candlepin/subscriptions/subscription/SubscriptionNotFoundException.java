@@ -18,22 +18,25 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.task.queue.kafka;
+package org.candlepin.subscriptions.subscription;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import jakarta.ws.rs.core.Response.Status;
+import lombok.Getter;
+import org.candlepin.subscriptions.exception.ErrorCode;
+import org.candlepin.subscriptions.exception.SubscriptionsException;
 
-import org.candlepin.subscriptions.test.ExtendWithEmbeddedKafka;
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ActiveProfiles;
+@Getter
+public class SubscriptionNotFoundException extends SubscriptionsException {
 
-@SpringBootTest
-@DirtiesContext
-@ActiveProfiles({"worker", "test", "kafka-test", "capacity-ingress"})
-class KafkaTaskQueueTest extends KafkaTaskQueueTester implements ExtendWithEmbeddedKafka {
-  @Test
-  void testSendAndReceiveTaskMessageWithOrg() {
-    assertDoesNotThrow(() -> runSendAndReceiveTaskMessageTestWithOrg());
+  private final String subscriptionNumber;
+
+  public SubscriptionNotFoundException(String subscriptionNumber) {
+    super(
+        ErrorCode.SUBSCRIPTION_SERVICE_REQUEST_ERROR,
+        Status.INTERNAL_SERVER_ERROR,
+        "No subscriptions found for subscriptionNumber=" + subscriptionNumber,
+        null,
+        null);
+    this.subscriptionNumber = subscriptionNumber;
   }
 }

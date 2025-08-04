@@ -6,6 +6,12 @@ rhsm-subscriptions:
     driver-class-name: org.hsqldb.jdbc.JDBCDriver
     platform: hsqldb
   account-batch-size: 2
+  subscription-sync-enabled: true
+  subscription:
+    use-stub: true
+    tasks:
+      topic: platform.rhsm-subscriptions.subscription-sync
+      kafka-group-id: subscription-worker
 logging:
   level:
     org:

@@ -36,7 +36,7 @@ import org.springframework.test.context.ActiveProfiles;
  * that point out to the correct openapi endpoints).
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles({"api", "test"})
+@ActiveProfiles("test")
 class SwaggerTest {
 
   private static final String LOCALHOST = "http://localhost:";
