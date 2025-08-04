@@ -18,22 +18,23 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.task.queue.kafka;
+package org.candlepin.subscriptions.deployment;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import org.candlepin.subscriptions.test.ExtendWithEmbeddedKafka;
+import org.candlepin.subscriptions.capacity.CapacityIngressConfiguration;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
-@DirtiesContext
-@ActiveProfiles({"worker", "test", "kafka-test", "capacity-ingress"})
-class KafkaTaskQueueTest extends KafkaTaskQueueTester implements ExtendWithEmbeddedKafka {
+@ActiveProfiles({"capacity-ingress", "test"})
+class CapacityIngressDeploymentTest {
+  @Autowired CapacityIngressConfiguration configuration;
+
   @Test
-  void testSendAndReceiveTaskMessageWithOrg() {
-    assertDoesNotThrow(() -> runSendAndReceiveTaskMessageTestWithOrg());
+  void testDeployment() {
+    assertNotNull(configuration);
   }
 }

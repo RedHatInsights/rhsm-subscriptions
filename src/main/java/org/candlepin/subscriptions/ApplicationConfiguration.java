@@ -34,12 +34,14 @@ import io.micrometer.core.aop.TimedAspect;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.validation.Validator;
 import org.candlepin.subscriptions.actuator.CertInfoContributor;
+import org.candlepin.subscriptions.capacity.CapacityIngressConfiguration;
 import org.candlepin.subscriptions.clowder.KafkaSslBeanPostProcessor;
 import org.candlepin.subscriptions.clowder.RdsSslBeanPostProcessor;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
 import org.candlepin.subscriptions.resource.ApiConfiguration;
 import org.candlepin.subscriptions.security.AuthProperties;
 import org.candlepin.subscriptions.security.SecurityConfiguration;
+import org.candlepin.subscriptions.subscription.SubscriptionConfiguration;
 import org.candlepin.subscriptions.tally.TallyWorkerConfiguration;
 import org.candlepin.subscriptions.util.UtilConfiguration;
 import org.springframework.boot.actuate.autoconfigure.info.ConditionalOnEnabledInfoContributor;
@@ -59,9 +61,11 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 @Import({
   ApiConfiguration.class,
+  CapacityIngressConfiguration.class,
   TallyWorkerConfiguration.class,
   DevModeConfiguration.class,
   SecurityConfiguration.class,
+  SubscriptionConfiguration.class,
   RhsmSubscriptionsDataSourceConfiguration.class,
   UtilConfiguration.class,
 })

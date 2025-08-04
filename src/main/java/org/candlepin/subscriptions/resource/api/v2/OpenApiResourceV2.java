@@ -18,22 +18,26 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.task.queue.kafka;
+package org.candlepin.subscriptions.resource.api.v2;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import lombok.AllArgsConstructor;
+import org.candlepin.subscriptions.resource.api.ApiSpecController;
+import org.candlepin.subscriptions.utilization.api.v2.resources.RootApi;
+import org.springframework.stereotype.Component;
 
-import org.candlepin.subscriptions.test.ExtendWithEmbeddedKafka;
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ActiveProfiles;
+/** Serves the OpenAPI spec as /openapi.json and /openapi.yaml. */
+@Component
+@AllArgsConstructor
+public class OpenApiResourceV2 implements RootApi {
+  private final ApiSpecController controller;
 
-@SpringBootTest
-@DirtiesContext
-@ActiveProfiles({"worker", "test", "kafka-test", "capacity-ingress"})
-class KafkaTaskQueueTest extends KafkaTaskQueueTester implements ExtendWithEmbeddedKafka {
-  @Test
-  void testSendAndReceiveTaskMessageWithOrg() {
-    assertDoesNotThrow(() -> runSendAndReceiveTaskMessageTestWithOrg());
+  @Override
+  public String getOpenApiJson() {
+    return controller.getOpenApiV2Json();
+  }
+
+  @Override
+  public String getOpenApiYaml() {
+    return controller.getOpenApiV2Yaml();
   }
 }

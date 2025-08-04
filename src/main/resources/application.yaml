@@ -10,6 +10,8 @@ spring:
   profiles:
     active:
       - api
+      - capacity-ingress
+      - rhsm-conduit
       - worker
       - kafka-queue
   jms:

@@ -27,6 +27,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.util.ApiModelMapperV1;
 import org.candlepin.subscriptions.util.ApiModelMapperV1Impl;
+import org.candlepin.subscriptions.util.ApiModelMapperV2;
+import org.candlepin.subscriptions.util.ApiModelMapperV2Impl;
+import org.candlepin.subscriptions.utilization.api.v2.model.UsageType;
 import org.junit.jupiter.api.Test;
 
 class UsageTest {
@@ -73,6 +76,18 @@ class UsageTest {
   @Test
   void testFromStringMixedCase() {
     assertEquals(Usage.DEVELOPMENT_TEST, Usage.fromString(DEVELOPMENT_TEST_MIXED_CASE));
+  }
+
+  @Test
+  void testOpenApiEnumValuesMatchV2() {
+    ApiModelMapperV2 mapper = new ApiModelMapperV2Impl();
+    Set<UsageType> expected = Sets.newHashSet(UsageType.class.getEnumConstants());
+    Set<UsageType> actual =
+        Sets.newHashSet(Usage.class.getEnumConstants()).stream()
+            .map(mapper::map)
+            .collect(Collectors.toSet());
+
+    assertEquals(expected, actual);
   }
 
   @Test
