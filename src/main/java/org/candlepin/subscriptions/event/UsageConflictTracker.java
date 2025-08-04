@@ -24,7 +24,6 @@ import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.candlepin.subscriptions.json.Event;
 
 /**
@@ -52,20 +51,49 @@ public class UsageConflictTracker {
 
   public void track(Event event) {
     UsageConflictKey key = getConflictKeyForEvent(event);
+    // We consider only non-deduction events when determining the latest effective usage.
+    if (event.getAmendmentType() == org.candlepin.subscriptions.json.Event.AmendmentType.DEDUCTION) {
+      // Deduction events do not represent a new effective measurement value.
+      return;
+    }
+
     if (!keyToLatestEvent.containsKey(key)) {
       keyToLatestEvent.put(key, event);
     } else {
-      // If record date is null, we prefer that event. This can happen if a non-persisted
-      // event is tracked (i.e. an incoming event).
-      Optional<OffsetDateTime> eventRecordDate = Optional.ofNullable(event.getRecordDate());
-      Optional<OffsetDateTime> latestEventRecordDate =
-          Optional.ofNullable(keyToLatestEvent.get(key).getRecordDate());
-      if (eventRecordDate.isEmpty()
-          || (latestEventRecordDate.isPresent()
-              && eventRecordDate.get().isAfter(latestEventRecordDate.get()))) {
+      // Compare by timestamp (actual event time) to determine which event is truly latest
+      Event currentLatest = keyToLatestEvent.get(key);
+      OffsetDateTime eventTimestamp = event.getTimestamp();
+      OffsetDateTime latestTimestamp = currentLatest.getTimestamp();
+
+      // Update if the new event has a later timestamp, or if timestamps are equal,
+      // prefer the event with a later recordDate (more recently processed)
+      int recordDateCompare = compareRecordDates(event.getRecordDate(), currentLatest.getRecordDate());
+      if (eventTimestamp.isAfter(latestTimestamp)
+          || (eventTimestamp.equals(latestTimestamp) && recordDateCompare > 0)
+          || (eventTimestamp.equals(latestTimestamp) && recordDateCompare == 0)) {
+        // On exact tie, prefer the event encountered later in the stream (last-wins)
         keyToLatestEvent.put(key, event);
       }
     }
+  }
+
+  /**
+   * Compares two recordDates for ordering, treating null as "most recent" (since null means the
+   * event hasn't been persisted yet).
+   *
+   * @return positive if first is later, negative if second is later, 0 if equal
+   */
+  private int compareRecordDates(OffsetDateTime first, OffsetDateTime second) {
+    if (first == null && second == null) {
+      return 0;
+    }
+    if (first == null) {
+      return 1; // null (unpersisted) is considered "later"
+    }
+    if (second == null) {
+      return -1;
+    }
+    return first.compareTo(second);
   }
 
   public UsageConflictKey getConflictKeyForEvent(Event event) {

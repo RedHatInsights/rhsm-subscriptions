@@ -248,10 +248,10 @@ class EventConflictResolverTest {
         // Event conflict with existing amendment resolves to additional amendment.
         Arguments.of(
             List.of(
-                event(Map.of(CORES, 5.0)),
-                deduction(Map.of(CORES, -5.0)),
-                event(Map.of(CORES, 15.0))),
-            List.of(event(Map.of(CORES, 20.0))),
+                event(Map.of(CORES, 5.0)).withTimestamp(CLOCK.now()).withRecordDate(CLOCK.now()),
+                deduction(Map.of(CORES, -5.0)).withTimestamp(CLOCK.now()).withRecordDate(CLOCK.now().plusMinutes(1)),
+                event(Map.of(CORES, 15.0)).withTimestamp(CLOCK.now()).withRecordDate(CLOCK.now().plusMinutes(2))),
+            List.of(event(Map.of(CORES, 20.0)).withTimestamp(CLOCK.now())),
             List.of(deduction(Map.of(CORES, -15.0)), event(Map.of(CORES, 20.0)))),
         // Conflict with different measurement value yields amendment plus incoming value
         // for single instance only. Net new event for other instance.
@@ -710,6 +710,11 @@ class EventConflictResolverTest {
 
     EventArgument withBillingAccountId(String billingAccountId) {
       this.billingAccountId = billingAccountId;
+      return this;
+    }
+
+    EventArgument withRecordDate(OffsetDateTime recordDate) {
+      this.recordDate = recordDate;
       return this;
     }
   }

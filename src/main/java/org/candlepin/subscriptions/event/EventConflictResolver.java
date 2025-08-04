@@ -20,8 +20,10 @@
  */
 package org.candlepin.subscriptions.event;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -103,24 +105,31 @@ public class EventConflictResolver {
         (key, eventList) -> {
           UsageConflictTracker tracker =
               new UsageConflictTracker(allConflicting.getOrDefault(key, List.of()));
-          eventList.forEach(
+
+          // Step 1: Intra-batch deduplication - group events by conflict key and keep latest
+          List<Event> deduplicatedEvents = deduplicateIntraBatchEvents(eventList);
+          log.info(
+              "Deduplicated {} events to {} for EventKey: {}",
+              eventList.size(),
+              deduplicatedEvents.size(),
+              key);
+
+          // Step 2: Process deduplicated events against database conflicts
+          deduplicatedEvents.forEach(
               event -> {
-                // Each event should only have a single conflict key since events
-                // were normalized by (tag,measurement).
                 UsageConflictKey conflictKey = tracker.getConflictKeyForEvent(event);
                 List<Event> newlyResolvedEvents = new ArrayList<>();
-                if (tracker.contains(conflictKey)) {
+
+                // Determine the type of event conflict (only against database events, not
+                // intra-batch)
+                EventConflictType conflictType = determineConflictType(event, conflictKey, tracker);
+                log.debug("Processing {} event for conflict key: {}", conflictType, conflictKey);
+
+                // Handle based on conflict type
+                if (conflictType.requiresDeduction()) {
                   Event conflictingEvent = tracker.getLatest(conflictKey);
                   Measurement conflictingMeasurement =
                       findMeasurement(conflictingEvent, conflictKey.getMetricId());
-
-                  if (!amendmentRequired(event, conflictingEvent, conflictKey.getMetricId())) {
-                    log.debug(
-                        "The incoming event does require amendments for {}: {}",
-                        conflictKey.getMetricId(),
-                        event);
-                    return;
-                  }
 
                   Event deductionEvent = createRecordFrom(conflictingEvent);
                   deductionEvent.setProductTag(Set.of(conflictKey.getProductTag()));
@@ -131,9 +140,19 @@ public class EventConflictResolver {
                           .withValue(conflictingMeasurement.getValue() * -1);
                   deductionEvent.setMeasurements(List.of(measurement));
                   newlyResolvedEvents.add(deductionEvent);
+
+                  log.debug(
+                      "Created deduction event for {} conflict key {}: value={}",
+                      conflictType,
+                      conflictKey,
+                      conflictingMeasurement.getValue());
                 }
 
-                newlyResolvedEvents.add(event);
+                // Add the incoming event if it should be saved
+                if (conflictType.saveIncomingEvent()) {
+                  newlyResolvedEvents.add(event);
+                }
+
                 allConflicting.putIfAbsent(key, new ArrayList<>());
                 allConflicting.get(key).addAll(newlyResolvedEvents);
                 resolvedEvents.addAll(newlyResolvedEvents.stream().map(EventRecord::new).toList());
@@ -161,16 +180,108 @@ public class EventConflictResolver {
     return target;
   }
 
-  private boolean amendmentRequired(Event incomingEvent, Event resolvedEvent, String metricId) {
-    UsageDescriptor incomingEventDescriptor = new UsageDescriptor(incomingEvent);
-    UsageDescriptor resolvedEventDescriptor = new UsageDescriptor(resolvedEvent);
+  /**
+   * Performs intra-batch deduplication by grouping events by their UsageConflictKey and keeping
+   * only the latest event per conflict key.
+   *
+   * @param eventList List of events in the current batch
+   * @return Map of UsageConflictKey to the latest Event for each conflict key
+   */
+  private List<Event> deduplicateIntraBatchEvents(List<Event> eventList) {
+    // We only eliminate EXACT duplicates (same conflict key, same descriptor, same measurement value)
+    // but preserve events that differ by descriptor or by measurement so that proper deductions can be
+    // generated later in the pipeline ("last-in-wins" with amendment events).
 
+    Set<String> seen = new java.util.LinkedHashSet<>();
+    List<Event> uniqueEvents = new java.util.ArrayList<>();
+
+    UsageConflictTracker tempTracker = new UsageConflictTracker(List.of());
+
+    for (Event event : eventList) {
+      UsageConflictKey conflictKey = tempTracker.getConflictKeyForEvent(event);
+      UsageDescriptor descriptor = new UsageDescriptor(event);
+      Measurement m = event.getMeasurements().get(0); // flattened events contain a single measurement
+      String dedupKey = String.format("%s|%s|%s", conflictKey, descriptor.hashCode(), m.getValue());
+
+      if (seen.add(dedupKey)) {
+        uniqueEvents.add(event);
+      } else {
+        log.debug("Intra-batch deduplication: dropped exact duplicate event for key {}", dedupKey);
+      }
+    }
+
+    return uniqueEvents;
+  }
+
+  /**
+   * Compares two events by recordDate, handling null values appropriately.
+   * 
+   * @param event the event being evaluated
+   * @param existingEvent the existing event to compare against
+   * @return true if event is newer by recordDate, false otherwise
+   */
+  private boolean isNewerByRecordDate(Event event, Event existingEvent) {
+    OffsetDateTime eventRecordDate = event.getRecordDate();
+    OffsetDateTime existingRecordDate = existingEvent.getRecordDate();
+    
+    // If both are null, consider them equal (return false)
+    if (eventRecordDate == null && existingRecordDate == null) {
+      return false;
+    }
+    
+    // If only event's recordDate is null, it's considered older
+    if (eventRecordDate == null) {
+      return false;
+    }
+    
+    // If only existing's recordDate is null, event is newer
+    if (existingRecordDate == null) {
+      return true;
+    }
+    
+    // Both are non-null, compare normally
+    return eventRecordDate.isAfter(existingRecordDate);
+  }
+
+  /**
+   * Determines the type of conflict for an incoming event.
+   *
+   * @param incomingEvent The event being processed
+   * @param conflictKey The usage conflict key for the event
+   * @param tracker The conflict tracker containing existing events
+   * @return The type of conflict encountered
+   */
+  private EventConflictType determineConflictType(
+      Event incomingEvent, UsageConflictKey conflictKey, UsageConflictTracker tracker) {
+    // If no existing event with this conflict key, it's original
+    if (!tracker.contains(conflictKey)) {
+      return EventConflictType.ORIGINAL;
+    }
+
+    Event existingEvent = tracker.getLatest(conflictKey);
+    String metricId = conflictKey.getMetricId();
+
+    // Compare measurements
     Measurement incomingMeasurement = findMeasurement(incomingEvent, metricId);
-    Measurement conflictingMeasurement = findMeasurement(resolvedEvent, metricId);
+    Measurement existingMeasurement = findMeasurement(existingEvent, metricId);
     boolean measurementEqual =
-        Objects.equals(incomingMeasurement.getValue(), conflictingMeasurement.getValue());
+        Objects.equals(incomingMeasurement.getValue(), existingMeasurement.getValue());
 
-    return !measurementEqual || !incomingEventDescriptor.equals(resolvedEventDescriptor);
+    // Compare usage descriptors
+    UsageDescriptor incomingDescriptor = new UsageDescriptor(incomingEvent);
+    UsageDescriptor existingDescriptor = new UsageDescriptor(existingEvent);
+    boolean descriptorEqual = incomingDescriptor.equals(existingDescriptor);
+
+    // Determine conflict type based on what differs
+    if (measurementEqual && descriptorEqual) {
+      return EventConflictType.IDENTICAL;
+    } else if (measurementEqual && !descriptorEqual) {
+      return EventConflictType.CONTEXTUAL;
+    } else if (!measurementEqual && descriptorEqual) {
+      return EventConflictType.CORRECTIVE;
+    } else {
+      return EventConflictType.COMPREHENSIVE;
+    }
   }
 
   private Measurement findMeasurement(Event event, String metricId) {
