@@ -58,43 +58,22 @@ public class UsageConflictTracker {
       return;
     }
 
-    if (!keyToLatestEvent.containsKey(key)) {
+    Event existing = keyToLatestEvent.get(key);
+    if (existing == null) {
+      // No existing event - track this event
       keyToLatestEvent.put(key, event);
-    } else {
-      // Compare by timestamp (actual event time) to determine which event is truly latest
-      Event currentLatest = keyToLatestEvent.get(key);
-      OffsetDateTime eventTimestamp = event.getTimestamp();
-      OffsetDateTime latestTimestamp = currentLatest.getTimestamp();
-
-      // Update if the new event has a later timestamp, or if timestamps are equal,
-      // prefer the event with a later recordDate (more recently processed)
-      int recordDateCompare =
-          compareRecordDates(event.getRecordDate(), currentLatest.getRecordDate());
-      if (eventTimestamp.isAfter(latestTimestamp)
-          || (eventTimestamp.equals(latestTimestamp) && recordDateCompare > 0)) {
-        keyToLatestEvent.put(key, event);
-      }
+      return;
     }
+
+    // For events with different timestamps, use normal "latest wins" logic
+    // For events with the same timestamp, preserve the original baseline
+    if (!event.getTimestamp().equals(existing.getTimestamp())) {
+      // Different timestamps - this is sequential processing, track the new event
+      keyToLatestEvent.put(key, event);
+    }
+    // Same timestamp - preserve existing event as the baseline for intra-batch conflicts
   }
 
-  /**
-   * Compares two recordDates for ordering, treating null as "least recent" (since null means the
-   * event hasn't been persisted yet and therefore has no established record date).
-   *
-   * @return positive if first is later, negative if second is later, 0 if equal
-   */
-  private int compareRecordDates(OffsetDateTime first, OffsetDateTime second) {
-    if (first == null && second == null) {
-      return 0;
-    }
-    if (first == null) {
-      return -1; // null (unpersisted) is considered "earlier"
-    }
-    if (second == null) {
-      return 1;
-    }
-    return first.compareTo(second);
-  }
 
   public UsageConflictKey getConflictKeyForEvent(Event event) {
     if (event.getMeasurements().size() > 1) {
@@ -106,6 +85,7 @@ public class UsageConflictTracker {
     }
     return new UsageConflictKey(
         event.getProductTag().stream().findFirst().get(),
-        event.getMeasurements().get(0).getMetricId());
+        event.getMeasurements().get(0).getMetricId(),
+        event.getInstanceId());
   }
 }

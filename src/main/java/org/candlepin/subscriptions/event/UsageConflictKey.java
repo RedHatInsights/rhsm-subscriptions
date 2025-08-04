@@ -27,15 +27,37 @@ import lombok.Setter;
 
 /**
  * A UsageConflictKey represents specific usage shared across multiple Events. Usage conflicts are
- * based on a product_tag and metric_id combination. This class is used by the {@link
+ * based on a product_tag, metric_id, and instance_id combination. This class is used by the {@link
  * UsageConflictTracker} to track conflicts for a specific host instance while determining which
  * Events should be amended. See {@link EventConflictResolver}.
  */
 @Getter
-@Setter
 @EqualsAndHashCode
-@AllArgsConstructor
 public class UsageConflictKey {
-  private String productTag;
-  private String metricId;
+  private final String productTag;
+  private final String metricId;
+  private final String instanceId;
+
+  public UsageConflictKey(String productTag, String metricId, String instanceId) {
+    this.productTag = productTag;
+    this.metricId = metricId;
+    this.instanceId = instanceId;
+  }
+
+  /**
+   * Legacy constructor for backward compatibility with tests.
+   * When instanceId is not provided, it defaults to null.
+   */
+  public UsageConflictKey(String productTag, String metricId) {
+    this(productTag, metricId, null);
+  }
+
+  @Override
+  public String toString() {
+    return String.format(
+        "UsageConflictKey{productTag='%s', metricId='%s', instanceId='%s'}",
+        productTag,
+        metricId,
+        instanceId);
+  }
 }

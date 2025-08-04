@@ -166,11 +166,43 @@ public class EventConflictResolver {
   }
 
   private Map<EventKey, List<Event>> getConflictingEvents(Set<EventKey> eventKeys) {
-    return eventRecordRepository.findConflictingEvents(eventKeys).stream()
-        .map(EventRecord::getEvent)
-        .flatMap(event -> normalizer.flattenEventUsage(event).stream())
-        .collect(
-            Collectors.groupingBy(EventKey::fromEvent, LinkedHashMap::new, Collectors.toList()));
+    // Get all existing events for the same org/instance combinations
+    Set<String> orgInstancePairs = eventKeys.stream()
+        .map(key -> key.getOrgId() + ":" + key.getInstanceId())
+        .collect(Collectors.toSet());
+    
+    List<EventRecord> allPossibleConflicts = new ArrayList<>();
+    for (String orgInstancePair : orgInstancePairs) {
+      String[] parts = orgInstancePair.split(":");
+      String orgId = parts[0];
+      String instanceId = parts[1];
+      
+      // Find all events for this org/instance combination
+      String query = """
+          select * from events 
+          where org_id = :orgId and instance_id = :instanceId
+          """;
+      List<EventRecord> instanceEvents = eventRecordRepository.getEntityManager()
+          .createNativeQuery(query, EventRecord.class)
+          .setParameter("orgId", orgId)
+          .setParameter("instanceId", instanceId)
+          .getResultList();
+      allPossibleConflicts.addAll(instanceEvents);
+    }
+    
+    // Group by EventKey but return all events for each incoming EventKey
+    Map<EventKey, List<Event>> result = new LinkedHashMap<>();
+    for (EventKey incomingKey : eventKeys) {
+      List<Event> conflictingEvents = allPossibleConflicts.stream()
+          .map(EventRecord::getEvent)
+          .flatMap(event -> normalizer.flattenEventUsage(event).stream())
+          .filter(event -> event.getOrgId().equals(incomingKey.getOrgId()) 
+                          && event.getInstanceId().equals(incomingKey.getInstanceId()))
+          .collect(Collectors.toList());
+      result.put(incomingKey, conflictingEvents);
+    }
+    
+    return result;
   }
 
   private Event createRecordFrom(Event from) {
@@ -184,35 +216,38 @@ public class EventConflictResolver {
    * only the latest event per conflict key.
    *
    * @param eventList List of events in the current batch
-   * @return Map of UsageConflictKey to the latest Event for each conflict key
+   * @return List of deduplicated events with only the latest event per UsageConflictKey
    */
   private List<Event> deduplicateIntraBatchEvents(List<Event> eventList) {
-    // We only eliminate EXACT duplicates (same conflict key, same descriptor, same measurement
-    // value)
-    // but preserve events that differ by descriptor or by measurement so that proper deductions can
-    // be
-    // generated later in the pipeline ("last-in-wins" with amendment events).
-
-    Set<String> seen = new java.util.LinkedHashSet<>();
-    List<Event> uniqueEvents = new java.util.ArrayList<>();
-
+    // Group events by UsageConflictKey and keep only the latest event per conflict key
     UsageConflictTracker tempTracker = new UsageConflictTracker(List.of());
+    Map<UsageConflictKey, Event> latestEventPerKey = new LinkedHashMap<>();
 
     for (Event event : eventList) {
       UsageConflictKey conflictKey = tempTracker.getConflictKeyForEvent(event);
-      UsageDescriptor descriptor = new UsageDescriptor(event);
-      Measurement m =
-          event.getMeasurements().get(0); // flattened events contain a single measurement
-      String dedupKey = String.format("%s|%s|%s", conflictKey, descriptor.hashCode(), m.getValue());
-
-      if (seen.add(dedupKey)) {
-        uniqueEvents.add(event);
+      Event existingEvent = latestEventPerKey.get(conflictKey);
+      
+      if (existingEvent == null) {
+        latestEventPerKey.put(conflictKey, event);
       } else {
-        log.debug("Intra-batch deduplication: dropped exact duplicate event for key {}", dedupKey);
+        // Keep the event with the later recordDate, or the current event if recordDates are equal
+        if (event.getRecordDate() != null && existingEvent.getRecordDate() != null) {
+          if (event.getRecordDate().isAfter(existingEvent.getRecordDate())) {
+            latestEventPerKey.put(conflictKey, event);
+            log.debug("Intra-batch deduplication: replaced event for key {} with later recordDate", conflictKey);
+          }
+        } else if (event.getRecordDate() != null && existingEvent.getRecordDate() == null) {
+          latestEventPerKey.put(conflictKey, event);
+          log.debug("Intra-batch deduplication: replaced event for key {} (new event has recordDate)", conflictKey);
+        } else {
+          // If recordDates are equal or both null, keep the later event in the batch
+          latestEventPerKey.put(conflictKey, event);
+          log.debug("Intra-batch deduplication: replaced event for key {} (keeping later event in batch)", conflictKey);
+        }
       }
     }
 
-    return uniqueEvents;
+    return new ArrayList<>(latestEventPerKey.values());
   }
 
   /**

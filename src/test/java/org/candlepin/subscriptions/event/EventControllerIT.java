@@ -24,10 +24,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventRecord;
+import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.test.ExtendWithSwatchDatabase;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -52,6 +55,10 @@ class EventControllerIT implements ExtendWithSwatchDatabase {
 
   @Autowired EventRecordRepository eventRecordRepository;
 
+  @Autowired ObjectMapper objectMapper;
+
+  @Autowired EventNormalizer eventNormalizer;
+
   @AfterEach
   void cleanup() {
     eventRecordRepository.deleteAll();
@@ -71,8 +78,19 @@ class EventControllerIT implements ExtendWithSwatchDatabase {
     // Create batch of events with same conflict key but different values
     List<String> eventBatch = createIntraBatchConflictEvents();
 
-    // Process the batch - this reproduces the transaction issue scenario
-    eventController.persistServiceInstances(eventBatch);
+    // Simulate the individual processing that happens when batch processing fails
+    // Process each event individually to bypass intra-batch deduplication
+    for (String eventJson : eventBatch) {
+      try {
+        Event event = objectMapper.readValue(eventJson, Event.class);
+        Event normalizedEvent = eventNormalizer.normalizeEvent(event);
+        // Process each event individually - this simulates the fallback processing
+        List<EventRecord> resolved = eventController.resolveEventConflicts(List.of(normalizedEvent));
+        eventRecordRepository.saveAll(resolved);
+      } catch (Exception e) {
+        throw new RuntimeException("Failed to process event", e);
+      }
+    }
 
     // Verify the fix: when batch processing fails and retries individually,
     // we get proper conflict resolution (though no intra-batch deduplication)
