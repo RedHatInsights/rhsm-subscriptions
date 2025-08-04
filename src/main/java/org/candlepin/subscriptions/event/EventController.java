@@ -175,7 +175,7 @@ public class EventController {
       throws BatchListenerFailedException {
     ServiceInstancesResult result = parseServiceInstancesResult(eventJsonList);
     List<EventRecord> savedEvents = new ArrayList<>();
-    
+
     try {
       if (!result.indexedEvents.isEmpty()) {
         // Process all events atomically within single REQUIRED transaction
@@ -188,12 +188,12 @@ public class EventController {
       log.warn(
           "Atomic batch processing failed. Retrying individually {} events.",
           result.indexedEvents.size());
-      
+
       // Fall back to individual processing with REQUIRED transactions and ERROR logging
       result.indexedEvents.forEach(
           indexedPair -> {
             try {
-              List<EventRecord> individualResolved = 
+              List<EventRecord> individualResolved =
                   resolveEventConflicts(List.of(indexedPair.getKey()));
               savedEvents.addAll(repo.saveAll(individualResolved));
             } catch (Exception individualException) {
@@ -210,7 +210,8 @@ public class EventController {
     // create the ingested usage metrics for created events
     updateIngestedUsage(savedEvents);
 
-    if (result.failedOnIndex
+    if (result
+        .failedOnIndex
         .map(index -> index.compareTo(eventJsonList.size() - 1) < 0)
         .orElse(false)) {
       throw new BatchListenerFailedException(
@@ -220,8 +221,8 @@ public class EventController {
   }
 
   /**
-   * Legacy method that uses REQUIRES_NEW transactions. Kept for backward compatibility
-   * but should be migrated to use processEventsAtomically() for billing accuracy.
+   * Legacy method that uses REQUIRES_NEW transactions. Kept for backward compatibility but should
+   * be migrated to use processEventsAtomically() for billing accuracy.
    *
    * @param eventJsonList a List of Events in JSON form
    * @throws BatchListenerFailedException tells kafka where in batch to retry or send failed record
