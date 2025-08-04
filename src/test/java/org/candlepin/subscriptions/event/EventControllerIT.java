@@ -34,11 +34,18 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.listener.BatchListenerFailedException;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
 /** Integration test that reproduces the intra-batch conflict resolution transaction issue. */
-@SpringBootTest
+@SpringBootTest(
+    properties = {
+      "spring.kafka.consumer.auto-startup=false",
+      "spring.kafka.producer.bootstrap-servers=PLAINTEXT://localhost:9999",
+      "spring.kafka.consumer.bootstrap-servers=PLAINTEXT://localhost:9999"
+    })
 @ActiveProfiles({"worker", "test-inventory"})
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class EventControllerIT implements ExtendWithSwatchDatabase {
 
   @Autowired EventController eventController;

@@ -249,8 +249,12 @@ class EventConflictResolverTest {
         Arguments.of(
             List.of(
                 event(Map.of(CORES, 5.0)).withTimestamp(CLOCK.now()).withRecordDate(CLOCK.now()),
-                deduction(Map.of(CORES, -5.0)).withTimestamp(CLOCK.now()).withRecordDate(CLOCK.now().plusMinutes(1)),
-                event(Map.of(CORES, 15.0)).withTimestamp(CLOCK.now()).withRecordDate(CLOCK.now().plusMinutes(2))),
+                deduction(Map.of(CORES, -5.0))
+                    .withTimestamp(CLOCK.now())
+                    .withRecordDate(CLOCK.now().plusMinutes(1)),
+                event(Map.of(CORES, 15.0))
+                    .withTimestamp(CLOCK.now())
+                    .withRecordDate(CLOCK.now().plusMinutes(2))),
             List.of(event(Map.of(CORES, 20.0)).withTimestamp(CLOCK.now())),
             List.of(deduction(Map.of(CORES, -15.0)), event(Map.of(CORES, 20.0)))),
         // Conflict with different measurement value yields amendment plus incoming value

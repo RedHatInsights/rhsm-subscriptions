@@ -52,7 +52,8 @@ public class UsageConflictTracker {
   public void track(Event event) {
     UsageConflictKey key = getConflictKeyForEvent(event);
     // We consider only non-deduction events when determining the latest effective usage.
-    if (event.getAmendmentType() == org.candlepin.subscriptions.json.Event.AmendmentType.DEDUCTION) {
+    if (event.getAmendmentType()
+        == org.candlepin.subscriptions.json.Event.AmendmentType.DEDUCTION) {
       // Deduction events do not represent a new effective measurement value.
       return;
     }
@@ -67,7 +68,8 @@ public class UsageConflictTracker {
 
       // Update if the new event has a later timestamp, or if timestamps are equal,
       // prefer the event with a later recordDate (more recently processed)
-      int recordDateCompare = compareRecordDates(event.getRecordDate(), currentLatest.getRecordDate());
+      int recordDateCompare =
+          compareRecordDates(event.getRecordDate(), currentLatest.getRecordDate());
       if (eventTimestamp.isAfter(latestTimestamp)
           || (eventTimestamp.equals(latestTimestamp) && recordDateCompare > 0)
           || (eventTimestamp.equals(latestTimestamp) && recordDateCompare == 0)) {

@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.event;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -188,8 +187,10 @@ public class EventConflictResolver {
    * @return Map of UsageConflictKey to the latest Event for each conflict key
    */
   private List<Event> deduplicateIntraBatchEvents(List<Event> eventList) {
-    // We only eliminate EXACT duplicates (same conflict key, same descriptor, same measurement value)
-    // but preserve events that differ by descriptor or by measurement so that proper deductions can be
+    // We only eliminate EXACT duplicates (same conflict key, same descriptor, same measurement
+    // value)
+    // but preserve events that differ by descriptor or by measurement so that proper deductions can
+    // be
     // generated later in the pipeline ("last-in-wins" with amendment events).
 
     Set<String> seen = new java.util.LinkedHashSet<>();
@@ -200,7 +201,8 @@ public class EventConflictResolver {
     for (Event event : eventList) {
       UsageConflictKey conflictKey = tempTracker.getConflictKeyForEvent(event);
       UsageDescriptor descriptor = new UsageDescriptor(event);
-      Measurement m = event.getMeasurements().get(0); // flattened events contain a single measurement
+      Measurement m =
+          event.getMeasurements().get(0); // flattened events contain a single measurement
       String dedupKey = String.format("%s|%s|%s", conflictKey, descriptor.hashCode(), m.getValue());
 
       if (seen.add(dedupKey)) {
@@ -215,7 +217,7 @@ public class EventConflictResolver {
 
   /**
    * Compares two events by recordDate, handling null values appropriately.
-   * 
+   *
    * @param event the event being evaluated
    * @param existingEvent the existing event to compare against
    * @return true if event is newer by recordDate, false otherwise
@@ -223,22 +225,22 @@ public class EventConflictResolver {
   private boolean isNewerByRecordDate(Event event, Event existingEvent) {
     OffsetDateTime eventRecordDate = event.getRecordDate();
     OffsetDateTime existingRecordDate = existingEvent.getRecordDate();
-    
+
     // If both are null, consider them equal (return false)
     if (eventRecordDate == null && existingRecordDate == null) {
       return false;
     }
-    
+
     // If only event's recordDate is null, it's considered older
     if (eventRecordDate == null) {
       return false;
     }
-    
+
     // If only existing's recordDate is null, event is newer
     if (existingRecordDate == null) {
       return true;
     }
-    
+
     // Both are non-null, compare normally
     return eventRecordDate.isAfter(existingRecordDate);
   }
