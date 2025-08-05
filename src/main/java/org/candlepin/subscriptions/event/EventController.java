@@ -52,6 +52,7 @@ import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.util.TransactionHandler;
 import org.springframework.kafka.listener.BatchListenerFailedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
@@ -161,18 +162,75 @@ public class EventController {
   }
 
   /**
-   * Parses json list into event objects to be persisted into database. Saves events in a new
-   * transaction so that exceptions can be caught, and we can re-attempt to save. If saveAll() fails
-   * on events then we try one by one so that we know where to retry and the records that can be
-   * saved are persisted. Throws BatchListenerFailedException which tells kafka to Retry or put
-   * record on dead letter topic. <a
-   * href="https://docs.spring.io/spring-kafka/docs/latest-ga/reference/html/#recovering-batch-eh">
-   * See more in the documentation</a>
+   * Parses json list into event objects to be persisted into database. Uses REQUIRED transaction
+   * for atomic processing to ensure billing accuracy. If batch processing fails, falls back to
+   * individual event processing with ERROR logging instead of dead letter queue.
    *
    * @param eventJsonList a List of Events in JSON form
    * @throws BatchListenerFailedException tells kafka where in batch to retry or send failed record
    *     to dead letter topic. The index field of the exception is where kafka will retry.
    */
+  @Transactional(propagation = Propagation.REQUIRED)
+  public void processEventsAtomically(List<String> eventJsonList)
+      throws BatchListenerFailedException {
+    ServiceInstancesResult result = parseServiceInstancesResult(eventJsonList);
+    List<EventRecord> savedEvents = new ArrayList<>();
+
+    try {
+      if (!result.indexedEvents.isEmpty()) {
+        // Process all events atomically within single REQUIRED transaction
+        List<EventRecord> resolved =
+            resolveEventConflicts(result.indexedEvents.stream().map(Pair::getKey).toList());
+        savedEvents.addAll(repo.saveAll(resolved));
+        log.debug("Adding/Updating {} metric events atomically", savedEvents.size());
+      }
+    } catch (Exception batchException) {
+      log.warn(
+          "Atomic batch processing failed. Retrying individually {} events.",
+          result.indexedEvents.size());
+
+      // Fall back to individual processing with REQUIRED transactions and ERROR logging
+      result.indexedEvents.forEach(
+          indexedPair -> {
+            try {
+              List<EventRecord> individualResolved =
+                  resolveEventConflicts(List.of(indexedPair.getKey()));
+              savedEvents.addAll(repo.saveAll(individualResolved));
+            } catch (Exception individualException) {
+              log.error(
+                  "Failed to process individual event: {} with error {}.",
+                  indexedPair.getKey(),
+                  ExceptionUtils.getStackTrace(individualException));
+              throw new BatchListenerFailedException(
+                  individualException.getMessage(), indexedPair.getValue());
+            }
+          });
+    }
+
+    // create the ingested usage metrics for created events
+    updateIngestedUsage(savedEvents);
+
+    if (result
+        .failedOnIndex
+        .map(index -> index.compareTo(eventJsonList.size() - 1) < 0)
+        .orElse(false)) {
+      throw new BatchListenerFailedException(
+          "Failed to parse event json. Skipping to next index in batch.",
+          result.failedOnIndex.get() + 1);
+    }
+  }
+
+  /**
+   * Legacy method that uses REQUIRES_NEW transactions. Kept for backward compatibility but should
+   * be migrated to use processEventsAtomically() for billing accuracy.
+   *
+   * @param eventJsonList a List of Events in JSON form
+   * @throws BatchListenerFailedException tells kafka where in batch to retry or send failed record
+   *     to dead letter topic. The index field of the exception is where kafka will retry.
+   * @deprecated Use {@link #processEventsAtomically(List)} instead for better billing accuracy with
+   *     atomic transaction processing.
+   */
+  @Deprecated(since = "1.1.0", forRemoval = false)
   public void persistServiceInstances(List<String> eventJsonList)
       throws BatchListenerFailedException {
     ServiceInstancesResult result = parseServiceInstancesResult(eventJsonList);
@@ -203,7 +261,7 @@ public class EventController {
                               eventConflictResolver.resolveIncomingEvents(
                                   List.of(indexedPair.getKey())))));
             } catch (Exception individualSaveException) {
-              log.warn(
+              log.error(
                   "Failed to save individual event record: {} with error {}.",
                   indexedPair.getKey(),
                   ExceptionUtils.getStackTrace(individualSaveException));

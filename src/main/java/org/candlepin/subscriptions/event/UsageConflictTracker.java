@@ -20,11 +20,9 @@
  */
 package org.candlepin.subscriptions.event;
 
-import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.candlepin.subscriptions.json.Event;
 
 /**
@@ -52,20 +50,24 @@ public class UsageConflictTracker {
 
   public void track(Event event) {
     UsageConflictKey key = getConflictKeyForEvent(event);
-    if (!keyToLatestEvent.containsKey(key)) {
-      keyToLatestEvent.put(key, event);
-    } else {
-      // If record date is null, we prefer that event. This can happen if a non-persisted
-      // event is tracked (i.e. an incoming event).
-      Optional<OffsetDateTime> eventRecordDate = Optional.ofNullable(event.getRecordDate());
-      Optional<OffsetDateTime> latestEventRecordDate =
-          Optional.ofNullable(keyToLatestEvent.get(key).getRecordDate());
-      if (eventRecordDate.isEmpty()
-          || (latestEventRecordDate.isPresent()
-              && eventRecordDate.get().isAfter(latestEventRecordDate.get()))) {
-        keyToLatestEvent.put(key, event);
-      }
+    // We consider only non-deduction events when determining the latest effective usage.
+    if (event.getAmendmentType()
+        == org.candlepin.subscriptions.json.Event.AmendmentType.DEDUCTION) {
+      // Deduction events do not represent a new effective measurement value.
+      return;
     }
+
+    Event existing = keyToLatestEvent.get(key);
+    if (existing == null) {
+      // No existing event - track this event
+      keyToLatestEvent.put(key, event);
+      return;
+    }
+
+    // Always track the most recent event for idempotent behavior
+    // When events have the same timestamp (top of hour), the last one processed
+    // represents the latest effective measurement for conflict resolution
+    keyToLatestEvent.put(key, event);
   }
 
   public UsageConflictKey getConflictKeyForEvent(Event event) {
@@ -78,6 +80,7 @@ public class UsageConflictTracker {
     }
     return new UsageConflictKey(
         event.getProductTag().stream().findFirst().get(),
-        event.getMeasurements().get(0).getMetricId());
+        event.getMeasurements().get(0).getMetricId(),
+        event.getInstanceId());
   }
 }

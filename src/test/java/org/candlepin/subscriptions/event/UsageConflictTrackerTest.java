@@ -28,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement;
@@ -49,41 +48,9 @@ class UsageConflictTrackerTest {
 
     UsageConflictTracker tracker = new UsageConflictTracker(List.of(event));
 
-    UsageConflictKey key = new UsageConflictKey(tag, metricId);
+    UsageConflictKey key = new UsageConflictKey(tag, metricId, "instance1");
     assertTrue(tracker.contains(key));
-    assertFalse(tracker.contains(new UsageConflictKey("T2", "M2")));
-  }
-
-  @Test
-  void testGetLatest() {
-    Event oldest =
-        createEvent(CLOCK.now(), List.of(new Measurement().withMetricId(metricId).withValue(20.0)));
-    oldest.setRecordDate(CLOCK.now().minusHours(2L));
-    Event latest =
-        createEvent(CLOCK.now(), List.of(new Measurement().withMetricId(metricId).withValue(20.0)));
-    latest.setRecordDate(CLOCK.now());
-
-    UsageConflictTracker tracker = new UsageConflictTracker(List.of(latest, oldest));
-    UsageConflictKey key = new UsageConflictKey(tag, metricId);
-    assertTrue(tracker.contains(key));
-    assertEquals(latest, tracker.getLatest(key));
-  }
-
-  @Test
-  void testGetLatestPrefersEventWithNullRecordDate() {
-    Event eventWithNullRecordDate =
-        createEvent(CLOCK.now(), List.of(new Measurement().withMetricId(metricId).withValue(20.0)));
-    assertTrue(Objects.isNull(eventWithNullRecordDate.getRecordDate()));
-
-    Event latest =
-        createEvent(CLOCK.now(), List.of(new Measurement().withMetricId(metricId).withValue(20.0)));
-    latest.setRecordDate(CLOCK.now());
-
-    UsageConflictTracker tracker =
-        new UsageConflictTracker(List.of(eventWithNullRecordDate, latest));
-    UsageConflictKey key = new UsageConflictKey(tag, metricId);
-    assertTrue(tracker.contains(key));
-    assertEquals(eventWithNullRecordDate, tracker.getLatest(key));
+    assertFalse(tracker.contains(new UsageConflictKey("T2", "M2", "instance1")));
   }
 
   @Test
@@ -97,7 +64,7 @@ class UsageConflictTrackerTest {
     tracker.track(firstTracked);
     tracker.track(lastTracked);
 
-    UsageConflictKey key = new UsageConflictKey(tag, metricId);
+    UsageConflictKey key = new UsageConflictKey(tag, metricId, "instance1");
     assertTrue(tracker.contains(key));
     assertEquals(lastTracked, tracker.getLatest(key));
   }

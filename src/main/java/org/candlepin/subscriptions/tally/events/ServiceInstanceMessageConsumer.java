@@ -56,6 +56,6 @@ public class ServiceInstanceMessageConsumer extends SeekableKafkaConsumer {
   @Transactional(noRollbackFor = RuntimeException.class)
   public void receive(@Payload List<String> events) {
     log.info("Events received w/ event list size={}. Consuming events.", events.size());
-    eventController.persistServiceInstances(events);
+    eventController.processEventsAtomically(events);
   }
 }
