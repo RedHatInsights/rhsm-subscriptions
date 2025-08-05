@@ -24,7 +24,6 @@ import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.candlepin.subscriptions.json.Event;
 
 /**
@@ -54,17 +53,22 @@ public class UsageConflictTracker {
     UsageConflictKey key = getConflictKeyForEvent(event);
     if (!keyToLatestEvent.containsKey(key)) {
       keyToLatestEvent.put(key, event);
-    } else {
-      // If record date is null, we prefer that event. This can happen if a non-persisted
-      // event is tracked (i.e. an incoming event).
-      Optional<OffsetDateTime> eventRecordDate = Optional.ofNullable(event.getRecordDate());
-      Optional<OffsetDateTime> latestEventRecordDate =
-          Optional.ofNullable(keyToLatestEvent.get(key).getRecordDate());
-      if (eventRecordDate.isEmpty()
-          || (latestEventRecordDate.isPresent()
-              && eventRecordDate.get().isAfter(latestEventRecordDate.get()))) {
-        keyToLatestEvent.put(key, event);
-      }
+      return;
+    }
+
+    Event currentLatest = keyToLatestEvent.get(key);
+
+    // Events that reach this point already share the same semantic timestamp
+    // (timestamp equality is implied by an identical EventKey). We therefore
+    // rely solely on recordDate to decide which is newer.
+    OffsetDateTime eventRecordDate = event.getRecordDate();
+    OffsetDateTime latestRecordDate = currentLatest.getRecordDate();
+
+    // Prefer persisted events (non-null recordDate). An incoming event with null recordDate
+    // should NOT override an existing persisted event for "latest" determination.
+    if (eventRecordDate != null
+        && (latestRecordDate == null || eventRecordDate.isAfter(latestRecordDate))) {
+      keyToLatestEvent.put(key, event);
     }
   }
 

@@ -70,20 +70,52 @@ class UsageConflictTrackerTest {
   }
 
   @Test
-  void testGetLatestPrefersEventWithNullRecordDate() {
-    Event eventWithNullRecordDate =
+  void testGetLatestPrefersPersistedEventOverNullRecordDate() {
+    Event unpersisted =
         createEvent(CLOCK.now(), List.of(new Measurement().withMetricId(metricId).withValue(20.0)));
-    assertTrue(Objects.isNull(eventWithNullRecordDate.getRecordDate()));
+    assertTrue(Objects.isNull(unpersisted.getRecordDate()));
 
-    Event latest =
+    Event persisted =
         createEvent(CLOCK.now(), List.of(new Measurement().withMetricId(metricId).withValue(20.0)));
-    latest.setRecordDate(CLOCK.now());
+    persisted.setRecordDate(CLOCK.now());
 
-    UsageConflictTracker tracker =
-        new UsageConflictTracker(List.of(eventWithNullRecordDate, latest));
+    UsageConflictTracker tracker = new UsageConflictTracker(List.of(unpersisted, persisted));
     UsageConflictKey key = new UsageConflictKey(tag, metricId);
     assertTrue(tracker.contains(key));
-    assertEquals(eventWithNullRecordDate, tracker.getLatest(key));
+    assertEquals(persisted, tracker.getLatest(key));
+  }
+
+  @Test
+  void testCorrectiveLoopProducesWholeNumberDeduction() {
+    // Original persisted fractional event 2/7
+    Event original =
+        createEvent(
+            CLOCK.now(), List.of(new Measurement().withMetricId(metricId).withValue(2.0 / 7)));
+    original.setRecordDate(CLOCK.now().minusMinutes(10));
+
+    // First corrective incoming 1.0 (unpersisted -> null recordDate) processed against DB list
+    Event correctiveIncoming =
+        createEvent(CLOCK.now(), List.of(new Measurement().withMetricId(metricId).withValue(1.0)));
+    // simulate tracker with original only
+    UsageConflictTracker tracker = new UsageConflictTracker(List.of(original));
+    UsageConflictKey key = tracker.getConflictKeyForEvent(correctiveIncoming);
+
+    // original is latest now
+    assertEquals(original, tracker.getLatest(key));
+
+    // now simulate persistence result: deduction(-2/7) + new(1.0) with recordDates
+    Event deduction =
+        createEvent(
+            CLOCK.now(), List.of(new Measurement().withMetricId(metricId).withValue(-2.0 / 7)));
+    deduction.setAmendmentType(Event.AmendmentType.DEDUCTION);
+    deduction.setRecordDate(CLOCK.now().minusMinutes(5));
+    Event updated =
+        createEvent(CLOCK.now(), List.of(new Measurement().withMetricId(metricId).withValue(1.0)));
+    updated.setRecordDate(CLOCK.now().minusMinutes(5));
+
+    // new tracker for next incoming with all persisted events
+    UsageConflictTracker tracker2 = new UsageConflictTracker(List.of(original, deduction, updated));
+    assertEquals(updated, tracker2.getLatest(key));
   }
 
   @Test
