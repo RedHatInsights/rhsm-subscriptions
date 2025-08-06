@@ -1,0 +1,54 @@
+#!/usr/bin/env groovy
+
+pipeline {
+    agent {
+        label 'rhel8-spot'
+    }
+    
+    environment {
+        // Set distinct Ibutsu source for post-merge tests
+        IQE_IBUTSU_SOURCE = "rhsm-post-merge-ephemeral-main"
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('Post-Merge Ephemeral Test') {
+            steps {
+                script {
+                    // Run the same pr_check.sh script as PR tests
+                    // but with distinct Ibutsu source for tracking
+                    sh '''
+                        echo "Running post-merge ephemeral tests..."
+                        echo "Ibutsu source: $IQE_IBUTSU_SOURCE"
+                        
+                        # Run the pr_check script with ephemeral environment
+                        ./pr_check.sh
+                        
+                        echo "Post-merge ephemeral tests completed"
+                    '''
+                }
+            }
+            post {
+                always {
+                    // Archive test results
+                    archiveArtifacts artifacts: 'artifacts/**/*', allowEmptyArchive: true
+                    junit 'artifacts/junit-*.xml'
+                }
+            }
+        }
+    }
+    
+    post {
+        failure {
+            echo "Post-merge ephemeral tests failed"
+        }
+        success {
+            echo "Post-merge ephemeral tests passed"
+        }
+    }
+}
