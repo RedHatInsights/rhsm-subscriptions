@@ -1,0 +1,272 @@
+---
+version: '3.8'
+services:
+  # PostgreSQL database
+  postgres:
+    image: quay.io/sclorg/postgresql-13-c9s:c9s
+    container_name: swatch-postgres-multi
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+      - POSTGRESQL_MAX_CONNECTIONS=181  # Production setting
+      - POSTGRESQL_ADMIN_PASSWORD=admin
+      - POSTGRESQL_SHARED_BUFFERS=256MB  # Production-like
+      - POSTGRESQL_EFFECTIVE_CACHE_SIZE=1GB  # Production-like
+      - POSTGRESQL_WORK_MEM=4MB  # Production-like
+    healthcheck:
+      test: ["CMD", "pg_isready", "--username=postgres", "--host=127.0.0.1", "--port=5432"]
+      interval: 2s
+      timeout: 1m
+      retries: 5
+      start_period: 10s
+    volumes:
+      - ./init_dbs.sh:/usr/share/container-scripts/postgresql/init/init_dbs.sh:z
+      - ./postgresql.conf:/opt/app-root/src/postgresql-cfg/postgresql.conf:z
+      - ./pg_hba.conf:/pg_hba.conf:z
+      - postgres_multi_data:/var/lib/pgsql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    networks:
+      swatch-multi-kafka-network:
+        aliases:
+          - postgres
+
+  # Swatch-database init container to set up schema
+  swatch-database-init:
+    image: quay.io/redhat-services-prod/rh-subs-watch-tenant/swatch-database:2ec32c0
+    container_name: swatch-database-init
+    environment:
+      # Database configuration
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_DATABASE=rhsm-subscriptions
+      - DATABASE_USERNAME=rhsm-subscriptions
+      - DATABASE_PASSWORD=rhsm-subscriptions
+      - DATABASE_MAX_POOL_SIZE=5
+      - DATABASE_CONNECTION_TIMEOUT_MS=30000
+      
+      # Liquibase configuration
+      - LIQUIBASE_CHANGELOG_MASTER=db/changelog/db.changelog-master.xml
+      - LIQUIBASE_CONTEXTS=prod
+      - LIQUIBASE_LABELS=prod
+      
+      # Application configuration
+      - SPRING_PROFILES_ACTIVE=worker
+      - LOGGING_LEVEL_ROOT=INFO
+      - LOGGING_LEVEL_ORG_CANDLEPIN=INFO
+      - LOGGING_LEVEL_COM_REDHAT_SWATCH=INFO
+    command: ["java", "-jar", "/deployments/swatch-database-1.1.0-SNAPSHOT-jar-with-dependencies.jar"]
+    networks:
+      swatch-multi-kafka-network:
+        aliases:
+          - swatch-database-init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  # Zookeeper ensemble (3 nodes)
+  zookeeper-1:
+    container_name: swatch-zookeeper-1
+    image: quay.io/strimzi/kafka:latest-kafka-3.1.0
+    command: sh /init_zookeeper.sh
+    environment:
+      - ZOOKEEPER_SERVER_ID=1
+      - ZOOKEEPER_SERVERS=zookeeper-1:2888:3888;zookeeper-2:2888:3888;zookeeper-3:2888:3888
+      - ZOOKEEPER_CLIENT_PORT=2181
+      - ZOOKEEPER_DATA_DIR=/tmp/zookeeper
+    volumes:
+      - ./config/kafka/init_zookeeper.sh:/init_zookeeper.sh:z
+      - zookeeper_1_data:/tmp/zookeeper
+    networks:
+      swatch-multi-kafka-network:
+        aliases:
+          - zookeeper-1
+    user: root
+
+  zookeeper-2:
+    container_name: swatch-zookeeper-2
+    image: quay.io/strimzi/kafka:latest-kafka-3.1.0
+    command: sh /init_zookeeper.sh
+    environment:
+      - ZOOKEEPER_SERVER_ID=2
+      - ZOOKEEPER_SERVERS=zookeeper-1:2888:3888;zookeeper-2:2888:3888;zookeeper-3:2888:3888
+      - ZOOKEEPER_CLIENT_PORT=2181
+      - ZOOKEEPER_DATA_DIR=/tmp/zookeeper
+    volumes:
+      - ./config/kafka/init_zookeeper.sh:/init_zookeeper.sh:z
+      - zookeeper_2_data:/tmp/zookeeper
+    networks:
+      swatch-multi-kafka-network:
+        aliases:
+          - zookeeper-2
+    user: root
+
+  zookeeper-3:
+    container_name: swatch-zookeeper-3
+    image: quay.io/strimzi/kafka:latest-kafka-3.1.0
+    command: sh /init_zookeeper.sh
+    environment:
+      - ZOOKEEPER_SERVER_ID=3
+      - ZOOKEEPER_SERVERS=zookeeper-1:2888:3888;zookeeper-2:2888:3888;zookeeper-3:2888:3888
+      - ZOOKEEPER_CLIENT_PORT=2181
+      - ZOOKEEPER_DATA_DIR=/tmp/zookeeper
+    volumes:
+      - ./config/kafka/init_zookeeper.sh:/init_zookeeper.sh:z
+      - zookeeper_3_data:/tmp/zookeeper
+    networks:
+      swatch-multi-kafka-network:
+        aliases:
+          - zookeeper-3
+    user: root
+
+  # Kafka brokers (3 brokers)
+  kafka-broker-1:
+    container_name: swatch-kafka-broker-1
+    image: quay.io/strimzi/kafka:latest-kafka-3.1.0
+    command: sh /init_kafka_broker.sh
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181
+      - KAFKA_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=3
+      - KAFKA_DEFAULT_REPLICATION_FACTOR=3
+      - KAFKA_MIN_INSYNC_REPLICAS=2
+      - KAFKA_NUM_PARTITIONS=3
+      - KAFKA_LOG_DIRS=/tmp/kafka-logs
+    volumes:
+      - ./config/kafka/init_kafka_broker.sh:/init_kafka_broker.sh:z
+      - kafka_broker_1_data:/tmp/kafka-logs
+    networks:
+      swatch-multi-kafka-network:
+        aliases:
+          - kafka-broker-1
+    depends_on:
+      - zookeeper-1
+      - zookeeper-2
+      - zookeeper-3
+    user: root
+
+  kafka-broker-2:
+    container_name: swatch-kafka-broker-2
+    image: quay.io/strimzi/kafka:latest-kafka-3.1.0
+    command: sh /init_kafka_broker.sh
+    environment:
+      - KAFKA_BROKER_ID=2
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181
+      - KAFKA_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=3
+      - KAFKA_DEFAULT_REPLICATION_FACTOR=3
+      - KAFKA_MIN_INSYNC_REPLICAS=2
+      - KAFKA_NUM_PARTITIONS=3
+      - KAFKA_LOG_DIRS=/tmp/kafka-logs
+    volumes:
+      - ./config/kafka/init_kafka_broker.sh:/init_kafka_broker.sh:z
+      - kafka_broker_2_data:/tmp/kafka-logs
+    networks:
+      swatch-multi-kafka-network:
+        aliases:
+          - kafka-broker-2
+    depends_on:
+      - zookeeper-1
+      - zookeeper-2
+      - zookeeper-3
+    user: root
+
+  kafka-broker-3:
+    container_name: swatch-kafka-broker-3
+    image: quay.io/strimzi/kafka:latest-kafka-3.1.0
+    command: sh /init_kafka_broker.sh
+    environment:
+      - KAFKA_BROKER_ID=3
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181
+      - KAFKA_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=3
+      - KAFKA_DEFAULT_REPLICATION_FACTOR=3
+      - KAFKA_MIN_INSYNC_REPLICAS=2
+      - KAFKA_NUM_PARTITIONS=3
+      - KAFKA_LOG_DIRS=/tmp/kafka-logs
+    volumes:
+      - ./config/kafka/init_kafka_broker.sh:/init_kafka_broker.sh:z
+      - kafka_broker_3_data:/tmp/kafka-logs
+    networks:
+      swatch-multi-kafka-network:
+        aliases:
+          - kafka-broker-3
+    depends_on:
+      - zookeeper-1
+      - zookeeper-2
+      - zookeeper-3
+    user: root
+
+  # Kafka load balancer (single entry point on 9092)
+  kafka-loadbalancer:
+    container_name: swatch-kafka-loadbalancer
+    image: nginx:alpine
+    command: sh /init_nginx.sh
+    volumes:
+      - ./config/kafka/nginx.conf:/etc/nginx/nginx.conf:z
+      - ./config/kafka/init_nginx.sh:/init_nginx.sh:z
+    ports:
+      - "127.0.0.1:9092:9092"
+    networks:
+      swatch-multi-kafka-network:
+        aliases:
+          - kafka-loadbalancer
+    depends_on:
+      - kafka-broker-1
+      - kafka-broker-2
+      - kafka-broker-3
+
+  # Kafka topic setup
+  kafka-setup-multi:
+    image: quay.io/strimzi/kafka:latest-kafka-3.1.0
+    container_name: swatch-kafka-setup-multi
+    command: |
+      /bin/bash -c "
+        echo 'Waiting for Kafka cluster to be ready...'
+        sleep 90
+        echo 'Creating multi-broker Kafka topics...'
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server=kafka-broker-1:9092 --create --if-not-exists --partitions 3 --replication-factor 3 --topic platform.rhsm-subscriptions.service-instance-ingress
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server=kafka-broker-1:9092 --create --if-not-exists --partitions 3 --replication-factor 3 --topic platform.rhsm-subscriptions.tally
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server=kafka-broker-1:9092 --create --if-not-exists --partitions 3 --replication-factor 3 --topic platform.rhsm-subscriptions.tasks
+        echo 'Multi-broker Kafka topics created successfully!'
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server=kafka-broker-1:9092 --list
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server=kafka-broker-1:9092 --describe --topic platform.rhsm-subscriptions.service-instance-ingress
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server=kafka-broker-1:9092 --describe --topic platform.rhsm-subscriptions.tally
+      "
+    depends_on:
+      - kafka-broker-1
+      - kafka-broker-2
+      - kafka-broker-3
+    networks:
+      - swatch-multi-kafka-network
+
+volumes:
+  postgres_multi_data:
+    driver: local
+  zookeeper_1_data:
+    driver: local
+  zookeeper_2_data:
+    driver: local
+  zookeeper_3_data:
+    driver: local
+  kafka_broker_1_data:
+    driver: local
+  kafka_broker_2_data:
+    driver: local
+  kafka_broker_3_data:
+    driver: local
+
+networks:
+  swatch-multi-kafka-network:
+    name: swatch-multi-kafka-network
+    driver: bridge 

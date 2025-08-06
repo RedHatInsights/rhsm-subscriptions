@@ -1,0 +1,376 @@
+---
+version: '3.8'
+services:
+  # Production-like PostgreSQL with exact production settings
+  postgres-production:
+    image: quay.io/sclorg/postgresql-13-c9s:c9s
+    container_name: swatch-postgres-production
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+      - POSTGRESQL_MAX_CONNECTIONS=181  # Production setting
+      - POSTGRESQL_ADMIN_PASSWORD=admin
+      - POSTGRESQL_SHARED_BUFFERS=256MB  # Production-like
+      - POSTGRESQL_EFFECTIVE_CACHE_SIZE=1GB  # Production-like
+      - POSTGRESQL_WORK_MEM=4MB  # Production-like
+    healthcheck:
+      test: ["CMD", "pg_isready", "--username=postgres", "--host=127.0.0.1", "--port=5432"]
+      interval: 2s
+      timeout: 1m
+      retries: 5
+      start_period: 10s
+    volumes:
+      - ./init_dbs.sh:/usr/share/container-scripts/postgresql/init/init_dbs.sh:z
+      - ./postgresql.conf:/opt/app-root/src/postgresql-cfg/postgresql.conf:z
+      - ./pg_hba.conf:/pg_hba.conf:z
+      - postgres_production_data:/var/lib/pgsql/data
+    ports:
+      - "127.0.0.1:5433:5432"  # Different port to avoid conflicts
+    networks:
+      swatch-production-network:
+        aliases:
+          - postgres-production
+
+  # Multi-broker Kafka cluster (3 brokers like production)
+  kafka-broker-1:
+    container_name: swatch-kafka-broker-1
+    image: quay.io/strimzi/kafka:latest-kafka-3.1.0
+    command: sh /init_kafka_cluster.sh
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      - KAFKA_LISTENERS=PLAINTEXT://:29092,PLAINTEXT_HOST://:9092,CONTROLLER://:9093
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka-broker-1:29092,PLAINTEXT_HOST://localhost:9092
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka-broker-1:9093,2@kafka-broker-2:9093,3@kafka-broker-3:9093
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_NODE_ID=1
+      - LOG_DIR=/tmp/logs
+      - KAFKA_OPTS=-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf
+      - KAFKA_SASL_MECHANISM=PLAIN
+      - KAFKA_NUM_PARTITIONS=3
+      - KAFKA_DEFAULT_REPLICATION_FACTOR=3
+      - KAFKA_MIN_INSYNC_REPLICAS=2
+    healthcheck:
+      test: ./bin/kafka-cluster.sh cluster-id --bootstrap-server 127.0.0.1:9092 || exit 1
+      interval: 2s
+      timeout: 1m
+      retries: 5
+      start_period: 10s
+    ports:
+      - "127.0.0.1:9092:9092"
+      - "127.0.0.1:9093:9093"
+      - "127.0.0.1:29092:29092"
+    volumes:
+      - ./config/kafka/init_kafka_cluster.sh:/init_kafka_cluster.sh:z
+      - ./config/kafka/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf:z
+      - ./config/kafka/:/etc/kafka/secrets/certs:z
+      - kafka_broker_1_data:/tmp/kafka-logs
+    networks:
+      swatch-production-network:
+        aliases:
+          - kafka-broker-1
+    user: root
+
+  kafka-broker-2:
+    container_name: swatch-kafka-broker-2
+    image: quay.io/strimzi/kafka:latest-kafka-3.1.0
+    command: sh /init_kafka_cluster.sh
+    environment:
+      - KAFKA_BROKER_ID=2
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      - KAFKA_LISTENERS=PLAINTEXT://:29092,PLAINTEXT_HOST://:9092,CONTROLLER://:9093
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka-broker-2:29092,PLAINTEXT_HOST://localhost:9093
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka-broker-1:9093,2@kafka-broker-2:9093,3@kafka-broker-3:9093
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_NODE_ID=2
+      - LOG_DIR=/tmp/logs
+      - KAFKA_OPTS=-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf
+      - KAFKA_SASL_MECHANISM=PLAIN
+      - KAFKA_NUM_PARTITIONS=3
+      - KAFKA_DEFAULT_REPLICATION_FACTOR=3
+      - KAFKA_MIN_INSYNC_REPLICAS=2
+    healthcheck:
+      test: ./bin/kafka-cluster.sh cluster-id --bootstrap-server 127.0.0.1:9092 || exit 1
+      interval: 2s
+      timeout: 1m
+      retries: 5
+      start_period: 10s
+    ports:
+      - "127.0.0.1:9094:9092"
+      - "127.0.0.1:9095:9093"
+      - "127.0.0.1:29093:29092"
+    volumes:
+      - ./config/kafka/init_kafka_cluster.sh:/init_kafka_cluster.sh:z
+      - ./config/kafka/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf:z
+      - ./config/kafka/:/etc/kafka/secrets/certs:z
+      - kafka_broker_2_data:/tmp/kafka-logs
+    networks:
+      swatch-production-network:
+        aliases:
+          - kafka-broker-2
+    user: root
+
+  kafka-broker-3:
+    container_name: swatch-kafka-broker-3
+    image: quay.io/strimzi/kafka:latest-kafka-3.1.0
+    command: sh /init_kafka_cluster.sh
+    environment:
+      - KAFKA_BROKER_ID=3
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      - KAFKA_LISTENERS=PLAINTEXT://:29092,PLAINTEXT_HOST://:9092,CONTROLLER://:9093
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka-broker-3:29092,PLAINTEXT_HOST://localhost:9094
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka-broker-1:9093,2@kafka-broker-2:9093,3@kafka-broker-3:9093
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_NODE_ID=3
+      - LOG_DIR=/tmp/logs
+      - KAFKA_OPTS=-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf
+      - KAFKA_SASL_MECHANISM=PLAIN
+      - KAFKA_NUM_PARTITIONS=3
+      - KAFKA_DEFAULT_REPLICATION_FACTOR=3
+      - KAFKA_MIN_INSYNC_REPLICAS=2
+    healthcheck:
+      test: ./bin/kafka-cluster.sh cluster-id --bootstrap-server 127.0.0.1:9092 || exit 1
+      interval: 2s
+      timeout: 1m
+      retries: 5
+      start_period: 10s
+    ports:
+      - "127.0.0.1:9096:9092"
+      - "127.0.0.1:9097:9093"
+      - "127.0.0.1:29094:29092"
+    volumes:
+      - ./config/kafka/init_kafka_cluster.sh:/init_kafka_cluster.sh:z
+      - ./config/kafka/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf:z
+      - ./config/kafka/:/etc/kafka/secrets/certs:z
+      - kafka_broker_3_data:/tmp/kafka-logs
+    networks:
+      swatch-production-network:
+        aliases:
+          - kafka-broker-3
+    user: root
+
+  # Kafka topic setup with production configuration
+  kafka-setup-production:
+    image: quay.io/strimzi/kafka:latest-kafka-3.1.0
+    container_name: swatch-kafka-setup-production
+    command: |
+      /bin/bash -c "
+        echo 'Waiting for Kafka cluster to be ready...'
+        sleep 30
+        echo 'Creating production Kafka topics...'
+        bin/kafka-topics.sh --bootstrap-server=kafka-broker-1:29092 --create --if-not-exists --partitions 3 --replication-factor 3 --topic platform.rhsm-subscriptions.service-instance-ingress
+        bin/kafka-topics.sh --bootstrap-server=kafka-broker-1:29092 --create --if-not-exists --partitions 3 --replication-factor 3 --topic platform.rhsm-subscriptions.tally
+        bin/kafka-topics.sh --bootstrap-server=kafka-broker-1:29092 --create --if-not-exists --partitions 3 --replication-factor 3 --topic platform.rhsm-subscriptions.tasks
+        bin/kafka-topics.sh --bootstrap-server=kafka-broker-1:29092 --create --if-not-exists --partitions 3 --replication-factor 3 --topic platform.rhsm-subscriptions.service-instance-ingress.dlt
+        bin/kafka-topics.sh --bootstrap-server=kafka-broker-1:29092 --create --if-not-exists --partitions 3 --replication-factor 3 --topic platform.rhsm-subscriptions.enabled-orgs-for-tasks
+        bin/kafka-topics.sh --bootstrap-server=kafka-broker-1:29092 --create --if-not-exists --partitions 3 --replication-factor 3 --topic platform.export.requests
+        echo 'Production Kafka topics created successfully!'
+        bin/kafka-topics.sh --bootstrap-server=kafka-broker-1:29092 --list
+        bin/kafka-topics.sh --bootstrap-server=kafka-broker-1:29092 --describe --topic platform.rhsm-subscriptions.service-instance-ingress
+        bin/kafka-topics.sh --bootstrap-server=kafka-broker-1:29092 --describe --topic platform.rhsm-subscriptions.tally
+      "
+    depends_on:
+      kafka-broker-1:
+        condition: service_healthy
+      kafka-broker-2:
+        condition: service_healthy
+      kafka-broker-3:
+        condition: service_healthy
+    networks:
+      - swatch-production-network
+
+  # Kafka Bridge for API access
+  kafka-bridge-production:
+    image: quay.io/strimzi/kafka-bridge:0.31.2
+    container_name: swatch-kafka-bridge-production
+    entrypoint: /opt/strimzi/bin/kafka_bridge_run.sh
+    command: --config-file=config/application-kafka-bridge.properties
+    ports:
+      - "127.0.0.1:9081:8080"
+    volumes:
+      - ./config/application-kafka-bridge.properties:/opt/strimzi/config/application-kafka-bridge.properties:Z
+    networks:
+      - swatch-production-network
+    user: root
+    depends_on:
+      kafka-setup-production:
+        condition: service_completed_successfully
+
+  # Swatch-database init container to set up schema
+  swatch-database-init:
+    image: quay.io/redhat-services-prod/rh-subs-watch-tenant/swatch-database:9cf4219
+    container_name: swatch-database-init
+    environment:
+      # Database configuration
+      - DATABASE_HOST=postgres-production
+      - DATABASE_PORT=5432
+      - DATABASE_DATABASE=rhsm-subscriptions
+      - DATABASE_USERNAME=rhsm-subscriptions
+      - DATABASE_PASSWORD=rhsm-subscriptions
+      - DATABASE_MAX_POOL_SIZE=5
+      - DATABASE_CONNECTION_TIMEOUT_MS=30000
+      
+      # Liquibase configuration
+      - LIQUIBASE_CHANGELOG_MASTER=db/changelog/db.changelog-master.xml
+      - LIQUIBASE_CONTEXTS=prod
+      - LIQUIBASE_LABELS=prod
+      
+      # Application configuration
+      - SPRING_PROFILES_ACTIVE=worker
+      - LOGGING_LEVEL_ROOT=INFO
+      - LOGGING_LEVEL_ORG_CANDLEPIN=INFO
+      - LOGGING_LEVEL_COM_REDHAT_SWATCH=INFO
+    command: ["java", "-jar", "/opt/app/quarkus-run.jar"]
+    networks:
+      swatch-production-network:
+        aliases:
+          - swatch-database-init
+    depends_on:
+      postgres-production:
+        condition: service_healthy
+    restart: "no"
+
+  # Swatch-tally with EXACT production configuration
+  swatch-tally-production:
+    image: quay.io/redhat-services-prod/rh-subs-watch-tenant/swatch-tally:9cf4219
+    container_name: swatch-tally-production
+    environment:
+      # Database configuration (production-like)
+      - DATABASE_HOST=postgres-production
+      - DATABASE_PORT=5432
+      - DATABASE_DATABASE=rhsm-subscriptions
+      - DATABASE_USERNAME=rhsm-subscriptions
+      - DATABASE_PASSWORD=rhsm-subscriptions
+      - DATABASE_MAX_POOL_SIZE=10
+      - DATABASE_CONNECTION_TIMEOUT_MS=30000
+      
+      # Kafka configuration (production-like)
+      - KAFKA_BOOTSTRAP_SERVERS=kafka-broker-1:29092,kafka-broker-2:29092,kafka-broker-3:29092
+      - KAFKA_MESSAGE_THREADS=1
+      - KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS=3600000
+      - SERVICE_INSTANCE_INGRESS_KAFKA_MAX_POLL_RECORDS=500
+      - SERVICE_INSTANCE_INGRESS_KAFKA_SEEK_OVERRIDE_END=false
+      - SERVICE_INSTANCE_INGRESS_KAFKA_SEEK_OVERRIDE_TIMESTAMP=
+      - KAFKA_SEEK_OVERRIDE_END=false
+      - KAFKA_SEEK_OVERRIDE_TIMESTAMP=
+      
+      # Spring configuration (production-like)
+      - SPRING_PROFILES_ACTIVE=worker,api,kafka-queue
+      - LOG_FILE=/logs/server.log
+      - JAVA_MAX_MEM_RATIO=85
+      - GC_MAX_METASPACE_SIZE=256
+      - LOGGING_LEVEL_ROOT=WARN
+      - LOGGING_LEVEL_ORG_CANDLEPIN=INFO
+      - LOGGING_LEVEL_COM_REDHAT_SWATCH=INFO
+      - LOGGING_SHOW_SQL_QUERIES=false
+      
+      # Feature flags (production-like)
+      - DEV_MODE=false
+      - ENABLE_ACCOUNT_RESET=true
+      - DEVTEST_EVENT_EDITING_ENABLED=true
+      - ENABLE_SYNCHRONOUS_OPERATIONS=true
+      
+      # Application configuration (production-like)
+      - TALLY_MAX_HBI_ACCOUNT_SIZE=2147483647
+      - HOURLY_TALLY_EVENT_BATCH_SIZE=16000
+      - HBI_RECONCILIATION_FLUSH_INTERVAL=1024
+      - USE_CPU_SYSTEM_FACTS_TO_ALL_PRODUCTS=true
+      - HOST_LAST_SYNC_THRESHOLD=30h
+      - EVENT_RECORD_RETENTION=P6M
+      
+      # Server configuration
+      - SERVER_PORT=8000
+      - MANAGEMENT_SERVER_PORT=9000
+      
+      # Inventory database (production-like)
+      - INVENTORY_DATABASE_HOST=postgres-production
+      - INVENTORY_DATABASE_DATABASE=rhsm-subscriptions
+      - INVENTORY_DATABASE_USERNAME=rhsm-subscriptions
+      - INVENTORY_DATABASE_PASSWORD=rhsm-subscriptions
+      - INVENTORY_DATABASE_CONNECTION_TIMEOUT_MS=30000
+      - INVENTORY_DATABASE_MAX_POOL_SIZE=3
+      - INVENTORY_DATABASE_SCHEMA=hbi
+      
+      # User service (production-like)
+      - USER_HOST=user.stage.api.redhat.com
+      - USER_MAX_CONNECTIONS=100
+      - USER_MAX_ATTEMPTS=10
+      - USER_BACK_OFF_MAX_INTERVAL=64s
+      - USER_BACK_OFF_INITIAL_INTERVAL=1s
+      - USER_BACK_OFF_MULTIPLIER=2
+      
+      # Billing configuration (production-like)
+      - OPENSHIFT_BILLING_MODEL_FILTER=marketplace
+      - PROM_URL=http://localhost:8082
+      
+      # Monitoring (production-like)
+      - OTEL_JAVAAGENT_ENABLED=false
+      - ENABLE_SPLUNK_HEC=false
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    ports:
+      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:9000:9000"
+    volumes:
+      - swatch_tally_logs:/logs
+    networks:
+      swatch-production-network:
+        aliases:
+          - swatch-tally-production
+    depends_on:
+      postgres-production:
+        condition: service_healthy
+      swatch-database-init:
+        condition: service_completed_successfully
+      kafka-setup-production:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2'
+        reservations:
+          memory: 1200M
+          cpus: '2'
+
+  # Kafka Topics UI for monitoring
+  kafka-topics-ui-production:
+    image: docker.io/landoop/kafka-topics-ui
+    container_name: swatch-kafka-topics-ui-production
+    environment:
+      - KAFKA_REST_PROXY_URL=http://kafka-bridge-production:8080
+      - PROXY=true
+    ports:
+      - "127.0.0.1:3031:8000"
+    restart: on-failure
+    depends_on:
+      - kafka-bridge-production
+    networks:
+      - swatch-production-network
+
+volumes:
+  postgres_production_data:
+    driver: local
+  kafka_broker_1_data:
+    driver: local
+  kafka_broker_2_data:
+    driver: local
+  kafka_broker_3_data:
+    driver: local
+  swatch_tally_logs:
+    driver: local
+
+networks:
+  swatch-production-network:
+    name: swatch-production-network
+    driver: bridge 
