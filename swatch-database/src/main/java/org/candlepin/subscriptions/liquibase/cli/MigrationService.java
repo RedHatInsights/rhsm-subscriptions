@@ -57,7 +57,6 @@ public class MigrationService {
   enum Context {
     CONTRACTS("contracts"),
     CORE("core"),
-    METRICS_HBI("metrics_hbi"),
     ALL("_ALL");
 
     public final String value;
@@ -168,7 +167,7 @@ public class MigrationService {
 
     Context[] migrationContexts;
     if (userContext == Context.ALL) {
-      migrationContexts = new Context[] {Context.CONTRACTS, Context.CORE, Context.METRICS_HBI};
+      migrationContexts = new Context[] {Context.CONTRACTS, Context.CORE};
     } else {
       migrationContexts = new Context[] {userContext};
       // Strip the context off.  We don't want to send that to the Liquibase CLI

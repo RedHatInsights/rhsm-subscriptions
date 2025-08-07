@@ -35,7 +35,6 @@ import com.redhat.swatch.contract.openapi.model.MetricResponse;
 import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
 import com.redhat.swatch.contract.openapi.model.OfferingResponse;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
-import com.redhat.swatch.contract.openapi.model.RhmUsageContext;
 import com.redhat.swatch.contract.openapi.model.RpcResponse;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.openapi.model.SubscriptionResponse;
@@ -292,26 +291,6 @@ public class ContractsResource implements DefaultApi {
   @RolesAllowed({"test", "support", "service"})
   public List<MetricResponse> getMetrics(String tag) throws ProcessingException {
     return metricMapper.mapMetrics(Variant.getMetricsForTag(tag).stream().toList());
-  }
-
-  @Override
-  @RolesAllowed({"test", "support", "service"})
-  public RhmUsageContext getRhmUsageContext(
-      String orgId, OffsetDateTime date, String productId, String sla, String usage)
-      throws ProcessingException {
-
-    // Use "_ANY" because we don't support multiple rh marketplace accounts for a single customer
-    String billingAccountId = "_ANY";
-
-    return getPaygSubscription(date, productId, orgId, BillingProvider.RED_HAT, billingAccountId)
-        .map(this::buildRhmUsageContext)
-        .orElseThrow();
-  }
-
-  private RhmUsageContext buildRhmUsageContext(SubscriptionEntity subscription) {
-    RhmUsageContext context = new RhmUsageContext();
-    context.setRhSubscriptionId(subscription.getBillingProviderId());
-    return context;
   }
 
   /**

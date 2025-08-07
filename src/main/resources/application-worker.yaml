@@ -60,28 +60,6 @@ rhsm-subscriptions:
   service-instance-ingress-dead-letter:
     outgoing:
       topic: ${SERVICE_INSTANCE_INGRESS_DEAD_LETTER_TOPIC}
-  contracts:
-    client:
-      back-off-initial-interval: ${CONTRACT_CLIENT_BACK_OFF_INITIAL_INTERVAL_MILLIS:1000}
-      back-off-max-interval: ${CONTRACT_CLIENT_BACK_OFF_MAX_INTERVAL_MILLIS:64000}
-      back-off-multiplier: ${CONTRACT_CLIENT_BACK_OFF_MULTIPLIER:2}
-      max-attempts: ${CONTRACT_CLIENT_MAX_ATTEMPTS:1}
-      url: ${clowder.endpoints.swatch-contracts-service.url:http://localhost:8001}
-      truststore: ${clowder.endpoints.swatch-contracts-service.trust-store-path}
-      truststore-password: ${clowder.endpoints.swatch-contracts-service.trust-store-password}
-      truststore-type: ${clowder.endpoints.swatch-contracts-service.trust-store-type}
-      psk: ${SWATCH_SELF_PSK:placeholder}
-  billable-usage:
-    client:
-      back-off-initial-interval: ${BILLABLE_USAGE_CLIENT_BACK_OFF_INITIAL_INTERVAL_MILLIS:1000}
-      back-off-max-interval: ${BILLABLE_USAGE_CLIENT_BACK_OFF_MAX_INTERVAL_MILLIS:64000}
-      back-off-multiplier: ${BILLABLE_USAGE_CLIENT_BACK_OFF_MULTIPLIER:2}
-      max-attempts: ${BILLABLE_USAGE_CLIENT_MAX_ATTEMPTS:1}
-      url: ${clowder.endpoints.swatch-billable-usage-service.url:http://localhost:8002}
-      truststore: ${clowder.endpoints.swatch-billable-usage-service.trust-store-path}
-      truststore-password: ${clowder.endpoints.swatch-billable-usage-service.trust-store-password}
-      truststore-type: ${clowder.endpoints.swatch-billable-usage-service.trust-store-type}
-      psk: ${SWATCH_SELF_PSK:placeholder}
   tasks:
     topic: ${TASKS_TOPIC}
     kafka-group-id: ${KAFKA_GROUP_ID:rhsm-subscriptions-task-processor}

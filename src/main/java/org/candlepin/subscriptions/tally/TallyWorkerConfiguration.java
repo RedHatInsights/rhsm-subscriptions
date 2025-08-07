@@ -38,8 +38,6 @@ import org.candlepin.subscriptions.json.EnabledOrgsRequest;
 import org.candlepin.subscriptions.json.EnabledOrgsResponse;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.TallySummary;
-import org.candlepin.subscriptions.tally.billing.BillableUsageConfiguration;
-import org.candlepin.subscriptions.tally.contracts.ContractsConfiguration;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.tally.facts.ProductNormalizer;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
@@ -93,8 +91,6 @@ import org.springframework.util.backoff.FixedBackOff;
 @Import({
   TallyTaskQueueConfiguration.class,
   TaskConsumerConfiguration.class,
-  BillableUsageConfiguration.class,
-  ContractsConfiguration.class,
   InventoryDataSourceConfiguration.class,
   ExportConfiguration.class,
   TracingConfiguration.class

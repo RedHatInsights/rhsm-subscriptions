@@ -20,6 +20,22 @@ services:
       swatch-network:
         aliases:
           - wiremock
+  prometheus:
+    extends:
+      file: config/prometheus/docker-compose.yml
+      service: prometheus
+    networks:
+      swatch-network:
+        aliases:
+          - prometheus
+  amqp:
+    extends:
+      file: config/artemis/docker-compose.yml
+      service: artemis
+    networks:
+      swatch-network:
+        aliases:
+          - amqp
   db:
     # Use the same version as in https://gitlab.cee.redhat.com/service/app-interface/-/blob/ff61d457898da76ebd4abf21fe3ce7b5c74c87a5/data/services/insights/rhsm/namespaces/rhsm-prod.yml#L179
     # When updating the image, remember to also update the following locations:
@@ -101,6 +117,9 @@ services:
         bin/kafka-topics.sh --bootstrap-server=kafka:29092 --create --if-not-exists --partitions 1 --replication-factor 1 --topic platform.inventory.host-ingress
         bin/kafka-topics.sh --bootstrap-server=kafka:29092 --create --if-not-exists --partitions 1 --replication-factor 1 --topic platform.inventory.events
         bin/kafka-topics.sh --bootstrap-server=kafka:29092 --create --if-not-exists --partitions 1 --replication-factor 1 --topic platform.notifications.ingress
+        bin/kafka-topics.sh --bootstrap-server=kafka:29092 --create --if-not-exists --partitions 1 --replication-factor 1 --topic platform.rhsm-subscriptions.service-instance-ingress
+        bin/kafka-topics.sh --bootstrap-server=kafka:29092 --create --if-not-exists --partitions 1 --replication-factor 1 --topic platform.rhsm-subscriptions.billable-usage
+        bin/kafka-topics.sh --bootstrap-server=kafka:29092 --create --if-not-exists --partitions 1 --replication-factor 1 --topic platform.rhsm-subscriptions.billable-usage-hourly-aggregate
       "
     depends_on:
       kafka:
@@ -129,7 +148,6 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
-
   inventory:
     image: quay.io/cloudservices/insights-inventory
     entrypoint: /bin/bash -c
@@ -222,6 +240,14 @@ services:
     volumes:
       - './bin/wait-for:/unleash/wait-for:z'
       - './.unleash:/.unleash:z'
+  moto:
+    extends:
+      file: config/moto/docker-compose.yml
+      service: moto
+    networks:
+      swatch-network:
+        aliases:
+          - moto
 networks:
   swatch-network:
     name: swatch-network

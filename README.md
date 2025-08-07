@@ -318,8 +318,6 @@ We have a number of profiles. Each profile activates a subset of components in t
 - `api`: Run the user-facing API
 - `capacity-ingress`: Run the internal only capacity ingress API
 - `kafka-queue`: Run with a kafka queue (instead of the default in-memory queue)
-- `rh-marketplace`: Run the worker responsible for processing tally summaries and
-  emitting usage to Red Hat Marketplace.
 - `purge-snapshots`: Run the retention job and exit
 - `worker`: Process jobs off the job queue
 
@@ -798,8 +796,6 @@ Links to Swagger UI and API specs:
   ([source](src/main/spec/internal-tally-api-spec.yaml))
 * [Internal Contracts API][contracts-api]
   ([source](swatch-contracts/src/main/resources/META-INF/openapi.yaml))
-* [Internal RHM Producer API][rhm-api]
-  ([source](src/main/spec/internal-swatch-producer-red-hat-marketplace-api-spec.yaml))
 * [Internal AWS Producer API][aws-api]
   ([source](swatch-producer-aws/src/main/resources/META-INF/openapi.yaml))
 * [Internal Azure Producer API][azure-api]
@@ -816,7 +812,6 @@ Links to Swagger UI and API specs:
 [aws-api]:            https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/swatch-producer-aws/src/main/resources/META-INF/openapi.yaml
 [conduit-api]:        https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/swatch-system-conduit/src/main/spec/internal-organizations-sync-api-spec.yaml
 [azure-api]:          https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/swatch-producer-azure/src/main/resources/META-INF/openapi.yaml
-[rhm-api]:            https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/src/main/spec/internal-swatch-producer-red-hat-marketplace-api-spec.yaml
 
 ### Using embedded Swagger from services
 
@@ -825,7 +820,6 @@ Links to Swagger UI and API specs:
 | Customer-facing v1 API        | http://swatch-api-service/api-docs/index.html                                                      |
 | Customer-facing v2 API        |                                                                                                    |
 | Internal Tally API            | http://swatch-tally-service/api/swatch-tally/internal/swagger-ui/index.html                        |
-| Internal RHM Producer API     | http://swatch-tally-service/api/swatch-producer-red-hat-marketplace/internal/swagger-ui/index.html |
 | Internal Billing Producer API | http://swatch-billable-usage-service/api/swatch-billable-usage/internal/swagger-ui/                |
 | Internal Metering API         | http://swatch-metrics-service/api/swatch-metrics/internal/swagger-ui/                              |
 | Internal Contracts API        | http://swatch-contracts-service/api/swatch-contracts/internal/swagger-ui/                          |

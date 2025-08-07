@@ -1,0 +1,30 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <property name="json_type" dbms="h2" value="json"/>
+  <property name="json_type" dbms="postgresql" value="jsonb"/>
+
+  <changeSet id="202508010700-01" author="jcarvaja">
+    <createTable tableName="hbi_event_outbox">
+      <column name="id" type="UUID">
+        <constraints nullable="false" primaryKey="true" />
+      </column>
+      <column name="org_id" type="VARCHAR">
+        <constraints nullable="false"/>
+      </column>
+      <column name="created_on" type="TIMESTAMP WITH TIME ZONE">
+        <constraints nullable="false"/>
+      </column>
+      <column name="swatch_event_json" type="${json_type}">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+
+    <createIndex tableName="hbi_event_outbox" indexName="hbi_event_outbox_org_id_idx">
+      <column name="org_id"/>
+    </createIndex>
+  </changeSet>
+</databaseChangeLog> 

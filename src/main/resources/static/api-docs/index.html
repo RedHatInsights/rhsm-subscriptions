@@ -2,32 +2,164 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8">
-    <title>rhsm-conduit API Docs</title>
+    <title>SWATCH API Documentation</title>
     <link rel="stylesheet" type="text/css" href="../webjars/swagger-ui/swagger-ui.css" >
+    <style>
+      .service-selector {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+        background: white;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .service-selector select {
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        font-size: 14px;
+      }
+      .service-selector label {
+        font-weight: bold;
+        margin-right: 10px;
+      }
+      .api-info {
+        margin-top: 60px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 4px;
+        margin-bottom: 20px;
+      }
+      .api-info h2 {
+        margin-top: 0;
+        color: #333;
+      }
+      .api-info p {
+        margin: 10px 0;
+        color: #666;
+      }
+      .service-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 15px;
+      }
+      .service-link {
+        padding: 8px 12px;
+        background: #007bff;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 12px;
+        transition: background-color 0.2s;
+      }
+      .service-link:hover {
+        background: #0056b3;
+        color: white;
+        text-decoration: none;
+      }
+    </style>
   </head>
 
   <body>
+    <div class="service-selector">
+      <label for="serviceSelect">Select Service:</label>
+      <select id="serviceSelect" onchange="loadService()">
+        <option value="">Choose a service...</option>
+        <option value="public-v1">Public API v1</option>
+        <option value="public-v2">Public API v2</option>
+        <option value="swatch-contracts">Swatch Contracts</option>
+        <option value="swatch-billable-usage">Swatch Billable Usage</option>
+        <option value="swatch-metrics">Swatch Metrics</option>
+        <option value="swatch-tally">Swatch Tally</option>
+        <option value="swatch-producer-aws">Swatch Producer AWS</option>
+        <option value="swatch-producer-azure">Swatch Producer Azure</option>
+        <option value="swatch-system-conduit">Swatch System Conduit</option>
+      </select>
+    </div>
+
+    <div class="api-info">
+      <h2>SWATCH API Documentation</h2>
+      <p>This page provides access to all SWATCH service APIs. Use the dropdown above to select a specific service, or use the direct links below.</p>
+      
+      <div class="service-links">
+        <a href="/api/rhsm-subscriptions/v1/openapi.yaml" class="service-link" target="_blank">Public API v1 (YAML)</a>
+        <a href="/api/rhsm-subscriptions/v2/openapi.yaml" class="service-link" target="_blank">Public API v2 (YAML)</a>
+        <a href="/api/swatch-contracts/internal/openapi.json" class="service-link" target="_blank">Contracts API</a>
+        <a href="/api/swatch-billable-usage/internal/openapi.json" class="service-link" target="_blank">Billable Usage API</a>
+        <a href="/api/swatch-metrics/internal/openapi.json" class="service-link" target="_blank">Metrics API</a>
+        <a href="/api/swatch-tally/internal/openapi.json" class="service-link" target="_blank">Tally API</a>
+        <a href="/api/swatch-producer-aws/internal/openapi.json" class="service-link" target="_blank">AWS Producer API</a>
+        <a href="/api/swatch-producer-azure/internal/openapi.json" class="service-link" target="_blank">Azure Producer API</a>
+        <a href="/api/swatch-system-conduit/internal/openapi.json" class="service-link" target="_blank">System Conduit API</a>
+      </div>
+    </div>
+
     <div id="swagger-ui"></div>
     <script src="../webjars/swagger-ui/swagger-ui-bundle.js"> </script>
     <script src="../webjars/swagger-ui/swagger-ui-standalone-preset.js"></script>
     <script>
-    window.onload = function() {
-      // Begin Swagger UI call region
-      const ui = SwaggerUIBundle({
-        url: "/api/rhsm-subscriptions/v1/openapi.yaml",
-        dom_id: '#swagger-ui',
-        deepLinking: true,
-        presets: [
-          SwaggerUIBundle.presets.apis,
-          SwaggerUIStandalonePreset
-        ],
-        plugins: [
-          SwaggerUIBundle.plugins.DownloadUrl
-        ],
-        layout: "BaseLayout"
-      })
-      window.ui = ui
-    }
-  </script>
+      let ui;
+      
+      const serviceUrls = {
+        'public-v1': '/api/rhsm-subscriptions/v1/openapi.yaml',
+        'public-v2': '/api/rhsm-subscriptions/v2/openapi.yaml',
+        'swatch-contracts': '/api/swatch-contracts/internal/openapi.json',
+        'swatch-billable-usage': '/api/swatch-billable-usage/internal/openapi.json',
+        'swatch-metrics': '/api/swatch-metrics/internal/openapi.json',
+        'swatch-tally': '/api/swatch-tally/internal/openapi.json',
+        'swatch-producer-aws': '/api/swatch-producer-aws/internal/openapi.json',
+        'swatch-producer-azure': '/api/swatch-producer-azure/internal/openapi.json',
+        'swatch-system-conduit': '/api/swatch-system-conduit/internal/openapi.json'
+      };
+
+      function loadService() {
+        const serviceSelect = document.getElementById('serviceSelect');
+        const selectedService = serviceSelect.value;
+        
+        if (!selectedService) {
+          // Clear the UI if no service is selected
+          if (ui) {
+            ui.specActions.updateSpec('');
+          }
+          return;
+        }
+
+        const url = serviceUrls[selectedService];
+        if (!url) {
+          console.error('No URL found for service:', selectedService);
+          return;
+        }
+
+        // Initialize Swagger UI if not already done
+        if (!ui) {
+          ui = SwaggerUIBundle({
+            dom_id: '#swagger-ui',
+            deepLinking: true,
+            presets: [
+              SwaggerUIBundle.presets.apis,
+              SwaggerUIStandalonePreset
+            ],
+            plugins: [
+              SwaggerUIBundle.plugins.DownloadUrl
+            ],
+            layout: "BaseLayout"
+          });
+          window.ui = ui;
+        }
+
+        // Load the selected service's OpenAPI spec
+        ui.specActions.updateSpec(url);
+      }
+
+      // Load the default service (Public API v1) on page load
+      window.onload = function() {
+        document.getElementById('serviceSelect').value = 'public-v1';
+        loadService();
+      };
+    </script>
   </body>
 </html>

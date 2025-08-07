@@ -2,7 +2,7 @@
 version: '3.8'
 services:
   wiremock:
-    image: wiremock/wiremock:2.32.0
+    image: wiremock/wiremock:3.12.0
     container_name: wiremock
     ports:
       - "8101:8080"

@@ -25,6 +25,7 @@ import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -54,9 +55,13 @@ public class ResteasyConfiguration implements WebMvcConfigurer {
     registry
         .addViewController("/api/swatch-tally/internal/swagger-ui")
         .setViewName("redirect:/api/swatch-tally/internal/swagger-ui/index.html");
+  }
+
+  @Override
+  public void addResourceHandlers(ResourceHandlerRegistry registry) {
+    // Configure webjars resource handler for Swagger UI
     registry
-        .addViewController("/api/swatch-producer-red-hat-marketplace/internal/swagger-ui")
-        .setViewName(
-            "redirect:/api/swatch-producer-red-hat-marketplace/internal/swagger-ui/index.html");
+        .addResourceHandler("/webjars/**")
+        .addResourceLocations("classpath:/META-INF/resources/webjars/");
   }
 }

@@ -222,7 +222,7 @@ objects:
       spec:
         containers:
           - name: moto
-            image: 'motoserver/moto:latest'
+            image: 'motoserver/moto:5.1.8'
             env:
               - name: MOTO_PORT
                 value: '5000'
