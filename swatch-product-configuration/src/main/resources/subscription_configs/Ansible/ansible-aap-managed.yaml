@@ -19,6 +19,8 @@ serviceType: Ansible Managed Node
 
 contractEnabled: true
 
+payg: true
+
 metrics:
   - id: Managed-nodes
     type: gauge
