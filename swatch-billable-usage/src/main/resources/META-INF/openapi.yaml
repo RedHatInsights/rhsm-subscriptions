@@ -209,8 +209,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DefaultResponse"
-        '401':
-          $ref: "../../../../../spec/error-responses.yaml#/$defs/Unauthorized"
+        '400':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/Forbidden"
         '500':
           $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
 
