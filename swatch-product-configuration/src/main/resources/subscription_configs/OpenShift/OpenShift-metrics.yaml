@@ -19,6 +19,8 @@ defaults:
 
 serviceType: OpenShift Cluster
 
+payg: true
+
 metrics:
   - id: Cores
     type: counter
