@@ -1,0 +1,221 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: bonfire-component-tests
+  labels:
+    build.appstudio.redhat.com/pipeline: "bonfire"
+spec:
+  params:
+    - name: URL
+      type: string
+      description: URL of the Git repository use for fetching the tasks
+      default: 'https://github.com/RedHatInsights/bonfire-tekton'
+    - name: REVISION
+      type: string
+      description: Git commit revision to use for fetching the tasks
+      default: main
+    - name: BONFIRE_IMAGE
+      type: string
+      description: The container Bonfire image to use for the tekton tasks
+      default: quay.io/redhat-services-prod/hcm-eng-prod-tenant/cicd-tools:387d6a7
+    - name: SNAPSHOT
+      type: string
+      description: |
+        Spec section of an ApplicationSnapshot resource. Not all fields of the
+        resource are required. A minimal example:
+          {
+            "components": [
+              {
+                "containerImage": "quay.io/example/repo:latest"
+              }
+            ]
+          }
+        Each "containerImage" in the "components" array is validated.
+    - name: EPHEMERAL_ENV_PROVIDER_SECRET
+      type: string
+      default: ephemeral-env-provider
+      description: "Secret for connecting to ephemeral env provider cluster"
+    - name: APP_INTERFACE_SECRET
+      type: string
+      default: app-interface
+      description: "Secret for connecting to app-interface"
+    - name: APP_NAME
+      type: string
+      description: name of app-sre "application" folder this component lives in
+    - name: COMPONENTS
+      type: string
+      description: space-separated list of components to load
+      default: ""
+    - name: COMPONENTS_W_RESOURCES
+      type: string
+      description: component to keep
+      default: ""
+    - name: AWS_SECRET
+      type: string
+      default: rh-artifacts-bucket
+      description: Secret with connection details to S3
+    - name: BONFIRE_COMPONENT_NAME
+      type: string
+      default: ""
+      description: name of the app-sre component name
+    - name: COMPONENT_NAME
+      type: string
+      description: name of app-sre "resourceTemplate" in deploy.yaml for this component
+    - name: EXTRA_DEPLOY_ARGS
+      type: string
+      description: "Extra arguments for the deployment"
+      default: ""
+    - name: DEPLOY_FRONTENDS
+      type: string
+      description: "Deploy frontend in the env or not"
+      default: true
+    - name: DEPLOY_TIMEOUT
+      type: string
+      description: "Deploy timeout"
+      default: "900"
+    - name: DEPLOY_OPTIONAL_DEPS_METHOD
+      type: string
+      description: "Method to deploy optional dependencies - see bonfire docs https://github.com/redhatinsights/bonfire?tab=readme-ov-file#dependency-processing"
+      default: "hybrid"
+    - name: GIT_URL
+      type: string
+      description: Source Repository URL
+      default: '{{source_url}}'
+  workspaces:
+    - name: shared-workspace
+      description: A workspace to share data between tasks
+  results:
+    - name: ARTIFACTS_URL
+      description: URL for the test's artifacts
+      value: $(finally.teardown.results.ARTIFACTS_URL)
+  finally:
+    - name: teardown
+      params:
+        - name: NS
+          value: "$(tasks.reserve-namespace.results.NS)"
+        - name: NS_REQUESTER
+          value: "$(context.pipelineRun.name)"
+        - name: ARTIFACTS_KEY
+          value: "$(context.pipelineRun.namespace)/$(context.pipelineRun.name)"
+        - name: AWS_SECRET
+          value: "$(params.AWS_SECRET)"
+        - name: BONFIRE_IMAGE
+          value: "$(params.BONFIRE_IMAGE)"
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: "$(params.URL)"
+          - name: revision
+            value: "$(params.REVISION)"
+          - name: pathInRepo
+            value: tasks/teardown.yaml
+  tasks:
+    - name: reserve-namespace
+      params:
+        - name: NS_REQUESTER
+          value: "$(context.pipelineRun.name)"
+        - name: EPHEMERAL_ENV_PROVIDER_SECRET
+          value: "$(params.EPHEMERAL_ENV_PROVIDER_SECRET)"
+        - name: BONFIRE_IMAGE
+          value: "$(params.BONFIRE_IMAGE)"
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: "$(params.URL)"
+          - name: revision
+            value: "$(params.REVISION)"
+          - name: pathInRepo
+            value: tasks/reserve-namespace.yaml
+    - name: deploy-application
+      params:
+        - name: BONFIRE_IMAGE
+          value: "$(params.BONFIRE_IMAGE)"
+        - name: SNAPSHOT
+          value: "$(params.SNAPSHOT)"
+        - name: NS
+          value: "$(tasks.reserve-namespace.results.NS)"
+        - name: NS_REQUESTER
+          value: "$(context.pipelineRun.name)"
+        - name: APP_INTERFACE_SECRET
+          value: "$(params.APP_INTERFACE_SECRET)"
+        - name: APP_NAME
+          value: "$(params.APP_NAME)"
+        - name: BONFIRE_COMPONENT_NAME
+          value: "$(params.BONFIRE_COMPONENT_NAME)"
+        - name: COMPONENTS
+          value: "$(params.COMPONENTS)"
+        - name: COMPONENTS_W_RESOURCES
+          value: "$(params.COMPONENTS_W_RESOURCES)"
+        - name: EXTRA_DEPLOY_ARGS
+          value: "$(params.EXTRA_DEPLOY_ARGS)"
+        - name: DEPLOY_FRONTENDS
+          value: "$(params.DEPLOY_FRONTENDS)"
+        - name: DEPLOY_TIMEOUT
+          value: "$(params.DEPLOY_TIMEOUT)"
+        - name: OPTIONAL_DEPS_METHOD
+          value: "$(params.DEPLOY_OPTIONAL_DEPS_METHOD)"
+      runAfter:
+        - reserve-namespace
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: "$(params.URL)"
+          - name: revision
+            value: fe_testing_pipeline
+          - name: pathInRepo
+            value: tasks/deploy-frontends.yaml
+    - name: clone-repository
+      params:
+        - name: url
+          value: $(params.GIT_URL)
+        - name: revision
+          value: "jcarvaja/SWATCH-3838"
+      taskRef:
+        params:
+          - name: name
+            value: git-clone
+          - name: bundle
+            value: quay.io/konflux-ci/tekton-catalog/task-git-clone:0.1@sha256:7939000e2f92fc8b5d2c4ee4ba9000433c5aa7700d2915a1d4763853d5fd1fd4
+          - name: kind
+            value: task
+        resolver: bundles
+      workspaces:
+        - name: output
+          workspace: shared-workspace
+      runAfter:
+        - deploy-application
+#    - name: run-tests-task
+#      params:
+#        - name: NS_REQUESTER
+#          value: "$(context.pipelineRun.name)"
+#        - name: EPHEMERAL_ENV_PROVIDER_SECRET
+#          value: "$(params.EPHEMERAL_ENV_PROVIDER_SECRET)"
+#        - name: BONFIRE_IMAGE
+#          value: "$(params.BONFIRE_IMAGE)"
+#        - name: EPHEMERAL_ENV_URL
+#          value: "$(tasks.deploy-application.results.ephemeral-env-url)"
+#        - name: EPHEMERAL_ENV_USERNAME
+#          value: "$(tasks.deploy-application.results.ephemeral-env-username)"
+#        - name: EPHEMERAL_ENV_PASSWORD
+#          value: "$(tasks.deploy-application.results.ephemeral-env-password)"
+#        - name: SERVICE
+#          value: "$(params.COMPONENT_NAME)"
+#        - name: GIT_URL
+#          value: $(params.GIT_URL)
+#      workspaces:
+#        - name: source
+#          workspace: shared-workspace
+#      runAfter:
+#        - clone-repository
+#      taskRef:
+#        resolver: git
+#        params:
+#          - name: url
+#            value: "https://github.com/RedHatInsights/rhsm-subscriptions.git"
+#          - name: revision
+#            value: "jcarvaja/SWATCH-3838"
+#          - name: pathInRepo
+#            value: .tekton/run-tests-task.yaml
