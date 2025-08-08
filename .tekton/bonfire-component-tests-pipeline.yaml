@@ -8,7 +8,7 @@ spec:
   workspaces:
     - name: shared-workspace
       description: "This workspace is shared between tasks to access the cloned git repository."
-      optional: 'true'
+      optional: true
   params:
     - name: URL
       type: string
