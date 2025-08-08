@@ -6,30 +6,9 @@ spec:
   params:
     - name: SERVICE
       description: The service to be tested. By default, it will run all the tests.
-    - description: Source Repository URL
-      name: GIT_URL
-      type: string
-    - description: Revision of the Source Repository
-      name: REVISION
-      type: string
   workspaces:
     - name: source
   steps:
-    - name: clone-repository
-      params:
-        - name: url
-          value: $(params.GIT_URL)
-        - name: revision
-          value: $(params.REVISION)
-      taskRef:
-        params:
-          - name: name
-            value: git-clone
-          - name: bundle
-            value: quay.io/konflux-ci/tekton-catalog/task-git-clone:0.1@sha256:7939000e2f92fc8b5d2c4ee4ba9000433c5aa7700d2915a1d4763853d5fd1fd4
-          - name: kind
-            value: task
-        resolver: bundles
     - name: tests
       image: registry.access.redhat.com/ubi9/openjdk-17-runtime
       workingDir: $(workspaces.source.path)/source

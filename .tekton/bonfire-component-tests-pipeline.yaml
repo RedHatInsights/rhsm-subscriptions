@@ -77,6 +77,10 @@ spec:
       type: string
       description: "Method to deploy optional dependencies - see bonfire docs https://github.com/redhatinsights/bonfire?tab=readme-ov-file#dependency-processing"
       default: "hybrid"
+    - name: GIT_URL
+      type: string
+      description: Source Repository URL
+      value: '{{source_url}}'
   results:
     - name: ARTIFACTS_URL
       description: URL for the test's artifacts
@@ -160,6 +164,23 @@ spec:
             value: fe_testing_pipeline
           - name: pathInRepo
             value: tasks/deploy-frontends.yaml
+    - name: clone-repository
+      params:
+        - name: url
+          value: $(params.GIT_URL)
+        - name: revision
+          value: "jcarvaja/SWATCH-3838"
+      taskRef:
+        params:
+          - name: name
+            value: git-clone
+          - name: bundle
+            value: quay.io/konflux-ci/tekton-catalog/task-git-clone:0.1@sha256:7939000e2f92fc8b5d2c4ee4ba9000433c5aa7700d2915a1d4763853d5fd1fd4
+          - name: kind
+            value: task
+        resolver: bundles
+      runAfter:
+        - deploy-application
     - name: run-tests-task
       params:
         - name: NS_REQUESTER
@@ -177,9 +198,9 @@ spec:
         - name: SERVICE
           value: "$(params.COMPONENT_NAME)"
         - name: GIT_URL
-          value: '{{source_url}}'
+          value: $(params.GIT_URL)
       runAfter:
-        - deploy-application
+        - clone-repository
       taskRef:
         resolver: git
         params:
