@@ -7,13 +7,8 @@ metadata:
 spec:
   workspaces:
     - name: shared-workspace
-      volumeClaimTemplate:
-        spec:
-          accessModes:
-            - ReadWriteOnce
-          resources:
-            requests:
-              storage: 1Gi
+      description: "This workspace is shared between tasks to access the cloned git repository."
+      optional: 'true'
   params:
     - name: URL
       type: string
