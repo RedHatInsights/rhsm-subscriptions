@@ -43,7 +43,7 @@ public class SubscriptionResourceV2 implements SubscriptionsV2Api {
   @Context SecurityContext securityContext;
   @Inject SubscriptionTableControllerV2 subscriptionTableController;
 
-  @RolesAllowed({"customer"})
+  @RolesAllowed({"customer", "service"})
   @Override
   public SkuCapacityReportV2 getSkuCapacityReportV2(
       ProductId productId,

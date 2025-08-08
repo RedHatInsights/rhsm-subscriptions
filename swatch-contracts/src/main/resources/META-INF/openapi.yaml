@@ -917,6 +917,7 @@ paths:
         - subscriptions_v1
       security:
         - customer: [ ]
+        - service: [ ]
 
   /api/rhsm-subscriptions/v2/subscriptions/products/{product_id}:
     description: "Operations for total capacity by SKU for all of the org's active subscriptions for given Swatch product ID."
@@ -942,7 +943,6 @@ paths:
     get:
       summary: "Returns the total capacity by SKU for all of the org's active subscriptions for given Swatch product ID."
       operationId: getSkuCapacityReportV2
-      deprecated: true
       parameters:
         - name: category
           in: query
@@ -1075,6 +1075,8 @@ paths:
         - subscriptions_v2
       security:
         - customer: [ ]
+        - service: [ ]
+
   /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}:
     description: 'Operations for capacity report for a given account and product'
     parameters:
@@ -1192,6 +1194,10 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       tags:
         - capacity
+      security:
+        - service: [ ]
+        - customer: [ ]
+
   /api/swatch-contracts/v1/subscriptions/billing_account_ids:
     description: Fetch billing account IDs by Org
     get:
