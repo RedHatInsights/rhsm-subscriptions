@@ -179,6 +179,8 @@ spec:
           - name: kind
             value: task
         resolver: bundles
+        workspaces:
+          - name: output
       runAfter:
         - deploy-application
     - name: run-tests-task
