@@ -43,7 +43,7 @@ data:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "${datasource}"
+                "uid": "${aws_kafka_datasource}"
               },
               "description": "",
               "fieldConfig": {
@@ -125,11 +125,11 @@ data:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "${datasource}"
+                    "uid": "${aws_kafka_datasource}"
                   },
                   "disableTextWrap": false,
                   "editorMode": "code",
-                  "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.export.requests\", group=\"swatch-tally-export\"})",
+                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.export.requests\", consumer_group=\"swatch-tally-export\"})",
                   "fullMetaSearch": false,
                   "includeNullMetadata": true,
                   "legendFormat": "__auto",
@@ -240,7 +240,7 @@ data:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "${datasource}"
+                "uid": "${aws_kafka_datasource}"
               },
               "fieldConfig": {
                 "defaults": {
@@ -321,11 +321,11 @@ data:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "${datasource}"
+                    "uid": "${aws_kafka_datasource}"
                   },
                   "disableTextWrap": false,
                   "editorMode": "code",
-                  "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.export.requests\", group=\"swatch-subscription-export\"})",
+                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.export.requests\", consumer_group=\"swatch-subscription-export\"})",
                   "fullMetaSearch": false,
                   "includeNullMetadata": false,
                   "legendFormat": "__auto",
@@ -450,7 +450,7 @@ data:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "${datasource}"
+                "uid": "${aws_kafka_datasource}"
               },
               "fieldConfig": {
                 "defaults": {
@@ -531,10 +531,10 @@ data:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "${datasource}"
+                    "uid": "${aws_kafka_datasource}"
                   },
                   "editorMode": "code",
-                  "expr": "sum(kafka_consumergroup_group_lag{topic=~'.*platform.rhsm-subscriptions.service-instance-ingress'})",
+                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~'.*platform.rhsm-subscriptions.service-instance-ingress'})",
                   "legendFormat": "__auto",
                   "range": true,
                   "refId": "A"
@@ -545,7 +545,7 @@ data:
             },
             {
               "datasource": {
-                "uid": "${datasource}"
+                "uid": "${aws_kafka_datasource}"
               },
               "description": "⬇️ OCM provides usage metrics that are read by the metering collector job ⬇️\n\n(TIP: if this isn't working, data will not land in swatch DB at all)",
               "fieldConfig": {
@@ -627,7 +627,7 @@ data:
               "pluginVersion": "11.6.3",
               "targets": [
                 {
-                  "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.rhsm-subscriptions.metering-tasks\"}) by (group, partition)",
+                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.metering-tasks\"}) by (consumer_group)",
                   "format": "time_series",
                   "instant": false,
                   "interval": "",
@@ -642,7 +642,7 @@ data:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "${datasource}"
+                "uid": "${aws_kafka_datasource}"
               },
               "description": "Rhelemeter provides usage metrics that are read by the metering collector job",
               "fieldConfig": {
@@ -729,7 +729,7 @@ data:
                     "uid": "${datasource}"
                   },
                   "editorMode": "code",
-                  "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.rhsm-subscriptions.metering-rhel-tasks\"}) by (group, partition)",
+                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.metering-rhel-tasks\"}) by (consumer_group)",
                   "legendFormat": "partition {{partition}}",
                   "range": true,
                   "refId": "A"
@@ -1650,7 +1650,7 @@ data:
             },
             {
               "datasource": {
-                "uid": "${datasource}"
+                "uid": "${aws_kafka_datasource}"
               },
               "fieldConfig": {
                 "defaults": {
@@ -1734,7 +1734,7 @@ data:
               "pluginVersion": "9.0.3",
               "targets": [
                 {
-                  "expr": "sum(kafka_consumergroup_group_lag{topic=~'.*platform.rhsm-conduit.tasks'}) by (topic)",
+                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~'.*platform.rhsm-conduit.tasks'})",
                   "format": "time_series",
                   "groupBy": [
                     {
@@ -1966,7 +1966,7 @@ data:
             },
             {
               "datasource": {
-                "uid": "${datasource}"
+                "uid": "${aws_kafka_datasource}"
               },
               "fieldConfig": {
                 "defaults": {
@@ -2050,7 +2050,7 @@ data:
               "pluginVersion": "9.0.3",
               "targets": [
                 {
-                  "expr": "sum by (topic) (rate(kafka_consumergroup_group_offset{topic=~'.*platform.rhsm-conduit.tasks'}[$__interval]))",
+                  "expr": "sum(rate(aws_kafka_sum_offset_lag_sum{topic=~'.*platform.rhsm-conduit.tasks'}[$__rate_interval]))",
                   "format": "time_series",
                   "groupBy": [
                     {
@@ -2393,7 +2393,7 @@ data:
           "panels": [
             {
               "datasource": {
-                "uid": "${datasource}"
+                "uid": "${aws_kafka_datasource}"
               },
               "fieldConfig": {
                 "defaults": {
@@ -2477,7 +2477,7 @@ data:
               "pluginVersion": "9.0.3",
               "targets": [
                 {
-                  "expr": "sum(kafka_consumergroup_group_lag{topic=~'.*platform.rhsm-subscriptions.tasks'})",
+                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~'.*platform.rhsm-subscriptions.tasks'})",
                   "format": "time_series",
                   "groupBy": [
                     {
@@ -2522,7 +2522,7 @@ data:
             },
             {
               "datasource": {
-                "uid": "${datasource}"
+                "uid": "${aws_kafka_datasource}"
               },
               "fieldConfig": {
                 "defaults": {
@@ -2606,7 +2606,7 @@ data:
               "pluginVersion": "9.0.3",
               "targets": [
                 {
-                  "expr": "sum(rate(kafka_consumergroup_group_offset{topic=~\".*platform.rhsm-subscriptions.tasks\"}[$__interval]))",
+                  "expr": "sum(rate(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.tasks\"}[$__rate_interval]))",
                   "format": "time_series",
                   "groupBy": [
                     {
@@ -3724,7 +3724,7 @@ data:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PD776AFABBE26000A"
+                "uid": "${aws_kafka_datasource}"
               },
               "fieldConfig": {
                 "defaults": {
@@ -3804,7 +3804,7 @@ data:
               "targets": [
                 {
                   "editorMode": "code",
-                  "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.inventory.events\"}) by (group, partition)",
+                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.inventory.events\"}) by (consumer_group)",
                   "legendFormat": "__auto",
                   "range": true,
                   "refId": "A"
@@ -3830,7 +3830,7 @@ data:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "${datasource}"
+                "uid": "${aws_kafka_datasource}"
               },
               "fieldConfig": {
                 "defaults": {
@@ -3914,11 +3914,11 @@ data:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "${datasource}"
+                    "uid": "${aws_kafka_datasource}"
                   },
                   "disableTextWrap": false,
                   "editorMode": "code",
-                  "expr": "sum(kafka_consumergroup_group_lag{topic=\"platform.rhsm-subscriptions.subscription-sync-task\"}) by (group,partition)",
+                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=\"platform.rhsm-subscriptions.subscription-sync-task\"}) by (consumer_group)",
                   "format": "time_series",
                   "fullMetaSearch": false,
                   "includeNullMetadata": true,
@@ -3936,7 +3936,7 @@ data:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "${datasource}"
+                "uid": "${aws_kafka_datasource}"
               },
               "description": "",
               "fieldConfig": {
@@ -4021,10 +4021,10 @@ data:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "${datasource}"
+                    "uid": "${aws_kafka_datasource}"
                   },
                   "editorMode": "code",
-                  "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.rhsm-subscriptions.offering-sync\"}) by (group, partition)",
+                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.offering-sync\"}) by (consumer_group)",
                   "format": "time_series",
                   "interval": "",
                   "intervalFactor": 1,
@@ -4039,7 +4039,7 @@ data:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "${datasource}"
+                "uid": "${aws_kafka_datasource}"
               },
               "description": "",
               "fieldConfig": {
@@ -4122,7 +4122,7 @@ data:
               "pluginVersion": "11.6.3",
               "targets": [
                 {
-                  "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.rhsm-subscriptions.capacity-reconcile\"}) by (group, partition)",
+                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.capacity-reconcile\"}) by (consumer_group)",
                   "format": "time_series",
                   "interval": "",
                   "intervalFactor": 1,
@@ -4501,7 +4501,7 @@ data:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "${datasource}"
+                "uid": "${aws_kafka_datasource}"
               },
               "description": "Billable Usage service emits messages with usage data for swatch billing provider services to consume.  This widget monitors the consumer group connected to the swatch-producer-aws service)",
               "fieldConfig": {
@@ -4585,10 +4585,10 @@ data:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "${datasource}"
+                    "uid": "${aws_kafka_datasource}"
                   },
                   "editorMode": "code",
-                  "expr": "sum(kafka_consumergroup_group_lag{topic=\"platform.rhsm-subscriptions.billable-usage-hourly-aggregate\", group=\"swatch-producer-aws-usage-aggregate-consumer\"}) by (group, partition)",
+                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=\"platform.rhsm-subscriptions.billable-usage-hourly-aggregate\", consumer_group=\"swatch-producer-aws-usage-aggregate-consumer\"})",
                   "format": "time_series",
                   "instant": false,
                   "interval": "",
@@ -4603,7 +4603,7 @@ data:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "${datasource}"
+                "uid": "${aws_kafka_datasource}"
               },
               "description": "Billable Usage service emits messages with usage data for swatch billing provider services to consume.  This widget monitors the consumer group connected to the swatch-producer-aws service)",
               "fieldConfig": {
@@ -4687,10 +4687,10 @@ data:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "${datasource}"
+                    "uid": "${aws_kafka_datasource}"
                   },
                   "editorMode": "code",
-                  "expr": "sum(kafka_consumergroup_group_lag{topic=\"platform.rhsm-subscriptions.billable-usage-hourly-aggregate\", group=\"swatch-producer-azure-usage-aggregate-consumer\"}) by (group, partition)",
+                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=\"platform.rhsm-subscriptions.billable-usage-hourly-aggregate\", consumer_group=\"swatch-producer-azure-usage-aggregate-consumer\"})",
                   "format": "time_series",
                   "instant": false,
                   "interval": "",
@@ -4705,7 +4705,7 @@ data:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "${datasource}"
+                "uid": "${aws_kafka_datasource}"
               },
               "fieldConfig": {
                 "defaults": {
@@ -4787,10 +4787,10 @@ data:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "${datasource}"
+                    "uid": "${aws_kafka_datasource}"
                   },
                   "editorMode": "code",
-                  "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.rhsm-subscriptions.billable-usage.status\"}) by (group, partition)",
+                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.billable-usage.status\"}) by (consumer_group)",
                   "legendFormat": "partition {{ partition }}",
                   "range": true,
                   "refId": "A"
@@ -4903,7 +4903,7 @@ data:
             },
             {
               "datasource": {
-                "uid": "${datasource}"
+                "uid": "${aws_kafka_datasource}"
               },
               "description": "⬇️ Sampled metrics stored in DB are \"collapsed\" into summary metrics ⬇️\n\n(TIP: Summary metrics are displayed in web UI)",
               "fieldConfig": {
@@ -4985,7 +4985,7 @@ data:
               "pluginVersion": "11.6.3",
               "targets": [
                 {
-                  "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.rhsm-subscriptions.tasks\"}) by (group, partition)",
+                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.tasks\"}) by (consumer_group)",
                   "format": "time_series",
                   "instant": false,
                   "interval": "",
@@ -5000,7 +5000,7 @@ data:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "${datasource}"
+                "uid": "${aws_kafka_datasource}"
               },
               "description": "swatch-tally-service produces TallySummary messages for consumption by Billing Usage service",
               "fieldConfig": {
@@ -5084,10 +5084,10 @@ data:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "${datasource}"
+                    "uid": "${aws_kafka_datasource}"
                   },
                   "editorMode": "code",
-                  "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.rhsm-subscriptions.tally\", group=\"swatch-billable-usage\"}) by (group, partition)",
+                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.tally\", consumer_group=\"swatch-billable-usage\"})",
                   "format": "time_series",
                   "instant": false,
                   "interval": "",
@@ -5370,6 +5370,18 @@ data:
             "query": "cloudwatch",
             "refresh": 1,
             "regex": "/.*insights.*/",
+            "type": "datasource"
+          },
+          {
+            "current": {
+              "text": "appsres11ue1-prometheus",
+              "value": "PC52EF5F0B75AF530"
+            },
+            "name": "aws_kafka_datasource",
+            "options": [],
+            "query": "prometheus",
+            "refresh": 1,
+            "regex": "appsre(p|s)11ue1-prometheus",
             "type": "datasource"
           }
         ]
