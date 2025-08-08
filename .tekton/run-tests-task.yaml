@@ -35,11 +35,6 @@ spec:
           operator: in
           values:
             - "true"
-      workspaces:
-        - name: output
-          workspace: workspace
-        - name: basic-auth
-          workspace: git-auth
     - name: tests
       image: registry.access.redhat.com/ubi9/openjdk-17-runtime
       workingDir: $(workspaces.source.path)/source
@@ -49,6 +44,3 @@ spec:
           SUBMODULE="-pl ${SERVICE} -am"
         fi
         ./mvnw verify ${SUBMODULE}
-      workspaces:
-        - name: source
-          workspace: workspace

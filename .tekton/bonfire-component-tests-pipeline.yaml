@@ -178,8 +178,6 @@ spec:
           value: "$(params.COMPONENT_NAME)"
         - name: GIT_URL
           value: '{{source_url}}'
-        - name: REVISION
-          value: '{{revision}}'
       runAfter:
         - deploy-application
       taskRef:
