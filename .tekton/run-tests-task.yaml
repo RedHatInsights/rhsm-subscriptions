@@ -30,11 +30,6 @@ spec:
           - name: kind
             value: task
         resolver: bundles
-      when:
-        - input: $(tasks.init.results.build)
-          operator: in
-          values:
-            - "true"
     - name: tests
       image: registry.access.redhat.com/ubi9/openjdk-17-runtime
       workingDir: $(workspaces.source.path)/source
