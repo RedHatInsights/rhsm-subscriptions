@@ -16,23 +16,20 @@ spec:
     - name: source
   steps:
     - name: clone-repository
-      taskRef:
-        resolver: bundles
-        params:
-          - name: bundle
-            value: quay.io/konflux-ci/tekton-catalog/task-git-clone:0.1@sha256:7939000e2f92fc8b5d2c4ee4ba9000433c5aa7700d2915a1d4763853d5fd1fd4
-          - name: name
-            value: git-clone
-          - name: kind
-            value: task
       params:
         - name: url
           value: $(params.GIT_URL)
         - name: revision
           value: $(params.REVISION)
-      workspaces:
-        - name: output
-          workspace: source
+      taskRef:
+        params:
+          - name: name
+            value: git-clone
+          - name: bundle
+            value: quay.io/konflux-ci/tekton-catalog/task-git-clone:0.1@sha256:7939000e2f92fc8b5d2c4ee4ba9000433c5aa7700d2915a1d4763853d5fd1fd4
+          - name: kind
+            value: task
+        resolver: bundles
     - name: tests
       image: registry.access.redhat.com/ubi9/openjdk-17-runtime
       workingDir: $(workspaces.source.path)/source
