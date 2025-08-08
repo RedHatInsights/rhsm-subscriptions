@@ -170,9 +170,6 @@ spec:
           value: $(params.GIT_URL)
         - name: revision
           value: "jcarvaja/SWATCH-3838"
-      workspaces:
-        - name: git-auth
-          optional: true
       taskRef:
         params:
           - name: name
