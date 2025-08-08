@@ -35,7 +35,7 @@
     <guava.version>33.4.8-jre</guava.version>
     <liquibase.version>4.33.0</liquibase.version>
     <postgresql.version>42.7.7</postgresql.version>
-    <testcontainers-postgresql.version>1.21.3</testcontainers-postgresql.version>
+    <testcontainers.version>1.21.3</testcontainers.version>
     <junit.version>5.13.4</junit.version>
     <mockito.version>5.19.0</mockito.version>
     <rest-assured.version>5.5.6</rest-assured.version>
@@ -299,7 +299,7 @@
       <dependency>
         <groupId>org.testcontainers</groupId>
         <artifactId>postgresql</artifactId>
-        <version>${testcontainers-postgresql.version}</version>
+        <version>${testcontainers.version}</version>
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>
@@ -577,6 +577,20 @@
       <modules>
         <module>swatch-database-migrations</module>
         <module>swatch-database</module>
+      </modules>
+    </profile>
+
+    <profile>
+      <id>component-tests</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <modules>
+        <!-- Declare component tests project's dependencies -->
+        <module>swatch-quarkus-parent</module>
+        <module>swatch-model-billable-usage</module>
+        <!-- Now, delegate the rest of the build to the component tests Maven config -->
+        <module>component-tests</module>
       </modules>
     </profile>
 
