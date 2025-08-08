@@ -39,7 +39,7 @@
     <rest-assured.version>5.5.5</rest-assured.version>
     <hibernate-validator.version>9.0.1.Final</hibernate-validator.version>
     <swagger-parser.version>2.1.31</swagger-parser.version>
-    <swagger-ui.version>5.27.0</swagger-ui.version>
+    <swagger-ui.version>5.27.1</swagger-ui.version>
     <splunk-otel-javaagent.version>2.18.0</splunk-otel-javaagent.version>
 
     <!-- Plugins -->
