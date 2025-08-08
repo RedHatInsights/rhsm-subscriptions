@@ -240,7 +240,7 @@ public class InternalTallyResource implements InternalTallyApi {
             .forEach(
                 event -> {
                   try {
-                    eventKafkaTemplate.send(this.eventTopic, event);
+                    eventKafkaTemplate.send(this.eventTopic, event.getOrgId(), event);
                   } catch (Exception e) {
                     messages.append(e.getMessage());
                   }

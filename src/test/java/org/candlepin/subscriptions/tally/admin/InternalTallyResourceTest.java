@@ -132,7 +132,8 @@ class InternalTallyResourceTest {
             + "  \"metering_batch_id\": \"f39d1d22-eb72-4597-b722-5bee34abd78d\","
             + "  \"billing_account_id\": \"381492115198\""
             + " }]");
-    verify(kafkaTemplate, times(1)).send(eq(taskQueueProperties.getTopic()), any(Event.class));
+    verify(kafkaTemplate, times(1))
+        .send(eq(taskQueueProperties.getTopic()), eq("11091977"), any(Event.class));
   }
 
   @Test

@@ -116,7 +116,7 @@ public class EventConflictResolver {
 
                   if (!amendmentRequired(event, conflictingEvent, conflictKey.getMetricId())) {
                     log.debug(
-                        "The incoming event does require amendments for {}: {}",
+                        "The incoming event does not require amendments for {}: {}",
                         conflictKey.getMetricId(),
                         event);
                     return;
