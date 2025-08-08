@@ -5,10 +5,6 @@ metadata:
   labels:
     build.appstudio.redhat.com/pipeline: "bonfire"
 spec:
-  workspaces:
-    - name: shared-workspace
-      description: "This workspace is shared between tasks to access the cloned git repository."
-      optional: true
   params:
     - name: URL
       type: string
@@ -175,8 +171,8 @@ spec:
         - name: revision
           value: "jcarvaja/SWATCH-3838"
       workspaces:
-        - name: output
-          workspace: shared-workspace
+        - name: git-auth
+          optional: true
       taskRef:
         params:
           - name: name
@@ -206,9 +202,6 @@ spec:
           value: "$(params.COMPONENT_NAME)"
         - name: GIT_URL
           value: $(params.GIT_URL)
-      workspaces:
-        - name: source
-          workspace: shared-workspace
       runAfter:
         - clone-repository
       taskRef:
