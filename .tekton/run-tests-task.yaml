@@ -6,51 +6,49 @@ spec:
   params:
     - name: SERVICE
       description: The service to be tested. By default, it will run all the tests.
-      default: ""
-    - name: PROVISION_EAAS_SPACE_SECRET_REF
-      description: The secret ref of the "provision-eaas-space" task output
+    - description: Source Repository URL
+      name: GIT_URL
+      type: string
+    - description: Revision of the Source Repository
+      name: REVISION
+      type: string
   workspaces:
     - name: source
   steps:
-    - image: registry.access.redhat.com/ubi9/openjdk-17-runtime
-      name: builder
+    - name: clone-repository
+      params:
+        - name: url
+          value: $(params.GIT_URL)
+        - name: revision
+          value: $(params.REVISION)
+      taskRef:
+        params:
+          - name: name
+            value: git-clone
+          - name: bundle
+            value: quay.io/konflux-ci/tekton-catalog/task-git-clone:0.1@sha256:7939000e2f92fc8b5d2c4ee4ba9000433c5aa7700d2915a1d4763853d5fd1fd4
+          - name: kind
+            value: task
+        resolver: bundles
+      when:
+        - input: $(tasks.init.results.build)
+          operator: in
+          values:
+            - "true"
+      workspaces:
+        - name: output
+          workspace: workspace
+        - name: basic-auth
+          workspace: git-auth
+    - name: tests
+      image: registry.access.redhat.com/ubi9/openjdk-17-runtime
       workingDir: $(workspaces.source.path)/source
-      env:
-        - name: SERVICE
-          value: $(params.SERVICE)
-        - name: DOCKER_HOST
-          value: tcp://127.0.0.1:2475
       script: |
         #!/bin/bash
         if [ -n "$SERVICE" ]; then
           SUBMODULE="-pl ${SERVICE} -am"
         fi
         ./mvnw verify ${SUBMODULE}
-      computeResources:
-        limits:
-          memory: '6Gi'
-          cpu: 6
-        requests:
-          memory: '2Gi'
-          cpu: 2
-  sidecars:
-    - image: quay.io/cloudservices/kubedock:latest
-      name: kubedock
-      env:
-        - name: KUBECONFIG
-          value: /tmp/kubeconfig
-        - name: KUBECONFIG_VALUE
-          valueFrom:
-            secretKeyRef:
-              name: $(params.PROVISION_EAAS_SPACE_SECRET_REF)
-              key: kubeconfig
-        - name: EAAS_NAMESPACE
-          valueFrom:
-            secretKeyRef:
-              name: $(params.PROVISION_EAAS_SPACE_SECRET_REF)
-              key: namespace
-      script: |
-        #!/bin/bash -ex
-
-        echo "$KUBECONFIG_VALUE" > "$KUBECONFIG"
-        /usr/local/bin/kubedock server --kubeconfig $KUBECONFIG --namespace $EAAS_NAMESPACE --port-forward -v=9      
+      workspaces:
+        - name: source
+          workspace: workspace
