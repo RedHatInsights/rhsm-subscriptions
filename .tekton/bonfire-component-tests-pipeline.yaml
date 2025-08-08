@@ -80,7 +80,7 @@ spec:
     - name: GIT_URL
       type: string
       description: Source Repository URL
-      value: '{{source_url}}'
+      default: '{{source_url}}'
   results:
     - name: ARTIFACTS_URL
       description: URL for the test's artifacts
