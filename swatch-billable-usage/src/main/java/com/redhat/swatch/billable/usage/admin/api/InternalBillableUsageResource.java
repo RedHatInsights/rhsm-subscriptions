@@ -51,6 +51,7 @@ public class InternalBillableUsageResource implements DefaultApi {
   private final InternalBillableUsageController billingController;
   private final EnabledOrgsProducer enabledOrgsProducer;
   private final ApplicationConfiguration configuration;
+  private final InternalBillableUsageController internalBillableUsageController;
 
   @Override
   public List<MonthlyRemittance> getRemittances(
@@ -155,6 +156,14 @@ public class InternalBillableUsageResource implements DefaultApi {
     }
 
     enabledOrgsProducer.sendTaskForRemittancesPurgeTask();
+    return getDefaultResponse(SUCCESS_STATUS);
+  }
+
+  @Override
+  public DefaultResponse reconcileRemittances() {
+    var policyDuration = configuration.getRemittanceStatusStuckDuration();
+
+    internalBillableUsageController.reconcileBillableUsageRemittances(policyDuration.toDays());
     return getDefaultResponse(SUCCESS_STATUS);
   }
 

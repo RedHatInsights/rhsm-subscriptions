@@ -36,7 +36,9 @@ public enum RemittanceStatus {
   FAILED("failed"),
   UNKNOWN("unknown"),
   SUCCEEDED("succeeded"),
-  RETRYABLE("retryable");
+  RETRYABLE("retryable"),
+  IN_PROGRESS("in_progress"),
+  SENT("sent");
 
   private static final Map<String, RemittanceStatus> VALUE_ENUM_MAP =
       Arrays.stream(RemittanceStatus.values())
@@ -46,6 +48,11 @@ public enum RemittanceStatus {
 
   RemittanceStatus(String value) {
     this.value = value;
+  }
+
+  @Override
+  public String toString() {
+    return value;
   }
 
   /**

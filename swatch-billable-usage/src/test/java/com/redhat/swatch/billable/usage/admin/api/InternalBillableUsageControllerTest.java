@@ -20,21 +20,37 @@
  */
 package com.redhat.swatch.billable.usage.admin.api;
 
+import static com.redhat.swatch.billable.usage.admin.api.InternalBillableUsageController.USAGE_STATUS_PUSH_TO_FAILED_METRIC;
+import static com.redhat.swatch.billable.usage.admin.api.InternalBillableUsageController.USAGE_STATUS_PUSH_TO_UNKNOWN_METRIC;
+import static com.redhat.swatch.billable.usage.data.RemittanceErrorCode.SENDING_TO_AGGREGATE_TOPIC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceEntity;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceFilter;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
 import com.redhat.swatch.billable.usage.data.RemittanceStatus;
+import com.redhat.swatch.billable.usage.model.RemittanceMapper;
 import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.billable.usage.AccumulationPeriodFormatter;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
@@ -272,6 +288,96 @@ class InternalBillableUsageControllerTest {
     var remittances = remittanceRepo.listAll();
     assertFalse(remittances.stream().anyMatch(r -> r.getOrgId().equals("org1")));
     assertTrue(remittances.stream().anyMatch(r -> r.getOrgId().equals("org2")));
+  }
+
+  @Transactional
+  @Test
+  void testReconcileBillableUsageRemittances() {
+    // create mocks
+    BillableUsageRemittanceRepository mockRemittanceRepo =
+        mock(BillableUsageRemittanceRepository.class);
+    MeterRegistry mockMeterRegistry = mock(MeterRegistry.class);
+    RemittanceMapper mockRemittanceMapper = mock(RemittanceMapper.class);
+    InternalBillableUsageController testController =
+        new InternalBillableUsageController(
+            mockRemittanceRepo, mockRemittanceMapper, mockMeterRegistry);
+
+    // Create test entities
+    BillableUsageRemittanceEntity inProgressEntity =
+        remittance(
+            "org1",
+            "product1",
+            BillableUsage.BillingProvider.AWS,
+            24.0,
+            clock.now().minusDays(2),
+            RemittanceStatus.IN_PROGRESS);
+    inProgressEntity.setUpdatedAt(clock.now().minusDays(2));
+    inProgressEntity.setUuid(UUID.randomUUID());
+    BillableUsageRemittanceEntity sentEntity =
+        remittance(
+            "org2",
+            "product2",
+            BillableUsage.BillingProvider.AWS,
+            24.0,
+            clock.now().minusDays(2),
+            RemittanceStatus.SENT);
+    sentEntity.setUpdatedAt(clock.now().minusDays(2));
+    sentEntity.setUuid(UUID.randomUUID());
+
+    // Mock repository behavior
+    when(mockRemittanceRepo.findStaleInProgress(anyLong())).thenReturn(Stream.of(inProgressEntity));
+    when(mockRemittanceRepo.findStaleSent(anyLong())).thenReturn(Stream.of(sentEntity));
+    when(mockMeterRegistry.counter(anyString(), any(String[].class)))
+        .thenReturn(mock(Counter.class));
+
+    // Execute the method
+    testController.reconcileBillableUsageRemittances(1L);
+
+    // Verify repository was called to find stale entities
+    verify(mockRemittanceRepo).findStaleInProgress(1L);
+    verify(mockRemittanceRepo).findStaleSent(1L);
+
+    // Verify repository calls
+    verify(mockRemittanceRepo)
+        .updateStatusByIdIn(
+            List.of(inProgressEntity.getUuid().toString()),
+            RemittanceStatus.FAILED,
+            inProgressEntity.getBilledOn(),
+            SENDING_TO_AGGREGATE_TOPIC);
+
+    verify(mockRemittanceRepo)
+        .updateStatusByIdIn(
+            List.of(sentEntity.getUuid().toString()),
+            RemittanceStatus.UNKNOWN,
+            sentEntity.getBilledOn(),
+            null);
+
+    // Verify metrics were updated
+    verify(mockMeterRegistry).counter(eq(USAGE_STATUS_PUSH_TO_FAILED_METRIC), any(String[].class));
+    verify(mockMeterRegistry).counter(eq(USAGE_STATUS_PUSH_TO_UNKNOWN_METRIC), any(String[].class));
+  }
+
+  @Test
+  void testReconcileBillableUsageRemittancesNoStaleEntities() {
+    // create mocks
+    BillableUsageRemittanceRepository mockRemittanceRepo =
+        mock(BillableUsageRemittanceRepository.class);
+    MeterRegistry mockMeterRegistry = mock(MeterRegistry.class);
+    RemittanceMapper mockRemittanceMapper = mock(RemittanceMapper.class);
+    InternalBillableUsageController testController =
+        new InternalBillableUsageController(
+            mockRemittanceRepo, mockRemittanceMapper, mockMeterRegistry);
+
+    // Mock repository behavior to return empty lists
+    when(mockRemittanceRepo.findStaleInProgress(anyLong())).thenReturn(Stream.empty());
+    when(mockRemittanceRepo.findStaleSent(anyLong())).thenReturn(Stream.empty());
+
+    // Execute the method
+    testController.reconcileBillableUsageRemittances(1);
+
+    // Verify no updates were made
+    verify(mockRemittanceRepo, never()).updateStatusByIdIn(any(), any(), any(), any());
+    verify(mockMeterRegistry, never()).counter(anyString(), any(String[].class));
   }
 
   private void givenRemittanceForOrgId(String orgId) {
