@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.billable.usage.admin.api;
 
-import static com.redhat.swatch.billable.usage.data.RemittanceErrorCode.SENDING_TO_AGGREGATE_TOPIC;
 import static java.util.Optional.ofNullable;
 
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceFilter;
@@ -96,34 +95,26 @@ public class InternalBillableUsageController {
 
   @Transactional
   public void reconcileBillableUsageRemittances(long days) {
-    remittanceRepository
-        .findStaleInProgress(days)
-        .forEach(
-            entity -> {
-              entity.setStatus(RemittanceStatus.FAILED);
-              entity.setErrorCode(SENDING_TO_AGGREGATE_TOPIC);
-              remittanceRepository.updateStatusByIdIn(
-                  List.of(entity.getUuid().toString()),
-                  entity.getStatus(),
-                  entity.getBilledOn(),
-                  entity.getErrorCode());
-              meterRegistry.counter(USAGE_STATUS_PUSH_TO_FAILED_METRIC).increment();
-              log.info("Billable Usage Remittance Stuck Status Change: {}", entity);
-            });
+    int inProgressUpdated =
+        remittanceRepository.updateStatusForStaleRemittances(
+            days,
+            RemittanceStatus.IN_PROGRESS,
+            RemittanceStatus.FAILED,
+            RemittanceErrorCode.SENDING_TO_AGGREGATE_TOPIC);
+    if (inProgressUpdated > 0) {
+      meterRegistry.counter(USAGE_STATUS_PUSH_TO_FAILED_METRIC).increment(inProgressUpdated);
+      log.info(
+          "Updated {} stale IN_PROGRESS billable usage remittances to status FAILED",
+          inProgressUpdated);
+    }
 
-    remittanceRepository
-        .findStaleSent(days)
-        .forEach(
-            entity -> {
-              entity.setStatus(RemittanceStatus.UNKNOWN);
-              remittanceRepository.updateStatusByIdIn(
-                  List.of(entity.getUuid().toString()),
-                  entity.getStatus(),
-                  entity.getBilledOn(),
-                  null);
-              meterRegistry.counter(USAGE_STATUS_PUSH_TO_UNKNOWN_METRIC).increment();
-              log.info("Billable Usage Remittance Stuck Status Change: {}", entity);
-            });
+    int sentUpdated =
+        remittanceRepository.updateStatusForStaleRemittances(
+            days, RemittanceStatus.SENT, RemittanceStatus.UNKNOWN, null);
+    if (sentUpdated > 0) {
+      meterRegistry.counter(USAGE_STATUS_PUSH_TO_UNKNOWN_METRIC).increment(sentUpdated);
+      log.info("Updated {} stale SENT billable usage remittances to status UNKNOWN", sentUpdated);
+    }
   }
 
   @Transactional

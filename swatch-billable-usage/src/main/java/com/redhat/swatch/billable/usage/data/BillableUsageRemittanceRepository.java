@@ -157,6 +157,44 @@ public class BillableUsageRemittanceRepository
     return find(BillableUsageRemittanceEntity.class, searchCriteria).stream();
   }
 
+  @Transactional
+  public int updateStatusForStaleRemittances(
+      long days,
+      RemittanceStatus oldStatus,
+      RemittanceStatus newStatus,
+      RemittanceErrorCode errorCode) {
+    OffsetDateTime cutoffDate = OffsetDateTime.now(ZoneOffset.UTC).minusDays(days);
+    OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+
+    String query;
+    Map<String, Object> parameters = new HashMap<>();
+
+    if (errorCode != null) {
+      query =
+          "update BillableUsageRemittanceEntity bu "
+              + "set bu.status = :newStatus, "
+              + "bu.errorCode = :errorCode, "
+              + "bu.updatedAt = :updatedAt "
+              + "where bu.status = :oldStatus "
+              + "and bu.updatedAt <= :cutoffDate";
+      parameters.put("errorCode", errorCode);
+    } else {
+      query =
+          "update BillableUsageRemittanceEntity bu "
+              + "set bu.status = :newStatus, "
+              + "bu.updatedAt = :updatedAt "
+              + "where bu.status = :oldStatus "
+              + "and bu.updatedAt <= :cutoffDate";
+    }
+
+    parameters.put("newStatus", newStatus);
+    parameters.put("updatedAt", now);
+    parameters.put("oldStatus", oldStatus);
+    parameters.put("cutoffDate", cutoffDate);
+
+    return update(query, parameters);
+  }
+
   private Specification<BillableUsageRemittanceEntity> buildSearchSpecification(
       BillableUsageRemittanceFilter filter) {
 
