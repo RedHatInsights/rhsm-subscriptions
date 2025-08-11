@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.event;
 
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,9 +58,10 @@ public class UsageConflictTracker {
     } else {
       // If record date is null, we prefer that event. This can happen if a non-persisted
       // event is tracked (i.e. an incoming event).
-      Optional<OffsetDateTime> eventRecordDate = Optional.ofNullable(event.getRecordDate());
+      Optional<OffsetDateTime> eventRecordDate =
+          Optional.ofNullable(normalizeTimestamp(event.getRecordDate()));
       Optional<OffsetDateTime> latestEventRecordDate =
-          Optional.ofNullable(keyToLatestEvent.get(key).getRecordDate());
+          Optional.ofNullable(normalizeTimestamp(keyToLatestEvent.get(key).getRecordDate()));
       if (eventRecordDate.isEmpty()
           || (latestEventRecordDate.isPresent()
               && eventRecordDate.get().isAfter(latestEventRecordDate.get()))) {
@@ -79,5 +81,25 @@ public class UsageConflictTracker {
     return new UsageConflictKey(
         event.getProductTag().stream().findFirst().get(),
         event.getMeasurements().get(0).getMetricId());
+  }
+
+  /**
+   * Normalizes timestamp to millisecond precision to prevent nanosecond precision differences from
+   * causing incorrect conflict resolution decisions.
+   *
+   * <p>This fixes the timestamp precision bug where events with essentially the same logical time
+   * (e.g., 2025-07-21T18:30:02.545245510Z vs 2025-07-21T18:30:02.545306029Z) were treated as
+   * different due to nanosecond precision differences in JSON deserialization.
+   *
+   * @param timestamp the timestamp to normalize, may be null
+   * @return normalized timestamp with millisecond precision, or null if input was null
+   */
+  private OffsetDateTime normalizeTimestamp(OffsetDateTime timestamp) {
+    if (timestamp == null) {
+      return null;
+    }
+    // Truncate to millisecond precision for consistent comparison
+    // This handles both existing data (nanoseconds) and future data (milliseconds)
+    return timestamp.truncatedTo(ChronoUnit.MILLIS);
   }
 }
