@@ -28,9 +28,11 @@
 
   <!-- The first Javadoc sentence is supposed to end with a period. -->
   <suppress checks="SummaryJavadoc" files="."/>
+  <suppress checks="JavadocParagraph" files="."/>
 
   <suppress checks="MissingJavadocMethod" files="."/>
   <suppress checks="MissingJavadocType" files="."/>
+  <suppress checks="AtclauseOrder" files="."/>
 
   <!--    <suppress checks="EmptyLineSeparator" files="."/>-->
 
