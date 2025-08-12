@@ -33,7 +33,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 @ApplicationScoped
 public class BillableUsageRemittanceRepository
@@ -141,22 +140,6 @@ public class BillableUsageRemittanceRepository
     return update(query, parameters);
   }
 
-  public Stream<BillableUsageRemittanceEntity> findStaleInProgress(long days) {
-    var searchCriteria =
-        Specification.where(
-            beforeUpdatedAtDate(OffsetDateTime.now(ZoneOffset.UTC).minusDays(days)));
-    searchCriteria = searchCriteria.and(inProgress());
-    return find(BillableUsageRemittanceEntity.class, searchCriteria).stream();
-  }
-
-  public Stream<BillableUsageRemittanceEntity> findStaleSent(long days) {
-    var searchCriteria =
-        Specification.where(
-            beforeUpdatedAtDate(OffsetDateTime.now(ZoneOffset.UTC).minusDays(days)));
-    searchCriteria = searchCriteria.and(sent());
-    return find(BillableUsageRemittanceEntity.class, searchCriteria).stream();
-  }
-
   @Transactional
   public int updateStatusForStaleRemittances(
       long days,
@@ -169,23 +152,14 @@ public class BillableUsageRemittanceRepository
     String query;
     Map<String, Object> parameters = new HashMap<>();
 
-    if (errorCode != null) {
-      query =
-          "update BillableUsageRemittanceEntity bu "
-              + "set bu.status = :newStatus, "
-              + "bu.errorCode = :errorCode, "
-              + "bu.updatedAt = :updatedAt "
-              + "where bu.status = :oldStatus "
-              + "and bu.updatedAt <= :cutoffDate";
-      parameters.put("errorCode", errorCode);
-    } else {
-      query =
-          "update BillableUsageRemittanceEntity bu "
-              + "set bu.status = :newStatus, "
-              + "bu.updatedAt = :updatedAt "
-              + "where bu.status = :oldStatus "
-              + "and bu.updatedAt <= :cutoffDate";
-    }
+    query =
+        "update BillableUsageRemittanceEntity bu "
+            + "set bu.status = :newStatus, "
+            + "bu.errorCode = :errorCode, "
+            + "bu.updatedAt = :updatedAt "
+            + "where bu.status = :oldStatus "
+            + "and bu.updatedAt <= :cutoffDate";
+    parameters.put("errorCode", errorCode);
 
     parameters.put("newStatus", newStatus);
     parameters.put("updatedAt", now);
@@ -246,17 +220,6 @@ public class BillableUsageRemittanceRepository
             builder.isNull(root.get(BillableUsageRemittanceEntity_.status)),
             builder.notEqual(
                 root.get(BillableUsageRemittanceEntity_.status), RemittanceStatus.FAILED));
-  }
-
-  private Specification<BillableUsageRemittanceEntity> inProgress() {
-    return (root, query, builder) ->
-        builder.equal(
-            root.get(BillableUsageRemittanceEntity_.status), RemittanceStatus.IN_PROGRESS);
-  }
-
-  private Specification<BillableUsageRemittanceEntity> sent() {
-    return (root, query, builder) ->
-        builder.equal(root.get(BillableUsageRemittanceEntity_.status), RemittanceStatus.SENT);
   }
 
   private static Specification<BillableUsageRemittanceEntity> matchingProductId(String productId) {
