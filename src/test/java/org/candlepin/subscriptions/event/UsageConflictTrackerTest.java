@@ -125,6 +125,145 @@ class UsageConflictTrackerTest {
     assertThrows(IllegalStateException.class, () -> tracker.track(event));
   }
 
+  @Test
+  void testRecordDateNormalizationWithNanosecondPrecision() {
+    // Test that events with nanosecond precision differences are treated as having the same time
+    // when they differ only in nanoseconds within the same millisecond
+    OffsetDateTime baseTime = OffsetDateTime.parse("2025-01-21T18:30:02.545Z");
+    OffsetDateTime timeWithNanos1 = baseTime.plusNanos(245510L); // 2025-01-21T18:30:02.545245510Z
+    OffsetDateTime timeWithNanos2 = baseTime.plusNanos(306029L); // 2025-01-21T18:30:02.545306029Z
+
+    Event event1 = createEvent(CLOCK.now(), List.of(new Measurement().withMetricId(metricId).withValue(20.0)));
+    event1.setRecordDate(timeWithNanos1);
+
+    Event event2 = createEvent(CLOCK.now(), List.of(new Measurement().withMetricId(metricId).withValue(30.0)));
+    event2.setRecordDate(timeWithNanos2);
+
+    // Track events in order - since normalized times are equal, last tracked should win
+    UsageConflictTracker tracker = new UsageConflictTracker(List.of(event1, event2));
+
+    UsageConflictKey key = new UsageConflictKey(tag, metricId);
+    assertEquals(event2, tracker.getLatest(key), 
+        "When record dates normalize to the same millisecond, the last tracked event should be returned");
+  }
+
+  @Test
+  void testRecordDateNormalizationWithMillisecondDifferences() {
+    // Test that events with different millisecond timestamps are handled correctly
+    OffsetDateTime earlierTime = OffsetDateTime.parse("2025-01-21T18:30:02.545Z");
+    OffsetDateTime laterTime = OffsetDateTime.parse("2025-01-21T18:30:02.546Z");
+
+    Event earlierEvent = createEvent(CLOCK.now(), List.of(new Measurement().withMetricId(metricId).withValue(20.0)));
+    earlierEvent.setRecordDate(earlierTime.plusNanos(999999L)); // Add nanoseconds to earlier time
+
+    Event laterEvent = createEvent(CLOCK.now(), List.of(new Measurement().withMetricId(metricId).withValue(30.0)));
+    laterEvent.setRecordDate(laterTime.plusNanos(1L)); // Add minimal nanoseconds to later time
+
+    UsageConflictTracker tracker = new UsageConflictTracker(List.of(earlierEvent, laterEvent));
+
+    UsageConflictKey key = new UsageConflictKey(tag, metricId);
+    assertEquals(laterEvent, tracker.getLatest(key), 
+        "Event with later millisecond timestamp should be returned even with nanosecond precision");
+  }
+
+  @Test
+  void testRecordDateNormalizationWithMixedPrecision() {
+    // Test mixing events with different timestamp precisions
+    OffsetDateTime millisecondTime = OffsetDateTime.parse("2025-01-21T18:30:02.545Z");
+    OffsetDateTime nanosecondTime = millisecondTime.plusNanos(123456L);
+
+    Event millisecondEvent = createEvent(CLOCK.now(), List.of(new Measurement().withMetricId(metricId).withValue(20.0)));
+    millisecondEvent.setRecordDate(millisecondTime);
+
+    Event nanosecondEvent = createEvent(CLOCK.now(), List.of(new Measurement().withMetricId(metricId).withValue(30.0)));
+    nanosecondEvent.setRecordDate(nanosecondTime);
+
+    // Track nanosecond event first, then millisecond event
+    UsageConflictTracker tracker = new UsageConflictTracker(List.of(nanosecondEvent, millisecondEvent));
+
+    UsageConflictKey key = new UsageConflictKey(tag, metricId);
+    assertEquals(millisecondEvent, tracker.getLatest(key), 
+        "When normalized times are equal, the last tracked event should win regardless of original precision");
+  }
+
+  @Test
+  void testRecordDateNormalizationPrefersNullOverNormalizedTime() {
+    // Test that null record date is still preferred over any normalized timestamp
+    OffsetDateTime someTime = OffsetDateTime.parse("2025-01-21T18:30:02.545123456Z");
+
+    Event eventWithTime = createEvent(CLOCK.now(), List.of(new Measurement().withMetricId(metricId).withValue(20.0)));
+    eventWithTime.setRecordDate(someTime);
+
+    Event eventWithNullTime = createEvent(CLOCK.now(), List.of(new Measurement().withMetricId(metricId).withValue(30.0)));
+    // eventWithNullTime.recordDate remains null
+
+    // Track event with time first, then event with null time
+    UsageConflictTracker tracker = new UsageConflictTracker(List.of(eventWithTime, eventWithNullTime));
+
+    UsageConflictKey key = new UsageConflictKey(tag, metricId);
+    assertEquals(eventWithNullTime, tracker.getLatest(key), 
+        "Event with null record date should be preferred over event with normalized timestamp");
+  }
+
+  @Test
+  void testRecordDateNormalizationWithIdenticalNormalizedTimes() {
+    // Test that when multiple events normalize to exactly the same time, last tracked wins
+    OffsetDateTime baseTime = OffsetDateTime.parse("2025-01-21T18:30:02.545Z");
+    
+    Event event1 = createEvent(CLOCK.now(), List.of(new Measurement().withMetricId(metricId).withValue(10.0)));
+    event1.setRecordDate(baseTime.plusNanos(100000L));
+    
+    Event event2 = createEvent(CLOCK.now(), List.of(new Measurement().withMetricId(metricId).withValue(20.0)));
+    event2.setRecordDate(baseTime.plusNanos(200000L));
+    
+    Event event3 = createEvent(CLOCK.now(), List.of(new Measurement().withMetricId(metricId).withValue(30.0)));
+    event3.setRecordDate(baseTime.plusNanos(999999L));
+
+    UsageConflictTracker tracker = new UsageConflictTracker(List.of(event1, event2, event3));
+
+    UsageConflictKey key = new UsageConflictKey(tag, metricId);
+    assertEquals(event3, tracker.getLatest(key), 
+        "When all events normalize to the same millisecond, the last tracked should be returned");
+  }
+
+  @Test
+  void testRecordDateNormalizationWithZeroNanoseconds() {
+    // Test normalization when timestamp already has zero nanoseconds
+    OffsetDateTime exactMillisecondTime = OffsetDateTime.parse("2025-01-21T18:30:02.545Z");
+    OffsetDateTime timeWithNanos = exactMillisecondTime.plusNanos(123456L);
+
+    Event exactEvent = createEvent(CLOCK.now(), List.of(new Measurement().withMetricId(metricId).withValue(20.0)));
+    exactEvent.setRecordDate(exactMillisecondTime);
+
+    Event nanosEvent = createEvent(CLOCK.now(), List.of(new Measurement().withMetricId(metricId).withValue(30.0)));
+    nanosEvent.setRecordDate(timeWithNanos);
+
+    UsageConflictTracker tracker = new UsageConflictTracker(List.of(exactEvent, nanosEvent));
+
+    UsageConflictKey key = new UsageConflictKey(tag, metricId);
+    assertEquals(nanosEvent, tracker.getLatest(key), 
+        "Events with same millisecond timestamp should result in last tracked winning");
+  }
+
+  @Test
+  void testRecordDateNormalizationAcrossMillisecondBoundary() {
+    // Test events that are very close but cross millisecond boundaries
+    OffsetDateTime time1 = OffsetDateTime.parse("2025-01-21T18:30:02.545999999Z"); // 545ms + 999,999ns
+    OffsetDateTime time2 = OffsetDateTime.parse("2025-01-21T18:30:02.546000001Z"); // 546ms + 1ns
+
+    Event event1 = createEvent(CLOCK.now(), List.of(new Measurement().withMetricId(metricId).withValue(20.0)));
+    event1.setRecordDate(time1);
+
+    Event event2 = createEvent(CLOCK.now(), List.of(new Measurement().withMetricId(metricId).withValue(30.0)));
+    event2.setRecordDate(time2);
+
+    UsageConflictTracker tracker = new UsageConflictTracker(List.of(event1, event2));
+
+    UsageConflictKey key = new UsageConflictKey(tag, metricId);
+    assertEquals(event2, tracker.getLatest(key), 
+        "Event with later millisecond should be preferred even when nanosecond difference is minimal");
+  }
+
   private Event createEvent(OffsetDateTime timestamp, List<Measurement> measurements) {
     return new Event()
         .withOrgId("org1")

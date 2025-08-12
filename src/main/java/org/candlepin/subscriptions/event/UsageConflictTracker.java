@@ -64,6 +64,8 @@ public class UsageConflictTracker {
           Optional.ofNullable(normalizeTimestamp(keyToLatestEvent.get(key).getRecordDate()));
       if (eventRecordDate.isEmpty()
           || (latestEventRecordDate.isPresent()
+              && eventRecordDate.get().equals(latestEventRecordDate.get()))
+          || (latestEventRecordDate.isPresent()
               && eventRecordDate.get().isAfter(latestEventRecordDate.get()))) {
         keyToLatestEvent.put(key, event);
       }
