@@ -86,22 +86,23 @@ public class UsageConflictTracker {
   }
 
   /**
-   * Normalizes timestamp to millisecond precision to prevent nanosecond precision differences from
-   * causing incorrect conflict resolution decisions.
+   * Normalizes timestamp to microsecond precision to prevent nanosecond precision differences from
+   * causing incorrect conflict resolution decisions while matching the default PostgreSQL
+   * precision.
    *
    * <p>This fixes the timestamp precision bug where events with essentially the same logical time
    * (e.g., 2025-07-21T18:30:02.545245510Z vs 2025-07-21T18:30:02.545306029Z) were treated as
    * different due to nanosecond precision differences in JSON deserialization.
    *
    * @param timestamp the timestamp to normalize, may be null
-   * @return normalized timestamp with millisecond precision, or null if input was null
+   * @return normalized timestamp with microsecond precision, or null if input was null
    */
   private OffsetDateTime normalizeTimestamp(OffsetDateTime timestamp) {
     if (timestamp == null) {
       return null;
     }
-    // Truncate to millisecond precision for consistent comparison
-    // This handles both existing data (nanoseconds) and future data (milliseconds)
-    return timestamp.truncatedTo(ChronoUnit.MILLIS);
+    // Truncate to microsecond precision for consistent comparison
+    // This handles both existing data (nanoseconds) and future data (microseconds)
+    return timestamp.truncatedTo(ChronoUnit.MICROS);
   }
 }

@@ -33,9 +33,9 @@ import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.junit.jupiter.api.Test;
 
 /**
- * Tests the timestamp precision fix that normalizes timestamps to millisecond precision during
- * conflict resolution to prevent nanosecond differences from causing incorrect billing
- * calculations.
+ * Tests the timestamp precision fix that normalizes timestamps to microsecond precision during
+ * conflict resolution to prevent nanosecond differences from causing incorrect billing calculations
+ * while matching the default PostgreSQL precision.
  *
  * <p>Note: The actual timestamp normalization happens in UsageConflictTracker.track() method, which
  * is what these tests are validating.
@@ -63,7 +63,7 @@ class TimestampPrecisionTest {
 
     // The timestamps differ by only 123 nanoseconds, representing essentially the same logical time
     // Before fix: nanosecond difference would cause wrong "latest" event selection
-    // After fix: timestamps are normalized to millisecond precision for consistent comparison
+    // After fix: timestamps are normalized to microsecond precision for consistent comparison
 
     UsageConflictTracker tracker = new UsageConflictTracker(List.of(databaseEvent));
     tracker.track(incomingEvent);
@@ -71,27 +71,27 @@ class TimestampPrecisionTest {
     UsageConflictKey key = new UsageConflictKey(PRODUCT_TAG, METRIC_ID);
     Event latest = tracker.getLatest(key);
 
-    // With the fix, when timestamps are normalized to the same millisecond precision,
-    // the first event should remain as the latest since they're considered equal
+    // With the fix, when timestamps are normalized to the same microsecond precision,
+    // the last tracked event should become the latest since they're considered equal
     assertEquals(
-        databaseEvent,
+        incomingEvent,
         latest,
-        "First event should remain latest when timestamps are effectively equal");
-    assertEquals(20.0, latest.getMeasurements().get(0).getValue());
+        "Last tracked event should become latest when timestamps are effectively equal");
+    assertEquals(25.0, latest.getMeasurements().get(0).getValue());
 
     // The key improvement: This comparison is now deterministic and won't cause incorrect
-    // billing calculations due to sub-millisecond timestamp variations
+    // billing calculations due to sub-microsecond timestamp variations
   }
 
   @Test
   void testTimestampPrecisionNormalizationMakesTimestampsEqual() {
     // This test shows that timestamps differing only by nanoseconds are treated as equal
-    // after normalization to millisecond precision
+    // after normalization to microsecond precision
 
     Event event1 = createEvent(20.0);
     Event event2 = createEvent(25.0);
 
-    // Same millisecond, different nanoseconds
+    // Same microsecond, different nanoseconds
     OffsetDateTime timestamp1 = OffsetDateTime.parse("2025-08-07T18:30:04.908874000Z");
     OffsetDateTime timestamp2 = OffsetDateTime.parse("2025-08-07T18:30:04.908874999Z");
 
@@ -105,10 +105,12 @@ class TimestampPrecisionTest {
     UsageConflictKey key = new UsageConflictKey(PRODUCT_TAG, METRIC_ID);
     Event latest = tracker.getLatest(key);
 
-    // After the fix, when timestamps are normalized to the same millisecond precision,
-    // event1 should remain as the latest since they're considered equal
+    // After the fix, when timestamps are normalized to the same microsecond precision,
+    // event2 should become the latest since they're considered equal and event2 was tracked last
     assertEquals(
-        event1, latest, "First event should remain latest when timestamps are effectively equal");
+        event2,
+        latest,
+        "Last tracked event should become latest when timestamps are effectively equal");
   }
 
   private Event createEvent(double coreValue) {
