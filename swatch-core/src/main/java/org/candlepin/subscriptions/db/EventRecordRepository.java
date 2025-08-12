@@ -168,6 +168,7 @@ public interface EventRecordRepository
               select * from events
               where (org_id, instance_id, timestamp)
               in (%s)
+              order by record_date
               """,
               String.join(",", matchingTuples));
       found.addAll(getEntityManager().createNativeQuery(query, EventRecord.class).getResultList());

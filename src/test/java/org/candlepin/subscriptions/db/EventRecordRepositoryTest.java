@@ -245,6 +245,85 @@ class EventRecordRepositoryTest implements ExtendWithSwatchDatabase {
     assertTrue(match3.contains(eventRecord4));
   }
 
+  @Test
+  void testFindConflictingEventsSortedByRecordDate() {
+    // Create events with the same EventKey but different record dates
+    OffsetDateTime baseTime = OffsetDateTime.now(CLOCK);
+
+    // First event - will have earliest record_date
+    Event event1 = new Event();
+    event1.setOrgId("org123");
+    event1.setInstanceId("instance1");
+    event1.setServiceType("RHEL System");
+    event1.setTimestamp(baseTime);
+    event1.setEventType("event-type");
+    event1.setEventSource("test-data");
+    EventRecord eventRecord1 = new EventRecord(event1);
+
+    // Save first event and flush to ensure it gets persisted with earlier record_date
+    repository.saveAndFlush(eventRecord1);
+
+    // Wait a bit to ensure different record_date
+    try {
+      Thread.sleep(10);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
+    // Second event with same EventKey - will have later record_date
+    Event event2 = new Event();
+    event2.setOrgId("org123");
+    event2.setInstanceId("instance1");
+    event2.setServiceType("RHEL System");
+    event2.setTimestamp(baseTime); // Same timestamp as event1
+    event2.setEventType("event-type");
+    event2.setEventSource("test-data");
+    EventRecord eventRecord2 = new EventRecord(event2);
+
+    repository.saveAndFlush(eventRecord2);
+
+    // Wait again to ensure different record_date
+    try {
+      Thread.sleep(10);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
+    // Third event with same EventKey - will have latest record_date
+    Event event3 = new Event();
+    event3.setOrgId("org123");
+    event3.setInstanceId("instance1");
+    event3.setServiceType("RHEL System");
+    event3.setTimestamp(baseTime); // Same timestamp as event1 and event2
+    event3.setEventType("event-type");
+    event3.setEventSource("test-data");
+    EventRecord eventRecord3 = new EventRecord(event3);
+
+    repository.saveAndFlush(eventRecord3);
+
+    // Find conflicting events
+    List<EventRecord> conflictingEvents =
+        repository.findConflictingEvents(Set.of(EventKey.fromEvent(event1)));
+
+    // Verify we get all 3 events
+    assertEquals(3, conflictingEvents.size());
+
+    // Verify they are sorted by record_date (ascending)
+    OffsetDateTime previousRecordDate = null;
+    for (EventRecord record : conflictingEvents) {
+      if (previousRecordDate != null) {
+        assertTrue(
+            record.getRecordDate().isAfter(previousRecordDate)
+                || record.getRecordDate().isEqual(previousRecordDate),
+            "Events should be sorted by record_date in ascending order");
+      }
+      previousRecordDate = record.getRecordDate();
+    }
+
+    // Verify the first event has the earliest record_date
+    assertEquals(eventRecord1.getEventId(), conflictingEvents.get(0).getEventId());
+  }
+
   private Event event(
       String orgId, String source, String type, String instanceId, OffsetDateTime time) {
     UUID eventId = UUID.randomUUID();
