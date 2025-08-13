@@ -19,8 +19,6 @@ serviceType: rhacm Instance
 
 contractEnabled: true
 
-payg: true
-
 metrics:
   - id: vCPUs
     type: counter

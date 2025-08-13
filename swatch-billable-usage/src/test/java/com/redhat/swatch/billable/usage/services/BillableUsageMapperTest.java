@@ -78,7 +78,6 @@ class BillableUsageMapperTest {
             .build();
     var subscriptionDefinition =
         SubscriptionDefinition.builder()
-            .payg(true)
             .variants(Set.of(variant))
             .metrics(Set.of(awsMetric))
             .build();

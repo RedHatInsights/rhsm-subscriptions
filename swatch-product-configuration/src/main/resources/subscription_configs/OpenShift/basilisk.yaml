@@ -21,8 +21,6 @@ serviceType: BASILISK Instance
 
 contractEnabled: true
 
-payg: true
-
 metrics:
   - id: Transfer-gibibytes
     type: counter

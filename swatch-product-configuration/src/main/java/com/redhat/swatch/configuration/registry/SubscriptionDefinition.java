@@ -98,7 +98,6 @@ public class SubscriptionDefinition {
   @Valid @Default private Set<Metric> metrics = new HashSet<>();
   private Defaults defaults;
   private boolean contractEnabled;
-  private boolean payg;
   private boolean vdcType;
 
   /**
@@ -358,7 +357,8 @@ public class SubscriptionDefinition {
   }
 
   public boolean isPaygEligible() {
-    return payg;
+    return metrics.stream()
+        .anyMatch(metric -> metric.getRhmMetricId() != null || metric.getAwsDimension() != null);
   }
 
   public static String getAwsDimension(String productTag, String metricId) {

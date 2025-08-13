@@ -17,8 +17,6 @@ defaults:
 
 serviceType: Rhacs Cluster
 
-payg: true
-
 metrics:
   - id: Cores
     type: counter
