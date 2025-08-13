@@ -26,8 +26,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -86,9 +89,8 @@ class HbiEventOutboxRepositoryTest {
     HbiEventOutbox existing = givenExistingHbiEventOutbox();
     long deletedCount = repository.deleteByOrgId(existing.getOrgId());
     assertEquals(1L, deletedCount);
-
-    List<HbiEventOutbox> remainingRecords = repository.findByOrgId(existing.getOrgId());
-    assertTrue(remainingRecords.isEmpty());
+    repository.getEntityManager().detach(existing);
+    assertEquals(0, repository.count());
   }
 
   @Test
@@ -96,14 +98,12 @@ class HbiEventOutboxRepositoryTest {
   void testUpdateRecord() {
     HbiEventOutbox existing = givenExistingHbiEventOutbox();
 
-    String newEventJson =
-        "{\"event_source\":\"updated\",\"event_type\":\"updated\",\"org_id\":\"org1\",\"instance_id\":\"updated\",\"service_type\":\"updated\",\"timestamp\":\"2024-01-20T12:00:00Z\"}";
-    existing.setSwatchEventJson(newEventJson);
+    existing.getSwatchEventJson().setEventType("updated");
     repository.persistAndFlush(existing);
 
     Optional<HbiEventOutbox> updated = repository.findByIdOptional(existing.getId());
     assertTrue(updated.isPresent());
-    assertEquals(newEventJson, updated.get().getSwatchEventJson());
+    assertEquals("updated", updated.get().getSwatchEventJson().getEventType());
   }
 
   private HbiEventOutbox givenExistingHbiEventOutbox() {
@@ -113,8 +113,14 @@ class HbiEventOutboxRepositoryTest {
   private HbiEventOutbox givenExistingHbiEventOutbox(String orgId) {
     HbiEventOutbox entity = new HbiEventOutbox();
     entity.setOrgId(orgId);
-    entity.setSwatchEventJson(
-        "{\"event_source\":\"HBI_HOST\",\"event_type\":\"test\",\"org_id\":\"org1\",\"instance_id\":\"instance1\",\"service_type\":\"RHEL System\",\"timestamp\":\"2024-01-20T10:00:00Z\"}");
+    Event event = new Event();
+    event.setOrgId(orgId);
+    event.setEventSource("HBI_HOST");
+    event.setEventType("test");
+    event.setServiceType("RHEL System");
+    event.setInstanceId(UUID.randomUUID().toString());
+    event.setTimestamp(OffsetDateTime.now());
+    entity.setSwatchEventJson(event);
     repository.persistAndFlush(entity);
     return entity;
   }

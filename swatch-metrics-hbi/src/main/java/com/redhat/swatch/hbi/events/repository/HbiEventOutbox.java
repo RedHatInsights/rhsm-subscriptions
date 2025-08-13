@@ -20,20 +20,24 @@
  */
 package com.redhat.swatch.hbi.events.repository;
 
+import com.redhat.swatch.hbi.events.repository.converters.EventConverter;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.validation.Valid;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.UUID;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import org.candlepin.subscriptions.json.Event;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -55,9 +59,11 @@ public class HbiEventOutbox extends PanacheEntityBase {
   @Column(name = "created_on", nullable = false)
   private OffsetDateTime createdOn;
 
+  @Valid
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "swatch_event_json", columnDefinition = "jsonb", nullable = false)
-  private String swatchEventJson;
+  @Convert(converter = EventConverter.class)
+  private Event swatchEventJson;
 
   @PrePersist
   public void onCreate() {
