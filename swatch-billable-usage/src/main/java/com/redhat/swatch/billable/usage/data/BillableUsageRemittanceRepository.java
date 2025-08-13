@@ -263,12 +263,6 @@ public class BillableUsageRemittanceRepository
             root.get(BillableUsageRemittanceEntity_.remittancePendingDate), beginning);
   }
 
-  private static Specification<BillableUsageRemittanceEntity> beforeUpdatedAtDate(
-      OffsetDateTime before) {
-    return (root, query, builder) ->
-        builder.lessThanOrEqualTo(root.get(BillableUsageRemittanceEntity_.updatedAt), before);
-  }
-
   private static Specification<BillableUsageRemittanceEntity> matchingAccumulationPeriod(
       String accumulationPeriod) {
     return (root, query, builder) ->
