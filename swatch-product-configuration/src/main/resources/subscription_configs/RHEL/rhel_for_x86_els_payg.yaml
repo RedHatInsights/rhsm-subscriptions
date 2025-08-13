@@ -20,6 +20,8 @@ serviceType: RHEL System
 
 contractEnabled: false #There is no need to generate an AWS contract listing because we will be using a non-Saas contract flow.
 
+payg: true
+
 metrics:
   - id: vCPUs
     type: counter

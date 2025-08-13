@@ -22,6 +22,8 @@ serviceType: rosa Instance
 
 contractEnabled: true
 
+payg: true
+
 metrics:
   # ROSA Classic (moa) does not bill control plane hours, so we don't look for it on Instance-hours
   - id: Instance-hours
