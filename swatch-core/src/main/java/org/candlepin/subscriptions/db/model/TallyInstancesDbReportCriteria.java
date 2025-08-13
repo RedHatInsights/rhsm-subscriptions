@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.db.model;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
+import java.time.OffsetDateTime;
 import java.util.List;
 import lombok.Builder;
 import lombok.Data;
@@ -45,4 +46,6 @@ public class TallyInstancesDbReportCriteria {
   private List<HardwareMeasurementType> hardwareMeasurementTypes;
   private String sort;
   private SortDirection sortDirection;
+  private OffsetDateTime beginning;
+  private OffsetDateTime ending;
 }

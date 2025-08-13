@@ -28,6 +28,7 @@ import jakarta.persistence.criteria.MapJoin;
 import jakarta.persistence.criteria.Order;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Root;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -222,6 +223,16 @@ public class TallyInstanceViewRepository {
     return (root, query, builder) -> builder.equal(root.get(TallyInstancePaygView_.MONTH), month);
   }
 
+  static <T extends TallyInstanceView> Specification<T> dateRangeFilter(
+      OffsetDateTime beginning, OffsetDateTime ending) {
+    return (root, query, builder) -> {
+      if (beginning == null || ending == null) {
+        return null; // No date filtering
+      }
+      return builder.between(root.get(TallyInstanceView_.lastSeen), beginning, ending);
+    };
+  }
+
   static <T extends TallyInstanceView> Specification<T> orderBy(
       String sort, SortDirection sortDirection, boolean isPayg) {
     return (root, query, builder) -> {
@@ -318,6 +329,13 @@ public class TallyInstanceViewRepository {
     if (criteria.getProductId().isPayg() && StringUtils.hasText(criteria.getMonth())) {
       searchCriteria = searchCriteria.and(monthEquals(criteria.getMonth()));
     }
+
+    // Add date range filtering for all products when date parameters are provided
+    if (criteria.getBeginning() != null && criteria.getEnding() != null) {
+      searchCriteria =
+          searchCriteria.and(dateRangeFilter(criteria.getBeginning(), criteria.getEnding()));
+    }
+
     if (!ObjectUtils.isEmpty(criteria.getHardwareMeasurementTypes())) {
       searchCriteria =
           searchCriteria.and(hardwareMeasurementTypeIn(criteria.getHardwareMeasurementTypes()));

@@ -23,9 +23,9 @@ package org.candlepin.subscriptions.resource.api.v1;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.times;
 
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
@@ -35,7 +35,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.TallyInstanceViewRepository;
@@ -45,7 +45,6 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyInstancePaygView;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
-import org.candlepin.subscriptions.utilization.api.v1.model.InstanceData;
 import org.candlepin.subscriptions.utilization.api.v1.model.InstanceResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -56,7 +55,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import java.util.stream.Stream;
 
 /**
  * Test class to demonstrate the date filtering bug for OpenShift products.
@@ -72,8 +70,7 @@ class InstancesResourceDateFilteringBugTest {
 
   private static final ProductId OPENSHIFT_DEDICATED_METRICS =
       ProductId.fromString("OpenShift-dedicated-metrics");
-  private static final ProductId OPENSHIFT_METRICS =
-      ProductId.fromString("OpenShift-metrics");
+  private static final ProductId OPENSHIFT_METRICS = ProductId.fromString("OpenShift-metrics");
   private static final String ORG_ID = "owner123456";
 
   @MockitoBean TallyInstanceViewRepository repository;
@@ -92,24 +89,26 @@ class InstancesResourceDateFilteringBugTest {
     currentMonth = OffsetDateTime.of(2024, 3, 15, 10, 0, 0, 0, ZoneOffset.UTC);
   }
 
-
   // This test demonstrates the date filtering bug
   @WithMockRedHatPrincipal("123456")
   @ParameterizedTest
   @MethodSource("provideOpenShiftProductsAndDateRanges")
-  void testOpenShiftProductDateFilteringBug(ProductId product, OffsetDateTime startDate, OffsetDateTime endDate, String expectedInstanceId) {
-    
-    
+  void testOpenShiftProductDateFilteringBug(
+      ProductId product,
+      OffsetDateTime startDate,
+      OffsetDateTime endDate,
+      String expectedInstanceId) {
+
     // Create test data with different dates within the same month
     var earlyMonthInstance = createPaygInstanceView("early-month-instance");
     var midMonthInstance = createPaygInstanceView("mid-month-instance");
     var lateMonthInstance = createPaygInstanceView("late-month-instance");
-    
+
     // Set different dates for the instances within the same month
     earlyMonthInstance.setLastSeen(currentMonth.withDayOfMonth(1));
     midMonthInstance.setLastSeen(currentMonth.withDayOfMonth(15));
     lateMonthInstance.setLastSeen(currentMonth.withDayOfMonth(28));
-    
+
     // Mock repository to return filtered results based on date range
     // This simulates what the repository should do when date filtering is working
     when(repository.findAllBy(
@@ -117,29 +116,40 @@ class InstancesResourceDateFilteringBugTest {
             eq(product),
             any(ServiceLevel.class),
             any(Usage.class),
-            any(), any(), any(),
+            any(),
+            any(),
+            any(),
             eq("2024-03"), // month parameter for March
             any(),
             any(BillingProvider.class),
-            any(), any(), any(), any(), any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
             any()))
-        .thenReturn(new PageImpl<>(List.of(earlyMonthInstance, midMonthInstance, lateMonthInstance)));
+        .thenReturn(
+            new PageImpl<>(List.of(earlyMonthInstance, midMonthInstance, lateMonthInstance)));
 
     InstanceResponse response =
         resource.getInstancesByProduct(
-            product,
-            null, null, null, null, null, null, null, null, null,
-            startDate,  // beginning - from parameter
-            endDate,    // ending - from parameter
+            product, null, null, null, null, null, null, null, null, null,
+            startDate, // beginning - from parameter
+            endDate, // ending - from parameter
             null, null);
 
     // EXPECTED BEHAVIOR:
     // The date range should return only instances within that specific range
-    
+
     // Currently the bug causes all instances to be returned regardless of date range
     // When fixed, this should return only the expected instance
     assertThat(response.getData())
-        .as("Date range request (" + startDate + " to " + endDate + ") should only return instances from that date range")
+        .as(
+            "Date range request ("
+                + startDate
+                + " to "
+                + endDate
+                + ") should only return instances from that date range")
         .hasSize(1);
     assertThat(response.getData().get(0).getInstanceId())
         .as("Date range request should return " + expectedInstanceId)
@@ -152,11 +162,17 @@ class InstancesResourceDateFilteringBugTest {
             eq(product),
             any(ServiceLevel.class),
             any(Usage.class),
-            any(), any(), any(),
+            any(),
+            any(),
+            any(),
             eq("2024-03"), // month parameter should be consistent for same month
             any(),
             any(BillingProvider.class),
-            any(), any(), any(), any(), any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
             any());
 
     System.out.println("=== DATE FILTERING TEST FOR " + product + " ===");
@@ -182,27 +198,31 @@ class InstancesResourceDateFilteringBugTest {
   private static Stream<Arguments> provideOpenShiftProductsAndDateRanges() {
     return Stream.of(
         // OpenShift-dedicated-metrics with different date ranges
-        Arguments.of(OPENSHIFT_DEDICATED_METRICS, 
+        Arguments.of(
+            OPENSHIFT_DEDICATED_METRICS,
             OffsetDateTime.of(2024, 3, 1, 10, 0, 0, 0, ZoneOffset.UTC),
             OffsetDateTime.of(2024, 3, 5, 10, 0, 0, 0, ZoneOffset.UTC),
             "early-month-instance"),
-        Arguments.of(OPENSHIFT_DEDICATED_METRICS,
+        Arguments.of(
+            OPENSHIFT_DEDICATED_METRICS,
             OffsetDateTime.of(2024, 3, 10, 10, 0, 0, 0, ZoneOffset.UTC),
             OffsetDateTime.of(2024, 3, 20, 10, 0, 0, 0, ZoneOffset.UTC),
             "mid-month-instance"),
-        Arguments.of(OPENSHIFT_DEDICATED_METRICS,
+        Arguments.of(
+            OPENSHIFT_DEDICATED_METRICS,
             OffsetDateTime.of(2024, 3, 25, 10, 0, 0, 0, ZoneOffset.UTC),
             OffsetDateTime.of(2024, 3, 31, 10, 0, 0, 0, ZoneOffset.UTC),
             "late-month-instance"),
         // OpenShift-metrics with different date ranges
-        Arguments.of(OPENSHIFT_METRICS,
+        Arguments.of(
+            OPENSHIFT_METRICS,
             OffsetDateTime.of(2024, 3, 1, 10, 0, 0, 0, ZoneOffset.UTC),
             OffsetDateTime.of(2024, 3, 15, 10, 0, 0, 0, ZoneOffset.UTC),
             "early-month-instance"),
-        Arguments.of(OPENSHIFT_METRICS,
+        Arguments.of(
+            OPENSHIFT_METRICS,
             OffsetDateTime.of(2024, 3, 16, 10, 0, 0, 0, ZoneOffset.UTC),
             OffsetDateTime.of(2024, 3, 31, 10, 0, 0, 0, ZoneOffset.UTC),
-            "late-month-instance")
-    );
+            "late-month-instance"));
   }
 }

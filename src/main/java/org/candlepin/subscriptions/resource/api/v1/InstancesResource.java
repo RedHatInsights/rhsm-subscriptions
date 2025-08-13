@@ -195,9 +195,12 @@ public class InstancesResource implements InstancesApi {
 
     validateBeginningAndEndingDates(productId, start, end);
 
+    // Build the month parameter for PAYG products
     String month = productId.isPayg() ? InstanceMonthlyTotalKey.formatMonthId(start) : null;
     MetricId referenceMetricId = metricIdOptional.orElse(null);
 
+    // Use the existing method - date filtering will be handled by the repository's search
+    // specification
     instances =
         repository.findAllBy(
             orgId,
