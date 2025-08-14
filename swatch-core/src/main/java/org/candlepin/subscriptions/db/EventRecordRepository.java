@@ -144,10 +144,14 @@ public interface EventRecordRepository
    * <pre>
    *   NOTE: This method builds a set of tuples from the supplied keys and executes
    *         a native Postgres query. This is not possible in JPA.
+   *
+   *         Results are ordered by record_date to ensure deterministic ordering
+   *         for conflict resolution. This prevents issues where database result
+   *         ordering could vary between environments or query executions.
    * </pre>
    *
    * @param keys the {@link EventKey} to match on.
-   * @return a list of conflicting events
+   * @return a list of conflicting events ordered by record_date (oldest first)
    */
   default List<EventRecord> findConflictingEvents(Set<EventKey> keys) {
     List<EventRecord> found = new ArrayList<>();
@@ -168,6 +172,7 @@ public interface EventRecordRepository
               select * from events
               where (org_id, instance_id, timestamp)
               in (%s)
+              order by record_date
               """,
               String.join(",", matchingTuples));
       found.addAll(getEntityManager().createNativeQuery(query, EventRecord.class).getResultList());
