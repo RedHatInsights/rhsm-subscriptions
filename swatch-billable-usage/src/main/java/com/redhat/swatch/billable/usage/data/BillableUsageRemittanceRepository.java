@@ -24,6 +24,7 @@ import com.redhat.swatch.panache.PanacheSpecificationSupport;
 import com.redhat.swatch.panache.Specification;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.HashMap;
@@ -142,27 +143,22 @@ public class BillableUsageRemittanceRepository
 
   @Transactional
   public int updateStatusForStaleRemittances(
-      long days,
+      Duration stuckDuration,
       RemittanceStatus oldStatus,
       RemittanceStatus newStatus,
       RemittanceErrorCode errorCode) {
-    OffsetDateTime cutoffDate = OffsetDateTime.now(ZoneOffset.UTC).minusDays(days);
-    OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+    OffsetDateTime cutoffDate = OffsetDateTime.now(ZoneOffset.UTC).minus(stuckDuration);
 
     String query;
     Map<String, Object> parameters = new HashMap<>();
-
     query =
         "update BillableUsageRemittanceEntity bu "
             + "set bu.status = :newStatus, "
-            + "bu.errorCode = :errorCode, "
-            + "bu.updatedAt = :updatedAt "
+            + "bu.errorCode = :errorCode "
             + "where bu.status = :oldStatus "
             + "and bu.updatedAt <= :cutoffDate";
     parameters.put("errorCode", errorCode);
-
     parameters.put("newStatus", newStatus);
-    parameters.put("updatedAt", now);
     parameters.put("oldStatus", oldStatus);
     parameters.put("cutoffDate", cutoffDate);
 

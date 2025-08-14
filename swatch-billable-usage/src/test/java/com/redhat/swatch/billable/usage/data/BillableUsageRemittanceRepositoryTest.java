@@ -30,6 +30,7 @@ import com.redhat.swatch.configuration.util.MetricIdUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -594,7 +595,7 @@ class BillableUsageRemittanceRepositoryTest {
     // Test finding stale IN_PROGRESS entities (older than 7 days by updatedAt)
     var staleInProgressCount =
         repository.updateStatusForStaleRemittances(
-            7,
+            Duration.ofDays(7),
             RemittanceStatus.IN_PROGRESS,
             RemittanceStatus.FAILED,
             RemittanceErrorCode.SENDING_TO_AGGREGATE_TOPIC);
@@ -627,10 +628,10 @@ class BillableUsageRemittanceRepositoryTest {
     // Test finding stale entities
     var staleSentResultsCount =
         repository.updateStatusForStaleRemittances(
-            7, RemittanceStatus.SENT, RemittanceStatus.UNKNOWN, null);
+            Duration.ofDays(7), RemittanceStatus.SENT, RemittanceStatus.UNKNOWN, null);
     var staleInProgressResultsCount =
         repository.updateStatusForStaleRemittances(
-            7,
+            Duration.ofDays(7),
             RemittanceStatus.IN_PROGRESS,
             RemittanceStatus.FAILED,
             RemittanceErrorCode.SENDING_TO_AGGREGATE_TOPIC);
@@ -672,7 +673,7 @@ class BillableUsageRemittanceRepositoryTest {
     // Test finding stale IN_PROGRESS entities
     var staleInProgressCount =
         repository.updateStatusForStaleRemittances(
-            7,
+            Duration.ofDays(7),
             RemittanceStatus.IN_PROGRESS,
             RemittanceStatus.FAILED,
             RemittanceErrorCode.SENDING_TO_AGGREGATE_TOPIC);

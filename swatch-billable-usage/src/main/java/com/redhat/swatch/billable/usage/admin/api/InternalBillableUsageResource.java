@@ -160,9 +160,7 @@ public class InternalBillableUsageResource implements DefaultApi {
 
   @Override
   public DefaultResponse reconcileRemittances() {
-    var policyDuration = configuration.getRemittanceStatusStuckDuration();
-
-    billingController.reconcileBillableUsageRemittances(policyDuration.toDays());
+    billingController.reconcileBillableUsageRemittances();
     return getDefaultResponse(SUCCESS_STATUS);
   }
 

@@ -22,6 +22,7 @@ package com.redhat.swatch.billable.usage.admin.api;
 
 import static java.util.Optional.ofNullable;
 
+import com.redhat.swatch.billable.usage.configuration.ApplicationConfiguration;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceFilter;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
 import com.redhat.swatch.billable.usage.data.RemittanceErrorCode;
@@ -54,6 +55,7 @@ public class InternalBillableUsageController {
   private final BillableUsageRemittanceRepository remittanceRepository;
   private final RemittanceMapper remittanceMapper;
   private final MeterRegistry meterRegistry;
+  private final ApplicationConfiguration configuration;
 
   public List<MonthlyRemittance> getRemittances(BillableUsageRemittanceFilter filter) {
     if (filter.getOrgId() == null) {
@@ -94,10 +96,10 @@ public class InternalBillableUsageController {
   }
 
   @Transactional
-  public void reconcileBillableUsageRemittances(long days) {
+  public void reconcileBillableUsageRemittances() {
     int inProgressUpdated =
         remittanceRepository.updateStatusForStaleRemittances(
-            days,
+            configuration.getRemittanceStatusStuckDuration(),
             RemittanceStatus.IN_PROGRESS,
             RemittanceStatus.FAILED,
             RemittanceErrorCode.SENDING_TO_AGGREGATE_TOPIC);
@@ -110,7 +112,10 @@ public class InternalBillableUsageController {
 
     int sentUpdated =
         remittanceRepository.updateStatusForStaleRemittances(
-            days, RemittanceStatus.SENT, RemittanceStatus.UNKNOWN, null);
+            configuration.getRemittanceStatusStuckDuration(),
+            RemittanceStatus.SENT,
+            RemittanceStatus.UNKNOWN,
+            null);
     if (sentUpdated > 0) {
       meterRegistry.counter(USAGE_STATUS_PUSH_TO_UNKNOWN_METRIC).increment(sentUpdated);
       log.info("Updated {} stale SENT billable usage remittances to status UNKNOWN", sentUpdated);

@@ -24,7 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.billable.usage.configuration.ApplicationConfiguration;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceEntity;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceFilter;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
@@ -32,10 +34,11 @@ import com.redhat.swatch.billable.usage.data.RemittanceErrorCode;
 import com.redhat.swatch.billable.usage.data.RemittanceStatus;
 import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.mockito.InjectSpy;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Set;
 import org.candlepin.clock.ApplicationClock;
@@ -53,10 +56,12 @@ class InternalBillableUsageControllerTest {
   @Inject BillableUsageRemittanceRepository remittanceRepo;
   @Inject ApplicationClock clock;
   @Inject InternalBillableUsageController controller;
+  @InjectSpy ApplicationConfiguration configuration;
 
   @Transactional
   @BeforeEach
   void setup() {
+    when(configuration.getRemittanceStatusStuckDuration()).thenCallRealMethod();
     remittanceRepo.deleteAll();
     BillableUsageRemittanceEntity remittance1 =
         remittance(
@@ -65,8 +70,7 @@ class InternalBillableUsageControllerTest {
             BillableUsage.BillingProvider.AWS,
             24.0,
             clock.startOfCurrentMonth(),
-            RemittanceStatus.SUCCEEDED,
-            OffsetDateTime.now());
+            RemittanceStatus.SUCCEEDED);
     BillableUsageRemittanceEntity remittance2 =
         remittance(
             "org123",
@@ -74,8 +78,7 @@ class InternalBillableUsageControllerTest {
             BillableUsage.BillingProvider.AWS,
             12.0,
             clock.endOfCurrentQuarter(),
-            RemittanceStatus.PENDING,
-            OffsetDateTime.now());
+            RemittanceStatus.PENDING);
     BillableUsageRemittanceEntity remittance3 =
         remittance(
             "org123",
@@ -83,8 +86,7 @@ class InternalBillableUsageControllerTest {
             BillableUsage.BillingProvider.RED_HAT,
             12.0,
             clock.startOfCurrentMonth(),
-            RemittanceStatus.PENDING,
-            OffsetDateTime.now());
+            RemittanceStatus.PENDING);
     remittance3.setMetricId("Transfer-gibibytes");
     BillableUsageRemittanceEntity remittance4 =
         remittance(
@@ -93,8 +95,7 @@ class InternalBillableUsageControllerTest {
             BillableUsage.BillingProvider.RED_HAT,
             8.0,
             clock.startOfCurrentMonth(),
-            RemittanceStatus.PENDING,
-            OffsetDateTime.now());
+            RemittanceStatus.PENDING);
     BillableUsageRemittanceEntity remittance5 =
         remittance(
             "org345",
@@ -102,8 +103,7 @@ class InternalBillableUsageControllerTest {
             BillableUsage.BillingProvider.AZURE,
             4.0,
             clock.startOfCurrentMonth(),
-            RemittanceStatus.FAILED,
-            OffsetDateTime.now());
+            RemittanceStatus.FAILED);
     BillableUsageRemittanceEntity remittance6 =
         remittance(
             "1234",
@@ -111,8 +111,7 @@ class InternalBillableUsageControllerTest {
             BillableUsage.BillingProvider.AWS,
             24.0,
             clock.startOfCurrentMonth(),
-            RemittanceStatus.PENDING,
-            OffsetDateTime.now());
+            RemittanceStatus.PENDING);
     BillableUsageRemittanceEntity remittance7 =
         remittance(
             "5678",
@@ -120,8 +119,7 @@ class InternalBillableUsageControllerTest {
             BillableUsage.BillingProvider.AWS,
             24.0,
             clock.startOfCurrentMonth(),
-            RemittanceStatus.PENDING,
-            OffsetDateTime.now());
+            RemittanceStatus.PENDING);
     remittanceRepo.persist(
         List.of(
             remittance1,
@@ -286,42 +284,30 @@ class InternalBillableUsageControllerTest {
 
   @Transactional
   @Test
-  void testReconcileBillableUsageRemittances() {
+  void testReconcileBillableUsageRemittances() throws InterruptedException {
+    // Clean up any existing data
     remittanceRepo.deleteAll();
 
+    // Configure the stuck duration, so it will see the next remittances as stale
+    long stuckDurationInMillis = 500;
+    when(configuration.getRemittanceStatusStuckDuration())
+        .thenReturn(Duration.ofMillis(stuckDurationInMillis));
+
+    // Configure remittances
     int inProgressCount = 5;
-    OffsetDateTime updatedAt = OffsetDateTime.now().minusDays(2);
-    setupRemittances(inProgressCount, "org-", RemittanceStatus.IN_PROGRESS, updatedAt);
+    setupRemittances(inProgressCount, "org-", RemittanceStatus.IN_PROGRESS);
 
     int sentCount = 3;
-    setupRemittances(sentCount, "org-sent-", RemittanceStatus.SENT, updatedAt);
+    setupRemittances(sentCount, "org-sent-", RemittanceStatus.SENT);
 
-    remittanceRepo.flush();
-    String updateUpdatedAtQuery =
-        "UPDATE billable_usage_remittance SET updated_at = ? WHERE status = ?";
-    remittanceRepo
-        .getEntityManager()
-        .createNativeQuery(updateUpdatedAtQuery)
-        .setParameter(1, OffsetDateTime.now().minusDays(2))
-        .setParameter(2, RemittanceStatus.IN_PROGRESS.getValue())
-        .executeUpdate();
-
-    remittanceRepo
-        .getEntityManager()
-        .createNativeQuery(updateUpdatedAtQuery)
-        .setParameter(1, OffsetDateTime.now().minusDays(2))
-        .setParameter(2, RemittanceStatus.SENT.getValue())
-        .executeUpdate();
+    // Wait at least the stuck duration, so the previous remittances are now stale.
+    Thread.sleep(stuckDurationInMillis);
 
     // Execute the method
-    long numOfStaleDays = 1L;
-    remittanceRepo.flush();
-    controller.reconcileBillableUsageRemittances(numOfStaleDays);
+    controller.reconcileBillableUsageRemittances();
     remittanceRepo.getEntityManager().clear();
 
     // Verify that the entities have been updated correctly
-    OffsetDateTime cutoffDate = OffsetDateTime.now(ZoneOffset.UTC).minusDays(numOfStaleDays);
-
     List<BillableUsageRemittanceEntity> failedEntities =
         remittanceRepo.find("status = ?1 ", RemittanceStatus.FAILED).list();
     List<BillableUsageRemittanceEntity> unknownEntities =
@@ -358,47 +344,37 @@ class InternalBillableUsageControllerTest {
     remittanceRepo.deleteAll();
 
     int inProgressCount = 3;
-    setupRemittances(
-        inProgressCount,
-        "org-recent-",
-        RemittanceStatus.IN_PROGRESS,
-        OffsetDateTime.now().minusDays(2));
+    setupRemittances(inProgressCount, "org-recent-", RemittanceStatus.IN_PROGRESS);
 
     int sentCount = 2;
-    setupRemittances(
-        sentCount, "org-sent-recent-", RemittanceStatus.SENT, OffsetDateTime.now().minusDays(2));
+    setupRemittances(sentCount, "org-sent-recent-", RemittanceStatus.SENT);
 
     // Execute the method
-    remittanceRepo.flush();
-    long numOfStaleDays = 1L;
-    controller.reconcileBillableUsageRemittances(numOfStaleDays);
-    remittanceRepo.getEntityManager().clear();
+    controller.reconcileBillableUsageRemittances();
 
     // Verify that no entities have been updated
-    List<BillableUsageRemittanceEntity> inProgressEntities =
-        remittanceRepo.find("status = ?1", RemittanceStatus.IN_PROGRESS).list();
-    List<BillableUsageRemittanceEntity> sentEntities =
-        remittanceRepo.find("status = ?1", RemittanceStatus.SENT).list();
-    List<BillableUsageRemittanceEntity> failedEntities =
-        remittanceRepo.find("status = ?1", RemittanceStatus.FAILED).list();
-    List<BillableUsageRemittanceEntity> unknownEntities =
-        remittanceRepo.find("status = ?1", RemittanceStatus.UNKNOWN).list();
+    var entities = remittanceRepo.listAll();
 
     // Verify the counts of entities
     assertEquals(
         inProgressCount,
-        inProgressEntities.size(),
+        entities.stream().filter(e -> e.getStatus().equals(RemittanceStatus.IN_PROGRESS)).count(),
         "Expected " + inProgressCount + " entities to still have IN_PROGRESS status");
     assertEquals(
         sentCount,
-        sentEntities.size(),
+        entities.stream().filter(e -> e.getStatus().equals(RemittanceStatus.SENT)).count(),
         "Expected " + sentCount + " entities to still have SENT status");
-    assertEquals(0, failedEntities.size(), "Expected no entities to have FAILED status");
-    assertEquals(0, unknownEntities.size(), "Expected no entities to have UNKNOWN status");
+    assertEquals(
+        0,
+        entities.stream().filter(e -> e.getStatus().equals(RemittanceStatus.FAILED)).count(),
+        "Expected no entities to have FAILED status");
+    assertEquals(
+        0,
+        entities.stream().filter(e -> e.getStatus().equals(RemittanceStatus.UNKNOWN)).count(),
+        "Expected no entities to have UNKNOWN status");
   }
 
-  private void setupRemittances(
-      int inProgressCount, String orgIdPrefix, RemittanceStatus status, OffsetDateTime updatedAt) {
+  private void setupRemittances(int inProgressCount, String orgIdPrefix, RemittanceStatus status) {
     for (int i = 0; i < inProgressCount; i++) {
       BillableUsageRemittanceEntity entity =
           remittance(
@@ -407,8 +383,7 @@ class InternalBillableUsageControllerTest {
               BillableUsage.BillingProvider.AWS,
               12.0,
               clock.endOfCurrentQuarter(),
-              status,
-              updatedAt);
+              status);
 
       remittanceRepo.persist(entity);
     }
@@ -436,8 +411,7 @@ class InternalBillableUsageControllerTest {
       BillableUsage.BillingProvider billingProvider,
       Double value,
       OffsetDateTime remittanceDate,
-      RemittanceStatus remittanceStatus,
-      OffsetDateTime updatedAt) {
+      RemittanceStatus remittanceStatus) {
     return BillableUsageRemittanceEntity.builder()
         .usage(BillableUsage.Usage.PRODUCTION.value())
         .orgId(orgId)
@@ -450,7 +424,6 @@ class InternalBillableUsageControllerTest {
         .remittancePendingDate(remittanceDate)
         .remittedPendingValue(value)
         .status(remittanceStatus)
-        .updatedAt(updatedAt)
         .build();
   }
 }
