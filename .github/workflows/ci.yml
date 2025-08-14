@@ -74,7 +74,7 @@ jobs:
           curl -Ls https://sh.jbang.dev | bash -s - app install --fresh --force yamlpath@yaml-path/jbang
 
       - name: Setup PostgreSQL DB
-        run: docker run -d -v ./init_dbs.sh:/usr/share/container-scripts/postgresql/start/set_passwords.sh:z -p 5432:5432 -e POSTGRESQL_ADMIN_PASSWORD=admin quay.io/sclorg/postgresql-13-c9s:c9s
+        run: docker run -d -v ./init_dbs.sh:/usr/share/container-scripts/postgresql/start/set_passwords.sh:z -p 5432:5432 -e POSTGRESQL_ADMIN_PASSWORD=admin quay.io/sclorg/postgresql-16-c9s:c9s
 
       - name: Setup PostgreSQL client
         run: sudo apt-get install -y postgresql-client
