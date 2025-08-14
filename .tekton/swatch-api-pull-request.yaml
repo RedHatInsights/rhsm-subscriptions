@@ -8,12 +8,13 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/cancel-in-progress: "true"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: (event == "pull_request" || event == "merge_group") && (target_branch == "main" || target_branch == "hotfix")
+    pipelinesascode.tekton.dev/on-cel-expression: (event == "pull_request" && target_branch == "main") || (event == "push" && target_branch.startsWith("gh-readonly-queue/main/")) || (event == "pull_request" && target_branch == "hotfix") || (event == "push" && target_branch.startsWith("gh-readonly-queue/hotfix/"))
   creationTimestamp:
   labels:
     appstudio.openshift.io/application: rhsm-subscriptions
     appstudio.openshift.io/component: swatch-api
     pipelines.appstudio.openshift.io/type: build
+    release.appstudio.openshift.io/auto-release: "false"
   name: swatch-api-on-pull-request
   namespace: rh-subs-watch-tenant
 spec:
