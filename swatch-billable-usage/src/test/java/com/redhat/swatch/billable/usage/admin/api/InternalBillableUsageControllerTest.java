@@ -22,16 +22,22 @@ package com.redhat.swatch.billable.usage.admin.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.billable.usage.configuration.ApplicationConfiguration;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceEntity;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceFilter;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
+import com.redhat.swatch.billable.usage.data.RemittanceErrorCode;
 import com.redhat.swatch.billable.usage.data.RemittanceStatus;
 import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.mockito.InjectSpy;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Set;
@@ -50,10 +56,12 @@ class InternalBillableUsageControllerTest {
   @Inject BillableUsageRemittanceRepository remittanceRepo;
   @Inject ApplicationClock clock;
   @Inject InternalBillableUsageController controller;
+  @InjectSpy ApplicationConfiguration configuration;
 
   @Transactional
   @BeforeEach
   void setup() {
+    when(configuration.getRemittanceStatusStuckDuration()).thenCallRealMethod();
     remittanceRepo.deleteAll();
     BillableUsageRemittanceEntity remittance1 =
         remittance(
@@ -272,6 +280,113 @@ class InternalBillableUsageControllerTest {
     var remittances = remittanceRepo.listAll();
     assertFalse(remittances.stream().anyMatch(r -> r.getOrgId().equals("org1")));
     assertTrue(remittances.stream().anyMatch(r -> r.getOrgId().equals("org2")));
+  }
+
+  @Transactional
+  @Test
+  void testReconcileBillableUsageRemittances() throws InterruptedException {
+    // Clean up any existing data
+    remittanceRepo.deleteAll();
+
+    // Configure the stuck duration, so it will see the next remittances as stale
+    long stuckDurationInMillis = 500;
+    when(configuration.getRemittanceStatusStuckDuration())
+        .thenReturn(Duration.ofMillis(stuckDurationInMillis));
+
+    // Configure remittances
+    int inProgressCount = 5;
+    setupRemittances(inProgressCount, "org-", RemittanceStatus.IN_PROGRESS);
+
+    int sentCount = 3;
+    setupRemittances(sentCount, "org-sent-", RemittanceStatus.SENT);
+
+    // Wait at least the stuck duration, so the previous remittances are now stale.
+    Thread.sleep(stuckDurationInMillis);
+
+    // Execute the method
+    controller.reconcileBillableUsageRemittances();
+    remittanceRepo.getEntityManager().clear();
+
+    // Verify that the entities have been updated correctly
+    List<BillableUsageRemittanceEntity> failedEntities =
+        remittanceRepo.find("status = ?1 ", RemittanceStatus.FAILED).list();
+    List<BillableUsageRemittanceEntity> unknownEntities =
+        remittanceRepo.find("status = ?1", RemittanceStatus.UNKNOWN).list();
+
+    // Verify the counts of updated entities
+    assertEquals(
+        inProgressCount,
+        failedEntities.size(),
+        "Expected " + inProgressCount + " entities to be updated from IN_PROGRESS to FAILED");
+    assertEquals(
+        sentCount,
+        unknownEntities.size(),
+        "Expected " + sentCount + " entities to be updated from SENT to UNKNOWN");
+
+    // Verify that all entities that were IN_PROGRESS now have the correct error code
+    for (BillableUsageRemittanceEntity entity : failedEntities) {
+      assertEquals(
+          RemittanceErrorCode.SENDING_TO_AGGREGATE_TOPIC,
+          entity.getErrorCode(),
+          "Entity should have the correct error code");
+    }
+
+    // Verify that all entities that were SENT now have a null error code
+    for (BillableUsageRemittanceEntity entity : unknownEntities) {
+      assertNull(entity.getErrorCode(), "Entity should have a null error code");
+    }
+  }
+
+  @Transactional
+  @Test
+  void testReconcileBillableUsageRemittancesNoStaleEntities() {
+    // Clean up any existing data
+    remittanceRepo.deleteAll();
+
+    int inProgressCount = 3;
+    setupRemittances(inProgressCount, "org-recent-", RemittanceStatus.IN_PROGRESS);
+
+    int sentCount = 2;
+    setupRemittances(sentCount, "org-sent-recent-", RemittanceStatus.SENT);
+
+    // Execute the method
+    controller.reconcileBillableUsageRemittances();
+
+    // Verify that no entities have been updated
+    var entities = remittanceRepo.listAll();
+
+    // Verify the counts of entities
+    assertEquals(
+        inProgressCount,
+        entities.stream().filter(e -> e.getStatus().equals(RemittanceStatus.IN_PROGRESS)).count(),
+        "Expected " + inProgressCount + " entities to still have IN_PROGRESS status");
+    assertEquals(
+        sentCount,
+        entities.stream().filter(e -> e.getStatus().equals(RemittanceStatus.SENT)).count(),
+        "Expected " + sentCount + " entities to still have SENT status");
+    assertEquals(
+        0,
+        entities.stream().filter(e -> e.getStatus().equals(RemittanceStatus.FAILED)).count(),
+        "Expected no entities to have FAILED status");
+    assertEquals(
+        0,
+        entities.stream().filter(e -> e.getStatus().equals(RemittanceStatus.UNKNOWN)).count(),
+        "Expected no entities to have UNKNOWN status");
+  }
+
+  private void setupRemittances(int inProgressCount, String orgIdPrefix, RemittanceStatus status) {
+    for (int i = 0; i < inProgressCount; i++) {
+      BillableUsageRemittanceEntity entity =
+          remittance(
+              orgIdPrefix + i,
+              "stale-test",
+              BillableUsage.BillingProvider.AWS,
+              12.0,
+              clock.endOfCurrentQuarter(),
+              status);
+
+      remittanceRepo.persist(entity);
+    }
   }
 
   private void givenRemittanceForOrgId(String orgId) {

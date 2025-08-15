@@ -30,6 +30,7 @@ import com.redhat.swatch.configuration.util.MetricIdUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -44,6 +45,7 @@ import org.candlepin.subscriptions.billable.usage.AccumulationPeriodFormatter;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 @Transactional
 @QuarkusTest
@@ -556,6 +558,132 @@ class BillableUsageRemittanceRepositoryTest {
     List<RemittanceSummaryProjection> results = repository.getRemittanceSummaries(filter1);
     assertEquals(1, results.size());
     assertEquals(24.0, results.get(0).getTotalRemittedPendingValue());
+  }
+
+  @Test
+  void testUpdateStatusForStaleRemittances() {
+    // Create test entities with different dates and statuses
+    var now = OffsetDateTime.now(ZoneOffset.UTC);
+
+    BillableUsageRemittanceEntity staleInProgress1 =
+        Mockito.spy(remittance("org1", "product1", BILLING_PROVIDER_AWS, 12.0, now));
+    staleInProgress1.setStatus(RemittanceStatus.IN_PROGRESS);
+    staleInProgress1.setUpdatedAt(now.minusDays(10));
+    Mockito.doNothing().when(staleInProgress1).onCreateOrUpdate();
+
+    var staleInProgress2 =
+        Mockito.spy(remittance("org2", "product1", BILLING_PROVIDER_AWS, 12.0, now));
+    staleInProgress2.setStatus(RemittanceStatus.IN_PROGRESS);
+    staleInProgress2.setUpdatedAt(now.minusDays(8));
+    Mockito.doNothing().when(staleInProgress2).onCreateOrUpdate();
+
+    var freshInProgress =
+        Mockito.spy(remittance("org3", "product1", BILLING_PROVIDER_AWS, 12.0, now));
+    freshInProgress.setStatus(RemittanceStatus.IN_PROGRESS);
+    freshInProgress.setUpdatedAt(now.minusDays(2));
+    Mockito.doNothing().when(freshInProgress).onCreateOrUpdate();
+
+    var staleSent = Mockito.spy(remittance("org4", "product1", BILLING_PROVIDER_AWS, 12.0, now));
+    staleSent.setStatus(RemittanceStatus.SENT);
+    staleSent.setUpdatedAt(now.minusDays(10));
+    Mockito.doNothing().when(staleSent).onCreateOrUpdate();
+
+    // Persist test entities
+    repository.persist(List.of(staleInProgress1, staleInProgress2, freshInProgress, staleSent));
+    repository.flush();
+
+    // Test finding stale IN_PROGRESS entities (older than 7 days by updatedAt)
+    var staleInProgressCount =
+        repository.updateStatusForStaleRemittances(
+            Duration.ofDays(7),
+            RemittanceStatus.IN_PROGRESS,
+            RemittanceStatus.FAILED,
+            RemittanceErrorCode.SENDING_TO_AGGREGATE_TOPIC);
+
+    assertEquals(2, staleInProgressCount);
+
+    var staleInProgressResults = repository.find("status = ?1", RemittanceStatus.FAILED).list();
+
+    assertTrue(staleInProgressResults.contains(staleInProgress1));
+    assertTrue(staleInProgressResults.contains(staleInProgress2));
+    assertFalse(staleInProgressResults.contains(freshInProgress));
+    assertFalse(staleInProgressResults.contains(staleSent));
+  }
+
+  @Test
+  void testStaleStatusesWithCurrentUpdatedAt() {
+    // Create test entities with null updatedAt
+    var now = OffsetDateTime.now(ZoneOffset.UTC);
+
+    var inProgressNullUpdatedAt = remittance("org1", "product1", BILLING_PROVIDER_AWS, 12.0, now);
+    inProgressNullUpdatedAt.setStatus(RemittanceStatus.IN_PROGRESS);
+
+    var sentNullUpdatedAt = remittance("org2", "product1", BILLING_PROVIDER_AWS, 12.0, now);
+    sentNullUpdatedAt.setStatus(RemittanceStatus.SENT);
+
+    // Persist test entities
+    repository.persist(List.of(inProgressNullUpdatedAt, sentNullUpdatedAt));
+    repository.flush();
+
+    // Test finding stale entities
+    var staleSentResultsCount =
+        repository.updateStatusForStaleRemittances(
+            Duration.ofDays(7), RemittanceStatus.SENT, RemittanceStatus.UNKNOWN, null);
+    var staleInProgressResultsCount =
+        repository.updateStatusForStaleRemittances(
+            Duration.ofDays(7),
+            RemittanceStatus.IN_PROGRESS,
+            RemittanceStatus.FAILED,
+            RemittanceErrorCode.SENDING_TO_AGGREGATE_TOPIC);
+
+    // Entities with null updatedAt should not be considered stale
+    assertEquals(0, staleInProgressResultsCount);
+    assertEquals(0, staleSentResultsCount);
+  }
+
+  @Test
+  void testFindStaleWithMixedUpdatedAtAndStatus() {
+    var now = OffsetDateTime.now(ZoneOffset.UTC);
+
+    // Create test entities with different combinations of updatedAt and status
+    var staleInProgressNullUpdatedAt =
+        remittance("org1", "product1", BILLING_PROVIDER_AWS, 12.0, now);
+    staleInProgressNullUpdatedAt.setStatus(RemittanceStatus.IN_PROGRESS);
+
+    var freshInProgressOldRemittanceDate =
+        Mockito.spy(remittance("org2", "product1", BILLING_PROVIDER_AWS, 12.0, now.minusDays(10)));
+    freshInProgressOldRemittanceDate.setStatus(RemittanceStatus.IN_PROGRESS);
+    freshInProgressOldRemittanceDate.setUpdatedAt(now.minusDays(2));
+    Mockito.doNothing().when(freshInProgressOldRemittanceDate).onCreateOrUpdate();
+
+    var staleUpdatedAtFreshRemittanceDate =
+        Mockito.spy(remittance("org3", "product1", BILLING_PROVIDER_AWS, 12.0, now));
+    staleUpdatedAtFreshRemittanceDate.setStatus(RemittanceStatus.IN_PROGRESS);
+    staleUpdatedAtFreshRemittanceDate.setUpdatedAt(now.minusDays(10));
+    Mockito.doNothing().when(staleUpdatedAtFreshRemittanceDate).onCreateOrUpdate();
+
+    // Persist test entities
+    repository.persist(
+        List.of(
+            staleInProgressNullUpdatedAt,
+            freshInProgressOldRemittanceDate,
+            staleUpdatedAtFreshRemittanceDate));
+    repository.flush();
+
+    // Test finding stale IN_PROGRESS entities
+    var staleInProgressCount =
+        repository.updateStatusForStaleRemittances(
+            Duration.ofDays(7),
+            RemittanceStatus.IN_PROGRESS,
+            RemittanceStatus.FAILED,
+            RemittanceErrorCode.SENDING_TO_AGGREGATE_TOPIC);
+
+    assertEquals(1, staleInProgressCount);
+
+    var staleInProgressResults = repository.find("status = ?1", RemittanceStatus.FAILED).list();
+    assertTrue(staleInProgressResults.contains(staleUpdatedAtFreshRemittanceDate));
+    assertFalse(staleInProgressResults.contains(staleInProgressNullUpdatedAt));
+    assertFalse(staleInProgressResults.contains(freshInProgressOldRemittanceDate));
   }
 
   // In memory DB does not save same length of decimals so truncate to make sure they equal
