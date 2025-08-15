@@ -18,20 +18,25 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.hbi.resources;
+package com.redhat.swatch.hbi.events.resources;
 
 import com.redhat.swatch.hbi.api.DefaultApi;
+import com.redhat.swatch.hbi.events.services.HbiEventOutboxService;
 import com.redhat.swatch.hbi.model.FlushResponse;
 import com.redhat.swatch.hbi.model.OutboxRecord;
-import com.redhat.swatch.hbi.model.OutboxRecordRequest;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.validation.Valid;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
 import java.util.UUID;
+import org.candlepin.subscriptions.json.Event;
 
 @ApplicationScoped
 public class InternalResource implements DefaultApi {
+
+  @Inject HbiEventOutboxService outboxService;
 
   @Override
   public List<OutboxRecord> fetchAllOutboxRecords() {
@@ -44,8 +49,8 @@ public class InternalResource implements DefaultApi {
   }
 
   @Override
-  public OutboxRecord createOutboxRecord(OutboxRecordRequest outboxRecordRequest) {
-    throw new WebApplicationException(Response.Status.NOT_IMPLEMENTED);
+  public OutboxRecord createOutboxRecord(@Valid Event event) {
+    return outboxService.createOutboxRecord(event);
   }
 
   @Override

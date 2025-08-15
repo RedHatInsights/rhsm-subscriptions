@@ -115,6 +115,14 @@
       <artifactId>quarkus-liquibase</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.mapstruct</groupId>
+      <artifactId>mapstruct</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.mapstruct</groupId>
+      <artifactId>mapstruct-processor</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-junit5</artifactId>
       <scope>test</scope>
@@ -133,6 +141,10 @@
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>smallrye-reactive-messaging-in-memory</artifactId>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.rest-assured</groupId>
+      <artifactId>rest-assured</artifactId>
     </dependency>
     <dependency>
       <groupId>org.awaitility</groupId>
@@ -193,6 +205,16 @@
                 -->
                 <additionalProperty>disableMultipart=true</additionalProperty>
               </additionalProperties>
+              <importMappings>
+                <importMapping>
+                  Event=org.candlepin.subscriptions.json.Event
+                </importMapping>¡
+              </importMappings>
+              <typeMappings>
+                <typeMapping>
+                  string+Event=Event
+                </typeMapping>
+              </typeMappings>
             </configuration>
           </execution>
         </executions>
@@ -210,6 +232,10 @@
             <path>
               <groupId>org.projectlombok</groupId>
               <artifactId>lombok</artifactId>
+            </path>
+            <path>
+              <groupId>org.mapstruct</groupId>
+              <artifactId>mapstruct-processor</artifactId>
             </path>
           </annotationProcessorPaths>
         </configuration>
