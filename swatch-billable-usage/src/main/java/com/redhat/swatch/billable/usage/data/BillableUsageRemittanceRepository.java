@@ -24,6 +24,7 @@ import com.redhat.swatch.panache.PanacheSpecificationSupport;
 import com.redhat.swatch.panache.Specification;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.HashMap;
@@ -137,6 +138,30 @@ public class BillableUsageRemittanceRepository
       query += " and bu.billingAccountId in :billingAccountIds";
       parameters.put("billingAccountIds", billingAccountIds);
     }
+    return update(query, parameters);
+  }
+
+  @Transactional
+  public int updateStatusForStaleRemittances(
+      Duration stuckDuration,
+      RemittanceStatus oldStatus,
+      RemittanceStatus newStatus,
+      RemittanceErrorCode errorCode) {
+    OffsetDateTime cutoffDate = OffsetDateTime.now(ZoneOffset.UTC).minus(stuckDuration);
+
+    String query;
+    Map<String, Object> parameters = new HashMap<>();
+    query =
+        "update BillableUsageRemittanceEntity bu "
+            + "set bu.status = :newStatus, "
+            + "bu.errorCode = :errorCode "
+            + "where bu.status = :oldStatus "
+            + "and bu.updatedAt <= :cutoffDate";
+    parameters.put("errorCode", errorCode);
+    parameters.put("newStatus", newStatus);
+    parameters.put("oldStatus", oldStatus);
+    parameters.put("cutoffDate", cutoffDate);
+
     return update(query, parameters);
   }
 
