@@ -36,7 +36,7 @@
     <testcontainers-postgresql.version>1.21.3</testcontainers-postgresql.version>
     <junit.version>5.13.4</junit.version>
     <mockito.version>5.19.0</mockito.version>
-    <rest-assured.version>5.5.5</rest-assured.version>
+    <rest-assured.version>5.5.6</rest-assured.version>
     <hibernate-validator.version>9.0.1.Final</hibernate-validator.version>
     <swagger-parser.version>2.1.31</swagger-parser.version>
     <swagger-ui.version>5.27.1</swagger-ui.version>
