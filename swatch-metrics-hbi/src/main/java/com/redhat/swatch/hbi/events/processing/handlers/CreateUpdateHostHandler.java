@@ -25,7 +25,6 @@ import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.normalization.Host;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -59,7 +58,6 @@ public class CreateUpdateHostHandler implements HbiEventHandler<HbiHostCreateUpd
   }
 
   @Override
-  @Transactional
   public List<Event> handleEvent(HbiHostCreateUpdateEvent hbiHostEvent) {
     log.debug("Handling HBI host created/updated event {}", hbiHostEvent);
 
