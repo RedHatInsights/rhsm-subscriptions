@@ -358,7 +358,11 @@ public class SubscriptionDefinition {
 
   public boolean isPaygEligible() {
     return metrics.stream()
-        .anyMatch(metric -> metric.getRhmMetricId() != null || metric.getAwsDimension() != null);
+        .anyMatch(
+            metric ->
+                metric.getRhmMetricId() != null
+                    || metric.getAwsDimension() != null
+                    || metric.getAzureDimension() != null);
   }
 
   public static String getAwsDimension(String productTag, String metricId) {
