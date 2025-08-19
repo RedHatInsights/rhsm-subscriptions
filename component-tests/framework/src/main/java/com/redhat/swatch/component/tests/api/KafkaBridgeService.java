@@ -84,7 +84,8 @@ public class KafkaBridgeService extends RestService {
         .statusCode(200);
   }
 
-  public void waitForKafkaMessage(String topic, Predicate<String> messageValidator) {
+  public void waitForKafkaMessage(
+      String topic, Predicate<String> messageValidator, int expectedCount) {
     String consumer = consumers.get(topic);
     if (consumer == null) {
       throw new IllegalArgumentException("No consumer for topic " + topic);
@@ -99,10 +100,45 @@ public class KafkaBridgeService extends RestService {
 
           if (response.getStatusCode() == 200) {
             String responseBody = response.getBody().asString();
-            return messageValidator.test(responseBody);
+            // Parse the response to count the actual messages
+            try {
+              List<Map<String, Object>> records =
+                  JsonUtils.getObjectMapper().readValue(responseBody, List.class);
+              // Check if we have exactly the expected number of messages
+              if (records.size() == expectedCount) {
+                // If expected count is 0, we don't need to validate message content
+                if (expectedCount == 0) {
+                  return true;
+                }
+                // Otherwise, validate the message content using the provided validator
+                return messageValidator.test(responseBody);
+              }
+              return false;
+            } catch (Exception e) {
+              Log.debug(this, "Failed to parse Kafka response: %s", e.getMessage());
+              return false;
+            }
           }
 
           return false;
+        },
+        AwaitilitySettings.defaults().withService(this));
+  }
+
+  public void emptyQueue(String topic) {
+    String consumer = consumers.get(topic);
+    if (consumer == null) {
+      throw new IllegalArgumentException("No consumer for topic " + topic);
+    }
+    AwaitilityUtils.untilIsTrue(
+        () -> {
+          Response response =
+              given()
+                  .accept(CONTENT_TYPE)
+                  .when()
+                  .get("/consumers/" + CONSUMER_GROUP + "/instances/" + consumer + "/records");
+
+          return true;
         },
         AwaitilitySettings.defaults().withService(this));
   }

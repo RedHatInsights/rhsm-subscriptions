@@ -149,6 +149,58 @@ public class AzureWiremockService extends WiremockService {
     }
   }
 
+  public void verifyNoAzureUsage(String azureResourceId) {
+    // Get all requests to the Azure usage endpoint
+    var response =
+        given().when().get("/__admin/requests").then().statusCode(200).extract().response();
+
+    try {
+      ObjectMapper objectMapper = new ObjectMapper();
+      JsonNode responseJson = objectMapper.readTree(response.getBody().asString());
+      JsonNode requests = responseJson.get("requests");
+
+      if (requests == null || requests.isEmpty()) {
+        // No requests found, which means no Azure usage was sent - this is what we expect
+        return;
+      }
+
+      // Check if any Azure usage requests were made for the given resourceId
+      for (JsonNode requestNode : requests) {
+        JsonNode request = requestNode.get("request");
+        JsonNode urlNode = request.get("url");
+        JsonNode methodNode = request.get("method");
+        JsonNode bodyNode = request.get("body");
+
+        if (urlNode == null || methodNode == null || bodyNode == null) {
+          continue; // Skip invalid requests
+        }
+
+        String url = urlNode.asText();
+        String method = methodNode.asText();
+
+        if (url.contains("/mock/azure/api/usageEvent") && "POST".equals(method)) {
+          String requestBody = bodyNode.asText();
+          if (requestBody != null && !requestBody.isEmpty()) {
+            JsonNode usage = objectMapper.readTree(requestBody);
+            JsonNode resourceIdNode = usage.get("resourceId");
+
+            if (resourceIdNode != null && azureResourceId.equals(resourceIdNode.asText())) {
+              throw new AssertionError(
+                  "Azure usage request was found for resourceId: "
+                      + azureResourceId
+                      + " but none was expected due to invalid data");
+            }
+          }
+        }
+      }
+
+      // No Azure usage requests found for the resourceId - this is what we expect
+
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to verify no Azure usage: " + e.getMessage(), e);
+    }
+  }
+
   private void setupAzureOAuthToken() {
     // Setup Azure OAuth token endpoint
     var tokenResponse =
