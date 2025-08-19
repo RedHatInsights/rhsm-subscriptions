@@ -95,12 +95,6 @@ public class SwatchAzureProducerIT {
     String orgId = "123456";
     double totalValue = 2.0;
 
-    // Setup Azure Wiremock endpoints
-    wiremock.setupAzureUsageContext(azureResourceId, billingAccountId);
-
-    // Create aggregate with invalid timestamp using reflection
-    BillableUsageAggregate aggregateData =
-        createUsageAggregate(productId, billingAccountId, metricId, totalValue, orgId);
     // Use the new createUsageAggregateAsMap function with custom values
     Map<String, Object> customValues =
         Map.of("windowTimestamp", "testerday", "snapshotDates", List.of("2025.01.01"));
