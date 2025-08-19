@@ -35,6 +35,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
@@ -83,6 +84,47 @@ public class SwatchAzureProducerIT {
     wiremock.verifyAzureUsage(azureResourceId, totalValue, dimension);
   }
 
+  /** Verify billable usage with invalid timestamp format is handled properly */
+  @Test
+  public void testInvalidAzureUsageMessagesWrongDateFormat() {
+    // Setup
+    String productId = "rhel-for-x86-els-payg-addon";
+    String metricId = "vCPUs";
+    String billingAccountId = UUID.randomUUID().toString();
+    String azureResourceId = UUID.randomUUID().toString();
+    String orgId = "123456";
+    double totalValue = 2.0;
+
+    // Setup Azure Wiremock endpoints
+    wiremock.setupAzureUsageContext(azureResourceId, billingAccountId);
+
+    // Create aggregate with invalid timestamp using reflection
+    BillableUsageAggregate aggregateData =
+        createUsageAggregate(productId, billingAccountId, metricId, totalValue, orgId);
+    // Use the new createUsageAggregateAsMap function with custom values
+    Map<String, Object> customValues =
+        Map.of("windowTimestamp", "testerday", "snapshotDates", List.of("2025.01.01"));
+
+    Map<String, Object> aggregateMap =
+        createUsageAggregateAsMap(
+            productId, billingAccountId, metricId, totalValue, orgId, customValues);
+
+    // Send billable usage message to Kafka
+    kafkaBridge.produceKafkaMessage(BILLABLE_USAGE_HOURLY_AGGREGATE, aggregateMap);
+
+    // Wait for a status message (if any) and verify it contains the billing account ID
+    // The status could be "failed", "error", or the message might not be sent at all
+    try {
+      kafkaBridge.waitForKafkaMessage(
+          BILLABLE_USAGE_STATUS, messages -> messages.contains(billingAccountId));
+    } catch (Exception e) {
+      // It's okay if no status message is received for invalid data
+    }
+
+    // Verify that no usage was sent to Azure
+    wiremock.verifyNoAzureUsage(azureResourceId);
+  }
+
   public BillableUsageAggregate createUsageAggregate(
       String productId, String billingAccountId, String metricId, double totalValue, String orgId) {
     OffsetDateTime snapshotDate =
@@ -109,5 +151,38 @@ public class SwatchAzureProducerIT {
     aggregate.setRemittanceUuids(List.of(UUID.randomUUID().toString()));
 
     return aggregate;
+  }
+
+  public Map<String, Object> createUsageAggregateAsMap(
+      String productId,
+      String billingAccountId,
+      String metricId,
+      double totalValue,
+      String orgId,
+      Map<String, Object> customValues) {
+    // Call the existing createUsageAggregate method to avoid code duplication
+    BillableUsageAggregate aggregate =
+        createUsageAggregate(productId, billingAccountId, metricId, totalValue, orgId);
+
+    // Convert the BillableUsageAggregate object to a Map
+    Map<String, Object> aggregateMap = new java.util.HashMap<>();
+    aggregateMap.put("totalValue", aggregate.getTotalValue());
+    aggregateMap.put("windowTimestamp", aggregate.getWindowTimestamp());
+    aggregateMap.put("aggregateId", aggregate.getAggregateId());
+    aggregateMap.put("aggregateKey", aggregate.getAggregateKey());
+    aggregateMap.put("snapshotDates", aggregate.getSnapshotDates());
+    aggregateMap.put("status", aggregate.getStatus());
+    aggregateMap.put("errorCode", aggregate.getErrorCode());
+    aggregateMap.put("billedOn", aggregate.getBilledOn());
+    aggregateMap.put("remittanceUuids", aggregate.getRemittanceUuids());
+
+    // If custom values are provided, create a new map with the custom values overriding defaults
+    if (!customValues.isEmpty()) {
+      var result = new java.util.HashMap<>(aggregateMap);
+      result.putAll(customValues);
+      return result;
+    }
+
+    return aggregateMap;
   }
 }
