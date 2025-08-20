@@ -19,7 +19,10 @@ objects:
       name: kafka-bridge
     spec:
       image: ${IMAGE}
-      pullSecret: ${IMAGE_PULL_SECRET}
+      template:
+        pod:
+          imagePullSecrets:
+            - name: ${IMAGE_PULL_SECRET}
       bootstrapServers: ${KAFKA_BOOTSTRAP_HOST}:${KAFKA_BOOTSTRAP_PORT}
       http:
         port: 8080
