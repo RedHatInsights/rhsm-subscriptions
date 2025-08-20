@@ -83,6 +83,8 @@ public class SwatchAzureProducerIT {
 
     // Verify Azure usage was sent to Azure
     wiremock.verifyAzureUsage(azureResourceId, totalValue, dimension);
+
+    kafkaBridge.emptyQueue(BILLABLE_USAGE_STATUS);
   }
 
   /** Verify billable usage with invalid timestamp format is handled properly */
@@ -96,15 +98,13 @@ public class SwatchAzureProducerIT {
     String orgId = "123456";
     double totalValue = 2.0;
 
-    // Use the new createUsageAggregateAsMap function with custom values
-    Map<String, Object> customValues =
-        Map.of("windowTimestamp", "testerday", "snapshotDates", List.of("2025.01.01"));
+    Map<String, Object> customValues = Map.of("windowTimestamp", "testerday");
 
     Map<String, Object> aggregateMap =
         createUsageAggregateAsMap(
             productId, billingAccountId, metricId, totalValue, orgId, customValues);
 
-    // Send billable usage message to Kafka
+    // Send malformed billable usage message to Kafka
     kafkaBridge.produceKafkaMessage(BILLABLE_USAGE_HOURLY_AGGREGATE, aggregateMap);
 
     // Wait for a status message (if any) and verify it contains the billing account ID
@@ -118,6 +118,8 @@ public class SwatchAzureProducerIT {
 
     // Verify that no usage was sent to Azure
     wiremock.verifyNoAzureUsage(azureResourceId);
+
+    kafkaBridge.emptyQueue(BILLABLE_USAGE_STATUS);
   }
 
   public BillableUsageAggregate createUsageAggregate(
