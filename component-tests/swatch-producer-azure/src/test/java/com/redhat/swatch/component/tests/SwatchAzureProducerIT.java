@@ -78,7 +78,8 @@ public class SwatchAzureProducerIT {
     // Verify status topic shows "succeeded"
     kafkaBridge.waitForKafkaMessage(
         BILLABLE_USAGE_STATUS,
-        messages -> messages.contains(billingAccountId) && messages.contains("succeeded"));
+        messages -> messages.contains(billingAccountId) && messages.contains("succeeded"),
+        1);
 
     // Verify Azure usage was sent to Azure
     wiremock.verifyAzureUsage(azureResourceId, totalValue, dimension);
@@ -110,7 +111,7 @@ public class SwatchAzureProducerIT {
     // The status could be "failed", "error", or the message might not be sent at all
     try {
       kafkaBridge.waitForKafkaMessage(
-          BILLABLE_USAGE_STATUS, messages -> messages.contains(billingAccountId));
+          BILLABLE_USAGE_STATUS, messages -> messages.contains(billingAccountId), 0);
     } catch (Exception e) {
       // It's okay if no status message is received for invalid data
     }
