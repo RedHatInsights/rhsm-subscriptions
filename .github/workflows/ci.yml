@@ -6,6 +6,7 @@ on:
   pull_request:
     branches: [main, hotfix]
     types: [opened, synchronize, reopened]
+  merge_group:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -190,7 +191,7 @@ jobs:
         run: ./mvnw clean install -DskipTests
 
       - name: Start components
-        run: docker compose up -d db kafka kafka-setup
+        run: docker compose up -d db kafka kafka-setup amqp
 
       - name: Run database migrations
         run: make run-migrations

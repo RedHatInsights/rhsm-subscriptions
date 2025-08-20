@@ -119,7 +119,8 @@ class ResourceRolesAllowedTest {
                                 .map(RolesAllowed::value)
                                 .orElse(new String[] {});
                         assertEquals(
-                            Set.of("customer"), new HashSet<>(Arrays.asList(rolesAllowed)));
+                            Set.of("customer", "service"),
+                            new HashSet<>(Arrays.asList(rolesAllowed)));
                       }
                     }));
   }
