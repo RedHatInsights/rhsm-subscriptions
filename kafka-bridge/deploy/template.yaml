@@ -3,17 +3,22 @@ kind: Template
 metadata:
   name: kafka-bridge
 parameters:
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
   - name: KAFKA_BOOTSTRAP_HOST
     value: ephemeral-kafka-bootstrap
   - name: KAFKA_BOOTSTRAP_PORT
     value: '9092'
-
 objects:
   - apiVersion: kafka.strimzi.io/v1beta2
     kind: KafkaBridge
     metadata:
       name: kafka-bridge
     spec:
+      template:
+        pod:
+          imagePullSecrets:
+            - name: ${IMAGE_PULL_SECRET}
       bootstrapServers: ${KAFKA_BOOTSTRAP_HOST}:${KAFKA_BOOTSTRAP_PORT}
       http:
         port: 8080
