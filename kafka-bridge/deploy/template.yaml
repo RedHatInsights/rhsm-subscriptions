@@ -3,6 +3,10 @@ kind: Template
 metadata:
   name: kafka-bridge
 parameters:
+  - name: IMAGE
+    value: registry.redhat.io/amq-streams/bridge-rhel9:latest
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
   - name: KAFKA_BOOTSTRAP_HOST
     value: ephemeral-kafka-bootstrap
   - name: KAFKA_BOOTSTRAP_PORT
@@ -14,6 +18,8 @@ objects:
     metadata:
       name: kafka-bridge
     spec:
+      image: ${IMAGE}
+      pullSecret: ${IMAGE_PULL_SECRET}
       bootstrapServers: ${KAFKA_BOOTSTRAP_HOST}:${KAFKA_BOOTSTRAP_PORT}
       http:
         port: 8080
