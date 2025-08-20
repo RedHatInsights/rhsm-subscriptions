@@ -34,11 +34,15 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
-
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -55,6 +59,11 @@ public class SwatchAzureProducerIT {
 
   @Quarkus(service = "swatch-producer-azure")
   static SwatchService service = new SwatchService();
+
+  @AfterEach
+  void cleanupAfterEachTest() {
+    kafkaBridge.emptyQueue(BILLABLE_USAGE_STATUS);
+  }
 
   /** Verify billable usage sent to Azure with Succeeded status */
   @Test
@@ -84,8 +93,6 @@ public class SwatchAzureProducerIT {
 
     // Verify Azure usage was sent to Azure
     wiremock.verifyAzureUsage(azureResourceId, totalValue, dimension);
-
-    kafkaBridge.emptyQueue(BILLABLE_USAGE_STATUS);
   }
 
   /** Verify billable usage with invalid timestamp format is handled properly */
@@ -120,8 +127,6 @@ public class SwatchAzureProducerIT {
 
     // Verify that no usage was sent to Azure
     wiremock.verifyNoAzureUsage(azureResourceId);
-
-    kafkaBridge.emptyQueue(BILLABLE_USAGE_STATUS);
   }
 
   public BillableUsageAggregate createUsageAggregate(
