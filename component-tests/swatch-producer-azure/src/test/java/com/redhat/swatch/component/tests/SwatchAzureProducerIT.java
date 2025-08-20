@@ -34,16 +34,17 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
+
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 @ComponentTest
+@Tag("component")
+@Tag("azure")
 public class SwatchAzureProducerIT {
 
   @KafkaBridge
@@ -89,6 +90,7 @@ public class SwatchAzureProducerIT {
 
   /** Verify billable usage with invalid timestamp format is handled properly */
   @Test
+  @Tag("unhappy")
   public void testInvalidAzureUsageMessagesWrongDateFormat() {
     // Setup
     String productId = "rhel-for-x86-els-payg-addon";
@@ -162,7 +164,7 @@ public class SwatchAzureProducerIT {
         createUsageAggregate(productId, billingAccountId, metricId, totalValue, orgId);
 
     // Convert the BillableUsageAggregate object to a Map
-    Map<String, Object> aggregateMap = new java.util.HashMap<>();
+    Map<String, Object> aggregateMap = new HashMap<>();
     aggregateMap.put("totalValue", aggregate.getTotalValue());
     aggregateMap.put("windowTimestamp", aggregate.getWindowTimestamp());
     aggregateMap.put("aggregateId", aggregate.getAggregateId());
@@ -175,7 +177,7 @@ public class SwatchAzureProducerIT {
 
     // If custom values are provided, create a new map with the custom values overriding defaults
     if (!customValues.isEmpty()) {
-      var result = new java.util.HashMap<>(aggregateMap);
+      var result = new HashMap<>(aggregateMap);
       result.putAll(customValues);
       return result;
     }
