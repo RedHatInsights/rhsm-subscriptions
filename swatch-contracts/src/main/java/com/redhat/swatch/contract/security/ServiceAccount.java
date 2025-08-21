@@ -18,25 +18,21 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.subscription;
+package com.redhat.swatch.contract.security;
 
-import jakarta.ws.rs.core.Response.Status;
-import lombok.Getter;
-import org.candlepin.subscriptions.exception.ErrorCode;
-import org.candlepin.subscriptions.exception.SubscriptionsException;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Getter
-public class SubscriptionNotFoundException extends SubscriptionsException {
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ServiceAccount {
+  @JsonProperty("client_id")
+  private String clientId;
 
-  private final String subscriptionNumber;
-
-  public SubscriptionNotFoundException(String subscriptionNumber) {
-    super(
-        ErrorCode.SUBSCRIPTION_SERVICE_REQUEST_ERROR,
-        Status.INTERNAL_SERVER_ERROR,
-        "No subscriptions found for subscriptionNumber=" + subscriptionNumber,
-        null,
-        null);
-    this.subscriptionNumber = subscriptionNumber;
-  }
+  private String username;
 }

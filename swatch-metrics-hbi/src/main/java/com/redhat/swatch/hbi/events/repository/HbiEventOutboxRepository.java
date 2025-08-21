@@ -18,26 +18,21 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource.api.v2;
+package com.redhat.swatch.hbi.events.repository;
 
-import lombok.AllArgsConstructor;
-import org.candlepin.subscriptions.resource.api.ApiSpecController;
-import org.candlepin.subscriptions.utilization.api.v2.resources.RootApi;
-import org.springframework.stereotype.Component;
+import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
+import jakarta.enterprise.context.ApplicationScoped;
+import java.util.List;
+import java.util.UUID;
 
-/** Serves the OpenAPI spec as /openapi.json and /openapi.yaml. */
-@Component
-@AllArgsConstructor
-public class OpenApiResourceV2 implements RootApi {
-  private final ApiSpecController controller;
+@ApplicationScoped
+public class HbiEventOutboxRepository implements PanacheRepositoryBase<HbiEventOutbox, UUID> {
 
-  @Override
-  public String getOpenApiJson() {
-    return controller.getOpenApiV2Json();
+  public List<HbiEventOutbox> findByOrgId(String orgId) {
+    return list("orgId", orgId);
   }
 
-  @Override
-  public String getOpenApiYaml() {
-    return controller.getOpenApiV2Yaml();
+  public long deleteByOrgId(String orgId) {
+    return delete("orgId", orgId);
   }
 }

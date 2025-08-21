@@ -1,0 +1,183 @@
+---
+openapi: "3.0.2"
+info:
+  title: Swatch Metrics HBI Internal API
+  version: 1.0.0
+  description: Internal API for Swatch Metrics HBI service outbox operations
+
+paths:
+  /api/swatch-metrics-hbi/internal/outbox:
+    get:
+      operationId: fetchAllOutboxRecords
+      summary: "Fetch all outbox records"
+      description: "Retrieve all outbox records from the system"
+      responses:
+        '200':
+          description: "Successfully retrieved all outbox records"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutboxRecord'
+    post:
+      operationId: createOutboxRecord
+      summary: "Create a new outbox record"
+      description: "Create a new outbox record in the system"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OutboxRecordRequest'
+      responses:
+        '201':
+          description: "Outbox record created successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutboxRecord'
+        '400':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/BadRequest"
+    put:
+      operationId: updateOutboxRecord
+      summary: "Update an existing outbox record"
+      description: "Update an existing outbox record in the system"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OutboxRecord'
+      responses:
+        '200':
+          description: "Outbox record updated successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutboxRecord'
+        '400':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '404':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+
+  /api/swatch-metrics-hbi/internal/outbox/{org_id}:
+    get:
+      operationId: fetchOutboxRecordsByOrgId
+      summary: "Fetch outbox records by organization ID"
+      description: "Retrieve all outbox records for the specified organization ID"
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "The organization ID to filter outbox records"
+      responses:
+        '200':
+          description: "Successfully retrieved outbox records for the organization"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutboxRecord'
+        '400':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/BadRequest"
+
+  /api/swatch-metrics-hbi/internal/outbox/{uuid}:
+    delete:
+      operationId: deleteOutboxRecord
+      summary: "Delete an outbox record"
+      description: "Delete an existing outbox record by UUID"
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: "The UUID of the outbox record to delete"
+      responses:
+        '204':
+          description: "Outbox record deleted successfully"
+        '404':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+
+  /api/swatch-metrics-hbi/internal/rpc/outbox/flush:
+    put:
+      operationId: flushOutbox
+      summary: "Trigger outbox flush logic"
+      description: "Trigger the outbox-flush logic either asynchronously or synchronously based on query parameter"
+      parameters:
+        - name: async
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+          description: "Whether to execute the flush asynchronously (default: true) or synchronously (false)"
+      responses:
+        '200':
+          description: "Outbox flush completed successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlushResponse'
+        '202':
+          description: "Outbox flush initiated asynchronously"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlushResponse'
+
+components:
+  schemas:
+    OutboxRecord:
+      type: object
+      required:
+        - uuid
+        - org_id
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          description: "Unique identifier for the outbox record"
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        org_id:
+          type: string
+          description: "Organization ID associated with the record"
+          example: "org123"
+
+    OutboxRecordRequest:
+      type: object
+      required:
+        - org_id
+      properties:
+        org_id:
+          type: string
+          description: "Organization ID associated with the record"
+          example: "org123"
+
+    FlushResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          description: "Status of the flush operation"
+          example: "SUCCESS"
+
+  securitySchemes:
+    PskIdentity:
+      type: apiKey
+      in: header
+      name: x-rh-swatch-psk
+      description: |
+        Psk header containing Pre Shared Key. Contains an
+        UUID string:
+        ```
+        c9a98753-2092-4617-b226-5c2653330b3d
+        ```
+
+security:
+  - PskIdentity: [] 

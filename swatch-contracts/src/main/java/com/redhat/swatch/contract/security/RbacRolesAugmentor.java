@@ -63,7 +63,7 @@ public class RbacRolesAugmentor implements SecurityIdentityAugmentor {
 
     Principal principal = identity.getPrincipal();
     if (principal instanceof RhIdentityPrincipal rhIdentityPrincipal
-        && isCustomer(rhIdentityPrincipal)) {
+        && shouldCallRbac(rhIdentityPrincipal)) {
       return context.runBlocking(() -> lookupRbacRoles(identity));
     }
     return Uni.createFrom().item(identity);
@@ -98,6 +98,14 @@ public class RbacRolesAugmentor implements SecurityIdentityAugmentor {
 
   private static boolean isCustomer(RhIdentityPrincipal principal) {
     return Objects.equals("User", principal.getIdentity().getType());
+  }
+
+  private static boolean isServiceAccount(RhIdentityPrincipal principal) {
+    return Objects.equals("ServiceAccount", principal.getIdentity().getType());
+  }
+
+  private static boolean shouldCallRbac(RhIdentityPrincipal principal) {
+    return isCustomer(principal) || isServiceAccount(principal);
   }
 
   public List<String> getPermissions(RhIdentityPrincipal principal) throws ApiException {

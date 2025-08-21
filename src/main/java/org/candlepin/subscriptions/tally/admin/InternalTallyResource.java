@@ -236,10 +236,11 @@ public class InternalTallyResource implements InternalTallyApi {
       try {
         List<Event> events = objectMapper.readValue(jsonListOfEvents, new TypeReference<>() {});
         events.stream()
+            .filter(this::isBillingProviderAllowed)
             .forEach(
                 event -> {
                   try {
-                    eventKafkaTemplate.send(this.eventTopic, event);
+                    eventKafkaTemplate.send(this.eventTopic, event.getOrgId(), event);
                   } catch (Exception e) {
                     messages.append(e.getMessage());
                   }
@@ -332,6 +333,30 @@ public class InternalTallyResource implements InternalTallyApi {
       return false;
     }
     return true;
+  }
+
+  /**
+   * Validates that the billing provider is allowed for the /internal/rpc/tally/events endpoint.
+   * Only AWS and Azure are currently supported.
+   *
+   * @param event the event to validate
+   * @return true if the billing provider is allowed, false otherwise
+   */
+  private boolean isBillingProviderAllowed(Event event) {
+    if (event.getBillingProvider() == null) {
+      return true; // Allow null billing providers
+    }
+
+    String billingProvider = event.getBillingProvider().value();
+    boolean isAllowed = "aws".equals(billingProvider) || "azure".equals(billingProvider);
+
+    if (!isAllowed) {
+      log.warn(
+          "Billing provider '{}' is not supported for /internal/rpc/tally/events endpoint. Event will be filtered out.",
+          billingProvider);
+    }
+
+    return isAllowed;
   }
 
   @NotNull
