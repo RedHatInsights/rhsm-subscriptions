@@ -34,7 +34,6 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -107,11 +106,20 @@ public class SwatchAzureProducerIT {
     String orgId = "123456";
     double totalValue = 2.0;
 
-    Map<String, Object> customValues = Map.of("windowTimestamp", "testerday");
+    BillableUsageAggregate aggregate =
+        createUsageAggregate(productId, billingAccountId, metricId, totalValue, orgId);
 
-    Map<String, Object> aggregateMap =
-        createUsageAggregateAsMap(
-            productId, billingAccountId, metricId, totalValue, orgId, customValues);
+    Map<String, Object> aggregateMap = new java.util.HashMap<>();
+    aggregateMap.put("totalValue", aggregate.getTotalValue());
+    // Inject malformed field
+    aggregateMap.put("windowTimestamp", "testerday");
+    aggregateMap.put("aggregateId", aggregate.getAggregateId());
+    aggregateMap.put("aggregateKey", aggregate.getAggregateKey());
+    aggregateMap.put("snapshotDates", aggregate.getSnapshotDates());
+    aggregateMap.put("status", aggregate.getStatus());
+    aggregateMap.put("errorCode", aggregate.getErrorCode());
+    aggregateMap.put("billedOn", aggregate.getBilledOn());
+    aggregateMap.put("remittanceUuids", aggregate.getRemittanceUuids());
 
     // Send malformed billable usage message to Kafka
     kafkaBridge.produceKafkaMessage(BILLABLE_USAGE_HOURLY_AGGREGATE, aggregateMap);
@@ -155,38 +163,5 @@ public class SwatchAzureProducerIT {
     aggregate.setRemittanceUuids(List.of(UUID.randomUUID().toString()));
 
     return aggregate;
-  }
-
-  public Map<String, Object> createUsageAggregateAsMap(
-      String productId,
-      String billingAccountId,
-      String metricId,
-      double totalValue,
-      String orgId,
-      Map<String, Object> customValues) {
-    // Call the existing createUsageAggregate method to avoid code duplication
-    BillableUsageAggregate aggregate =
-        createUsageAggregate(productId, billingAccountId, metricId, totalValue, orgId);
-
-    // Convert the BillableUsageAggregate object to a Map
-    Map<String, Object> aggregateMap = new HashMap<>();
-    aggregateMap.put("totalValue", aggregate.getTotalValue());
-    aggregateMap.put("windowTimestamp", aggregate.getWindowTimestamp());
-    aggregateMap.put("aggregateId", aggregate.getAggregateId());
-    aggregateMap.put("aggregateKey", aggregate.getAggregateKey());
-    aggregateMap.put("snapshotDates", aggregate.getSnapshotDates());
-    aggregateMap.put("status", aggregate.getStatus());
-    aggregateMap.put("errorCode", aggregate.getErrorCode());
-    aggregateMap.put("billedOn", aggregate.getBilledOn());
-    aggregateMap.put("remittanceUuids", aggregate.getRemittanceUuids());
-
-    // If custom values are provided, create a new map with the custom values overriding defaults
-    if (!customValues.isEmpty()) {
-      var result = new HashMap<>(aggregateMap);
-      result.putAll(customValues);
-      return result;
-    }
-
-    return aggregateMap;
   }
 }
