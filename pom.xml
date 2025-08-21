@@ -20,7 +20,7 @@
     <codegen.skipIfSpecIsUnchanged>true</codegen.skipIfSpecIsUnchanged>
 
     <!-- Dependencies -->
-    <quarkus.platform.version>3.25.3</quarkus.platform.version>
+    <quarkus.platform.version>3.25.4</quarkus.platform.version>
     <spring.boot.version>3.5.4</spring.boot.version>
     <resteasy.version>6.2.12.Final</resteasy.version>
     <jackson.version>2.19.2</jackson.version>
@@ -29,7 +29,7 @@
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
     <opentelemetry-api.version>1.53.0</opentelemetry-api.version>
-    <awssdk-bom.version>2.32.24</awssdk-bom.version>
+    <awssdk-bom.version>2.32.26</awssdk-bom.version>
     <guava.version>33.4.8-jre</guava.version>
     <liquibase.version>4.33.0</liquibase.version>
     <postgresql.version>42.7.7</postgresql.version>
@@ -38,7 +38,7 @@
     <mockito.version>5.19.0</mockito.version>
     <rest-assured.version>5.5.6</rest-assured.version>
     <hibernate-validator.version>9.0.1.Final</hibernate-validator.version>
-    <swagger-parser.version>2.1.31</swagger-parser.version>
+    <swagger-parser.version>2.1.32</swagger-parser.version>
     <swagger-ui.version>5.27.1</swagger-ui.version>
     <splunk-otel-javaagent.version>2.18.0</splunk-otel-javaagent.version>
 
@@ -197,7 +197,7 @@
       <dependency>
         <groupId>org.openapitools</groupId>
         <artifactId>jackson-databind-nullable</artifactId>
-        <version>0.2.6</version>
+        <version>0.2.7</version>
       </dependency>
       <dependency>
         <groupId>org.codehaus.janino</groupId>
