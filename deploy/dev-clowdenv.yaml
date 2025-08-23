@@ -44,7 +44,7 @@ objects:
         mode: local
 
       db:
-        image: quay.io/sclorg/postgresql-13-c9s:c9s
+        image: quay.io/sclorg/postgresql-16-c9s:c9s
         mode: local
 
       logging:
