@@ -21,7 +21,7 @@
 
     <!-- Dependencies -->
     <quarkus.platform.version>3.25.4</quarkus.platform.version>
-    <spring.boot.version>3.5.4</spring.boot.version>
+    <spring.boot.version>3.5.5</spring.boot.version>
     <resteasy.version>6.2.12.Final</resteasy.version>
     <jackson.version>2.19.2</jackson.version>
     <mapstruct.version>1.6.3</mapstruct.version>
