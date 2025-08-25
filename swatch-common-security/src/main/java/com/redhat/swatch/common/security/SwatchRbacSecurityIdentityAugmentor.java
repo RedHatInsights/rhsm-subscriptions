@@ -40,10 +40,9 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 /**
- * Configurable RBAC-based SecurityIdentityAugmentor for SWATCH services.
- * 
- * This component adds roles from RBAC service to customer and service account principals.
- * Can be customized per service by setting the application name.
+ * Configurable RBAC-based SecurityIdentityAugmentor for SWATCH services. This component adds roles
+ * from RBAC service to customer and service account principals. Can be customized per service by
+ * setting the application name.
  */
 @Slf4j
 @ApplicationScoped
@@ -75,7 +74,8 @@ public class SwatchRbacSecurityIdentityAugmentor implements SecurityIdentityAugm
   }
 
   private Supplier<SecurityIdentity> buildWithAllRoles(SecurityIdentity identity) {
-    // create a new builder and copy principal, attributes, credentials and roles from the original identity
+    // create a new builder and copy principal, attributes, credentials and roles from the original
+    // identity
     QuarkusSecurityIdentity.Builder builder = QuarkusSecurityIdentity.builder(identity);
 
     // add all the roles here for dev/test scenarios
@@ -91,19 +91,19 @@ public class SwatchRbacSecurityIdentityAugmentor implements SecurityIdentityAugm
       log.warn("Error adding roles via RBAC service integration: {}", e.getMessage());
       return identity;
     }
-    
+
     Set<String> effectiveRoles = determineEffectiveRoles(rbacServiceRoles);
     return QuarkusSecurityIdentity.builder(identity).addRoles(effectiveRoles).build();
   }
 
   /**
-   * Determine effective roles based on RBAC permissions.
-   * Override this method in subclasses for service-specific role mapping.
+   * Determine effective roles based on RBAC permissions. Override this method in subclasses for
+   * service-specific role mapping.
    */
   protected Set<String> determineEffectiveRoles(List<String> rbacServiceRoles) {
     String adminRole = String.format("%s:*:*", rbacApplicationName);
     String readerRole = String.format("%s:reports:read", rbacApplicationName);
-    
+
     if (rbacServiceRoles.contains(adminRole) || rbacServiceRoles.contains(readerRole)) {
       return Set.of("customer");
     } else {
@@ -112,8 +112,8 @@ public class SwatchRbacSecurityIdentityAugmentor implements SecurityIdentityAugm
   }
 
   /**
-   * Check if RBAC should be called for this principal.
-   * Includes both regular users and service accounts.
+   * Check if RBAC should be called for this principal. Includes both regular users and service
+   * accounts.
    */
   private static boolean shouldCallRbac(RhIdentityPrincipal principal) {
     return isCustomer(principal) || isServiceAccount(principal);
@@ -127,9 +127,7 @@ public class SwatchRbacSecurityIdentityAugmentor implements SecurityIdentityAugm
     return Objects.equals("ServiceAccount", principal.getIdentity().getType());
   }
 
-  /**
-   * Get permissions from RBAC service for the given principal.
-   */
+  /** Get permissions from RBAC service for the given principal. */
   public List<String> getPermissions(RhIdentityPrincipal principal) throws ApiException {
     // Get all permissions for the configured application name
     return accessApi
