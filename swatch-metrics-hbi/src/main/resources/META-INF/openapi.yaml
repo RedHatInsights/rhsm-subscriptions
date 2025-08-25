@@ -29,7 +29,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OutboxRecordRequest'
+              $ref: '#/components/schemas/Event'
       responses:
         '201':
           description: "Outbox record created successfully"
@@ -136,10 +136,11 @@ components:
     OutboxRecord:
       type: object
       required:
-        - uuid
+        - id
         - org_id
+        - swatch_event_json
       properties:
-        uuid:
+        id:
           type: string
           format: uuid
           description: "Unique identifier for the outbox record"
@@ -148,16 +149,13 @@ components:
           type: string
           description: "Organization ID associated with the record"
           example: "org123"
+        swatch_event_json:
+          $ref: '#/components/schemas/Event'
 
-    OutboxRecordRequest:
-      type: object
-      required:
-        - org_id
-      properties:
-        org_id:
-          type: string
-          description: "Organization ID associated with the record"
-          example: "org123"
+    Event:
+      type: string
+      format: Event
+      description: "Swatch Event payload"
 
     FlushResponse:
       type: object
@@ -178,6 +176,5 @@ components:
         ```
         c9a98753-2092-4617-b226-5c2653330b3d
         ```
-
 security:
-  - PskIdentity: [] 
+  - PskIdentity: []
