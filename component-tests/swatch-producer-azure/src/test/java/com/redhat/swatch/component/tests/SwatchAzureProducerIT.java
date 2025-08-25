@@ -35,14 +35,19 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 @ComponentTest
+@Tag("component")
+@Tag("azure")
 public class SwatchAzureProducerIT {
 
   @KafkaBridge
@@ -53,6 +58,11 @@ public class SwatchAzureProducerIT {
 
   @Quarkus(service = "swatch-producer-azure")
   static SwatchService service = new SwatchService();
+
+  @AfterEach
+  void cleanupAfterEachTest() {
+    kafkaBridge.emptyQueue(BILLABLE_USAGE_STATUS);
+  }
 
   /** Verify billable usage sent to Azure with Succeeded status */
   @Test
@@ -77,10 +87,54 @@ public class SwatchAzureProducerIT {
     // Verify status topic shows "succeeded"
     kafkaBridge.waitForKafkaMessage(
         BILLABLE_USAGE_STATUS,
-        messages -> messages.contains(billingAccountId) && messages.contains("succeeded"));
+        messages -> messages.contains(billingAccountId) && messages.contains("succeeded"),
+        1);
 
     // Verify Azure usage was sent to Azure
     wiremock.verifyAzureUsage(azureResourceId, totalValue, dimension);
+  }
+
+  /** Verify billable usage with invalid timestamp format is handled properly */
+  @Test
+  @Tag("unhappy")
+  public void testInvalidAzureUsageMessagesWrongDateFormat() {
+    // Setup
+    String productId = "rhel-for-x86-els-payg-addon";
+    String metricId = "vCPUs";
+    String billingAccountId = UUID.randomUUID().toString();
+    String azureResourceId = UUID.randomUUID().toString();
+    String orgId = "123456";
+    double totalValue = 2.0;
+
+    BillableUsageAggregate aggregate =
+        createUsageAggregate(productId, billingAccountId, metricId, totalValue, orgId);
+
+    Map<String, Object> aggregateMap = new java.util.HashMap<>();
+    aggregateMap.put("totalValue", aggregate.getTotalValue());
+    // Inject malformed field
+    aggregateMap.put("windowTimestamp", "testerday");
+    aggregateMap.put("aggregateId", aggregate.getAggregateId());
+    aggregateMap.put("aggregateKey", aggregate.getAggregateKey());
+    aggregateMap.put("snapshotDates", aggregate.getSnapshotDates());
+    aggregateMap.put("status", aggregate.getStatus());
+    aggregateMap.put("errorCode", aggregate.getErrorCode());
+    aggregateMap.put("billedOn", aggregate.getBilledOn());
+    aggregateMap.put("remittanceUuids", aggregate.getRemittanceUuids());
+
+    // Send malformed billable usage message to Kafka
+    kafkaBridge.produceKafkaMessage(BILLABLE_USAGE_HOURLY_AGGREGATE, aggregateMap);
+
+    // Wait for a status message (if any) and verify it contains the billing account ID
+    // The status could be "failed", "error", or the message might not be sent at all
+    try {
+      kafkaBridge.waitForKafkaMessage(
+          BILLABLE_USAGE_STATUS, messages -> messages.contains(billingAccountId), 0);
+    } catch (Exception e) {
+      // It's okay if no status message is received for invalid data
+    }
+
+    // Verify that no usage was sent to Azure
+    wiremock.verifyNoAzureUsage(azureResourceId);
   }
 
   public BillableUsageAggregate createUsageAggregate(

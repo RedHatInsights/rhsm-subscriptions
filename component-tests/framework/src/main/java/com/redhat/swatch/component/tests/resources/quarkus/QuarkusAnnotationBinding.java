@@ -23,17 +23,12 @@ package com.redhat.swatch.component.tests.resources.quarkus;
 import com.redhat.swatch.component.tests.api.Quarkus;
 import com.redhat.swatch.component.tests.api.Service;
 import com.redhat.swatch.component.tests.api.extensions.AnnotationBinding;
-import com.redhat.swatch.component.tests.api.extensions.QuarkusManagedResourceBinding;
 import com.redhat.swatch.component.tests.core.ComponentTestContext;
 import com.redhat.swatch.component.tests.core.ManagedResource;
-import com.redhat.swatch.component.tests.utils.ServiceLoaderUtils;
+import com.redhat.swatch.component.tests.core.extensions.OpenShiftExtensionBootstrap;
 import java.lang.annotation.Annotation;
-import java.util.List;
 
 public class QuarkusAnnotationBinding implements AnnotationBinding {
-
-  private final List<QuarkusManagedResourceBinding> customBindings =
-      ServiceLoaderUtils.load(QuarkusManagedResourceBinding.class);
 
   @Override
   public boolean isFor(Annotation... annotations) {
@@ -44,10 +39,8 @@ public class QuarkusAnnotationBinding implements AnnotationBinding {
   public ManagedResource getManagedResource(
       ComponentTestContext context, Service service, Annotation... annotations) {
     Quarkus metadata = findAnnotation(annotations, Quarkus.class).get();
-    for (QuarkusManagedResourceBinding binding : customBindings) {
-      if (binding.appliesFor(context)) {
-        return binding.init(context, service, metadata);
-      }
+    if (OpenShiftExtensionBootstrap.isEnabled(context)) {
+      return new OpenShiftQuarkusManagedResource(metadata.service());
     }
 
     // If none handler found, then the container will be running on localhost by default

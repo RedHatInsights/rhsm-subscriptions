@@ -52,6 +52,7 @@ import org.candlepin.subscriptions.json.Event.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -542,6 +543,70 @@ class EventConflictResolverTest {
     List<Event> expectedResolvedEvents =
         expectedResolved.stream().map(EventArgument::toEvent).toList();
     assertEvents(expectedResolvedEvents, resolved.stream().map(EventRecord::getEvent).toList());
+  }
+
+  /**
+   * Test that demonstrates the null recordDate issue in event flattening (SWATCH-3545).
+   *
+   * <p>This test shows how the ResolvedEventMapper.copy() method ignores recordDate during event
+   * flattening, causing the UsageConflictTracker to make incorrect "latest" event determinations,
+   * which leads to wrong amendment events.
+   *
+   * <p>The bug occurs when: 1. Events are retrieved from database (with valid recordDate) out of
+   * order 2. Events go through flattening via normalizer.flattenEventUsage() 3.
+   * ResolvedEventMapper.copy() ignores recordDate, setting it to null 4. UsageConflictTracker can't
+   * determine the true "latest" event 5. Wrong deduction amendments are created
+   *
+   * <p>This test will FAIL until the bug is fixed by removing the @Mapping(target = "recordDate",
+   * ignore = true) from ResolvedEventMapper.copy().
+   */
+  @Test
+  void testConflictingEventsOrderDoesNotCauseIncorrectAmendments() {
+    OffsetDateTime baseTime = CLOCK.now();
+
+    // Create events with explicit recordDates to simulate database-retrieved events
+    EventRecord existingEvent1 = event(Map.of(CORES, 8.0)).withTimestamp(baseTime).toRecord();
+    existingEvent1.setRecordDate(baseTime.minusSeconds(2));
+    existingEvent1.getEvent().setRecordDate(baseTime.minusSeconds(2));
+
+    EventRecord existingDeductionEvent =
+        deduction(Map.of(CORES, -8.0)).withTimestamp(baseTime).toRecord();
+    existingDeductionEvent.setRecordDate(baseTime.minusSeconds(1));
+    existingDeductionEvent.getEvent().setRecordDate(baseTime.minusSeconds(1));
+
+    EventRecord existingAmendmentEvent =
+        event(Map.of(CORES, 10.0)).withTimestamp(baseTime).toRecord();
+    existingAmendmentEvent.setRecordDate(existingDeductionEvent.getRecordDate().plusNanos(300));
+    existingAmendmentEvent
+        .getEvent()
+        .setRecordDate(existingDeductionEvent.getRecordDate().plusNanos(300));
+
+    // Mock the repository to return these events out of order (simulating database query)
+    Set<EventKey> eventKeys = Set.of(EventKey.fromEvent(existingEvent1.getEvent()));
+    when(repo.findConflictingEvents(eventKeys))
+        .thenReturn(List.of(existingDeductionEvent, existingAmendmentEvent, existingEvent1));
+
+    // Create incoming event that conflicts
+    List<Event> incomingEvents =
+        List.of(event(Map.of(CORES, 50.0)).withTimestamp(baseTime).toEvent());
+
+    // Execute the conflict resolution
+    List<EventRecord> resolvedEvents = resolver.resolveIncomingEvents(incomingEvents);
+
+    // The bug manifests here: due to null recordDate after flattening,
+    // the resolver might create a deduction for the wrong event
+
+    // Expected behavior: Should deduct the newer event (cores=12)
+    List<Event> expectedEvents =
+        List.of(
+            deduction(Map.of(CORES, -10.0)).withTimestamp(baseTime).toEvent(),
+            event(Map.of(CORES, 50.0)).withTimestamp(baseTime).toEvent());
+
+    // This assertion should fail due to the bug
+    List<Event> actualEvents = resolvedEvents.stream().map(EventRecord::getEvent).toList();
+
+    // This will fail if the bug causes wrong deduction
+    assertEvents(expectedEvents, actualEvents);
   }
 
   private static Event createEvent(String instanceId, OffsetDateTime timestamp) {

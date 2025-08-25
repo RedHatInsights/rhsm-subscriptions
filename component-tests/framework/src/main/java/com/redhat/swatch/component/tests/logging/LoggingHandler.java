@@ -92,8 +92,10 @@ public abstract class LoggingHandler implements Closeable {
       try {
         handle();
         Thread.sleep(TIMEOUT_IN_MILLIS);
-      } catch (Exception ignored) {
-        // ignored on purpose
+      } catch (Exception ex) {
+        if (!(ex instanceof InterruptedException)) {
+          Log.warn("Exception while watching logs: %s", ex);
+        }
       }
     }
   }

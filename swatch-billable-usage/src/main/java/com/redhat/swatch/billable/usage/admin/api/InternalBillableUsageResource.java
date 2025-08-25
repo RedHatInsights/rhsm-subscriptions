@@ -158,6 +158,12 @@ public class InternalBillableUsageResource implements DefaultApi {
     return getDefaultResponse(SUCCESS_STATUS);
   }
 
+  @Override
+  public DefaultResponse reconcileRemittances() {
+    billingController.reconcileBillableUsageRemittances();
+    return getDefaultResponse(SUCCESS_STATUS);
+  }
+
   private DefaultResponse getDefaultResponse(String status) {
     var response = new DefaultResponse();
     response.setStatus(status);

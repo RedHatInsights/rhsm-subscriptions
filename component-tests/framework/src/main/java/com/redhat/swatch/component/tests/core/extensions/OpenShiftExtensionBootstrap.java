@@ -129,15 +129,8 @@ public class OpenShiftExtensionBootstrap implements ExtensionBootstrap {
       Log.error("Test " + throwable + ": " + Arrays.toString(throwable.getStackTrace()));
 
       FileUtils.createDirectoryIfDoesNotExist(logsTestFolder(context));
-      printEvents(context);
       printPodLogs(context);
     }
-  }
-
-  private void printEvents(ComponentTestContext context) {
-    String events = client.getEvents();
-    FileUtils.copyContentTo(events, logsTestFolder(context).resolve("events" + Log.LOG_SUFFIX));
-    Log.error(events);
   }
 
   private void printPodLogs(ComponentTestContext context) {

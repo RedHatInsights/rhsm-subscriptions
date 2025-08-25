@@ -35,7 +35,6 @@ public interface ResolvedEventMapper {
 
   @Mapping(target = "measurements", ignore = true)
   @Mapping(target = "eventId", ignore = true)
-  @Mapping(target = "recordDate", ignore = true)
   @Mapping(target = "productTag", ignore = true)
   void copy(@MappingTarget Event dest, Event source);
 }

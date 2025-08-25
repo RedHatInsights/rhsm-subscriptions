@@ -23,17 +23,12 @@ package com.redhat.swatch.component.tests.resources.kafka;
 import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.Service;
 import com.redhat.swatch.component.tests.api.extensions.AnnotationBinding;
-import com.redhat.swatch.component.tests.api.extensions.KafkaBridgeManagedResourceBinding;
 import com.redhat.swatch.component.tests.core.ComponentTestContext;
 import com.redhat.swatch.component.tests.core.ManagedResource;
-import com.redhat.swatch.component.tests.utils.ServiceLoaderUtils;
+import com.redhat.swatch.component.tests.core.extensions.OpenShiftExtensionBootstrap;
 import java.lang.annotation.Annotation;
-import java.util.List;
 
 public class KafkaBridgeAnnotationBinding implements AnnotationBinding {
-
-  private final List<KafkaBridgeManagedResourceBinding> customBindings =
-      ServiceLoaderUtils.load(KafkaBridgeManagedResourceBinding.class);
 
   @Override
   public boolean isFor(Annotation... annotations) {
@@ -43,11 +38,8 @@ public class KafkaBridgeAnnotationBinding implements AnnotationBinding {
   @Override
   public ManagedResource getManagedResource(
       ComponentTestContext context, Service service, Annotation... annotations) {
-    KafkaBridge metadata = findAnnotation(annotations, KafkaBridge.class).get();
-    for (KafkaBridgeManagedResourceBinding binding : customBindings) {
-      if (binding.appliesFor(context)) {
-        return binding.init(context, service, metadata);
-      }
+    if (OpenShiftExtensionBootstrap.isEnabled(context)) {
+      return new OpenShiftKafkaBridgeContainerManagedResource();
     }
 
     // If none handler found, then the container will be running on localhost by default

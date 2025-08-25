@@ -35,7 +35,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 public @interface ComponentTest {
   /**
    * Set the target environment where to run the tests. Fallback property
-   * `swatch.component-tests.target`.
+   * `swatch.component-tests.global.target`.
    */
   String target() default "local";
 }

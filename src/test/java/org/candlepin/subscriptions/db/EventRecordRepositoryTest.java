@@ -245,6 +245,67 @@ class EventRecordRepositoryTest implements ExtendWithSwatchDatabase {
     assertTrue(match3.contains(eventRecord4));
   }
 
+  @Test
+  void testFindConflictingEventsOrderedByRecordDate() throws InterruptedException {
+    OffsetDateTime baseTime = OffsetDateTime.now(CLOCK);
+
+    // Create events with same EventKey - save them sequentially to get different recordDates
+    Event event1 = new Event();
+    event1.setOrgId("org123");
+    event1.setInstanceId("instance1");
+    event1.setServiceType("RHEL System");
+    event1.setTimestamp(baseTime);
+    event1.setEventType("event-type");
+    event1.setEventSource("test-data");
+    EventRecord eventRecord1 = new EventRecord(event1);
+
+    // Save first event
+    repository.saveAndFlush(eventRecord1);
+
+    // Small delay to ensure different recordDate
+    Thread.sleep(10);
+
+    Event event2 = new Event();
+    event2.setOrgId("org123");
+    event2.setInstanceId("instance1");
+    event2.setServiceType("RHEL System");
+    event2.setTimestamp(baseTime);
+    event2.setEventType("event-type");
+    event2.setEventSource("test-data");
+    EventRecord eventRecord2 = new EventRecord(event2);
+
+    // Save second event
+    repository.saveAndFlush(eventRecord2);
+
+    // Another small delay
+    Thread.sleep(10);
+
+    Event event3 = new Event();
+    event3.setOrgId("org123");
+    event3.setInstanceId("instance1");
+    event3.setServiceType("RHEL System");
+    event3.setTimestamp(baseTime);
+    event3.setEventType("event-type");
+    event3.setEventSource("test-data");
+    EventRecord eventRecord3 = new EventRecord(event3);
+
+    // Save third event
+    repository.saveAndFlush(eventRecord3);
+
+    List<EventRecord> results =
+        repository.findConflictingEvents(Set.of(EventKey.fromEvent(event1)));
+
+    // Verify we get all three events
+    assertEquals(3, results.size());
+
+    // Verify they are ordered by record_date (oldest first)
+    // Since we saved in order: eventRecord1, eventRecord2, eventRecord3
+    // The results should be in the same chronological order
+    assertEquals(eventRecord1, results.get(0));
+    assertEquals(eventRecord2, results.get(1));
+    assertEquals(eventRecord3, results.get(2));
+  }
+
   private Event event(
       String orgId, String source, String type, String instanceId, OffsetDateTime time) {
     UUID eventId = UUID.randomUUID();

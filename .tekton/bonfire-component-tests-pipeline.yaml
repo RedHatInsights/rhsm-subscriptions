@@ -6,11 +6,11 @@ metadata:
     build.appstudio.redhat.com/pipeline: "bonfire"
 spec:
   params:
-    - name: URL
+    - name: BONFIRE_REPO
       type: string
       description: URL of the Git repository use for fetching the tasks
       default: 'https://github.com/RedHatInsights/bonfire-tekton'
-    - name: REVISION
+    - name: BONFIRE_REVISION
       type: string
       description: Git commit revision to use for fetching the tasks
       default: main
@@ -77,10 +77,10 @@ spec:
       type: string
       description: "Method to deploy optional dependencies - see bonfire docs https://github.com/redhatinsights/bonfire?tab=readme-ov-file#dependency-processing"
       default: "hybrid"
-    - name: GIT_URL
+    - name: PROJECT_REPO
       type: string
-      description: Source Repository URL
-      default: '{{source_url}}'
+      description: "Project repository"
+      default: "https://github.com/RedHatInsights/rhsm-subscriptions"
   workspaces:
     - name: shared-workspace
       description: A workspace to share data between tasks
@@ -105,9 +105,9 @@ spec:
         resolver: git
         params:
           - name: url
-            value: "$(params.URL)"
+            value: "$(params.BONFIRE_REPO)"
           - name: revision
-            value: "$(params.REVISION)"
+            value: "$(params.BONFIRE_REVISION)"
           - name: pathInRepo
             value: tasks/teardown.yaml
   tasks:
@@ -123,9 +123,9 @@ spec:
         resolver: git
         params:
           - name: url
-            value: "$(params.URL)"
+            value: "$(params.BONFIRE_REPO)"
           - name: revision
-            value: "$(params.REVISION)"
+            value: "$(params.BONFIRE_REVISION)"
           - name: pathInRepo
             value: tasks/reserve-namespace.yaml
     - name: deploy-application
@@ -162,17 +162,48 @@ spec:
         resolver: git
         params:
           - name: url
-            value: "$(params.URL)"
+            value: "$(params.BONFIRE_REPO)"
           - name: revision
-            value: fe_testing_pipeline
+            value: "$(params.BONFIRE_REVISION)"
           - name: pathInRepo
             value: tasks/deploy-frontends.yaml
+    - name: extract-revision
+      params:
+        - name: SNAPSHOT
+          value: "$(params.SNAPSHOT)"
+        - name: COMPONENT_NAME
+          value: "$(params.COMPONENT_NAME)"
+      runAfter:
+        - reserve-namespace
+      taskSpec:
+        params:
+          - name: SNAPSHOT
+            type: string
+          - name: COMPONENT_NAME
+            type: string
+        results:
+          - name: GIT_REVISION
+            description: Extracted git revision for the component from SNAPSHOT (empty if not found)
+        steps:
+          - name: extract
+            image: quay.io/konflux-ci/appstudio-utils:latest
+            script: |
+              #!/usr/bin/env bash
+              set -euo pipefail
+              echo "extract-revision: component='$(params.COMPONENT_NAME)'"
+              rev=$(echo '$(params.SNAPSHOT)' | jq -r --arg name '$(params.COMPONENT_NAME)' '.components[] | select(.name==$name) | .source.git.revision // empty')
+              if [ -n "$rev" ] && [ "$rev" != "null" ]; then
+                echo "extract-revision: found revision='$rev'"
+              else
+                echo "extract-revision: no revision found in SNAPSHOT for component; leaving result empty"
+              fi
+              printf "%s" "$rev" > $(results.GIT_REVISION.path)
     - name: clone-repository
       params:
         - name: url
-          value: $(params.GIT_URL)
+          value: "$(params.PROJECT_REPO)"
         - name: revision
-          value: "jcarvaja/SWATCH-3838"
+          value: "$(tasks.extract-revision.results.GIT_REVISION)"
       taskRef:
         params:
           - name: name
@@ -187,35 +218,62 @@ spec:
           workspace: shared-workspace
       runAfter:
         - deploy-application
-#    - name: run-tests-task
-#      params:
-#        - name: NS_REQUESTER
-#          value: "$(context.pipelineRun.name)"
-#        - name: EPHEMERAL_ENV_PROVIDER_SECRET
-#          value: "$(params.EPHEMERAL_ENV_PROVIDER_SECRET)"
-#        - name: BONFIRE_IMAGE
-#          value: "$(params.BONFIRE_IMAGE)"
-#        - name: EPHEMERAL_ENV_URL
-#          value: "$(tasks.deploy-application.results.ephemeral-env-url)"
-#        - name: EPHEMERAL_ENV_USERNAME
-#          value: "$(tasks.deploy-application.results.ephemeral-env-username)"
-#        - name: EPHEMERAL_ENV_PASSWORD
-#          value: "$(tasks.deploy-application.results.ephemeral-env-password)"
-#        - name: SERVICE
-#          value: "$(params.COMPONENT_NAME)"
-#        - name: GIT_URL
-#          value: $(params.GIT_URL)
-#      workspaces:
-#        - name: source
-#          workspace: shared-workspace
-#      runAfter:
-#        - clone-repository
-#      taskRef:
-#        resolver: git
-#        params:
-#          - name: url
-#            value: "https://github.com/RedHatInsights/rhsm-subscriptions.git"
-#          - name: revision
-#            value: "jcarvaja/SWATCH-3838"
-#          - name: pathInRepo
-#            value: .tekton/run-tests-task.yaml
+        - extract-revision
+    - name: run-tests-task
+      params:
+        - name: SERVICE
+          value: "$(params.COMPONENT_NAME)"
+      workspaces:
+        - name: output
+          workspace: shared-workspace
+      runAfter:
+        - clone-repository
+      taskSpec:
+        params:
+          - name: SERVICE
+            type: string
+            description: The service to be tested. By default, it will run all the tests.
+        workspaces:
+          - name: output
+            description: The workspace where the repository was cloned
+        steps:
+          - name: cluster-login
+            image: "$(params.BONFIRE_IMAGE)"
+            env:
+              - name: OC_LOGIN_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.EPHEMERAL_ENV_PROVIDER_SECRET)
+                    key: token
+              - name: OC_LOGIN_SERVER
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.EPHEMERAL_ENV_PROVIDER_SECRET)
+                    key: url
+              - name: BONFIRE_BOT
+                value: "true"
+            script: |
+              #!/bin/bash
+              set -ex
+              echo "Login to cluster for tests"
+              login.sh
+              # Set current project to the reserved namespace so default namespace matches tests
+              if oc get ns "$(tasks.reserve-namespace.results.NS)" >/dev/null 2>&1; then
+                oc config set-context --current --namespace="$(tasks.reserve-namespace.results.NS)" || true
+              fi
+              # Persist kubeconfig for the next step
+              oc config view --minify --raw > "$(workspaces.output.path)/kubeconfig"
+          - name: tests
+            image: registry.access.redhat.com/ubi9/openjdk-17-runtime
+            workingDir: $(workspaces.output.path)/source
+            env:
+              - name: KUBECONFIG
+                value: "$(workspaces.output.path)/kubeconfig"
+              - name: NS
+                value: "$(tasks.reserve-namespace.results.NS)"
+              - name: SERVICE
+                value: "$(params.SERVICE)"
+            script: |
+              #!/bin/bash
+              ./mvnw clean install -Pcomponent-tests -DskipTests
+              ./mvnw verify -Pcomponent-tests -pl component-tests/${SERVICE} -Dswatch.component-tests.global.target=openshift

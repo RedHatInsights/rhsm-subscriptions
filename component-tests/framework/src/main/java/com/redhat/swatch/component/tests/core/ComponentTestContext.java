@@ -39,9 +39,9 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 
 public final class ComponentTestContext {
 
-  private static final String JEASYARCH = "component-test";
+  private static final String GLOBAL = "global";
   private static final String LOG_FILE_PATH = System.getProperty("log.file.path", "target/logs");
-  private static final int JEASYARCH_ID_MAX_SIZE = 60;
+  private static final int COMPONENT_TEST_ID_MAX_SIZE = 60;
 
   private final ExtensionContext testContext;
   private final String id;
@@ -58,7 +58,7 @@ public final class ComponentTestContext {
     this.id = generateContextId(testContext);
     this.testNamespace = ExtensionContext.Namespace.create(ComponentTestContext.class);
 
-    loadCustomConfiguration(JEASYARCH, new ComponentTestConfigurationBuilder());
+    loadCustomConfiguration(GLOBAL, new ComponentTestConfigurationBuilder());
   }
 
   public String getId() {
@@ -187,6 +187,6 @@ public final class ComponentTestContext {
   private static String generateContextId(ExtensionContext context) {
     String fullId =
         context.getRequiredTestClass().getSimpleName() + "-" + System.currentTimeMillis();
-    return fullId.substring(0, Math.min(JEASYARCH_ID_MAX_SIZE, fullId.length()));
+    return fullId.substring(0, Math.min(COMPONENT_TEST_ID_MAX_SIZE, fullId.length()));
   }
 }

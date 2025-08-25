@@ -189,7 +189,7 @@ public class ComponentTestExtension
   }
 
   private void launchService(Service service) {
-    Log.debug(service, "Initialize service (%s)", service.getDisplayName());
+    Log.info(service, "Starting service (%s) ...", service.getDisplayName());
     extensions.forEach(ext -> ext.onServiceLaunch(context, service));
     try {
       service.start();

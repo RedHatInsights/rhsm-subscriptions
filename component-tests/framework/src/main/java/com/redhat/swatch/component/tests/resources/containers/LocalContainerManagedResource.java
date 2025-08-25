@@ -22,7 +22,9 @@ package com.redhat.swatch.component.tests.resources.containers;
 
 import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.api.model.ContainerPort;
+import com.redhat.swatch.component.tests.api.Service;
 import com.redhat.swatch.component.tests.core.ManagedResource;
+import com.redhat.swatch.component.tests.exceptions.ServiceNotFoundException;
 import com.redhat.swatch.component.tests.logging.ContainerLoggingHandler;
 import com.redhat.swatch.component.tests.logging.LoggingHandler;
 import org.testcontainers.DockerClientFactory;
@@ -43,7 +45,7 @@ public class LocalContainerManagedResource extends ManagedResource {
       return;
     }
 
-    container = findContainerByName(containerName);
+    container = findContainerByName(context.getOwner(), containerName);
     loggingHandler = new ContainerLoggingHandler(context.getOwner(), container);
     loggingHandler.startWatching();
   }
@@ -85,13 +87,13 @@ public class LocalContainerManagedResource extends ManagedResource {
   }
 
   @SuppressWarnings("resource")
-  private static Container findContainerByName(String containerName) {
+  private static Container findContainerByName(Service service, String containerName) {
     for (Container c : DockerClientFactory.instance().client().listContainersCmd().exec()) {
       if (c.getNames()[0].contains(containerName)) {
         return c;
       }
     }
 
-    throw new RuntimeException("Container not found: " + containerName);
+    throw new ServiceNotFoundException(service.getName());
   }
 }

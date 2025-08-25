@@ -60,6 +60,7 @@ public abstract class OpenShiftContainerManagedResource extends ManagedResource 
     }
 
     client = context.get(OpenShiftExtensionBootstrap.CLIENT);
+    validateService();
     loggingHandler = new OpenShiftLoggingHandler(podLabels(), containerName(), context);
     loggingHandler.startWatching();
     running = true;
@@ -117,5 +118,12 @@ public abstract class OpenShiftContainerManagedResource extends ManagedResource 
 
   protected String getExpectedLog() {
     return EMPTY;
+  }
+
+  private void validateService() {
+    // check whether service does exist
+    client.checkServiceExists(serviceName);
+    // check whether pods do exist
+    client.checkPodsExists(serviceName, podLabels(), containerName());
   }
 }

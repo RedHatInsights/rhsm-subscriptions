@@ -23,17 +23,12 @@ package com.redhat.swatch.component.tests.resources.wiremock;
 import com.redhat.swatch.component.tests.api.Service;
 import com.redhat.swatch.component.tests.api.Wiremock;
 import com.redhat.swatch.component.tests.api.extensions.AnnotationBinding;
-import com.redhat.swatch.component.tests.api.extensions.WiremockManagedResourceBinding;
 import com.redhat.swatch.component.tests.core.ComponentTestContext;
 import com.redhat.swatch.component.tests.core.ManagedResource;
-import com.redhat.swatch.component.tests.utils.ServiceLoaderUtils;
+import com.redhat.swatch.component.tests.core.extensions.OpenShiftExtensionBootstrap;
 import java.lang.annotation.Annotation;
-import java.util.List;
 
 public class WiremockAnnotationBinding implements AnnotationBinding {
-
-  private final List<WiremockManagedResourceBinding> customBindings =
-      ServiceLoaderUtils.load(WiremockManagedResourceBinding.class);
 
   @Override
   public boolean isFor(Annotation... annotations) {
@@ -43,11 +38,8 @@ public class WiremockAnnotationBinding implements AnnotationBinding {
   @Override
   public ManagedResource getManagedResource(
       ComponentTestContext context, Service service, Annotation... annotations) {
-    Wiremock metadata = findAnnotation(annotations, Wiremock.class).get();
-    for (WiremockManagedResourceBinding binding : customBindings) {
-      if (binding.appliesFor(context)) {
-        return binding.init(context, service, metadata);
-      }
+    if (OpenShiftExtensionBootstrap.isEnabled(context)) {
+      return new OpenShiftWiremockContainerManagedResource();
     }
 
     // If none handler found, then the container will be running on localhost by default

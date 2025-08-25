@@ -21,19 +21,21 @@
 package com.redhat.swatch.component.tests.api.clients;
 
 import com.redhat.swatch.component.tests.api.Service;
+import com.redhat.swatch.component.tests.exceptions.ContainerNotFoundInPodException;
+import com.redhat.swatch.component.tests.exceptions.PodsNotFoundException;
+import com.redhat.swatch.component.tests.exceptions.PodsNotReadyException;
+import com.redhat.swatch.component.tests.exceptions.ServiceNotFoundException;
 import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.KeyValueEntry;
 import com.redhat.swatch.component.tests.utils.SocketUtils;
 import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.api.model.events.v1.Event;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.LocalPortForward;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -125,14 +127,6 @@ public abstract class BaseKubernetesClient<
 
   /** Resolve the port by the service. */
   public int port(String serviceName, int port, Service service, Map<String, String> podLabels) {
-    io.fabric8.kubernetes.api.model.Service serviceModel =
-        client.services().withName(serviceName).get();
-    if (serviceModel == null
-        || serviceModel.getSpec() == null
-        || serviceModel.getSpec().getPorts() == null) {
-      throw new RuntimeException("Service " + serviceName + " not found");
-    }
-
     String svcPortForwardKey = serviceName + "-" + port;
     KeyValueEntry<Service, LocalPortForwardWrapper> portForwardByService =
         portForwardsByService.get(svcPortForwardKey);
@@ -153,27 +147,36 @@ public abstract class BaseKubernetesClient<
     return portForwardByService.getValue().localPort;
   }
 
-  /**
-   * @return events of the namespace.
-   */
-  public String getEvents() {
-    List<String> output = new ArrayList<>();
-    try {
-      for (Event event :
-          client.events().v1().events().inNamespace(currentNamespace).list().getItems()) {
-        output.add(event.toString());
-      }
-
-    } catch (Exception ex) {
-      Log.warn("Failed to get namespace events", ex);
-    }
-
-    return output.stream().collect(Collectors.joining(System.lineSeparator()));
-  }
-
   /** Delete all the resources within the test. */
   public void deleteResourcesInComponentTestContext(String contextId) {
     portForwardsByService.values().forEach(this::closePortForward);
+  }
+
+  public void checkServiceExists(String serviceName) {
+    var serviceModel = client.services().withName(serviceName).get();
+    if (serviceModel == null
+        || serviceModel.getSpec() == null
+        || serviceModel.getSpec().getPorts() == null) {
+      throw new ServiceNotFoundException(serviceName);
+    }
+  }
+
+  public void checkPodsExists(
+      String serviceName, Map<String, String> podLabels, String containerName) {
+    var pods = podsInService(podLabels);
+    if (pods.isEmpty()) {
+      throw new PodsNotFoundException(serviceName, podLabels);
+    }
+    for (Pod pod : pods) {
+      if (!isPodRunning(pod)) {
+        throw new PodsNotReadyException(serviceName, podLabels);
+      }
+
+      if (pod.getSpec().getContainers().stream()
+          .noneMatch(c -> c.getName().equals(containerName))) {
+        throw new ContainerNotFoundInPodException(serviceName, containerName);
+      }
+    }
   }
 
   private boolean isPodRunning(Pod pod) {
