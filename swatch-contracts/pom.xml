@@ -127,6 +127,10 @@
       <artifactId>swatch-common-trace-response</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-common-security</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.redhat.cloud.common</groupId>
       <artifactId>clowder-quarkus-config-source</artifactId>
     </dependency>

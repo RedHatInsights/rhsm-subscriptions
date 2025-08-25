@@ -131,6 +131,11 @@
       </dependency>
       <dependency>
         <groupId>com.redhat.swatch</groupId>
+        <artifactId>swatch-common-security</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.redhat.swatch</groupId>
         <artifactId>swatch-model-events</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -567,6 +572,7 @@
         <module>swatch-common-smallrye-fault-tolerance</module>
         <module>swatch-common-splunk</module>
         <module>swatch-common-trace-response</module>
+        <module>swatch-common-security</module>
         <module>swatch-common-health</module>
         <module>swatch-common-models</module>
         <module>swatch-common-testcontainers</module>
