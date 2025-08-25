@@ -399,4 +399,31 @@ class SubscriptionDefinitionTest {
         Arguments.of(lookupParams1, Set.of("ansible-aap-managed")),
         Arguments.of(lookupParams2, Set.of("ansible-aap-managed")));
   }
+
+  @Test
+  void testPaygEligibleAzure() {
+    SubscriptionDefinition testDef = new SubscriptionDefinition();
+    Metric metric = new Metric();
+    metric.setAzureDimension("testAzureDimension");
+    testDef.setMetrics(Set.of(metric));
+    assertTrue(testDef.isPaygEligible());
+  }
+
+  @Test
+  void testPaygEligibleAws() {
+    SubscriptionDefinition testDef = new SubscriptionDefinition();
+    Metric metric = new Metric();
+    metric.setAwsDimension("testAwsDimension");
+    testDef.setMetrics(Set.of(metric));
+    assertTrue(testDef.isPaygEligible());
+  }
+
+  @Test
+  void testPaygEligibleRhm() {
+    SubscriptionDefinition testDef = new SubscriptionDefinition();
+    Metric metric = new Metric();
+    metric.setRhmMetricId("testRhmDimension");
+    testDef.setMetrics(Set.of(metric));
+    assertTrue(testDef.isPaygEligible());
+  }
 }
