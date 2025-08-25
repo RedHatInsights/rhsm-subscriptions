@@ -20,7 +20,7 @@
  */
 package com.redhat.swatch.contract.resource.api.v2;
 
-import static com.redhat.swatch.contract.security.RhIdentityHeaderAuthenticationMechanism.RH_IDENTITY_HEADER;
+import static com.redhat.swatch.common.security.RhIdentityHeaderAuthenticationMechanism.RH_IDENTITY_HEADER;
 import static com.redhat.swatch.contract.security.RhIdentityUtils.CUSTOMER_IDENTITY_HEADER;
 import static io.restassured.RestAssured.given;
 
