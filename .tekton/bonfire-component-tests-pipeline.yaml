@@ -81,6 +81,17 @@ spec:
       type: string
       description: "Project repository"
       default: "https://github.com/RedHatInsights/rhsm-subscriptions"
+    - name: IBUTSU_SERVER_URL
+      type: string
+      description: "URL for Ibutsu API interaction"
+      default: "https://ibutsu-api.insights.corp.redhat.com/api/import"
+    - name: IBUTSU_PROJECT_ID
+      type: string
+      description: "Ibutsu project ID"
+      default: "3915c900-85fc-1222-833c-10d51af56f2"
+    - name: IBUTSU_TOKEN
+      type: string
+      description: Secret use for Ibutsu API interaction
   workspaces:
     - name: shared-workspace
       description: A workspace to share data between tasks
@@ -277,3 +288,36 @@ spec:
               #!/bin/bash
               ./mvnw clean install -Pcomponent-tests -DskipTests
               ./mvnw verify -Pcomponent-tests -pl component-tests/${SERVICE} -Dswatch.component-tests.global.target=openshift
+          - name: upload-test-report
+            image: registry.access.redhat.com/ubi9/ubi-minimal
+            workingDir: $(workspaces.output.path)/source
+            env:
+              - name: IBUTSU_SERVER_URL
+                value: "$(params.IBUTSU_SERVER_URL)"
+              - name: IBUTSU_PROJECT_ID
+                value: "$(params.IBUTSU_PROJECT_ID)"
+              - name: IBUTSU_TOKEN
+                value: "$(params.IBUTSU_TOKEN)"
+              - name: SERVICE
+                value: "$(params.SERVICE)"
+            script: |
+              #!/bin/bash
+              TEST_FILE_REPORTS=(component-tests/${SERVICE}/target/surefire-reports/*.xml)
+            
+              if [[ ${#TEST_FILE_REPORTS[@]} -eq 1 ]]; then
+                TEST_FILE_REPORT=${TEST_FILE_REPORTS[0]}
+                echo "Found a single report file: $TEST_FILE_REPORT"
+              else
+                echo "Error: Expected exactly one report file, but found ${#TEST_FILE_REPORTS[@]}"
+                exit 1
+              fi         
+              
+              curl -v -X 'POST' ${IBUTSU_SERVER_URL} \
+              -H 'accept: application/json' \
+              -H 'Authorization: Bearer ${IBUTSU_TOKEN}' \
+              -H 'Content-Type: multipart/form-data' \
+              -F 'importFile=@${TEST_FILE_REPORT};type=text/xml' \
+              -F 'metadata={"tags": ["subscription-watch"]}' \
+              -F 'project=${IBUTSU_PROJECT_ID}' \
+              -F 'source=konflux-pipeline' \
+              -F 'env=ephemeral'
