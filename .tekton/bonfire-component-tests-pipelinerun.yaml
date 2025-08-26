@@ -12,6 +12,12 @@ spec:
         value: "jcarvaja/SWATCH-3838"
       - name: pathInRepo
         value: .tekton/bonfire-component-tests-pipeline.yaml
+  params:
+    - name: IBUTSU_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: ibutsu-secret
+          key: token
   workspaces:
     - name: shared-workspace
       volumeClaimTemplate:
