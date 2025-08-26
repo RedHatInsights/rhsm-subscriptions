@@ -516,18 +516,18 @@ paths:
           schema:
             type: string
             format: date-time
-          description: "Defines the start of the report period. Dates should be provided in ISO 8601
+          description: "Include only hosts that have been tallied for in given month and year. Dates should be provided in ISO 8601
                      format but the only accepted offset is UTC. E.g. 2017-07-21T17:32:28Z.
-                     Only applicable for OpenShift-dedicated-metrics and OpenShift-metrics products"
+                     Only applicable for PAYG products"
         - name: ending
           in: query
           required: false
           schema:
             type: string
             format: date-time
-          description: "Defines the end of the report period. Dates should be provided in ISO 8601
+          description: "Include only hosts that have been tallied for in given month and year. Must be after beginning date. Dates should be provided in ISO 8601
                      format but the only accepted offset is UTC. E.g. 2017-07-21T17:32:28Z.
-                     Only applicable for OpenShift-dedicated-metrics and OpenShift-metrics products"
+                     Only applicable for PAYG products"
         - name: sort
           in: query
           schema:
