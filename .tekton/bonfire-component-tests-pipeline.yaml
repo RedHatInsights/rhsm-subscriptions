@@ -312,7 +312,7 @@ spec:
                 exit 1
               fi         
               
-              curl -v -X 'POST' ${IBUTSU_SERVER_URL} \
+              HTTP_STATUS=$(curl -w '%{http_code}' -s -o /tmp/curl_response.txt -X 'POST' ${IBUTSU_SERVER_URL} \
               -H 'accept: application/json' \
               -H 'Authorization: Bearer ${IBUTSU_TOKEN}' \
               -H 'Content-Type: multipart/form-data' \
@@ -320,4 +320,14 @@ spec:
               -F 'metadata={"tags": ["subscription-watch"]}' \
               -F 'project=${IBUTSU_PROJECT_ID}' \
               -F 'source=konflux-pipeline' \
-              -F 'env=ephemeral'
+              -F 'env=ephemeral')
+                            
+              if [[ $HTTP_STATUS -ge 200 && $HTTP_STATUS -lt 300 ]]; then
+                echo "Test report uploaded successfully to Ibutsu"
+                cat /tmp/curl_response.txt
+              else
+                echo "Failed to upload test report to Ibutsu. HTTP status: $HTTP_STATUS"
+                echo "Response body:"
+                cat /tmp/curl_response.txt
+                exit 1
+              fi
