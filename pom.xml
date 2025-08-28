@@ -551,6 +551,7 @@
       <modules>
         <module>swatch-spring-parent</module>
         <module>swatch-quarkus-parent</module>
+        <module>swatch-test-framework</module>
         <module>swatch-product-configuration</module>
         <module>api</module>
         <module>clients-core</module>

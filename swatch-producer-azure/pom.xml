@@ -141,6 +141,15 @@
       <artifactId>swatch-common-testcontainers</artifactId>
       <scope>test</scope>
     </dependency>
+
+    <!-- Component test framework -->
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-test-framework</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+
   </dependencies>
 
   <build>
@@ -214,6 +223,39 @@
           </execution>
         </executions>
       </plugin>
+
+      <!-- Add component test source directory -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>3.6.1</version>
+        <executions>
+          <execution>
+            <id>add-component-test-source</id>
+            <phase>generate-test-sources</phase>
+            <goals>
+              <goal>add-test-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>src/test/component/java</source>
+              </sources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>component-tests</id>
+      <properties>
+        <skipTests>false</skipTests>
+        <skipITs>false</skipITs>
+      </properties>
+    </profile>
+  </profiles>
+
 </project>
