@@ -20,12 +20,12 @@
  */
 package com.redhat.swatch.contract.resource.api.v1;
 
+import com.redhat.swatch.common.security.RhIdentityPrincipal;
 import com.redhat.swatch.contract.openapi.model.BillingAccount;
 import com.redhat.swatch.contract.openapi.model.BillingAccountIdResponse;
 import com.redhat.swatch.contract.openapi.resource.ContractsV1Api;
 import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
-import com.redhat.swatch.contract.security.RhIdentityPrincipal;
 import io.quarkus.security.ForbiddenException;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
