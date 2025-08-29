@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.hbi.events.resources;
 
+import static com.redhat.swatch.common.security.PskHeaderAuthenticationMechanism.PSK_HEADER;
 import static io.restassured.RestAssured.given;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
@@ -27,11 +28,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.common.security.SecurityConfiguration;
 import com.redhat.swatch.hbi.events.services.HbiEventOutboxService;
 import com.redhat.swatch.hbi.model.OutboxRecord;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
+import io.restassured.response.ValidatableResponse;
 import java.time.OffsetDateTime;
 import org.apache.http.HttpStatus;
 import org.candlepin.subscriptions.json.Event;
@@ -42,29 +45,58 @@ import org.junit.jupiter.api.Test;
 class InternalResourceTest {
 
   @InjectMock HbiEventOutboxService outboxService;
+  @InjectMock SecurityConfiguration securityConfiguration;
 
   @BeforeEach
   public void setup() {
     when(outboxService.createOutboxRecord(any())).thenReturn(new OutboxRecord());
+    givenTestApisEnabled();
   }
 
   @Test
   void testCreateOutboxRecordWhenRequestDoesNotHaveOrgIdThenReturnsBadRequest() {
     Event request = new Event();
 
-    given()
-        .contentType(ContentType.JSON)
-        .body(request)
-        .when()
-        .post("/api/swatch-metrics-hbi/internal/outbox")
-        .then()
-        .statusCode(HttpStatus.SC_BAD_REQUEST);
+    whenCreateOutboxEvent(request).statusCode(HttpStatus.SC_BAD_REQUEST);
 
     verifyNoInteractions(outboxService);
   }
 
   @Test
   void testCreateOutboxRecordInvokesService() {
+    Event request = givenValidRequest();
+
+    whenCreateOutboxEvent(request).statusCode(HttpStatus.SC_OK);
+
+    verify(outboxService, times(1)).createOutboxRecord(any());
+  }
+
+  @Test
+  void testCreateOutboxRecordWithoutAuthHeader() {
+    given()
+        .contentType(ContentType.JSON)
+        .body(givenValidRequest())
+        .when()
+        .post("/api/swatch-metrics-hbi/internal/outbox")
+        .then()
+        .statusCode(HttpStatus.SC_UNAUTHORIZED);
+  }
+
+  @Test
+  void testAccessNotAllowed() {
+    givenTestApisDisabled();
+    whenCreateOutboxEvent(givenValidRequest()).statusCode(HttpStatus.SC_FORBIDDEN);
+  }
+
+  private void givenTestApisDisabled() {
+    when(securityConfiguration.isTestApisEnabled()).thenReturn(false);
+  }
+
+  private void givenTestApisEnabled() {
+    when(securityConfiguration.isTestApisEnabled()).thenReturn(true);
+  }
+
+  private Event givenValidRequest() {
     Event request = new Event();
     request.setOrgId("org123");
     request.setEventSource("HBI_HOST");
@@ -72,15 +104,16 @@ class InternalResourceTest {
     request.setEventType("test");
     request.setServiceType("RHEL System");
     request.setTimestamp(OffsetDateTime.now());
+    return request;
+  }
 
-    given()
+  private ValidatableResponse whenCreateOutboxEvent(Event request) {
+    return given()
+        .header(PSK_HEADER, "placeholder")
         .contentType(ContentType.JSON)
         .body(request)
         .when()
         .post("/api/swatch-metrics-hbi/internal/outbox")
-        .then()
-        .statusCode(HttpStatus.SC_OK);
-
-    verify(outboxService, times(1)).createOutboxRecord(any());
+        .then();
   }
 }
