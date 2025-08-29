@@ -88,6 +88,10 @@
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-common-security</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
       <artifactId>swatch-product-configuration</artifactId>
     </dependency>
     <dependency>
