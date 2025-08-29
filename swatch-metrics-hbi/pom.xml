@@ -36,6 +36,10 @@
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-security</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
       <artifactId>quarkus-smallrye-openapi</artifactId>
     </dependency>
     <dependency>
@@ -85,6 +89,10 @@
     <dependency>
       <groupId>com.redhat.swatch</groupId>
       <artifactId>swatch-common-models</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-common-security</artifactId>
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch</groupId>

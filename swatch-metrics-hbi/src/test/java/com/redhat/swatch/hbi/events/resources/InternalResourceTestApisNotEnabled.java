@@ -24,17 +24,12 @@ import static com.redhat.swatch.common.security.RhIdentityHeaderAuthenticationMe
 import static com.redhat.swatch.hbi.events.security.RhIdentityUtils.CUSTOMER_IDENTITY_HEADER;
 import static io.restassured.RestAssured.given;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.hbi.events.services.HbiEventOutboxService;
-import com.redhat.swatch.hbi.events.test.resources.SwatchTestApisEnabledResource;
 import com.redhat.swatch.hbi.model.OutboxRecord;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
 import java.time.OffsetDateTime;
 import org.apache.http.HttpStatus;
@@ -43,8 +38,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@TestProfile(SwatchTestApisEnabledResource.class)
-class InternalResourceTest {
+class InternalResourceTestApisNotEnabled {
 
   @InjectMock HbiEventOutboxService outboxService;
 
@@ -54,23 +48,7 @@ class InternalResourceTest {
   }
 
   @Test
-  void testCreateOutboxRecordWhenRequestDoesNotHaveOrgIdThenReturnsBadRequest() {
-    Event request = new Event();
-
-    given()
-        .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
-        .contentType(ContentType.JSON)
-        .body(request)
-        .when()
-        .post("/api/swatch-metrics-hbi/internal/outbox")
-        .then()
-        .statusCode(HttpStatus.SC_BAD_REQUEST);
-
-    verifyNoInteractions(outboxService);
-  }
-
-  @Test
-  void testCreateOutboxRecordInvokesService() {
+  void testAccessNotAlowed() {
     Event request = new Event();
     request.setOrgId("org123");
     request.setEventSource("HBI_HOST");
@@ -86,27 +64,6 @@ class InternalResourceTest {
         .when()
         .post("/api/swatch-metrics-hbi/internal/outbox")
         .then()
-        .statusCode(HttpStatus.SC_OK);
-
-    verify(outboxService, times(1)).createOutboxRecord(any());
-  }
-
-  @Test
-  void testCreateOutboxRecordWithoutAuthHeader() {
-    Event request = new Event();
-    request.setOrgId("org123");
-    request.setEventSource("HBI_HOST");
-    request.setInstanceId("test-instance-id");
-    request.setEventType("test");
-    request.setServiceType("RHEL System");
-    request.setTimestamp(OffsetDateTime.now());
-
-    given()
-        .contentType(ContentType.JSON)
-        .body(request)
-        .when()
-        .post("/api/swatch-metrics-hbi/internal/outbox")
-        .then()
-        .statusCode(HttpStatus.SC_UNAUTHORIZED);
+        .statusCode(HttpStatus.SC_FORBIDDEN);
   }
 }
