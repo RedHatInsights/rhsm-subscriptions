@@ -202,6 +202,7 @@ public class LocalQuarkusManagedResource extends ManagedResource {
         .getProperty(property)
         .filter(StringUtils::isNotEmpty)
         .map(Integer::parseInt)
+        .filter(p -> p > 0)
         .orElseGet(() -> SocketUtils.findAvailablePort(context.getOwner()));
   }
 

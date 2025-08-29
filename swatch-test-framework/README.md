@@ -27,7 +27,7 @@ bin/run-component-test.sh
 
 Specify a module and a test class FQN:
 ```bash
-bin/run-component-test.sh swatch-producer-azure \
+bin/run-component-test.sh swatch-producer-azure 
   com.redhat.swatch.component.tests.SwatchAzureProducerIT
 ```
 
@@ -61,5 +61,27 @@ quarkus.management.port=9000
 - Compose not found: ensure Podman or Docker and their compose plugin/CLI are installed.
 - Port parsing errors: ensure `SERVER_PORT` and `quarkus.management.port` are numbers (set via `application.properties` or `-D` system properties).
 - If you change framework code, the script will rebuild and reinstall it before running tests.
+
+### Azure helpers
+
+The framework exposes an Azure-specific wiremock helper:
+
+- `com.redhat.swatch.component.tests.api.AzureWiremockService` – sets up and verifies mocked Azure usage endpoints.
+
+Example usage in a component test:
+```java
+import com.redhat.swatch.component.tests.api.AzureWiremockService;
+import com.redhat.swatch.component.tests.api.Wiremock;
+
+@Wiremock
+static AzureWiremockService wiremock = new AzureWiremockService();
+
+// Set up Azure context and endpoints used by the test
+wiremock.setupAzureUsageContext(azureResourceId, billingAccountId);
+
+// Later, verify usage was sent (or not sent)
+wiremock.verifyAzureUsage(azureResourceId, totalValue, "vcpu_hours");
+wiremock.verifyNoAzureUsage(azureResourceId);
+```
 
 
