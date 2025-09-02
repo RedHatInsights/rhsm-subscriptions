@@ -75,6 +75,8 @@ paths:
           schema:
             type: string
           description: "The organization ID to filter outbox records"
+      security:
+        - service: [ ]
       responses:
         '200':
           description: "Successfully retrieved outbox records for the organization"
@@ -168,11 +170,6 @@ components:
           example: "SUCCESS"
 
   securitySchemes:
-    support:
-      type: apiKey
-      description: API is available for support operations
-      name: x-rh-swatch-psk
-      in: header
     service:
       type: apiKey
       description: API is available for services

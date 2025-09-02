@@ -45,8 +45,9 @@ public class InternalResource implements DefaultApi {
   }
 
   @Override
+  @RolesAllowed({"service"})
   public List<OutboxRecord> fetchOutboxRecordsByOrgId(String orgId) {
-    throw new WebApplicationException(Response.Status.NOT_IMPLEMENTED);
+    return outboxService.getOutboxRecordsByOrgId(orgId);
   }
 
   @Override

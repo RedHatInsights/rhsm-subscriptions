@@ -26,6 +26,7 @@ import com.redhat.swatch.hbi.events.repository.HbiEventOutboxRepository;
 import com.redhat.swatch.hbi.model.OutboxRecord;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import org.candlepin.subscriptions.json.Event;
 
@@ -35,6 +36,11 @@ public class HbiEventOutboxService {
 
   private final HbiEventOutboxRepository repository;
   private final OutboxRecordMapper mapper;
+
+  @Transactional
+  public List<OutboxRecord> getOutboxRecordsByOrgId(String orgId) {
+    return repository.findByOrgId(orgId).stream().map(mapper::entityToDto).toList();
+  }
 
   @Transactional
   public OutboxRecord createOutboxRecord(Event event) {
