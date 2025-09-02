@@ -53,7 +53,7 @@
     <checkstyle.version>3.6.0</checkstyle.version>
     <jacoco-maven-plugin.version>0.8.13</jacoco-maven-plugin.version>
     <maven-antrun-plugin.version>3.1.0</maven-antrun-plugin.version>
-    <sonar-maven-plugin.version>5.1.0.4751</sonar-maven-plugin.version>
+    <sonar-maven-plugin.version>5.2.0.4988</sonar-maven-plugin.version>
     <swagger-codegen-maven-plugin.version>3.0.71</swagger-codegen-maven-plugin.version>
 
     <!-- Sonar configuration -->
