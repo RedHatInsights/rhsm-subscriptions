@@ -21,7 +21,6 @@
 package com.redhat.swatch.hbi.events.services;
 
 import static com.redhat.swatch.hbi.events.configuration.Channels.HBI_HOST_EVENTS_IN;
-import static com.redhat.swatch.hbi.events.configuration.Channels.SWATCH_EVENTS_OUT;
 import static com.redhat.swatch.hbi.events.services.HbiEventConsumer.COUNTER_EVENTS_METRIC;
 import static com.redhat.swatch.hbi.events.services.HbiEventConsumer.TIMED_EVENTS_METRIC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -37,6 +36,8 @@ import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
 import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
 import com.redhat.swatch.hbi.events.processing.HbiEventProcessor;
+import com.redhat.swatch.hbi.events.repository.HbiEventOutbox;
+import com.redhat.swatch.hbi.events.repository.HbiEventOutboxRepository;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationshipRepository;
 import com.redhat.swatch.hbi.events.test.helpers.HbiEventTestData;
@@ -47,15 +48,14 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectSpy;
-import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
-import io.smallrye.reactive.messaging.memory.InMemorySink;
 import io.smallrye.reactive.messaging.memory.InMemorySource;
 import jakarta.enterprise.inject.Any;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -67,7 +67,6 @@ import org.candlepin.subscriptions.json.Event.HardwareType;
 import org.candlepin.subscriptions.json.Event.Sla;
 import org.candlepin.subscriptions.json.Event.Usage;
 import org.candlepin.subscriptions.json.Measurement;
-import org.eclipse.microprofile.reactive.messaging.Message;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -84,41 +83,21 @@ class HbiEventConsumerTest {
   @Inject ApplicationClock clock;
   @Inject ObjectMapper objectMapper;
   @InjectSpy HbiHostRelationshipRepository repo;
+  @Inject HbiEventOutboxRepository outboxRepository;
   @Inject HbiEventTestHelper hbiEventTestHelper;
   @Inject SwatchEventTestHelper swatchEventTestHelper;
   @InjectSpy HbiEventProcessor hbiEventProcessor;
   @Inject MeterRegistry meterRegistry;
   private InMemorySource<HbiEvent> hbiEventsIn;
-  private InMemorySink<Event> swatchEventsOut;
 
   @BeforeEach
   @Transactional
   void setup() {
     when(unleash.isEnabled(FeatureFlags.EMIT_EVENTS)).thenReturn(true);
     hbiEventsIn = connector.source(HBI_HOST_EVENTS_IN);
-    swatchEventsOut = connector.sink(SWATCH_EVENTS_OUT);
-    swatchEventsOut.clear();
     repo.deleteAll();
+    outboxRepository.deleteAll();
     meterRegistry.clear();
-  }
-
-  @Test
-  void testSwatchEventSentWithOrgIdAsMessageKey() {
-    var hbiEvent =
-        hbiEventTestHelper.getCreateUpdateEvent(HbiEventTestData.getPhysicalRhelHostCreatedEvent());
-    hbiEventsIn.send(hbiEvent);
-
-    Awaitility.await()
-        .atMost(Duration.ofSeconds(1))
-        .untilAsserted(
-            () -> {
-              List<? extends Message<Event>> received = swatchEventsOut.received();
-              assertEquals(1, received.size());
-              Optional<OutgoingKafkaRecordMetadata> metadata =
-                  received.get(0).getMetadata(OutgoingKafkaRecordMetadata.class);
-              assertTrue(metadata.isPresent());
-              assertEquals(hbiEvent.getHost().getOrgId(), metadata.get().getKey());
-            });
   }
 
   @Test
@@ -138,7 +117,8 @@ class HbiEventConsumerTest {
             false,
             buildMeasurements(2.0, 2.0));
     hbiEventsIn.send(hbiEvent);
-    assertSwatchEventSent(expected);
+
+    assertOutboxState(expected);
     assertEquals(1, repo.count());
     assertRelationshipExists(expectedRelationship);
   }
@@ -173,7 +153,7 @@ class HbiEventConsumerTest {
 
     hbiEventsIn.send(hbiEvent);
 
-    assertSwatchEventSent(expected);
+    assertOutboxState(expected);
     assertEquals(1, repo.count());
     assertRelationshipExists(expectedRelationship);
   }
@@ -203,7 +183,7 @@ class HbiEventConsumerTest {
             .withUsage(null);
 
     hbiEventsIn.send(hbiEvent);
-    assertSwatchEventSent(expected);
+    assertOutboxState(expected);
     assertEquals(1, repo.count());
     assertRelationshipExists(expectedRelationship);
   }
@@ -234,7 +214,7 @@ class HbiEventConsumerTest {
             buildMeasurements(4.0, 4.0));
 
     hbiEventsIn.send(hbiEvent);
-    assertSwatchEventSent(expected);
+    assertOutboxState(expected);
 
     assertEquals(1, repo.count());
     assertRelationshipExists(expectedRelationship);
@@ -311,7 +291,7 @@ class HbiEventConsumerTest {
     // Send the hypervisor event. Results in a hypervisor swatch event, and an updated mapped
     // guest event.
     hbiEventsIn.send(hypervisorEvent);
-    assertSwatchEventSent(
+    assertOutboxState(
         expectedUnmappedGuestEvent, expectedHypervisorEvent, expectedMappedGuestEvent);
 
     assertEquals(2, repo.count());
@@ -387,7 +367,7 @@ class HbiEventConsumerTest {
     HbiHostRelationship expectedHypervisorRelationship =
         hbiEventTestHelper.relationshipFromHbiEvent(hypervisorHostHbiEvent);
 
-    assertSwatchEventSent(
+    assertOutboxState(
         expectedInitialHypervisorSwatchEvent,
         expectedMappedGuestEvent,
         expectedHypervisorUpdateEvent);
@@ -405,7 +385,7 @@ class HbiEventConsumerTest {
 
     Event expectedEvent = swatchEventTestHelper.createMinimalDeleteEvent(hbiEvent);
 
-    assertSwatchEventSent(expectedEvent);
+    assertOutboxState(expectedEvent);
     assertEquals(0, repo.count());
   }
 
@@ -413,21 +393,59 @@ class HbiEventConsumerTest {
   void testDeleteWithHypervisorGuestRelationships() throws Exception {
     var virtualHostHbiEvent =
         hbiEventTestHelper.getCreateUpdateEvent(HbiEventTestData.getVirtualRhelHostCreatedEvent());
+
     var hypervisorEvent =
         hbiEventTestHelper.getCreateUpdateEvent(HbiEventTestData.getPhysicalRhelHostCreatedEvent());
 
     // Send the guest event. Results in an unmapped guest swatch event.
+    Event initialUnmappedGuestEvent =
+        swatchEventTestHelper.createExpectedEvent(
+            virtualHostHbiEvent.getHost(),
+            NormalizedEventType.INSTANCE_CREATED,
+            virtualHostHbiEvent.getTimestamp().toOffsetDateTime(),
+            Sla.SELF_SUPPORT,
+            Usage.DEVELOPMENT_TEST,
+            HardwareType.VIRTUAL,
+            true,
+            true,
+            false,
+            hypervisorEvent.getHost().getSubscriptionManagerId(),
+            List.of("69"),
+            Set.of("RHEL for x86"),
+            buildMeasurements(1.0, 1.0));
     hbiEventsIn.send(virtualHostHbiEvent);
+    assertOutboxState(initialUnmappedGuestEvent);
+    clearOutboxRecords();
 
     // Send the hypervisor event. Results in a hypervisor swatch event, and an updated mapped
     // guest event.
+    Event initialMappedGuestEvent =
+        swatchEventTestHelper.createExpectedEvent(
+            virtualHostHbiEvent.getHost(),
+            NormalizedEventType.INSTANCE_UPDATED,
+            hypervisorEvent.getTimestamp().toOffsetDateTime(),
+            Sla.SELF_SUPPORT,
+            Usage.DEVELOPMENT_TEST,
+            HardwareType.VIRTUAL,
+            true,
+            false,
+            false,
+            hypervisorEvent.getHost().getSubscriptionManagerId(),
+            List.of("69"),
+            Set.of("RHEL for x86"),
+            buildMeasurements(1.0, 2.0));
+    Event initalHypervisorSwatchEvent =
+        swatchEventTestHelper.buildPhysicalRhelEvent(
+            hypervisorEvent.getHost(),
+            NormalizedEventType.INSTANCE_CREATED,
+            hypervisorEvent.getTimestamp().toOffsetDateTime(),
+            true,
+            buildMeasurements(2.0, 2.0));
     hbiEventsIn.send(hypervisorEvent);
+    assertOutboxState(initialMappedGuestEvent, initalHypervisorSwatchEvent);
+    clearOutboxRecords();
 
-    // Flush the topic so we start fresh. We expect 3 swatch events due to sending
-    // the HBI events above.
-    flushSwatchEvents(3);
-
-    // Send the delete event
+    // Send the delete event, and start the actual test case.
     HbiHostDeleteEvent hostDeletedEvent =
         hbiEventTestHelper.createHostDeleteEvent(
             hypervisorEvent.getHost().getOrgId(), hypervisorEvent.getHost().getId(), clock.now());
@@ -462,7 +480,7 @@ class HbiEventConsumerTest {
             Set.of("RHEL for x86"),
             buildMeasurements(1.0, 1.0));
 
-    assertSwatchEventSent(expectedHypervisorDeletedEvent, expectedMappedGuestUpdateEvent);
+    assertOutboxState(expectedHypervisorDeletedEvent, expectedMappedGuestUpdateEvent);
 
     HbiHostRelationship guestRelationship =
         hbiEventTestHelper.virtualRelationshipFromHbiEvent(
@@ -498,7 +516,7 @@ class HbiEventConsumerTest {
     // when event is sent
     hbiEventsIn.send(hbiEvent);
     // and is processed
-    assertSwatchEventSent(
+    assertOutboxState(
         swatchEventTestHelper.buildPhysicalRhelEvent(
             hbiEvent.getHost(),
             NormalizedEventType.INSTANCE_CREATED,
@@ -525,32 +543,9 @@ class HbiEventConsumerTest {
         new Measurement().withMetricId("sockets").withValue(sockets));
   }
 
-  private void assertSwatchEventSent(Event... expected) {
-    Awaitility.await()
-        .atMost(Duration.ofSeconds(1))
-        .untilAsserted(
-            () -> {
-              List<? extends Message<Event>> received = swatchEventsOut.received();
-              assertEquals(expected.length, received.size());
-              received.forEach(m -> System.out.println(m.getPayload()));
-              MatcherAssert.assertThat(
-                  received.stream().map(Message::getPayload).toList(),
-                  Matchers.containsInAnyOrder(expected));
-            });
-
-    // Clear the events so that any additional calls to this method starts fresh.
-    swatchEventsOut.clear();
-  }
-
-  private void flushSwatchEvents(int numToFlush) {
-    Awaitility.await()
-        .atMost(Duration.ofSeconds(1))
-        .untilAsserted(
-            () -> {
-              List<? extends Message<Event>> received = swatchEventsOut.received();
-              assertEquals(numToFlush, received.size());
-            });
-    swatchEventsOut.clear();
+  private void assertOutboxState(Event... expected) {
+    List<Event> out = awaitOutboxRecords(expected.length);
+    MatcherAssert.assertThat(out, Matchers.containsInAnyOrder(expected));
   }
 
   @Transactional
@@ -604,5 +599,32 @@ class HbiEventConsumerTest {
             .findFirst();
 
     assertTrue(metric.isPresent());
+  }
+
+  @Transactional
+  List<HbiEventOutbox> getAllOutboxRecords() {
+    return outboxRepository.findAll().stream().toList();
+  }
+
+  @Transactional
+  void clearOutboxRecords() {
+    outboxRepository.deleteAll();
+  }
+
+  List<Event> awaitOutboxRecords(int expectedCount) {
+    List<HbiEventOutbox> outboxRecords = new ArrayList<>();
+    Awaitility.await()
+        .atMost(Duration.ofSeconds(1))
+        .untilAsserted(
+            () -> {
+              List<HbiEventOutbox> nextCheck = getAllOutboxRecords();
+              assertEquals(
+                  expectedCount,
+                  nextCheck.size(),
+                  "Expected " + expectedCount + " out of " + nextCheck.size());
+              outboxRecords.addAll(nextCheck);
+            });
+
+    return outboxRecords.stream().map(HbiEventOutbox::getSwatchEventJson).toList();
   }
 }
