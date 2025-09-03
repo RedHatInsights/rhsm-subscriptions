@@ -24,7 +24,6 @@ import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
 import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,7 +56,6 @@ public class DeleteHostHandler implements HbiEventHandler<HbiHostDeleteEvent> {
    *     deletion of the HBI host.
    */
   @Override
-  @Transactional
   public List<Event> handleEvent(HbiHostDeleteEvent deleteEvent) {
     log.debug("Handling hbi host delete event: {}", deleteEvent);
     Optional<HbiHostRelationship> deleted =
