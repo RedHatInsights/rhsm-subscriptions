@@ -34,6 +34,7 @@ import com.redhat.swatch.hbi.events.test.helpers.HbiEventTestData;
 import com.redhat.swatch.hbi.events.test.helpers.HbiEventTestHelper;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -56,6 +57,7 @@ class HbiEventProcessorTest {
   }
 
   @Test
+  @Transactional
   void testCreateUpdateEventIsSupported() {
     HbiHostCreateUpdateEvent event =
         hbiEventHelper.createTemplatedGuestCreatedEvent(
@@ -64,6 +66,7 @@ class HbiEventProcessorTest {
   }
 
   @Test
+  @Transactional
   void testDeleteEventIsSupported() {
     HbiHostDeleteEvent event =
         hbiEventHelper.createHostDeleteEvent("org123", UUID.randomUUID(), OffsetDateTime.now());
