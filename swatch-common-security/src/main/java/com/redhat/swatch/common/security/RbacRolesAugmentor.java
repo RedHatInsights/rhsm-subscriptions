@@ -52,20 +52,32 @@ public class RbacRolesAugmentor implements SecurityIdentityAugmentor {
   @ConfigProperty(name = "RBAC_ENABLED", defaultValue = "true")
   boolean rbacEnabled;
 
+  @ConfigProperty(name = "ENFORCE_RBAC_ROLES", defaultValue = "true")
+  boolean enforceRbacRoles;
+
   @Inject @RestClient AccessApi accessApi;
 
   @Override
   public Uni<SecurityIdentity> augment(
       SecurityIdentity identity, AuthenticationRequestContext context) {
+    // If RBAC is not enabled, treat this as a no-op (no roles added).
     if (!rbacEnabled) {
+      log.info("RBAC is disabled, skipping augmentation of roles.");
+      return Uni.createFrom().item(identity);
+    }
+
+    if (!enforceRbacRoles) {
+      log.info("RBAC roles enforcement is disabled, granting all roles.");
       return Uni.createFrom().item(buildWithAllRoles(identity));
     }
 
     Principal principal = identity.getPrincipal();
     if (principal instanceof RhIdentityPrincipal rhIdentityPrincipal
         && shouldCallRbac(rhIdentityPrincipal)) {
+      log.info("RBAC is enabled, augmenting roles for principal");
       return context.runBlocking(() -> lookupRbacRoles(identity));
     }
+    log.info("RBAC is enabled, but principal is not a customer or service account, skipping augmentation");
     return Uni.createFrom().item(identity);
   }
 

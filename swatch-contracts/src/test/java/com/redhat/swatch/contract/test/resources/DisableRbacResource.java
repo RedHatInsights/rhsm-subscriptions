@@ -27,6 +27,6 @@ public class DisableRbacResource implements QuarkusTestProfile {
 
   @Override
   public Map<String, String> getConfigOverrides() {
-    return Map.of("RBAC_ENABLED", "false");
+    return Map.of("ENFORCE_RBAC_ROLES", "false");
   }
 }
