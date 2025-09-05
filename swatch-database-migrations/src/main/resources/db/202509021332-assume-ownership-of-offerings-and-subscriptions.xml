@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+  <!--
+    Recreate the offering table and descendants if necessary. We have to do this because
+    previously the offering table was controlled by the monolith code. Since we
+    refactored to run swatch-contracts migrations independently, we need to make sure the
+    offering table is created in swatch-contracts migrations.  Swatch-contracts is the
+    application that performs the offering sync, so it should be the owning party.
+  -->
+  <changeSet id="202509021332-1" author="awood" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <tableExists tableName="offering"/>
+      </not>
+    </preConditions>
+
+    <createTable tableName="offering">
+      <column name="sku" type="varchar">
+        <constraints nullable="false" primaryKey="true"/>
+      </column>
+      <column name="product_name" type="varchar(255)"/>
+      <column name="product_family" type="varchar(255)"/>
+      <column name="cores" type="bigint"/>
+      <column name="sockets" type="bigint"/>
+      <column name="hypervisor_cores" type="bigint"/>
+      <column name="hypervisor_sockets" type="bigint"/>
+      <column name="role" type="varchar(255)"/>
+      <column name="sla" type="varchar(255)"/>
+      <column name="usage" type="varchar(255)"/>
+      <column name="description" type="varchar(255)"/>
+      <column name="has_unlimited_usage" type="boolean"/>
+      <column name="derived_sku" type="varchar(255)"/>
+      <column name="metered" type="boolean"/>
+      <column name="special_pricing_flag" type="varchar(255)"/>
+      <column name="level_1" type="text"/>
+      <column name="level_2" type="text"/>
+    </createTable>
+  </changeSet>
+
+  <changeSet id="202509021332-2" author="awood" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <tableExists tableName="sku_child_sku"/>
+      </not>
+    </preConditions>
+    <createTable tableName="sku_child_sku">
+      <column name="sku" type="varchar(255)"/>
+      <column name="child_sku" type="varchar(255)"/>
+      <column name="id" type="uuid" defaultValueComputed="uuid_generate_v4()">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+    </createTable>
+    <addUniqueConstraint tableName="sku_child_sku" columnNames="sku,child_sku"/>
+    <addForeignKeyConstraint baseTableName="sku_child_sku" baseColumnNames="sku"
+      constraintName="offering_sku_child_sku_fk"
+      referencedTableName="offering" referencedColumnNames="sku"/>
+  </changeSet>
+
+  <changeSet id="202509021332-3" author="awood" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <tableExists tableName="sku_oid"/>
+      </not>
+    </preConditions>
+    <createTable tableName="sku_oid">
+      <column name="sku" type="varchar(255)"/>
+      <column name="oid" type="integer"/>
+      <column name="id" type="uuid" defaultValueComputed="uuid_generate_v4()">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+    </createTable>
+    <addForeignKeyConstraint baseTableName="sku_oid" baseColumnNames="sku"
+      constraintName="offering_sku_oid_fk"
+      referencedTableName="offering" referencedColumnNames="sku"/>
+  </changeSet>
+
+  <changeSet id="202509021332-4" author="awood" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <tableExists tableName="sku_product_tag"/>
+      </not>
+    </preConditions>
+    <createTable tableName="sku_product_tag">
+      <column name="sku" type="varchar(255)"/>
+      <column name="product_tag" type="varchar(255)"/>
+      <column name="id" type="uuid" defaultValueComputed="uuid_generate_v4()">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+    </createTable>
+    <addForeignKeyConstraint baseTableName="sku_product_tag" baseColumnNames="sku"
+      constraintName="offering_sku_product_tag_fk"
+      referencedTableName="offering" referencedColumnNames="sku"/>
+  </changeSet>
+
+  <changeSet id="202509021332-5" author="awood" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <tableExists tableName="subscription"/>
+      </not>
+    </preConditions>
+    <createTable tableName="subscription">
+      <column name="sku" type="VARCHAR(255)"/>
+      <column name="org_id" type="VARCHAR(255)"/>
+      <column name="subscription_id" type="VARCHAR(255)"/>
+      <column name="quantity" type="BIGINT"/>
+      <column name="start_date" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="end_date" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="billing_provider_id" type="VARCHAR(255)"/>
+      <column name="subscription_number" type="VARCHAR(255)"/>
+      <column name="billing_provider" type="VARCHAR(255)"/>
+      <column name="billing_account_id" type="VARCHAR(255)"/>
+    </createTable>
+    <addPrimaryKey tableName="subscription" columnNames="subscription_id,start_date"/>
+    <createIndex tableName="subscription" indexName="subscription_owner_id_idx">
+      <column name="org_id"/>
+    </createIndex>
+    <createIndex tableName="subscription" indexName="subscription_subscription_number_idx">
+      <column name="subscription_number"/>
+    </createIndex>
+    <createIndex tableName="subscription" indexName="subscription_sku_subs_id_start_date_idx">
+      <column name="sku"/>
+      <column name="subscription_id"/>
+      <column name="start_date" descending="true"/>
+    </createIndex>
+    <createIndex tableName="subscription" indexName="subscription_sku_sub_number_start_date_idx">
+      <column name="sku"/>
+      <column name="subscription_number"/>
+      <column name="start_date" descending="true"/>
+    </createIndex>
+  </changeSet>
+
+  <changeSet id="202509021332-6" author="awood" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <tableExists tableName="subscription_measurements"/>
+      </not>
+    </preConditions>
+    <createTable tableName="subscription_measurements">
+      <column name="subscription_id" type="VARCHAR(255)"/>
+      <column name="start_date" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="metric_id" type="VARCHAR(255)"/>
+      <column name="measurement_type" type="VARCHAR(255)"/>
+      <column name="value" type="DOUBLE PRECISION"/>
+    </createTable>
+    <addPrimaryKey constraintName="subscription_measurements_pk"
+      tableName="subscription_measurements"
+      columnNames="subscription_id, start_date, metric_id, measurement_type"/>
+    <addForeignKeyConstraint constraintName="subscription_fk"
+      baseTableName="subscription_measurements"
+      referencedTableName="subscription"
+      baseColumnNames="subscription_id, start_date"
+      referencedColumnNames="subscription_id, start_date"/>
+    <createIndex indexName="subscription_id_idx" tableName="subscription_measurements"
+      unique="false">
+      <column name="subscription_id"/>
+    </createIndex>
+  </changeSet>
+
+  <changeSet id="202509021332-7" author="awood" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <viewExists viewName="subscription_capacity_view"/>
+      </not>
+    </preConditions>
+    <createView replaceIfExists="true" viewName="subscription_capacity_view">
+    <![CDATA[
+    with active_subscriptions as (
+        select org_id, subscription_id, MAX(start_date) as start_date
+        from subscription
+        where start_date <= now() and (end_date is null or end_date >= now())
+        group by org_id, subscription_id
+    )
+    select s.subscription_id,
+      s.subscription_number,
+      s.sku,
+      o.has_unlimited_usage,
+      o.description as product_name,
+      coalesce(o.sla, '') as service_level,
+      coalesce(o.usage, '') as usage,
+      s.org_id,
+      s.billing_provider,
+      s.billing_provider_id,
+      s.billing_account_id,
+      s.start_date,
+      s.end_date,
+      jsonb_agg(jsonb_build_object('metric_id',sm.metric_id,'value', sm.value, 'measurement_type', sm.measurement_type)) as metrics,
+      spt.product_tag,
+      s.quantity as quantity
+    from active_subscriptions a
+    inner join subscription s on a.subscription_id=s.subscription_id and a.start_date=s.start_date and a.org_id=s.org_id
+    inner join offering o on s.sku=o.sku
+    inner join sku_product_tag spt on s.sku = spt.sku
+    left join subscription_measurements sm on s.subscription_id = sm.subscription_id and s.start_date=sm.start_date
+    group by s.subscription_id, s.subscription_number, s.sku, o.has_unlimited_usage, o.description,
+      o.sla, o.usage, s.org_id, s.billing_provider, s.billing_provider_id, s.billing_account_id,
+      spt.product_tag, s.quantity, s.start_date, s.end_date
+    ]]>
+    </createView>
+  </changeSet>
+</databaseChangeLog>
