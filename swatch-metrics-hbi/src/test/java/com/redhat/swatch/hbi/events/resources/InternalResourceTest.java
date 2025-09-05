@@ -22,6 +22,7 @@ package com.redhat.swatch.hbi.events.resources;
 
 import static com.redhat.swatch.common.security.PskHeaderAuthenticationMechanism.PSK_HEADER;
 import static io.restassured.RestAssured.given;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -29,13 +30,22 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.common.security.SecurityConfiguration;
+import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
+import com.redhat.swatch.hbi.events.exception.api.ErrorCode;
+import com.redhat.swatch.hbi.events.exception.api.SynchronousOutboxFlushException;
 import com.redhat.swatch.hbi.events.services.HbiEventOutboxService;
+import com.redhat.swatch.hbi.model.Error;
+import com.redhat.swatch.hbi.model.FlushResponse;
 import com.redhat.swatch.hbi.model.OutboxRecord;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import io.restassured.response.ValidatableResponse;
+import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import org.apache.http.HttpStatus;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,13 +54,65 @@ import org.junit.jupiter.api.Test;
 @QuarkusTest
 class InternalResourceTest {
 
+  static final String FLUSH_URL = "/api/swatch-metrics-hbi/internal/rpc/outbox/flush";
+
   @InjectMock HbiEventOutboxService outboxService;
   @InjectMock SecurityConfiguration securityConfiguration;
+  @Inject ApplicationConfiguration config;
+
+  private final Map<String, String> headers = new HashMap<>();
 
   @BeforeEach
-  public void setup() {
+  void setup() {
     when(outboxService.createOutboxRecord(any())).thenReturn(new OutboxRecord());
     givenTestApisEnabled();
+    when(outboxService.flushOutboxRecords()).thenReturn(100L);
+  }
+
+  @Test
+  void testFlushOutboxAsyncDefaultHeader() {
+    withRequestHeaders(null);
+    assertSuccessfulFlushResponse(true, InternalResource.STATUS_STARTED);
+  }
+
+  @Test
+  void testFlushOutboxAsyncWithHeader() {
+    withRequestHeaders(Boolean.FALSE);
+    assertSuccessfulFlushResponse(true, InternalResource.STATUS_STARTED);
+  }
+
+  @Test
+  void testFlushOutboxSync() {
+    withSynchronousRequestsEnabled();
+    withRequestHeaders(Boolean.TRUE);
+    assertSuccessfulFlushResponse(false, InternalResource.STATUS_SUCCESS);
+  }
+
+  @Test
+  void testFlushOutboxSyncError() {
+    withSynchronousRequestsEnabled();
+    withRequestHeaders(Boolean.TRUE);
+    when(outboxService.flushOutboxRecords()).thenThrow(new RuntimeException("Forced!"));
+
+    Error expectedError =
+        new Error()
+            .code(ErrorCode.SYNCHRONOUS_OUTBOX_FLUSH_ERROR.getCode())
+            .title(SynchronousOutboxFlushException.MESSAGE)
+            .detail("Forced!")
+            .status(Integer.toString(HttpStatus.SC_INTERNAL_SERVER_ERROR));
+
+    Error error =
+        given()
+            .contentType(ContentType.JSON)
+            .headers(headers)
+            .when()
+            .put(FLUSH_URL)
+            .then()
+            .statusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR)
+            .extract()
+            .body()
+            .as(Error.class);
+    assertEquals(expectedError, error);
   }
 
   @Test
@@ -115,5 +177,32 @@ class InternalResourceTest {
         .when()
         .post("/api/swatch-metrics-hbi/internal/outbox")
         .then();
+  }
+
+  private void withSynchronousRequestsEnabled() {
+    config.setSynchronousOperationsEnabled(true);
+  }
+
+  private void withRequestHeaders(Boolean synchronousRequestHeader) {
+    //    headers.put("x-rh-swatch-psk", "");
+    if (Objects.nonNull(synchronousRequestHeader)) {
+      headers.put("x-rh-swatch-synchronous-request", synchronousRequestHeader.toString());
+    }
+  }
+
+  private void assertSuccessfulFlushResponse(boolean expectAsyncFlush, String expectedFlushStatus) {
+    FlushResponse response =
+        given()
+            .contentType(ContentType.JSON)
+            .headers(headers)
+            .when()
+            .put(FLUSH_URL)
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .body()
+            .as(FlushResponse.class);
+    assertEquals(expectAsyncFlush, response.getAsync());
+    assertEquals(expectedFlushStatus, response.getStatus());
   }
 }

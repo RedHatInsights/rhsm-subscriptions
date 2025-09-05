@@ -21,6 +21,8 @@
 package com.redhat.swatch.hbi.events.resources;
 
 import com.redhat.swatch.hbi.api.DefaultApi;
+import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
+import com.redhat.swatch.hbi.events.exception.api.SynchronousOutboxFlushException;
 import com.redhat.swatch.hbi.events.services.HbiEventOutboxService;
 import com.redhat.swatch.hbi.model.FlushResponse;
 import com.redhat.swatch.hbi.model.OutboxRecord;
@@ -28,14 +30,26 @@ import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.json.Event;
+import org.eclipse.microprofile.context.ManagedExecutor;
 
+@Slf4j
 @ApplicationScoped
 public class InternalResource implements DefaultApi {
+
+  public static final String STATUS_STARTED = "STARTED";
+  public static final String STATUS_SUCCESS = "SUCCESS";
+  public static final String STATUS_ERROR = "ERROR";
+
+  @Inject ManagedExecutor executor;
+
+  @Inject ApplicationConfiguration applicationProperties;
 
   @Inject HbiEventOutboxService outboxService;
 
@@ -66,7 +80,35 @@ public class InternalResource implements DefaultApi {
   }
 
   @Override
-  public FlushResponse flushOutbox(Boolean async) {
-    throw new WebApplicationException(Response.Status.NOT_IMPLEMENTED);
+  public FlushResponse flushOutbox(Boolean xRhSynchronousRequestHeader) {
+    boolean makeSynchronousRequest = Boolean.TRUE.equals(xRhSynchronousRequestHeader);
+    FlushResponse response = new FlushResponse().async(!makeSynchronousRequest);
+
+    if (makeSynchronousRequest) {
+      if (!applicationProperties.isSynchronousOperationsEnabled()) {
+        throw new BadRequestException("Synchronous operations are disabled!");
+      }
+
+      log.info("Request received to flush the outbox synchronously!");
+      try {
+        flush();
+      } catch (Exception e) {
+        throw new SynchronousOutboxFlushException(e);
+      }
+      response.setStatus(STATUS_SUCCESS);
+      return response;
+    }
+
+    log.info("Request received to flush the outbox asynchronously!");
+    executor.runAsync(this::flush);
+    response.setStatus(STATUS_STARTED);
+    return response;
+  }
+
+  private void flush() {
+    log.debug(
+        "Outbox flush running on vertx worker thread: {}",
+        io.vertx.core.Context.isOnWorkerThread());
+    log.info("Flushed {} outbox records!", outboxService.flushOutboxRecords());
   }
 }
