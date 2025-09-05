@@ -133,6 +133,7 @@ objects:
         - swatch-tally
         - rbac
         - export-service
+        - artemis
 
       kafkaTopics:
         - replicas: ${{KAFKA_ENABLED_ORGS_REPLICAS}}
