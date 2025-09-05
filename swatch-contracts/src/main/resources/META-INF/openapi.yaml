@@ -623,9 +623,7 @@ paths:
         default:
           $ref: '#/components/responses/ErrorResponse'
       security:
-        - support: [ ]
         - test: [ ]
-        - service: [ ]
   /api/swatch-contracts/internal/tags/{tag}/metrics:
     description: "Mapping sku to product tags."
     parameters:
