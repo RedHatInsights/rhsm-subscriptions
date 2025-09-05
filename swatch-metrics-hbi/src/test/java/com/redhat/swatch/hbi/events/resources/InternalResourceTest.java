@@ -21,7 +21,9 @@
 package com.redhat.swatch.hbi.events.resources;
 
 import static com.redhat.swatch.common.security.PskHeaderAuthenticationMechanism.PSK_HEADER;
+import static com.redhat.swatch.hbi.events.resources.InternalResource.SYNCHRONOUS_REQUEST_HEADER;
 import static io.restassured.RestAssured.given;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -29,13 +31,22 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.common.security.SecurityConfiguration;
+import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
+import com.redhat.swatch.hbi.events.exception.api.ErrorCode;
+import com.redhat.swatch.hbi.events.exception.api.SynchronousOutboxFlushException;
+import com.redhat.swatch.hbi.events.exception.api.SynchronousRequestsNotEnabledException;
 import com.redhat.swatch.hbi.events.services.HbiEventOutboxService;
+import com.redhat.swatch.hbi.model.Error;
+import com.redhat.swatch.hbi.model.FlushResponse;
 import com.redhat.swatch.hbi.model.OutboxRecord;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import io.restassured.response.ValidatableResponse;
+import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.http.HttpStatus;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,13 +55,83 @@ import org.junit.jupiter.api.Test;
 @QuarkusTest
 class InternalResourceTest {
 
+  static final String FLUSH_URL = "/api/swatch-metrics-hbi/internal/rpc/outbox/flush";
+
   @InjectMock HbiEventOutboxService outboxService;
   @InjectMock SecurityConfiguration securityConfiguration;
+  @Inject ApplicationConfiguration config;
+
+  private final Map<String, String> headers = new HashMap<>();
 
   @BeforeEach
-  public void setup() {
-    when(outboxService.createOutboxRecord(any())).thenReturn(new OutboxRecord());
+  void setup() {
     givenTestApisEnabled();
+    withValidPskHeader();
+    withSynchronousRequestsEnabled(false);
+    when(outboxService.createOutboxRecord(any())).thenReturn(new OutboxRecord());
+    when(outboxService.flushOutboxRecords()).thenReturn(1L);
+  }
+
+  @Test
+  void testFlushOutboxAsyncWithNoHeader() {
+    assertSuccessfulFlushResponse(true, FlushResponse.StatusEnum.STARTED);
+  }
+
+  @Test
+  void testFlushOutboxAsyncWithFalseValueInHeader() {
+    withSynchronousRequestHeader(false);
+    assertSuccessfulFlushResponse(true, FlushResponse.StatusEnum.STARTED);
+  }
+
+  @Test
+  void testFlushOutboxSynchronously() {
+    withSynchronousRequestsEnabled(true);
+    withSynchronousRequestHeader(true);
+    assertSuccessfulFlushResponse(false, FlushResponse.StatusEnum.SUCCESS);
+  }
+
+  @Test
+  void testFlushOutboxReportsErrorDuringSynchronousFlush() {
+    withSynchronousRequestsEnabled(true);
+    withSynchronousRequestHeader(true);
+    when(outboxService.flushOutboxRecords()).thenThrow(new RuntimeException("Forced!"));
+
+    Error error =
+        flushOutbox()
+            .statusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR)
+            .extract()
+            .body()
+            .as(Error.class);
+
+    assertEquals(ErrorCode.SYNCHRONOUS_OUTBOX_FLUSH_ERROR.getCode(), error.getCode());
+    assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, Integer.parseInt(error.getStatus()));
+    assertEquals(SynchronousOutboxFlushException.MESSAGE, error.getTitle());
+    assertEquals("Forced!", error.getDetail());
+  }
+
+  @Test
+  void testFlushOutboxAsyncDeniedWithInvalidPsk() {
+    withInvalidPskHeader();
+    flushOutbox().statusCode(HttpStatus.SC_UNAUTHORIZED);
+  }
+
+  @Test
+  void testFlushOutboxSynchronouslyDeniedWithInvalidPsk() {
+    withInvalidPskHeader();
+    withSynchronousRequestsEnabled(true);
+    withSynchronousRequestHeader(true);
+    flushOutbox().statusCode(HttpStatus.SC_UNAUTHORIZED);
+  }
+
+  @Test
+  void testFlushOutboxSynchronouslyFailsWhenNotEnabled() {
+    withSynchronousRequestHeader(true);
+    Error error =
+        flushOutbox().statusCode(HttpStatus.SC_BAD_REQUEST).extract().body().as(Error.class);
+    assertEquals(ErrorCode.SYNCHRONOUS_OUTBOX_FLUSH_DISABLED.getCode(), error.getCode());
+    assertEquals(HttpStatus.SC_BAD_REQUEST, Integer.parseInt(error.getStatus()));
+    assertEquals(SynchronousRequestsNotEnabledException.MESSAGE, error.getTitle());
+    assertEquals(ErrorCode.SYNCHRONOUS_OUTBOX_FLUSH_DISABLED.getDescription(), error.getDetail());
   }
 
   @Test
@@ -115,5 +196,33 @@ class InternalResourceTest {
         .when()
         .post("/api/swatch-metrics-hbi/internal/outbox")
         .then();
+  }
+
+  private void withSynchronousRequestsEnabled(boolean enabled) {
+    config.setSynchronousOperationsEnabled(enabled);
+  }
+
+  private void withSynchronousRequestHeader(boolean isSyncRequest) {
+    headers.put(SYNCHRONOUS_REQUEST_HEADER, Boolean.toString(isSyncRequest));
+  }
+
+  private void withValidPskHeader() {
+    headers.put(PSK_HEADER, "placeholder");
+  }
+
+  private void withInvalidPskHeader() {
+    headers.put(PSK_HEADER, "invalid");
+  }
+
+  private ValidatableResponse flushOutbox() {
+    return given().contentType(ContentType.JSON).headers(headers).when().put(FLUSH_URL).then();
+  }
+
+  private void assertSuccessfulFlushResponse(
+      boolean expectAsyncFlush, FlushResponse.StatusEnum expectedFlushStatus) {
+    FlushResponse response =
+        flushOutbox().statusCode(HttpStatus.SC_OK).extract().body().as(FlushResponse.class);
+    assertEquals(expectAsyncFlush, response.getAsync());
+    assertEquals(expectedFlushStatus, response.getStatus());
   }
 }

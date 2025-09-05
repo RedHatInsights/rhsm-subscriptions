@@ -23,25 +23,32 @@ package com.redhat.swatch.hbi.events.repository;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.redhat.swatch.hbi.events.test.helpers.HbiEventOutboxTestHelper;
+import com.redhat.swatch.hbi.events.test.resources.PostgresResource;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.time.OffsetDateTime;
+import jakarta.transaction.UserTransaction;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
-import org.candlepin.subscriptions.json.Event;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
+@QuarkusTestResource(PostgresResource.class)
 class HbiEventOutboxRepositoryTest {
 
+  @Inject HbiEventOutboxTestHelper outboxHelper;
   @Inject HbiEventOutboxRepository repository;
+  @Inject UserTransaction userTransaction;
 
   @BeforeEach
   @Transactional
-  public void setUp() {
+  void setUp() {
     repository.deleteAll();
   }
 
@@ -51,7 +58,7 @@ class HbiEventOutboxRepositoryTest {
     HbiEventOutbox existing = givenExistingHbiEventOutbox();
     Optional<HbiEventOutbox> found = repository.findByIdOptional(existing.getId());
     assertTrue(found.isPresent());
-    assertHbiEventOutboxEquals(existing, found.get());
+    outboxHelper.assertHbiEventOutboxEquals(existing, found.get());
   }
 
   @Test
@@ -80,7 +87,7 @@ class HbiEventOutboxRepositoryTest {
 
     Optional<HbiEventOutbox> retrieved = repository.findByIdOptional(existing.getId());
     assertTrue(retrieved.isPresent());
-    assertHbiEventOutboxEquals(existing, retrieved.get());
+    outboxHelper.assertHbiEventOutboxEquals(existing, retrieved.get());
   }
 
   @Test
@@ -106,29 +113,90 @@ class HbiEventOutboxRepositoryTest {
     assertEquals("updated", updated.get().getSwatchEventJson().getEventType());
   }
 
+  @Test
+  @Transactional
+  void testGetWithLock() {
+    givenExistingHbiEventOutbox();
+    givenExistingHbiEventOutbox();
+    givenExistingHbiEventOutbox("org456");
+
+    List<HbiEventOutbox> all = repository.findAllWithLock(10);
+    assertEquals(3, all.size());
+  }
+
+  @Test
+  @Transactional
+  void testGetWithLockBatchSize() {
+    givenExistingHbiEventOutbox();
+    givenExistingHbiEventOutbox();
+
+    List<HbiEventOutbox> all = repository.findAllWithLock(1);
+    assertEquals(1, all.size());
+  }
+
+  @Test
+  void testFindAllWithLockSkipsLockedRows() throws Exception {
+    // Persist the record in its own transaction
+    userTransaction.begin();
+    HbiEventOutbox existing = givenExistingHbiEventOutbox();
+    userTransaction.commit();
+
+    CountDownLatch firstTxHasLock = new CountDownLatch(1);
+    CountDownLatch releaseFirstTx = new CountDownLatch(1);
+    AtomicReference<List<HbiEventOutbox>> secondTxResult = new AtomicReference<>();
+
+    Thread t1 =
+        new Thread(
+            () -> {
+              try {
+                userTransaction.begin();
+                List<HbiEventOutbox> lockedRows = repository.findAllWithLock(10);
+                assertEquals(1, lockedRows.size());
+                firstTxHasLock.countDown();
+                // Hold the transaction open until the second transaction runs its query
+                releaseFirstTx.await(2, TimeUnit.SECONDS);
+                userTransaction.commit();
+              } catch (Exception e) {
+                throw new RuntimeException(e);
+              }
+            });
+
+    Thread t2 =
+        new Thread(
+            () -> {
+              try {
+                // Wait until the first transaction has acquired the lock
+                firstTxHasLock.await(2, TimeUnit.SECONDS);
+                userTransaction.begin();
+                List<HbiEventOutbox> rows = repository.findAllWithLock(10);
+                secondTxResult.set(rows);
+                userTransaction.commit();
+              } catch (Exception e) {
+                throw new RuntimeException(e);
+              } finally {
+                // Allow first transaction to complete
+                releaseFirstTx.countDown();
+              }
+            });
+
+    t1.start();
+    t2.start();
+    t1.join(2000);
+    t2.join(2000);
+
+    assertTrue(secondTxResult.get() != null);
+    // Because the row is locked by the first transaction and the query uses SKIP LOCKED,
+    // the second transaction should not see the locked row.
+    assertEquals(0, secondTxResult.get().size());
+  }
+
   private HbiEventOutbox givenExistingHbiEventOutbox() {
     return givenExistingHbiEventOutbox("org1");
   }
 
   private HbiEventOutbox givenExistingHbiEventOutbox(String orgId) {
-    HbiEventOutbox entity = new HbiEventOutbox();
-    entity.setOrgId(orgId);
-    Event event = new Event();
-    event.setOrgId(orgId);
-    event.setEventSource("HBI_HOST");
-    event.setEventType("test");
-    event.setServiceType("RHEL System");
-    event.setInstanceId(UUID.randomUUID().toString());
-    event.setTimestamp(OffsetDateTime.now());
-    entity.setSwatchEventJson(event);
+    HbiEventOutbox entity = outboxHelper.createHbiEventOutbox(orgId);
     repository.persistAndFlush(entity);
     return entity;
-  }
-
-  private void assertHbiEventOutboxEquals(HbiEventOutbox expected, HbiEventOutbox actual) {
-    assertEquals(expected.getId(), actual.getId());
-    assertEquals(expected.getOrgId(), actual.getOrgId());
-    assertEquals(expected.getCreatedOn(), actual.getCreatedOn());
-    assertEquals(expected.getSwatchEventJson(), actual.getSwatchEventJson());
   }
 }

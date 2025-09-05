@@ -110,15 +110,15 @@ paths:
     put:
       operationId: flushOutbox
       summary: "Trigger outbox flush logic"
-      description: "Trigger the outbox-flush logic either asynchronously or synchronously based on query parameter"
+      description: "Trigger the outbox-flush logic."
       parameters:
-        - name: async
-          in: query
+        - name: x-rh-swatch-synchronous-request
+          in: header
           required: false
           schema:
             type: boolean
-            default: true
-          description: "Whether to execute the flush asynchronously (default: true) or synchronously (false)"
+            default: "false"
+            description: "When present, and true, a synchronous request is made."
       responses:
         '200':
           description: "Outbox flush completed successfully"
@@ -126,12 +126,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FlushResponse'
-        '202':
-          description: "Outbox flush initiated asynchronously"
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FlushResponse'
+        '500':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      security:
+        - service: [ ]
+        - test: [ ]
 
 components:
   schemas:
@@ -162,8 +161,13 @@ components:
     FlushResponse:
       type: object
       properties:
+        async:
+          type: boolean
+          default: true
+          description: Whether or not an async request was made.
         status:
           type: string
+          enum: [SUCCESS, STARTED]
           description: "Status of the flush operation"
           example: "SUCCESS"
 
