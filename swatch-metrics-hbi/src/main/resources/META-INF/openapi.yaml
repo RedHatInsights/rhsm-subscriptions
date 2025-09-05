@@ -39,6 +39,8 @@ paths:
                 $ref: '#/components/schemas/OutboxRecord'
         '400':
           $ref: "../../../../../spec/error-responses.yaml#/$defs/BadRequest"
+      security:
+        - test: [ ]
     put:
       operationId: updateOutboxRecord
       summary: "Update an existing outbox record"
@@ -166,15 +168,14 @@ components:
           example: "SUCCESS"
 
   securitySchemes:
-    PskIdentity:
+    service:
       type: apiKey
-      in: header
+      description: API is available for services
       name: x-rh-swatch-psk
-      description: |
-        Psk header containing Pre Shared Key. Contains an
-        UUID string:
-        ```
-        c9a98753-2092-4617-b226-5c2653330b3d
-        ```
-security:
-  - PskIdentity: []
+      in: header
+    test:
+      type: apiKey
+      description: API is available for testing purposes (pre-production environments
+        only)
+      name: x-rh-swatch-psk
+      in: header
