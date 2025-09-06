@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" 
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.redhat.swatch.component.tests</groupId>
+    <artifactId>parent</artifactId>
+    <version>1.1.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+  <artifactId>swatch-producer-azure</artifactId>
+  <packaging>jar</packaging>
+
+  <name>Swatch Producer Azure Component Tests</name>
+  <description>Component tests for Swatch Producer Azure</description>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.redhat.swatch.component.tests</groupId>
+      <artifactId>framework</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-model-billable-usage</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+</project> 
