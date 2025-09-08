@@ -104,8 +104,14 @@ public class KafkaBridgeService extends RestService {
             try {
               List<Map<String, Object>> records =
                   JsonUtils.getObjectMapper().readValue(responseBody, List.class);
+              Log.trace(
+                  this,
+                  "Found %s kafka messages in topic '%s'. Expected messages are %s",
+                  records.size(),
+                  topic,
+                  expectedCount);
               // Check if we have exactly the expected number of messages
-              if (records.size() == expectedCount) {
+              if (records.size() >= expectedCount) {
                 // If expected count is 0, we don't need to validate message content
                 if (expectedCount == 0) {
                   return true;

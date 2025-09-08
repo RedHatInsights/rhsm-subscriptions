@@ -30,6 +30,7 @@ public class WiremockService extends RestService {
   public void start() {
     super.start();
     deleteAllMappings();
+    clearAllRequests();
   }
 
   public void deleteAllMappings() {
@@ -40,5 +41,9 @@ public class WiremockService extends RestService {
         .post("/__admin/mappings/remove-by-metadata")
         .then()
         .statusCode(200);
+  }
+
+  public void clearAllRequests() {
+    given().when().delete("/__admin/requests").then().statusCode(200);
   }
 }

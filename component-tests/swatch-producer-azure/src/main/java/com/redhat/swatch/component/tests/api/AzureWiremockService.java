@@ -29,6 +29,7 @@ import java.util.Map;
 
 public class AzureWiremockService extends WiremockService {
 
+  private static final String ANY = "_ANY";
   private static final String AZURE_PLAN_ID = "azure-plan-id";
   private static final String AZURE_OFFER_ID = "azureProductCode";
 
@@ -60,6 +61,9 @@ public class AzureWiremockService extends WiremockService {
                         Map.of("Content-Type", "application/json"),
                         "jsonBody",
                         contextData),
+                // the default mapping defined in config/wiremock uses priority 10,
+                // so we need an higher priority here.
+                "priority", 9,
                 "metadata", Map.of(METADATA_TAG, "true")))
         .when()
         .post("/__admin/mappings")
@@ -149,6 +153,10 @@ public class AzureWiremockService extends WiremockService {
     }
   }
 
+  public void verifyNoAzureUsage() {
+    verifyNoAzureUsage(ANY);
+  }
+
   public void verifyNoAzureUsage(String azureResourceId) {
     // Get all requests to the Azure usage endpoint
     var response =
@@ -184,10 +192,12 @@ public class AzureWiremockService extends WiremockService {
             JsonNode usage = objectMapper.readTree(requestBody);
             JsonNode resourceIdNode = usage.get("resourceId");
 
-            if (resourceIdNode != null && azureResourceId.equals(resourceIdNode.asText())) {
+            if (resourceIdNode != null
+                && (ANY.equals(azureResourceId)
+                    || azureResourceId.equals(resourceIdNode.asText()))) {
               throw new AssertionError(
                   "Azure usage request was found for resourceId: "
-                      + azureResourceId
+                      + resourceIdNode.asText()
                       + " but none was expected due to invalid data");
             }
           }
