@@ -23,6 +23,8 @@
     <quarkus.platform.version>3.26.2</quarkus.platform.version>
     <spring.boot.version>3.5.5</spring.boot.version>
     <resteasy.version>6.2.12.Final</resteasy.version>
+    <!-- Only use as provided in the common dependencies.
+    Spring and Quarkus already provides the compatible Jackson versions -->
     <jackson.version>2.20.0</jackson.version>
     <mapstruct.version>1.6.3</mapstruct.version>
     <slf4j.version>2.0.17</slf4j.version>
@@ -258,31 +260,6 @@
         <groupId>com.splunk.logging</groupId>
         <artifactId>splunk-library-javalogging</artifactId>
         <version>1.11.8</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-annotations</artifactId>
-        <version>${jackson.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.dataformat</groupId>
-        <artifactId>jackson-dataformat-xml</artifactId>
-        <version>${jackson.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.module</groupId>
-        <artifactId>jackson-module-jakarta-xmlbind-annotations</artifactId>
-        <version>${jackson.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.datatype</groupId>
-        <artifactId>jackson-datatype-jsr310</artifactId>
-        <version>${jackson.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.dataformat</groupId>
-        <artifactId>jackson-dataformat-csv</artifactId>
-        <version>${jackson.version}</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
