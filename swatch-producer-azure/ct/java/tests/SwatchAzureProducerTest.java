@@ -23,46 +23,15 @@ package tests;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_HOURLY_AGGREGATE;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_STATUS;
 
-import api.AzureWiremockService;
-import com.redhat.swatch.component.tests.api.ComponentTest;
-import com.redhat.swatch.component.tests.api.KafkaBridge;
-import com.redhat.swatch.component.tests.api.KafkaBridgeService;
-import com.redhat.swatch.component.tests.api.Quarkus;
-import com.redhat.swatch.component.tests.api.SwatchService;
-import com.redhat.swatch.component.tests.api.Wiremock;
-import java.math.BigDecimal;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
-import java.util.List;
+import api.BaseAzureTest;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
-import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
-import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-@ComponentTest
 @Tag("component")
-@Tag("azure")
-public class SwatchAzureProducerTest {
-
-  @KafkaBridge
-  static KafkaBridgeService kafkaBridge =
-      new KafkaBridgeService().subscribeToTopic(BILLABLE_USAGE_STATUS);
-
-  @Wiremock static AzureWiremockService wiremock = new AzureWiremockService();
-
-  @Quarkus(service = "swatch-producer-azure")
-  static SwatchService service = new SwatchService();
-
-  @AfterEach
-  void cleanupAfterEachTest() {
-    kafkaBridge.emptyQueue(BILLABLE_USAGE_STATUS);
-  }
+public class SwatchAzureProducerTest extends BaseAzureTest {
 
   /** Verify billable usage sent to Azure with Succeeded status */
   @Test
@@ -81,7 +50,7 @@ public class SwatchAzureProducerTest {
 
     // Send billable usage message to Kafka
     BillableUsageAggregate aggregateData =
-        createUsageAggregate(productId, billingAccountId, metricId, totalValue, orgId);
+        azureHelper.createUsageAggregate(productId, billingAccountId, metricId, totalValue, orgId);
     kafkaBridge.produceKafkaMessage(BILLABLE_USAGE_HOURLY_AGGREGATE, aggregateData);
 
     // Verify status topic shows "succeeded"
@@ -107,7 +76,7 @@ public class SwatchAzureProducerTest {
     double totalValue = 2.0;
 
     BillableUsageAggregate aggregate =
-        createUsageAggregate(productId, billingAccountId, metricId, totalValue, orgId);
+        azureHelper.createUsageAggregate(productId, billingAccountId, metricId, totalValue, orgId);
 
     Map<String, Object> aggregateMap = new java.util.HashMap<>();
     aggregateMap.put("totalValue", aggregate.getTotalValue());
@@ -175,33 +144,5 @@ public class SwatchAzureProducerTest {
 
     // Verify Azure usage was sent to Azure
     wiremock.verifyAzureUsage(azureResourceId, totalValue, dimension);
-  }
-
-  private BillableUsageAggregate createUsageAggregate(
-      String productId, String billingAccountId, String metricId, double totalValue, String orgId) {
-    OffsetDateTime snapshotDate =
-        OffsetDateTime.now().minusHours(1).withOffsetSameInstant(ZoneOffset.UTC);
-
-    var aggregate = new BillableUsageAggregate();
-    aggregate.setTotalValue(BigDecimal.valueOf(totalValue));
-    aggregate.setWindowTimestamp(
-        OffsetDateTime.now().truncatedTo(ChronoUnit.HOURS).withOffsetSameInstant(ZoneOffset.UTC));
-    aggregate.setAggregateId(UUID.randomUUID());
-
-    var key = new BillableUsageAggregateKey();
-    key.setOrgId(orgId);
-    key.setProductId(productId);
-    key.setMetricId(metricId);
-    key.setSla("Premium");
-    key.setUsage("Production");
-    key.setBillingProvider("azure");
-    key.setBillingAccountId(billingAccountId);
-
-    aggregate.setAggregateKey(key);
-    aggregate.setSnapshotDates(Set.of(snapshotDate));
-    aggregate.setStatus(BillableUsage.Status.PENDING);
-    aggregate.setRemittanceUuids(List.of(UUID.randomUUID().toString()));
-
-    return aggregate;
   }
 }
