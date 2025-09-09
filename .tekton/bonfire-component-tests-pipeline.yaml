@@ -275,5 +275,4 @@ spec:
                 value: "$(params.SERVICE)"
             script: |
               #!/bin/bash
-              ./mvnw clean install -Pcomponent-tests -DskipTests
-              ./mvnw verify -Pcomponent-tests -pl component-tests/${SERVICE} -Dswatch.component-tests.global.target=openshift
+              ./mvnw clean install -Pcomponent-tests -Dservice=${SERVICE} -Dswatch.component-tests.global.target=openshift

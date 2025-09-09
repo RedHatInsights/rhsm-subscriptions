@@ -23,22 +23,13 @@ package com.redhat.swatch.component.tests.core;
 import com.redhat.swatch.component.tests.logging.LoggingHandler;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
-import com.redhat.swatch.component.tests.utils.PropertiesUtils;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 public abstract class ManagedResource {
-
-  protected static final String APPLICATION_PROPERTIES = "application.properties";
-  protected static final Path SOURCE_RESOURCES = Path.of("src", "main", "resources");
-  protected static final Path SOURCE_TEST_RESOURCES = Path.of("src", "test", "resources");
 
   protected ServiceContext context;
 
@@ -121,30 +112,8 @@ public abstract class ManagedResource {
   }
 
   protected Map<String, Object> getAllComputedProperties() {
-    Map<String, Object> allProperties = new HashMap<>();
-    // from properties file
-    allProperties.putAll(getPropertiesFromFile());
     // from context
-    allProperties.putAll(context.getAllProperties());
-    return allProperties;
-  }
-
-  protected Path getComputedApplicationProperties() {
-    return context.getServiceFolder().resolve(APPLICATION_PROPERTIES);
-  }
-
-  private Map<String, String> getPropertiesFromFile() {
-    List<Path> applicationPropertiesCandidates =
-        Arrays.asList(
-            getComputedApplicationProperties(),
-            SOURCE_TEST_RESOURCES.resolve(APPLICATION_PROPERTIES),
-            SOURCE_RESOURCES.resolve(APPLICATION_PROPERTIES));
-
-    return applicationPropertiesCandidates.stream()
-        .filter(Files::exists)
-        .map(PropertiesUtils::toMap)
-        .findFirst()
-        .orElseGet(Collections::emptyMap);
+    return new HashMap<>(context.getAllProperties());
   }
 
   private String propertyWithProfile(String name) {

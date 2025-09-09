@@ -39,6 +39,7 @@
     <junit.version>5.13.4</junit.version>
     <mockito.version>5.19.0</mockito.version>
     <rest-assured.version>5.5.6</rest-assured.version>
+    <awaitility.version>4.3.0</awaitility.version>
     <hibernate-validator.version>9.0.1.Final</hibernate-validator.version>
     <swagger-parser.version>2.1.32</swagger-parser.version>
     <swagger-ui.version>5.28.1</swagger-ui.version>
@@ -294,7 +295,7 @@
       <dependency>
         <groupId>org.awaitility</groupId>
         <artifactId>awaitility</artifactId>
-        <version>4.3.0</version>
+        <version>${awaitility.version}</version>
       </dependency>
       <dependency>
         <groupId>org.testcontainers</groupId>
@@ -585,13 +586,24 @@
       <activation>
         <activeByDefault>false</activeByDefault>
       </activation>
+
       <modules>
-        <!-- Declare component tests project's dependencies -->
-        <module>swatch-quarkus-parent</module>
-        <module>swatch-model-billable-usage</module>
-        <!-- Now, delegate the rest of the build to the component tests Maven config -->
-        <module>component-tests</module>
+        <!-- Test framework module -->
+        <module>swatch-test-framework</module>
+        <!-- Services with component tests -->
+        <module>swatch-producer-azure</module>
       </modules>
+
+      <dependencyManagement>
+        <dependencies>
+          <dependency>
+            <groupId>com.redhat.swatch</groupId>
+            <artifactId>swatch-test-framework</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+          </dependency>
+        </dependencies>
+      </dependencyManagement>
     </profile>
 
     <profile>

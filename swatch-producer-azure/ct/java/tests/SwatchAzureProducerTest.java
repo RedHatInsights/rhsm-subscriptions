@@ -18,12 +18,12 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests;
+package tests;
 
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_HOURLY_AGGREGATE;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_STATUS;
 
-import com.redhat.swatch.component.tests.api.AzureWiremockService;
+import api.AzureWiremockService;
 import com.redhat.swatch.component.tests.api.ComponentTest;
 import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
@@ -48,7 +48,7 @@ import org.junit.jupiter.api.Test;
 @ComponentTest
 @Tag("component")
 @Tag("azure")
-public class SwatchAzureProducerIT {
+public class SwatchAzureProducerTest {
 
   @KafkaBridge
   static KafkaBridgeService kafkaBridge =

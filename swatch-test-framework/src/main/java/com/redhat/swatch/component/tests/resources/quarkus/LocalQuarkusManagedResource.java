@@ -71,7 +71,7 @@ public class LocalQuarkusManagedResource extends ManagedResource {
   private final String service;
 
   public LocalQuarkusManagedResource(String service) {
-    this.location = Paths.get("").resolve("../..").toAbsolutePath().normalize().toFile();
+    this.location = Paths.get("").resolve("..").toAbsolutePath().normalize().toFile();
     this.service = service;
   }
 
