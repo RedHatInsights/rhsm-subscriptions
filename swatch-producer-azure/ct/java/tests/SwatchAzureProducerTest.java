@@ -137,7 +137,47 @@ public class SwatchAzureProducerTest {
     wiremock.verifyNoAzureUsage(azureResourceId);
   }
 
-  public BillableUsageAggregate createUsageAggregate(
+  /** Verify null usage message is handled properly */
+  @Test
+  @Tag("unhappy")
+  public void testNullUsageMessage() {
+    // Setup
+    String productId = "rhel-for-x86-els-payg-addon";
+    String metricId = "vCPUs";
+    String billingAccountId = UUID.randomUUID().toString();
+    String azureResourceId = UUID.randomUUID().toString();
+    String orgId = "123456";
+    double totalValue = 2.0;
+    String dimension = "vcpu_hours";
+
+    // Setup Azure Wiremock endpoints
+    wiremock.setupAzureUsageContext(azureResourceId, billingAccountId);
+
+    // Step 1: Send billable usage with null message
+    kafkaBridge.produceKafkaMessage(BILLABLE_USAGE_HOURLY_AGGREGATE, Map.of());
+
+    // The message should not have been sent at all
+    kafkaBridge.waitForKafkaMessage(BILLABLE_USAGE_STATUS, messages -> true, 0);
+
+    // Verify that no usage was sent to Azure
+    wiremock.verifyNoAzureUsage();
+
+    // Step 2: Send valid billable usage message to Kafka
+    BillableUsageAggregate aggregateData =
+        createUsageAggregate(productId, billingAccountId, metricId, totalValue, orgId);
+    kafkaBridge.produceKafkaMessage(BILLABLE_USAGE_HOURLY_AGGREGATE, aggregateData);
+
+    // Verify status topic shows "succeeded"
+    kafkaBridge.waitForKafkaMessage(
+        BILLABLE_USAGE_STATUS,
+        messages -> messages.contains(billingAccountId) && messages.contains("succeeded"),
+        1);
+
+    // Verify Azure usage was sent to Azure
+    wiremock.verifyAzureUsage(azureResourceId, totalValue, dimension);
+  }
+
+  private BillableUsageAggregate createUsageAggregate(
       String productId, String billingAccountId, String metricId, double totalValue, String orgId) {
     OffsetDateTime snapshotDate =
         OffsetDateTime.now().minusHours(1).withOffsetSameInstant(ZoneOffset.UTC);
