@@ -35,8 +35,6 @@ import org.junit.jupiter.api.Tag;
 @Tag("azure")
 public abstract class BaseAzureTest extends BaseServiceTest {
 
-  protected static final AzureTestHelper azureHelper = new AzureTestHelper();
-
   @Wiremock
   protected static AzureWiremockService wiremock = new AzureWiremockService();
 

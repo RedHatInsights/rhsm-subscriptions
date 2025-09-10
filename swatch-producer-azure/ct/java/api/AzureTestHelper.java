@@ -31,9 +31,11 @@ import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 
-public class AzureTestHelper {
+public final class AzureTestHelper {
 
-  public BillableUsageAggregate createUsageAggregate(
+  private AzureTestHelper() {}
+
+  public static BillableUsageAggregate createUsageAggregate(
       String productId, String billingAccountId, String metricId, double totalValue, String orgId) {
     OffsetDateTime snapshotDate =
         OffsetDateTime.now().minusHours(1).withOffsetSameInstant(ZoneOffset.UTC);

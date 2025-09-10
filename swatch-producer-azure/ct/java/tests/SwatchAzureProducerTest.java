@@ -29,6 +29,8 @@ import java.util.UUID;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import api.AzureTestHelper;
+
 
 @Tag("component")
 public class SwatchAzureProducerTest extends BaseAzureTest {
@@ -50,7 +52,7 @@ public class SwatchAzureProducerTest extends BaseAzureTest {
 
     // Send billable usage message to Kafka
     BillableUsageAggregate aggregateData =
-        azureHelper.createUsageAggregate(productId, billingAccountId, metricId, totalValue, orgId);
+            AzureTestHelper.createUsageAggregate(productId, billingAccountId, metricId, totalValue, orgId);
     kafkaBridge.produceKafkaMessage(BILLABLE_USAGE_HOURLY_AGGREGATE, aggregateData);
 
     // Verify status topic shows "succeeded"
@@ -76,7 +78,7 @@ public class SwatchAzureProducerTest extends BaseAzureTest {
     double totalValue = 2.0;
 
     BillableUsageAggregate aggregate =
-        azureHelper.createUsageAggregate(productId, billingAccountId, metricId, totalValue, orgId);
+        AzureTestHelper.createUsageAggregate(productId, billingAccountId, metricId, totalValue, orgId);
 
     Map<String, Object> aggregateMap = new java.util.HashMap<>();
     aggregateMap.put("totalValue", aggregate.getTotalValue());
