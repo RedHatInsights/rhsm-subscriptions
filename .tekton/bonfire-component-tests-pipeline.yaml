@@ -1,0 +1,342 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: bonfire-component-tests
+  labels:
+    build.appstudio.redhat.com/pipeline: "bonfire"
+spec:
+  params:
+    - name: BONFIRE_REPO
+      type: string
+      description: URL of the Git repository use for fetching the tasks
+      default: 'https://github.com/RedHatInsights/bonfire-tekton'
+    - name: BONFIRE_REVISION
+      type: string
+      description: Git commit revision to use for fetching the tasks
+      default: main
+    - name: BONFIRE_IMAGE
+      type: string
+      description: The container Bonfire image to use for the tekton tasks
+      default: quay.io/redhat-services-prod/hcm-eng-prod-tenant/cicd-tools:387d6a7
+    - name: SNAPSHOT
+      type: string
+      description: |
+        Spec section of an ApplicationSnapshot resource. Not all fields of the
+        resource are required. A minimal example:
+          {
+            "components": [
+              {
+                "containerImage": "quay.io/example/repo:latest"
+              }
+            ]
+          }
+        Each "containerImage" in the "components" array is validated.
+    - name: EPHEMERAL_ENV_PROVIDER_SECRET
+      type: string
+      default: ephemeral-env-provider
+      description: "Secret for connecting to ephemeral env provider cluster"
+    - name: APP_INTERFACE_SECRET
+      type: string
+      default: app-interface
+      description: "Secret for connecting to app-interface"
+    - name: APP_NAME
+      type: string
+      description: name of app-sre "application" folder this component lives in
+    - name: COMPONENTS
+      type: string
+      description: space-separated list of components to load
+      default: ""
+    - name: COMPONENTS_W_RESOURCES
+      type: string
+      description: component to keep
+      default: ""
+    - name: AWS_SECRET
+      type: string
+      default: rh-artifacts-bucket
+      description: Secret with connection details to S3
+    - name: BONFIRE_COMPONENT_NAME
+      type: string
+      default: ""
+      description: name of the app-sre component name
+    - name: COMPONENT_NAME
+      type: string
+      description: name of app-sre "resourceTemplate" in deploy.yaml for this component
+    - name: EXTRA_DEPLOY_ARGS
+      type: string
+      description: "Extra arguments for the deployment"
+      default: ""
+    - name: DEPLOY_FRONTENDS
+      type: string
+      description: "Deploy frontend in the env or not"
+      default: true
+    - name: DEPLOY_TIMEOUT
+      type: string
+      description: "Deploy timeout"
+      default: "900"
+    - name: DEPLOY_OPTIONAL_DEPS_METHOD
+      type: string
+      description: "Method to deploy optional dependencies - see bonfire docs https://github.com/redhatinsights/bonfire?tab=readme-ov-file#dependency-processing"
+      default: "hybrid"
+    - name: PROJECT_REPO
+      type: string
+      description: "Project repository"
+      default: "https://github.com/RedHatInsights/rhsm-subscriptions"
+    - name: IBUTSU_SERVER_URL
+      type: string
+      description: "URL for Ibutsu API interaction"
+      default: "https://ibutsu-api.insights.corp.redhat.com/api/import"
+    - name: IBUTSU_PROJECT_ID
+      type: string
+      description: "Ibutsu project ID"
+      default: "3915c900-85fc-1222-833c-10d51af56f2"
+    - name: IBUTSU_SECRET_NAME
+      type: string
+      description: Secret name to take the token from.
+      default: "ibutsu-secret"
+  workspaces:
+    - name: shared-workspace
+      description: A workspace to share data between tasks
+  results:
+    - name: ARTIFACTS_URL
+      description: URL for the test's artifacts
+      value: $(finally.teardown.results.ARTIFACTS_URL)
+  finally:
+    - name: teardown
+      params:
+        - name: NS
+          value: "$(tasks.reserve-namespace.results.NS)"
+        - name: NS_REQUESTER
+          value: "$(context.pipelineRun.name)"
+        - name: ARTIFACTS_KEY
+          value: "$(context.pipelineRun.namespace)/$(context.pipelineRun.name)"
+        - name: AWS_SECRET
+          value: "$(params.AWS_SECRET)"
+        - name: BONFIRE_IMAGE
+          value: "$(params.BONFIRE_IMAGE)"
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: "$(params.BONFIRE_REPO)"
+          - name: revision
+            value: "$(params.BONFIRE_REVISION)"
+          - name: pathInRepo
+            value: tasks/teardown.yaml
+  tasks:
+    - name: reserve-namespace
+      params:
+        - name: NS_REQUESTER
+          value: "$(context.pipelineRun.name)"
+        - name: EPHEMERAL_ENV_PROVIDER_SECRET
+          value: "$(params.EPHEMERAL_ENV_PROVIDER_SECRET)"
+        - name: BONFIRE_IMAGE
+          value: "$(params.BONFIRE_IMAGE)"
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: "$(params.BONFIRE_REPO)"
+          - name: revision
+            value: "$(params.BONFIRE_REVISION)"
+          - name: pathInRepo
+            value: tasks/reserve-namespace.yaml
+    - name: deploy-application
+      params:
+        - name: BONFIRE_IMAGE
+          value: "$(params.BONFIRE_IMAGE)"
+        - name: SNAPSHOT
+          value: "$(params.SNAPSHOT)"
+        - name: NS
+          value: "$(tasks.reserve-namespace.results.NS)"
+        - name: NS_REQUESTER
+          value: "$(context.pipelineRun.name)"
+        - name: APP_INTERFACE_SECRET
+          value: "$(params.APP_INTERFACE_SECRET)"
+        - name: APP_NAME
+          value: "$(params.APP_NAME)"
+        - name: BONFIRE_COMPONENT_NAME
+          value: "$(params.BONFIRE_COMPONENT_NAME)"
+        - name: COMPONENTS
+          value: "$(params.COMPONENTS)"
+        - name: COMPONENTS_W_RESOURCES
+          value: "$(params.COMPONENTS_W_RESOURCES)"
+        - name: EXTRA_DEPLOY_ARGS
+          value: "$(params.EXTRA_DEPLOY_ARGS)"
+        - name: DEPLOY_FRONTENDS
+          value: "$(params.DEPLOY_FRONTENDS)"
+        - name: DEPLOY_TIMEOUT
+          value: "$(params.DEPLOY_TIMEOUT)"
+        - name: OPTIONAL_DEPS_METHOD
+          value: "$(params.DEPLOY_OPTIONAL_DEPS_METHOD)"
+      runAfter:
+        - reserve-namespace
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: "$(params.BONFIRE_REPO)"
+          - name: revision
+            value: "$(params.BONFIRE_REVISION)"
+          - name: pathInRepo
+            value: tasks/deploy-frontends.yaml
+    - name: extract-revision
+      params:
+        - name: SNAPSHOT
+          value: "$(params.SNAPSHOT)"
+        - name: COMPONENT_NAME
+          value: "$(params.COMPONENT_NAME)"
+      runAfter:
+        - reserve-namespace
+      taskSpec:
+        params:
+          - name: SNAPSHOT
+            type: string
+          - name: COMPONENT_NAME
+            type: string
+        results:
+          - name: GIT_REVISION
+            description: Extracted git revision for the component from SNAPSHOT (empty if not found)
+        steps:
+          - name: extract
+            image: quay.io/konflux-ci/appstudio-utils:latest
+            script: |
+              #!/usr/bin/env bash
+              set -euo pipefail
+              echo "extract-revision: component='$(params.COMPONENT_NAME)'"
+              rev=$(echo '$(params.SNAPSHOT)' | jq -r --arg name '$(params.COMPONENT_NAME)' '.components[] | select(.name==$name) | .source.git.revision // empty')
+              if [ -n "$rev" ] && [ "$rev" != "null" ]; then
+                echo "extract-revision: found revision='$rev'"
+              else
+                echo "extract-revision: no revision found in SNAPSHOT for component; leaving result empty"
+              fi
+              printf "%s" "$rev" > $(results.GIT_REVISION.path)
+    - name: clone-repository
+      params:
+        - name: url
+          value: "$(params.PROJECT_REPO)"
+        - name: revision
+          value: "$(tasks.extract-revision.results.GIT_REVISION)"
+      taskRef:
+        params:
+          - name: name
+            value: git-clone
+          - name: bundle
+            value: quay.io/konflux-ci/tekton-catalog/task-git-clone:0.1@sha256:7939000e2f92fc8b5d2c4ee4ba9000433c5aa7700d2915a1d4763853d5fd1fd4
+          - name: kind
+            value: task
+        resolver: bundles
+      workspaces:
+        - name: output
+          workspace: shared-workspace
+      runAfter:
+        - deploy-application
+        - extract-revision
+    - name: run-tests-task
+      params:
+        - name: SERVICE
+          value: "$(params.COMPONENT_NAME)"
+      workspaces:
+        - name: output
+          workspace: shared-workspace
+      runAfter:
+        - clone-repository
+      taskSpec:
+        params:
+          - name: SERVICE
+            type: string
+            description: The service to be tested. By default, it will run all the tests.
+        workspaces:
+          - name: output
+            description: The workspace where the repository was cloned
+        steps:
+          - name: cluster-login
+            image: "$(params.BONFIRE_IMAGE)"
+            env:
+              - name: OC_LOGIN_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.EPHEMERAL_ENV_PROVIDER_SECRET)
+                    key: token
+              - name: OC_LOGIN_SERVER
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.EPHEMERAL_ENV_PROVIDER_SECRET)
+                    key: url
+              - name: BONFIRE_BOT
+                value: "true"
+            script: |
+              #!/bin/bash
+              set -ex
+              echo "Login to cluster for tests"
+              login.sh
+              # Set current project to the reserved namespace so default namespace matches tests
+              if oc get ns "$(tasks.reserve-namespace.results.NS)" >/dev/null 2>&1; then
+                oc config set-context --current --namespace="$(tasks.reserve-namespace.results.NS)" || true
+              fi
+              # Persist kubeconfig for the next step
+              oc config view --minify --raw > "$(workspaces.output.path)/kubeconfig"
+          - name: tests
+            image: registry.access.redhat.com/ubi9/openjdk-17-runtime
+            workingDir: $(workspaces.output.path)/source
+            env:
+              - name: KUBECONFIG
+                value: "$(workspaces.output.path)/kubeconfig"
+              - name: NS
+                value: "$(tasks.reserve-namespace.results.NS)"
+              - name: SERVICE
+                value: "$(params.SERVICE)"
+            script: |
+              #!/bin/bash
+              ./mvnw clean install -Pcomponent-tests -Dservice=${SERVICE} -Dswatch.component-tests.global.target=openshift
+          - name: upload-test-report
+            image: registry.access.redhat.com/ubi9/ubi-minimal
+            workingDir: $(workspaces.output.path)/source
+            env:
+              - name: IBUTSU_SERVER_URL
+                value: "$(params.IBUTSU_SERVER_URL)"
+              - name: IBUTSU_PROJECT_ID
+                value: "$(params.IBUTSU_PROJECT_ID)"
+              - name: IBUTSU_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: "$(params.IBUTSU_SECRET_NAME)"
+                    key: token
+                    optional: true
+              - name: SERVICE
+                value: "$(params.SERVICE)"
+            script: |
+              #!/bin/bash
+              if [[ -z "${IBUTSU_TOKEN}" ]]; then
+                echo "IBUTSU_TOKEN is not set or empty. Skipping test report upload"
+                exit 1
+              fi
+              
+              TEST_FILE_REPORTS=(component-tests/${SERVICE}/target/surefire-reports/*.xml)
+              
+              if [[ ${#TEST_FILE_REPORTS[@]} -eq 1 ]]; then
+                TEST_FILE_REPORT=${TEST_FILE_REPORTS[0]}
+                echo "Found a single report file: $TEST_FILE_REPORT"
+              else
+                echo "Error: Expected exactly one report file, but found ${#TEST_FILE_REPORTS[@]}"
+                exit 1
+              fi         
+              
+              HTTP_STATUS=$(curl -w '%{http_code}' -s -o /tmp/curl_response.txt -X 'POST' ${IBUTSU_SERVER_URL} \
+              -H 'accept: application/json' \
+              -H 'Authorization: Bearer ${IBUTSU_TOKEN}' \
+              -H 'Content-Type: multipart/form-data' \
+              -F 'importFile=@${TEST_FILE_REPORT};type=text/xml' \
+              -F 'metadata={"tags": ["subscription-watch"]}' \
+              -F 'project=${IBUTSU_PROJECT_ID}' \
+              -F 'source=konflux-pipeline' \
+              -F 'env=ephemeral')
+              
+              if [[ $HTTP_STATUS -ge 200 && $HTTP_STATUS -lt 300 ]]; then
+                echo "Test report uploaded successfully to Ibutsu"
+                cat /tmp/curl_response.txt
+              else
+                echo "Failed to upload test report to Ibutsu. HTTP status: $HTTP_STATUS"
+                echo "Response body:"
+                cat /tmp/curl_response.txt
+                exit 1
+              fi
