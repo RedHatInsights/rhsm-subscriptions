@@ -1,7 +1,7 @@
 ### 0001 - Use UMB Message End Date for Contract Termination
 
 * **Status:** Accepted
-* **Deciders:** @kshah
+* **Deciders:** @karshah
 * **Date:** 2025-09-10
 
 ---
