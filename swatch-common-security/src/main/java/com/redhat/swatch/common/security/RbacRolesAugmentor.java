@@ -23,6 +23,7 @@ package com.redhat.swatch.common.security;
 import com.redhat.swatch.clients.rbac.api.model.Access;
 import com.redhat.swatch.clients.rbac.api.resources.AccessApi;
 import com.redhat.swatch.clients.rbac.api.resources.ApiException;
+import io.quarkus.arc.properties.IfBuildProperty;
 import io.quarkus.security.identity.AuthenticationRequestContext;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.security.identity.SecurityIdentityAugmentor;
@@ -42,6 +43,7 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 /** Component that adds roles from RBAC service to customer and service account principals. */
 @Slf4j
 @ApplicationScoped
+@IfBuildProperty(name = "swatch-common-security.include-rbac", stringValue = "true")
 public class RbacRolesAugmentor implements SecurityIdentityAugmentor {
 
   private static final String RBAC_APP_NAME = "subscriptions";
