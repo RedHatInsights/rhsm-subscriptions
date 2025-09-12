@@ -18,28 +18,26 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db.model;
+package org.candlepin.subscriptions.contracts;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
-import java.io.Serializable;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+import org.candlepin.subscriptions.http.HttpClientProperties;
 
-/** Map key for subscription measurements */
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
-@Builder
-@Embeddable
-@Deprecated
-public class SubscriptionMeasurementKey implements Serializable {
+@ToString(callSuper = true)
+@EqualsAndHashCode(callSuper = true)
+public class ContractsClientProperties extends HttpClientProperties {
+  /** How many attempts before giving up. */
+  private Integer maxAttempts;
 
-  @Column(name = "metric_id")
-  private String metricId;
+  /** Retry backoff interval in milliseconds. */
+  private Integer backOffInitialInterval;
 
-  @Column(name = "measurement_type")
-  private String measurementType;
+  /** Retry backoff interval in milliseconds. */
+  private Integer backOffMaxInterval;
+
+  /** Retry exponential backoff multiplier. */
+  private Double backOffMultiplier;
 }
