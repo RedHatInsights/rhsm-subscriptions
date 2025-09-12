@@ -26,11 +26,11 @@ import io.quarkus.security.identity.SecurityIdentityAugmentor;
 import io.quarkus.security.runtime.QuarkusSecurityIdentity;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import java.security.Principal;
 import java.util.HashSet;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 /**
  * Component that adds roles to principals as needed.
@@ -41,15 +41,14 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 @Slf4j
 @ApplicationScoped
 public class RolesAugmentor implements SecurityIdentityAugmentor {
-  @ConfigProperty(name = "SWATCH_TEST_APIS_ENABLED", defaultValue = "false")
-  boolean testApisEnabled;
+  @Inject SecurityConfiguration configuration;
 
   @Override
   public Uni<SecurityIdentity> augment(
       SecurityIdentity identity, AuthenticationRequestContext context) {
     Principal principal = identity.getPrincipal();
     Set<String> roles = new HashSet<>();
-    if (!identity.isAnonymous() && testApisEnabled) {
+    if (!identity.isAnonymous() && configuration.isTestApisEnabled()) {
       roles.add("test");
     }
     if (principal instanceof RhIdentityPrincipal) {

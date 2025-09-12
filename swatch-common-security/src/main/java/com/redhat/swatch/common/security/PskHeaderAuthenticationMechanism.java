@@ -45,7 +45,7 @@ import lombok.extern.slf4j.Slf4j;
 @Priority(1)
 @ApplicationScoped
 public class PskHeaderAuthenticationMechanism implements HttpAuthenticationMechanism {
-  private static final String PSK_HEADER = "x-rh-swatch-psk";
+  public static final String PSK_HEADER = "x-rh-swatch-psk";
 
   @Override
   public Uni<SecurityIdentity> authenticate(
