@@ -62,6 +62,7 @@ import lombok.ToString;
       @NamedAttributeNode("productIds"),
       @NamedAttributeNode("productTags")
     })
+@Deprecated
 public class Offering implements Serializable {
 
   private static final String MIGRATION_OFFERING = "MIGRATION_OFFERING";

@@ -18,28 +18,11 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db.model;
+package com.redhat.swatch.contracts.spring.client;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
-import java.io.Serializable;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+/** Provides a callback function to get the current x-rh-identity header. */
+@FunctionalInterface
+public interface IdentityHeaderProvider {
 
-/** Map key for subscription measurements */
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-@Builder
-@Embeddable
-@Deprecated
-public class SubscriptionMeasurementKey implements Serializable {
-
-  @Column(name = "metric_id")
-  private String metricId;
-
-  @Column(name = "measurement_type")
-  private String measurementType;
+  String get();
 }
