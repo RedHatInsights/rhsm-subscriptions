@@ -24,4 +24,3 @@ We will use the end date provided in the UMB message as the `end_date` for contr
 
 * **Negative:**
     * **Dependency:** This approach creates a strong dependency on the IT partner gateway to consistently provide an `end_date` within `UNSUBSCRIBED` messages.
-    * **Workaround:** A temporary workaround may be required to handle messages with empty dimensions (which may represent pure PAYGO contracts) until the IT partner team logs and fixes the issue on their end.
