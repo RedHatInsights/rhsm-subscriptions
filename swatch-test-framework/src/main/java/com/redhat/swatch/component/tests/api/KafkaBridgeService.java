@@ -125,24 +125,6 @@ public class KafkaBridgeService extends RestService {
         AwaitilitySettings.defaults().withService(this));
   }
 
-  public void emptyQueue(String topic) {
-    String consumer = consumers.get(topic);
-    if (consumer == null) {
-      throw new IllegalArgumentException("No consumer for topic " + topic);
-    }
-    AwaitilityUtils.untilIsTrue(
-        () -> {
-          Response response =
-              given()
-                  .accept(CONTENT_TYPE)
-                  .when()
-                  .get("/consumers/" + CONSUMER_GROUP + "/instances/" + consumer + "/records");
-
-          return true;
-        },
-        AwaitilitySettings.defaults().withService(this));
-  }
-
   private void deleteConsumer(String consumerInstance) {
     Log.debug(this, "Deleting consumer: %s", consumerInstance);
     given()
