@@ -12,7 +12,7 @@ The SWATCH service needs to correctly terminate contracts based on `UNSUBSCRIBED
 
 ### Decision
 
-We will use the end date provided in the UMB message as the `end_date` for contract termination. The UMB message should be treated as the source of truth for termination. If a `UNSUBSCRIBED` message is received for an existing contract, the `end_date` will be updated with the timestamp from the message. This will function as an upsert, overwriting any previous termination date for that contract. In the scenario where a termination event is received for a non-existing contract, a new contract will be created in a terminated state, populated with the `end_date` from the message. This approach avoids impact to other services.
+We will use the end date provided in the UMB message as the `end_date` for contract termination. The UMB message should be treated as the source of truth for termination. If a `UNSUBSCRIBED` message is received for an existing contract, the `end_date` will be updated with the timestamp from the message. Ideally, the end date won’t be present for that contract. However, if an event is "UNSUBSCRIBED" this will function as an upsert, overwriting any previous termination date for that contract. In the scenario where a termination event is received for a non-existing contract, a new contract will be created in a terminated state, populated with the `end_date` from the message. This approach avoids impact to other services.
 
 ### Consequences
 
