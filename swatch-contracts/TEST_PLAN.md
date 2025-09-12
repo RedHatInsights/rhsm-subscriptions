@@ -22,8 +22,7 @@ The system should correctly terminate a contract, based on the `status` field in
     3. ***Action:*** Simulate a UMB message from the IT partner gateway for the active contract, with the field `"status": "UNSUBSCRIBED"`.
     4. ***Verification:*** Check the contract using the GET API.
     5. ***Expected Result:***
-        1. The end date should be the either: **OPEN POINT**
-            1. The one contained in the UMB message
+        1. The end date should be the one contained in the UMB message.
 3. `contracts-termination-TC003` **Receive a termination event for an already terminated contract.**
     1. ***Description:*** Verify that receiving a UMB message with `"status": "UNSUBSCRIBED"` for a contract that is already in a terminated state does not cause an error or change its status.
     2. ***Setup:*** Ensure a contract exists and its status is already 'TERMINATED'.
