@@ -78,24 +78,11 @@ public class TallyRetentionController {
               orgId, granularity, cutoffDate);
 
       if (countSnapshots > 0) {
-        purgeMeasurementsByOrgAndGranularity(orgId, granularity, cutoffDate);
         purgeSnapshotsByOrgAndGranularity(countSnapshots, orgId, granularity, cutoffDate);
       }
     }
 
     LogUtils.clearOrgIdFromMdc();
-  }
-
-  private void purgeMeasurementsByOrgAndGranularity(
-      String orgId, Granularity granularity, OffsetDateTime cutoffDate) {
-    long count =
-        tallySnapshotRepository.countMeasurementsByGranularityAndSnapshotDateBefore(
-            orgId, granularity.name(), cutoffDate);
-    while (count > 0) {
-      tallySnapshotRepository.deleteMeasurementsByGranularityAndSnapshotDateBefore(
-          orgId, granularity.name(), cutoffDate, policy.getSnapshotsToDeleteInBatches());
-      count -= policy.getSnapshotsToDeleteInBatches();
-    }
   }
 
   private void purgeSnapshotsByOrgAndGranularity(
