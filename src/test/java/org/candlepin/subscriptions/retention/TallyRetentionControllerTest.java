@@ -77,9 +77,11 @@ class TallyRetentionControllerTest {
     givenOrganization(ORG_ID);
     OffsetDateTime cutoff = givenCutoffDateForGranularity(Granularity.DAILY);
     // given 0 existing snapshots
-    givenExistingSnapshotsFor(Granularity.DAILY, cutoff, 0);
+    when(repository.deleteAllByGranularityAndSnapshotDateBefore(
+            ORG_ID, Granularity.DAILY.name(), cutoff, SNAPSHOTS_TO_DELETE_IN_BATCHES))
+        .thenReturn(0);
     controller.purgeSnapshotsAsync();
-    verify(repository, times(0))
+    verify(repository, times(1))
         .deleteAllByGranularityAndSnapshotDateBefore(
             ORG_ID, Granularity.DAILY.name(), cutoff, policy.getSnapshotsToDeleteInBatches());
   }
@@ -89,40 +91,22 @@ class TallyRetentionControllerTest {
     givenOrganization(ORG_ID);
     OffsetDateTime cutoff = givenCutoffDateForGranularity(Granularity.DAILY);
     // given 9 existing snapshots
-    givenExistingSnapshotsFor(Granularity.DAILY, cutoff, 9);
+    when(repository.deleteAllByGranularityAndSnapshotDateBefore(
+            ORG_ID, Granularity.DAILY.name(), cutoff, SNAPSHOTS_TO_DELETE_IN_BATCHES))
+        .thenReturn(9, 0);
     controller.purgeSnapshotsAsync();
-    verify(repository, times(1))
+    verify(repository, times(2))
         .deleteAllByGranularityAndSnapshotDateBefore(
             ORG_ID, Granularity.DAILY.name(), cutoff, policy.getSnapshotsToDeleteInBatches());
 
     reset(repository);
     // given 11 existing snapshots, then we expect 2 iterations because the limit is 10.
-    givenExistingSnapshotsFor(Granularity.DAILY, cutoff, 11);
+    when(repository.deleteAllByGranularityAndSnapshotDateBefore(
+            ORG_ID, Granularity.DAILY.name(), cutoff, SNAPSHOTS_TO_DELETE_IN_BATCHES))
+        .thenReturn(10, 1, 0);
     controller.purgeSnapshotsAsync();
-    verify(repository, times(2))
+    verify(repository, times(3))
         .deleteAllByGranularityAndSnapshotDateBefore(
-            ORG_ID, Granularity.DAILY.name(), cutoff, policy.getSnapshotsToDeleteInBatches());
-  }
-
-  @Test
-  void retentionControllerShouldRemoveMeasurementsForGranularitiesConfigured() {
-    givenOrganization(ORG_ID);
-    OffsetDateTime cutoff = givenCutoffDateForGranularity(Granularity.DAILY);
-    // given 9 existing measurements
-    givenExistingSnapshotsFor(Granularity.DAILY, cutoff, 1);
-    givenExistingMeasurementsFor(Granularity.DAILY, cutoff, 9);
-    controller.purgeSnapshotsAsync();
-    verify(repository, times(1))
-        .deleteMeasurementsByGranularityAndSnapshotDateBefore(
-            ORG_ID, Granularity.DAILY.name(), cutoff, policy.getSnapshotsToDeleteInBatches());
-
-    reset(repository);
-    // given 11 existing measurements, then we expect 2 iterations because the limit is 10.
-    givenExistingSnapshotsFor(Granularity.DAILY, cutoff, 1);
-    givenExistingMeasurementsFor(Granularity.DAILY, cutoff, 11);
-    controller.purgeSnapshotsAsync();
-    verify(repository, times(2))
-        .deleteMeasurementsByGranularityAndSnapshotDateBefore(
             ORG_ID, Granularity.DAILY.name(), cutoff, policy.getSnapshotsToDeleteInBatches());
   }
 
@@ -145,19 +129,6 @@ class TallyRetentionControllerTest {
     // expected 4 invocations: 1 for each organization (because the limit in the test is 1),
     // plus the last one that will retrieve empty results and hence will stop the loop.
     verify(orgConfigRepository, times(4)).findAll(any(Pageable.class));
-  }
-
-  private void givenExistingMeasurementsFor(
-      Granularity granularity, OffsetDateTime cutoff, long expected) {
-    when(repository.countMeasurementsByGranularityAndSnapshotDateBefore(
-            ORG_ID, granularity.name(), cutoff))
-        .thenReturn(expected);
-  }
-
-  private void givenExistingSnapshotsFor(
-      Granularity granularity, OffsetDateTime cutoff, long expected) {
-    when(repository.countAllByGranularityAndSnapshotDateBefore(ORG_ID, granularity, cutoff))
-        .thenReturn(expected);
   }
 
   private void givenCutoffDateForAllGranularity() {
