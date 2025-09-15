@@ -355,5 +355,10 @@ spec:
                 echo "Failed to upload test report to Ibutsu. HTTP status: $HTTP_STATUS"
                 echo "Response body:"
                 cat /tmp/curl_response.txt
-                exit 1
+                # SMELL: The upload test report is failing because Konflux is not running on an internal cluster.
+                # This should be fixed by:
+                # - https://gitlab.cee.redhat.com/releng/konflux-release-data/-/merge_requests/10262
+                # For now, we are ignoring the upload test report failures. 
+                # exit 1
+                exit 0
               fi
