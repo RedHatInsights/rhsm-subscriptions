@@ -9,7 +9,7 @@ spec:
       - name: url
         value: "https://github.com/RedHatInsights/rhsm-subscriptions.git"
       - name: revision
-        value: "jcarvaja/SWATCH-3838"
+        value: "main"
       - name: pathInRepo
         value: .tekton/bonfire-component-tests-pipeline.yaml
   workspaces:
