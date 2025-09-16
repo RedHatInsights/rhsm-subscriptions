@@ -35,10 +35,11 @@
     <guava.version>33.4.8-jre</guava.version>
     <liquibase.version>4.33.0</liquibase.version>
     <postgresql.version>42.7.7</postgresql.version>
-    <testcontainers-postgresql.version>1.21.3</testcontainers-postgresql.version>
+    <testcontainers.version>1.21.3</testcontainers.version>
     <junit.version>5.13.4</junit.version>
     <mockito.version>5.19.0</mockito.version>
     <rest-assured.version>5.5.6</rest-assured.version>
+    <awaitility.version>4.3.0</awaitility.version>
     <hibernate-validator.version>9.0.1.Final</hibernate-validator.version>
     <swagger-parser.version>2.1.33</swagger-parser.version>
     <swagger-ui.version>5.28.1</swagger-ui.version>
@@ -294,12 +295,12 @@
       <dependency>
         <groupId>org.awaitility</groupId>
         <artifactId>awaitility</artifactId>
-        <version>4.3.0</version>
+        <version>${awaitility.version}</version>
       </dependency>
       <dependency>
         <groupId>org.testcontainers</groupId>
         <artifactId>postgresql</artifactId>
-        <version>${testcontainers-postgresql.version}</version>
+        <version>${testcontainers.version}</version>
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>
@@ -578,6 +579,34 @@
         <module>swatch-database-migrations</module>
         <module>swatch-database</module>
       </modules>
+    </profile>
+
+    <profile>
+      <id>component-tests</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+
+      <modules>
+        <!-- Dependencies -->
+        <module>swatch-quarkus-parent</module>
+        <module>swatch-model-billable-usage</module>
+        <!-- Test framework module -->
+        <module>swatch-test-framework</module>
+        <!-- Services with component tests -->
+        <module>swatch-producer-azure/ct</module>
+      </modules>
+
+      <dependencyManagement>
+        <dependencies>
+          <dependency>
+            <groupId>com.redhat.swatch</groupId>
+            <artifactId>swatch-test-framework</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+          </dependency>
+        </dependencies>
+      </dependencyManagement>
     </profile>
 
     <profile>
