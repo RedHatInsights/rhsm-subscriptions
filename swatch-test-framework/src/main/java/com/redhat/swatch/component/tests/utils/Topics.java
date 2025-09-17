@@ -25,6 +25,7 @@ public final class Topics {
   public static final String BILLABLE_USAGE_HOURLY_AGGREGATE =
       SUFFIX + "billable-usage-hourly-aggregate";
   public static final String BILLABLE_USAGE_STATUS = SUFFIX + "billable-usage.status";
-
+  public static final String SWATCH_SERVICE_INSTANCE_INGRESS = SUFFIX + "swatch-service-instance-ingress";
+  public static final String HBI_EVENT_IN = "platform.inventory.events";
   private Topics() {}
 }
