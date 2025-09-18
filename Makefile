@@ -52,11 +52,15 @@ define SPRING_PROXY
 	./mvnw -pl $(1) spring-boot:run
 endef
 
+default:
+	./mvnw clean spotless:apply install -DskipTests
+
 # $@ is a variable set to the target name
 # If you add a new target here, be sure to add it to .PHONY at the top
 # Otherwise, make will think the target name refers to the directory
 run-migrations:
 	./mvnw clean install -Prun-migrations
+
 # Empty target for build flag
 build:
 	@:

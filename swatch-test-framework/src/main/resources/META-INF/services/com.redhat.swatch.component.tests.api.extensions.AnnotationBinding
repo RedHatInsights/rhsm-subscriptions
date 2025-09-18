@@ -1,0 +1,3 @@
+com.redhat.swatch.component.tests.resources.quarkus.QuarkusAnnotationBinding
+com.redhat.swatch.component.tests.resources.kafka.KafkaBridgeAnnotationBinding
+com.redhat.swatch.component.tests.resources.wiremock.WiremockAnnotationBinding
