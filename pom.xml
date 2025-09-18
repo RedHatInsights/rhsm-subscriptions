@@ -20,7 +20,7 @@
     <codegen.skipIfSpecIsUnchanged>true</codegen.skipIfSpecIsUnchanged>
 
     <!-- Dependencies -->
-    <quarkus.platform.version>3.26.3</quarkus.platform.version>
+    <quarkus.platform.version>3.26.4</quarkus.platform.version>
     <spring.boot.version>3.5.5</spring.boot.version>
     <resteasy.version>6.2.12.Final</resteasy.version>
     <!-- Only use as provided in the common dependencies.
@@ -57,7 +57,7 @@
     <jacoco-maven-plugin.version>0.8.13</jacoco-maven-plugin.version>
     <maven-antrun-plugin.version>3.1.0</maven-antrun-plugin.version>
     <sonar-maven-plugin.version>5.2.0.4988</sonar-maven-plugin.version>
-    <swagger-codegen-maven-plugin.version>3.0.72</swagger-codegen-maven-plugin.version>
+    <swagger-codegen-maven-plugin.version>3.0.73</swagger-codegen-maven-plugin.version>
 
     <!-- Sonar configuration -->
     <sonar.host.url>https://sonarcloud.io</sonar.host.url>
