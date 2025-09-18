@@ -32,7 +32,7 @@
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
     <opentelemetry-api.version>1.54.0</opentelemetry-api.version>
     <awssdk-bom.version>2.33.10</awssdk-bom.version>
-    <guava.version>33.4.8-jre</guava.version>
+    <guava.version>33.5.0-jre</guava.version>
     <liquibase.version>4.33.0</liquibase.version>
     <postgresql.version>42.7.7</postgresql.version>
     <testcontainers.version>1.21.3</testcontainers.version>
