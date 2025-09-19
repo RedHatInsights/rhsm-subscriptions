@@ -43,12 +43,9 @@ import java.util.UUID;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
-import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.model.AccountServiceInventory;
 import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
 import org.candlepin.subscriptions.db.model.Offering;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.InstancesExportJson;
 import org.candlepin.subscriptions.rbac.RbacApiException;
 import org.candlepin.subscriptions.rbac.RbacService;
@@ -80,7 +77,6 @@ public abstract class BaseDataExporterServiceTest
   @Autowired ObjectMapper objectMapper;
   @Autowired CsvMapper csvMapper;
   @Autowired KafkaProperties kafkaProperties;
-  @Autowired OfferingRepository offeringRepository;
   @Autowired AccountServiceInventoryRepository accountServiceInventoryRepository;
   @MockitoBean RbacService rbacService;
 
@@ -101,12 +97,6 @@ public abstract class BaseDataExporterServiceTest
 
     var factory = new DefaultKafkaProducerFactory<String, String>(properties);
     kafkaTemplate = new KafkaTemplate<>(factory);
-
-    offering = new Offering();
-    offering.setSku("MKU001");
-    offering.setUsage(Usage.PRODUCTION);
-    offering.setServiceLevel(ServiceLevel.PREMIUM);
-    offeringRepository.save(offering);
 
     accountServiceInventory = givenHostInAccountServices(ORG_ID);
   }
