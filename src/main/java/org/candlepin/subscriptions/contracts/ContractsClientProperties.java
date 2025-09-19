@@ -18,17 +18,26 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db;
+package org.candlepin.subscriptions.contracts;
 
-import org.candlepin.subscriptions.db.model.Offering;
-import org.springframework.data.jpa.repository.EntityGraph;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+import org.candlepin.subscriptions.http.HttpClientProperties;
 
-/** Repository interface for the Offering entity */
-public interface OfferingRepository extends JpaRepository<Offering, String> {
-  @EntityGraph(value = "graph.offering")
-  @Query(value = "select o from Offering o where o.sku = :sku order by o.sku")
-  Offering findOfferingBySku(@Param("sku") String sku);
+@Data
+@ToString(callSuper = true)
+@EqualsAndHashCode(callSuper = true)
+public class ContractsClientProperties extends HttpClientProperties {
+  /** How many attempts before giving up. */
+  private Integer maxAttempts;
+
+  /** Retry backoff interval in milliseconds. */
+  private Integer backOffInitialInterval;
+
+  /** Retry backoff interval in milliseconds. */
+  private Integer backOffMaxInterval;
+
+  /** Retry exponential backoff multiplier. */
+  private Double backOffMultiplier;
 }

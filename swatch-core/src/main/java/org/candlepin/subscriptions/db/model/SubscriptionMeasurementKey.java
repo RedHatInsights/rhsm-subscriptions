@@ -34,6 +34,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 @Embeddable
+@Deprecated
 public class SubscriptionMeasurementKey implements Serializable {
 
   @Column(name = "metric_id")
