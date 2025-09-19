@@ -7,6 +7,11 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
   <changeSet id="202210281140-1"  author="kflahert">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <columnExists tableName="subscription" columnName="org_id"/>
+      </not>
+    </preConditions>
     <comment>Rename owner_id column to org_id in subscription table</comment>
     <renameColumn  newColumnName="org_id"
       oldColumnName="owner_id"

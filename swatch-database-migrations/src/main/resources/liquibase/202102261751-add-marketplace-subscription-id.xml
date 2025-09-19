@@ -7,6 +7,14 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
     <changeSet id="202102261751-1" author="awood">
+        <preConditions onFail="MARK_RAN">
+          <not>
+            <and>
+              <columnExists tableName="subscription" columnName="marketplace_subscription_id"/>
+              <columnExists tableName="subscription" columnName="account_number"/>
+            </and>
+          </not>
+        </preConditions>
         <addColumn tableName="subscription">
             <column name="marketplace_subscription_id" type="VARCHAR(255)"/>
             <column name="account_number" type="VARCHAR(255)"/>

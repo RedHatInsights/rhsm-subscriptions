@@ -6,6 +6,11 @@
                       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
 
   <changeSet id="202406240700-1" author="bcourt">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <indexExists tableName="subscription" indexName="subscription_subscription_number_idx"/>
+      </not>
+    </preConditions>
     <comment>Create an index on subscription_number for subscription</comment>
     <createIndex indexName="subscription_subscription_number_idx" tableName="subscription"
                  unique="false">

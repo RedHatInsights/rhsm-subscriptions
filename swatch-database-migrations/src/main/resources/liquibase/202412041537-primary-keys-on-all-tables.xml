@@ -47,6 +47,11 @@
   </changeSet>
 
   <changeSet id="202412041537-03" author="awood" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <columnExists tableName="sku_child_sku" columnName="id"/>
+      </not>
+    </preConditions>
     <addColumn tableName="sku_child_sku">
       <column name="id" type="uuid" defaultValueComputed="uuid_generate_v4()">
         <constraints primaryKey="true" nullable="false"/>
@@ -55,6 +60,11 @@
   </changeSet>
 
   <changeSet id="202412041537-04" author="awood" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <columnExists tableName="sku_oid" columnName="id"/>
+      </not>
+    </preConditions>
     <addColumn tableName="sku_oid">
       <column name="id" type="uuid" defaultValueComputed="uuid_generate_v4()">
         <constraints primaryKey="true" nullable="false"/>
@@ -63,6 +73,11 @@
   </changeSet>
 
   <changeSet id="202412041537-05" author="awood" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <columnExists tableName="sku_product_tag" columnName="id"/>
+      </not>
+    </preConditions>
     <addColumn tableName="sku_product_tag">
       <column name="id" type="uuid" defaultValueComputed="uuid_generate_v4()">
         <constraints primaryKey="true" nullable="false"/>
