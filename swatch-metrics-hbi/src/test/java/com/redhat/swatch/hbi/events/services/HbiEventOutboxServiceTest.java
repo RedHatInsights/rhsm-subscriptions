@@ -36,6 +36,8 @@ import org.junit.jupiter.api.Test;
 @QuarkusTest
 class HbiEventOutboxServiceTest {
 
+  private static final String ORG_ID = "org123";
+
   @Inject HbiEventOutboxService service;
   @Inject HbiEventOutboxRepository repository;
 
@@ -48,7 +50,7 @@ class HbiEventOutboxServiceTest {
   @Test
   void testCreateOutboxRecordPersistsAndReturnsDto() {
     Event event = new Event();
-    event.setOrgId("org123");
+    event.setOrgId(ORG_ID);
     event.setEventSource("HBI_HOST");
     event.setInstanceId("test-instance-id");
     event.setEventType("test");
@@ -58,8 +60,8 @@ class HbiEventOutboxServiceTest {
     OutboxRecord result = service.createOutboxRecord(event);
 
     assertNotNull(result.getId());
-    assertEquals("org123", result.getOrgId());
+    assertEquals(ORG_ID, result.getOrgId());
     assertEquals(event, result.getSwatchEventJson());
-    assertEquals(1L, repository.count());
+    assertEquals(1L, repository.findByOrgId(ORG_ID).size());
   }
 }
