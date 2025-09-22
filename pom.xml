@@ -34,7 +34,7 @@
     <awssdk-bom.version>2.34.1</awssdk-bom.version>
     <guava.version>33.5.0-jre</guava.version>
     <liquibase.version>4.33.0</liquibase.version>
-    <postgresql.version>42.7.7</postgresql.version>
+    <postgresql.version>42.7.8</postgresql.version>
     <testcontainers.version>1.21.3</testcontainers.version>
     <junit.version>5.13.4</junit.version>
     <mockito.version>5.19.0</mockito.version>
