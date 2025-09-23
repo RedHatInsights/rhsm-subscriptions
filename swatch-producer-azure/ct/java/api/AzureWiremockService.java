@@ -35,12 +35,6 @@ public class AzureWiremockService extends WiremockService {
   private static final String AZURE_OFFER_ID = "azureProductCode";
 
   public void setupAzureUsageContext(String azureResourceId, String billingAccountId) {
-    setupAzureUsageContext(azureResourceId, billingAccountId, null);
-  }
-
-  public void setupAzureUsageContext(
-      String azureResourceId, String billingAccountId, String errorCode) {
-    if (errorCode == null) {
       // 1. Setup Azure Usage Context endpoint (similar to create_get_azure_usage_context_wiremock)
       var contextData =
           Map.of(
@@ -54,8 +48,7 @@ public class AzureWiremockService extends WiremockService {
               Map.of(
                   "request",
                   Map.of(
-                      "method",
-                      "GET",
+                      "method", "GET",
                       "urlPathPattern",
                       "/mock/contractApi/api/swatch-contracts/internal/subscriptions/azureUsageContext.*",
                       "queryParameters",
@@ -69,11 +62,9 @@ public class AzureWiremockService extends WiremockService {
                       "jsonBody",
                       contextData),
                   // the default mapping defined in config/wiremock uses priority 10,
-                  // so we need a higher priority here.
-                  "priority",
-                  9,
-                  "metadata",
-                  Map.of(METADATA_TAG, "true")))
+                  // so we need an higher priority here.
+                  "priority", 9,
+                  "metadata", Map.of(METADATA_TAG, "true")))
           .when()
           .post("/__admin/mappings")
           .then()
@@ -82,8 +73,9 @@ public class AzureWiremockService extends WiremockService {
       setupAzureOAuthToken();
       // 3. Setup Azure Send Usage endpoint (similar to create_send_azure_usage_wiremock)
       setupAzureSendUsage(azureResourceId);
-    } else {
-      // Setup error response
+  }
+
+  public void setupAzureUsageContextToReturnSubscriptionNotFound(String billingAccountId) {
       given()
           .contentType("application/json")
           .body(
@@ -99,11 +91,7 @@ public class AzureWiremockService extends WiremockService {
                   "response",
                   Map.of(
                       "status",
-                      404,
-                      "headers",
-                      Map.of("Content-Type", "text/plain"),
-                      "body",
-                      "HTTP 404 Not Found: The requested resource does not exist."),
+                      404),
                   // the default mapping defined in config/wiremock uses priority 10,
                   // so we need a higher priority here.
                   "priority",
@@ -116,8 +104,8 @@ public class AzureWiremockService extends WiremockService {
           .statusCode(201);
       // Only setup OAuth for error case (no usage endpoint needed)
       setupAzureOAuthToken();
-    }
   }
+
   public void verifyAzureUsage(
       String azureResourceId, double expectedValue, String expectedDimension) {
     // Get all requests to the Azure usage endpoint

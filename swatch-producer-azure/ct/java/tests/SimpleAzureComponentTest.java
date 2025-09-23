@@ -155,10 +155,7 @@ public class SimpleAzureComponentTest extends BaseAzureComponentTest {
       double totalValue = 2.0;
 
       // Setup Azure Wiremock endpoints
-      wiremock.setupAzureUsageContext(
-          azureResourceId,
-          billingAccountId,
-          BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND.toString());
+      wiremock.setupAzureUsageContextToReturnSubscriptionNotFound(billingAccountId);
 
       // Send clean billable usage message to Kafka
       BillableUsageAggregate aggregateData =
