@@ -4,13 +4,8 @@
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
-  <changeSet id="202409251400-01" author="jcarvaja" dbms="postgresql" runOnChange="true">
+  <changeSet id="202409251400-01" author="jcarvaja" dbms="postgresql" runOnChange="true" ignore="true">
     <!-- View controlled by swatch-contracts -->
-    <preConditions onFail="MARK_RAN">
-      <not>
-        <viewExists viewName="subscription_capacity_view"/>
-      </not>
-    </preConditions>
     <comment>
       Update subscription_capacity_view to filter measurements by subscription ID plus start date
     </comment>
