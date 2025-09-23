@@ -166,17 +166,8 @@ public class MigrationService {
     Context userContext = Context.fromString(invocationArgs[0]);
 
     Context[] migrationContexts;
-    // Due to the history of the project, several tables were created in core that were later moved
-    // to the control of contracts.  Liquibase has strong objections to modifying a changeset once
-    // it has been applied, so the course of action we took was to create the table in contracts
-    // only if it does not already exist.  (The table would be created in cases where only the
-    // contract migrations were run during component testing).  A sideeffect of this solution is
-    // that if the contracts migrations run first, the core migrations will fail since they
-    // will also try to create the same tables as core only the legacy changesets won't have the
-    // conditional to check if the table already exists.  Consequently, the core migrations must be
-    // run first.
     if (userContext == Context.ALL) {
-      migrationContexts = new Context[] {Context.CORE, Context.CONTRACTS};
+      migrationContexts = new Context[] {Context.CONTRACTS, Context.CORE};
     } else {
       migrationContexts = new Context[] {userContext};
       // Strip the context off.  We don't want to send that to the Liquibase CLI
