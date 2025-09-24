@@ -7,6 +7,12 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
     <changeSet id="202306151541-01" author="awood">
+        <preConditions onFail="MARK_RAN">
+          <not>
+            <foreignKeyConstraintExists foreignKeyName="subscription_sku_fkey"
+              foreignKeyTableName="subscription"/>
+          </not>
+        </preConditions>
         <addForeignKeyConstraint constraintName="subscription_sku_fkey"
             baseTableName="subscription" baseColumnNames="sku"
             referencedTableName="offering" referencedColumnNames="sku"/>

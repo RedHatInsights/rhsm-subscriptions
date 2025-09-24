@@ -5,6 +5,13 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
   <changeSet id="202112171721-1"  author="khowell">
+    <preConditions onFail="MARK_RAN">
+      <and>
+        <columnExists tableName="subscription" columnName="sku"/>
+        <columnExists tableName="subscription" columnName="account_number"/>
+        <columnExists tableName="subscription" columnName="owner_id"/>
+      </and>
+    </preConditions>
     <comment>Add indexes to subscription table</comment>
     <createIndex tableName="subscription" indexName="subscription_sku_idx">
       <column name="sku"/>

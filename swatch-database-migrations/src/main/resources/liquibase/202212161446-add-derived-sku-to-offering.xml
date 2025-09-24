@@ -6,6 +6,11 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
   <changeSet id="202212161446-1" author="khowell">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <columnExists tableName="offering" columnName="derived_sku"/>
+      </not>
+    </preConditions>
     <comment>
       Add derived SKU column to offering, so that we can easily detect changes in derived SKUs.
     </comment>

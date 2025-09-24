@@ -7,6 +7,9 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
   <changeSet id="202310031000-02" author="vbusch">
+    <preConditions onFail="MARK_RAN">
+      <columnExists tableName="subscription" columnName="account_number"/>
+    </preConditions>
     <comment>Drop account_number column from subscription table</comment>
     <dropColumn tableName="subscription" columnName="account_number"/>
 
