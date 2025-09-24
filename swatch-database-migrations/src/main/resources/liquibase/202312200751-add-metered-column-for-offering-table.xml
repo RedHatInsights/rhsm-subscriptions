@@ -5,6 +5,11 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
   <changeSet id="202312200751-01" author="jcarvaja">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <columnExists tableName="offering" columnName="metered"/>
+      </not>
+    </preConditions>
     <comment>Add column for metered column to the offering table</comment>
     <addColumn tableName="offering">
       <column name="metered" type="BOOLEAN"/>

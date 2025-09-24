@@ -15,6 +15,16 @@
   </changeSet>
 
   <changeSet id="202211091649-2" author="khowell">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <and>
+          <columnExists tableName="offering" columnName="sockets"/>
+          <columnExists tableName="offering" columnName="hypervisor_sockets"/>
+          <columnExists tableName="offering" columnName="cores"/>
+          <columnExists tableName="offering" columnName="hypervisor_cores"/>
+        </and>
+      </not>
+    </preConditions>
     <comment>Rename sockets/cores columns in the offering table.</comment>
     <renameColumn tableName="offering" oldColumnName="physical_sockets" newColumnName="sockets"/>
     <renameColumn tableName="offering" oldColumnName="virtual_sockets" newColumnName="hypervisor_sockets"/>

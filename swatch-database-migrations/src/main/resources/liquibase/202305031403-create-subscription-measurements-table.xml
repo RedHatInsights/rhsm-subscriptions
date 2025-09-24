@@ -17,6 +17,12 @@
     SET subscription.has_unlimited_usage = subscription_capacity.has_unlimited_usage"/>
 
   <changeSet id="202305031403-01" author="awood">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <tableExists tableName="subscription_measurements"/>
+      </not>
+    </preConditions>
+
     <createTable tableName="subscription_measurements">
       <column name="subscription_id" type="VARCHAR(255)"/>
       <column name="start_date" type="TIMESTAMP WITH TIME ZONE"/>
@@ -35,6 +41,11 @@
   </changeSet>
 
   <changeSet id="202305031403-02" author="awood">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <columnExists tableName="subscription" columnName="has_unlimited_usage"/>
+      </not>
+    </preConditions>
     <addColumn tableName="subscription">
       <column name="has_unlimited_usage" type="BOOLEAN"/>
     </addColumn>
