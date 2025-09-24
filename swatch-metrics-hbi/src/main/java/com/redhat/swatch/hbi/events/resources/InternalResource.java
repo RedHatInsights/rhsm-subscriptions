@@ -24,6 +24,7 @@ import com.redhat.swatch.hbi.api.DefaultApi;
 import com.redhat.swatch.hbi.events.services.HbiEventOutboxService;
 import com.redhat.swatch.hbi.model.FlushResponse;
 import com.redhat.swatch.hbi.model.OutboxRecord;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
@@ -49,6 +50,7 @@ public class InternalResource implements DefaultApi {
   }
 
   @Override
+  @RolesAllowed({"test"})
   public OutboxRecord createOutboxRecord(@Valid Event event) {
     return outboxService.createOutboxRecord(event);
   }
