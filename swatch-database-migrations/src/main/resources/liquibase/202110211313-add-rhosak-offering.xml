@@ -6,9 +6,16 @@
 
   <changeSet id="202110211313-1" author="mstead">
     <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(1) FROM offering WHERE sku = 'MW01882'
-      </sqlCheck>
+      <and>
+        <sqlCheck expectedResult="0">
+          SELECT COUNT(1) FROM offering WHERE sku = 'MW01882'
+        </sqlCheck>
+
+        <columnExists tableName="offering" columnName="physical_cores"/>
+        <columnExists tableName="offering" columnName="physical_sockets"/>
+        <columnExists tableName="offering" columnName="virtual_cores"/>
+        <columnExists tableName="offering" columnName="virtual_sockets"/>
+      </and>
     </preConditions>
     <comment>Add offering for RHOSAK SKU</comment>
     <insert tableName="offering">
@@ -24,4 +31,30 @@
     </insert>
   </changeSet>
 
+  <changeSet id="202110211313-2" author="mstead">
+    <preConditions onFail="MARK_RAN">
+      <and>
+        <sqlCheck expectedResult="0">
+          SELECT COUNT(1) FROM offering WHERE sku = 'MW01882'
+        </sqlCheck>
+
+        <columnExists tableName="offering" columnName="cores"/>
+        <columnExists tableName="offering" columnName="sockets"/>
+        <columnExists tableName="offering" columnName="hypervisor_cores"/>
+        <columnExists tableName="offering" columnName="hypervisor_sockets"/>
+      </and>
+    </preConditions>
+    <comment>Add offering for RHOSAK SKU</comment>
+    <insert tableName="offering">
+      <column name="sku" value="MW01882"/>
+      <column name="product_name" value="OpenShift Streams for Apache Kafka"/>
+      <column name="role" value="rhosak"/>
+      <column name="sla" value="Premium"/>
+      <column name="usage" value="Production"/>
+      <column name="cores" value="0"/>
+      <column name="sockets" value="0"/>
+      <column name="hypervisor_cores" value="0"/>
+      <column name="hypervisor_sockets" value="0"/>
+    </insert>
+  </changeSet>
 </databaseChangeLog>
