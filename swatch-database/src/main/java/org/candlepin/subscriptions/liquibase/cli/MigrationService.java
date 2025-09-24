@@ -154,7 +154,7 @@ public class MigrationService {
               + "environment variables and properties files.",
           contexts);
       log.info(
-          "If you wish to provide arguments via a `gradlew run` use `--args=` and specify "
+          "If you wish to provide arguments via a `mvnw exec:java` use `-Dexec.args=` and specify "
               + "the context as the first argument followed by Liquibase commands and arguments");
       invocationArgs = new String[] {"update"};
     }

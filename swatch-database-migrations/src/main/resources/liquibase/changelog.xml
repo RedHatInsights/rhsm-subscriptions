@@ -181,7 +181,7 @@
     <include file="liquibase/202504291554-add-updated-at-column-to-billable-usage-remittance.xml"/>
     <include file="liquibase/202505131100-update-subscription-capacity-view-to-filter-start-date.xml"/>
     <include file="liquibase/202506191100-add-host-service-type-table.xml"/>
-    <!-- From this point forward, the following tables are now managed under swatch-contracts:
+    <!-- From this point forward, the following tables and views are managed under swatch-contracts:
       * offering
       * sku_child_sku
       * sku_oid
@@ -190,7 +190,7 @@
       * subscription_measurements
       * subscription_capacity_view
 
-      Perform any changes to these tables in the swatch-contracts migrations
+      Perform any changes to these tables or views in the swatch-contracts migrations
     -->
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

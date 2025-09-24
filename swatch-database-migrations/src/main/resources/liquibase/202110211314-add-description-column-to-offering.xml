@@ -7,6 +7,11 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
   <changeSet id="202110211010-1" author="mstead">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <columnExists tableName="offering" columnName="description"/>
+      </not>
+    </preConditions>
     <comment>Add description column to offering table</comment>
     <addColumn tableName="offering">
       <column name="description" type="VARCHAR(255)" />
