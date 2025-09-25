@@ -123,6 +123,8 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+    networks:
+      - swatch-network
   kafka-topics-ui:
     image: docker.io/landoop/kafka-topics-ui
     environment:
@@ -178,6 +180,8 @@ services:
     ports:
       - "127.0.0.1:8050:8000"
     user: root
+    networks:
+      - swatch-network
   inventory-mq:
     image: quay.io/cloudservices/insights-inventory
     entrypoint: /bin/bash -c
@@ -202,6 +206,8 @@ services:
       inventory:  # main inventory deployment runs the db migrations
         condition: service_healthy
     user: root
+    networks:
+      - swatch-network
   unleash:
     image: quay.io/cloudservices/unleash-server:5.8.2
     environment:
@@ -223,14 +229,8 @@ services:
       timeout: 1m
       retries: 5
       start_period: 10s
-    # Why do we do this?  Because there is an issue around the postgresql container where it
-    # starts, runs some initialization scripts, and then restarts itself.  See
-    # https://github.com/sclorg/postgresql-container/blob/master/12/root/usr/bin/run-postgresql#L54-L58
-    # This fools the healthcheck into reporting that the container is ready, only for the
-    # postgresql process to stop and restart.  Meanwhile, the unleash container tries to connect,
-    # fails, and doesn't start.  So we add this shim script to wait until the connection is stable.
-    # The script itself is sourced from the https://github.com/Unleash/unleash-docker container
-    command: ["/bin/sh", "/unleash/wait-for", "db:5432", "--", "node", "index.js"]
+    command: ["node", "index.js"]
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
@@ -239,6 +239,10 @@ services:
     volumes:
       - './bin/wait-for:/unleash/wait-for:z'
       - './.unleash:/.unleash:z'
+    networks:
+      swatch-network:
+        aliases:
+          - unleash
   moto:
     extends:
       file: config/moto/docker-compose.yml
