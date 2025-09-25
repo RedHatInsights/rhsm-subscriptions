@@ -100,7 +100,7 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
   @Query(
       nativeQuery = true,
       value =
-          """
+"""
     delete from tally_measurements
     where (snapshot_id, measurement_type, metric_id) in (
         select m.snapshot_id, m.measurement_type, m.metric_id
