@@ -7,7 +7,7 @@ if command -v podman && [[ -z "$USE_DOCKER" ]]; then
   if [[ ! "$version" == "podman version 1."* ]]; then
     export CONTAINER_HOST=unix://$SOCKET
     echo Running podman service at $CONTAINER_HOST
-    podman system service --time 3600 $CONTAINER_HOST&
+    podman system service --time=3600 $CONTAINER_HOST&
     export PODMAN_PID=$!
   fi
   echo Running command '`'$@'`' via podman
