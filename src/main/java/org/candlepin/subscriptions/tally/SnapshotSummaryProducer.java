@@ -63,30 +63,39 @@ public class SnapshotSummaryProducer {
     this.summaryMapper = summaryMapper;
   }
 
-  public void produceTallySummaryMessages(Map<String, List<TallySnapshot>> newAndUpdatedSnapshots) {
-    AtomicInteger totalTallies = new AtomicInteger();
-    newAndUpdatedSnapshots.forEach(
-        (orgId, snapshots) ->
-            /* Filter snapshots, as we only deal with hourly, non Any fields
-            and measurement types other than Total
-            when we transmit the tally summary message to the BillableUsage component. */
-            snapshots.stream()
-                .filter(SnapshotSummaryProducer::filterByHourlyAndNotAnySnapshots)
-                .map(
-                    snapshot -> {
-                      removeTotalMeasurements(snapshot);
-                      return snapshot;
-                    })
-                .sorted(Comparator.comparing(TallySnapshot::getSnapshotDate))
-                .map(snapshot -> summaryMapper.mapSnapshots(orgId, List.of(snapshot)))
-                .forEach(
-                    summary -> {
-                      kafkaRetryTemplate.execute(
-                          ctx -> tallySummaryKafkaTemplate.send(tallySummaryTopic, orgId, summary));
-                      totalTallies.getAndIncrement();
-                    }));
+  public void produceTallySummaryMessages(
+      Map<String, List<TallySnapshot>> newAndUpdatedSnapshots, List<Granularity> granularities) {
+    granularities.forEach(
+        granularity -> {
+          AtomicInteger totalTallies = new AtomicInteger();
+          newAndUpdatedSnapshots.forEach(
+              (orgId, snapshots) ->
+                  /* Filter snapshots, as we only deal with hourly, non Any fields
+                  and measurement types other than Total
+                  when we transmit the tally summary message to the BillableUsage component. */
+                  snapshots.stream()
+                      .filter(
+                          snapshot ->
+                              filterByGranularityAndNotAnySnapshots(
+                                  snapshot, granularity.getValue()))
+                      .map(
+                          snapshot -> {
+                            removeTotalMeasurements(snapshot);
+                            return snapshot;
+                          })
+                      .sorted(Comparator.comparing(TallySnapshot::getSnapshotDate))
+                      .map(snapshot -> summaryMapper.mapSnapshots(orgId, List.of(snapshot)))
+                      .forEach(
+                          summary -> {
+                            kafkaRetryTemplate.execute(
+                                ctx ->
+                                    tallySummaryKafkaTemplate.send(
+                                        tallySummaryTopic, orgId, summary));
+                            totalTallies.getAndIncrement();
+                          }));
 
-    log.info("Produced {} TallySummary messages", totalTallies);
+          log.info("Produced {} {} TallySummary messages", totalTallies, granularity);
+        });
   }
 
   public static void removeTotalMeasurements(TallySnapshot snapshot) {

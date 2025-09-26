@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.tally;
 import java.util.List;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.json.TallyMeasurement;
@@ -99,7 +98,7 @@ public class TallySummaryMapper {
     return snapshotRepository.sumMeasurementValueForPeriod(
         snapshot.getOrgId(),
         snapshot.getProductId(),
-        Granularity.HOURLY,
+        snapshot.getGranularity(),
         snapshot.getServiceLevel(),
         snapshot.getUsage(),
         snapshot.getBillingProvider(),

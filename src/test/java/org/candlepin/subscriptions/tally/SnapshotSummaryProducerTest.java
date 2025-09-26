@@ -48,8 +48,9 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.TallyMeasurement;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
@@ -80,8 +81,10 @@ class SnapshotSummaryProducerTest {
     this.producer = new SnapshotSummaryProducer(kafka, retryTemplate, props, tallySummaryMapper);
   }
 
-  @Test
-  void testProduceSummary() {
+  @ParameterizedTest
+  @CsvSource(value = {"hourly", "daily"})
+  void testProduceSummary(String value) {
+    Granularity granularity = Granularity.valueOf(value.toUpperCase());
     Map<String, List<TallySnapshot>> updateMap = new HashMap<>();
     updateMap.put(
         "org1",
@@ -89,7 +92,7 @@ class SnapshotSummaryProducerTest {
             buildSnapshot(
                 "org1",
                 "OSD",
-                Granularity.HOURLY,
+                granularity,
                 ServiceLevel.PREMIUM,
                 Usage.PRODUCTION,
                 BillingProvider.RED_HAT,
@@ -102,14 +105,14 @@ class SnapshotSummaryProducerTest {
             buildSnapshot(
                 "org2",
                 "OCP",
-                Granularity.HOURLY,
+                granularity,
                 ServiceLevel.PREMIUM,
                 Usage.PRODUCTION,
                 BillingProvider.AWS,
                 "12345",
                 MetricIdUtils.getCores().getValue(),
                 22.2)));
-    producer.produceTallySummaryMessages(updateMap);
+    producer.produceTallySummaryMessages(updateMap, List.of(granularity));
     verify(kafka, times(2)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
 
     List<TallySummary> summaries = summaryCaptor.getAllValues();
@@ -120,7 +123,7 @@ class SnapshotSummaryProducerTest {
         results,
         "org1",
         "OSD",
-        Granularity.HOURLY,
+        granularity,
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         MetricIdUtils.getCores(),
@@ -129,7 +132,7 @@ class SnapshotSummaryProducerTest {
         results,
         "org2",
         "OCP",
-        Granularity.HOURLY,
+        granularity,
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         MetricIdUtils.getCores(),
@@ -167,8 +170,10 @@ class SnapshotSummaryProducerTest {
     assertMeasurement(measurements, "PHYSICAL", metricId, value);
   }
 
-  @Test
-  void testSummarySkippedWhenItHasNoMeasurements() {
+  @ParameterizedTest
+  @CsvSource(value = {"hourly", "daily"})
+  void testSummarySkippedWhenItHasNoMeasurements(String value) {
+    Granularity granularity = Granularity.valueOf(value.toUpperCase());
     Map<String, List<TallySnapshot>> updateMap = new HashMap<>();
     updateMap.put(
         "a1",
@@ -176,7 +181,7 @@ class SnapshotSummaryProducerTest {
             buildSnapshot(
                 "org_1",
                 "OSD",
-                Granularity.HOURLY,
+                granularity,
                 ServiceLevel.PREMIUM,
                 Usage.PRODUCTION,
                 BillingProvider.RED_HAT,
@@ -184,7 +189,7 @@ class SnapshotSummaryProducerTest {
                 MetricIdUtils.getCores().getValue(),
                 20.4)));
     updateMap.get("a1").get(0).getTallyMeasurements().clear();
-    producer.produceTallySummaryMessages(updateMap);
+    producer.produceTallySummaryMessages(updateMap, List.of(granularity));
     verifyNoInteractions(kafka);
   }
 

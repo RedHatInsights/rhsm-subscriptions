@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.validator.Uuid;
 import org.slf4j.Logger;
@@ -62,7 +63,8 @@ public class MarketplaceResendTallyController {
     log.info("Resending tally snapshots for {} messages", snapshots.size());
     Map<String, List<TallySnapshot>> totalSnapshots =
         snapshots.stream().collect(Collectors.groupingBy(TallySnapshot::getOrgId));
-    summaryProducer.produceTallySummaryMessages(totalSnapshots);
+    summaryProducer.produceTallySummaryMessages(
+        totalSnapshots, List.of(Granularity.HOURLY, Granularity.DAILY));
     return snapshots.size();
   }
 }
