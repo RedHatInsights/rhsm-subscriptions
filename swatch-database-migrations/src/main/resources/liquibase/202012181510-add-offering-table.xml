@@ -6,6 +6,12 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
     <changeSet id="202012181511-1" author="jharriso">
+        <preConditions onFail="MARK_RAN">
+          <not>
+            <tableExists tableName="offering"/>
+          </not>
+        </preConditions>
+
         <comment>Create the offerings table</comment>
         <createTable tableName="offering">
             <column name="sku" type="VARCHAR(255)"/>
@@ -24,6 +30,12 @@
     </changeSet>
 
     <changeSet id="202012181511-2" author="jharriso">
+        <preConditions onFail="MARK_RAN">
+          <not>
+            <tableExists tableName="sku_child_sku"/>
+          </not>
+        </preConditions>
+
         <comment>Create the sku to child sku table</comment>
         <createTable tableName="sku_child_sku">
             <column name="sku" type="VARCHAR(255)"/>
@@ -35,6 +47,12 @@
     </changeSet>
 
     <changeSet id="202012181511-3" author="jharriso">
+        <preConditions onFail="MARK_RAN">
+          <not>
+            <tableExists tableName="sku_oid"/>
+          </not>
+        </preConditions>
+
         <comment>Create the sku to oid table</comment>
         <createTable tableName="sku_oid">
             <column name="sku" type="VARCHAR(255)"/>
