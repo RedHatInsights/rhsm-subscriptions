@@ -20,7 +20,9 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -128,8 +130,22 @@ public class SnapshotSummaryProducer {
     }
   }
 
-  public static boolean filterByHourlyAndNotAnySnapshots(TallySnapshot snapshot) {
-    return filterByGranularityAndNotAnySnapshots(snapshot, Granularity.HOURLY.getValue());
+  public static Map<Granularity, Map<String, List<TallySnapshot>>> groupByGranularity(
+      Map<String, List<TallySnapshot>> snapshots, List<Granularity> granularities) {
+    Map<Granularity, Map<String, List<TallySnapshot>>> result = new java.util.HashMap<>();
+    snapshots.forEach(
+        (orgId, snapshotList) ->
+            snapshotList.stream()
+                .filter(snapshot -> granularities.contains(snapshot.getGranularity()))
+                .forEach(
+                    snapshot -> {
+                      Granularity granularity = snapshot.getGranularity();
+                      result.putIfAbsent(granularity, new HashMap<>());
+                      Map<String, List<TallySnapshot>> snapshotMap = result.get(granularity);
+                      snapshotMap.putIfAbsent(orgId, new ArrayList<>());
+                      snapshotMap.get(orgId).add(snapshot);
+                    }));
+    return result;
   }
 
   public static Map<Granularity, Map<String, List<TallySnapshot>>> groupByGranularity(
