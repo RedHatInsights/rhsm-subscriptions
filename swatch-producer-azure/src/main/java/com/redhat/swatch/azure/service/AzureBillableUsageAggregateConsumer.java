@@ -145,7 +145,7 @@ public class AzureBillableUsageAggregateConsumer {
             e);
         emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.INACTIVE);
       } else {
-        log.warn("Subscription not found for for aggregate={}", billableUsageAggregate, e);
+        log.warn("Subscription not found for aggregate={}", billableUsageAggregate, e);
         emitErrorStatusOnUsage(
             billableUsageAggregate, BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND);
       }
