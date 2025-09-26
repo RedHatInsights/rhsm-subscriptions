@@ -99,7 +99,7 @@ public class TallySummaryMapper {
     return snapshotRepository.sumMeasurementValueForPeriod(
         snapshot.getOrgId(),
         snapshot.getProductId(),
-        Granularity.HOURLY,
+        snapshot.getGranularity(),
         snapshot.getServiceLevel(),
         snapshot.getUsage(),
         snapshot.getBillingProvider(),
