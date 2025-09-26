@@ -172,7 +172,7 @@ public class SimpleAzureComponentTest extends BaseAzureComponentTest {
           1);
 
       // Verify service produces appropriate log
-      service.logs().assertContains("Subscription not found for for aggregate=");
+      service.logs().assertContains("Subscription not found for aggregate=");
 
       // Verify that no usage was sent to Azure
       wiremock.verifyNoAzureUsage(azureResourceId);
