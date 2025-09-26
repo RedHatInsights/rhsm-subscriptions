@@ -73,11 +73,6 @@ public class OfferingProductTagLookupService {
   }
 
   public OfferingProductTags findPersistedProductTagsBySku(String sku) {
-    /* In https://issues.redhat.com/browse/SWATCH-1957 below duplicate code should be removed and replaced with only table lookup
-    Can be done by return productTags by adding product tag addDataItem
-    This is because when we run this code without sku sync the product tag won't exist
-    for the offerings that are present. Hence contract lookup with fail. */
-
     OfferingProductTags productTags = new OfferingProductTags(); // NOSONAR
     productTags.setData(new ArrayList<>());
     var offering = offeringRepository.findById(sku); // NOSONAR
@@ -89,7 +84,12 @@ public class OfferingProductTagLookupService {
           null);
     }
 
-    processProductTagsBySku(offering, productTags);
+    // Check database first before going through product tag identification logic
+    if (offering.getProductTags() != null && !offering.getProductTags().isEmpty()) {
+      productTags.setData(offering.getProductTags().stream().toList());
+    } else {
+      processProductTagsBySku(offering, productTags);
+    }
     return productTags;
   }
 }

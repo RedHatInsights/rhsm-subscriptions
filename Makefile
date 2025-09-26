@@ -9,8 +9,13 @@ SHELL=/bin/bash
 	swatch-metrics-hbi \
 	swatch-metrics \
 	swatch-system-conduit \
+	swatch-utilization \
 	run-migrations \
-	build
+	build \
+	format \
+	install \
+	rollback \
+	status
 
 # Add a profile(s) to use like so:
 # make swatch-contracts PROFILES=dev,other_profile
@@ -52,8 +57,13 @@ define SPRING_PROXY
 	./mvnw -pl $(1) spring-boot:run
 endef
 
-default:
-	./mvnw clean spotless:apply install -DskipTests
+default: format install
+
+format:
+	./mvnw spotless:apply -Pbuild -Pcomponent-tests -Pcomponent-tests-by-service
+
+install:
+	./mvnw clean install -DskipTests
 
 # $@ is a variable set to the target name
 # If you add a new target here, be sure to add it to .PHONY at the top
@@ -88,3 +98,46 @@ swatch-metrics:
 
 swatch-system-conduit:
 	$(call SPRING_PROXY,$@,8017)
+
+swatch-utilization:
+	$(call QUARKUS_PROXY,$@,8018)
+
+rollback:
+	@echo "Select database context:"
+	@echo "1. Core context"
+	@echo "2. Contracts context"
+	@read -p "Enter context choice (1-2): " context; \
+	case $$context in \
+		1) CONTEXT="core" ;; \
+		2) CONTEXT="contracts" ;; \
+		*) echo "Invalid context choice"; exit 1 ;; \
+	esac; \
+	read -p "Enter number of changesets: " count; \
+	./mvnw -f swatch-database/pom.xml exec:java -Dexec.args="$$CONTEXT rollbackCountSql --count=$$count"
+
+# $1 = service name, $2 = port
+define CHECK_SERVICE_STATUS
+	@GREEN=$$(tput setaf 2 2>/dev/null || echo ''); \
+	RED=$$(tput setaf 1 2>/dev/null || echo ''); \
+	RESET=$$(tput sgr0 2>/dev/null || echo ''); \
+	printf "%-25s " "$(1) ($(2)):"; \
+	if curl -s -f http://localhost:$(2)/health >/dev/null 2>&1; then \
+		printf "$${GREEN}✓ Running$${RESET}\n"; \
+	else \
+		printf "$${RED}✗ Not running$${RESET}\n"; \
+	fi
+endef
+
+status:
+	@BOLD=$$(tput bold 2>/dev/null || echo ''); \
+	RESET=$$(tput sgr0 2>/dev/null || echo ''); \
+	echo "$${BOLD}Service Status:$${RESET}"
+	$(call CHECK_SERVICE_STATUS,swatch-tally,9010)
+	$(call CHECK_SERVICE_STATUS,swatch-contracts,9011)
+	$(call CHECK_SERVICE_STATUS,swatch-billable-usage,9012)
+	$(call CHECK_SERVICE_STATUS,swatch-producer-aws,9013)
+	$(call CHECK_SERVICE_STATUS,swatch-producer-azure,9014)
+	$(call CHECK_SERVICE_STATUS,swatch-metrics-hbi,9015)
+	$(call CHECK_SERVICE_STATUS,swatch-metrics,9016)
+	$(call CHECK_SERVICE_STATUS,swatch-system-conduit,9017)
+	$(call CHECK_SERVICE_STATUS,swatch-utilization,9018)

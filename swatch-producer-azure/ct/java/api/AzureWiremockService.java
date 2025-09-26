@@ -42,14 +42,14 @@ public class AzureWiremockService extends WiremockService {
             "azureResourceId", azureResourceId,
             "planId", AZURE_PLAN_ID,
             "azureOfferId", AZURE_OFFER_ID);
-
     given()
         .contentType("application/json")
         .body(
             Map.of(
                 "request",
                 Map.of(
-                    "method", "GET",
+                    "method",
+                    "GET",
                     "urlPathPattern",
                     "/mock/contractApi/api/swatch-contracts/internal/subscriptions/azureUsageContext.*",
                     "queryParameters",
@@ -64,18 +64,47 @@ public class AzureWiremockService extends WiremockService {
                     contextData),
                 // the default mapping defined in config/wiremock uses priority 10,
                 // so we need an higher priority here.
-                "priority", 9,
-                "metadata", Map.of(METADATA_TAG, "true")))
+                "priority",
+                9,
+                "metadata",
+                Map.of(METADATA_TAG, "true")))
         .when()
         .post("/__admin/mappings")
         .then()
         .statusCode(201);
-
     // 2. Setup Azure OAuth Token endpoint (similar to create_get_azure_oauth_token_wiremock)
     setupAzureOAuthToken();
-
     // 3. Setup Azure Send Usage endpoint (similar to create_send_azure_usage_wiremock)
     setupAzureSendUsage(azureResourceId);
+  }
+
+  public void setupAzureUsageContextToReturnSubscriptionNotFound(String billingAccountId) {
+    given()
+        .contentType("application/json")
+        .body(
+            Map.of(
+                "request",
+                Map.of(
+                    "method",
+                    "GET",
+                    "urlPathPattern",
+                    "/mock/contractApi/api/swatch-contracts/internal/subscriptions/azureUsageContext.*",
+                    "queryParameters",
+                    Map.of("azureAccountId", Map.of("equalTo", billingAccountId))),
+                "response",
+                Map.of("status", 404),
+                // the default mapping defined in config/wiremock uses priority 10,
+                // so we need a higher priority here.
+                "priority",
+                9,
+                "metadata",
+                Map.of(METADATA_TAG, "true")))
+        .when()
+        .post("/__admin/mappings")
+        .then()
+        .statusCode(201);
+    // Only setup OAuth for error case (no usage endpoint needed)
+    setupAzureOAuthToken();
   }
 
   public void verifyAzureUsage(
@@ -195,7 +224,7 @@ public class AzureWiremockService extends WiremockService {
 
             if (resourceIdNode != null
                 && (ANY.equals(azureResourceId)
-                || azureResourceId.equals(resourceIdNode.asText()))) {
+                    || azureResourceId.equals(resourceIdNode.asText()))) {
               throw new AssertionError(
                   "Azure usage request was found for resourceId: "
                       + resourceIdNode.asText()
@@ -250,7 +279,8 @@ public class AzureWiremockService extends WiremockService {
                     Map.of("Content-Type", "application/json"),
                     "jsonBody",
                     tokenResponse),
-                "metadata", Map.of(METADATA_TAG, "true")))
+                "metadata",
+                Map.of(METADATA_TAG, "true")))
         .when()
         .post("/__admin/mappings")
         .then()
@@ -289,7 +319,8 @@ public class AzureWiremockService extends WiremockService {
                     Map.of("Content-Type", "application/json"),
                     "jsonBody",
                     usageResponse),
-                "metadata", Map.of(METADATA_TAG, "true")))
+                "metadata",
+                Map.of(METADATA_TAG, "true")))
         .when()
         .post("/__admin/mappings")
         .then()

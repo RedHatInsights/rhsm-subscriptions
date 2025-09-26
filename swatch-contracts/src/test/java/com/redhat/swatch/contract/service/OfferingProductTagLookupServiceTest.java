@@ -135,4 +135,59 @@ class OfferingProductTagLookupServiceTest {
     // then product tags should be null
     assertNull(productTags.getData());
   }
+
+  @Test
+  void findPersistedProductTagsBySkuShouldReturnDatabaseTagsWhenPresent() {
+    // given an offering with product tags already stored in the database
+    OfferingEntity offering = new OfferingEntity();
+    offering.setProductTags(Set.of("rhel", "satellite"));
+    // Also set some product IDs that would normally trigger processing logic
+    offering.setProductIds(Set.of(290));
+    when(offeringRepository.findById("sku")).thenReturn(offering);
+
+    // when finding product tags
+    OfferingProductTags productTags =
+        offeringProductTagLookupService.findPersistedProductTagsBySku("sku");
+
+    // then the database product tags should be returned directly
+    assertEquals(2, productTags.getData().size());
+    assertTrue(productTags.getData().contains("rhel"));
+    assertTrue(productTags.getData().contains("satellite"));
+    // Should NOT return "OpenShift Container Platform" which would come from processing productId
+    // 290
+  }
+
+  @Test
+  void findPersistedProductTagsBySkuShouldFallbackToProcessingWhenDatabaseTagsEmpty() {
+    // given an offering with no product tags in database but has product IDs
+    OfferingEntity offering = new OfferingEntity();
+    offering.setProductTags(Set.of()); // empty set
+    offering.setProductIds(Set.of(290));
+    when(offeringRepository.findById("sku")).thenReturn(offering);
+
+    // when finding product tags
+    OfferingProductTags productTags =
+        offeringProductTagLookupService.findPersistedProductTagsBySku("sku");
+
+    // then should fallback to processing logic and return product tag from eng ID
+    assertEquals(1, productTags.getData().size());
+    assertEquals("OpenShift Container Platform", productTags.getData().get(0));
+  }
+
+  @Test
+  void findPersistedProductTagsBySkuShouldFallbackToProcessingWhenDatabaseTagsNull() {
+    // given an offering with null product tags in database but has product IDs
+    OfferingEntity offering = new OfferingEntity();
+    offering.setProductTags(null); // null
+    offering.setProductIds(Set.of(290));
+    when(offeringRepository.findById("sku")).thenReturn(offering);
+
+    // when finding product tags
+    OfferingProductTags productTags =
+        offeringProductTagLookupService.findPersistedProductTagsBySku("sku");
+
+    // then should fallback to processing logic and return product tag from eng ID
+    assertEquals(1, productTags.getData().size());
+    assertEquals("OpenShift Container Platform", productTags.getData().get(0));
+  }
 }
