@@ -292,7 +292,9 @@ spec:
               #!/bin/bash
               ./mvnw clean install -Pcomponent-tests -Dservice=${SERVICE} -Dswatch.component-tests.global.target=openshift
     - name: push-test-artifacts
-      workingDir: $(workspaces.output.path)/source
+      workspaces:
+        - name: output
+          workspace: shared-workspace
       runAfter:
         - tests
       taskRef:
