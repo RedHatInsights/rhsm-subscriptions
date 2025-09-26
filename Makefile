@@ -9,6 +9,7 @@ SHELL=/bin/bash
 	swatch-metrics-hbi \
 	swatch-metrics \
 	swatch-system-conduit \
+	swatch-utilization \
 	run-migrations \
 	build
 
@@ -88,3 +89,7 @@ swatch-metrics:
 
 swatch-system-conduit:
 	$(call SPRING_PROXY,$@,8017)
+
+swatch-utilization:
+	$(call QUARKUS_PROXY,$@,8018)
+
