@@ -93,9 +93,15 @@ spec:
       type: string
       description: Secret name to take the token from.
       default: "swatch-ibutsu-token"
-    - name: oci-registry
+    - name: OCI_REGISTRY
       description: OCI registry for storing artifacts
       default: "quay.io/repository/cloudservices"
+    - name: DATAROUTER_CREDENTIALS_NAME
+      description: Secret name to take the data router credentials from.
+      default: "datarouter-credentials"
+    - name: OCI_REGISTRY_CREDENTIALS_NAME
+      description: Secret name to take the OCI registry credentials from.
+      default: "oci-registry-credentials"
   workspaces:
     - name: shared-workspace
       description: A workspace to share data between tasks
@@ -310,9 +316,16 @@ spec:
         - name: workdir-path
           value: "${SERVICE}/ct/target/surefire-reports"
         - name: oci-ref
-          value: "$(params.oci-registry)/test-results:$(tasks.test-metadata.results.pr-number)"
+          value: "$(params.OCI_REGISTRY)/test-results:$(tasks.test-metadata.results.pr-number)"
         - name: credentials-volume-name
-          value: "oci-credentials"
+          value: "$OCI_REGISTRY_CREDENTIALS"
+      end:
+        - name: OCI_REGISTRY_CREDENTIALS
+          valueFrom:
+            secretKeyRef:
+              name: "$(params.OCI_REGISTRY_CREDENTIALS_NAME)"
+              key: token
+              optional: true
     - name: send-to-datarouter
       runAfter:
         - push-test-artifacts
@@ -329,11 +342,25 @@ spec:
         - name: datarouter-url
           value: "https://datarouter.ccitredhat.com"
         - name: datarouter-credentials
+          value: "$DATAROUTER_CREDENTIALS"
         - name: oci-artifact-uri
-          value: "$(params.oci-registry)/test-results:$(tasks.test-metadata.results.pr-number)"
+          value: "$(params.OCI_REGISTRY)/test-results:$(tasks.test-metadata.results.pr-number)"
         - name: oci-credentials
-          value: "oci-registry-credentials"
+          value: "$OCI_REGISTRY_CREDENTIALS"
         - name: metadata-path
           value: "datarouter.json"
         - name: results-pattern
           value: "TEST*.xml"
+      env:
+        - name: DATAROUTER_CREDENTIALS
+          valueFrom:
+            secretKeyRef:
+              name: "$(params.DATAROUTER_CREDENTIALS_NAME)"
+              key: token
+              optional: true
+        - name: OCI_REGISTRY_CREDENTIALS
+          valueFrom:
+            secretKeyRef:
+              name: "$(params.OCI_REGISTRY_CREDENTIALS_NAME)"
+              key: token
+              optional: true
