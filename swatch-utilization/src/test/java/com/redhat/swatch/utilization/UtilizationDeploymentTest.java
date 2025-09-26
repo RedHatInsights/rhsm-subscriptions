@@ -18,16 +18,26 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.resources.quarkus;
+package com.redhat.swatch.utilization;
 
-import static com.redhat.swatch.component.tests.utils.SwatchUtils.SERVER_PORT;
+import static io.restassured.RestAssured.given;
 
-import com.redhat.swatch.component.tests.resources.containers.OpenShiftContainerManagedResource;
-import java.util.Map;
+import com.redhat.swatch.utilization.resources.InMemoryMessageBrokerKafkaResource;
+import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.junit.QuarkusTest;
+import org.apache.http.HttpStatus;
+import org.junit.jupiter.api.Test;
 
-public class OpenShiftQuarkusManagedResource extends OpenShiftContainerManagedResource {
+@QuarkusTest
+@QuarkusTestResource(
+    value = InMemoryMessageBrokerKafkaResource.class,
+    restrictToAnnotatedClass = true)
+public class UtilizationDeploymentTest {
 
-  public OpenShiftQuarkusManagedResource(String serviceName) {
-    super(serviceName + "-service", Map.of(8080, SERVER_PORT));
+  private static final int MANAGEMENT_PORT = 9018;
+
+  @Test
+  void testHealthEndpoint() {
+    given().port(MANAGEMENT_PORT).get("/health").then().statusCode(HttpStatus.SC_OK);
   }
 }

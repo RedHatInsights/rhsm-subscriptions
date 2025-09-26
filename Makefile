@@ -9,6 +9,7 @@ SHELL=/bin/bash
 	swatch-metrics-hbi \
 	swatch-metrics \
 	swatch-system-conduit \
+	swatch-utilization \
 	run-migrations \
 	build \
 	format \
@@ -98,6 +99,9 @@ swatch-metrics:
 swatch-system-conduit:
 	$(call SPRING_PROXY,$@,8017)
 
+swatch-utilization:
+	$(call QUARKUS_PROXY,$@,8018)
+
 rollback:
 	@echo "Select database context:"
 	@echo "1. Core context"
@@ -136,3 +140,4 @@ status:
 	$(call CHECK_SERVICE_STATUS,swatch-metrics-hbi,9015)
 	$(call CHECK_SERVICE_STATUS,swatch-metrics,9016)
 	$(call CHECK_SERVICE_STATUS,swatch-system-conduit,9017)
+	$(call CHECK_SERVICE_STATUS,swatch-utilization,9018)
