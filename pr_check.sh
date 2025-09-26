@@ -57,7 +57,16 @@ for service in $SERVICES; do
   APP_ROOT=$(get_approot $service)
   source $CICD_ROOT/build.sh
 
-  IMAGES=" ${IMAGES} -i ${IMAGE}=${IMAGE_TAG} "
+  # Special case: rhsm-subscriptions image is really the swatch-api and swatch-tally services:
+  if [ "$service" = "rhsm-subscriptions" ]; then
+    IMAGES=" ${IMAGES} -p swatch-api/IMAGE=${IMAGE} -p swatch-api/IMAGE_TAG=${IMAGE_TAG} "
+    IMAGES=" ${IMAGES} -p swatch-tally/IMAGE=${IMAGE} -p swatch-tally/IMAGE_TAG=${IMAGE_TAG} "
+  elif [ "$service" = "swatch-unleash-import" ]; then
+    IMAGES=" ${IMAGES} -i ${IMAGE}=${IMAGE_TAG} "
+  else
+    # Add parameters for the current service
+    IMAGES=" ${IMAGES} -p ${service}/IMAGE=${IMAGE} -p ${service}/IMAGE_TAG=${IMAGE_TAG} "
+  fi
 done
 
 APP_ROOT=$PWD
