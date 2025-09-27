@@ -1,0 +1,34 @@
+{
+  "targets": {
+    "reportportal": {
+      "config": {
+        "hostname": "reportportal-smqe.apps.dno.ocp-hub.prod.psi.redhat.com",
+        "project": "SUBSCRIPTION_WATCH"
+      },
+      "processing": {
+        "property_filter": [
+        ],
+        "apply_tfa": false,
+        "apply_llm_analysis": false,
+        "disable_testitem_updater": true,
+        "launch": {
+          "name": "My_test",
+          "description": "My_description",
+          "attributes": [
+            {"value": "test_only_value"},
+            {
+              "key": "tool",
+              "value": "data-router"
+            }
+          ]
+        },
+        "tfa": {
+          "add_attributes": false,
+          "auto_finalize_defect_type": false,
+          "auto_finalization_threshold": 0.55
+        },
+        "testcase_concat_char": "."
+      }
+    }
+  }
+}

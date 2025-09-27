@@ -93,6 +93,15 @@ spec:
       type: string
       description: Secret name to take the token from.
       default: "swatch-ibutsu-token"
+    - name: OCI_REGISTRY
+      description: OCI registry for storing artifacts
+      default: "quay.io/repository/cloudservices"
+    - name: DATAROUTER_CREDENTIALS_NAME
+      description: Secret name to take the data router credentials from.
+      default: "datarouter-credentials"
+    - name: OCI_REGISTRY_CREDENTIALS_NAME
+      description: Secret name to take the OCI registry credentials from.
+      default: "oci-registry-credentials"
   workspaces:
     - name: shared-workspace
       description: A workspace to share data between tasks
@@ -288,77 +297,70 @@ spec:
             script: |
               #!/bin/bash
               ./mvnw clean install -Pcomponent-tests -Dservice=${SERVICE} -Dswatch.component-tests.global.target=openshift
-          - name: upload-test-report
-            image: registry.access.redhat.com/ubi9/ubi-minimal
-            workingDir: $(workspaces.output.path)/source
-            env:
-              - name: IBUTSU_SERVER_URL
-                value: "$(params.IBUTSU_SERVER_URL)"
-              - name: IBUTSU_PROJECT_ID
-                value: "$(params.IBUTSU_PROJECT_ID)"
-              - name: IBUTSU_TOKEN
-                valueFrom:
-                  secretKeyRef:
-                    name: "$(params.IBUTSU_SECRET_NAME)"
-                    key: token
-                    optional: true
-              - name: SERVICE
-                value: "$(params.SERVICE)"
-            script: |
-              #!/bin/bash
-              if [[ -z "${IBUTSU_TOKEN}" ]]; then
-                echo "IBUTSU_TOKEN is not set or empty. Skipping test report upload"
-                exit 1
-              fi
-                            
-              TEST_FILE_REPORTS=()
-              COUNT=0
-              REPORT_FILE=""
-              
-              for file in "${SERVICE}"/ct/target/surefire-reports/*.xml; do
-                if [[ -f "$file" ]]; then
-                  TEST_FILE_REPORTS+=("$file")
-                  COUNT=$((COUNT + 1))
-                  TEST_FILE_REPORT="$file"
-                fi
-              done
-              
-              if [[ $COUNT -eq 1 ]]; then
-                echo "Found a single report file: $TEST_FILE_REPORT"
-              else
-                echo "Error: Expected exactly one report file, but found $COUNT"
-                exit 1
-              fi
-              
-              # Make curl verbose while hiding the bearer token
-              HTTP_STATUS=$(curl -w '%{http_code}' -v -o /tmp/curl_response.txt -X 'POST' ${IBUTSU_SERVER_URL} \
-              -H 'accept: application/json' \
-              -H "Authorization: Bearer ${IBUTSU_TOKEN}" \
-              -H 'Content-Type: multipart/form-data' \
-              -F "importFile=@${TEST_FILE_REPORT};type=text/xml" \
-              -F 'metadata={"tags": ["subscription-watch"]}' \
-              -F "project=${IBUTSU_PROJECT_ID}" \
-              -F 'source=konflux-pipeline' \
-              -F 'env=ephemeral' 2>&1 | tee /tmp/curl_verbose.log | sed 's/Authorization: Bearer [^[:space:]]*/Authorization: Bearer [REDACTED]/g' | grep -E '^[<>]|^HTTP|^curl:|^Total|^Dump|^Connected|^Send|^Recv' || true)
-              
-              # Display verbose curl output (with token redacted)
-              echo "=== Curl Verbose Output ==="
-              if [[ -f /tmp/curl_verbose.log ]]; then
-                sed 's/Authorization: Bearer [^[:space:]]*/Authorization: Bearer [REDACTED]/g' /tmp/curl_verbose.log | grep -E '^[<>]|^HTTP|^curl:|^Total|^Dump|^Connected|^Send|^Recv' || true
-              fi
-              echo "=== End Curl Verbose Output ==="
-              
-              if [[ $HTTP_STATUS -ge 200 && $HTTP_STATUS -lt 300 ]]; then
-                echo "Test report uploaded successfully to Ibutsu"
-                cat /tmp/curl_response.txt
-              else
-                echo "Failed to upload test report to Ibutsu. HTTP status: $HTTP_STATUS"
-                echo "Response body:"
-                cat /tmp/curl_response.txt
-                # SMELL: The upload test report is failing because Konflux is not running on an internal cluster.
-                # This should be fixed by:
-                # - https://gitlab.cee.redhat.com/releng/konflux-release-data/-/merge_requests/10262
-                # For now, we are ignoring the upload test report failures. 
-                # exit 1
-                exit 0
-              fi
+    - name: push-test-artifacts
+      workspaces:
+        - name: output
+          workspace: shared-workspace
+      runAfter:
+        - tests
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/konflux-ci/tekton-integration-catalog.git
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: stepactions/secure-push-oci/0.1/secure-push-oci.yaml
+      params:
+        - name: workdir-path
+          value: "${SERVICE}/ct/target/surefire-reports"
+        - name: oci-ref
+          value: "$(params.OCI_REGISTRY)/test-results:$(tasks.test-metadata.results.pr-number)"
+        - name: credentials-volume-name
+          value: "$OCI_REGISTRY_CREDENTIALS"
+      end:
+        - name: OCI_REGISTRY_CREDENTIALS
+          valueFrom:
+            secretKeyRef:
+              name: "$(params.OCI_REGISTRY_CREDENTIALS_NAME)"
+              key: token
+              optional: true
+    - name: send-to-datarouter
+      runAfter:
+        - push-test-artifacts
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/konflux-ci/tekton-integration-catalog.git
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: tasks/test-results/datarouter/0.1/datarouter.yaml
+      params:
+        - name: datarouter-url
+          value: "https://datarouter.ccitredhat.com"
+        - name: datarouter-credentials
+          value: "$DATAROUTER_CREDENTIALS"
+        - name: oci-artifact-uri
+          value: "$(params.OCI_REGISTRY)/test-results:$(tasks.test-metadata.results.pr-number)"
+        - name: oci-credentials
+          value: "$OCI_REGISTRY_CREDENTIALS"
+        - name: metadata-path
+          value: "datarouter.json"
+        - name: results-pattern
+          value: "TEST*.xml"
+      env:
+        - name: DATAROUTER_CREDENTIALS
+          valueFrom:
+            secretKeyRef:
+              name: "$(params.DATAROUTER_CREDENTIALS_NAME)"
+              key: token
+              optional: true
+        - name: OCI_REGISTRY_CREDENTIALS
+          valueFrom:
+            secretKeyRef:
+              name: "$(params.OCI_REGISTRY_CREDENTIALS_NAME)"
+              key: token
+              optional: true
