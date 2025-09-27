@@ -18,20 +18,11 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db.model;
+package com.redhat.swatch.contracts.spring.client;
 
-import java.io.Serializable;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+/** Provides a callback function to get the current x-rh-identity header. */
+@FunctionalInterface
+public interface IdentityHeaderProvider {
 
-@Builder
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class SubscriptionCapacityViewMetric implements Serializable {
-  private String metricId;
-  private String measurementType;
-  private Double capacity;
+  String get();
 }

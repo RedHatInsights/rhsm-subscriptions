@@ -11,3 +11,14 @@ rhsm-subscriptions:
     truststore-password: ${clowder.endpoints.rbac-service.trust-store-password}
     truststore-type: ${clowder.endpoints.rbac-service.trust-store-type}
     max-connections: ${RHSM_RBAC_MAX_CONNECTIONS:100}
+  contracts:
+    client:
+      back-off-initial-interval: ${CONTRACT_CLIENT_BACK_OFF_INITIAL_INTERVAL_MILLIS:1000}
+      back-off-max-interval: ${CONTRACT_CLIENT_BACK_OFF_MAX_INTERVAL_MILLIS:64000}
+      back-off-multiplier: ${CONTRACT_CLIENT_BACK_OFF_MULTIPLIER:2}
+      max-attempts: ${CONTRACT_CLIENT_MAX_ATTEMPTS:1}
+      url: ${clowder.endpoints.swatch-contracts-service.url:http://localhost:8001}
+      truststore: ${clowder.endpoints.swatch-contracts-service.trust-store-path}
+      truststore-password: ${clowder.endpoints.swatch-contracts-service.trust-store-password}
+      truststore-type: ${clowder.endpoints.swatch-contracts-service.trust-store-type}
+      psk: ${SWATCH_SELF_PSK:placeholder}
