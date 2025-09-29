@@ -318,14 +318,7 @@ spec:
         - name: oci-ref
           value: "$(params.OCI_REGISTRY)/test-results:$(tasks.test-metadata.results.pr-number)"
         - name: credentials-volume-name
-          value: "$OCI_REGISTRY_CREDENTIALS"
-      end:
-        - name: OCI_REGISTRY_CREDENTIALS
-          valueFrom:
-            secretKeyRef:
-              name: "$(params.OCI_REGISTRY_CREDENTIALS_NAME)"
-              key: token
-              optional: true
+          value: "oci-credentials"
     - name: send-to-datarouter
       runAfter:
         - push-test-artifacts
@@ -342,25 +335,12 @@ spec:
         - name: datarouter-url
           value: "https://datarouter.ccitredhat.com"
         - name: datarouter-credentials
-          value: "$DATAROUTER_CREDENTIALS"
+          value: "datarouter-credentials"
         - name: oci-artifact-uri
           value: "$(params.OCI_REGISTRY)/test-results:$(tasks.test-metadata.results.pr-number)"
         - name: oci-credentials
-          value: "$OCI_REGISTRY_CREDENTIALS"
+          value: "oci-registry-credentials"
         - name: metadata-path
           value: "datarouter.json"
         - name: results-pattern
           value: "TEST*.xml"
-      env:
-        - name: DATAROUTER_CREDENTIALS
-          valueFrom:
-            secretKeyRef:
-              name: "$(params.DATAROUTER_CREDENTIALS_NAME)"
-              key: token
-              optional: true
-        - name: OCI_REGISTRY_CREDENTIALS
-          valueFrom:
-            secretKeyRef:
-              name: "$(params.OCI_REGISTRY_CREDENTIALS_NAME)"
-              key: token
-              optional: true
