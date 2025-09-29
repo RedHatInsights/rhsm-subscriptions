@@ -120,7 +120,7 @@ public class WireMockResource implements QuarkusTestResourceLifecycleManager {
             .withRequestBody(containing("client_credentials"))
             .willReturn(
                 okJson(
-                    """
+"""
 {
   "access_token":"%s",
   "token_type":"Bearer",

@@ -15,6 +15,7 @@ SERVICES=(
     "swatch-metrics-hbi:9015"
     "swatch-metrics:9016"
     "swatch-system-conduit:9017"
+    "swatch-utilization:9018"
 )
 
 echo "🚀 Testing all services health..."

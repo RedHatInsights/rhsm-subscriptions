@@ -149,7 +149,7 @@ public class BaseService<T extends Service> implements Service {
       return;
     }
 
-    Log.debug(this, "Starting service (%s)", getDisplayName());
+    Log.trace(this, "Starting service (%s)", getDisplayName());
     doStart();
     Log.info(this, "Service started (%s)", getDisplayName());
   }
