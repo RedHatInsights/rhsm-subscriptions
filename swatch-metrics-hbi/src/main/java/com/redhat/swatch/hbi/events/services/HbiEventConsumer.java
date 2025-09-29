@@ -57,7 +57,6 @@ public class HbiEventConsumer {
   private final HbiEventOutboxRepository outboxRepository;
 
   public HbiEventConsumer(
-      FeatureFlags flags,
       HbiEventProcessor hbiEventProcessor,
       ObjectMapper objectMapper,
       MeterRegistry meterRegistry,
