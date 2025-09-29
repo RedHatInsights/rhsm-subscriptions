@@ -597,6 +597,7 @@
         <!-- Services with component tests -->
         <module>swatch-producer-azure/ct</module>
         <module>swatch-utilization/ct</module>
+        <module>swatch-contracts/ct</module>
       </modules>
 
       <dependencyManagement>
