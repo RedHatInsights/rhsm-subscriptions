@@ -238,5 +238,10 @@
       <artifactId>swatch-producer-azure</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-utilization</artifactId>
+      <version>${project.version}</version>
+    </dependency>
   </dependencies>
 </project>

@@ -18,16 +18,11 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.resources.quarkus;
+package com.redhat.swatch.utilization.configuration;
 
-import static com.redhat.swatch.component.tests.utils.SwatchUtils.SERVER_PORT;
+public class Channels {
 
-import com.redhat.swatch.component.tests.resources.containers.OpenShiftContainerManagedResource;
-import java.util.Map;
+  public static final String UTILIZATION = "utilization-in";
 
-public class OpenShiftQuarkusManagedResource extends OpenShiftContainerManagedResource {
-
-  public OpenShiftQuarkusManagedResource(String serviceName) {
-    super(serviceName + "-service", Map.of(8080, SERVER_PORT));
-  }
+  private Channels() {}
 }

@@ -18,16 +18,31 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.resources.quarkus;
+package com.redhat.swatch.utilization.service;
 
-import static com.redhat.swatch.component.tests.utils.SwatchUtils.SERVER_PORT;
+import static com.redhat.swatch.utilization.configuration.Channels.UTILIZATION;
 
-import com.redhat.swatch.component.tests.resources.containers.OpenShiftContainerManagedResource;
-import java.util.Map;
+import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import lombok.extern.slf4j.Slf4j;
+import org.eclipse.microprofile.reactive.messaging.Incoming;
 
-public class OpenShiftQuarkusManagedResource extends OpenShiftContainerManagedResource {
+@Slf4j
+@ApplicationScoped
+public class UtilizationSummaryConsumer {
 
-  public OpenShiftQuarkusManagedResource(String serviceName) {
-    super(serviceName + "-service", Map.of(8080, SERVER_PORT));
+  protected static final String RECEIVED_METRIC = "swatch_utilization_received";
+
+  @Inject MeterRegistry meterRegistry;
+
+  @Incoming(UTILIZATION)
+  public void process(String payload) {
+    // TODO: add tags to the counter. To be done in SWATCH-4005
+    incrementCounter();
+  }
+
+  private void incrementCounter() {
+    meterRegistry.counter(RECEIVED_METRIC).increment(1);
   }
 }

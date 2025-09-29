@@ -18,16 +18,26 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.resources.quarkus;
+package com.redhat.swatch.utilization.resources;
 
-import static com.redhat.swatch.component.tests.utils.SwatchUtils.SERVER_PORT;
+import static com.redhat.swatch.utilization.configuration.Channels.UTILIZATION;
 
-import com.redhat.swatch.component.tests.resources.containers.OpenShiftContainerManagedResource;
+import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import io.smallrye.reactive.messaging.memory.InMemoryConnector;
+import java.util.HashMap;
 import java.util.Map;
 
-public class OpenShiftQuarkusManagedResource extends OpenShiftContainerManagedResource {
+public class InMemoryMessageBrokerKafkaResource implements QuarkusTestResourceLifecycleManager {
 
-  public OpenShiftQuarkusManagedResource(String serviceName) {
-    super(serviceName + "-service", Map.of(8080, SERVER_PORT));
+  public static final String IN_MEMORY_CONNECTOR = "smallrye-in-memory";
+
+  @Override
+  public Map<String, String> start() {
+    return new HashMap<>(InMemoryConnector.switchIncomingChannelsToInMemory(UTILIZATION));
+  }
+
+  @Override
+  public void stop() {
+    InMemoryConnector.clear();
   }
 }
