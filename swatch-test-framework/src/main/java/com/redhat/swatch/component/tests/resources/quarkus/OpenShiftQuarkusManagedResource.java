@@ -20,12 +20,14 @@
  */
 package com.redhat.swatch.component.tests.resources.quarkus;
 
+import static com.redhat.swatch.component.tests.utils.SwatchUtils.SERVER_PORT;
+
 import com.redhat.swatch.component.tests.resources.containers.OpenShiftContainerManagedResource;
 import java.util.Map;
 
 public class OpenShiftQuarkusManagedResource extends OpenShiftContainerManagedResource {
 
   public OpenShiftQuarkusManagedResource(String serviceName) {
-    super(serviceName + "-service", Map.of(8080, 8000));
+    super(serviceName + "-service", Map.of(8080, SERVER_PORT));
   }
 }

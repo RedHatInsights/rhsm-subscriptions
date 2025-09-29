@@ -7,6 +7,11 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
   <changeSet id="202404080930-1" author="jcarvaja">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <columnExists tableName="offering" columnName="special_pricing_flag"/>
+      </not>
+    </preConditions>
     <addColumn tableName="offering">
       <column name="special_pricing_flag" type="VARCHAR(255)"/>
     </addColumn>

@@ -161,12 +161,8 @@
     </createIndex>
   </changeSet>
 
-  <changeSet id="202509021332-7" author="awood" dbms="postgresql">
-    <preConditions onFail="MARK_RAN">
-      <not>
-        <viewExists viewName="subscription_capacity_view"/>
-      </not>
-    </preConditions>
+  <changeSet id="202509021332-7" author="awood" dbms="postgresql" runOnChange="true">
+    <dropView viewName="subscription_capacity_view" ifExists="true"/>
     <createView replaceIfExists="true" viewName="subscription_capacity_view">
     <![CDATA[
     with active_subscriptions as (
