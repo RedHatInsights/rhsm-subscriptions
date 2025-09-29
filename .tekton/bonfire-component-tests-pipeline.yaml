@@ -302,7 +302,7 @@ spec:
         - name: output
           workspace: shared-workspace
       runAfter:
-        - tests
+        - run-tests-task
       taskRef:
         resolver: git
         params:
