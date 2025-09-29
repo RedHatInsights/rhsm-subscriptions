@@ -316,7 +316,7 @@ spec:
         - name: workdir-path
           value: "${SERVICE}/ct/target/surefire-reports"
         - name: oci-ref
-          value: "$(params.OCI_REGISTRY)/test-results:$(tasks.test-metadata.results.pr-number)"
+          value: "$(params.OCI_REGISTRY)/test-results"
         - name: credentials-volume-name
           value: "oci-credentials"
     - name: send-to-datarouter
@@ -337,7 +337,7 @@ spec:
         - name: datarouter-credentials
           value: "datarouter-credentials"
         - name: oci-artifact-uri
-          value: "$(params.OCI_REGISTRY)/test-results:$(tasks.test-metadata.results.pr-number)"
+          value: "$(params.OCI_REGISTRY)/test-results"
         - name: oci-credentials
           value: "oci-registry-credentials"
         - name: metadata-path
