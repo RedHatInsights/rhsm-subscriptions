@@ -408,7 +408,7 @@ public class ContractsResource implements DefaultApi {
   }
 
   @Override
-  @RolesAllowed({"test", "support", "service"})
+  @RolesAllowed({"test"})
   public OfferingProductTags getSkuProductTags(String sku) throws ProcessingException {
     return offeringProductTagLookupService.findPersistedProductTagsBySku(sku);
   }

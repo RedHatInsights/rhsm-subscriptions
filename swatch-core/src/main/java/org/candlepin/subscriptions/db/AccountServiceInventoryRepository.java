@@ -34,7 +34,7 @@ public interface AccountServiceInventoryRepository
   @Modifying
   @Query(
       value =
-          """
+"""
 INSERT INTO account_services (org_id, service_type) VALUES (:orgId, :serviceType) ON CONFLICT DO NOTHING
 """,
       nativeQuery = true)

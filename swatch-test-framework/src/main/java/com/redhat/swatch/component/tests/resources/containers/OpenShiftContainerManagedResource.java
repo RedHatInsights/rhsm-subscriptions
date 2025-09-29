@@ -121,7 +121,7 @@ public abstract class OpenShiftContainerManagedResource extends ManagedResource 
   }
 
   private void validateService() {
-    // check whether service does exist
+    // check whether the service does exist
     client.checkServiceExists(serviceName);
     // check whether pods do exist
     client.checkPodsExists(serviceName, podLabels(), containerName());
