@@ -50,6 +50,10 @@ IMAGES=""
 export COMPONENT_NAME="rhsm"  # name of app-sre "resourceTemplate" in deploy.yaml for this component
 # prebuild artifacts for quarkus builds
 for service in $SERVICES; do
+  # Skip swatch-utilization deployment until SWATCH-4003 is done
+  if [ "$service" = "swatch-utilization" ]; then
+    continue
+  fi
   export IMAGE="quay.io/cloudservices/$service"  # the image location on quay
   export DOCKERFILE="$(get_dockerfile $service)"
 
@@ -57,10 +61,7 @@ for service in $SERVICES; do
   APP_ROOT=$(get_approot $service)
   source $CICD_ROOT/build.sh
 
-  # Skip swatch-utilization deployment until SWATCH-4003 is done
-  if [ "$service" = "swatch-utilization" ]; then
-    continue
-  elif [ "$service" = "rhsm-subscriptions" ]; then
+  if [ "$service" = "rhsm-subscriptions" ]; then
     # Special case: rhsm-subscriptions image is really the swatch-api and swatch-tally services:
     IMAGES=" ${IMAGES} -p swatch-api/IMAGE=${IMAGE} -p swatch-api/IMAGE_TAG=${IMAGE_TAG} "
     IMAGES=" ${IMAGES} -p swatch-tally/IMAGE=${IMAGE} -p swatch-tally/IMAGE_TAG=${IMAGE_TAG} "
