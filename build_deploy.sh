@@ -26,6 +26,11 @@ git config user.name "$(git --no-pager log --format=format:'%an' -n 1)"
 git config user.email "$(git --no-pager log --format=format:'%ae' -n 1)"
 
 for service in $SERVICES; do
+  # Skip swatch-utilization image until SWATCH-4003 is done
+  if [ "${service}" = "swatch-utilization" ]; then
+    continue
+  fi
+
   IMAGE_NAME="quay.io/cloudservices/${service}"
   DOCKERFILE=$(get_dockerfile "$service")
   docker build --ulimit nofile=2048:2048 \

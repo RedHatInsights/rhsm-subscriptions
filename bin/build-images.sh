@@ -9,7 +9,8 @@ valid_artifacts=('rhsm-subscriptions'
   'swatch-billable-usage'
   'swatch-unleash-import'
   'swatch-metrics-hbi'
-  'swatch-database')
+  'swatch-database'
+  'swatch-utilization')
 
 function build_failed() {
     # Return from the directory the script started in
