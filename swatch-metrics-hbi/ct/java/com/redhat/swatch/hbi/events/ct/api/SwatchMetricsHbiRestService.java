@@ -9,12 +9,11 @@ public class SwatchMetricsHbiRestService extends SwatchService {
 
   public FlushResponse flushOutboxSynchronously() {
     return given()
-        .log().all()
         .headers(
             Map.of(
                 "Content-Type", "application/json",
                 "x-rh-swatch-synchronous-request", "true",
-                "x-rh-swatch-psk", "placeholder"
+                "x-rh-swatch-psk", SWATCH_PSK
             ))
         .put(String.format("%s/internal/rpc/outbox/flush", API_ROOT))
         .then()
