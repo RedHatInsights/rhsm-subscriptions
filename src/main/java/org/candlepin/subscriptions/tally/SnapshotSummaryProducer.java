@@ -65,36 +65,42 @@ public class SnapshotSummaryProducer {
 
   public void produceTallySummaryMessages(
       Map<String, List<TallySnapshot>> newAndUpdatedSnapshots, List<Granularity> granularities) {
+    Map<Granularity, Map<String, List<TallySnapshot>>> groupedSnapshots =
+        groupByGranularity(newAndUpdatedSnapshots, granularities);
     granularities.forEach(
         granularity -> {
           AtomicInteger totalTallies = new AtomicInteger();
-          newAndUpdatedSnapshots.forEach(
-              (orgId, snapshots) ->
-                  /* Filter snapshots, as we only deal with hourly, non Any fields
-                  and measurement types other than Total
-                  when we transmit the tally summary message to the BillableUsage component. */
-                  snapshots.stream()
-                      .filter(
-                          snapshot ->
-                              filterByGranularityAndNotAnySnapshots(
-                                  snapshot, granularity.getValue()))
-                      .map(
-                          snapshot -> {
-                            removeTotalMeasurements(snapshot);
-                            return snapshot;
-                          })
-                      .sorted(Comparator.comparing(TallySnapshot::getSnapshotDate))
-                      .map(snapshot -> summaryMapper.mapSnapshots(orgId, List.of(snapshot)))
-                      .forEach(
-                          summary -> {
-                            kafkaRetryTemplate.execute(
-                                ctx ->
-                                    tallySummaryKafkaTemplate.send(
-                                        tallySummaryTopic, orgId, summary));
-                            totalTallies.getAndIncrement();
-                          }));
+          if (groupedSnapshots.get(granularity) != null) {
+            groupedSnapshots
+                .get(granularity)
+                .forEach(
+                    (orgId, snapshots) ->
+                        /* Filter snapshots for specific granularity, non-Any fields
+                        and measurement types other than Total
+                        when we transmit the tally summary message to the BillableUsage component. */
+                        snapshots.stream()
+                            .filter(
+                                snapshot ->
+                                    filterByGranularityAndNotAnySnapshots(
+                                        snapshot, granularity.getValue()))
+                            .map(
+                                snapshot -> {
+                                  removeTotalMeasurements(snapshot);
+                                  return snapshot;
+                                })
+                            .sorted(Comparator.comparing(TallySnapshot::getSnapshotDate))
+                            .map(snapshot -> summaryMapper.mapSnapshots(orgId, List.of(snapshot)))
+                            .forEach(
+                                summary -> {
+                                  kafkaRetryTemplate.execute(
+                                      ctx ->
+                                          tallySummaryKafkaTemplate.send(
+                                              tallySummaryTopic, orgId, summary));
+                                  totalTallies.getAndIncrement();
+                                }));
 
-          log.info("Produced {} {} TallySummary messages", totalTallies, granularity);
+            log.info("Produced {} {} TallySummary messages", totalTallies, granularity);
+          }
         });
   }
 
@@ -110,6 +116,32 @@ public class SnapshotSummaryProducer {
 
   public static boolean filterByHourlyAndNotAnySnapshots(TallySnapshot snapshot) {
     return filterByGranularityAndNotAnySnapshots(snapshot, Granularity.HOURLY.getValue());
+  }
+
+  public static Map<Granularity, Map<String, List<TallySnapshot>>> groupByGranularity(
+      Map<String, List<TallySnapshot>> snapshots, List<Granularity> granularities) {
+    Map<Granularity, Map<String, List<TallySnapshot>>> result = new java.util.HashMap<>();
+    snapshots.forEach(
+        (orgId, snapshotList) -> {
+          snapshotList.forEach(
+              snapshot -> {
+                Granularity granularity = snapshot.getGranularity();
+                if (granularity != null && granularities.contains(granularity)) {
+                  Map<String, List<TallySnapshot>> snapshotMap = result.get(granularity);
+                  if (snapshotMap == null) {
+                    snapshotMap = new java.util.HashMap<>();
+                    result.put(granularity, snapshotMap);
+                  }
+                  List<TallySnapshot> orgList = snapshotMap.get(orgId);
+                  if (orgList == null) {
+                    orgList = new java.util.ArrayList<>();
+                    snapshotMap.put(orgId, orgList);
+                  }
+                  orgList.add(snapshot);
+                }
+              });
+        });
+    return result;
   }
 
   public static boolean filterByGranularityAndNotAnySnapshots(
