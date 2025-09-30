@@ -44,10 +44,17 @@ public class SimpleUtilizationComponentTest extends BaseUtilizationComponentTest
     kafkaBridge.produceKafkaMessage(UTILIZATION, "any");
 
     // assert
-    AwaitilityUtils.untilAsserted(() -> {
-      double after = service.getMetricByTags(RECEIVED_METRIC);
-      assertTrue(after > before, "The metric should have been incremented. "
-          + "Previous value: " + before + ", new value: " + after + ".");
-    });
+    AwaitilityUtils.untilAsserted(
+        () -> {
+          double after = service.getMetricByTags(RECEIVED_METRIC);
+          assertTrue(
+              after > before,
+              "The metric should have been incremented. "
+                  + "Previous value: "
+                  + before
+                  + ", new value: "
+                  + after
+                  + ".");
+        });
   }
 }

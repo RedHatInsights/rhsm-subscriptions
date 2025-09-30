@@ -49,7 +49,8 @@ public class AzureWiremockService extends WiremockService {
             Map.of(
                 "request",
                 Map.of(
-                    "method", "GET",
+                    "method",
+                    "GET",
                     "urlPathPattern",
                     "/mock/contractApi/api/swatch-contracts/internal/subscriptions/azureUsageContext.*",
                     "queryParameters",
@@ -64,8 +65,10 @@ public class AzureWiremockService extends WiremockService {
                     contextData),
                 // the default mapping defined in config/wiremock uses priority 10,
                 // so we need an higher priority here.
-                "priority", 9,
-                "metadata", Map.of(METADATA_TAG, "true")))
+                "priority",
+                9,
+                "metadata",
+                Map.of(METADATA_TAG, "true")))
         .when()
         .post("/__admin/mappings")
         .then()
@@ -195,7 +198,7 @@ public class AzureWiremockService extends WiremockService {
 
             if (resourceIdNode != null
                 && (ANY.equals(azureResourceId)
-                || azureResourceId.equals(resourceIdNode.asText()))) {
+                    || azureResourceId.equals(resourceIdNode.asText()))) {
               throw new AssertionError(
                   "Azure usage request was found for resourceId: "
                       + resourceIdNode.asText()
@@ -250,7 +253,8 @@ public class AzureWiremockService extends WiremockService {
                     Map.of("Content-Type", "application/json"),
                     "jsonBody",
                     tokenResponse),
-                "metadata", Map.of(METADATA_TAG, "true")))
+                "metadata",
+                Map.of(METADATA_TAG, "true")))
         .when()
         .post("/__admin/mappings")
         .then()
@@ -289,7 +293,8 @@ public class AzureWiremockService extends WiremockService {
                     Map.of("Content-Type", "application/json"),
                     "jsonBody",
                     usageResponse),
-                "metadata", Map.of(METADATA_TAG, "true")))
+                "metadata",
+                Map.of(METADATA_TAG, "true")))
         .when()
         .post("/__admin/mappings")
         .then()

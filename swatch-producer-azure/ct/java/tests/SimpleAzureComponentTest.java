@@ -36,6 +36,7 @@ public class SimpleAzureComponentTest extends BaseAzureComponentTest {
   @Test
   public void testValidAzureUsageMessages() {
     // Setup
+
     String productId = "rhel-for-x86-els-payg-addon";
     String metricId = "vCPUs";
     String billingAccountId = UUID.randomUUID().toString();
@@ -94,8 +95,7 @@ public class SimpleAzureComponentTest extends BaseAzureComponentTest {
 
     // Wait for a status message (if any) and verify it contains the billing account ID
     // The status could be "failed", "error", or the message might not be sent at all
-    kafkaBridge.waitForKafkaMessage(
-        BILLABLE_USAGE_STATUS, messages -> true, 0);
+    kafkaBridge.waitForKafkaMessage(BILLABLE_USAGE_STATUS, messages -> true, 0);
 
     // Verify that no usage was sent to Azure
     wiremock.verifyNoAzureUsage(azureResourceId);
