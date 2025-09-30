@@ -22,7 +22,6 @@ package com.redhat.swatch.component.tests.api;
 
 public class UnleashService extends RestService {
 
-  private static final String EMIT_EVENTS = "swatch.swatch-metrics-hbi.emit-events";
   private static final String ADMIN_TOKEN =
       System.getenv("UNLEASH_ADMIN_TOKEN") != null
           ? System.getenv("UNLEASH_ADMIN_TOKEN")
@@ -31,37 +30,33 @@ public class UnleashService extends RestService {
   @Override
   public void start() {
     super.start();
-    enableFlag();
-    disableFlag();
   }
 
-  public void enableFlag() {
+  public void enableFlag(String flag) {
     given()
         .header("Authorization", ADMIN_TOKEN)
         .contentType("application/json")
         .when()
-        .post(
-            "/api/admin/projects/default/features/" + EMIT_EVENTS + "/environments/development/on")
+        .post("/api/admin/projects/default/features/" + flag + "/environments/development/on")
         .then()
         .statusCode(200);
   }
 
-  public void disableFlag() {
+  public void disableFlag(String flag) {
     given()
         .header("Authorization", ADMIN_TOKEN)
         .contentType("application/json")
         .when()
-        .post(
-            "/api/admin/projects/default/features/" + EMIT_EVENTS + "/environments/development/off")
+        .post("/api/admin/projects/default/features/" + flag + "/environments/development/off")
         .then()
         .statusCode(200);
   }
 
-  public boolean isFlagEnabled() {
+  public boolean isFlagEnabled(String flag) {
     return given()
         .header("Authorization", ADMIN_TOKEN)
         .when()
-        .get("/api/admin/projects/default/features/" + EMIT_EVENTS)
+        .get("/api/admin/projects/default/features/" + flag)
         .then()
         .statusCode(200)
         .extract()
