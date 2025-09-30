@@ -303,22 +303,25 @@ spec:
           workspace: shared-workspace
       runAfter:
         - run-tests-task
-      taskRef:
-        resolver: git
-        params:
-          - name: url
-            value: https://github.com/konflux-ci/tekton-integration-catalog.git
-          - name: revision
-            value: main
-          - name: pathInRepo
-            value: stepactions/secure-push-oci/0.1/secure-push-oci.yaml
-      params:
-        - name: workdir-path
-          value: "${SERVICE}/ct/target/surefire-reports"
-        - name: oci-ref
-          value: "$(params.OCI_REGISTRY)/test-results"
-        - name: credentials-volume-name
-          value: "oci-credentials"
+      taskSpec:
+        steps:
+          - name: push-artifacts-step
+            ref:
+              resolver: git
+              params:
+                - name: url
+                  value: https://github.com/konflux-ci/tekton-integration-catalog.git
+                - name: revision
+                  value: main
+                - name: pathInRepo
+                  value: stepactions/secure-push-oci/0.1/secure-push-oci.yaml
+            params:
+              - name: workdir-path
+                value: "${SERVICE}/ct/target/surefire-reports"
+              - name: oci-ref
+                value: "$(params.OCI_REGISTRY)/test-results"
+              - name: credentials-volume-name
+                value: "oci-credentials"
     - name: send-to-datarouter
       runAfter:
         - push-test-artifacts
