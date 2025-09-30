@@ -6,6 +6,7 @@ import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.Quarkus;
 import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.utils.Topics;
+import com.redhat.swatch.hbi.events.ct.api.SwatchMetricsHbiRestService;
 import org.junit.jupiter.api.Tag;
 
 @ComponentTest
@@ -18,6 +19,6 @@ public class BaseSMHBIComponentTest {
           .subscribeToTopic(Topics.HBI_EVENT_IN);
 
   @Quarkus(service = "swatch-metrics-hbi")
-  static SwatchService service = new SwatchService();
+  static SwatchMetricsHbiRestService swatchMetricsHbi = new SwatchMetricsHbiRestService();
 
 }
