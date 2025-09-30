@@ -37,6 +37,18 @@ class SimpleSwatchMetricsHbiTest extends BaseSMHBIComponentTest {
   }
 
   /**
+   * NOTE: This is not a valid test but ensures that the unleash flag can be correctly
+   * toggled on and off. THIS SHOULD BE REMOVED
+   */
+  @Test
+  void testUnleashFlagToggling() {
+    unleash.enableFlag();
+    assertTrue(unleash.isFlagEnabled());
+    unleash.disableFlag();
+    assertFalse(unleash.isFlagEnabled());
+  }
+
+  /**
    * Verify service accepts HBI Create/Update events for a physical x86 host
    * and produce the expected Swatch Event messages.
    *
