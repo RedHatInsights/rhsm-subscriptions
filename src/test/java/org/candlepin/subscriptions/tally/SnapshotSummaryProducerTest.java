@@ -112,7 +112,17 @@ class SnapshotSummaryProducerTest {
                 "12345",
                 MetricIdUtils.getCores().getValue(),
                 22.2)));
-    producer.produceTallySummaryMessages(updateMap, List.of(granularity));
+    switch (value) {
+      case "hourly":
+        producer.produceTallySummaryMessages(
+            updateMap, List.of(granularity), SnapshotSummaryProducer.hourlySnapFilter);
+        break;
+      case "daily":
+        producer.produceTallySummaryMessages(
+            updateMap, List.of(granularity), SnapshotSummaryProducer.nightlySnapFilter);
+        break;
+      default:
+    }
     verify(kafka, times(2)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
 
     List<TallySummary> summaries = summaryCaptor.getAllValues();
@@ -189,7 +199,17 @@ class SnapshotSummaryProducerTest {
                 MetricIdUtils.getCores().getValue(),
                 20.4)));
     updateMap.get("a1").get(0).getTallyMeasurements().clear();
-    producer.produceTallySummaryMessages(updateMap, List.of(granularity));
+    switch (value) {
+      case "hourly":
+        producer.produceTallySummaryMessages(
+            updateMap, List.of(granularity), SnapshotSummaryProducer.hourlySnapFilter);
+        break;
+      case "daily":
+        producer.produceTallySummaryMessages(
+            updateMap, List.of(granularity), SnapshotSummaryProducer.nightlySnapFilter);
+        break;
+      default:
+    }
     verifyNoInteractions(kafka);
   }
 

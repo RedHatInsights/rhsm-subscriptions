@@ -82,7 +82,9 @@ public class MaxSeenSnapshotStrategy {
             .flatMap(Collection::stream)
             .collect(Collectors.toList());
     summaryProducer.produceTallySummaryMessages(
-        Map.of(orgId, newAndUpdatedSnapshots), List.of(Granularity.HOURLY, Granularity.DAILY));
+        Map.of(orgId, newAndUpdatedSnapshots),
+        List.of(Granularity.HOURLY, Granularity.DAILY),
+        SnapshotSummaryProducer.nightlySnapFilter);
     log.info("Finished producing snapshots for orgId={}", orgId);
     return newAndUpdatedSnapshots;
   }
