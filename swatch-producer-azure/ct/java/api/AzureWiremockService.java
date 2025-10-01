@@ -37,55 +37,80 @@ public class AzureWiremockService extends WiremockService {
   public void setupAzureUsageContext(String azureResourceId, String billingAccountId) {
     // 1. Setup Azure Usage Context endpoint (similar to create_get_azure_usage_context_wiremock)
     var contextData =
-        Map.of(
-            "billing_account_id", billingAccountId,
-            "azureResourceId", azureResourceId,
-            "planId", AZURE_PLAN_ID,
-            "azureOfferId", AZURE_OFFER_ID);
-
-    given()
-        .contentType("application/json")
-        .body(
             Map.of(
-                "request",
-                Map.of(
-                    "method",
-                    "GET",
-                    "urlPathPattern",
-                    "/mock/contractApi/api/swatch-contracts/internal/subscriptions/azureUsageContext.*",
-                    "queryParameters",
-                    Map.of("azureAccountId", Map.of("equalTo", billingAccountId))),
-                "response",
-                Map.of(
-                    "status",
-                    200,
-                    "headers",
-                    Map.of("Content-Type", "application/json"),
-                    "jsonBody",
-                    contextData),
-                // the default mapping defined in config/wiremock uses priority 10,
-                // so we need an higher priority here.
-                "priority",
-                9,
-                "metadata",
-                Map.of(METADATA_TAG, "true")))
-        .when()
-        .post("/__admin/mappings")
-        .then()
-        .statusCode(201);
-
+                    "billing_account_id", billingAccountId,
+                    "azureResourceId", azureResourceId,
+                    "planId", AZURE_PLAN_ID,
+                    "azureOfferId", AZURE_OFFER_ID);
+    given()
+            .contentType("application/json")
+            .body(
+                    Map.of(
+                            "request",
+                            Map.of(
+                                    "method", "GET",
+                                    "urlPathPattern",
+                                    "/mock/contractApi/api/swatch-contracts/internal/subscriptions/azureUsageContext.*",
+                                    "queryParameters",
+                                    Map.of("azureAccountId", Map.of("equalTo", billingAccountId))),
+                            "response",
+                            Map.of(
+                                    "status",
+                                    200,
+                                    "headers",
+                                    Map.of("Content-Type", "application/json"),
+                                    "jsonBody",
+                                    contextData),
+                            // the default mapping defined in config/wiremock uses priority 10,
+                            // so we need an higher priority here.
+                            "priority", 9,
+                            "metadata", Map.of(METADATA_TAG, "true")))
+            .when()
+            .post("/__admin/mappings")
+            .then()
+            .statusCode(201);
     // 2. Setup Azure OAuth Token endpoint (similar to create_get_azure_oauth_token_wiremock)
     setupAzureOAuthToken();
-
     // 3. Setup Azure Send Usage endpoint (similar to create_send_azure_usage_wiremock)
     setupAzureSendUsage(azureResourceId);
   }
 
+  public void setupAzureUsageContextToReturnSubscriptionNotFound(String billingAccountId) {
+    given()
+            .contentType("application/json")
+            .body(
+                    Map.of(
+                            "request",
+                            Map.of(
+                                    "method",
+                                    "GET",
+                                    "urlPathPattern",
+                                    "/mock/contractApi/api/swatch-contracts/internal/subscriptions/azureUsageContext.*",
+                                    "queryParameters",
+                                    Map.of("azureAccountId", Map.of("equalTo", billingAccountId))),
+                            "response",
+                            Map.of(
+                                    "status",
+                                    404),
+                            // the default mapping defined in config/wiremock uses priority 10,
+                            // so we need a higher priority here.
+                            "priority",
+                            9,
+                            "metadata",
+                            Map.of(METADATA_TAG, "true")))
+            .when()
+            .post("/__admin/mappings")
+            .then()
+            .statusCode(201);
+    // Only setup OAuth for error case (no usage endpoint needed)
+    setupAzureOAuthToken();
+  }
+
   public void verifyAzureUsage(
-      String azureResourceId, double expectedValue, String expectedDimension) {
+          String azureResourceId, double expectedValue, String expectedDimension) {
     // Get all requests to the Azure usage endpoint
     var response =
-        given().when().get("/__admin/requests").then().statusCode(200).extract().response();
+            given().when().get("/__admin/requests").then().statusCode(200).extract().response();
 
     try {
       ObjectMapper objectMapper = new ObjectMapper();
@@ -127,7 +152,7 @@ public class AzureWiremockService extends WiremockService {
 
       if (matchingRequest == null) {
         throw new AssertionError(
-            "No Azure usage requests found for resourceId: " + azureResourceId);
+                "No Azure usage requests found for resourceId: " + azureResourceId);
       }
 
       // Parse the matching request body
@@ -141,11 +166,11 @@ public class AzureWiremockService extends WiremockService {
       JsonNode planIdNode = usage.get("planId");
 
       if (quantityNode == null
-          || dimensionNode == null
-          || effectiveStartTimeNode == null
-          || planIdNode == null) {
+              || dimensionNode == null
+              || effectiveStartTimeNode == null
+              || planIdNode == null) {
         throw new AssertionError(
-            "Missing required fields in Azure usage request body: " + requestBody);
+                "Missing required fields in Azure usage request body: " + requestBody);
       }
 
       assertEquals(expectedValue, quantityNode.asDouble(), "quantity mismatch");
@@ -164,7 +189,7 @@ public class AzureWiremockService extends WiremockService {
   public void verifyNoAzureUsage(String azureResourceId) {
     // Get all requests to the Azure usage endpoint
     var response =
-        given().when().get("/__admin/requests").then().statusCode(200).extract().response();
+            given().when().get("/__admin/requests").then().statusCode(200).extract().response();
 
     try {
       ObjectMapper objectMapper = new ObjectMapper();
@@ -197,12 +222,12 @@ public class AzureWiremockService extends WiremockService {
             JsonNode resourceIdNode = usage.get("resourceId");
 
             if (resourceIdNode != null
-                && (ANY.equals(azureResourceId)
+                    && (ANY.equals(azureResourceId)
                     || azureResourceId.equals(resourceIdNode.asText()))) {
               throw new AssertionError(
-                  "Azure usage request was found for resourceId: "
-                      + resourceIdNode.asText()
-                      + " but none was expected due to invalid data");
+                      "Azure usage request was found for resourceId: "
+                              + resourceIdNode.asText()
+                              + " but none was expected due to invalid data");
             }
           }
         }
@@ -218,86 +243,84 @@ public class AzureWiremockService extends WiremockService {
   private void setupAzureOAuthToken() {
     // Setup Azure OAuth token endpoint
     var tokenResponse =
-        Map.of(
-            "token_type", "Bearer",
-            "expires_in", "3599",
-            "ext_expires_in", "3599",
-            "access_token", "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ik5HVEZ2ZEstZnl0aEV1Q");
+            Map.of(
+                    "token_type", "Bearer",
+                    "expires_in", "3599",
+                    "ext_expires_in", "3599",
+                    "access_token", "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ik5HVEZ2ZEstZnl0aEV1Q");
 
     given()
-        .contentType("application/json")
-        .body(
-            Map.of(
-                "request",
-                Map.of(
-                    "method",
-                    "POST",
-                    "urlPathPattern",
-                    "/mock/azure/.*",
-                    "headers",
+            .contentType("application/json")
+            .body(
                     Map.of(
-                        "Content-Type", Map.of("equalTo", "application/x-www-form-urlencoded"),
-                        "Authorization", Map.of("equalTo", "Basic dGVzdDp0ZXN0")),
-                    "bodyPatterns",
-                    List.of(
-                        Map.of(
-                            "and",
-                            List.of(
-                                Map.of("contains", "grant_type=client_credentials"),
-                                Map.of("contains", "resource"))))),
-                "response",
-                Map.of(
-                    "status",
-                    200,
-                    "headers",
-                    Map.of("Content-Type", "application/json"),
-                    "jsonBody",
-                    tokenResponse),
-                "metadata",
-                Map.of(METADATA_TAG, "true")))
-        .when()
-        .post("/__admin/mappings")
-        .then()
-        .statusCode(201);
+                            "request",
+                            Map.of(
+                                    "method",
+                                    "POST",
+                                    "urlPathPattern",
+                                    "/mock/azure/.*",
+                                    "headers",
+                                    Map.of(
+                                            "Content-Type", Map.of("equalTo", "application/x-www-form-urlencoded"),
+                                            "Authorization", Map.of("equalTo", "Basic dGVzdDp0ZXN0")),
+                                    "bodyPatterns",
+                                    List.of(
+                                            Map.of(
+                                                    "and",
+                                                    List.of(
+                                                            Map.of("contains", "grant_type=client_credentials"),
+                                                            Map.of("contains", "resource"))))),
+                            "response",
+                            Map.of(
+                                    "status",
+                                    200,
+                                    "headers",
+                                    Map.of("Content-Type", "application/json"),
+                                    "jsonBody",
+                                    tokenResponse),
+                            "metadata", Map.of(METADATA_TAG, "true")))
+            .when()
+            .post("/__admin/mappings")
+            .then()
+            .statusCode(201);
   }
 
   private void setupAzureSendUsage(String azureResourceId) {
     // Setup Azure send usage endpoint
     var usageResponse =
-        Map.of(
-            "usageEventId",
-            java.util.UUID.randomUUID().toString(),
-            "status",
-            "Accepted",
-            "messageTime",
-            java.time.Instant.now().toString(),
-            "resourceId",
-            azureResourceId,
-            "planId",
-            AZURE_PLAN_ID);
+            Map.of(
+                    "usageEventId",
+                    java.util.UUID.randomUUID().toString(),
+                    "status",
+                    "Accepted",
+                    "messageTime",
+                    java.time.Instant.now().toString(),
+                    "resourceId",
+                    azureResourceId,
+                    "planId",
+                    AZURE_PLAN_ID);
 
     given()
-        .contentType("application/json")
-        .body(
-            Map.of(
-                "request",
-                Map.of(
-                    "method", "POST",
-                    "urlPathPattern", "/mock/azure/.*",
-                    "headers", Map.of("Authorization", Map.of("matches", "Bearer .*"))),
-                "response",
-                Map.of(
-                    "status",
-                    200,
-                    "headers",
-                    Map.of("Content-Type", "application/json"),
-                    "jsonBody",
-                    usageResponse),
-                "metadata",
-                Map.of(METADATA_TAG, "true")))
-        .when()
-        .post("/__admin/mappings")
-        .then()
-        .statusCode(201);
+            .contentType("application/json")
+            .body(
+                    Map.of(
+                            "request",
+                            Map.of(
+                                    "method", "POST",
+                                    "urlPathPattern", "/mock/azure/.*",
+                                    "headers", Map.of("Authorization", Map.of("matches", "Bearer .*"))),
+                            "response",
+                            Map.of(
+                                    "status",
+                                    200,
+                                    "headers",
+                                    Map.of("Content-Type", "application/json"),
+                                    "jsonBody",
+                                    usageResponse),
+                            "metadata", Map.of(METADATA_TAG, "true")))
+            .when()
+            .post("/__admin/mappings")
+            .then()
+            .statusCode(201);
   }
 }

@@ -24,7 +24,7 @@ import com.github.dockerjava.api.async.ResultCallback;
 import com.github.dockerjava.api.command.LogContainerCmd;
 import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.api.model.Frame;
-import com.redhat.swatch.component.tests.api.Service;
+import com.redhat.swatch.component.tests.core.ServiceContext;
 import org.testcontainers.DockerClientFactory;
 
 public class ContainerLoggingHandler extends ServiceLoggingHandler {
@@ -32,7 +32,7 @@ public class ContainerLoggingHandler extends ServiceLoggingHandler {
   private final Container container;
   private String oldLogs;
 
-  public ContainerLoggingHandler(Service service, Container container) {
+  public ContainerLoggingHandler(ServiceContext service, Container container) {
     super(service);
 
     this.container = container;

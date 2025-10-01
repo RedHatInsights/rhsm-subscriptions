@@ -20,7 +20,7 @@
  */
 package com.redhat.swatch.component.tests.logging;
 
-import com.redhat.swatch.component.tests.api.Service;
+import com.redhat.swatch.component.tests.core.ServiceContext;
 import com.redhat.swatch.component.tests.utils.FileUtils;
 import java.io.File;
 import java.io.IOException;
@@ -33,7 +33,7 @@ public class FileServiceLoggingHandler extends ServiceLoggingHandler {
   private final File file;
   private String printedContent;
 
-  public FileServiceLoggingHandler(Service context, File input) {
+  public FileServiceLoggingHandler(ServiceContext context, File input) {
     super(context);
     this.file = input;
   }

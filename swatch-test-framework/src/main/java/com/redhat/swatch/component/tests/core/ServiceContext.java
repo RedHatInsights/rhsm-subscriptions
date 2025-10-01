@@ -27,6 +27,7 @@ import com.redhat.swatch.component.tests.configuration.ServiceConfigurationBuild
 import com.redhat.swatch.component.tests.configuration.ServiceConfigurationLoader;
 import com.redhat.swatch.component.tests.utils.OutputUtils;
 import java.lang.annotation.Annotation;
+import java.lang.management.ManagementFactory;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,6 +37,8 @@ import lombok.Getter;
 
 @Getter
 public final class ServiceContext {
+
+  private static final String JDWP = "jdwp=";
 
   private final Service owner;
   private final ComponentTestContext componentTestContext;
@@ -95,5 +98,24 @@ public final class ServiceContext {
 
     customConfiguration.add(
         ServiceConfigurationLoader.load(owner.getName(), componentTestContext, builder));
+  }
+
+  /**
+   * @return if the service starts in debug mode.
+   */
+  public boolean isDebug() {
+    // if enabled from the properties
+    if (getConfiguration().isDebug()) {
+      return true;
+    }
+
+    // or when starting a test in debug mode from intellij, the property jdwt is automatically set
+    for (String arg : ManagementFactory.getRuntimeMXBean().getInputArguments()) {
+      if (arg.contains(JDWP) && arg.contains("suspend=y")) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }

@@ -36,7 +36,7 @@ public class OpenShiftLoggingHandler extends ServiceLoggingHandler {
 
   public OpenShiftLoggingHandler(
       Map<String, String> podLabels, String containerName, ServiceContext context) {
-    super(context.getOwner());
+    super(context);
 
     this.podLabels = podLabels;
     this.containerName = containerName;
