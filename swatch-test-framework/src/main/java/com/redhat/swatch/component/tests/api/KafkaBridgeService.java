@@ -151,7 +151,7 @@ public class KafkaBridgeService extends RestService {
             Map.of(
                 "name", consumerInstance,
                 "format", "json",
-                "auto.offset.reset", "earliest"))
+                "auto.offset.reset", "latest"))
         .when()
         .post("/consumers/" + CONSUMER_GROUP)
         .then()
