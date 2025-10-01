@@ -22,10 +22,8 @@ package com.redhat.swatch.hbi.events.services;
 
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.configuration.Channels;
-import com.redhat.swatch.hbi.events.model.OutboxRecordMapper;
 import com.redhat.swatch.hbi.events.repository.HbiEventOutbox;
 import com.redhat.swatch.hbi.events.repository.HbiEventOutboxRepository;
-import com.redhat.swatch.hbi.model.OutboxRecord;
 import com.redhat.swatch.kafka.EmitterService;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -47,7 +45,6 @@ public class HbiEventOutboxService {
 
   @Inject ApplicationConfiguration config;
   @Inject HbiEventOutboxRepository repository;
-  @Inject OutboxRecordMapper mapper;
   @Inject FeatureFlags featureFlags;
 
   private final EmitterService<Event> emitter;
@@ -56,15 +53,6 @@ public class HbiEventOutboxService {
   public HbiEventOutboxService(
       @Channel(Channels.SWATCH_EVENTS_OUT) Emitter<Event> swatchEventEmitter) {
     this.emitter = new EmitterService<>(swatchEventEmitter);
-  }
-
-  @Transactional
-  public OutboxRecord createOutboxRecord(Event event) {
-    HbiEventOutbox entity = new HbiEventOutbox();
-    entity.setOrgId(event.getOrgId());
-    entity.setSwatchEventJson(event);
-    repository.persistAndFlush(entity);
-    return mapper.entityToDto(entity);
   }
 
   @Synchronized
