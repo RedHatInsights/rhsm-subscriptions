@@ -77,5 +77,6 @@ The key difference is the addition of the `-Dswatch.component-tests.global.targe
 The component tests can be configured using system properties:
 
 - `swatch.component-tests.global.target`: Set to `openshift` to run against OpenShift deployment, or omit for local execution
+- `swatch.component-tests.services.all.debug`: Enable debug mode for all the services
 - Additional configuration options may be available per service
 

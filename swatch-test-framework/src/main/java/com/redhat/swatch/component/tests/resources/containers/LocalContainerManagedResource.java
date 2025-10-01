@@ -46,7 +46,7 @@ public class LocalContainerManagedResource extends ManagedResource {
     }
 
     container = findContainerByName(context.getOwner(), containerName);
-    loggingHandler = new ContainerLoggingHandler(context.getOwner(), container);
+    loggingHandler = new ContainerLoggingHandler(context, container);
     loggingHandler.startWatching();
   }
 

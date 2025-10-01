@@ -60,7 +60,7 @@ endef
 default: format install
 
 format:
-	./mvnw spotless:apply
+	./mvnw spotless:apply -Pbuild -Pcomponent-tests -Pcomponent-tests-by-service
 
 install:
 	./mvnw clean install -DskipTests

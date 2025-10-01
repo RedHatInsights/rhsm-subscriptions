@@ -36,6 +36,8 @@ import com.redhat.swatch.component.tests.utils.SocketUtils;
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -65,6 +67,7 @@ public class LocalQuarkusManagedResource extends ManagedResource {
   private Process process;
   private LoggingHandler loggingHandler;
   private int assignedHttpPort;
+  private Integer assignedDebugPort;
   private Map<Integer, Integer> assignedCustomPorts;
 
   private final File location;
@@ -94,7 +97,7 @@ public class LocalQuarkusManagedResource extends ManagedResource {
 
       process = pb.start();
 
-      loggingHandler = new FileServiceLoggingHandler(context.getOwner(), logOutputFile);
+      loggingHandler = new FileServiceLoggingHandler(context, logOutputFile);
       loggingHandler.startWatching();
 
     } catch (Exception e) {
@@ -167,11 +170,21 @@ public class LocalQuarkusManagedResource extends ManagedResource {
     List<String> command = new LinkedList<>();
     command.add("./mvnw");
     command.addAll(systemProperties);
+    command.addAll(getDebugProperties());
     command.add("-pl");
     command.add(service);
     command.add("quarkus:dev");
 
     return command;
+  }
+
+  protected Collection<String> getDebugProperties() {
+    if (context.isDebug()) {
+      assignedDebugPort = SocketUtils.findAvailablePort(context.getOwner());
+      return Arrays.asList("-Ddebug=" + assignedDebugPort, "-Dsuspend");
+    }
+
+    return Collections.emptyList();
   }
 
   protected Map<Integer, Integer> assignCustomPorts() {

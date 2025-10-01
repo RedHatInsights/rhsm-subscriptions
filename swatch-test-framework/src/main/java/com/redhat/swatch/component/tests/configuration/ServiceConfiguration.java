@@ -32,6 +32,7 @@ public final class ServiceConfiguration {
   private Duration startupTimeout = Duration.ofMinutes(5);
   private Duration startupCheckPollInterval = Duration.ofSeconds(2);
   private Double factorTimeout = 1.0;
+  private boolean debug = false;
   private boolean logEnabled = true;
   private boolean logEnabledOnTestStarted = true;
   private int portRangeMin = 1100;
