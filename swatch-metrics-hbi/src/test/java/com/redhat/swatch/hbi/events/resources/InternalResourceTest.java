@@ -38,6 +38,7 @@ import com.redhat.swatch.hbi.events.exception.api.SynchronousRequestsNotEnabledE
 import com.redhat.swatch.hbi.events.services.HbiEventOutboxService;
 import com.redhat.swatch.hbi.model.Error;
 import com.redhat.swatch.hbi.model.FlushResponse;
+import com.redhat.swatch.hbi.model.FlushResponse.StatusEnum;
 import com.redhat.swatch.hbi.model.OutboxRecord;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -74,20 +75,20 @@ class InternalResourceTest {
 
   @Test
   void testFlushOutboxAsyncWithNoHeader() {
-    assertSuccessfulFlushResponse(true, FlushResponse.StatusEnum.STARTED);
+    assertSuccessfulAsyncFlushResponse();
   }
 
   @Test
   void testFlushOutboxAsyncWithFalseValueInHeader() {
     withSynchronousRequestHeader(false);
-    assertSuccessfulFlushResponse(true, FlushResponse.StatusEnum.STARTED);
+    assertSuccessfulAsyncFlushResponse();
   }
 
   @Test
   void testFlushOutboxSynchronously() {
     withSynchronousRequestsEnabled(true);
     withSynchronousRequestHeader(true);
-    assertSuccessfulFlushResponse(false, FlushResponse.StatusEnum.SUCCESS);
+    assertSuccessfulSynchronousFlushResponse(1L);
   }
 
   @Test
@@ -218,11 +219,22 @@ class InternalResourceTest {
     return given().contentType(ContentType.JSON).headers(headers).when().put(FLUSH_URL).then();
   }
 
+  private void assertSuccessfulAsyncFlushResponse() {
+    assertSuccessfulFlushResponse(true, StatusEnum.STARTED, null);
+  }
+
+  private void assertSuccessfulSynchronousFlushResponse(long expectedFlushCount) {
+    assertSuccessfulFlushResponse(false, StatusEnum.SUCCESS, expectedFlushCount);
+  }
+
   private void assertSuccessfulFlushResponse(
-      boolean expectAsyncFlush, FlushResponse.StatusEnum expectedFlushStatus) {
+      boolean expectAsyncFlush,
+      FlushResponse.StatusEnum expectedFlushStatus,
+      Long expectedFlushCount) {
     FlushResponse response =
         flushOutbox().statusCode(HttpStatus.SC_OK).extract().body().as(FlushResponse.class);
     assertEquals(expectAsyncFlush, response.getAsync());
     assertEquals(expectedFlushStatus, response.getStatus());
+    assertEquals(expectedFlushCount, response.getCount());
   }
 }

@@ -170,6 +170,11 @@ components:
           enum: [SUCCESS, STARTED]
           description: "Status of the flush operation"
           example: "SUCCESS"
+        count:
+          type: integer
+          format: int64
+          nullable: true
+          description: The number of outbox records flushed (only set for synchronous requests, null otherwise).
 
   securitySchemes:
     service:
