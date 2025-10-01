@@ -18,7 +18,7 @@
         "facts": {
           "orgId": "12345678",
           "MEMORY": 1,
-          "RH_PROD": "$RH_PROD_JSON",
+          "RH_PROD": "[$RH_PRODUCT_IDS]",
           "IS_VIRTUAL": "$IS_VIRTUAL",
           "ARCHITECTURE": "x86_64",
           "SYNC_TIMESTAMP": "$SYNC_TIMESTAMP",

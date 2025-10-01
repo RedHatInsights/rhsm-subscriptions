@@ -6,7 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.component.tests.utils.Topics;
 import com.redhat.swatch.hbi.events.ct.HbiEventHelper;
+import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.services.FeatureFlags;
+import java.util.List;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,9 +44,9 @@ class CreateUpdateEventIngestionTest extends BaseSMHBIComponentTest {
     "updated, INSTANCE_UPDATED"
   })
   void testHbiRhsmHostEvent(String hbiEventType, String swatchEventType) {
-    String hbiEvent = HbiEventHelper.getRhsmHostEvent(
+    HbiHostCreateUpdateEvent hbiEvent = HbiEventHelper.getRhsmHostEvent(
         hbiEventType,
-        "[\"69\"]",
+        List.of("69"),
         false,
         "2024-10-18T16:42:27.185484784Z",
         "Self-Support",
