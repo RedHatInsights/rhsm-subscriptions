@@ -26,17 +26,10 @@ import com.redhat.swatch.hbi.events.exception.api.SynchronousOutboxFlushExceptio
 import com.redhat.swatch.hbi.events.exception.api.SynchronousRequestsNotEnabledException;
 import com.redhat.swatch.hbi.events.services.HbiEventOutboxService;
 import com.redhat.swatch.hbi.model.FlushResponse;
-import com.redhat.swatch.hbi.model.OutboxRecord;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.validation.Valid;
-import jakarta.ws.rs.WebApplicationException;
-import jakarta.ws.rs.core.Response;
-import java.util.List;
-import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.json.Event;
 import org.eclipse.microprofile.context.ManagedExecutor;
 
 @Slf4j
@@ -50,32 +43,6 @@ public class InternalResource implements DefaultApi {
   @Inject ApplicationConfiguration applicationProperties;
 
   @Inject HbiEventOutboxService outboxService;
-
-  @Override
-  public List<OutboxRecord> fetchAllOutboxRecords() {
-    throw new WebApplicationException(Response.Status.NOT_IMPLEMENTED);
-  }
-
-  @Override
-  public List<OutboxRecord> fetchOutboxRecordsByOrgId(String orgId) {
-    throw new WebApplicationException(Response.Status.NOT_IMPLEMENTED);
-  }
-
-  @Override
-  @RolesAllowed({"test"})
-  public OutboxRecord createOutboxRecord(@Valid Event event) {
-    return outboxService.createOutboxRecord(event);
-  }
-
-  @Override
-  public OutboxRecord updateOutboxRecord(OutboxRecord outboxRecord) {
-    throw new WebApplicationException(Response.Status.NOT_IMPLEMENTED);
-  }
-
-  @Override
-  public void deleteOutboxRecord(UUID uuid) {
-    throw new WebApplicationException(Response.Status.NOT_IMPLEMENTED);
-  }
 
   @Override
   @RolesAllowed({"service", "test"})

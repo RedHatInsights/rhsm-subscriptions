@@ -21,7 +21,6 @@
 package com.redhat.swatch.hbi.events.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -32,7 +31,6 @@ import com.redhat.swatch.hbi.events.configuration.Channels;
 import com.redhat.swatch.hbi.events.repository.HbiEventOutbox;
 import com.redhat.swatch.hbi.events.repository.HbiEventOutboxRepository;
 import com.redhat.swatch.hbi.events.test.helpers.HbiEventOutboxTestHelper;
-import com.redhat.swatch.hbi.model.OutboxRecord;
 import io.getunleash.Unleash;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -43,9 +41,7 @@ import jakarta.enterprise.inject.Any;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.time.Duration;
-import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.UUID;
 import org.awaitility.Awaitility;
 import org.candlepin.subscriptions.json.Event;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -124,29 +120,6 @@ class HbiEventOutboxServiceTest {
     assertEquals(0, repository.count());
 
     assertSwatchEventSent();
-  }
-
-  @Test
-  void testCreateOutboxRecordPersistsAndReturnsDto() {
-    Event event = createSwatchEvent();
-
-    OutboxRecord result = service.createOutboxRecord(event);
-
-    assertNotNull(result.getId());
-    assertEquals(ORG_ID, result.getOrgId());
-    assertEquals(event, result.getSwatchEventJson());
-    assertEquals(1L, repository.findByOrgId(ORG_ID).size());
-  }
-
-  private Event createSwatchEvent() {
-    Event event = new Event();
-    event.setOrgId(ORG_ID);
-    event.setEventSource("HBI_HOST");
-    event.setInstanceId(UUID.randomUUID().toString());
-    event.setEventType("test");
-    event.setServiceType("RHEL System");
-    event.setTimestamp(OffsetDateTime.now());
-    return event;
   }
 
   @Transactional
