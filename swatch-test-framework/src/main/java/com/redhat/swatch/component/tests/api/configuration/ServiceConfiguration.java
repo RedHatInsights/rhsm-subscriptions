@@ -68,4 +68,10 @@ public @interface ServiceConfiguration {
    * Tune the log level for the current service. Possible values in {@link java.util.logging.Level}.
    */
   String logLevel() default "INFO";
+
+  /**
+   * Enable the debug mode for the current service only when the test starts. Fallback service
+   * property: "swatch.component-tests.services.SERVICE NAME.debug".
+   */
+  boolean debug() default true;
 }
