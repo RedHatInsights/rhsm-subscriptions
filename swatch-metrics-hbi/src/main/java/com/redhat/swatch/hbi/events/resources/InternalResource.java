@@ -90,12 +90,13 @@ public class InternalResource implements DefaultApi {
 
       log.info("Request received to flush the outbox synchronously!");
       try {
-        flush();
+        long count = flush();
+        response.setStatus(FlushResponse.StatusEnum.SUCCESS);
+        response.setCount(count);
+        return response;
       } catch (Exception e) {
         throw new SynchronousOutboxFlushException(e);
       }
-      response.setStatus(FlushResponse.StatusEnum.SUCCESS);
-      return response;
     }
 
     log.info("Request received to flush the outbox asynchronously!");
@@ -104,10 +105,12 @@ public class InternalResource implements DefaultApi {
     return response;
   }
 
-  private void flush() {
+  private long flush() {
     log.debug(
         "Outbox flush running on vertx worker thread: {}",
         io.vertx.core.Context.isOnWorkerThread());
-    log.info("Flushed {} outbox records!", outboxService.flushOutboxRecords());
+    long count = outboxService.flushOutboxRecords();
+    log.info("Flushed {} outbox records!", count);
+    return count;
   }
 }
