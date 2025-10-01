@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
@@ -50,6 +51,20 @@ public class SnapshotSummaryProducer {
   private final RetryTemplate kafkaRetryTemplate;
   private final TallySummaryMapper summaryMapper;
 
+  public static Predicate<TallySnapshot> hourlySnapFilter =
+      snapshot ->
+          !ServiceLevel._ANY.equals(snapshot.getServiceLevel())
+              && !Usage._ANY.equals(snapshot.getUsage())
+              && !BillingProvider._ANY.equals(snapshot.getBillingProvider())
+              && !ResourceUtils.ANY.equals(snapshot.getBillingAccountId())
+              && hasMeasurements(snapshot);
+
+  public static Predicate<TallySnapshot> nightlySnapFilter =
+      snapshot ->
+          !ServiceLevel._ANY.equals(snapshot.getServiceLevel())
+              && !Usage._ANY.equals(snapshot.getUsage())
+              && hasMeasurements(snapshot);
+
   @Autowired
   protected SnapshotSummaryProducer(
       @Qualifier("tallySummaryKafkaTemplate")
@@ -64,7 +79,9 @@ public class SnapshotSummaryProducer {
   }
 
   public void produceTallySummaryMessages(
-      Map<String, List<TallySnapshot>> newAndUpdatedSnapshots, List<Granularity> granularities) {
+      Map<String, List<TallySnapshot>> newAndUpdatedSnapshots,
+      List<Granularity> granularities,
+      Predicate<TallySnapshot> filter) {
     Map<Granularity, Map<String, List<TallySnapshot>>> groupedSnapshots =
         groupByGranularity(newAndUpdatedSnapshots, granularities);
     granularities.forEach(
@@ -79,10 +96,7 @@ public class SnapshotSummaryProducer {
                         and measurement types other than Total
                         when we transmit the tally summary message to the BillableUsage component. */
                         snapshots.stream()
-                            .filter(
-                                snapshot ->
-                                    filterByGranularityAndNotAnySnapshots(
-                                        snapshot, granularity.getValue()))
+                            .filter(filter)
                             .map(
                                 snapshot -> {
                                   removeTotalMeasurements(snapshot);
