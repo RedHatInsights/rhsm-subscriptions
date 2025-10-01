@@ -50,10 +50,6 @@ IMAGES=""
 export COMPONENT_NAME="rhsm"  # name of app-sre "resourceTemplate" in deploy.yaml for this component
 # prebuild artifacts for quarkus builds
 for service in $SERVICES; do
-  # Skip swatch-utilization deployment until SWATCH-4003 is done
-  if [ "$service" = "swatch-utilization" ]; then
-    continue
-  fi
   export IMAGE="quay.io/cloudservices/$service"  # the image location on quay
   export DOCKERFILE="$(get_dockerfile $service)"
 
@@ -86,11 +82,6 @@ export COMPONENTS_W_RESOURCES="app:rhsm app:export-service"
 # NOTE: this ensures that all of the other services end up deployed with the latest template
 export EXTRA_COMPONENTS="rhsm swatch-kafka-bridge $(find -name clowdapp.yaml -exec dirname {} \; | cut -d'/' -f2 | xargs)"
 for EXTRA_COMPONENT_NAME in $EXTRA_COMPONENTS; do
-  # Skip swatch-utilization deployment until SWATCH-4003 is done
-  if [ "${EXTRA_COMPONENT_NAME}" = "swatch-utilization" ]; then
-    continue
-  fi
-
   export EXTRA_DEPLOY_ARGS="${EXTRA_DEPLOY_ARGS} --set-template-ref ${EXTRA_COMPONENT_NAME}=${GIT_COMMIT}"
 done
 
