@@ -98,7 +98,7 @@ spec:
       default: "quay.io/repository/cloudservices"
     - name: DATAROUTER_CREDENTIALS_NAME
       description: Secret name to take the data router credentials from.
-      default: "datarouter-credentials"
+      default: "smqe-datarouter-credentials"
     - name: OCI_REGISTRY_CREDENTIALS_NAME
       description: Secret name to take the OCI registry credentials from.
       default: "oci-registry-credentials"
