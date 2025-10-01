@@ -65,7 +65,11 @@ public class KafkaBridgeService extends RestService {
   }
 
   public void produceKafkaMessage(String topic, Object value) {
-    var data = Map.of("records", List.of(Map.of("value", value)));
+    produceKafkaMessage(topic, null, value);
+  }
+
+  public void produceKafkaMessage(String topic, String key, Object value) {
+    var data = Map.of("records", List.of(Map.of("key", key, "value", value)));
 
     given()
         .config(
