@@ -19,7 +19,8 @@ public class BaseSMHBIComponentTest {
   @KafkaBridge
   static KafkaBridgeService kafkaBridge =
       new KafkaBridgeService()
-          .subscribeToTopic(Topics.HBI_EVENT_IN);
+          .subscribeToTopic(Topics.HBI_EVENT_IN)
+          .subscribeToTopic(Topics.SWATCH_SERVICE_INSTANCE_INGRESS);
 
   @Unleash
   static UnleashService unleash = new UnleashService();
