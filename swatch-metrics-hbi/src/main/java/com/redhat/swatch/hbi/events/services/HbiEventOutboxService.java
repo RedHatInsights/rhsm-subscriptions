@@ -50,7 +50,6 @@ public class HbiEventOutboxService {
   @Inject OutboxRecordMapper mapper;
   @Inject FeatureFlags featureFlags;
 
-  //  @SuppressWarnings("java:S1068")
   private final EmitterService<Event> emitter;
 
   @Inject
