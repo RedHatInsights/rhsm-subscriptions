@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Tag;
 
 @ComponentTest
 @Tag("component")
-@Tag("azure")
+@Tag("metrics-hbi")
 public class BaseSMHBIComponentTest {
   
   @KafkaBridge

@@ -37,33 +37,12 @@ class SimpleSwatchMetricsHbiTest extends BaseSMHBIComponentTest {
         1);
   }
 
-  /**
-   * NOTE: This is not a valid test but ensures that the unleash flag can be correctly
-   * toggled on and off. THIS SHOULD BE REMOVED
-   */
   @Test
   void testUnleashFlagToggling() {
     unleash.enableFlag(FeatureFlags.EMIT_EVENTS);
     assertTrue(unleash.isFlagEnabled(FeatureFlags.EMIT_EVENTS));
     unleash.disableFlag(FeatureFlags.EMIT_EVENTS);
     assertFalse(unleash.isFlagEnabled(FeatureFlags.EMIT_EVENTS));
-  }
-
-  /**
-   * Verify service accepts HBI Create/Update events for a physical x86 host
-   * and produce the expected Swatch Event messages.
-   *
-   * test_steps:
-   *     1. Toggle feature flag to allow service to emit swatch events.
-   *     2. Send a created/updated message to the HBI event topic to simulate that a host was created in HBI.
-   * expected_results:
-   *     1. The swatch-metrics-hbi service will ingest the event and should create an outbox record for a Swatch Event
-   *        message containing the measurements for the host represented by the HBI event. NOTE: We expect the same
-   *        result regardless of whether the HBI event was host created OR host updated.
-   */
-  @Test
-  void testSimpleHbiEventInSwatchEventOut() throws Exception {
-
   }
 
 }
