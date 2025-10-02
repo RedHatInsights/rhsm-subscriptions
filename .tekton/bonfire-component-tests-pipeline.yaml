@@ -109,6 +109,10 @@ spec:
       type: string
       default: "TEST*.xml"
       description: Patter that Data Router follows to upload tests report.
+    - name: attachments-dir
+      type: string
+      default: ""
+      description: Directory containing attachments to upload with test results.
   workspaces:
     - name: shared-workspace
       description: A workspace to share data between tasks
@@ -264,6 +268,11 @@ spec:
         workspaces:
           - name: output
             description: The workspace where the repository was cloned
+        results:
+          - name: status
+            description: Status of the Data Router send operation (success/failure)
+          - name: routing-id
+            description: Data Router routing request ID for tracking
         steps:
           - name: cluster-login
             image: "$(params.BONFIRE_IMAGE)"
@@ -313,12 +322,12 @@ spec:
               - name: DATAROUTER_USERNAME
                 valueFrom:
                   secretKeyRef:
-                    name: $(params.smqe-datarouter-credentials)
+                    name: $(params.DATAROUTER_CREDENTIALS_NAME)
                     key: username
               - name: DATAROUTER_PASSWORD
                 valueFrom:
                   secretKeyRef:
-                    name: $(params.smqe-datarouter-credentials)
+                    name: $(params.DATAROUTER_CREDENTIALS_NAME)
                     key: password
               - name: SERVICE
                 value: "$(params.SERVICE)"
@@ -328,7 +337,7 @@ spec:
               set -euo pipefail
               
               ARTIFACT_DIR="${SERVICE}"/ct/target/surefire-reports
-              METADATA_FILE="${METADATA-PATH}"
+              METADATA_FILE="$(params.DATAROUTER-METADATA-PATH)"
               echo "Using metadata from: $METADATA_FILE"
               echo "Metadata content:"
               cat "$METADATA_FILE" | jq . || cat "$METADATA_FILE"
