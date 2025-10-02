@@ -8,6 +8,8 @@ import com.redhat.swatch.component.tests.utils.Topics;
 import com.redhat.swatch.hbi.events.ct.HbiEventHelper;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.services.FeatureFlags;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -48,7 +50,7 @@ class CreateUpdateEventIngestionTest extends BaseSMHBIComponentTest {
         hbiEventType,
         List.of("69"),
         false,
-        "2024-10-18T16:42:27.185484784Z",
+        OffsetDateTime.now(ZoneOffset.UTC),
         "Self-Support",
         "Development/Test",
         2,

@@ -29,11 +29,11 @@
     ],
     "provider_id": null,
     "provider_type": null,
-    "created": "2024-10-18T16:22:14.086713+00:00",
-    "updated": "2024-10-18T16:42:28.857787+00:00",
-    "stale_timestamp": "2024-10-19T21:42:28.857787+00:00",
-    "stale_warning_timestamp": "2024-10-25T16:42:28.857787+00:00",
-    "culled_timestamp": "2024-11-01T16:42:28.857787+00:00",
+    "created": "$TIMESTAMP",
+    "updated": "$TIMESTAMP",
+    "stale_timestamp": "$STALE_TIMESTAMP",
+    "stale_warning_timestamp": "$STALE_WARNING_TIMESTAMP",
+    "culled_timestamp": null,
     "reporter": "rhsm-conduit",
     "tags": [],
     "system_profile": {
@@ -47,26 +47,9 @@
       "number_of_sockets": $SOCKETS,
       "infrastructure_type": "physical",
       "system_memory_bytes": 5120
-    },
-    "per_reporter_staleness": {
-      "rhsm-conduit": {
-        "last_check_in": "2024-10-18T16:42:28.821635+00:00",
-        "stale_timestamp": "2024-10-19T21:42:28.821635+00:00",
-        "check_in_succeeded": true,
-        "stale_warning_timestamp": "2024-10-25T16:42:28.821635+00:00",
-        "culled_timestamp": "2024-11-01T16:42:28.821635+00:00"
-      },
-      "rhsm-system-profile-bridge": {
-        "last_check_in": "2024-10-18T16:22:14.065333+00:00",
-        "stale_timestamp": "2024-10-19T21:22:14.065333+00:00",
-        "check_in_succeeded": true,
-        "stale_warning_timestamp": "2024-10-25T16:22:14.065333+00:00",
-        "culled_timestamp": "2024-11-01T16:22:14.065333+00:00"
-      }
-    },
-    "groups": []
+    }
   },
-  "timestamp": "2024-10-18T16:42:29.134663+00:00",
+  "timestamp": "$TIMESTAMP",
   "platform_metadata": {
     "request_id": "$REQUEST_ID"
   },

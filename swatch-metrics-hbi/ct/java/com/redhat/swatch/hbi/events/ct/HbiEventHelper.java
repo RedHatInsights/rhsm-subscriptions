@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.UUID;
 
@@ -21,22 +22,28 @@ public class HbiEventHelper {
       String type,
       Collection<String> rhProdArray,
       boolean isVirtual,
-      String syncTimestamp,
+      OffsetDateTime timestamp,
       String sla,
       String usage,
       int cores,
       int sockets
   ) {
+    OffsetDateTime staleTimestamp = timestamp.plusDays(7);
+
     String template = readJsonFilePath("data/templates/hbi_rhsm_host_event.json")
         .replaceAll("\\$TYPE", type)
-        .replaceAll("\\$RH_PRODUCT_IDS", String.join(",", rhProdArray))
+        .replaceAll("\\$RH_PRODUCT_IDS", String.join(",", "\"" + rhProdArray + "\""))
         .replaceAll("\\$IS_VIRTUAL", Boolean.toString(isVirtual))
-        .replaceAll("\\$SYNC_TIMESTAMP", syncTimestamp)
+        .replaceAll("\\$TIMESTAMP", timestamp.toString())
+        .replaceAll("\\$SYNC_TIMESTAMP", timestamp.toString())
+        .replaceAll("\\$STALE_TIMESTAMP", staleTimestamp.toString())
+        .replaceAll("\\$STALE_WARNING_TIMESTAMP", staleTimestamp.minusDays(3).toString())
         .replaceAll("\\$SYSPURPOSE_SLA", sla)
         .replaceAll("\\$SYSPURPOSE_USAGE", usage)
         .replaceAll("\\$CORES", Integer.toString(cores))
         .replaceAll("\\$SOCKETS", Integer.toString(sockets))
         .replaceAll("\\$REQUEST_ID", UUID.randomUUID().toString());
+    EventTemplateValidator.verifyNoTemplateVariablesExist(template);
     return validateEvent(getEvent(template, HbiHostCreateUpdateEvent.class));
   }
 
