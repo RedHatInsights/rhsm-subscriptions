@@ -364,12 +364,32 @@ spec:
               echo "  Username: $DATAROUTER_USERNAME"
               echo "  Artifact directory: $ARTIFACT_DIR"
               
+              # Verify droute binary exists
+              if [[ -x "/droute" ]]; then
+                echo "DEBUG: /droute binary found and is executable"
+              else
+                echo "ERROR: /droute binary not found or not executable"
+                ls -la /droute 2>/dev/null || echo "ERROR: /droute does not exist"
+                exit 1
+              fi
+              
               # Execute
               cd "$ARTIFACT_DIR"
-              ls
-              OUTPUT=$(eval $DROUTE_CMD 2>&1)
-              EXIT_CODE=$?
+              echo "Contents of artifact directory:"
+              ls -la
               
+              # Create sanitized command for logging (mask password)
+              DROUTE_CMD_SANITIZED=$(echo "$DROUTE_CMD" | sed 's/--password=[^ ]*/--password=***MASKED***/g')
+              echo "About to execute droute command: $DROUTE_CMD_SANITIZED"
+              # Temporarily disable exit on error to capture output even if command fails
+              set +e
+              OUTPUT=$(eval "$DROUTE_CMD" 2>&1)
+              EXIT_CODE=$?
+              set -e
+              
+              echo "Command completed with exit code: $EXIT_CODE"
+              echo "Output length: ${#OUTPUT} characters"
+              echo "Output content:"
               echo "$OUTPUT"
               
               # Extract routing ID if available
