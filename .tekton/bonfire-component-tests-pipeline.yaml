@@ -94,16 +94,20 @@ spec:
       description: Secret name to take the token from.
       default: "swatch-ibutsu-token"
     - name: DATAROUTER_CREDENTIALS_NAME
+      type: string
       description: Secret name to take the data router credentials from.
       default: "smqe-datarouter-credentials"
     - name: DATAROUTER-METADATA-PATH
-      value: "datarouter.json"
+      type: string
+      default: "datarouter.json"
       description: Path from root for datarouter metadata file.
     - name: datarouter-url
-      value: "https://datarouter.ccitredhat.com"
+      type: string
+      default: "https://datarouter.ccitredhat.com"
       description: Data Router public URL.
     - name: results-pattern
-      value: "TEST*.xml"
+      type: string
+      default: "TEST*.xml"
       description: Patter that Data Router follows to upload tests report.
   workspaces:
     - name: shared-workspace
