@@ -20,20 +20,20 @@
  */
 package tests;
 
-import com.redhat.swatch.component.tests.api.ComponentTest;
-import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.redhat.swatch.component.tests.api.ComponentTest;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 @ComponentTest
 @Tag("component")
 @Tag("contracts")
 public class SimpleContractsComponentTest extends BaseContractComponentTest {
-    
-    @Test
-    public void testContractComponentShouldPass() {
-        // Placeholder smoke test; Should be replaced with tests of the swatch-contracts service
-        assertEquals(1, 1);
-    }
+
+  @Test
+  public void testContractComponentShouldPass() {
+    // Placeholder smoke test; Should be replaced with tests of the swatch-contracts service
+    assertEquals(1, 1);
+  }
 }
