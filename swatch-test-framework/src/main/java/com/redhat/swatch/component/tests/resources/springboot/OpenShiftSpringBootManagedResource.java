@@ -18,22 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package tests;
+package com.redhat.swatch.component.tests.resources.springboot;
 
-import com.redhat.swatch.component.tests.api.ComponentTest;
-import com.redhat.swatch.component.tests.api.KafkaBridge;
-import com.redhat.swatch.component.tests.api.KafkaBridgeService;
-import com.redhat.swatch.component.tests.api.Quarkus;
-import com.redhat.swatch.component.tests.api.SwatchService;
-import org.junit.jupiter.api.Tag;
+import com.redhat.swatch.component.tests.resources.containers.OpenShiftContainerManagedResource;
+import java.util.Map;
 
-@ComponentTest
-@Tag("component")
-@Tag("utilization")
-public class BaseUtilizationComponentTest {
+public class OpenShiftSpringBootManagedResource extends OpenShiftContainerManagedResource {
 
-  @KafkaBridge static KafkaBridgeService kafkaBridge = new KafkaBridgeService();
-
-  @Quarkus(service = "swatch-utilization")
-  static SwatchService service = new SwatchService();
+  public OpenShiftSpringBootManagedResource(String serviceName) {
+    super(serviceName + "-service", Map.of(8080, 8000));
+  }
 }
