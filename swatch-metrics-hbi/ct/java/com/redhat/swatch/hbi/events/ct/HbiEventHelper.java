@@ -4,11 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
+import com.redhat.swatch.hbi.events.normalization.Host;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
+import java.util.UUID;
 
 public class HbiEventHelper {
 
@@ -33,8 +35,9 @@ public class HbiEventHelper {
         .replaceAll("\\$SYSPURPOSE_SLA", sla)
         .replaceAll("\\$SYSPURPOSE_USAGE", usage)
         .replaceAll("\\$CORES", Integer.toString(cores))
-        .replaceAll("\\$SOCKETS", Integer.toString(sockets));
-    return getEvent(template, HbiHostCreateUpdateEvent.class);
+        .replaceAll("\\$SOCKETS", Integer.toString(sockets))
+        .replaceAll("\\$REQUEST_ID", UUID.randomUUID().toString());
+    return validateEvent(getEvent(template, HbiHostCreateUpdateEvent.class));
   }
 
   private static String readJsonFilePath(String name) {
@@ -54,5 +57,18 @@ public class HbiEventHelper {
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Unable to create event class from message: " + eventClass, e);
     }
+  }
+
+  private static HbiHostCreateUpdateEvent validateEvent(HbiHostCreateUpdateEvent event) {
+    try {
+      // Will throw an exception if the data provided by the template is invalid.
+      // This is primarily triggered by the normalization of the facts as they are defined
+      // by HBI as a Map<String, Object> which isn't ideal.
+      new Host(event.getHost());
+    }
+    catch (Exception e) {
+      throw new RuntimeException("Invalid template data specified.", e);
+    }
+    return event;
   }
 }
