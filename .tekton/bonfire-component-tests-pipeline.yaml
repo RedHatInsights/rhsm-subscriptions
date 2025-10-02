@@ -93,15 +93,18 @@ spec:
       type: string
       description: Secret name to take the token from.
       default: "swatch-ibutsu-token"
-    - name: OCI_REGISTRY
-      description: OCI registry for storing artifacts
-      default: "quay.io/repository/cloudservices"
     - name: DATAROUTER_CREDENTIALS_NAME
       description: Secret name to take the data router credentials from.
       default: "smqe-datarouter-credentials"
-    - name: OCI_REGISTRY_CREDENTIALS_NAME
-      description: Secret name to take the OCI registry credentials from.
-      default: "oci-registry-credentials"
+    - name: DATAROUTER-METADATA-PATH
+      value: "datarouter.json"
+      description: Path from root for datarouter metadata file.
+    - name: datarouter-url
+      value: "https://datarouter.ccitredhat.com"
+      description: Data Router public URL.
+    - name: results-pattern
+      value: "TEST*.xml"
+      description: Patter that Data Router follows to upload tests report.
   workspaces:
     - name: shared-workspace
       description: A workspace to share data between tasks
@@ -297,53 +300,75 @@ spec:
             script: |
               #!/bin/bash
               ./mvnw clean install -Pcomponent-tests -Dservice=${SERVICE} -Dswatch.component-tests.global.target=openshift
-    - name: push-test-artifacts
-      workspaces:
-        - name: output
-          workspace: shared-workspace
-      runAfter:
-        - run-tests-task
-      taskSpec:
-        steps:
-          - name: push-artifacts-step
-            ref:
-              resolver: git
-              params:
-                - name: url
-                  value: https://github.com/konflux-ci/tekton-integration-catalog.git
-                - name: revision
-                  value: main
-                - name: pathInRepo
-                  value: stepactions/secure-push-oci/0.1/secure-push-oci.yaml
-            params:
-              - name: workdir-path
-                value: "${SERVICE}/ct/target/surefire-reports"
-              - name: oci-ref
-                value: "$(params.OCI_REGISTRY)/test-results"
-              - name: credentials-volume-name
-                value: "oci-credentials"
-    - name: send-to-datarouter
-      runAfter:
-        - push-test-artifacts
-      taskRef:
-        resolver: git
-        params:
-          - name: url
-            value: https://github.com/konflux-ci/tekton-integration-catalog.git
-          - name: revision
-            value: main
-          - name: pathInRepo
-            value: tasks/test-results/datarouter/0.1/datarouter.yaml
-      params:
-        - name: datarouter-url
-          value: "https://datarouter.ccitredhat.com"
-        - name: datarouter-credentials
-          value: "datarouter-credentials"
-        - name: oci-artifact-uri
-          value: "$(params.OCI_REGISTRY)/test-results"
-        - name: oci-credentials
-          value: "oci-registry-credentials"
-        - name: metadata-path
-          value: "datarouter.json"
-        - name: results-pattern
-          value: "TEST*.xml"
+
+          - name: send-results
+            image: quay.io/dno/droute:latest
+            imagePullPolicy: Always
+            workingDir: $(workspaces.output.path)/source
+            env:
+              - name: DATAROUTER_USERNAME
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.smqe-datarouter-credentials)
+                    key: username
+              - name: DATAROUTER_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.smqe-datarouter-credentials)
+                    key: password
+              - name: SERVICE
+                value: "$(params.SERVICE)"
+
+            script: |
+              #!/bin/bash
+              set -euo pipefail
+              
+              ARTIFACT_DIR="${SERVICE}"/ct/target/surefire-reports
+              METADATA_FILE="${METADATA-PATH}"
+              echo "Using metadata from: $METADATA_FILE"
+              echo "Metadata content:"
+              cat "$METADATA_FILE" | jq . || cat "$METADATA_FILE"
+              
+              # Build droute command
+              DROUTE_CMD="/droute send"
+              DROUTE_CMD="$DROUTE_CMD --url=$(params.datarouter-url)"
+              DROUTE_CMD="$DROUTE_CMD --username=$DATAROUTER_USERNAME"
+              DROUTE_CMD="$DROUTE_CMD --password=$DATAROUTER_PASSWORD"
+              DROUTE_CMD="$DROUTE_CMD --metadata=$METADATA_FILE"
+              DROUTE_CMD="$DROUTE_CMD --results=$(params.results-pattern)"
+              
+              # Add attachments directory if specified
+              if [[ -n "$(params.attachments-dir)" ]]; then
+                ATTACHMENTS_PATH="${ARTIFACT_DIR}/$(params.attachments-dir)"
+                DROUTE_CMD="$DROUTE_CMD --attachments=$ATTACHMENTS_PATH"
+              fi
+              
+              echo "Executing Data Router send"
+              echo "  URL: $(params.datarouter-url)"
+              echo "  Metadata: $METADATA_FILE"
+              echo "  Results: $(params.results-pattern)"
+              echo "  Attachments: $(params.attachments-dir)"
+              echo "  Username: $DATAROUTER_USERNAME"
+              
+              # Execute
+              cd "$ARTIFACT_DIR"
+              OUTPUT=$(eval $DROUTE_CMD 2>&1)
+              EXIT_CODE=$?
+              
+              echo "$OUTPUT"
+              
+              # Extract routing ID if available
+              ROUTING_ID=$(echo "$OUTPUT" | grep -o "routing[_-]id[:\s]*[a-zA-Z0-9-]*" | head -1 | sed 's/.*[:\s]\+//' || echo "")
+              
+              # Set results
+              if [[ $EXIT_CODE -eq 0 ]]; then
+                echo -n "success" > $(results.status.path)
+                echo "Data Router send operation completed successfully"
+              else
+                echo -n "failure" > $(results.status.path)
+                echo "Data Router send operation failed with exit code: $EXIT_CODE"
+              fi
+              
+              echo -n "$ROUTING_ID" > $(results.routing-id.path)
+              
+              exit $EXIT_CODE
