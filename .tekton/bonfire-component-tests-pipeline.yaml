@@ -362,9 +362,11 @@ spec:
               echo "  Results: $(params.results-pattern)"
               echo "  Attachments: $(params.attachments-dir)"
               echo "  Username: $DATAROUTER_USERNAME"
+              echo "  Artifact directory: $ARTIFACT_DIR"
               
               # Execute
               cd "$ARTIFACT_DIR"
+              ls
               OUTPUT=$(eval $DROUTE_CMD 2>&1)
               EXIT_CODE=$?
               
