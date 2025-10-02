@@ -20,7 +20,7 @@
     <codegen.skipIfSpecIsUnchanged>true</codegen.skipIfSpecIsUnchanged>
 
     <!-- Dependencies -->
-    <quarkus.platform.version>3.28.1</quarkus.platform.version>
+    <quarkus.platform.version>3.28.2</quarkus.platform.version>
     <spring.boot.version>3.5.5</spring.boot.version>
     <resteasy.version>7.0.0.Final</resteasy.version>
     <!-- Only use as provided in the common dependencies.
@@ -31,12 +31,12 @@
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
     <opentelemetry-api.version>1.54.0</opentelemetry-api.version>
-    <awssdk-bom.version>2.34.5</awssdk-bom.version>
+    <awssdk-bom.version>2.34.8</awssdk-bom.version>
     <guava.version>33.5.0-jre</guava.version>
-    <liquibase.version>4.33.0</liquibase.version>
+    <liquibase.version>5.0.0</liquibase.version>
     <postgresql.version>42.7.8</postgresql.version>
     <testcontainers.version>1.21.3</testcontainers.version>
-    <junit.version>5.13.4</junit.version>
+    <junit.version>6.0.0</junit.version>
     <mockito.version>5.20.0</mockito.version>
     <rest-assured.version>5.5.6</rest-assured.version>
     <awaitility.version>4.3.0</awaitility.version>
@@ -50,7 +50,7 @@
     <surefire-plugin.version>3.5.4</surefire-plugin.version>
     <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
     <maven-assembly-plugin.version>3.7.1</maven-assembly-plugin.version>
-    <exec-maven-plugin.version>3.5.1</exec-maven-plugin.version>
+    <exec-maven-plugin.version>3.6.0</exec-maven-plugin.version>
     <openapi-generator.version>7.16.0</openapi-generator.version>
     <spotless.version>3.0.0</spotless.version>
     <checkstyle.version>3.6.0</checkstyle.version>
