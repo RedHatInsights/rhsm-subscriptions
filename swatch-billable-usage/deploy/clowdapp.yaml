@@ -21,6 +21,9 @@ parameters:
     value: '1'
   - name: MIGRATION_IMAGE
     value: quay.io/cloudservices/swatch-database
+  - name: MIGRATION_IMAGE_TAG
+    description: The tag of the migration image to use (only for component-testing purposes)
+    value: ${IMAGE_TAG}
   - name: MIGRATION_MEMORY_REQUEST
     value: 256Mi
   - name: MIGRATION_MEMORY_LIMIT
@@ -144,7 +147,7 @@ objects:
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
           initContainers:
-            - image: ${MIGRATION_IMAGE}:${IMAGE_TAG}
+            - image: ${MIGRATION_IMAGE}:${MIGRATION_IMAGE_TAG}
               command: ["/opt/jboss/container/java/run/run-java.sh"]
               args: ["core", "update"]
               inheritEnv: true
