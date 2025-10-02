@@ -348,7 +348,7 @@ spec:
               DROUTE_CMD="$DROUTE_CMD --username=$DATAROUTER_USERNAME"
               DROUTE_CMD="$DROUTE_CMD --password=$DATAROUTER_PASSWORD"
               DROUTE_CMD="$DROUTE_CMD --metadata=$METADATA_FILE"
-              DROUTE_CMD="$DROUTE_CMD --results=$(params.results-pattern)"
+              DROUTE_CMD="$DROUTE_CMD --results=$(ARTIFACT_DIR)/$(params.results-pattern)"
               
               # Add attachments directory if specified
               if [[ -n "$(params.attachments-dir)" ]]; then
@@ -373,12 +373,7 @@ spec:
                 exit 1
               fi
               
-              # Execute
-              cp $METADATA_FILE $ARTIFACT_DIR
-              cd "$ARTIFACT_DIR"
-              echo "Contents of artifact directory:"
-              ls -la
-              
+              # Execute            
               # Create sanitized command for logging (mask password)
               DROUTE_CMD_SANITIZED=$(echo "$DROUTE_CMD" | sed 's/--password=[^ ]*/--password=***MASKED***/g')
               echo "About to execute droute command: $DROUTE_CMD_SANITIZED"
