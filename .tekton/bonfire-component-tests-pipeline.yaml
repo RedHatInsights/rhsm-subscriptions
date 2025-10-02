@@ -374,6 +374,7 @@ spec:
               fi
               
               # Execute
+              cp $METADATA_FILE $ARTIFACT_DIR
               cd "$ARTIFACT_DIR"
               echo "Contents of artifact directory:"
               ls -la
