@@ -93,6 +93,10 @@ spec:
       type: string
       description: Secret name to take the token from.
       default: "swatch-ibutsu-token"
+    - name: MIGRATION_IMAGE
+      type: string
+      description: The container image to use for the migration tasks
+      default: "quay.io/redhat-user-workloads/rh-subs-watch-tenant/rhsm-subscriptions/swatch-database@sha256"
   workspaces:
     - name: shared-workspace
       description: A workspace to share data between tasks
@@ -123,6 +127,56 @@ spec:
           - name: pathInRepo
             value: tasks/teardown.yaml
   tasks:
+    - name: set-extra-deploy-args
+      params:
+        - name: SNAPSHOT
+          value: "$(params.SNAPSHOT)"
+        - name: MIGRATION_IMAGE
+          value: "$(params.MIGRATION_IMAGE)"
+        - name: EXTRA_DEPLOY_ARGS
+          value: "$(params.EXTRA_DEPLOY_ARGS)"
+      taskSpec:
+        params:
+          - name: SNAPSHOT
+            type: string
+          - name: EXTRA_DEPLOY_ARGS
+            type: string
+          - name: MIGRATION_IMAGE
+            type: string
+        results:
+          - name: EXTRA_DEPLOY_ARGS
+            description: Populate extra deploy args needed for our components
+        steps:
+          - name: extract
+            image: quay.io/konflux-ci/appstudio-utils:latest
+            script: |
+              #!/usr/bin/env bash
+              set -euo pipefail
+              
+              # Keep the existing extra deploy args
+              extra_deploy_args="$(params.EXTRA_DEPLOY_ARGS)"
+              
+              # Check if swatch-database component exists first
+              if echo '$(params.SNAPSHOT)' | jq -e '.components[] | select(.name=="swatch-database")' > /dev/null; then
+                # Extract the image tag from the swatch-database component
+                migration_image="$(params.MIGRATION_IMAGE)"
+                migration_image_tag=$(echo '$(params.SNAPSHOT)' | jq -r '.components[] | select(.name=="swatch-database") | .containerImage | split("@sha256:")[1]')
+                
+                if [ -z "$migration_image_tag" ] || [ "$migration_image_tag" == "null" ]; then
+                  echo "Warning: swatch-database component found but no SHA available"
+                else                
+                  # Add the MIGRATION_IMAGE_TAG parameter for the required components
+                  components_with_db=("swatch-tally" "swatch-contracts" "swatch-billable-usage")
+                  for component in "${components_with_db[@]}"; do
+                    extra_deploy_args="$extra_deploy_args --set-parameter $component/MIGRATION_IMAGE=$migration_image --set-parameter $component/MIGRATION_IMAGE_TAG=$migration_image_tag"
+                  done
+                fi
+              else
+                echo "Info: swatch-database component not found in SNAPSHOT - skipping migration parameters"
+              fi
+              
+              printf "%s" "$extra_deploy_args" > $(results.EXTRA_DEPLOY_ARGS.path)
+
     - name: reserve-namespace
       params:
         - name: NS_REQUESTER
@@ -131,6 +185,8 @@ spec:
           value: "$(params.EPHEMERAL_ENV_PROVIDER_SECRET)"
         - name: BONFIRE_IMAGE
           value: "$(params.BONFIRE_IMAGE)"
+      runAfter:
+        - set-extra-deploy-args
       taskRef:
         resolver: git
         params:
@@ -161,7 +217,7 @@ spec:
         - name: COMPONENTS_W_RESOURCES
           value: "$(params.COMPONENTS_W_RESOURCES)"
         - name: EXTRA_DEPLOY_ARGS
-          value: "$(params.EXTRA_DEPLOY_ARGS)"
+          value: "$(tasks.set-extra-deploy-args.results.EXTRA_DEPLOY_ARGS)"
         - name: DEPLOY_FRONTENDS
           value: "$(params.DEPLOY_FRONTENDS)"
         - name: DEPLOY_TIMEOUT
