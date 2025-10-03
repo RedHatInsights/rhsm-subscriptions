@@ -4,11 +4,13 @@
 # Usage: source bin/pr_label_utils.sh
 
 # Service groups by team
-SWATCH_1=("swatch-metrics" "swatch-metrics-hbi" "swatch-tally" "swatch-system-conduit")
-SWATCH_2=("swatch-billable-usage" "swatch-contracts" "swatch-producer-azure" "swatch-producer-aws" "swatch-utilization")
+SWATCH_THUNDER_LABEL="team-thunder"
+SWATCH_THUNDER_SERVICES=("swatch-metrics" "swatch-metrics-hbi" "swatch-tally" "swatch-system-conduit")
+SWATCH_LIGHTNING_LABEL="team-lightning"
+SWATCH_LIGHTNING_SERVICES=("swatch-billable-usage" "swatch-contracts" "swatch-producer-azure" "swatch-producer-aws" "swatch-utilization")
 
 # All services (combination of both teams)
-ALL_SERVICES=("${SWATCH_1[@]}" "${SWATCH_2[@]}")
+ALL_SERVICES=("${SWATCH_THUNDER_SERVICES[@]}" "${SWATCH_LIGHTNING_SERVICES[@]}")
 
 # Get current PR labels
 get_current_labels() {
@@ -148,24 +150,24 @@ manage_team_labels() {
     echo "PR Number: $pr_number"
     echo "Current labels: '$current_labels'"
     
-    # SWATCH_1 team
-    echo "Checking SWATCH_1 team..."
-    if is_team_modified "${SWATCH_1[@]}"; then
-        echo "SWATCH_1 team has modified services"
-        add_label_if_needed "$pr_number" "swatch-1" "$current_labels"
+    # SWATCH thunder team
+    echo "Checking SWATCH thunder team..."
+    if is_team_modified "${SWATCH_THUNDER_SERVICES[@]}"; then
+        echo "SWATCH thunder team has modified services"
+        add_label_if_needed "$pr_number" "$SWATCH_THUNDER_LABEL" "$current_labels"
     else
-        echo "SWATCH_1 team has no modified services"
-        remove_label_if_needed "$pr_number" "swatch-1" "$current_labels"
+        echo "SWATCH thunder team has no modified services"
+        remove_label_if_needed "$pr_number" "$SWATCH_THUNDER_LABEL" "$current_labels"
     fi
     
-    # SWATCH_2 team
-    echo "Checking SWATCH_2 team..."
-    if is_team_modified "${SWATCH_2[@]}"; then
-        echo "SWATCH_2 team has modified services"
-        add_label_if_needed "$pr_number" "swatch-2" "$current_labels"
+    # SWATCH lightning team
+    echo "Checking SWATCH lightning team..."
+    if is_team_modified "${SWATCH_LIGHTNING_SERVICES[@]}"; then
+        echo "SWATCH lightning team has modified services"
+        add_label_if_needed "$pr_number" "$SWATCH_LIGHTNING_LABEL" "$current_labels"
     else
-        echo "SWATCH_2 team has no modified services"
-        remove_label_if_needed "$pr_number" "swatch-2" "$current_labels"
+        echo "SWATCH lightning team has no modified services"
+        remove_label_if_needed "$pr_number" "$SWATCH_LIGHTNING_LABEL" "$current_labels"
     fi
     
     echo "Team label management completed"
@@ -184,6 +186,6 @@ remove_all_labels() {
     done
     
     # Remove team labels
-    remove_label_if_needed "$pr_number" "swatch-1" "$current_labels"
-    remove_label_if_needed "$pr_number" "swatch-2" "$current_labels"
+    remove_label_if_needed "$pr_number" "$SWATCH_THUNDER_LABEL" "$current_labels"
+    remove_label_if_needed "$pr_number" "$SWATCH_LIGHTNING_LABEL" "$current_labels"
 }
