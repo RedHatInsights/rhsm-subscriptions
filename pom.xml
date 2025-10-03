@@ -468,6 +468,11 @@
         </executions>
         <configuration>
           <java>
+            <includes>
+              <include>src/main/java/**/*.java</include>
+              <include>src/test/java/**/*.java</include>
+              <include>ct/java/**/*.java</include>
+            </includes>
             <excludes>
               <exclude>**/target/**</exclude>
             </excludes>
@@ -504,6 +509,7 @@
           <sourceDirectories>
             <sourceDirectory>src/main/java</sourceDirectory>
             <sourceDirectory>src/test/java</sourceDirectory>
+            <sourceDirectory>ct/java</sourceDirectory>
           </sourceDirectories>
         </configuration>
         <dependencies>
