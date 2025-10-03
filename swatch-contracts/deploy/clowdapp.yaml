@@ -133,7 +133,6 @@ objects:
         sharedDbAppName: ${DB_POD}
       dependencies:
         - ${DB_POD}
-        - swatch-tally
         - rbac
         - export-service
 
