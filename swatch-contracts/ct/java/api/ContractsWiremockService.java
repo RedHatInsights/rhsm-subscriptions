@@ -22,6 +22,4 @@ package api;
 
 import com.redhat.swatch.component.tests.api.WiremockService;
 
-public class ContractsWiremockService extends WiremockService {
-    
-}
+public class ContractsWiremockService extends WiremockService {}
