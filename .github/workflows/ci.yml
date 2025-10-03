@@ -249,7 +249,7 @@ jobs:
           cache: 'maven'
 
       - name: Build
-        run: ./mvnw clean install -DskipTests
+        run: ./mvnw install -DskipTests
 
       - name: Start components
         run: docker compose up -d db kafka kafka-setup amqp

@@ -39,7 +39,7 @@ define QUARKUS_PROXY
     $(call BUILD,$(1))
 	QUARKUS_HTTP_PORT=$(2) QUARKUS_MANAGEMENT_PORT=$(shell echo $$((1000 + $(2)))) \
 	QUARKUS_HTTP_HOST=0.0.0.0 QUARKUS_PROFILE=$(subst $(space),$(comma),$(PROFILES)) \
-	./mvnw -pl $(1) quarkus:dev
+	./mvnw -pl $(1) quarkus:dev -DskipTests
 endef
 
 # Take note that we're using SPRING_PROFILES_INCLUDE rather that
@@ -54,7 +54,7 @@ define SPRING_PROXY
     $(call BUILD,$(1))
 	SERVER_PORT=$(2) MANAGEMENT_SERVER_PORT=$(shell echo $$((1000 + $(2)))) \
 	SPRING_PROFILES_INCLUDE=$(subst $(space),$(comma),$(PROFILES)) \
-	./mvnw -pl $(1) spring-boot:run
+	./mvnw -pl $(1) spring-boot:run -DskipTests
 endef
 
 default: format install
