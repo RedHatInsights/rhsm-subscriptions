@@ -340,7 +340,7 @@ spec:
               METADATA_FILE="$(params.DATAROUTER-METADATA-PATH)"
               
               # Customize metadata for the current service
-              sed -i 's/SERVICE_NAME/$SERVICE/g' datarouter.json
+              sed -i "s/SERVICE_NAME/$SERVICE/g" datarouter.json
               
               echo "Using metadata from: $METADATA_FILE"
               echo "Metadata content:"
