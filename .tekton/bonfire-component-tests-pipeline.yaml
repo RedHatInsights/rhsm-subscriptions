@@ -364,15 +364,6 @@ spec:
               echo "  Username: $DATAROUTER_USERNAME"
               echo "  Artifact directory: $ARTIFACT_DIR"
               
-              # Verify droute binary exists
-              if [[ -x "/droute" ]]; then
-                echo "DEBUG: /droute binary found and is executable"
-              else
-                echo "ERROR: /droute binary not found or not executable"
-                ls -la /droute 2>/dev/null || echo "ERROR: /droute does not exist"
-                exit 1
-              fi
-              
               # Execute            
               # Create sanitized command for logging (mask password)
               DROUTE_CMD_SANITIZED=$(echo "$DROUTE_CMD" | sed 's/--password=[^ ]*/--password=***MASKED***/g')
