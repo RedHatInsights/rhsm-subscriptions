@@ -86,50 +86,12 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
       @Param("pageable") Pageable pageable);
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  @Query(
-      nativeQuery = true,
-      value =
-          "select count(*) FROM tally_measurements m inner join tally_snapshots ts on m.snapshot_id=ts.id where ts.org_id=:orgId and ts.granularity=:granularity and ts.snapshot_date < :cutoffDate")
-  long countMeasurementsByGranularityAndSnapshotDateBefore(
-      @Param("orgId") String orgId,
-      @Param("granularity") String granularity,
-      @Param("cutoffDate") OffsetDateTime cutoffDate);
-
-  @Transactional(propagation = Propagation.REQUIRES_NEW)
-  @Modifying
-  @Query(
-      nativeQuery = true,
-      value =
-"""
-    delete from tally_measurements
-    where (snapshot_id, measurement_type, metric_id) in (
-        select m.snapshot_id, m.measurement_type, m.metric_id
-        from tally_measurements m
-        inner join tally_snapshots ts on m.snapshot_id=ts.id
-        where ts.org_id=:orgId and ts.granularity=:granularity and ts.snapshot_date < :cutoffDate
-        limit :limit
-    )
-""")
-  void deleteMeasurementsByGranularityAndSnapshotDateBefore(
-      @Param("orgId") String orgId,
-      @Param("granularity") String granularity,
-      @Param("cutoffDate") OffsetDateTime cutoffDate,
-      @Param("limit") long limit);
-
-  @Transactional(propagation = Propagation.REQUIRES_NEW)
-  @Query(
-      value =
-          "select count(*) from TallySnapshot where orgId=:orgId and granularity=:granularity and snapshotDate < :cutoffDate")
-  long countAllByGranularityAndSnapshotDateBefore(
-      String orgId, Granularity granularity, OffsetDateTime cutoffDate);
-
-  @Transactional(propagation = Propagation.REQUIRES_NEW)
   @Modifying
   @Query(
       nativeQuery = true,
       value =
           "delete from tally_snapshots where id in (select id from tally_snapshots where org_id=:orgId and granularity=:granularity and snapshot_date < :cutoffDate limit :limit)")
-  void deleteAllByGranularityAndSnapshotDateBefore(
+  int deleteAllByGranularityAndSnapshotDateBefore(
       @Param("orgId") String orgId,
       @Param("granularity") String granularity,
       @Param("cutoffDate") OffsetDateTime cutoffDate,
