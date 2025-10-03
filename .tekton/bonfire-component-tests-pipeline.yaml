@@ -338,6 +338,10 @@ spec:
               
               ARTIFACT_DIR="${SERVICE}"/ct/target/surefire-reports
               METADATA_FILE="$(params.DATAROUTER-METADATA-PATH)"
+              
+              # Customize metadata for the current service
+              sed -i 's/SERVICE_NAME/$SERVICE/g' datarouter.json
+              
               echo "Using metadata from: $METADATA_FILE"
               echo "Metadata content:"
               cat "$METADATA_FILE" | jq . || cat "$METADATA_FILE"
