@@ -42,22 +42,14 @@ public class BaseSMHBIComponentTest {
    */
   protected void flushOutbox(int expectedFlushCount) {
     Counter counter = new Counter();
-    AwaitilitySettings settings = AwaitilitySettings.usingTimeout(Duration.ofSeconds(10))
+    AwaitilitySettings settings = AwaitilitySettings.using(Duration.ofSeconds(2), Duration.ofSeconds(10))
         .timeoutMessage("Unable to flush the expected number of outbox records in time: %s",
             expectedFlushCount);
 
     AwaitilityUtils.untilIsTrue(() -> {
-      while (counter.getCount() < expectedFlushCount) {
-        FlushResponse response = swatchMetricsHbi.flushOutboxSynchronously();
-        if (response.getStatus() == FlushResponse.StatusEnum.SUCCESS &&
-            response.getCount() > 0) {
-          counter.increment(response.getCount());
-          if (counter.getCount() < expectedFlushCount) {
-            return false;
-          }
-        }
-      }
-      return true;
+      FlushResponse response = swatchMetricsHbi.flushOutboxSynchronously();
+      counter.increment(response.getCount());
+      return counter.getCount() >= expectedFlushCount;
     }, settings);
   }
 
