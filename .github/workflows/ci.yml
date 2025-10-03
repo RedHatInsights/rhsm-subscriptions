@@ -17,6 +17,66 @@ env:
   GITHUB_TOKEN: ${{ github.actor == 'dependabot[bot]' && secrets.DEPENDABOT_BOT_TOKEN || secrets.GITHUB_TOKEN }}
 
 jobs:
+  labeler:
+    name: Label Pull Request
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    outputs:
+      modified-services: ${{ steps.add-labels.outputs.modified-services }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need to do git diff against the base branch
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 17
+          cache: 'maven'
+      - name: Install GitHub CLI
+        run: |
+          sudo apt update && sudo apt install -y gh
+      - name: Detect and label modified services
+        id: add-labels
+        run: |
+          # Source utilities
+          source bin/pr_label_utils.sh
+          
+          MVNW=$(pwd)/mvnw
+          BASE_BRANCH="${{ github.event.pull_request.base.ref }}"
+          MODIFIED_SERVICES=()
+          
+          echo "Getting current PR labels..."
+          CURRENT_LABELS=$(get_current_labels ${{ github.event.pull_request.number }})
+          echo "Current labels: $CURRENT_LABELS"
+          
+          echo "Fetching base branch $BASE_BRANCH..."
+          git fetch origin "$BASE_BRANCH"
+          
+          # Detect changed top-level Maven modules
+          CHANGED=$(git diff --name-only "origin/$BASE_BRANCH...HEAD" | awk -F/ '{print $1}' | sort -u | xargs)
+          
+          if [ -z "$CHANGED" ]; then
+            remove_all_labels ${{ github.event.pull_request.number }} "$CURRENT_LABELS"
+            echo "modified-services=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+        
+          echo "Changed modules: $CHANGED"
+          
+          # Detect modified services using utility function
+          detect_modified_services "$MVNW" "$CHANGED"
+          
+          # Manage all labels using utilities
+          manage_service_labels ${{ github.event.pull_request.number }} "$CURRENT_LABELS"
+          manage_team_labels ${{ github.event.pull_request.number }} "$CURRENT_LABELS"
+          
+          # Output for next job
+          MODIFIED_SERVICES_STR=$(IFS=' '; echo "${MODIFIED_SERVICES[*]}")
+          echo "modified-services=$MODIFIED_SERVICES_STR" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   validate-format:
     name: Validate Format
     runs-on: ubuntu-latest
@@ -176,7 +236,8 @@ jobs:
   services:
     name: Verify SWATCH services for local testing
     runs-on: ubuntu-latest
-    needs: [test]
+    needs: [test, labeler]
+    if: always() && (needs.test.result == 'success') && (needs.labeler.result == 'success' || needs.labeler.result == 'skipped')
     steps:
       - uses: actions/checkout@v4
 
@@ -199,7 +260,13 @@ jobs:
       - name: Verify SWATCH services for local testing
         run: |
           export HOST_NAME="github-runner@ci"
-          ./bin/test-all-services.sh
+          
+          # Check if we have modified services from the labeler job (only in PR context)
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ -n "${{ needs.labeler.outputs.modified-services || '' }}" ]; then
+            ./bin/test-all-services.sh ${{ needs.labeler.outputs.modified-services }}
+          else
+            ./bin/test-all-services.sh
+          fi
 
       - name: Cleanup any remaining processes
         if: always()
@@ -217,7 +284,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [validate-format, validate-floorplan-queries, build, test, services]
     if: always()
-
     steps:
       - name: Download Code Coverage Report
         id: download-coverage
