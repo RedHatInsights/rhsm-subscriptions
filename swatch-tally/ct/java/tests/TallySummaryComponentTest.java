@@ -1,25 +1,66 @@
+/*
+ * Copyright Red Hat, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Red Hat trademarks are not licensed under GPLv3. No permission is
+ * granted to use or replicate Red Hat trademarks that are incorporated
+ * in this software or its documentation.
+ */
 package tests;
 
-public class TallySummaryComponentTest extends BaseTallyComponentTest{
-    @Test
-    public void testTallySummaryHourlyGranularity(){
-        // Test setup
+import org.junit.jupiter.api.Test;
+import util.TallyTestHealpers.syncTallyByOrgId;
 
-        // Create Event
-        EventPayload event = createEventPayload();
+public class TallySummaryComponentTest extends BaseTallyComponentTest {
+  @Test
+  public void testTallySummaryHourlyGranularity() {
+    // Test setup
 
-        // Submit Event
-        kafkaBridge.produceKafkaMessage(SERVICE_INSTANCE_INGRESS, eventPayload);
+    // Create Event
+    EventPayload event = createEventPayload();
+    kafkaBridge.produceKafkaMessage(SERVICE_INSTANCE_INGRESS, eventPayload);
 
-        //Sync Tally
+    // Sync Tally
+    syncTallyByOrgId();
 
-        //Read Tally Topic
+    // Read Tally Topic
+    kafkaBridge.waitForKafkaMessage(
+            TALLY,
+            message -> message.contains("place_holder");
+    )
 
+    //Call Tally endpoint with hourly filter
+  }
 
-    }
+  @Test
+  public void testTallySummaryDailyGranularity() {
+      // Test setup
 
-    @Test
-    public void testTallySummaryDailyGranularity(){
+      // Create Event
+      EventPayload event = createEventPayload();
+      kafkaBridge.produceKafkaMessage(SERVICE_INSTANCE_INGRESS, eventPayload);
 
-    }
+      // Sync Tally
+      syncTallyByOrgId();
+
+      // Read Tally Topic
+      kafkaBridge.waitForKafkaMessage(
+              TALLY,
+              message -> message.contains("place_holder");
+    )
+
+      // Call Tally endpoint with Daily filter
+  }
 }
