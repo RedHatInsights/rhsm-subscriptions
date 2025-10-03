@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class HbiEventHelper {
 
@@ -32,7 +33,10 @@ public class HbiEventHelper {
 
     String template = readJsonFilePath("data/templates/hbi_rhsm_host_event.json")
         .replaceAll("\\$TYPE", type)
-        .replaceAll("\\$RH_PRODUCT_IDS", String.join(",", "\"" + rhProdArray + "\""))
+        .replaceAll("\\$INVENTORY_UUID", UUID.randomUUID().toString())
+        .replaceAll("\\$SUBSCRIPTION_MANAGER_UUID", UUID.randomUUID().toString())
+        .replaceAll("\\$INSIGHTS_UUID", UUID.randomUUID().toString())
+        .replaceAll("\\$RH_PRODUCT_IDS", commaSeparated(rhProdArray))
         .replaceAll("\\$IS_VIRTUAL", Boolean.toString(isVirtual))
         .replaceAll("\\$TIMESTAMP", timestamp.toString())
         .replaceAll("\\$SYNC_TIMESTAMP", timestamp.toString())
@@ -64,6 +68,16 @@ public class HbiEventHelper {
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Unable to create event class from message: " + eventClass, e);
     }
+  }
+
+  public static String commaSeparated(Collection<String> strings) {
+    if (strings == null || strings.isEmpty()) {
+      return "";
+    }
+
+    return strings.stream()
+        .map(str -> "\"" + str + "\"")
+        .collect(Collectors.joining(","));
   }
 
   private static HbiHostCreateUpdateEvent validateEvent(HbiHostCreateUpdateEvent event) {

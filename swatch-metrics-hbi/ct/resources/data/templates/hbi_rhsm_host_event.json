@@ -1,13 +1,13 @@
 {
   "type": "$TYPE",
   "host": {
-    "id": "18ebb8c0-a597-41b6-85d2-62003ebaacd3",
+    "id": "$INVENTORY_UUID",
     "display_name": "testhost.example.com",
     "ansible_host": null,
     "account": null,
     "org_id": "12345678",
-    "insights_id": "4a6a184e-6204-47d9-b888-26db9b5e8c81",
-    "subscription_manager_id": "6bfc8a3d-464f-4853-a301-4b1715480799",
+    "insights_id": "$INSIGHTS_UUID",
+    "subscription_manager_id": "$SUBSCRIPTION_MANAGER_UUID",
     "satellite_id": null,
     "fqdn": "testhost.example.com",
     "ip_addresses": null,
