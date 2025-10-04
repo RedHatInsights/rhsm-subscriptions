@@ -24,6 +24,7 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinitionGranularity;
 import com.redhat.swatch.configuration.registry.Variant;
+import com.redhat.swatch.contracts.spring.api.model.CapacitySnapshotByMetricId;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.UriInfo;
@@ -41,6 +42,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.contracts.ContractsCapacityController;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
@@ -57,7 +59,6 @@ import org.candlepin.subscriptions.tally.filler.UnroundedTallyReportDataPoint;
 import org.candlepin.subscriptions.util.ApiModelMapperV1;
 import org.candlepin.subscriptions.utilization.api.v1.model.BillingCategory;
 import org.candlepin.subscriptions.utilization.api.v1.model.BillingProviderType;
-import org.candlepin.subscriptions.utilization.api.v1.model.CapacitySnapshotByMetricId;
 import org.candlepin.subscriptions.utilization.api.v1.model.GranularityType;
 import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
 import org.candlepin.subscriptions.utilization.api.v1.model.ServiceLevelType;
@@ -87,7 +88,7 @@ public class TallyResource implements TallyApi {
   private final TallySnapshotRepository repository;
   private final PageLinkCreator pageLinkCreator;
   private final ApplicationClock clock;
-  private final CapacityResource capacityResource;
+  private final ContractsCapacityController capacityController;
 
   @Context private UriInfo uriInfo;
 
@@ -97,12 +98,12 @@ public class TallyResource implements TallyApi {
       TallySnapshotRepository repository,
       PageLinkCreator pageLinkCreator,
       ApplicationClock clock,
-      CapacityResource capacityResource) {
+      ContractsCapacityController capacityController) {
     this.mapper = mapper;
     this.repository = repository;
     this.pageLinkCreator = pageLinkCreator;
     this.clock = clock;
-    this.capacityResource = capacityResource;
+    this.capacityController = capacityController;
   }
 
   @Override
@@ -271,7 +272,7 @@ public class TallyResource implements TallyApi {
       UsageType usageType) {
 
     var capacityReportByMetricId =
-        capacityResource.getCapacityReportByMetricId(
+        capacityController.getCapacityReportByMetricId(
             productId,
             metricId,
             GranularityType.valueOf(granularityType.name()),
@@ -280,9 +281,9 @@ public class TallyResource implements TallyApi {
             offset,
             limit,
             billingAccountId,
-            Optional.ofNullable(category).map(c -> ReportCategory.valueOf(c.name())).orElse(null),
-            Optional.ofNullable(sla).map(s -> ServiceLevelType.valueOf(s.name())).orElse(null),
-            Optional.ofNullable(usageType).map(ut -> UsageType.valueOf(ut.name())).orElse(null));
+            category,
+            sla,
+            usageType);
     return capacityReportByMetricId.getData().stream()
         .collect(
             Collectors.toMap(
