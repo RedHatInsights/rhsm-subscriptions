@@ -51,19 +51,16 @@ public class HbiEventConsumer {
   public static final String TIMED_EVENTS_METRIC = EVENTS_METRIC + ".timed";
   public static final String COUNTER_EVENTS_METRIC = EVENTS_METRIC + ".counter";
 
-  private final FeatureFlags flags;
   private final HbiEventProcessor hbiEventProcessor;
   private final ObjectMapper objectMapper;
   private final MeterRegistry meterRegistry;
   private final HbiEventOutboxRepository outboxRepository;
 
   public HbiEventConsumer(
-      FeatureFlags flags,
       HbiEventProcessor hbiEventProcessor,
       ObjectMapper objectMapper,
       MeterRegistry meterRegistry,
       HbiEventOutboxRepository outboxRepository) {
-    this.flags = flags;
     this.hbiEventProcessor = hbiEventProcessor;
     this.objectMapper = objectMapper;
     this.meterRegistry = meterRegistry;
