@@ -51,7 +51,7 @@ parameters:
     value: quay.io/cloudservices/swatch-database
   - name: MIGRATION_IMAGE_TAG
     description: The tag of the migration image to use (only for component-testing purposes)
-    value: ${IMAGE_TAG}
+    value: latest
   - name: MIGRATION_MEMORY_REQUEST
     value: 256Mi
   - name: MIGRATION_MEMORY_LIMIT
@@ -502,7 +502,7 @@ objects:
               path: /health/liveness
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 60
+            initialDelaySeconds: 180
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -512,7 +512,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 60
+            initialDelaySeconds: 180
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
