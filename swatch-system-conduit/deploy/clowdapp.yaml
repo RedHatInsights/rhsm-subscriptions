@@ -334,7 +334,6 @@ objects:
     jobs:
       - name: sync
         schedule: ${ORG_SYNC_SCHEDULE}
-        activeDeadlineSeconds: 1800
         successfulJobsHistoryLimit: 2
         restartPolicy: Never
         podSpec:

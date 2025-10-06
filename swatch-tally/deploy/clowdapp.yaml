@@ -539,7 +539,6 @@ objects:
     jobs:
       - name: tally
         schedule: ${CAPTURE_SNAPSHOT_SCHEDULE}
-        activeDeadlineSeconds: 4200
         successfulJobsHistoryLimit: 2
         restartPolicy: Never
         podSpec:
@@ -568,7 +567,6 @@ objects:
 
       - name: hourly
         schedule: ${CAPTURE_HOURLY_SNAPSHOT_SCHEDULE}
-        activeDeadlineSeconds: 1800
         successfulJobsHistoryLimit: 2
         restartPolicy: Never
         podSpec:
@@ -597,7 +595,6 @@ objects:
 
       - name: purge
         schedule: ${PURGE_SNAPSHOT_SCHEDULE}
-        activeDeadlineSeconds: 1800
         successfulJobsHistoryLimit: 2
         restartPolicy: Never
         podSpec:
@@ -623,7 +620,6 @@ objects:
 
       - name: purge-events
         schedule: ${PURGE_EVENTS_SCHEDULE}
-        activeDeadlineSeconds: 1800
         successfulJobsHistoryLimit: 2
         restartPolicy: Never
         podSpec:

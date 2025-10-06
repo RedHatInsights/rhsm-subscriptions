@@ -359,7 +359,6 @@ objects:
       jobs:
         - name: subscription-sync
           schedule: ${SUBSCRIPTION_SYNC_SCHEDULE}
-          activeDeadlineSeconds: 1800
           successfulJobsHistoryLimit: 2
           restartPolicy: Never
           podSpec:
@@ -385,7 +384,6 @@ objects:
 
         - name: offering-sync
           schedule: ${OFFERING_SYNC_SCHEDULE}
-          activeDeadlineSeconds: 1800
           successfulJobsHistoryLimit: 2
           restartPolicy: Never
           podSpec:
