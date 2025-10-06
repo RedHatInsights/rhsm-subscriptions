@@ -123,6 +123,57 @@ spec:
           - name: pathInRepo
             value: tasks/teardown.yaml
   tasks:
+    - name: print-snapshot
+      params:
+      - name: SNAPSHOT
+        value: "$(params.SNAPSHOT)"
+      taskSpec:
+        params:
+          - name: SNAPSHOT
+            type: string
+        steps:
+          - name: extract
+            image: quay.io/konflux-ci/appstudio-utils:latest
+            script: |
+              #!/usr/bin/env bash
+              set -euo pipefail
+              
+              # Debug snapshot
+              echo "$(params.SNAPSHOT)"
+    - name: wait-for-integration-tests
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/konflux-ci/tekton-integration-catalog.git
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: tasks/wait-for-integration-tests/0.1/wait-for-integration-tests.yaml
+      runAfter:
+        - print-snapshot
+      params:
+        - name: scenarios-to-check
+          value: "rhsm-subscriptions-verify-snapshot-components"
+    - name: print-snapshot-two
+      params:
+        - name: SNAPSHOT
+          value: "$(params.SNAPSHOT)"
+      runAfter:
+        - wait-for-integration-tests
+      taskSpec:
+        params:
+          - name: SNAPSHOT
+            type: string
+        steps:
+          - name: extract
+            image: quay.io/konflux-ci/appstudio-utils:latest
+            script: |
+              #!/usr/bin/env bash
+              set -euo pipefail
+
+              # Debug snapshot
+              echo "$(params.SNAPSHOT)"
     - name: reserve-namespace
       params:
         - name: NS_REQUESTER
@@ -131,6 +182,8 @@ spec:
           value: "$(params.EPHEMERAL_ENV_PROVIDER_SECRET)"
         - name: BONFIRE_IMAGE
           value: "$(params.BONFIRE_IMAGE)"
+      runAfter:
+        - print-snapshot-two
       taskRef:
         resolver: git
         params:
