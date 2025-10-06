@@ -24,18 +24,6 @@ class SimpleSwatchMetricsHbiTest extends BaseSMHBIComponentTest {
     assertFalse(body.getAsync());
   }
 
-  /**
-   * NOTE: This is not a valid test but ensures that the swatch-metrics-hbi CT test
-   * setup is working and is capable of sending an HBI event message to Kafka to initiate
-   * a test. THIS SHOULD BE REMOVED
-   */
-  @Test
-  void testHbiKafkaTopicConnection() {
-    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, "test");
-    kafkaBridge.waitForKafkaMessage(Topics.HBI_EVENT_IN,
-        messages -> messages.contains("test"),
-        1);
-  }
 
   @Test
   void testUnleashFlagToggling() {

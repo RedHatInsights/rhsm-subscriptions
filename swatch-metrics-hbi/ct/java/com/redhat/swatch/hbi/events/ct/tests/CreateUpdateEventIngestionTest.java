@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.component.tests.utils.Topics;
 import com.redhat.swatch.hbi.events.ct.HbiEventHelper;
+import com.redhat.swatch.hbi.events.ct.api.MessageValidators;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.services.FeatureFlags;
 import java.time.OffsetDateTime;
@@ -57,7 +58,7 @@ class CreateUpdateEventIngestionTest extends BaseSMHBIComponentTest {
         2);
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiEventType, hbiEvent);
     kafkaBridge.waitForKafkaMessage(Topics.HBI_EVENT_IN,
-        messages -> messages.contains(hbiEventType),
+        MessageValidators.eventMatches(hbiEventType),
         1);
     /*
     swatchMetricsHbi.flushOutboxSynchronously();
