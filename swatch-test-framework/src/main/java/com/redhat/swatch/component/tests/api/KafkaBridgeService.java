@@ -69,7 +69,7 @@ public class KafkaBridgeService extends RestService {
   }
 
   public void produceKafkaMessage(String topic, String key, Object value) {
-    var data = Map.of("records", List.of(Map.of("key", key, "value", value)));
+    var data = Map.of("records", List.of(buildMessage(key, value)));
 
     given()
         .config(
@@ -156,6 +156,15 @@ public class KafkaBridgeService extends RestService {
         .post("/consumers/" + CONSUMER_GROUP)
         .then()
         .statusCode(200);
+  }
+
+  private Map<String, Object> buildMessage(String key, Object value) {
+    Map<String, Object> message = new HashMap<>();
+    message.put("value", value);
+    if (key != null) {
+      message.put("key", key);
+    }
+    return message;
   }
 
   private void subscribeToTopic(String consumerInstance, String topic) {
