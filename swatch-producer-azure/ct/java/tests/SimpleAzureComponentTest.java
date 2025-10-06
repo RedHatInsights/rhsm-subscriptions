@@ -37,7 +37,6 @@ public class SimpleAzureComponentTest extends BaseAzureComponentTest {
   @Test
   public void testValidAzureUsageMessages() {
     // Setup
-
     String productId = "rhel-for-x86-els-payg-addon";
     String metricId = "vCPUs";
     String billingAccountId = UUID.randomUUID().toString();
