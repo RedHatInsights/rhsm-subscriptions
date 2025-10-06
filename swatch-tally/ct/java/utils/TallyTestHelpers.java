@@ -20,25 +20,22 @@
  */
 package utils;
 
-import com.redhat.swatch.component.tests.api.KafkaBridge;
-import com.redhat.swatch.events.payloads.EventPayload;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.json.Measurement;
 
 public class TallyTestHelpers {
-  private static final String SERVICE_INSTANCE_INGRESS =
-      "platform.rhsm-subscriptions.service-instance-ingress";
 
-  @KafkaBridge private KafkaBridge kafkaBridge;
+  public TallyTestHelpers() {}
 
-  private TallyTestHelpers() {}
-
-  public EventPayload createEventPayload(
+  public Event createEventPayload(
       String eventSource,
       String eventType,
       String orgId,
@@ -49,56 +46,65 @@ public class TallyTestHelpers {
     OffsetDateTime prevHourStart = OffsetDateTime.now().minusHours(1).truncatedTo(ChronoUnit.HOURS);
     OffsetDateTime prevHourEnd = prevHourStart.plusHours(1).minusNanos(1);
 
-    // Create EventPayload
-    var payload = new EventPayload();
+    // Create Event
+    var payload = new Event();
 
     // Set basic fields
     payload.setEventSource(eventSource);
     payload.setEventType(eventType);
     payload.setOrgId(orgId);
     payload.setInstanceId(instanceId);
-    payload.setDisplayName(displayName);
+    payload.setDisplayName(Optional.of(displayName));
 
     // Set timestamps
-    payload.setTimestamp(
-        prevHourStart
-            .withOffsetSameInstant(ZoneOffset.UTC)
-            .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
-    payload.setExpiration(
-        prevHourEnd
-            .withOffsetSameInstant(ZoneOffset.UTC)
-            .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+    payload.setTimestamp(prevHourStart.withOffsetSameInstant(ZoneOffset.UTC));
+    // Set expiration to match working Python payload
+    payload.setExpiration(Optional.of(prevHourEnd.withOffsetSameInstant(ZoneOffset.UTC)));
 
     // Create and set measurement
-    var measurement =
-        Map.of(
-            "value", value,
-            "metric_id", metricId);
+    var measurement = new Measurement();
+    measurement.setValue((double) value);
+    measurement.setMetricId(metricId);
     payload.setMeasurements(List.of(measurement));
 
     // Set additional fields
-    payload.setSla("Premium");
-    payload.setServiceType("rosa Instance");
-    payload.setRole("moa-hostedcontrolplane");
-    payload.setBillingProvider("aws");
-    payload.setBillingAccountId(UUID.randomUUID());
+    payload.setSla(Event.Sla.PREMIUM);
+    payload.setServiceType("RHEL System");
+    payload.setRole(Event.Role.RED_HAT_ENTERPRISE_LINUX_SERVER);
+    payload.setBillingProvider(Event.BillingProvider.AWS);
+    // Set billing account ID to match working Python payload
+    payload.setBillingAccountId(Optional.of("test-300"));
+    // Set product tags to match working Python payload
+    payload.setProductTag(Set.of("rhel-for-x86-els-payg-addon", "rhel-for-x86-els-payg"));
+    // Set product IDs to match working Python payload
+    payload.setProductIds(List.of("204", "69"));
+
+    // Set optional fields that might cause serialization issues
+    payload.setMeteringBatchId(UUID.randomUUID());
+    payload.setEventId(UUID.randomUUID());
 
     return payload;
   }
 
-  public void syncTallyByOrgId(String orgId) throws Exception {
-    HttpClient client = HttpClient.newHttpClient();
-    HttpRequest request =
-        HttpRequest.newBuilder()
-            .uri(
-                URI.create(" /v1/internal/rpc/tally/snapshots/{org_id}".replace("{org_id}", orgId)))
-            .PUT()
-            .build();
+  public void syncTallyByOrgId(
+      String orgId, com.redhat.swatch.component.tests.api.SwatchService service) throws Exception {
+    // Use the same endpoint as Python version for hourly tally processing
+    String start =
+        OffsetDateTime.now().minusHours(24).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+    String end = OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
 
-    HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+    // Use service.given() to call the tally sync endpoint
+    service
+        .given()
+        .header("x-rh-swatch-psk", "placeholder")
+        .queryParam("org", orgId)
+        .queryParam("start", start)
+        .queryParam("end", end)
+        .when()
+        .post("/api/rhsm-subscriptions/v1/internal/tally/hourly")
+        .then()
+        .statusCode(204);
 
-    // Log Reponse
-    System.out.println("Status Code: " + response.statusCode());
-    System.out.println("Response Body: " + response.body());
+    System.out.println("Tally sync endpoint called successfully for org: " + orgId);
   }
 }

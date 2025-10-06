@@ -92,7 +92,7 @@ public class LocalSpringBootManagedResource extends ManagedResource {
 
       process = pb.start();
 
-      loggingHandler = new FileServiceLoggingHandler(context.getOwner(), logOutputFile);
+      loggingHandler = new FileServiceLoggingHandler(context, logOutputFile);
       loggingHandler.startWatching();
 
     } catch (Exception e) {
