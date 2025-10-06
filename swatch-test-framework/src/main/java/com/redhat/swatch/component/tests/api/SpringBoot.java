@@ -18,16 +18,17 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.utils;
+package com.redhat.swatch.component.tests.api;
 
-public final class Topics {
-  public static final String SUFFIX = "platform.rhsm-subscriptions.";
-  public static final String BILLABLE_USAGE_HOURLY_AGGREGATE =
-      SUFFIX + "billable-usage-hourly-aggregate";
-  public static final String BILLABLE_USAGE_STATUS = SUFFIX + "billable-usage.status";
-  public static final String UTILIZATION = SUFFIX + "utilization";
-  public static final String SERVICE_INSTANCE_INGRESS = SUFFIX + "service-instance-ingress";
-  public static final String TALLY = SUFFIX + "tally";
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-  private Topics() {}
+@Target({ElementType.FIELD, ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface SpringBoot {
+
+  /** Specify the SWATCH spring boot service to load. */
+  String service();
 }

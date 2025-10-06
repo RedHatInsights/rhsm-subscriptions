@@ -18,16 +18,27 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.utils;
+package tests;
 
-public final class Topics {
-  public static final String SUFFIX = "platform.rhsm-subscriptions.";
-  public static final String BILLABLE_USAGE_HOURLY_AGGREGATE =
-      SUFFIX + "billable-usage-hourly-aggregate";
-  public static final String BILLABLE_USAGE_STATUS = SUFFIX + "billable-usage.status";
-  public static final String UTILIZATION = SUFFIX + "utilization";
-  public static final String SERVICE_INSTANCE_INGRESS = SUFFIX + "service-instance-ingress";
-  public static final String TALLY = SUFFIX + "tally";
+import static com.redhat.swatch.component.tests.utils.Topics.SERVICE_INSTANCE_INGRESS;
+import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 
-  private Topics() {}
+import com.redhat.swatch.component.tests.api.ComponentTest;
+import com.redhat.swatch.component.tests.api.KafkaBridge;
+import com.redhat.swatch.component.tests.api.KafkaBridgeService;
+import com.redhat.swatch.component.tests.api.SpringBoot;
+import com.redhat.swatch.component.tests.api.SwatchService;
+import org.junit.jupiter.api.Tag;
+
+@ComponentTest
+@Tag("component")
+@Tag("tally")
+public class BaseTallyComponentTest {
+
+  @KafkaBridge
+  static KafkaBridgeService kafkaBridge =
+      new KafkaBridgeService().subscribeToTopic(SERVICE_INSTANCE_INGRESS).subscribeToTopic(TALLY);
+
+  @SpringBoot(service = "swatch-tally")
+  static SwatchService service = new SwatchService();
 }

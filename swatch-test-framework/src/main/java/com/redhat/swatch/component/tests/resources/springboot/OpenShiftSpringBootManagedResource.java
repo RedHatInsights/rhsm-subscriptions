@@ -18,16 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.utils;
+package com.redhat.swatch.component.tests.resources.springboot;
 
-public final class Topics {
-  public static final String SUFFIX = "platform.rhsm-subscriptions.";
-  public static final String BILLABLE_USAGE_HOURLY_AGGREGATE =
-      SUFFIX + "billable-usage-hourly-aggregate";
-  public static final String BILLABLE_USAGE_STATUS = SUFFIX + "billable-usage.status";
-  public static final String UTILIZATION = SUFFIX + "utilization";
-  public static final String SERVICE_INSTANCE_INGRESS = SUFFIX + "service-instance-ingress";
-  public static final String TALLY = SUFFIX + "tally";
+import com.redhat.swatch.component.tests.resources.containers.OpenShiftContainerManagedResource;
+import java.util.Map;
 
-  private Topics() {}
+public class OpenShiftSpringBootManagedResource extends OpenShiftContainerManagedResource {
+
+  public OpenShiftSpringBootManagedResource(String serviceName) {
+    super(serviceName + "-service", Map.of(8080, 8000));
+  }
 }

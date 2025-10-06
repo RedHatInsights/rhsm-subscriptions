@@ -18,16 +18,22 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.utils;
+package com.redhat.swatch.component.tests.api.configuration;
 
-public final class Topics {
-  public static final String SUFFIX = "platform.rhsm-subscriptions.";
-  public static final String BILLABLE_USAGE_HOURLY_AGGREGATE =
-      SUFFIX + "billable-usage-hourly-aggregate";
-  public static final String BILLABLE_USAGE_STATUS = SUFFIX + "billable-usage.status";
-  public static final String UTILIZATION = SUFFIX + "utilization";
-  public static final String SERVICE_INSTANCE_INGRESS = SUFFIX + "service-instance-ingress";
-  public static final String TALLY = SUFFIX + "tally";
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Inherited;
+import java.lang.annotation.Repeatable;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-  private Topics() {}
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@Inherited
+@Repeatable(SpringBootServiceConfigurations.class)
+public @interface SpringBootServiceConfiguration {
+  String forService();
+
+  /** Configure the expected log for the Spring Boot service. */
+  String expectedLog() default "Started .* in .* seconds";
 }
