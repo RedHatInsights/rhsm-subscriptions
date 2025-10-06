@@ -20,6 +20,9 @@
  */
 package com.redhat.swatch.component.tests.api;
 
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.type.TypeFactory;
+import com.redhat.swatch.component.tests.api.dto.KafkaMessage;
 import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
@@ -32,7 +35,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.Predicate;
 
 public class KafkaBridgeService extends RestService {
 
@@ -69,7 +71,7 @@ public class KafkaBridgeService extends RestService {
   }
 
   public void produceKafkaMessage(String topic, String key, Object value) {
-    var data = Map.of("records", List.of(Map.of("key", key, "value", value)));
+    var data = Map.of("records", List.of(buildMessage(key, value)));
 
     given()
         .config(
@@ -88,12 +90,13 @@ public class KafkaBridgeService extends RestService {
         .statusCode(200);
   }
 
-  public void waitForKafkaMessage(
-      String topic, Predicate<String> messageValidator, int expectedCount) {
+  public <V> void waitForKafkaMessage(
+      String topic, MessageValidator<V> validator, int expectedCount) {
     String consumer = consumers.get(topic);
     if (consumer == null) {
       throw new IllegalArgumentException("No consumer for topic " + topic);
     }
+
     AwaitilityUtils.untilIsTrue(
         () -> {
           Response response =
@@ -102,29 +105,33 @@ public class KafkaBridgeService extends RestService {
                   .when()
                   .get("/consumers/" + CONSUMER_GROUP + "/instances/" + consumer + "/records");
 
-          if (response.getStatusCode() == 200) {
-            String responseBody = response.getBody().asString();
-            // Parse the response to count the actual messages
-            try {
-              List<Map<String, Object>> records =
-                  JsonUtils.getObjectMapper().readValue(responseBody, List.class);
-              // Check if we have exactly the expected number of messages
-              if (records.size() >= expectedCount) {
-                // If expected count is 0, we don't need to validate message content
-                if (expectedCount == 0) {
-                  return true;
-                }
-                // Otherwise, validate the message content using the provided validator
-                return messageValidator.test(responseBody);
-              }
-              return false;
-            } catch (Exception e) {
-              Log.debug(this, "Failed to parse Kafka response: %s", e.getMessage());
+          if (response.getStatusCode() != 200) {
+            return false;
+          }
+          String responseBody = response.getBody().asString();
+          // Parse the response to count the actual messages
+          try {
+            List<KafkaMessage<V>> messages = getMessages(responseBody, validator.getType());
+            // Check if we have exactly the expected number of messages
+            if (messages.size() < expectedCount) {
               return false;
             }
+            // If expected count is 0, we don't need to validate message content
+            if (expectedCount == 0) {
+              return true;
+            }
+            // Validate each message until a match is found.
+            int validCount = 0;
+            for (var message : messages) {
+              if (validator.test(message.getValue())) {
+                validCount++;
+              }
+            }
+            return validCount == expectedCount;
+          } catch (Exception e) {
+            Log.debug(this, "Failed to parse Kafka response: %s", e.getMessage());
+            return false;
           }
-
-          return false;
         },
         AwaitilitySettings.defaults().withService(this));
   }
@@ -166,5 +173,26 @@ public class KafkaBridgeService extends RestService {
         .post("/consumers/" + CONSUMER_GROUP + "/instances/" + consumerInstance + "/subscription")
         .then()
         .statusCode(204);
+  }
+
+  private Map<String, Object> buildMessage(String key, Object value) {
+    Map<String, Object> message = new HashMap<>();
+    message.put("value", value);
+    if (key != null) {
+      message.put("key", key);
+    }
+    return message;
+  }
+
+  private <T> List<KafkaMessage<T>> getMessages(String data, Class<T> clazz) {
+    TypeFactory typeFactory = JsonUtils.getObjectMapper().getTypeFactory();
+    JavaType messageType = typeFactory.constructParametricType(KafkaMessage.class, clazz);
+    JavaType dataType = typeFactory.constructParametricType(List.class, messageType);
+    try {
+      return JsonUtils.getObjectMapper().readValue(data, dataType);
+    } catch (Exception e) {
+      Log.error("Failed to deserialize Kafka response: %s", e.getMessage());
+      return List.of();
+    }
   }
 }
