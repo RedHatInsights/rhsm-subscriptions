@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.resource;
 
+import org.candlepin.subscriptions.contracts.ContractsConfiguration;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
 import org.candlepin.subscriptions.resteasy.ResteasyConfiguration;
 import org.candlepin.subscriptions.tally.TallyWorkerConfiguration;
@@ -49,6 +50,7 @@ import org.springframework.context.annotation.Profile;
           classes = AutoConfigurationExcludeFilter.class)
     })
 @Import({
+  ContractsConfiguration.class,
   ResteasyConfiguration.class,
   RhsmSubscriptionsDataSourceConfiguration.class,
   TallyWorkerConfiguration.class,
