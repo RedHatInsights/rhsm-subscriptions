@@ -94,6 +94,7 @@ public class TallyTestHelpers {
     String end = OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
 
     // Use service.given() to call the tally sync endpoint
+    // TODO: Implement this using HTTP Library. Couldn't get it to call the endpoint.
     service
         .given()
         .header("x-rh-swatch-psk", "placeholder")
