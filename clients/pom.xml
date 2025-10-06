@@ -15,6 +15,7 @@
   <packaging>pom</packaging>
 
   <modules>
+    <module>contracts-client</module>
     <module>export-client</module>
     <module>rbac-client</module>
     <module>rh-partner-gateway-client</module>

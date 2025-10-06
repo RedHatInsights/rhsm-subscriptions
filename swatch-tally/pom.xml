@@ -106,6 +106,10 @@
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch.clients.spring</groupId>
+      <artifactId>contracts-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.redhat.swatch.clients.spring</groupId>
       <artifactId>export-client</artifactId>
     </dependency>
     <dependency>
