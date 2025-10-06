@@ -32,37 +32,36 @@ import io.restassured.config.ObjectMapperConfig;
 import io.restassured.config.RestAssuredConfig;
 import io.restassured.response.Response;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import lombok.Getter;
 
 public class KafkaBridgeService extends RestService {
 
   private static final String CONTENT_TYPE = "application/vnd.kafka.json.v2+json";
-  private static final String CONSUMER_GROUP = "component-tests";
 
   // Consumers by topic
-  private final Map<String, String> consumers = new HashMap<>();
+  private final Set<Consumer> consumers = new HashSet<>();
 
   public KafkaBridgeService subscribeToTopic(String topic) {
-    consumers.put(topic, UUID.randomUUID().toString());
+    consumers.add(
+        new Consumer(UUID.randomUUID().toString(), "component-tests-" + topic, topic)
+    );
     return this;
   }
 
   @Override
   public void start() {
     super.start();
-    for (var consumer : consumers.entrySet()) {
-      createConsumerForTopic(consumer.getKey(), consumer.getValue());
-    }
+    consumers.forEach(this::createConsumerForTopic);
   }
 
   @Override
   public void stop() {
-    for (String consumer : consumers.values()) {
-      deleteConsumer(consumer);
-    }
-
+    consumers.forEach(this::deleteConsumer);
     super.stop();
   }
 
@@ -92,10 +91,9 @@ public class KafkaBridgeService extends RestService {
 
   public <V> void waitForKafkaMessage(
       String topic, MessageValidator<V> validator, int expectedCount) {
-    String consumer = consumers.get(topic);
-    if (consumer == null) {
-      throw new IllegalArgumentException("No consumer for topic " + topic);
-    }
+    Consumer consumer = consumers.stream().filter(c -> c.getTopic().equals(topic))
+        .findFirst()
+        .orElseThrow(() -> new IllegalArgumentException("No consumer for topic " + topic));
 
     AwaitilityUtils.untilIsTrue(
         () -> {
@@ -103,16 +101,15 @@ public class KafkaBridgeService extends RestService {
               given()
                   .accept(CONTENT_TYPE)
                   .when()
-                  .get("/consumers/" + CONSUMER_GROUP + "/instances/" + consumer + "/records");
+                  .get("/consumers/" + consumer.getGroupId() + "/instances/" + consumer.getInstanceId() + "/records");
 
           if (response.getStatusCode() != 200) {
-            return false;
+            throw new RuntimeException("Could not get messages from Kafka: " + response.getStatusLine());
           }
           String responseBody = response.getBody().asString();
           // Parse the response to count the actual messages
           try {
-            List<KafkaMessage<V>> messages = getMessages(responseBody,
-                validator.getType());
+            List<KafkaMessage<V>> messages = getMessages(responseBody, validator.getType());
             // Check if we have exactly the expected number of messages
             if (messages.size() < expectedCount) {
               return false;
@@ -130,48 +127,48 @@ public class KafkaBridgeService extends RestService {
             }
             return validCount == expectedCount;
           } catch (Exception e) {
-            Log.debug(this, "Failed to parse Kafka response: %s", e.getMessage());
-            return false;
+            throw new RuntimeException("Failed to parse Kafka response: " + e.getMessage());
           }
         },
-        AwaitilitySettings.defaults().withService(this));
+        AwaitilitySettings.defaults().doNotIgnoreExceptions().withService(this));
   }
 
-  private void deleteConsumer(String consumerInstance) {
-    Log.debug(this, "Deleting consumer: %s", consumerInstance);
+  private void deleteConsumer(Consumer consumer) {
+    Log.debug(this, "Deleting consumer: %s", consumer.getInstanceId());
     given()
         .when()
-        .delete("/consumers/" + CONSUMER_GROUP + "/instances/" + consumerInstance)
+        .delete("/consumers/" + consumer.getGroupId() + "/instances/" + consumer.getInstanceId())
         .then()
         .statusCode(204);
   }
 
-  private void createConsumerForTopic(String topic, String consumerInstance) {
-    Log.debug(this, "Creating consumer for topic '%s': %s", topic, consumerInstance);
-    createConsumerGroup(consumerInstance);
-    subscribeToTopic(consumerInstance, topic);
+  private void createConsumerForTopic(Consumer consumer) {
+    Log.info(this, "Creating consumer for topic '%s': %s", consumer.getTopic(), consumer.getInstanceId());
+    createConsumerGroup(consumer);
+    subscribeToTopic(consumer);
+    miniDrain(consumer);
   }
 
-  private void createConsumerGroup(String consumerInstance) {
+  private void createConsumerGroup(Consumer consumer) {
     given()
         .contentType(CONTENT_TYPE)
         .body(
             Map.of(
-                "name", consumerInstance,
+                "name", consumer.getInstanceId(),
                 "format", "json",
                 "auto.offset.reset", "latest"))
         .when()
-        .post("/consumers/" + CONSUMER_GROUP)
+        .post("/consumers/" + consumer.getGroupId())
         .then()
         .statusCode(200);
   }
 
-  private void subscribeToTopic(String consumerInstance, String topic) {
+  private void subscribeToTopic(Consumer consumer) {
     given()
         .contentType(CONTENT_TYPE)
-        .body(Map.of("topics", List.of(topic)))
+        .body(Map.of("topics", List.of(consumer.getTopic())))
         .when()
-        .post("/consumers/" + CONSUMER_GROUP + "/instances/" + consumerInstance + "/subscription")
+        .post("/consumers/" + consumer.getGroupId() + "/instances/" + consumer.getInstanceId() + "/subscription")
         .then()
         .statusCode(204);
   }
@@ -192,8 +189,33 @@ public class KafkaBridgeService extends RestService {
     try {
       return JsonUtils.getObjectMapper().readValue(data, dataType);
     } catch (Exception e) {
-      Log.error("Failed to deserialize Kafka response: %s", e.getMessage());
-      return List.of();
+      throw new RuntimeException("Failed to parse Kafka response: " + e.getMessage());
+    }
+  }
+
+  private void miniDrain(Consumer consumer) {
+    Log.info(this, "Draining consumer: %s", consumer.getInstanceId());
+    for (int i = 0; i < 5; i++) {
+      given()
+          .accept(CONTENT_TYPE)
+          .when()
+          .get("/consumers/" + consumer.getGroupId() + "/instances/" + consumer.getInstanceId() + "/records")
+          .then()
+          .statusCode(200);
+    }
+
+  }
+
+  @Getter
+  private class Consumer {
+    private final String instanceId;
+    private final String groupId;
+    private final String topic;
+
+    public Consumer(String instanceId, String groupId, String topic) {
+      this.instanceId = instanceId;
+      this.groupId = groupId;
+      this.topic = topic;
     }
   }
 }
