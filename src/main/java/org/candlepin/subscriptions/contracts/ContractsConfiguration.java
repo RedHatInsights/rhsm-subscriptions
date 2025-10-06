@@ -18,30 +18,21 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource;
+package org.candlepin.subscriptions.contracts;
 
-import org.candlepin.subscriptions.contracts.ContractsConfiguration;
-import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
-import org.candlepin.subscriptions.resteasy.ResteasyConfiguration;
-import org.candlepin.subscriptions.tally.TallyWorkerConfiguration;
-import org.candlepin.subscriptions.tracing.TracingConfiguration;
+import com.redhat.swatch.contracts.spring.client.CapacityApiFactory;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
 import org.springframework.boot.context.TypeExcludeFilter;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
-import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Profile;
+import org.springframework.retry.annotation.EnableRetry;
 
-/**
- * Configuration for the "api" profile.
- *
- * <p>The API profile is responsible for handling customer-facing API requests.
- */
 @Configuration
-@Profile("api")
 @ComponentScan(
-    basePackages = "org.candlepin.subscriptions.resource",
+    basePackages = {"org.candlepin.subscriptions.contracts"},
     // Prevent TestConfiguration annotated classes from being picked up by ComponentScan
     excludeFilters = {
       @ComponentScan.Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
@@ -49,11 +40,17 @@ import org.springframework.context.annotation.Profile;
           type = FilterType.CUSTOM,
           classes = AutoConfigurationExcludeFilter.class)
     })
-@Import({
-  ContractsConfiguration.class,
-  ResteasyConfiguration.class,
-  RhsmSubscriptionsDataSourceConfiguration.class,
-  TallyWorkerConfiguration.class,
-  TracingConfiguration.class
-})
-public class ApiConfiguration {}
+@EnableRetry
+public class ContractsConfiguration {
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.contracts.client")
+  @Bean
+  public ContractsClientProperties contractsClientProperties() {
+    return new ContractsClientProperties();
+  }
+
+  @Bean(name = "capacityApi")
+  public CapacityApiFactory contractsCapacityApiFactory(
+      ContractsClientProperties clientProperties) {
+    return new CapacityApiFactory(clientProperties);
+  }
+}
