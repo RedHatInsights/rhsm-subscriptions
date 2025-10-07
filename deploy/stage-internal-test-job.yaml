@@ -110,7 +110,7 @@ parameters:
   from: "[a-z0-9]{6}"
 - name: IQE_IMAGE
   description: "container image path for the iqe plugin"
-  value: quay.io/cloudservices/iqe-tests:rhsm-subscriptions
+  value: quay.io/cloudservices/iqe-tests:curiosity
 - name: ENV_FOR_DYNACONF
   value: stage_proxy
 - name: IQE_PLUGINS
