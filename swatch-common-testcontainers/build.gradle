@@ -1,7 +1,0 @@
-plugins {
-    id 'swatch.java-conventions'
-}
-
-dependencies {
-    compileOnly libraries["testcontainers-postgresql"]
-}
