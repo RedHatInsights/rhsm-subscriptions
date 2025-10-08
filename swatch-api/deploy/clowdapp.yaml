@@ -98,6 +98,7 @@ objects:
         - ${DB_POD}
         - swatch-tally
         - rbac
+        - swatch-contracts
 
       database:
         sharedDbAppName: ${DB_POD}

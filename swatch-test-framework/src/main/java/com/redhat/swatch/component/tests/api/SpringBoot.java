@@ -18,17 +18,17 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db;
+package com.redhat.swatch.component.tests.api;
 
-import org.candlepin.subscriptions.db.model.Offering;
-import org.springframework.data.jpa.repository.EntityGraph;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-/** Repository interface for the Offering entity */
-public interface OfferingRepository extends JpaRepository<Offering, String> {
-  @EntityGraph(value = "graph.offering")
-  @Query(value = "select o from Offering o where o.sku = :sku order by o.sku")
-  Offering findOfferingBySku(@Param("sku") String sku);
+@Target({ElementType.FIELD, ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface SpringBoot {
+
+  /** Specify the SWATCH spring boot service to load. */
+  String service();
 }

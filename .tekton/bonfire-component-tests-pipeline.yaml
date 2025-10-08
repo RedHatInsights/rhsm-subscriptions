@@ -229,7 +229,7 @@ spec:
           - name: name
             value: git-clone
           - name: bundle
-            value: quay.io/konflux-ci/tekton-catalog/task-git-clone:0.1@sha256:20045cfa05edecc1a1c17d9cafb5371a1d6cd5a0a467653fe79917d4ea56cb9c
+            value: quay.io/konflux-ci/tekton-catalog/task-git-clone:0.1@sha256:366c0288968fec8075b938bc33b941b030188984b1bc752910ed37475315a0af
           - name: kind
             value: task
         resolver: bundles
@@ -256,11 +256,6 @@ spec:
         workspaces:
           - name: output
             description: The workspace where the repository was cloned
-        results:
-          - name: status
-            description: Status of the Data Router send operation (success/failure)
-          - name: routing-id
-            description: Data Router routing request ID for tracking
         steps:
           - name: cluster-login
             image: "$(params.BONFIRE_IMAGE)"
@@ -301,7 +296,29 @@ spec:
             script: |
               #!/bin/bash
               ./mvnw clean install -Pcomponent-tests -Dservice=${SERVICE} -Dswatch.component-tests.global.target=openshift
-
+    - name: send-results-task
+      params:
+        - name: SERVICE
+          value: "$(params.COMPONENT_NAME)"
+      workspaces:
+        - name: output
+          workspace: shared-workspace
+      runAfter:
+        - run-tests-task
+      taskSpec:
+        params:
+          - name: SERVICE
+            type: string
+            description: The service that was tested.
+        workspaces:
+          - name: output
+            description: The workspace where the repository was cloned
+        results:
+          - name: status
+            description: Status of the Data Router send operation (success/failure)
+          - name: routing-id
+            description: Data Router routing request ID for tracking
+        steps:
           - name: send-results
             image: quay.io/dno/droute:latest
             imagePullPolicy: Always
@@ -319,7 +336,6 @@ spec:
                     key: password
               - name: SERVICE
                 value: "$(params.SERVICE)"
-
             script: |
               #!/bin/bash
               set -euo pipefail
@@ -334,20 +350,6 @@ spec:
               echo "Metadata content:"
               cat "$METADATA_FILE" | jq . || cat "$METADATA_FILE"
               
-              # Build droute command
-              DROUTE_CMD="/droute send"
-              DROUTE_CMD="$DROUTE_CMD --url=$(params.datarouter-url)"
-              DROUTE_CMD="$DROUTE_CMD --username=$DATAROUTER_USERNAME"
-              DROUTE_CMD="$DROUTE_CMD --password=$DATAROUTER_PASSWORD"
-              DROUTE_CMD="$DROUTE_CMD --metadata=$METADATA_FILE"
-              DROUTE_CMD="$DROUTE_CMD --results=$ARTIFACT_DIR/$(params.results-pattern)"
-              
-              # Add attachments directory if specified
-              if [[ -n "$(params.attachments-dir)" ]]; then
-                ATTACHMENTS_PATH="${ARTIFACT_DIR}/$(params.attachments-dir)"
-                DROUTE_CMD="$DROUTE_CMD --attachments=$ATTACHMENTS_PATH"
-              fi
-              
               echo "Executing Data Router send"
               echo "  URL: $(params.datarouter-url)"
               echo "  Metadata: $METADATA_FILE"
@@ -356,33 +358,66 @@ spec:
               echo "  Username: $DATAROUTER_USERNAME"
               echo "  Artifact directory: $ARTIFACT_DIR"
               
-              # Execute            
-              # Create sanitized command for logging (mask password)
-              DROUTE_CMD_SANITIZED=$(echo "$DROUTE_CMD" | sed 's/--password=[^ ]*/--password=***MASKED***/g')
-              echo "About to execute droute command: $DROUTE_CMD_SANITIZED"
-              # Temporarily disable exit on error to capture output even if command fails
-              set +e
-              OUTPUT=$(eval "$DROUTE_CMD" 2>&1)
-              EXIT_CODE=$?
-              set -e
+              # Retry configuration for intermittent 5xx errors
+              MAX_RETRIES=3
+              RETRY_DELAY=45
               
-              echo "Command completed with exit code: $EXIT_CODE"
-              echo "Output length: ${#OUTPUT} characters"
-              echo "Output content:"
-              echo "$OUTPUT"
+              # Function to execute droute command with retry
+              execute_with_retry() {
+                local attempt=1
+                
+                while [ $attempt -le $MAX_RETRIES ]; do
+                  echo "=== Attempt $attempt of $MAX_RETRIES ==="
+                  
+                  # Temporarily disable exit on error to capture output
+                  set +e
+                  OUTPUT=$(/droute send --url=$(params.datarouter-url) --username=$DATAROUTER_USERNAME --password=$DATAROUTER_PASSWORD --metadata=$METADATA_FILE --results=$ARTIFACT_DIR/$(params.results-pattern) $(if [[ -n "$(params.attachments-dir)" ]]; then echo "--attachments=${ARTIFACT_DIR}/$(params.attachments-dir)"; fi) 2>&1)
+                  EXIT_CODE=$?
+                  set -e
+                  
+                  echo "Command completed with exit code: $EXIT_CODE"
+                  echo "Output: $OUTPUT"
+                  
+                  # Check if successful
+                  if [[ $EXIT_CODE -eq 0 ]]; then
+                    return 0
+                  fi
+                  
+                  # Check for retryable error patterns (only 5XX server errors)
+                  if echo "$OUTPUT" | grep -qi -E "5[0-9][0-9] "; then
+                    if [ $attempt -lt $MAX_RETRIES ]; then
+                      echo "5XX server error detected. Retrying in $RETRY_DELAY seconds..."
+                      sleep $RETRY_DELAY
+                      attempt=$((attempt + 1))
+                    else
+                      echo "Maximum retries reached. Data Router send operation failed."
+                      return $EXIT_CODE
+                    fi
+                  else
+                    echo "Non-retryable error detected. Failing immediately."
+                    return $EXIT_CODE
+                  fi
+                done
+                
+                return $EXIT_CODE
+              }
               
-              # Extract routing ID if available
+              # Execute with retry logic
+              execute_with_retry
+              FINAL_EXIT_CODE=$?
+              
+              # Extract routing ID if available (from the last output)
               ROUTING_ID=$(echo "$OUTPUT" | grep -o "routing[_-]id[:\s]*[a-zA-Z0-9-]*" | head -1 | sed 's/.*[:\s]\+//' || echo "")
               
               # Set results
-              if [[ $EXIT_CODE -eq 0 ]]; then
+              if [[ $FINAL_EXIT_CODE -eq 0 ]]; then
                 echo -n "success" > $(results.status.path)
                 echo "Data Router send operation completed successfully"
               else
                 echo -n "failure" > $(results.status.path)
-                echo "Data Router send operation failed with exit code: $EXIT_CODE"
+                echo "Data Router send operation failed with exit code: $FINAL_EXIT_CODE"
               fi
               
               echo -n "$ROUTING_ID" > $(results.routing-id.path)
               
-              exit $EXIT_CODE
+              exit $FINAL_EXIT_CODE
