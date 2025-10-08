@@ -54,7 +54,8 @@ jobs:
           git fetch origin "$BASE_BRANCH"
           
           # Detect changed top-level Maven modules
-          CHANGED=$(git diff --name-only "origin/$BASE_BRANCH...HEAD" | awk -F/ '{print $1}' | sort -u | xargs)
+          # Note: src/ directory maps to swatch-tally module
+          CHANGED=$(git diff --name-only "origin/$BASE_BRANCH...HEAD" | awk -F/ '{print $1}' | sed 's/^src$/swatch-tally/' | sort -u | xargs)
           
           if [ -z "$CHANGED" ]; then
             remove_all_labels ${{ github.event.pull_request.number }} "$CURRENT_LABELS"
@@ -249,7 +250,7 @@ jobs:
           cache: 'maven'
 
       - name: Build
-        run: ./mvnw clean install -DskipTests
+        run: ./mvnw install -DskipTests
 
       - name: Start components
         run: docker compose up -d db kafka kafka-setup amqp
