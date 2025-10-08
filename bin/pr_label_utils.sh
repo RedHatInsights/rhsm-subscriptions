@@ -5,7 +5,7 @@
 
 # Service groups by team
 SWATCH_THUNDER_LABEL="team-thunder"
-SWATCH_THUNDER_SERVICES=("swatch-metrics" "swatch-metrics-hbi" "swatch-tally" "swatch-system-conduit")
+SWATCH_THUNDER_SERVICES=("swatch-api" "swatch-metrics" "swatch-metrics-hbi" "swatch-tally" "swatch-system-conduit")
 SWATCH_LIGHTNING_LABEL="team-lightning"
 SWATCH_LIGHTNING_SERVICES=("swatch-billable-usage" "swatch-contracts" "swatch-producer-azure" "swatch-producer-aws" "swatch-utilization")
 
@@ -88,6 +88,12 @@ detect_modified_services() {
         # If the service itself changed, mark it as affected immediately
         if [[ " $changed_modules " =~ " $SERVICE " ]]; then
             MODIFIED_SERVICES+=("$SERVICE")
+            continue
+        fi
+    
+        # Skip dependency check for non-Maven services
+        if [[ ! -f "$SERVICE/pom.xml" ]]; then
+            echo "Skipping dependency check for $SERVICE (not a Maven project)"
             continue
         fi
     
