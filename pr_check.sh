@@ -57,10 +57,7 @@ for service in $SERVICES; do
   APP_ROOT=$(get_approot $service)
   source $CICD_ROOT/build.sh
 
-  # Skip swatch-utilization deployment until SWATCH-4003 is done
-  if [ "$service" = "swatch-utilization" ]; then
-    continue
-  elif [ "$service" = "rhsm-subscriptions" ]; then
+  if [ "$service" = "rhsm-subscriptions" ]; then
     # Special case: rhsm-subscriptions image is really the swatch-api and swatch-tally services:
     IMAGES=" ${IMAGES} -p swatch-api/IMAGE=${IMAGE} -p swatch-api/IMAGE_TAG=${IMAGE_TAG} "
     IMAGES=" ${IMAGES} -p swatch-tally/IMAGE=${IMAGE} -p swatch-tally/IMAGE_TAG=${IMAGE_TAG} "
@@ -85,11 +82,6 @@ export COMPONENTS_W_RESOURCES="app:rhsm app:export-service"
 # NOTE: this ensures that all of the other services end up deployed with the latest template
 export EXTRA_COMPONENTS="rhsm swatch-kafka-bridge $(find -name clowdapp.yaml -exec dirname {} \; | cut -d'/' -f2 | xargs)"
 for EXTRA_COMPONENT_NAME in $EXTRA_COMPONENTS; do
-  # Skip swatch-utilization deployment until SWATCH-4003 is done
-  if [ "${EXTRA_COMPONENT_NAME}" = "swatch-utilization" ]; then
-    continue
-  fi
-
   export EXTRA_DEPLOY_ARGS="${EXTRA_DEPLOY_ARGS} --set-template-ref ${EXTRA_COMPONENT_NAME}=${GIT_COMMIT}"
 done
 

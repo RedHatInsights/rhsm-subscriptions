@@ -26,6 +26,7 @@ import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_STAT
 
 import java.util.Map;
 import java.util.UUID;
+import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,7 @@ public class SimpleAzureComponentTest extends BaseAzureComponentTest {
   @Test
   public void testValidAzureUsageMessages() {
     // Setup
+
     String productId = "rhel-for-x86-els-payg-addon";
     String metricId = "vCPUs";
     String billingAccountId = UUID.randomUUID().toString();
@@ -94,8 +96,7 @@ public class SimpleAzureComponentTest extends BaseAzureComponentTest {
 
     // Wait for a status message (if any) and verify it contains the billing account ID
     // The status could be "failed", "error", or the message might not be sent at all
-    kafkaBridge.waitForKafkaMessage(
-        BILLABLE_USAGE_STATUS, messages -> true, 0);
+    kafkaBridge.waitForKafkaMessage(BILLABLE_USAGE_STATUS, messages -> true, 0);
 
     // Verify that no usage was sent to Azure
     wiremock.verifyNoAzureUsage(azureResourceId);
@@ -139,5 +140,40 @@ public class SimpleAzureComponentTest extends BaseAzureComponentTest {
 
     // Verify Azure usage was sent to Azure
     wiremock.verifyAzureUsage(azureResourceId, totalValue, dimension);
+  }
+
+  @Test
+  @Tag("unhappy")
+  public void testSubscriptionNotFound() {
+    // Setup
+    String productId = "rhel-for-x86-els-payg-addon";
+    String metricId = "vCPUs";
+    String billingAccountId = UUID.randomUUID().toString();
+    String azureResourceId = UUID.randomUUID().toString();
+    String orgId = "123456";
+    double totalValue = 2.0;
+
+    // Setup Azure Wiremock endpoints
+    wiremock.setupAzureUsageContextToReturnSubscriptionNotFound(billingAccountId);
+
+    // Send clean billable usage message to Kafka
+    BillableUsageAggregate aggregateData =
+        createUsageAggregate(productId, billingAccountId, metricId, totalValue, orgId);
+    kafkaBridge.produceKafkaMessage(BILLABLE_USAGE_HOURLY_AGGREGATE, aggregateData);
+
+    // Make sure kafka responds with subscription not found
+    kafkaBridge.waitForKafkaMessage(
+        BILLABLE_USAGE_STATUS,
+        messages ->
+            (messages.contains(billingAccountId)
+                && messages.contains("failed")
+                && messages.contains(BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND.toString())),
+        1);
+
+    // Verify service produces appropriate log
+    service.logs().assertContains("Subscription not found for aggregate=");
+
+    // Verify that no usage was sent to Azure
+    wiremock.verifyNoAzureUsage(azureResourceId);
   }
 }

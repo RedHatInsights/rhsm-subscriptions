@@ -26,9 +26,9 @@ parameters:
   - name: CURL_CRON_IMAGE_TAG
     value: latest
   - name: CURL_CRON_MEMORY_REQUEST
-    value: 10Mi
+    value: 50Mi
   - name: CURL_CRON_MEMORY_LIMIT
-    value: 20Mi
+    value: 50Mi
   - name: CURL_CRON_CPU_REQUEST
     value: 100m
   - name: CURL_CRON_CPU_LIMIT
@@ -320,7 +320,6 @@ objects:
       jobs:
         - name: sync
           schedule: ${METERING_SCHEDULE}
-          activeDeadlineSeconds: 1800
           successfulJobsHistoryLimit: 2
           restartPolicy: Never
           podSpec:
@@ -522,7 +521,6 @@ objects:
       jobs:
         - name: sync
           schedule: ${RHEL_METERING_SCHEDULE}
-          activeDeadlineSeconds: 1800
           successfulJobsHistoryLimit: 2
           restartPolicy: Never
           podSpec:
