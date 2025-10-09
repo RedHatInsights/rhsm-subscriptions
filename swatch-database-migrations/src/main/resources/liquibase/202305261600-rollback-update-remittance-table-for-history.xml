@@ -6,6 +6,11 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
   <changeSet id="202305261600-1" author="mstead">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <tableExists tableName="databasechangelog_swatch_billable_usage"/>
+      </not>
+    </preConditions>
     <addColumn tableName="billable_usage_remittance">
       <column name="billing_factor" type="double precision" defaultValueNumeric="1.0"/>
     </addColumn>
