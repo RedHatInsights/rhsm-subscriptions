@@ -190,12 +190,6 @@
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-liquibase</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.redhat.swatch</groupId>
-      <artifactId>swatch-database-migrations</artifactId>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.rest-assured</groupId>
