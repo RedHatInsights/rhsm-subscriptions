@@ -5,6 +5,11 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
   <changeSet id="202410021300-01" author="jcarvaja" dbms="postgresql" runOnChange="true">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <tableExists tableName="databasechangelog_swatch_billable_usage"/>
+      </not>
+    </preConditions>
     <comment>
       All existing billable_usage_remittance older than October 1 where status='pending'
       or status is null are updated to have status='unknown'.
