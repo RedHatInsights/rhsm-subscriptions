@@ -20,9 +20,13 @@
  */
 package utils;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
@@ -88,23 +92,33 @@ public class TallyTestHelpers {
 
   public void syncTallyByOrgId(
       String orgId, com.redhat.swatch.component.tests.api.SwatchService service) throws Exception {
-    // Use the same endpoint as Python version for hourly tally processing
-    String start =
-        OffsetDateTime.now().minusHours(24).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
-    String end = OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+    // Build the service URL
+    String baseUrl = "http://" + service.getHost() + ":" + service.getMappedPort(8080);
+    String endpoint = baseUrl + "/api/rhsm-subscriptions/v1/internal/rpc/tally/snapshots/" + orgId;
 
-    // Use service.given() to call the tally sync endpoint
-    // TODO: Implement this using HTTP Library. Couldn't get it to call the endpoint.
-    service
-        .given()
-        .header("x-rh-swatch-psk", "placeholder")
-        .queryParam("org", orgId)
-        .queryParam("start", start)
-        .queryParam("end", end)
-        .when()
-        .post("/api/rhsm-subscriptions/v1/internal/tally/hourly")
-        .then()
-        .statusCode(204);
+    // Create HTTP client
+    HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(30)).build();
+
+    // Create HTTP request
+    HttpRequest request =
+        HttpRequest.newBuilder()
+            .uri(URI.create(endpoint))
+            .header("x-rh-swatch-psk", "placeholder")
+            .PUT(HttpRequest.BodyPublishers.noBody())
+            .timeout(Duration.ofSeconds(30))
+            .build();
+
+    // Send the request
+    HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+    // Check response status
+    if (response.statusCode() != 200) {
+      throw new RuntimeException(
+          "Tally sync failed with status code: "
+              + response.statusCode()
+              + ", response body: "
+              + response.body());
+    }
 
     System.out.println("Tally sync endpoint called successfully for org: " + orgId);
   }
