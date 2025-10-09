@@ -35,7 +35,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
@@ -50,7 +52,7 @@ import org.candlepin.subscriptions.json.TallySummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
@@ -81,10 +83,30 @@ class SnapshotSummaryProducerTest {
     this.producer = new SnapshotSummaryProducer(kafka, retryTemplate, props, tallySummaryMapper);
   }
 
+  static Stream<Pair> snapshotSummaryProducerParams() {
+    return Stream.of(
+        Pair.of("hourly", SnapshotSummaryProducer.hourlySnapFilter),
+        Pair.of("daily", SnapshotSummaryProducer.nightlySnapFilter));
+  }
+
+  static class Pair {
+    String value;
+    Predicate<TallySnapshot> predicate;
+
+    Pair(String value, Predicate<TallySnapshot> predicate) {
+      this.value = value;
+      this.predicate = predicate;
+    }
+
+    static Pair of(String value, Predicate<TallySnapshot> predicate) {
+      return new Pair(value, predicate);
+    }
+  }
+
   @ParameterizedTest
-  @CsvSource(value = {"hourly", "daily"})
-  void testProduceSummary(String value) {
-    Granularity granularity = Granularity.valueOf(value.toUpperCase());
+  @MethodSource("snapshotSummaryProducerParams")
+  void testProduceSummary(Pair params) {
+    Granularity granularity = Granularity.valueOf(params.value.toUpperCase());
     Map<String, List<TallySnapshot>> updateMap = new HashMap<>();
     updateMap.put(
         "org1",
@@ -112,17 +134,7 @@ class SnapshotSummaryProducerTest {
                 "12345",
                 MetricIdUtils.getCores().getValue(),
                 22.2)));
-    switch (value) {
-      case "hourly":
-        producer.produceTallySummaryMessages(
-            updateMap, List.of(granularity), SnapshotSummaryProducer.hourlySnapFilter);
-        break;
-      case "daily":
-        producer.produceTallySummaryMessages(
-            updateMap, List.of(granularity), SnapshotSummaryProducer.nightlySnapFilter);
-        break;
-      default:
-    }
+    producer.produceTallySummaryMessages(updateMap, List.of(granularity), params.predicate);
     verify(kafka, times(2)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
 
     List<TallySummary> summaries = summaryCaptor.getAllValues();
@@ -181,9 +193,9 @@ class SnapshotSummaryProducerTest {
   }
 
   @ParameterizedTest
-  @CsvSource(value = {"hourly", "daily"})
-  void testSummarySkippedWhenItHasNoMeasurements(String value) {
-    Granularity granularity = Granularity.valueOf(value.toUpperCase());
+  @MethodSource("snapshotSummaryProducerParams")
+  void testSummarySkippedWhenItHasNoMeasurements(Pair params) {
+    Granularity granularity = Granularity.valueOf(params.value.toUpperCase());
     Map<String, List<TallySnapshot>> updateMap = new HashMap<>();
     updateMap.put(
         "a1",
@@ -199,17 +211,7 @@ class SnapshotSummaryProducerTest {
                 MetricIdUtils.getCores().getValue(),
                 20.4)));
     updateMap.get("a1").get(0).getTallyMeasurements().clear();
-    switch (value) {
-      case "hourly":
-        producer.produceTallySummaryMessages(
-            updateMap, List.of(granularity), SnapshotSummaryProducer.hourlySnapFilter);
-        break;
-      case "daily":
-        producer.produceTallySummaryMessages(
-            updateMap, List.of(granularity), SnapshotSummaryProducer.nightlySnapFilter);
-        break;
-      default:
-    }
+    producer.produceTallySummaryMessages(updateMap, List.of(granularity), params.predicate);
     verifyNoInteractions(kafka);
   }
 

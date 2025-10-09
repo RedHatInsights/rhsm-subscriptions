@@ -20,7 +20,9 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -128,33 +130,21 @@ public class SnapshotSummaryProducer {
     }
   }
 
-  public static boolean filterByHourlyAndNotAnySnapshots(TallySnapshot snapshot) {
-    return filterByGranularityAndNotAnySnapshots(snapshot, Granularity.HOURLY.getValue());
-  }
-
   public static Map<Granularity, Map<String, List<TallySnapshot>>> groupByGranularity(
       Map<String, List<TallySnapshot>> snapshots, List<Granularity> granularities) {
     Map<Granularity, Map<String, List<TallySnapshot>>> result = new java.util.HashMap<>();
     snapshots.forEach(
-        (orgId, snapshotList) -> {
-          snapshotList.forEach(
-              snapshot -> {
-                Granularity granularity = snapshot.getGranularity();
-                if (granularity != null && granularities.contains(granularity)) {
-                  Map<String, List<TallySnapshot>> snapshotMap = result.get(granularity);
-                  if (snapshotMap == null) {
-                    snapshotMap = new java.util.HashMap<>();
-                    result.put(granularity, snapshotMap);
-                  }
-                  List<TallySnapshot> orgList = snapshotMap.get(orgId);
-                  if (orgList == null) {
-                    orgList = new java.util.ArrayList<>();
-                    snapshotMap.put(orgId, orgList);
-                  }
-                  orgList.add(snapshot);
-                }
-              });
-        });
+        (orgId, snapshotList) ->
+            snapshotList.stream()
+                .filter(snapshot -> granularities.contains(snapshot.getGranularity()))
+                .forEach(
+                    snapshot -> {
+                      Granularity granularity = snapshot.getGranularity();
+                      result.putIfAbsent(granularity, new HashMap<>());
+                      Map<String, List<TallySnapshot>> snapshotMap = result.get(granularity);
+                      snapshotMap.putIfAbsent(orgId, new ArrayList<>());
+                      snapshotMap.get(orgId).add(snapshot);
+                    }));
     return result;
   }
 
