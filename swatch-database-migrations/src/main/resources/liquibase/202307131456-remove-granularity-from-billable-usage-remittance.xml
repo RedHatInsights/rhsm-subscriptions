@@ -5,6 +5,11 @@
   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
   <changeSet id="202307131456-1" author="mstead">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <tableExists tableName="databasechangelog_swatch_billable_usage"/>
+      </not>
+    </preConditions>
     <comment>
       Clean up any rolled up DAILY remittance data as it is no longer needed,
       remove the granularity column and update the primary key. If the remittance
