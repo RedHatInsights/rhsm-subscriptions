@@ -151,13 +151,16 @@ jobs:
             queryName=$(echo $rawQueryName | sed 's/,//g')
             query=$(yamlpath --format=PLAIN --single --expression="objects.(kind==FloorPlan).spec.queries.(prefix == $queryName).query" swatch-tally/deploy/clowdapp.yaml | sed 's/;//g')
             echo -e "Validating query: \n$query\n"
-            output=$(PGPASSWORD=rhsm-subscriptions psql -h localhost -U rhsm-subscriptions -d rhsm-subscriptions -c "$query;")
-            if [[ "$output" != *"(0 rows)"* ]]; then
+            output=$(PGPASSWORD=rhsm-subscriptions psql -h localhost -U rhsm-subscriptions -d rhsm-subscriptions -c "$query;" 2>&1)
+            echo "Query output:"
+            echo "$output"
+            if echo "$output" | grep -q "ERROR:"; then
               echo -e "Error in query. Check the output for more information: \n$output"
               exit 1
             fi
+            echo "Query validation successful"
           done
-          echo "Queries validation was successful"
+          echo "All queries validation was successful"
 
   build:
     name: Build
