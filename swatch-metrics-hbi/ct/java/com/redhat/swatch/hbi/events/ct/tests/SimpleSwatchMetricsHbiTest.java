@@ -24,7 +24,6 @@ class SimpleSwatchMetricsHbiTest extends BaseSMHBIComponentTest {
     assertFalse(body.getAsync());
   }
 
-
   @Test
   void testUnleashFlagToggling() {
     unleash.enableFlag(FeatureFlags.EMIT_EVENTS);

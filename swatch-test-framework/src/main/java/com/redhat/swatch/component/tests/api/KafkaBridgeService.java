@@ -111,8 +111,7 @@ public class KafkaBridgeService extends RestService {
           String responseBody = response.getBody().asString();
           // Parse the response to count the actual messages
           try {
-            List<KafkaMessage<V>> messages = getMessages(responseBody,
-                validator.getType());
+            List<KafkaMessage<V>> messages = getMessages(responseBody, validator.getType());
             // Check if we have exactly the expected number of messages
             if (messages.size() < expectedCount) {
               return false;
@@ -159,7 +158,7 @@ public class KafkaBridgeService extends RestService {
             Map.of(
                 "name", consumerInstance,
                 "format", "json",
-                "auto.offset.reset", "latest"))
+                "auto.offset.reset", "earliest"))
         .when()
         .post("/consumers/" + CONSUMER_GROUP)
         .then()

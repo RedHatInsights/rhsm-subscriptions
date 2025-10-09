@@ -1,17 +1,24 @@
 package com.redhat.swatch.hbi.events.ct.tests;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.component.tests.utils.Topics;
 import com.redhat.swatch.hbi.events.ct.HbiEventHelper;
+import com.redhat.swatch.hbi.events.ct.SwatchEventHelper;
 import com.redhat.swatch.hbi.events.ct.api.MessageValidators;
+import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
+import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
+import com.redhat.swatch.hbi.events.normalization.Host;
+import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
+import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.services.FeatureFlags;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Set;
+import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,17 +63,24 @@ class CreateUpdateEventIngestionTest extends BaseSMHBIComponentTest {
         "Development/Test",
         2,
         2);
-    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiEventType, hbiEvent);
-    kafkaBridge.waitForKafkaMessage(Topics.HBI_EVENT_IN,
-        MessageValidators.eventMatches(hbiEventType),
-        1);
-    /*
-    swatchMetricsHbi.flushOutboxSynchronously();
 
-    kafkaBridge.waitForKafkaMessage(Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-        messages -> messages.contains(swatchEventType),
+    Event swatchEvent = SwatchEventHelper.createExpectedEvent(
+        hbiEvent,
+        List.of("69"),
+        Set.of("RHEL for x86"));
+
+    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiEvent);
+    kafkaBridge.waitForKafkaMessage(Topics.HBI_EVENT_IN,
+        MessageValidators.hbiEventEquals(hbiEvent),
         1);
-    */
+    
+    flushOutbox(1);
+
+    kafkaBridge.waitForKafkaMessage(
+        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
+        MessageValidators.swatchEventEquals(swatchEvent),
+        1);
+        
   }
 
 }
