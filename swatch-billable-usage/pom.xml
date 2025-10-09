@@ -47,6 +47,10 @@
       <artifactId>quarkus-jdbc-postgresql</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-liquibase</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.redhat.swatch.clients.quarkus</groupId>
       <artifactId>contracts-client</artifactId>
     </dependency>

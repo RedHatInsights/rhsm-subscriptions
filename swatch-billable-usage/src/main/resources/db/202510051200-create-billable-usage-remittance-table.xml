@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+  <!-- 
+    CONSOLIDATED BILLABLE_USAGE_REMITTANCE TABLE CREATION SCRIPT
+    
+    This script consolidates all changes made to the billable_usage_remittance table
+    from the original creation (2022-05-23) through the latest changes (2025-04-29).
+    
+    Running this single script will create the table in its final state, equivalent 
+    to running all the individual migration scripts in chronological order.
+    
+    Original migration files consolidated:
+    - 202205231334-create-billable-usage-tracking-table.xml
+    - 202206021315-add-version-to-billable-usage-tracking-table.xml
+    - 202209301230-migrate-org-id-to-billable-usage-table.xml
+    - 202211181230-update-primary-key-migrate-org-id-to-billable-usage-table.xml
+    - 202212011334-add-billing-factor-column-to-remittance-table.xml
+    - 202305231003-update-remittance-table-for-history.xml
+    - 202305261600-rollback-update-remittance-table-for-history.xml
+    - 202307131456-remove-granularity-from-billable-usage-remittance.xml
+    - 202401151414-add-retry_after-column-to-billable_usage_remittance-table.xml
+    - 202402051200-add-id-and-hardware-columns-to-billable_usage_remittance-table.xml
+    - 202403131500-change-pk-from-billable-usage-remittance.xml
+    - 202404121601-add-new-columns-billable-usage-remittance.xml
+    - 202410021300-update_usages_to_unknown.xml
+    - 202410211200-retry-after-billable-usage-index.xml
+    - 202410241408-clear-retryable.xml
+    - 202412091327-drop-hardware-measurement-type-from-billable-usage-remittance.xml
+    - 202504291554-add-updated-at-column-to-billable-usage-remittance.xml
+  -->
+
+  <changeSet id="202510051200-001" author="jcarvaja">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <tableExists tableName="billable_usage_remittance"/>
+      </not>
+    </preConditions>
+    
+    <comment>Create billable_usage_remittance table with all consolidated changes</comment>
+    <createTable tableName="billable_usage_remittance">
+      <column name="account_number" type="VARCHAR(32)">
+        <constraints nullable="true"/>
+      </column>
+      <column name="org_id" type="VARCHAR(32)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="product_id" type="VARCHAR(32)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="metric_id" type="VARCHAR(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="accumulation_period" type="VARCHAR(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="sla" type="VARCHAR(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="usage" type="VARCHAR(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="billing_provider" type="VARCHAR(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="billing_account_id" type="VARCHAR(255)">
+        <constraints nullable="false"/>
+      </column>
+      
+      <column name="remitted_pending_value" type="double precision">
+        <constraints nullable="true"/>
+      </column>
+      <column name="remittance_pending_date" type="TIMESTAMP WITH TIME ZONE">
+        <constraints nullable="false"/>
+      </column>
+      
+      <column name="retry_after" type="TIMESTAMP WITH TIME ZONE">
+        <constraints nullable="true"/>
+      </column>
+      
+      <column name="tally_id" type="UUID">
+        <constraints nullable="true"/>
+      </column>
+      
+      <column name="uuid" type="UUID">
+        <constraints nullable="false"/>
+      </column>
+      
+      <column name="billed_on" type="TIMESTAMP WITH TIME ZONE">
+        <constraints nullable="true"/>
+      </column>
+      <column name="error_code" type="VARCHAR(255)">
+        <constraints nullable="true"/>
+      </column>
+      <column name="status" type="VARCHAR(255)">
+        <constraints nullable="true"/>
+      </column>
+      
+      <column name="updated_at" type="timestamp">
+        <constraints nullable="true"/>
+      </column>
+    </createTable>
+    
+    <rollback>
+      <dropTable tableName="billable_usage_remittance"/>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202510051200-002" author="jcarvaja">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="billable_usage_remittance"/>
+      <not>
+        <primaryKeyExists tableName="billable_usage_remittance"/>
+      </not>
+    </preConditions>
+    
+    <comment>Add primary key constraint on uuid column</comment>
+    <addPrimaryKey constraintName="billable_usage_remittance_pkey"
+                   tableName="billable_usage_remittance"
+                   columnNames="uuid"/>
+    
+    <rollback>
+      <dropPrimaryKey tableName="billable_usage_remittance" constraintName="billable_usage_remittance_pkey"/>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202510051200-003" author="jcarvaja">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="billable_usage_remittance"/>
+      <not>
+        <uniqueConstraintExists tableName="billable_usage_remittance" constraintName="billable_usage_remittance_unique"/>
+      </not>
+    </preConditions>
+    
+    <comment>Add unique constraint for business key</comment>
+    <addUniqueConstraint columnNames="org_id, product_id, metric_id, accumulation_period, sla, usage, billing_provider, billing_account_id, remittance_pending_date"
+                         constraintName="billable_usage_remittance_unique" 
+                         tableName="billable_usage_remittance"/>
+    
+    <rollback>
+      <dropUniqueConstraint tableName="billable_usage_remittance" constraintName="billable_usage_remittance_unique"/>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202510051200-004" author="jcarvaja">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="billable_usage_remittance"/>
+      <not>
+        <indexExists tableName="billable_usage_remittance" indexName="billable_usage_retry_after_idx"/>
+      </not>
+    </preConditions>
+    
+    <comment>Create index on retry_after column</comment>
+    <createIndex tableName="billable_usage_remittance" indexName="billable_usage_retry_after_idx">
+      <column name="retry_after"/>
+    </createIndex>
+    
+    <rollback>
+      <dropIndex tableName="billable_usage_remittance" indexName="billable_usage_retry_after_idx"/>
+    </rollback>
+  </changeSet>
+
+</databaseChangeLog>
