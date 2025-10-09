@@ -40,6 +40,16 @@ The system should correctly terminate a contract, based on the `status` field in
     5. ***Expected result:***
         1. The contract is created.
         2. Its end date is empty or higher than now.
+5. `contracts-termination-TC005` **Receive a subscribed event for a terminated contract.**
+    1. ***Description:*** Verify that a terminated contract can be re-enabled when a UMB message with `"status": "SUBSCRIBED"` is received for the same org, SKU, subscription, and billing account ID with a new date.
+    2. ***Setup:*** Ensure a contract exists and is currently in a terminated state (has an end date).
+    3. ***Action:*** Simulate a UMB message from the IT partner gateway for the terminated contract, with the field `"status": "SUBSCRIBED"` and a new date.
+    4. ***Verification:*** Check the contract using the GET API.
+    5. ***Expected Result:***
+        1. The contract is updated and returns to active status.
+        2. The contract's end date is cleared or set to a future date.
+        3. The contract status reflects the re-subscription.
+
 
 ## Testing strategy:
 
