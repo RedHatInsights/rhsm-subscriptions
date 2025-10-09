@@ -729,7 +729,17 @@ objects:
           sku,
           product_tag
         from sku_product_tag
-
+    - prefix: swatch/pg_stat_user_tables
+      query: >-
+        SELECT
+          CURRENT_DATE,
+          schemaname,
+          relname,
+          n_tup_ins,
+          n_tup_upd,
+          n_tup_del,
+          (SELECT stats_reset FROM pg_stat_database WHERE datname = current_database())
+        FROM pg_stat_user_tables;
 - apiVersion: cloud.redhat.com/v1alpha1
   kind: ClowdApp
   metadata:
