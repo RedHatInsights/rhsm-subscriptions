@@ -10,10 +10,12 @@ SHELL=/bin/bash
 	swatch-metrics \
 	swatch-system-conduit \
 	swatch-utilization \
+	swatch-api \
 	run-migrations \
 	build \
 	format \
 	install \
+	clean \
 	rollback \
 	status
 
@@ -62,14 +64,17 @@ default: format install
 format:
 	./mvnw spotless:apply -Pbuild -Pcomponent-tests -Pcomponent-tests-by-service
 
-install:
-	./mvnw clean install -DskipTests
+clean:
+	./mvnw clean
+
+install: clean
+	./mvnw install -DskipTests
 
 # $@ is a variable set to the target name
 # If you add a new target here, be sure to add it to .PHONY at the top
 # Otherwise, make will think the target name refers to the directory
-run-migrations:
-	./mvnw clean install -Prun-migrations
+run-migrations: clean
+	./mvnw install -Prun-migrations
 
 # Empty target for build flag
 build:
@@ -101,6 +106,10 @@ swatch-system-conduit:
 
 swatch-utilization:
 	$(call QUARKUS_PROXY,$@,8018)
+
+swatch-api:
+	$(eval override PROFILES+=api)
+	$(call SPRING_PROXY,swatch-tally,8019)
 
 rollback:
 	@echo "Select database context:"
@@ -141,3 +150,4 @@ status:
 	$(call CHECK_SERVICE_STATUS,swatch-metrics,9016)
 	$(call CHECK_SERVICE_STATUS,swatch-system-conduit,9017)
 	$(call CHECK_SERVICE_STATUS,swatch-utilization,9018)
+	$(call CHECK_SERVICE_STATUS,swatch-api,9019)

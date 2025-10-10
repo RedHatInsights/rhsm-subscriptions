@@ -279,7 +279,7 @@ jobs:
           pkill -f "mvnw.*quarkus:dev" || true
           pkill -f "mvnw.*spring-boot:run" || true
           sleep 2
-          echo "Cleanup completed" 
+          echo "Cleanup completed"
 
   summary:
     name: PR Summary

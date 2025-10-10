@@ -1,12 +1,13 @@
-#!/bin/bash
-
-set -e
+#!/usr/bin/env bash
+# https://github.com/olivergondza/bash-strict-mode
+set -emEuo pipefail
+trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
 # Script to test all services or specific services
 # Usage: ./scripts/test-all-services.sh [service1 service2 ...]
 # If no services are specified, all services will be tested
 
-SCRIPT_DIR=$(dirname "$0")
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 ALL_SERVICES=(
     "swatch-tally:9010"
     "swatch-contracts:9011"
@@ -17,6 +18,7 @@ ALL_SERVICES=(
     "swatch-metrics:9016"
     "swatch-system-conduit:9017"
     "swatch-utilization:9018"
+    "swatch-api:9019"
 )
 
 # Function to get port for a service
@@ -43,12 +45,12 @@ if [ $# -gt 0 ]; then
             echo "⚠️  Warning: Service '$service_name' not found in known services list. Skipping."
         fi
     done
-    
+
     if [ ${#SERVICES_TO_TEST[@]} -eq 0 ]; then
         echo "❌ No valid services specified. Exiting."
         exit 1
     fi
-    
+
     echo "🎯 Testing specified services: $(printf '%s ' "$@")"
 else
     SERVICES_TO_TEST=("${ALL_SERVICES[@]}")
@@ -62,11 +64,11 @@ PASSED_SERVICES=()
 
 for service_info in "${SERVICES_TO_TEST[@]}"; do
     IFS=':' read -r service_name management_port <<< "$service_info"
-    
+
     echo ""
     echo "Testing $service_name..."
     echo "----------------------------------------"
-    
+
     if "$SCRIPT_DIR/test-service-health.sh" "$service_name" "$management_port"; then
         PASSED_SERVICES+=("$service_name")
         echo "✅ $service_name: PASSED"
@@ -74,7 +76,7 @@ for service_info in "${SERVICES_TO_TEST[@]}"; do
         FAILED_SERVICES+=("$service_name")
         echo "❌ $service_name: FAILED"
     fi
-    
+
     echo "----------------------------------------"
 done
 
@@ -105,4 +107,4 @@ if [ ${#FAILED_SERVICES[@]} -gt 0 ]; then
 fi
 
 echo ""
-echo "🎉 All services passed health checks!" 
+echo "🎉 All services passed health checks!"
