@@ -21,6 +21,7 @@
 package api;
 
 import com.redhat.swatch.component.tests.api.MessageValidator;
+import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsage.Status;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 
@@ -37,5 +38,14 @@ public class MessageValidators {
 
   public static MessageValidator<BillableUsageAggregate> alwaysMatch() {
     return new MessageValidator<>(agg -> true, BillableUsageAggregate.class);
+  }
+
+  public static MessageValidator<BillableUsageAggregate> aggregateFailure(
+      String billingAccoutId, BillableUsage.ErrorCode errorCode) {
+    return new MessageValidator<>(
+        agg ->
+            aggregateMatches(billingAccoutId, Status.FAILED).test(agg)
+                && errorCode.equals(agg.getErrorCode()),
+        BillableUsageAggregate.class);
   }
 }

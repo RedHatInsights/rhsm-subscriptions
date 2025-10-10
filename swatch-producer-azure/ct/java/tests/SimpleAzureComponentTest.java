@@ -166,10 +166,8 @@ public class SimpleAzureComponentTest extends BaseAzureComponentTest {
     // Make sure kafka responds with subscription not found
     kafkaBridge.waitForKafkaMessage(
         BILLABLE_USAGE_STATUS,
-        messages ->
-            (messages.contains(billingAccountId)
-                && messages.contains("failed")
-                && messages.contains(BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND.toString())),
+        MessageValidators.aggregateFailure(
+            billingAccountId, BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND),
         1);
 
     // Verify service produces appropriate log
