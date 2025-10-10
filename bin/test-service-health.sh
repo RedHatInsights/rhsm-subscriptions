@@ -1,6 +1,7 @@
-#!/bin/bash
-
-set -e
+#!/usr/bin/env bash
+# https://github.com/olivergondza/bash-strict-mode
+set -emEuo pipefail
+trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
 # Script to test service health
 # Usage: ./scripts/test-service-health.sh <service-name> <management-port>
@@ -64,4 +65,4 @@ else
     exit 1
 fi
 
-echo "🎉 $SERVICE_NAME validation completed successfully!" 
+echo "🎉 $SERVICE_NAME validation completed successfully!"
