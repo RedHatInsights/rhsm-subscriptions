@@ -28,11 +28,30 @@ import java.util.UUID;
 @ApplicationScoped
 public class HbiEventOutboxRepository implements PanacheRepositoryBase<HbiEventOutbox, UUID> {
 
+  // Native query required to use Postgres' FOR UPDATE SKIP LOCKED functionality.
+  private static final String FIND_BY_ORG_ID_WITH_LOCK_QUERY =
+      "SELECT * FROM hbi_event_outbox ORDER BY created_on ASC LIMIT :batchSize FOR UPDATE SKIP LOCKED";
+
   public List<HbiEventOutbox> findByOrgId(String orgId) {
     return list("orgId", orgId);
   }
 
   public long deleteByOrgId(String orgId) {
     return delete("orgId", orgId);
+  }
+
+  /**
+   * Find all outbox records in batches. Postgresql's FOR UPDATE SKIP LOCKED is used to ensure that
+   * a record cannot be processed at the same time.
+   *
+   * @param batchSize the max number of records to return.
+   * @return the list of {@link HbiEventOutbox} records.
+   */
+  @SuppressWarnings("unchecked")
+  public List<HbiEventOutbox> findAllWithLock(int batchSize) {
+    return getEntityManager()
+        .createNativeQuery(FIND_BY_ORG_ID_WITH_LOCK_QUERY, HbiEventOutbox.class)
+        .setParameter("batchSize", batchSize)
+        .getResultList();
   }
 }
