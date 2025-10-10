@@ -24,9 +24,11 @@ import static api.AzureTestHelper.createUsageAggregate;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_HOURLY_AGGREGATE;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_STATUS;
 
+import api.MessageValidators;
 import java.util.Map;
 import java.util.UUID;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
+import org.candlepin.subscriptions.billable.usage.BillableUsage.Status;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -57,7 +59,7 @@ public class SimpleAzureComponentTest extends BaseAzureComponentTest {
     // Verify status topic shows "succeeded"
     kafkaBridge.waitForKafkaMessage(
         BILLABLE_USAGE_STATUS,
-        messages -> messages.contains(billingAccountId) && messages.contains("succeeded"),
+        MessageValidators.aggregateMatches(billingAccountId, Status.SUCCEEDED),
         1);
 
     // Verify Azure usage was sent to Azure
@@ -96,7 +98,7 @@ public class SimpleAzureComponentTest extends BaseAzureComponentTest {
 
     // Wait for a status message (if any) and verify it contains the billing account ID
     // The status could be "failed", "error", or the message might not be sent at all
-    kafkaBridge.waitForKafkaMessage(BILLABLE_USAGE_STATUS, messages -> true, 0);
+    kafkaBridge.waitForKafkaMessage(BILLABLE_USAGE_STATUS, MessageValidators.alwaysMatch(), 0);
 
     // Verify that no usage was sent to Azure
     wiremock.verifyNoAzureUsage(azureResourceId);
@@ -122,7 +124,7 @@ public class SimpleAzureComponentTest extends BaseAzureComponentTest {
     kafkaBridge.produceKafkaMessage(BILLABLE_USAGE_HOURLY_AGGREGATE, Map.of());
 
     // The message should not have been sent at all
-    kafkaBridge.waitForKafkaMessage(BILLABLE_USAGE_STATUS, messages -> true, 0);
+    kafkaBridge.waitForKafkaMessage(BILLABLE_USAGE_STATUS, MessageValidators.alwaysMatch(), 0);
 
     // Verify that no usage was sent to Azure
     wiremock.verifyNoAzureUsage();
@@ -135,7 +137,7 @@ public class SimpleAzureComponentTest extends BaseAzureComponentTest {
     // Verify status topic shows "succeeded"
     kafkaBridge.waitForKafkaMessage(
         BILLABLE_USAGE_STATUS,
-        messages -> messages.contains(billingAccountId) && messages.contains("succeeded"),
+        MessageValidators.aggregateMatches(billingAccountId, Status.SUCCEEDED),
         1);
 
     // Verify Azure usage was sent to Azure
@@ -164,10 +166,8 @@ public class SimpleAzureComponentTest extends BaseAzureComponentTest {
     // Make sure kafka responds with subscription not found
     kafkaBridge.waitForKafkaMessage(
         BILLABLE_USAGE_STATUS,
-        messages ->
-            (messages.contains(billingAccountId)
-                && messages.contains("failed")
-                && messages.contains(BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND.toString())),
+        MessageValidators.aggregateFailure(
+            billingAccountId, BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND),
         1);
 
     // Verify service produces appropriate log
