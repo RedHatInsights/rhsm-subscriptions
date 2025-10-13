@@ -91,6 +91,10 @@ public abstract class BaseKubernetesClient<
     }
   }
 
+  public List<io.fabric8.kubernetes.api.model.Service> servicesByLabels(Map<String, String> serviceLabels) {
+    return client.services().withLabels(serviceLabels).list().getItems();
+  }
+
   /** Get the running pods in the current service. */
   public List<Pod> podsInService(Map<String, String> podLabels) {
     return client.pods().withLabels(podLabels).list().getItems();
