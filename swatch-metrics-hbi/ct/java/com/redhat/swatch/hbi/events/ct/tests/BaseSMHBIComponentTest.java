@@ -14,7 +14,6 @@ import com.redhat.swatch.hbi.events.ct.api.SwatchMetricsHbiRestService;
 import com.redhat.swatch.hbi.model.FlushResponse;
 import java.time.Duration;
 import lombok.Getter;
-import org.candlepin.clock.ApplicationClock;
 import org.junit.jupiter.api.Tag;
 
 @ComponentTest
@@ -33,6 +32,8 @@ public class BaseSMHBIComponentTest {
 
   @Quarkus(service = "swatch-metrics-hbi")
   static SwatchMetricsHbiRestService swatchMetricsHbi = new SwatchMetricsHbiRestService();
+
+  protected static final String EMIT_EVENTS = "swatch.swatch-metrics-hbi.emit-events";
 
   /**
    * Flush the outbox and continue until the expected flush count is reached, or

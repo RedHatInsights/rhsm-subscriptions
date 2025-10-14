@@ -4,8 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.redhat.swatch.component.tests.utils.Topics;
-import com.redhat.swatch.hbi.events.services.FeatureFlags;
 import com.redhat.swatch.hbi.model.FlushResponse;
 import com.redhat.swatch.hbi.model.FlushResponse.StatusEnum;
 import org.junit.jupiter.api.Test;
@@ -26,10 +24,10 @@ class SimpleSwatchMetricsHbiTest extends BaseSMHBIComponentTest {
 
   @Test
   void testUnleashFlagToggling() {
-    unleash.enableFlag(FeatureFlags.EMIT_EVENTS);
-    assertTrue(unleash.isFlagEnabled(FeatureFlags.EMIT_EVENTS));
-    unleash.disableFlag(FeatureFlags.EMIT_EVENTS);
-    assertFalse(unleash.isFlagEnabled(FeatureFlags.EMIT_EVENTS));
+    unleash.enableFlag(EMIT_EVENTS);
+    assertTrue(unleash.isFlagEnabled(EMIT_EVENTS));
+    unleash.disableFlag(EMIT_EVENTS);
+    assertFalse(unleash.isFlagEnabled(EMIT_EVENTS));
   }
 
 }
