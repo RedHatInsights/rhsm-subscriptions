@@ -18,9 +18,20 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package api;
+package dto;
 
-public final class ContractsTestHelper {
+import lombok.Builder;
+import lombok.Getter;
 
-  private ContractsTestHelper() {}
+/** DTO for offering data setup in component tests. */
+@Getter
+@Builder
+public class OfferingDataDto {
+  private final String sku;
+  private final String description;
+  private final Integer cores;
+  private final Integer sockets;
+  private final String level1;
+  private final String level2;
+  private final String metered;
 }

@@ -18,8 +18,19 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package api;
+package dto;
 
-import com.redhat.swatch.component.tests.api.WiremockService;
+import lombok.Builder;
+import lombok.Getter;
 
-public class ContractsWiremockService extends WiremockService {}
+/** DTO for contract test data setup in component tests. */
+@Getter
+@Builder
+public class ContractDataDto {
+  private final String orgId;
+  private final String subscriptionId;
+  private final String subscriptionNumber;
+  private final String awsCustomerId;
+  private final String awsAccountId;
+  private final String productCode;
+}
