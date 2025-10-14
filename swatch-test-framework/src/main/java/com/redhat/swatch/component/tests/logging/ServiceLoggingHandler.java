@@ -20,15 +20,15 @@
  */
 package com.redhat.swatch.component.tests.logging;
 
-import com.redhat.swatch.component.tests.api.Service;
+import com.redhat.swatch.component.tests.core.ServiceContext;
 
 public abstract class ServiceLoggingHandler extends LoggingHandler {
 
-  private final Service service;
+  private final ServiceContext service;
 
   private boolean isTestStarted = false;
 
-  public ServiceLoggingHandler(Service service) {
+  public ServiceLoggingHandler(ServiceContext service) {
     this.service = service;
   }
 
@@ -48,13 +48,17 @@ public abstract class ServiceLoggingHandler extends LoggingHandler {
 
   @Override
   protected void logInfo(String line) {
-    Log.info(service, line);
+    Log.info(service.getOwner(), line);
   }
 
   @Override
   protected boolean isLogEnabled() {
     if (!service.getConfiguration().isLogEnabled()) {
       return false;
+    }
+
+    if (service.isDebug()) {
+      return true;
     }
 
     return !service.getConfiguration().isLogEnabledOnTestStarted() || isTestStarted;

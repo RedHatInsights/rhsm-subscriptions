@@ -18,20 +18,8 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db.model;
+package api;
 
-import java.io.Serializable;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.redhat.swatch.component.tests.api.WiremockService;
 
-@Builder
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class SubscriptionCapacityViewMetric implements Serializable {
-  private String metricId;
-  private String measurementType;
-  private Double capacity;
-}
+public class ContractsWiremockService extends WiremockService {}

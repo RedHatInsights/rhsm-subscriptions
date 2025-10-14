@@ -34,6 +34,9 @@ import static org.mockito.Mockito.when;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import com.redhat.swatch.contracts.spring.api.model.CapacityReportByMetricId;
+import com.redhat.swatch.contracts.spring.api.model.CapacityReportByMetricIdMeta;
+import com.redhat.swatch.contracts.spring.api.model.CapacitySnapshotByMetricId;
 import jakarta.ws.rs.BadRequestException;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -48,6 +51,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.contracts.ContractsCapacityController;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
@@ -63,9 +67,6 @@ import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.SnapshotTimeAdjuster;
 import org.candlepin.subscriptions.utilization.api.v1.model.BillingCategory;
 import org.candlepin.subscriptions.utilization.api.v1.model.BillingProviderType;
-import org.candlepin.subscriptions.utilization.api.v1.model.CapacityReportByMetricId;
-import org.candlepin.subscriptions.utilization.api.v1.model.CapacityReportByMetricIdMeta;
-import org.candlepin.subscriptions.utilization.api.v1.model.CapacitySnapshotByMetricId;
 import org.candlepin.subscriptions.utilization.api.v1.model.GranularityType;
 import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
 import org.candlepin.subscriptions.utilization.api.v1.model.ServiceLevelType;
@@ -105,12 +106,12 @@ class TallyResourceTest {
   @MockitoBean TallySnapshotRepository repository;
   @MockitoBean PageLinkCreator pageLinkCreator;
   @MockitoBean OrgConfigRepository orgConfigRepository;
-  @MockitoBean CapacityResource capacityResource;
+  @MockitoBean ContractsCapacityController capacityController;
   @Autowired TallyResource resource;
   @Autowired ApplicationClock applicationClock;
 
   @BeforeEach
-  public void setupTests() {
+  void setupTests() {
     when(orgConfigRepository.existsByOrgId("owner123456")).thenReturn(true);
     var testClock = (TestClock) applicationClock.getClock();
     testClock.setInstant(MID_MONTH_INSTANT);
@@ -835,7 +836,7 @@ class TallyResourceTest {
     UsageType resolvedUsage =
         Optional.ofNullable(usageType).map(ut -> UsageType.valueOf(ut.name())).orElse(null);
 
-    when(capacityResource.getCapacityReportByMetricId(
+    when(capacityController.getCapacityReportByMetricId(
             eq(productId),
             eq(metricId),
             eq(resolvedGranularity),
@@ -868,13 +869,39 @@ class TallyResourceTest {
       ServiceLevelType sla,
       UsageType usage,
       Map<OffsetDateTime, Integer> values) {
+    var capacityApiCategory =
+        Optional.ofNullable(category)
+            .map(
+                c ->
+                    com.redhat.swatch.contracts.spring.api.model.ReportCategory.fromValue(
+                        c.toString()))
+            .orElse(null);
+    var capacityApiGranularity =
+        Optional.ofNullable(granularity)
+            .map(
+                c ->
+                    com.redhat.swatch.contracts.spring.api.model.GranularityType.fromValue(
+                        c.toString()))
+            .orElse(null);
+    var capacitySla =
+        Optional.ofNullable(sla)
+            .map(
+                c ->
+                    com.redhat.swatch.contracts.spring.api.model.ServiceLevelType.fromValue(
+                        c.toString()))
+            .orElse(null);
+    var capacityUsage =
+        Optional.ofNullable(usage)
+            .map(
+                c -> com.redhat.swatch.contracts.spring.api.model.UsageType.fromValue(c.toString()))
+            .orElse(null);
     var meta =
         new CapacityReportByMetricIdMeta()
             .metricId(metricId)
-            .category(category)
-            .granularity(granularity)
-            .serviceLevel(sla)
-            .usage(usage)
+            .category(capacityApiCategory)
+            .granularity(capacityApiGranularity)
+            .serviceLevel(capacitySla)
+            .usage(capacityUsage)
             .count(values.size());
     return new CapacityReportByMetricId()
         .meta(meta)

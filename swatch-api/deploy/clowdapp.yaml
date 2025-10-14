@@ -70,7 +70,7 @@ parameters:
   - name: NGINX_OTEL_IMAGE
     value: quay.io/cloudservices/nginx-otel
   - name: NGINX_OTEL_IMAGE_TAG
-    value: '1df2c89'
+    value: '58f1545'
   - name: OTEL_ENABLED
     value: 'off'
   - name: OTEL_JAVAAGENT_ENABLED
@@ -98,6 +98,7 @@ objects:
         - ${DB_POD}
         - swatch-tally
         - rbac
+        - swatch-contracts
 
       database:
         sharedDbAppName: ${DB_POD}

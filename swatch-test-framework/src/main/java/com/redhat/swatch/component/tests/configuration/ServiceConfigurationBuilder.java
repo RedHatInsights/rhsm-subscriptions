@@ -35,6 +35,7 @@ public class ServiceConfigurationBuilder
   private static final String LOG_ENABLED = "log.enabled";
   private static final String LOG_ENABLED_ON_TEST_STARTED = "log.enabled.on-test-started";
   private static final String LOG_LEVEL = "log.level";
+  private static final String DEBUG = "debug";
 
   @Override
   public ServiceConfiguration build() {
@@ -47,6 +48,7 @@ public class ServiceConfigurationBuilder
     loadBoolean(LOG_ENABLED_ON_TEST_STARTED, a -> a.logEnabledOnTestStarted())
         .ifPresent(config::setLogEnabledOnTestStarted);
     loadString(LOG_LEVEL, a -> a.logLevel()).map(Level::parse).ifPresent(config::setLogLevel);
+    loadBoolean(DEBUG, a -> a.debug()).ifPresent(config::setDebug);
     return config;
   }
 

@@ -116,10 +116,6 @@ public class KafkaBridgeService extends RestService {
             if (messages.size() < expectedCount) {
               return false;
             }
-            // If expected count is 0, we don't need to validate message content
-            if (expectedCount == 0) {
-              return true;
-            }
             // Validate each message until a match is found.
             int validCount = 0;
             for (var message : messages) {

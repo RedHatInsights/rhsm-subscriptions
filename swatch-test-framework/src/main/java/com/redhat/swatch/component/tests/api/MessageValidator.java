@@ -69,4 +69,8 @@ public class MessageValidator<T> {
   public Predicate<T> getFilter() {
     return filter;
   }
+
+  public String getTypeName() {
+    return type.getName();
+  }
 }
