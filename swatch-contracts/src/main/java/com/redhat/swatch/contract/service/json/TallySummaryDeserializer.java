@@ -18,29 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package domain;
+package com.redhat.swatch.contract.service.json;
 
-import com.redhat.swatch.contract.test.model.TallySnapshot.Sla;
+import com.redhat.swatch.contract.model.TallySummary;
+import io.quarkus.kafka.client.serialization.ObjectMapperDeserializer;
 
-public enum ServiceLevel {
-  PREMIUM;
-
-  public Sla toTallySnapshotModel() {
-    switch (this) {
-      case PREMIUM:
-        return Sla.PREMIUM;
-      default:
-        throw new IllegalArgumentException("Unsupported service level: " + this);
-    }
-  }
-
-  /** From swatch-common-models: */
-  public String toDataModel() {
-    switch (this) {
-      case PREMIUM:
-        return "Premium";
-      default:
-        throw new IllegalArgumentException("Unsupported service level: " + this);
-    }
+/** Provides quarkus a hint that we want to use Jackson to serialize TallySummary objects. */
+public class TallySummaryDeserializer extends ObjectMapperDeserializer<TallySummary> {
+  public TallySummaryDeserializer() {
+    super(TallySummary.class);
   }
 }
