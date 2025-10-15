@@ -75,6 +75,40 @@
             </executions>
           </plugin>
 
+          <plugin>
+            <groupId>org.jsonschema2pojo</groupId>
+            <artifactId>jsonschema2pojo-maven-plugin</artifactId>
+            <configuration>
+              <targetPackage>com.redhat.swatch.contract.model</targetPackage>
+              <outputDirectory>${project.build.directory}/generated-sources/src/main/java</outputDirectory>
+              <includeAdditionalProperties>false</includeAdditionalProperties>
+              <includeJsr303Annotations>false</includeJsr303Annotations>
+              <initializeCollections>false</initializeCollections>
+              <dateTimeType>java.time.OffsetDateTime</dateTimeType>
+              <sourceType>yamlschema</sourceType>
+              <generateBuilders>true</generateBuilders>
+              <includeGetters>true</includeGetters>
+              <includeSetters>true</includeSetters>
+              <useJakartaValidation>false</useJakartaValidation>
+              <sourceDirectory>${maven.multiModuleProjectDirectory}/swatch-contracts/schemas</sourceDirectory>
+            </configuration>
+            <executions>
+              <execution>
+                <id>from-swatch-core</id>
+                <goals>
+                  <goal>generate</goal>
+                </goals>
+                <configuration>
+                  <sourceDirectory>${maven.multiModuleProjectDirectory}/swatch-core/schemas</sourceDirectory>
+                  <sourcePaths>
+                    <sourcePath>tally_summary.yaml</sourcePath>
+                    <sourcePath>utilization_summary.yaml</sourcePath>
+                  </sourcePaths>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
           <!-- OpenAPI Generator for contract request/response models -->
           <plugin>
             <groupId>org.openapitools</groupId>
