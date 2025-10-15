@@ -326,6 +326,8 @@
               <sourcePaths>
                 <sourcePath>enabled_orgs_request.yaml</sourcePath>
                 <sourcePath>enabled_orgs_response.yaml</sourcePath>
+                <sourcePath>tally_summary.yaml</sourcePath>
+                <sourcePath>utilization_summary.yaml</sourcePath>
               </sourcePaths>
             </configuration>
           </execution>

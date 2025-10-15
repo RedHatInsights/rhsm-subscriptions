@@ -98,6 +98,14 @@ parameters:
     value: '3'
   - name: KAFKA_SUBSCRIPTIONS_EXPORT_PARTITIONS
     value: '3'
+  - name: KAFKA_TALLY_REPLICAS
+    value: '3'
+  - name: KAFKA_TALLY_PARTITIONS
+    value: '3'
+  - name: KAFKA_UTILIZATION_REPLICAS
+    value: '3'
+  - name: KAFKA_UTILIZATION_PARTITIONS
+    value: '3'
   - name: CURL_CRON_IMAGE
     value: registry.access.redhat.com/ubi8/ubi-minimal
   - name: CURL_CRON_IMAGE_TAG
@@ -149,6 +157,12 @@ objects:
         - replicas: ${{KAFKA_SUBSCRIPTIONS_EXPORT_REPLICAS}}
           partitions: ${{KAFKA_SUBSCRIPTIONS_EXPORT_PARTITIONS}}
           topicName: platform.export.requests
+        - replicas: ${{KAFKA_TALLY_REPLICAS}}
+          partitions: ${{KAFKA_TALLY_PARTITIONS}}
+          topicName: platform.rhsm-subscriptions.tally
+        - replicas: ${{KAFKA_UTILIZATION_REPLICAS}}
+          partitions: ${{KAFKA_UTILIZATION_PARTITIONS}}
+          topicName: platform.rhsm-subscriptions.utilization
 
       deployments:
         - name: service

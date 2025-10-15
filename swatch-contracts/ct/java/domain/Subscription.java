@@ -20,8 +20,12 @@
  */
 package domain;
 
+import com.redhat.swatch.component.tests.utils.RandomUtils;
+import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.time.OffsetDateTime;
 import java.util.Map;
+import java.util.Objects;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.experimental.SuperBuilder;
@@ -31,7 +35,7 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 public class Subscription {
   private final String orgId;
-  private final String productId;
+  private final Product product;
   private final String subscriptionId;
   private final String subscriptionNumber;
   private final Offering offering;
@@ -39,5 +43,36 @@ public class Subscription {
   private final OffsetDateTime endDate;
   private final BillingProvider billingProvider;
   private final String billingAccountId;
-  private final Map<String, Double> subscriptionMeasurements;
+  private final Map<MetricId, Double> subscriptionMeasurements;
+
+  public static Subscription buildRhelSubscription(String orgId, Map<MetricId, Double> capacity) {
+    return buildRhelSubscription(orgId, capacity, null);
+  }
+
+  public static Subscription buildRhelSubscriptionUsingSku(
+      String orgId, Map<MetricId, Double> capacity, String sku) {
+    Objects.requireNonNull(sku, "sku cannot be null");
+    return buildRhelSubscription(orgId, capacity, sku);
+  }
+
+  public static Subscription buildRhelSubscription(
+      String orgId, Map<MetricId, Double> capacity, String sku) {
+    Objects.requireNonNull(orgId, "orgId cannot be null");
+
+    String seed = RandomUtils.generateRandom();
+    return Subscription.builder()
+        .subscriptionMeasurements(capacity)
+        .orgId(orgId)
+        .product(Product.RHEL)
+        .offering(
+            Offering.buildRhelOffering(
+                Objects.requireNonNullElse(sku, seed),
+                capacity.getOrDefault(MetricIdUtils.getCores(), null),
+                capacity.getOrDefault(MetricIdUtils.getSockets(), null)))
+        .subscriptionId(seed)
+        .subscriptionNumber(seed)
+        .startDate(OffsetDateTime.now().minusDays(1))
+        .endDate(OffsetDateTime.now().plusDays(1))
+        .build();
+  }
 }

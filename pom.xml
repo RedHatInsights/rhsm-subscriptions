@@ -602,6 +602,7 @@
 
       <modules>
         <!-- Dependencies -->
+        <module>swatch-product-configuration</module>
         <module>swatch-quarkus-parent</module>
         <module>swatch-common-models</module>
         <module>swatch-model-events</module>
