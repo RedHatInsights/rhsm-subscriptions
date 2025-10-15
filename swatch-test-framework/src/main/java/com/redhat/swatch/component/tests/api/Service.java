@@ -72,6 +72,8 @@ public interface Service extends AutoCloseable {
 
   default void onTestStarted() {}
 
+  default void onTestStopped() {}
+
   default LogsVerifier logs() {
     return new LogsVerifier(this);
   }
