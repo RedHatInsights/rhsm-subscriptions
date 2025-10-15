@@ -18,6 +18,10 @@
       <groupId>com.redhat.swatch</groupId>
       <artifactId>swatch-test-framework</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-annotations</artifactId>
+    </dependency>
   </dependencies>
 
   <profiles>
@@ -61,6 +65,39 @@
                       <directory>${project.basedir}/resources</directory>
                     </resource>
                   </resources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <plugin>
+            <groupId>org.jsonschema2pojo</groupId>
+            <artifactId>jsonschema2pojo-maven-plugin</artifactId>
+            <configuration>
+              <targetPackage>com.redhat.swatch.contract.model</targetPackage>
+              <outputDirectory>${project.build.directory}/generated-sources/src/main/java</outputDirectory>
+              <includeAdditionalProperties>false</includeAdditionalProperties>
+              <includeJsr303Annotations>false</includeJsr303Annotations>
+              <initializeCollections>false</initializeCollections>
+              <dateTimeType>java.time.OffsetDateTime</dateTimeType>
+              <sourceType>yamlschema</sourceType>
+              <generateBuilders>true</generateBuilders>
+              <includeGetters>true</includeGetters>
+              <includeSetters>true</includeSetters>
+              <useJakartaValidation>false</useJakartaValidation>
+              <sourceDirectory>${maven.multiModuleProjectDirectory}/swatch-core/schemas</sourceDirectory>
+            </configuration>
+            <executions>
+              <execution>
+                <id>from-swatch-core</id>
+                <goals>
+                  <goal>generate</goal>
+                </goals>
+                <configuration>
+                  <sourcePaths>
+                    <sourcePath>tally_summary.yaml</sourcePath>
+                    <sourcePath>utilization_summary.yaml</sourcePath>
+                  </sourcePaths>
                 </configuration>
               </execution>
             </executions>
