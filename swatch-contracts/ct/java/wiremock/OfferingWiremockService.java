@@ -21,10 +21,29 @@
 package wiremock;
 
 import com.redhat.swatch.component.tests.api.WiremockService;
+import dto.OfferingTestData;
 import java.util.Map;
 
 /** WireMock service for offering-related API stubs. */
 public class OfferingWiremockService extends WiremockService {
+
+  /**
+   * Stub the offering data for testing. This sets up both upstream product data and engineering
+   * products stubs.
+   *
+   * @param offeringData the offering test data containing SKU and product attributes
+   */
+  public void stubOfferingData(OfferingTestData offeringData) {
+    stubUpstreamProductData(
+        offeringData.getSku(),
+        offeringData.getDescription(),
+        offeringData.getCores(),
+        offeringData.getSockets(),
+        offeringData.getLevel1(),
+        offeringData.getLevel2(),
+        offeringData.getMetered());
+    stubEngineeringProducts(offeringData.getSku());
+  }
 
   /**
    * Stub the upstream product data service to return product tree for a given SKU. This is used by

@@ -20,6 +20,7 @@
  */
 package helpers;
 
+import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.contract.test.model.ContractRequest;
 import com.redhat.swatch.contract.test.model.DimensionV1;
 import com.redhat.swatch.contract.test.model.PartnerEntitlementV1;
@@ -29,11 +30,15 @@ import com.redhat.swatch.contract.test.model.PurchaseV1;
 import com.redhat.swatch.contract.test.model.RhEntitlementV1;
 import com.redhat.swatch.contract.test.model.SaasContractV1;
 import dto.ContractTestData;
+import io.restassured.response.Response;
 import java.util.List;
 import java.util.Objects;
 
-/** Helper class for creating contract request payloads in component tests. */
+/** Helper class for contract related operations in component tests. */
 public final class ContractsTestHelper {
+
+  private static final String CREATE_CONTRACT_ENDPOINT = "/api/swatch-contracts/internal/contracts";
+  private static final String GET_CONTRACTS_ENDPOINT = "/api/swatch-contracts/internal/contracts";
 
   private ContractsTestHelper() {}
 
@@ -90,5 +95,40 @@ public final class ContractsTestHelper {
     return new RhEntitlementV1()
         .subscriptionNumber(contractData.getSubscriptionNumber())
         .sku(contractData.getSku());
+  }
+
+  public static Response createContract(SwatchService service, ContractTestData contractData) {
+    Objects.requireNonNull(service, "service must not be null");
+    Objects.requireNonNull(contractData, "contractData must not be null");
+
+    ContractRequest contractRequest = buildContractRequest(contractData);
+    return service
+        .given()
+        .contentType("application/json")
+        .body(contractRequest)
+        .when()
+        .post(CREATE_CONTRACT_ENDPOINT);
+  }
+
+  public static Response getContracts(
+      SwatchService service,
+      String orgId,
+      String billingProvider,
+      String billingAccountId,
+      String productTag) {
+    Objects.requireNonNull(service, "service must not be null");
+    Objects.requireNonNull(orgId, "orgId must not be null");
+    Objects.requireNonNull(billingProvider, "billingProvider must not be null");
+    Objects.requireNonNull(billingAccountId, "billingAccountId must not be null");
+    Objects.requireNonNull(productTag, "productTag must not be null");
+
+    return service
+        .given()
+        .queryParam("org_id", orgId)
+        .queryParam("billing_provider", billingProvider)
+        .queryParam("billing_account_id", billingAccountId)
+        .queryParam("product_tag", productTag)
+        .when()
+        .get(GET_CONTRACTS_ENDPOINT);
   }
 }

@@ -21,10 +21,33 @@
 package wiremock;
 
 import com.redhat.swatch.component.tests.api.WiremockService;
+import dto.ContractTestData;
 import java.util.Map;
 
+/** WireMock service for contract-related API stubs. */
 public class ContractsWiremockService extends WiremockService {
 
+  /**
+   * Stub the partner entitlement API for a given contract test data.
+   *
+   * @param contractData the contract test data containing AWS and product details
+   */
+  public void stubPartnerEntitlement(ContractTestData contractData) {
+    stubPartnerEntitlementSuccess(
+        contractData.getAwsCustomerId(),
+        contractData.getAwsAccountId(),
+        contractData.getProductCode(),
+        contractData.getOrgId());
+  }
+
+  /**
+   * Stub the partner entitlement API to return success for given AWS and product details.
+   *
+   * @param awsCustomerId AWS customer ID
+   * @param awsAccountId AWS account ID
+   * @param productCode product code
+   * @param orgId organization ID
+   */
   public void stubPartnerEntitlementSuccess(
       String awsCustomerId, String awsAccountId, String productCode, String orgId) {
 

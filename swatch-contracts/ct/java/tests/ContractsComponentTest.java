@@ -28,12 +28,12 @@ import static org.hamcrest.Matchers.notNullValue;
 
 import dto.ContractTestData;
 import dto.OfferingTestData;
+import helpers.ContractsTestHelper;
+import helpers.OfferingTestHelper;
 import io.restassured.response.Response;
 import java.time.OffsetDateTime;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import services.ContractsTestService;
-import services.OfferingTestService;
 
 public class ContractsComponentTest extends BaseContractComponentTest {
 
@@ -70,23 +70,21 @@ public class ContractsComponentTest extends BaseContractComponentTest {
             sellerAccountId,
             sourcePartner);
 
-    // offering sync is needed for contract to persist with the sku
-    OfferingTestService offeringService = new OfferingTestService(service, offeringWiremock);
-    offeringService.setupOffering(offeringData);
-    Response syncOfferingResponse = offeringService.syncOffering(testSku);
+    offeringWiremock.stubOfferingData(offeringData);
+    contractsWiremock.stubPartnerEntitlement(contractData);
+
+    // Sync offering needed for contract to persist with the SKU
+    Response syncOfferingResponse = OfferingTestHelper.syncOffering(service, testSku);
     assertThat("Sync offering call should succeed", syncOfferingResponse.statusCode(), is(200));
 
-    ContractsTestService contractsService = new ContractsTestService(service, contractsWiremock);
-    contractsService.setupPartnerEntitlementStub(contractData);
-
-    Response createContractResponse = contractsService.createContract(contractData);
-
+    Response createContractResponse = ContractsTestHelper.createContract(service, contractData);
     assertThat(
         "Prepaid contract creation should succeed", createContractResponse.statusCode(), is(200));
     service.logs().assertContains("Creating contract");
 
+    // Retrieve and verify contract
     Response getContractsResponse =
-        contractsService.getContracts(orgId, billingProvider, awsAccountId, productTag);
+        ContractsTestHelper.getContracts(service, orgId, billingProvider, awsAccountId, productTag);
     assertThat(
         "Contract retrieval call should succeed", getContractsResponse.statusCode(), is(200));
 
@@ -134,23 +132,21 @@ public class ContractsComponentTest extends BaseContractComponentTest {
             sellerAccountId,
             sourcePartner);
 
-    // offering sync is needed for contract to persist with the sku
-    OfferingTestService offeringService = new OfferingTestService(service, offeringWiremock);
-    offeringService.setupOffering(offeringData);
-    Response syncOfferingResponse = offeringService.syncOffering(testSku);
+    offeringWiremock.stubOfferingData(offeringData);
+    contractsWiremock.stubPartnerEntitlement(contractData);
+
+    // Sync offering needed for contract to persist with the SKU
+    Response syncOfferingResponse = OfferingTestHelper.syncOffering(service, testSku);
     assertThat("Sync offering call should succeed", syncOfferingResponse.statusCode(), is(200));
 
-    ContractsTestService contractsService = new ContractsTestService(service, contractsWiremock);
-    contractsService.setupPartnerEntitlementStub(contractData);
-
-    Response createContractResponse = contractsService.createContract(contractData);
-
+    Response createContractResponse = ContractsTestHelper.createContract(service, contractData);
     assertThat(
         "Prepaid contract creation should succeed", createContractResponse.statusCode(), is(200));
     service.logs().assertContains("Creating contract");
 
+    // Retrieve and verify contract
     Response getContractsResponse =
-        contractsService.getContracts(orgId, billingProvider, awsAccountId, productTag);
+        ContractsTestHelper.getContracts(service, orgId, billingProvider, awsAccountId, productTag);
     assertThat(
         "Contract retrieval call should succeed", getContractsResponse.statusCode(), is(200));
 
@@ -164,7 +160,6 @@ public class ContractsComponentTest extends BaseContractComponentTest {
         .body("[0].metrics.size()", equalTo(0));
   }
 
-  /** Helper method for building ROSA offering test data with sensible defaults. */
   private OfferingTestData buildRosaOffering(String sku) {
     return OfferingTestData.builder()
         .sku(sku)
@@ -175,7 +170,6 @@ public class ContractsComponentTest extends BaseContractComponentTest {
         .build();
   }
 
-  /** Helper method for building ROSA contract test data. */
   private ContractTestData buildRosaContract(
       String sku,
       String metricName,
