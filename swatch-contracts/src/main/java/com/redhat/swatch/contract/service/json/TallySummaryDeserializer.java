@@ -18,20 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.config;
+package com.redhat.swatch.contract.service.json;
 
-public final class Channels {
+import com.redhat.swatch.contract.model.TallySummary;
+import io.quarkus.kafka.client.serialization.ObjectMapperDeserializer;
 
-  public static final String CAPACITY_RECONCILE = "capacity-reconcile";
-  public static final String CAPACITY_RECONCILE_TASK = "capacity-reconcile-task";
-  public static final String ENABLED_ORGS = "enabled-orgs";
-  public static final String SUBSCRIPTION_SYNC_TASK_TOPIC = "subscription-sync-task";
-  public static final String SUBSCRIPTION_SYNC_TASK_UMB = "subscription-sync-umb";
-  public static final String OFFERING_SYNC = "offering-sync";
-  public static final String OFFERING_SYNC_TASK_TOPIC = "offering-sync-task";
-  public static final String OFFERING_SYNC_TASK_SERVICE_UMB = "offering-sync-service-umb";
-  public static final String EXPORT_REQUESTS_TOPIC = "export-requests";
-  public static final String TALLY_IN = "tally-in";
-
-  private Channels() {}
+/** Provides quarkus a hint that we want to use Jackson to serialize TallySummary objects. */
+public class TallySummaryDeserializer extends ObjectMapperDeserializer<TallySummary> {
+  public TallySummaryDeserializer() {
+    super(TallySummary.class);
+  }
 }
