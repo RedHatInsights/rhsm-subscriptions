@@ -21,5 +21,121 @@
 package api;
 
 import com.redhat.swatch.component.tests.api.WiremockService;
+import java.util.Map;
 
-public class ContractsWiremockService extends WiremockService {}
+public class ContractsWiremockService extends WiremockService {
+  public void givenOfferingExists(
+      String sku, String productId, String serviceLevel, String usage, boolean hasUnlimitedUsage) {
+
+    // Create the product API response JSON
+    String productResponse =
+        String.format(
+            """
+        {
+          "products": [
+            {
+              "sku": "%s",
+              "description": "%s Product Description",
+              "status": "ACTIVE",
+              "attributes": [
+                {
+                  "code": "PRODUCT_FAMILY",
+                  "value": "Test Family"
+                },
+                {
+                  "code": "SERVICE_TYPE",
+                  "value": "%s"
+                },
+                {
+                  "code": "PRODUCT_NAME",
+                  "value": "%s"
+                },
+                {
+                  "code": "USAGE",
+                  "value": "%s"
+                },
+                {
+                  "code": "HAS_UNLIMITED_USAGE",
+                  "value": "%s"
+                }
+              ],
+              "roles": []
+            }
+          ],
+          "parentMap": []
+        }
+        """,
+            sku, productId, serviceLevel, productId, usage, hasUnlimitedUsage ? "Y" : "N");
+
+    // Create wiremock stub for product tree API
+    given()
+        .contentType("application/json")
+        .body(
+            Map.of(
+                "request",
+                Map.of(
+                    "method",
+                    "GET",
+                    "urlPathPattern",
+                    "/mock/product/products/" + sku + "/tree",
+                    "queryParameters",
+                    Map.of("attributes", Map.of("equalTo", "true"))),
+                "response",
+                Map.of(
+                    "status",
+                    200,
+                    "headers",
+                    Map.of("Content-Type", "application/json"),
+                    "body",
+                    productResponse),
+                "metadata",
+                Map.of("component-test-generated", "true")))
+        .when()
+        .post("/__admin/mappings")
+        .then()
+        .statusCode(201);
+
+    // Create wiremock stub for engineering products API
+    String engProductsResponse =
+        String.format(
+            """
+        {
+          "entries": [
+            {
+              "sku": "%s",
+              "engProducts": {
+                "engProducts": [
+                  {
+                    "oid": 123456,
+                    "name": "%s Engineering Product"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+        """,
+            sku, productId);
+
+    given()
+        .contentType("application/json")
+        .body(
+            Map.of(
+                "request",
+                Map.of("method", "GET", "urlPathPattern", "/mock/product/engproducts/sku=" + sku),
+                "response",
+                Map.of(
+                    "status",
+                    200,
+                    "headers",
+                    Map.of("Content-Type", "application/json"),
+                    "body",
+                    engProductsResponse),
+                "metadata",
+                Map.of("component-test-generated", "true")))
+        .when()
+        .post("/__admin/mappings")
+        .then()
+        .statusCode(201);
+  }
+}

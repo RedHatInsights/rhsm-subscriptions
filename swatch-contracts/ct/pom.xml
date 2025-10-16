@@ -85,7 +85,7 @@
               <includeGetters>true</includeGetters>
               <includeSetters>true</includeSetters>
               <useJakartaValidation>false</useJakartaValidation>
-              <sourceDirectory>${maven.multiModuleProjectDirectory}/swatch-core/schemas</sourceDirectory>
+              <sourceDirectory>${maven.multiModuleProjectDirectory}/swatch-contracts/schemas</sourceDirectory>
             </configuration>
             <executions>
               <execution>
@@ -94,6 +94,7 @@
                   <goal>generate</goal>
                 </goals>
                 <configuration>
+                  <sourceDirectory>${maven.multiModuleProjectDirectory}/swatch-core/schemas</sourceDirectory>
                   <sourcePaths>
                     <sourcePath>tally_summary.yaml</sourcePath>
                     <sourcePath>utilization_summary.yaml</sourcePath>
