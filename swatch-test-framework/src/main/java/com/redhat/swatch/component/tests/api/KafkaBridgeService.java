@@ -20,44 +20,77 @@
  */
 package com.redhat.swatch.component.tests.api;
 
+import com.redhat.swatch.component.tests.core.BaseService;
 import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
-import com.redhat.swatch.component.tests.utils.JsonUtils;
-import io.restassured.config.EncoderConfig;
-import io.restassured.config.ObjectMapperConfig;
-import io.restassured.config.RestAssuredConfig;
-import io.restassured.response.Response;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+import java.util.Properties;
+import java.util.concurrent.Future;
 import java.util.function.Predicate;
+import java.util.stream.StreamSupport;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 
-public class KafkaBridgeService extends RestService {
-
-  private static final String CONTENT_TYPE = "application/vnd.kafka.json.v2+json";
+public class KafkaBridgeService extends BaseService<KafkaBridgeService> {
   private static final String CONSUMER_GROUP = "component-tests";
 
   // Consumers by topic
-  private final Map<String, String> consumers = new HashMap<>();
+  private final Map<String, KafkaConsumer<String, Object>> consumers = new HashMap<>();
 
   public KafkaBridgeService subscribeToTopic(String topic) {
-    consumers.put(topic, UUID.randomUUID().toString());
+    consumers.put(topic, null);
     return this;
   }
 
   @Override
   public void start() {
     super.start();
+
     for (var consumer : consumers.entrySet()) {
-      createConsumerForTopic(consumer.getKey(), consumer.getValue());
+      consumer.setValue(createConsumerForTopic(consumer.getKey()));
     }
+  }
+
+  private Properties kafkaConsumerProperties(String groupId) {
+    Properties config = new Properties();
+    config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, getHost() + ":" + getMappedPort(9092));
+    config.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+    config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+    config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+    config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
+    config.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
+    return config;
+  }
+
+  private Properties kafkaProducerProperties() {
+    Properties config = new Properties();
+    config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, getHost() + ":" + getMappedPort(9092));
+    config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+    config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+    config.put(ProducerConfig.ACKS_CONFIG, "all");
+    config.put(ProducerConfig.RETRIES_CONFIG, 3);
+    config.put(ProducerConfig.BATCH_SIZE_CONFIG, 16384);
+    config.put(ProducerConfig.LINGER_MS_CONFIG, 1);
+    config.put(ProducerConfig.BUFFER_MEMORY_CONFIG, 33554432);
+    return config;
   }
 
   @Override
   public void stop() {
-    for (String consumer : consumers.values()) {
+    for (var consumer : consumers.values()) {
       deleteConsumer(consumer);
     }
 
@@ -65,102 +98,65 @@ public class KafkaBridgeService extends RestService {
   }
 
   public void produceKafkaMessage(String topic, Object value) {
-    var data = Map.of("records", List.of(Map.of("value", value)));
+    try (KafkaProducer<String, Object> producer = new KafkaProducer<>(kafkaProducerProperties())) {
+      ProducerRecord<String, Object> producerRecord = new ProducerRecord<>(topic, value);
 
-    given()
-        .config(
-            RestAssuredConfig.config()
-                .objectMapperConfig(
-                    ObjectMapperConfig.objectMapperConfig()
-                        .jackson2ObjectMapperFactory((cls, charset) -> JsonUtils.getObjectMapper()))
-                .encoderConfig(
-                    EncoderConfig.encoderConfig()
-                        .appendDefaultContentCharsetToContentTypeIfUndefined(false)))
-        .contentType("application/vnd.kafka.json.v2+json")
-        .body(data)
-        .when()
-        .post("/topics/" + topic)
-        .then()
-        .statusCode(200);
+      try {
+        // Send the record and get a Future for the send result
+        Future<RecordMetadata> future =
+            producer.send(
+                producerRecord,
+                (metadata, exception) -> {
+                  if (exception != null) {
+                    Log.error("Error sending message to %s: %s", topic, exception.getMessage());
+                  } else {
+                    Log.info(
+                        "Sent to %s: partition=%d, offset=%d",
+                        metadata.topic(), metadata.partition(), metadata.offset());
+                  }
+                });
+
+        // Blocking IO
+        AwaitilityUtils.untilIsTrue(future::isDone);
+      } catch (Exception e) {
+        Log.error("Message production failed: %s", e);
+      }
+    }
   }
 
   public void waitForKafkaMessage(
-      String topic, Predicate<String> messageValidator, int expectedCount) {
-    String consumer = consumers.get(topic);
+      String topic, Predicate<ConsumerRecord<String, Object>> messageValidator, int expectedCount) {
+    var consumer = consumers.get(topic);
     if (consumer == null) {
       throw new IllegalArgumentException("No consumer for topic " + topic);
     }
+
     AwaitilityUtils.untilIsTrue(
         () -> {
-          Response response =
-              given()
-                  .accept(CONTENT_TYPE)
-                  .when()
-                  .get("/consumers/" + CONSUMER_GROUP + "/instances/" + consumer + "/records");
-
-          if (response.getStatusCode() == 200) {
-            String responseBody = response.getBody().asString();
-            // Parse the response to count the actual messages
-            try {
-              List<Map<String, Object>> records =
-                  JsonUtils.getObjectMapper().readValue(responseBody, List.class);
-              // Check if we have exactly the expected number of messages
-              if (records.size() >= expectedCount) {
-                // If expected count is 0, we don't need to validate message content
-                if (expectedCount == 0) {
-                  return true;
-                }
-                // Otherwise, validate the message content using the provided validator
-                return messageValidator.test(responseBody);
-              }
-              return false;
-            } catch (Exception e) {
-              Log.debug(this, "Failed to parse Kafka response: %s", e.getMessage());
-              return false;
+          ConsumerRecords<String, Object> records = consumer.poll(Duration.ofSeconds(1));
+          if (records.count() >= expectedCount) {
+            if (expectedCount == 0) {
+              return true;
             }
+            return StreamSupport.stream(records.spliterator(), false).anyMatch(messageValidator);
           }
-
           return false;
         },
         AwaitilitySettings.defaults().withService(this));
   }
 
-  private void deleteConsumer(String consumerInstance) {
-    Log.debug(this, "Deleting consumer: %s", consumerInstance);
-    given()
-        .when()
-        .delete("/consumers/" + CONSUMER_GROUP + "/instances/" + consumerInstance)
-        .then()
-        .statusCode(204);
+  private void deleteConsumer(KafkaConsumer<String, Object> consumerInstance) {
+    try (consumerInstance) {
+      Log.debug(this, "Closing consumer: %s", consumerInstance);
+    }
   }
 
-  private void createConsumerForTopic(String topic, String consumerInstance) {
-    Log.debug(this, "Creating consumer for topic '%s': %s", topic, consumerInstance);
-    createConsumerGroup(consumerInstance);
-    subscribeToTopic(consumerInstance, topic);
-  }
-
-  private void createConsumerGroup(String consumerInstance) {
-    given()
-        .contentType(CONTENT_TYPE)
-        .body(
-            Map.of(
-                "name", consumerInstance,
-                "format", "json",
-                "auto.offset.reset", "earliest"))
-        .when()
-        .post("/consumers/" + CONSUMER_GROUP)
-        .then()
-        .statusCode(200);
-  }
-
-  private void subscribeToTopic(String consumerInstance, String topic) {
-    given()
-        .contentType(CONTENT_TYPE)
-        .body(Map.of("topics", List.of(topic)))
-        .when()
-        .post("/consumers/" + CONSUMER_GROUP + "/instances/" + consumerInstance + "/subscription")
-        .then()
-        .statusCode(204);
+  @SuppressWarnings("java:S2095")
+  private KafkaConsumer<String, Object> createConsumerForTopic(String topic) {
+    Log.debug(this, "Creating consumer for topic '%s'", topic);
+    var config = this.kafkaConsumerProperties(CONSUMER_GROUP);
+    var consumer = new KafkaConsumer<String, Object>(config);
+    consumer.subscribe(List.of(topic));
+    return consumer;
   }
 }

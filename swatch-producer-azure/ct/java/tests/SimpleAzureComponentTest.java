@@ -56,7 +56,10 @@ public class SimpleAzureComponentTest extends BaseAzureComponentTest {
     // Verify status topic shows "succeeded"
     kafkaBridge.waitForKafkaMessage(
         BILLABLE_USAGE_STATUS,
-        messages -> messages.contains(billingAccountId) && messages.contains("succeeded"),
+        m -> {
+          String messageValue = m.value().toString();
+          return messageValue.contains(billingAccountId) && messageValue.contains("succeeded");
+        },
         1);
 
     // Verify Azure usage was sent to Azure
@@ -134,7 +137,10 @@ public class SimpleAzureComponentTest extends BaseAzureComponentTest {
     // Verify status topic shows "succeeded"
     kafkaBridge.waitForKafkaMessage(
         BILLABLE_USAGE_STATUS,
-        messages -> messages.contains(billingAccountId) && messages.contains("succeeded"),
+        m -> {
+          var message = m.value().toString();
+          return message.contains(billingAccountId) && message.contains("succeeded");
+        },
         1);
 
     // Verify Azure usage was sent to Azure
@@ -163,10 +169,12 @@ public class SimpleAzureComponentTest extends BaseAzureComponentTest {
     // Make sure kafka responds with subscription not found
     kafkaBridge.waitForKafkaMessage(
         BILLABLE_USAGE_STATUS,
-        messages ->
-            (messages.contains(billingAccountId)
-                && messages.contains("failed")
-                && messages.contains(BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND.toString())),
+        m -> {
+          var message = m.value().toString();
+          return message.contains(billingAccountId)
+              && message.contains("failed")
+              && message.contains(BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND.toString());
+        },
         1);
 
     // Verify service produces appropriate log

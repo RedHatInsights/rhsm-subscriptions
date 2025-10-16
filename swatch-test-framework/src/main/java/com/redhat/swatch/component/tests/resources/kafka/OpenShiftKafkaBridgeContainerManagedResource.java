@@ -26,6 +26,7 @@ import java.util.Map;
 public class OpenShiftKafkaBridgeContainerManagedResource
     extends OpenShiftContainerManagedResource {
 
+  // FIXME
   private static final String SERVICE_NAME = "kafka-bridge";
 
   public OpenShiftKafkaBridgeContainerManagedResource() {
