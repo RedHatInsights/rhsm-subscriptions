@@ -32,20 +32,16 @@ import com.redhat.swatch.clients.subscription.api.model.Subscription;
 import com.redhat.swatch.clients.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.subscription.api.resources.SearchApi;
 import com.redhat.swatch.contract.test.resources.InjectWireMock;
+import com.redhat.swatch.contract.test.resources.LoggerCaptor;
 import com.redhat.swatch.contract.test.resources.WireMockResource;
 import com.redhat.swatch.resteasy.client.DebugClientLogger;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Handler;
-import java.util.logging.LogRecord;
-import org.awaitility.Awaitility;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
-import org.jboss.logmanager.Level;
 import org.jboss.logmanager.LogContext;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -69,7 +65,7 @@ public class DebugClientLoggerTest {
 
   @BeforeEach
   void setUp() {
-    LOGGER_CAPTOR.records.clear();
+    LOGGER_CAPTOR.clearRecords();
   }
 
   @Test
@@ -98,43 +94,12 @@ public class DebugClientLoggerTest {
     thenLogNothing();
   }
 
-  private void thenLogWithMessage(String str) {
-    Awaitility.await()
-        .untilAsserted(
-            () ->
-                assertTrue(
-                    LOGGER_CAPTOR.records.stream()
-                        .anyMatch(
-                            r ->
-                                r.getLevel().equals(Level.DEBUG) && r.getMessage().contains(str))));
-  }
-
   private void thenLogNothing() {
-    assertTrue(LOGGER_CAPTOR.records.isEmpty());
+    assertTrue(LOGGER_CAPTOR.getRecords().isEmpty());
   }
 
-  public static class LoggerCaptor extends Handler {
-
-    private final List<LogRecord> records = new ArrayList<>();
-
-    @Override
-    public void publish(LogRecord trace) {
-      records.add(trace);
-    }
-
-    @Override
-    public void flush() {
-      // no need to flush any sink
-    }
-
-    @Override
-    public void close() throws SecurityException {
-      clearRecords();
-    }
-
-    public void clearRecords() {
-      records.clear();
-    }
+  private void thenLogWithMessage(String str) {
+    LOGGER_CAPTOR.thenDebugLogWithMessage(str);
   }
 
   public static class LogAll implements QuarkusTestProfile {

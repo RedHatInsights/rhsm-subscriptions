@@ -25,7 +25,6 @@ import static com.redhat.swatch.export.ExportRequestHandler.ADMIN_ROLE;
 import static com.redhat.swatch.export.ExportRequestHandler.MISSING_PERMISSIONS;
 import static com.redhat.swatch.export.ExportRequestHandler.SWATCH_APP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -55,6 +54,7 @@ import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import com.redhat.swatch.contract.test.resources.ExportServiceWireMockResource;
 import com.redhat.swatch.contract.test.resources.InMemoryMessageBrokerKafkaResource;
 import com.redhat.swatch.contract.test.resources.InjectWireMock;
+import com.redhat.swatch.contract.test.resources.LoggerCaptor;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
@@ -70,9 +70,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.LogRecord;
 import org.jboss.logmanager.LogContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -84,7 +81,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 @QuarkusTest
 @QuarkusTestResource(ExportServiceWireMockResource.class)
@@ -505,38 +501,6 @@ class SubscriptionDataExporterServiceTest {
   }
 
   private void thenErrorLogWithMessage(String str) {
-    Awaitility.await()
-        .untilAsserted(
-            () ->
-                assertTrue(
-                    LOGGER_CAPTOR.records.stream()
-                        .anyMatch(
-                            r ->
-                                r.getLevel().equals(Level.SEVERE)
-                                    && r.getMessage().contains(str))));
-  }
-
-  public static class LoggerCaptor extends Handler {
-
-    private final List<LogRecord> records = new ArrayList<>();
-
-    @Override
-    public void publish(LogRecord trace) {
-      records.add(trace);
-    }
-
-    @Override
-    public void flush() {
-      // no need to flush any sink
-    }
-
-    @Override
-    public void close() throws SecurityException {
-      clearRecords();
-    }
-
-    public void clearRecords() {
-      records.clear();
-    }
+    LOGGER_CAPTOR.thenErrorLogWithMessage(str);
   }
 }
