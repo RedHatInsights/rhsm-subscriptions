@@ -20,17 +20,25 @@
  */
 package dto;
 
+import java.time.OffsetDateTime;
 import lombok.Builder;
 import lombok.Getter;
 
-/** DTO for contract test data setup in component tests. */
+/** Test data object for building contract test scenarios in component tests. */
 @Getter
 @Builder
-public class ContractDataDto {
+public class ContractTestData {
   private final String orgId;
   private final String subscriptionId;
   private final String subscriptionNumber;
   private final String awsCustomerId;
   private final String awsAccountId;
   private final String productCode;
+  private final String sku;
+  private final String metricName;
+  private final String metricValue;
+  private final String sellerAccountId;
+  private final OffsetDateTime startDate;
+  private final OffsetDateTime endDate;
+  private final String sourcePartner;
 }

@@ -20,81 +20,188 @@
  */
 package tests;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
-import dto.ContractDataDto;
-import dto.OfferingDataDto;
-import helpers.ContractsTestHelper;
-import helpers.OfferingTestHelper;
+import dto.ContractTestData;
+import dto.OfferingTestData;
+import io.restassured.response.Response;
+import java.time.OffsetDateTime;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import services.ContractsTestService;
+import services.OfferingTestService;
 
 public class ContractsComponentTest extends BaseContractComponentTest {
 
-  /** Verify contract is created when all required data is provided. */
+  /** Verify prepaid contract is created when all required data is valid. */
   @Test
   @Tag("contract")
-  public void testCreateContractWithValidData() {
-    // Setup offering data before running this test since it is required for contract creation
-    OfferingTestHelper.setupOfferingData(
-        offeringWiremock,
-        service,
-        OfferingDataDto.builder()
-            .sku("MW02393")
-            .description("Test component for ROSA")
-            .level1("OpenShift")
-            .level2("ROSA - RH OpenShift on AWS")
-            .metered("Y")
-            .build());
+  void shouldCreatePrepaidRosaContract_whenAllDataIsValid() {
+    String orgId = "org123";
+    String subscriptionId = "sub14968327";
+    String subscriptionNumber = "14968327";
+    String awsCustomerId = "HCwCpt6sqkC";
+    String awsAccountId = "168056954830";
+    String productCode = "1n58d3s3qpvk22dgew2gal7w3";
+    String metricValue = "10";
+    String sellerAccountId = "123456789";
+    String sourcePartner = "aws_marketplace";
+    String billingProvider = "aws";
+    String productTag = "rosa";
+    String testSku = "TESTMW02393";
+    String testMetricName = "four_vcpu_hour";
 
-    // Setup test data for contract creation
-    ContractDataDto contractData =
-        ContractDataDto.builder()
-            .orgId("org123")
-            .subscriptionId("sub14968327")
-            .subscriptionNumber("14968327")
-            .awsCustomerId("HCwCpt6sqkC")
-            .awsAccountId("168056954830")
-            .productCode("1n58d3s3qpvk22dgew2gal7w3")
-            .build();
+    OfferingTestData offeringData = buildRosaOffering(testSku);
+    ContractTestData contractData =
+        buildRosaContract(
+            testSku,
+            testMetricName,
+            orgId,
+            subscriptionId,
+            subscriptionNumber,
+            awsCustomerId,
+            awsAccountId,
+            productCode,
+            metricValue,
+            sellerAccountId,
+            sourcePartner);
 
-    // Setup WireMock to return partner entitlement
-    wiremock.stubPartnerEntitlementSuccess(
-        contractData.getAwsCustomerId(),
-        contractData.getAwsAccountId(),
-        contractData.getProductCode(),
-        contractData.getOrgId());
+    // offering sync is needed for contract to persist with the sku
+    OfferingTestService offeringService = new OfferingTestService(service, offeringWiremock);
+    offeringService.setupOffering(offeringData);
+    Response syncOfferingResponse = offeringService.syncOffering(testSku);
+    assertThat("Sync offering call should succeed", syncOfferingResponse.statusCode(), is(200));
 
-    // Create contract request body
-    String contractRequest = ContractsTestHelper.createContractRequest(contractData);
+    ContractsTestService contractsService = new ContractsTestService(service, contractsWiremock);
+    contractsService.setupPartnerEntitlementStub(contractData);
 
-    // Send contract creation request via REST API. It can be replaced with Kafka when we move from
-    // UMB to Kafka
-    service
-        .given()
-        .contentType("application/json")
-        .body(contractRequest)
-        .when()
-        .post("/api/swatch-contracts/internal/contracts")
+    Response createContractResponse = contractsService.createContract(contractData);
+
+    assertThat(
+        "Prepaid contract creation should succeed", createContractResponse.statusCode(), is(200));
+    service.logs().assertContains("Creating contract");
+
+    Response getContractsResponse =
+        contractsService.getContracts(orgId, billingProvider, awsAccountId, productTag);
+    assertThat(
+        "Contract retrieval call should succeed", getContractsResponse.statusCode(), is(200));
+
+    getContractsResponse
         .then()
-        .statusCode(200);
-
-    // Verify contract was created with correct data
-    service
-        .given()
-        .queryParam("org_id", contractData.getOrgId())
-        .when()
-        .get("/api/swatch-contracts/internal/contracts")
-        .then()
-        .statusCode(200)
-        .body("size()", greaterThan(0))
-        .body("[0].org_id", equalTo(contractData.getOrgId()))
-        .body("[0].subscription_number", equalTo(contractData.getSubscriptionNumber()))
-        .body("[0].sku", equalTo("MW02393"))
-        .body("[0].billing_provider", equalTo("aws"))
+        .body("size()", equalTo(1))
+        .body("[0].org_id", equalTo(orgId))
+        .body("[0].subscription_number", equalTo(subscriptionNumber))
+        .body("[0].billing_account_id", equalTo(awsAccountId))
+        .body("[0].sku", equalTo(testSku))
         .body("[0].metrics", notNullValue())
         .body("[0].metrics.size()", greaterThan(0));
+  }
+
+  /** Verify pure pay-as-you-go ROSA contract is created when all dimensions are incorrect. */
+  @Test
+  @Tag("contract")
+  void shouldCreatePurePaygRosaContract_whenAllDimensionsAreIncorrect() {
+    String orgId = "org234";
+    String subscriptionId = "sub14968327";
+    String subscriptionNumber = "24968327";
+    String awsCustomerId = "CCwCpt6sqkC";
+    String awsAccountId = "268056954830";
+    String productCode = "2n58d3s3qpvk22dgew2gal7w3";
+    String metricValue = "10";
+    String sellerAccountId = "223456789";
+    String sourcePartner = "aws_marketplace";
+    String billingProvider = "aws";
+    String productTag = "rosa";
+    String testSku = "TEST1MW02393";
+    String testMetricName = "premium_support"; // Invalid metric for ROSA
+
+    OfferingTestData offeringData = buildRosaOffering(testSku);
+    ContractTestData contractData =
+        buildRosaContract(
+            testSku,
+            testMetricName,
+            orgId,
+            subscriptionId,
+            subscriptionNumber,
+            awsCustomerId,
+            awsAccountId,
+            productCode,
+            metricValue,
+            sellerAccountId,
+            sourcePartner);
+
+    // offering sync is needed for contract to persist with the sku
+    OfferingTestService offeringService = new OfferingTestService(service, offeringWiremock);
+    offeringService.setupOffering(offeringData);
+    Response syncOfferingResponse = offeringService.syncOffering(testSku);
+    assertThat("Sync offering call should succeed", syncOfferingResponse.statusCode(), is(200));
+
+    ContractsTestService contractsService = new ContractsTestService(service, contractsWiremock);
+    contractsService.setupPartnerEntitlementStub(contractData);
+
+    Response createContractResponse = contractsService.createContract(contractData);
+
+    assertThat(
+        "Prepaid contract creation should succeed", createContractResponse.statusCode(), is(200));
+    service.logs().assertContains("Creating contract");
+
+    Response getContractsResponse =
+        contractsService.getContracts(orgId, billingProvider, awsAccountId, productTag);
+    assertThat(
+        "Contract retrieval call should succeed", getContractsResponse.statusCode(), is(200));
+
+    getContractsResponse
+        .then()
+        .body("size()", equalTo(1))
+        .body("[0].org_id", equalTo(orgId))
+        .body("[0].subscription_number", equalTo(subscriptionNumber))
+        .body("[0].billing_account_id", equalTo(awsAccountId))
+        .body("[0].sku", equalTo(testSku))
+        .body("[0].metrics.size()", equalTo(0));
+  }
+
+  /** Helper method for building ROSA offering test data with sensible defaults. */
+  private OfferingTestData buildRosaOffering(String sku) {
+    return OfferingTestData.builder()
+        .sku(sku)
+        .description("Test component for ROSA")
+        .level1("OpenShift")
+        .level2("ROSA - RH OpenShift on AWS")
+        .metered("Y")
+        .build();
+  }
+
+  /** Helper method for building ROSA contract test data. */
+  private ContractTestData buildRosaContract(
+      String sku,
+      String metricName,
+      String orgId,
+      String subscriptionId,
+      String subscriptionNumber,
+      String awsCustomerId,
+      String awsAccountId,
+      String productCode,
+      String metricValue,
+      String sellerAccountId,
+      String sourcePartner) {
+    return ContractTestData.builder()
+        .orgId(orgId)
+        .subscriptionId(subscriptionId)
+        .subscriptionNumber(subscriptionNumber)
+        .awsCustomerId(awsCustomerId)
+        .awsAccountId(awsAccountId)
+        .productCode(productCode)
+        .sku(sku)
+        .metricName(metricName)
+        .metricValue(metricValue)
+        .sellerAccountId(sellerAccountId)
+        .startDate(OffsetDateTime.now().minusDays(1))
+        .endDate(OffsetDateTime.now().plusDays(1))
+        .sourcePartner(sourcePartner)
+        .build();
   }
 }

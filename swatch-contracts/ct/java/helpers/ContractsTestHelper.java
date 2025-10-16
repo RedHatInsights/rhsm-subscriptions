@@ -20,79 +20,75 @@
  */
 package helpers;
 
-import dto.ContractDataDto;
+import com.redhat.swatch.contract.test.model.ContractRequest;
+import com.redhat.swatch.contract.test.model.DimensionV1;
+import com.redhat.swatch.contract.test.model.PartnerEntitlementV1;
+import com.redhat.swatch.contract.test.model.PartnerEntitlementV1EntitlementDates;
+import com.redhat.swatch.contract.test.model.PartnerIdentityV1;
+import com.redhat.swatch.contract.test.model.PurchaseV1;
+import com.redhat.swatch.contract.test.model.RhEntitlementV1;
+import com.redhat.swatch.contract.test.model.SaasContractV1;
+import dto.ContractTestData;
+import java.util.List;
 import java.util.Objects;
 
-/**
- * Helper class for creating contract request payloads in component tests.
- *
- * <p>This is a utility class with static methods only and cannot be instantiated.
- *
- * @see ContractDataDto
- */
+/** Helper class for creating contract request payloads in component tests. */
 public final class ContractsTestHelper {
 
   private ContractsTestHelper() {}
 
-  /**
-   * Create a contract request JSON payload using a DTO object.
-   *
-   * @param contractData the contract data DTO
-   * @return JSON string representing the contract request payload
-   */
-  public static String createContractRequest(ContractDataDto contractData) {
+  public static ContractRequest buildContractRequest(ContractTestData contractData) {
     Objects.requireNonNull(contractData, "contractData must not be null");
 
-    return """
-        {
-          "partner_entitlement": {
-            "rhAccountId": "%s",
-            "sourcePartner": "%s",
-            "entitlementDates": {
-              "startDate": "%s",
-              "endDate": "%s"
-            },
-            "rhEntitlements": [
-              {
-                "subscriptionNumber": "%s",
-                "sku": "%s"
-              }
-            ],
-            "purchase": {
-              "vendorProductCode": "%s",
-              "contracts": [
-                {
-                  "dimensions": [
-                    {
-                      "name": "%s",
-                      "value": "%s"
-                    }
-                  ]
-                }
-              ]
-            },
-            "partnerIdentities": {
-              "awsCustomerId": "%s",
-              "sellerAccountId": "%s",
-              "customerAwsAccountId": "%s"
-            }
-          },
-          "subscription_id": "%s"
-        }
-        """
-        .formatted(
-            contractData.getOrgId(),
-            "aws_marketplace",
-            "2025-01-01T00:00:00Z",
-            "2026-12-31T23:59:59Z",
-            contractData.getSubscriptionNumber(),
-            "MW02393",
-            contractData.getProductCode(),
-            "four_vcpu_hour",
-            "10",
-            contractData.getAwsCustomerId(),
-            "123456789",
-            contractData.getAwsAccountId(),
-            contractData.getSubscriptionId());
+    PartnerEntitlementV1 partnerEntitlement = buildPartnerEntitlement(contractData);
+
+    return new ContractRequest()
+        .partnerEntitlement(partnerEntitlement)
+        .subscriptionId(contractData.getSubscriptionId());
+  }
+
+  private static PartnerEntitlementV1 buildPartnerEntitlement(ContractTestData contractData) {
+    return new PartnerEntitlementV1()
+        .rhAccountId(contractData.getOrgId())
+        .sourcePartner(contractData.getSourcePartner())
+        .entitlementDates(buildEntitlementDates(contractData))
+        .rhEntitlements(List.of(buildRhEntitlement(contractData)))
+        .purchase(buildPurchase(contractData))
+        .partnerIdentities(buildPartnerIdentities(contractData));
+  }
+
+  private static DimensionV1 buildDimension(ContractTestData contractData) {
+    return new DimensionV1()
+        .name(contractData.getMetricName())
+        .value(contractData.getMetricValue());
+  }
+
+  private static PurchaseV1 buildPurchase(ContractTestData contractData) {
+    SaasContractV1 saasContract =
+        new SaasContractV1().dimensions(List.of(buildDimension(contractData)));
+
+    return new PurchaseV1()
+        .vendorProductCode(contractData.getProductCode())
+        .contracts(List.of(saasContract));
+  }
+
+  private static PartnerIdentityV1 buildPartnerIdentities(ContractTestData contractData) {
+    return new PartnerIdentityV1()
+        .awsCustomerId(contractData.getAwsCustomerId())
+        .sellerAccountId(contractData.getSellerAccountId())
+        .customerAwsAccountId(contractData.getAwsAccountId());
+  }
+
+  private static PartnerEntitlementV1EntitlementDates buildEntitlementDates(
+      ContractTestData contractData) {
+    return new PartnerEntitlementV1EntitlementDates()
+        .startDate(contractData.getStartDate())
+        .endDate(contractData.getEndDate());
+  }
+
+  private static RhEntitlementV1 buildRhEntitlement(ContractTestData contractData) {
+    return new RhEntitlementV1()
+        .subscriptionNumber(contractData.getSubscriptionNumber())
+        .sku(contractData.getSku());
   }
 }

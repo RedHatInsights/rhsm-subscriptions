@@ -33,7 +33,7 @@ import wiremock.OfferingWiremockService;
 @Tag("contracts")
 public class BaseContractComponentTest {
 
-  @Wiremock static ContractsWiremockService wiremock = new ContractsWiremockService();
+  @Wiremock static ContractsWiremockService contractsWiremock = new ContractsWiremockService();
 
   @Wiremock static OfferingWiremockService offeringWiremock = new OfferingWiremockService();
 

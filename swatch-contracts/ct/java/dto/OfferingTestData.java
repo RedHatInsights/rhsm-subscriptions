@@ -23,10 +23,10 @@ package dto;
 import lombok.Builder;
 import lombok.Getter;
 
-/** DTO for offering data setup in component tests. */
+/** Test data object for building offering test scenarios in component tests. */
 @Getter
 @Builder
-public class OfferingDataDto {
+public class OfferingTestData {
   private final String sku;
   private final String description;
   private final Integer cores;
