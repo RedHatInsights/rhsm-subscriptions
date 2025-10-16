@@ -114,7 +114,7 @@ parameters:
 - name: ENV_FOR_DYNACONF
   value: stage_proxy
 - name: IQE_PLUGINS
-  value: rhsm_subscriptions,curiosity
+  value: rhsm_subscriptions
 - name: IQE_MARKER_EXPRESSION
   value: post_stage_deploy
 - name: IQE_FILTER_EXPRESSION

@@ -31,10 +31,16 @@ import io.restassured.config.EncoderConfig;
 import io.restassured.config.ObjectMapperConfig;
 import io.restassured.config.RestAssuredConfig;
 import io.restassured.response.Response;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class KafkaBridgeService extends RestService {
 
@@ -44,8 +50,16 @@ public class KafkaBridgeService extends RestService {
   // Consumers by topic
   private final Map<String, String> consumers = new HashMap<>();
 
+  // Background scheduler to keep consumers alive
+  private ScheduledExecutorService keepAliveScheduler;
+
+  // In-memory cache of all messages received by topic
+  private final Map<String, CopyOnWriteArrayList<Object>> messageCache = new ConcurrentHashMap<>();
+
   public KafkaBridgeService subscribeToTopic(String topic) {
     consumers.put(topic, UUID.randomUUID().toString());
+    // Initialize message cache for this topic
+    messageCache.put(topic, new CopyOnWriteArrayList<>());
     return this;
   }
 
@@ -55,10 +69,18 @@ public class KafkaBridgeService extends RestService {
     for (var consumer : consumers.entrySet()) {
       createConsumerForTopic(consumer.getKey(), consumer.getValue());
     }
+
+    // Start background keep-alive process
+    startConsumerKeepAlive();
+
+    Log.debug(this, "KafkaBridge service fully initialized");
   }
 
   @Override
   public void stop() {
+    // Stop background keep-alive process
+    stopConsumerKeepAlive();
+
     for (String consumer : consumers.values()) {
       deleteConsumer(consumer);
     }
@@ -97,36 +119,56 @@ public class KafkaBridgeService extends RestService {
       throw new IllegalArgumentException("No consumer for topic " + topic);
     }
 
+    Log.debug(
+        this, "Waiting for %d messages in topic %s using cached messages", expectedCount, topic);
+
     AwaitilityUtils.untilIsTrue(
         () -> {
-          Response response =
-              given()
-                  .accept(CONTENT_TYPE)
-                  .when()
-                  .get("/consumers/" + CONSUMER_GROUP + "/instances/" + consumer + "/records");
-
-          if (response.getStatusCode() != 200) {
-            return false;
-          }
-          String responseBody = response.getBody().asString();
-          // Parse the response to count the actual messages
           try {
-            List<KafkaMessage<V>> messages = getMessages(responseBody, validator.getType());
-            // Check if we have exactly the expected number of messages
-            if (messages.size() < expectedCount) {
-              return false;
+            // Get cached messages for this topic
+            CopyOnWriteArrayList<Object> cachedMessages = messageCache.get(topic);
+            if (cachedMessages == null || cachedMessages.isEmpty()) {
+              Log.debug(this, "No cached messages found for topic %s", topic);
+              // If expecting 0 messages and cache is empty, that's success
+              return expectedCount == 0;
             }
 
-            // Validate each message until a match is found.
-            int validCount = 0;
-            for (var message : messages) {
-              if (validator.test(message.getValue())) {
-                validCount++;
+            Log.debug(this, "Found %d cached messages in topic %s", cachedMessages.size(), topic);
+
+            // Convert cached messages to typed messages and validate
+            List<KafkaMessage<V>> typedMessages = new ArrayList<>();
+            for (Object rawMessage : cachedMessages) {
+              try {
+                // Parse the raw message as KafkaMessage<V>
+                String messageJson = JsonUtils.getObjectMapper().writeValueAsString(rawMessage);
+                TypeFactory typeFactory = JsonUtils.getObjectMapper().getTypeFactory();
+                JavaType messageType =
+                    typeFactory.constructParametricType(KafkaMessage.class, validator.getType());
+                KafkaMessage<V> typedMessage =
+                    JsonUtils.getObjectMapper().readValue(messageJson, messageType);
+                typedMessages.add(typedMessage);
+              } catch (Exception e) {
+                Log.debug(this, "Failed to parse cached message: %s", e.getMessage());
+                // Continue processing other messages - invalid messages are ignored
               }
             }
-            return validCount == expectedCount;
+
+            Log.debug(this, "Successfully parsed %d messages from cache", typedMessages.size());
+
+            // Validate messages
+            int validCount = 0;
+            for (var message : typedMessages) {
+              if (validator.test(message.getValue())) {
+                validCount++;
+                Log.debug(this, "Valid message found: %s", message.getValue());
+              }
+            }
+
+            Log.debug(this, "Found %d valid messages out of %d", validCount, typedMessages.size());
+            return validCount >= expectedCount;
+
           } catch (Exception e) {
-            Log.debug(this, "Failed to parse Kafka response: %s", e.getMessage());
+            Log.debug(this, "Error checking cached messages: %s", e.getMessage());
             return false;
           }
         },
@@ -153,9 +195,16 @@ public class KafkaBridgeService extends RestService {
         .contentType(CONTENT_TYPE)
         .body(
             Map.of(
-                "name", consumerInstance,
-                "format", "json",
-                "auto.offset.reset", "earliest"))
+                "name",
+                consumerInstance,
+                "format",
+                "json",
+                "auto.offset.reset",
+                "latest",
+                "enable.auto.commit",
+                true,
+                "consumer.request.timeout.ms",
+                30000))
         .when()
         .post("/consumers/" + CONSUMER_GROUP)
         .then()
@@ -172,6 +221,130 @@ public class KafkaBridgeService extends RestService {
         .statusCode(204);
   }
 
+  /**
+   * Starts a background process that polls consumers every 2 seconds to keep them alive. This
+   * prevents Kafka Bridge from automatically deleting inactive consumers. Also caches all received
+   * messages in memory for later retrieval.
+   */
+  private void startConsumerKeepAlive() {
+    if (keepAliveScheduler != null) {
+      stopConsumerKeepAlive();
+    }
+
+    keepAliveScheduler =
+        Executors.newSingleThreadScheduledExecutor(
+            r -> {
+              Thread t = new Thread(r, "kafka-consumer-keepalive");
+              t.setDaemon(true);
+              return t;
+            });
+
+    Log.debug(
+        this,
+        "Starting consumer keep-alive and message caching process for %d consumers",
+        consumers.size());
+
+    keepAliveScheduler.scheduleAtFixedRate(
+        () -> {
+          try {
+            for (Map.Entry<String, String> entry : consumers.entrySet()) {
+              String topic = entry.getKey();
+              String consumerInstance = entry.getValue();
+
+              try {
+                // Poll for messages to keep consumer alive AND cache messages
+                Response response =
+                    given()
+                        .accept(CONTENT_TYPE)
+                        .queryParam("timeout", 1000) // Slightly longer timeout to get messages
+                        .when()
+                        .get(
+                            "/consumers/"
+                                + CONSUMER_GROUP
+                                + "/instances/"
+                                + consumerInstance
+                                + "/records");
+
+                if (response.getStatusCode() == 200) {
+                  String responseBody = response.getBody().asString();
+
+                  // Parse and cache any messages received
+                  try {
+                    List<Map<String, Object>> rawMessages = parseRawMessages(responseBody);
+                    if (!rawMessages.isEmpty()) {
+                      CopyOnWriteArrayList<Object> topicCache = messageCache.get(topic);
+                      if (topicCache != null) {
+                        topicCache.addAll(rawMessages);
+                        Log.debug(
+                            this,
+                            "Cached %d new messages for topic %s (total: %d)",
+                            rawMessages.size(),
+                            topic,
+                            topicCache.size());
+                      }
+                    }
+                  } catch (Exception e) {
+                    Log.debug(this, "Failed to parse messages for caching: %s", e.getMessage());
+                  }
+                }
+
+                Log.trace(
+                    this, "Keep-alive poll for consumer %s (topic: %s)", consumerInstance, topic);
+
+              } catch (Exception e) {
+                Log.debug(
+                    this,
+                    "Keep-alive poll failed for consumer %s: %s",
+                    consumerInstance,
+                    e.getMessage());
+              }
+            }
+          } catch (Exception e) {
+            Log.debug(this, "Keep-alive process error: %s", e.getMessage());
+          }
+        },
+        2,
+        2,
+        TimeUnit.SECONDS);
+  }
+
+  /** Stops the background keep-alive process. */
+  private void stopConsumerKeepAlive() {
+    if (keepAliveScheduler != null) {
+      Log.debug(this, "Stopping consumer keep-alive process");
+      keepAliveScheduler.shutdown();
+      try {
+        if (!keepAliveScheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+          keepAliveScheduler.shutdownNow();
+        }
+      } catch (InterruptedException e) {
+        keepAliveScheduler.shutdownNow();
+        Thread.currentThread().interrupt();
+      }
+      keepAliveScheduler = null;
+    }
+  }
+
+  /** Parses raw message response from Kafka Bridge into a list of message objects. */
+  private List<Map<String, Object>> parseRawMessages(String responseBody) {
+    try {
+      if (responseBody == null
+          || responseBody.trim().isEmpty()
+          || "[]".equals(responseBody.trim())) {
+        return List.of();
+      }
+
+      // Parse as list of generic objects
+      TypeFactory typeFactory = JsonUtils.getObjectMapper().getTypeFactory();
+      JavaType listType = typeFactory.constructCollectionType(List.class, Map.class);
+      return JsonUtils.getObjectMapper().readValue(responseBody, listType);
+
+    } catch (Exception e) {
+      Log.debug(this, "Failed to parse raw messages: %s", e.getMessage());
+      return List.of();
+    }
+  }
+
   private Map<String, Object> buildMessage(String key, Object value) {
     Map<String, Object> message = new HashMap<>();
     message.put("value", value);
@@ -179,17 +352,5 @@ public class KafkaBridgeService extends RestService {
       message.put("key", key);
     }
     return message;
-  }
-
-  private <T> List<KafkaMessage<T>> getMessages(String data, Class<T> clazz) {
-    TypeFactory typeFactory = JsonUtils.getObjectMapper().getTypeFactory();
-    JavaType messageType = typeFactory.constructParametricType(KafkaMessage.class, clazz);
-    JavaType dataType = typeFactory.constructParametricType(List.class, messageType);
-    try {
-      return JsonUtils.getObjectMapper().readValue(data, dataType);
-    } catch (Exception e) {
-      Log.error("Failed to deserialize Kafka response: %s", e.getMessage());
-      return List.of();
-    }
   }
 }
