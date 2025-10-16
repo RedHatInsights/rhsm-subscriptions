@@ -56,7 +56,8 @@ public class LocalQuarkusManagedResource extends ManagedResource {
           "One or more configuration errors have prevented the application from starting",
           "Attempting to start live reload endpoint to recover from previous Quarkus startup failure",
           "Dev mode process did not complete successfully",
-          "Failed to run");
+          "Failed to run",
+          "BUILD FAILURE");
 
   private static final String MANAGEMENT_PORT_PROPERTY = "quarkus.management.port";
   private static final String LOCALHOST = "localhost";
