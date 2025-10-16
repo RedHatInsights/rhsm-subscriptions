@@ -29,7 +29,7 @@ import lombok.Setter;
 @Setter
 @SuppressWarnings("checkstyle:MagicNumber")
 public final class ServiceConfiguration {
-  private Duration startupTimeout = Duration.ofMinutes(5);
+  private Duration startupTimeout = Duration.ofMinutes(1);
   private Duration startupCheckPollInterval = Duration.ofSeconds(2);
   private Double factorTimeout = 1.0;
   private boolean debug = false;
