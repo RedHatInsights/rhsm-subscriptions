@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.component.tests.core;
 
+import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.component.tests.logging.LoggingHandler;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
@@ -122,6 +123,13 @@ public abstract class ManagedResource {
 
   private boolean isRunningOrFailed() {
     if (isFailed()) {
+      // Force logging all service logs when the service has failed, even if logEnabled is false
+      if (getLoggingHandler() != null) {
+        List<String> logs = logs();
+        for (String log : logs) {
+          Log.error(log);
+        }
+      }
       stop();
       throw new RuntimeException("Resource failed to bind");
     }
