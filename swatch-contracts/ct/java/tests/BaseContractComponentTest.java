@@ -22,21 +22,18 @@ package tests;
 
 import com.redhat.swatch.component.tests.api.ComponentTest;
 import com.redhat.swatch.component.tests.api.Quarkus;
-import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.api.Wiremock;
 import org.junit.jupiter.api.Tag;
+import service.ContractsService;
 import wiremock.ContractsWiremockService;
-import wiremock.OfferingWiremockService;
 
 @ComponentTest
 @Tag("component")
 @Tag("contracts")
 public class BaseContractComponentTest {
 
-  @Wiremock static ContractsWiremockService contractsWiremock = new ContractsWiremockService();
-
-  @Wiremock static OfferingWiremockService offeringWiremock = new OfferingWiremockService();
+  @Wiremock static ContractsWiremockService wiremock = new ContractsWiremockService();
 
   @Quarkus(service = "swatch-contracts")
-  static SwatchService service = new SwatchService();
+  static ContractsService service = new ContractsService();
 }

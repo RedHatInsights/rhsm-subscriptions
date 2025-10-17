@@ -20,7 +20,6 @@
  */
 package helpers;
 
-import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.contract.test.model.ContractRequest;
 import com.redhat.swatch.contract.test.model.DimensionV1;
 import com.redhat.swatch.contract.test.model.PartnerEntitlementV1;
@@ -29,16 +28,12 @@ import com.redhat.swatch.contract.test.model.PartnerIdentityV1;
 import com.redhat.swatch.contract.test.model.PurchaseV1;
 import com.redhat.swatch.contract.test.model.RhEntitlementV1;
 import com.redhat.swatch.contract.test.model.SaasContractV1;
-import dto.ContractTestData;
-import io.restassured.response.Response;
 import java.util.List;
 import java.util.Objects;
+import model.ContractTestData;
 
 /** Helper class for contract related operations in component tests. */
 public final class ContractsTestHelper {
-
-  private static final String CREATE_CONTRACT_ENDPOINT = "/api/swatch-contracts/internal/contracts";
-  private static final String GET_CONTRACTS_ENDPOINT = "/api/swatch-contracts/internal/contracts";
 
   private ContractsTestHelper() {}
 
@@ -49,13 +44,13 @@ public final class ContractsTestHelper {
 
     return new ContractRequest()
         .partnerEntitlement(partnerEntitlement)
-        .subscriptionId(contractData.getSubscriptionId());
+        .subscriptionId(contractData.subscriptionId());
   }
 
   private static PartnerEntitlementV1 buildPartnerEntitlement(ContractTestData contractData) {
     return new PartnerEntitlementV1()
-        .rhAccountId(contractData.getOrgId())
-        .sourcePartner(contractData.getSourcePartner())
+        .rhAccountId(contractData.orgId())
+        .sourcePartner(contractData.sourcePartner())
         .entitlementDates(buildEntitlementDates(contractData))
         .rhEntitlements(List.of(buildRhEntitlement(contractData)))
         .purchase(buildPurchase(contractData))
@@ -63,9 +58,7 @@ public final class ContractsTestHelper {
   }
 
   private static DimensionV1 buildDimension(ContractTestData contractData) {
-    return new DimensionV1()
-        .name(contractData.getMetricName())
-        .value(contractData.getMetricValue());
+    return new DimensionV1().name(contractData.metricName()).value(contractData.metricValue());
   }
 
   private static PurchaseV1 buildPurchase(ContractTestData contractData) {
@@ -73,62 +66,27 @@ public final class ContractsTestHelper {
         new SaasContractV1().dimensions(List.of(buildDimension(contractData)));
 
     return new PurchaseV1()
-        .vendorProductCode(contractData.getProductCode())
+        .vendorProductCode(contractData.productCode())
         .contracts(List.of(saasContract));
   }
 
   private static PartnerIdentityV1 buildPartnerIdentities(ContractTestData contractData) {
     return new PartnerIdentityV1()
-        .awsCustomerId(contractData.getAwsCustomerId())
-        .sellerAccountId(contractData.getSellerAccountId())
-        .customerAwsAccountId(contractData.getAwsAccountId());
+        .awsCustomerId(contractData.awsCustomerId())
+        .sellerAccountId(contractData.sellerAccountId())
+        .customerAwsAccountId(contractData.awsAccountId());
   }
 
   private static PartnerEntitlementV1EntitlementDates buildEntitlementDates(
       ContractTestData contractData) {
     return new PartnerEntitlementV1EntitlementDates()
-        .startDate(contractData.getStartDate())
-        .endDate(contractData.getEndDate());
+        .startDate(contractData.startDate())
+        .endDate(contractData.endDate());
   }
 
   private static RhEntitlementV1 buildRhEntitlement(ContractTestData contractData) {
     return new RhEntitlementV1()
-        .subscriptionNumber(contractData.getSubscriptionNumber())
-        .sku(contractData.getSku());
-  }
-
-  public static Response createContract(SwatchService service, ContractTestData contractData) {
-    Objects.requireNonNull(service, "service must not be null");
-    Objects.requireNonNull(contractData, "contractData must not be null");
-
-    ContractRequest contractRequest = buildContractRequest(contractData);
-    return service
-        .given()
-        .contentType("application/json")
-        .body(contractRequest)
-        .when()
-        .post(CREATE_CONTRACT_ENDPOINT);
-  }
-
-  public static Response getContracts(
-      SwatchService service,
-      String orgId,
-      String billingProvider,
-      String billingAccountId,
-      String productTag) {
-    Objects.requireNonNull(service, "service must not be null");
-    Objects.requireNonNull(orgId, "orgId must not be null");
-    Objects.requireNonNull(billingProvider, "billingProvider must not be null");
-    Objects.requireNonNull(billingAccountId, "billingAccountId must not be null");
-    Objects.requireNonNull(productTag, "productTag must not be null");
-
-    return service
-        .given()
-        .queryParam("org_id", orgId)
-        .queryParam("billing_provider", billingProvider)
-        .queryParam("billing_account_id", billingAccountId)
-        .queryParam("product_tag", productTag)
-        .when()
-        .get(GET_CONTRACTS_ENDPOINT);
+        .subscriptionNumber(contractData.subscriptionNumber())
+        .sku(contractData.sku());
   }
 }

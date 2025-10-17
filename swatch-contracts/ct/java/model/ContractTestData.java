@@ -18,27 +18,24 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package dto;
+package model;
 
 import java.time.OffsetDateTime;
 import lombok.Builder;
-import lombok.Getter;
 
-/** Test data object for building contract test scenarios in component tests. */
-@Getter
+/** Test data model for building contract test scenarios in component tests. */
 @Builder
-public class ContractTestData {
-  private final String orgId;
-  private final String subscriptionId;
-  private final String subscriptionNumber;
-  private final String awsCustomerId;
-  private final String awsAccountId;
-  private final String productCode;
-  private final String sku;
-  private final String metricName;
-  private final String metricValue;
-  private final String sellerAccountId;
-  private final OffsetDateTime startDate;
-  private final OffsetDateTime endDate;
-  private final String sourcePartner;
-}
+public record ContractTestData(
+    String orgId,
+    String subscriptionId,
+    String subscriptionNumber,
+    String awsCustomerId,
+    String awsAccountId,
+    String productCode,
+    String sku,
+    String metricName,
+    String metricValue,
+    String sellerAccountId,
+    OffsetDateTime startDate,
+    OffsetDateTime endDate,
+    String sourcePartner) {}

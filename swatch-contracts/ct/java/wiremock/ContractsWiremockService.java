@@ -21,99 +21,38 @@
 package wiremock;
 
 import com.redhat.swatch.component.tests.api.WiremockService;
-import dto.ContractTestData;
-import java.util.Map;
 
-/** WireMock service for contract-related API stubs. */
+/**
+ * WireMock facade providing domain specific API stubs. Uses the Facade Pattern to expose multiple
+ * stub interfaces over a single WireMock instance.
+ */
 public class ContractsWiremockService extends WiremockService {
 
   /**
-   * Stub the partner entitlement API for a given contract test data.
+   * Get facade for stubbing Partner Gateway API endpoints.
    *
-   * @param contractData the contract test data containing AWS and product details
+   * @return PartnerGatewayStubs facade
    */
-  public void stubPartnerEntitlement(ContractTestData contractData) {
-    stubPartnerEntitlementSuccess(
-        contractData.getAwsCustomerId(),
-        contractData.getAwsAccountId(),
-        contractData.getProductCode(),
-        contractData.getOrgId());
+  public PartnerGatewayStubs forPartnerAPI() {
+    return new PartnerGatewayStubs(this);
   }
 
   /**
-   * Stub the partner entitlement API to return success for given AWS and product details.
+   * Get facade for stubbing Product API (Offering) endpoints.
    *
-   * @param awsCustomerId AWS customer ID
-   * @param awsAccountId AWS account ID
-   * @param productCode product code
-   * @param orgId organization ID
+   * @return OfferingStubs facade
    */
-  public void stubPartnerEntitlementSuccess(
-      String awsCustomerId, String awsAccountId, String productCode, String orgId) {
+  public OfferingStubs forProductAPI() {
+    return new OfferingStubs(this);
+  }
 
-    var responseBody =
-        Map.of(
-            "rhAccountId",
-            orgId,
-            "sourcePartner",
-            "aws_marketplace",
-            "partnerIdentities",
-            Map.of(
-                "awsCustomerId",
-                awsCustomerId,
-                "customerAwsAccountId",
-                awsAccountId,
-                "sellerAccountId",
-                "123456789"),
-            "purchase",
-            Map.of(
-                "vendorProductCode",
-                productCode,
-                "contracts",
-                java.util.List.of(
-                    Map.of(
-                        "startDate",
-                        "2025-01-01T00:00:00Z",
-                        "endDate",
-                        "2025-12-31T23:59:59Z",
-                        "dimensions",
-                        java.util.List.of(Map.of("name", "four_vcpu_hour", "value", "10"))))),
-            "rhEntitlements",
-            java.util.List.of(Map.of("sku", "RH00001", "subscriptionNumber", "12400374")));
-
-    given()
-        .contentType("application/json")
-        .body(
-            Map.of(
-                "request",
-                Map.of(
-                    "method",
-                    "GET",
-                    "urlPathPattern",
-                    "/mock/partnerApi/v1/partnerSubscriptions.*",
-                    "queryParameters",
-                    Map.of(
-                        "customerAwsAccountId",
-                        Map.of("equalTo", awsAccountId),
-                        "awsCustomerId",
-                        Map.of("equalTo", awsCustomerId),
-                        "vendorProductCode",
-                        Map.of("equalTo", productCode))),
-                "response",
-                Map.of(
-                    "status",
-                    200,
-                    "headers",
-                    Map.of("Content-Type", "application/json"),
-                    "jsonBody",
-                    responseBody),
-                "priority",
-                9,
-                "metadata",
-                Map.of(METADATA_TAG, "true")))
-        .when()
-        .post("/__admin/mappings")
-        .then()
-        .statusCode(201);
+  /**
+   * Get the metadata tag used for WireMock stub identification. Exposed to facade classes for stub
+   * creation.
+   *
+   * @return the metadata tag
+   */
+  protected String getMetadataTag() {
+    return METADATA_TAG;
   }
 }

@@ -26,12 +26,10 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
-import dto.ContractTestData;
-import dto.OfferingTestData;
-import helpers.ContractsTestHelper;
-import helpers.OfferingTestHelper;
 import io.restassured.response.Response;
 import java.time.OffsetDateTime;
+import model.ContractTestData;
+import model.Offering;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -55,7 +53,7 @@ public class ContractsComponentTest extends BaseContractComponentTest {
     String testSku = "TESTMW02393";
     String testMetricName = "four_vcpu_hour";
 
-    OfferingTestData offeringData = buildRosaOffering(testSku);
+    Offering offeringData = buildRosaOffering(testSku);
     ContractTestData contractData =
         buildRosaContract(
             testSku,
@@ -70,21 +68,21 @@ public class ContractsComponentTest extends BaseContractComponentTest {
             sellerAccountId,
             sourcePartner);
 
-    offeringWiremock.stubOfferingData(offeringData);
-    contractsWiremock.stubPartnerEntitlement(contractData);
+    wiremock.forProductAPI().stubOfferingData(offeringData);
+    wiremock.forPartnerAPI().stubPartnerEntitlement(contractData);
 
     // Sync offering needed for contract to persist with the SKU
-    Response syncOfferingResponse = OfferingTestHelper.syncOffering(service, testSku);
+    Response syncOfferingResponse = service.syncOffering(testSku);
     assertThat("Sync offering call should succeed", syncOfferingResponse.statusCode(), is(200));
 
-    Response createContractResponse = ContractsTestHelper.createContract(service, contractData);
+    Response createContractResponse = service.createContract(contractData);
     assertThat(
         "Prepaid contract creation should succeed", createContractResponse.statusCode(), is(200));
     service.logs().assertContains("Creating contract");
 
     // Retrieve and verify contract
     Response getContractsResponse =
-        ContractsTestHelper.getContracts(service, orgId, billingProvider, awsAccountId, productTag);
+        service.getContracts(orgId, billingProvider, awsAccountId, productTag);
     assertThat(
         "Contract retrieval call should succeed", getContractsResponse.statusCode(), is(200));
 
@@ -117,7 +115,7 @@ public class ContractsComponentTest extends BaseContractComponentTest {
     String testSku = "TEST1MW02393";
     String testMetricName = "premium_support"; // Invalid metric for ROSA
 
-    OfferingTestData offeringData = buildRosaOffering(testSku);
+    Offering offeringData = buildRosaOffering(testSku);
     ContractTestData contractData =
         buildRosaContract(
             testSku,
@@ -132,21 +130,21 @@ public class ContractsComponentTest extends BaseContractComponentTest {
             sellerAccountId,
             sourcePartner);
 
-    offeringWiremock.stubOfferingData(offeringData);
-    contractsWiremock.stubPartnerEntitlement(contractData);
+    wiremock.forProductAPI().stubOfferingData(offeringData);
+    wiremock.forPartnerAPI().stubPartnerEntitlement(contractData);
 
     // Sync offering needed for contract to persist with the SKU
-    Response syncOfferingResponse = OfferingTestHelper.syncOffering(service, testSku);
+    Response syncOfferingResponse = service.syncOffering(testSku);
     assertThat("Sync offering call should succeed", syncOfferingResponse.statusCode(), is(200));
 
-    Response createContractResponse = ContractsTestHelper.createContract(service, contractData);
+    Response createContractResponse = service.createContract(contractData);
     assertThat(
         "Prepaid contract creation should succeed", createContractResponse.statusCode(), is(200));
     service.logs().assertContains("Creating contract");
 
     // Retrieve and verify contract
     Response getContractsResponse =
-        ContractsTestHelper.getContracts(service, orgId, billingProvider, awsAccountId, productTag);
+        service.getContracts(orgId, billingProvider, awsAccountId, productTag);
     assertThat(
         "Contract retrieval call should succeed", getContractsResponse.statusCode(), is(200));
 
@@ -160,8 +158,8 @@ public class ContractsComponentTest extends BaseContractComponentTest {
         .body("[0].metrics.size()", equalTo(0));
   }
 
-  private OfferingTestData buildRosaOffering(String sku) {
-    return OfferingTestData.builder()
+  private Offering buildRosaOffering(String sku) {
+    return Offering.builder()
         .sku(sku)
         .description("Test component for ROSA")
         .level1("OpenShift")

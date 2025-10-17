@@ -18,25 +18,17 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package helpers;
+package model;
 
-import com.redhat.swatch.component.tests.api.SwatchService;
-import io.restassured.response.Response;
-import java.util.Objects;
+import lombok.Builder;
 
-/** Helper class for offering related operations in component tests. */
-public final class OfferingTestHelper {
-
-  private static final String OFFERING_SYNC_ENDPOINT =
-      "/api/swatch-contracts/internal/rpc/offerings/sync/%s";
-
-  private OfferingTestHelper() {}
-
-  public static Response syncOffering(SwatchService service, String sku) {
-    Objects.requireNonNull(service, "service must not be null");
-    Objects.requireNonNull(sku, "sku must not be null");
-
-    String endpoint = String.format(OFFERING_SYNC_ENDPOINT, sku);
-    return service.given().when().put(endpoint);
-  }
-}
+/** Test data model for building offering test scenarios in component tests. */
+@Builder
+public record Offering(
+    String sku,
+    String description,
+    Integer cores,
+    Integer sockets,
+    String level1,
+    String level2,
+    String metered) {}

@@ -20,12 +20,17 @@
  */
 package wiremock;
 
-import com.redhat.swatch.component.tests.api.WiremockService;
-import dto.OfferingTestData;
 import java.util.Map;
+import model.Offering;
 
-/** WireMock service for offering-related API stubs. */
-public class OfferingWiremockService extends WiremockService {
+/** Facade for stubbing Product API (Offering) endpoints. */
+public class OfferingStubs {
+
+  private final ContractsWiremockService wiremockService;
+
+  public OfferingStubs(ContractsWiremockService wiremockService) {
+    this.wiremockService = wiremockService;
+  }
 
   /**
    * Stub the offering data for testing. This sets up both upstream product data and engineering
@@ -33,16 +38,16 @@ public class OfferingWiremockService extends WiremockService {
    *
    * @param offeringData the offering test data containing SKU and product attributes
    */
-  public void stubOfferingData(OfferingTestData offeringData) {
+  public void stubOfferingData(Offering offeringData) {
     stubUpstreamProductData(
-        offeringData.getSku(),
-        offeringData.getDescription(),
-        offeringData.getCores(),
-        offeringData.getSockets(),
-        offeringData.getLevel1(),
-        offeringData.getLevel2(),
-        offeringData.getMetered());
-    stubEngineeringProducts(offeringData.getSku());
+        offeringData.sku(),
+        offeringData.description(),
+        offeringData.cores(),
+        offeringData.sockets(),
+        offeringData.level1(),
+        offeringData.level2(),
+        offeringData.metered());
+    stubEngineeringProducts(offeringData.sku());
   }
 
   /**
@@ -88,7 +93,8 @@ public class OfferingWiremockService extends WiremockService {
 
     var responseBody = Map.of("products", java.util.List.of(product));
 
-    given()
+    wiremockService
+        .given()
         .contentType("application/json")
         .body(
             Map.of(
@@ -109,7 +115,7 @@ public class OfferingWiremockService extends WiremockService {
                 "priority",
                 9,
                 "metadata",
-                Map.of(METADATA_TAG, "true")))
+                Map.of(wiremockService.getMetadataTag(), "true")))
         .when()
         .post("/__admin/mappings")
         .then()
@@ -130,7 +136,8 @@ public class OfferingWiremockService extends WiremockService {
     }
     var responseBody = Map.of("entries", entries);
 
-    given()
+    wiremockService
+        .given()
         .contentType("application/json")
         .body(
             Map.of(
@@ -147,7 +154,7 @@ public class OfferingWiremockService extends WiremockService {
                 "priority",
                 9,
                 "metadata",
-                Map.of(METADATA_TAG, "true")))
+                Map.of(wiremockService.getMetadataTag(), "true")))
         .when()
         .post("/__admin/mappings")
         .then()
