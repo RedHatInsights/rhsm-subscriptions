@@ -40,7 +40,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.HostRepository;
-import org.candlepin.subscriptions.db.HostTallyBucketRepository;
 import org.candlepin.subscriptions.db.TallyInstanceViewRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.DbReportCriteria;
@@ -91,7 +90,6 @@ public class InstancesResource implements InstancesApi {
   private final TallyInstanceViewRepository repository;
   private final HostRepository hostRepository;
   private final PageLinkCreator pageLinkCreator;
-  private final HostTallyBucketRepository hostTallyBucketRepository;
 
   @Context UriInfo uriInfo;
 
@@ -99,13 +97,11 @@ public class InstancesResource implements InstancesApi {
       ApiModelMapperV1 mapper,
       TallyInstanceViewRepository tallyInstanceViewRepository,
       HostRepository hostRepository,
-      PageLinkCreator pageLinkCreator,
-      HostTallyBucketRepository hostTallyBucketRepository) {
+      PageLinkCreator pageLinkCreator) {
     this.mapper = mapper;
     this.repository = tallyInstanceViewRepository;
     this.hostRepository = hostRepository;
     this.pageLinkCreator = pageLinkCreator;
-    this.hostTallyBucketRepository = hostTallyBucketRepository;
   }
 
   @Override
@@ -254,7 +250,7 @@ public class InstancesResource implements InstancesApi {
     }
 
     List<BillingAccountIdInfo> billingAccountIds = new ArrayList<>();
-    hostTallyBucketRepository
+    hostRepository
         .billingAccountIds(
             DbReportCriteria.builder()
                 .orgId(orgId)
@@ -272,8 +268,7 @@ public class InstancesResource implements InstancesApi {
     return new BillingAccountIdResponse().ids(billingAccountIds);
   }
 
-  private String getBillingProviderString(
-      HostTallyBucketRepository.BillingAccountIdRecord idRecord) {
+  private String getBillingProviderString(HostRepository.BillingAccountIdRecord idRecord) {
     if (idRecord.billingProvider() == null) {
       return null;
     } else {

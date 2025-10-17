@@ -40,13 +40,16 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.model.AccountServiceInventory;
 import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
 import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.DbReportCriteria;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.HostApiProjection;
+import org.candlepin.subscriptions.db.model.HostBucketKey;
 import org.candlepin.subscriptions.db.model.HostHardwareType;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -1124,5 +1127,152 @@ class HostRepositoryTest {
     assertEquals(inventoryId, host.getInventoryId());
     assertEquals("INSIGHTS_" + inventoryId, host.getInsightsId());
     assertEquals("SUBMAN_" + inventoryId, host.getSubscriptionManagerId());
+  }
+
+  @Transactional
+  @Test
+  void testBillingAccountIdsOrgFilter() {
+    prepareBillingAccountTests();
+    List<HostRepository.BillingAccountIdRecord> records =
+        repo.billingAccountIds(DbReportCriteria.builder().orgId("org1").build());
+    // one is excluded for duplicate values
+    assertEquals(3, records.size());
+    // confirm sort
+    assertEquals(BillingProvider.AWS, records.get(0).billingProvider());
+    assertEquals(BillingProvider.AZURE, records.get(1).billingProvider());
+    assertEquals(BillingProvider.RED_HAT, records.get(2).billingProvider());
+    records = repo.billingAccountIds(DbReportCriteria.builder().orgId("org2").build());
+    assertEquals(4, records.size());
+    // confirm sort
+    assertEquals("account1", records.get(2).billingAccountId());
+    assertEquals("account2", records.get(3).billingAccountId());
+  }
+
+  @Transactional
+  @Test
+  void testBillingAccountIdsUnique() {
+    prepareBillingAccountTests();
+    List<HostRepository.BillingAccountIdRecord> records =
+        repo.billingAccountIds(
+            DbReportCriteria.builder()
+                .orgId("org1")
+                .productTag("prod1")
+                .billingProvider(BillingProvider.RED_HAT)
+                .build());
+    assertEquals(1, records.size());
+    assertEquals("prod1", records.get(0).productId());
+    assertEquals(BillingProvider.RED_HAT, records.get(0).billingProvider());
+  }
+
+  @Transactional
+  @Test
+  void testBillingAccountProductTagFilter() {
+    prepareBillingAccountTests();
+    List<HostRepository.BillingAccountIdRecord> records =
+        repo.billingAccountIds(
+            DbReportCriteria.builder().orgId("org2").productTag("prod3").build());
+    assertEquals(2, records.size());
+    records.stream()
+        .forEach(
+            accountIdRecord -> {
+              assertEquals("prod3", records.get(0).productId());
+            });
+  }
+
+  @Transactional
+  @Test
+  void testBillingAccountBillingProviderFilter() {
+    prepareBillingAccountTests();
+    List<HostRepository.BillingAccountIdRecord> records =
+        repo.billingAccountIds(
+            DbReportCriteria.builder()
+                .orgId("org2")
+                .billingProvider(BillingProvider.RED_HAT)
+                .build());
+    assertEquals(2, records.size());
+    records.stream()
+        .forEach(
+            accountIdRecord -> {
+              assertEquals(BillingProvider.RED_HAT, records.get(0).billingProvider());
+            });
+  }
+
+  record BillingAccountIdTestRecord(
+      String inventoryId,
+      String orgId,
+      String productId,
+      BillingProvider billingProvider,
+      String billingAccountId) {}
+
+  List<BillingAccountIdTestRecord> billingAccountIdTestRecords =
+      List.of(
+          new BillingAccountIdTestRecord(
+              "inv1", "org1", "prod1", BillingProvider.RED_HAT, "account1"),
+          new BillingAccountIdTestRecord("inv2", "org1", "prod2", BillingProvider.AWS, "account2"),
+          new BillingAccountIdTestRecord(
+              "inv3", "org1", "prod1", BillingProvider.RED_HAT, "account1"),
+          new BillingAccountIdTestRecord(
+              "inv4", "org1", "prod3", BillingProvider.AZURE, "account4"),
+          new BillingAccountIdTestRecord(
+              "inv5", "org2", "prod1", BillingProvider.RED_HAT, "account1"),
+          new BillingAccountIdTestRecord(
+              "inv6", "org2", "prod3", BillingProvider.RED_HAT, "account2"),
+          new BillingAccountIdTestRecord(
+              "inv7", "org2", "prod1", BillingProvider.AZURE, "account3"),
+          new BillingAccountIdTestRecord("inv8", "org2", "prod3", BillingProvider.AWS, "account4"));
+
+  private Host createBillingTestHost(String inventoryId, String orgId) {
+    Host host = new Host(inventoryId, "INSIGHTS_" + inventoryId, orgId, "SUBMAN_" + inventoryId);
+    host.setDisplayName(orgId);
+    host.setMeasurement(MetricIdUtils.getSockets().getValue(), 1.0);
+    host.setMeasurement(MetricIdUtils.getCores().getValue(), 1.0);
+    host.setLastSeen(OffsetDateTime.now());
+    return host;
+  }
+
+  private Host createOldBillingTestHost(String inventoryId, String orgId) {
+    Host host =
+        new Host(inventoryId + "_old", "INSIGHTS_" + inventoryId, orgId, "SUBMAN_" + inventoryId);
+    host.setDisplayName(orgId);
+    host.setMeasurement(MetricIdUtils.getSockets().getValue(), 1.0);
+    host.setMeasurement(MetricIdUtils.getCores().getValue(), 1.0);
+    host.setLastSeen(OffsetDateTime.now().minusMonths(1));
+    return host;
+  }
+
+  private void prepareBillingAccountTests() {
+    AccountServiceInventory account1 = new AccountServiceInventory("org1", "HBI_HOST");
+    AccountServiceInventory account2 = new AccountServiceInventory("org2", "HBI_HOST");
+
+    billingAccountIdTestRecords.stream()
+        .forEach(
+            testRecord -> {
+              Stream.of(
+                      createBillingTestHost(testRecord.inventoryId, testRecord.orgId),
+                      createOldBillingTestHost(testRecord.inventoryId, testRecord.orgId))
+                  .forEach(
+                      host -> {
+                        HostTallyBucket bucket = new HostTallyBucket();
+                        bucket.setKey(
+                            new HostBucketKey(
+                                host,
+                                testRecord.productId,
+                                ServiceLevel._ANY,
+                                Usage._ANY,
+                                testRecord.billingProvider,
+                                testRecord.billingAccountId,
+                                false));
+                        bucket.setHost(host);
+                        host.addBucket(bucket);
+                        if (testRecord.orgId == "org1") {
+                          account1.getServiceInstances().put(host.getInstanceId(), host);
+                        } else {
+                          account2.getServiceInstances().put(host.getInstanceId(), host);
+                        }
+                      });
+            });
+    accountServiceInventoryRepository.save(account1);
+    accountServiceInventoryRepository.save(account2);
+    accountServiceInventoryRepository.flush();
   }
 }
