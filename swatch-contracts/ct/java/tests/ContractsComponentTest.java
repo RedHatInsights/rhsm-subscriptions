@@ -148,6 +148,8 @@ public class ContractsComponentTest extends BaseContractComponentTest {
     assertThat(
         "Contract retrieval call should succeed", getContractsResponse.statusCode(), is(200));
 
+    // Having metrics size as zero is what is indicating that this is pure paygo because there are
+    // no valid prepaid metric amounts
     getContractsResponse
         .then()
         .body("size()", equalTo(1))
