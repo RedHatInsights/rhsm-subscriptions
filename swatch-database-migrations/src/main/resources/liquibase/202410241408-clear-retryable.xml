@@ -5,6 +5,11 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
   <changeSet id="202410241408-01" author="khowell">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <tableExists tableName="databasechangelog_swatch_billable_usage"/>
+      </not>
+    </preConditions>
     <update tableName="billable_usage_remittance">
       <column name="status" value="failed"/>
       <!-- NOTE: omitting value sets to null -->
