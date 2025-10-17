@@ -18,8 +18,41 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package api;
+package wiremock;
 
 import com.redhat.swatch.component.tests.api.WiremockService;
 
-public class ContractsWiremockService extends WiremockService {}
+/**
+ * WireMock facade providing domain specific API stubs. Uses the Facade Pattern to expose multiple
+ * stub interfaces over a single WireMock instance.
+ */
+public class ContractsWiremockService extends WiremockService {
+
+  /**
+   * Get facade for stubbing Partner Gateway API endpoints.
+   *
+   * @return PartnerGatewayStubs facade
+   */
+  public PartnerGatewayStubs forPartnerAPI() {
+    return new PartnerGatewayStubs(this);
+  }
+
+  /**
+   * Get facade for stubbing Product API (Offering) endpoints.
+   *
+   * @return OfferingStubs facade
+   */
+  public OfferingStubs forProductAPI() {
+    return new OfferingStubs(this);
+  }
+
+  /**
+   * Get the metadata tag used for WireMock stub identification. Exposed to facade classes for stub
+   * creation.
+   *
+   * @return the metadata tag
+   */
+  protected String getMetadataTag() {
+    return METADATA_TAG;
+  }
+}

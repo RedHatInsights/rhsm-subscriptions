@@ -18,9 +18,17 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package api;
+package model;
 
-public final class ContractsTestHelper {
+import lombok.Builder;
 
-  private ContractsTestHelper() {}
-}
+/** Test data model for building offering test scenarios in component tests. */
+@Builder
+public record Offering(
+    String sku,
+    String description,
+    Integer cores,
+    Integer sockets,
+    String level1,
+    String level2,
+    String metered) {}

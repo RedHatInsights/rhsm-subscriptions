@@ -18,22 +18,24 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package tests;
+package model;
 
-import com.redhat.swatch.component.tests.api.ComponentTest;
-import com.redhat.swatch.component.tests.api.Quarkus;
-import com.redhat.swatch.component.tests.api.Wiremock;
-import org.junit.jupiter.api.Tag;
-import service.ContractsService;
-import wiremock.ContractsWiremockService;
+import java.time.OffsetDateTime;
+import lombok.Builder;
 
-@ComponentTest
-@Tag("component")
-@Tag("contracts")
-public class BaseContractComponentTest {
-
-  @Wiremock static ContractsWiremockService wiremock = new ContractsWiremockService();
-
-  @Quarkus(service = "swatch-contracts")
-  static ContractsService service = new ContractsService();
-}
+/** Test data model for building contract test scenarios in component tests. */
+@Builder
+public record ContractTestData(
+    String orgId,
+    String subscriptionId,
+    String subscriptionNumber,
+    String awsCustomerId,
+    String awsAccountId,
+    String productCode,
+    String sku,
+    String metricName,
+    String metricValue,
+    String sellerAccountId,
+    OffsetDateTime startDate,
+    OffsetDateTime endDate,
+    String sourcePartner) {}
