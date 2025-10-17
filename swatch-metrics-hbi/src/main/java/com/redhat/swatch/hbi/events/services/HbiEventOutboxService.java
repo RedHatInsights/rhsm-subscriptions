@@ -20,28 +20,80 @@
  */
 package com.redhat.swatch.hbi.events.services;
 
-import com.redhat.swatch.hbi.events.model.OutboxRecordMapper;
+import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
+import com.redhat.swatch.hbi.events.configuration.Channels;
 import com.redhat.swatch.hbi.events.repository.HbiEventOutbox;
 import com.redhat.swatch.hbi.events.repository.HbiEventOutboxRepository;
-import com.redhat.swatch.hbi.model.OutboxRecord;
+import com.redhat.swatch.kafka.EmitterService;
+import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.util.List;
 import lombok.AllArgsConstructor;
+import lombok.Synchronized;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.json.Event;
+import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Emitter;
+import org.eclipse.microprofile.reactive.messaging.Message;
 
+@Slf4j
 @AllArgsConstructor
 @ApplicationScoped
 public class HbiEventOutboxService {
 
-  private final HbiEventOutboxRepository repository;
-  private final OutboxRecordMapper mapper;
+  @Inject ApplicationConfiguration config;
+  @Inject HbiEventOutboxRepository repository;
+  @Inject FeatureFlags featureFlags;
+
+  private final EmitterService<Event> emitter;
+
+  @Inject
+  public HbiEventOutboxService(
+      @Channel(Channels.SWATCH_EVENTS_OUT) Emitter<Event> swatchEventEmitter) {
+    this.emitter = new EmitterService<>(swatchEventEmitter);
+  }
+
+  @Synchronized
+  public long flushOutboxRecords() {
+    log.info("Flushing outbox records in batches of {}", config.getOutboxFlushBatchSize());
+    long flushCount = 0;
+    // Process all existing outbox records in batches.
+    while (true) {
+      log.debug("Flushing next batch of {} records", config.getOutboxFlushBatchSize());
+      long batchCount = flushNextBatch();
+      flushCount += batchCount;
+
+      // No more records to flush, so we are done.
+      if (batchCount == 0) {
+        break;
+      }
+    }
+    log.info("Flushed {} outbox record(s)", flushCount);
+    return flushCount;
+  }
 
   @Transactional
-  public OutboxRecord createOutboxRecord(Event event) {
-    HbiEventOutbox entity = new HbiEventOutbox();
-    entity.setOrgId(event.getOrgId());
-    entity.setSwatchEventJson(event);
-    repository.persistAndFlush(entity);
-    return mapper.entityToDto(entity);
+  long flushNextBatch() {
+    List<HbiEventOutbox> next = repository.findAllWithLock(config.getOutboxFlushBatchSize());
+    for (HbiEventOutbox entity : next) {
+      if (featureFlags.emitEvents()) {
+        log.debug("Sending swatch event: {}", entity.getSwatchEventJson());
+        sendSwatchEvent(entity.getSwatchEventJson());
+      } else {
+        log.debug(
+            "Swatch event sending disabled. Would have sent: {}", entity.getSwatchEventJson());
+      }
+      repository.delete(entity);
+    }
+    return next.size();
+  }
+
+  private void sendSwatchEvent(Event eventToSend) {
+    emitter.send(
+        Message.of(eventToSend)
+            .addMetadata(
+                OutgoingKafkaRecordMetadata.builder().withKey(eventToSend.getOrgId()).build()));
   }
 }
