@@ -67,7 +67,7 @@ public class AzureWiremockService extends WiremockService {
                 "priority",
                 9,
                 "metadata",
-                Map.of(METADATA_TAG, "true")))
+                getMetadataTags()))
         .when()
         .post("/__admin/mappings")
         .then()
@@ -98,7 +98,7 @@ public class AzureWiremockService extends WiremockService {
                 "priority",
                 9,
                 "metadata",
-                Map.of(METADATA_TAG, "true")))
+                getMetadataTags()))
         .when()
         .post("/__admin/mappings")
         .then()
@@ -280,7 +280,7 @@ public class AzureWiremockService extends WiremockService {
                     "jsonBody",
                     tokenResponse),
                 "metadata",
-                Map.of(METADATA_TAG, "true")))
+                getMetadataTags()))
         .when()
         .post("/__admin/mappings")
         .then()
@@ -320,7 +320,7 @@ public class AzureWiremockService extends WiremockService {
                     "jsonBody",
                     usageResponse),
                 "metadata",
-                Map.of(METADATA_TAG, "true")))
+                getMetadataTags()))
         .when()
         .post("/__admin/mappings")
         .then()

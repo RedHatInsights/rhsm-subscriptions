@@ -22,4 +22,22 @@ package api;
 
 import com.redhat.swatch.component.tests.api.WiremockService;
 
-public class ContractsWiremockService extends WiremockService {}
+public class ContractsWiremockService extends WiremockService {
+  /**
+   * Get facade for stubbing Partner Gateway API endpoints.
+   *
+   * @return PartnerGatewayStubs facade
+   */
+  public PartnerGatewayStubs forPartnerAPI() {
+    return new PartnerGatewayStubs(this);
+  }
+
+  /**
+   * Get facade for stubbing Product API (Offering) endpoints.
+   *
+   * @return OfferingStubs facade
+   */
+  public OfferingStubs forProductAPI() {
+    return new OfferingStubs(this);
+  }
+}
