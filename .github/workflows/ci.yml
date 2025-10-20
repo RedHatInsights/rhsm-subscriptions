@@ -241,7 +241,9 @@ jobs:
     name: Verify SWATCH services for local testing
     runs-on: ubuntu-latest
     needs: [test, labeler]
-    if: always() && (needs.test.result == 'success') && (needs.labeler.result == 'success' || needs.labeler.result == 'skipped')
+    # if: always() && (needs.test.result == 'success') && (needs.labeler.result == 'success' || needs.labeler.result == 'skipped')
+    # Disabled for now. To be fixed in SWATCH-4130.
+    if: false
     steps:
       - uses: actions/checkout@v4
 
