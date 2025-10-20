@@ -18,26 +18,8 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package tests;
+package domain;
 
-import api.ContractsSwatchService;
-import api.ContractsWiremockService;
-import com.redhat.swatch.component.tests.api.ComponentTest;
-import com.redhat.swatch.component.tests.api.KafkaBridge;
-import com.redhat.swatch.component.tests.api.KafkaBridgeService;
-import com.redhat.swatch.component.tests.api.Quarkus;
-import com.redhat.swatch.component.tests.api.Wiremock;
-import org.junit.jupiter.api.Tag;
-
-@ComponentTest
-@Tag("component")
-@Tag("contracts")
-public class BaseContractComponentTest {
-
-  @KafkaBridge static KafkaBridgeService kafkaBridge = new KafkaBridgeService();
-
-  @Wiremock static ContractsWiremockService wiremock = new ContractsWiremockService();
-
-  @Quarkus(service = "swatch-contracts")
-  static ContractsSwatchService service = new ContractsSwatchService();
+public enum BillingProvider {
+  AWS;
 }
