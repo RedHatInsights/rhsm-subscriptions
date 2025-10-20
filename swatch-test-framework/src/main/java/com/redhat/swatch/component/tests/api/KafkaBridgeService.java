@@ -57,7 +57,14 @@ public class KafkaBridgeService extends RestService {
   private final Map<String, CopyOnWriteArrayList<Object>> messageCache = new ConcurrentHashMap<>();
 
   public KafkaBridgeService subscribeToTopic(String topic) {
-    consumers.put(topic, UUID.randomUUID().toString());
+    String consumerId = UUID.randomUUID().toString();
+    // If service is already running, create consumer for topic
+    if (isRunning()) {
+      createConsumerForTopic(topic, consumerId);
+    }
+
+    // Register it to keep track of consumers for this topic
+    consumers.put(topic, consumerId);
     // Initialize message cache for this topic
     messageCache.put(topic, new CopyOnWriteArrayList<>());
     return this;
