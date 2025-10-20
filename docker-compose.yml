@@ -79,9 +79,10 @@ services:
       - KAFKA_SSL_TRUSTSTORE_LOCATION=/etc/kafka/secrets/certs/test-ca.jks
       - KAFKA_SSL_TRUSTSTORE_PASSWORD=password
         # Passed directly to the JVM. Place SSL debug options here (e.g. -Djavax.net.debug=ssl)
-      - KAFKA_OPTS=-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf
+      - KAFKA_OPTS=-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf -XX:+IgnoreUnrecognizedVMOptions -Djdk.attach.allowAttachSelf=false -XX:+DisableAttachMechanism -Dcom.sun.management.jmxremote=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -XX:-UsePerfData
         # Note that as of this writing (20 Jul 2022), Kraft mode does not support SCRAM
       - KAFKA_SASL_MECHANISM=PLAIN
+      - JAVA_TOOL_OPTIONS=-XX:+IgnoreUnrecognizedVMOptions -Djdk.attach.allowAttachSelf=false -XX:+DisableAttachMechanism -Dcom.sun.management.jmxremote=false -XX:-UsePerfData -Dcom.sun.management.disable=true -XX:+UnlockDiagnosticVMOptions -XX:+LogVMOutput
     healthcheck:
       test: ./bin/kafka-cluster.sh cluster-id --bootstrap-server 127.0.0.1:9092 || exit 1
       interval: 2s

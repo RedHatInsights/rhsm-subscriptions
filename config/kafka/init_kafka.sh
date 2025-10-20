@@ -1,5 +1,12 @@
 #! /bin/sh
 set -e
+
+# Set JVM options to avoid cgroups v2 issues in GitHub Actions
+export KAFKA_HEAP_OPTS="-Xmx1G -Xms1G"
+export KAFKA_JVM_PERFORMANCE_OPTS="-server -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:+ExplicitGCInvokesConcurrent -XX:MaxInlineLevel=15 -Djava.awt.headless=true"
+export KAFKA_JMX_OPTS="-Dcom.sun.management.jmxremote=false -Dcom.sun.management.disable=true -XX:+DisableAttachMechanism -Djdk.attach.allowAttachSelf=false"
+export KAFKA_LOG4J_OPTS="-Dlog4j.configuration=file:config/log4j.properties"
+
 CLUSTER_ID=$(bin/kafka-storage.sh random-uuid)
 bin/kafka-storage.sh format --ignore-formatted -t $CLUSTER_ID -c config/kraft/server.properties
 bin/kafka-server-start.sh config/kraft/server.properties \
