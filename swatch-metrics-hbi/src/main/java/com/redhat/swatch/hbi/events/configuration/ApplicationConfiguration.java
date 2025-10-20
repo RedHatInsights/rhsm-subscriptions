@@ -46,6 +46,10 @@ public class ApplicationConfiguration {
     return new JsonFactory(objectMapper);
   }
 
+  /** Defines whether synchronous API operations are enabled. */
+  @ConfigProperty(name = "swatch-metrics-hbi.synchronous-operations-enabled")
+  boolean synchronousOperationsEnabled;
+
   /**
    * The duration after the inventory's stale_timestamp that the record will be culled. Currently,
    * HBI is calculating this value and setting it on messages. Right now the default is:
@@ -75,4 +79,7 @@ public class ApplicationConfiguration {
    */
   @ConfigProperty(name = "swatch-metrics-hbi.use-cpu-system-facts-for-all-products")
   boolean useCpuSystemFactsForAllProducts;
+
+  @ConfigProperty(name = "swatch-metrics-hbi.outbox-flush-batch-size")
+  int outboxFlushBatchSize;
 }

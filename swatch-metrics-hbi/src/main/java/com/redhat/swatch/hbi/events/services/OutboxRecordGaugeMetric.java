@@ -18,19 +18,27 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.hbi.events.model;
+package com.redhat.swatch.hbi.events.services;
 
-import com.redhat.swatch.hbi.events.repository.HbiEventOutbox;
-import com.redhat.swatch.hbi.model.OutboxRecord;
-import org.mapstruct.Builder;
-import org.mapstruct.CollectionMappingStrategy;
-import org.mapstruct.Mapper;
+import com.redhat.swatch.hbi.events.repository.HbiEventOutboxRepository;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.binder.MeterBinder;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
-@Mapper(
-    componentModel = "cdi",
-    collectionMappingStrategy = CollectionMappingStrategy.ADDER_PREFERRED,
-    builder = @Builder(disableBuilder = true))
-public interface OutboxRecordMapper {
+@ApplicationScoped
+public class OutboxRecordGaugeMetric implements MeterBinder {
 
-  OutboxRecord entityToDto(HbiEventOutbox entity);
+  private static final String GAUGE_NAME = "swatch.metrics.hbi.outbox.count";
+
+  @Inject HbiEventOutboxRepository outboxRepo;
+
+  @Override
+  public void bindTo(MeterRegistry registry) {
+    Gauge.builder(GAUGE_NAME, outboxRepo, HbiEventOutboxRepository::count)
+        .description("Number of outbox records in the database")
+        .tag("table", "hbi_event_outbox")
+        .register(registry);
+  }
 }
