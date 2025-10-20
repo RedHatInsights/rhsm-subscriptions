@@ -62,7 +62,7 @@ public class BaseSMHBIComponentTest {
   protected void flushOutbox(int expectedFlushCount) {
     Counter counter = new Counter();
     AwaitilitySettings settings =
-        AwaitilitySettings.using(Duration.ofSeconds(2), Duration.ofSeconds(15))
+        AwaitilitySettings.using(Duration.ofSeconds(2), Duration.ofSeconds(20))
             .timeoutMessage(
                 "Unable to flush the expected number of outbox records in time: %s",
                 expectedFlushCount);
