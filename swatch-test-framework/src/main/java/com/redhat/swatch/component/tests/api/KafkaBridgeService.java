@@ -293,10 +293,11 @@ public class KafkaBridgeService extends RestService {
                   } catch (Exception e) {
                     Log.debug(this, "Failed to parse messages for caching: %s", e.getMessage());
                   }
+                } else {
+                  Log.warn(
+                      "Kafka Bridge: Keep-alive poll for consumer %s (topic: %s) failed with response %s",
+                      consumerInstance, topic, response.getStatusCode());
                 }
-
-                Log.trace(
-                    this, "Keep-alive poll for consumer %s (topic: %s)", consumerInstance, topic);
 
               } catch (Exception e) {
                 Log.debug(
