@@ -57,7 +57,14 @@ public class KafkaBridgeService extends RestService {
   private final Map<String, CopyOnWriteArrayList<Object>> messageCache = new ConcurrentHashMap<>();
 
   public KafkaBridgeService subscribeToTopic(String topic) {
-    consumers.put(topic, UUID.randomUUID().toString());
+    String consumerId = UUID.randomUUID().toString();
+    // If service is already running, create consumer for topic
+    if (isRunning()) {
+      createConsumerForTopic(topic, consumerId);
+    }
+
+    // Register it to keep track of consumers for this topic
+    consumers.put(topic, consumerId);
     // Initialize message cache for this topic
     messageCache.put(topic, new CopyOnWriteArrayList<>());
     return this;
@@ -112,7 +119,29 @@ public class KafkaBridgeService extends RestService {
         .statusCode(200);
   }
 
-  public <V> void waitForKafkaMessage(
+  /**
+   * Waits for a single Kafka message that matches the validator and returns it.
+   *
+   * @param topic The Kafka topic to wait for messages from
+   * @param validator The message validator containing the filter and type information
+   * @return The first message that matches the validator
+   * @throws IllegalArgumentException if no consumer exists for the topic
+   */
+  public <V> V waitForKafkaMessage(String topic, MessageValidator<V> validator) {
+    List<V> messages = waitForKafkaMessage(topic, validator, 1);
+    return messages.isEmpty() ? null : messages.get(0);
+  }
+
+  /**
+   * Waits for multiple Kafka messages that match the validator and returns them.
+   *
+   * @param topic The Kafka topic to wait for messages from
+   * @param validator The message validator containing the filter and type information
+   * @param expectedCount The number of messages to wait for
+   * @return A list of messages that match the validator
+   * @throws IllegalArgumentException if no consumer exists for the topic
+   */
+  public <V> List<V> waitForKafkaMessage(
       String topic, MessageValidator<V> validator, int expectedCount) {
     String consumer = consumers.get(topic);
     if (consumer == null) {
@@ -122,9 +151,13 @@ public class KafkaBridgeService extends RestService {
     Log.debug(
         this, "Waiting for %d messages in topic %s using cached messages", expectedCount, topic);
 
+    List<V> matchedMessages = new ArrayList<>();
+
     AwaitilityUtils.untilIsTrue(
         () -> {
           try {
+            matchedMessages.clear(); // Clear previous attempts
+
             // Get cached messages for this topic
             CopyOnWriteArrayList<Object> cachedMessages = messageCache.get(topic);
             if (cachedMessages == null || cachedMessages.isEmpty()) {
@@ -136,7 +169,6 @@ public class KafkaBridgeService extends RestService {
             Log.debug(this, "Found %d cached messages in topic %s", cachedMessages.size(), topic);
 
             // Convert cached messages to typed messages and validate
-            List<KafkaMessage<V>> typedMessages = new ArrayList<>();
             for (Object rawMessage : cachedMessages) {
               try {
                 // Parse the raw message as KafkaMessage<V>
@@ -146,26 +178,24 @@ public class KafkaBridgeService extends RestService {
                     typeFactory.constructParametricType(KafkaMessage.class, validator.getType());
                 KafkaMessage<V> typedMessage =
                     JsonUtils.getObjectMapper().readValue(messageJson, messageType);
-                typedMessages.add(typedMessage);
+                V message = typedMessage.getValue();
+
+                if (validator.test(message)) {
+                  matchedMessages.add(message);
+                  Log.debug(this, "Valid message found: %s", message);
+                }
               } catch (Exception e) {
                 Log.debug(this, "Failed to parse cached message: %s", e.getMessage());
                 // Continue processing other messages - invalid messages are ignored
               }
             }
 
-            Log.debug(this, "Successfully parsed %d messages from cache", typedMessages.size());
-
-            // Validate messages
-            int validCount = 0;
-            for (var message : typedMessages) {
-              if (validator.test(message.getValue())) {
-                validCount++;
-                Log.debug(this, "Valid message found: %s", message.getValue());
-              }
-            }
-
-            Log.debug(this, "Found %d valid messages out of %d", validCount, typedMessages.size());
-            return validCount >= expectedCount;
+            Log.debug(
+                this,
+                "Found %d valid messages out of %d total cached",
+                matchedMessages.size(),
+                cachedMessages.size());
+            return matchedMessages.size() >= expectedCount;
 
           } catch (Exception e) {
             Log.debug(this, "Error checking cached messages: %s", e.getMessage());
@@ -173,15 +203,13 @@ public class KafkaBridgeService extends RestService {
           }
         },
         AwaitilitySettings.defaults().withService(this));
+
+    return new ArrayList<>(matchedMessages);
   }
 
   private void deleteConsumer(String consumerInstance) {
     Log.debug(this, "Deleting consumer: %s", consumerInstance);
-    given()
-        .when()
-        .delete("/consumers/" + CONSUMER_GROUP + "/instances/" + consumerInstance)
-        .then()
-        .statusCode(204);
+    given().when().delete("/consumers/" + CONSUMER_GROUP + "/instances/" + consumerInstance);
   }
 
   private void createConsumerForTopic(String topic, String consumerInstance) {
@@ -199,12 +227,14 @@ public class KafkaBridgeService extends RestService {
                 consumerInstance,
                 "format",
                 "json",
+                // Prevents race condition by ensuring consumer sees messages produced before
+                // consumer reconciliation
                 "auto.offset.reset",
-                "latest",
+                "earliest",
                 "enable.auto.commit",
                 true,
                 "consumer.request.timeout.ms",
-                30000))
+                3000))
         .when()
         .post("/consumers/" + CONSUMER_GROUP)
         .then()
@@ -286,10 +316,11 @@ public class KafkaBridgeService extends RestService {
                   } catch (Exception e) {
                     Log.debug(this, "Failed to parse messages for caching: %s", e.getMessage());
                   }
+                } else {
+                  Log.warn(
+                      "Kafka Bridge: Keep-alive poll for consumer %s (topic: %s) failed with response %s",
+                      consumerInstance, topic, response.getStatusCode());
                 }
-
-                Log.trace(
-                    this, "Keep-alive poll for consumer %s (topic: %s)", consumerInstance, topic);
 
               } catch (Exception e) {
                 Log.debug(
@@ -304,8 +335,8 @@ public class KafkaBridgeService extends RestService {
           }
         },
         2,
-        2,
-        TimeUnit.SECONDS);
+        500,
+        TimeUnit.MILLISECONDS);
   }
 
   /** Stops the background keep-alive process. */
