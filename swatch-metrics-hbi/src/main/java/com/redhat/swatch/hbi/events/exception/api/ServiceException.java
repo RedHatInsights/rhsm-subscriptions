@@ -18,41 +18,36 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.api;
+package com.redhat.swatch.hbi.events.exception.api;
 
-import java.util.Map;
+import com.redhat.swatch.hbi.model.Error;
+import jakarta.ws.rs.core.Response.Status;
+import lombok.Getter;
 
-public class WiremockService extends RestService {
+@Getter
+public class ServiceException extends RuntimeException {
 
-  private static final String METADATA_TAG = "component-test-generated";
+  private final Status status;
+  private final String detail;
+  private final ErrorCode code;
 
-  @Override
-  public void start() {
-    super.start();
-    deleteAllMappings();
-    clearAllRequests();
+  public ServiceException(ErrorCode code, Status status, String message, String detail) {
+    this(code, status, message, detail, null);
   }
 
-  public void deleteAllMappings() {
-    given()
-        .contentType("application/json")
-        .body(Map.of("contains", METADATA_TAG))
-        .when()
-        .post("/__admin/mappings/remove-by-metadata")
-        .then()
-        .statusCode(200);
+  public ServiceException(
+      ErrorCode code, Status status, String message, String detail, Throwable e) {
+    super(message, e);
+    this.code = code;
+    this.status = status;
+    this.detail = detail;
   }
 
-  public void clearAllRequests() {
-    given().when().delete("/__admin/requests").then().statusCode(200);
-  }
-
-  /**
-   * Get the metadata tag used for WireMock stub identification.
-   *
-   * @return the metadata tag
-   */
-  public Map<String, String> getMetadataTags() {
-    return Map.of(METADATA_TAG, "true");
+  public Error error() {
+    return new Error()
+        .code(this.code.getCode())
+        .status(String.valueOf(status.getStatusCode()))
+        .title(this.getMessage())
+        .detail(this.detail);
   }
 }

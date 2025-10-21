@@ -20,7 +20,7 @@
     <codegen.skipIfSpecIsUnchanged>true</codegen.skipIfSpecIsUnchanged>
 
     <!-- Dependencies -->
-    <quarkus.platform.version>3.28.3</quarkus.platform.version>
+    <quarkus.platform.version>3.28.4</quarkus.platform.version>
     <spring.boot.version>3.5.5</spring.boot.version>
     <resteasy.version>7.0.0.Final</resteasy.version>
     <!-- Only use as provided in the common dependencies.
@@ -31,7 +31,7 @@
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
     <opentelemetry-api.version>1.55.0</opentelemetry-api.version>
-    <awssdk-bom.version>2.35.3</awssdk-bom.version>
+    <awssdk-bom.version>2.35.10</awssdk-bom.version>
     <guava.version>33.5.0-jre</guava.version>
     <liquibase.version>5.0.1</liquibase.version>
     <postgresql.version>42.7.8</postgresql.version>
@@ -57,7 +57,7 @@
     <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
     <maven-antrun-plugin.version>3.1.0</maven-antrun-plugin.version>
     <sonar-maven-plugin.version>5.2.0.4988</sonar-maven-plugin.version>
-    <swagger-codegen-maven-plugin.version>3.0.74</swagger-codegen-maven-plugin.version>
+    <swagger-codegen-maven-plugin.version>3.0.75</swagger-codegen-maven-plugin.version>
 
     <!-- Sonar configuration -->
     <sonar.host.url>https://sonarcloud.io</sonar.host.url>

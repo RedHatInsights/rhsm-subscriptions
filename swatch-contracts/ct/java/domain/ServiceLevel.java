@@ -18,41 +18,18 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.api;
+package domain;
 
-import java.util.Map;
+public enum ServiceLevel {
+  PREMIUM;
 
-public class WiremockService extends RestService {
-
-  private static final String METADATA_TAG = "component-test-generated";
-
-  @Override
-  public void start() {
-    super.start();
-    deleteAllMappings();
-    clearAllRequests();
-  }
-
-  public void deleteAllMappings() {
-    given()
-        .contentType("application/json")
-        .body(Map.of("contains", METADATA_TAG))
-        .when()
-        .post("/__admin/mappings/remove-by-metadata")
-        .then()
-        .statusCode(200);
-  }
-
-  public void clearAllRequests() {
-    given().when().delete("/__admin/requests").then().statusCode(200);
-  }
-
-  /**
-   * Get the metadata tag used for WireMock stub identification.
-   *
-   * @return the metadata tag
-   */
-  public Map<String, String> getMetadataTags() {
-    return Map.of(METADATA_TAG, "true");
+  /** From swatch-common-models: */
+  public String toDataModel() {
+    switch (this) {
+      case PREMIUM:
+        return "Premium";
+      default:
+        throw new IllegalArgumentException("Unsupported service level: " + this);
+    }
   }
 }
