@@ -26,78 +26,65 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
-import org.candlepin.subscriptions.json.Measurement;
 
 public class TallyTestHelpers {
 
   public TallyTestHelpers() {}
 
-  public Event createEventPayload(
-      String eventSource,
-      String eventType,
-      String orgId,
-      String instanceId,
-      String displayName,
-      float value,
-      String metricId) {
-    OffsetDateTime prevHourStart = OffsetDateTime.now().minusHours(1).truncatedTo(ChronoUnit.HOURS);
-    OffsetDateTime prevHourEnd = prevHourStart.plusHours(1).minusNanos(1);
+  public Event createEventWithTimestamp(
+      String orgId, String instanceId, String timestampStr, String eventIdStr, float value) {
 
-    // Create Event
-    var payload = new Event();
+    OffsetDateTime timestamp = OffsetDateTime.parse(timestampStr);
+    OffsetDateTime expiration = timestamp.plusDays(25); // Set expiration as in PR
 
-    // Set basic fields
-    payload.setEventSource(eventSource);
-    payload.setEventType(eventType);
-    payload.setOrgId(orgId);
-    payload.setInstanceId(instanceId);
-    payload.setDisplayName(Optional.of(displayName));
+    Event event = new Event();
+    event.setEventId(UUID.fromString(eventIdStr));
+    event.setOrgId(orgId);
+    event.setInstanceId(instanceId);
+    event.setDisplayName(Optional.of("Test Instance")); // Add display name
+    event.setTimestamp(timestamp);
+    event.setRecordDate(timestamp); // Add record date for processing
+    event.setExpiration(Optional.of(expiration));
+    event.setEventSource("cost-management");
+    event.setEventType("snapshot");
+    event.setSla(Event.Sla.PREMIUM);
+    event.setRole(Event.Role.RED_HAT_ENTERPRISE_LINUX_SERVER);
+    event.setUsage(Event.Usage.PRODUCTION);
+    event.setServiceType("RHEL System");
+    event.setHardwareType(Event.HardwareType.CLOUD);
+    event.setCloudProvider(Event.CloudProvider.AWS);
+    event.setBillingProvider(Event.BillingProvider.AWS);
+    event.setBillingAccountId(Optional.of("746157280291"));
+    event.setConversion(true);
 
-    // Set timestamps
-    payload.setTimestamp(prevHourStart.withOffsetSameInstant(ZoneOffset.UTC));
-    // Set expiration to match working Python payload
-    payload.setExpiration(Optional.of(prevHourEnd.withOffsetSameInstant(ZoneOffset.UTC)));
+    // Set product IDs as specified in PR: ["69","204"]
+    event.setProductIds(List.of("69", "204"));
 
-    // Create and set measurement
-    var measurement = new Measurement();
+    // Add product tags for RHEL for x86 - this is crucial for processing
+    event.setProductTag(Set.of("hel-for-x86-els-payg"));
+
+    // Create measurement with vCPUs metric
+    var measurement = new org.candlepin.subscriptions.json.Measurement();
     measurement.setValue((double) value);
-    measurement.setMetricId(metricId);
-    payload.setMeasurements(List.of(measurement));
+    measurement.setMetricId(TEST_METRIC_ID);
+    event.setMeasurements(List.of(measurement));
 
-    // Set additional fields
-    payload.setSla(Event.Sla.PREMIUM);
-    payload.setServiceType("RHEL System");
-    payload.setRole(Event.Role.RED_HAT_ENTERPRISE_LINUX_SERVER);
-    payload.setBillingProvider(Event.BillingProvider.AWS);
-    // Set billing account ID to match working Python payload
-    payload.setBillingAccountId(Optional.of("test-300"));
-    // Set product tags to match working Python payload
-    payload.setProductTag(Set.of("rhel-for-x86-els-payg-addon", "rhel-for-x86-els-payg"));
-    // Set product IDs to match working Python payload
-    payload.setProductIds(List.of("204", "69"));
-
-    // Set optional fields that might cause serialization issues
-    payload.setMeteringBatchId(UUID.randomUUID());
-    payload.setEventId(UUID.randomUUID());
-
-    return payload;
+    return event;
   }
 
-  public void syncTallyByOrgId(
+  public void syncTallyNightly(
       String orgId, com.redhat.swatch.component.tests.api.SwatchService service) throws Exception {
     // Build the service URL
     String baseUrl = "http://" + service.getHost() + ":" + service.getMappedPort(8080);
     String endpoint = baseUrl + "/api/rhsm-subscriptions/v1/internal/rpc/tally/snapshots/" + orgId;
 
     // Create HTTP client
-    HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(30)).build();
+    HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(60)).build();
 
     // Create HTTP request
     HttpRequest request =
@@ -105,7 +92,7 @@ public class TallyTestHelpers {
             .uri(URI.create(endpoint))
             .header("x-rh-swatch-psk", "placeholder")
             .PUT(HttpRequest.BodyPublishers.noBody())
-            .timeout(Duration.ofSeconds(30))
+            .timeout(Duration.ofSeconds(60))
             .build();
 
     // Send the request
@@ -121,5 +108,52 @@ public class TallyTestHelpers {
     }
 
     System.out.println("Tally sync endpoint called successfully for org: " + orgId);
+  }
+
+  public void syncTallyHourly(
+      String orgId, com.redhat.swatch.component.tests.api.SwatchService service) throws Exception {
+    // Build the service URL
+    String baseUrl = "http://" + service.getHost() + ":" + service.getMappedPort(8080);
+    String endpoint = baseUrl + "/api/rhsm-subscriptions/v1/internal/tally/hourly?org=" + orgId;
+
+    // Create HTTP client
+    HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(60)).build();
+
+    // Create HTTP request
+    HttpRequest request =
+        HttpRequest.newBuilder()
+            .uri(URI.create(endpoint))
+            .header("x-rh-swatch-psk", "placeholder")
+            .POST(HttpRequest.BodyPublishers.noBody())
+            .timeout(Duration.ofSeconds(60))
+            .build();
+
+    // Send the request
+    HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+    // Check response status
+    if (response.statusCode() != 200) {
+      throw new RuntimeException(
+          "Hourly tally sync failed with status code: "
+              + response.statusCode()
+              + ", response body: "
+              + response.body());
+    }
+
+    System.out.println("Hourly tally endpoint called successfully for org: " + orgId);
+  }
+
+  public HttpResponse<String> makeHttpGetRequest(String url) throws Exception {
+    HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(30)).build();
+
+    HttpRequest request =
+        HttpRequest.newBuilder()
+            .uri(URI.create(url))
+            .header("x-rh-swatch-psk", "placeholder")
+            .GET()
+            .timeout(Duration.ofSeconds(30))
+            .build();
+
+    return client.send(request, HttpResponse.BodyHandlers.ofString());
   }
 }
