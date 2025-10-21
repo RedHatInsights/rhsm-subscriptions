@@ -21,6 +21,8 @@
 package com.redhat.swatch.component.tests.api;
 
 import com.redhat.swatch.component.tests.core.BaseService;
+import com.redhat.swatch.component.tests.kafka.KafkaJsonDeserializer;
+import com.redhat.swatch.component.tests.kafka.KafkaJsonSerializer;
 import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
@@ -68,7 +70,8 @@ public class KafkaBridgeService extends BaseService<KafkaBridgeService> {
     config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, getHost() + ":" + getMappedPort(9092));
     config.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
     config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-    config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+    config.put(
+        ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, KafkaJsonDeserializer.class.getName());
     config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
     config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
     config.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
@@ -79,12 +82,13 @@ public class KafkaBridgeService extends BaseService<KafkaBridgeService> {
     Properties config = new Properties();
     config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, getHost() + ":" + getMappedPort(9092));
     config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-    config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+    config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaJsonSerializer.class.getName());
     config.put(ProducerConfig.ACKS_CONFIG, "all");
     config.put(ProducerConfig.RETRIES_CONFIG, 3);
     config.put(ProducerConfig.BATCH_SIZE_CONFIG, 16384);
     config.put(ProducerConfig.LINGER_MS_CONFIG, 1);
     config.put(ProducerConfig.BUFFER_MEMORY_CONFIG, 33554432);
+    config.put(KafkaJsonSerializer.ADD_TYPE_INFO_HEADERS, true);
     return config;
   }
 

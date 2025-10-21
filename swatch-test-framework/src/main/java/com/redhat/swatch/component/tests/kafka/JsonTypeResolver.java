@@ -18,24 +18,21 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.configuration;
+package com.redhat.swatch.component.tests.kafka;
 
-import java.time.Duration;
-import java.util.logging.Level;
-import lombok.Getter;
-import lombok.Setter;
+import com.fasterxml.jackson.databind.JavaType;
+import org.apache.kafka.common.header.Headers;
 
-@Getter
-@Setter
-@SuppressWarnings("checkstyle:MagicNumber")
-public final class ServiceConfiguration {
-  private Duration startupTimeout = Duration.ofMinutes(5);
-  private Duration startupCheckPollInterval = Duration.ofSeconds(2);
-  private Double factorTimeout = 1.0;
-  private boolean debug = false;
-  private boolean logEnabled = true;
-  private boolean logEnabledOnTestStarted = true;
-  private int portRangeMin = 1100;
-  private int portRangeMax = 49151;
-  private Level logLevel = Level.INFO;
+@FunctionalInterface
+public interface JsonTypeResolver {
+
+  /**
+   * Determine the type.
+   *
+   * @param topic the topic.
+   * @param data the serialized data.
+   * @param headers the headers.
+   * @return the type.
+   */
+  JavaType resolveType(String topic, byte[] data, Headers headers);
 }

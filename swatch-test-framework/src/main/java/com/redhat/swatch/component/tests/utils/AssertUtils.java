@@ -18,24 +18,24 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.configuration;
+package com.redhat.swatch.component.tests.utils;
 
-import java.time.Duration;
-import java.util.logging.Level;
-import lombok.Getter;
-import lombok.Setter;
+public class AssertUtils {
+  public static void state(boolean expression, String message) {
+    if (!expression) {
+      throw new IllegalStateException(message);
+    }
+  }
 
-@Getter
-@Setter
-@SuppressWarnings("checkstyle:MagicNumber")
-public final class ServiceConfiguration {
-  private Duration startupTimeout = Duration.ofMinutes(5);
-  private Duration startupCheckPollInterval = Duration.ofSeconds(2);
-  private Double factorTimeout = 1.0;
-  private boolean debug = false;
-  private boolean logEnabled = true;
-  private boolean logEnabledOnTestStarted = true;
-  private int portRangeMin = 1100;
-  private int portRangeMax = 49151;
-  private Level logLevel = Level.INFO;
+  public static void isTrue(boolean expression, String message) {
+    if (!expression) {
+      throw new IllegalArgumentException(message);
+    }
+  }
+
+  public static void notNull(Object object, String message) {
+    if (object == null) {
+      throw new IllegalArgumentException(message);
+    }
+  }
 }
