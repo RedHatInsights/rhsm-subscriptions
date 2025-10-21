@@ -1,7 +1,7 @@
 # ADR-0001: Utilization Percentage in Event to Notification Service
 
 * **Status:** Accepted
-* **Deciders:** @tlencion
+* **Deciders:** @jprevatt (Docs), @tlencion (Eng)
 * **Date:** 2025-10-17
 
 ---
