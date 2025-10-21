@@ -25,6 +25,7 @@ import com.splunk.logging.HttpEventCollectorErrorHandler.ErrorCallback;
 import com.splunk.logging.HttpEventCollectorEventInfo;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.quarkiverse.logging.splunk.SplunkConfig;
 import io.quarkiverse.logging.splunk.SplunkErrorCallback;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -43,12 +44,13 @@ public class CountingSplunkErrorCallback implements ErrorCallback {
   private final ErrorCallback delegatedCallback;
   private final Counter failureCounter;
 
-  public CountingSplunkErrorCallback(MeterRegistry meterRegistry) {
+  public CountingSplunkErrorCallback(SplunkConfig splunkConfig, MeterRegistry meterRegistry) {
     // Only one ErrorCallback can be registered. The standard callback is useful in that it
     // prints the formatted error to stderr, so we'll delegate invocations of our ErrorCallback
     // to the default callback so that it can handle creating a human-readable record of the
     // issue.
-    this.delegatedCallback = new SplunkErrorCallback();
+    this.delegatedCallback =
+        new SplunkErrorCallback(splunkConfig.config().printEventsToStdoutOnError());
     this.failureCounter = meterRegistry.counter("splunk.hec.message.failure.total");
   }
 

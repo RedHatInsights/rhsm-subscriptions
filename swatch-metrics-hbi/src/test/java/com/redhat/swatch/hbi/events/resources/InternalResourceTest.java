@@ -24,10 +24,6 @@ import static com.redhat.swatch.common.security.PskHeaderAuthenticationMechanism
 import static com.redhat.swatch.hbi.events.resources.InternalResource.SYNCHRONOUS_REQUEST_HEADER;
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.common.security.SecurityConfiguration;
@@ -39,7 +35,6 @@ import com.redhat.swatch.hbi.events.services.HbiEventOutboxService;
 import com.redhat.swatch.hbi.model.Error;
 import com.redhat.swatch.hbi.model.FlushResponse;
 import com.redhat.swatch.hbi.model.FlushResponse.StatusEnum;
-import com.redhat.swatch.hbi.model.OutboxRecord;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
@@ -69,7 +64,6 @@ class InternalResourceTest {
     givenTestApisEnabled();
     withValidPskHeader();
     withSynchronousRequestsEnabled(false);
-    when(outboxService.createOutboxRecord(any())).thenReturn(new OutboxRecord());
     when(outboxService.flushOutboxRecords()).thenReturn(1L);
   }
 
@@ -135,45 +129,6 @@ class InternalResourceTest {
     assertEquals(ErrorCode.SYNCHRONOUS_OUTBOX_FLUSH_DISABLED.getDescription(), error.getDetail());
   }
 
-  @Test
-  void testCreateOutboxRecordWhenRequestDoesNotHaveOrgIdThenReturnsBadRequest() {
-    Event request = new Event();
-
-    whenCreateOutboxEvent(request).statusCode(HttpStatus.SC_BAD_REQUEST);
-
-    verifyNoInteractions(outboxService);
-  }
-
-  @Test
-  void testCreateOutboxRecordInvokesService() {
-    Event request = givenValidRequest();
-
-    whenCreateOutboxEvent(request).statusCode(HttpStatus.SC_OK);
-
-    verify(outboxService, times(1)).createOutboxRecord(any());
-  }
-
-  @Test
-  void testCreateOutboxRecordWithoutAuthHeader() {
-    given()
-        .contentType(ContentType.JSON)
-        .body(givenValidRequest())
-        .when()
-        .post("/api/swatch-metrics-hbi/internal/outbox")
-        .then()
-        .statusCode(HttpStatus.SC_UNAUTHORIZED);
-  }
-
-  @Test
-  void testAccessNotAllowed() {
-    givenTestApisDisabled();
-    whenCreateOutboxEvent(givenValidRequest()).statusCode(HttpStatus.SC_FORBIDDEN);
-  }
-
-  private void givenTestApisDisabled() {
-    when(securityConfiguration.isTestApisEnabled()).thenReturn(false);
-  }
-
   private void givenTestApisEnabled() {
     when(securityConfiguration.isTestApisEnabled()).thenReturn(true);
   }
@@ -187,16 +142,6 @@ class InternalResourceTest {
     request.setServiceType("RHEL System");
     request.setTimestamp(OffsetDateTime.now());
     return request;
-  }
-
-  private ValidatableResponse whenCreateOutboxEvent(Event request) {
-    return given()
-        .header(PSK_HEADER, "placeholder")
-        .contentType(ContentType.JSON)
-        .body(request)
-        .when()
-        .post("/api/swatch-metrics-hbi/internal/outbox")
-        .then();
   }
 
   private void withSynchronousRequestsEnabled(boolean enabled) {

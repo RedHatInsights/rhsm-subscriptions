@@ -24,7 +24,7 @@ import java.util.Map;
 
 public class WiremockService extends RestService {
 
-  protected static final String METADATA_TAG = "component-test-generated";
+  private static final String METADATA_TAG = "component-test-generated";
 
   @Override
   public void start() {
@@ -45,5 +45,14 @@ public class WiremockService extends RestService {
 
   public void clearAllRequests() {
     given().when().delete("/__admin/requests").then().statusCode(200);
+  }
+
+  /**
+   * Get the metadata tag used for WireMock stub identification.
+   *
+   * @return the metadata tag
+   */
+  public Map<String, String> getMetadataTags() {
+    return Map.of(METADATA_TAG, "true");
   }
 }

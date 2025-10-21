@@ -1,4 +1,18 @@
 repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: fix-byte-order-marker
+      - id: end-of-file-fixer
+        types_or:
+        - shell
+        - java
+      - id: trailing-whitespace
+        types_or:
+        - shell
+        - java
   - repo: local
     hooks:
       - id: spotless-apply

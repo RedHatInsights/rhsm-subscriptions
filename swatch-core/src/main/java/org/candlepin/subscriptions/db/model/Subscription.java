@@ -72,6 +72,7 @@ import lombok.ToString;
             @NamedAttributeNode("productTags")
           })
     })
+@Deprecated
 public class Subscription implements Serializable {
 
   @Id

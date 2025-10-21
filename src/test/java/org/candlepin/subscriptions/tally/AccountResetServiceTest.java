@@ -30,7 +30,6 @@ import java.util.UUID;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.HostRepository;
-import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.TallyStateRepository;
@@ -40,7 +39,6 @@ import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
-import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
@@ -64,7 +62,6 @@ class AccountResetServiceTest {
   @Autowired private AccountServiceInventoryRepository accountServiceInventoryRepository;
   @Autowired private SubscriptionRepository subscriptionRepository;
   @Autowired private TallyStateRepository tallyStateRepository;
-  @Autowired private OfferingRepository offeringRepository;
   @Autowired private AccountResetService resetService;
 
   @BeforeEach
@@ -121,16 +118,8 @@ class AccountResetServiceTest {
             Map.of(new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, "CORES"), 10.0));
     tallySnapshotRepository.save(snapshot);
 
-    Offering o = new Offering();
-    o.setSku("awesomeos");
-    o.setCores(10);
-    o.setSockets(10);
-    o.setUsage(Usage.PRODUCTION);
-    offeringRepository.save(o);
-
     Subscription s = new Subscription();
     s.setOrgId("org123");
-    s.setOffering(o);
     s.setSubscriptionId("subscription123");
     s.setStartDate(OffsetDateTime.now());
     subscriptionRepository.save(s);

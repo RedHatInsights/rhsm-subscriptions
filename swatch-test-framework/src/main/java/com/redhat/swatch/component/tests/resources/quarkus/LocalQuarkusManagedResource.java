@@ -36,6 +36,8 @@ import com.redhat.swatch.component.tests.utils.SocketUtils;
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -53,7 +55,9 @@ public class LocalQuarkusManagedResource extends ManagedResource {
           "Quarkus may already be running or the port is used by another application",
           "One or more configuration errors have prevented the application from starting",
           "Attempting to start live reload endpoint to recover from previous Quarkus startup failure",
-          "Dev mode process did not complete successfully");
+          "Dev mode process did not complete successfully",
+          "Failed to run",
+          "BUILD FAILURE");
 
   private static final String MANAGEMENT_PORT_PROPERTY = "quarkus.management.port";
   private static final String LOCALHOST = "localhost";
@@ -65,6 +69,7 @@ public class LocalQuarkusManagedResource extends ManagedResource {
   private Process process;
   private LoggingHandler loggingHandler;
   private int assignedHttpPort;
+  private Integer assignedDebugPort;
   private Map<Integer, Integer> assignedCustomPorts;
 
   private final File location;
@@ -94,7 +99,7 @@ public class LocalQuarkusManagedResource extends ManagedResource {
 
       process = pb.start();
 
-      loggingHandler = new FileServiceLoggingHandler(context.getOwner(), logOutputFile);
+      loggingHandler = new FileServiceLoggingHandler(context, logOutputFile);
       loggingHandler.startWatching();
 
     } catch (Exception e) {
@@ -167,11 +172,24 @@ public class LocalQuarkusManagedResource extends ManagedResource {
     List<String> command = new LinkedList<>();
     command.add("./mvnw");
     command.addAll(systemProperties);
+    command.addAll(getDebugProperties());
+    // skip format checkstyle and spotless
+    command.add("-Dspotless.check.skip=true");
+    command.add("-Dcheckstyle.skip=true");
     command.add("-pl");
     command.add(service);
     command.add("quarkus:dev");
 
     return command;
+  }
+
+  protected Collection<String> getDebugProperties() {
+    if (context.isDebug()) {
+      assignedDebugPort = SocketUtils.findAvailablePort(context.getOwner());
+      return Arrays.asList("-Ddebug=" + assignedDebugPort, "-Dsuspend");
+    }
+
+    return Collections.emptyList();
   }
 
   protected Map<Integer, Integer> assignCustomPorts() {

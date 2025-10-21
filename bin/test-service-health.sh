@@ -1,6 +1,7 @@
-#!/bin/bash
-
-set -e
+#!/usr/bin/env bash
+# https://github.com/olivergondza/bash-strict-mode
+set -emEuo pipefail
+trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
 # Script to test service health
 # Usage: ./scripts/test-service-health.sh <service-name> <management-port>
@@ -20,8 +21,16 @@ WAIT_SECONDS=5
 
 echo "🚀 Testing $SERVICE_NAME (management port $MANAGEMENT_PORT)"
 
+# Ensure all dependencies are installed before starting the service
+if [ "$SERVICE_NAME" != "swatch-api" ]; then
+    echo "Installing all dependencies for $SERVICE_NAME..."
+    ./mvnw install -DskipTests -am -pl "$SERVICE_NAME" -q
+fi
+
 # Start service in background
 echo "Starting service: make $SERVICE_NAME"
+# Disable live reload to prevent hot reloadable dependency issues
+export QUARKUS_LIVE_RELOAD_ENABLED=false
 make "$SERVICE_NAME" &
 SERVICE_PID=$!
 echo "Started $SERVICE_NAME with PID: $SERVICE_PID"
@@ -64,4 +73,4 @@ else
     exit 1
 fi
 
-echo "🎉 $SERVICE_NAME validation completed successfully!" 
+echo "🎉 $SERVICE_NAME validation completed successfully!"

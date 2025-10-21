@@ -125,7 +125,7 @@ public class ComponentTestExtension
 
   @Override
   public void afterEach(ExtensionContext testContext) {
-    services.forEach(service -> service.getOwner().onTestStarted());
+    services.forEach(service -> service.getOwner().onTestStopped());
 
     if (!isClassLifecycle(testContext)) {
       // Stop services from instance fields

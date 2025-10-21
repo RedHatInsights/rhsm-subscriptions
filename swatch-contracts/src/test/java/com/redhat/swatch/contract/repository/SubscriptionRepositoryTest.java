@@ -21,18 +21,23 @@
 package com.redhat.swatch.contract.repository;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
+import com.redhat.swatch.configuration.registry.MetricId;
 import io.quarkus.panache.common.Sort;
 import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,7 +55,15 @@ class SubscriptionRepositoryTest {
 
   private static final String BILLING_ACCOUNT_ID = "sellerAcctId";
   private static final String PRODUCT_TAG = "rosa";
+  private static final String CORES = "Cores";
+  private static final OffsetDateTime START =
+      OffsetDateTime.of(2021, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+  private static final OffsetDateTime END =
+      OffsetDateTime.of(2022, 2, 2, 0, 0, 0, 0, ZoneOffset.UTC);
+
   private OffsetDateTime now;
+  private final SubscriptionMeasurementKey physicalCores =
+      createMeasurementKey("PHYSICAL", MetricId.fromString(CORES));
 
   @Inject SubscriptionRepository subscriptionRepo;
   @Inject OfferingRepository offeringRepo;
@@ -59,6 +72,184 @@ class SubscriptionRepositoryTest {
   @BeforeEach
   void setup() {
     now = clock.now();
+  }
+
+  SubscriptionMeasurementKey createMeasurementKey(String type, MetricId metric) {
+    var key = new SubscriptionMeasurementKey();
+    key.setMeasurementType(type);
+    key.setMetricId(metric.toString());
+    return key;
+  }
+
+  @TestTransaction
+  @Test
+  void testFiltersByOrgId() {
+    var wrongOrgId = createSubscription("wrong");
+    var correctOrgId = createSubscription("org123");
+
+    wrongOrgId.setSubscriptionNumber("sub123");
+    wrongOrgId.setSubscriptionId("sub123Id");
+    wrongOrgId.getSubscriptionMeasurements().put(physicalCores, 1.0);
+
+    correctOrgId.setSubscriptionNumber("sub123");
+    correctOrgId.setSubscriptionId("sub123Id");
+    correctOrgId.getSubscriptionMeasurements().put(physicalCores, 42.0);
+
+    subscriptionRepo.persist(wrongOrgId);
+    subscriptionRepo.persistAndFlush(correctOrgId);
+
+    var criteria =
+        DbReportCriteria.builder()
+            .orgId("org123")
+            .beginning(OffsetDateTime.now().minusYears(2))
+            .ending(OffsetDateTime.now().plusYears(2))
+            .build();
+
+    var result = subscriptionRepo.findByCriteria(criteria).stream().findFirst();
+
+    result.ifPresentOrElse(
+        x -> {
+          assertEquals(42.0, x.getSubscriptionMeasurements().get(physicalCores), 42.0);
+          assertEquals(1, x.getSubscriptionMeasurements().size());
+        },
+        () -> fail("No matching subscription"));
+  }
+
+  @TestTransaction
+  @Test
+  void testFiltersOutSubsBeforeRange() {
+    subscriptionRepo.persistAndFlush(createSubscription("org123"));
+
+    var result =
+        subscriptionRepo.findByCriteria(
+            DbReportCriteria.builder().beginning(END.plusDays(1)).ending(END.plusDays(5)).build());
+    assertTrue(result.isEmpty());
+  }
+
+  @TestTransaction
+  @Test
+  void testFiltersOutSubsAfterRange() {
+    subscriptionRepo.persistAndFlush(createSubscription("org123"));
+
+    var future = OffsetDateTime.now().plusYears(100);
+    var result =
+        subscriptionRepo.findByCriteria(
+            DbReportCriteria.builder()
+                .beginning(future.plusDays(1))
+                .ending(future.plusDays(5))
+                .build());
+    assertTrue(result.isEmpty());
+  }
+
+  @TestTransaction
+  @Test
+  void testFindsSubStartingBeforeRangeAndEndingDuringRange() {
+    var subscription = createStandardStartAndEndSuscription();
+
+    var result =
+        subscriptionRepo.findByCriteria(
+            DbReportCriteria.builder()
+                .beginning(START.plusDays(5))
+                .ending(END.plusDays(5))
+                .build());
+    assertThat(result, contains(subscription));
+  }
+
+  @TestTransaction
+  @Test
+  void testFindsSubStartingBeforeRangeAndEndingAfterRange() {
+    var subscription = createStandardStartAndEndSuscription();
+
+    var result =
+        subscriptionRepo.findByCriteria(
+            DbReportCriteria.builder()
+                .beginning(START.plusDays(5))
+                .ending(END.minusDays(5))
+                .build());
+    assertThat(result, contains(subscription));
+  }
+
+  @TestTransaction
+  @Test
+  void testFindsSubStartingDuringRangeAndEndingDuringRange() {
+    var subscription = createStandardStartAndEndSuscription();
+
+    var result =
+        subscriptionRepo.findByCriteria(
+            DbReportCriteria.builder()
+                .beginning(START.minusDays(5))
+                .ending(END.plusDays(5))
+                .build());
+    assertThat(result, contains(subscription));
+  }
+
+  @TestTransaction
+  @Test
+  void testFindsSubStartingDuringRangeAndEndingAfterRange() {
+    var subscription = createStandardStartAndEndSuscription();
+
+    var result =
+        subscriptionRepo.findByCriteria(
+            DbReportCriteria.builder()
+                .beginning(START.minusDays(5))
+                .ending(END.minusDays(5))
+                .build());
+    assertThat(result, contains(subscription));
+  }
+
+  private SubscriptionEntity createStandardStartAndEndSuscription() {
+    SubscriptionEntity subscription = createSubscription("org123");
+    subscription.setStartDate(START);
+    subscription.setEndDate(END);
+    subscriptionRepo.persistAndFlush(subscription);
+    return subscription;
+  }
+
+  @TestTransaction
+  @Test
+  void testMetricsCriteriaForPhysical() {
+    var subscription = createStandardStartAndEndSuscription();
+    subscription.getSubscriptionMeasurements().put(physicalCores, 42.0);
+    subscriptionRepo.persistAndFlush(subscription);
+
+    var hypervisorSub = createStandardStartAndEndSuscription();
+    hypervisorSub.setOrgId("abc");
+    var hypervisorCores = createMeasurementKey("HYPERVISOR", MetricId.fromString(CORES));
+    hypervisorSub.getSubscriptionMeasurements().put(hypervisorCores, 3.0);
+
+    subscriptionRepo.persistAndFlush(hypervisorSub);
+    var result =
+        subscriptionRepo.findByCriteria(
+            DbReportCriteria.builder()
+                .hypervisorReportCategory(HypervisorReportCategory.NON_HYPERVISOR)
+                .metricId(CORES)
+                .build());
+    assertThat(result, not(contains(hypervisorSub)));
+    assertThat(result, contains(subscription));
+  }
+
+  @TestTransaction
+  @Test
+  void testMetricsCriteriaForHypervisor() {
+    var subscription = createStandardStartAndEndSuscription();
+    subscription.getSubscriptionMeasurements().put(physicalCores, 42.0);
+    subscriptionRepo.persistAndFlush(subscription);
+
+    var hypervisorSub = createStandardStartAndEndSuscription();
+    hypervisorSub.setOrgId("abc");
+    hypervisorSub.getSubscriptionMeasurements().clear();
+    var hypervisorCores = createMeasurementKey("HYPERVISOR", MetricId.fromString(CORES));
+    hypervisorSub.getSubscriptionMeasurements().put(hypervisorCores, 3.0);
+    subscriptionRepo.persistAndFlush(hypervisorSub);
+
+    var result =
+        subscriptionRepo.findByCriteria(
+            DbReportCriteria.builder()
+                .hypervisorReportCategory(HypervisorReportCategory.HYPERVISOR)
+                .metricId(CORES)
+                .build());
+    assertThat(result, contains(hypervisorSub));
+    assertThat(result, not(contains(subscription)));
   }
 
   @TestTransaction
@@ -256,16 +447,56 @@ class SubscriptionRepositoryTest {
 
   @TestTransaction
   @Test
+  void findsAllSubscriptionsForUsage() {
+    OfferingEntity mct3718 =
+        createOffering(
+            "MCT3718", "rosa", 1066, ServiceLevel.SELF_SUPPORT, Usage.PRODUCTION, "ROLE");
+    offeringRepo.persist(mct3718);
+
+    OfferingEntity mctNonProd =
+        createOffering(
+            "MCTNONPROD", "rosa", 1776, ServiceLevel.SELF_SUPPORT, Usage.DISASTER_RECOVERY, "ROLE");
+    offeringRepo.persist(mctNonProd);
+
+    for (int i = 0; i < 5; i++) {
+      SubscriptionEntity s1 =
+          createSubscription("1", String.valueOf(new Random().nextInt()), "sellerAcctId");
+      s1.setOffering(mct3718);
+      subscriptionRepo.persistAndFlush(s1);
+
+      SubscriptionEntity s2 =
+          createSubscription("1", String.valueOf(new Random().nextInt()), "sellerAcctId");
+      s2.setOffering(mctNonProd);
+      subscriptionRepo.persistAndFlush(s2);
+    }
+    var criteria = DbReportCriteria.builder().usage(Usage.PRODUCTION).build();
+
+    var result = subscriptionRepo.findByCriteria(criteria);
+    assertEquals(5, result.size());
+  }
+
+  @TestTransaction
+  @Test
   void findsAllSubscriptionsForSla() {
     OfferingEntity mct3718 =
         createOffering(
             "MCT3718", "rosa", 1066, ServiceLevel.SELF_SUPPORT, Usage.PRODUCTION, "ROLE");
     offeringRepo.persist(mct3718);
 
+    OfferingEntity mctPremium =
+        createOffering(
+            "MCTPREMIUM", "rosa", 1776, ServiceLevel.PREMIUM, Usage.DISASTER_RECOVERY, "ROLE");
+    offeringRepo.persist(mctPremium);
+
     for (int i = 0; i < 5; i++) {
       SubscriptionEntity subscription =
           createSubscription("1", String.valueOf(new Random().nextInt()), "sellerAcctId");
       subscription.setOffering(mct3718);
+      subscriptionRepo.persistAndFlush(subscription);
+
+      subscription =
+          createSubscription("1", String.valueOf(new Random().nextInt()), "sellerAcctId");
+      subscription.setOffering(mctPremium);
       subscriptionRepo.persistAndFlush(subscription);
     }
     var criteria = DbReportCriteria.builder().serviceLevel(ServiceLevel.SELF_SUPPORT).build();

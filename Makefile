@@ -10,10 +10,12 @@ SHELL=/bin/bash
 	swatch-metrics \
 	swatch-system-conduit \
 	swatch-utilization \
+	swatch-api \
 	run-migrations \
 	build \
 	format \
 	install \
+	clean \
 	rollback \
 	status
 
@@ -39,7 +41,7 @@ define QUARKUS_PROXY
     $(call BUILD,$(1))
 	QUARKUS_HTTP_PORT=$(2) QUARKUS_MANAGEMENT_PORT=$(shell echo $$((1000 + $(2)))) \
 	QUARKUS_HTTP_HOST=0.0.0.0 QUARKUS_PROFILE=$(subst $(space),$(comma),$(PROFILES)) \
-	./mvnw -pl $(1) quarkus:dev
+	./mvnw -pl $(1) quarkus:dev -DskipTests
 endef
 
 # Take note that we're using SPRING_PROFILES_INCLUDE rather that
@@ -54,22 +56,25 @@ define SPRING_PROXY
     $(call BUILD,$(1))
 	SERVER_PORT=$(2) MANAGEMENT_SERVER_PORT=$(shell echo $$((1000 + $(2)))) \
 	SPRING_PROFILES_INCLUDE=$(subst $(space),$(comma),$(PROFILES)) \
-	./mvnw -pl $(1) spring-boot:run
+	./mvnw -pl $(1) spring-boot:run -DskipTests
 endef
 
 default: format install
 
 format:
-	./mvnw spotless:apply
+	./mvnw spotless:apply -Pbuild -Pcomponent-tests -Pcomponent-tests-by-service
 
-install:
-	./mvnw clean install -DskipTests
+clean:
+	./mvnw clean
+
+install: clean
+	./mvnw install -DskipTests
 
 # $@ is a variable set to the target name
 # If you add a new target here, be sure to add it to .PHONY at the top
 # Otherwise, make will think the target name refers to the directory
 run-migrations:
-	./mvnw clean install -Prun-migrations
+	./mvnw install -Prun-migrations
 
 # Empty target for build flag
 build:
@@ -101,6 +106,10 @@ swatch-system-conduit:
 
 swatch-utilization:
 	$(call QUARKUS_PROXY,$@,8018)
+
+swatch-api:
+	$(eval override PROFILES+=api)
+	$(call SPRING_PROXY,swatch-tally,8019)
 
 rollback:
 	@echo "Select database context:"
@@ -141,3 +150,4 @@ status:
 	$(call CHECK_SERVICE_STATUS,swatch-metrics,9016)
 	$(call CHECK_SERVICE_STATUS,swatch-system-conduit,9017)
 	$(call CHECK_SERVICE_STATUS,swatch-utilization,9018)
+	$(call CHECK_SERVICE_STATUS,swatch-api,9019)

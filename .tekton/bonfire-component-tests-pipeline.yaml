@@ -81,18 +81,26 @@ spec:
       type: string
       description: "Project repository"
       default: "https://github.com/RedHatInsights/rhsm-subscriptions"
-    - name: IBUTSU_SERVER_URL
+    - name: DATAROUTER_CREDENTIALS_NAME
       type: string
-      description: "URL for Ibutsu API interaction"
-      default: "https://ibutsu-api.insights.corp.redhat.com/api/import"
-    - name: IBUTSU_PROJECT_ID
+      description: Secret name to take the data router credentials from.
+      default: "smqe-datarouter-credentials"
+    - name: DATAROUTER-METADATA-PATH
       type: string
-      description: "Ibutsu project ID"
-      default: "3915c900-85fc-1222-833c-10d51af56f2"
-    - name: IBUTSU_SECRET_NAME
+      default: "datarouter.json"
+      description: Path from root for datarouter metadata file.
+    - name: datarouter-url
       type: string
-      description: Secret name to take the token from.
-      default: "swatch-ibutsu-token"
+      default: "https://datarouter.ccitredhat.com"
+      description: Data Router public URL.
+    - name: results-pattern
+      type: string
+      default: "TEST*.xml"
+      description: Patter that Data Router follows to upload tests report.
+    - name: attachments-dir
+      type: string
+      default: ""
+      description: Directory containing attachments to upload with test results.
   workspaces:
     - name: shared-workspace
       description: A workspace to share data between tasks
@@ -221,7 +229,7 @@ spec:
           - name: name
             value: git-clone
           - name: bundle
-            value: quay.io/konflux-ci/tekton-catalog/task-git-clone:0.1@sha256:b1fba408e3f50cc302eb5bf66bae1775535267427c78b0665d8342931d54f6ff
+            value: quay.io/konflux-ci/tekton-catalog/task-git-clone:0.1@sha256:366c0288968fec8075b938bc33b941b030188984b1bc752910ed37475315a0af
           - name: kind
             value: task
         resolver: bundles
@@ -288,77 +296,128 @@ spec:
             script: |
               #!/bin/bash
               ./mvnw clean install -Pcomponent-tests -Dservice=${SERVICE} -Dswatch.component-tests.global.target=openshift
-          - name: upload-test-report
-            image: registry.access.redhat.com/ubi9/ubi-minimal
+    - name: send-results-task
+      params:
+        - name: SERVICE
+          value: "$(params.COMPONENT_NAME)"
+      workspaces:
+        - name: output
+          workspace: shared-workspace
+      runAfter:
+        - run-tests-task
+      taskSpec:
+        params:
+          - name: SERVICE
+            type: string
+            description: The service that was tested.
+        workspaces:
+          - name: output
+            description: The workspace where the repository was cloned
+        results:
+          - name: status
+            description: Status of the Data Router send operation (success/failure)
+          - name: routing-id
+            description: Data Router routing request ID for tracking
+        steps:
+          - name: send-results
+            image: quay.io/dno/droute:latest
+            imagePullPolicy: Always
             workingDir: $(workspaces.output.path)/source
             env:
-              - name: IBUTSU_SERVER_URL
-                value: "$(params.IBUTSU_SERVER_URL)"
-              - name: IBUTSU_PROJECT_ID
-                value: "$(params.IBUTSU_PROJECT_ID)"
-              - name: IBUTSU_TOKEN
+              - name: DATAROUTER_USERNAME
                 valueFrom:
                   secretKeyRef:
-                    name: "$(params.IBUTSU_SECRET_NAME)"
-                    key: token
-                    optional: true
+                    name: $(params.DATAROUTER_CREDENTIALS_NAME)
+                    key: username
+              - name: DATAROUTER_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.DATAROUTER_CREDENTIALS_NAME)
+                    key: password
               - name: SERVICE
                 value: "$(params.SERVICE)"
             script: |
               #!/bin/bash
-              if [[ -z "${IBUTSU_TOKEN}" ]]; then
-                echo "IBUTSU_TOKEN is not set or empty. Skipping test report upload"
-                exit 1
-              fi
-                            
-              TEST_FILE_REPORTS=()
-              COUNT=0
-              REPORT_FILE=""
+              set -euo pipefail
               
-              for file in "${SERVICE}"/ct/target/surefire-reports/*.xml; do
-                if [[ -f "$file" ]]; then
-                  TEST_FILE_REPORTS+=("$file")
-                  COUNT=$((COUNT + 1))
-                  TEST_FILE_REPORT="$file"
-                fi
-              done
+              ARTIFACT_DIR="${SERVICE}"/ct/target/surefire-reports
+              METADATA_FILE="$(params.DATAROUTER-METADATA-PATH)"
               
-              if [[ $COUNT -eq 1 ]]; then
-                echo "Found a single report file: $TEST_FILE_REPORT"
+              # Customize metadata for the current service
+              sed -i "s/SERVICE_NAME/$SERVICE/g" datarouter.json
+              
+              echo "Using metadata from: $METADATA_FILE"
+              echo "Metadata content:"
+              cat "$METADATA_FILE" | jq . || cat "$METADATA_FILE"
+              
+              echo "Executing Data Router send"
+              echo "  URL: $(params.datarouter-url)"
+              echo "  Metadata: $METADATA_FILE"
+              echo "  Results: $(params.results-pattern)"
+              echo "  Attachments: $(params.attachments-dir)"
+              echo "  Username: $DATAROUTER_USERNAME"
+              echo "  Artifact directory: $ARTIFACT_DIR"
+              
+              # Retry configuration for intermittent 5xx errors
+              MAX_RETRIES=3
+              RETRY_DELAY=45
+              
+              # Function to execute droute command with retry
+              execute_with_retry() {
+                local attempt=1
+                
+                while [ $attempt -le $MAX_RETRIES ]; do
+                  echo "=== Attempt $attempt of $MAX_RETRIES ==="
+                  
+                  # Temporarily disable exit on error to capture output
+                  set +e
+                  OUTPUT=$(/droute send --url=$(params.datarouter-url) --username=$DATAROUTER_USERNAME --password=$DATAROUTER_PASSWORD --metadata=$METADATA_FILE --results=$ARTIFACT_DIR/$(params.results-pattern) $(if [[ -n "$(params.attachments-dir)" ]]; then echo "--attachments=${ARTIFACT_DIR}/$(params.attachments-dir)"; fi) 2>&1)
+                  EXIT_CODE=$?
+                  set -e
+                  
+                  echo "Command completed with exit code: $EXIT_CODE"
+                  echo "Output: $OUTPUT"
+                  
+                  # Check if successful
+                  if [[ $EXIT_CODE -eq 0 ]]; then
+                    return 0
+                  fi
+                  
+                  # Check for retryable error patterns (only 5XX server errors)
+                  if echo "$OUTPUT" | grep -qi -E "5[0-9][0-9] "; then
+                    if [ $attempt -lt $MAX_RETRIES ]; then
+                      echo "5XX server error detected. Retrying in $RETRY_DELAY seconds..."
+                      sleep $RETRY_DELAY
+                      attempt=$((attempt + 1))
+                    else
+                      echo "Maximum retries reached. Data Router send operation failed."
+                      return $EXIT_CODE
+                    fi
+                  else
+                    echo "Non-retryable error detected. Failing immediately."
+                    return $EXIT_CODE
+                  fi
+                done
+                
+                return $EXIT_CODE
+              }
+              
+              # Execute with retry logic
+              execute_with_retry
+              FINAL_EXIT_CODE=$?
+              
+              # Extract routing ID if available (from the last output)
+              ROUTING_ID=$(echo "$OUTPUT" | grep -o "routing[_-]id[:\s]*[a-zA-Z0-9-]*" | head -1 | sed 's/.*[:\s]\+//' || echo "")
+              
+              # Set results
+              if [[ $FINAL_EXIT_CODE -eq 0 ]]; then
+                echo -n "success" > $(results.status.path)
+                echo "Data Router send operation completed successfully"
               else
-                echo "Error: Expected exactly one report file, but found $COUNT"
-                exit 1
+                echo -n "failure" > $(results.status.path)
+                echo "Data Router send operation failed with exit code: $FINAL_EXIT_CODE"
               fi
               
-              # Make curl verbose while hiding the bearer token
-              HTTP_STATUS=$(curl -w '%{http_code}' -v -o /tmp/curl_response.txt -X 'POST' ${IBUTSU_SERVER_URL} \
-              -H 'accept: application/json' \
-              -H "Authorization: Bearer ${IBUTSU_TOKEN}" \
-              -H 'Content-Type: multipart/form-data' \
-              -F "importFile=@${TEST_FILE_REPORT};type=text/xml" \
-              -F 'metadata={"tags": ["subscription-watch"]}' \
-              -F "project=${IBUTSU_PROJECT_ID}" \
-              -F 'source=konflux-pipeline' \
-              -F 'env=ephemeral' 2>&1 | tee /tmp/curl_verbose.log | sed 's/Authorization: Bearer [^[:space:]]*/Authorization: Bearer [REDACTED]/g' | grep -E '^[<>]|^HTTP|^curl:|^Total|^Dump|^Connected|^Send|^Recv' || true)
+              echo -n "$ROUTING_ID" > $(results.routing-id.path)
               
-              # Display verbose curl output (with token redacted)
-              echo "=== Curl Verbose Output ==="
-              if [[ -f /tmp/curl_verbose.log ]]; then
-                sed 's/Authorization: Bearer [^[:space:]]*/Authorization: Bearer [REDACTED]/g' /tmp/curl_verbose.log | grep -E '^[<>]|^HTTP|^curl:|^Total|^Dump|^Connected|^Send|^Recv' || true
-              fi
-              echo "=== End Curl Verbose Output ==="
-              
-              if [[ $HTTP_STATUS -ge 200 && $HTTP_STATUS -lt 300 ]]; then
-                echo "Test report uploaded successfully to Ibutsu"
-                cat /tmp/curl_response.txt
-              else
-                echo "Failed to upload test report to Ibutsu. HTTP status: $HTTP_STATUS"
-                echo "Response body:"
-                cat /tmp/curl_response.txt
-                # SMELL: The upload test report is failing because Konflux is not running on an internal cluster.
-                # This should be fixed by:
-                # - https://gitlab.cee.redhat.com/releng/konflux-release-data/-/merge_requests/10262
-                # For now, we are ignoring the upload test report failures. 
-                # exit 1
-                exit 0
-              fi
+              exit $FINAL_EXIT_CODE
