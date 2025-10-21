@@ -18,41 +18,26 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.api;
+package com.redhat.swatch.component.tests.utils;
 
-import java.util.Map;
+import java.util.Random;
 
-public class WiremockService extends RestService {
+public final class RandomUtils {
 
-  private static final String METADATA_TAG = "component-test-generated";
+  private static final int MIN_RANGE = 10000;
+  private static final int MAX_RANGE = 99999;
 
-  @Override
-  public void start() {
-    super.start();
-    deleteAllMappings();
-    clearAllRequests();
-  }
-
-  public void deleteAllMappings() {
-    given()
-        .contentType("application/json")
-        .body(Map.of("contains", METADATA_TAG))
-        .when()
-        .post("/__admin/mappings/remove-by-metadata")
-        .then()
-        .statusCode(200);
-  }
-
-  public void clearAllRequests() {
-    given().when().delete("/__admin/requests").then().statusCode(200);
-  }
+  private RandomUtils() {}
 
   /**
-   * Get the metadata tag used for WireMock stub identification.
+   * Generates a random five-digit number within a predefined range and returns it as a string.
    *
-   * @return the metadata tag
+   * @return a random number as a string, generated within the specified range
    */
-  public Map<String, String> getMetadataTags() {
-    return Map.of(METADATA_TAG, "true");
+  public static String generateRandom() {
+    long currentTimestamp = System.currentTimeMillis();
+    Random random = new Random(currentTimestamp);
+    int randomNumber = random.nextInt(MAX_RANGE - MIN_RANGE + 1) + MIN_RANGE;
+    return String.valueOf(randomNumber);
   }
 }

@@ -64,7 +64,7 @@ services:
           - db
   kafka:
     container_name: swatch-kafka
-    image: quay.io/strimzi/kafka:latest-kafka-3.1.0
+    image: quay.io/strimzi/kafka:latest-kafka-3.9.0
     command: sh /init_kafka.sh
     environment:
       # Enable SSL debugging
@@ -110,7 +110,7 @@ services:
       kafka:
         condition: service_healthy
   kafka-setup:
-    image: quay.io/strimzi/kafka:latest-kafka-3.1.0
+    image: quay.io/strimzi/kafka:latest-kafka-3.9.0
     command: |
       /bin/bash -c "
         bin/kafka-topics.sh --bootstrap-server=kafka:29092 --create --if-not-exists --partitions 1 --replication-factor 1 --topic platform.inventory.host-ingress
