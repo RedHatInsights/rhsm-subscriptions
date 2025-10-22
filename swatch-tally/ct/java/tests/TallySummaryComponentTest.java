@@ -34,16 +34,11 @@ import utils.TallyTestHelpers;
 public class TallySummaryComponentTest extends BaseTallyComponentTest {
 
   TallyTestHelpers helpers = new TallyTestHelpers();
-  final String testOrgId = generateRandomOrgId(); // Use random org ID
+  final String testOrgId = helpers.generateRandomOrgId(); // Use random org ID
   final String testInstanceId = UUID.randomUUID().toString();
   final String testEventId = UUID.randomUUID().toString();
   private static final String TEST_PRODUCT_ID = "RHEL for x86";
   private static final String TEST_METRIC_ID = "vCPUs";
-
-  private static String generateRandomOrgId() {
-    // Generate a random 8-digit org ID using UUID
-    return String.format("%08d", Math.abs(UUID.randomUUID().hashCode()) % 100000000);
-  }
 
   @Test
   public void testTallyNightlySummaryEmitsGranularityDaily() {
@@ -81,22 +76,18 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
       throw new RuntimeException("Failed to sync tally", e);
     }
 
-    // Add a small delay to allow processing
-    try {
-      Thread.sleep(2000);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new RuntimeException("Interrupted while waiting", e);
-    }
-
-    // Wait for tally messages to be produced (increased timeout)
+    // Wait for tally messages to be produced (with extended timeout for task processing)
+    // The task needs to be: queued -> consumed -> processed -> snapshots created -> messages
+    // produced
     kafkaBridge.waitForKafkaMessage(
         TALLY,
         new MessageValidator<>(
-            message -> message.contains(testOrgId) && message.contains(TEST_METRIC_ID),
+            message -> {
+              System.out.println("Received TALLY message: " + message);
+              return message.contains(testOrgId) && message.contains(TEST_METRIC_ID);
+            },
             String.class),
-        1, // Expected count of messages
-        60); // Increased timeout to 60 seconds
+        1); // Expected count of messages
 
     // Step 4: Verify hourly granularity endpoint works
     OffsetDateTime ending = OffsetDateTime.now();
@@ -107,12 +98,11 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
 
   @Test
   public void testTallyHourlySummaryEmitsGranularityHourlyDaily() {
-    final String testOrgId = generateRandomOrgId(); // Use random org ID
+    final String testOrgId = helpers.generateRandomOrgId(); // Use random org ID
     final String testInstanceId = UUID.randomUUID().toString();
     final String testEventId = UUID.randomUUID().toString();
 
     // Step 1: Create hosts in HBI database (simulated by creating events)
-    // This step is handled by the event creation below
 
     // Step 2: Create events within the last 2 hours for hourly tally
     OffsetDateTime now = OffsetDateTime.now();
@@ -145,21 +135,17 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
       throw new RuntimeException("Failed to sync tally", e);
     }
 
-    // Add a small delay to allow processing
-    try {
-      Thread.sleep(2000);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new RuntimeException("Interrupted while waiting", e);
-    }
-
-    // Wait for tally messages to be produced (increased timeout)
+    // Wait for tally messages to be produced (with extended timeout for task processing)
+    // The task needs to be: queued -> consumed -> processed -> snapshots created -> messages
+    // produced
     kafkaBridge.waitForKafkaMessage(
         TALLY,
         new MessageValidator<>(
-            message -> message.contains(testOrgId) && message.contains(TEST_METRIC_ID),
+            message -> {
+              System.out.println("Received TALLY message: " + message);
+              return message.contains(testOrgId) && message.contains(TEST_METRIC_ID);
+            },
             String.class),
-        1, // Expected count of messages
-        60); // Increased timeout to 60 seconds
+        1); // Expected count of messages
   }
 }

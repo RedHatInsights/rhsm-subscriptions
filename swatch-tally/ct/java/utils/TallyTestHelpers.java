@@ -20,11 +20,8 @@
  */
 package utils;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
+import com.redhat.swatch.component.tests.api.SwatchService;
+import io.restassured.response.Response;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -62,98 +59,81 @@ public class TallyTestHelpers {
     event.setBillingAccountId(Optional.of("746157280291"));
     event.setConversion(true);
 
-    // Set product IDs as specified in PR: ["69","204"]
-    event.setProductIds(List.of("69", "204"));
+    // Set product IDs for RHEL ELS for x86: engineering ID 204 from rhel-for-x86-els-payg config
+    event.setProductIds(List.of("204"));
 
-    // Add product tags for RHEL for x86 - this is crucial for processing
-    event.setProductTag(Set.of("hel-for-x86-els-payg"));
+    // Add product tags for RHEL ELS for x86
+    event.setProductTag(Set.of("rhel-for-x86-els-payg"));
 
     // Create measurement with vCPUs metric
     var measurement = new org.candlepin.subscriptions.json.Measurement();
     measurement.setValue((double) value);
-    measurement.setMetricId(TEST_METRIC_ID);
+    measurement.setMetricId("vCPUs");
     event.setMeasurements(List.of(measurement));
 
     return event;
   }
 
-  public void syncTallyNightly(
-      String orgId, com.redhat.swatch.component.tests.api.SwatchService service) throws Exception {
-    // Build the service URL
-    String baseUrl = "http://" + service.getHost() + ":" + service.getMappedPort(8080);
-    String endpoint = baseUrl + "/api/rhsm-subscriptions/v1/internal/rpc/tally/snapshots/" + orgId;
-
-    // Create HTTP client
-    HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(60)).build();
-
-    // Create HTTP request
-    HttpRequest request =
-        HttpRequest.newBuilder()
-            .uri(URI.create(endpoint))
+  public void syncTallyNightly(String orgId, SwatchService service) throws Exception {
+    Response response =
+        service
+            .given()
             .header("x-rh-swatch-psk", "placeholder")
-            .PUT(HttpRequest.BodyPublishers.noBody())
-            .timeout(Duration.ofSeconds(60))
-            .build();
-
-    // Send the request
-    HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            .put("/api/rhsm-subscriptions/v1/internal/rpc/tally/snapshots/" + orgId)
+            .then()
+            .extract()
+            .response();
 
     // Check response status
-    if (response.statusCode() != 200) {
+    if (response.getStatusCode() != 200) {
       throw new RuntimeException(
           "Tally sync failed with status code: "
-              + response.statusCode()
+              + response.getStatusCode()
               + ", response body: "
-              + response.body());
+              + response.getBody().asString());
     }
 
     System.out.println("Tally sync endpoint called successfully for org: " + orgId);
   }
 
-  public void syncTallyHourly(
-      String orgId, com.redhat.swatch.component.tests.api.SwatchService service) throws Exception {
-    // Build the service URL
-    String baseUrl = "http://" + service.getHost() + ":" + service.getMappedPort(8080);
-    String endpoint = baseUrl + "/api/rhsm-subscriptions/v1/internal/tally/hourly?org=" + orgId;
-
-    // Create HTTP client
-    HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(60)).build();
-
-    // Create HTTP request
-    HttpRequest request =
-        HttpRequest.newBuilder()
-            .uri(URI.create(endpoint))
+  public void syncTallyHourly(String orgId, SwatchService service) throws Exception {
+    Response response =
+        service
+            .given()
             .header("x-rh-swatch-psk", "placeholder")
-            .POST(HttpRequest.BodyPublishers.noBody())
-            .timeout(Duration.ofSeconds(60))
-            .build();
+            .queryParam("org", orgId)
+            .post("/api/rhsm-subscriptions/v1/internal/tally/hourly")
+            .then()
+            .extract()
+            .response();
 
-    // Send the request
-    HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-    // Check response status
-    if (response.statusCode() != 200) {
+    // Check response status - hourly tally returns 204 No Content on success
+    if (response.getStatusCode() != 204) {
       throw new RuntimeException(
           "Hourly tally sync failed with status code: "
-              + response.statusCode()
+              + response.getStatusCode()
               + ", response body: "
-              + response.body());
+              + response.getBody().asString());
     }
 
     System.out.println("Hourly tally endpoint called successfully for org: " + orgId);
   }
 
-  public HttpResponse<String> makeHttpGetRequest(String url) throws Exception {
-    HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(30)).build();
+  public Response makeHttpGetRequest(String url, SwatchService service) throws Exception {
+    // Extract the path from the full URL
+    String path = url.substring(url.indexOf("/api/rhsm-subscriptions/v1"));
 
-    HttpRequest request =
-        HttpRequest.newBuilder()
-            .uri(URI.create(url))
-            .header("x-rh-swatch-psk", "placeholder")
-            .GET()
-            .timeout(Duration.ofSeconds(30))
-            .build();
+    return service
+        .given()
+        .header("x-rh-swatch-psk", "placeholder")
+        .get(path)
+        .then()
+        .extract()
+        .response();
+  }
 
-    return client.send(request, HttpResponse.BodyHandlers.ofString());
+  public String generateRandomOrgId() {
+    // Generate a random 8-digit org ID using UUID
+    return String.format("%08d", Math.abs(UUID.randomUUID().hashCode()) % 100000000);
   }
 }
