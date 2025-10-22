@@ -20,80 +20,26 @@
  */
 package com.redhat.swatch.component.tests.resources.unleash;
 
-import com.redhat.swatch.component.tests.api.clients.OpenshiftClient;
-import com.redhat.swatch.component.tests.core.extensions.OpenShiftExtensionBootstrap;
-import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.component.tests.resources.containers.OpenShiftContainerManagedResource;
-import io.fabric8.kubernetes.api.model.Container;
-import io.fabric8.kubernetes.api.model.Pod;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public class OpenShiftUnleashContainerManagedResource extends OpenShiftContainerManagedResource {
 
   private static final String SERVICE_NAME = "unleash";
-  private static final int EXTERNAL_PORT = 8080;
-  private static final int INTERNAL_PORT = 4242;
-
-  private static final String FEATUREFLAGS = "featureflags";
-  private static final String UNLEASH = "unleash";
-  private static final String EPHEMERAL_PREFIX = "ephemeral-";
-  private static final String ENV_PREFIX = "env-";
-  private static final String FEATUREFLAGS_SUFFIX = "-featureflags";
 
   public OpenShiftUnleashContainerManagedResource() {
-    super(SERVICE_NAME, Map.of(EXTERNAL_PORT, INTERNAL_PORT));
+    // Unleash exposes REST on 4242 internally; default mapping requests 8080 -> 4242
+    super(SERVICE_NAME, Map.of(8080, 4242));
+  }
+
+  @Override
+  protected Map<String, String> podLabels() {
+    // Use the standard app label commonly set on Unleash pods
+    return Map.of("app.kubernetes.io/name", SERVICE_NAME);
   }
 
   @Override
   protected String containerName() {
-    Optional<String> discoveredName = discoverActualContainerName();
-    return discoveredName.orElse(SERVICE_NAME);
-  }
-
-  @Override
-  protected boolean isServiceNameRelated(String serviceName) {
-    return serviceName.contains(FEATUREFLAGS)
-           || serviceName.contains(UNLEASH)
-           || (serviceName.startsWith(ENV_PREFIX) && serviceName.endsWith(FEATUREFLAGS_SUFFIX));
-  }
-
-  private Optional<String> discoverActualContainerName() {
-    try {
-      Optional<String> namespace = getCurrentNamespace();
-      if (namespace.isEmpty()) {
-        return Optional.empty();
-      }
-
-      OpenshiftClient client = context.get(OpenShiftExtensionBootstrap.CLIENT);
-      List<Pod> allPods = client.underlyingClient().pods().list().getItems();
-
-      for (Pod pod : allPods) {
-        if (isPodRunning(pod) && pod.getSpec() != null && pod.getSpec().getContainers() != null) {
-          Optional<String> containerName = pod.getSpec().getContainers().stream()
-              .map(Container::getName)
-              .filter(name -> isFeatureFlagsRelated(name, namespace.get()))
-              .findFirst();
-
-          if (containerName.isPresent()) {
-            return containerName;
-          }
-        }
-      }
-    } catch (Exception e) {
-      Log.debug("Container name discovery failed, falling back to default: " + e.getMessage());
-    }
-    return Optional.empty();
-  }
-
-  private boolean isFeatureFlagsRelated(String containerName, String namespace) {
-    return containerName.contains(FEATUREFLAGS)
-        || containerName.contains(UNLEASH)
-        || (namespace.startsWith(EPHEMERAL_PREFIX) && containerName.equals(ENV_PREFIX + namespace + FEATUREFLAGS_SUFFIX));
-  }
-
-  private boolean isPodRunning(Pod pod) {
-    return pod.getStatus() != null && "Running".equals(pod.getStatus().getPhase());
+    return SERVICE_NAME;
   }
 }
