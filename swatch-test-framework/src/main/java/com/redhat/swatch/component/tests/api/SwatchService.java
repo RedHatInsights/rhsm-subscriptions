@@ -32,6 +32,8 @@ import java.util.stream.Stream;
 
 public class SwatchService extends RestService {
 
+  protected static final String SWATCH_PSK = "placeholder";
+
   public RequestSpecification managementServer() {
     return RestAssured.given()
         .baseUri(HTTP + getHost())

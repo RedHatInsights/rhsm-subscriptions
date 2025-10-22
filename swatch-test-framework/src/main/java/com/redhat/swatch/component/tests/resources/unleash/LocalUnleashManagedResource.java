@@ -18,16 +18,24 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.utils;
+package com.redhat.swatch.component.tests.resources.unleash;
 
-public final class Topics {
-  public static final String SUFFIX = "platform.rhsm-subscriptions.";
-  public static final String BILLABLE_USAGE_HOURLY_AGGREGATE =
-      SUFFIX + "billable-usage-hourly-aggregate";
-  public static final String BILLABLE_USAGE_STATUS = SUFFIX + "billable-usage.status";
-  public static final String UTILIZATION = SUFFIX + "utilization";
-  public static final String SWATCH_SERVICE_INSTANCE_INGRESS = SUFFIX + "service-instance-ingress";
-  public static final String HBI_EVENT_IN = "platform.inventory.events";
+import com.redhat.swatch.component.tests.resources.containers.LocalContainerManagedResource;
 
-  private Topics() {}
+public class LocalUnleashManagedResource extends LocalContainerManagedResource {
+
+  private static final int UNLEASH_HTTP_PORT = 4242;
+
+  public LocalUnleashManagedResource() {
+    super("unleash");
+  }
+
+  @Override
+  public int getMappedPort(int port) {
+    // Map default REST service port to Unleash default HTTP port
+    if (port == 8080) {
+      return super.getMappedPort(UNLEASH_HTTP_PORT);
+    }
+    return super.getMappedPort(port);
+  }
 }

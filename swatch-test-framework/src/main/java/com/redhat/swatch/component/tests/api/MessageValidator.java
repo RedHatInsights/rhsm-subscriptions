@@ -31,8 +31,8 @@ public class MessageValidator<T> {
   /**
    * Constructs a Filterable object.
    *
-   * @param filter The Predicate<T> to use for filtering.
-   * @param type The Class<T> object representing the type T.
+   * @param filter the {@code Predicate<T>} to use for filtering.
+   * @param type the {@code Class<T>} object representing the type {@code T}.
    */
   public MessageValidator(Predicate<T> filter, Class<T> type) {
     if (filter == null || type == null) {
@@ -55,7 +55,7 @@ public class MessageValidator<T> {
   /**
    * Gets the Class object for the type T.
    *
-   * @return The Class<T> object.
+   * @return the {@code Class<T>} object.
    */
   public Class<T> getType() {
     return type;
@@ -64,7 +64,7 @@ public class MessageValidator<T> {
   /**
    * Gets the stored Predicate.
    *
-   * @return The Predicate<T> object.
+   * @return the {@code Predicate<T>} object.
    */
   public Predicate<T> getFilter() {
     return filter;

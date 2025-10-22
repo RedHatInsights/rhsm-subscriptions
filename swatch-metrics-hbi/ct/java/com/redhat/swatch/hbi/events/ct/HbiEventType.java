@@ -18,16 +18,16 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.utils;
+package com.redhat.swatch.hbi.events.ct;
 
-public final class Topics {
-  public static final String SUFFIX = "platform.rhsm-subscriptions.";
-  public static final String BILLABLE_USAGE_HOURLY_AGGREGATE =
-      SUFFIX + "billable-usage-hourly-aggregate";
-  public static final String BILLABLE_USAGE_STATUS = SUFFIX + "billable-usage.status";
-  public static final String UTILIZATION = SUFFIX + "utilization";
-  public static final String SWATCH_SERVICE_INSTANCE_INGRESS = SUFFIX + "service-instance-ingress";
-  public static final String HBI_EVENT_IN = "platform.inventory.events";
+public enum HbiEventType {
+  INSTANCE_CREATED("created"),
+  INSTANCE_UPDATED("updated"),
+  INSTANCE_DELETED("delete");
 
-  private Topics() {}
+  private String value;
+
+  HbiEventType(String value) {
+    this.value = value;
+  }
 }

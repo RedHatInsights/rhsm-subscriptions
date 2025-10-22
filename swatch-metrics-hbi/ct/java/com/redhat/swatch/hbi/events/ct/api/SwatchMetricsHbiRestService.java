@@ -18,16 +18,27 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.utils;
+package com.redhat.swatch.hbi.events.ct.api;
 
-public final class Topics {
-  public static final String SUFFIX = "platform.rhsm-subscriptions.";
-  public static final String BILLABLE_USAGE_HOURLY_AGGREGATE =
-      SUFFIX + "billable-usage-hourly-aggregate";
-  public static final String BILLABLE_USAGE_STATUS = SUFFIX + "billable-usage.status";
-  public static final String UTILIZATION = SUFFIX + "utilization";
-  public static final String SWATCH_SERVICE_INSTANCE_INGRESS = SUFFIX + "service-instance-ingress";
-  public static final String HBI_EVENT_IN = "platform.inventory.events";
+import com.redhat.swatch.component.tests.api.SwatchService;
+import com.redhat.swatch.hbi.model.FlushResponse;
+import java.util.Map;
 
-  private Topics() {}
+public class SwatchMetricsHbiRestService extends SwatchService {
+  private static final String API_ROOT = "/api/swatch-metrics-hbi";
+
+  public FlushResponse flushOutboxSynchronously() {
+    return given()
+        .headers(
+            Map.of(
+                "Content-Type", "application/json",
+                "x-rh-swatch-synchronous-request", "true",
+                "x-rh-swatch-psk", SWATCH_PSK))
+        .put(String.format("%s/internal/rpc/outbox/flush", API_ROOT))
+        .then()
+        .statusCode(200)
+        .extract()
+        .body()
+        .as(FlushResponse.class);
+  }
 }

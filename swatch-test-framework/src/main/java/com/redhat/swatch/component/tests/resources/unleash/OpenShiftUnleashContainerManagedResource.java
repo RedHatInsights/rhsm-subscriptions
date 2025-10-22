@@ -18,16 +18,28 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.utils;
+package com.redhat.swatch.component.tests.resources.unleash;
 
-public final class Topics {
-  public static final String SUFFIX = "platform.rhsm-subscriptions.";
-  public static final String BILLABLE_USAGE_HOURLY_AGGREGATE =
-      SUFFIX + "billable-usage-hourly-aggregate";
-  public static final String BILLABLE_USAGE_STATUS = SUFFIX + "billable-usage.status";
-  public static final String UTILIZATION = SUFFIX + "utilization";
-  public static final String SWATCH_SERVICE_INSTANCE_INGRESS = SUFFIX + "service-instance-ingress";
-  public static final String HBI_EVENT_IN = "platform.inventory.events";
+import com.redhat.swatch.component.tests.resources.containers.OpenShiftContainerManagedResource;
+import java.util.Map;
 
-  private Topics() {}
+public class OpenShiftUnleashContainerManagedResource extends OpenShiftContainerManagedResource {
+
+  private static final String SERVICE_NAME = "unleash";
+
+  public OpenShiftUnleashContainerManagedResource() {
+    // Unleash exposes REST on 4242 internally; default mapping requests 8080 -> 4242
+    super(SERVICE_NAME, Map.of(8080, 4242));
+  }
+
+  @Override
+  protected Map<String, String> podLabels() {
+    // Use the standard app label commonly set on Unleash pods
+    return Map.of("app.kubernetes.io/name", SERVICE_NAME);
+  }
+
+  @Override
+  protected String containerName() {
+    return SERVICE_NAME;
+  }
 }
