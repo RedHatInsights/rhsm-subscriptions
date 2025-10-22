@@ -27,16 +27,17 @@ import com.redhat.swatch.component.tests.core.ManagedResource;
 import com.redhat.swatch.component.tests.exceptions.ServiceNotFoundException;
 import com.redhat.swatch.component.tests.logging.ContainerLoggingHandler;
 import com.redhat.swatch.component.tests.logging.LoggingHandler;
+import java.util.regex.Pattern;
 import org.testcontainers.DockerClientFactory;
 
 public class LocalContainerManagedResource extends ManagedResource {
 
-  private final String containerName;
+  private final String containerRegex;
   private Container container;
   private LoggingHandler loggingHandler;
 
-  public LocalContainerManagedResource(String containerName) {
-    this.containerName = containerName;
+  public LocalContainerManagedResource(String containerNameRegEx) {
+    this.containerRegex = containerNameRegEx;
   }
 
   @Override
@@ -45,7 +46,7 @@ public class LocalContainerManagedResource extends ManagedResource {
       return;
     }
 
-    container = findContainerByName(context.getOwner(), containerName);
+    container = findContainerByName(context.getOwner(), containerRegex);
     loggingHandler = new ContainerLoggingHandler(context, container);
     loggingHandler.startWatching();
   }
@@ -87,13 +88,23 @@ public class LocalContainerManagedResource extends ManagedResource {
   }
 
   @SuppressWarnings("resource")
-  private static Container findContainerByName(Service service, String containerName) {
-    for (Container c : DockerClientFactory.instance().client().listContainersCmd().exec()) {
-      if (c.getNames()[0].contains(containerName)) {
-        return c;
-      }
+  private static Container findContainerByName(Service service, String containerRegex) {
+    var containers = DockerClientFactory.instance().client().listContainersCmd().exec();
+    // Use find because the name actually starts with a slash
+    var matches =
+        containers.stream()
+            .filter(x -> Pattern.compile(containerRegex).matcher(x.getNames()[0]).find())
+            .toList();
+
+    if (matches.size() > 1) {
+      throw new ServiceNotFoundException(
+          service.getName(), "Multiple matches found for " + containerRegex);
     }
 
-    throw new ServiceNotFoundException(service.getName());
+    if (matches.isEmpty()) {
+      throw new ServiceNotFoundException(service.getName(), "No match found for " + containerRegex);
+    }
+
+    return matches.get(0);
   }
 }
