@@ -38,6 +38,7 @@ jobs:
           sudo apt update && sudo apt install -y gh
       - name: Detect and label modified services
         id: add-labels
+        continue-on-error: true
         run: |
           # Source utilities
           source bin/pr_label_utils.sh
