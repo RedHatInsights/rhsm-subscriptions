@@ -34,8 +34,8 @@ add_label_if_needed() {
     if ! has_label "$label" "$current_labels"; then
         echo "Adding label: $label"
         if ! gh pr edit "$pr_number" --add-label "$label"; then
-            echo "Error: Failed to add label $label to PR $pr_number"
-            return 1
+            echo "Warning: Failed to add label $label to PR $pr_number (likely due to insufficient permissions)"
+            return 0
         fi
         echo "Successfully added label: $label"
     else
@@ -53,8 +53,8 @@ remove_label_if_needed() {
     if has_label "$label" "$current_labels"; then
         echo "Removing label: $label"
         if ! gh pr edit "$pr_number" --remove-label "$label"; then
-            echo "Error: Failed to remove label $label from PR $pr_number"
-            return 1
+            echo "Warning: Failed to remove label $label from PR $pr_number (likely due to insufficient permissions)"
+            return 0
         fi
         echo "Successfully removed label: $label"
     else
