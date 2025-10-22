@@ -18,13 +18,13 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.resources.wiremock;
+package com.redhat.swatch.component.tests.api;
 
-import com.redhat.swatch.component.tests.resources.containers.LocalContainerManagedResource;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public class LocalWiremockManagedResource extends LocalContainerManagedResource {
-
-  public LocalWiremockManagedResource() {
-    super("wiremock$");
-  }
-}
+@Target({ElementType.FIELD, ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Unleash {}

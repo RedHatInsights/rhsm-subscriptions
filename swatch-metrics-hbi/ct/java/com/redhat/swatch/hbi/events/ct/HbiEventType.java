@@ -18,13 +18,16 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.resources.wiremock;
+package com.redhat.swatch.hbi.events.ct;
 
-import com.redhat.swatch.component.tests.resources.containers.LocalContainerManagedResource;
+public enum HbiEventType {
+  INSTANCE_CREATED("created"),
+  INSTANCE_UPDATED("updated"),
+  INSTANCE_DELETED("delete");
 
-public class LocalWiremockManagedResource extends LocalContainerManagedResource {
+  private String value;
 
-  public LocalWiremockManagedResource() {
-    super("wiremock$");
+  HbiEventType(String value) {
+    this.value = value;
   }
 }

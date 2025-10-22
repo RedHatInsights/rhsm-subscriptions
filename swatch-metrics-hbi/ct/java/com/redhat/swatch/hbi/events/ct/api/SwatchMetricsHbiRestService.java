@@ -18,13 +18,27 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.resources.wiremock;
+package com.redhat.swatch.hbi.events.ct.api;
 
-import com.redhat.swatch.component.tests.resources.containers.LocalContainerManagedResource;
+import com.redhat.swatch.component.tests.api.SwatchService;
+import com.redhat.swatch.hbi.model.FlushResponse;
+import java.util.Map;
 
-public class LocalWiremockManagedResource extends LocalContainerManagedResource {
+public class SwatchMetricsHbiRestService extends SwatchService {
+  private static final String API_ROOT = "/api/swatch-metrics-hbi";
 
-  public LocalWiremockManagedResource() {
-    super("wiremock$");
+  public FlushResponse flushOutboxSynchronously() {
+    return given()
+        .headers(
+            Map.of(
+                "Content-Type", "application/json",
+                "x-rh-swatch-synchronous-request", "true",
+                "x-rh-swatch-psk", SWATCH_PSK))
+        .put(String.format("%s/internal/rpc/outbox/flush", API_ROOT))
+        .then()
+        .statusCode(200)
+        .extract()
+        .body()
+        .as(FlushResponse.class);
   }
 }

@@ -605,6 +605,7 @@
         <module>swatch-tally/ct</module>
         <module>swatch-utilization/ct</module>
         <module>swatch-contracts/ct</module>
+        <module>swatch-metrics-hbi/ct</module>
       </modules>
 
       <dependencyManagement>

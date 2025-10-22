@@ -18,13 +18,28 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.resources.wiremock;
+package com.redhat.swatch.component.tests.resources.unleash;
 
-import com.redhat.swatch.component.tests.resources.containers.LocalContainerManagedResource;
+import com.redhat.swatch.component.tests.resources.containers.OpenShiftContainerManagedResource;
+import java.util.Map;
 
-public class LocalWiremockManagedResource extends LocalContainerManagedResource {
+public class OpenShiftUnleashContainerManagedResource extends OpenShiftContainerManagedResource {
 
-  public LocalWiremockManagedResource() {
-    super("wiremock$");
+  private static final String SERVICE_NAME = "unleash";
+
+  public OpenShiftUnleashContainerManagedResource() {
+    // Unleash exposes REST on 4242 internally; default mapping requests 8080 -> 4242
+    super(SERVICE_NAME, Map.of(8080, 4242));
+  }
+
+  @Override
+  protected Map<String, String> podLabels() {
+    // Use the standard app label commonly set on Unleash pods
+    return Map.of("app.kubernetes.io/name", SERVICE_NAME);
+  }
+
+  @Override
+  protected String containerName() {
+    return SERVICE_NAME;
   }
 }

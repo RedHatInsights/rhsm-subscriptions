@@ -18,13 +18,24 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.resources.wiremock;
+package com.redhat.swatch.component.tests.resources.unleash;
 
 import com.redhat.swatch.component.tests.resources.containers.LocalContainerManagedResource;
 
-public class LocalWiremockManagedResource extends LocalContainerManagedResource {
+public class LocalUnleashManagedResource extends LocalContainerManagedResource {
 
-  public LocalWiremockManagedResource() {
-    super("wiremock$");
+  private static final int UNLEASH_HTTP_PORT = 4242;
+
+  public LocalUnleashManagedResource() {
+    super("unleash");
+  }
+
+  @Override
+  public int getMappedPort(int port) {
+    // Map default REST service port to Unleash default HTTP port
+    if (port == 8080) {
+      return super.getMappedPort(UNLEASH_HTTP_PORT);
+    }
+    return super.getMappedPort(port);
   }
 }
