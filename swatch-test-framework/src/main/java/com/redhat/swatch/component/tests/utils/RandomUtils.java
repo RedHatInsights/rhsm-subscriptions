@@ -18,19 +18,26 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.hbi.events.model;
+package com.redhat.swatch.component.tests.utils;
 
-import com.redhat.swatch.hbi.events.repository.HbiEventOutbox;
-import com.redhat.swatch.hbi.model.OutboxRecord;
-import org.mapstruct.Builder;
-import org.mapstruct.CollectionMappingStrategy;
-import org.mapstruct.Mapper;
+import java.util.Random;
 
-@Mapper(
-    componentModel = "cdi",
-    collectionMappingStrategy = CollectionMappingStrategy.ADDER_PREFERRED,
-    builder = @Builder(disableBuilder = true))
-public interface OutboxRecordMapper {
+public final class RandomUtils {
 
-  OutboxRecord entityToDto(HbiEventOutbox entity);
+  private static final int MIN_RANGE = 10000;
+  private static final int MAX_RANGE = 99999;
+
+  private RandomUtils() {}
+
+  /**
+   * Generates a random five-digit number within a predefined range and returns it as a string.
+   *
+   * @return a random number as a string, generated within the specified range
+   */
+  public static String generateRandom() {
+    long currentTimestamp = System.currentTimeMillis();
+    Random random = new Random(currentTimestamp);
+    int randomNumber = random.nextInt(MAX_RANGE - MIN_RANGE + 1) + MIN_RANGE;
+    return String.valueOf(randomNumber);
+  }
 }

@@ -73,7 +73,7 @@ install: clean
 # $@ is a variable set to the target name
 # If you add a new target here, be sure to add it to .PHONY at the top
 # Otherwise, make will think the target name refers to the directory
-run-migrations: clean
+run-migrations:
 	./mvnw install -Prun-migrations
 
 # Empty target for build flag

@@ -18,41 +18,25 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.api;
+package com.redhat.swatch.hbi.events.exception.api;
 
-import java.util.Map;
+import lombok.Getter;
 
-public class WiremockService extends RestService {
+@Getter
+public enum ErrorCode {
+  UNHANDLED_EXCEPTION(1000, "An unhandled exception occurred"),
+  INTERNAL_SERVICE_ERROR(1001, "An internal service error occurred"),
+  SYNCHRONOUS_OUTBOX_FLUSH_ERROR(1002, "An error while flushing the outbox synchronously"),
+  SYNCHRONOUS_OUTBOX_FLUSH_DISABLED(1003, "The synchronous outbox flushing is disabled"),
+  ;
 
-  private static final String METADATA_TAG = "component-test-generated";
+  private static final String CODE_PREFIX = "SMHBI";
 
-  @Override
-  public void start() {
-    super.start();
-    deleteAllMappings();
-    clearAllRequests();
-  }
+  private final String code;
+  private final String description;
 
-  public void deleteAllMappings() {
-    given()
-        .contentType("application/json")
-        .body(Map.of("contains", METADATA_TAG))
-        .when()
-        .post("/__admin/mappings/remove-by-metadata")
-        .then()
-        .statusCode(200);
-  }
-
-  public void clearAllRequests() {
-    given().when().delete("/__admin/requests").then().statusCode(200);
-  }
-
-  /**
-   * Get the metadata tag used for WireMock stub identification.
-   *
-   * @return the metadata tag
-   */
-  public Map<String, String> getMetadataTags() {
-    return Map.of(METADATA_TAG, "true");
+  ErrorCode(int intCode, String description) {
+    this.code = CODE_PREFIX + intCode;
+    this.description = description;
   }
 }
