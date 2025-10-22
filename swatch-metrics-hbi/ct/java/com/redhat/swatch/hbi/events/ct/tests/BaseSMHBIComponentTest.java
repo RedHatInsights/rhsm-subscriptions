@@ -32,7 +32,7 @@ import com.redhat.swatch.component.tests.utils.Topics;
 import com.redhat.swatch.hbi.events.ct.api.SwatchMetricsHbiRestService;
 import com.redhat.swatch.hbi.model.FlushResponse;
 import java.time.Duration;
-import lombok.Getter;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.Tag;
 
 @ComponentTest
@@ -60,7 +60,7 @@ public class BaseSMHBIComponentTest {
    * @param expectedFlushCount the expected number of records to flush.
    */
   protected void flushOutbox(int expectedFlushCount) {
-    Counter counter = new Counter();
+    AtomicLong counter = new AtomicLong(0);
     AwaitilitySettings settings =
         AwaitilitySettings.using(Duration.ofSeconds(2), Duration.ofSeconds(20))
             .timeoutMessage(
@@ -70,26 +70,8 @@ public class BaseSMHBIComponentTest {
     AwaitilityUtils.untilIsTrue(
         () -> {
           FlushResponse response = swatchMetricsHbi.flushOutboxSynchronously();
-          counter.increment(response.getCount());
-          return counter.getCount() >= expectedFlushCount;
+          return counter.addAndGet(response.getCount()) >= expectedFlushCount;
         },
         settings);
-  }
-
-  @Getter
-  private class Counter {
-    private long count = 0;
-
-    public void increment(long amount) {
-      count += amount;
-    }
-
-    public void increment() {
-      count++;
-    }
-
-    public long getCount() {
-      return count;
-    }
   }
 }
