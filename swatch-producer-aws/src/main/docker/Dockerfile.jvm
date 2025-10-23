@@ -99,7 +99,7 @@ COPY . .
 ARG MAVEN_BUILD_ARGS=''
 ARG MAVEN_TASKS='clean package'
 RUN --mount=type=cache,target=/root/.m2 \
-    ./mvnw ${MAVEN_TASKS} -DskipTests ${MAVEN_BUILD_ARGS}
+    ./mvnw ${MAVEN_TASKS} -pl swatch-producer-aws -am -DskipTests ${MAVEN_BUILD_ARGS}
 
 FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.23-6.1758133909
 USER root
