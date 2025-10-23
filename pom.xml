@@ -598,9 +598,27 @@
         <!-- Dependencies -->
         <module>swatch-quarkus-parent</module>
         <module>swatch-model-billable-usage</module>
-        <module>swatch-metrics-hbi</module>
         <!-- Test framework module -->
         <module>swatch-test-framework</module>
+        <!-- Common modules needed by swatch-metrics-hbi -->
+        <module>swatch-common-clock</module>
+        <module>swatch-common-export</module>
+        <module>swatch-common-config-workaround</module>
+        <module>swatch-common-resteasy</module>
+        <module>swatch-common-resteasy-client</module>
+        <module>swatch-common-panache</module>
+        <module>swatch-common-kafka</module>
+        <module>swatch-common-smallrye-fault-tolerance</module>
+        <module>swatch-common-splunk</module>
+        <module>swatch-common-trace-response</module>
+        <module>swatch-common-security</module>
+        <module>swatch-common-health</module>
+        <module>swatch-common-models</module>
+        <module>swatch-common-testcontainers</module>
+        <module>swatch-model-events</module>
+        <module>swatch-product-configuration</module>
+        <!-- Main modules needed by component tests -->
+        <module>swatch-metrics-hbi</module>
         <!-- Services with component tests -->
         <module>swatch-producer-azure/ct</module>
         <module>swatch-tally/ct</module>
