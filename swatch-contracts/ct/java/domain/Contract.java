@@ -54,6 +54,15 @@ public class Contract extends Subscription {
 
   public static Contract buildRosaContract(
       String orgId, String sku, BillingProvider billingProvider) {
+    return buildRosaContract(
+        orgId, sku, billingProvider, Map.of(VCPU_HOUR_METRIC, DEFAULT_VCPU_CAPACITY));
+  }
+
+  public static Contract buildRosaContract(
+      String orgId,
+      String sku,
+      BillingProvider billingProvider,
+      Map<String, Double> contractMetrics) {
     Objects.requireNonNull(orgId, "orgId cannot be null");
     Objects.requireNonNull(sku, "sku cannot be null");
     Objects.requireNonNull(billingProvider, "billingProvider cannot be null");
@@ -63,7 +72,7 @@ public class Contract extends Subscription {
         .customerId("customer" + seed)
         .sellerAccountId("seller" + seed)
         .productCode("product" + seed)
-        .contractCapacity(Map.of(VCPU_HOUR_METRIC, DEFAULT_VCPU_CAPACITY))
+        .contractCapacity(contractMetrics)
         .subscriptionMeasurements(Map.of(CORES_METRIC, DEFAULT_VCPU_CAPACITY * VCPU_TO_CORES_RATIO))
         .billingProvider(billingProvider)
         .billingAccountId("billing" + seed)
