@@ -5,9 +5,9 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.redhat.swatch</groupId>
-    <artifactId>swatch-parent</artifactId>
+    <artifactId>swatch-quarkus-parent</artifactId>
     <version>1.1.0-SNAPSHOT</version>
-    <relativePath>../pom.xml</relativePath>
+    <relativePath>../swatch-quarkus-parent/pom.xml</relativePath>
   </parent>
 
   <artifactId>swatch-model-metrics-hbi</artifactId>
@@ -19,16 +19,10 @@
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-annotations</artifactId>
-      <version>2.17.2</version>
     </dependency>
     <dependency>
       <groupId>jakarta.validation</groupId>
       <artifactId>jakarta.validation-api</artifactId>
-      <version>3.1.1</version>
-    </dependency>
-    <dependency>
-      <groupId>org.projectlombok</groupId>
-      <artifactId>lombok</artifactId>
     </dependency>
     <!-- Only for unit tests -->
     <dependency>

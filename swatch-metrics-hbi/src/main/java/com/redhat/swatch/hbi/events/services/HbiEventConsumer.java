@@ -20,10 +20,8 @@
  */
 package com.redhat.swatch.hbi.events.services;
 
-import static com.redhat.swatch.hbi.events.configuration.Channels.HBI_HOST_EVENTS_IN;
-import static com.redhat.swatch.hbi.events.HbiEventConstants.EVENT_SERVICE_TYPE;
-import static com.redhat.swatch.hbi.events.HbiEventConstants.EVENT_SOURCE;
 import static com.redhat.swatch.hbi.events.HbiEventConstants.EVENTS_METRIC;
+import static com.redhat.swatch.hbi.events.configuration.Channels.HBI_HOST_EVENTS_IN;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
