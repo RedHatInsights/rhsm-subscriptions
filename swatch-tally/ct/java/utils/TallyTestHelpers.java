@@ -79,6 +79,7 @@ public class TallyTestHelpers {
         service
             .given()
             .header("x-rh-swatch-psk", "placeholder")
+            .header("x-rh-swatch-synchronous-request", "true")
             .put("/api/rhsm-subscriptions/v1/internal/rpc/tally/snapshots/" + orgId)
             .then()
             .extract()
@@ -94,6 +95,28 @@ public class TallyTestHelpers {
     }
 
     System.out.println("Tally sync endpoint called successfully for org: " + orgId);
+  }
+
+  public void asyncTallyNightly(String orgId, SwatchService service) throws Exception {
+    Response response =
+        service
+            .given()
+            .header("x-rh-swatch-psk", "placeholder")
+            .put("/api/rhsm-subscriptions/v1/internal/rpc/tally/snapshots/" + orgId)
+            .then()
+            .extract()
+            .response();
+
+    // Check response status
+    if (response.getStatusCode() != 200) {
+      throw new RuntimeException(
+          "Tally sync failed with status code: "
+              + response.getStatusCode()
+              + ", response body: "
+              + response.getBody().asString());
+    }
+
+    System.out.println("Async tally endpoint called successfully for org: " + orgId);
   }
 
   public void syncTallyHourly(String orgId, SwatchService service) throws Exception {

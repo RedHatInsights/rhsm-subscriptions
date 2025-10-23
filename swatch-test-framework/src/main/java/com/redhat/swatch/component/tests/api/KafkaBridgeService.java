@@ -45,7 +45,7 @@ import java.util.concurrent.TimeUnit;
 public class KafkaBridgeService extends RestService {
 
   private static final String CONTENT_TYPE = "application/vnd.kafka.json.v2+json";
-  private static final String CONSUMER_GROUP = "component-tests";
+  private static final String CONSUMER_GROUP = "component-tests-" + UUID.randomUUID().toString();
 
   // Consumers by topic
   private final Map<String, String> consumers = new HashMap<>();
@@ -119,56 +119,109 @@ public class KafkaBridgeService extends RestService {
       throw new IllegalArgumentException("No consumer for topic " + topic);
     }
 
-    Log.debug(
-        this, "Waiting for %d messages in topic %s using cached messages", expectedCount, topic);
+    Log.debug(this, "Waiting for %d messages in topic %s", expectedCount, topic);
 
     AwaitilityUtils.untilIsTrue(
         () -> {
           try {
-            // Get cached messages for this topic
+            // First check cached messages
             CopyOnWriteArrayList<Object> cachedMessages = messageCache.get(topic);
-            if (cachedMessages == null || cachedMessages.isEmpty()) {
-              Log.debug(this, "No cached messages found for topic %s", topic);
-              // If expecting 0 messages and cache is empty, that's success
-              return expectedCount == 0;
-            }
+            List<KafkaMessage<V>> allTypedMessages = new ArrayList<>();
 
-            Log.debug(this, "Found %d cached messages in topic %s", cachedMessages.size(), topic);
+            if (cachedMessages != null && !cachedMessages.isEmpty()) {
+              Log.debug(this, "Found %d cached messages in topic %s", cachedMessages.size(), topic);
 
-            // Convert cached messages to typed messages and validate
-            List<KafkaMessage<V>> typedMessages = new ArrayList<>();
-            for (Object rawMessage : cachedMessages) {
-              try {
-                // Parse the raw message as KafkaMessage<V>
-                String messageJson = JsonUtils.getObjectMapper().writeValueAsString(rawMessage);
-                TypeFactory typeFactory = JsonUtils.getObjectMapper().getTypeFactory();
-                JavaType messageType =
-                    typeFactory.constructParametricType(KafkaMessage.class, validator.getType());
-                KafkaMessage<V> typedMessage =
-                    JsonUtils.getObjectMapper().readValue(messageJson, messageType);
-                typedMessages.add(typedMessage);
-              } catch (Exception e) {
-                Log.debug(this, "Failed to parse cached message: %s", e.getMessage());
-                // Continue processing other messages - invalid messages are ignored
+              // Convert cached messages to typed messages
+              for (Object rawMessage : cachedMessages) {
+                try {
+                  String messageJson = JsonUtils.getObjectMapper().writeValueAsString(rawMessage);
+                  TypeFactory typeFactory = JsonUtils.getObjectMapper().getTypeFactory();
+                  JavaType messageType =
+                      typeFactory.constructParametricType(KafkaMessage.class, validator.getType());
+                  KafkaMessage<V> typedMessage =
+                      JsonUtils.getObjectMapper().readValue(messageJson, messageType);
+                  allTypedMessages.add(typedMessage);
+                } catch (Exception e) {
+                  Log.debug(this, "Failed to parse cached message: %s", e.getMessage());
+                }
               }
             }
 
-            Log.debug(this, "Successfully parsed %d messages from cache", typedMessages.size());
+            // If we don't have enough cached messages, poll directly for more
+            if (allTypedMessages.size() < expectedCount) {
+              Log.debug(
+                  this,
+                  "Not enough cached messages (%d < %d), polling directly",
+                  allTypedMessages.size(),
+                  expectedCount);
+
+              try {
+                Response response =
+                    given()
+                        .accept(CONTENT_TYPE)
+                        .queryParam("timeout", 2000) // 2 second timeout for direct poll
+                        .when()
+                        .get(
+                            "/consumers/" + CONSUMER_GROUP + "/instances/" + consumer + "/records");
+
+                if (response.getStatusCode() == 200) {
+                  String responseBody = response.getBody().asString();
+                  List<Map<String, Object>> rawMessages = parseRawMessages(responseBody);
+
+                  if (!rawMessages.isEmpty()) {
+                    Log.debug(this, "Found %d new messages from direct poll", rawMessages.size());
+
+                    // Convert new messages to typed messages
+                    for (Object rawMessage : rawMessages) {
+                      try {
+                        String messageJson =
+                            JsonUtils.getObjectMapper().writeValueAsString(rawMessage);
+                        TypeFactory typeFactory = JsonUtils.getObjectMapper().getTypeFactory();
+                        JavaType messageType =
+                            typeFactory.constructParametricType(
+                                KafkaMessage.class, validator.getType());
+                        KafkaMessage<V> typedMessage =
+                            JsonUtils.getObjectMapper().readValue(messageJson, messageType);
+                        allTypedMessages.add(typedMessage);
+                      } catch (Exception e) {
+                        Log.debug(this, "Failed to parse direct poll message: %s", e.getMessage());
+                      }
+                    }
+                  }
+                }
+              } catch (Exception e) {
+                Log.debug(this, "Direct poll failed: %s", e.getMessage());
+              }
+            }
+
+            Log.debug(this, "Total messages available: %d", allTypedMessages.size());
 
             // Validate messages
             int validCount = 0;
-            for (var message : typedMessages) {
+            for (var message : allTypedMessages) {
               if (validator.test(message.getValue())) {
                 validCount++;
                 Log.debug(this, "Valid message found: %s", message.getValue());
               }
             }
 
-            Log.debug(this, "Found %d valid messages out of %d", validCount, typedMessages.size());
-            return validCount >= expectedCount;
+            Log.debug(
+                this,
+                "Found %d valid messages out of %d total",
+                validCount,
+                allTypedMessages.size());
+
+            // Return true if we have enough valid messages
+            boolean hasEnoughMessages = validCount >= expectedCount;
+            if (hasEnoughMessages) {
+              Log.info(
+                  this, "Found sufficient valid messages (%d >= %d)", validCount, expectedCount);
+            }
+
+            return hasEnoughMessages;
 
           } catch (Exception e) {
-            Log.debug(this, "Error checking cached messages: %s", e.getMessage());
+            Log.debug(this, "Error checking messages: %s", e.getMessage());
             return false;
           }
         },
@@ -200,7 +253,7 @@ public class KafkaBridgeService extends RestService {
                 "format",
                 "json",
                 "auto.offset.reset",
-                "latest",
+                "earliest",
                 "enable.auto.commit",
                 true,
                 "consumer.request.timeout.ms",

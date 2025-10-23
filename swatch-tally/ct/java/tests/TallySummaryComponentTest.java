@@ -20,12 +20,11 @@
  */
 package tests;
 
-import static com.redhat.swatch.component.tests.utils.Topics.SERVICE_INSTANCE_INGRESS;
+import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 
-import com.redhat.swatch.component.tests.api.MessageValidator;
+import api.MessageValidators;
 import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.Test;
@@ -34,14 +33,14 @@ import utils.TallyTestHelpers;
 public class TallySummaryComponentTest extends BaseTallyComponentTest {
 
   TallyTestHelpers helpers = new TallyTestHelpers();
-  final String testOrgId = helpers.generateRandomOrgId(); // Use random org ID
-  final String testInstanceId = UUID.randomUUID().toString();
-  final String testEventId = UUID.randomUUID().toString();
-  private static final String TEST_PRODUCT_ID = "RHEL for x86";
+  private static final String TEST_PRODUCT_ID = "rhel-for-x86-els-payg";
   private static final String TEST_METRIC_ID = "VCPUS";
 
   @Test
   public void testTallyNightlySummaryEmitsGranularityDaily() {
+    final String testOrgId = helpers.generateRandomOrgId(); // Use random org ID
+    final String testInstanceId = UUID.randomUUID().toString();
+    final String testEventId = UUID.randomUUID().toString();
     // Step 1: Create hosts in HBI database (simulated by creating events)
     // This step is handled by the event creation below
 
@@ -64,14 +63,14 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
             testOrgId, testInstanceId, now.minusHours(5).toString(), testEventId, 1.0f);
 
     // Produce events to Kafka
-    kafkaBridge.produceKafkaMessage(SERVICE_INSTANCE_INGRESS, event1);
-    kafkaBridge.produceKafkaMessage(SERVICE_INSTANCE_INGRESS, event2);
-    kafkaBridge.produceKafkaMessage(SERVICE_INSTANCE_INGRESS, event3);
-    kafkaBridge.produceKafkaMessage(SERVICE_INSTANCE_INGRESS, event4);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event1);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event2);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event3);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event4);
 
-    // Step 3: Run nightly tally using internal RPC endpoint
+    // Step 3: Run nightly tally using internal RPC endpoint (async)
     try {
-      helpers.syncTallyNightly(testOrgId, service);
+      helpers.asyncTallyNightly(testOrgId, service);
     } catch (Exception e) {
       throw new RuntimeException("Failed to sync tally", e);
     }
@@ -79,18 +78,8 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     // Wait for tally messages to be produced
     kafkaBridge.waitForKafkaMessage(
         TALLY,
-        new MessageValidator<>(
-            message -> {
-              return message.contains(testOrgId) && message.contains(TEST_METRIC_ID);
-            },
-            String.class),
-        1); // Expected count of messages
-
-    // Step 4: Verify hourly granularity endpoint works
-    OffsetDateTime ending = OffsetDateTime.now();
-    OffsetDateTime beginning = ending.minusHours(24);
-    String beginningStr = beginning.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
-    String endingStr = ending.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+        MessageValidators.tallySummaryMatches(testOrgId, TEST_PRODUCT_ID, TEST_METRIC_ID),
+        3); // Expected count of messages
   }
 
   @Test
@@ -120,10 +109,10 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
             testOrgId, testInstanceId, now.minusMinutes(15).toString(), testEventId, 1.0f);
 
     // Produce events to Kafka
-    kafkaBridge.produceKafkaMessage(SERVICE_INSTANCE_INGRESS, event1);
-    kafkaBridge.produceKafkaMessage(SERVICE_INSTANCE_INGRESS, event2);
-    kafkaBridge.produceKafkaMessage(SERVICE_INSTANCE_INGRESS, event3);
-    kafkaBridge.produceKafkaMessage(SERVICE_INSTANCE_INGRESS, event4);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event1);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event2);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event3);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event4);
 
     // Step 3: Run hourly tally
     try {
@@ -135,11 +124,7 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     // Wait for tally messages to be produced
     kafkaBridge.waitForKafkaMessage(
         TALLY,
-        new MessageValidator<>(
-            message -> {
-              return message.contains(testOrgId) && message.contains(TEST_METRIC_ID);
-            },
-            String.class),
-        1); // Expected count of messages
+        MessageValidators.tallySummaryMatches(testOrgId, TEST_PRODUCT_ID, TEST_METRIC_ID),
+        3); // Expected count of messages
   }
 }

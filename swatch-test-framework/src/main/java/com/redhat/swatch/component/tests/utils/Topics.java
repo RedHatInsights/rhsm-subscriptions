@@ -26,7 +26,7 @@ public final class Topics {
       SUFFIX + "billable-usage-hourly-aggregate";
   public static final String BILLABLE_USAGE_STATUS = SUFFIX + "billable-usage.status";
   public static final String UTILIZATION = SUFFIX + "utilization";
-  public static final String SERVICE_INSTANCE_INGRESS = SUFFIX + "service-instance-ingress";
+  public static final String SWATCH_SERVICE_INSTANCE_INGRESS = SUFFIX + "service-instance-ingress";
   public static final String TALLY = SUFFIX + "tally";
 
   private Topics() {}
