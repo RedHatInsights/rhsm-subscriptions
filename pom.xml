@@ -144,6 +144,11 @@
       </dependency>
       <dependency>
         <groupId>com.redhat.swatch</groupId>
+        <artifactId>swatch-model-metrics-hbi</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.redhat.swatch</groupId>
         <artifactId>swatch-common-resteasy</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -561,6 +566,7 @@
         <module>swatch-common-models</module>
         <module>swatch-common-testcontainers</module>
         <module>swatch-model-events</module>
+        <module>swatch-model-metrics-hbi</module>
         <module>swatch-model-billable-usage</module>
         <module>swatch-database-migrations</module>
         <!-- Services -->
@@ -597,7 +603,10 @@
       <modules>
         <!-- Dependencies -->
         <module>swatch-quarkus-parent</module>
+        <module>swatch-common-models</module>
+        <module>swatch-model-events</module>
         <module>swatch-model-billable-usage</module>
+        <module>swatch-model-metrics-hbi</module>
         <!-- Test framework module -->
         <module>swatch-test-framework</module>
         <!-- Services with component tests -->

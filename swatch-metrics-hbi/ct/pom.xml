@@ -20,8 +20,23 @@
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch</groupId>
-      <artifactId>swatch-metrics-hbi</artifactId>
-      <version>1.1.0-SNAPSHOT</version>
+      <artifactId>swatch-model-metrics-hbi</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-model-events</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-common-models</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-annotations</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.annotation</groupId>
+      <artifactId>jakarta.annotation-api</artifactId>
     </dependency>
   </dependencies>
 
@@ -51,6 +66,7 @@
                 <configuration>
                   <sources>
                     <source>${project.basedir}/java</source>
+                    <source>${project.basedir}/target/generated-sources</source>
                   </sources>
                 </configuration>
               </execution>
@@ -66,6 +82,42 @@
                       <directory>${project.basedir}/resources</directory>
                     </resource>
                   </resources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <!-- OpenAPI Generator for request/response models -->
+          <plugin>
+            <groupId>org.openapitools</groupId>
+            <artifactId>openapi-generator-maven-plugin</artifactId>
+            <configuration>
+              <generatorName>java</generatorName>
+              <library>rest-assured</library>
+              <output>${project.build.directory}/generated-sources</output>
+              <generateModels>true</generateModels>
+              <generateApis>false</generateApis>
+              <generateApiTests>false</generateApiTests>
+              <generateModelTests>false</generateModelTests>
+              <generateSupportingFiles>false</generateSupportingFiles>
+              <configOptions>
+                <serializationLibrary>jackson</serializationLibrary>
+                <useJakartaEe>true</useJakartaEe>
+                <dateLibrary>java8</dateLibrary>
+                <hideGenerationTimestamp>true</hideGenerationTimestamp>
+                <openApiNullable>false</openApiNullable>
+              </configOptions>
+            </configuration>
+            <executions>
+              <execution>
+                <id>generate-test-models</id>
+                <phase>generate-test-sources</phase>
+                <goals>
+                  <goal>generate</goal>
+                </goals>
+                <configuration>
+                  <inputSpec>${project.basedir}/../src/main/resources/META-INF/openapi.yaml</inputSpec>
+                  <modelPackage>com.redhat.swatch.hbi.model</modelPackage>
                 </configuration>
               </execution>
             </executions>
