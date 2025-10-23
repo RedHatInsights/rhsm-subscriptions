@@ -25,6 +25,6 @@ import com.redhat.swatch.component.tests.resources.containers.LocalContainerMana
 public class LocalWiremockManagedResource extends LocalContainerManagedResource {
 
   public LocalWiremockManagedResource() {
-    super("wiremock$");
+    super("wiremock");
   }
 }
