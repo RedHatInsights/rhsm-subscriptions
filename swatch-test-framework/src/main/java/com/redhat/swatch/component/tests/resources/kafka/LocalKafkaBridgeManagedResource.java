@@ -25,6 +25,6 @@ import com.redhat.swatch.component.tests.resources.containers.LocalContainerMana
 public class LocalKafkaBridgeManagedResource extends LocalContainerManagedResource {
 
   public LocalKafkaBridgeManagedResource() {
-    super("kafka-bridge$");
+    super("kafka-bridge");
   }
 }
