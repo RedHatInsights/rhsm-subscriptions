@@ -68,7 +68,7 @@ public class TallyTestHelpers {
     // Create measurement with vCPUs metric
     var measurement = new org.candlepin.subscriptions.json.Measurement();
     measurement.setValue((double) value);
-    measurement.setMetricId("vCPUs");
+    measurement.setMetricId("VCPUS");
     event.setMeasurements(List.of(measurement));
 
     return event;

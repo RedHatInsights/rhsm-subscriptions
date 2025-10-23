@@ -38,7 +38,7 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
   final String testInstanceId = UUID.randomUUID().toString();
   final String testEventId = UUID.randomUUID().toString();
   private static final String TEST_PRODUCT_ID = "RHEL for x86";
-  private static final String TEST_METRIC_ID = "vCPUs";
+  private static final String TEST_METRIC_ID = "VCPUS";
 
   @Test
   public void testTallyNightlySummaryEmitsGranularityDaily() {
@@ -76,14 +76,11 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
       throw new RuntimeException("Failed to sync tally", e);
     }
 
-    // Wait for tally messages to be produced (with extended timeout for task processing)
-    // The task needs to be: queued -> consumed -> processed -> snapshots created -> messages
-    // produced
+    // Wait for tally messages to be produced
     kafkaBridge.waitForKafkaMessage(
         TALLY,
         new MessageValidator<>(
             message -> {
-              System.out.println("Received TALLY message: " + message);
               return message.contains(testOrgId) && message.contains(TEST_METRIC_ID);
             },
             String.class),
@@ -135,14 +132,11 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
       throw new RuntimeException("Failed to sync tally", e);
     }
 
-    // Wait for tally messages to be produced (with extended timeout for task processing)
-    // The task needs to be: queued -> consumed -> processed -> snapshots created -> messages
-    // produced
+    // Wait for tally messages to be produced
     kafkaBridge.waitForKafkaMessage(
         TALLY,
         new MessageValidator<>(
             message -> {
-              System.out.println("Received TALLY message: " + message);
               return message.contains(testOrgId) && message.contains(TEST_METRIC_ID);
             },
             String.class),
