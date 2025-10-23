@@ -16,6 +16,11 @@
   <dependencies>
     <dependency>
       <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-model-metrics-hbi</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
       <artifactId>swatch-common-health</artifactId>
     </dependency>
     <dependency>
@@ -178,6 +183,7 @@
         <artifactId>quarkus-maven-plugin</artifactId>
       </plugin>
 
+      <!-- OpenAPI generation moved to swatch-model-metrics-hbi shared module -->
       <plugin>
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
@@ -189,13 +195,13 @@
             <configuration>
               <inputSpec>${project.basedir}/src/main/resources/META-INF/openapi.yaml</inputSpec>
               <generatorName>java</generatorName>
-              <modelPackage>com.redhat.swatch.hbi.model</modelPackage>
               <apiPackage>com.redhat.swatch.hbi.api</apiPackage>
               <invokerPackage>com.redhat.swatch.hbi</invokerPackage>
               <groupId>com.redhat.swatch.hbi</groupId>
               <output>${project.build.directory}/generated-sources</output>
               <generateApiTests>false</generateApiTests>
               <generateModelTests>false</generateModelTests>
+              <generateModels>false</generateModels>
               <configOptions>
                 <interfaceOnly>true</interfaceOnly>
                 <library>microprofile</library>

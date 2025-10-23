@@ -1,0 +1,67 @@
+---
+openapi: "3.0.2"
+info:
+  title: Swatch Metrics HBI Internal API
+  version: 1.0.0
+  description: Internal API for Swatch Metrics HBI service outbox operations
+
+paths:
+  /api/swatch-metrics-hbi/internal/rpc/outbox/flush:
+    put:
+      operationId: flushOutbox
+      summary: "Trigger outbox flush logic"
+      description: "Trigger the outbox-flush logic."
+      parameters:
+        - name: x-rh-swatch-synchronous-request
+          in: header
+          required: false
+          schema:
+            type: boolean
+            default: "false"
+            description: "When present, and true, a synchronous request is made."
+      responses:
+        '200':
+          description: "Outbox flush completed successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlushResponse'
+        '500':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      security:
+        - service: [ ]
+        - test: [ ]
+
+
+components:
+  schemas:
+    FlushResponse:
+      type: object
+      properties:
+        async:
+          type: boolean
+          default: true
+          description: Whether or not an async request was made.
+        status:
+          type: string
+          enum: [SUCCESS, STARTED]
+          description: "Status of the flush operation"
+          example: "SUCCESS"
+        count:
+          type: integer
+          format: int64
+          nullable: true
+          description: The number of outbox records flushed (only set for synchronous requests, null otherwise).
+
+  securitySchemes:
+    service:
+      type: apiKey
+      description: API is available for services
+      name: x-rh-swatch-psk
+      in: header
+    test:
+      type: apiKey
+      description: API is available for testing purposes (pre-production environments
+        only)
+      name: x-rh-swatch-psk
+      in: header

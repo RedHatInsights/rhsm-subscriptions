@@ -20,15 +20,11 @@
  */
 package com.redhat.swatch.hbi.events.normalization;
 
-import static com.redhat.swatch.hbi.events.normalization.facts.QpcFacts.QPC_FACTS_NAMESPACE;
 import static com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts.RHSM_FACTS_NAMESPACE;
-import static com.redhat.swatch.hbi.events.normalization.facts.SatelliteFacts.SATELLITE_FACTS_NAMESPACE;
 
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostFacts;
-import com.redhat.swatch.hbi.events.normalization.facts.QpcFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
-import com.redhat.swatch.hbi.events.normalization.facts.SatelliteFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
 import java.util.Map;
 import java.util.Optional;
@@ -54,8 +50,6 @@ public class Host {
   @Getter private final SystemProfileFacts systemProfileFacts;
 
   private final RhsmFacts rhsmFacts;
-  private final SatelliteFacts satelliteFacts;
-  private final QpcFacts qpcFacts;
 
   public Host(HbiHost host) {
     this.orgId = host.getOrgId();
@@ -73,29 +67,11 @@ public class Host {
             ? new RhsmFacts(facts.get(RHSM_FACTS_NAMESPACE))
             : null;
 
-    satelliteFacts =
-        facts.containsKey(SATELLITE_FACTS_NAMESPACE)
-            ? new SatelliteFacts(facts.get(SATELLITE_FACTS_NAMESPACE))
-            : null;
-
-    qpcFacts =
-        facts.containsKey(QPC_FACTS_NAMESPACE)
-            ? new QpcFacts(facts.get(QPC_FACTS_NAMESPACE))
-            : null;
-
     systemProfileFacts = new SystemProfileFacts(host);
   }
 
   public Optional<RhsmFacts> getRhsmFacts() {
     return Optional.ofNullable(rhsmFacts);
-  }
-
-  public Optional<SatelliteFacts> getSatelliteFacts() {
-    return Optional.ofNullable(satelliteFacts);
-  }
-
-  public Optional<QpcFacts> getQpcFacts() {
-    return Optional.ofNullable(qpcFacts);
   }
 
   private Map<String, HbiHostFacts> getFacts(HbiHost host) {

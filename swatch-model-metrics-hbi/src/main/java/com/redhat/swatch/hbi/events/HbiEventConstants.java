@@ -18,21 +18,15 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.hbi.events.normalization;
+package com.redhat.swatch.hbi.events;
 
-import java.util.Optional;
-import lombok.Setter;
+/** Constants used for HBI event processing across multiple modules. */
+public final class HbiEventConstants {
 
-@Setter
-public class NormalizedMeasurements {
-  private Integer cores;
-  private Integer sockets;
+  public static final String EVENT_SERVICE_TYPE = "HBI_HOST";
+  public static final String EVENT_SOURCE = "HBI_EVENT";
 
-  public Optional<Integer> getCores() {
-    return Optional.ofNullable(cores);
-  }
-
-  public Optional<Integer> getSockets() {
-    return Optional.ofNullable(sockets);
+  private HbiEventConstants() {
+    // Utility class, no instantiation
   }
 }
