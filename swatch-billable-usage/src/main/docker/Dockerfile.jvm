@@ -121,10 +121,10 @@ USER default
 ENV LANGUAGE='en_US:en'
 
 # We make four distinct layers so if there are application changes the library layers can be re-used
-COPY --from=0 --chown=default:root --chmod=775 /stage/swatch-billable-usage/target/quarkus-app/lib/ /deployments/lib/
-COPY --from=0 --chown=default:root --chmod=775 /stage/swatch-billable-usage/target/quarkus-app/*.jar /deployments/
-COPY --from=0 --chown=default:root --chmod=775 /stage/swatch-billable-usage/target/quarkus-app/app/ /deployments/app/
-COPY --from=0 --chown=default:root --chmod=775 /stage/swatch-billable-usage/target/quarkus-app/quarkus/ /deployments/quarkus/
+COPY --from=0 --chown=default:root --chmod=775 /stage/${PROJECT_NAME}/target/quarkus-app/lib/ /deployments/lib/
+COPY --from=0 --chown=default:root --chmod=775 /stage/${PROJECT_NAME}/target/quarkus-app/*.jar /deployments/
+COPY --from=0 --chown=default:root --chmod=775 /stage/${PROJECT_NAME}/target/quarkus-app/app/ /deployments/app/
+COPY --from=0 --chown=default:root --chmod=775 /stage/${PROJECT_NAME}/target/quarkus-app/quarkus/ /deployments/quarkus/
 
 # Required by Red Hat OpenShift Software Certification Policy Guide
 COPY --from=0 /stage/LICENSE /licenses/
