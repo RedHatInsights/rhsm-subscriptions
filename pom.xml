@@ -561,6 +561,7 @@
         <module>swatch-common-models</module>
         <module>swatch-common-testcontainers</module>
         <module>swatch-model-events</module>
+        <module>swatch-model-metrics-hbi</module>
         <module>swatch-model-billable-usage</module>
         <module>swatch-database-migrations</module>
         <!-- Services -->
