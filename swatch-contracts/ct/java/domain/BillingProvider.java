@@ -22,4 +22,13 @@ package domain;
 
 public enum BillingProvider {
   AWS;
+
+  public String toApiModel() {
+    switch (this) {
+      case AWS:
+        return "aws";
+      default:
+        throw new IllegalArgumentException("Unsupported billing provider: " + this);
+    }
+  }
 }

@@ -87,6 +87,20 @@ public class MeasurementMetricIdTransformer {
       return;
     }
 
+    // If product tags are null or empty, remove all metrics
+    if (contract.getOffering().getProductTags() == null
+        || contract.getOffering().getProductTags().isEmpty()) {
+      log.warn(
+          "No product tags found for contract {} and sku {}. Removing all invalid metrics {}.",
+          contract.getOrgId(),
+          contract.getOffering().getSku(),
+          contract.getMetrics());
+      if (contract.getMetrics() != null) {
+        contract.getMetrics().clear();
+      }
+      return;
+    }
+
     // resolve contract measurements with the correct metrics from sync service
     // this will keep subscriptions and contract metrics consistent with its dimension to SWATCH
     // metric ID
