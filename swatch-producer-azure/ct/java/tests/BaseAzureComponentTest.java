@@ -20,6 +20,7 @@
  */
 package tests;
 
+import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_HOURLY_AGGREGATE;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_STATUS;
 
 import api.AzureWiremockService;
@@ -29,6 +30,7 @@ import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.Quarkus;
 import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.api.Wiremock;
+import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.junit.jupiter.api.Tag;
 
 @ComponentTest
@@ -38,7 +40,9 @@ public class BaseAzureComponentTest {
 
   @KafkaBridge
   static KafkaBridgeService kafkaBridge =
-      new KafkaBridgeService().subscribeToTopic(BILLABLE_USAGE_STATUS);
+      new KafkaBridgeService()
+          .subscribeToTopic(BILLABLE_USAGE_HOURLY_AGGREGATE, BillableUsageAggregate.class)
+          .subscribeToTopic(BILLABLE_USAGE_STATUS, BillableUsageAggregate.class);
 
   @Wiremock static AzureWiremockService wiremock = new AzureWiremockService();
 

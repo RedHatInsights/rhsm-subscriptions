@@ -58,6 +58,7 @@ public class SimpleAzureComponentTest extends BaseAzureComponentTest {
         BILLABLE_USAGE_STATUS,
         m -> {
           String messageValue = m.value().toString();
+          System.out.println("Message value " + messageValue);
           return messageValue.contains(billingAccountId) && messageValue.contains("succeeded");
         },
         1);

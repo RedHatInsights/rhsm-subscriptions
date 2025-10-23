@@ -49,10 +49,16 @@ public class KafkaBridgeService extends BaseService<KafkaBridgeService> {
   private static final String CONSUMER_GROUP = "component-tests";
 
   // Consumers by topic
-  private final Map<String, KafkaConsumer<String, Object>> consumers = new HashMap<>();
+  private final Map<String, KafkaConsumer<String, ?>> consumers = new HashMap<>();
+  private final Map<String, Class<?>> consumerTypes = new HashMap<>();
 
   public KafkaBridgeService subscribeToTopic(String topic) {
+    return subscribeToTopic(topic, Object.class);
+  }
+
+  public KafkaBridgeService subscribeToTopic(String topic, Class<?> clazz) {
     consumers.put(topic, null);
+    consumerTypes.put(topic, clazz);
     return this;
   }
 
@@ -61,11 +67,12 @@ public class KafkaBridgeService extends BaseService<KafkaBridgeService> {
     super.start();
 
     for (var consumer : consumers.entrySet()) {
-      consumer.setValue(createConsumerForTopic(consumer.getKey()));
+      String consumerTopic = consumer.getKey();
+      consumer.setValue(createConsumerForTopic(consumerTopic, consumerTypes.get(consumerTopic)));
     }
   }
 
-  private Properties kafkaConsumerProperties(String groupId) {
+  private Properties kafkaConsumerProperties(String groupId, Class<?> clazz) {
     Properties config = new Properties();
     config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, getHost() + ":" + getMappedPort(9092));
     config.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
@@ -75,6 +82,7 @@ public class KafkaBridgeService extends BaseService<KafkaBridgeService> {
     config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
     config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
     config.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
+    config.put(KafkaJsonDeserializer.VALUE_DEFAULT_TYPE, clazz);
     return config;
   }
 
@@ -101,9 +109,9 @@ public class KafkaBridgeService extends BaseService<KafkaBridgeService> {
     super.stop();
   }
 
-  public void produceKafkaMessage(String topic, Object value) {
-    try (KafkaProducer<String, Object> producer = new KafkaProducer<>(kafkaProducerProperties())) {
-      ProducerRecord<String, Object> producerRecord = new ProducerRecord<>(topic, value);
+  public <T> void produceKafkaMessage(String topic, T value) {
+    try (KafkaProducer<String, T> producer = new KafkaProducer<>(kafkaProducerProperties())) {
+      ProducerRecord<String, T> producerRecord = new ProducerRecord<>(topic, value);
 
       try {
         // Send the record and get a Future for the send result
@@ -128,8 +136,9 @@ public class KafkaBridgeService extends BaseService<KafkaBridgeService> {
     }
   }
 
+  @SuppressWarnings("unchecked")
   public void waitForKafkaMessage(
-      String topic, Predicate<ConsumerRecord<String, Object>> messageValidator, int expectedCount) {
+      String topic, Predicate<ConsumerRecord<String, ?>> messageValidator, int expectedCount) {
     var consumer = consumers.get(topic);
     if (consumer == null) {
       throw new IllegalArgumentException("No consumer for topic " + topic);
@@ -137,7 +146,9 @@ public class KafkaBridgeService extends BaseService<KafkaBridgeService> {
 
     AwaitilityUtils.untilIsTrue(
         () -> {
-          ConsumerRecords<String, Object> records = consumer.poll(Duration.ofSeconds(1));
+          // Safe cast: all consumers are created with Object as the value type
+          ConsumerRecords<String, Object> records =
+              (ConsumerRecords<String, Object>) consumer.poll(Duration.ofSeconds(1));
           if (records.count() >= expectedCount) {
             if (expectedCount == 0) {
               return true;
@@ -149,17 +160,17 @@ public class KafkaBridgeService extends BaseService<KafkaBridgeService> {
         AwaitilitySettings.defaults().withService(this));
   }
 
-  private void deleteConsumer(KafkaConsumer<String, Object> consumerInstance) {
+  private void deleteConsumer(KafkaConsumer<String, ?> consumerInstance) {
     try (consumerInstance) {
       Log.debug(this, "Closing consumer: %s", consumerInstance);
     }
   }
 
   @SuppressWarnings("java:S2095")
-  private KafkaConsumer<String, Object> createConsumerForTopic(String topic) {
-    Log.debug(this, "Creating consumer for topic '%s'", topic);
-    var config = this.kafkaConsumerProperties(CONSUMER_GROUP);
-    var consumer = new KafkaConsumer<String, Object>(config);
+  private <T> KafkaConsumer<String, T> createConsumerForTopic(String topic, Class<T> clazz) {
+    Log.debug(this, "Creating consumer for topic '%s' with value type %s", topic, clazz.getName());
+    var config = this.kafkaConsumerProperties(CONSUMER_GROUP, clazz);
+    var consumer = new KafkaConsumer<String, T>(config);
     consumer.subscribe(List.of(topic));
     return consumer;
   }
