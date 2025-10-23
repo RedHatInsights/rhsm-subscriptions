@@ -20,13 +20,15 @@
  */
 package com.redhat.swatch.hbi.events.ct;
 
+import static com.redhat.swatch.hbi.events.constants.HbiEventConstants.EVENT_SERVICE_TYPE;
+import static com.redhat.swatch.hbi.events.constants.HbiEventConstants.EVENT_SOURCE;
+
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
-import com.redhat.swatch.hbi.events.normalization.Host;
-import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
-import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
-import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
-import com.redhat.swatch.hbi.events.services.HbiEventConsumer;
+import com.redhat.swatch.hbi.events.normalization.model.Host;
+import com.redhat.swatch.hbi.events.normalization.model.NormalizedEventType;
+import com.redhat.swatch.hbi.events.normalization.model.facts.RhsmFacts;
+import com.redhat.swatch.hbi.events.normalization.model.facts.SystemProfileFacts;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -54,8 +56,8 @@ public class SwatchEventHelper {
       Set<String> tags,
       List<Measurement> measurements) {
     return new Event()
-        .withServiceType(HbiEventConsumer.EVENT_SERVICE_TYPE)
-        .withEventSource(HbiEventConsumer.EVENT_SOURCE)
+        .withServiceType(EVENT_SERVICE_TYPE)
+        .withEventSource(EVENT_SOURCE)
         .withEventType(eventType.toString())
         .withTimestamp(timestamp)
         .withExpiration(Optional.of(timestamp.plusHours(1)))

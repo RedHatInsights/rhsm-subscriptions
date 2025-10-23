@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.hbi.events.normalization.facts;
+package com.redhat.swatch.hbi.events.normalization.model.facts;
 
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import java.util.ArrayList;

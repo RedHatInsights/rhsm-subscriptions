@@ -24,10 +24,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.redhat.swatch.hbi.events.normalization.facts.QpcFacts;
-import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
-import com.redhat.swatch.hbi.events.normalization.facts.SatelliteFacts;
-import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
+import com.redhat.swatch.hbi.events.normalization.model.facts.QpcFacts;
+import com.redhat.swatch.hbi.events.normalization.model.facts.RhsmFacts;
+import com.redhat.swatch.hbi.events.normalization.model.facts.SatelliteFacts;
+import com.redhat.swatch.hbi.events.normalization.model.facts.SystemProfileFacts;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.Set;

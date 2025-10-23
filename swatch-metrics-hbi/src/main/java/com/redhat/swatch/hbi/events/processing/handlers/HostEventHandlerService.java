@@ -20,19 +20,21 @@
  */
 package com.redhat.swatch.hbi.events.processing.handlers;
 
+import static com.redhat.swatch.hbi.events.constants.HbiEventConstants.EVENT_SERVICE_TYPE;
+import static com.redhat.swatch.hbi.events.constants.HbiEventConstants.EVENT_SOURCE;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.exception.UnrecoverableMessageProcessingException;
 import com.redhat.swatch.hbi.events.normalization.FactNormalizer;
-import com.redhat.swatch.hbi.events.normalization.Host;
 import com.redhat.swatch.hbi.events.normalization.MeasurementNormalizer;
-import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
-import com.redhat.swatch.hbi.events.normalization.NormalizedFacts;
-import com.redhat.swatch.hbi.events.normalization.NormalizedMeasurements;
+import com.redhat.swatch.hbi.events.normalization.model.Host;
+import com.redhat.swatch.hbi.events.normalization.model.NormalizedEventType;
+import com.redhat.swatch.hbi.events.normalization.model.NormalizedFacts;
+import com.redhat.swatch.hbi.events.normalization.model.NormalizedMeasurements;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
-import com.redhat.swatch.hbi.events.services.HbiEventConsumer;
 import com.redhat.swatch.hbi.events.services.HbiHostRelationshipService;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.time.OffsetDateTime;
@@ -267,8 +269,8 @@ public class HostEventHandlerService {
       OffsetDateTime timestamp) {
     OffsetDateTime eventTimestamp = clock.startOfHour(timestamp);
     return new Event()
-        .withServiceType(HbiEventConsumer.EVENT_SERVICE_TYPE)
-        .withEventSource(HbiEventConsumer.EVENT_SOURCE)
+        .withServiceType(EVENT_SERVICE_TYPE)
+        .withEventSource(EVENT_SOURCE)
         .withEventType(eventType.toString())
         .withTimestamp(eventTimestamp)
         .withExpiration(Optional.of(eventTimestamp.plusHours(1)))

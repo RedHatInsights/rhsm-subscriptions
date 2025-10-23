@@ -18,18 +18,18 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.hbi.events.normalization;
+package com.redhat.swatch.hbi.events.normalization.model;
 
-import static com.redhat.swatch.hbi.events.normalization.facts.QpcFacts.QPC_FACTS_NAMESPACE;
-import static com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts.RHSM_FACTS_NAMESPACE;
-import static com.redhat.swatch.hbi.events.normalization.facts.SatelliteFacts.SATELLITE_FACTS_NAMESPACE;
+import static com.redhat.swatch.hbi.events.normalization.model.facts.QpcFacts.QPC_FACTS_NAMESPACE;
+import static com.redhat.swatch.hbi.events.normalization.model.facts.RhsmFacts.RHSM_FACTS_NAMESPACE;
+import static com.redhat.swatch.hbi.events.normalization.model.facts.SatelliteFacts.SATELLITE_FACTS_NAMESPACE;
 
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostFacts;
-import com.redhat.swatch.hbi.events.normalization.facts.QpcFacts;
-import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
-import com.redhat.swatch.hbi.events.normalization.facts.SatelliteFacts;
-import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
+import com.redhat.swatch.hbi.events.normalization.model.facts.QpcFacts;
+import com.redhat.swatch.hbi.events.normalization.model.facts.RhsmFacts;
+import com.redhat.swatch.hbi.events.normalization.model.facts.SatelliteFacts;
+import com.redhat.swatch.hbi.events.normalization.model.facts.SystemProfileFacts;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;

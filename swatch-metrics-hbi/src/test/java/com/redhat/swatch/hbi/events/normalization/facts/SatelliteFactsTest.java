@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostFacts;
+import com.redhat.swatch.hbi.events.normalization.model.facts.SatelliteFacts;
 import org.junit.jupiter.api.Test;
 
 class SatelliteFactsTest {

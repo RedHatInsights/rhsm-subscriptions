@@ -21,6 +21,7 @@
 package com.redhat.swatch.hbi.events.services;
 
 import static com.redhat.swatch.hbi.events.configuration.Channels.HBI_HOST_EVENTS_IN;
+import static com.redhat.swatch.hbi.events.constants.HbiEventConstants.EVENTS_METRIC;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -45,9 +46,6 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 @ApplicationScoped
 public class HbiEventConsumer {
 
-  public static final String EVENT_SERVICE_TYPE = "HBI_HOST";
-  public static final String EVENT_SOURCE = "HBI_EVENT";
-  public static final String EVENTS_METRIC = "rhsm-subscriptions.metrics-hbi.events";
   public static final String TIMED_EVENTS_METRIC = EVENTS_METRIC + ".timed";
   public static final String COUNTER_EVENTS_METRIC = EVENTS_METRIC + ".counter";
 

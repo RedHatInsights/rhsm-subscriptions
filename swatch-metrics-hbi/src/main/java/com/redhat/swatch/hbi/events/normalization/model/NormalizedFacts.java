@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.hbi.events.normalization;
+package com.redhat.swatch.hbi.events.normalization.model;
 
 import com.redhat.swatch.common.model.HardwareMeasurementType;
 import java.time.OffsetDateTime;

@@ -26,7 +26,7 @@ import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostFacts;
-import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
+import com.redhat.swatch.hbi.events.normalization.model.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.time.OffsetDateTime;

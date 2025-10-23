@@ -22,8 +22,10 @@ package com.redhat.swatch.hbi.events.normalization;
 
 import com.redhat.swatch.common.model.HardwareMeasurementType;
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
-import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
-import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
+import com.redhat.swatch.hbi.events.normalization.model.NormalizedFacts;
+import com.redhat.swatch.hbi.events.normalization.model.NormalizedMeasurements;
+import com.redhat.swatch.hbi.events.normalization.model.facts.RhsmFacts;
+import com.redhat.swatch.hbi.events.normalization.model.facts.SystemProfileFacts;
 import io.quarkus.runtime.util.StringUtil;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.Arrays;

@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
+import com.redhat.swatch.hbi.events.normalization.model.facts.SystemProfileFacts;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;

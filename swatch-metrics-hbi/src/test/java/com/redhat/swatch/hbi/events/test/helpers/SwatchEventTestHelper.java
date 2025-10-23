@@ -20,10 +20,12 @@
  */
 package com.redhat.swatch.hbi.events.test.helpers;
 
+import static com.redhat.swatch.hbi.events.constants.HbiEventConstants.EVENT_SERVICE_TYPE;
+import static com.redhat.swatch.hbi.events.constants.HbiEventConstants.EVENT_SOURCE;
+
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
-import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
-import com.redhat.swatch.hbi.events.services.HbiEventConsumer;
+import com.redhat.swatch.hbi.events.normalization.model.NormalizedEventType;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -84,8 +86,8 @@ public class SwatchEventTestHelper {
       List<Measurement> measurements) {
     OffsetDateTime eventTimestamp = clock.startOfHour(timestamp);
     return new Event()
-        .withServiceType(HbiEventConsumer.EVENT_SERVICE_TYPE)
-        .withEventSource(HbiEventConsumer.EVENT_SOURCE)
+        .withServiceType(EVENT_SERVICE_TYPE)
+        .withEventSource(EVENT_SOURCE)
         .withEventType(eventType.toString())
         .withTimestamp(eventTimestamp)
         .withExpiration(Optional.of(eventTimestamp.plusHours(1)))
@@ -121,8 +123,8 @@ public class SwatchEventTestHelper {
     String inventoryId =
         Objects.nonNull(deleteEvent.getId()) ? deleteEvent.getId().toString() : null;
     return new Event()
-        .withServiceType(HbiEventConsumer.EVENT_SERVICE_TYPE)
-        .withEventSource(HbiEventConsumer.EVENT_SOURCE)
+        .withServiceType(EVENT_SERVICE_TYPE)
+        .withEventSource(EVENT_SOURCE)
         .withEventType(NormalizedEventType.INSTANCE_DELETED.toString())
         .withTimestamp(eventTimestamp)
         .withExpiration(Optional.of(eventTimestamp.plusHours(1)))

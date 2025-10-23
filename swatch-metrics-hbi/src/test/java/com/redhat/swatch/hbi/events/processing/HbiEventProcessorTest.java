@@ -29,7 +29,7 @@ import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
-import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
+import com.redhat.swatch.hbi.events.normalization.model.facts.SystemProfileFacts;
 import com.redhat.swatch.hbi.events.test.helpers.HbiEventTestData;
 import com.redhat.swatch.hbi.events.test.helpers.HbiEventTestHelper;
 import io.quarkus.test.junit.QuarkusTest;

@@ -34,7 +34,7 @@ import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
-import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
+import com.redhat.swatch.hbi.events.normalization.model.NormalizedEventType;
 import com.redhat.swatch.hbi.events.processing.HbiEventProcessor;
 import com.redhat.swatch.hbi.events.repository.HbiEventOutbox;
 import com.redhat.swatch.hbi.events.repository.HbiEventOutboxRepository;

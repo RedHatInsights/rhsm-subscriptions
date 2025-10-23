@@ -31,7 +31,7 @@ import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
-import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
+import com.redhat.swatch.hbi.events.normalization.model.NormalizedEventType;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationshipRepository;
 import com.redhat.swatch.hbi.events.test.helpers.HbiEventTestData;

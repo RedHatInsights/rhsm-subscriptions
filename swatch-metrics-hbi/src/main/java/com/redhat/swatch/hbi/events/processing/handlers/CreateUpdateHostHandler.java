@@ -22,8 +22,8 @@ package com.redhat.swatch.hbi.events.processing.handlers;
 
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
-import com.redhat.swatch.hbi.events.normalization.Host;
-import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
+import com.redhat.swatch.hbi.events.normalization.model.Host;
+import com.redhat.swatch.hbi.events.normalization.model.facts.RhsmFacts;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;

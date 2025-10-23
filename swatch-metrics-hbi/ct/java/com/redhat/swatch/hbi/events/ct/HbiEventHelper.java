@@ -24,7 +24,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
-import com.redhat.swatch.hbi.events.normalization.Host;
+import com.redhat.swatch.hbi.events.normalization.model.Host;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;

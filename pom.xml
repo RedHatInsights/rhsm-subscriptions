@@ -597,7 +597,9 @@
       <modules>
         <!-- Dependencies -->
         <module>swatch-quarkus-parent</module>
+        <module>swatch-common-models</module>
         <module>swatch-model-billable-usage</module>
+        <module>swatch-model-events</module>
         <!-- Test framework module -->
         <module>swatch-test-framework</module>
         <!-- Services with component tests -->

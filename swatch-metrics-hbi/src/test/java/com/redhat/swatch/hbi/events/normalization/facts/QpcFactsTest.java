@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostFacts;
+import com.redhat.swatch.hbi.events.normalization.model.facts.QpcFacts;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;

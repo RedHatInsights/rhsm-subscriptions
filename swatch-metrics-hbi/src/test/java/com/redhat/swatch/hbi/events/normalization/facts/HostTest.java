@@ -25,7 +25,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostFacts;
-import com.redhat.swatch.hbi.events.normalization.Host;
+import com.redhat.swatch.hbi.events.normalization.model.Host;
+import com.redhat.swatch.hbi.events.normalization.model.facts.QpcFacts;
+import com.redhat.swatch.hbi.events.normalization.model.facts.RhsmFacts;
+import com.redhat.swatch.hbi.events.normalization.model.facts.SatelliteFacts;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
