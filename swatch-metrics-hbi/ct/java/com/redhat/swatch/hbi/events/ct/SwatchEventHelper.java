@@ -20,13 +20,13 @@
  */
 package com.redhat.swatch.hbi.events.ct;
 
+import com.redhat.swatch.hbi.events.HbiEventConstants;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.normalization.Host;
 import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
-import com.redhat.swatch.hbi.events.HbiEventConstants;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
