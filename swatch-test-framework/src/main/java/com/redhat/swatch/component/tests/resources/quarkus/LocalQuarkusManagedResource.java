@@ -55,7 +55,9 @@ public class LocalQuarkusManagedResource extends ManagedResource {
           "Quarkus may already be running or the port is used by another application",
           "One or more configuration errors have prevented the application from starting",
           "Attempting to start live reload endpoint to recover from previous Quarkus startup failure",
-          "Dev mode process did not complete successfully");
+          "Dev mode process did not complete successfully",
+          "Failed to run",
+          "BUILD FAILURE");
 
   private static final String MANAGEMENT_PORT_PROPERTY = "quarkus.management.port";
   private static final String LOCALHOST = "localhost";
@@ -171,6 +173,9 @@ public class LocalQuarkusManagedResource extends ManagedResource {
     command.add("./mvnw");
     command.addAll(systemProperties);
     command.addAll(getDebugProperties());
+    // skip format checkstyle and spotless
+    command.add("-Dspotless.check.skip=true");
+    command.add("-Dcheckstyle.skip=true");
     command.add("-pl");
     command.add(service);
     command.add("quarkus:dev");

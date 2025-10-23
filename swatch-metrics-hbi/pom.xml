@@ -16,6 +16,10 @@
   <dependencies>
     <dependency>
       <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-model-metrics-hbi</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
       <artifactId>swatch-common-health</artifactId>
     </dependency>
     <dependency>
