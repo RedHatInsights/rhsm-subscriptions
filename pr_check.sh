@@ -3,7 +3,7 @@
 
 # Debug: Print Git environment variables to diagnose merge queue issues
 echo "=== Git Environment Variables ==="
-echo "GIT_BRANCH: $GIT_BRANCH"  
+echo "GIT_BRANCH: $GIT_BRANCH"
 echo "GIT_COMMIT: $GIT_COMMIT"
 echo "GIT_URL: $GIT_URL"
 echo "GITHUB_SHA: $GITHUB_SHA"
@@ -15,7 +15,9 @@ echo "ghprbTargetBranch: $ghprbTargetBranch"
 echo "================================="
 
 # before we run common consoledot builds, prepare the binary artifacts for quarkus style builds
-./podman_run.sh
+# NOTE: podman_run.sh disabled - was originally used for Gradle builds in containers but project migrated to Maven
+# and this call with no arguments just starts/exits a container doing nothing useful
+# ./podman_run.sh
 
 source cicd_common.sh
 
