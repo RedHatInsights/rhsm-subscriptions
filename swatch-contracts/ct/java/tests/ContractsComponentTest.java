@@ -27,6 +27,7 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import domain.BillingProvider;
 import domain.Contract;
 import io.restassured.response.Response;
@@ -40,22 +41,9 @@ public class ContractsComponentTest extends BaseContractComponentTest {
   @Test
   @Tag("contract")
   void shouldCreatePrepaidRosaContract_whenAllDataIsValid() {
-    String orgId = "org123";
-    BillingProvider billingProvider = BillingProvider.AWS;
-    String testSku = "TESTMW02393";
-
-    Contract contractData = buildRosaContract(orgId, testSku, billingProvider);
-    wiremock.forProductAPI().stubOfferingData(contractData.getOffering());
-    wiremock.forPartnerAPI().stubContract(contractData);
-
-    // Sync offering needed for contract to persist with the SKU
-    Response syncOfferingResponse = service.syncOffering(testSku);
-    assertThat("Sync offering call should succeed", syncOfferingResponse.statusCode(), is(200));
-
-    Response createContractResponse = service.createContract(contractData);
-    assertThat(
-        "Prepaid contract creation should succeed", createContractResponse.statusCode(), is(200));
-    service.logs().assertContains("Creating contract");
+    // The metric Cores is valid for the rosa product
+    Contract contractData = buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0));
+    givenContractIsCreated(contractData);
 
     // Retrieve and verify contract
     Response getContractsResponse = service.getContracts(contractData);
@@ -68,7 +56,7 @@ public class ContractsComponentTest extends BaseContractComponentTest {
         .body("[0].org_id", equalTo(orgId))
         .body("[0].subscription_number", equalTo(contractData.getSubscriptionNumber()))
         .body("[0].billing_account_id", equalTo(contractData.getBillingAccountId()))
-        .body("[0].sku", equalTo(testSku))
+        .body("[0].sku", equalTo(contractData.getOffering().getSku()))
         .body("[0].metrics", notNullValue())
         .body("[0].metrics.size()", greaterThan(0));
   }
@@ -77,23 +65,11 @@ public class ContractsComponentTest extends BaseContractComponentTest {
   @Test
   @Tag("contract")
   void shouldCreatePurePaygRosaContract_whenAllDimensionsAreIncorrect() {
-    String orgId = "org234";
-    BillingProvider billingProvider = BillingProvider.AWS;
-    String testSku = "TEST1MW02393";
-    // Creating a contract using an invalid metric for ROSA
+    // The metric Instance-hours is NOT valid for the rosa product, so it should be ignored
     Contract contractData =
-        buildRosaContract(orgId, testSku, billingProvider, Map.of("invalid", 10.0));
-    wiremock.forProductAPI().stubOfferingData(contractData.getOffering());
-    wiremock.forPartnerAPI().stubContract(contractData);
-
-    // Sync offering needed for contract to persist with the SKU
-    Response syncOfferingResponse = service.syncOffering(testSku);
-    assertThat("Sync offering call should succeed", syncOfferingResponse.statusCode(), is(200));
-
-    Response createContractResponse = service.createContract(contractData);
-    assertThat(
-        "Prepaid contract creation should succeed", createContractResponse.statusCode(), is(200));
-    service.logs().assertContains("Creating contract");
+        buildRosaContract(
+            orgId, BillingProvider.AWS, Map.of(MetricIdUtils.getInstanceHours(), 10.0));
+    givenContractIsCreated(contractData);
 
     // Retrieve and verify contract
     Response getContractsResponse = service.getContracts(contractData);
@@ -108,7 +84,7 @@ public class ContractsComponentTest extends BaseContractComponentTest {
         .body("[0].org_id", equalTo(orgId))
         .body("[0].subscription_number", equalTo(contractData.getSubscriptionNumber()))
         .body("[0].billing_account_id", equalTo(contractData.getBillingAccountId()))
-        .body("[0].sku", equalTo(testSku))
+        .body("[0].sku", equalTo(contractData.getOffering().getSku()))
         .body("[0].metrics.size()", equalTo(0));
   }
 }
