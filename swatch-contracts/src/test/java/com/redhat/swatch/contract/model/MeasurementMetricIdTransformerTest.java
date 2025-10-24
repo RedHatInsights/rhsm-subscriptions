@@ -98,39 +98,114 @@ class MeasurementMetricIdTransformerTest {
   }
 
   @Test
-  void testUnsupportedDimensionsAreRemovedFromContracts() throws RuntimeException {
+  void testUnsupportedDimensionsForBillingProviderAreRemovedFromContracts()
+      throws RuntimeException {
     var contract = new ContractEntity();
-    contract.setBillingProvider(BillingProvider.AWS.getValue());
-    var instanceHours = new ContractMetricEntity();
-    instanceHours.setValue(100.0);
-    instanceHours.setMetricId("control_plane");
-
-    var cores = new ContractMetricEntity();
-    cores.setMetricId("four_vcpu_hour");
-    cores.setValue(100.0);
-
-    var unknown = new ContractMetricEntity();
-    unknown.setMetricId("Unknown");
-    unknown.setValue(100.0);
-
-    var wrongDimension = new ContractMetricEntity();
-    wrongDimension.setMetricId("storage_gb");
-    wrongDimension.setValue(100);
-
-    contract.addMetric(instanceHours);
-    contract.addMetric(cores);
-    contract.addMetric(wrongDimension);
-    contract.addMetric(unknown);
+    contract.setBillingProvider(BillingProvider.AZURE.getValue());
+    contract.addMetric(contractMetric("vCPU_hours", 100));
 
     contract.setOffering(new OfferingEntity());
-    contract.getOffering().setProductTags(Set.of("rosa"));
+    contract.getOffering().setProductTags(Set.of("rhel-for-x86-els-payg"));
 
     transformer.resolveConflictingMetrics(contract);
     assertEquals(
-        Set.of("control_plane", "four_vcpu_hour"),
+        Set.of(),
         contract.getMetrics().stream()
             .map(ContractMetricEntity::getMetricId)
-            .collect(Collectors.toSet()));
+            .collect(Collectors.toSet()),
+        "All metrics should be removed when billing provider is unsupported for the product tag");
+  }
+
+  @Test
+  void testUnsupportedMetricsAreRemovedFromContractsWhenProductTagNotFound()
+      throws RuntimeException {
+    var contract = new ContractEntity();
+    contract.setBillingProvider(BillingProvider.AWS.getValue());
+    contract.addMetric(contractMetric("MCT4545", 100));
+    contract.setOffering(new OfferingEntity());
+
+    transformer.resolveConflictingMetrics(contract);
+    assertEquals(
+        Set.of(),
+        contract.getMetrics().stream()
+            .map(ContractMetricEntity::getMetricId)
+            .collect(Collectors.toSet()),
+        "All metrics should be removed when product tags are empty");
+    assertEquals(
+        0,
+        contract.getMetrics().size(),
+        "All metrics should be removed when product tags are empty");
+  }
+
+  @Test
+  void testMetricsRemovedWhenProductTagsAreNull() {
+    var contract = new ContractEntity();
+    contract.setBillingProvider(BillingProvider.AZURE.getValue());
+    contract.addMetric(contractMetric("vcpu_hours", 100));
+    contract.addMetric(contractMetric("memory_gb", 64));
+    contract.setOffering(new OfferingEntity());
+    contract.getOffering().setProductTags(null); // Explicit null
+
+    transformer.resolveConflictingMetrics(contract);
+
+    assertEquals(
+        0,
+        contract.getMetrics().size(),
+        "All metrics should be removed when product tags are null");
+  }
+
+  @Test
+  void testMetricsRemovedWhenProductTagsAreEmpty() {
+    var contract = new ContractEntity();
+    contract.setBillingProvider(BillingProvider.AWS.getValue());
+    contract.addMetric(contractMetric("four_vcpu_hour", 200));
+    contract.addMetric(contractMetric("storage_gb", 500));
+    contract.setOffering(new OfferingEntity());
+    contract.getOffering().setProductTags(Set.of());
+
+    transformer.resolveConflictingMetrics(contract);
+
+    assertEquals(
+        0,
+        contract.getMetrics().size(),
+        "All metrics should be removed when product tags are empty");
+  }
+
+  @Test
+  void testAllUnsupportedMetricsAreRemoved() {
+    var contract = new ContractEntity();
+    contract.setBillingProvider(BillingProvider.AWS.getValue());
+    contract.setOffering(new OfferingEntity());
+    contract.getOffering().setProductTags(Set.of("rosa"));
+    // Add only unsupported metrics
+    contract.addMetric(contractMetric("invalid_metric_1", 10));
+    contract.addMetric(contractMetric("invalid_metric_2", 20));
+
+    transformer.resolveConflictingMetrics(contract);
+
+    assertEquals(0, contract.getMetrics().size(), "All unsupported metrics should be removed");
+  }
+
+  @Test
+  void testMixedSupportedAndUnsupportedMetrics() {
+    var contract = new ContractEntity();
+    contract.setBillingProvider(BillingProvider.AWS.getValue());
+    contract.setOffering(new OfferingEntity());
+    contract.getOffering().setProductTags(Set.of("rosa"));
+    // Mix of supported and unsupported metrics
+    contract.addMetric(contractMetric("four_vcpu_hour", 100));
+    contract.addMetric(contractMetric("unsupported_metric", 50));
+    contract.addMetric(contractMetric("control_plane", 1));
+    contract.addMetric(contractMetric("another_invalid", 25));
+
+    transformer.resolveConflictingMetrics(contract);
+
+    assertEquals(
+        Set.of("four_vcpu_hour", "control_plane"),
+        contract.getMetrics().stream()
+            .map(ContractMetricEntity::getMetricId)
+            .collect(Collectors.toSet()),
+        "Only supported metrics should remain");
   }
 
   private ContractMetricEntity contractMetric(String metricId, double value) {

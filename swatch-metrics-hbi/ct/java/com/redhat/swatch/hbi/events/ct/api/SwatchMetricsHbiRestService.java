@@ -18,19 +18,27 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.hbi.events.model;
+package com.redhat.swatch.hbi.events.ct.api;
 
-import com.redhat.swatch.hbi.events.repository.HbiEventOutbox;
-import com.redhat.swatch.hbi.model.OutboxRecord;
-import org.mapstruct.Builder;
-import org.mapstruct.CollectionMappingStrategy;
-import org.mapstruct.Mapper;
+import com.redhat.swatch.component.tests.api.SwatchService;
+import com.redhat.swatch.hbi.model.FlushResponse;
+import java.util.Map;
 
-@Mapper(
-    componentModel = "cdi",
-    collectionMappingStrategy = CollectionMappingStrategy.ADDER_PREFERRED,
-    builder = @Builder(disableBuilder = true))
-public interface OutboxRecordMapper {
+public class SwatchMetricsHbiRestService extends SwatchService {
+  private static final String API_ROOT = "/api/swatch-metrics-hbi";
 
-  OutboxRecord entityToDto(HbiEventOutbox entity);
+  public FlushResponse flushOutboxSynchronously() {
+    return given()
+        .headers(
+            Map.of(
+                "Content-Type", "application/json",
+                "x-rh-swatch-synchronous-request", "true",
+                "x-rh-swatch-psk", SWATCH_PSK))
+        .put(String.format("%s/internal/rpc/outbox/flush", API_ROOT))
+        .then()
+        .statusCode(200)
+        .extract()
+        .body()
+        .as(FlushResponse.class);
+  }
 }

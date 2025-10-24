@@ -20,8 +20,8 @@
     <codegen.skipIfSpecIsUnchanged>true</codegen.skipIfSpecIsUnchanged>
 
     <!-- Dependencies -->
-    <quarkus.platform.version>3.28.3</quarkus.platform.version>
-    <spring.boot.version>3.5.5</spring.boot.version>
+    <quarkus.platform.version>3.28.5</quarkus.platform.version>
+    <spring.boot.version>3.5.7</spring.boot.version>
     <resteasy.version>7.0.0.Final</resteasy.version>
     <!-- Only use as provided in the common dependencies.
     Spring and Quarkus already provides the compatible Jackson versions -->
@@ -31,7 +31,7 @@
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
     <opentelemetry-api.version>1.55.0</opentelemetry-api.version>
-    <awssdk-bom.version>2.35.7</awssdk-bom.version>
+    <awssdk-bom.version>2.36.0</awssdk-bom.version>
     <guava.version>33.5.0-jre</guava.version>
     <liquibase.version>5.0.1</liquibase.version>
     <postgresql.version>42.7.8</postgresql.version>
@@ -43,19 +43,19 @@
     <hibernate-validator.version>9.0.1.Final</hibernate-validator.version>
     <swagger-parser.version>2.1.35</swagger-parser.version>
     <swagger-ui.version>5.29.3</swagger-ui.version>
-    <splunk-otel-javaagent.version>2.20.1</splunk-otel-javaagent.version>
+    <splunk-otel-javaagent.version>2.21.0</splunk-otel-javaagent.version>
 
     <!-- Plugins -->
     <compiler-plugin.version>3.14.1</compiler-plugin.version>
     <surefire-plugin.version>3.5.4</surefire-plugin.version>
     <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
     <maven-assembly-plugin.version>3.7.1</maven-assembly-plugin.version>
-    <exec-maven-plugin.version>3.6.1</exec-maven-plugin.version>
+    <exec-maven-plugin.version>3.6.2</exec-maven-plugin.version>
     <openapi-generator.version>7.16.0</openapi-generator.version>
     <spotless.version>3.0.0</spotless.version>
     <checkstyle.version>3.6.0</checkstyle.version>
     <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
-    <maven-antrun-plugin.version>3.1.0</maven-antrun-plugin.version>
+    <maven-antrun-plugin.version>3.2.0</maven-antrun-plugin.version>
     <sonar-maven-plugin.version>5.2.0.4988</sonar-maven-plugin.version>
     <swagger-codegen-maven-plugin.version>3.0.75</swagger-codegen-maven-plugin.version>
 
@@ -140,6 +140,11 @@
       <dependency>
         <groupId>com.redhat.swatch</groupId>
         <artifactId>swatch-model-events</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.redhat.swatch</groupId>
+        <artifactId>swatch-model-metrics-hbi</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -421,7 +426,7 @@
         <plugin>
           <groupId>io.smallrye</groupId>
           <artifactId>jandex-maven-plugin</artifactId>
-          <version>3.5.0</version>
+          <version>3.5.1</version>
         </plugin>
 
         <plugin>
@@ -516,7 +521,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>12.0.1</version>
+            <version>12.1.0</version>
           </dependency>
         </dependencies>
       </plugin>
@@ -561,6 +566,7 @@
         <module>swatch-common-models</module>
         <module>swatch-common-testcontainers</module>
         <module>swatch-model-events</module>
+        <module>swatch-model-metrics-hbi</module>
         <module>swatch-model-billable-usage</module>
         <module>swatch-database-migrations</module>
         <!-- Services -->
@@ -597,7 +603,10 @@
       <modules>
         <!-- Dependencies -->
         <module>swatch-quarkus-parent</module>
+        <module>swatch-common-models</module>
+        <module>swatch-model-events</module>
         <module>swatch-model-billable-usage</module>
+        <module>swatch-model-metrics-hbi</module>
         <!-- Test framework module -->
         <module>swatch-test-framework</module>
         <!-- Services with component tests -->
@@ -605,6 +614,7 @@
         <module>swatch-tally/ct</module>
         <module>swatch-utilization/ct</module>
         <module>swatch-contracts/ct</module>
+        <module>swatch-metrics-hbi/ct</module>
       </modules>
 
       <dependencyManagement>

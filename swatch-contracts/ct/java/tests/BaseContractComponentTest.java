@@ -20,10 +20,12 @@
  */
 package tests;
 
+import api.ContractsSwatchService;
 import api.ContractsWiremockService;
 import com.redhat.swatch.component.tests.api.ComponentTest;
+import com.redhat.swatch.component.tests.api.KafkaBridge;
+import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.Quarkus;
-import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.api.Wiremock;
 import org.junit.jupiter.api.Tag;
 
@@ -32,8 +34,10 @@ import org.junit.jupiter.api.Tag;
 @Tag("contracts")
 public class BaseContractComponentTest {
 
+  @KafkaBridge static KafkaBridgeService kafkaBridge = new KafkaBridgeService();
+
   @Wiremock static ContractsWiremockService wiremock = new ContractsWiremockService();
 
   @Quarkus(service = "swatch-contracts")
-  static SwatchService service = new SwatchService();
+  static ContractsSwatchService service = new ContractsSwatchService();
 }
