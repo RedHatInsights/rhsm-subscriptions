@@ -33,6 +33,16 @@ public final class ProcessUtils {
   public static void destroy(Process process) {
     try {
       if (process != null) {
+        // First, try graceful shutdown of main process
+        if (process.supportsNormalTermination()) {
+          process.destroy(); // Send SIGTERM
+          boolean terminated = process.waitFor(15, TimeUnit.SECONDS);
+          if (terminated) {
+            return; // Graceful shutdown successful
+          }
+        }
+
+        // If graceful shutdown failed, proceed with forceful termination
         process
             .descendants()
             .forEach(
@@ -47,7 +57,7 @@ public final class ProcessUtils {
                 });
 
         if (process.supportsNormalTermination()) {
-          process.destroy();
+          process.destroyForcibly();
           process.waitFor(PROCESS_KILL_TIMEOUT_MINUTES, TimeUnit.MINUTES);
         }
 

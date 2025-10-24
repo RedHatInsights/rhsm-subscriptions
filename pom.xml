@@ -21,7 +21,7 @@
 
     <!-- Dependencies -->
     <quarkus.platform.version>3.28.5</quarkus.platform.version>
-    <spring.boot.version>3.5.5</spring.boot.version>
+    <spring.boot.version>3.5.7</spring.boot.version>
     <resteasy.version>7.0.0.Final</resteasy.version>
     <!-- Only use as provided in the common dependencies.
     Spring and Quarkus already provides the compatible Jackson versions -->
@@ -426,7 +426,7 @@
         <plugin>
           <groupId>io.smallrye</groupId>
           <artifactId>jandex-maven-plugin</artifactId>
-          <version>3.5.0</version>
+          <version>3.5.1</version>
         </plugin>
 
         <plugin>
