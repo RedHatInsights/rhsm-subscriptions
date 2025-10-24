@@ -131,11 +131,11 @@ import lombok.Setter;
         h.stale_timestamp,
         coalesce(
             h.facts->'satellite'->>'virtual_host_uuid',
-            sps.virtual_host_uuid,
+            sps.virtual_host_uuid::text,
             h.subscription_manager_id) as hardware_subman_id,
         coalesce(
             h.facts->'satellite'->>'virtual_host_uuid',
-            sps.virtual_host_uuid
+            sps.virtual_host_uuid::text
         ) as any_hypervisor_uuid
         from hosts h
         inner join system_profiles_static sps on h.id = sps.host_id
