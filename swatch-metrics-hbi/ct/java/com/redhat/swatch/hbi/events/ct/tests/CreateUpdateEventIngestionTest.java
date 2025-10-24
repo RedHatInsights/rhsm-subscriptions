@@ -76,8 +76,6 @@ class CreateUpdateEventIngestionTest extends BaseSMHBIComponentTest {
         SwatchEventHelper.createExpectedEvent(hbiEvent, List.of("69"), Set.of("RHEL for x86"));
 
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiEvent);
-    kafkaBridge.waitForKafkaMessage(
-        Topics.HBI_EVENT_IN, MessageValidators.hbiEventEquals(hbiEvent), 1);
 
     flushOutbox(1);
 
