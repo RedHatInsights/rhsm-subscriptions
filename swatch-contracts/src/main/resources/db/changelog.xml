@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <include file="db/202302030707_create_contracts_table.xml"/>
+  <include file="db/202304061624_add_vendorproductcode_to_contracts_table.xml"/>
+  <include file="db/202310091227_fix_contract_metrics_for_rosa.xml"/>
+  <include file="db/202401111039_make_subscription_number_nullable.xml"/>
+  <include file="db/202401121651_add_billingproviderid_to_contracts.xml"/>
+  <include file="db/202401171354_add_subscription_and_offering_h2_only.xml"/>
+  <include file="db/202402151611_add_offering_sku_product_tag_h2_only.xml"/>
+  <include file="db/202402161401_fix_contract_product_for_rosa.xml"/>
+  <include file="db/202405031420_terminate_azure_testing_subscriptions.xml"/>
+  <include file="db/202405210900_change_product_id_nullable.xml"/>
+  <include file="db/202405222240_add_offering_special_product_tag_h2_only.xml"/>
+  <include file="db/202406111405_change_billing_account_id_nullable.xml"/>
+  <include file="db/202407081616-add-level-columns-for-offering-table_h2_only.xml"/>
+  <include file="db/202410171500-move-subscription-capacity-view_h2_only.xml"/>
+  <include file="db/202412051144-primary-keys-on-changelog-table.xml"/>
+  <include file="db/202504301500-update-subscription-capacity-view_h2_only-to-set-defaults.xml"/>
+  <include file="db/202509021332-assume-ownership-of-offerings-and-subscriptions.xml"/>
+</databaseChangeLog>
