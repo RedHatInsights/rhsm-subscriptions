@@ -31,4 +31,9 @@ public class ServiceNotFoundException extends RuntimeException {
     super("Service not found: " + serviceName);
     this.serviceName = serviceName;
   }
+
+  public ServiceNotFoundException(String serviceName, String msg) {
+    super("Service not found: " + serviceName + ". " + msg);
+    this.serviceName = serviceName;
+  }
 }
