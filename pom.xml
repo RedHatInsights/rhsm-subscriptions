@@ -38,6 +38,7 @@
     <testcontainers.version>1.21.3</testcontainers.version>
     <junit.version>6.0.0</junit.version>
     <mockito.version>5.20.0</mockito.version>
+    <kafka-client.version>4.0.0</kafka-client.version>
     <rest-assured.version>5.5.6</rest-assured.version>
     <awaitility.version>4.3.0</awaitility.version>
     <hibernate-validator.version>9.0.1.Final</hibernate-validator.version>
@@ -311,6 +312,11 @@
         <groupId>org.mockito</groupId>
         <artifactId>mockito-junit-jupiter</artifactId>
         <version>${mockito.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.kafka</groupId>
+        <artifactId>kafka-clients</artifactId>
+        <version>${kafka-client.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
