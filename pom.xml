@@ -31,7 +31,7 @@
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
     <opentelemetry-api.version>1.55.0</opentelemetry-api.version>
-    <awssdk-bom.version>2.36.0</awssdk-bom.version>
+    <awssdk-bom.version>2.36.3</awssdk-bom.version>
     <guava.version>33.5.0-jre</guava.version>
     <liquibase.version>5.0.1</liquibase.version>
     <postgresql.version>42.7.8</postgresql.version>
@@ -210,7 +210,7 @@
       <dependency>
         <groupId>org.openapitools</groupId>
         <artifactId>jackson-databind-nullable</artifactId>
-        <version>0.2.7</version>
+        <version>0.2.8</version>
       </dependency>
       <dependency>
         <groupId>org.codehaus.janino</groupId>
@@ -521,7 +521,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>12.1.0</version>
+            <version>12.1.1</version>
           </dependency>
         </dependencies>
       </plugin>
