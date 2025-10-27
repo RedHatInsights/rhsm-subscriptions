@@ -165,6 +165,7 @@ public class LocalSpringBootManagedResource extends ManagedResource {
     context.loadCustomConfiguration(
         SpringBootServiceConfiguration.class, new SpringBootServiceConfigurationBuilder());
     this.logOutputFile = new File(context.getServiceFolder().resolve(LOG_OUTPUT_FILE).toString());
+    configureSpringProfiles();
     assignPorts();
   }
 
@@ -207,6 +208,10 @@ public class LocalSpringBootManagedResource extends ManagedResource {
           "-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=" + assignedDebugPort);
     }
     return customPorts;
+  }
+
+  private void configureSpringProfiles() {
+    addJvmArguments("-Dspring.profiles.active=component-test");
   }
 
   private void assignPorts() {
