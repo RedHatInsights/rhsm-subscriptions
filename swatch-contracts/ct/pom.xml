@@ -17,6 +17,7 @@
     <dependency>
       <groupId>com.redhat.swatch</groupId>
       <artifactId>swatch-test-framework</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>

@@ -41,44 +41,4 @@ public class MessageValidators {
                                         measurement -> metricId.equals(measurement.getMetricId()))),
         TallySummary.class);
   }
-
-  public static MessageValidator<TallySummary> tallySummaryForOrg(String orgId) {
-    return new MessageValidator<>(summary -> orgId.equals(summary.getOrgId()), TallySummary.class);
-  }
-
-  public static MessageValidator<TallySummary> tallySummaryWithProduct(String productId) {
-    return new MessageValidator<>(
-        summary ->
-            summary.getTallySnapshots() != null
-                && summary.getTallySnapshots().stream()
-                    .anyMatch(snapshot -> productId.equals(snapshot.getProductId())),
-        TallySummary.class);
-  }
-
-  public static MessageValidator<TallySummary> tallySummaryWithMetric(String metricId) {
-    return new MessageValidator<>(
-        summary ->
-            summary.getTallySnapshots() != null
-                && summary.getTallySnapshots().stream()
-                    .anyMatch(
-                        snapshot ->
-                            snapshot.getTallyMeasurements() != null
-                                && snapshot.getTallyMeasurements().stream()
-                                    .anyMatch(
-                                        measurement -> metricId.equals(measurement.getMetricId()))),
-        TallySummary.class);
-  }
-
-  public static MessageValidator<TallySummary> alwaysMatch() {
-    return new MessageValidator<>(summary -> true, TallySummary.class);
-  }
-
-  public static MessageValidator<TallySummary> tallySummaryWithGranularity(String granularity) {
-    return new MessageValidator<>(
-        summary ->
-            summary.getTallySnapshots() != null
-                && summary.getTallySnapshots().stream()
-                    .anyMatch(snapshot -> granularity.equals(snapshot.getGranularity().toString())),
-        TallySummary.class);
-  }
 }

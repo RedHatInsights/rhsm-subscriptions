@@ -21,6 +21,7 @@
 package utils;
 
 import com.redhat.swatch.component.tests.api.SwatchService;
+import com.redhat.swatch.component.tests.logging.Log;
 import io.restassured.response.Response;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -31,7 +32,33 @@ import org.candlepin.subscriptions.json.Event;
 
 public class TallyTestHelpers {
 
-  public TallyTestHelpers() {}
+  private void executeSql(String sql, String operationName) throws Exception {
+    List<String> command =
+        List.of(
+            "podman",
+            "exec",
+            "rhsm-subscriptions_db_1",
+            "psql",
+            "-U",
+            "rhsm-subscriptions",
+            "rhsm-subscriptions",
+            "-c",
+            sql);
+
+    Process process =
+        com.redhat.swatch.component.tests.utils.ProcessBuilderProvider.command(command).start();
+
+    int exitCode = process.waitFor();
+
+    if (exitCode != 0) {
+      String error = new String(process.getErrorStream().readAllBytes());
+      String output = new String(process.getInputStream().readAllBytes());
+      throw new RuntimeException(
+          String.format(
+              "Failed to %s. Exit code: %d, Error: %s, Output: %s",
+              operationName, exitCode, error, output));
+    }
+  }
 
   public Event createEventWithTimestamp(
       String orgId, String instanceId, String timestampStr, String eventIdStr, float value) {
@@ -94,29 +121,7 @@ public class TallyTestHelpers {
               + response.getBody().asString());
     }
 
-    System.out.println("Tally sync endpoint called successfully for org: " + orgId);
-  }
-
-  public void asyncTallyNightly(String orgId, SwatchService service) throws Exception {
-    Response response =
-        service
-            .given()
-            .header("x-rh-swatch-psk", "placeholder")
-            .put("/api/rhsm-subscriptions/v1/internal/rpc/tally/snapshots/" + orgId)
-            .then()
-            .extract()
-            .response();
-
-    // Check response status
-    if (response.getStatusCode() != 200) {
-      throw new RuntimeException(
-          "Tally sync failed with status code: "
-              + response.getStatusCode()
-              + ", response body: "
-              + response.getBody().asString());
-    }
-
-    System.out.println("Async tally endpoint called successfully for org: " + orgId);
+    Log.info("Sync nightly tally endpoint called successfully for org: %s", orgId);
   }
 
   public void syncTallyHourly(String orgId, SwatchService service) throws Exception {
@@ -139,24 +144,46 @@ public class TallyTestHelpers {
               + response.getBody().asString());
     }
 
-    System.out.println("Hourly tally endpoint called successfully for org: " + orgId);
+    Log.info("Hourly tally endpoint called successfully for org: %s", orgId);
   }
 
-  public Response makeHttpGetRequest(String url, SwatchService service) throws Exception {
-    // Extract the path from the full URL
-    String path = url.substring(url.indexOf("/api/rhsm-subscriptions/v1"));
+  /**
+   * Create a mock host in the database for testing purposes. This is needed for nightly tally tests
+   * since MaxSeenSnapshotStrategy reads from existing hosts.
+   */
+  public void createMockHost(String orgId, String instanceId, SwatchService service)
+      throws Exception {
+    // First, insert into account_services table to satisfy foreign key constraint
+    executeSql(
+        String.format(
+            "INSERT INTO account_services (org_id, service_type) "
+                + "VALUES ('%s', 'HBI_HOST') "
+                + "ON CONFLICT (org_id, service_type) DO NOTHING",
+            orgId),
+        "create account service");
 
-    return service
-        .given()
-        .header("x-rh-swatch-psk", "placeholder")
-        .get(path)
-        .then()
-        .extract()
-        .response();
+    // Now insert the host
+    executeSql(
+        String.format(
+            "INSERT INTO hosts (id, org_id, display_name, insights_id, subscription_manager_id, instance_id, billing_provider, billing_account_id, cloud_provider, last_seen) "
+                + "VALUES ('%s', '%s', 'test-host', 'insights-%s', 'sm-%s', '%s', 'aws', '746157280291', 'aws', NOW() + INTERVAL '1 day')",
+            instanceId, orgId, instanceId, instanceId, instanceId),
+        "create mock host");
+
+    Log.info("Mock host created successfully for org: %s, instance: %s", orgId, instanceId);
   }
 
   public String generateRandomOrgId() {
     // Generate a random 8-digit org ID using UUID
     return String.format("%08d", Math.abs(UUID.randomUUID().hashCode()) % 100000000);
+  }
+
+  public void waitForProcessing(long millis) {
+    try {
+      Thread.sleep(millis);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException("Interrupted while waiting", e);
+    }
   }
 }

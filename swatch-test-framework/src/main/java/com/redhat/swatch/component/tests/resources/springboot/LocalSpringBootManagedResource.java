@@ -211,7 +211,11 @@ public class LocalSpringBootManagedResource extends ManagedResource {
   }
 
   private void configureSpringProfiles() {
-    addJvmArguments("-Dspring.profiles.active=component-test");
+    // Only set component-test profile if SPRING_PROFILES_ACTIVE is not already set
+    String existingProfiles = context.getOwner().getProperties().get("SPRING_PROFILES_ACTIVE");
+    if (existingProfiles == null || existingProfiles.isEmpty()) {
+      addJvmArguments("-Dspring.profiles.active=component-test");
+    }
   }
 
   private void assignPorts() {
