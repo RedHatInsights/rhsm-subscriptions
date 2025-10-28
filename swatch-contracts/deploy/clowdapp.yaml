@@ -392,34 +392,6 @@ objects:
                 cpu: ${CURL_CRON_CPU_LIMIT}
                 memory: ${CURL_CRON_MEMORY_LIMIT}
 
-
-  - apiVersion: v1
-    kind: Secret
-    metadata:
-      name: swatch-psks
-    data:
-      self: cGxhY2Vob2xkZXI=
-
-  - apiVersion: cloud.redhat.com/v1alpha1
-    kind: ClowdApp
-    metadata:
-      name: swatch-contracts-db-changelog-cleanup
-    spec:
-      # The name of the ClowdEnvironment providing the services
-      envName: ${ENV_NAME}
-
-      database:
-        sharedDbAppName: ${DB_POD}
-
-      dependencies:
-        - ${DB_POD}
-
-      pullSecrets:
-        name: ${IMAGE_PULL_SECRET}
-
-      kafkaTopics: []
-      deployments: []
-      jobs:
         - name: contracts-db-changelog-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
           restartPolicy: Never
           podSpec:
@@ -459,14 +431,13 @@ objects:
               - name: DB_CHANGELOG_CLEANUP_SQL
                 value: ${DB_CHANGELOG_CLEANUP_SQL}
 
-  - apiVersion: cloud.redhat.com/v1alpha1
-    kind: ClowdJobInvocation
+  - apiVersion: v1
+    kind: Secret
     metadata:
-      name: contracts-db-changelog-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
-    spec:
-      appName: swatch-contracts-db-changelog-cleanup
-      jobs:
-        - contracts-db-changelog-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+      name: swatch-psks
+    data:
+      self: cGxhY2Vob2xkZXI=
+
   - apiVersion: v1
     kind: Secret
     metadata:
