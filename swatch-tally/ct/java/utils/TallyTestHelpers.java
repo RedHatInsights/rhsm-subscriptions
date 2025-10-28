@@ -165,8 +165,8 @@ public class TallyTestHelpers {
     // Now insert the host
     executeSql(
         String.format(
-            "INSERT INTO hosts (id, org_id, display_name, insights_id, subscription_manager_id, instance_id, billing_provider, billing_account_id, cloud_provider, last_seen) "
-                + "VALUES ('%s', '%s', 'test-host', 'insights-%s', 'sm-%s', '%s', 'aws', '746157280291', 'aws', NOW() + INTERVAL '1 day')",
+            "INSERT INTO hosts (id, org_id, display_name, insights_id, subscription_manager_id, instance_id, billing_provider, billing_account_id, cloud_provider, last_seen, is_guest, is_unmapped_guest, is_hypervisor) "
+                + "VALUES ('%s', '%s', 'test-host', 'insights-%s', 'sm-%s', '%s', 'aws', '746157280291', 'aws', NOW() + INTERVAL '1 day', false, false, false)",
             instanceId, orgId, instanceId, instanceId, instanceId),
         "create mock host");
 

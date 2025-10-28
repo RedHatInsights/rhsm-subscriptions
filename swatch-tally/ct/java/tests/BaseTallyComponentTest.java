@@ -42,11 +42,5 @@ public class BaseTallyComponentTest {
           .subscribeToTopic(TALLY);
 
   @SpringBoot(service = "swatch-tally")
-  static SwatchService service;
-
-  static {
-    service = new SwatchService();
-    service.withProperty("ENABLE_SYNCHRONOUS_OPERATIONS", "true");
-    service.withProperty("SPRING_PROFILES_ACTIVE", "api,worker,kafka-queue,dev");
-  }
+  static SwatchService service = new SwatchService();
 }

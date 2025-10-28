@@ -73,6 +73,8 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
       throw new RuntimeException("Failed to sync tally", e);
     }
 
+    helpers.waitForProcessing(3000);
+
     // Wait for tally messages to be produced
     kafkaBridge.waitForKafkaMessage(
         TALLY,
