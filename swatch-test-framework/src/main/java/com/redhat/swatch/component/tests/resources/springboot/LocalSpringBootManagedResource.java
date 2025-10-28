@@ -211,7 +211,7 @@ public class LocalSpringBootManagedResource extends ManagedResource {
   }
 
   private void configureSpringProfiles() {
-    addJvmArguments("-Dspring.profiles.active=component-test");
+    addJvmArguments("-Dspring.profiles.active=api,worker,kafka-queue,component-test");
   }
 
   private void assignPorts() {
