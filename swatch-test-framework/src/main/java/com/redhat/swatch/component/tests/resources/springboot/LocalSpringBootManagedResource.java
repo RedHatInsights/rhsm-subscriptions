@@ -166,6 +166,7 @@ public class LocalSpringBootManagedResource extends ManagedResource {
         SpringBootServiceConfiguration.class, new SpringBootServiceConfigurationBuilder());
     this.logOutputFile = new File(context.getServiceFolder().resolve(LOG_OUTPUT_FILE).toString());
     assignPorts();
+    addJvmArguments("-Dspring.profiles.include=dev");
   }
 
   protected List<String> getPropertiesForCommand() {
