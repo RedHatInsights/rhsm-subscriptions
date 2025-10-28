@@ -34,7 +34,7 @@ import org.springframework.context.annotation.Import;
 @EnableAspectJAutoProxy
 @EnableAutoConfiguration
 @EnableConfigurationProperties
-@Import(ApplicationConfiguration.class)
+@Import({ApplicationConfiguration.class, TestConfiguration.class})
 @SuppressWarnings("checkstyle:hideutilityclassconstructor")
 public class BootApplication {
   public static void main(String[] args) {
