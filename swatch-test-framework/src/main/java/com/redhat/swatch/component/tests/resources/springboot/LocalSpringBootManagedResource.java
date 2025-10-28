@@ -41,7 +41,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.StringUtils;
 
 public class LocalSpringBootManagedResource extends ManagedResource {
 
@@ -56,6 +55,7 @@ public class LocalSpringBootManagedResource extends ManagedResource {
   private static final String SPRING_BOOT_RUN_ARG_PROPERTY = "spring-boot.run.arguments";
   private static final String LOCALHOST = "localhost";
   private static final String LOG_OUTPUT_FILE = "out.log";
+  private static final String JVM_ARGUMENTS = "spring-boot.run.jvmArguments";
 
   protected Map<String, String> propertiesToOverwrite = new HashMap<>();
 
@@ -63,6 +63,7 @@ public class LocalSpringBootManagedResource extends ManagedResource {
   private Process process;
   private LoggingHandler loggingHandler;
   private int assignedHttpPort;
+  private Integer assignedDebugPort;
   private Map<Integer, Integer> assignedCustomPorts;
 
   private final File location;
@@ -164,6 +165,7 @@ public class LocalSpringBootManagedResource extends ManagedResource {
     context.loadCustomConfiguration(
         SpringBootServiceConfiguration.class, new SpringBootServiceConfigurationBuilder());
     this.logOutputFile = new File(context.getServiceFolder().resolve(LOG_OUTPUT_FILE).toString());
+    configureSpringProfiles();
     assignPorts();
   }
 
@@ -197,32 +199,30 @@ public class LocalSpringBootManagedResource extends ManagedResource {
   protected Map<Integer, Integer> assignCustomPorts() {
     Map<Integer, Integer> customPorts = new HashMap<>();
     int assignedManagementPort = SocketUtils.findAvailablePort(context.getOwner());
-    String currentJvmArgs = propertiesToOverwrite.get("spring-boot.run.jvmArguments");
-    if (currentJvmArgs == null || currentJvmArgs.isEmpty()) {
-      propertiesToOverwrite.put(
-          "spring-boot.run.jvmArguments", "-Dmanagement.server.port=" + assignedManagementPort);
-    } else {
-      propertiesToOverwrite.put(
-          "spring-boot.run.jvmArguments",
-          currentJvmArgs + " -Dmanagement.server.port=" + assignedManagementPort);
-    }
+    addJvmArguments(" -Dmanagement.server.port=" + assignedManagementPort);
     customPorts.put(MANAGEMENT_PORT, assignedManagementPort);
+
+    if (context.isDebug()) {
+      assignedDebugPort = SocketUtils.findAvailablePort(context.getOwner());
+      addJvmArguments(
+          "-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=" + assignedDebugPort);
+    }
     return customPorts;
   }
 
-  protected int getOrAssignPortByProperty(String property) {
-    return context
-        .getOwner()
-        .getProperty(property)
-        .filter(StringUtils::isNotEmpty)
-        .map(Integer::parseInt)
-        .orElseGet(() -> SocketUtils.findAvailablePort(context.getOwner()));
+  private void configureSpringProfiles() {
+    addJvmArguments("-Dspring.profiles.active=api,worker,kafka-queue,component-test");
   }
 
   private void assignPorts() {
     assignedHttpPort = SocketUtils.findAvailablePort(context.getOwner());
-    propertiesToOverwrite.put("spring-boot.run.jvmArguments", "-Dserver.port=" + assignedHttpPort);
+    addJvmArguments("-Dserver.port=" + assignedHttpPort);
 
     this.assignedCustomPorts = assignCustomPorts();
+  }
+
+  private void addJvmArguments(String argument) {
+    propertiesToOverwrite.put(
+        JVM_ARGUMENTS, propertiesToOverwrite.getOrDefault(JVM_ARGUMENTS, "") + " " + argument);
   }
 }

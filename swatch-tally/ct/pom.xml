@@ -17,10 +17,15 @@
     <dependency>
       <groupId>com.redhat.swatch</groupId>
       <artifactId>swatch-test-framework</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch</groupId>
       <artifactId>swatch-model-events</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-core</artifactId>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.datatype</groupId>

@@ -31,6 +31,7 @@ public class ContractsSwatchService extends SwatchService {
 
   private static final String OFFERING_SYNC_ENDPOINT =
       "/api/swatch-contracts/internal/rpc/offerings/sync/%s";
+  private static final String GET_CONTRACTS_ENDPOINT = "/api/swatch-contracts/internal/contracts";
   private static final String CREATE_CONTRACT_ENDPOINT = "/api/swatch-contracts/internal/contracts";
 
   public Response syncOffering(String sku) {
@@ -38,6 +39,21 @@ public class ContractsSwatchService extends SwatchService {
 
     String endpoint = String.format(OFFERING_SYNC_ENDPOINT, sku);
     return given().when().put(endpoint);
+  }
+
+  public Response getContracts(Contract contract) {
+    Objects.requireNonNull(contract.getOrgId(), "orgId must not be null");
+    Objects.requireNonNull(contract.getBillingProvider(), "billingProvider must not be null");
+    Objects.requireNonNull(contract.getBillingAccountId(), "billingAccountId must not be null");
+    Objects.requireNonNull(contract.getProductId(), "productTag must not be null");
+
+    return given()
+        .queryParam("org_id", contract.getOrgId())
+        .queryParam("billing_provider", contract.getBillingProvider().toApiModel())
+        .queryParam("billing_account_id", contract.getBillingAccountId())
+        .queryParam("product_tag", contract.getProductId())
+        .when()
+        .get(GET_CONTRACTS_ENDPOINT);
   }
 
   public Response createContract(Contract contract) {
