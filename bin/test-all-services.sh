@@ -10,10 +10,8 @@ trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 ALL_SERVICES=(
     "swatch-tally:9010"
-    "swatch-contracts:9011"
     "swatch-billable-usage:9012"
     "swatch-producer-aws:9013"
-    "swatch-producer-azure:9014"
     "swatch-metrics-hbi:9015"
     "swatch-metrics:9016"
     "swatch-system-conduit:9017"

@@ -239,10 +239,10 @@ jobs:
           path: 'coverage-report/target/site/jacoco-aggregate'
 
   services:
-    name: Verify SWATCH services for local testing
+    name: Verify SWATCH services and run component tests
     runs-on: ubuntu-latest
     needs: [test, labeler]
-    if: always() && (needs.test.result == 'success') && (needs.labeler.result == 'success' || needs.labeler.result == 'skipped')
+    if: always() && (needs.test.result == 'success')
     steps:
       - uses: actions/checkout@v4
 
@@ -257,21 +257,30 @@ jobs:
         run: ./mvnw install -DskipTests
 
       - name: Start components
-        run: docker compose up -d db kafka kafka-setup amqp
+        run: docker compose up -d db kafka kafka-bridge kafka-setup amqp wiremock
 
       - name: Run database migrations
         run: make run-migrations
 
-      - name: Verify SWATCH services for local testing
+      - name: Set HOST_NAME environment variable
+        run: echo "HOST_NAME=github-runner@ci" >> $GITHUB_ENV
+
+      - name: Verify SWATCH services
         run: |
-          export HOST_NAME="github-runner@ci"
-          
           # Check if we have modified services from the labeler job (only in PR context)
           if [ "${{ github.event_name }}" = "pull_request" ] && [ -n "${{ needs.labeler.outputs.modified-services || '' }}" ]; then
             ./bin/test-all-services.sh ${{ needs.labeler.outputs.modified-services }}
           else
             ./bin/test-all-services.sh
           fi
+
+      - name: Run Component Tests for swatch-contracts
+        if: needs.labeler.outputs.modified-services == '' || contains(needs.labeler.outputs.modified-services, 'swatch-contracts')
+        run: ./mvnw clean install -Pcomponent-tests -Dservice=swatch-contracts
+
+      - name: Run Component Tests for swatch-producer-azure
+        if: needs.labeler.outputs.modified-services == '' || contains(needs.labeler.outputs.modified-services, 'swatch-producer-azure')
+        run: ./mvnw clean install -Pcomponent-tests -Dservice=swatch-producer-azure
 
       - name: Cleanup any remaining processes
         if: always()
