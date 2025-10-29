@@ -32,25 +32,42 @@ import com.redhat.swatch.component.tests.logging.LoggingHandler;
 import com.redhat.swatch.component.tests.logging.OpenShiftLoggingHandler;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.Supplier;
 
 public abstract class OpenShiftContainerManagedResource extends ManagedResource {
 
   private static final String POD_LABEL = "pod";
 
-  private final String serviceName;
+  private String serviceName;
+  private String displayName;
+  private final Supplier<String> serviceNameSupplier;
   private final Map<Integer, Integer> portsMapping;
   private OpenshiftClient client;
   private LoggingHandler loggingHandler;
   private boolean running;
 
-  public OpenShiftContainerManagedResource(String serviceName, Map<Integer, Integer> portsMapping) {
-    this.serviceName = serviceName;
+  protected OpenShiftContainerManagedResource(
+      String serviceName, Map<Integer, Integer> portsMapping) {
+    this.serviceNameSupplier = () -> serviceName;
+    this.displayName = serviceName;
+    this.portsMapping = portsMapping;
+  }
+
+  /**
+   * Constructor for subclasses that need to compute service name dynamically after client
+   * initialization. Subclasses should override {@link #buildServiceName()} to provide the service
+   * name.
+   */
+  protected OpenShiftContainerManagedResource(Map<Integer, Integer> portsMapping) {
+    this.serviceNameSupplier = this::buildServiceName;
+    this.displayName = "<not yet resolved>";
     this.portsMapping = portsMapping;
   }
 
   @Override
   public String getDisplayName() {
-    return serviceName;
+    return displayName;
   }
 
   @Override
@@ -60,6 +77,13 @@ public abstract class OpenShiftContainerManagedResource extends ManagedResource 
     }
 
     client = context.get(OpenShiftExtensionBootstrap.CLIENT);
+
+    // Ensure serviceName is evaluated from supplier before use
+    if (Objects.isNull(serviceName)) {
+      serviceName = serviceNameSupplier.get();
+      displayName = serviceName;
+    }
+
     validateService();
     loggingHandler = new OpenShiftLoggingHandler(podLabels(), containerName(), context);
     loggingHandler.startWatching();
@@ -116,8 +140,22 @@ public abstract class OpenShiftContainerManagedResource extends ManagedResource 
     return serviceName;
   }
 
+  protected String namespace() {
+    return client.namespace();
+  }
+
   protected String getExpectedLog() {
     return EMPTY;
+  }
+
+  /**
+   * This method is called after the client is initialized in {@link #start()}, so subclasses can
+   * safely use {@link #namespace()} and other client-dependent methods.
+   *
+   * @return the service name
+   */
+  protected String buildServiceName() {
+    throw new UnsupportedOperationException("Method must be implemented by child classes");
   }
 
   private void validateService() {

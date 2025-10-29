@@ -25,11 +25,15 @@ import java.util.Map;
 
 public class OpenShiftKafkaClientManagedResource extends OpenShiftContainerManagedResource {
 
-  // FIXME
-  private static final String SERVICE_NAME = "kafka-bridge";
+  private static final String SERVICE_NAME = "kafka";
 
   public OpenShiftKafkaClientManagedResource() {
-    super(SERVICE_NAME + "-bridge-service", Map.of());
+    super(Map.of());
+  }
+
+  @Override
+  protected String buildServiceName() {
+    return "env-" + namespace() + "-kafka-bootstrap";
   }
 
   @Override
@@ -39,6 +43,6 @@ public class OpenShiftKafkaClientManagedResource extends OpenShiftContainerManag
 
   @Override
   protected String containerName() {
-    return SERVICE_NAME + "-bridge";
+    return SERVICE_NAME;
   }
 }
