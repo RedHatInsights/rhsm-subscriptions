@@ -26,6 +26,14 @@
             {
               "key": "environment",
               "value": "ephemeral"
+            },
+            {
+              "key": "event_type",
+              "value": "EVENT_TYPE_PLACEHOLDER"
+            },
+            {
+              "key": "pipeline_name",
+              "value": "PIPELINE_NAME_PLACEHOLDER"
             }
           ]
         },

@@ -20,8 +20,19 @@
  */
 package domain;
 
+import com.redhat.swatch.contract.test.model.TallySnapshot;
+
 public enum Usage {
   PRODUCTION;
+
+  public TallySnapshot.Usage toTallySnapshotModel() {
+    switch (this) {
+      case PRODUCTION:
+        return TallySnapshot.Usage.PRODUCTION;
+      default:
+        throw new IllegalArgumentException("Unsupported usage: " + this);
+    }
+  }
 
   /** From swatch-common-models: */
   public String toDataModel() {

@@ -18,29 +18,20 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package domain;
+package api;
 
-import com.redhat.swatch.contract.test.model.TallySnapshot.Sla;
+import com.redhat.swatch.component.tests.api.MessageValidator;
+import com.redhat.swatch.contract.test.model.TallySnapshot;
+import com.redhat.swatch.contract.test.model.UtilizationSummary;
+import java.util.List;
 
-public enum ServiceLevel {
-  PREMIUM;
+/** Utility class containing pre-defined message validators for common message types. */
+public class MessageValidators {
 
-  public Sla toTallySnapshotModel() {
-    switch (this) {
-      case PREMIUM:
-        return Sla.PREMIUM;
-      default:
-        throw new IllegalArgumentException("Unsupported service level: " + this);
-    }
-  }
-
-  /** From swatch-common-models: */
-  public String toDataModel() {
-    switch (this) {
-      case PREMIUM:
-        return "Premium";
-      default:
-        throw new IllegalArgumentException("Unsupported service level: " + this);
-    }
+  public static MessageValidator<UtilizationSummary> isUtilizationSummaryByTallySnapshots(
+      List<TallySnapshot> tallySnapshots) {
+    var tallyIds = tallySnapshots.stream().map(TallySnapshot::getId).toList();
+    return new MessageValidator<>(
+        summary -> tallyIds.contains(summary.getTallySnapshotUuid()), UtilizationSummary.class);
   }
 }

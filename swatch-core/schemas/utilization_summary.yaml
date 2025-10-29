@@ -1,0 +1,79 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: UtilizationSummary
+description: Contains tally summary data enriched with subscription capacity information
+properties:
+  org_id:
+    description: The identifier for the relevant organization.
+    type: string
+  tally_snapshot_uuid:
+    type: string
+    format: uuid
+  subscription_found:
+    type: boolean
+    description: Indicates if a subscription was found for the subject.
+  billing_provider:
+    type: string
+    enum:
+      - ''
+      - red hat
+      - aws
+      - gcp
+      - azure
+      - oracle
+      - _ANY
+  billing_account_id:
+    type: string
+  snapshot_date:
+    type: string
+    format: date-time
+  product_id:
+    type: string
+  sla:
+    description: Service level for the subject.
+    type: string
+    enum:
+      - ''  # UNSPECIFIED
+      - Premium
+      - Standard
+      - Self-Support
+      - _ANY
+  usage:
+    description: Intended usage for the subject.
+    type: string
+    enum:
+      - ''  # UNSPECIFIED
+      - Production
+      - Development/Test
+      - Disaster Recovery
+      - _ANY
+  granularity:
+    type: string
+    enum:
+      - Hourly
+      - Daily
+      - Weekly
+      - Monthly
+      - Quarterly
+      - Yearly
+  measurements:
+    type: array
+    items:
+      type: object
+      properties:
+        hardware_measurement_type:
+          type: string
+        metric_id:
+          description: Preferred unit of measure for the subject (for products with multiple possible metrics).
+          type: string
+        value:
+          description: Measurement value.
+          type: number
+        currentTotal:
+          description: Sum of all measurements between the start of the month to the snapshot date.
+          type: number
+        capacity:
+          description: Capacity of this metric for the subscription.
+          type: number
+        unlimited:
+          type: boolean
+          description: Indicates if the metric is unlimited.

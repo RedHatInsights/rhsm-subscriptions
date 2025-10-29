@@ -21,6 +21,7 @@
 package api;
 
 import domain.Offering;
+import java.util.ArrayList;
 import java.util.Map;
 
 /** Facade for stubbing Product API (Offering) endpoints. */
@@ -40,7 +41,7 @@ public class OfferingStubs {
    */
   public void stubOfferingData(Offering offering) {
     stubUpstreamProductData(offering);
-    stubEngineeringProducts(offering.getSku());
+    stubEngineeringProducts(offering);
   }
 
   /**
@@ -71,6 +72,9 @@ public class OfferingStubs {
     }
     if (offering.getUsage() != null) {
       attributes.add(Map.of("code", "USAGE", "value", offering.getUsage().toDataModel()));
+    }
+    if (offering.getRole() != null) {
+      attributes.add(Map.of("code", "X_ROLE", "value", offering.getRole()));
     }
 
     var product =
@@ -117,13 +121,20 @@ public class OfferingStubs {
    * Stub the engineering products endpoint to return empty engineering products for given SKUs
    * since we don't test engIds.
    *
-   * @param skus list of SKUs to mock
+   * @param offerings list of SKUs to mock
    */
-  public void stubEngineeringProducts(String... skus) {
+  public void stubEngineeringProducts(Offering... offerings) {
     // Return empty engIds entries list for each SKU, return an empty engProducts array
-    var entries = new java.util.ArrayList<Map<String, Object>>();
-    for (String sku : skus) {
-      entries.add(Map.of("sku", sku, "engProducts", Map.of("engProducts", java.util.List.of())));
+    var entries = new ArrayList<Map<String, Object>>();
+    for (var offering : offerings) {
+      entries.add(
+          Map.of(
+              "sku",
+              offering.getSku(),
+              "engProducts",
+              Map.of(
+                  "engProducts",
+                  offering.getEngProducts().stream().map(e -> Map.of("oid", e)).toList())));
     }
     var responseBody = Map.of("entries", entries);
 
