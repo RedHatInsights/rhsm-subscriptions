@@ -403,7 +403,7 @@ objects:
   - apiVersion: cloud.redhat.com/v1alpha1
     kind: ClowdApp
     metadata:
-      name: swatch-contracts-db-changelog-cleanup
+      name: swatch-contracts-db-cleanup
     spec:
       # The name of the ClowdEnvironment providing the services
       envName: ${ENV_NAME}
@@ -420,7 +420,7 @@ objects:
       kafkaTopics: []
       deployments: []
       jobs:
-        - name: contracts-db-changelog-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+        - name: changelog-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
           restartPolicy: Never
           podSpec:
             image: ${EGRESS_IMAGE}:${EGRESS_IMAGE_TAG}
@@ -464,9 +464,10 @@ objects:
     metadata:
       name: contracts-db-changelog-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
     spec:
-      appName: swatch-contracts-db-changelog-cleanup
+      appName: swatch-contracts-db-cleanup
       jobs:
-        - contracts-db-changelog-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+        - changelog-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+
   - apiVersion: v1
     kind: Secret
     metadata:
