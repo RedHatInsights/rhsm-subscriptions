@@ -44,7 +44,7 @@ components:
           description: Whether or not an async request was made.
         status:
           type: string
-          enum: [SUCCESS, STARTED]
+          enum: [SUCCESS, STARTED, BYPASSED]
           description: "Status of the flush operation"
           example: "SUCCESS"
         count:
