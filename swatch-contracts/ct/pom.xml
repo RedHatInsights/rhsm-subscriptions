@@ -20,6 +20,10 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-product-configuration</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-annotations</artifactId>
     </dependency>
@@ -76,10 +80,60 @@
             </executions>
           </plugin>
 
+          <plugin>
+            <groupId>org.jsonschema2pojo</groupId>
+            <artifactId>jsonschema2pojo-maven-plugin</artifactId>
+            <configuration>
+              <targetPackage>com.redhat.swatch.contract.test.model</targetPackage>
+              <outputDirectory>${project.build.directory}/generated-sources/src/main/java</outputDirectory>
+              <includeAdditionalProperties>false</includeAdditionalProperties>
+              <includeJsr303Annotations>false</includeJsr303Annotations>
+              <initializeCollections>false</initializeCollections>
+              <dateTimeType>java.time.OffsetDateTime</dateTimeType>
+              <sourceType>yamlschema</sourceType>
+              <generateBuilders>true</generateBuilders>
+              <includeGetters>true</includeGetters>
+              <includeSetters>true</includeSetters>
+              <useJakartaValidation>false</useJakartaValidation>
+              <sourceDirectory>${maven.multiModuleProjectDirectory}/swatch-contracts/schemas</sourceDirectory>
+            </configuration>
+            <executions>
+              <execution>
+                <id>from-swatch-core</id>
+                <goals>
+                  <goal>generate</goal>
+                </goals>
+                <configuration>
+                  <sourceDirectory>${maven.multiModuleProjectDirectory}/swatch-core/schemas</sourceDirectory>
+                  <sourcePaths>
+                    <sourcePath>tally_summary.yaml</sourcePath>
+                    <sourcePath>utilization_summary.yaml</sourcePath>
+                  </sourcePaths>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
           <!-- OpenAPI Generator for contract request/response models -->
           <plugin>
             <groupId>org.openapitools</groupId>
             <artifactId>openapi-generator-maven-plugin</artifactId>
+            <configuration>
+              <generatorName>java</generatorName>
+              <library>rest-assured</library>
+              <output>${project.build.directory}/generated-sources</output>
+              <generateModels>true</generateModels>
+              <generateApis>false</generateApis>
+              <generateApiTests>false</generateApiTests>
+              <generateModelTests>false</generateModelTests>
+              <generateSupportingFiles>false</generateSupportingFiles>
+              <configOptions>
+                <serializationLibrary>jackson</serializationLibrary>
+                <useJakartaEe>true</useJakartaEe>
+                <dateLibrary>java8</dateLibrary>
+                <hideGenerationTimestamp>true</hideGenerationTimestamp>
+              </configOptions>
+            </configuration>
             <executions>
               <execution>
                 <id>generate-test-models</id>
@@ -89,21 +143,18 @@
                 </goals>
                 <configuration>
                   <inputSpec>${project.basedir}/../src/main/resources/META-INF/openapi.yaml</inputSpec>
-                  <generatorName>java</generatorName>
-                  <library>rest-assured</library>
-                  <output>${project.build.directory}/generated-sources</output>
                   <modelPackage>com.redhat.swatch.contract.test.model</modelPackage>
-                  <generateModels>true</generateModels>
-                  <generateApis>false</generateApis>
-                  <generateApiTests>false</generateApiTests>
-                  <generateModelTests>false</generateModelTests>
-                  <generateSupportingFiles>false</generateSupportingFiles>
-                  <configOptions>
-                    <serializationLibrary>jackson</serializationLibrary>
-                    <useJakartaEe>true</useJakartaEe>
-                    <dateLibrary>java8</dateLibrary>
-                    <hideGenerationTimestamp>true</hideGenerationTimestamp>
-                  </configOptions>
+                </configuration>
+              </execution>
+              <execution>
+                <id>generate-test-subscription-client-model</id>
+                <phase>generate-test-sources</phase>
+                <goals>
+                  <goal>generate</goal>
+                </goals>
+                <configuration>
+                  <inputSpec>${maven.multiModuleProjectDirectory}/clients/subscription-client/subscription-api-spec.yaml</inputSpec>
+                  <modelPackage>com.redhat.swatch.subscriptions.test.model</modelPackage>
                 </configuration>
               </execution>
             </executions>

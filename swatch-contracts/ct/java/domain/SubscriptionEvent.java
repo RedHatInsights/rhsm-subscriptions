@@ -20,27 +20,24 @@
  */
 package domain;
 
-import com.redhat.swatch.contract.test.model.TallySnapshot.Sla;
+import com.redhat.swatch.configuration.registry.MetricId;
+import java.util.Map;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
 
-public enum ServiceLevel {
-  PREMIUM;
+@Getter
+@Builder
+@AllArgsConstructor
+public class SubscriptionEvent {
+  private final Subscription subscription;
+  private final Map<MetricId, Double> metricValues;
 
-  public Sla toTallySnapshotModel() {
-    switch (this) {
-      case PREMIUM:
-        return Sla.PREMIUM;
-      default:
-        throw new IllegalArgumentException("Unsupported service level: " + this);
-    }
-  }
-
-  /** From swatch-common-models: */
-  public String toDataModel() {
-    switch (this) {
-      case PREMIUM:
-        return "Premium";
-      default:
-        throw new IllegalArgumentException("Unsupported service level: " + this);
-    }
+  public static SubscriptionEvent eventFor(
+      Subscription subscription, MetricId metricId, double metricValue) {
+    return SubscriptionEvent.builder()
+        .subscription(subscription)
+        .metricValues(Map.of(metricId, metricValue))
+        .build();
   }
 }

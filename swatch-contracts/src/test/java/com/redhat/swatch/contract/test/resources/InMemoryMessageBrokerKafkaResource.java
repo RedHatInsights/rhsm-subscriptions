@@ -27,6 +27,8 @@ import static com.redhat.swatch.contract.config.Channels.EXPORT_REQUESTS_TOPIC;
 import static com.redhat.swatch.contract.config.Channels.OFFERING_SYNC;
 import static com.redhat.swatch.contract.config.Channels.OFFERING_SYNC_TASK_TOPIC;
 import static com.redhat.swatch.contract.config.Channels.SUBSCRIPTION_SYNC_TASK_TOPIC;
+import static com.redhat.swatch.contract.config.Channels.TALLY_IN;
+import static com.redhat.swatch.contract.config.Channels.UTILIZATION_OUT;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
@@ -45,6 +47,8 @@ public class InMemoryMessageBrokerKafkaResource implements QuarkusTestResourceLi
     env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory(OFFERING_SYNC));
     env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory(OFFERING_SYNC_TASK_TOPIC));
     env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory(EXPORT_REQUESTS_TOPIC));
+    env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory(TALLY_IN));
+    env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory(UTILIZATION_OUT));
     return env;
   }
 

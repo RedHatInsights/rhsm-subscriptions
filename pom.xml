@@ -20,7 +20,7 @@
     <codegen.skipIfSpecIsUnchanged>true</codegen.skipIfSpecIsUnchanged>
 
     <!-- Dependencies -->
-    <quarkus.platform.version>3.28.5</quarkus.platform.version>
+    <quarkus.platform.version>3.29.0</quarkus.platform.version>
     <spring.boot.version>3.5.7</spring.boot.version>
     <resteasy.version>7.0.0.Final</resteasy.version>
     <!-- Only use as provided in the common dependencies.
@@ -31,7 +31,7 @@
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
     <opentelemetry-api.version>1.55.0</opentelemetry-api.version>
-    <awssdk-bom.version>2.36.0</awssdk-bom.version>
+    <awssdk-bom.version>2.36.3</awssdk-bom.version>
     <guava.version>33.5.0-jre</guava.version>
     <liquibase.version>5.0.1</liquibase.version>
     <postgresql.version>42.7.8</postgresql.version>
@@ -42,8 +42,9 @@
     <awaitility.version>4.3.0</awaitility.version>
     <hibernate-validator.version>9.0.1.Final</hibernate-validator.version>
     <swagger-parser.version>2.1.35</swagger-parser.version>
-    <swagger-ui.version>5.29.3</swagger-ui.version>
-    <splunk-otel-javaagent.version>2.21.0</splunk-otel-javaagent.version>
+    <swagger-ui.version>5.30.0</swagger-ui.version>
+    <splunk-otel-javaagent.version>2.21.1</splunk-otel-javaagent.version>
+    <java-uuid-generator.version>5.1.1</java-uuid-generator.version>
 
     <!-- Plugins -->
     <compiler-plugin.version>3.14.1</compiler-plugin.version>
@@ -210,7 +211,7 @@
       <dependency>
         <groupId>org.openapitools</groupId>
         <artifactId>jackson-databind-nullable</artifactId>
-        <version>0.2.7</version>
+        <version>0.2.8</version>
       </dependency>
       <dependency>
         <groupId>org.codehaus.janino</groupId>
@@ -290,7 +291,7 @@
       <dependency>
         <groupId>com.github.ben-manes.caffeine</groupId>
         <artifactId>caffeine</artifactId>
-        <version>3.2.2</version>
+        <version>3.2.3</version>
       </dependency>
       <dependency>
         <groupId>io.rest-assured</groupId>
@@ -311,6 +312,11 @@
         <groupId>org.mockito</groupId>
         <artifactId>mockito-junit-jupiter</artifactId>
         <version>${mockito.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.uuid</groupId>
+        <artifactId>java-uuid-generator</artifactId>
+        <version>${java-uuid-generator.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -521,7 +527,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>12.1.0</version>
+            <version>12.1.1</version>
           </dependency>
         </dependencies>
       </plugin>
@@ -602,6 +608,7 @@
 
       <modules>
         <!-- Dependencies -->
+        <module>swatch-product-configuration</module>
         <module>swatch-quarkus-parent</module>
         <module>swatch-common-models</module>
         <module>swatch-model-events</module>

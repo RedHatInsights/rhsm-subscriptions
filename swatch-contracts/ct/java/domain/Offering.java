@@ -20,7 +20,9 @@
  */
 package domain;
 
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.experimental.SuperBuilder;
@@ -31,11 +33,18 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 public class Offering {
 
+  // Constants for RHEL for x86 offering defaults
+  private static final String RHEL_DESCRIPTION = "Test component for RHEL for x86";
+  private static final String RHEL_ROLE = "Red Hat Enterprise Linux Server";
+
   // Constants for ROSA offering defaults
   private static final String ROSA_DESCRIPTION = "Test component for ROSA";
   private static final String ROSA_LEVEL1 = "OpenShift";
   private static final String ROSA_LEVEL2 = "ROSA - RH OpenShift on AWS";
+
+  // Common Constants
   private static final String METERED_YES = "Y";
+  private static final String METERED_NO = "N";
 
   private final String sku;
   private final String description;
@@ -46,6 +55,24 @@ public class Offering {
   private final String metered;
   private final ServiceLevel serviceLevel;
   private final Usage usage;
+  private final String role;
+  private final List<Integer> engProducts;
+
+  public static Offering buildRhelOffering(String sku, Double cores, Double sockets) {
+    Objects.requireNonNull(sku, "sku cannot be null");
+
+    return Offering.builder()
+        .sku(sku)
+        .description(RHEL_DESCRIPTION)
+        .metered(METERED_NO)
+        .cores(Optional.ofNullable(cores).map(Double::intValue).orElse(null))
+        .sockets(Optional.ofNullable(sockets).map(Double::intValue).orElse(null))
+        .serviceLevel(ServiceLevel.PREMIUM)
+        .usage(Usage.PRODUCTION)
+        .engProducts(List.of(69, 479))
+        .role(RHEL_ROLE)
+        .build();
+  }
 
   public static Offering buildRosaOffering(String sku) {
     Objects.requireNonNull(sku, "sku cannot be null");
@@ -58,6 +85,7 @@ public class Offering {
         .metered(METERED_YES)
         .serviceLevel(ServiceLevel.PREMIUM)
         .usage(Usage.PRODUCTION)
+        .engProducts(List.of())
         .build();
   }
 }
