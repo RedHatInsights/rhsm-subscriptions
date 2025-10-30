@@ -105,6 +105,16 @@ class InternalResourceTest {
   }
 
   @Test
+  void testFlushOutboxAlreadyRunningSynchronousFlush() {
+    withSynchronousRequestsEnabled(true);
+    withSynchronousRequestHeader(true);
+    when(outboxService.flushOutboxRecords()).thenReturn(-1L);
+
+    FlushResponse flushResponse = flushOutbox().extract().body().as(FlushResponse.class);
+    assertEquals(StatusEnum.BYPASSED, flushResponse.getStatus());
+  }
+
+  @Test
   void testFlushOutboxAsyncDeniedWithInvalidPsk() {
     withInvalidPskHeader();
     flushOutbox().statusCode(HttpStatus.SC_UNAUTHORIZED);
