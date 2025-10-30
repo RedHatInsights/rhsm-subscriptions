@@ -21,12 +21,13 @@
 package api;
 
 import com.redhat.swatch.component.tests.api.MessageValidator;
+import org.candlepin.subscriptions.json.TallySnapshot.Granularity;
 import org.candlepin.subscriptions.json.TallySummary;
 
 public class MessageValidators {
 
   public static MessageValidator<TallySummary> tallySummaryMatches(
-      String orgId, String productId, String metricId) {
+      String orgId, String productId, String metricId, Granularity granularity) {
     return new MessageValidator<>(
         summary ->
             orgId.equals(summary.getOrgId())
@@ -35,6 +36,7 @@ public class MessageValidators {
                     .anyMatch(
                         snapshot ->
                             productId.equals(snapshot.getProductId())
+                                && granularity.equals(snapshot.getGranularity())
                                 && snapshot.getTallyMeasurements() != null
                                 && snapshot.getTallyMeasurements().stream()
                                     .anyMatch(
