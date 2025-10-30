@@ -20,10 +20,16 @@
  */
 package com.redhat.swatch.component.tests.utils;
 
+import java.util.Map;
+
 public final class SwatchUtils {
   public static final String SERVER_PORT_PROPERTY = "SERVER_PORT";
   public static final int SERVER_PORT = 8000;
   public static final int MANAGEMENT_PORT = 9000;
+  public static final Map<String, String> SECURITY_HEADERS =
+      Map.of(
+          "x-rh-swatch-psk", "placeholder",
+          "Origin", "console.redhat.com");
 
   private SwatchUtils() {}
 }
