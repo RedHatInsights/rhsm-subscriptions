@@ -28,13 +28,16 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.Test;
+import utils.TallyDatabaseHelper;
 import utils.TallyTestHelpers;
 
 public class TallySummaryComponentTest extends BaseTallyComponentTest {
 
   private static final TallyTestHelpers helpers = new TallyTestHelpers();
+  private static final TallyDatabaseHelper databaseHelper = new TallyDatabaseHelper();
   private static final String TEST_PRODUCT_ID = "rhel-for-x86-els-payg";
   private static final String TEST_METRIC_ID = "VCPUS";
+  private static final String DEFAULT_BILLING_ACCOUNT = "746157280291";
 
   @Test
   public void testTallyNightlySummaryEmitsGranularityDaily() {
@@ -44,7 +47,8 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
 
     // Step 1: Create mock host with tally buckets in database
     try {
-      helpers.createMockHostWithBuckets(testOrgId, testInstanceId, TEST_PRODUCT_ID, 4, 0);
+      databaseHelper.createMockHostWithBuckets(
+          testOrgId, testInstanceId, TEST_PRODUCT_ID, DEFAULT_BILLING_ACCOUNT, 4, 0);
     } catch (Exception e) {
       throw new RuntimeException("Failed to create mock host with buckets", e);
     }
@@ -64,7 +68,7 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event2);
 
     // Wait for events to be ingested
-    helpers.waitForProcessing(2000); // Give Kafka consumer time to process events
+    helpers.waitForProcessing(2000);
 
     // Step 3: Run nightly tally
     try {
@@ -77,9 +81,12 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
 
     // Wait for tally messages to be produced
     kafkaBridge.waitForKafkaMessage(
-        TALLY, MessageValidators.tallySummaryMatches(testOrgId, TEST_PRODUCT_ID, "CORES"), 1);
+        TALLY,
+        MessageValidators.tallySummaryMatches(testOrgId, TEST_PRODUCT_ID, "CORES"),
+        1); // Expected count of messages
   }
 
+  @Test
   public void testTallyHourlySummaryEmitsGranularityHourlyDaily() {
     final String testOrgId = helpers.generateRandomOrgId(); // Use random org ID
     final String testInstanceId = UUID.randomUUID().toString();
@@ -111,7 +118,6 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
 
     // Wait for events to be ingested into the database
     helpers.waitForProcessing(2000);
-
     // Step 2: Run hourly tally
     try {
       helpers.syncTallyHourly(testOrgId, service);
