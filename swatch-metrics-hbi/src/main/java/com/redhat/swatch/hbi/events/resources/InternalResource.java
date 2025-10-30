@@ -29,6 +29,8 @@ import com.redhat.swatch.hbi.model.FlushResponse;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.context.ManagedExecutor;
 
@@ -37,6 +39,7 @@ import org.eclipse.microprofile.context.ManagedExecutor;
 public class InternalResource implements DefaultApi {
 
   public static final String SYNCHRONOUS_REQUEST_HEADER = "x-rh-swatch-synchronous-request";
+  Lock lock = new ReentrantLock();
 
   @Inject ManagedExecutor executor;
 
@@ -58,8 +61,12 @@ public class InternalResource implements DefaultApi {
       log.info("Request received to flush the outbox synchronously!");
       try {
         long count = flush();
-        response.setStatus(FlushResponse.StatusEnum.SUCCESS);
-        response.setCount(count);
+        if (count == -1L) {
+          response.setStatus(FlushResponse.StatusEnum.BYPASSED);
+        } else {
+          response.setStatus(FlushResponse.StatusEnum.SUCCESS);
+          response.setCount(count);
+        }
         return response;
       } catch (Exception e) {
         throw new SynchronousOutboxFlushException(e);
@@ -76,8 +83,17 @@ public class InternalResource implements DefaultApi {
     log.debug(
         "Outbox flush running on vertx worker thread: {}",
         io.vertx.core.Context.isOnWorkerThread());
-    long count = outboxService.flushOutboxRecords();
-    log.info("Flushed {} outbox records!", count);
+    long count = -1L;
+    if (lock.tryLock()) {
+      try {
+        count = outboxService.flushOutboxRecords();
+        log.info("Flushed {} outbox records!", count);
+      } finally {
+        lock.unlock();
+      }
+    } else {
+      log.warn("Outbox flush was not performed because another flush is already in progress.");
+    }
     return count;
   }
 }
