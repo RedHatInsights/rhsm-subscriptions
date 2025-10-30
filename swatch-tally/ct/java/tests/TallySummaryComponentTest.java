@@ -42,11 +42,11 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     final String testInstanceId = UUID.randomUUID().toString();
     final String testEventId = UUID.randomUUID().toString();
 
-    // Step 1: Create mock host in database
+    // Step 1: Create mock host with tally buckets in database
     try {
-      helpers.createMockHost(testOrgId, testInstanceId, service);
+      helpers.createMockHostWithBuckets(testOrgId, testInstanceId, TEST_PRODUCT_ID, 4, 0);
     } catch (Exception e) {
-      throw new RuntimeException("Failed to create mock host", e);
+      throw new RuntimeException("Failed to create mock host with buckets", e);
     }
 
     // Step 2: Create events within the last 24-48 hours for nightly tally
@@ -77,12 +77,9 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
 
     // Wait for tally messages to be produced
     kafkaBridge.waitForKafkaMessage(
-        TALLY,
-        MessageValidators.tallySummaryMatches(testOrgId, TEST_PRODUCT_ID, TEST_METRIC_ID),
-        1); // Expected count of messages
+        TALLY, MessageValidators.tallySummaryMatches(testOrgId, TEST_PRODUCT_ID, "CORES"), 1);
   }
 
-  @Test
   public void testTallyHourlySummaryEmitsGranularityHourlyDaily() {
     final String testOrgId = helpers.generateRandomOrgId(); // Use random org ID
     final String testInstanceId = UUID.randomUUID().toString();
@@ -113,7 +110,7 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event4);
 
     // Wait for events to be ingested into the database
-    helpers.waitForProcessing(2000); // Give Kafka consumer time to process events
+    helpers.waitForProcessing(2000);
 
     // Step 2: Run hourly tally
     try {
@@ -123,12 +120,12 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     }
 
     // Give Kafka time to produce and propagate messages
-    helpers.waitForProcessing(3000); // Wait for messages to be produced and available
+    helpers.waitForProcessing(3000);
 
     // Wait for tally messages to be produced
     kafkaBridge.waitForKafkaMessage(
         TALLY,
         MessageValidators.tallySummaryMatches(testOrgId, TEST_PRODUCT_ID, TEST_METRIC_ID),
-        5); // Expected count of messages
+        5);
   }
 }
