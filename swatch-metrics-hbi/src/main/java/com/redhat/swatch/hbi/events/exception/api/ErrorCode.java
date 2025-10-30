@@ -28,6 +28,8 @@ public enum ErrorCode {
   INTERNAL_SERVICE_ERROR(1001, "An internal service error occurred"),
   SYNCHRONOUS_OUTBOX_FLUSH_ERROR(1002, "An error while flushing the outbox synchronously"),
   SYNCHRONOUS_OUTBOX_FLUSH_DISABLED(1003, "The synchronous outbox flushing is disabled"),
+  EXISTING_OUTBOX_FLUSH_ERROR(
+      1004, "Outbox flush was not performed because another flush is already in progress"),
   ;
 
   private static final String CODE_PREFIX = "SMHBI";
