@@ -107,7 +107,7 @@ public class ContractsSwatchService extends SwatchService {
     Objects.requireNonNull(productId, "product id must not be null");
     return given()
             .headers(SECURITY_HEADERS)
-            .queryParam("productId", productId) // Not sure if this is the right param name?
+            .queryParam("productId", productId) // Not sure if this is the right query param name?
             .get(GET_SKU_ENDPOINT);
   }
 }
