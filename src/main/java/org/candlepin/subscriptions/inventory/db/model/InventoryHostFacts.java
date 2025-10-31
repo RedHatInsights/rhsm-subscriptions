@@ -86,12 +86,12 @@ public class InventoryHostFacts {
       String products,
       String syncTimestamp,
       String systemProfileInfrastructureType,
-      String systemProfileCores,
-      String systemProfileSockets,
-      String systemProfileCpus,
-      String systemProfileThreadsPerCore,
+      Integer systemProfileCoresPerSocket,
+      Integer systemProfileSockets,
+      Integer systemProfileCpus,
+      Integer systemProfileThreadsPerCore,
       String systemProfileArch,
-      String isMarketplace,
+      Boolean isMarketplace,
       String conversionsActivity,
       String qpcProducts,
       String systemProfileProductIds,
@@ -122,12 +122,12 @@ public class InventoryHostFacts {
     this.qpcProducts = asStringSet(qpcProducts);
     this.syncTimestamp = StringUtils.hasText(syncTimestamp) ? syncTimestamp : "";
     this.systemProfileInfrastructureType = systemProfileInfrastructureType;
-    this.systemProfileCoresPerSocket = asInt(systemProfileCores);
-    this.systemProfileSockets = asInt(systemProfileSockets);
-    this.systemProfileCpus = asInt(systemProfileCpus);
-    this.systemProfileThreadsPerCore = asInt(systemProfileThreadsPerCore);
+    this.systemProfileCoresPerSocket = nullToZero(systemProfileCoresPerSocket);
+    this.systemProfileSockets = nullToZero(systemProfileSockets);
+    this.systemProfileCpus = nullToZero(systemProfileCpus);
+    this.systemProfileThreadsPerCore = nullToZero(systemProfileThreadsPerCore);
     this.systemProfileArch = systemProfileArch;
-    this.isMarketplace = asBoolean(isMarketplace);
+    this.isMarketplace = nullToFalse(isMarketplace);
     this.conversionsActivity = asBoolean(conversionsActivity);
     this.systemProfileProductIds = asStringSet(systemProfileProductIds);
     this.syspurposeRole = syspurposeRole;
@@ -158,12 +158,12 @@ public class InventoryHostFacts {
     return Boolean.parseBoolean(value);
   }
 
-  private Integer asInt(String value) {
-    try {
-      return StringUtils.hasText(value) ? Integer.valueOf(value) : 0;
-    } catch (NumberFormatException nfe) {
-      return 0;
-    }
+  private boolean nullToFalse(Boolean value) {
+    return value != null && value;
+  }
+
+  private Integer nullToZero(Integer value) {
+    return value == null ? 0 : value;
   }
 
   private Set<String> asStringSet(String productJson) {
