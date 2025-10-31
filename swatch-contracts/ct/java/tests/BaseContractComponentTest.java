@@ -20,6 +20,8 @@
  */
 package tests;
 
+// Intentionally avoid assertions here; keep assertions in test classes.
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -34,7 +36,10 @@ import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import domain.Contract;
+import domain.Offering;
+import domain.Subscription;
 import io.restassured.response.Response;
+import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -69,10 +74,45 @@ public class BaseContractComponentTest {
     wiremock.forProductAPI().stubOfferingData(contract.getOffering());
     wiremock.forPartnerAPI().stubContract(contract);
     // Sync offering needed for contract to persist with the SKU
-    Response syncOfferingResponse = service.syncOffering(contract.getOffering().getSku());
-    assertThat("Sync offering call should succeed", syncOfferingResponse.statusCode(), is(200));
+    Response sync = service.syncOffering(contract.getOffering().getSku());
+    assertThat("Sync offering should succeed", sync.statusCode(), is(200));
 
-    Response createContractResponse = service.createContract(contract);
-    assertThat("Contract creation should succeed", createContractResponse.statusCode(), is(200));
+    Response create = service.createContract(contract);
+    assertThat("Creating contract should succeed", create.statusCode(), is(200));
+  }
+
+  /** Common helper to stub upstream offering with capacity and sync it into the service. */
+  protected void stubOfferingAndSync(String sku, double cores, double sockets) {
+    wiremock.forProductAPI().stubOfferingData(Offering.buildRhelOffering(sku, cores, sockets));
+    Response r = service.syncOffering(sku);
+
+    assertThat("Sync offering should succeed", r.statusCode(), is(200));
+  }
+
+  /** Common helper to persist a PAYG subscription for the given org/sku with reconcile on. */
+  protected String saveSubscriptionForOrgAndSku(String orgId, String sku) {
+    Subscription sub = Subscription.buildRhelSubscriptionUsingSku(orgId, Map.of(), sku);
+    Response r = service.saveSubscriptions(true, sub);
+
+    assertThat("Building a Rhel subscription should succeed", r.statusCode(), is(200));
+
+    return sub.getSubscriptionId();
+  }
+
+  /** Common helper to fetch the capacity count for a product/org, asserting 200. */
+  protected int getCapacityCount(String productId, String orgId) {
+    Response r = service.getSkuCapacityByProductIdForOrg(productId, orgId);
+    assertThat("Sync offering call should succeed", r.statusCode(), is(200));
+
+    return r.jsonPath().getInt("meta.count");
+  }
+
+  /** Common helper to fetch the full capacity report for a product/org, asserting 200. */
+  protected Response getCapacityReport(String productId, String orgId) {
+    Response r = service.getSkuCapacityByProductIdForOrg(productId, orgId);
+
+    assertThat("Sync offering call should succeed", r.statusCode(), is(200));
+
+    return r;
   }
 }
