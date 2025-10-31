@@ -45,7 +45,7 @@ import java.util.concurrent.TimeUnit;
 public class KafkaBridgeService extends RestService {
 
   private static final String CONTENT_TYPE = "application/vnd.kafka.json.v2+json";
-  private static final String CONSUMER_GROUP = "component-tests";
+  private static final String CONSUMER_GROUP = UUID.randomUUID().toString();
 
   // Consumers by topic
   private final Map<String, String> consumers = new HashMap<>();
@@ -57,7 +57,7 @@ public class KafkaBridgeService extends RestService {
   private final Map<String, CopyOnWriteArrayList<Object>> messageCache = new ConcurrentHashMap<>();
 
   public KafkaBridgeService subscribeToTopic(String topic) {
-    String consumerId = UUID.randomUUID().toString();
+    String consumerId = "component-test-" + UUID.randomUUID().toString();
     // If service is already running, create consumer for topic
     if (isRunning()) {
       createConsumerForTopic(topic, consumerId);
@@ -148,8 +148,7 @@ public class KafkaBridgeService extends RestService {
       throw new IllegalArgumentException("No consumer for topic " + topic);
     }
 
-    Log.debug(
-        this, "Waiting for %d messages in topic %s using cached messages", expectedCount, topic);
+    Log.debug(this, "Waiting for %d messages in topic %s", expectedCount, topic);
 
     List<V> matchedMessages = new ArrayList<>();
 
@@ -160,45 +159,104 @@ public class KafkaBridgeService extends RestService {
 
             // Get cached messages for this topic
             CopyOnWriteArrayList<Object> cachedMessages = messageCache.get(topic);
-            if (cachedMessages == null || cachedMessages.isEmpty()) {
-              Log.debug(this, "No cached messages found for topic %s", topic);
-              // If expecting 0 messages and cache is empty, that's success
-              return expectedCount == 0;
+            List<KafkaMessage<V>> allTypedMessages = new ArrayList<>();
+
+            if (cachedMessages != null && !cachedMessages.isEmpty()) {
+              Log.debug(this, "Found %d cached messages in topic %s", cachedMessages.size(), topic);
+
+              // Convert cached messages to typed messages
+              for (Object rawMessage : cachedMessages) {
+                try {
+                  String messageJson = JsonUtils.getObjectMapper().writeValueAsString(rawMessage);
+                  TypeFactory typeFactory = JsonUtils.getObjectMapper().getTypeFactory();
+                  JavaType messageType =
+                      typeFactory.constructParametricType(KafkaMessage.class, validator.getType());
+                  KafkaMessage<V> typedMessage =
+                      JsonUtils.getObjectMapper().readValue(messageJson, messageType);
+                  allTypedMessages.add(typedMessage);
+                } catch (Exception e) {
+                  Log.debug(this, "Failed to parse cached message: %s", e.getMessage());
+                }
+              }
             }
 
-            Log.debug(this, "Found %d cached messages in topic %s", cachedMessages.size(), topic);
+            // If we don't have enough cached messages, poll directly for more
+            if (allTypedMessages.size() < expectedCount) {
+              Log.debug(
+                  this,
+                  "Not enough cached messages (%d < %d), polling directly",
+                  allTypedMessages.size(),
+                  expectedCount);
 
-            // Convert cached messages to typed messages and validate
-            for (Object rawMessage : cachedMessages) {
               try {
-                // Parse the raw message as KafkaMessage<V>
-                String messageJson = JsonUtils.getObjectMapper().writeValueAsString(rawMessage);
-                TypeFactory typeFactory = JsonUtils.getObjectMapper().getTypeFactory();
-                JavaType messageType =
-                    typeFactory.constructParametricType(KafkaMessage.class, validator.getType());
-                KafkaMessage<V> typedMessage =
-                    JsonUtils.getObjectMapper().readValue(messageJson, messageType);
-                V message = typedMessage.getValue();
+                Response response =
+                    given()
+                        .accept(CONTENT_TYPE)
+                        .queryParam("timeout", 2000) // 2 second timeout for direct poll
+                        .when()
+                        .get(
+                            "/consumers/" + CONSUMER_GROUP + "/instances/" + consumer + "/records");
 
-                if (validator.test(message)) {
-                  matchedMessages.add(message);
-                  Log.debug(this, "Valid message found: %s", message);
+                if (response.getStatusCode() == 200) {
+                  String responseBody = response.getBody().asString();
+                  List<Map<String, Object>> rawMessages = parseRawMessages(responseBody);
+
+                  if (!rawMessages.isEmpty()) {
+                    Log.debug(this, "Found %d new messages from direct poll", rawMessages.size());
+
+                    // Convert new messages to typed messages
+                    for (Object rawMessage : rawMessages) {
+                      try {
+                        String messageJson =
+                            JsonUtils.getObjectMapper().writeValueAsString(rawMessage);
+                        TypeFactory typeFactory = JsonUtils.getObjectMapper().getTypeFactory();
+                        JavaType messageType =
+                            typeFactory.constructParametricType(
+                                KafkaMessage.class, validator.getType());
+                        KafkaMessage<V> typedMessage =
+                            JsonUtils.getObjectMapper().readValue(messageJson, messageType);
+                        allTypedMessages.add(typedMessage);
+                      } catch (Exception e) {
+                        Log.debug(this, "Failed to parse direct poll message: %s", e.getMessage());
+                      }
+                    }
+                  }
                 }
               } catch (Exception e) {
-                Log.debug(this, "Failed to parse cached message: %s", e.getMessage());
-                // Continue processing other messages - invalid messages are ignored
+                Log.debug(this, "Direct poll failed: %s", e.getMessage());
+              }
+            }
+
+            Log.debug(this, "Total messages available: %d", allTypedMessages.size());
+
+            // Validate messages and collect matching ones
+            for (var message : allTypedMessages) {
+              if (validator.test(message.getValue())) {
+                matchedMessages.add(message.getValue());
+                Log.debug(this, "Valid message found: %s", message.getValue());
               }
             }
 
             Log.debug(
                 this,
-                "Found %d valid messages out of %d total cached",
+                "Found %d valid messages out of %d total",
                 matchedMessages.size(),
-                cachedMessages.size());
-            return matchedMessages.size() >= expectedCount;
+                allTypedMessages.size());
+
+            // Return true if we have enough valid messages
+            boolean hasEnoughMessages = matchedMessages.size() >= expectedCount;
+            if (hasEnoughMessages) {
+              Log.info(
+                  this,
+                  "Found sufficient valid messages (%d >= %d)",
+                  matchedMessages.size(),
+                  expectedCount);
+            }
+
+            return hasEnoughMessages;
 
           } catch (Exception e) {
-            Log.debug(this, "Error checking cached messages: %s", e.getMessage());
+            Log.debug(this, "Error checking messages: %s", e.getMessage());
             return false;
           }
         },
@@ -286,7 +344,7 @@ public class KafkaBridgeService extends RestService {
                 Response response =
                     given()
                         .accept(CONTENT_TYPE)
-                        .queryParam("timeout", 1000) // Slightly longer timeout to get messages
+                        .queryParam("timeout", 2000)
                         .when()
                         .get(
                             "/consumers/"
