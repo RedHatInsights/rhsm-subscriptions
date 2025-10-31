@@ -40,6 +40,7 @@ public class ContractsSwatchService extends SwatchService {
   private static final String OFFERING_SYNC_ENDPOINT = ENDPOINT_PREFIX + "/rpc/offerings/sync/%s";
   private static final String RESET_CONTRACTS_ENDPOINT =
       ENDPOINT_PREFIX + "/rpc/reset/contracts/%s";
+  private static final String RESET_DATA_ENDPOINT = ENDPOINT_PREFIX + "/rpc/reset/%s";
   private static final String CONTRACTS_ENDPOINT = ENDPOINT_PREFIX + "/contracts";
   private static final String SUBSCRIPTIONS_ENDPOINT = ENDPOINT_PREFIX + "/subscriptions";
 
@@ -78,6 +79,16 @@ public class ContractsSwatchService extends SwatchService {
         .post(CONTRACTS_ENDPOINT);
   }
 
+  public Response deleteDataForOrg(String orgId) {
+    Objects.requireNonNull(orgId, "orgId must not be null");
+    return given().headers(SECURITY_HEADERS).delete(RESET_DATA_ENDPOINT.formatted(orgId));
+  }
+
+  /**
+   * @deprecated Use {@link #deleteDataForOrg(String)} instead. This method uses the deprecated
+   *     endpoint.
+   */
+  @Deprecated
   public Response deleteContractsByOrg(String orgId) {
     Objects.requireNonNull(orgId, "orgId must not be null");
     return given().headers(SECURITY_HEADERS).delete(RESET_CONTRACTS_ENDPOINT.formatted(orgId));

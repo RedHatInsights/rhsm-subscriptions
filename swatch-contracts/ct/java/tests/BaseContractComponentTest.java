@@ -62,7 +62,7 @@ public class BaseContractComponentTest {
 
   @AfterEach
   void tearDown() {
-    service.deleteContractsByOrg(orgId);
+    service.deleteDataForOrg(orgId);
   }
 
   void givenContractIsCreated(Contract contract) {
