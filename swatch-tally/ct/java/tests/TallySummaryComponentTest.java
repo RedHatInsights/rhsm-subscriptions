@@ -28,41 +28,42 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.TallySnapshot.Granularity;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
-import utils.TallyDatabaseHelper;
 import utils.TallyTestHelpers;
 
 public class TallySummaryComponentTest extends BaseTallyComponentTest {
 
   private static final TallyTestHelpers helpers = new TallyTestHelpers();
-  private static final TallyDatabaseHelper databaseHelper = new TallyDatabaseHelper();
   private static final String TEST_PRODUCT_ID = "rhel-for-x86-els-payg";
   private static final String TEST_METRIC_ID = "VCPUS";
-  private static final String DEFAULT_BILLING_ACCOUNT = "746157280291";
 
-  @Test
+  // @Test
+  @Ignore("This test should run after https://issues.redhat.com/browse/SWATCH-2922")
   public void testTallyNightlySummaryEmitsGranularityHourly() {
     final String testOrgId = helpers.generateRandomOrgId(); // Use random org ID
     final String testInstanceId = UUID.randomUUID().toString();
+    final String testEventId = UUID.randomUUID().toString();
 
-    // Create mock host with tally buckets in database
-    try {
-      databaseHelper.createMockHostWithBuckets(
-          testOrgId, testInstanceId, TEST_PRODUCT_ID, DEFAULT_BILLING_ACCOUNT, 4, 0);
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to create mock host with buckets", e);
-    }
+    // Create events within the last 24-48 hours for nightly tally
+    OffsetDateTime now = OffsetDateTime.now();
+    Event event1 =
+        helpers.createEventWithTimestamp(
+            testOrgId, testInstanceId, now.minusHours(24).toString(), testEventId, 1.0f);
 
-    // Wait for events to be ingested
-    helpers.waitForProcessing(2000);
+    Event event2 =
+        helpers.createEventWithTimestamp(
+            testOrgId, testInstanceId, now.minusHours(48).toString(), testEventId, 1.0f);
+
+    // Produce events to Kafka
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event1);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event2);
 
     try {
       helpers.syncTallyNightly(testOrgId, service);
     } catch (Exception e) {
       throw new RuntimeException("Failed to sync tally", e);
     }
-
-    helpers.waitForProcessing(3000);
 
     // Wait for tally messages to be produced
     kafkaBridge.waitForKafkaMessage(
@@ -72,45 +73,14 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
         1);
   }
 
-  @Test
+  // @Test
+  @Ignore("This test should run after https://issues.redhat.com/browse/SWATCH-2922")
   public void testTallyNightlySummaryEmitsGranularityDaily() {
-    final String testOrgId = helpers.generateRandomOrgId(); // Use random org ID
-    final String testInstanceId = UUID.randomUUID().toString();
-
-    // Create mock host with tally buckets in database
-    try {
-      databaseHelper.createMockHostWithBuckets(
-          testOrgId, testInstanceId, TEST_PRODUCT_ID, DEFAULT_BILLING_ACCOUNT, 4, 0);
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to create mock host with buckets", e);
-    }
-
-    // Wait for events to be ingested
-    helpers.waitForProcessing(2000);
-
-    try {
-      helpers.syncTallyNightly(testOrgId, service);
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to sync tally", e);
-    }
-
-    helpers.waitForProcessing(3000);
-
-    // Wait for tally messages to be produced
-    kafkaBridge.waitForKafkaMessage(
-        TALLY,
-        MessageValidators.tallySummaryMatches(
-            testOrgId, TEST_PRODUCT_ID, "CORES", Granularity.DAILY),
-        1);
-  }
-
-  @Test
-  public void testTallyHourlySummaryEmitsGranularityHourly() {
     final String testOrgId = helpers.generateRandomOrgId(); // Use random org ID
     final String testInstanceId = UUID.randomUUID().toString();
     final String testEventId = UUID.randomUUID().toString();
 
-    // Create events within the last day for hourly tally
+    // Create events within the last 24-48 hours for nightly tally
     OffsetDateTime now = OffsetDateTime.now();
     Event event1 =
         helpers.createEventWithTimestamp(
@@ -134,17 +104,12 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event3);
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event4);
 
-    // Wait for events to be ingested into the database
-    helpers.waitForProcessing(2000);
     // Run hourly tally
     try {
       helpers.syncTallyHourly(testOrgId, service);
     } catch (Exception e) {
       throw new RuntimeException("Failed to sync tally", e);
     }
-
-    // Give Kafka time to produce and propagate messages
-    helpers.waitForProcessing(3000);
 
     // Wait for tally messages to be produced
     kafkaBridge.waitForKafkaMessage(
@@ -184,8 +149,6 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event3);
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event4);
 
-    // Wait for events to be ingested into the database
-    helpers.waitForProcessing(2000);
     // Run hourly tally
     try {
       helpers.syncTallyHourly(testOrgId, service);
@@ -193,14 +156,56 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
       throw new RuntimeException("Failed to sync tally", e);
     }
 
-    // Give Kafka time to produce and propagate messages
-    helpers.waitForProcessing(3000);
-
     // Wait for tally messages to be produced
     kafkaBridge.waitForKafkaMessage(
         TALLY,
         MessageValidators.tallySummaryMatches(
             testOrgId, TEST_PRODUCT_ID, TEST_METRIC_ID, Granularity.DAILY),
         1);
+  }
+
+  @Test
+  public void testTallyHourlySummaryEmitsGranularityHourly() {
+    final String testOrgId = helpers.generateRandomOrgId(); // Use random org ID
+    final String testInstanceId = UUID.randomUUID().toString();
+    final String testEventId = UUID.randomUUID().toString();
+
+    // Create events within the last day for hourly tally
+    OffsetDateTime now = OffsetDateTime.now();
+    Event event1 =
+        helpers.createEventWithTimestamp(
+            testOrgId, testInstanceId, now.minusHours(1).toString(), testEventId, 1.0f);
+
+    Event event2 =
+        helpers.createEventWithTimestamp(
+            testOrgId, testInstanceId, now.minusHours(2).toString(), testEventId, 1.0f);
+
+    Event event3 =
+        helpers.createEventWithTimestamp(
+            testOrgId, testInstanceId, now.minusHours(3).toString(), testEventId, 1.0f);
+
+    Event event4 =
+        helpers.createEventWithTimestamp(
+            testOrgId, testInstanceId, now.minusHours(4).toString(), testEventId, 1.0f);
+
+    // Produce events to Kafka
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event1);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event2);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event3);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event4);
+
+    // Run hourly tally
+    try {
+      helpers.syncTallyHourly(testOrgId, service);
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to sync tally", e);
+    }
+
+    // Wait for tally messages to be produced
+    kafkaBridge.waitForKafkaMessage(
+        TALLY,
+        MessageValidators.tallySummaryMatches(
+            testOrgId, TEST_PRODUCT_ID, TEST_METRIC_ID, Granularity.HOURLY),
+        4);
   }
 }

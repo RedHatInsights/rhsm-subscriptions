@@ -1,6 +1,0 @@
-db:
-  host: localhost
-  port: 5432
-  name: rhsm-subscriptions
-  username: rhsm-subscriptions
-  password: rhsm-subscriptions

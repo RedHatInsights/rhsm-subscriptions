@@ -125,13 +125,4 @@ public class TallyTestHelpers {
   public String generateRandomOrgId() {
     return String.format("%d", Math.abs(UUID.randomUUID().hashCode()) % 100000000);
   }
-
-  public void waitForProcessing(long millis) {
-    try {
-      Thread.sleep(millis);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new RuntimeException("Interrupted while waiting", e);
-    }
-  }
 }
