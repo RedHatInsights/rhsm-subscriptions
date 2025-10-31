@@ -25,17 +25,23 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.notNullValue;
 
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import domain.BillingProvider;
 import domain.Contract;
+import domain.Product;
 import io.restassured.response.Response;
+import java.time.OffsetDateTime;
 import java.util.Map;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ContractsComponentTest extends BaseContractComponentTest {
+  private static final Logger logger = LoggerFactory.getLogger(ContractsComponentTest.class);
 
   /** Verify prepaid contract is created when all required data is valid. */
   @Test
@@ -86,5 +92,144 @@ public class ContractsComponentTest extends BaseContractComponentTest {
         .body("[0].billing_account_id", equalTo(contractData.getBillingAccountId()))
         .body("[0].sku", equalTo(contractData.getOffering().getSku()))
         .body("[0].metrics.size()", equalTo(0));
+  }
+
+  @Test
+  @Tag("contract")
+  @Tag("contracts-termination-TC006")
+  void shouldDecreasecapacityWhenContractIsTerminated() {
+    String productId = Product.ROSA.getName();
+
+    // Arrange: create a ROSA contract that maps AWS dimensions to CORES
+    Contract contractData = buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 8.0));
+    givenContractIsCreated(contractData);
+
+    // Get the initial capacity (uses productId path param, org from identity header)
+    int initialCapacity = 0;
+    for (int i = 0; i < 30; i++) {
+      initialCapacity = getCapacityCount(productId, orgId);
+      if (initialCapacity > 0) {
+        break;
+      }
+      try {
+        Thread.sleep(200);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        logger.warn("Polling sleep interrupted", e);
+      }
+    }
+
+    // Act: Terminate the contract and get the new capacity
+    Response terminateContractResponse = service.terminateContract(contractData);
+    int newCapacity = initialCapacity;
+    for (int i = 0; i < 30; i++) {
+      newCapacity = getCapacityCount(productId, orgId);
+      if (newCapacity < initialCapacity) {
+        break;
+      }
+      try {
+        Thread.sleep(200);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        logger.warn("Polling sleep interrupted", e);
+      }
+    }
+
+    logger.info("Initial capacity: {}, New capacity: {}", initialCapacity, newCapacity);
+
+    // Assert: Verify the contract was terminated and the capacity was decreased
+    assertThat("Termination should succeed", terminateContractResponse.statusCode(), is(200));
+    assertThat("Capacity should have decreased", newCapacity, lessThan(initialCapacity));
+    assertThat("Capacity should be 0", newCapacity, equalTo(0));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  @Tag("contract")
+  @Tag("contracts-termination-TC006")
+  void shouldUpdateSubscriptionTableWhenContractIsTerminated() {
+    String productId = Product.RHEL.getName();
+    String sku = "RH00006";
+
+    // Arrange: stub/sync offering and save a PAYG subscription
+    stubOfferingAndSync(sku, 4.0, 1.0);
+    String paygSubId = saveSubscriptionForOrgAndSku(orgId, sku);
+
+    // Pre-condition: verify active-only subscriptions include our subscription id
+    Response preReport = getCapacityReport(productId, orgId);
+    java.util.List<java.util.Map<String, Object>> items = preReport.jsonPath().getList("data");
+    java.util.Map<String, Object> skuItem = null;
+    if (items != null) {
+      for (java.util.Map<String, Object> it : items) {
+        if (sku.equals(it.get("sku"))) {
+          skuItem = it;
+          break;
+        }
+      }
+    }
+    assertThat("SKU entry should exist before termination", skuItem != null, is(true));
+    java.util.List<java.util.Map<String, Object>> subs =
+        skuItem == null
+            ? java.util.List.of()
+            : (java.util.List<java.util.Map<String, Object>>) skuItem.get("subscriptions");
+    boolean containsId = false;
+    if (subs != null) {
+      for (java.util.Map<String, Object> s : subs) {
+        Object id = s.get("id");
+        if (id != null && id.toString().equals(paygSubId)) {
+          containsId = true;
+          break;
+        }
+      }
+    }
+    assertThat("Active subscriptions should include created subscription id", containsId, is(true));
+
+    // Verify active-only subscriptions include our subscription id and provide next event info
+    // Act: terminate the PAYG subscription
+    OffsetDateTime termination = OffsetDateTime.now().minusHours(2).withNano(0);
+    service.terminateSubscription(paygSubId, termination);
+
+    // Verify the terminated subscription is no longer listed as active for the SKU (with a short
+    // poll)
+    boolean removed = false;
+    for (int i = 0; i < 30; i++) {
+      Response postReport = getCapacityReport(productId, orgId);
+      java.util.List<java.util.Map<String, Object>> postItems =
+          postReport.jsonPath().getList("data");
+      java.util.Map<String, Object> postSkuItem = null;
+      if (postItems != null) {
+        for (java.util.Map<String, Object> it : postItems) {
+          if (sku.equals(it.get("sku"))) {
+            postSkuItem = it;
+            break;
+          }
+        }
+      }
+      boolean stillContains = false;
+      if (postSkuItem != null) {
+        java.util.List<java.util.Map<String, Object>> postSubs =
+            (java.util.List<java.util.Map<String, Object>>) postSkuItem.get("subscriptions");
+        if (postSubs != null) {
+          for (java.util.Map<String, Object> s : postSubs) {
+            Object id = s.get("id");
+            if (id != null && id.toString().equals(paygSubId)) {
+              stillContains = true;
+              break;
+            }
+          }
+        }
+      }
+      if (!stillContains) {
+        removed = true;
+        break;
+      }
+      try {
+        Thread.sleep(200);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        logger.warn("Polling sleep interrupted", e);
+      }
+    }
+    assertThat("Terminated subscription should not be listed as active", removed, is(true));
   }
 }

@@ -481,7 +481,21 @@ The scenarios will be simulated using mocked data.
         1. The contract is updated and returns to active status.
         2. The contract's end date is cleared or set to a future date.
         3. The contract status reflects the re-subscription.
-
+6. `contracts-termination-TC006` **Ensure capacity has decreased after a contract is terminated.**
+     1. ***Description:*** Verify that the capacity of the contract is decreased after a contract is terminated.
+     2. ***Setup:*** Ensure a contract exists and is currently in an active state.
+     3. ***Action:*** Simulate a message to the subscription service to terminate an active contract`.
+     4. ***Verification:*** Check the capacity of the contract using the GET API.
+     5. ***Expected Result:***
+         1. The capacity of the contract is decreased.
+7. `contracts-termination-TC007` **Ensure the subscription table is updated after a contract is terminated.**
+      1. ***Description:*** Verify that the subscription table is updated after a contract is terminated.
+      2. ***Setup:*** Ensure a contract exists and is currently in an active state.
+      3. ***Action:*** Simulate a message to the subscription service to terminate an active contract`.
+      4. ***Verification:*** Check the subscription table using the GET API.
+      5. ***Expected Result:***
+            1. The subscription table is updated with the correct next_event_date of tomorrow and 23:59:59.
+            2. The subscription table is updated with the correct next_event_type of 'Subscription End'
 
 ### 3.1.7 Contract Deletion
 
