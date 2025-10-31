@@ -42,6 +42,7 @@ public class ContractsSwatchService extends SwatchService {
       ENDPOINT_PREFIX + "/rpc/reset/contracts/%s";
   private static final String CONTRACTS_ENDPOINT = ENDPOINT_PREFIX + "/contracts";
   private static final String SUBSCRIPTIONS_ENDPOINT = ENDPOINT_PREFIX + "/subscriptions";
+  private static final String GET_SKU_ENDPOINT = "/v1" + SUBSCRIPTIONS_ENDPOINT + "/products/";
 
   public Response syncOffering(String sku) {
     Objects.requireNonNull(sku, "sku must not be null");
@@ -100,5 +101,13 @@ public class ContractsSwatchService extends SwatchService {
         .body(JsonUtils.toJson(list))
         .when()
         .post(SUBSCRIPTIONS_ENDPOINT);
+  }
+
+  public Response getSkuCapacityByProductId(String productId) {
+    Objects.requireNonNull(productId, "product id must not be null");
+    return given()
+            .headers(SECURITY_HEADERS)
+            .queryParam("productId", productId) // Not sure if this is the right param name?
+            .get(GET_SKU_ENDPOINT);
   }
 }
