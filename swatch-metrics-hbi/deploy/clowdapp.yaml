@@ -214,6 +214,8 @@ objects:
                 secretKeyRef:
                   name: ${DB_POD}-db
                   key: db.name
+            - name: OUTBOX_FLUSH_BATCH_SIZE
+                ${OUTBOX_FLUSH_BATCH_SIZE}
           volumeMounts:
             - name: logs
               mountPath: /logs
