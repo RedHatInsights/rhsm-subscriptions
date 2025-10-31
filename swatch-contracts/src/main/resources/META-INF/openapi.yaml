@@ -187,9 +187,29 @@ paths:
         - support: [ ]
         - test: [ ]
       operationId: syncSubscriptionsForContractsByOrg
-  /api/swatch-contracts/internal/rpc/reset/contracts/{org_id}:
-    description: "Clear all contracts for a given org ID. "
+  /api/swatch-contracts/internal/rpc/reset/{org_id}:
+    description: "Clear all contracts and subscriptions for a given org ID. "
     delete:
+      parameters:
+        - name: org_id
+          description: "Organization ID"
+          schema:
+            type: string
+          in: path
+          required: true
+      summary: "Clear all contracts and subscriptions for given org_id."
+      responses:
+        '204':
+          description: "Contracts and subscriptions successfully deleted"
+      security:
+        - support: [ ]
+        - test: [ ]
+        - service: [ ]
+      operationId: deleteDataForOrg
+  /api/swatch-contracts/internal/rpc/reset/contracts/{org_id}:
+    description: "DEPRECATED: Use /api/swatch-contracts/internal/rpc/reset/{org_id} instead. This endpoint will be removed after IQE tests are updated."
+    delete:
+      deprecated: true
       parameters:
         - name: org_id
           description: ""
@@ -197,7 +217,7 @@ paths:
             type: string
           in: path
           required: true
-      summary: "Clear all contracts for given org_id."
+      summary: "[DEPRECATED] Clear all contracts for given org_id. Use /reset/{org_id} instead."
       responses:
         '200':
           content:
