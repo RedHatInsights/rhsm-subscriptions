@@ -76,7 +76,9 @@ parameters:
   - name: CURL_CRON_CPU_LIMIT
     value: 100m
   - name: OUTBOX_FLUSH_SCHEDULE
-    value: '*/2 * * * *'
+    value: '*/5 * * * *'
+  - name: OUTBOX_FLUSH_BATCH_SIZE
+    value: 10000
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
