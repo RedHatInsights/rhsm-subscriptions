@@ -87,4 +87,30 @@ public class ContractsComponentTest extends BaseContractComponentTest {
         .body("[0].sku", equalTo(contractData.getOffering().getSku()))
         .body("[0].metrics.size()", equalTo(0));
   }
+
+  @Test
+  @Tag("contract")
+  @Tag("contracts-termination-TC006")
+  void shouldDecreasecapacityWhenContractIsTerminated() {
+    // get capacity of all skus
+    // Create and add a sku
+    // get new capacity, throw and exception if not grather than old capacity
+    // delete sku
+    // get new capacity
+    // assert new capacity is less than old capacity
+    // NEED TO Confirm if this is the correct behavior
+  }
+
+  @Test
+  @Tag("contract")
+  @Tag("contracts-termination-TC006")
+  void shouldUpdateSubscriptionTableWhenContractIsTerminated() {
+    // create and add a new sku
+    // check that subscription table has a new record
+    // delete sku
+    // check that subscription table has updated record for that sku
+    // should have updated next_event_date of tomorrow and 23:59:59
+    // should have updated next_event_type of 'Subscription End'
+    // NEED TO Confirm if this is the correct behavior
+  }
 }
