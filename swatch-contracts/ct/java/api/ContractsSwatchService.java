@@ -105,6 +105,7 @@ public class ContractsSwatchService extends SwatchService {
 
   public Response getSkuCapacityByProductId(String productId) {
     Objects.requireNonNull(productId, "product id must not be null");
+
     return given()
             .headers(SECURITY_HEADERS)
             .queryParam("productId", productId) // Not sure if this is the right query param name?

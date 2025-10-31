@@ -92,7 +92,13 @@ public class ContractsComponentTest extends BaseContractComponentTest {
   @Tag("contract")
   @Tag("contracts-termination-TC006")
   void shouldDecreasecapacityWhenContractIsTerminated() {
+    String product_id="RHEL for x86";
+    String metric_id="sockets"; // Not sure if this is need for this test yet
+
     // get capacity of all skus
+    Response skuCapacityResponse = service.getSkuCapacityByProductId(product_id);
+    System.out.println(skuCapacityResponse.getBody().prettyPrint());
+    // Find the capacity from the body response ( maybe have a method that processes this for us? )
     // Create and add a sku
     // get new capacity, throw and exception if not grather than old capacity
     // delete sku
