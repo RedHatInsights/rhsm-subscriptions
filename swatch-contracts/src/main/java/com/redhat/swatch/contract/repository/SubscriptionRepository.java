@@ -107,4 +107,8 @@ public class SubscriptionRepository
         .project(BillingAccountInfoDTO.class)
         .list();
   }
+
+  public void deleteByOrgId(String orgId) {
+    delete("orgId = ?1", orgId);
+  }
 }
