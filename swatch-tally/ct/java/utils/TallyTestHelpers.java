@@ -190,7 +190,7 @@ public class TallyTestHelpers {
         metricId,
         granularity,
         expectedMessageCount,
-        1,
+        2,
         Duration.ofMillis(100),
         service,
         kafkaBridge);
