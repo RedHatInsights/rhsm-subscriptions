@@ -21,9 +21,7 @@
 package tests;
 
 import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
-import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 
-import api.MessageValidators;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
@@ -59,18 +57,9 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event1);
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event2);
 
-    try {
-      helpers.syncTallyNightly(testOrgId, service);
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to sync tally", e);
-    }
-
-    // Wait for tally messages to be produced
-    kafkaBridge.waitForKafkaMessage(
-        TALLY,
-        MessageValidators.tallySummaryMatches(
-            testOrgId, TEST_PRODUCT_ID, "CORES", Granularity.HOURLY),
-        1);
+    // Run hourly tally and wait for messages with polling
+    helpers.pollForTallySyncAndMessages(
+        testOrgId, TEST_PRODUCT_ID, "CORES", Granularity.HOURLY, 1, service, kafkaBridge);
   }
 
   // @Test
@@ -104,19 +93,9 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event3);
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event4);
 
-    // Run hourly tally
-    try {
-      helpers.syncTallyHourly(testOrgId, service);
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to sync tally", e);
-    }
-
-    // Wait for tally messages to be produced
-    kafkaBridge.waitForKafkaMessage(
-        TALLY,
-        MessageValidators.tallySummaryMatches(
-            testOrgId, TEST_PRODUCT_ID, TEST_METRIC_ID, Granularity.HOURLY),
-        4);
+    // Run hourly tally and wait for messages with polling
+    helpers.pollForTallySyncAndMessages(
+        testOrgId, TEST_PRODUCT_ID, TEST_METRIC_ID, Granularity.HOURLY, 4, service, kafkaBridge);
   }
 
   @Test
@@ -149,19 +128,8 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event3);
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event4);
 
-    // Run hourly tally
-    try {
-      helpers.syncTallyHourly(testOrgId, service);
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to sync tally", e);
-    }
-
-    // Wait for tally messages to be produced
-    kafkaBridge.waitForKafkaMessage(
-        TALLY,
-        MessageValidators.tallySummaryMatches(
-            testOrgId, TEST_PRODUCT_ID, TEST_METRIC_ID, Granularity.DAILY),
-        1);
+    helpers.pollForTallySyncAndMessages(
+        testOrgId, TEST_PRODUCT_ID, TEST_METRIC_ID, Granularity.DAILY, 1, service, kafkaBridge);
   }
 
   @Test
@@ -194,18 +162,7 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event3);
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event4);
 
-    // Run hourly tally
-    try {
-      helpers.syncTallyHourly(testOrgId, service);
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to sync tally", e);
-    }
-
-    // Wait for tally messages to be produced
-    kafkaBridge.waitForKafkaMessage(
-        TALLY,
-        MessageValidators.tallySummaryMatches(
-            testOrgId, TEST_PRODUCT_ID, TEST_METRIC_ID, Granularity.HOURLY),
-        4);
+    helpers.pollForTallySyncAndMessages(
+        testOrgId, TEST_PRODUCT_ID, TEST_METRIC_ID, Granularity.HOURLY, 4, service, kafkaBridge);
   }
 }

@@ -20,15 +20,21 @@
  */
 package utils;
 
+import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
+
+import api.MessageValidators;
+import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.logging.Log;
 import io.restassured.response.Response;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.json.TallySnapshot.Granularity;
 
 public class TallyTestHelpers {
 
@@ -124,5 +130,69 @@ public class TallyTestHelpers {
 
   public String generateRandomOrgId() {
     return String.format("%d", Math.abs(UUID.randomUUID().hashCode()) % 100000000);
+  }
+
+  public void pollForTallySyncAndMessages(
+      String testOrgId,
+      String productId,
+      String metricId,
+      Granularity granularity,
+      int expectedMessageCount,
+      int maxAttempts,
+      Duration pollInterval,
+      SwatchService service,
+      KafkaBridgeService kafkaBridge) {
+    int attempts = 0;
+    Exception lastException = null;
+
+    while (attempts < maxAttempts) {
+      attempts++;
+      try {
+        // Run hourly tally sync
+        syncTallyHourly(testOrgId, service);
+
+        // Wait for tally messages to be produced
+        kafkaBridge.waitForKafkaMessage(
+            TALLY,
+            MessageValidators.tallySummaryMatches(testOrgId, productId, metricId, granularity),
+            expectedMessageCount);
+
+        // If successful, return
+        return;
+      } catch (Exception e) {
+        lastException = e;
+        if (attempts < maxAttempts) {
+          try {
+            Thread.sleep(pollInterval.toMillis());
+          } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Polling interrupted", ie);
+          }
+        }
+      }
+    }
+
+    throw new RuntimeException(
+        String.format("Failed to sync tally after %d attempts", maxAttempts), lastException);
+  }
+
+  public void pollForTallySyncAndMessages(
+      String testOrgId,
+      String productId,
+      String metricId,
+      Granularity granularity,
+      int expectedMessageCount,
+      SwatchService service,
+      KafkaBridgeService kafkaBridge) {
+    pollForTallySyncAndMessages(
+        testOrgId,
+        productId,
+        metricId,
+        granularity,
+        expectedMessageCount,
+        1,
+        Duration.ofMillis(100),
+        service,
+        kafkaBridge);
   }
 }
