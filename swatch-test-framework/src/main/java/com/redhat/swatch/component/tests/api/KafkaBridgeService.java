@@ -45,7 +45,7 @@ import java.util.concurrent.TimeUnit;
 public class KafkaBridgeService extends RestService {
 
   private static final String CONTENT_TYPE = "application/vnd.kafka.json.v2+json";
-  private static final String CONSUMER_GROUP = UUID.randomUUID().toString();
+  private static final String CONSUMER_GROUP = "component-tests";
 
   // Consumers by topic
   private final Map<String, String> consumers = new HashMap<>();
@@ -57,7 +57,7 @@ public class KafkaBridgeService extends RestService {
   private final Map<String, CopyOnWriteArrayList<Object>> messageCache = new ConcurrentHashMap<>();
 
   public KafkaBridgeService subscribeToTopic(String topic) {
-    String consumerId = "component-test-" + UUID.randomUUID().toString();
+    String consumerId = UUID.randomUUID().toString();
     // If service is already running, create consumer for topic
     if (isRunning()) {
       createConsumerForTopic(topic, consumerId);
@@ -344,7 +344,7 @@ public class KafkaBridgeService extends RestService {
                 Response response =
                     given()
                         .accept(CONTENT_TYPE)
-                        .queryParam("timeout", 2000)
+                        .queryParam("timeout", 1000) // Slightly longer timeout to get messages
                         .when()
                         .get(
                             "/consumers/"
