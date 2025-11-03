@@ -23,37 +23,31 @@ package com.redhat.swatch.contract.service;
 import static com.redhat.swatch.contract.config.Channels.UTILIZATION_OUT;
 
 import com.redhat.swatch.contract.model.UtilizationSummary;
-import com.redhat.swatch.kafka.EmitterService;
 import io.smallrye.mutiny.Uni;
-import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.kafka.transactions.KafkaTransactions;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.reactive.messaging.Channel;
-import org.eclipse.microprofile.reactive.messaging.Emitter;
-import org.eclipse.microprofile.reactive.messaging.Message;
 
 @Slf4j
 @ApplicationScoped
 public class UtilizationSummaryProducer {
-  private final EmitterService<UtilizationSummary> emitter;
+  private final KafkaTransactions<UtilizationSummary> producer;
 
   @Inject
   public UtilizationSummaryProducer(
-      @Channel(UTILIZATION_OUT) Emitter<UtilizationSummary> producer) {
-    this.emitter = new EmitterService<>(producer);
+      @Channel(UTILIZATION_OUT) KafkaTransactions<UtilizationSummary> producer) {
+    this.producer = producer;
   }
 
   public Uni<Void> send(List<UtilizationSummary> utilizationSummaries) {
-    utilizationSummaries.forEach(this::sendUtilizationSummary);
-    log.debug("Sent {} utilization summaries", utilizationSummaries.size());
-    return Uni.createFrom().voidItem();
-  }
-
-  private void sendUtilizationSummary(UtilizationSummary utilization) {
-    OutgoingKafkaRecordMetadata<?> metadata =
-        OutgoingKafkaRecordMetadata.builder().withKey(utilization.getOrgId()).build();
-    emitter.send(Message.of(utilization).addMetadata(metadata));
+    return producer.withTransaction(
+        emitter -> {
+          utilizationSummaries.forEach(emitter::send);
+          log.trace("Sent {} utilization summaries", utilizationSummaries.size());
+          return Uni.createFrom().voidItem();
+        });
   }
 }
