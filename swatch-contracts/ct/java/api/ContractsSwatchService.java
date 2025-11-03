@@ -20,6 +20,8 @@
  */
 package api;
 
+import static com.redhat.swatch.component.tests.utils.SwatchUtils.SECURITY_HEADERS;
+
 import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.utils.JsonUtils;
 import com.redhat.swatch.contract.test.model.ContractRequest;
@@ -38,6 +40,7 @@ public class ContractsSwatchService extends SwatchService {
   private static final String OFFERING_SYNC_ENDPOINT = ENDPOINT_PREFIX + "/rpc/offerings/sync/%s";
   private static final String RESET_CONTRACTS_ENDPOINT =
       ENDPOINT_PREFIX + "/rpc/reset/contracts/%s";
+  private static final String RESET_DATA_ENDPOINT = ENDPOINT_PREFIX + "/rpc/reset/%s";
   private static final String CONTRACTS_ENDPOINT = ENDPOINT_PREFIX + "/contracts";
   private static final String SUBSCRIPTIONS_ENDPOINT = ENDPOINT_PREFIX + "/subscriptions";
 
@@ -45,7 +48,7 @@ public class ContractsSwatchService extends SwatchService {
     Objects.requireNonNull(sku, "sku must not be null");
 
     String endpoint = String.format(OFFERING_SYNC_ENDPOINT, sku);
-    return given().when().put(endpoint);
+    return given().headers(SECURITY_HEADERS).when().put(endpoint);
   }
 
   public Response getContracts(Contract contract) {
@@ -55,6 +58,7 @@ public class ContractsSwatchService extends SwatchService {
     Objects.requireNonNull(contract.getProduct().getName(), "productTag must not be null");
 
     return given()
+        .headers(SECURITY_HEADERS)
         .queryParam("org_id", contract.getOrgId())
         .queryParam("billing_provider", contract.getBillingProvider().toApiModel())
         .queryParam("billing_account_id", contract.getBillingAccountId())
@@ -68,15 +72,26 @@ public class ContractsSwatchService extends SwatchService {
 
     ContractRequest contractRequest = ContractRequestMapper.buildContractRequest(contract);
     return given()
+        .headers(SECURITY_HEADERS)
         .contentType("application/json")
         .body(contractRequest)
         .when()
         .post(CONTRACTS_ENDPOINT);
   }
 
+  public Response deleteDataForOrg(String orgId) {
+    Objects.requireNonNull(orgId, "orgId must not be null");
+    return given().headers(SECURITY_HEADERS).delete(RESET_DATA_ENDPOINT.formatted(orgId));
+  }
+
+  /**
+   * @deprecated Use {@link #deleteDataForOrg(String)} instead. This method uses the deprecated
+   *     endpoint.
+   */
+  @Deprecated
   public Response deleteContractsByOrg(String orgId) {
     Objects.requireNonNull(orgId, "orgId must not be null");
-    return given().delete(RESET_CONTRACTS_ENDPOINT.formatted(orgId));
+    return given().headers(SECURITY_HEADERS).delete(RESET_CONTRACTS_ENDPOINT.formatted(orgId));
   }
 
   public Response saveSubscriptions(Subscription... subscriptions) {
@@ -89,6 +104,7 @@ public class ContractsSwatchService extends SwatchService {
     var list =
         Stream.of(subscriptions).map(SubscriptionRequestMapper::buildSubscriptionRequest).toList();
     return given()
+        .headers(SECURITY_HEADERS)
         .contentType(ContentType.JSON)
         .accept(ContentType.JSON)
         .queryParam("reconcileCapacity", reconcileCapacity)

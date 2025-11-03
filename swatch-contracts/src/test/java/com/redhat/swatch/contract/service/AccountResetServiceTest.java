@@ -18,18 +18,31 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.utils;
+package com.redhat.swatch.contract.service;
 
-import java.util.Map;
+import static org.mockito.Mockito.verify;
 
-public final class SwatchUtils {
-  public static final String SERVER_PORT_PROPERTY = "SERVER_PORT";
-  public static final int SERVER_PORT = 8000;
-  public static final int MANAGEMENT_PORT = 9000;
-  public static final Map<String, String> SECURITY_HEADERS =
-      Map.of(
-          "x-rh-swatch-psk", "placeholder",
-          "Origin", "console.redhat.com");
+import com.redhat.swatch.contract.repository.SubscriptionRepository;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-  private SwatchUtils() {}
+@ExtendWith(MockitoExtension.class)
+class AccountResetServiceTest {
+
+  @Mock ContractService contractService;
+
+  @Mock SubscriptionRepository subscriptionRepository;
+
+  @InjectMocks AccountResetService accountResetService;
+
+  @Test
+  void testDeleteDataForOrg() {
+    accountResetService.deleteDataForOrg("org123");
+
+    verify(contractService).deleteContractsByOrgId("org123");
+    verify(subscriptionRepository).deleteByOrgId("org123");
+  }
 }

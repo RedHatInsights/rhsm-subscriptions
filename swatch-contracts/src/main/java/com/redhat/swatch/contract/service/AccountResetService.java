@@ -20,34 +20,27 @@
  */
 package com.redhat.swatch.contract.service;
 
-import static com.redhat.swatch.contract.config.Channels.UTILIZATION_OUT;
-
-import com.redhat.swatch.contract.model.UtilizationSummary;
-import io.smallrye.mutiny.Uni;
-import io.smallrye.reactive.messaging.kafka.transactions.KafkaTransactions;
+import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import java.util.List;
-import lombok.extern.slf4j.Slf4j;
-import org.eclipse.microprofile.reactive.messaging.Channel;
+import jakarta.transaction.Transactional;
 
-@Slf4j
 @ApplicationScoped
-public class UtilizationSummaryProducer {
-  private final KafkaTransactions<UtilizationSummary> producer;
+public class AccountResetService {
+
+  private final SubscriptionRepository subscriptionRepository;
+  private final ContractService contractService;
 
   @Inject
-  public UtilizationSummaryProducer(
-      @Channel(UTILIZATION_OUT) KafkaTransactions<UtilizationSummary> producer) {
-    this.producer = producer;
+  public AccountResetService(
+      SubscriptionRepository subscriptionRepository, ContractService contractService) {
+    this.subscriptionRepository = subscriptionRepository;
+    this.contractService = contractService;
   }
 
-  public Uni<Void> send(List<UtilizationSummary> utilizationSummaries) {
-    return producer.withTransaction(
-        emitter -> {
-          utilizationSummaries.forEach(emitter::send);
-          log.info("Sent {} utilization summaries", utilizationSummaries.size());
-          return Uni.createFrom().voidItem();
-        });
+  @Transactional
+  public void deleteDataForOrg(String orgId) {
+    contractService.deleteContractsByOrgId(orgId);
+    subscriptionRepository.deleteByOrgId(orgId);
   }
 }
