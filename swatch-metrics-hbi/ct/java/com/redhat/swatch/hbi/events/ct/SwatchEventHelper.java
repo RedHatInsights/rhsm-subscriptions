@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.hbi.events.ct;
 
+import com.redhat.swatch.common.model.HardwareMeasurementType;
 import com.redhat.swatch.hbi.events.HbiEventConstants;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
@@ -45,6 +46,7 @@ public class SwatchEventHelper {
       OffsetDateTime timestamp,
       Sla sla,
       Usage usage,
+      Event.CloudProvider cloudProvider,
       HardwareType hardwareType,
       boolean isVirtual,
       boolean isUnmappedGuest,
@@ -53,6 +55,10 @@ public class SwatchEventHelper {
       List<String> productIds,
       Set<String> tags,
       List<Measurement> measurements) {
+    String instanceId = host.getProviderId();
+    if (instanceId == null || instanceId.isBlank() || "null".equalsIgnoreCase(instanceId)) {
+      instanceId = host.getId().toString();
+    }
     return new Event()
         .withServiceType(HbiEventConstants.EVENT_SERVICE_TYPE)
         .withEventSource(HbiEventConstants.EVENT_SOURCE)
@@ -61,14 +67,14 @@ public class SwatchEventHelper {
         .withExpiration(Optional.of(timestamp.plusHours(1)))
         .withLastSeen(OffsetDateTime.parse(host.getUpdated()))
         .withOrgId(host.getOrgId())
-        .withInstanceId(host.getId().toString())
+        .withInstanceId(instanceId)
         .withInventoryId(Optional.of(host.id.toString()))
         .withInsightsId(Optional.ofNullable(host.insightsId))
         .withSubscriptionManagerId(Optional.of(host.subscriptionManagerId))
         .withDisplayName(Optional.ofNullable(host.displayName))
         .withSla(sla)
         .withUsage(usage)
-        .withCloudProvider(null)
+        .withCloudProvider(cloudProvider)
         .withHardwareType(hardwareType)
         .withHypervisorUuid(Optional.ofNullable(hypervisorUuid))
         .withProductTag(tags)
@@ -86,52 +92,163 @@ public class SwatchEventHelper {
   }
 
   public static Event createExpectedEvent(
-      HbiHostCreateUpdateEvent hbiEvent, List<String> productIds, Set<String> tags) {
+      HbiHostCreateUpdateEvent hbiEvent,
+      List<String> productIds,
+      Set<String> tags,
+      boolean isUnmappedGuest,
+      boolean isHypervisor) {
+    return createExpectedEvent(hbiEvent, productIds, tags, isUnmappedGuest, isHypervisor, false);
+  }
+
+  public static Event createExpectedEvent(
+      HbiHostCreateUpdateEvent hbiEvent,
+      List<String> productIds,
+      Set<String> tags,
+      boolean isUnmappedGuest,
+      boolean isHypervisor,
+      boolean forceUpdatedEventType) {
+    // 1) Normalize context
     Host hostModel = new Host(hbiEvent.getHost());
     SystemProfileFacts sys = hostModel.getSystemProfileFacts();
     RhsmFacts rhsm = hostModel.getRhsmFacts().orElse(null);
-
-    boolean isVirtual =
-        (rhsm != null && Boolean.TRUE.equals(rhsm.getIsVirtual()))
-            || (sys.getInfrastructureType() != null
-                && sys.getInfrastructureType().equalsIgnoreCase("virtual"));
+    boolean isVirtualHost = isVirtualHost(sys, rhsm);
+    boolean hasCloudProvider =
+        HardwareMeasurementType.isSupportedCloudProvider(sys.getCloudProvider());
     String hypervisorUuid = sys.getHypervisorUuid();
 
-    HardwareType hardwareType;
-    if (sys.getCloudProvider() != null && !sys.getCloudProvider().isEmpty()) {
-      hardwareType = HardwareType.CLOUD;
-    } else if (isVirtual) {
-      hardwareType = HardwareType.VIRTUAL;
-    } else {
-      hardwareType = HardwareType.PHYSICAL;
-    }
+    // 2) Hardware type
+    HardwareType hardwareType = determineHardwareType(hasCloudProvider, isVirtualHost);
 
-    // Align with service semantics: cores equals total CPUs when present, otherwise
-    // cores_per_socket * number_of_sockets
-    Integer cpus = sys.getCpus();
-    double sockets = sys.getSockets() != null ? sys.getSockets() : 0;
-    double cores;
-    if (cpus != null) {
-      cores = cpus;
-    } else {
-      int coresPerSocket = sys.getCoresPerSocket() != null ? sys.getCoresPerSocket() : 0;
-      int socketsInt = sys.getSockets() != null ? sys.getSockets() : 0;
-      cores = (double) (coresPerSocket * socketsInt);
-    }
+    // 3) Measurements
+    int sockets =
+        computeSockets(sys, isVirtualHost, hasCloudProvider, isUnmappedGuest, isHypervisor, tags);
+    int cores = computeCores(sys, isVirtualHost);
+
+    // 4) Cloud provider
+    Event.CloudProvider cloudProvider = resolveCloudProvider(sys, hasCloudProvider);
+
+    // 5) Event type and build
+    NormalizedEventType eventType =
+        forceUpdatedEventType
+            ? NormalizedEventType.INSTANCE_UPDATED
+            : NormalizedEventType.from(hbiEvent);
 
     return createSwatchEvent(
         hbiEvent.getHost(),
-        NormalizedEventType.from(hbiEvent),
+        eventType,
         hbiEvent.getTimestamp().toOffsetDateTime(),
         Sla.fromValue(rhsm != null ? rhsm.getSla() : null),
         Usage.fromValue(rhsm != null ? rhsm.getUsage() : null),
+        cloudProvider,
         hardwareType,
-        isVirtual,
-        /* isUnmappedGuest */ false,
-        /* isHypervisor */ false,
+        isVirtualHost,
+        isUnmappedGuest,
+        isHypervisor,
         hypervisorUuid,
         productIds,
         tags,
         new SwatchEventHelper().buildMeasurements(cores, sockets));
+  }
+
+  private static boolean isVirtualHost(SystemProfileFacts sys, RhsmFacts rhsm) {
+    boolean rhsmVirtual = rhsm != null && Boolean.TRUE.equals(rhsm.getIsVirtual());
+    boolean infraVirtual =
+        sys.getInfrastructureType() != null
+            && sys.getInfrastructureType().equalsIgnoreCase("virtual");
+    return rhsmVirtual || infraVirtual;
+  }
+
+  private static HardwareType determineHardwareType(boolean hasCloudProvider, boolean isVirtual) {
+    if (hasCloudProvider) {
+      return HardwareType.CLOUD;
+    }
+    if (isVirtual) {
+      return HardwareType.VIRTUAL;
+    }
+    return HardwareType.PHYSICAL;
+  }
+
+  private static int computeSockets(
+      SystemProfileFacts sys,
+      boolean isVirtual,
+      boolean hasCloudProvider,
+      boolean isUnmappedGuest,
+      boolean isHypervisor,
+      Set<String> tags) {
+    int sockets = sys.getSockets() != null ? sys.getSockets() : 0;
+
+    if (isVirtual) {
+      if (hasCloudProvider) {
+        sockets = 1;
+      } else if (isUnmappedVirtualRhel(isVirtual, isUnmappedGuest, tags)) {
+        sockets = 1;
+      }
+    }
+
+    return roundSocketsForPhysicalOrHypervisor(sockets, isVirtual, isHypervisor);
+  }
+
+  private static int computeCores(SystemProfileFacts sys, boolean isVirtual) {
+    Integer cpus = sys.getCpus();
+    Integer sockets = sys.getSockets();
+    Integer coresPerSocket = sys.getCoresPerSocket();
+
+    if (isVirtual && "x86_64".equalsIgnoreCase(sys.getArch())) {
+      double threadsPerCore = 2.0;
+      if (sys.getThreadsPerCore() != null && sys.getThreadsPerCore() > 0) {
+        threadsPerCore = sys.getThreadsPerCore();
+      } else if (cpus != null
+          && sockets != null
+          && sockets > 0
+          && coresPerSocket != null
+          && coresPerSocket > 0) {
+        threadsPerCore = (double) cpus / (sockets * coresPerSocket);
+      }
+
+      if (coresPerSocket == null || coresPerSocket == 0 || sockets == null || sockets == 0) {
+        return 0;
+      }
+      int cpuTotal = coresPerSocket * sockets;
+      return (int) Math.ceil(cpuTotal / threadsPerCore);
+    }
+
+    if (cpus != null) {
+      return cpus;
+    }
+    int cps = coresPerSocket != null ? coresPerSocket : 0;
+    int s = sockets != null ? sockets : 0;
+    return cps * s;
+  }
+
+  private static boolean isUnmappedVirtualRhel(
+      boolean isVirtual, boolean isUnmappedGuest, Set<String> tags) {
+    if (!isVirtual || !isUnmappedGuest) {
+      return false;
+    }
+    return tags.stream().anyMatch(t -> t != null && t.toUpperCase().startsWith("RHEL"));
+  }
+
+  private static int roundSocketsForPhysicalOrHypervisor(
+      int sockets, boolean isVirtual, boolean isHypervisor) {
+    if ((!isVirtual || isHypervisor) && sockets > 0 && (sockets % 2) == 1) {
+      return sockets + 1;
+    }
+    return sockets;
+  }
+
+  private static Event.CloudProvider resolveCloudProvider(
+      SystemProfileFacts sys, boolean hasCloudProvider) {
+    if (!hasCloudProvider) {
+      return null;
+    }
+    HardwareMeasurementType type = HardwareMeasurementType.fromString(sys.getCloudProvider());
+    switch (type) {
+      case AWS:
+        return Event.CloudProvider.AWS;
+      case AZURE:
+        return Event.CloudProvider.AZURE;
+      default:
+        return null;
+    }
   }
 }

@@ -36,16 +36,6 @@ import java.util.function.Function;
 import org.candlepin.subscriptions.json.Event;
 
 public class MessageValidators {
-  public static MessageValidator<HbiEvent> eventMatches(String type) {
-    return new MessageValidator<>(event -> type.equals(event.getType()), HbiEvent.class);
-  }
-
-  public static MessageValidator<HbiEvent> eventMatches(String type, String requestId) {
-    return new MessageValidator<>(
-        event ->
-            type.equals(event.getType()) && requestId.equals(event.getMetadata().getRequestId()),
-        HbiEvent.class);
-  }
 
   public static MessageValidator<HbiEvent> hbiEventEquals(HbiHostCreateUpdateEvent hbiEvent) {
     return new MessageValidator<>(
