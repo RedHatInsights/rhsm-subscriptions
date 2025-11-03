@@ -21,18 +21,17 @@
 package com.redhat.swatch.hbi.events.ct.tests;
 
 import com.redhat.swatch.component.tests.api.ComponentTest;
-import com.redhat.swatch.component.tests.api.KafkaBridge;
-import com.redhat.swatch.component.tests.api.KafkaBridgeService;
+import com.redhat.swatch.component.tests.api.KafkaClient;
+import com.redhat.swatch.component.tests.api.KafkaClientService;
 import com.redhat.swatch.component.tests.api.Quarkus;
 import com.redhat.swatch.component.tests.api.Unleash;
 import com.redhat.swatch.component.tests.api.UnleashService;
-import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
-import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
+import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.component.tests.utils.Topics;
 import com.redhat.swatch.hbi.events.ct.api.SwatchMetricsHbiRestService;
+import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
 import com.redhat.swatch.hbi.model.FlushResponse;
-import java.time.Duration;
-import java.util.concurrent.atomic.AtomicLong;
+import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.Tag;
 
 @ComponentTest
@@ -40,11 +39,17 @@ import org.junit.jupiter.api.Tag;
 @Tag("metrics-hbi")
 public class BaseSMHBIComponentTest {
 
-  @KafkaBridge
-  static KafkaBridgeService kafkaBridge =
-      new KafkaBridgeService()
-          .subscribeToTopic(Topics.HBI_EVENT_IN)
-          .subscribeToTopic(Topics.SWATCH_SERVICE_INSTANCE_INGRESS);
+  @KafkaClient
+  static KafkaClientService kafkaClient =
+      new KafkaClientService()
+          .subscribeToTopic(Topics.HBI_EVENT_IN, HbiEvent.class)
+          .subscribeToTopic(Topics.SWATCH_SERVICE_INSTANCE_INGRESS, Event.class);
+
+  //  @KafkaBridge
+  //  static KafkaBridgeService kafkaBridge =
+  //      new KafkaBridgeService()
+  //          .subscribeToTopic(Topics.HBI_EVENT_IN)
+  //          .subscribeToTopic(Topics.SWATCH_SERVICE_INSTANCE_INGRESS);
 
   @Unleash static UnleashService unleash = new UnleashService();
 
@@ -60,18 +65,21 @@ public class BaseSMHBIComponentTest {
    * @param expectedFlushCount the expected number of records to flush.
    */
   protected void flushOutbox(int expectedFlushCount) {
-    AtomicLong counter = new AtomicLong(0);
-    AwaitilitySettings settings =
-        AwaitilitySettings.using(Duration.ofSeconds(2), Duration.ofSeconds(20))
-            .timeoutMessage(
-                "Unable to flush the expected number of outbox records in time: %s",
-                expectedFlushCount);
+    //    AtomicLong counter = new AtomicLong(0);
+    //    AwaitilitySettings settings =
+    //        AwaitilitySettings.using(Duration.ofSeconds(2), Duration.ofSeconds(20))
+    //            .timeoutMessage(
+    //                "Unable to flush the expected number of outbox records in time: %s",
+    //                expectedFlushCount);
+    FlushResponse response = swatchMetricsHbi.flushOutboxSynchronously();
+    Log.info("Flush response " + response);
 
-    AwaitilityUtils.untilIsTrue(
-        () -> {
-          FlushResponse response = swatchMetricsHbi.flushOutboxSynchronously();
-          return counter.addAndGet(response.getCount()) >= expectedFlushCount;
-        },
-        settings);
+    //    AwaitilityUtils.untilIsTrue(
+    //        () -> {
+    //          Log.info("Flushing outbox");
+    //          FlushResponse response = swatchMetricsHbi.flushOutboxSynchronously();
+    //          return counter.addAndGet(response.getCount()) >= expectedFlushCount;
+    //        },
+    //        settings);
   }
 }

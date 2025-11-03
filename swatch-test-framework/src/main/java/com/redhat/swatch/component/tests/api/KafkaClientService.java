@@ -27,6 +27,7 @@ import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -136,6 +137,40 @@ public class KafkaClientService extends BaseService<KafkaClientService> {
     }
   }
 
+  public <V> List<V> waitForKafkaMessage(
+      String topic, MessageValidator<V> messageValidator, int expectedCount) {
+    var consumer = consumers.get(topic);
+    if (consumer == null) {
+      throw new IllegalArgumentException("No consumer for topic " + topic);
+    }
+
+    List<V> matchedMessages = new ArrayList<>();
+
+    AwaitilityUtils.untilIsTrue(
+        () -> {
+          // Safe cast: all consumers are created with Object as the value type
+          ConsumerRecords<String, V> records =
+              (ConsumerRecords<String, V>) consumer.poll(Duration.ofSeconds(1));
+          if (records.isEmpty()) {
+            Log.debug(this, "No messages found for topic %s", topic);
+            return expectedCount == 0;
+          }
+          if (records.count() >= expectedCount) {
+            matchedMessages.addAll(
+                StreamSupport.stream(records.spliterator(), false)
+                    .map(ConsumerRecord::value)
+                    .filter(messageValidator::test)
+                    .toList());
+            Log.debug("Found %d valid messages", matchedMessages);
+            return matchedMessages.size() >= expectedCount;
+          } else {
+            return false;
+          }
+        },
+        AwaitilitySettings.defaults().withService(this));
+    return matchedMessages;
+  }
+
   @SuppressWarnings("unchecked")
   public void waitForKafkaMessage(
       String topic, Predicate<ConsumerRecord<String, ?>> messageValidator, int expectedCount) {
@@ -153,7 +188,10 @@ public class KafkaClientService extends BaseService<KafkaClientService> {
             if (expectedCount == 0) {
               return true;
             }
-            return StreamSupport.stream(records.spliterator(), false).anyMatch(messageValidator);
+            var result =
+                StreamSupport.stream(records.spliterator(), false).anyMatch(messageValidator);
+            Log.info("Results is " + result);
+            return result;
           }
           return false;
         },

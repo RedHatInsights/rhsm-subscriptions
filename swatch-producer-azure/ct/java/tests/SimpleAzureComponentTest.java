@@ -24,6 +24,7 @@ import static api.AzureTestHelper.createUsageAggregate;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_HOURLY_AGGREGATE;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_STATUS;
 
+import com.redhat.swatch.component.tests.logging.Log;
 import java.util.Map;
 import java.util.UUID;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
@@ -46,6 +47,9 @@ public class SimpleAzureComponentTest extends BaseAzureComponentTest {
     double totalValue = 2.0;
     String dimension = "vcpu_hours";
 
+    Log.error("Error");
+    Log.info("info");
+    Log.debug("debug");
     // Setup Azure Wiremock endpoints
     wiremock.setupAzureUsageContext(azureResourceId, billingAccountId);
 

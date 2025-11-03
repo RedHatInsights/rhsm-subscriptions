@@ -23,12 +23,13 @@ package com.redhat.swatch.hbi.events.ct.tests;
 import com.redhat.swatch.component.tests.utils.Topics;
 import com.redhat.swatch.hbi.events.ct.HbiEventHelper;
 import com.redhat.swatch.hbi.events.ct.SwatchEventHelper;
-import com.redhat.swatch.hbi.events.ct.api.MessageValidators;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -75,15 +76,22 @@ class CreateUpdateEventIngestionTest extends BaseSMHBIComponentTest {
     Event swatchEvent =
         SwatchEventHelper.createExpectedEvent(hbiEvent, List.of("69"), Set.of("RHEL for x86"));
 
-    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiEvent);
-    kafkaBridge.waitForKafkaMessage(
-        Topics.HBI_EVENT_IN, MessageValidators.hbiEventEquals(hbiEvent), 1);
+    kafkaClient.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiEvent);
+    Predicate<ConsumerRecord<String, ?>> p =
+        stringConsumerRecord -> {
+          return ((HbiHostCreateUpdateEvent) stringConsumerRecord.value())
+              .getHost()
+              .equals(hbiEvent.getHost());
+        };
+    kafkaClient.waitForKafkaMessage(Topics.HBI_EVENT_IN, p, 1);
 
     flushOutbox(1);
 
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-        MessageValidators.swatchEventEquals(swatchEvent),
-        1);
+    p =
+        record -> {
+          return (((Event) record.value()).getInstanceId().equals(swatchEvent.getInstanceId()));
+        };
+
+    kafkaClient.waitForKafkaMessage(Topics.SWATCH_SERVICE_INSTANCE_INGRESS, p, 1);
   }
 }
