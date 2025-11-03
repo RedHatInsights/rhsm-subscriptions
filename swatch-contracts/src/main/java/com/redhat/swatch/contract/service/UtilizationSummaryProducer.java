@@ -46,7 +46,7 @@ public class UtilizationSummaryProducer {
     return producer.withTransaction(
         emitter -> {
           utilizationSummaries.forEach(emitter::send);
-          log.trace("Sent {} utilization summaries", utilizationSummaries.size());
+          log.info("Sent {} utilization summaries", utilizationSummaries.size());
           return Uni.createFrom().voidItem();
         });
   }
