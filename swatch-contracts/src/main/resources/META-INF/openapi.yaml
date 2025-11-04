@@ -206,35 +206,6 @@ paths:
         - test: [ ]
         - service: [ ]
       operationId: deleteDataForOrg
-  /api/swatch-contracts/internal/rpc/reset/contracts/{org_id}:
-    description: "DEPRECATED: Use /api/swatch-contracts/internal/rpc/reset/{org_id} instead. This endpoint will be removed after IQE tests are updated."
-    delete:
-      deprecated: true
-      parameters:
-        - name: org_id
-          description: ""
-          schema:
-            type: string
-          in: path
-          required: true
-      summary: "[DEPRECATED] Clear all contracts for given org_id. Use /reset/{org_id} instead."
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-              examples:
-                status response:
-                  value:
-                    status: 'Success'
-                    message: "Contracts Cleared for given org_id"
-          description: success
-      security:
-        - support: [ ]
-        - test: [ ]
-        - service: [ ]
-      operationId: deleteContractsByOrg
   /internal/rpc/syncAllContracts:
     description: "Trigger a sync for all contracts"
     post:
