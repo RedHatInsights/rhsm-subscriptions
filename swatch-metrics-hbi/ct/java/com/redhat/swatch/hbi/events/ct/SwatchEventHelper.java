@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.hbi.events.ct;
 
-import com.redhat.swatch.common.model.HardwareMeasurementType;
 import com.redhat.swatch.hbi.events.HbiEventConstants;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
@@ -33,6 +32,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.json.Event.CloudProvider;
 import org.candlepin.subscriptions.json.Event.HardwareType;
 import org.candlepin.subscriptions.json.Event.Sla;
 import org.candlepin.subscriptions.json.Event.Usage;
@@ -46,7 +46,7 @@ public class SwatchEventHelper {
       OffsetDateTime timestamp,
       Sla sla,
       Usage usage,
-      Event.CloudProvider cloudProvider,
+      CloudProvider cloudProvider,
       HardwareType hardwareType,
       boolean isVirtual,
       boolean isUnmappedGuest,
@@ -113,7 +113,8 @@ public class SwatchEventHelper {
     RhsmFacts rhsm = hostModel.getRhsmFacts().orElse(null);
     boolean isVirtualHost = isVirtualHost(sys, rhsm);
     boolean hasCloudProvider =
-        HardwareMeasurementType.isSupportedCloudProvider(sys.getCloudProvider());
+        "AWS".equalsIgnoreCase(sys.getCloudProvider())
+            || "AZURE".equalsIgnoreCase(sys.getCloudProvider());
     String hypervisorUuid = sys.getHypervisorUuid();
 
     // 2) Hardware type
@@ -125,7 +126,7 @@ public class SwatchEventHelper {
     int cores = computeCores(sys, isVirtualHost);
 
     // 4) Cloud provider
-    Event.CloudProvider cloudProvider = resolveCloudProvider(sys, hasCloudProvider);
+    CloudProvider cloudProvider = resolveCloudProvider(sys, hasCloudProvider);
 
     // 5) Event type and build
     NormalizedEventType eventType =
@@ -236,19 +237,18 @@ public class SwatchEventHelper {
     return sockets;
   }
 
-  private static Event.CloudProvider resolveCloudProvider(
+  private static CloudProvider resolveCloudProvider(
       SystemProfileFacts sys, boolean hasCloudProvider) {
     if (!hasCloudProvider) {
       return null;
     }
-    HardwareMeasurementType type = HardwareMeasurementType.fromString(sys.getCloudProvider());
-    switch (type) {
-      case AWS:
-        return Event.CloudProvider.AWS;
-      case AZURE:
-        return Event.CloudProvider.AZURE;
-      default:
-        return null;
+    String name = sys.getCloudProvider();
+    if ("AWS".equalsIgnoreCase(name)) {
+      return CloudProvider.AWS;
     }
+    if ("AZURE".equalsIgnoreCase(name)) {
+      return CloudProvider.AZURE;
+    }
+    return null;
   }
 }
