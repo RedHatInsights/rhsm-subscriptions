@@ -122,23 +122,6 @@ public class ContractsResource implements DefaultApi {
   }
 
   /**
-   * DEPRECATED: Use deleteDataForOrg instead.
-   *
-   * <p>This endpoint maintains backward compatibility for existing consumers (e.g., IQE tests).
-   * Once IQE has been updated to use the new endpoint at /reset/{org_id}, this method and the
-   * corresponding OpenAPI endpoint definition should be removed.
-   *
-   * @deprecated This endpoint is deprecated. Use {@link #deleteDataForOrg(String)} instead, which
-   *     uses the /reset/{org_id} path.
-   */
-  @Deprecated(since = "1.1.0", forRemoval = true)
-  @Override
-  @RolesAllowed({"test", "support", "service"})
-  public StatusResponse deleteContractsByOrg(String orgId) throws ProcessingException {
-    return service.deleteContractsByOrgId(orgId);
-  }
-
-  /**
    * Get a list of saved contracts based on URL query parameters
    *
    * @param orgId the organization ID given as a query parameter
