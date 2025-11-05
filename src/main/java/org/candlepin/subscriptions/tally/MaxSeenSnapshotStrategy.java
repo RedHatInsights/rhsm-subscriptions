@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.tally.roller.BaseSnapshotRoller;
 import org.candlepin.subscriptions.tally.roller.DailySnapshotRoller;
@@ -81,10 +80,7 @@ public class MaxSeenSnapshotStrategy {
             .map(roller -> roller.rollSnapshots(accountCalc))
             .flatMap(Collection::stream)
             .collect(Collectors.toList());
-    summaryProducer.produceTallySummaryMessages(
-        Map.of(orgId, newAndUpdatedSnapshots),
-        List.of(Granularity.HOURLY, Granularity.DAILY),
-        SnapshotSummaryProducer.nightlySnapFilter);
+    summaryProducer.produceTallySummaryMessages(Map.of(orgId, newAndUpdatedSnapshots));
     log.info("Finished producing snapshots for orgId={}", orgId);
     return newAndUpdatedSnapshots;
   }

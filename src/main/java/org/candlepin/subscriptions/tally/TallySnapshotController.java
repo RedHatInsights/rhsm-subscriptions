@@ -187,10 +187,7 @@ public class TallySnapshotController {
 
           tallyStateRepository.update(currentState);
           recordTallyCount(totalSnapshots.values().stream().flatMap(Collection::stream).toList());
-          summaryProducer.produceTallySummaryMessages(
-              totalSnapshots,
-              List.of(Granularity.HOURLY, Granularity.DAILY),
-              SnapshotSummaryProducer.hourlySnapFilter);
+          summaryProducer.produceTallySummaryMessages(totalSnapshots);
         }
 
         log.info("Finished producing {} hourly snapshots for orgId {}", serviceType, orgId);
