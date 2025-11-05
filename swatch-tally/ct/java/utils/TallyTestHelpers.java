@@ -33,8 +33,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import org.candlepin.subscriptions.json.Event;
-import org.candlepin.subscriptions.json.TallySnapshot.Granularity;
+import models.Event;
+import models.Measurement;
+import models.TallySnapshot.Granularity;
 
 public class TallyTestHelpers {
 
@@ -76,7 +77,7 @@ public class TallyTestHelpers {
     event.setProductIds(List.of(TEST_PRODUCT_ID));
     event.setProductTag(Set.of(DEFAULT_PRODUCT_TAG));
 
-    var measurement = new org.candlepin.subscriptions.json.Measurement();
+    var measurement = new Measurement();
     measurement.setValue((double) value);
     measurement.setMetricId("VCPUS");
     event.setMeasurements(List.of(measurement));

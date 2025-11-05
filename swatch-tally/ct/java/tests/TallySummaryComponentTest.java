@@ -24,8 +24,8 @@ import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INST
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
-import org.candlepin.subscriptions.json.Event;
-import org.candlepin.subscriptions.json.TallySnapshot.Granularity;
+import models.Event;
+import models.TallySnapshot.Granularity;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import utils.TallyTestHelpers;

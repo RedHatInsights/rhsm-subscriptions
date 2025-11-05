@@ -21,8 +21,8 @@
 package api;
 
 import com.redhat.swatch.component.tests.api.MessageValidator;
-import org.candlepin.subscriptions.json.TallySnapshot.Granularity;
-import org.candlepin.subscriptions.json.TallySummary;
+import models.TallySnapshot.Granularity;
+import models.TallySummary;
 
 public class MessageValidators {
 
