@@ -72,7 +72,23 @@ public class MyOpenShiftTest {
 
 2. **Using the system property:**
 ```bash
-./mvnw clean install -Pcomponent-tests -Dservice=my-service -Dswatch.component-tests.global.target=openshift
+./mvnw clean install -Pcomponent-tests -Dswatch.component-tests.global.target=openshift
+```
+
+## Running Component Tests
+
+### Running All Component Tests
+To run all component tests for all services:
+
+```bash
+./mvnw clean install -Pcomponent-tests
+```
+
+### Running Component Tests for a Specific Service
+To run component tests for a specific service:
+
+```bash
+./mvnw clean install -Pcomponent-tests -pl swatch-contracts/ct -am
 ```
 
 ### Adding a New Component Test Project
@@ -87,39 +103,32 @@ your-service/
 │   │   └── tests/
 │   │       ├── BaseYourServiceComponentTest.java
 │   │       └── SimpleYourServiceComponentTest.java
+│   ├── resources/
+│   │   └── test.properties
+│   ├── pom.xml
 │   └── README.md
-└── pom.xml
 ```
 
-2. **Add your service to the Maven profile:**
-   Edit the root `pom.xml` and add your service to the `component-tests` profile:
+2. **Add your service to the component-tests profile:**
+   Edit `swatch-component-tests-parent/pom.xml` and add your service to the `component-tests` profile:
 
 ```xml
 <profile>
   <id>component-tests</id>
   <modules>
     <!-- existing services -->
-    <module>swatch-producer-azure/ct</module>
-    <module>swatch-contracts/ct</module>
+    <module>../swatch-contracts/ct</module>
+    <module>../swatch-utilization/ct</module>
     <!-- add your new service -->
-    <module>your-service/ct</module>
+    <module>../your-service/ct</module>
   </modules>
 </profile>
 ```
 
-3. **Define the service property:**
-   When running tests, specify your service name using the `service` property:
-
-```bash
-./mvnw clean install -Pcomponent-tests -Dservice=your-service
-```
-
-4. **Use minimal dependencies:**
-   Keep your component test dependencies minimal. Only include what you actually need and do not include the service dependencies because this would require a full build when running the Konflux pipelines.
-
-5. **Create the component test pom.xml:**
+3. **Create the component test pom.xml:**
    Create a `pom.xml` file in your `your-service/ct/` directory:
 
+**For Quarkus-based services:**
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
@@ -128,74 +137,95 @@ your-service/
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.redhat.swatch</groupId>
-    <artifactId>swatch-quarkus-parent</artifactId>
+    <artifactId>swatch-component-tests-parent</artifactId>
     <version>1.1.0-SNAPSHOT</version>
-    <relativePath>../../swatch-quarkus-parent/pom.xml</relativePath>
+    <relativePath>../../swatch-component-tests-parent/pom.xml</relativePath>
   </parent>
 
   <artifactId>your-service-component-tests</artifactId>
   <name>SWATCH - Services - Your Service - Component Tests</name>
 
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>com.redhat.swatch</groupId>
+        <artifactId>swatch-quarkus-parent</artifactId>
+        <version>${project.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <dependencies>
+    <!-- Add your specific dependencies here -->
     <dependency>
       <groupId>com.redhat.swatch</groupId>
-      <artifactId>swatch-test-framework</artifactId>
+      <artifactId>swatch-product-configuration</artifactId>
+    </dependency>
+
+    <!-- Required so the Maven reactor compiles this dependency -->
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-quarkus-parent</artifactId>
+      <version>${project.version}</version>
+      <type>pom</type>
+      <scope>provided</scope>
     </dependency>
   </dependencies>
-
-  <profiles>
-    <profile>
-      <id>component-tests-by-service</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-        <property>
-          <name>service</name>
-          <value>your-service</value>
-        </property>
-      </activation>
-
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>build-helper-maven-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>add-ct-sources</id>
-                <phase>generate-test-sources</phase>
-                <goals>
-                  <goal>add-test-source</goal>
-                </goals>
-                <configuration>
-                  <sources>
-                    <source>${project.basedir}/java</source>
-                  </sources>
-                </configuration>
-              </execution>
-              <execution>
-                <id>add-ct-resources</id>
-                <phase>generate-test-resources</phase>
-                <goals>
-                  <goal>add-test-resource</goal>
-                </goals>
-                <configuration>
-                  <resources>
-                    <resource>
-                      <directory>${project.basedir}/resources</directory>
-                    </resource>
-                  </resources>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
 </project>
 ```
 
-6. **Create the README.md file:**
+**For Spring Boot-based services:**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.redhat.swatch</groupId>
+    <artifactId>swatch-component-tests-parent</artifactId>
+    <version>1.1.0-SNAPSHOT</version>
+    <relativePath>../../swatch-component-tests-parent/pom.xml</relativePath>
+  </parent>
+
+  <artifactId>your-service-component-tests</artifactId>
+  <name>SWATCH - Services - Your Service - Component Tests</name>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>com.redhat.swatch</groupId>
+        <artifactId>swatch-spring-parent</artifactId>
+        <version>${project.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <!-- Required so the Maven reactor compiles this dependency -->
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-spring-parent</artifactId>
+      <version>${project.version}</version>
+      <type>pom</type>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
+</project>
+```
+
+4. **Key Benefits of the New Architecture:**
+   - **Centralized Configuration**: All component test configuration is managed in `swatch-component-tests-parent`
+   - **Automatic Dependency Management**: The `swatch-test-framework` dependency is inherited automatically
+   - **Build Helper Plugin**: Source and resource directories (`java/` and `resources/`) are configured automatically
+   - **No Duplicate Profiles**: No need for `component-tests-by-service` profiles in individual modules
+   - **Isolated Compilation**: Each service can be compiled independently without affecting others
+
+5. **Create the README.md file:**
    Create a `README.md` file in your `your-service/ct/` directory with instructions for running tests locally and against OpenShift. Check out [the swatch-utilization README.md file](https://github.com/RedHatInsights/rhsm-subscriptions/blob/main/swatch-utilization/ct/README.md) as a reference.
 
 **Important Notes:**
