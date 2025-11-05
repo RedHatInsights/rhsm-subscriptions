@@ -12,6 +12,7 @@ SHELL=/bin/bash
 	swatch-utilization \
 	swatch-api \
 	run-migrations \
+	component-test \
 	build \
 	format \
 	install \
@@ -59,10 +60,16 @@ define SPRING_PROXY
 	./mvnw -pl $(1) spring-boot:run -DskipTests
 endef
 
+# $1 is the directory with the application to start.
+define COMPONENT_TEST_PROXY
+	$(call BUILD,$(1))
+	./mvnw clean install -Pcomponent-tests -pl $(1)/ct -am
+endef
+
 default: format install
 
 format:
-	./mvnw spotless:apply -Pbuild -Pcomponent-tests -Pcomponent-tests-by-service
+	./mvnw spotless:apply -Pbuild -Pcomponent-tests
 
 clean:
 	./mvnw clean
@@ -79,6 +86,15 @@ run-migrations:
 # Empty target for build flag
 build:
 	@:
+
+COMPONENT_NAME := $(word 1,$(filter-out component-test build,$(MAKECMDGOALS)))
+
+component-test:
+	@if [ -z "$(COMPONENT_NAME)" ]; then \
+		echo "Usage: make component-test <component-name>"; \
+		exit 1; \
+	fi
+	$(call COMPONENT_TEST_PROXY,$(COMPONENT_NAME))
 
 swatch-tally:
 	$(call SPRING_PROXY,$@,8010)
@@ -151,3 +167,9 @@ status:
 	$(call CHECK_SERVICE_STATUS,swatch-system-conduit,9017)
 	$(call CHECK_SERVICE_STATUS,swatch-utilization,9018)
 	$(call CHECK_SERVICE_STATUS,swatch-api,9019)
+
+# Prevent make from trying to build the component name as a target when used with component-test
+# This must be at the end to override the real targets defined above
+ifneq ($(filter component-test,$(MAKECMDGOALS)),)
+$(foreach arg,$(filter-out component-test build,$(MAKECMDGOALS)),$(eval $(arg):;@:))
+endif

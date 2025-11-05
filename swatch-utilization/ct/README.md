@@ -17,7 +17,7 @@ This will start all necessary dependencies (databases, Kafka, etc.) required for
 Execute tests for a specific service. For example, to run tests for `swatch-utilization`:
 
 ```bash
-./mvnw clean install -Pcomponent-tests -Dservice=swatch-utilization
+./mvnw clean install -Pcomponent-tests -pl swatch-utilization/ct -am
 ```
 
 ## Running Tests Against OpenShift (Bonfire)
@@ -35,7 +35,7 @@ bonfire deploy rhsm --source=appsre --ref-env insights-stage --component swatch-
 Execute tests for a specific service against the OpenShift environment. For example, to run tests for `swatch-utilization`:
 
 ```bash
-./mvnw clean install -Pcomponent-tests -Dservice=swatch-utilization -Dswatch.component-tests.global.target=openshift
+./mvnw clean install -Pcomponent-tests -pl swatch-utilization/ct -am -Dswatch.component-tests.global.target=openshift
 ```
 
 The key difference is the addition of the `-Dswatch.component-tests.global.target=openshift` parameter, which tells the test framework to target the OpenShift deployment instead of local containers.
