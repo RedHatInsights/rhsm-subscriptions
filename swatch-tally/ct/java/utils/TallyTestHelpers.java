@@ -33,9 +33,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import models.Event;
-import models.Measurement;
 import models.TallySnapshot.Granularity;
+import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.json.Measurement;
 
 public class TallyTestHelpers {
 

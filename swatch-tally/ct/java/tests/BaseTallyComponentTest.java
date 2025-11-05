@@ -20,7 +20,6 @@
  */
 package tests;
 
-import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 
 import com.redhat.swatch.component.tests.api.ComponentTest;
@@ -36,10 +35,7 @@ import org.junit.jupiter.api.Tag;
 public class BaseTallyComponentTest {
 
   @KafkaBridge
-  static KafkaBridgeService kafkaBridge =
-      new KafkaBridgeService()
-          .subscribeToTopic(SWATCH_SERVICE_INSTANCE_INGRESS)
-          .subscribeToTopic(TALLY);
+  static KafkaBridgeService kafkaBridge = new KafkaBridgeService().subscribeToTopic(TALLY);
 
   @SpringBoot(service = "swatch-tally")
   static SwatchService service = new SwatchService();
