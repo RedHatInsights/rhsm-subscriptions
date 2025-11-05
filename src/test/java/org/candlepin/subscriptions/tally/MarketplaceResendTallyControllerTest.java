@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.Map;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -63,6 +64,10 @@ class MarketplaceResendTallyControllerTest {
     assertEquals(3, count);
 
     var summaryMap = Map.of("1", tallyList);
-    verify(summaryProducer, times(1)).produceTallySummaryMessages(summaryMap);
+    verify(summaryProducer, times(1))
+        .produceTallySummaryMessages(
+            summaryMap,
+            List.of(Granularity.HOURLY, Granularity.DAILY),
+            SnapshotSummaryProducer.hourlySnapFilter);
   }
 }
