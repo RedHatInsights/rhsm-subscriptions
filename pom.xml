@@ -607,6 +607,43 @@
     </profile>
 
     <profile>
+      <id>component-tests</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+
+      <modules>
+        <!-- Dependencies -->
+        <module>swatch-product-configuration</module>
+        <module>swatch-quarkus-parent</module>
+        <module>swatch-common-models</module>
+        <module>swatch-model-events</module>
+        <module>swatch-model-billable-usage</module>
+        <module>swatch-model-metrics-hbi</module>
+        <!-- Test framework module -->
+        <module>swatch-test-framework</module>
+        <!-- Services with component tests -->
+        <module>swatch-producer-azure/ct</module>
+        <module>swatch-tally/ct</module>
+        <module>swatch-utilization/ct</module>
+        <module>swatch-contracts/ct</module>
+        <module>swatch-metrics-hbi/ct</module>
+        <module>swatch-billable-usage/ct</module>
+      </modules>
+
+      <dependencyManagement>
+        <dependencies>
+          <dependency>
+            <groupId>com.redhat.swatch</groupId>
+            <artifactId>swatch-test-framework</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+          </dependency>
+        </dependencies>
+      </dependencyManagement>
+    </profile>
+
+    <profile>
       <id>coverage</id>
       <activation>
         <property>
