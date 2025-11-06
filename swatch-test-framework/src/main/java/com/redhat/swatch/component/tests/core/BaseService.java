@@ -171,17 +171,16 @@ public class BaseService<T extends Service> implements Service {
   /** Let JUnit close remaining resources. */
   @Override
   public void close() {
-    if (!context.getComponentTestContext().isDebug()) {
-      if (isRunning()) {
-        stop();
-      }
+    if (isRunning()) {
+      stop();
+    }
 
-      if (!context.getComponentTestContext().isFailed()) {
-        try {
-          FileUtils.deletePath(getServiceFolder());
-        } catch (Exception ex) {
-          Log.warn(this, "Could not delete service folder. Caused by " + ex.getMessage());
-        }
+    if (!context.getComponentTestContext().isDebug()
+        && !context.getComponentTestContext().isFailed()) {
+      try {
+        FileUtils.deletePath(getServiceFolder());
+      } catch (Exception ex) {
+        Log.warn(this, "Could not delete service folder. Caused by " + ex.getMessage());
       }
     }
   }
