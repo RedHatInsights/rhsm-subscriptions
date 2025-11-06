@@ -21,16 +21,23 @@
 package tests;
 
 import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
+import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 
+import com.redhat.swatch.component.tests.api.KafkaBridge;
+import com.redhat.swatch.component.tests.api.KafkaBridgeService;
+import com.redhat.swatch.component.tests.utils.RandomUtils;
+import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import java.time.OffsetDateTime;
 import java.util.UUID;
-import models.TallySnapshot.Granularity;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import utils.TallyTestHelpers;
 
 public class TallySummaryComponentTest extends BaseTallyComponentTest {
+
+  @KafkaBridge
+  static KafkaBridgeService kafkaBridge = new KafkaBridgeService().subscribeToTopic(TALLY);
 
   private static final TallyTestHelpers helpers = new TallyTestHelpers();
   private static final String TEST_PRODUCT_ID = "rhel-for-x86-els-payg";
@@ -39,7 +46,7 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
   // @Test
   @Ignore("This test should run after https://issues.redhat.com/browse/SWATCH-2922")
   public void testTallyNightlySummaryEmitsGranularityHourly() {
-    final String testOrgId = helpers.generateRandomOrgId(); // Use random org ID
+    final String testOrgId = RandomUtils.generateRandom(); // Use random org ID
     final String testInstanceId = UUID.randomUUID().toString();
     final String testEventId = UUID.randomUUID().toString();
 
@@ -65,7 +72,7 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
   // @Test
   @Ignore("This test should run after https://issues.redhat.com/browse/SWATCH-2922")
   public void testTallyNightlySummaryEmitsGranularityDaily() {
-    final String testOrgId = helpers.generateRandomOrgId(); // Use random org ID
+    final String testOrgId = RandomUtils.generateRandom(); // Use random org ID
     final String testInstanceId = UUID.randomUUID().toString();
     final String testEventId = UUID.randomUUID().toString();
 
@@ -100,7 +107,7 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
 
   @Test
   public void testTallyHourlySummaryEmitsGranularityDaily() {
-    final String testOrgId = helpers.generateRandomOrgId(); // Use random org ID
+    final String testOrgId = RandomUtils.generateRandom(); // Use random org ID
     final String testInstanceId = UUID.randomUUID().toString();
     final String testEventId = UUID.randomUUID().toString();
 
@@ -134,7 +141,7 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
 
   @Test
   public void testTallyHourlySummaryEmitsGranularityHourly() {
-    final String testOrgId = helpers.generateRandomOrgId(); // Use random org ID
+    final String testOrgId = RandomUtils.generateRandom(); // Use random org ID
     final String testInstanceId = UUID.randomUUID().toString();
     final String testEventId = UUID.randomUUID().toString();
 

@@ -26,6 +26,7 @@ import api.MessageValidators;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.logging.Log;
+import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import io.restassured.response.Response;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -33,7 +34,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import models.TallySnapshot.Granularity;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement;
 
@@ -127,10 +127,6 @@ public class TallyTestHelpers {
     }
 
     Log.info("Hourly tally endpoint called successfully for org: %s", orgId);
-  }
-
-  public String generateRandomOrgId() {
-    return String.format("%d", Math.abs(UUID.randomUUID().hashCode()) % 100000000);
   }
 
   public void pollForTallySyncAndMessages(
