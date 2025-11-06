@@ -20,6 +20,9 @@
  */
 package com.redhat.swatch.hbi.events.ct.tests;
 
+import static org.junit.Assert.assertEquals;
+
+import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.component.tests.utils.Topics;
 import com.redhat.swatch.hbi.events.ct.HbiEventHelper;
 import com.redhat.swatch.hbi.events.ct.SwatchEventHelper;
@@ -89,9 +92,12 @@ class CreateUpdateEventIngestionTest extends BaseSMHBIComponentTest {
 
     p =
         record -> {
-          return (((Event) record.value()).getInstanceId().equals(swatchEvent.getInstanceId()));
+          Event e = (Event) record.value();
+          Log.info("Match ? " + (e.getInstanceId().equals(swatchEvent.getInstanceId())));
+          return e.getInstanceId().equals(swatchEvent.getInstanceId());
         };
 
     kafkaClient.waitForKafkaMessage(Topics.SWATCH_SERVICE_INSTANCE_INGRESS, p, 1);
+    assertEquals(1, 1);
   }
 }

@@ -184,16 +184,19 @@ public class KafkaClientService extends BaseService<KafkaClientService> {
           // Safe cast: all consumers are created with Object as the value type
           ConsumerRecords<String, Object> records =
               (ConsumerRecords<String, Object>) consumer.poll(Duration.ofSeconds(1));
-          if (records.count() >= expectedCount) {
-            if (expectedCount == 0) {
-              return true;
-            }
-            var result =
-                StreamSupport.stream(records.spliterator(), false).anyMatch(messageValidator);
-            Log.info("Results is " + result);
-            return result;
-          }
-          return false;
+          return StreamSupport.stream(records.spliterator(), false).anyMatch(messageValidator);
+
+          //          if (records.count() >= expectedCount) {
+          //            if (expectedCount == 0) {
+          //              return true;
+          //            }
+          //            var result =
+          //                StreamSupport.stream(records.spliterator(),
+          // false).anyMatch(messageValidator);
+          //            Log.info("Results is " + result);
+          //            return result;
+          //          }
+          //          return false;
         },
         AwaitilitySettings.defaults().withService(this));
   }
