@@ -25,28 +25,16 @@ import static com.redhat.swatch.component.tests.utils.SwatchUtils.SERVER_PORT_PR
 
 import com.redhat.swatch.component.tests.configuration.quarkus.QuarkusServiceConfiguration;
 import com.redhat.swatch.component.tests.configuration.quarkus.QuarkusServiceConfigurationBuilder;
-import com.redhat.swatch.component.tests.core.ManagedResource;
 import com.redhat.swatch.component.tests.core.ServiceContext;
-import com.redhat.swatch.component.tests.logging.FileServiceLoggingHandler;
-import com.redhat.swatch.component.tests.logging.Log;
-import com.redhat.swatch.component.tests.logging.LoggingHandler;
-import com.redhat.swatch.component.tests.utils.ProcessBuilderProvider;
-import com.redhat.swatch.component.tests.utils.ProcessUtils;
+import com.redhat.swatch.component.tests.resources.process.DevProcessManagedResource;
 import com.redhat.swatch.component.tests.utils.SocketUtils;
-import java.io.File;
-import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
-import org.apache.commons.lang3.StringUtils;
 
-public class LocalQuarkusManagedResource extends ManagedResource {
+public class LocalQuarkusManagedResource extends DevProcessManagedResource {
 
   private static final List<String> ERRORS =
       Arrays.asList(
@@ -60,65 +48,20 @@ public class LocalQuarkusManagedResource extends ManagedResource {
           "BUILD FAILURE");
 
   private static final String MANAGEMENT_PORT_PROPERTY = "quarkus.management.port";
-  private static final String LOCALHOST = "localhost";
-  private static final String LOG_OUTPUT_FILE = "out.log";
 
   protected Map<String, String> propertiesToOverwrite = new HashMap<>();
 
-  private File logOutputFile;
-  private Process process;
-  private LoggingHandler loggingHandler;
   private int assignedHttpPort;
   private Integer assignedDebugPort;
   private Map<Integer, Integer> assignedCustomPorts;
 
-  private final File location;
-  private final String service;
-
   public LocalQuarkusManagedResource(String service) {
-    this.location = Paths.get("").resolve("../..").toAbsolutePath().normalize().toFile();
-    this.service = service;
+    super(service);
   }
 
   @Override
-  public void start() {
-    if (process != null && process.isAlive()) {
-      // do nothing
-      return;
-    }
-
-    try {
-      List<String> command = prepareCommand(getPropertiesForCommand());
-      Log.info(context.getOwner(), "Running command: %s", String.join(" ", command));
-
-      ProcessBuilder pb =
-          ProcessBuilderProvider.command(command)
-              .redirectErrorStream(true)
-              .redirectOutput(logOutputFile)
-              .directory(location);
-
-      process = pb.start();
-
-      loggingHandler = new FileServiceLoggingHandler(context, logOutputFile);
-      loggingHandler.startWatching();
-
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  @Override
-  public void stop() {
-    if (loggingHandler != null) {
-      loggingHandler.stopWatching();
-    }
-
-    ProcessUtils.destroy(process);
-  }
-
-  @Override
-  public String getHost() {
-    return LOCALHOST;
+  protected String getDevModeCommand() {
+    return "quarkus:dev";
   }
 
   @Override
@@ -126,28 +69,13 @@ public class LocalQuarkusManagedResource extends ManagedResource {
     return Optional.ofNullable(assignedCustomPorts.get(port)).orElse(assignedHttpPort);
   }
 
-  @Override
-  public boolean isRunning() {
-    return process != null
-        && process.isAlive()
-        && loggingHandler != null
-        && loggingHandler.logsContains(getExpectedLog());
-  }
-
-  @Override
-  public boolean isFailed() {
-    return super.isFailed()
-        || loggingHandler != null
-            && ERRORS.stream().anyMatch(error -> loggingHandler.logsContains(error));
-  }
-
   public String getExpectedLog() {
     return context.getConfigurationAs(QuarkusServiceConfiguration.class).getExpectedLog();
   }
 
   @Override
-  protected LoggingHandler getLoggingHandler() {
-    return loggingHandler;
+  protected List<String> getExpectedErrorLogs() {
+    return ERRORS;
   }
 
   @Override
@@ -155,41 +83,28 @@ public class LocalQuarkusManagedResource extends ManagedResource {
     super.init(context);
     context.loadCustomConfiguration(
         QuarkusServiceConfiguration.class, new QuarkusServiceConfigurationBuilder());
-    this.logOutputFile = new File(context.getServiceFolder().resolve(LOG_OUTPUT_FILE).toString());
     assignPorts();
   }
 
-  protected List<String> getPropertiesForCommand() {
+  @Override
+  protected void configureCommand(List<String> command) {
     Map<String, String> runtimeProperties = new HashMap<>(context.getOwner().getProperties());
     runtimeProperties.putAll(propertiesToOverwrite);
-
-    return runtimeProperties.entrySet().stream()
+    runtimeProperties.entrySet().stream()
         .map(e -> "-D" + e.getKey() + "=" + e.getValue())
-        .collect(Collectors.toList());
-  }
+        .forEach(command::add);
 
-  protected List<String> prepareCommand(List<String> systemProperties) {
-    List<String> command = new LinkedList<>();
-    command.add("./mvnw");
-    command.addAll(systemProperties);
-    command.addAll(getDebugProperties());
-    // skip format checkstyle and spotless
-    command.add("-Dspotless.check.skip=true");
-    command.add("-Dcheckstyle.skip=true");
-    command.add("-pl");
-    command.add(service);
-    command.add("quarkus:dev");
-
-    return command;
-  }
-
-  protected Collection<String> getDebugProperties() {
     if (context.isDebug()) {
       assignedDebugPort = SocketUtils.findAvailablePort(context.getOwner());
-      return Arrays.asList("-Ddebug=" + assignedDebugPort, "-Dsuspend");
+      command.add("-Ddebug=" + assignedDebugPort);
+      command.add("-Dsuspend");
     }
+  }
 
-    return Collections.emptyList();
+  private void assignPorts() {
+    assignedHttpPort = getOrAssignPortByProperty(SERVER_PORT_PROPERTY);
+    propertiesToOverwrite.put(SERVER_PORT_PROPERTY, "" + assignedHttpPort);
+    this.assignedCustomPorts = assignCustomPorts();
   }
 
   protected Map<Integer, Integer> assignCustomPorts() {
@@ -198,21 +113,5 @@ public class LocalQuarkusManagedResource extends ManagedResource {
     propertiesToOverwrite.put(MANAGEMENT_PORT_PROPERTY, "" + assignedManagementPort);
     customPorts.put(MANAGEMENT_PORT, assignedManagementPort);
     return customPorts;
-  }
-
-  protected int getOrAssignPortByProperty(String property) {
-    return context
-        .getOwner()
-        .getProperty(property)
-        .filter(StringUtils::isNotEmpty)
-        .map(Integer::parseInt)
-        .orElseGet(() -> SocketUtils.findAvailablePort(context.getOwner()));
-  }
-
-  private void assignPorts() {
-    assignedHttpPort = getOrAssignPortByProperty(SERVER_PORT_PROPERTY);
-    propertiesToOverwrite.put(SERVER_PORT_PROPERTY, "" + assignedHttpPort);
-
-    this.assignedCustomPorts = assignCustomPorts();
   }
 }
