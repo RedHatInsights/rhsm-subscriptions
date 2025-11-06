@@ -22,6 +22,7 @@ package com.redhat.swatch.component.tests.utils;
 
 public final class Topics {
   public static final String SUFFIX = "platform.rhsm-subscriptions.";
+  public static final String BILLABLE_USAGE = SUFFIX + "billable-usage";
   public static final String BILLABLE_USAGE_HOURLY_AGGREGATE =
       SUFFIX + "billable-usage-hourly-aggregate";
   public static final String BILLABLE_USAGE_STATUS = SUFFIX + "billable-usage.status";

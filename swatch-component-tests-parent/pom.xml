@@ -35,6 +35,7 @@
         <module>../swatch-producer-azure/ct</module>
         <module>../swatch-metrics-hbi/ct</module>
         <module>../swatch-tally/ct</module>
+        <module>../swatch-billable-usage/ct</module>
       </modules>
     </profile>
   </profiles>
