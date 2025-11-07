@@ -39,6 +39,10 @@
       <artifactId>quarkus-messaging-kafka</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.quarkiverse.unleash</groupId>
+      <artifactId>quarkus-unleash</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.redhat.cloud.common</groupId>
       <artifactId>clowder-quarkus-config-source</artifactId>
     </dependency>
