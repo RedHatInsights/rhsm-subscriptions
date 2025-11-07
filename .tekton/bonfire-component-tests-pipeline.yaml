@@ -169,7 +169,7 @@ spec:
         - name: COMPONENTS_W_RESOURCES
           value: "$(params.COMPONENTS_W_RESOURCES)"
         - name: EXTRA_DEPLOY_ARGS
-          value: "$(params.EXTRA_DEPLOY_ARGS)"
+          value: "--set-parameter $(params.COMPONENT_NAME)/QUARKUS_PROFILE=ephemeral $(params.EXTRA_DEPLOY_ARGS)"
         - name: DEPLOY_FRONTENDS
           value: "$(params.DEPLOY_FRONTENDS)"
         - name: DEPLOY_TIMEOUT
