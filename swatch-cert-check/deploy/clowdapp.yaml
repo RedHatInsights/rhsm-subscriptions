@@ -1,0 +1,117 @@
+---
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: swatch-cert-check
+parameters:
+  - name: CERT_CHECK_SCHEDULE
+    value: '@daily'
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
+  - name: MEMORY_REQUEST
+    value: 20Mi
+  - name: MEMORY_LIMIT
+    value: 30Mi
+  - name: CPU_REQUEST
+    value: 109m
+  - name: CPU_LIMIT
+    value: 150m
+  - name: ENV_NAME
+    value: env-swatch-cert-check
+  - name: REPLICAS
+    value: '1'
+  - name: IMAGE
+    value: quay.io/cloudservices/swatch-cert-check
+  - name: IMAGE_TAG
+    value: latest
+  - name: PKCS12_LOCATIONS
+    value: "/pinhead/keystore.jks /pinhead/ephemeral_umb_keystore.jks"
+  - name: PEM_LOCATIONS
+    value: "/splunk/splunk.pem"
+  - name: PASSWORD_LOCATION
+    value: "/tls/keystore_password"
+  - name: WARNING_THRESHOLD
+    value: "30"
+
+objects:
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdApp
+  metadata:
+    name: swatch-cert-check
+  spec:
+    envName: ${ENV_NAME}
+
+    pullSecrets:
+      name: ${IMAGE_PULL_SECRET}
+
+    jobs:
+      - name: pem
+        schedule: ${CERT_CHECK_SCHEDULE}
+        successfulJobsHistoryLimit: 2
+        restartPolicy: Never
+        podSpec:
+          image: ${IMAGE}:${IMAGE_TAG}
+          command:
+            - /usr/bin/bash
+            - -c
+            - >
+              /opt/cert-check.sh -t PEM -w ${WARNING_THRESHOLD} ${PEM_LOCATIONS}
+          resources:
+            requests:
+              cpu: ${CPU_REQUEST}
+              memory: ${MEMORY_REQUEST}
+            limits:
+              cpu: ${CPU_LIMIT}
+              memory: ${MEMORY_LIMIT}
+          volumeMounts:
+            - name: tls
+              mountPath: /tls
+            - name: pinhead
+              mountPath: /pinhead
+            - name: splunk
+              mountPath: /splunk
+          volumes:
+            - name: tls
+              secret:
+                secretName: tls
+            - name: pinhead
+              secret:
+                secretName: pinhead
+            - name: splunk
+              secret:
+                secretName: splunk
+      - name: pkcs12
+        schedule: ${CERT_CHECK_SCHEDULE}
+        successfulJobsHistoryLimit: 2
+        restartPolicy: Never
+        podSpec:
+          image: ${IMAGE}:${IMAGE_TAG}
+          command:
+            - /usr/bin/bash
+            - -c
+            - >
+              /opt/cert-check.sh -t PKCS12 -p ${PASSWORD_LOCATION} -w ${WARNING_THRESHOLD} ${PKCS12_LOCATIONS}
+          resources:
+            requests:
+              cpu: ${CPU_REQUEST}
+              memory: ${MEMORY_REQUEST}
+            limits:
+              cpu: ${CPU_LIMIT}
+              memory: ${MEMORY_LIMIT}
+          volumeMounts:
+            - name: tls
+              mountPath: /tls
+            - name: pinhead
+              mountPath: /pinhead
+            - name: splunk
+              mountPath: /splunk
+          volumes:
+            - name: tls
+              secret:
+                secretName: tls
+            - name: pinhead
+              secret:
+                secretName: pinhead
+            - name: splunk
+              secret:
+                secretName: splunk
