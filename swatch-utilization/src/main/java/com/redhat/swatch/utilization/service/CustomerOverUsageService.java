@@ -18,31 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package tests;
+package com.redhat.swatch.utilization.service;
 
-import com.redhat.swatch.component.tests.api.ComponentTest;
-import com.redhat.swatch.component.tests.api.KafkaBridge;
-import com.redhat.swatch.component.tests.api.KafkaBridgeService;
-import com.redhat.swatch.component.tests.api.Quarkus;
-import com.redhat.swatch.component.tests.api.SwatchService;
-import com.redhat.swatch.component.tests.utils.RandomUtils;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
+import com.redhat.swatch.utilization.model.UtilizationSummary;
+import jakarta.enterprise.context.ApplicationScoped;
 
-@ComponentTest
-@Tag("component")
-@Tag("utilization")
-public class BaseUtilizationComponentTest {
-
-  @KafkaBridge static KafkaBridgeService kafkaBridge = new KafkaBridgeService();
-
-  @Quarkus(service = "swatch-utilization")
-  static SwatchService service = new SwatchService();
-
-  protected String orgId;
-
-  @BeforeEach
-  void setUp() {
-    orgId = RandomUtils.generateRandom();
+@ApplicationScoped
+public class CustomerOverUsageService {
+  public void check(UtilizationSummary payload) {
+    // TODO in SWATCH-3793
   }
 }

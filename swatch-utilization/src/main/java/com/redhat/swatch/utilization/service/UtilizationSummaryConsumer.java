@@ -22,9 +22,14 @@ package com.redhat.swatch.utilization.service;
 
 import static com.redhat.swatch.utilization.configuration.Channels.UTILIZATION;
 
+import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.utilization.model.UtilizationSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 
@@ -35,14 +40,34 @@ public class UtilizationSummaryConsumer {
   protected static final String RECEIVED_METRIC = "swatch_utilization_received";
 
   @Inject MeterRegistry meterRegistry;
+  @Inject UtilizationSummaryValidator payloadValidator;
+  @Inject CustomerOverUsageService customerOverUsageService;
 
   @Incoming(UTILIZATION)
-  public void process(String payload) {
-    // TODO: add tags to the counter. To be done in SWATCH-4005
-    incrementCounter();
+  public void process(UtilizationSummary payload) {
+    if (payloadValidator.isValid(payload)) {
+      incrementCounter(payload);
+      customerOverUsageService.check(payload);
+    }
   }
 
-  private void incrementCounter() {
-    meterRegistry.counter(RECEIVED_METRIC).increment(1);
+  private void incrementCounter(UtilizationSummary payload) {
+    List<String> tags =
+        new ArrayList<>(List.of("product", payload.getProductId(), "org_id", payload.getOrgId()));
+
+    if (Objects.nonNull(payload.getBillingProvider())) {
+      tags.addAll(List.of("billing", payload.getBillingProvider().value()));
+    }
+
+    for (var measurement : payload.getMeasurements()) {
+      var tagsByMetric = new ArrayList<>(tags);
+      tagsByMetric.addAll(
+          List.of("metric_id", MetricId.tryGetValueFromString(measurement.getMetricId())));
+      incrementCounter(tagsByMetric);
+    }
+  }
+
+  private void incrementCounter(List<String> tags) {
+    meterRegistry.counter(RECEIVED_METRIC, tags.toArray(new String[0])).increment();
   }
 }
