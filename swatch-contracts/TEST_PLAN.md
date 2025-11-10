@@ -464,20 +464,20 @@ The scenarios will be simulated using mocked data.
   - The end date is updated.
 
 **contracts-termination-TC004 - Receive a termination event for a non-existing contract.**
-**Description:** Verify that a contract with a subscription\_number but no corresponding record in the Subscriptions table can be correctly terminated when a UMB message with a `"status": "UNSUBSCRIBED"` is received.
-**Setup:** Ensure a contract does not exist in the Contract table.
-**Action:** Simulate a UMB message from the IT partner gateway for the contract unexisting contract, and with the field `"status": "UNSUBSCRIBED"`.
-**Verification:** Check the contract using the GET API.
-**Expected result:**
+- **Description:** Verify that a contract with a subscription_number but no corresponding record in the Subscriptions table can be correctly terminated when a UMB message with a `"status": "UNSUBSCRIBED"` is received.
+- **Setup:** Ensure a contract does not exist in the Contract table.
+- **Action:** Simulate a UMB message from the IT partner gateway for the contract unexisting contract, and with the field `"status": "UNSUBSCRIBED"`.
+- **Verification:** Check the contract using the GET API.
+- **Expected result:**
   - The contract is created.
   - Its end date is empty or higher than now.
 
 **contracts-termination-TC005 - Receive a subscribed event for a terminated contract.**
-**Description:** Verify that a terminated contract can be re-enabled when a UMB message with `"status": "SUBSCRIBED"` is received for the same org, SKU, subscription, and billing account ID with a new date.
-**Setup:** Ensure a contract exists and is currently in a terminated state (has an end date).
-**Action:** Simulate a UMB message from the IT partner gateway for the terminated contract, with the field `"status": "SUBSCRIBED"` and a new date.
-**Verification:** Check the contract using the GET API.
-**Expected Result:**
+- **Description:** Verify that a terminated contract can be re-enabled when a UMB message with `"status": "SUBSCRIBED"` is received for the same org, SKU, subscription, and billing account ID with a new date.
+- **Setup:** Ensure a contract exists and is currently in a terminated state (has an end date).
+- **Action:** Simulate a UMB message from the IT partner gateway for the terminated contract, with the field `"status": "SUBSCRIBED"` and a new date.
+- **Verification:** Check the contract using the GET API.
+- **Expected Result:**
         1. The contract is updated and returns to active status.
         2. The contract's end date is cleared or set to a future date.
         3. The contract status reflects the re-subscription.
