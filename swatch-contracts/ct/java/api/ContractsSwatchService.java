@@ -133,7 +133,7 @@ public class ContractsSwatchService extends SwatchService {
             .encodeToString(json.getBytes(java.nio.charset.StandardCharsets.UTF_8));
 
     return given()
-        .headers(SECURITY_HEADERS)
+        .header("Origin", "console.redhat.com")
         .header("x-rh-identity", rhId)
         .accept("application/vnd.api+json")
         .pathParam("product_id", productId)
