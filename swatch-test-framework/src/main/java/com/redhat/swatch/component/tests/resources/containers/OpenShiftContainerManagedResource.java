@@ -83,7 +83,7 @@ public abstract class OpenShiftContainerManagedResource extends ManagedResource 
   @Override
   public int getMappedPort(int port) {
     return client.port(
-        serviceName, portsMapping.getOrDefault(port, port), context.getOwner(), podLabels());
+        serviceName(), portsMapping.getOrDefault(port, port), context.getOwner(), podLabels());
   }
 
   @Override
@@ -101,6 +101,14 @@ public abstract class OpenShiftContainerManagedResource extends ManagedResource 
     return loggingHandler;
   }
 
+  protected OpenshiftClient getOpenShiftClient() {
+    if (client == null) {
+      throw new IllegalStateException("OpenShift client is not initialized yet!");
+    }
+
+    return client;
+  }
+
   @Override
   protected void init(ServiceContext context) {
     super.init(context);
@@ -112,8 +120,12 @@ public abstract class OpenShiftContainerManagedResource extends ManagedResource 
     return Map.of(POD_LABEL, serviceName);
   }
 
-  protected String containerName() {
+  protected String serviceName() {
     return serviceName;
+  }
+
+  protected String containerName() {
+    return serviceName();
   }
 
   protected String getExpectedLog() {
@@ -122,8 +134,8 @@ public abstract class OpenShiftContainerManagedResource extends ManagedResource 
 
   private void validateService() {
     // check whether the service does exist
-    client.checkServiceExists(serviceName);
+    client.checkServiceExists(serviceName());
     // check whether pods do exist
-    client.checkPodsExists(serviceName, podLabels(), containerName());
+    client.checkPodsExists(serviceName(), podLabels(), containerName());
   }
 }
