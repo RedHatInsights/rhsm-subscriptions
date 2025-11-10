@@ -435,7 +435,55 @@ The scenarios will be simulated using mocked data.
   - contract.status.message \== "Existing contracts and subscriptions updated"  
   - contract.status.status \== "SUCCESS"
 
-### 3.1.6 Contract Deletion
+### 3.1.6 Contract Termination
+
+**contracts-termination-TC001 - A contract remains active after receiving a non-termination event.**
+- **Description:** Verify that a UMB message with a non-terminating status (i.e., `"status": "SUBSCRIBED"`) does not cause a contract to be terminated.
+- **Setup:** Ensure a contract exists and is currently in an active state.
+- **Action:** Simulate a UMB message from the IT partner gateway for the active contract, with the field "status": "SUBSCRIBED".
+- **Verification:** Check the contract using the GET API.
+- **Expected Result:**
+  - The end date is empty or higher than now.
+
+**contracts-update-TC002 - Terminate an existing and active contract.**
+- **Description:*** Verify that an active contract can be successfully terminated when a UMB message with a status: "UNSUBSCRIBED" is received.
+- **Setup:** Ensure a contract exists and is currently in an active state.
+- **Action:** Simulate a UMB message from the IT partner gateway for the active contract, with the field `"status": "UNSUBSCRIBED"`.
+- **Verification:** Check the contract using the GET API.
+- **Expected Result:**
+  - The end date should be the one contained in the UMB message.
+
+**contracts-termination-TC003 - Receive a termination event for an already terminated contract.**
+- **Description:** Verify that receiving a UMB message with `"status": "UNSUBSCRIBED"` for a contract that is already in a terminated state does not cause an error or change its status.
+- **Setup:** Ensure a contract exists and its status is already 'TERMINATED'.
+- **Action:** Simulate a UMB message from the IT partner gateway for the terminated contract, with the field `"status": "UNSUBSCRIBED"`.
+- **Verification:** Check the contract using the GET API.
+- **Expected Result:**
+  - No errors should be logged.
+  - The contract's status should remain “TERMINATED”.
+  - The end date is updated.
+
+**contracts-termination-TC004 - Receive a termination event for a non-existing contract.**
+**Description:** Verify that a contract with a subscription\_number but no corresponding record in the Subscriptions table can be correctly terminated when a UMB message with a `"status": "UNSUBSCRIBED"` is received.
+**Setup:** Ensure a contract does not exist in the Contract table.
+**Action:** Simulate a UMB message from the IT partner gateway for the contract unexisting contract, and with the field `"status": "UNSUBSCRIBED"`.
+**Verification:** Check the contract using the GET API.
+**Expected result:**
+  - The contract is created.
+  - Its end date is empty or higher than now.
+
+**contracts-termination-TC005 - Receive a subscribed event for a terminated contract.**
+**Description:** Verify that a terminated contract can be re-enabled when a UMB message with `"status": "SUBSCRIBED"` is received for the same org, SKU, subscription, and billing account ID with a new date.
+**Setup:** Ensure a contract exists and is currently in a terminated state (has an end date).
+**Action:** Simulate a UMB message from the IT partner gateway for the terminated contract, with the field `"status": "SUBSCRIBED"` and a new date.
+**Verification:** Check the contract using the GET API.
+**Expected Result:**
+        1. The contract is updated and returns to active status.
+        2. The contract's end date is cleared or set to a future date.
+        3. The contract status reflects the re-subscription.
+
+
+### 3.1.7 Contract Deletion
 
 **contracts-deletion-TC001** \- **Delete contract by UUID**  
 - **Description:** Verify hard deletion of contract and its metrics.  
@@ -458,7 +506,7 @@ The scenarios will be simulated using mocked data.
 
 ### 
 
-### 3.1.7 Contract Sync
+### 3.1.8 Contract Sync
 
 **contracts-sync-TC001 \- Sync contracts for a single organization**  
 - **Description**: Verify contract sync triggers for a specific org.  
@@ -518,7 +566,7 @@ The scenarios will be simulated using mocked data.
   - Status: "Contracts Cleared for given org\_id"  
   - No contracts remain for org\_id
 
-### 3.1.8 Subscription Management via Kafka
+### 3.1.9 Subscription Management via Kafka
 
 **subscriptions-creation-TC001 \- Process a valid UMB subscription XML message from Kafka**  
 - **Description**: Verify subscription creation via UMB XML Kafka message.  
@@ -612,7 +660,7 @@ The scenarios will be simulated using mocked data.
   - \`end\_date\` set to termination date  
   - Status reflects termination
 
-### 3.1.9 Subscription Management via API
+### 3.1.10 Subscription Management via API
 
 **subscriptions-creation-TC009** \- **Create a valid PAYG contract and verify the Contract/Subscription table**  
 - **Description:** Verify the contract/subscription after a contract/subscription creation.  
@@ -683,7 +731,7 @@ The scenarios will be simulated using mocked data.
   - Subscription end\_date set to timestamp  
   - Subscription effectively terminated
 
-### 3.1.10 Capacity Reports
+### 3.1.11 Capacity Reports
 
 **capacity-report-TC001** \- **Get V2 SKU capacity report**  
 - **Description:** Verify the V2 endpoint with an enhanced measurement array.  
