@@ -71,7 +71,7 @@ public class PartnerGatewayStubs {
                         "endDate",
                         contract.getEndDate().format(DateTimeFormatter.ISO_INSTANT),
                         "dimensions",
-                        contract.getContractCapacity().entrySet().stream()
+                        contract.getContractMetrics().entrySet().stream()
                             .map(e -> Map.of("name", e.getKey(), "value", e.getValue()))
                             .toList()))),
             "rhEntitlements",

@@ -71,7 +71,7 @@ public final class ContractRequestMapper {
     SaasContractV1 saasContract =
         new SaasContractV1()
             .dimensions(
-                contract.getContractCapacity().entrySet().stream()
+                contract.getContractMetrics().entrySet().stream()
                     .map(e -> buildDimension(e.getKey(), e.getValue()))
                     .toList());
 

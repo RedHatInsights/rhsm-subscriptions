@@ -19,16 +19,6 @@ parameters:
     value: 350m
   - name: CPU_LIMIT
     value: 1500m
-  - name: MIGRATION_IMAGE
-    value: quay.io/cloudservices/swatch-database
-  - name: MIGRATION_MEMORY_REQUEST
-    value: 256Mi
-  - name: MIGRATION_MEMORY_LIMIT
-    value: 512Mi
-  - name: MIGRATION_CPU_REQUEST
-    value: 100m
-  - name: MIGRATION_CPU_LIMIT
-    value: 500m
   - name: ENV_NAME
     value: env-swatch-contracts
   - name: REPLICAS
@@ -62,6 +52,16 @@ parameters:
   # allow overriding to support independent deploy with bonfire
   - name: DB_POD
     value: swatch-database
+  # Using a value of 'select 1' makes this job a no-op by default.
+  # When needed bump DB_CHANGELOG_CLEANUP_RUN_NUMBER, set DB_CHANGELOG_CLEANUP_SQL to 'delete from databasechangeloglock_swatch_contracts'
+  - name: DB_CHANGELOG_CLEANUP_RUN_NUMBER
+    value: '1'
+  - name: DB_CHANGELOG_CLEANUP_SQL
+    value: 'select 1'
+  - name: EGRESS_IMAGE
+    value: quay.io/redhat-services-prod/rh-subs-watch-tenant/rhsm-subscriptions-egress
+  - name: EGRESS_IMAGE_TAG
+    value: latest
   - name: QUARKUS_PROFILE
     value: prod
   - name: UMB_KEYSTORE_PATH
@@ -97,6 +97,14 @@ parameters:
   - name: KAFKA_SUBSCRIPTIONS_EXPORT_REPLICAS
     value: '3'
   - name: KAFKA_SUBSCRIPTIONS_EXPORT_PARTITIONS
+    value: '3'
+  - name: KAFKA_TALLY_REPLICAS
+    value: '3'
+  - name: KAFKA_TALLY_PARTITIONS
+    value: '3'
+  - name: KAFKA_UTILIZATION_REPLICAS
+    value: '3'
+  - name: KAFKA_UTILIZATION_PARTITIONS
     value: '3'
   - name: CURL_CRON_IMAGE
     value: registry.access.redhat.com/ubi8/ubi-minimal
@@ -149,6 +157,12 @@ objects:
         - replicas: ${{KAFKA_SUBSCRIPTIONS_EXPORT_REPLICAS}}
           partitions: ${{KAFKA_SUBSCRIPTIONS_EXPORT_PARTITIONS}}
           topicName: platform.export.requests
+        - replicas: ${{KAFKA_TALLY_REPLICAS}}
+          partitions: ${{KAFKA_TALLY_PARTITIONS}}
+          topicName: platform.rhsm-subscriptions.tally
+        - replicas: ${{KAFKA_UTILIZATION_REPLICAS}}
+          partitions: ${{KAFKA_UTILIZATION_PARTITIONS}}
+          topicName: platform.rhsm-subscriptions.utilization
 
       deployments:
         - name: service
@@ -158,18 +172,6 @@ objects:
               enabled: true
           podSpec:
             image: ${IMAGE}:${IMAGE_TAG}
-            initContainers:
-              - image: ${MIGRATION_IMAGE}:${IMAGE_TAG}
-                command: ["/opt/jboss/container/java/run/run-java.sh"]
-                args: ["contracts", "update"]
-                inheritEnv: true
-                resources:
-                  requests:
-                    cpu: ${MIGRATION_CPU_REQUEST}
-                    memory: ${MIGRATION_MEMORY_REQUEST}
-                  limits:
-                    cpu: ${MIGRATION_CPU_LIMIT}
-                    memory: ${MIGRATION_MEMORY_LIMIT}
             livenessProbe:
               failureThreshold: 3
               httpGet:
@@ -411,6 +413,74 @@ objects:
       name: swatch-psks
     data:
       self: cGxhY2Vob2xkZXI=
+
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdApp
+    metadata:
+      name: swatch-contracts-db-cleanup
+    spec:
+      # The name of the ClowdEnvironment providing the services
+      envName: ${ENV_NAME}
+
+      database:
+        sharedDbAppName: ${DB_POD}
+
+      dependencies:
+        - ${DB_POD}
+
+      pullSecrets:
+        name: ${IMAGE_PULL_SECRET}
+
+      kafkaTopics: []
+      deployments: []
+      jobs:
+        - name: changelog-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+          restartPolicy: Never
+          podSpec:
+            image: ${EGRESS_IMAGE}:${EGRESS_IMAGE_TAG}
+            name: db-changelog-cleanup
+            command: ["/bin/sh", "-c"]
+            args:
+              - psql -h $POSTGRESQL_SERVICE_HOST -U $POSTGRESQL_USER $POSTGRESQL_DATABASE -c "$DB_CHANGELOG_CLEANUP_SQL"
+            resources:
+              requests:
+                cpu: 100m
+                memory: 50Mi
+              limits:
+                cpu: 100m
+                memory: 100Mi
+            env:
+              - name: POSTGRESQL_SERVICE_HOST
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_POD}-db
+                    key: db.host
+              - name: POSTGRESQL_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_POD}-db
+                    key: db.user
+              - name: POSTGRESQL_DATABASE
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_POD}-db
+                    key: db.name
+              - name: PGPASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_POD}-db
+                    key: db.password
+              - name: DB_CHANGELOG_CLEANUP_SQL
+                value: ${DB_CHANGELOG_CLEANUP_SQL}
+
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdJobInvocation
+    metadata:
+      name: contracts-db-changelog-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+    spec:
+      appName: swatch-contracts-db-cleanup
+      jobs:
+        - changelog-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
 
   - apiVersion: v1
     kind: Secret

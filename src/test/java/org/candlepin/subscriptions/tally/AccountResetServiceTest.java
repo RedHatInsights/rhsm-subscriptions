@@ -30,7 +30,6 @@ import java.util.UUID;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.HostRepository;
-import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.TallyStateRepository;
 import org.candlepin.subscriptions.db.model.AccountServiceInventory;
@@ -40,7 +39,6 @@ import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.TallyState;
@@ -60,7 +58,6 @@ class AccountResetServiceTest {
   @Autowired private HostRepository hostRepo;
   @Autowired private TallySnapshotRepository tallySnapshotRepository;
   @Autowired private AccountServiceInventoryRepository accountServiceInventoryRepository;
-  @Autowired private SubscriptionRepository subscriptionRepository;
   @Autowired private TallyStateRepository tallyStateRepository;
   @Autowired private AccountResetService resetService;
 
@@ -71,7 +68,6 @@ class AccountResetServiceTest {
     accountServiceInventoryRepository.deleteAll();
     eventRecordRepo.deleteAll();
     tallySnapshotRepository.deleteAll();
-    subscriptionRepository.deleteAll();
     tallyStateRepository.deleteAll();
     accountServiceInventoryRepository.save(new AccountServiceInventory("org123", "HBI_HOST"));
 
@@ -118,12 +114,6 @@ class AccountResetServiceTest {
             Map.of(new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, "CORES"), 10.0));
     tallySnapshotRepository.save(snapshot);
 
-    Subscription s = new Subscription();
-    s.setOrgId("org123");
-    s.setSubscriptionId("subscription123");
-    s.setStartDate(OffsetDateTime.now());
-    subscriptionRepository.save(s);
-
     TallyState tallyState = new TallyState("org123", "HBI_HOST", OffsetDateTime.now());
     tallyStateRepository.save(tallyState);
   }
@@ -136,7 +126,6 @@ class AccountResetServiceTest {
     assertEquals(0, accountServiceInventoryRepository.findAll().size());
     assertEquals(0, eventRecordRepo.findAll().size());
     assertEquals(0, tallySnapshotRepository.findAll().size());
-    assertEquals(0, subscriptionRepository.findAll().size());
     assertEquals(0, tallyStateRepository.findAll().size());
   }
 }

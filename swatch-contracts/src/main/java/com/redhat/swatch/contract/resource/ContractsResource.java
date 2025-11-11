@@ -47,6 +47,7 @@ import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.DbReportCriteria;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
+import com.redhat.swatch.contract.service.AccountResetService;
 import com.redhat.swatch.contract.service.CapacityReconciliationService;
 import com.redhat.swatch.contract.service.ContractService;
 import com.redhat.swatch.contract.service.EnabledOrgsProducer;
@@ -82,6 +83,7 @@ public class ContractsResource implements DefaultApi {
   private static final XmlMapper XML_MAPPER = CanonicalMessage.createMapper();
 
   private final ContractService service;
+  private final AccountResetService accountResetService;
   private final EnabledOrgsProducer enabledOrgsProducer;
   private final ApplicationConfiguration applicationConfiguration;
   private final CapacityReconciliationService capacityReconciliationService;
@@ -110,6 +112,13 @@ public class ContractsResource implements DefaultApi {
   public void deleteContractByUUID(String uuid) throws ProcessingException {
     log.info("Deleting contract {}", uuid);
     service.deleteContract(uuid);
+  }
+
+  @Override
+  @RolesAllowed({"test", "support", "service"})
+  public void deleteDataForOrg(String orgId) throws ProcessingException {
+    log.info("Deleting all contracts and subscriptions for org {}", orgId);
+    accountResetService.deleteDataForOrg(orgId);
   }
 
   /**
@@ -167,12 +176,6 @@ public class ContractsResource implements DefaultApi {
   public StatusResponse syncSubscriptionsForContractsByOrg(String orgId)
       throws ProcessingException {
     return service.syncSubscriptionsForContractsByOrg(orgId);
-  }
-
-  @Override
-  @RolesAllowed({"test", "support", "service"})
-  public StatusResponse deleteContractsByOrg(String orgId) throws ProcessingException {
-    return service.deleteContractsByOrgId(orgId);
   }
 
   @Override

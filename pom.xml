@@ -20,30 +20,31 @@
     <codegen.skipIfSpecIsUnchanged>true</codegen.skipIfSpecIsUnchanged>
 
     <!-- Dependencies -->
-    <quarkus.platform.version>3.28.5</quarkus.platform.version>
+    <quarkus.platform.version>3.29.2</quarkus.platform.version>
     <spring.boot.version>3.5.7</spring.boot.version>
     <resteasy.version>7.0.0.Final</resteasy.version>
     <!-- Only use as provided in the common dependencies.
     Spring and Quarkus already provides the compatible Jackson versions -->
-    <jackson.version>2.20.0</jackson.version>
+    <jackson.version>2.20.1</jackson.version>
     <mapstruct.version>1.6.3</mapstruct.version>
     <slf4j.version>2.0.17</slf4j.version>
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
-    <opentelemetry-api.version>1.55.0</opentelemetry-api.version>
-    <awssdk-bom.version>2.36.0</awssdk-bom.version>
+    <opentelemetry-api.version>1.56.0</opentelemetry-api.version>
+    <awssdk-bom.version>2.38.3</awssdk-bom.version>
     <guava.version>33.5.0-jre</guava.version>
     <liquibase.version>5.0.1</liquibase.version>
     <postgresql.version>42.7.8</postgresql.version>
     <testcontainers.version>1.21.3</testcontainers.version>
-    <junit.version>6.0.0</junit.version>
+    <junit.version>6.0.1</junit.version>
     <mockito.version>5.20.0</mockito.version>
     <rest-assured.version>5.5.6</rest-assured.version>
     <awaitility.version>4.3.0</awaitility.version>
-    <hibernate-validator.version>9.0.1.Final</hibernate-validator.version>
+    <hibernate-validator.version>9.1.0.Final</hibernate-validator.version>
     <swagger-parser.version>2.1.35</swagger-parser.version>
-    <swagger-ui.version>5.29.3</swagger-ui.version>
-    <splunk-otel-javaagent.version>2.21.0</splunk-otel-javaagent.version>
+    <swagger-ui.version>5.30.2</swagger-ui.version>
+    <splunk-otel-javaagent.version>2.21.1</splunk-otel-javaagent.version>
+    <java-uuid-generator.version>5.1.1</java-uuid-generator.version>
 
     <!-- Plugins -->
     <compiler-plugin.version>3.14.1</compiler-plugin.version>
@@ -105,6 +106,11 @@
       <dependency>
         <groupId>com.redhat.swatch</groupId>
         <artifactId>swatch-quarkus-parent</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.redhat.swatch</groupId>
+        <artifactId>swatch-component-tests-parent</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -210,7 +216,7 @@
       <dependency>
         <groupId>org.openapitools</groupId>
         <artifactId>jackson-databind-nullable</artifactId>
-        <version>0.2.7</version>
+        <version>0.2.8</version>
       </dependency>
       <dependency>
         <groupId>org.codehaus.janino</groupId>
@@ -290,7 +296,7 @@
       <dependency>
         <groupId>com.github.ben-manes.caffeine</groupId>
         <artifactId>caffeine</artifactId>
-        <version>3.2.2</version>
+        <version>3.2.3</version>
       </dependency>
       <dependency>
         <groupId>io.rest-assured</groupId>
@@ -311,6 +317,11 @@
         <groupId>org.mockito</groupId>
         <artifactId>mockito-junit-jupiter</artifactId>
         <version>${mockito.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.uuid</groupId>
+        <artifactId>java-uuid-generator</artifactId>
+        <version>${java-uuid-generator.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -521,7 +532,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>12.1.0</version>
+            <version>12.1.1</version>
           </dependency>
         </dependencies>
       </plugin>
@@ -545,6 +556,7 @@
       <modules>
         <module>swatch-spring-parent</module>
         <module>swatch-quarkus-parent</module>
+        <module>swatch-component-tests-parent</module>
         <module>swatch-product-configuration</module>
         <module>api</module>
         <module>clients-core</module>
@@ -593,42 +605,6 @@
         <module>swatch-database</module>
       </modules>
     </profile>
-
-    <profile>
-      <id>component-tests</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-      </activation>
-
-      <modules>
-        <!-- Dependencies -->
-        <module>swatch-quarkus-parent</module>
-        <module>swatch-common-models</module>
-        <module>swatch-model-events</module>
-        <module>swatch-model-billable-usage</module>
-        <module>swatch-model-metrics-hbi</module>
-        <!-- Test framework module -->
-        <module>swatch-test-framework</module>
-        <!-- Services with component tests -->
-        <module>swatch-producer-azure/ct</module>
-        <module>swatch-tally/ct</module>
-        <module>swatch-utilization/ct</module>
-        <module>swatch-contracts/ct</module>
-        <module>swatch-metrics-hbi/ct</module>
-      </modules>
-
-      <dependencyManagement>
-        <dependencies>
-          <dependency>
-            <groupId>com.redhat.swatch</groupId>
-            <artifactId>swatch-test-framework</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-          </dependency>
-        </dependencies>
-      </dependencyManagement>
-    </profile>
-
     <profile>
       <id>coverage</id>
       <activation>

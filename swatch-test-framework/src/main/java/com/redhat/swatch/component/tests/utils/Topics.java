@@ -22,12 +22,14 @@ package com.redhat.swatch.component.tests.utils;
 
 public final class Topics {
   public static final String SUFFIX = "platform.rhsm-subscriptions.";
+  public static final String BILLABLE_USAGE = SUFFIX + "billable-usage";
   public static final String BILLABLE_USAGE_HOURLY_AGGREGATE =
       SUFFIX + "billable-usage-hourly-aggregate";
   public static final String BILLABLE_USAGE_STATUS = SUFFIX + "billable-usage.status";
   public static final String UTILIZATION = SUFFIX + "utilization";
   public static final String SWATCH_SERVICE_INSTANCE_INGRESS = SUFFIX + "service-instance-ingress";
   public static final String HBI_EVENT_IN = "platform.inventory.events";
+  public static final String TALLY = SUFFIX + "tally";
 
   private Topics() {}
 }

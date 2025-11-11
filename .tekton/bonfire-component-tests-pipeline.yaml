@@ -295,7 +295,7 @@ spec:
                 value: "$(params.SERVICE)"
             script: |
               #!/bin/bash
-              ./mvnw clean install -Pcomponent-tests -Dservice=${SERVICE} -Dswatch.component-tests.global.target=openshift
+              ./mvnw clean install --no-transfer-progress -Pcomponent-tests -am -pl ${SERVICE}/ct -Dswatch.component-tests.global.target=openshift
     - name: send-results-task
       params:
         - name: SERVICE
@@ -336,6 +336,12 @@ spec:
                     key: password
               - name: SERVICE
                 value: "$(params.SERVICE)"
+              - name: EVENT_TYPE
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.labels['pac.test.appstudio.openshift.io/event-type']
+              - name: PIPELINE_NAME
+                value: "$(context.pipelineRun.name)"
             script: |
               #!/bin/bash
               set -euo pipefail
@@ -345,6 +351,8 @@ spec:
               
               # Customize metadata for the current service
               sed -i "s/SERVICE_NAME/$SERVICE/g" datarouter.json
+              sed -i "s/EVENT_TYPE_PLACEHOLDER/$EVENT_TYPE/g" datarouter.json
+              sed -i "s/PIPELINE_NAME_PLACEHOLDER/$PIPELINE_NAME/g" datarouter.json
               
               echo "Using metadata from: $METADATA_FILE"
               echo "Metadata content:"

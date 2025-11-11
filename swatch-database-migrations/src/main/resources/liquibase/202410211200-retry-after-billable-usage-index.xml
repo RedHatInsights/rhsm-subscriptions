@@ -5,6 +5,11 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
   <changeSet id="202410211200-01" author="jcarvaja">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <tableExists tableName="databasechangelog_swatch_billable_usage"/>
+      </not>
+    </preConditions>
     <createIndex tableName="billable_usage_remittance" indexName="billable_usage_retry_after_idx">
       <column name="retry_after"/>
     </createIndex>

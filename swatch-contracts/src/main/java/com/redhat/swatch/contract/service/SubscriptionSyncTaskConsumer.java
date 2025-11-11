@@ -59,8 +59,7 @@ public class SubscriptionSyncTaskConsumer {
   @Blocking
   @Incoming(SUBSCRIPTION_SYNC_TASK_UMB)
   public void consumeFromUmb(String subscriptionMessageXml) throws JsonProcessingException {
-    log.debug(
-        "Received message from UMB for subscription sync service. {}", subscriptionMessageXml);
+    log.info("Received message from UMB for subscription sync service. {}", subscriptionMessageXml);
     if (!umbEnabled) {
       return;
     }

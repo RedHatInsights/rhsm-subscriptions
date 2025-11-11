@@ -20,8 +20,19 @@
  */
 package domain;
 
+import com.redhat.swatch.contract.test.model.TallySnapshot.Sla;
+
 public enum ServiceLevel {
   PREMIUM;
+
+  public Sla toTallySnapshotModel() {
+    switch (this) {
+      case PREMIUM:
+        return Sla.PREMIUM;
+      default:
+        throw new IllegalArgumentException("Unsupported service level: " + this);
+    }
+  }
 
   /** From swatch-common-models: */
   public String toDataModel() {

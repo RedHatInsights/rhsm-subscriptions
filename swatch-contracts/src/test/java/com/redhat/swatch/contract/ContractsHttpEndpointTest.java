@@ -33,6 +33,7 @@ import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.ContractRequest;
 import com.redhat.swatch.contract.openapi.model.ContractResponse;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
+import com.redhat.swatch.contract.service.AccountResetService;
 import com.redhat.swatch.contract.service.ContractService;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -45,6 +46,7 @@ import org.junit.jupiter.api.Test;
 class ContractsHttpEndpointTest {
 
   @InjectMock ContractService contractService;
+  @InjectMock AccountResetService accountResetService;
 
   @Test
   void whenGetContract_thenContractShouldBeFound() {
@@ -143,13 +145,13 @@ class ContractsHttpEndpointTest {
   }
 
   @Test
-  void deleteContractsByOrgId() {
+  void deleteDataForOrgId() {
     given()
         .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
         .when()
-        .delete("/api/swatch-contracts/internal/rpc/reset/contracts/org123")
+        .delete("/api/swatch-contracts/internal/rpc/reset/org123")
         .then()
         .statusCode(HttpStatus.SC_NO_CONTENT);
-    verify(contractService).deleteContractsByOrgId("org123");
+    verify(accountResetService).deleteDataForOrg("org123");
   }
 }

@@ -20,7 +20,7 @@
  */
 package com.redhat.swatch.component.tests.utils;
 
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 public final class RandomUtils {
 
@@ -35,9 +35,7 @@ public final class RandomUtils {
    * @return a random number as a string, generated within the specified range
    */
   public static String generateRandom() {
-    long currentTimestamp = System.currentTimeMillis();
-    Random random = new Random(currentTimestamp);
-    int randomNumber = random.nextInt(MAX_RANGE - MIN_RANGE + 1) + MIN_RANGE;
+    int randomNumber = ThreadLocalRandom.current().nextInt(MIN_RANGE, MAX_RANGE + 1);
     return String.valueOf(randomNumber);
   }
 }

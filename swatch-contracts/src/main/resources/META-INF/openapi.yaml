@@ -187,34 +187,25 @@ paths:
         - support: [ ]
         - test: [ ]
       operationId: syncSubscriptionsForContractsByOrg
-  /api/swatch-contracts/internal/rpc/reset/contracts/{org_id}:
-    description: "Clear all contracts for a given org ID. "
+  /api/swatch-contracts/internal/rpc/reset/{org_id}:
+    description: "Clear all contracts and subscriptions for a given org ID. "
     delete:
       parameters:
         - name: org_id
-          description: ""
+          description: "Organization ID"
           schema:
             type: string
           in: path
           required: true
-      summary: "Clear all contracts for given org_id."
+      summary: "Clear all contracts and subscriptions for given org_id."
       responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-              examples:
-                status response:
-                  value:
-                    status: 'Success'
-                    message: "Contracts Cleared for given org_id"
-          description: success
+        '204':
+          description: "Contracts and subscriptions successfully deleted"
       security:
         - support: [ ]
         - test: [ ]
         - service: [ ]
-      operationId: deleteContractsByOrg
+      operationId: deleteDataForOrg
   /internal/rpc/syncAllContracts:
     description: "Trigger a sync for all contracts"
     post:

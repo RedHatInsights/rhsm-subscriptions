@@ -20,6 +20,9 @@
  */
 package tests;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 import api.ContractsSwatchService;
 import api.ContractsWiremockService;
 import com.redhat.swatch.component.tests.api.ComponentTest;
@@ -27,12 +30,21 @@ import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.Quarkus;
 import com.redhat.swatch.component.tests.api.Wiremock;
+import com.redhat.swatch.component.tests.utils.RandomUtils;
+import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
+import domain.Contract;
+import io.restassured.response.Response;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 
 @ComponentTest
 @Tag("component")
 @Tag("contracts")
 public class BaseContractComponentTest {
+  static final MetricId CORES = MetricIdUtils.getCores();
+  static final MetricId SOCKETS = MetricIdUtils.getSockets();
 
   @KafkaBridge static KafkaBridgeService kafkaBridge = new KafkaBridgeService();
 
@@ -40,4 +52,27 @@ public class BaseContractComponentTest {
 
   @Quarkus(service = "swatch-contracts")
   static ContractsSwatchService service = new ContractsSwatchService();
+
+  protected String orgId;
+
+  @BeforeEach
+  void setUp() {
+    orgId = RandomUtils.generateRandom();
+  }
+
+  @AfterEach
+  void tearDown() {
+    service.deleteDataForOrg(orgId);
+  }
+
+  void givenContractIsCreated(Contract contract) {
+    wiremock.forProductAPI().stubOfferingData(contract.getOffering());
+    wiremock.forPartnerAPI().stubContract(contract);
+    // Sync offering needed for contract to persist with the SKU
+    Response syncOfferingResponse = service.syncOffering(contract.getOffering().getSku());
+    assertThat("Sync offering call should succeed", syncOfferingResponse.statusCode(), is(200));
+
+    Response createContractResponse = service.createContract(contract);
+    assertThat("Contract creation should succeed", createContractResponse.statusCode(), is(200));
+  }
 }

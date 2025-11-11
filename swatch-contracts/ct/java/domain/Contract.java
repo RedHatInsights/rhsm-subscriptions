@@ -20,8 +20,12 @@
  */
 package domain;
 
+import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
+import com.redhat.swatch.configuration.registry.Metric;
+import com.redhat.swatch.configuration.registry.MetricId;
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import lombok.EqualsAndHashCode;
@@ -33,13 +37,6 @@ import lombok.experimental.SuperBuilder;
 @EqualsAndHashCode(callSuper = true)
 public class Contract extends Subscription {
 
-  // Constants for ROSA contract defaults
-  private static final String VCPU_HOUR_METRIC = "four_vcpu_hour";
-  private static final String CORES_METRIC = "Cores";
-  private static final double DEFAULT_VCPU_CAPACITY = 10.0;
-  private static final double VCPU_TO_CORES_RATIO = 0.25;
-  private static final String DEFAULT_PRODUCT_ID = "rosa";
-
   /** Customer ID from marketplace */
   private final String customerId;
 
@@ -49,36 +46,45 @@ public class Contract extends Subscription {
   /** Product Code */
   private final String productCode;
 
-  /** Contract capacity dimensions */
-  private final Map<String, Double> contractCapacity;
+  public Map<String, Double> getContractMetrics() {
+    Map<String, Double> metrics = new HashMap<>();
+    for (var entry : getSubscriptionMeasurements().entrySet()) {
+      Metric metric = getProduct().getMetric(entry.getKey());
+      if (metric != null) {
+        metrics.put(
+            metric.getAwsDimension(),
+            entry.getValue() * getProduct().getMetric(entry.getKey()).getBillingFactor());
+      } else {
+        Log.warn("Metric %s not found in product %s", entry.getKey(), getProduct().getId());
+      }
+    }
 
-  public static Contract buildRosaContract(
-      String orgId, String sku, BillingProvider billingProvider) {
-    return buildRosaContract(
-        orgId, sku, billingProvider, Map.of(VCPU_HOUR_METRIC, DEFAULT_VCPU_CAPACITY));
+    return metrics;
   }
 
   public static Contract buildRosaContract(
-      String orgId,
-      String sku,
-      BillingProvider billingProvider,
-      Map<String, Double> contractMetrics) {
-    Objects.requireNonNull(orgId, "orgId cannot be null");
-    Objects.requireNonNull(sku, "sku cannot be null");
-    Objects.requireNonNull(billingProvider, "billingProvider cannot be null");
+      String orgId, BillingProvider billingProvider, Map<MetricId, Double> capacity) {
+    return buildRosaContract(orgId, billingProvider, capacity, null);
+  }
 
+  public static Contract buildRosaContract(
+      String orgId, BillingProvider billingProvider, Map<MetricId, Double> capacity, String sku) {
+    Objects.requireNonNull(orgId, "orgId cannot be null");
+    Objects.requireNonNull(billingProvider, "billingProvider cannot be null");
+    Objects.requireNonNull(capacity, "capacity cannot be null");
+
+    Product product = Product.ROSA;
     String seed = RandomUtils.generateRandom();
     return Contract.builder()
         .customerId("customer" + seed)
         .sellerAccountId("seller" + seed)
         .productCode("product" + seed)
-        .contractCapacity(contractMetrics)
-        .subscriptionMeasurements(Map.of(CORES_METRIC, DEFAULT_VCPU_CAPACITY * VCPU_TO_CORES_RATIO))
+        .subscriptionMeasurements(capacity)
         .billingProvider(billingProvider)
         .billingAccountId("billing" + seed)
         .orgId(orgId)
-        .productId(DEFAULT_PRODUCT_ID)
-        .offering(Offering.buildRosaOffering(sku))
+        .product(product)
+        .offering(Offering.buildRosaOffering(Objects.requireNonNullElse(sku, seed)))
         .subscriptionId(seed)
         .subscriptionNumber(seed)
         .startDate(OffsetDateTime.now().minusDays(1))

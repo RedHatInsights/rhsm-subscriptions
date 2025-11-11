@@ -39,8 +39,16 @@
       <artifactId>quarkus-messaging-kafka</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.quarkiverse.unleash</groupId>
+      <artifactId>quarkus-unleash</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.redhat.cloud.common</groupId>
       <artifactId>clowder-quarkus-config-source</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-product-configuration</artifactId>
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch</groupId>
@@ -57,6 +65,10 @@
     <dependency>
       <groupId>com.redhat.swatch</groupId>
       <artifactId>swatch-common-splunk</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.uuid</groupId>
+      <artifactId>java-uuid-generator</artifactId>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
@@ -79,4 +91,29 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.jsonschema2pojo</groupId>
+        <artifactId>jsonschema2pojo-maven-plugin</artifactId>
+        <configuration>
+          <sourceDirectory>${maven.multiModuleProjectDirectory}/swatch-core/schemas</sourceDirectory>
+          <targetPackage>com.redhat.swatch.utilization.model</targetPackage>
+          <includes>
+            <include>utilization_summary.yaml</include>
+          </includes>
+          <includeAdditionalProperties>false</includeAdditionalProperties>
+          <includeJsr303Annotations>true</includeJsr303Annotations>
+          <initializeCollections>false</initializeCollections>
+          <dateTimeType>java.time.OffsetDateTime</dateTimeType>
+          <sourceType>yamlschema</sourceType>
+          <generateBuilders>true</generateBuilders>
+          <includeGetters>true</includeGetters>
+          <includeSetters>false</includeSetters>
+          <useJakartaValidation>true</useJakartaValidation>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>

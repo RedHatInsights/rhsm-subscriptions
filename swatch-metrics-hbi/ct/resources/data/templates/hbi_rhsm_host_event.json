@@ -20,15 +20,15 @@
           "MEMORY": 1,
           "RH_PROD": [$RH_PRODUCT_IDS],
           "IS_VIRTUAL": $IS_VIRTUAL,
-          "ARCHITECTURE": "x86_64",
+          "ARCHITECTURE": "$ARCH",
           "SYNC_TIMESTAMP": "$SYNC_TIMESTAMP",
           "SYSPURPOSE_SLA": "$SYSPURPOSE_SLA",
           "SYSPURPOSE_USAGE": "$SYSPURPOSE_USAGE"
         }
       }
     ],
-    "provider_id": null,
-    "provider_type": null,
+    "provider_id": $PROVIDER_ID,
+    "provider_type": $PROVIDER_TYPE,
     "created": "$TIMESTAMP",
     "updated": "$TIMESTAMP",
     "stale_timestamp": "$STALE_TIMESTAMP",
@@ -37,7 +37,7 @@
     "reporter": "rhsm-conduit",
     "tags": [],
     "system_profile": {
-      "arch": "x86_64",
+      "arch": "$ARCH",
       "owner_id": "6bfc8a3d-464f-4853-a301-4b1715480799",
       "conversions": {
         "activity": false
@@ -45,8 +45,13 @@
       "is_marketplace": false,
       "cores_per_socket": $CORES,
       "number_of_sockets": $SOCKETS,
-      "infrastructure_type": "physical",
-      "system_memory_bytes": 5120
+      "threads_per_core": $THREADS_PER_CORE,
+      "number_of_cpus": $CPUS,
+      "infrastructure_type": "$INFRASTRUCTURE_TYPE",
+      "virtual_host_uuid": $HYPERVISOR_UUID,
+      "system_memory_bytes": 5120,
+      "cloud_provider": $CLOUD_PROVIDER,
+      "bios_version": $BIOS_VERSION
     }
   },
   "timestamp": "$TIMESTAMP",
