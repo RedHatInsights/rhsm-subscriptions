@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.component.tests.core;
 
+import static com.redhat.swatch.component.tests.logging.Log.LOG_FILE_PATH;
 import static com.redhat.swatch.component.tests.logging.Log.LOG_SUFFIX;
 
 import com.redhat.swatch.component.tests.configuration.BaseConfigurationBuilder;
@@ -40,7 +41,6 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 public final class ComponentTestContext {
 
   private static final String GLOBAL = "global";
-  private static final String LOG_FILE_PATH = System.getProperty("log.file.path", "target/logs");
   private static final int COMPONENT_TEST_ID_MAX_SIZE = 60;
 
   private final ExtensionContext testContext;

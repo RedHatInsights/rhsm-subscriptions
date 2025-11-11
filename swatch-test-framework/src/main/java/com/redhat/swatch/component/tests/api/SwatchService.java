@@ -54,10 +54,11 @@ public class SwatchService extends RestService {
    * @return The metric value as double, or 0.0 if not found
    */
   public double getMetricByTags(String metricName, String... tags) {
+    Log.debug(this, "Getting metric '%s' with tags '%s'", metricName, String.join(", ", tags));
     // Get metrics response from the endpoint
     Response metricsResponse = getMetrics();
     String metricsContent = metricsResponse.getBody().asString();
-    Log.debug(this, "Metrics response: %s", metricsContent);
+    Log.trace(this, "Metrics response: %s", metricsContent);
 
     // Parse and extract the metric value
     return getValueFromMetrics(metricsContent, metricName, tags);
