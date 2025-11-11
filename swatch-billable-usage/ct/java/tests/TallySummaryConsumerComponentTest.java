@@ -21,10 +21,16 @@
 package tests;
 
 import static api.BillableUsageTestHelper.createTallySummaryWithDefaults;
+import static api.BillableUsageTestHelper.createTallySummaryWithGranularity;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import api.MessageValidators;
+import java.util.List;
+import java.util.UUID;
+import org.candlepin.subscriptions.billable.usage.BillableUsage;
+import org.candlepin.subscriptions.billable.usage.TallySnapshot;
 import org.candlepin.subscriptions.billable.usage.TallySummary;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -80,5 +86,54 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
         BILLABLE_USAGE,
         MessageValidators.billableUsageMatchesWithValue(orgId, ROSA.getName(), expectedValue),
         1);
+  }
+
+  /**
+   * Verify that when both DAILY and HOURLY tally snapshots are sent, only the HOURLY snapshot
+   * produces billable usage and DAILY is filtered out by the consumer.
+   */
+  @Test
+  public void testOnlyHourlyGranularityIsProcessed() {
+    // Setup wiremock endpoints
+    contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
+
+    UUID dailySnapshotId = UUID.randomUUID();
+    UUID hourlySnapshotId = UUID.randomUUID();
+
+    // Create and send tally summary with DAILY granularity
+    TallySummary dailyTallySummary =
+        createTallySummaryWithGranularity(
+            orgId,
+            ROSA.getName(),
+            CORES.toString(),
+            TOTAL_USAGE,
+            TallySnapshot.Granularity.DAILY,
+            dailySnapshotId);
+    kafkaBridge.produceKafkaMessage(TALLY, dailyTallySummary);
+
+    // Create and send tally summary with HOURLY granularity
+    TallySummary hourlyTallySummary =
+        createTallySummaryWithGranularity(
+            orgId,
+            ROSA.getName(),
+            CORES.toString(),
+            TOTAL_USAGE,
+            TallySnapshot.Granularity.HOURLY,
+            hourlySnapshotId);
+    kafkaBridge.produceKafkaMessage(TALLY, hourlyTallySummary);
+
+    // Verify that only the HOURLY tally summary produces billable usage
+    List<BillableUsage> messages =
+        kafkaBridge.waitForKafkaMessage(
+            BILLABLE_USAGE, MessageValidators.billableUsageMatches(orgId, ROSA.getName()), 1);
+
+    // Assert exactly 1 message was produced
+    assertEquals(1, messages.size(), "Expected exactly 1 billable usage for HOURLY granularity");
+
+    // Assert it came from the HOURLY tally (not DAILY)
+    assertEquals(
+        hourlySnapshotId,
+        messages.get(0).getTallyId(),
+        "Billable usage should be generated from HOURLY tally snapshot");
   }
 }

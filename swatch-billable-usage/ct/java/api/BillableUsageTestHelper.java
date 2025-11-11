@@ -71,4 +71,20 @@ public final class BillableUsageTestHelper {
       String orgId, String productId, String metricId, double value) {
     return createTallySummary(orgId, productId, metricId, value, "aws", "aws-account-123");
   }
+
+  public static TallySummary createTallySummaryWithGranularity(
+      String orgId,
+      String productId,
+      String metricId,
+      double value,
+      TallySnapshot.Granularity granularity,
+      UUID snapshotId) {
+
+    TallySummary tallySummary =
+        createTallySummary(orgId, productId, metricId, value, "aws", "aws-account-123");
+    TallySnapshot snapshot = tallySummary.getTallySnapshots().get(0);
+    snapshot.setGranularity(granularity);
+    snapshot.setId(snapshotId);
+    return tallySummary;
+  }
 }
