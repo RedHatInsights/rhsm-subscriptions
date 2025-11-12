@@ -97,7 +97,7 @@ public class ContractsComponentTest extends BaseContractComponentTest {
   @Test
   @Tag("contract")
   @Tag("contracts-termination-TC006")
-  void shouldDecreasecapacityWhenContractIsTerminated() {
+  void shouldDecreaseCapacityWhenContractIsTerminated() {
     String productId = Product.ROSA.getName();
 
     // Arrange: create a ROSA contract that maps AWS dimensions to CORES

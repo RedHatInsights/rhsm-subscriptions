@@ -123,10 +123,15 @@ public class ContractsSwatchService extends SwatchService {
     Objects.requireNonNull(productId, "product id must not be null");
     Objects.requireNonNull(orgId, "org id must not be null");
 
+    // Use X509 type authentication like IQE does, which grants "service" role automatically
+    // which also avoids RBAC validation issues in test environments
+    // For X509 auth, the system uses subject_dn as the principal name (which becomes the orgId)
+    // So we put the orgId in the subject_dn field
     String json =
-        "{\"identity\":{\"org_id\":\""
+        "{\"identity\":{\"type\":\"X509\",\"auth_type\":\"X509\","
+            + "\"x509\":{\"subject_dn\":\""
             + orgId
-            + "\",\"type\":\"User\"},"
+            + "\",\"issuer_dn\":\"CN=test-issuer\"}},"
             + "\"entitlements\":{\"rhel\":{\"is_entitled\":true}}}";
     String rhId =
         java.util.Base64.getEncoder()
