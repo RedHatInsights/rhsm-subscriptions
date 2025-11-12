@@ -101,7 +101,7 @@ public class SnapshotSummaryProducer {
                             .filter(filter)
                             .map(
                                 snapshot -> {
-                                  removeTotalMeasurements(snapshot);
+                                  removeTotalMeasurementsForHourly(snapshot);
                                   return snapshot;
                                 })
                             .sorted(Comparator.comparing(TallySnapshot::getSnapshotDate))
@@ -120,8 +120,9 @@ public class SnapshotSummaryProducer {
         });
   }
 
-  public static void removeTotalMeasurements(TallySnapshot snapshot) {
-    if (Objects.nonNull(snapshot.getTallyMeasurements())) {
+  public static void removeTotalMeasurementsForHourly(TallySnapshot snapshot) {
+    if (Objects.nonNull(snapshot.getTallyMeasurements())
+        && Granularity.HOURLY.equals(snapshot.getGranularity())) {
       snapshot
           .getTallyMeasurements()
           .entrySet()

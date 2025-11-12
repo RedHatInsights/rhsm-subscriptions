@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.tally;
 
-import static org.candlepin.subscriptions.tally.SnapshotSummaryProducer.removeTotalMeasurements;
+import static org.candlepin.subscriptions.tally.SnapshotSummaryProducer.removeTotalMeasurementsForHourly;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
@@ -210,7 +210,7 @@ public class TallySnapshotController {
         .filter(this::filterByFinestGranularityAndNotAnySnapshots)
         .map(
             snapshot -> {
-              removeTotalMeasurements(snapshot);
+              removeTotalMeasurementsForHourly(snapshot);
               return snapshot;
             })
         .forEach(
