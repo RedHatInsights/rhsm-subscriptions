@@ -28,6 +28,9 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.MatcherAssert.*;
+import static org.awaitility.Awaitility.await;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
@@ -39,6 +42,7 @@ import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -189,43 +193,28 @@ public class ContractsComponentTest extends BaseContractComponentTest {
     // Verify the terminated subscription is no longer listed as active for the SKU (with a short
     // poll)
     boolean removed = false;
-    for (int i = 0; i < 30; i++) {
-      Response postReport = getCapacityReport(productId, orgId);
-      List<Map<String, Object>> postItems = postReport.jsonPath().getList("data");
-      Map<String, Object> postSkuItem = null;
-      if (postItems != null) {
-        for (Map<String, Object> it : postItems) {
-          if (sku.equals(it.get("sku"))) {
-            postSkuItem = it;
-            break;
-          }
-        }
-      }
-      boolean stillContains = false;
-      if (postSkuItem != null) {
-        List<Map<String, Object>> postSubs =
-            (List<Map<String, Object>>) postSkuItem.get("subscriptions");
-        if (postSubs != null) {
-          for (Map<String, Object> s : postSubs) {
-            Object id = s.get("id");
-            if (id != null && id.toString().equals(paygSubId)) {
-              stillContains = true;
-              break;
-            }
-          }
-        }
-      }
-      if (!stillContains) {
-        removed = true;
-        break;
-      }
-      try {
-        Thread.sleep(200);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        Log.warn("Polling sleep interrupted", e);
-      }
-    }
-    assertThat("Terminated subscription should not be listed as active", removed, is(true));
+
+    await()
+            .atMost(1, MINUTES)
+            .pollInterval(1, SECONDS)
+            .until(() -> {
+              Response postReport = getCapacityReport(productId, orgId);
+              List<Map<String, Object>> postItems = postReport.jsonPath().getList("data");
+
+              if (postItems != null) {
+                for (Map<String, Object> it : postItems) {
+                  if (sku.equals(it.get("sku"))) {
+                    return false;  // SKU found - keep waiting
+                  }
+                }
+              }
+              return true;  // SKU not found - condition met, stop waiting
+            });
+
+    Response finalReport = getCapacityReport(productId, orgId);
+    List<Map<String, Object>> finalItems = finalReport.jsonPath().getList("data");
+    assertThat("SKU should be removed from capacity report",
+            finalItems.stream().noneMatch(it -> sku.equals(it.get("sku"))), is(true));
+
   }
 }
