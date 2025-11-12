@@ -150,7 +150,9 @@ class SnapshotSummaryProducerTest {
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         MetricIdUtils.getCores(),
-        20.4);
+        20.4,
+        Granularity.HOURLY == granularity ? 1 : 2,
+        Granularity.HOURLY != granularity);
     assertSummary(
         results,
         "org2",
@@ -159,7 +161,9 @@ class SnapshotSummaryProducerTest {
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         MetricIdUtils.getCores(),
-        22.2);
+        22.2,
+        Granularity.HOURLY == granularity ? 1 : 2,
+        Granularity.HOURLY != granularity);
   }
 
   @Test
@@ -222,7 +226,9 @@ class SnapshotSummaryProducerTest {
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         MetricIdUtils.getCores(),
-        20.4);
+        20.4,
+        1,
+        false);
     assertSummary(
         results,
         "org2",
@@ -231,7 +237,9 @@ class SnapshotSummaryProducerTest {
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         MetricIdUtils.getCores(),
-        22.2);
+        22.2,
+        1,
+        false);
     assertSummary(
         results,
         "org3",
@@ -240,7 +248,9 @@ class SnapshotSummaryProducerTest {
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         MetricIdUtils.getCores(),
-        42.2);
+        42.2,
+        2,
+        true);
   }
 
   @Test
@@ -303,7 +313,9 @@ class SnapshotSummaryProducerTest {
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         MetricIdUtils.getCores(),
-        20.4);
+        20.4,
+        1,
+        false);
     assertSummary(
         results,
         "org2",
@@ -312,7 +324,9 @@ class SnapshotSummaryProducerTest {
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         MetricIdUtils.getCores(),
-        22.2);
+        22.2,
+        1,
+        false);
   }
 
   void assertSummary(
@@ -323,7 +337,9 @@ class SnapshotSummaryProducerTest {
       ServiceLevel sla,
       Usage usage,
       MetricId metricId,
-      double value) {
+      double value,
+      int expectedMeasurements,
+      boolean hasTotalMeasurements) {
     assertTrue(results.containsKey(orgId));
     List<TallySummary> accountSummaries = results.get(orgId);
     assertEquals(1, accountSummaries.size());
@@ -337,12 +353,12 @@ class SnapshotSummaryProducerTest {
     assertEquals(granularity.toString(), snapshot.getGranularity().value().toUpperCase());
     assertEquals(sla.toString(), snapshot.getSla().value().toUpperCase());
     assertEquals(usage.toString(), snapshot.getUsage().value().toUpperCase());
-    assertEquals(1, snapshot.getTallyMeasurements().size());
+    assertEquals(expectedMeasurements, snapshot.getTallyMeasurements().size());
 
     Map<String, List<TallyMeasurement>> measurements =
         snapshot.getTallyMeasurements().stream()
             .collect(Collectors.groupingBy(TallyMeasurement::getHardwareMeasurementType));
-    assertTrue(Optional.ofNullable(measurements.get("TOTAL")).isEmpty());
+    assertTrue(Optional.ofNullable(measurements.get("TOTAL")).isEmpty() || hasTotalMeasurements);
     assertMeasurement(measurements, "PHYSICAL", metricId, value);
   }
 
