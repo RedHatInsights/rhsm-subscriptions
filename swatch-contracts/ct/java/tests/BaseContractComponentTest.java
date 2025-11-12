@@ -29,7 +29,6 @@ import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.Quarkus;
 import com.redhat.swatch.component.tests.api.Wiremock;
-import com.redhat.swatch.component.tests.errors.SetupFailureException;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
@@ -41,6 +40,9 @@ import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 
 @ComponentTest
 @Tag("component")
@@ -73,94 +75,51 @@ public class BaseContractComponentTest {
     wiremock.forPartnerAPI().stubContract(contract);
     // Sync offering needed for contract to persist with the SKU
     Response sync = service.syncOffering(contract.getOffering().getSku());
-    if (sync.statusCode() != 200) {
-      throw new SetupFailureException(
-          "Sync offering failed: sku="
-              + contract.getOffering().getSku()
-              + ", status="
-              + sync.statusCode()
-              + ", body="
-              + sync.asString());
-    }
+    // Will be removed in the future when a pattern is established
+    assertThat("Sync offering should succeed", sync.statusCode(), is(200));
 
     Response create = service.createContract(contract);
-    if (create.statusCode() != 200) {
-      throw new SetupFailureException(
-          "Create contract failed: orgId="
-              + contract.getOrgId()
-              + ", sku="
-              + contract.getOffering().getSku()
-              + ", status="
-              + create.statusCode()
-              + ", body="
-              + create.asString());
-    }
+    // Will be removed in the future when a pattern is established
+    assertThat("Creating contract should succeed", create.statusCode(), is(200));
   }
 
   /** Common helper to stub upstream offering with capacity and sync it into the service. */
   protected void stubOfferingAndSync(String sku, double cores, double sockets) {
     wiremock.forProductAPI().stubOfferingData(Offering.buildRhelOffering(sku, cores, sockets));
     Response r = service.syncOffering(sku);
-    if (r.statusCode() != 200) {
-      throw new SetupFailureException(
-          "Sync offering failed: sku="
-              + sku
-              + ", status="
-              + r.statusCode()
-              + ", body="
-              + r.asString());
-    }
+
+    // Will be removed in the future when a pattern is established
+    assertThat("Sync offering should succeed", r.statusCode(), is(200));
   }
 
   /** Common helper to persist a PAYG subscription for the given org/sku with reconcile on. */
   protected String saveSubscriptionForOrgAndSku(String orgId, String sku) {
     Subscription sub = Subscription.buildRhelSubscriptionUsingSku(orgId, Map.of(), sku);
     Response r = service.saveSubscriptions(true, sub);
-    if (r.statusCode() != 200) {
-      throw new SetupFailureException(
-          "Save subscription failed: orgId="
-              + orgId
-              + ", sku="
-              + sku
-              + ", status="
-              + r.statusCode()
-              + ", body="
-              + r.asString());
-    }
+
+    // Will be removed in the future when a pattern is established
+    assertThat(
+        "Building a Rhel subscprtion should succeed", r.statusCode(), is(200));
+
     return sub.getSubscriptionId();
   }
 
   /** Common helper to fetch the capacity count for a product/org, asserting 200. */
   protected int getCapacityCount(String productId, String orgId) {
     Response r = service.getSkuCapacityByProductIdForOrg(productId, orgId);
-    if (r.statusCode() != 200) {
-      throw new SetupFailureException(
-          "Capacity request failed: productId="
-              + productId
-              + ", orgId="
-              + orgId
-              + ", status="
-              + r.statusCode()
-              + ", body="
-              + r.asString());
-    }
+    // Will be removed in the future when a pattern is established
+    assertThat("Sync offering call should succeed", r.statusCode(), is(200));
+
     return r.jsonPath().getInt("meta.count");
   }
 
   /** Common helper to fetch the full capacity report for a product/org, asserting 200. */
   protected Response getCapacityReport(String productId, String orgId) {
     Response r = service.getSkuCapacityByProductIdForOrg(productId, orgId);
-    if (r.statusCode() != 200) {
-      throw new SetupFailureException(
-          "Capacity request failed: productId="
-              + productId
-              + ", orgId="
-              + orgId
-              + ", status="
-              + r.statusCode()
-              + ", body="
-              + r.asString());
-    }
+
+    // Will be removed in the future when a pattern is established
+    assertThat("Sync offering call should succeed", r.statusCode(), is(200));
+
     return r;
   }
 }

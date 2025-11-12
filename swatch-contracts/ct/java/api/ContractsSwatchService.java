@@ -21,6 +21,7 @@
 package api;
 
 import static com.redhat.swatch.component.tests.utils.SwatchUtils.SECURITY_HEADERS;
+import static com.redhat.swatch.component.tests.utils.SwatchUtils.securityHeadersWithServiceRole;
 
 import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.errors.SetupFailureException;
@@ -45,20 +46,11 @@ public class ContractsSwatchService extends SwatchService {
   private static final String CONTRACTS_ENDPOINT = ENDPOINT_PREFIX + "/contracts";
   private static final String SUBSCRIPTIONS_ENDPOINT = ENDPOINT_PREFIX + "/subscriptions";
   private static final String GET_SKU_ENDPOINT =
-      "/api/rhsm-subscriptions/v1/subscriptions/products/{product_id}";
+      "/api/rhsm-subscriptions/v2/subscriptions/products/{product_id}";
   private static final String TERMINATE_SUB_ENDPOINT =
       ENDPOINT_PREFIX + "/subscriptions/terminate/{subscription_id}";
   private static final String PRODUCT_TAGS_ENDPOINT =
       ENDPOINT_PREFIX + "/offerings/{sku}/product_tags";
-
-  public ContractsSwatchService() {
-    withProperty(
-        "quarkus.arc.exclude-types", "com.redhat.swatch.splunk.CountingSplunkErrorCallback");
-    withProperty("quarkus.analytics.disabled", "true");
-    withProperty("ENABLE_SPLUNK_HEC", "false");
-    // optional belt-and-suspenders:
-    withProperty("quarkus.log.handler.splunk.enabled", "false");
-  }
 
   public Response syncOffering(String sku) {
     Objects.requireNonNull(sku, "sku must not be null");
@@ -123,23 +115,9 @@ public class ContractsSwatchService extends SwatchService {
     Objects.requireNonNull(productId, "product id must not be null");
     Objects.requireNonNull(orgId, "org id must not be null");
 
-    // Use X509 type authentication like IQE does, which grants "service" role automatically
-    // which also avoids RBAC validation issues in test environments
-    // For X509 auth, the system uses subject_dn as the principal name (which becomes the orgId)
-    // So we put the orgId in the subject_dn field
-    String json =
-        "{\"identity\":{\"type\":\"X509\",\"auth_type\":\"X509\","
-            + "\"x509\":{\"subject_dn\":\""
-            + orgId
-            + "\",\"issuer_dn\":\"CN=test-issuer\"}},"
-            + "\"entitlements\":{\"rhel\":{\"is_entitled\":true}}}";
-    String rhId =
-        java.util.Base64.getEncoder()
-            .encodeToString(json.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-
     return given()
         .header("Origin", "console.redhat.com")
-        .header("x-rh-identity", rhId)
+        .header("x-rh-identity", securityHeadersWithServiceRole(orgId))
         .accept("application/vnd.api+json")
         .pathParam("product_id", productId)
         .get(GET_SKU_ENDPOINT);

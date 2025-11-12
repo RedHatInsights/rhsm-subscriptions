@@ -27,23 +27,23 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.MatcherAssert.*;
 
+import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import domain.BillingProvider;
 import domain.Contract;
 import domain.Product;
 import io.restassured.response.Response;
 import java.time.OffsetDateTime;
+import java.util.Optional;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ContractsComponentTest extends BaseContractComponentTest {
-  private static final Logger logger = LoggerFactory.getLogger(ContractsComponentTest.class);
 
-  /** Verify prepaid contract is created when all required data is valid. */
   @Test
   @Tag("contract")
   void shouldCreatePrepaidRosaContract_whenAllDataIsValid() {
@@ -115,7 +115,7 @@ public class ContractsComponentTest extends BaseContractComponentTest {
         Thread.sleep(200);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        logger.warn("Polling sleep interrupted", e);
+        Log.warn("Polling sleep interrupted", e);
       }
     }
 
@@ -131,11 +131,11 @@ public class ContractsComponentTest extends BaseContractComponentTest {
         Thread.sleep(200);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        logger.warn("Polling sleep interrupted", e);
+        Log.warn("Polling sleep interrupted", e);
       }
     }
 
-    logger.info("Initial capacity: {}, New capacity: {}", initialCapacity, newCapacity);
+    Log.info("Initial capacity: {}, New capacity: {}", initialCapacity, newCapacity);
 
     // Assert: Verify the contract was terminated and the capacity was decreased
     assertThat("Termination should succeed", terminateContractResponse.statusCode(), is(200));
@@ -157,22 +157,19 @@ public class ContractsComponentTest extends BaseContractComponentTest {
 
     // Pre-condition: verify active-only subscriptions include our subscription id
     Response preReport = getCapacityReport(productId, orgId);
-    java.util.List<java.util.Map<String, Object>> items = preReport.jsonPath().getList("data");
-    java.util.Map<String, Object> skuItem = null;
-    if (items != null) {
-      for (java.util.Map<String, Object> it : items) {
-        if (sku.equals(it.get("sku"))) {
-          skuItem = it;
-          break;
-        }
-      }
-    }
-    assertThat("SKU entry should exist before termination", skuItem != null, is(true));
-    java.util.List<java.util.Map<String, Object>> subs =
-        skuItem == null
-            ? java.util.List.of()
-            : (java.util.List<java.util.Map<String, Object>>) skuItem.get("subscriptions");
+    List<Map<String, Object>> items = preReport.jsonPath().getList("data");
+
+    Optional<Map<String, Object>> skuItem = items.stream()
+            .filter(i -> sku.equals(i.get("sku")))
+            .findFirst();
+
+    assertThat("SKU item should be present", skuItem.isPresent(), is(true));
+
+    Map<String, Object> item = skuItem.get();
+    List<Map<String, Object>> subs = (List<Map<String, Object>>) item.get("subscriptions");
+
     boolean containsId = false;
+
     if (subs != null) {
       for (java.util.Map<String, Object> s : subs) {
         Object id = s.get("id");
@@ -194,11 +191,10 @@ public class ContractsComponentTest extends BaseContractComponentTest {
     boolean removed = false;
     for (int i = 0; i < 30; i++) {
       Response postReport = getCapacityReport(productId, orgId);
-      java.util.List<java.util.Map<String, Object>> postItems =
-          postReport.jsonPath().getList("data");
-      java.util.Map<String, Object> postSkuItem = null;
+      List<Map<String, Object>> postItems = postReport.jsonPath().getList("data");
+      Map<String, Object> postSkuItem = null;
       if (postItems != null) {
-        for (java.util.Map<String, Object> it : postItems) {
+        for (Map<String, Object> it : postItems) {
           if (sku.equals(it.get("sku"))) {
             postSkuItem = it;
             break;
@@ -207,10 +203,10 @@ public class ContractsComponentTest extends BaseContractComponentTest {
       }
       boolean stillContains = false;
       if (postSkuItem != null) {
-        java.util.List<java.util.Map<String, Object>> postSubs =
-            (java.util.List<java.util.Map<String, Object>>) postSkuItem.get("subscriptions");
+        List<Map<String, Object>> postSubs =
+            (List<Map<String, Object>>) postSkuItem.get("subscriptions");
         if (postSubs != null) {
-          for (java.util.Map<String, Object> s : postSubs) {
+          for (Map<String, Object> s : postSubs) {
             Object id = s.get("id");
             if (id != null && id.toString().equals(paygSubId)) {
               stillContains = true;
@@ -227,7 +223,7 @@ public class ContractsComponentTest extends BaseContractComponentTest {
         Thread.sleep(200);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        logger.warn("Polling sleep interrupted", e);
+        Log.warn("Polling sleep interrupted", e);
       }
     }
     assertThat("Terminated subscription should not be listed as active", removed, is(true));
