@@ -20,25 +20,17 @@
  */
 package com.redhat.swatch.hbi.events.exception.api;
 
-import lombok.Getter;
+import jakarta.ws.rs.core.Response.Status;
 
-@Getter
-public enum ErrorCode {
-  UNHANDLED_EXCEPTION(1000, "An unhandled exception occurred"),
-  INTERNAL_SERVICE_ERROR(1001, "An internal service error occurred"),
-  SYNCHRONOUS_OUTBOX_FLUSH_ERROR(1002, "An error while flushing the outbox synchronously"),
-  SYNCHRONOUS_OUTBOX_FLUSH_DISABLED(1003, "The synchronous outbox flushing is disabled"),
-  EXISTING_OUTBOX_FLUSH_ERROR(
-      1004, "Outbox flush was not performed because another flush is already in progress"),
-  ;
+public class ExistingOutboxFlushException extends ServiceException {
 
-  private static final String CODE_PREFIX = "SMHBI";
+  public static final String MESSAGE = "An error occurred during an synchronous outbox flush";
 
-  private final String code;
-  private final String description;
-
-  ErrorCode(int intCode, String description) {
-    this.code = CODE_PREFIX + intCode;
-    this.description = description;
+  public ExistingOutboxFlushException() {
+    super(
+        ErrorCode.EXISTING_OUTBOX_FLUSH_ERROR,
+        Status.INTERNAL_SERVER_ERROR,
+        ErrorCode.EXISTING_OUTBOX_FLUSH_ERROR.getDescription(),
+        MESSAGE);
   }
 }
