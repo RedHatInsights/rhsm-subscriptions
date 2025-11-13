@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 import com.redhat.swatch.common.security.SecurityConfiguration;
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.exception.api.ErrorCode;
+import com.redhat.swatch.hbi.events.exception.api.ExistingOutboxFlushException;
 import com.redhat.swatch.hbi.events.exception.api.SynchronousOutboxFlushException;
 import com.redhat.swatch.hbi.events.exception.api.SynchronousRequestsNotEnabledException;
 import com.redhat.swatch.hbi.events.services.HbiEventOutboxService;
@@ -108,10 +109,10 @@ class InternalResourceTest {
   void testFlushOutboxAlreadyRunningSynchronousFlush() {
     withSynchronousRequestsEnabled(true);
     withSynchronousRequestHeader(true);
-    when(outboxService.flushOutboxRecords()).thenReturn(-1L);
+    when(outboxService.flushOutboxRecords()).thenThrow(ExistingOutboxFlushException.class);
 
     FlushResponse flushResponse = flushOutbox().extract().body().as(FlushResponse.class);
-    assertEquals(StatusEnum.BYPASSED, flushResponse.getStatus());
+    assertEquals(StatusEnum.ALREADY_RUNNING, flushResponse.getStatus());
   }
 
   @Test

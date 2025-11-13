@@ -22,6 +22,7 @@ package com.redhat.swatch.hbi.events.resources;
 
 import com.redhat.swatch.hbi.api.DefaultApi;
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
+import com.redhat.swatch.hbi.events.exception.api.ExistingOutboxFlushException;
 import com.redhat.swatch.hbi.events.exception.api.SynchronousOutboxFlushException;
 import com.redhat.swatch.hbi.events.exception.api.SynchronousRequestsNotEnabledException;
 import com.redhat.swatch.hbi.events.services.HbiEventOutboxService;
@@ -61,12 +62,12 @@ public class InternalResource implements DefaultApi {
       log.info("Request received to flush the outbox synchronously!");
       try {
         long count = flush();
-        if (count == -1L) {
-          response.setStatus(FlushResponse.StatusEnum.BYPASSED);
-        } else {
-          response.setStatus(FlushResponse.StatusEnum.SUCCESS);
-          response.setCount(count);
-        }
+        response.setStatus(FlushResponse.StatusEnum.SUCCESS);
+        response.setCount(count);
+        return response;
+      } catch (ExistingOutboxFlushException e) {
+        log.warn(e.getMessage());
+        response.setStatus(FlushResponse.StatusEnum.ALREADY_RUNNING);
         return response;
       } catch (Exception e) {
         throw new SynchronousOutboxFlushException(e);
@@ -79,21 +80,20 @@ public class InternalResource implements DefaultApi {
     return response;
   }
 
-  private long flush() {
+  private long flush() throws ExistingOutboxFlushException {
     log.debug(
         "Outbox flush running on vertx worker thread: {}",
         io.vertx.core.Context.isOnWorkerThread());
-    long count = -1L;
     if (lock.tryLock()) {
       try {
-        count = outboxService.flushOutboxRecords();
+        long count = outboxService.flushOutboxRecords();
         log.info("Flushed {} outbox records!", count);
+        return count;
       } finally {
         lock.unlock();
       }
     } else {
-      log.warn("Outbox flush was not performed because another flush is already in progress.");
+      throw new ExistingOutboxFlushException();
     }
-    return count;
   }
 }
