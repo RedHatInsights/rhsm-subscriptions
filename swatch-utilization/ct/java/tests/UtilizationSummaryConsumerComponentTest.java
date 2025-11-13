@@ -29,15 +29,22 @@ import com.redhat.swatch.configuration.util.MetricIdUtils;
 import com.redhat.swatch.utilization.test.model.Measurement;
 import com.redhat.swatch.utilization.test.model.UtilizationSummary;
 import java.util.List;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class UtilizationSummaryConsumerTest extends BaseUtilizationComponentTest {
+public class UtilizationSummaryConsumerComponentTest extends BaseUtilizationComponentTest {
 
   protected static final String RECEIVED_METRIC = "swatch_utilization_received_total";
 
-  @Test
-  public void testServiceIsUpAndRunning() {
-    service.managementServer().get("/health").then().statusCode(200);
+  @BeforeAll
+  static void enableSendNotificationsFeatureFlag() {
+    unleash.enableFlag(SEND_NOTIFICATIONS);
+  }
+
+  @AfterAll
+  static void disableSendNotificationsFeatureFlag() {
+    unleash.disableFlag(SEND_NOTIFICATIONS);
   }
 
   @Test

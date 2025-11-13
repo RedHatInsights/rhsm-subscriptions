@@ -35,7 +35,9 @@ import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.LocalPortForward;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -89,6 +91,17 @@ public abstract class BaseKubernetesClient<
     } catch (Exception e) {
       throw new RuntimeException("Failed to apply resource " + file.toAbsolutePath(), e);
     }
+  }
+
+  public String getSecretValue(String secretName, String key) {
+    String value = client.secrets().withName(secretName).get().getData().get(key);
+    byte[] decodedBytes = Base64.getDecoder().decode(value);
+    return new String(decodedBytes, StandardCharsets.UTF_8);
+  }
+
+  public List<io.fabric8.kubernetes.api.model.Service> servicesByLabels(
+      Map<String, String> serviceLabels) {
+    return client.services().withLabels(serviceLabels).list().getItems();
   }
 
   /** Get the running pods in the current service. */

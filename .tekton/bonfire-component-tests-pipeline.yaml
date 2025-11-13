@@ -295,7 +295,7 @@ spec:
                 value: "$(params.SERVICE)"
             script: |
               #!/bin/bash
-              ./mvnw clean install --no-transfer-progress -Pcomponent-tests -am -pl ${SERVICE}/ct -Dswatch.component-tests.global.target=openshift
+              ./mvnw clean install --no-transfer-progress -Pcomponent-tests -am -pl ${SERVICE}/ct -Dswatch.component-tests.global.target=openshift -Dlog.disable-color=true -Dlog.level=FINE -Dlog.print-errors-to-std-err=true -Dswatch.component-tests.services.all.log.enabled=true
     - name: send-results-task
       params:
         - name: SERVICE

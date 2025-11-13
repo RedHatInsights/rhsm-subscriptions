@@ -33,7 +33,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
@@ -46,6 +45,9 @@ public final class Log {
       System.getProperty("log.format", "[%1$tT.%tL] [%4$s] %5$s %6$s%n");
   public static final boolean LOG_NO_COLOR =
       Boolean.parseBoolean(System.getProperty("log.disable-color", "false"));
+  public static final boolean PRINT_ERROR_TO_STD_ERR =
+      Boolean.parseBoolean(System.getProperty("log.print-errors-to-std-err", "false"));
+  public static final String LOG_FILE_PATH = System.getProperty("log.file.path", "target/logs");
 
   public static final String LOG_SUFFIX = ".log";
 
@@ -130,11 +132,8 @@ public final class Log {
     Logger logger = LogManager.getLogManager().getLogger(Log.class.getName());
     logger.setLevel(level);
 
-    // - Console
-    ConsoleHandler console = new ConsoleHandler();
-    console.setFormatter(new PatternSimpleFormatter(logPattern));
-    console.setLevel(level);
-    logger.addHandler(console);
+    // Custom handlers
+    logger.addHandler(new StandardDualHandler(logPattern, level));
 
     // - File
     try {
@@ -150,7 +149,7 @@ public final class Log {
   private static void log(Service service, Level level, String msg, Object... args) {
     Level logLevel = level;
     if (service != null && isServiceLogLevelAllowed(service, level)) {
-      logLevel = new ForceLogLevel(level.getName());
+      logLevel = new ForceLogLevel(level);
     }
 
     String textColor = findColorForText(level, service);
@@ -216,12 +215,5 @@ public final class Log {
     }
 
     return String.format("[%s] ", service.getName());
-  }
-
-  private static class ForceLogLevel extends Level {
-
-    protected ForceLogLevel(String realLevelName) {
-      super(realLevelName, Integer.MAX_VALUE);
-    }
   }
 }

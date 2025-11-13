@@ -20,14 +20,24 @@
  */
 package com.redhat.swatch.component.tests.resources.unleash;
 
+import com.redhat.swatch.component.tests.api.UnleashService;
 import com.redhat.swatch.component.tests.resources.containers.LocalContainerManagedResource;
 
 public class LocalUnleashManagedResource extends LocalContainerManagedResource {
+
+  /** From docker-compose.yml configuration: */
+  private static final String ADMIN_TOKEN_VALUE = "*:*.unleash-insecure-admin-api-token";
 
   private static final int UNLEASH_HTTP_PORT = 4242;
 
   public LocalUnleashManagedResource() {
     super("unleash");
+  }
+
+  @Override
+  public void start() {
+    super.start();
+    context.getOwner().withProperty(UnleashService.ADMIN_TOKEN, ADMIN_TOKEN_VALUE);
   }
 
   @Override

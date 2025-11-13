@@ -20,46 +20,79 @@
  */
 package com.redhat.swatch.component.tests.api;
 
+import static com.redhat.swatch.component.tests.utils.StringUtils.EMPTY;
+
+import io.restassured.http.ContentType;
+import io.restassured.specification.RequestSpecification;
+import org.apache.http.HttpStatus;
+
 public class UnleashService extends RestService {
 
-  private static final String ADMIN_TOKEN =
-      System.getenv("UNLEASH_ADMIN_TOKEN") != null
-          ? System.getenv("UNLEASH_ADMIN_TOKEN")
-          : "*:*.unleash-insecure-admin-api-token";
+  public static final String ADMIN_TOKEN = "admin.token";
 
-  @Override
-  public void start() {
-    super.start();
+  private static final String PROJECT_ID = "default";
+  private static final String ENVIRONMENT = "development";
+  private static final String UNLEASH_BASE_PATH = "/api/admin";
+  private static final String UNLEASH_FEATURES_PATH =
+      UNLEASH_BASE_PATH + "/projects/" + PROJECT_ID + "/features/%s/environments/" + ENVIRONMENT;
+
+  public void createFlag(String flag) {
+    String payload =
+        String.format(
+            """
+        {
+          "name": "%s",
+          "type": "operational",
+          "project": "%s"
+        }
+        """,
+            flag, PROJECT_ID);
+
+    given()
+        .body(payload)
+        .when()
+        .post(UNLEASH_BASE_PATH + "/features")
+        .then()
+        .statusCode(HttpStatus.SC_CREATED);
   }
 
   public void enableFlag(String flag) {
-    given()
-        .header("Authorization", ADMIN_TOKEN)
-        .contentType("application/json")
-        .when()
-        .post("/api/admin/projects/default/features/" + flag + "/environments/development/on")
-        .then()
-        .statusCode(200);
+    var response = given().post(UNLEASH_FEATURES_PATH.formatted(flag) + "/on");
+
+    if (response.statusCode() == HttpStatus.SC_NOT_FOUND) {
+      createFlag(flag);
+      enableFlag(flag);
+    }
   }
 
   public void disableFlag(String flag) {
-    given()
-        .header("Authorization", ADMIN_TOKEN)
-        .contentType("application/json")
-        .when()
-        .post("/api/admin/projects/default/features/" + flag + "/environments/development/off")
-        .then()
-        .statusCode(200);
+    var response = given().post(UNLEASH_FEATURES_PATH.formatted(flag) + "/off");
+
+    if (response.statusCode() == HttpStatus.SC_NOT_FOUND) {
+      createFlag(flag);
+      disableFlag(flag);
+    }
+  }
+
+  public void listFlags() {
+    given().get(UNLEASH_BASE_PATH + "/features").then().log().all();
   }
 
   public boolean isFlagEnabled(String flag) {
     return given()
-        .header("Authorization", ADMIN_TOKEN)
-        .when()
-        .get("/api/admin/projects/default/features/" + flag)
+        .get(UNLEASH_BASE_PATH + "/projects/" + PROJECT_ID + "/features/" + flag)
         .then()
         .statusCode(200)
         .extract()
         .path("environments.find { it.name == 'development' }.enabled");
+  }
+
+  @Override
+  public RequestSpecification given() {
+    return super.given().header("Authorization", adminToken()).contentType(ContentType.JSON);
+  }
+
+  private String adminToken() {
+    return this.getProperty(ADMIN_TOKEN, EMPTY);
   }
 }

@@ -25,6 +25,8 @@ import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.Quarkus;
 import com.redhat.swatch.component.tests.api.SwatchService;
+import com.redhat.swatch.component.tests.api.Unleash;
+import com.redhat.swatch.component.tests.api.UnleashService;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -34,7 +36,11 @@ import org.junit.jupiter.api.Tag;
 @Tag("utilization")
 public class BaseUtilizationComponentTest {
 
+  public static final String SEND_NOTIFICATIONS = "swatch.swatch-notifications.send-notifications";
+
   @KafkaBridge static KafkaBridgeService kafkaBridge = new KafkaBridgeService();
+
+  @Unleash static UnleashService unleash = new UnleashService();
 
   @Quarkus(service = "swatch-utilization")
   static SwatchService service = new SwatchService();
