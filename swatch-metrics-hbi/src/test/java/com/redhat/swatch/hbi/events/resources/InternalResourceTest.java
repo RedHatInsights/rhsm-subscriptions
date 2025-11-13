@@ -23,7 +23,9 @@ package com.redhat.swatch.hbi.events.resources;
 import static com.redhat.swatch.common.security.PskHeaderAuthenticationMechanism.PSK_HEADER;
 import static com.redhat.swatch.hbi.events.resources.InternalResource.SYNCHRONOUS_REQUEST_HEADER;
 import static io.restassured.RestAssured.given;
+import static java.lang.Thread.sleep;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.common.security.SecurityConfiguration;
@@ -43,10 +45,16 @@ import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
 import org.apache.http.HttpStatus;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.stubbing.Answer;
 
 @QuarkusTest
 class InternalResourceTest {
@@ -104,14 +112,43 @@ class InternalResourceTest {
     assertEquals("Forced!", error.getDetail());
   }
 
-  @Test
-  void testFlushOutboxAlreadyRunningSynchronousFlush() {
-    withSynchronousRequestsEnabled(true);
-    withSynchronousRequestHeader(true);
-    when(outboxService.flushOutboxRecords()).thenReturn(-1L);
+  static Stream<Arguments> flushLockParameters() {
+    return Stream.of(
+        arguments(true, true, StatusEnum.SUCCESS, StatusEnum.ALREADY_RUNNING),
+        arguments(true, false, StatusEnum.SUCCESS, StatusEnum.STARTED),
+        arguments(false, true, StatusEnum.STARTED, StatusEnum.ALREADY_RUNNING),
+        arguments(false, false, StatusEnum.STARTED, StatusEnum.STARTED));
+  }
 
-    FlushResponse flushResponse = flushOutbox().extract().body().as(FlushResponse.class);
-    assertEquals(StatusEnum.BYPASSED, flushResponse.getStatus());
+  @ParameterizedTest
+  @MethodSource("flushLockParameters")
+  void testFlushLockSynchronousScenarios(
+      boolean firstIsSync, boolean secondIsSync, StatusEnum firstStatus, StatusEnum secondStatus)
+      throws InterruptedException {
+    withSynchronousRequestsEnabled(true);
+    when(outboxService.flushOutboxRecords())
+        .thenAnswer(
+            (Answer<Long>)
+                invocation -> {
+                  sleep(2000);
+                  return 100L;
+                });
+
+    withSynchronousRequestHeader(firstIsSync);
+    CompletableFuture<FlushResponse> future1 =
+        CompletableFuture.supplyAsync(() -> flushOutbox().extract().body().as(FlushResponse.class));
+    // ensure the order of the threads
+    sleep(1500);
+    withSynchronousRequestHeader(secondIsSync);
+    CompletableFuture<FlushResponse> future2 =
+        CompletableFuture.supplyAsync(() -> flushOutbox().extract().body().as(FlushResponse.class));
+
+    // Wait for both to complete
+    CompletableFuture.allOf(future1, future2).join();
+    FlushResponse flushResponse1 = future1.join();
+    assertEquals(firstStatus, flushResponse1.getStatus());
+    FlushResponse flushResponse2 = future2.join();
+    assertEquals(secondStatus, flushResponse2.getStatus());
   }
 
   @Test
