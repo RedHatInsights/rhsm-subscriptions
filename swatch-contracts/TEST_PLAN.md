@@ -241,7 +241,7 @@ Test cases should be testable locally and in an ephemeral environment.
   - Only valid metrics are stored  
   - Each metric stored has a correct metric_id and value
 
-**contracts-creation-TC014** - **Create contract with missing required fields shouldn’t persist**  
+**contracts-creation-TC014** - **Create contract with missing required fields shouldn't persist**  
 - **Description:** Verify validation for missing required fields.  
 - **Setup:** Prepare incomplete contract request.  
 - **Action:** POST contract missing partner_entitlement, or subscription_id.  
@@ -249,6 +249,23 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Expected Result:**  
   - HTTP 400 Bad Request  
   - Error message indicates a missing required field
+
+**contracts-creation-TC015** - **Process contract with invalid dimensions for unconfigured SKU**  
+- **Description:** Verify that contracts with invalid dimensions for SKUs without configured product tags are processed correctly by filtering invalid dimensions and logging the filtering action.  
+- **Setup:**  
+  - Ensure test SKU has no product tag configured in sku_product_tag table  
+  - Prepare contract request with invalid dimension that doesn't match any configured metric  
+- **Action:** POST contract containing invalid dimensions for unconfigured SKU  
+- **Verification:**  
+  - Query contract via internal API
+  - Check application logs for filtering information
+- **Expected Result:**  
+  - HTTP 200 response  
+  - Response contains status.status: "SUCCESS"  
+  - Contract created successfully with valid dimensions only  
+  - Invalid dimensions filtered out from contract  
+  - Info-level log entry indicates filtered dimensions for debugging purposes  
+  - System handles unconfigured SKUs with invalid dimensions gracefully without errors
 
 ### Contract Retrieval
 
