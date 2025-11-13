@@ -44,127 +44,127 @@ The scenarios will be simulated using mocked data.
 
 ### Contract Creation via Kafka Messages
 
-**contracts-creation-TC001 \- Process a valid PAYG contract with one valid dimension for AWS Marketplace**  
+**contracts-creation-TC001 - Process a valid PAYG contract with one valid dimension for AWS Marketplace**  
 - **Description**: Verify that an AWS PAYG contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
 - **Setup**:  
-  - Ensure \`UMB\_ENABLED=true\`  
-  - Kafka topic \`contracts\` is available  
+  - Ensure `UMB_ENABLED=true`
+  - Kafka topic `contracts` is available  
   - Prepare a valid AWS partner entitlement message  
 - **Action:**  
   - Publish message to Kafka topic  
 - **Verification**:   
-  - Query contract via internal API: GET /internal/contracts?org\_id=org123  
+  - Query contract via internal API: GET /internal/contracts?org_id=org123  
   - Verify contract exists with correct fields  
 - **Expected Result**:  
   - HTTP 200 response  
   - Response contains status.status: "SUCCESS"  
-  - Contract object contains all expected fields (uuid, subscription\_number, sku, start\_date, end\_date, org\_id, billing\_provider, etc.)  
+  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)  
   - Validate  
-  - billing\_provider: "aws"  
-  - billing\_provider\_id follows format: "{vendorProductCode};{awsCustomerId};{sellerAccountId}"  
-  - billing\_account\_id contains customerAwsAccountId
+  - `billing_provider`: "aws"  
+  - `billing_provider`_id follows format: "{vendorProductCode};{awsCustomerId};{sellerAccountId}"  
+  - billing_account_id contains customerAwsAccountId
 
-**contracts-creation-TC002 \- Process a valid PURE PAYG contract (without dimensions) for AWS Marketplace**  
+**contracts-creation-TC002 - Process a valid PURE PAYG contract (without dimensions) for AWS Marketplace**  
 - **Description:** Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
 - **Setup:**   
-  - Ensure \`UMB\_ENABLED=true\`  
-  - Kafka topic \`contracts\` is available  
+  - Ensure `UMB_ENABLED=true`
+  - Kafka topic `contracts` is available  
   - Prepare a valid AWS partner entitlement message  
 - **Action:**     
   - Publish message to Kafka topic  
 - **Verification:**   
-  - Query contract via internal API: GET /internal/contracts?org\_id=org123  
+  - Query contract via internal API: GET /internal/contracts?org_id=org123  
   - Verify contract exists with correct fields  
 - **Expected Result:**  
   - HTTP 200 response  
   - Response contains status.status: "SUCCESS"  
-  - Contract object contains all expected fields (uuid, subscription\_number, sku, start\_date, end\_date, org\_id, billing\_provider, etc.)
+  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)
 
-**contracts-creation-TC003 \- Process a valid PAYG contract with one valid dimension for the Azure Marketplace**  
+**contracts-creation-TC003 - Process a valid PAYG contract with one valid dimension for the Azure Marketplace**  
 - **Description**: Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
 - **Setup**:  
-  - Ensure \`UMB\_ENABLED=true\`  
+  - Ensure `UMB_ENABLED=true`
   - Kafka topic available  
   - Prepare a valid Azure partner entitlement message  
 - **Action**:  
   - Publish message to Kafka topic  
 - **Verification**:   
-  - Query contract via internal API: GET /internal/contracts?org\_id=org123  
+  - Query contract via internal API: GET /internal/contracts?org_id=org123  
   - Verify contract exists with correct fields  
 - **Expected Result**:  
   - HTTP 200 response  
   - Response contains status.status: "SUCCESS"  
-  - Contract object contains all expected fields (uuid, subscription\_number, sku, start\_date, end\_date, org\_id, billing\_provider, etc.)  
+  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)  
   - Validate  
-  - \`billing\_provider=azure\`  
-  - \`billing\_provider\_id\` formatted as \`{azureResourceId};{planId};{vendorProductCode}\`  
-  - \`billing\_account\_id\` contains azureTenantId
+  - `billing_provider=azure`  
+  - `billing_provider_id` formatted as `{azureResourceId};{planId};{vendorProductCode}`  
+  - `billing_account_id` contains azureTenantId
 
-**contracts-creation-TC004 \-** **Process a valid PURE PAYG contract (without dimensions) for the Azure Marketplace**  
+**contracts-creation-TC004 -** **Process a valid PURE PAYG contract (without dimensions) for the Azure Marketplace**  
 - **Description**: Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
 - **Setup**:  
-  - Ensure \`UMB\_ENABLED=true\`  
+  - Ensure `UMB_ENABLED=true`
   - Kafka topic available  
   - Prepare a valid Azure partner entitlement message  
 - **Action**:  
   - Publish message to Kafka topic  
 - **Verification**:   
-  - Query contract via internal API: GET /internal/contracts?org\_id=org123  
+  - Query contract via internal API: GET /internal/contracts?org_id=org123  
   - Verify contract exists with correct fields  
 - **Expected Result**:  
   - HTTP 200 response  
   - Response contains status.status: "SUCCESS"  
-  - Contract object contains all expected fields (uuid, subscription\_number, sku, start\_date, end\_date, org\_id, billing\_provider, etc.)  
+  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)  
   - Validate  
-  - \`billing\_provider=azure\`  
-  - \`billing\_provider\_id\` formatted as \`{azureResourceId};{planId};{vendorProductCode}\`  
-  - \`billing\_account\_id\` contains azureTenantId
+  - `billing_provider=azure`  
+  - `billing_provider_id` formatted as `{azureResourceId};{planId};{vendorProductCode}`  
+  - `billing_account_id` contains azureTenantId
 
-**contracts-creation-TC005 \- Process contract with multiple metrics/dimensions**  
+**contracts-creation-TC005 - Process contract with multiple metrics/dimensions**  
 - **Description**: Verify contracts can store multiple metrics from partner entitlement dimensions.  
 - **Setup**:  
-  - Ensure \`UMB\_ENABLED=true\`  
+  - Ensure `UMB_ENABLED=true`
   - Kafka topic available  
   - Prepare a valid partner entitlement message with multiple metrics/dimensions  
 - **Action**:  
   - Publish message to Kafka topic with multiple metrics/dimensions  
 - **Verification**:  
-  - Query contract via internal API: GET /internal/contracts?org\_id=org123  
+  - Query contract via internal API: GET /internal/contracts?org_id=org123  
   - Verify contract exists with correct fields  
 - **Expected Result**:  
   - HTTP 200 response  
   - Response contains status.status: "SUCCESS"  
-  - Contract object contains all expected fields (uuid, subscription\_number, sku, start\_date, end\_date, org\_id, billing\_provider, etc.)  
+  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)  
   - Contract object contains multiple metrics/dimensions
 
-**contracts-creation-TC006 \- Process contract with multiple metrics/dimensions (WITH AN INVALID ONE)**  
+**contracts-creation-TC006 - Process contract with multiple metrics/dimensions (WITH AN INVALID ONE)**  
 - **Description**:  Verify contracts with multiple metrics/dimensions where one of those metrics is an invalid metric, and generate a valid contract with the valid metric.  
 - **Setup**:  
-  - Ensure \`UMB\_ENABLED=true\`  
+  - Ensure `UMB_ENABLED=true`
   - Kafka topic available  
   - Prepare a valid partner entitlement message with multiple metrics/dimensions where one of those metrics is invalid.  
 - **Action**:  
   - Publish message to Kafka topic with multiple metrics/dimensions  
 - **Verification**:  
-  - Query contract via internal API: GET /internal/contracts?org\_id=org123  
+  - Query contract via internal API: GET /internal/contracts?org_id=org123  
   - Verify the contract exists with the correct fields without the invalid metric.  
 - **Expected Result**:  
   - HTTP 200 response  
   - Response contains status.status: "SUCCESS"  
-  - Contract object contains all expected fields (uuid, subscription\_number, sku, start\_date, end\_date, org\_id, billing\_provider, etc.)  
+  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)  
   - Contract object contains only valid metrics
 
-**contracts-creation-TC007 \- Process contract message with missing required fields shouldn’t persist**  
+**contracts-creation-TC007 - Process contract message with missing required fields shouldn’t persist**  
 - **Description**: Verify validation errors are handled gracefully.  
 - **Setup**:   
-  - Ensure \`UMB\_ENABLED=true\`  
+  - Ensure `UMB_ENABLED=true`
   - Kafka topic available  
   - Prepare an invalid partner entitlement message with missing required fields.  
 - **Action**:  
   - Publish message to Kafka topic with missing required fields  
 - **Verification**:  
   - Check error response.  
-  - Query contract via internal API: GET /internal/contracts?org\_id=org123  
+  - Query contract via internal API: GET /internal/contracts?org_id=org123  
   - Ensure the contract was not created  
 - **Expected Result**:  
   - HTTP 400 Bad Request  
@@ -172,75 +172,75 @@ The scenarios will be simulated using mocked data.
 
 ### Contract Creation via Internal API
 
-**contracts-creation-TC008** \- **Create a valid PAYG contract with one valid dimension for AWS marketplace**  
+**contracts-creation-TC008** - **Create a valid PAYG contract with one valid dimension for AWS marketplace**  
 - **Description:** Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
 - **Setup:** Ensure partner entitlement data, metrics, and subscription ID are available.  
-- **Action:** POST to \`/api/swatch-contracts/internal/contracts\` with a valid \`ContractRequest\` payload including partner\_entitlement, metrics, and subscription\_id.  
+- **Action:** POST to `/api/swatch-contracts/internal/contracts` with a valid `ContractRequest` payload including partner_entitlement, metrics, and subscription_id.  
 - **Verification:** Check response status and returned contract object.  
   - **Expected Result:**  
   - HTTP 200 response  
   - Response contains status.status: "SUCCESS"  
-  - Contract object contains all expected fields (uuid, subscription\_number, sku, start\_date, end\_date, org\_id, billing\_provider, etc.)  
+  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)  
   - Validate  
-  - billing\_provider: "aws"  
-  - billing\_provider\_id follows format: "{vendorProductCode};{awsCustomerId};{sellerAccountId}"  
-  - billing\_account\_id contains customerAwsAccountId
+  - `billing_provider`: "aws"  
+  - `billing_provider`_id follows format: "{vendorProductCode};{awsCustomerId};{sellerAccountId}"  
+  - billing_account_id contains customerAwsAccountId
 
-**contracts-creation-TC009** \- **Create a valid PURE PAYG contract (without dimensions) for AWS marketplace**  
+**contracts-creation-TC009** - **Create a valid PURE PAYG contract (without dimensions) for AWS marketplace**  
 - **Description:** Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
 - **Setup:** Ensure partner entitlement data, metrics, and subscription ID are available.  
-- **Action:** POST to \`/api/swatch-contracts/internal/contracts\` with a valid \`ContractRequest\` payload including partner\_entitlement, metrics, and subscription\_id.  
+- **Action:** POST to `/api/swatch-contracts/internal/contracts` with a valid `ContractRequest` payload including partner_entitlement, metrics, and subscription_id.  
 - **Verification:** Check response status and returned contract object.  
 - **Expected Result:**  
   - HTTP 200 response  
-  - Response contains status.status: "SUCCESS"  \- Contract object contains all expected fields (uuid, subscription\_number, sku, start\_date, end\_date, org\_id, billing\_provider, etc.)
+  - Response contains status.status: "SUCCESS"  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)
 
-**contracts-creation-TC010** \- **Create a valid PAYG contract with one valid dimension for the Azure marketplace**  
+**contracts-creation-TC010** - **Create a valid PAYG contract with one valid dimension for the Azure marketplace**  
 - **Description:** Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
 - **Setup:** Ensure partner entitlement data, metrics, and subscription ID are available.  
-- **Action:** POST to \`/api/swatch-contracts/internal/contracts\` with a valid \`ContractRequest\` payload including partner\_entitlement, metrics, and subscription\_id.  
+- **Action:** POST to `/api/swatch-contracts/internal/contracts` with a valid `ContractRequest` payload including partner_entitlement, metrics, and subscription_id.  
 - **Verification:** Check response status and returned contract object.  
 - **Expected Result:**  
   - HTTP 200 response  
   - Response contains status.status: "SUCCESS"  
-  - Contract object contains all expected fields (uuid, subscription\_number, sku, start\_date, end\_date, org\_id, billing\_provider, etc.)  
+  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)  
   - Validate  
-  - billing\_provider: "azure"  
-  - billing\_provider\_id follows Azure format  
-  - billing\_account\_id populated correctly
+  - `billing_provider`: "azure"  
+  - `billing_provider`_id follows Azure format  
+  - billing_account_id populated correctly
 
-**contracts-creation-TC011** \- **Create a valid PURE PAYG contract (without dimensions) for the Azure marketplace**  
+**contracts-creation-TC011** - **Create a valid PURE PAYG contract (without dimensions) for the Azure marketplace**  
 - **Description:** Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
 - **Setup:** Ensure partner entitlement data, metrics, and subscription ID are available.  
-- **Action:** POST to \`/api/swatch-contracts/internal/contracts\` with a valid \`ContractRequest\` payload including partner\_entitlement, metrics, and subscription\_id.  
+- **Action:** POST to `/api/swatch-contracts/internal/contracts` with a valid `ContractRequest` payload including partner_entitlement, metrics, and subscription_id.  
 - **Verification:** Check response status and returned contract object.  
 - **Expected Result:**  
   - HTTP 200 response  
   - Response contains status.status: "SUCCESS"  
-  - Contract object contains all expected fields (uuid, subscription\_number, sku, start\_date, end\_date, org\_id, billing\_provider, etc.)
+  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)
 
-**contracts-creation-TC012** \- **Create contract with multiple metrics/dimensions**  
+**contracts-creation-TC012** - **Create contract with multiple metrics/dimensions**  
 - **Description**: Verify contracts can store multiple metrics from partner entitlement dimensions.  
 - **Setup:** Prepare entitlement with multiple dimensions (e.g., cpu-hours, instance-hours).  
-- **Action:** POST contract with multiple dimensions in purchase.contracts\[\*\].dimensions.  
+- **Action:** POST contract with multiple dimensions in purchase.contracts[*].dimensions.  
 - **Verification:** Query created contract.  
 - **Expected Result:**  
   - All metrics are stored  
-  - Each metric has a correct metric\_id and value
+  - Each metric has a correct metric_id and value
 
-**contracts-creation-TC013** \- **Create contract with multiple metrics/dimensions (WITH AN INVALID ONE)**  
+**contracts-creation-TC013** - **Create contract with multiple metrics/dimensions, but with an invalid one**  
 - **Description**: Verify contracts with multiple metrics/dimensions where one of those metrics is an invalid metric, and generate a valid contract with the valid metric.  
 - **Setup:** Prepare entitlement with multiple dimensions with one invalid (e.g., cpu-hours, ins-hours).  
-- **Action:** POST contract with multiple dimensions in purchase.contracts\[\*\].dimensions.  
+- **Action:** POST contract with multiple dimensions in purchase.contracts[*].dimensions.  
 - **Verification:** Query created contract.  
 - **Expected Result:**  
   - Only valid metrics are stored  
-  - Each metric stored has a correct metric\_id and value
+  - Each metric stored has a correct metric_id and value
 
-**contracts-creation-TC014** \- **Create contract with missing required fields shouldn’t persist**  
+**contracts-creation-TC014** - **Create contract with missing required fields shouldn’t persist**  
 - **Description:** Verify validation for missing required fields.  
 - **Setup:** Prepare incomplete contract request.  
-- **Action:** POST contract missing partner\_entitlement, or subscription\_id.  
+- **Action:** POST contract missing partner_entitlement, or subscription_id.  
 - **Verification:** Check error response.  
 - **Expected Result:**  
   - HTTP 400 Bad Request  
@@ -248,53 +248,53 @@ The scenarios will be simulated using mocked data.
 
 ### Contract Retrieval
 
-**contracts-retrieval-TC001** \- **Get contracts by org\_id**  
+**contracts-retrieval-TC001** - **Get contracts by org_id**  
 - **Description:** Verify contracts can be retrieved by organization ID.  
 - **Setup:** Create multiple contracts for org "org123" and "org456".  
-- **Action:** GET \`/api/swatch-contracts/internal/contracts?org\_id=org123\`.  
+- **Action:** GET `/api/swatch-contracts/internal/contracts?org_id=org123`.  
 - **Verification:** Check the returned contract list.  
   - **Expected Result:**  
   - Only contracts for org123 are returned  
-  - All contracts have the correct org\_id
+  - All contracts have the correct org_id
 
-**contracts-retrieval-TC002** \- **Get contracts active at a specific timestamp**  
+**contracts-retrieval-TC002** - **Get contracts active at a specific timestamp**  
 - **Description:** Verify temporal filtering using the timestamp parameter.  
-- **Setup:** Create contracts with different start\_date and end\_date ranges.  
+- **Setup:** Create contracts with different `start_date` and `end_date` ranges.  
 - **Action:** GET contracts with a timestamp parameter set to a specific date.  
 - **Verification:** Validate temporal filtering.  
 - **Expected Result:**  
   - Only contracts active at the specified timestamp are returned  
-  - Contracts where start\_date \<= timestamp \< end\_date
+  - Contracts where `start_date` <= timestamp < `end_date`
 
-**contracts-retrieval-TC003** \- **Get contracts by billing\_provider**  
+**contracts-retrieval-TC003** - **Get contracts by `billing_provider`**  
 - **Description:** Verify filtering by billing provider (AWS/Azure).  
 - **Setup:** Create contracts with AWS and Azure billing providers.  
-- **Action:** GET contracts with \`billing\_provider=aws\`.  
+- **Action:** GET contracts with `billing_provider=aws`.  
 - **Verification:** Check response.  
 - **Expected Result:**  
   - Only AWS contracts returned  
-  - All have billing\_provider: "aws"
+  - All have `billing_provider`: "aws"
 
-**contracts-retrieval-TC004 \- Get contracts with multiple parameters**  
+**contracts-retrieval-TC004 - Get contracts with multiple parameters**  
 - **Description**: Verify multiple filter parameters on the same request.  
 - **Setup**: Create contracts.  
-- **Action**: GET contracts with multiple parameters (timestamp, org\_id, billing\_provider).  
+- **Action**: GET contracts with multiple parameters (timestamp, org_id, `billing_provider`).  
 - **Verification**: Validate all filters.  
 - **Expected** **Result**:  
   - Only contracts matching the multiple parameters should be returned.
 
-**contracts-retrieval-TC005** \- **Get contracts with no results in a specific time range**  
+**contracts-retrieval-TC005** - **Get contracts with no results in a specific time range**  
 - **Description:** Verify behavior when no contracts match the time range criteria.  
-- **Setup:** Create contracts with start\_date and end\_date ranges.  
+- **Setup:** Create contracts with `start_date` and `end_date` ranges.  
 - **Action:** GET contracts with a different time range from the one used on the contract creation.  
 - **Verification:** Check response.  
 - **Expected Result:**  
   - HTTP 200 with empty array  
   - No errors
 
-**contracts-retrieval-TC006** \- **Get contracts with no results**  
+**contracts-retrieval-TC006** - **Get contracts with no results**  
 - **Description:** Verify behavior when no contracts match the criteria.  
-- **Setup:** Ensure no contracts exist for org\_id.  
+- **Setup:** Ensure no contracts exist for org_id.  
 - **Action:** GET contracts for non-existent org.  
 - **Verification:** Check response.  
 - **Expected Result:**  
@@ -303,7 +303,7 @@ The scenarios will be simulated using mocked data.
 
 ### Contract Update via Kafka
 
-**contracts-update-TC001 \- Process contract update message (existing contract)**  
+**contracts-update-TC001 - Process contract update message (existing contract)**  
 - **Description**: Verify contract updates via messaging.  
 - **Setup**:   
   - Create initial contract via message  
@@ -316,66 +316,66 @@ The scenarios will be simulated using mocked data.
 - **Expected Result**:  
   - Initial contract created  
   - Second message updates existing contract  
-  - StatusResponse: "EXISTING\_CONTRACTS\_SYNCED"  
+  - StatusResponse: "EXISTING_CONTRACTS_SYNCED"  
   - End date updated to new value
 
-**contracts-update-TC002 \- Process redundant contract message**  
-- **Description**: Verify idempotency \- same message sent twice doesn't duplicate.  
+**contracts-update-TC002 - Process redundant contract message**  
+- **Description**: Verify idempotency - same message sent twice doesn't duplicate.  
 - **Setup**: Send identical message twice  
-- **Action**:\* Publish the same contract message twice  
+- **Action**:* Publish the same contract message twice  
 - **Verification**: Check the database for a single contract only  
 - **Expected Result**:  
   - First message creates a contract  
-  - Second message: StatusResponse "REDUNDANT\_MESSAGE\_IGNORED"  
+  - Second message: StatusResponse "REDUNDANT_MESSAGE_IGNORED"  
   - No duplicate contracts created
 
 ### Contract Update via API
 
-**contracts-update-TC003 \- Update contract start and end date**  
+**contracts-update-TC003 - Update contract start and end date**  
 - **Description**: Verify updating the contract start and end date.  
 - **Setup:**  
   - Create a contract with:   
-  - subscription\_number: "12585274"  
-  - start\_date: "2024-01-01T00:00:00Z"  
-  - end\_date: "2024-12-31T23:59:59Z"  
+  - `subscription_number`: "12585274"  
+  - `start_date`: "2024-01-01T00:00:00Z"  
+  - `end_date`: "2024-12-31T23:59:59Z"  
   - Cores: 8  
 - **Action:** Update the contract start and end date.  
 - **Verification:**   
-  - Query contract by subscription\_number and verify changes  
-  - Check last\_updated timestamp  
+  - Query contract by `subscription_number` and verify changes  
+  - Check `last_updated` timestamp  
   - Check the start date  
   - Check the end date  
 - **Expected Result:**  
-  - Existing contract located by subscription\_number \+ start\_date match  
-  - start\_date update  
-  - end\_date updated   
-  - last\_updated timestamp updated to the current time  
+  - Existing contract located by `subscription_number` + `start_date` match  
+  - `start_date` update  
+  - `end_date` updated   
+  - `last_updated` timestamp updated to the current time  
   - UUID remains the same (no new contract created)  
-  - Other fields unchanged (org\_id, sku, metrics)  
-  - Response status: "EXISTING\_CONTRACTS\_SYNCED"
+  - Other fields unchanged (org_id, sku, metrics)  
+  - Response status: "EXISTING_CONTRACTS_SYNCED"
 
-**contracts-update-TC004 \- Update contract end date (renewal)**  
+**contracts-update-TC004 - Update contract end date (renewal)**  
 - **Description**: Verify updating the contract end date ( with a date in the future ) when the customer renews the subscription.  
 - **Setup:**  
   - Create a contract with:   
-  - subscription\_number: "12585274"  
-  - start\_date: "2024-01-01T00:00:00Z"  
-  - end\_date:  "2024-12-31T23:59:59Z"  
+  - `subscription_number`: "12585274"  
+  - `start_date`: "2024-01-01T00:00:00Z"  
+  - `end_date`:  "2024-12-31T23:59:59Z"  
   - Cores: 8  
 - **Action:** Update the contract end-date with a date in the future ("2025-12-31T23:59:59Z") 
 - **Verification:**   
-  - Query contract by subscription\_number and verify changes  
-  - Check last\_updated timestamp  
+  - Query contract by `subscription_number` and verify changes  
+  - Check `last_updated` timestamp  
   - Check end-date  
 - **Expected Result:**  
-  - Existing contract located by subscription\_number \+ start\_date match  
-  - end\_date updated from "2024-12-31T23:59:59Z" to "2025-12-31T23:59:59Z"  
-  - last\_updated timestamp updated to the current time  
+  - Existing contract located by `subscription_number` + `start_date` match  
+  - `end_date` updated from "2024-12-31T23:59:59Z" to "2025-12-31T23:59:59Z"  
+  - `last_updated` timestamp updated to the current time  
   - UUID remains the same (no new contract created)  
-  - Other fields unchanged (org\_id, sku, metrics)  
-  - Response status: "EXISTING\_CONTRACTS\_SYNCED"
+  - Other fields unchanged (org_id, sku, metrics)  
+  - Response status: "EXISTING_CONTRACTS_SYNCED"
 
-**contracts-update-TC005 \- Update contract metrics for Payg**   
+**contracts-update-TC005 - Update contract metrics for Payg**   
 - **Description**: Verify updating contract metrics when the customer upgrades the tier.  
 - **Setup**:  
   - Create a contract with Cores: 8, Instance-hours: 100  
@@ -384,11 +384,11 @@ The scenarios will be simulated using mocked data.
   - Existing contract found and updated  
   - Cores metric updated: 8 → 16  
   - Instance-hours metric updated: 100 → 200  
-  - last\_updated timestamp changed  
-  - contract.status.message \== "Existing contracts and subscriptions updated"  
-  - contract.status.status \== "SUCCESS"
+  - `last_updated` timestamp changed  
+  - contract.status.message == "Existing contracts and subscriptions updated"  
+  - contract.status.status == "SUCCESS"
 
-**contracts-update-TC006 \- Update contract metrics from pure payg(no metrics before) to payg(with metrics)**  
+**contracts-update-TC006 - Update contract metrics from pure payg(no metrics before) to payg(with metrics)**  
 - **Description**: Verify updating contract metrics when the customer upgrades the tier.  
 - **Setup**:  
   - Create a contract with Cores: 8, Instance-hours: 100  
@@ -397,21 +397,21 @@ The scenarios will be simulated using mocked data.
   - Existing contract found and updated  
   - Cores metric updated: 8 → 16  
   - Instance-hours metric updated: 100 → 200  
-  - last\_updated timestamp changed  
-  - contract.status.message \== "Existing contracts and subscriptions updated"  
-  - contract.status.status \== "SUCCESS"
+  - `last_updated` timestamp changed  
+  - contract.status.message == "Existing contracts and subscriptions updated"  
+  - contract.status.status == "SUCCESS"
 
-**contracts-update-TC007 \- Update contract \- terminate (set end date)**  
+**contracts-update-TC007 - Update contract - terminate (set end date)**  
 - **Description**: Verify terminating contract by setting end date to current time.  
 - **Setup**:  
   - Create a contract with an end date in the future date  
-- **Action**: Submit entitlement with end\_date: current timestamp  
+- **Action**: Submit entitlement with `end_date`: current timestamp  
 - **Expected** **Result**:  
-  - end\_date set to termination timestamp  
+  - `end_date` set to termination timestamp  
   - Contract becomes inactive  
-  - Subscription end\_date also updated
+  - Subscription `end_date` also updated
 
-**contracts-update-TC008 \- Update contract \- add new metric**  
+**contracts-update-TC008 - Update contract - add new metric**  
 - **Description:** Verify adding a new metric to an existing contract.  
 - **Setup**:  
   - Create a contract with one metric.  
@@ -420,11 +420,11 @@ The scenarios will be simulated using mocked data.
   - Existing contract found and updated  
   - Old metric remains  
   - New metric added  
-  - last\_updated timestamp changed  
-  - contract.status.message \== "Existing contracts and subscriptions updated"  
-  - contract.status.status \== "SUCCESS"
+  - `last_updated` timestamp changed  
+  - contract.status.message == "Existing contracts and subscriptions updated"  
+  - contract.status.status == "SUCCESS"
 
-**contracts-update-TC009 \- Update contract \- remove metric**  
+**contracts-update-TC009 - Update contract - remove metric**  
 - **Description**: Verify that a metric is removed from an existing contract.  
 - **Setup**:  
   - Create a contract with multiple metrics.  
@@ -433,9 +433,9 @@ The scenarios will be simulated using mocked data.
   - Existing contract found and updated  
   - The specified metric was removed from the contract  
   - The metric that was not removed from the contract remains unchanged  
-  - last\_updated timestamp changed  
-  - contract.status.message \== "Existing contracts and subscriptions updated"  
-  - contract.status.status \== "SUCCESS"
+  - `last_updated` timestamp changed  
+  - contract.status.message == "Existing contracts and subscriptions updated"  
+  - contract.status.status == "SUCCESS"
 
 ### Contract Termination
 
@@ -487,17 +487,17 @@ The scenarios will be simulated using mocked data.
 
 ### Contract Deletion
 
-**contracts-deletion-TC001** \- **Delete contract by UUID**  
+**contracts-deletion-TC001** - **Delete contract by UUID**  
 - **Description:** Verify hard deletion of contract and its metrics.  
 - **Setup:** Create a contract and note its UUID.  
-- **Action:** DELETE \`/api/swatch-contracts/internal/contracts/{uuid}\`.  
+- **Action:** DELETE `/api/swatch-contracts/internal/contracts/{uuid}`.  
 - **Verification:** Attempt to retrieve deleted contract.  
 - **Expected Result:**  
   - HTTP 200 response  
   - Contract no longer retrievable  
   - Associated metrics also deleted
 
-**contracts-deletion-TC002** \- **Delete non-existent contract**  
+**contracts-deletion-TC002** - **Delete non-existent contract**  
 - **Description:** Verify error handling for deleting a non-existent UUID.  
 - **Setup:** Generate a random UUID that doesn't exist.  
 - **Action:** DELETE contract with invalid UUID.  
@@ -508,39 +508,37 @@ The scenarios will be simulated using mocked data.
 
 ### Contract Sync
 
-### 3.1.8 Contract Sync
-
-**contracts-sync-TC001 \- Sync contracts for a single organization**  
+**contracts-sync-TC001 - Sync contracts for a single organization**  
 - **Description**: Verify contract sync triggers for a specific org.  
 - **Setup**: Have upstream contracts available for the org.  
-- **Action**: POST \`/api/swatch-contracts/internal/rpc/sync/contracts/{org\_id}\`.  
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{org_id}`.  
 - **Verification**: Check contracts are synced.  
 - **Expected Result**:  
   - HTTP 200 with StatusResponse  
   - Contracts from upstream are created/updated  
   - Status: "Success"
 
-**contracts-sync-TC002 \- Sync with delete contracts and subscriptions**  
-- **Description**: Verify the delete\_contracts\_and\_subs parameter.  
+**contracts-sync-TC002 - Sync with delete contracts and subscriptions**  
+- **Description**: Verify the `delete_contracts_and_subs` parameter.  
 - **Setup**: Create contracts and subscriptions for org.  
-- **Action**: POST sync with \`delete\_contracts\_and\_subs=true\`.  
+- **Action**: POST sync with `delete_contracts_and_subs=true`.  
 - **Verification**: Check database state.  
   - **Expected Result**:  
   - All contracts deleted before sync  
   - All PAYG subscriptions deleted before sync  
   - Fresh sync performed
 
-**contracts-sync-TC003 \- Sync all contracts across all organizations**  
+**contracts-sync-TC003 - Sync all contracts across all organizations**  
 - **Description**: Verify syncAllContracts triggers sync for all orgs with contracts.  
 - **Setup**: Have multiple orgs with contracts.  
-- **Action**: POST \`/internal/rpc/syncAllContracts\`.  
+- **Action**: POST `/internal/rpc/syncAllContracts`.  
 - **Verification**: Monitor sync progress.  
 - **Expected Result**:  
   - HTTP 202 Accepted  
   - StatusResponse: "All Contracts are Synced"  
   - Each org's contracts synced
 
-**contracts-sync-TC004 \- Sync when no contracts exist**  
+**contracts-sync-TC004 - Sync when no contracts exist**  
 - **Description**: Verify sync all when no active contracts are found.  
 - **Setup**: Ensure no contracts.  
 - **Action:** POST syncAllContracts.  
@@ -549,87 +547,87 @@ The scenarios will be simulated using mocked data.
   - Status: "No active contract found for the orgIds"  
   - No errors
 
-**contracts-sync-TC005** **\- Sync subscriptions for contracts by org**  
+**contracts-sync-TC005** - Sync subscriptions for contracts by org**  
 - **Description**: Verify subscription sync for all contracts of an org.  
 - **Setup**: Have contracts for org without subscriptions.  
-- **Action**: POST \`/api/swatch-contracts/internal/rpc/sync/contracts/{org\_id}/subscriptions\`.  
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{org_id}/subscriptions`.  
 - **Verification**: Check subscriptions are created.  
   - **Expected Result**:  
   - StatusResponse success  
   - Subscriptions synced from Subscription API
 
-**contracts-sync-TC006 \- Clear all contracts for the organization**  
+**contracts-sync-TC006 - Clear all contracts for the organization**  
 - **Description**: Verify that deleteContractsByOrg removes all org contracts.  
 - **Setup**: Create multiple contracts for the org.  
-- **Action**: DELETE \`/api/swatch-contracts/internal/rpc/reset/contracts/{org\_id}\`.  
+- **Action**: DELETE `/api/swatch-contracts/internal/rpc/reset/contracts/{org_id}`.  
 - **Verification**: Query contracts for org.  
-- **Expected Result**:  
-  - HTTP 200 StatusResponse  
-  - Status: "Contracts Cleared for given org\_id"  
-  - No contracts remain for org\_id
+- **Expected Result**:
+  - HTTP 200 StatusResponse
+  - Status: "Contracts Cleared for given org_id
+  - No contracts remain for org_id
 
 ### Subscription Management via Kafka
 
-**subscriptions-creation-TC001 \- Process a valid UMB subscription XML message from Kafka**  
+**subscriptions-creation-TC001 - Process a valid UMB subscription XML message from Kafka**  
 - **Description**: Verify subscription creation via UMB XML Kafka message.  
 - **Setup**:  
-  - Ensure \`UMB\_ENABLED=true\`  
-  - Kafka topic \`SUBSCRIPTION\_SYNC\_TASK\_UMB\` available  
+  - Ensure `UMB_ENABLED=true`
+  - Kafka topic `SUBSCRIPTION_SYNC_TASK_UMB` available  
 - **Action**:  
-  - Publish message to SUBSCRIPTION\_SYNC\_TASK\_UMB Kafka topic  
+  - Publish message to `SUBSCRIPTION_SYNC_TASK_UMB` Kafka topic  
 - **Verification**:  
   - Query subscription via internal API  
   - Verify subscription created  
 - **Expected Result**:  
-- XML parsed successfully via \`CanonicalMessage.createMapper()\`  
+- XML parsed successfully via `CanonicalMessage.createMapper()`  
 - Subscription entity created for org  
-- subscription\_number  
+- `subscription_number`  
 - quantity  
 - sku  
 - Start and end dates are correctly parsed  
 
-**subscriptions-creation-TC002 \- Process UMB subscription with AWS external references**  
+**subscriptions-creation-TC002 - Process UMB subscription with AWS external references**  
 - **Description**: Verify AWS marketplace subscription data extraction from UMB.  
 - **Action**:  
-  - Publish message to SUBSCRIPTION\_SYNC\_TASK\_UMB Kafka topic  
+  - Publish message to `SUBSCRIPTION_SYNC_TASK_UMB` Kafka topic  
 - **Verification**: Query subscription and check AWS fields  
 - **Expected Result**:  
   - Subscription created with AWS external references  
-  - billing\_provider  
-  - billing\_provider\_id contains AWS identifiers  
-  - billing\_account\_id
+  - `billing_provider`  
+  - `billing_provider_id` contains AWS identifiers  
+  - `billing_account_id`
 
-**subscriptions-creation-TC003 \- Process UMB subscription with Azure external references**  
+**subscriptions-creation-TC003 - Process UMB subscription with Azure external references**  
 - **Description**: Verify Azure marketplace subscription data from UMB.  
 - **Action**:  
-  - Publish message to SUBSCRIPTION\_SYNC\_TASK\_UMB Kafka topic  
+  - Publish message to `SUBSCRIPTION_SYNC_TASK_UMB` Kafka topic  
 - **Verification**: Check Azure-specific fields  
 - **Expected Result**:  
 - Subscription created with Azure references  
-- \`billing\_provider=azure\`  
-- \`billing\_account\_id\` contains Azure tenant ID
+- `billing_provider=azure`  
+ - `billing_account_id` contains Azure tenant ID
 
-**subscriptions-creation-TC004 \- Process malformed UMB XML message**  
+**subscriptions-creation-TC004 - Process malformed UMB XML message**  
 - **Description**: Verify error handling for invalid XML.  
 - **Action**:  
-  - Publish malformed UMB XML message to SUBSCRIPTION\_SYNC\_TASK\_UMB Kafka topic  
+  - Publish malformed UMB XML message to `SUBSCRIPTION_SYNC_TASK_UMB` Kafka topic  
 - **Verification**: Subscription not created  
 - **Expected Result**:  
-  - \`JsonProcessingException\` thrown (XML parsing error)  
+  - `JsonProcessingException` thrown (XML parsing error)  
   - No subscription created  
   - Message handling fails gracefully
 
-**subscriptions-creation-TC005 \- Process UMB message with missing required fields**  
+**subscriptions-creation-TC005 - Process UMB message with missing required fields**  
 - **Description**: Verify validation for incomplete subscription data.  
 - **Action**:  
-  - Publish the UMB message  with missing required fields SUBSCRIPTION\_SYNC\_TASK\_UMB Kafka topic  
+  - Publish the UMB message  with missing required fields `SUBSCRIPTION_SYNC_TASK_UMB` Kafka topic  
 - **Verification**: Check for validation errors  
 - **Expected Result**:  
   - Validation failure or graceful error handling  
   - No subscription created with incomplete data  
   - Error logged with details
 
-**subscriptions-creation-TC006 \- Process subscription update via UMB**  
+**subscriptions-creation-TC006 - Process subscription update via UMB**  
 - **Description**: Verify subscription updates through messaging.  
 - **Setup**:  
   - Send initial subscription message  
@@ -642,45 +640,45 @@ The scenarios will be simulated using mocked data.
   - Updated fields reflected in the database  
   - No duplicate subscriptions
 
-**subscriptions-creation-TC007 \- Process UMB message with multiple products/SKUs**  
+**subscriptions-creation-TC007 - Process UMB message with multiple products/SKUs**  
 - **Description**: Verify a single subscription with multiple product SKUs.  
-- **Action**: Publish a subscription with multiple products/SKUs to the SUBSCRIPTION\_SYNC\_TASK\_UMB Kafka topic  
+- **Action**: Publish a subscription with multiple products/SKUs to the `SUBSCRIPTION_SYNC_TASK_UMB` Kafka topic  
 - **Verification:** Check subscription has multiple product associations  
 - **Expected Result**:  
   - Single subscription created  
-  - Multiple SKUs associated (parent \+ children)  
+  - Multiple SKUs associated (parent + children)  
   - All products stored correctly
 
-**subscriptions-creation-TC008 \- Process terminated subscription via UMB**  
+**subscriptions-creation-TC008 - Process terminated subscription via UMB**  
 - **Description**: Verify subscription termination messages.  
 - **Action**:  
-  - Publish message to SUBSCRIPTION\_SYNC\_TASK\_UMB Kafka topic  
+  - Publish message to `SUBSCRIPTION_SYNC_TASK_UMB` Kafka topic  
   - Update the end date to the current timestamp  
-- **Verification**: Check subscription end\_date updated  
+- **Verification**: Check subscription `end_date` updated  
 - **Expected Result**:  
   - Subscription marked as terminated  
-  - \`end\_date\` set to termination date  
+  - `end_date` set to termination date  
   - Status reflects termination
 
 ### Subscription Management via API
 
-**subscriptions-creation-TC009** \- **Create a valid PAYG contract and verify the Contract/Subscription table**  
+**subscriptions-creation-TC009** - **Create a valid PAYG contract and verify the Contract/Subscription table**  
 - **Description:** Verify the contract/subscription after a contract/subscription creation.  
 - **Setup:** Ensure partner entitlement data, metrics, and subscription ID are available.  
-- **Action:** POST to \`/api/swatch-contracts/internal/contracts\`   
+- **Action:** POST to `/api/swatch-contracts/internal/contracts`   
 - **Verification:** Check response status and returned contract/subscription object.  
 - **Expected Result:**  
   - HTTP 200 response  
   - Response contains status.status: "SUCCESS"  
-  - Contract object contains all expected fields (uuid, subscription\_number, sku, start\_date, end\_date, org\_id, billing\_provider, etc.)  
+  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)  
   - Validate  
   - Contract/subscription table.
 
-**subscriptions-creation-TC010** \- **Save subscriptions PURE PAYG**  
+**subscriptions-creation-TC010** - **Save subscriptions PURE PAYG**  
 - **Description:** Verify subscription saving when enabled.  
 - **Setup:** Prepare subscriptions with JSON array  
 - **Action:**   
-  - POST \`/api/swatch-contracts/internal/subscriptions\` with JSON array.  
+  - POST `/api/swatch-contracts/internal/subscriptions` with JSON array.  
   - Sync subscriptions  
 - **Verification:** Query saved subscriptions.  
   - Expected Result:  
@@ -689,11 +687,11 @@ The scenarios will be simulated using mocked data.
   - Multiple subscriptions created from an array  
 - **Note:** This endpoint **SUPPORTS multiple subscriptions** via JSON array
 
-**subscriptions-creation-TC003** \- **Save subscriptions PAYG**  
+**subscriptions-creation-TC003** - **Save subscriptions PAYG**  
 - **Description:** Verify subscription saving when enabled.  
 - **Setup:** Prepare subscriptions with JSON array  
 - **Action:**   
-  - POST \`/api/swatch-contracts/internal/subscriptions\` with JSON array.  
+  - POST `/api/swatch-contracts/internal/subscriptions` with JSON array.  
   - Sync subscriptions  
 - **Verification:** Query saved subscriptions.  
   - Expected Result:  
@@ -702,20 +700,20 @@ The scenarios will be simulated using mocked data.
   - Multiple subscriptions created from an array  
 - **Note:** This endpoint **SUPPORTS multiple subscriptions** via JSON array
 
-**subscriptions-sync-TC001 \- Sync all subscriptions for enabled orgs**  
+**subscriptions-sync-TC001 - Sync all subscriptions for enabled orgs**  
 - **Description**: Verify PUT /rpc/subscriptions/sync enqueues org subscriptions.  
 - **Setup**: Configure sync-enabled orgs.  
-- **Action:** PUT \`/api/swatch-contracts/internal/rpc/subscriptions/sync\`.  
+- **Action:** PUT `/api/swatch-contracts/internal/rpc/subscriptions/sync`.  
 - **Verification**: Monitor sync queue.  
 - **Expected Result:**  
   - RpcResponse with success  
   - Sync tasks enqueued for each org
 
-**subscriptions-sync-TC002** \- **Sync UMB subscription XML message**  
+**subscriptions-sync-TC002** - **Sync UMB subscription XML message**  
 - **Description:** Verify processing of UMB CanonicalMessage XML.  
 - **Setup:** Prepare a valid UMB subscription XML.  
  **Action:**   
-  - POST \`/api/swatch-contracts/internal/subscriptions/umb\` with XML.  
+  - POST `/api/swatch-contracts/internal/subscriptions/umb` with XML.  
   - Sync subscriptions  
 - **Verification:** Check subscription created.  
 - **Expected Result:**  
@@ -723,25 +721,25 @@ The scenarios will be simulated using mocked data.
   - Subscription entity created  
   - SubscriptionResponse: "Success"
 
-**subscriptions-termination-TC001** \- **Terminate subscription with timestamp**  
+**subscriptions-termination-TC001** - **Terminate subscription with timestamp**  
 - **Description:** Verify manual subscription termination.  
 - **Setup:** Create an active subscription.  
-- **Action:** POST \`/api/swatch-contracts/internal/subscriptions/terminate/{subscription\_id}?timestamp=2024-01-01T00:00:00Z\`.  
+- **Action:** POST `/api/swatch-contracts/internal/subscriptions/terminate/{subscription_id}?timestamp=2024-01-01T00:00:00Z`.  
 - **Verification:** Check subscription end date.  
 - **Expected Result:**  
   - TerminationRequest with message  
-  - Subscription end\_date set to timestamp  
+  - Subscription `end_date` set to timestamp  
   - Subscription effectively terminated
 
 ### Capacity Reports
 
-**capacity-report-TC001** \- **Get V2 SKU capacity report**  
+**capacity-report-TC001** - **Get V2 SKU capacity report**  
 - **Description:** Verify the V2 endpoint with an enhanced measurement array.  
 - **Setup:** Create subscriptions with multiple metrics.  
 - **Action:** GET /api/rhsm-subscriptions/v2/subscriptions/products/rhel  
 - **Verification:** Check V2 structure.  
 - **Expected Result:**  
-  - SkuCapacityReport\_V2 returned  
-  - The measurements field is an array of doubles, matching the received values (e.g., \`\[8.0, 100.0\]\`)  
-  - Meta includes measurements array with metric names (e.g., \`\["Cores", "Instance-hours"\]\`)
+  - SkuCapacityReport_V2 returned  
+  - The measurements field is an array of doubles, matching the received values (e.g., `[8.0, 100.0]`)  
+  - Meta includes measurements array with metric names (e.g., `["Cores", "Instance-hours"]`)  
 
