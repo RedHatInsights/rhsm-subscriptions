@@ -1,6 +1,8 @@
 # Introduction
 
-The s**watch-contracts** module is a critical service within the Subscription Watch platform that serves as the central hub for managing Red Hat subscription contracts purchased through cloud marketplaces (AWS and Azure). It acts as the authoritative system for tracking Pay-As-You-Go (PAYG) subscription contracts, their associated metrics, and billing information. The service also handles regular non-PAYG subscriptions, as evidenced by the test cases managing all subscription types. This comprehensive management enables accurate capacity reporting and usage-based billing for Red Hat products sold via cloud marketplace partnerships.
+The **swatch-contracts** module is a critical service within the Subscription Watch platform that serves as the central hub for managing Red Hat subscription contracts purchased through cloud marketplaces (AWS and Azure) and their underlying product offerings. It acts as the authoritative system for tracking Pay-As-You-Go (PAYG) subscription contracts, their associated metrics, and billing information. The service also handles regular non-PAYG subscriptions, as evidenced by the test cases managing all subscription types.
+
+This comprehensive management of both contracts and offerings enables accurate capacity reporting and usage-based billing for Red Hat products sold via cloud marketplace partnerships.
 
 This document outlines the test plan for SWATCH-3765, which involves Subscriptions in Swatch contracts.
 
