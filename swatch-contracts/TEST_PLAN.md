@@ -747,3 +747,178 @@ Test cases should be testable locally and in an ephemeral environment.
   - The measurements field is an array of doubles, matching the received values (e.g., `[8.0, 100.0]`)  
   - Meta includes measurements array with metric names (e.g., `["Cores", "Instance-hours"]`)  
 
+### Offering Synchronization
+
+**offering-sync-TC001: Synchronize offering from external product data**
+
+1. **Description:** Verify that offerings can be synchronized using external product information and result in correct database state.
+2. **Setup:** Create test product data with specific attributes (level_1, level_2, metered flag) in the external product service.
+3. **Action:** Send UMB message to trigger offering synchronization from external product data.
+4. **Verification:** Query database directly to verify offering table contents and sku_product_tag mappings.
+5. **Expected Result:**
+    - Offering record created in database with correct attributes.
+    - Product tag mapping stored in sku_product_tag table.
+    - Offering synchronization completes without errors.
+
+**offering-sync-TC002: Handle synchronization of non-existent offering**
+
+1. **Description:** Verify that attempting to synchronize an invalid or non-existent SKU is handled appropriately.
+2. **Setup:** Ensure no product data exists for test SKU "INVALID_SKU" in external product service.
+3. **Action:** Send UMB message for non-existent SKU to test error handling.
+4. **Verification:** Check that no offering data is created.
+5. **Expected Result:**
+    - No offering record created for invalid SKU.
+    - No database corruption occurs.
+    - The system handles invalid SKU gracefully.
+
+**offering-sync-TC003: Synchronize metered offering**
+
+1. **Description:** Verify that metered offerings are synchronized correctly with proper metered flag.
+2. **Setup:** Create test product data with metered="y" attribute in external product service.
+3. **Action:** Send UMB message to trigger offering synchronization.
+4. **Verification:** Query offering table to verify metered flag is set correctly.
+5. **Expected Result:**
+    - Offering record created with metered=true flag.
+    - Capacity attributes properly configured for metered billing.
+    - Offering synchronization completes without errors.
+
+**offering-sync-TC004: Synchronize unlimited capacity offering**
+
+1. **Description:** Verify that unlimited capacity offerings are synchronized correctly with proper unlimited flag.
+2. **Setup:** Create test product data with has_unlimited_usage=True attribute in external product service.
+3. **Action:** Send UMB message to trigger offering synchronization.
+4. **Verification:** Query offering table to verify has_unlimited_usage flag is set correctly.
+5. **Expected Result:**
+    - Offering record created with has_unlimited_usage=true flag.
+    - Unlimited capacity properly configured in offering attributes.
+    - Offering synchronization completes without errors.
+
+### Product Tag Management
+
+**offering-tags-TC001: Retrieve product tags for synchronized offering**
+
+1. **Description:** Verify that product tags can be retrieved correctly for offerings that have been synchronized.
+2. **Setup:** Create test product with specific level_1 and level_2 values (`product_id`, sku, level_1, level_2) in external product service.
+3. **Action:** Query public API endpoint to retrieve product tags for the SKU.
+4. **Verification:** Verify the API response contains the expected product tag and check sku_product_tag table for persistent storage.
+5. **Expected Result:**
+    - Product tag returned matches expected tag based on level_1 and level_2 values.
+    - Tag mapping persisted in sku_product_tag table.
+    - Subsequent calls return consistent tag data.
+
+**offering-tags-TC002: Verify product tag mapping for different product types**
+
+1. **Description:** Verify that different level_1/level_2 combinations result in correct product tag assignments.
+2. **Setup:** Create test products with various level_1/level_2 combinations to test different product structures.
+3. **Action:** Query public API endpoint to retrieve product tags for each product type.
+4. **Verification:** Verify each product returns appropriate product tags based on level_1/level_2 values.
+5. **Expected Result:**
+    - Product tags correctly generated from level_1/level_2 combinations.
+    - Tag mappings stored consistently in sku_product_tag table.
+    - Different level combinations produce distinct product tags.
+
+**offering-tags-TC003: Handle product tag retrieval for non-existent offering**
+
+1. **Description:** Verify that retrieving product tags for non-existent offerings is handled appropriately.
+2. **Setup:** Ensure no offering exists for test SKU "`NONEXISTENT_SKU`".
+3. **Action:** Query public API endpoint for product tags of non-existent SKU.
+4. **Verification:** Check that the operation handles missing offering gracefully.
+5. **Expected Result:**
+    - Operation completes without causing system errors.
+    - No invalid data created in sku_product_tag table.
+
+### Capacity Management
+
+**offering-capacity-TC001: Verify capacity calculation for metered offerings**
+
+1. **Description:** Verify that capacity calculations for metered offerings accurately reflect subscription quantity and offering attributes.
+2. **Setup:** Create test metered offering and subscription with a set quantity.
+3. **Action:** Query public capacity report API endpoint for the SKU.
+4. **Verification:** Verify API response contains correct capacity values based on subscription quantity and offering metrics.
+5. **Expected Result:**
+    - Capacity calculation reflects subscription quantity multiplied by offering metrics.
+    - Multiple metric dimensions (Sockets, Cores) calculated correctly.
+    - API response contains subscription reference and capacity details.
+
+**offering-capacity-TC002: Verify unlimited capacity offering handling**
+
+1. **Description:** Verify that unlimited capacity SKUs display correct unlimited status in capacity reports.
+2. **Setup:** Create test unlimited offering (metered="n", `has_unlimited_usage`=True) and subscription.
+3. **Action:** Query public capacity report API endpoint for the SKU.
+4. **Verification:** Verify API response indicates unlimited capacity status.
+5. **Expected Result:**
+    - API response shows unlimited capacity flag set.
+    - Capacity values indicate unlimited status appropriately.
+    - Subscription correctly linked to unlimited offering in response.
+
+### Offering Update
+
+**offering-update-TC001: Process product update event**
+
+1. **Description:** Verify that UMB update events correctly modify existing offering attributes without data loss.
+2. **Setup:** Create existing offering through external product service, then prepare UMB update message with different attributes.
+3. **Action:** Send UMB product update event through message broker.
+4. **Verification:** Query offering table and sku_product_tag table to verify updates.
+5. **Expected Result:**
+    - Existing offering updated with new attributes from UMB event.
+    - No data corruption or loss during update process.
+    - Historical offering data integrity maintained.
+
+**offering-update-TC002: Handle malformed events**
+
+1. **Description:** Verify that invalid or malformed UMB messages are handled gracefully without affecting system stability.
+2. **Setup:** Prepare various malformed UMB messages (invalid JSON, missing required fields, corrupted data).
+3. **Action:** Send malformed UMB messages through message broker.
+4. **Verification:** Check system logs and verify no offering data corruption, system remains operational.
+5. **Expected Result:**
+    - System processes malformed events without crashing or data corruption.
+    - Valid offerings remain unaffected by malformed UMB events.
+    - Appropriate error handling and logging for debugging malformed events.
+
+### Contract Integration
+
+**offering-contract-TC001: Create contract with offering capacity**
+
+1. **Description:** Verify that contracts correctly reference and allocate offering capacity during creation.
+2. **Setup:** Create test offering and subscription.
+3. **Action:** Create a contract using public contract API with offering-based capacity.
+4. **Verification:** Query contract API to verify contract creation and capacity allocation matches offering attributes.
+5. **Expected Result:**
+    - Contract created successfully with capacity reflecting offering definitions.
+    - Contract dimensions reference offering capacity metrics.
+    - Contract capacity calculations integrate offering attributes correctly.
+
+**offering-contract-TC002: Verify contract capacity with different offering types**
+
+1. **Description:** Verify that contracts with different offering types (metered vs unlimited) handle capacity correctly.
+2. **Setup:** Create test offerings with different capacity types (metered="y", `has_unlimited_usage`=True).
+3. **Action:** Create contracts for each offering type using public contract API.
+4. **Verification:** Query contract API and compare capacity allocation for metered vs unlimited offerings.
+5. **Expected Result:**
+    - Metered offerings result in quantified contract capacity.
+    - Unlimited offerings show appropriate unlimited capacity flags.
+    - Contract creation adapts correctly to different offering capacity types.
+
+### Marketplace Integration
+
+**offering-marketplace-TC001: Create marketplace contract with offering dimensions**
+
+1. **Description:** Verify that marketplace contracts correctly integrate offering capacity with billing provider specific dimensions.
+2. **Setup:** Create test marketplace product, configure billing provider dimensions.
+3. **Action:** Create marketplace contract using public API with billing_provider (aws/azure) and offering-based capacity.
+4. **Verification:** Query contract API to verify marketplace dimensions are correctly mapped to offering attributes.
+5. **Expected Result:**
+    - Marketplace contract created with billing provider specific capacity metrics.
+    - Offering dimensions correctly mapped to marketplace contract structure.
+    - Contract capacity reflects both offering attributes and marketplace billing model.
+
+**offering-marketplace-TC002: Handle offering capacity with different billing providers**
+
+1. **Description:** Verify that the same offering can be used with different marketplace billing providers correctly.
+2. **Setup:** Create test offering, prepare for multiple billing provider contracts.
+3. **Action:** Create contracts using public API with billing_provider="aws" and billing_provider="azure" for the same offering.
+4. **Verification:** Query contract API to verify both contracts handle offering capacity correctly for their respective billing models.
+5. **Expected Result:**
+    - Same offering supports multiple marketplace billing providers.
+    - AWS and Azure contracts correctly adapt offering capacity to their billing models.
+    - Offering attributes preserved across different marketplace implementations.
