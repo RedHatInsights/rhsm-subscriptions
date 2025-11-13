@@ -22,6 +22,9 @@ package tests;
 
 // Intentionally avoid assertions here; keep assertions in test classes.
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 import api.ContractsSwatchService;
 import api.ContractsWiremockService;
 import com.redhat.swatch.component.tests.api.ComponentTest;
@@ -40,9 +43,6 @@ import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-
 
 @ComponentTest
 @Tag("component")
@@ -98,8 +98,7 @@ public class BaseContractComponentTest {
     Response r = service.saveSubscriptions(true, sub);
 
     // Will be removed in the future when a pattern is established
-    assertThat(
-        "Building a Rhel subscprtion should succeed", r.statusCode(), is(200));
+    assertThat("Building a Rhel subscription should succeed", r.statusCode(), is(200));
 
     return sub.getSubscriptionId();
   }

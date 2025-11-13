@@ -21,16 +21,16 @@
 package tests;
 
 import static domain.Contract.buildRosaContract;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.awaitility.Awaitility.await;
+import static org.hamcrest.MatcherAssert.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.MatcherAssert.*;
-import static org.awaitility.Awaitility.await;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
@@ -39,10 +39,9 @@ import domain.Contract;
 import domain.Product;
 import io.restassured.response.Response;
 import java.time.OffsetDateTime;
-import java.util.Optional;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Optional;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -109,37 +108,30 @@ public class ContractsComponentTest extends BaseContractComponentTest {
     givenContractIsCreated(contractData);
 
     // Get the initial capacity (uses productId path param, org from identity header)
-    int initialCapacity = 0;
-    for (int i = 0; i < 30; i++) {
-      initialCapacity = getCapacityCount(productId, orgId);
-      if (initialCapacity > 0) {
-        break;
-      }
-      try {
-        Thread.sleep(200);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        Log.warn("Polling sleep interrupted", e);
-      }
-    }
+    await("Capacity should increase")
+        .atMost(1, MINUTES)
+        .pollInterval(1, SECONDS)
+        .until(
+            () -> {
+              return getCapacityCount(productId, orgId) > 0;
+            });
+
+    final int initialCapacity = getCapacityCount(productId, orgId);
 
     // Act: Terminate the contract and get the new capacity
     Response terminateContractResponse = service.terminateContract(contractData);
-    int newCapacity = initialCapacity;
-    for (int i = 0; i < 30; i++) {
-      newCapacity = getCapacityCount(productId, orgId);
-      if (newCapacity < initialCapacity) {
-        break;
-      }
-      try {
-        Thread.sleep(200);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        Log.warn("Polling sleep interrupted", e);
-      }
-    }
 
-    Log.info("Initial capacity: {}, New capacity: {}", initialCapacity, newCapacity);
+    await("Capacity should decrease")
+        .atMost(1, MINUTES)
+        .pollInterval(1, SECONDS)
+        .until(
+            () -> {
+              int currentCapcity = getCapacityCount(productId, orgId);
+              return (currentCapcity < initialCapacity);
+            });
+    int newCapacity = getCapacityCount(productId, orgId);
+
+    Log.info("Initial capacity: %d, New capacity: %d\n", initialCapacity, newCapacity);
 
     // Assert: Verify the contract was terminated and the capacity was decreased
     assertThat("Termination should succeed", terminateContractResponse.statusCode(), is(200));
@@ -163,9 +155,8 @@ public class ContractsComponentTest extends BaseContractComponentTest {
     Response preReport = getCapacityReport(productId, orgId);
     List<Map<String, Object>> items = preReport.jsonPath().getList("data");
 
-    Optional<Map<String, Object>> skuItem = items.stream()
-            .filter(i -> sku.equals(i.get("sku")))
-            .findFirst();
+    Optional<Map<String, Object>> skuItem =
+        items.stream().filter(i -> sku.equals(i.get("sku"))).findFirst();
 
     assertThat("SKU item should be present", skuItem.isPresent(), is(true));
 
@@ -174,15 +165,10 @@ public class ContractsComponentTest extends BaseContractComponentTest {
 
     boolean containsId = false;
 
-    if (subs != null) {
-      for (java.util.Map<String, Object> s : subs) {
-        Object id = s.get("id");
-        if (id != null && id.toString().equals(paygSubId)) {
-          containsId = true;
-          break;
-        }
-      }
-    }
+    containsId =
+        subs.stream()
+            .anyMatch(i -> i.get("id") != null && i.get("id").toString().equals(paygSubId));
+
     assertThat("Active subscriptions should include created subscription id", containsId, is(true));
 
     // Verify active-only subscriptions include our subscription id and provide next event info
@@ -192,29 +178,29 @@ public class ContractsComponentTest extends BaseContractComponentTest {
 
     // Verify the terminated subscription is no longer listed as active for the SKU (with a short
     // poll)
-    boolean removed = false;
-
-    await()
-            .atMost(1, MINUTES)
-            .pollInterval(1, SECONDS)
-            .until(() -> {
+    await("SKU should be removed from active subscriptions")
+        .atMost(1, MINUTES)
+        .pollInterval(1, SECONDS)
+        .until(
+            () -> {
               Response postReport = getCapacityReport(productId, orgId);
               List<Map<String, Object>> postItems = postReport.jsonPath().getList("data");
 
               if (postItems != null) {
                 for (Map<String, Object> it : postItems) {
                   if (sku.equals(it.get("sku"))) {
-                    return false;  // SKU found - keep waiting
+                    return false; // SKU found - keep waiting
                   }
                 }
               }
-              return true;  // SKU not found - condition met, stop waiting
+              return true; // SKU not found - condition met, stop waiting
             });
 
     Response finalReport = getCapacityReport(productId, orgId);
     List<Map<String, Object>> finalItems = finalReport.jsonPath().getList("data");
-    assertThat("SKU should be removed from capacity report",
-            finalItems.stream().noneMatch(it -> sku.equals(it.get("sku"))), is(true));
-
+    assertThat(
+        "SKU should be removed from capacity report",
+        finalItems.stream().noneMatch(it -> sku.equals(it.get("sku"))),
+        is(true));
   }
 }
