@@ -1,4 +1,4 @@
-# 1\. Introduction
+# Introduction
 
 The s**watch-contracts** module is a critical service within the Subscription Watch platform that serves as the central hub for managing Red Hat subscription contracts purchased through cloud marketplaces (AWS and Azure). It acts as the authoritative system for tracking Pay-As-You-Go (PAYG) subscription contracts, their associated metrics, and billing information. The service also handles regular non-PAYG subscriptions, as evidenced by the test cases managing all subscription types. This comprehensive management enables accurate capacity reporting and usage-based billing for Red Hat products sold via cloud marketplace partnerships.
 
@@ -23,7 +23,7 @@ This document outlines the test plan for SWATCH-3765, which involves Subscriptio
 * Testing is limited to the functionality of the Swatch-contracts subscription at a component level.
 * End-to-end testing in ephemeral or stage environments is out of scope for this test plan.
 
-# 2\. Test Strategy
+# Test Strategy
 
 This test plan focuses on covering the test scenario for component-level tests, utilizing the new Java component test framework.
 
@@ -36,11 +36,11 @@ This test plan focuses on covering the test scenario for component-level tests, 
 
 The scenarios will be simulated using mocked data.
 
-# 3\. Test Scenarios
+# Test Scenarios
 
-## 3.1 Test Cases at API Level:
+## Test Cases at API Level:
 
-### 3.1.1 Contract Creation via Kafka Messages
+### Contract Creation via Kafka Messages
 
 **contracts-creation-TC001 \- Process a valid PAYG contract with one valid dimension for AWS Marketplace**  
 - **Description**: Verify that an AWS PAYG contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
@@ -168,7 +168,7 @@ The scenarios will be simulated using mocked data.
   - HTTP 400 Bad Request  
   - Error message indicates a missing required field
 
-### 3.1.2  Contract Creation via Internal API
+### Contract Creation via Internal API
 
 **contracts-creation-TC008** \- **Create a valid PAYG contract with one valid dimension for AWS marketplace**  
 - **Description:** Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
@@ -244,7 +244,7 @@ The scenarios will be simulated using mocked data.
   - HTTP 400 Bad Request  
   - Error message indicates a missing required field
 
-### 3.1.3 Contract Retrieval
+### Contract Retrieval
 
 **contracts-retrieval-TC001** \- **Get contracts by org\_id**  
 - **Description:** Verify contracts can be retrieved by organization ID.  
@@ -299,7 +299,7 @@ The scenarios will be simulated using mocked data.
   - HTTP 200 with empty array  
   - No errors
 
-### 3.1.4 Contract Update via Kafka
+### Contract Update via Kafka
 
 **contracts-update-TC001 \- Process contract update message (existing contract)**  
 - **Description**: Verify contract updates via messaging.  
@@ -327,7 +327,7 @@ The scenarios will be simulated using mocked data.
   - Second message: StatusResponse "REDUNDANT\_MESSAGE\_IGNORED"  
   - No duplicate contracts created
 
-### 3.1.5 Contract Update via API
+### Contract Update via API
 
 **contracts-update-TC003 \- Update contract start and end date**  
 - **Description**: Verify updating the contract start and end date.  
@@ -435,7 +435,7 @@ The scenarios will be simulated using mocked data.
   - contract.status.message \== "Existing contracts and subscriptions updated"  
   - contract.status.status \== "SUCCESS"
 
-### 3.1.6 Contract Termination
+### Contract Termination
 
 **contracts-termination-TC001 - A contract remains active after receiving a non-termination event.**
 - **Description:** Verify that a UMB message with a non-terminating status (i.e., `"status": "SUBSCRIBED"`) does not cause a contract to be terminated.
@@ -483,7 +483,7 @@ The scenarios will be simulated using mocked data.
         3. The contract status reflects the re-subscription.
 
 
-### 3.1.7 Contract Deletion
+### Contract Deletion
 
 **contracts-deletion-TC001** \- **Delete contract by UUID**  
 - **Description:** Verify hard deletion of contract and its metrics.  
@@ -504,7 +504,7 @@ The scenarios will be simulated using mocked data.
   - HTTP 404 Not Found or appropriate error  
   - Error message indicates contract not found
 
-### 
+### Contract Sync
 
 ### 3.1.8 Contract Sync
 
@@ -566,7 +566,7 @@ The scenarios will be simulated using mocked data.
   - Status: "Contracts Cleared for given org\_id"  
   - No contracts remain for org\_id
 
-### 3.1.9 Subscription Management via Kafka
+### Subscription Management via Kafka
 
 **subscriptions-creation-TC001 \- Process a valid UMB subscription XML message from Kafka**  
 - **Description**: Verify subscription creation via UMB XML Kafka message.  
@@ -660,7 +660,7 @@ The scenarios will be simulated using mocked data.
   - \`end\_date\` set to termination date  
   - Status reflects termination
 
-### 3.1.10 Subscription Management via API
+### Subscription Management via API
 
 **subscriptions-creation-TC009** \- **Create a valid PAYG contract and verify the Contract/Subscription table**  
 - **Description:** Verify the contract/subscription after a contract/subscription creation.  
@@ -731,7 +731,7 @@ The scenarios will be simulated using mocked data.
   - Subscription end\_date set to timestamp  
   - Subscription effectively terminated
 
-### 3.1.11 Capacity Reports
+### Capacity Reports
 
 **capacity-report-TC001** \- **Get V2 SKU capacity report**  
 - **Description:** Verify the V2 endpoint with an enhanced measurement array.  
