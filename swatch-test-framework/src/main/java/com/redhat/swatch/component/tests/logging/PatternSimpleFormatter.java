@@ -38,24 +38,27 @@ public class PatternSimpleFormatter extends Formatter {
   @Override
   public String format(LogRecord record) {
     ZonedDateTime zdt = ZonedDateTime.ofInstant(record.getInstant(), ZoneId.systemDefault());
-    String source;
+
+    // Use StringBuilder to avoid multiple string concatenations
+    StringBuilder sourceBuilder = new StringBuilder();
     if (record.getSourceClassName() != null) {
-      source = record.getSourceClassName();
+      sourceBuilder.append(record.getSourceClassName());
       if (record.getSourceMethodName() != null) {
-        source += " " + record.getSourceMethodName();
+        sourceBuilder.append(' ').append(record.getSourceMethodName());
       }
     } else {
-      source = record.getLoggerName();
+      sourceBuilder.append(record.getLoggerName());
     }
+    String source = sourceBuilder.toString();
 
     String message = formatMessage(record);
     String throwable = "";
     if (record.getThrown() != null) {
-      StringWriter sw = new StringWriter();
-      PrintWriter pw = new PrintWriter(sw);
-      pw.println();
-      record.getThrown().printStackTrace(pw);
-      pw.close();
+      StringWriter sw = new StringWriter(512); // Pre-allocate buffer
+      try (PrintWriter pw = new PrintWriter(sw)) {
+        pw.println();
+        record.getThrown().printStackTrace(pw);
+      }
       throwable = sw.toString();
     }
 
