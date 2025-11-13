@@ -39,8 +39,8 @@ This test plan focuses on covering the test scenario for component-level tests, 
 Test cases should be testable locally and in an ephemeral environment.
 
 - UMB and Kafka messages can be injected for event-driven testing. 
-- The services’ API can be mocked. 
-- Database state can be controlled and verified.
+- The services' API can be mocked. 
+- System state can be verified through internal API calls.
 
 # Test Cases
 
@@ -754,10 +754,10 @@ Test cases should be testable locally and in an ephemeral environment.
 1. **Description:** Verify that offerings can be synchronized using external product information and result in correct database state.
 2. **Setup:** Create test product data with specific attributes (level_1, level_2, metered flag) in the external product service.
 3. **Action:** Send UMB message to trigger offering synchronization from external product data.
-4. **Verification:** Query database directly to verify offering table contents and sku_product_tag mappings.
+4. **Verification:** Use internal GET API to verify offering synchronization and product tag mapping.
 5. **Expected Result:**
-    - Offering record created in database with correct attributes.
-    - Product tag mapping stored in sku_product_tag table.
+    - API returns HTTP 200 response with correct product tag.
+    - Product tag matches expected value based on level_1/level_2 attributes.
     - Offering synchronization completes without errors.
 
 **offering-sync-TC002: Handle synchronization of non-existent offering**
@@ -776,10 +776,10 @@ Test cases should be testable locally and in an ephemeral environment.
 1. **Description:** Verify that metered offerings are synchronized correctly with proper metered flag.
 2. **Setup:** Create test product data with metered="y" attribute in external product service.
 3. **Action:** Send UMB message to trigger offering synchronization.
-4. **Verification:** Query offering table to verify metered flag is set correctly.
+4. **Verification:** Use internal GET API to verify offering synchronization succeeded for metered SKU.
 5. **Expected Result:**
-    - Offering record created with metered=true flag.
-    - Capacity attributes properly configured for metered billing.
+    - API returns HTTP 200 response indicating successful synchronization.
+    - Product tag returned matches expected value for metered offering.
     - Offering synchronization completes without errors.
 
 **offering-sync-TC004: Synchronize unlimited capacity offering**
@@ -787,10 +787,10 @@ Test cases should be testable locally and in an ephemeral environment.
 1. **Description:** Verify that unlimited capacity offerings are synchronized correctly with proper unlimited flag.
 2. **Setup:** Create test product data with has_unlimited_usage=True attribute in external product service.
 3. **Action:** Send UMB message to trigger offering synchronization.
-4. **Verification:** Query offering table to verify has_unlimited_usage flag is set correctly.
+4. **Verification:** Use internal GET API to verify offering synchronization succeeded for unlimited capacity SKU.
 5. **Expected Result:**
-    - Offering record created with has_unlimited_usage=true flag.
-    - Unlimited capacity properly configured in offering attributes.
+    - API returns HTTP 200 response indicating successful synchronization.
+    - Product tag returned matches expected value for unlimited offering.
     - Offering synchronization completes without errors.
 
 ### Product Tag Management
@@ -800,11 +800,11 @@ Test cases should be testable locally and in an ephemeral environment.
 1. **Description:** Verify that product tags can be retrieved correctly for offerings that have been synchronized.
 2. **Setup:** Create test product with specific level_1 and level_2 values (`product_id`, sku, level_1, level_2) in external product service.
 3. **Action:** Query public API endpoint to retrieve product tags for the SKU.
-4. **Verification:** Verify the API response contains the expected product tag and check sku_product_tag table for persistent storage.
+4. **Verification:** Use internal GET API and verify the response contains the expected product tag.
 5. **Expected Result:**
-    - Product tag returned matches expected tag based on level_1 and level_2 values.
-    - Tag mapping persisted in sku_product_tag table.
-    - Subsequent calls return consistent tag data.
+    - API returns HTTP 200 response with correct product tag.
+    - Product tag matches expected value based on level_1 and level_2 values.
+    - Subsequent API calls return consistent tag data.
 
 **offering-tags-TC002: Verify product tag mapping for different product types**
 
@@ -814,7 +814,7 @@ Test cases should be testable locally and in an ephemeral environment.
 4. **Verification:** Verify each product returns appropriate product tags based on level_1/level_2 values.
 5. **Expected Result:**
     - Product tags correctly generated from level_1/level_2 combinations.
-    - Tag mappings stored consistently in sku_product_tag table.
+    - API responses for different SKUs are consistent and accurate.
     - Different level combinations produce distinct product tags.
 
 **offering-tags-TC003: Handle product tag retrieval for non-existent offering**
@@ -825,7 +825,7 @@ Test cases should be testable locally and in an ephemeral environment.
 4. **Verification:** Check that the operation handles missing offering gracefully.
 5. **Expected Result:**
     - Operation completes without causing system errors.
-    - No invalid data created in sku_product_tag table.
+    - API response properly handles non-existent SKU (appropriate error code or message).
 
 ### Capacity Management
 
@@ -858,11 +858,11 @@ Test cases should be testable locally and in an ephemeral environment.
 1. **Description:** Verify that UMB update events correctly modify existing offering attributes without data loss.
 2. **Setup:** Create existing offering through external product service, then prepare UMB update message with different attributes.
 3. **Action:** Send UMB product update event through message broker.
-4. **Verification:** Query offering table and sku_product_tag table to verify updates.
+4. **Verification:** Use internal GET API to verify offering updates were applied correctly.
 5. **Expected Result:**
-    - Existing offering updated with new attributes from UMB event.
-    - No data corruption or loss during update process.
-    - Historical offering data integrity maintained.
+    - API returns HTTP 200 response with updated product tag.
+    - Product tag reflects changes from updated attributes.
+    - Update operation completes without errors.
 
 **offering-update-TC002: Handle malformed events**
 
