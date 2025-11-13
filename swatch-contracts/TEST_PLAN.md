@@ -34,11 +34,15 @@ This test plan focuses on covering the test scenario for component-level tests, 
 * The testing will follow a **risk-based approach**, prioritizing test cases for critical functionality and high-risk areas.
 * **Automated tests** will be developed for component-level checks on the new Java component test framework, while integration and end-to-end testing will be covered in another document and developed on iqe-rhsm-subscription-plugin.
 
-**Test Data Strategy:**
+**Testing Strategy:**
 
-The scenarios will be simulated using mocked data.
+Test cases should be testable locally and in an ephemeral environment.
 
-# Test Scenarios
+- UMB and Kafka messages can be injected for event-driven testing. 
+- The services’ API can be mocked. 
+- Database state can be controlled and verified.
+
+# Test Cases
 
 ## Test Cases at API Level:
 
