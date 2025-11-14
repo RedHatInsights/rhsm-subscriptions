@@ -22,6 +22,7 @@ package com.redhat.swatch.hbi.events.resources;
 
 import com.redhat.swatch.hbi.api.DefaultApi;
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
+import com.redhat.swatch.hbi.events.exception.api.ExistingOutboxFlushException;
 import com.redhat.swatch.hbi.events.exception.api.SynchronousOutboxFlushException;
 import com.redhat.swatch.hbi.events.exception.api.SynchronousRequestsNotEnabledException;
 import com.redhat.swatch.hbi.events.services.HbiEventOutboxService;
@@ -29,6 +30,8 @@ import com.redhat.swatch.hbi.model.FlushResponse;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.context.ManagedExecutor;
 
@@ -37,6 +40,7 @@ import org.eclipse.microprofile.context.ManagedExecutor;
 public class InternalResource implements DefaultApi {
 
   public static final String SYNCHRONOUS_REQUEST_HEADER = "x-rh-swatch-synchronous-request";
+  Lock lock = new ReentrantLock();
 
   @Inject ManagedExecutor executor;
 
@@ -61,6 +65,10 @@ public class InternalResource implements DefaultApi {
         response.setStatus(FlushResponse.StatusEnum.SUCCESS);
         response.setCount(count);
         return response;
+      } catch (ExistingOutboxFlushException e) {
+        log.warn(e.getMessage());
+        response.setStatus(FlushResponse.StatusEnum.ALREADY_RUNNING);
+        return response;
       } catch (Exception e) {
         throw new SynchronousOutboxFlushException(e);
       }
@@ -72,12 +80,20 @@ public class InternalResource implements DefaultApi {
     return response;
   }
 
-  private long flush() {
+  private long flush() throws ExistingOutboxFlushException {
     log.debug(
         "Outbox flush running on vertx worker thread: {}",
         io.vertx.core.Context.isOnWorkerThread());
-    long count = outboxService.flushOutboxRecords();
-    log.info("Flushed {} outbox records!", count);
-    return count;
+    if (lock.tryLock()) {
+      try {
+        long count = outboxService.flushOutboxRecords();
+        log.info("Flushed {} outbox records!", count);
+        return count;
+      } finally {
+        lock.unlock();
+      }
+    } else {
+      throw new ExistingOutboxFlushException();
+    }
   }
 }
