@@ -62,19 +62,20 @@ public interface InventoryRepository extends Repository<InventoryHost, UUID> {
       nativeQuery = true,
       value =
           "select "
-              + "distinct h.system_profile_facts->>'virtual_host_uuid' as hyp_id, "
-              + "h_.canonical_facts->>'subscription_manager_id' as hyp_subman_id "
+              + "distinct sps.virtual_host_uuid::VARCHAR as hyp_id, "
+              + "h_.subscription_manager_id as hyp_subman_id "
               + "from hosts h "
-              + "left outer join hosts h_ on h.system_profile_facts->>'virtual_host_uuid' = h_.canonical_facts->>'subscription_manager_id' "
-              + "where h.system_profile_facts->>'virtual_host_uuid' is not null "
+              + "inner join system_profiles_static sps on h.id = sps.host_id "
+              + "left outer join hosts h_ on sps.virtual_host_uuid::VARCHAR = h_.subscription_manager_id "
+              + "where sps.virtual_host_uuid is not null "
               + "and h.org_id IN (:orgIds)"
               + "union all "
               + "select "
               + "distinct h.facts->'satellite'->>'virtual_host_uuid' as hyp_id, "
-              + "h_.canonical_facts->>'subscription_manager_id' as hyp_subman_id "
+              + "h_.subscription_manager_id as hyp_subman_id "
               + "from hosts h "
-              + "left outer join hosts h_ on h.facts->'satellite'->>'virtual_host_uuid' = h_.canonical_facts->>'subscription_manager_id' "
-              + "where h.facts->'satellite'->'virtual_host_uuid' is not null "
+              + "left outer join hosts h_ on h.facts->'satellite'->>'virtual_host_uuid' = h_.subscription_manager_id "
+              + "where h.facts->'satellite'->>'virtual_host_uuid' is not null "
               + "and h.org_id IN (:orgIds)")
   Stream<Object[]> getReportedHypervisors(@Param("orgIds") Collection<String> orgIds);
 
@@ -84,14 +85,15 @@ public interface InventoryRepository extends Repository<InventoryHost, UUID> {
       value =
           """
         select
-        h.canonical_facts->>'subscription_manager_id' as subscription_manager_id
+        h.subscription_manager_id as subscription_manager_id
         from hosts h
+        inner join system_profiles_static sps on h.id = sps.host_id
         where h.org_id=:orgId
            and (h.facts->'rhsm'->>'BILLING_MODEL' IS NULL OR h.facts->'rhsm'->>'BILLING_MODEL' <> 'marketplace')
-           and (h.system_profile_facts->>'host_type' IS NULL OR h.system_profile_facts->>'host_type' <> 'edge')
-           and NOW() < stale_timestamp + make_interval(days => :culledOffsetDays)
+           and (sps.host_type IS NULL OR sps.host_type <> 'edge')
+           and NOW() < h.stale_timestamp + make_interval(days => :culledOffsetDays)
         -- NOTE: ordering is crucial for correct streaming reconciliation of HBI data
-        order by subscription_manager_id
+        order by subscription_manager_id, h.id, h.org_id
       """)
   @QueryHints(
       value = {
