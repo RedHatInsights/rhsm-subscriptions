@@ -26,3 +26,7 @@ for db in rhsm-subscriptions insights unleash; do
       ALTER USER "$db" WITH SUPERUSER;
 EOSQL
 done
+
+psql --set ON_ERROR_STOP=1 <<-EOSQL
+    ALTER USER "rhsm-subscriptions" WITH REPLICATION;
+EOSQL
