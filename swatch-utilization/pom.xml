@@ -103,7 +103,8 @@
         <groupId>org.jsonschema2pojo</groupId>
         <artifactId>jsonschema2pojo-maven-plugin</artifactId>
         <configuration>
-          <sourceDirectory>${maven.multiModuleProjectDirectory}/swatch-core/schemas</sourceDirectory>
+          <sourceDirectory>${maven.multiModuleProjectDirectory}/swatch-core/schemas
+          </sourceDirectory>
           <targetPackage>com.redhat.swatch.utilization.model</targetPackage>
           <includes>
             <include>utilization_summary.yaml</include>

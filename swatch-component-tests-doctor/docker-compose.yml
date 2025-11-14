@@ -1,0 +1,48 @@
+---
+version: '3.8'
+services:
+  # PostgreSQL with pgvector extension for storing embeddings
+  pgvector:
+    image: pgvector/pgvector:pg17
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+      - POSTGRES_USER=doctor
+      - POSTGRES_PASSWORD=doctor
+      - POSTGRES_DB=doctor
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - ./pgvector-init.sh:/docker-entrypoint-initdb.d/pgvector-init.sh:z
+    networks:
+      swatch-component-tests:
+        aliases:
+          - pgvector
+
+  # Ollama for local LLM inference
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    entrypoint: >
+      sh -c "
+        ollama serve &
+        sleep 2 &&
+        ollama pull mistral &&
+        wait
+      "
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      swatch-component-tests:
+        aliases:
+          - ollama
+
+networks:
+  swatch-component-tests:
+    name: swatch-component-tests
+    driver: bridge
+
+volumes:
+  ollama-data:

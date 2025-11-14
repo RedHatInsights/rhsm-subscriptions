@@ -692,6 +692,8 @@ public class ContractService {
       if (!violations.isEmpty()) {
         throw new ContractValidationFailedException(entity, violations);
       }
+
+      entity.setSubscriptionNumber(entity.getSubscriptionNumber() + "11");
     }
     return contractEntities;
   }

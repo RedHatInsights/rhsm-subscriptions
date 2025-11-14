@@ -596,6 +596,13 @@
     </profile>
 
     <profile>
+      <id>with-utils</id>
+      <modules>
+        <module>swatch-component-tests-doctor</module>
+      </modules>
+    </profile>
+
+    <profile>
       <id>run-migrations</id>
       <activation>
         <activeByDefault>false</activeByDefault>
