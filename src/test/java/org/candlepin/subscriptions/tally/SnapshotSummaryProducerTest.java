@@ -35,7 +35,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
@@ -50,6 +52,8 @@ import org.candlepin.subscriptions.json.TallySummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
@@ -80,8 +84,90 @@ class SnapshotSummaryProducerTest {
     this.producer = new SnapshotSummaryProducer(kafka, retryTemplate, props, tallySummaryMapper);
   }
 
+  static Stream<Pair> snapshotSummaryProducerParams() {
+    return Stream.of(
+        Pair.of("hourly", SnapshotSummaryProducer.hourlySnapFilter),
+        Pair.of("daily", SnapshotSummaryProducer.nightlySnapFilter));
+  }
+
+  static class Pair {
+    String value;
+    Predicate<TallySnapshot> predicate;
+
+    Pair(String value, Predicate<TallySnapshot> predicate) {
+      this.value = value;
+      this.predicate = predicate;
+    }
+
+    static Pair of(String value, Predicate<TallySnapshot> predicate) {
+      return new Pair(value, predicate);
+    }
+  }
+
+  @ParameterizedTest
+  @MethodSource("snapshotSummaryProducerParams")
+  void testProduceSummary(Pair params) {
+    Granularity granularity = Granularity.valueOf(params.value.toUpperCase());
+    Map<String, List<TallySnapshot>> updateMap = new HashMap<>();
+    updateMap.put(
+        "org1",
+        List.of(
+            buildSnapshot(
+                "org1",
+                "OSD",
+                granularity,
+                ServiceLevel.PREMIUM,
+                Usage.PRODUCTION,
+                BillingProvider.RED_HAT,
+                "12345",
+                MetricIdUtils.getCores().getValue(),
+                20.4)));
+    updateMap.put(
+        "org2",
+        List.of(
+            buildSnapshot(
+                "org2",
+                "OCP",
+                granularity,
+                ServiceLevel.PREMIUM,
+                Usage.PRODUCTION,
+                BillingProvider.AWS,
+                "12345",
+                MetricIdUtils.getCores().getValue(),
+                22.2)));
+    producer.produceTallySummaryMessages(updateMap, List.of(granularity), params.predicate);
+    verify(kafka, times(2)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
+
+    List<TallySummary> summaries = summaryCaptor.getAllValues();
+    assertEquals(2, summaries.size());
+    Map<String, List<TallySummary>> results =
+        summaries.stream().collect(Collectors.groupingBy(TallySummary::getOrgId));
+    assertSummary(
+        results,
+        "org1",
+        "OSD",
+        granularity,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        MetricIdUtils.getCores(),
+        20.4,
+        Granularity.HOURLY == granularity ? 1 : 2,
+        Granularity.HOURLY != granularity);
+    assertSummary(
+        results,
+        "org2",
+        "OCP",
+        granularity,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        MetricIdUtils.getCores(),
+        22.2,
+        Granularity.HOURLY == granularity ? 1 : 2,
+        Granularity.HOURLY != granularity);
+  }
+
   @Test
-  void testProduceSummary() {
+  void testProduceMultiGranularitySummaries() {
     Map<String, List<TallySnapshot>> updateMap = new HashMap<>();
     updateMap.put(
         "org1",
@@ -109,7 +195,110 @@ class SnapshotSummaryProducerTest {
                 "12345",
                 MetricIdUtils.getCores().getValue(),
                 22.2)));
-    producer.produceTallySummaryMessages(updateMap);
+    updateMap.put(
+        "org3",
+        List.of(
+            buildSnapshot(
+                "org3",
+                "OCP",
+                Granularity.DAILY,
+                ServiceLevel.PREMIUM,
+                Usage.PRODUCTION,
+                BillingProvider.AWS,
+                "12345",
+                MetricIdUtils.getCores().getValue(),
+                42.2)));
+    producer.produceTallySummaryMessages(
+        updateMap,
+        List.of(Granularity.HOURLY, Granularity.DAILY),
+        SnapshotSummaryProducer.hourlySnapFilter);
+    verify(kafka, times(3)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
+
+    List<TallySummary> summaries = summaryCaptor.getAllValues();
+    assertEquals(3, summaries.size());
+    Map<String, List<TallySummary>> results =
+        summaries.stream().collect(Collectors.groupingBy(TallySummary::getOrgId));
+    assertSummary(
+        results,
+        "org1",
+        "OSD",
+        Granularity.HOURLY,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        MetricIdUtils.getCores(),
+        20.4,
+        1,
+        false);
+    assertSummary(
+        results,
+        "org2",
+        "OCP",
+        Granularity.HOURLY,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        MetricIdUtils.getCores(),
+        22.2,
+        1,
+        false);
+    assertSummary(
+        results,
+        "org3",
+        "OCP",
+        Granularity.DAILY,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        MetricIdUtils.getCores(),
+        42.2,
+        2,
+        true);
+  }
+
+  @Test
+  void testProduceSummariesNoBilling() {
+    Map<String, List<TallySnapshot>> updateMap = new HashMap<>();
+    updateMap.put(
+        "org1",
+        List.of(
+            buildSnapshot(
+                "org1",
+                "OSD",
+                Granularity.HOURLY,
+                ServiceLevel.PREMIUM,
+                Usage.PRODUCTION,
+                BillingProvider.RED_HAT,
+                "12345",
+                MetricIdUtils.getCores().getValue(),
+                20.4)));
+    updateMap.put(
+        "org2",
+        List.of(
+            buildSnapshot(
+                "org2",
+                "OCP",
+                Granularity.HOURLY,
+                ServiceLevel.PREMIUM,
+                Usage.PRODUCTION,
+                BillingProvider.AWS,
+                "12345",
+                MetricIdUtils.getCores().getValue(),
+                22.2)));
+    updateMap.put(
+        "org3",
+        List.of(
+            buildSnapshot(
+                "org3",
+                "OCP",
+                Granularity.DAILY,
+                ServiceLevel.PREMIUM,
+                Usage.PRODUCTION,
+                BillingProvider._ANY,
+                null,
+                MetricIdUtils.getCores().getValue(),
+                42.2)));
+    producer.produceTallySummaryMessages(
+        updateMap,
+        List.of(Granularity.HOURLY, Granularity.DAILY),
+        SnapshotSummaryProducer.hourlySnapFilter);
     verify(kafka, times(2)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
 
     List<TallySummary> summaries = summaryCaptor.getAllValues();
@@ -124,7 +313,9 @@ class SnapshotSummaryProducerTest {
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         MetricIdUtils.getCores(),
-        20.4);
+        20.4,
+        1,
+        false);
     assertSummary(
         results,
         "org2",
@@ -133,7 +324,9 @@ class SnapshotSummaryProducerTest {
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         MetricIdUtils.getCores(),
-        22.2);
+        22.2,
+        1,
+        false);
   }
 
   void assertSummary(
@@ -144,7 +337,9 @@ class SnapshotSummaryProducerTest {
       ServiceLevel sla,
       Usage usage,
       MetricId metricId,
-      double value) {
+      double value,
+      int expectedMeasurements,
+      boolean hasTotalMeasurements) {
     assertTrue(results.containsKey(orgId));
     List<TallySummary> accountSummaries = results.get(orgId);
     assertEquals(1, accountSummaries.size());
@@ -158,17 +353,19 @@ class SnapshotSummaryProducerTest {
     assertEquals(granularity.toString(), snapshot.getGranularity().value().toUpperCase());
     assertEquals(sla.toString(), snapshot.getSla().value().toUpperCase());
     assertEquals(usage.toString(), snapshot.getUsage().value().toUpperCase());
-    assertEquals(1, snapshot.getTallyMeasurements().size());
+    assertEquals(expectedMeasurements, snapshot.getTallyMeasurements().size());
 
     Map<String, List<TallyMeasurement>> measurements =
         snapshot.getTallyMeasurements().stream()
             .collect(Collectors.groupingBy(TallyMeasurement::getHardwareMeasurementType));
-    assertTrue(Optional.ofNullable(measurements.get("TOTAL")).isEmpty());
+    assertTrue(Optional.ofNullable(measurements.get("TOTAL")).isEmpty() || hasTotalMeasurements);
     assertMeasurement(measurements, "PHYSICAL", metricId, value);
   }
 
-  @Test
-  void testSummarySkippedWhenItHasNoMeasurements() {
+  @ParameterizedTest
+  @MethodSource("snapshotSummaryProducerParams")
+  void testSummarySkippedWhenItHasNoMeasurements(Pair params) {
+    Granularity granularity = Granularity.valueOf(params.value.toUpperCase());
     Map<String, List<TallySnapshot>> updateMap = new HashMap<>();
     updateMap.put(
         "a1",
@@ -176,7 +373,7 @@ class SnapshotSummaryProducerTest {
             buildSnapshot(
                 "org_1",
                 "OSD",
-                Granularity.HOURLY,
+                granularity,
                 ServiceLevel.PREMIUM,
                 Usage.PRODUCTION,
                 BillingProvider.RED_HAT,
@@ -184,7 +381,7 @@ class SnapshotSummaryProducerTest {
                 MetricIdUtils.getCores().getValue(),
                 20.4)));
     updateMap.get("a1").get(0).getTallyMeasurements().clear();
-    producer.produceTallySummaryMessages(updateMap);
+    producer.produceTallySummaryMessages(updateMap, List.of(granularity), params.predicate);
     verifyNoInteractions(kafka);
   }
 

@@ -85,6 +85,7 @@ public class LocalSpringBootManagedResource extends DevProcessManagedResource {
     context.loadCustomConfiguration(
         SpringBootServiceConfiguration.class, new SpringBootServiceConfigurationBuilder());
     assignPorts();
+    configureSpringProfiles();
   }
 
   @Override
@@ -116,6 +117,10 @@ public class LocalSpringBootManagedResource extends DevProcessManagedResource {
     addArguments(JVM_ARGUMENTS, "-D" + MANAGEMENT_PORT_PROPERTY + "=" + assignedManagementPort);
     customPorts.put(MANAGEMENT_PORT, assignedManagementPort);
     return customPorts;
+  }
+
+  private void configureSpringProfiles() {
+    addArguments(JVM_ARGUMENTS, "-D" + SPRING_PROFILES_INCLUDE_PROPERTY + "=dev");
   }
 
   private void addArguments(String property, String argument) {

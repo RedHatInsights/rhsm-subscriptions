@@ -20,11 +20,14 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
@@ -50,6 +53,20 @@ public class SnapshotSummaryProducer {
   private final RetryTemplate kafkaRetryTemplate;
   private final TallySummaryMapper summaryMapper;
 
+  public static Predicate<TallySnapshot> hourlySnapFilter =
+      snapshot ->
+          !ServiceLevel._ANY.equals(snapshot.getServiceLevel())
+              && !Usage._ANY.equals(snapshot.getUsage())
+              && !BillingProvider._ANY.equals(snapshot.getBillingProvider())
+              && !ResourceUtils.ANY.equals(snapshot.getBillingAccountId())
+              && hasMeasurements(snapshot);
+
+  public static Predicate<TallySnapshot> nightlySnapFilter =
+      snapshot ->
+          !ServiceLevel._ANY.equals(snapshot.getServiceLevel())
+              && !Usage._ANY.equals(snapshot.getUsage())
+              && hasMeasurements(snapshot);
+
   @Autowired
   protected SnapshotSummaryProducer(
       @Qualifier("tallySummaryKafkaTemplate")
@@ -63,34 +80,49 @@ public class SnapshotSummaryProducer {
     this.summaryMapper = summaryMapper;
   }
 
-  public void produceTallySummaryMessages(Map<String, List<TallySnapshot>> newAndUpdatedSnapshots) {
-    AtomicInteger totalTallies = new AtomicInteger();
-    newAndUpdatedSnapshots.forEach(
-        (orgId, snapshots) ->
-            /* Filter snapshots, as we only deal with hourly, non Any fields
-            and measurement types other than Total
-            when we transmit the tally summary message to the BillableUsage component. */
-            snapshots.stream()
-                .filter(SnapshotSummaryProducer::filterByHourlyAndNotAnySnapshots)
-                .map(
-                    snapshot -> {
-                      removeTotalMeasurements(snapshot);
-                      return snapshot;
-                    })
-                .sorted(Comparator.comparing(TallySnapshot::getSnapshotDate))
-                .map(snapshot -> summaryMapper.mapSnapshots(orgId, List.of(snapshot)))
+  public void produceTallySummaryMessages(
+      Map<String, List<TallySnapshot>> newAndUpdatedSnapshots,
+      List<Granularity> granularities,
+      Predicate<TallySnapshot> filter) {
+    Map<Granularity, Map<String, List<TallySnapshot>>> groupedSnapshots =
+        groupByGranularity(newAndUpdatedSnapshots, granularities);
+    granularities.forEach(
+        granularity -> {
+          AtomicInteger totalTallies = new AtomicInteger();
+          if (groupedSnapshots.get(granularity) != null) {
+            groupedSnapshots
+                .get(granularity)
                 .forEach(
-                    summary -> {
-                      kafkaRetryTemplate.execute(
-                          ctx -> tallySummaryKafkaTemplate.send(tallySummaryTopic, orgId, summary));
-                      totalTallies.getAndIncrement();
-                    }));
+                    (orgId, snapshots) ->
+                        /* Filter snapshots for specific granularity, non-Any fields
+                        and measurement types other than Total
+                        when we transmit the tally summary message to the BillableUsage component. */
+                        snapshots.stream()
+                            .filter(filter)
+                            .map(
+                                snapshot -> {
+                                  removeTotalMeasurementsForHourly(snapshot);
+                                  return snapshot;
+                                })
+                            .sorted(Comparator.comparing(TallySnapshot::getSnapshotDate))
+                            .map(snapshot -> summaryMapper.mapSnapshots(orgId, List.of(snapshot)))
+                            .forEach(
+                                summary -> {
+                                  kafkaRetryTemplate.execute(
+                                      ctx ->
+                                          tallySummaryKafkaTemplate.send(
+                                              tallySummaryTopic, orgId, summary));
+                                  totalTallies.getAndIncrement();
+                                }));
 
-    log.info("Produced {} TallySummary messages", totalTallies);
+            log.info("Produced {} {} TallySummary messages", totalTallies, granularity);
+          }
+        });
   }
 
-  public static void removeTotalMeasurements(TallySnapshot snapshot) {
-    if (Objects.nonNull(snapshot.getTallyMeasurements())) {
+  public static void removeTotalMeasurementsForHourly(TallySnapshot snapshot) {
+    if (Objects.nonNull(snapshot.getTallyMeasurements())
+        && Granularity.HOURLY.equals(snapshot.getGranularity())) {
       snapshot
           .getTallyMeasurements()
           .entrySet()
@@ -99,8 +131,22 @@ public class SnapshotSummaryProducer {
     }
   }
 
-  public static boolean filterByHourlyAndNotAnySnapshots(TallySnapshot snapshot) {
-    return filterByGranularityAndNotAnySnapshots(snapshot, Granularity.HOURLY.getValue());
+  public static Map<Granularity, Map<String, List<TallySnapshot>>> groupByGranularity(
+      Map<String, List<TallySnapshot>> snapshots, List<Granularity> granularities) {
+    Map<Granularity, Map<String, List<TallySnapshot>>> result = new java.util.HashMap<>();
+    snapshots.forEach(
+        (orgId, snapshotList) ->
+            snapshotList.stream()
+                .filter(snapshot -> granularities.contains(snapshot.getGranularity()))
+                .forEach(
+                    snapshot -> {
+                      Granularity granularity = snapshot.getGranularity();
+                      result.putIfAbsent(granularity, new HashMap<>());
+                      Map<String, List<TallySnapshot>> snapshotMap = result.get(granularity);
+                      snapshotMap.putIfAbsent(orgId, new ArrayList<>());
+                      snapshotMap.get(orgId).add(snapshot);
+                    }));
+    return result;
   }
 
   public static boolean filterByGranularityAndNotAnySnapshots(
