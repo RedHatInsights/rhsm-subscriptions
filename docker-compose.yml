@@ -136,6 +136,22 @@ services:
     restart: on-failure
     depends_on:
       - kafka-rest
+  connect:
+    image: quay.io/debezium/connect:3.1
+    depends_on:
+      - kafka
+    ports:
+      - "8083:8083"
+    environment:
+      BOOTSTRAP_SERVERS: kafka:29092
+      GROUP_ID: 1
+      CONFIG_STORAGE_TOPIC: connect_configs
+      OFFSET_STORAGE_TOPIC: connect_offsets
+      STATUS_STORAGE_TOPIC: connect_statuses
+      KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+    networks:
+      - swatch-network
   kafka-bridge:
     image: quay.io/strimzi/kafka-bridge:0.31.2
     entrypoint: /opt/strimzi/bin/kafka_bridge_run.sh

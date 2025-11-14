@@ -1,0 +1,16 @@
+{
+  "name": "debezium-postgres-connector",
+  "config": {
+    "topic.prefix": "platform.rhsm-subscriptions",
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "rhsm-subscriptions_db_1",
+    "database.port": "5432",
+    "database.user": "rhsm-subscriptions",
+    "database.password": "",
+    "database.dbname": "rhsm-subscriptions",
+    "database.server.name": "rhsm-subscriptions_db_1",
+    "publication.autocreate.mode": "filtered",
+    "table.include.list": "public\\.hbi_event_outbox",
+    "plugin.name": "pgoutput"
+  }
+}
