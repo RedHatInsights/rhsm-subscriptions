@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.tally;
 
-import static org.candlepin.subscriptions.tally.SnapshotSummaryProducer.removeTotalMeasurements;
+import static org.candlepin.subscriptions.tally.SnapshotSummaryProducer.removeTotalMeasurementsForHourly;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
@@ -187,7 +187,10 @@ public class TallySnapshotController {
 
           tallyStateRepository.update(currentState);
           recordTallyCount(totalSnapshots.values().stream().flatMap(Collection::stream).toList());
-          summaryProducer.produceTallySummaryMessages(totalSnapshots);
+          summaryProducer.produceTallySummaryMessages(
+              totalSnapshots,
+              List.of(Granularity.HOURLY, Granularity.DAILY),
+              SnapshotSummaryProducer.hourlySnapFilter);
         }
 
         log.info("Finished producing {} hourly snapshots for orgId {}", serviceType, orgId);
@@ -207,7 +210,7 @@ public class TallySnapshotController {
         .filter(this::filterByFinestGranularityAndNotAnySnapshots)
         .map(
             snapshot -> {
-              removeTotalMeasurements(snapshot);
+              removeTotalMeasurementsForHourly(snapshot);
               return snapshot;
             })
         .forEach(
