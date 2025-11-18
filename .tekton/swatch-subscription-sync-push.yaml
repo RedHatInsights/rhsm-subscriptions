@@ -4,17 +4,16 @@ metadata:
   annotations:
     build.appstudio.openshift.io/repo: https://github.com/RedHatInsights/rhsm-subscriptions?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
-    build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
-    pipelinesascode.tekton.dev/cancel-in-progress: "true"
+    pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && (target_branch == "main" || target_branch == "hotfix")
+    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && (target_branch == "main" || target_branch == "hotfix")
   creationTimestamp:
   labels:
     appstudio.openshift.io/application: rhsm-subscriptions
-    appstudio.openshift.io/component: swatch-api
+    appstudio.openshift.io/component: swatch-subscription-sync
     pipelines.appstudio.openshift.io/type: build
-  name: swatch-api-on-pull-request
+  name: swatch-subscription-sync-on-push
   namespace: rh-subs-watch-tenant
 spec:
   params:
@@ -23,9 +22,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/rh-subs-watch-tenant/rhsm-subscriptions/swatch-api:on-pr-{{revision}}
-  - name: image-expires-after
-    value: 5d
+    value: quay.io/redhat-user-workloads/rh-subs-watch-tenant/rhsm-subscriptions/swatch-subscription-sync:{{revision}}
   - name: dockerfile
     value: Dockerfile
   - name: path-context
@@ -603,7 +600,7 @@ spec:
     - name: netrc
       optional: true
   taskRunTemplate:
-    serviceAccountName: build-pipeline-swatch-api
+    serviceAccountName: build-pipeline-swatch-subscription-sync
   workspaces:
   - name: git-auth
     secret:
