@@ -229,7 +229,7 @@ spec:
           - name: name
             value: git-clone
           - name: bundle
-            value: quay.io/konflux-ci/tekton-catalog/task-git-clone:0.1@sha256:366c0288968fec8075b938bc33b941b030188984b1bc752910ed37475315a0af
+            value: quay.io/konflux-ci/tekton-catalog/task-git-clone:0.1@sha256:33e03611639687a832c7ae388c244bd8c1f52ac44568aa6b949e3439e80d978b
           - name: kind
             value: task
         resolver: bundles
@@ -295,7 +295,7 @@ spec:
                 value: "$(params.SERVICE)"
             script: |
               #!/bin/bash
-              ./mvnw clean install -Pcomponent-tests -Dservice=${SERVICE} -Dswatch.component-tests.global.target=openshift
+              ./mvnw clean install --no-transfer-progress -Pcomponent-tests -am -pl ${SERVICE}/ct -Dswatch.component-tests.global.target=openshift -Dlog.disable-color=true -Dlog.level=FINE -Dlog.print-errors-to-std-err=true -Dswatch.component-tests.services.all.log.enabled=true
     - name: send-results-task
       params:
         - name: SERVICE
@@ -336,6 +336,12 @@ spec:
                     key: password
               - name: SERVICE
                 value: "$(params.SERVICE)"
+              - name: EVENT_TYPE
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.labels['pac.test.appstudio.openshift.io/event-type']
+              - name: PIPELINE_NAME
+                value: "$(context.pipelineRun.name)"
             script: |
               #!/bin/bash
               set -euo pipefail
@@ -345,6 +351,8 @@ spec:
               
               # Customize metadata for the current service
               sed -i "s/SERVICE_NAME/$SERVICE/g" datarouter.json
+              sed -i "s/EVENT_TYPE_PLACEHOLDER/$EVENT_TYPE/g" datarouter.json
+              sed -i "s/PIPELINE_NAME_PLACEHOLDER/$PIPELINE_NAME/g" datarouter.json
               
               echo "Using metadata from: $METADATA_FILE"
               echo "Metadata content:"
@@ -365,24 +373,24 @@ spec:
               # Function to execute droute command with retry
               execute_with_retry() {
                 local attempt=1
-                
+              
                 while [ $attempt -le $MAX_RETRIES ]; do
                   echo "=== Attempt $attempt of $MAX_RETRIES ==="
-                  
+              
                   # Temporarily disable exit on error to capture output
                   set +e
                   OUTPUT=$(/droute send --url=$(params.datarouter-url) --username=$DATAROUTER_USERNAME --password=$DATAROUTER_PASSWORD --metadata=$METADATA_FILE --results=$ARTIFACT_DIR/$(params.results-pattern) $(if [[ -n "$(params.attachments-dir)" ]]; then echo "--attachments=${ARTIFACT_DIR}/$(params.attachments-dir)"; fi) 2>&1)
                   EXIT_CODE=$?
                   set -e
-                  
+              
                   echo "Command completed with exit code: $EXIT_CODE"
                   echo "Output: $OUTPUT"
-                  
+              
                   # Check if successful
                   if [[ $EXIT_CODE -eq 0 ]]; then
                     return 0
                   fi
-                  
+              
                   # Check for retryable error patterns (only 5XX server errors)
                   if echo "$OUTPUT" | grep -qi -E "5[0-9][0-9] "; then
                     if [ $attempt -lt $MAX_RETRIES ]; then
@@ -398,7 +406,7 @@ spec:
                     return $EXIT_CODE
                   fi
                 done
-                
+              
                 return $EXIT_CODE
               }
               
