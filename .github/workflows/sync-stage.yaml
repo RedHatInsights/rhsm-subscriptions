@@ -1,4 +1,4 @@
-name: Sync Stage with Main via PR
+name: Sync Stage with Main
 
 on:
   push:
@@ -8,7 +8,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   sync-branch:
@@ -20,81 +19,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Create/reset sync branch
+      - name: Hard reset stage to main
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Create/reset the staging sync branch from main
-          git checkout -B stage-sync-reset origin/main
+          # Hard reset stage branch to match main exactly
+          git checkout -B stage origin/main
 
-          # Push reset branch
-          git push origin stage-sync-reset --force
-
-      - name: Check if stage differs from main and create PR
-        id: create_pr
-        run: |
-          git fetch origin stage:stage --force
-          DIFF_COUNT=$(git rev-list --right-only --count origin/stage...origin/main || echo "0")
-          
-          if [ "$DIFF_COUNT" -eq "0" ]; then
-            echo "Stage is already up to date with main. No PR needed."
-            echo "pr_number=" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          
-          echo "Stage differs from main by $DIFF_COUNT commits. Creating PR."
-          
-          # Check if PR already exists
-          EXISTING_PR=$(gh pr list --base stage --head stage-sync-reset --json number --jq '.[0].number' || echo "")
-          
-          if [ -n "$EXISTING_PR" ] && [ "$EXISTING_PR" != "null" ]; then
-            echo "PR #$EXISTING_PR already exists. Updating..."
-            gh pr edit "$EXISTING_PR" --title "Sync stage with main" --body "Automated sync of **main → stage**."$'\n\n'"This PR hard-resets \`stage\` to match \`main\`."
-            echo "pr_number=$EXISTING_PR" >> $GITHUB_OUTPUT
-          else
-            echo "Creating new PR..."
-            PR_BODY="Automated sync of **main → stage**."$'\n\n'"This PR hard-resets \`stage\` to match \`main\`."
-            PR_URL=$(gh pr create --base stage --head stage-sync-reset --title "Sync stage with main" --body "$PR_BODY")
-            # Extract PR number from URL (format: https://github.com/owner/repo/pull/123)
-            PR_NUMBER=$(echo "$PR_URL" | sed 's/.*\/pull\///')
-            echo "Created PR #$PR_NUMBER: $PR_URL"
-            echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Wait for checks and merge PR
-        if: steps.create_pr.outputs.pr_number != ''
-        run: |
-          PR_NUMBER="${{ steps.create_pr.outputs.pr_number }}"
-          echo "Waiting for checks to pass on PR #$PR_NUMBER, then merging..."
-          
-          # Wait for checks to pass (max 30 minutes, check every 30 seconds)
-          MAX_WAIT=1800
-          ELAPSED=0
-          INTERVAL=30
-          
-          while [ $ELAPSED -lt $MAX_WAIT ]; do
-            STATUS=$(gh pr view "$PR_NUMBER" --json statusCheckRollup --jq '.statusCheckRollup[] | select(.conclusion != null) | .conclusion' | head -1 || echo "PENDING")
-            MERGEABLE=$(gh pr view "$PR_NUMBER" --json mergeable --jq '.mergeable' || echo "false")
-            
-            if [ "$MERGEABLE" = "true" ]; then
-              echo "PR #$PR_NUMBER is ready to merge. Merging now..."
-              gh pr merge "$PR_NUMBER" --merge --delete-branch || {
-                echo "Warning: Could not merge PR #$PR_NUMBER. It may require approvals."
-                echo "PR will need to be merged manually or approved by an authorized user."
-                exit 0
-              }
-              echo "Successfully merged PR #$PR_NUMBER"
-              exit 0
-            fi
-            
-            echo "Waiting for checks to pass... (elapsed: ${ELAPSED}s)"
-            sleep $INTERVAL
-            ELAPSED=$((ELAPSED + INTERVAL))
-          done
-          
-          echo "Timeout waiting for PR #$PR_NUMBER to become mergeable. PR will need manual intervention."
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Force push to stage branch
+          git push origin stage --force
