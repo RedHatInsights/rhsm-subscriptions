@@ -55,7 +55,10 @@ jobs:
           else
             echo "Creating new PR..."
             PR_BODY="Automated sync of **main → stage**."$'\n\n'"This PR hard-resets \`stage\` to match \`main\`."
-            PR_NUMBER=$(gh pr create --base stage --head stage-sync-reset --title "Sync stage with main" --body "$PR_BODY" --json number --jq '.number')
+            PR_URL=$(gh pr create --base stage --head stage-sync-reset --title "Sync stage with main" --body "$PR_BODY")
+            # Extract PR number from URL (format: https://github.com/owner/repo/pull/123)
+            PR_NUMBER=$(echo "$PR_URL" | sed 's/.*\/pull\///')
+            echo "Created PR #$PR_NUMBER: $PR_URL"
             echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
           fi
         env:
