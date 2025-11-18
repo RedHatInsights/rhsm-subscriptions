@@ -64,20 +64,37 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Enable auto-merge
+      - name: Wait for checks and merge PR
         if: steps.create_pr.outputs.pr_number != ''
         run: |
           PR_NUMBER="${{ steps.create_pr.outputs.pr_number }}"
-          echo "Enabling auto-merge for PR #$PR_NUMBER"
+          echo "Waiting for checks to pass on PR #$PR_NUMBER, then merging..."
           
-          # Enable auto-merge - this will merge automatically once all checks pass
-          # and any required approvals are met (if branch protection allows)
-          gh pr merge "$PR_NUMBER" --merge --auto || {
-            echo "Warning: Could not enable auto-merge. This may be due to branch protection requiring approvals."
-            echo "PR #$PR_NUMBER will need to be merged manually or approved by an authorized user."
-            exit 0
-          }
+          # Wait for checks to pass (max 30 minutes, check every 30 seconds)
+          MAX_WAIT=1800
+          ELAPSED=0
+          INTERVAL=30
           
-          echo "Auto-merge enabled for PR #$PR_NUMBER. It will merge automatically once checks pass."
+          while [ $ELAPSED -lt $MAX_WAIT ]; do
+            STATUS=$(gh pr view "$PR_NUMBER" --json statusCheckRollup --jq '.statusCheckRollup[] | select(.conclusion != null) | .conclusion' | head -1 || echo "PENDING")
+            MERGEABLE=$(gh pr view "$PR_NUMBER" --json mergeable --jq '.mergeable' || echo "false")
+            
+            if [ "$MERGEABLE" = "true" ]; then
+              echo "PR #$PR_NUMBER is ready to merge. Merging now..."
+              gh pr merge "$PR_NUMBER" --merge --delete-branch || {
+                echo "Warning: Could not merge PR #$PR_NUMBER. It may require approvals."
+                echo "PR will need to be merged manually or approved by an authorized user."
+                exit 0
+              }
+              echo "Successfully merged PR #$PR_NUMBER"
+              exit 0
+            fi
+            
+            echo "Waiting for checks to pass... (elapsed: ${ELAPSED}s)"
+            sleep $INTERVAL
+            ELAPSED=$((ELAPSED + INTERVAL))
+          done
+          
+          echo "Timeout waiting for PR #$PR_NUMBER to become mergeable. PR will need manual intervention."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
