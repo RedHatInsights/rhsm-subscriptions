@@ -12,9 +12,9 @@ metadata:
   creationTimestamp:
   labels:
     appstudio.openshift.io/application: rhsm-subscriptions
-    appstudio.openshift.io/component: swatch-api
+    appstudio.openshift.io/component: swatch-subscription-sync
     pipelines.appstudio.openshift.io/type: build
-  name: swatch-api-on-pull-request
+  name: swatch-subscription-sync-on-pull-request
   namespace: rh-subs-watch-tenant
 spec:
   params:
@@ -23,7 +23,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/rh-subs-watch-tenant/rhsm-subscriptions/swatch-api:on-pr-{{revision}}
+    value: quay.io/redhat-user-workloads/rh-subs-watch-tenant/rhsm-subscriptions/swatch-subscription-sync:on-pr-{{revision}}
   - name: image-expires-after
     value: 5d
   - name: dockerfile
@@ -603,7 +603,7 @@ spec:
     - name: netrc
       optional: true
   taskRunTemplate:
-    serviceAccountName: build-pipeline-swatch-api
+    serviceAccountName: build-pipeline-swatch-subscription-sync
   workspaces:
   - name: git-auth
     secret:
