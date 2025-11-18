@@ -1,4 +1,4 @@
-name: Sync Stage with Main
+name: Sync Stable with Main
 
 on:
   push:
@@ -19,13 +19,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Hard reset stage to main
+      - name: Hard reset stable to main
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Hard reset stage branch to match main exactly
-          git checkout -B stage origin/main
+          # Hard reset stable branch to match main exactly
+          git checkout -B stable origin/main
 
-          # Force push to stage branch
-          git push origin stage --force
+          # Force push to stable branch
+          git push origin stable --force
