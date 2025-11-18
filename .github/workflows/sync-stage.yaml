@@ -31,6 +31,11 @@ jobs:
           # Push reset branch
           git push origin stage-sync-reset --force
 
+      - name: Ensure branch is fully fetched
+        run: |
+          git fetch --prune --tags --force --depth=0 origin
+          git fetch origin stage-sync-reset:stage-sync-reset --force
+
       - name: Create or update PR
         id: create_pull_request
         uses: peter-evans/create-pull-request@v6
