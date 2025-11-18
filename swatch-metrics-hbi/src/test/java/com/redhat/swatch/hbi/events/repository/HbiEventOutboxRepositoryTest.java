@@ -21,6 +21,7 @@
 package com.redhat.swatch.hbi.events.repository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.hbi.events.test.helpers.HbiEventOutboxTestHelper;
@@ -28,6 +29,7 @@ import com.redhat.swatch.hbi.events.test.resources.PostgresResource;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import jakarta.transaction.UserTransaction;
 import java.util.List;
@@ -35,6 +37,8 @@ import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.LongStream;
+import org.hibernate.Session;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -45,6 +49,7 @@ class HbiEventOutboxRepositoryTest {
   @Inject HbiEventOutboxTestHelper outboxHelper;
   @Inject HbiEventOutboxRepository repository;
   @Inject UserTransaction userTransaction;
+  @Inject EntityManager entityManager;
 
   @BeforeEach
   @Transactional
@@ -184,10 +189,41 @@ class HbiEventOutboxRepositoryTest {
     t1.join(2000);
     t2.join(2000);
 
-    assertTrue(secondTxResult.get() != null);
+    assertNotNull(secondTxResult.get());
     // Because the row is locked by the first transaction and the query uses SKIP LOCKED,
     // the second transaction should not see the locked row.
     assertEquals(0, secondTxResult.get().size());
+  }
+
+  @Test
+  void testEstimatedOutboxRecords() throws InterruptedException {
+    long count = givenManyOutboxRecords();
+    // The 'retuples' column needs to be updated
+    // for the estimate to be accurate.
+    forceVacuum();
+    assertEquals(count, repository.estimatedCount());
+  }
+
+  @Transactional
+  long givenManyOutboxRecords() {
+    long count = 1000;
+    LongStream.range(0, count)
+        .forEach(
+            i -> {
+              givenExistingHbiEventOutbox();
+            });
+    return count;
+  }
+
+  void forceVacuum() {
+    entityManager
+        .unwrap(Session.class)
+        .doWork(
+            connection -> {
+              try (var statement = connection.prepareStatement("VACUUM hbi_event_outbox")) {
+                statement.executeUpdate();
+              }
+            });
   }
 
   private HbiEventOutbox givenExistingHbiEventOutbox() {
