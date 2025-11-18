@@ -24,6 +24,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
+import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
 import com.redhat.swatch.hbi.events.normalization.Host;
 import java.io.IOException;
 import java.io.InputStream;
@@ -163,6 +164,19 @@ public class HbiEventHelper {
     return List.of(hypervisorEvent, guestEvent);
   }
 
+  public static HbiHostDeleteEvent getDeletedHostEvent(
+      String inventoryUuid, String orgId, String insightsId, OffsetDateTime timestamp) {
+    String template =
+        readJsonFilePath("data/templates/hbi_host_deleted_event.json")
+            .replaceAll("\\$INVENTORY_UUID", inventoryUuid)
+            .replaceAll("\\$ORG_ID", orgId)
+            .replaceAll("\\$INSIGHTS_UUID", insightsId)
+            .replaceAll("\\$TIMESTAMP", timestamp.toString());
+
+    EventTemplateValidator.verifyNoTemplateVariablesExist(template);
+    return validateEvent(getEvent(template, HbiHostDeleteEvent.class));
+  }
+
   private static String readJsonFilePath(String name) {
     try (InputStream is =
         Thread.currentThread().getContextClassLoader().getResourceAsStream(name)) {
@@ -191,6 +205,22 @@ public class HbiEventHelper {
       new Host(event.getHost());
     } catch (Exception e) {
       throw new RuntimeException("Invalid template data specified.", e);
+    }
+    return event;
+  }
+
+  private static HbiHostDeleteEvent validateEvent(HbiHostDeleteEvent event) {
+    if (event == null) {
+      throw new RuntimeException("Delete event is null.");
+    }
+    if (event.getId() == null || event.getId().toString().isEmpty()) {
+      throw new RuntimeException("Delete event missing inventory ID.");
+    }
+    if (event.getOrgId() == null || event.getOrgId().isEmpty()) {
+      throw new RuntimeException("Delete event missing orgId.");
+    }
+    if (event.getTimestamp() == null) {
+      throw new RuntimeException("Delete event missing timestamp.");
     }
     return event;
   }

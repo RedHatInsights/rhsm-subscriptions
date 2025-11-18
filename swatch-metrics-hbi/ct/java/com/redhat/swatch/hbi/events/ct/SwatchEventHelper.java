@@ -23,6 +23,7 @@ package com.redhat.swatch.hbi.events.ct;
 import com.redhat.swatch.hbi.events.HbiEventConstants;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
+import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
 import com.redhat.swatch.hbi.events.normalization.Host;
 import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
@@ -149,6 +150,81 @@ public class SwatchEventHelper {
         productIds,
         tags,
         new SwatchEventHelper().buildMeasurements(cores, sockets));
+  }
+
+  public static Event createExpectedDeletedEvent(
+      HbiHostCreateUpdateEvent lastKnownHbiEvent,
+      HbiHostDeleteEvent deleteEvent,
+      List<String> productIds,
+      Set<String> tags,
+      boolean isUnmappedGuest,
+      boolean isHypervisor) {
+
+    return lastKnownHbiEvent != null
+        ? createExpectedDeletedEventFromKnownHost(
+            lastKnownHbiEvent, deleteEvent, productIds, tags, isUnmappedGuest, isHypervisor)
+        : createExpectedDeletedEventFromUnseenHost(deleteEvent);
+  }
+
+  private static Event createExpectedDeletedEventFromKnownHost(
+      HbiHostCreateUpdateEvent lastKnownHbiEvent,
+      HbiHostDeleteEvent deleteEvent,
+      List<String> productIds,
+      Set<String> tags,
+      boolean isUnmappedGuest,
+      boolean isHypervisor) {
+
+    Host hostModel = new Host(lastKnownHbiEvent.getHost());
+    SystemProfileFacts sys = hostModel.getSystemProfileFacts();
+    RhsmFacts rhsm = hostModel.getRhsmFacts().orElse(null);
+
+    boolean isVirtualHost = isVirtualHost(sys, rhsm);
+    boolean hasCloudProvider =
+        "AWS".equalsIgnoreCase(sys.getCloudProvider())
+            || "AZURE".equalsIgnoreCase(sys.getCloudProvider());
+    String hypervisorUuid = sys.getHypervisorUuid();
+
+    HardwareType hardwareType = determineHardwareType(hasCloudProvider, isVirtualHost);
+    int sockets =
+        computeSockets(sys, isVirtualHost, hasCloudProvider, isUnmappedGuest, isHypervisor, tags);
+    int cores = computeCores(sys, isVirtualHost);
+    CloudProvider cloudProvider = resolveCloudProvider(sys, hasCloudProvider);
+
+    return createSwatchEvent(
+        lastKnownHbiEvent.getHost(),
+        NormalizedEventType.INSTANCE_DELETED,
+        deleteEvent.getTimestamp().toOffsetDateTime(),
+        Sla.fromValue(rhsm != null ? rhsm.getSla() : null),
+        Usage.fromValue(rhsm != null ? rhsm.getUsage() : null),
+        cloudProvider,
+        hardwareType,
+        isVirtualHost,
+        isUnmappedGuest,
+        isHypervisor,
+        hypervisorUuid,
+        productIds,
+        tags,
+        new SwatchEventHelper().buildMeasurements(cores, sockets));
+  }
+
+  private static Event createExpectedDeletedEventFromUnseenHost(HbiHostDeleteEvent deleteEvent) {
+
+    // Minimal “unseen host” deleted event; only trusted fields from delete payload.
+    String inventoryId = deleteEvent.getId().toString();
+    String insightsId = deleteEvent.getInsightsId();
+    String orgId = deleteEvent.getOrgId();
+
+    return new Event()
+        .withServiceType(HbiEventConstants.EVENT_SERVICE_TYPE)
+        .withEventSource(HbiEventConstants.EVENT_SOURCE)
+        .withEventType(NormalizedEventType.INSTANCE_DELETED.toString())
+        .withTimestamp(deleteEvent.getTimestamp().toOffsetDateTime())
+        .withExpiration(
+            java.util.Optional.of(deleteEvent.getTimestamp().toOffsetDateTime().plusHours(1)))
+        .withOrgId(orgId)
+        .withInstanceId(inventoryId) // choose inventory UUID as instance id
+        .withInventoryId(java.util.Optional.of(inventoryId))
+        .withInsightsId(java.util.Optional.ofNullable(insightsId));
   }
 
   private static boolean isVirtualHost(SystemProfileFacts sys, RhsmFacts rhsm) {
