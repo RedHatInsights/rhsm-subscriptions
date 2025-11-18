@@ -1,0 +1,32 @@
+name: Sync Stage with Main
+
+# The Trigger: Runs on every push to main
+on:
+  push:
+    branches:
+      - main
+  # Allows manual triggering from Actions tab
+  workflow_dispatch:
+
+jobs:
+  sync-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history so we can move branches
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Hard Reset Stage to Main
+        run: |
+          # Configure git bot user
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+
+          # Force stage to match main exactly
+          git checkout -B stage origin/main
+
+          # Push the change (--force required for branch reset)
+          git push origin stage --force
+
