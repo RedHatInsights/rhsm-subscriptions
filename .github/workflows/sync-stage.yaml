@@ -33,6 +33,8 @@ jobs:
 
       - name: Ensure branch is fully fetched
         run: |
+          # Checkout main so we can fetch stage-sync-reset without conflict
+          git checkout main
           git fetch --prune --tags --force origin
           git fetch origin stage-sync-reset:stage-sync-reset --force
 
