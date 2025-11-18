@@ -31,31 +31,50 @@ jobs:
           # Push reset branch
           git push origin stage-sync-reset --force
 
-      - name: Ensure branch is fully fetched
+      - name: Check if stage differs from main and create PR
+        id: create_pr
         run: |
-          # Checkout main so we can fetch stage-sync-reset without conflict
-          git checkout main
-          git fetch --prune --tags --force origin
-          git fetch origin stage-sync-reset:stage-sync-reset --force
-
-      - name: Create or update PR
-        id: create_pull_request
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: stage-sync-reset
-          title: "Sync stage with main"
-          body: |
-            Automated sync of **main → stage**.
-
-            This PR hard-resets `stage` to match `main`.
-          base: stage
-          delete-branch: true
-
-      - name: Enable auto-merge
-        if: steps.create_pull_request.outputs.pull_request_number != ''
-        run: |
-          gh pr merge "$PR_NUMBER" --merge --auto
+          git fetch origin stage:stage --force
+          DIFF_COUNT=$(git rev-list --right-only --count origin/stage...origin/main || echo "0")
+          
+          if [ "$DIFF_COUNT" -eq "0" ]; then
+            echo "Stage is already up to date with main. No PR needed."
+            echo "pr_number=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          echo "Stage differs from main by $DIFF_COUNT commits. Creating PR."
+          
+          # Check if PR already exists
+          EXISTING_PR=$(gh pr list --base stage --head stage-sync-reset --json number --jq '.[0].number' || echo "")
+          
+          if [ -n "$EXISTING_PR" ] && [ "$EXISTING_PR" != "null" ]; then
+            echo "PR #$EXISTING_PR already exists. Updating..."
+            gh pr edit "$EXISTING_PR" --title "Sync stage with main" --body "Automated sync of **main → stage**."$'\n\n'"This PR hard-resets \`stage\` to match \`main\`."
+            echo "pr_number=$EXISTING_PR" >> $GITHUB_OUTPUT
+          else
+            echo "Creating new PR..."
+            PR_BODY="Automated sync of **main → stage**."$'\n\n'"This PR hard-resets \`stage\` to match \`main\`."
+            PR_NUMBER=$(gh pr create --base stage --head stage-sync-reset --title "Sync stage with main" --body "$PR_BODY" --json number --jq '.number')
+            echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ steps.create_pull_request.outputs.pull_request_number }}
+
+      - name: Enable auto-merge
+        if: steps.create_pr.outputs.pr_number != ''
+        run: |
+          PR_NUMBER="${{ steps.create_pr.outputs.pr_number }}"
+          echo "Enabling auto-merge for PR #$PR_NUMBER"
+          
+          # Enable auto-merge - this will merge automatically once all checks pass
+          # and any required approvals are met (if branch protection allows)
+          gh pr merge "$PR_NUMBER" --merge --auto || {
+            echo "Warning: Could not enable auto-merge. This may be due to branch protection requiring approvals."
+            echo "PR #$PR_NUMBER will need to be merged manually or approved by an authorized user."
+            exit 0
+          }
+          
+          echo "Auto-merge enabled for PR #$PR_NUMBER. It will merge automatically once checks pass."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
