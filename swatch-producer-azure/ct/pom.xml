@@ -30,6 +30,10 @@
       <groupId>com.redhat.swatch</groupId>
       <artifactId>swatch-model-billable-usage</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-product-configuration</artifactId>
+    </dependency>
 
     <!-- Required so the Maven reactor compiles this dependency -->
     <dependency>
