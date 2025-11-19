@@ -22,7 +22,7 @@ COPY . .
 ARG MAVEN_BUILD_ARGS=''
 ARG MAVEN_TASKS='clean package'
 RUN --mount=type=cache,target=/root/.m2 \
-    ./mvnw ${MAVEN_TASKS} -DskipTests ${MAVEN_BUILD_ARGS}
+    ./mvnw ${MAVEN_TASKS} -pl swatch-system-conduit -am -DskipTests ${MAVEN_BUILD_ARGS}
 
 # See https://stackoverflow.com/a/786515
 RUN (cd /stage/swatch-system-conduit && exec jar -xf ./target/*.jar)
