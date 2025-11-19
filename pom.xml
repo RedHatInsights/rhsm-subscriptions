@@ -284,9 +284,9 @@
         <version>1.18.40</version>
       </dependency>
       <dependency>
-        <groupId>com.github.tomakehurst</groupId>
+        <groupId>org.wiremock</groupId>
         <artifactId>wiremock-standalone</artifactId>
-        <version>3.0.1</version>
+        <version>3.13.2</version>
       </dependency>
       <dependency>
         <groupId>org.yaml</groupId>

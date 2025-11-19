@@ -11,4 +11,5 @@
   <include file="db/202508010700_create_outbox_table.xml"/>
   <include file="db/202510211515_add_org_id_hypervisor_uuid_index_on_relationship_table.xml"/>
   <include file="db/202510271354_add_created_on_index_on_event_outbox.xml"/>
+  <include file="db/202511180916_add_index_on_host_relationship.xml"/>
 </databaseChangeLog>
