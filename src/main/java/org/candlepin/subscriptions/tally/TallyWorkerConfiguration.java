@@ -390,4 +390,38 @@ public class TallyWorkerConfiguration {
     factory.getContainerProperties().setConsumerRebalanceListener(registry);
     return factory;
   }
+
+  @Bean
+  public ConsumerFactory<String, Event> eventConsumerFactory(
+      KafkaProperties kafkaProperties, ObjectMapper objectMapper) {
+    var props = kafkaProperties.buildConsumerProperties(null);
+    props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+    props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, true);
+    var jsonDeserializer = new JsonDeserializer<>(Event.class, objectMapper, false);
+    var factory =
+        new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), jsonDeserializer);
+    factory.setValueDeserializer(jsonDeserializer);
+    return factory;
+  }
+
+  @Bean
+  public ConcurrentKafkaListenerContainerFactory<String, Event> eventKafkaListenerContainerFactory(
+      ConsumerFactory<String, Event> consumerFactory,
+      KafkaProperties kafkaProperties,
+      KafkaConsumerRegistry registry) {
+
+    var factory = new ConcurrentKafkaListenerContainerFactory<String, Event>();
+    factory.setConsumerFactory(consumerFactory);
+    factory.setBatchListener(false); // Single event processing, not batch
+    // Concurrency should be set to the number of partitions for the target topic.
+    factory.setConcurrency(kafkaProperties.getListener().getConcurrency());
+    if (kafkaProperties.getListener().getIdleEventInterval() != null) {
+      factory
+          .getContainerProperties()
+          .setIdleEventInterval(kafkaProperties.getListener().getIdleEventInterval().toMillis());
+    }
+    // hack to track the Kafka consumers, so SeekableKafkaConsumer can commit when needed
+    factory.getContainerProperties().setConsumerRebalanceListener(registry);
+    return factory;
+  }
 }

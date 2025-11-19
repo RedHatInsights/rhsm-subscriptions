@@ -50,6 +50,7 @@ import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.util.TransactionHandler;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.listener.BatchListenerFailedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -68,6 +69,7 @@ public class EventController {
   private final EventConflictResolver eventConflictResolver;
   private final EventNormalizer eventNormalizer;
   private final MeterRegistry meterRegistry;
+  private final KafkaTemplate<String, Event> eventKafkaTemplate;
 
   public EventController(
       EventRecordRepository repo,
@@ -76,7 +78,8 @@ public class EventController {
       TransactionHandler transactionHandler,
       EventConflictResolver eventConflictResolver,
       EventNormalizer eventNormalizer,
-      MeterRegistry meterRegistry) {
+      MeterRegistry meterRegistry,
+      KafkaTemplate<String, Event> eventKafkaTemplate) {
     this.repo = repo;
     this.objectMapper = objectMapper;
     this.optInController = optInController;
@@ -84,6 +87,7 @@ public class EventController {
     this.eventConflictResolver = eventConflictResolver;
     this.eventNormalizer = eventNormalizer;
     this.meterRegistry = meterRegistry;
+    this.eventKafkaTemplate = eventKafkaTemplate;
   }
 
   /**
@@ -215,6 +219,9 @@ public class EventController {
 
     // create the ingested usage metrics for created events
     updateIngestedUsage(savedEvents);
+
+    // produce Kafka messages for each saved event
+    produceEventsToKafka(savedEvents);
 
     if (result
         .failedOnIndex
@@ -406,6 +413,28 @@ public class EventController {
     meterRegistry
         .counter(INGESTED_USAGE_METRIC, tags.toArray(new String[0]))
         .increment(measurement.getValue());
+  }
+
+  /**
+   * Produces Kafka messages for each saved event on the "lburnett" topic.
+   *
+   * @param savedEvents the list of saved EventRecord objects
+   */
+  private void produceEventsToKafka(List<EventRecord> savedEvents) {
+    for (EventRecord eventRecord : savedEvents) {
+      try {
+        Event event = eventRecord.getEvent();
+        String key = event.getOrgId(); // Use orgId as the message key for partitioning
+        eventKafkaTemplate.send("lburnett", key, event);
+        log.debug(
+            "Sent event to Kafka topic 'lburnett': eventId={}, orgId={}",
+            event.getEventId(),
+            event.getOrgId());
+      } catch (Exception e) {
+        log.error("Failed to send event to Kafka topic 'lburnett': {}", eventRecord.getEvent(), e);
+      }
+    }
+    log.info("Produced {} events to Kafka topic 'lburnett'", savedEvents.size());
   }
 
   private static class ServiceInstancesResult {

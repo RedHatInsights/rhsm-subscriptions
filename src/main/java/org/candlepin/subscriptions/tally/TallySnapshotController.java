@@ -43,6 +43,7 @@ import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.TallyState;
 import org.candlepin.subscriptions.db.model.TallyStateKey;
 import org.candlepin.subscriptions.event.EventController;
+import org.candlepin.subscriptions.json.Event;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.retry.support.RetryTemplate;
@@ -145,6 +146,9 @@ public class TallySnapshotController {
 
         AccountUsageCalculationCache calcCache = new AccountUsageCalculationCache();
 
+        // TODO get an event from the "lburnett" topic to do metricUsageCollector.updateHosts and
+        // metricUsageCollector.calculateUsage process instead of batches
+
         // We use a functional interface for processing event batches to allow
         // us to wrap the Event fetch in a read only transaction without needing
         // to annotate this method with a DB transaction.
@@ -175,6 +179,8 @@ public class TallySnapshotController {
                   .flatMap(Set::stream)
                   .map(Variant::getTag)
                   .collect(Collectors.toSet());
+
+          // TODO this is the new target for where we want event ingestion to stop
 
           Map<String, List<TallySnapshot>> totalSnapshots =
               combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
@@ -262,6 +268,101 @@ public class TallySnapshotController {
           return null;
         });
     return usageCollector.tally(orgId);
+  }
+
+  /**
+   * Processes an individual event from the "lburnett" topic for metric usage calculation. This
+   * replaces the batch processing approach with event-driven processing.
+   *
+   * @param event the individual Event to process
+   */
+  @Transactional
+  public void processIndividualEvent(Event event) {
+    String orgId = event.getOrgId();
+    String serviceType = event.getServiceType();
+
+    log.debug(
+        "Processing individual event for orgId={} serviceType={} eventId={}",
+        orgId,
+        serviceType,
+        event.getEventId());
+
+    try {
+      // Get or initialize tally state for this org/service type
+      TallyState currentState =
+          tallyStateRepository
+              .findById(new TallyStateKey(orgId, serviceType))
+              .orElseGet(() -> initializeTallyState(orgId, serviceType));
+
+      // Create calculation cache for this single event
+      AccountUsageCalculationCache calcCache = new AccountUsageCalculationCache();
+
+      // Process the single event using retry template
+      retryTemplate.execute(
+          context -> {
+            // Update hosts and calculate usage for this single event
+            metricUsageCollector.updateHosts(orgId, serviceType, List.of(event));
+            metricUsageCollector.calculateUsage(List.of(event), calcCache);
+
+            // Update the latest event record date
+            currentState.setLatestEventRecordDate(event.getRecordDate());
+            return null;
+          });
+
+      // TODO
+
+      // If there are calculations from this event, produce snapshots
+      if (!calcCache.isEmpty()) {
+        var applicableUsageCalculations =
+            calcCache.getCalculations().entrySet().stream()
+                .filter(this::isCombiningRollupStrategySupported)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        if (!applicableUsageCalculations.isEmpty()) {
+          Set<String> tags =
+              SubscriptionDefinition.findByServiceType(serviceType).stream()
+                  .map(SubscriptionDefinition::getVariants)
+                  .flatMap(Set::stream)
+                  .map(Variant::getTag)
+                  .collect(Collectors.toSet());
+
+          // Produce snapshots from the calculations
+          Map<String, List<TallySnapshot>> totalSnapshots =
+              combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
+                  orgId,
+                  calcCache.getCalculationRange(),
+                  tags,
+                  applicableUsageCalculations,
+                  Granularity.HOURLY,
+                  Double::sum);
+
+          // Update tally state and record metrics
+          tallyStateRepository.update(currentState);
+          recordTallyCount(totalSnapshots.values().stream().flatMap(Collection::stream).toList());
+
+          // Produce tally summary messages
+          summaryProducer.produceTallySummaryMessages(
+              totalSnapshots,
+              List.of(Granularity.HOURLY, Granularity.DAILY),
+              SnapshotSummaryProducer.hourlySnapFilter);
+
+          log.debug(
+              "Produced {} snapshots for individual event: eventId={}, orgId={}",
+              totalSnapshots.values().stream().mapToInt(List::size).sum(),
+              event.getEventId(),
+              orgId);
+        }
+      }
+
+    } catch (Exception e) {
+      log.error(
+          "Failed to process individual event: eventId={}, orgId={}, serviceType={}",
+          event.getEventId(),
+          orgId,
+          serviceType,
+          e);
+      throw e;
+    }
   }
 
   private TallyState initializeTallyState(String orgId, String serviceType) {
