@@ -127,12 +127,18 @@ jobs:
           cache: 'maven'
 
       - name: Setup JBang
-        uses: jbangdev/setup-jbang@main
+        run: |
+          wget -q https://github.com/jbangdev/jbang/releases/latest/download/jbang.zip -O /tmp/jbang.zip
+          unzip -q /tmp/jbang.zip -d /tmp
+          chmod +x /tmp/jbang/bin/jbang
+          echo "/tmp/jbang/bin" >> $GITHUB_PATH
+          export PATH="/tmp/jbang/bin:$PATH"
+          jbang version
 
       - name: Setup yamlpath
         run: |
           jbang trust add https://github.com/yaml-path/jbang/
-          curl -Ls https://sh.jbang.dev | bash -s - app install --fresh --force yamlpath@yaml-path/jbang
+          jbang app install --fresh --force yamlpath@yaml-path/jbang
 
       - name: Setup PostgreSQL DB
         run: docker run -d -v ./init_dbs.sh:/usr/share/container-scripts/postgresql/start/set_passwords.sh:z -p 5432:5432 -e POSTGRESQL_ADMIN_PASSWORD=admin quay.io/sclorg/postgresql-16-c9s:c9s
