@@ -1243,9 +1243,9 @@ This section validates capacity calculations across time boundaries. Tests verif
 - **Description**: Verify reconciliation triggers for all subscriptions of an offering
 - **Action**: `CapacityReconciliationService.reconcileCapacityForOffering(String sku)`
 - **Test Steps**:
-  1. Create an offering with sku="MW01485"
+  1. Create an offering.
   2. Create 5 subscriptions for this offering
-  3. Call capacityReconciliationService.reconcileCapacityForOffering("MW01485")
+  3. Call capacityReconciliationService.reconcileCapacityForOffering(SKU_NUMBER)
 - **Expected Results**:
   - ReconcileCapacityByOfferingTask messages published to Kafka
   - All subscriptions processed
