@@ -51,14 +51,19 @@ class CreateUpdateEventIngestionTest extends BaseSMHBIComponentTest {
    * Verify service accepts HBI Create/Update events for a physical x86 host and produce the
    * expected Swatch Event messages.
    *
-   * <p>test_steps: 1. Toggle feature flag to allow service to emit swatch events. 2. Send a
-   * created/updated message to the HBI event topic to simulate that a host was created in HBI.
+   * test_steps:
+   * 1. Toggle feature flag to allow service to emit swatch events.
+   * 2. Send a created/updated message to the HBI event topic to simulate that a host was
+   * created in HBI.
    * 3. Flush the outbox table.
-   * expected_results: 1. The swatch-metrics-hbi service will ingest the event and should create an
-   * outbox record for a Swatch Event message containing the measurements for the host represented
-   * by the HBI event. NOTE: We expect the same result regardless of whether the HBI event was host
-   * created OR host updated. 2. When the outbox table is flushed, SWatch events are sent for each
-   * outbox record that was flushed.
+   *
+   * expected_results:
+   * 1. The swatch-metrics-hbi service will ingest the event and should create an outbox
+   * record for a Swatch Event message containing the measurements for the host represented
+   * by the HBI event. NOTE: We expect the same result regardless of whether the HBI event was
+   * host created OR host updated.
+   * 2. When the outbox table is flushed, SWatch events are sent for each outbox record
+   * that was flushed.
    */
   @ParameterizedTest
   @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
@@ -97,14 +102,19 @@ class CreateUpdateEventIngestionTest extends BaseSMHBIComponentTest {
    * Verify service accepts HBI Create/Update events for a virtual x86 host and produce the
    * expected Swatch Event messages with metrics applied using virtual CPUs from threads per core fact.
    *
-   * <p>test_steps: 1. Toggle feature flag to allow service to emit swatch events. 2. Send a
-   * created/updated message to the HBI event topic to simulate that a host was created in HBI.
+   * test_steps:
+   * 1. Toggle feature flag to allow service to emit swatch events.
+   * 2. Send a created/updated message to the HBI event topic to simulate that a host
+   * was created in HBI.
    * 3. Flush the outbox table.
-   * expected_results: 1. The swatch-metrics-hbi service will ingest the event and should create an
-   * outbox record for a Swatch Event message containing the measurements for the host represented
-   * by the HBI event. NOTE: We expect the same result regardless of whether the HBI event was host
-   * created OR host updated. 2. When the outbox table is flushed, SWatch events are sent for each
-   * outbox record that was flushed.
+   *
+   * expected_results:
+   * 1. The swatch-metrics-hbi service will ingest the event and should create an outbox
+   * record for a Swatch Event message containing the measurements for the host represented
+   * by the HBI event. NOTE: We expect the same result regardless of whether the HBI event was
+   * host created OR host updated.
+   * 2. When the outbox table is flushed, SWatch events are sent for each outbox record
+   * that was flushed.
    */
   @ParameterizedTest
   @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
@@ -144,14 +154,19 @@ class CreateUpdateEventIngestionTest extends BaseSMHBIComponentTest {
    * Verify service accepts HBI Create/Update events for a virtual x86 host and produce the
    * expected Swatch Event messages with metrics applied using virtual CPUs from CPUs fact.
    *
-   * <p>test_steps: 1. Toggle feature flag to allow service to emit swatch events. 2. Send a
-   * created/updated message to the HBI event topic to simulate that a host was created in HBI.
+   * test_steps:
+   * 1. Toggle feature flag to allow service to emit swatch events.
+   * 2. Send a created/updated message to the HBI event topic to simulate that a host
+   * was created in HBI.
    * 3. Flush the outbox table.
-   * expected_results: 1. The swatch-metrics-hbi service will ingest the event and should create an
-   * outbox record for a Swatch Event message containing the measurements for the host represented
-   * by the HBI event. NOTE: We expect the same result regardless of whether the HBI event was host
-   * created OR host updated. 2. When the outbox table is flushed, SWatch events are sent for each
-   * outbox record that was flushed.
+   *
+   * expected_results:
+   * 1. The swatch-metrics-hbi service will ingest the event and should create an outbox
+   * record for a Swatch Event message containing the measurements for the host represented
+   * by the HBI event. NOTE: We expect the same result regardless of whether the HBI event was
+   * host created OR host updated.
+   * 2. When the outbox table is flushed, SWatch events are sent for each outbox record
+   * that was flushed.
    */
   @ParameterizedTest
   @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
@@ -187,19 +202,23 @@ class CreateUpdateEventIngestionTest extends BaseSMHBIComponentTest {
   }
 
   /*
-  * Verify service accepts HBI Create/Update events for a virtual RHEL for ARM host and produce the
-  * expected Swatch Event messages with metrics applied when no CPUs or threads facts found.
-
-  *
-  * <p>test_steps: 1. Toggle feature flag to allow service to emit swatch events. 2. Send a
-  * created/updated message to the HBI event topic to simulate that a host was created in HBI.
-  * 3. Flush the outbox table.
-  * expected_results: 1. The swatch-metrics-hbi service will ingest the event and should create an
-  * outbox record for a Swatch Event message containing the measurements for the host represented
-  * by the HBI event. NOTE: We expect the same result regardless of whether the HBI event was host
-  * created OR host updated. 2. When the outbox table is flushed, SWatch events are sent for each
-  * outbox record that was flushed.
-  */
+   * Verify service accepts HBI Create/Update events for a virtual RHEL for ARM host and produce the
+   * expected Swatch Event messages with metrics applied when no CPUs or threads facts found.
+   *
+   * test_steps:
+   * 1. Toggle feature flag to allow service to emit swatch events.
+   * 2. Send a created/updated message to the HBI event topic to simulate that a host
+   * was created in HBI.
+   * 3. Flush the outbox table.
+   *
+   * expected_results:
+   * 1. The swatch-metrics-hbi service will ingest the event and should create an outbox
+   * record for a Swatch Event message containing the measurements for the host represented
+   * by the HBI event. NOTE: We expect the same result regardless of whether the HBI event was
+   * host created OR host updated.
+   * 2. When the outbox table is flushed, SWatch events are sent for each outbox record
+   * that was flushed.
+   */
   @ParameterizedTest
   @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
   void testHbiVirtualArmHostEvent(String hbiEventType, String swatchEventType) {
@@ -237,14 +256,19 @@ class CreateUpdateEventIngestionTest extends BaseSMHBIComponentTest {
    * Verify service accepts HBI Create/Update events for a virtual cloud provider host and produce
    * the expected Swatch Event messages.
    *
-   * <p>test_steps: 1. Toggle feature flag to allow service to emit swatch events. 2. Send a
-   * created/updated message to the HBI event topic to simulate that a host was created in HBI.
+   * <test_steps:
+   * 1. Toggle feature flag to allow service to emit swatch events.
+   * 2. Send a created/updated message to the HBI event topic to simulate that a host
+   * was created in HBI.
    * 3. Flush the outbox table.
-   * expected_results: 1. The swatch-metrics-hbi service will ingest the event and should create an
-   * outbox record for a Swatch Event message containing the measurements for the host represented
-   * by the HBI event. NOTE: We expect the same result regardless of whether the HBI event was host
-   * created OR host updated. 2. When the outbox table is flushed, SWatch events are sent for each
-   * outbox record that was flushed.
+   *
+   * expected_results:
+   * 1. The swatch-metrics-hbi service will ingest the event and should create an outbox
+   * record for a Swatch Event message containing the measurements for the host represented
+   * by the HBI event. NOTE: We expect the same result regardless of whether the HBI event was
+   * host created OR host updated.
+   * 2. When the outbox table is flushed, SWatch events are sent for each outbox record
+   * that was flushed.
    */
   @ParameterizedTest
   @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
@@ -282,17 +306,25 @@ class CreateUpdateEventIngestionTest extends BaseSMHBIComponentTest {
   /*
    * Verify service transitions a host to a hypervisor after the first guest becomes known.
    *
-   * <p>test_steps: 1. Toggle feature flag to allow service to emit swatch events. 2. Send a
-   * message to the HBI event topic to simulate that a physical host was created in HBI.
-   * 3. Send a message to the HBI event topic to simulate that the guest is now known in HBI.
+   * test_steps:
+   * 1. Toggle feature flag to allow service to emit swatch events.
+   * 2. Send a message to the HBI event topic to simulate that a physical host
+   * was created in HBI.
+   * 3. Send a message to the HBI event topic to simulate that the guest is now
+   * known in HBI.
    * 4. Flush the outbox table.
-   * expected_results: 1. The swatch-metrics-hbi service will ingest the physical host event
-   * and create an outbox record for a Swatch Event message representing a physical host, with
-   * measurement reflecting a physical host state. 2. The swatch-metrics-hbi service will
-   * ingest the guest event and will create an outbox record for two Swatch event messages:
-   * a) An event representing a mapped guest with correct measurements. b) An event representing
-   * the changes to the existing physical host which is now marked as hypervisor. 3. When the
-   * outbox table is flushed, SWatch events are sent for each outbox record that was flushed.
+   *
+   * expected_results:
+   * 1. The swatch-metrics-hbi service will ingest the physical host event and create
+   * an outbox record for a Swatch Event message representing a physical host, with
+   * measurement reflecting a physical host state.
+   * 2. The swatch-metrics-hbi service will ingest the guest event and will create an
+   * outbox record for two Swatch event messages:
+   *    a) An event representing a mapped guest with correct measurements.
+   *    b) An event representing the changes to the existing physical host which is now
+   *    marked as hypervisor.
+   * 3. When the outbox table is flushed, SWatch events are sent for each outbox
+   * record that was flushed.
    */
   @ParameterizedTest
   @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
@@ -345,17 +377,25 @@ class CreateUpdateEventIngestionTest extends BaseSMHBIComponentTest {
   /*
    * Verify service transitions a guest from unmapped to mapped when the hypervisor is known.
    *
-   * <p>test_steps: 1. Toggle feature flag to allow service to emit swatch events. 2. Send a
-   * message to the HBI event topic to simulate that an unmapped guest was created in HBI.
-   * 3. Send a message to the HBI event topic to simulate that the guest's hypervisor is known
-   * in HBI. 4. Flush the outbox table.
-   * expected_results: 1. The swatch-metrics-hbi service will ingest the guest event
-   * and create an outbox record for a Swatch Event message representing a mapped guest host,
-   * with measurement reflecting the mapped state. 2. The swatch-metrics-hbi service will
-   * ingest the hypervisor event and will create two outbox records: a) A record containing
-   * a SWatch event that represents the new hypervisor. b) A record with a SWatch event
-   * representing the newly updated values for the unmapped guest. 3. When the outbox table is
-   * flushed, SWatch events are sent for each outbox record that was flushed.
+   * test_steps:
+   * 1. Toggle feature flag to allow service to emit swatch events.
+   * 2. Send a message to the HBI event topic to simulate that an unmapped guest
+   * was created in HBI.
+   * 3. Send a message to the HBI event topic to simulate that the guest's hypervisor
+   * is known in HBI.
+   * 4. Flush the outbox table.
+   *
+   * expected_results:
+   * 1. The swatch-metrics-hbi service will ingest the guest event and create
+   * an outbox record for a Swatch Event message representing a mapped guest host,
+   * with measurement reflecting the mapped state.
+   * 2. The swatch-metrics-hbi service will ingest the hypervisor event and will
+   * create two outbox records:
+   *    a) A record containing a SWatch event that represents the new hypervisor.
+   *    b) A record with a SWatch event representing the newly updated values for the
+   *    unmapped guest.
+   * 3. When the outbox table is flushed, SWatch events are sent for each outbox
+   * record that was flushed.
    */
   @ParameterizedTest
   @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})

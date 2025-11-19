@@ -52,14 +52,19 @@ class DeleteEventIngestionTest extends BaseSMHBIComponentTest {
    * Verify service will accept an HBI delete event and produces an outbox record containing
    * the correct Swatch event message JSON.
    *
-   * <p>test_steps: 1. Toggle feature flag to allow service to emit swatch events. 2. Send a
-   * created message to the HBI event topic to simulate that a host was created in HBI.
-   * 3. Send a delete event to the HBI event topic. 4. Flush the outbox table.
-   * expected_results: 1. The swatch-metrics-hbi service will ingest the delete event and
-   * should create an outbox record containing the Swatch event JSON with an INSTANCE_DELETED
-   * type and should contain the last known measurements for the host represented by the HBI
-   * event. 2. When the outbox table is flushed, SWatch events are sent for the outbox
-   * record that was flushed.
+   * test_steps:
+   * 1. Toggle feature flag to allow service to emit swatch events.
+   * 2. Send a created message to the HBI event topic to simulate that a host was created
+   * in HBI.
+   * 3. Send a delete event to the HBI event topic.
+   * 4. Flush the outbox table.
+   *
+   * expected_results:
+   * 1. The swatch-metrics-hbi service will ingest the delete event and should create an
+   * outbox record containing the Swatch event JSON with an INSTANCE_DELETED type and should
+   * contain the last known measurements for the host represented by the HBI event.
+   * 2. When the outbox table is flushed, SWatch events are sent for the outbox record that
+   * was flushed.
    */
   @Test
   void testHbiDeletePhysicalRhsmHostEvent() {
@@ -91,16 +96,23 @@ class DeleteEventIngestionTest extends BaseSMHBIComponentTest {
    * a swatch INSTANCE_DELETED event for the hypervisor, and an INSTANCE_UPDATED swatch event for
    * all mapped guests.
    *
-   * <p>test_steps: 1. Toggle feature flag to allow service to emit swatch events. 2. Send a
-   * created message to the HBI event topic to initialize the host relationships and map
-   * the hypervisor and guest. 3. Send a delete event message to the HBI event topic for the
-   * hypervisor. 4. Flush the outbox table.
-   * expected_results: 1. The swatch-metrics-hbi service will ingest the delete event and
-   * create an outbox record for the following swatch events: a) A swatch event with type
-   * INSTANCE_DELETED for the hypervisor and should contain the last known measurements and
-   * metadata for the hypervisor. b) A swatch event with type INSTANCE_UPDATED for the guest
-   * and should contain the updated measurements and metadata for the guest. The guest
-   * should now be unmapped, and its measurements should reflect this change.
+   * test_steps:
+   * 1. Toggle feature flag to allow service to emit swatch events.
+   * 2. Send a created message to the HBI event topic to initialize the host relationships and
+   * map the hypervisor and guest.
+   * 3. Send a delete event message to the HBI event topic for the hypervisor.
+   * 4. Flush the outbox table.
+   *
+   * expected_results:
+   * 1. The swatch-metrics-hbi service will ingest the delete event and create an outbox
+   * record for the following swatch events:
+   *    a) A swatch event with type INSTANCE_DELETED for the hypervisor and should contain the
+   *    last known measurements and metadata for the hypervisor.
+   *    b) A swatch event with type INSTANCE_UPDATED for the guest and should contain the
+   *    updated measurements and metadata for the guest. The guest should now be unmapped, and
+   *    its measurements should reflect this change.
+   * 2. When the outbox table is flushed, SWatch events are sent for each outbox record that
+   * was flushed.
    */
   @Test
   void testHbiDeleteHypervisorHost() {
@@ -142,16 +154,23 @@ class DeleteEventIngestionTest extends BaseSMHBIComponentTest {
    * a swatch INSTANCE_DELETED event for the guest, and an INSTANCE_UPDATED swatch event for
    * the hypervisor.
    *
-   * <p>test_steps: 1. Toggle feature flag to allow service to emit swatch events. 2. Send a
-   * created message to the HBI event topic to initialize the host relationships and map
-   * the hypervisor and guest. 3. Send a delete event message to the HBI event topic for the
-   * guest. 4. Flush the outbox table.
-   * expected_results: 1. The swatch-metrics-hbi service will ingest the delete event and
-   * create an outbox record for the following swatch events: a) A swatch event with type
-   * INSTANCE_DELETED for the guest and should contain the last known measurements and
-   * metadata for the guest. b) A swatch event with type INSTANCE_UPDATED for the hypervisor
-   * and should contain the updated measurements and metadata for the hypervisor. The hypervisor
-   * should no longer be identified as a hypervisor (as per current nightly tally behavior).
+   * test_steps:
+   * 1. Toggle feature flag to allow service to emit swatch events.
+   * 2. Send a created message to the HBI event topic to initialize the host relationships and
+   * map the hypervisor and guest.
+   * 3. Send a delete event message to the HBI event topic for the guest.
+   * 4. Flush the outbox table.
+   *
+   * expected_results:
+   * 1. The swatch-metrics-hbi service will ingest the delete event and create an outbox
+   * record for the following swatch events:
+   *    a) A swatch event with type INSTANCE_DELETED for the guest and should contain the
+   *    last known measurements and metadata for the guest.
+   *    b) A swatch event with type INSTANCE_UPDATED for the hypervisor and should contain the
+   *    updated measurements and metadata for the hypervisor. The hypervisor should no longer be
+   *    identified as a hypervisor (as per current nightly tally behavior).
+   * 2. When the outbox table is flushed, SWatch events are sent for each outbox record that
+   * was flushed.
    */
   @Test
   void testHbiDeleteMappedGuestHost() {
@@ -194,12 +213,16 @@ class DeleteEventIngestionTest extends BaseSMHBIComponentTest {
    * for a Swatch INSTANCE_DELETED event. This JSON should contain the bare minimum host metadata.
    * In this case, there was no existing host relationship that stored the last known metadata.
    *
-   * <p>test_steps: 1. Toggle feature flag to allow service to emit swatch events. 2. Send a
-   * delete event message to the HBI event topic for the unseen guest. 3. Flush the outbox table.
-   * expected_results: 1. The swatch-metrics-hbi service will ingest the delete event and should
-   * create an outbox record with swatch event JSON containing the bare minimum host metadata
-   * provided by the incoming HBI event. 2. When the outbox table is flushed, SWatch events are
-   * sent for the outbox record that was flushed.
+   * test_steps:
+   * 1. Toggle feature flag to allow service to emit swatch events.
+   * 2. Send a delete event message to the HBI event topic for the unseen guest.
+   * 3. Flush the outbox table.
+   *
+   * expected_results:
+   * 1. The swatch-metrics-hbi service will ingest the delete event and should create an outbox
+   * record with swatch event JSON containing the bare minimum host metadata provided by the
+   * incoming HBI event.
+   * 2. When the outbox table is flushed, SWatch events are sent for the outbox record that was flushed.
    */
   @Test
   void testHbiDeleteEventWhenGuestHostHasNotBeenSeen() {
@@ -228,7 +251,7 @@ class DeleteEventIngestionTest extends BaseSMHBIComponentTest {
 
   /*
    * Produces a single "created" HBI host, flushes outbox, and waits for the expected
-   * Swatch event. Returns the original HBI event so the caller can build
+   * SWatch event. Returns the original HBI event so the caller can build
    * a matching delete event.
    */
   private HbiHostCreateUpdateEvent getExistingHostEvent() {
