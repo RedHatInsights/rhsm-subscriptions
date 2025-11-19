@@ -309,50 +309,14 @@ public class TallySnapshotController {
             return null;
           });
 
-      // TODO
+      // Update tally state after successful host and bucket persistence
+      tallyStateRepository.update(currentState);
 
-      // If there are calculations from this event, produce snapshots
-      if (!calcCache.isEmpty()) {
-        var applicableUsageCalculations =
-            calcCache.getCalculations().entrySet().stream()
-                .filter(this::isCombiningRollupStrategySupported)
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-        if (!applicableUsageCalculations.isEmpty()) {
-          Set<String> tags =
-              SubscriptionDefinition.findByServiceType(serviceType).stream()
-                  .map(SubscriptionDefinition::getVariants)
-                  .flatMap(Set::stream)
-                  .map(Variant::getTag)
-                  .collect(Collectors.toSet());
-
-          // Produce snapshots from the calculations
-          Map<String, List<TallySnapshot>> totalSnapshots =
-              combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
-                  orgId,
-                  calcCache.getCalculationRange(),
-                  tags,
-                  applicableUsageCalculations,
-                  Granularity.HOURLY,
-                  Double::sum);
-
-          // Update tally state and record metrics
-          tallyStateRepository.update(currentState);
-          recordTallyCount(totalSnapshots.values().stream().flatMap(Collection::stream).toList());
-
-          // Produce tally summary messages
-          summaryProducer.produceTallySummaryMessages(
-              totalSnapshots,
-              List.of(Granularity.HOURLY, Granularity.DAILY),
-              SnapshotSummaryProducer.hourlySnapFilter);
-
-          log.debug(
-              "Produced {} snapshots for individual event: eventId={}, orgId={}",
-              totalSnapshots.values().stream().mapToInt(List::size).sum(),
-              event.getEventId(),
-              orgId);
-        }
-      }
+      log.debug(
+          "Successfully processed individual event: eventId={}, orgId={}, serviceType={}",
+          event.getEventId(),
+          orgId,
+          serviceType);
 
     } catch (Exception e) {
       log.error(
