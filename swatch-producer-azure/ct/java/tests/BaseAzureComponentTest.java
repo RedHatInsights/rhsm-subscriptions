@@ -29,6 +29,8 @@ import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.Quarkus;
 import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.api.Wiremock;
+import com.redhat.swatch.component.tests.utils.RandomUtils;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 
 @ComponentTest
@@ -44,4 +46,15 @@ public class BaseAzureComponentTest {
 
   @Quarkus(service = "swatch-producer-azure")
   static SwatchService service = new SwatchService();
+
+  protected String orgId;
+  protected String billingAccountId;
+  protected String azureResourceId;
+
+  @BeforeEach
+  void setUp() {
+    orgId = RandomUtils.generateRandom();
+    billingAccountId = RandomUtils.generateRandom();
+    azureResourceId = RandomUtils.generateRandom();
+  }
 }

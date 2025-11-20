@@ -42,4 +42,7 @@ public class AzureMarketplaceProperties {
 
   @ConfigProperty(name = "DISABLE_AZURE_OIDC")
   boolean disableAzureOidc;
+
+  @ConfigProperty(name = "AZURE_READ_TIMEOUT", defaultValue = "120000")
+  long readTimeout;
 }

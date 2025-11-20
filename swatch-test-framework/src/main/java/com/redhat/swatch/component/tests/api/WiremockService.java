@@ -47,6 +47,16 @@ public class WiremockService extends RestService {
     given().when().delete("/__admin/requests").then().statusCode(200);
   }
 
+  public int countRequests(String urlPattern) {
+    var response =
+        given().when().get("/__admin/requests").then().statusCode(200).extract().asString();
+    return (int)
+        response
+            .lines()
+            .filter(line -> line.contains("\"url\"") && line.contains(urlPattern))
+            .count();
+  }
+
   /**
    * Get the metadata tag used for WireMock stub identification.
    *
