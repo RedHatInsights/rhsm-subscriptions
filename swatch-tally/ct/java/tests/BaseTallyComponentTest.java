@@ -23,11 +23,8 @@ package tests;
 import com.redhat.swatch.component.tests.api.ComponentTest;
 import com.redhat.swatch.component.tests.api.SpringBoot;
 import com.redhat.swatch.component.tests.api.SwatchService;
-import org.junit.jupiter.api.Tag;
 
-@ComponentTest
-@Tag("component")
-@Tag("tally")
+@ComponentTest(name = "swatch-tally")
 public class BaseTallyComponentTest {
 
   @SpringBoot(service = "swatch-tally")
