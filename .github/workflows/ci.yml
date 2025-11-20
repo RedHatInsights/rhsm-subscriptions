@@ -14,7 +14,7 @@ concurrency:
 
 env:
   ACTIONS_STEP_DEBUG: true
-  GITHUB_TOKEN: ${{ github.actor == 'dependabot[bot]' && secrets.DEPENDABOT_BOT_TOKEN || secrets.GITHUB_TOKEN }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   labeler:
