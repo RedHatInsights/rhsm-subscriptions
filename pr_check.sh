@@ -15,9 +15,6 @@ echo "ghprbTargetBranch: $ghprbTargetBranch"
 echo "================================="
 
 # before we run common consoledot builds, prepare the binary artifacts for quarkus style builds
-# NOTE: podman_run.sh disabled - was originally used for Gradle builds in containers but project migrated to Maven
-# and this call with no arguments just starts/exits a container doing nothing useful
-# ./podman_run.sh
 
 source cicd_common.sh
 
