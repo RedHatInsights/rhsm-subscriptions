@@ -101,12 +101,139 @@ public class UtilizationSummaryValidatorTest {
     assertFalse(result);
   }
 
+  @Test
+  void testHasValidGranularity_withDailyGranularity_returnsTrue() {
+    UtilizationSummary payload =
+        createValidNonPaygPayload().withGranularity(UtilizationSummary.Granularity.DAILY);
+    boolean result = whenIsValid(payload);
+    assertTrue(result);
+  }
+
+  @Test
+  void testHasValidGranularity_withHourlyGranularity_returnsTrue() {
+    UtilizationSummary payload =
+        createValidNonPaygPayload().withGranularity(UtilizationSummary.Granularity.HOURLY);
+    boolean result = whenIsValid(payload);
+    assertTrue(result);
+  }
+
+  @Test
+  void testHasValidGranularity_withWeeklyGranularity_returnsFalse() {
+    UtilizationSummary payload =
+        createValidNonPaygPayload().withGranularity(UtilizationSummary.Granularity.WEEKLY);
+    boolean result = whenIsValid(payload);
+    assertFalse(result);
+  }
+
+  @Test
+  void testHasValidGranularity_withNullGranularity_returnsFalse() {
+    UtilizationSummary payload = createValidNonPaygPayload().withGranularity(null);
+    boolean result = whenIsValid(payload);
+    assertFalse(result);
+  }
+
+  @Test
+  void testHasValidMeasurements_withUnlimitedCapacity_returnsFalse() {
+    UtilizationSummary payload =
+        createValidNonPaygPayload()
+            .withMeasurements(
+                List.of(
+                    new Measurement()
+                        .withMetricId(MetricIdUtils.getSockets().getValue())
+                        .withUnlimited(true)
+                        .withCapacity(100.0)
+                        .withCurrentTotal(50.0)));
+    boolean result = whenIsValid(payload);
+    assertFalse(result);
+  }
+
+  @Test
+  void testHasValidMeasurements_withNullCapacity_returnsFalse() {
+    UtilizationSummary payload =
+        createValidNonPaygPayload()
+            .withMeasurements(
+                List.of(
+                    new Measurement()
+                        .withMetricId(MetricIdUtils.getSockets().getValue())
+                        .withUnlimited(false)
+                        .withCapacity(null)
+                        .withCurrentTotal(50.0)));
+    boolean result = whenIsValid(payload);
+    assertFalse(result);
+  }
+
+  @Test
+  void testHasValidMeasurements_withZeroCapacity_returnsFalse() {
+    UtilizationSummary payload =
+        createValidNonPaygPayload()
+            .withMeasurements(
+                List.of(
+                    new Measurement()
+                        .withMetricId(MetricIdUtils.getSockets().getValue())
+                        .withUnlimited(false)
+                        .withCapacity(0.0)
+                        .withCurrentTotal(50.0)));
+    boolean result = whenIsValid(payload);
+    assertFalse(result);
+  }
+
+  @Test
+  void testHasValidMeasurements_withNegativeCapacity_returnsFalse() {
+    UtilizationSummary payload =
+        createValidNonPaygPayload()
+            .withMeasurements(
+                List.of(
+                    new Measurement()
+                        .withMetricId(MetricIdUtils.getSockets().getValue())
+                        .withUnlimited(false)
+                        .withCapacity(-10.0)
+                        .withCurrentTotal(50.0)));
+    boolean result = whenIsValid(payload);
+    assertFalse(result);
+  }
+
+  @Test
+  void testHasValidMeasurements_withNullCurrentTotal_returnsFalse() {
+    UtilizationSummary payload =
+        createValidNonPaygPayload()
+            .withMeasurements(
+                List.of(
+                    new Measurement()
+                        .withMetricId(MetricIdUtils.getSockets().getValue())
+                        .withUnlimited(false)
+                        .withCapacity(100.0)
+                        .withCurrentTotal(null)));
+    boolean result = whenIsValid(payload);
+    assertFalse(result);
+  }
+
+  @Test
+  void testHasValidMeasurements_withValidCapacityAndCurrentTotal_returnsTrue() {
+    UtilizationSummary payload =
+        createValidNonPaygPayload()
+            .withMeasurements(
+                List.of(
+                    new Measurement()
+                        .withMetricId(MetricIdUtils.getSockets().getValue())
+                        .withUnlimited(false)
+                        .withCapacity(100.0)
+                        .withCurrentTotal(50.0)));
+    boolean result = whenIsValid(payload);
+    assertTrue(result);
+  }
+
   private UtilizationSummary createValidNonPaygPayload() {
     return new UtilizationSummary()
         .withOrgId("org123")
         .withProductId("RHEL for x86")
+        .withGranularity(UtilizationSummary.Granularity.DAILY)
         .withMeasurements(
-            List.of(new Measurement().withMetricId(MetricIdUtils.getSockets().getValue())));
+            List.of(
+                new Measurement()
+                    .withMetricId(MetricIdUtils.getSockets().getValue())
+                    .withUnlimited(false)
+                    .withCapacity(100.0)
+                    .withCurrentTotal(50.0)));
   }
 
   private UtilizationSummary createValidPaygPayload() {
@@ -114,8 +241,14 @@ public class UtilizationSummaryValidatorTest {
         .withOrgId("org123")
         .withProductId("rosa")
         .withBillingAccountId("billing-123")
+        .withGranularity(UtilizationSummary.Granularity.DAILY)
         .withMeasurements(
-            List.of(new Measurement().withMetricId(MetricIdUtils.getCores().getValue())));
+            List.of(
+                new Measurement()
+                    .withMetricId(MetricIdUtils.getCores().getValue())
+                    .withUnlimited(false)
+                    .withCapacity(100.0)
+                    .withCurrentTotal(50.0)));
   }
 
   private boolean whenIsValid(UtilizationSummary payload) {

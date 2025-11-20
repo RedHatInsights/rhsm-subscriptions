@@ -37,7 +37,7 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 @ApplicationScoped
 public class UtilizationSummaryConsumer {
 
-  protected static final String RECEIVED_METRIC = "swatch_utilization_received";
+  public static final String RECEIVED_METRIC = "swatch_utilization_received";
 
   @Inject MeterRegistry meterRegistry;
   @Inject UtilizationSummaryValidator payloadValidator;
@@ -48,12 +48,13 @@ public class UtilizationSummaryConsumer {
     if (payloadValidator.isValid(payload)) {
       incrementCounter(payload);
       customerOverUsageService.check(payload);
+    } else {
+      log.debug("Invalid payload received: {}", payload);
     }
   }
 
   private void incrementCounter(UtilizationSummary payload) {
-    List<String> tags =
-        new ArrayList<>(List.of("product", payload.getProductId(), "org_id", payload.getOrgId()));
+    List<String> tags = new ArrayList<>(List.of("product", payload.getProductId()));
 
     if (Objects.nonNull(payload.getBillingProvider())) {
       tags.addAll(List.of("billing", payload.getBillingProvider().value()));

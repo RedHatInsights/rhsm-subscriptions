@@ -24,6 +24,7 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import com.redhat.swatch.utilization.model.UtilizationSummary;
+import com.redhat.swatch.utilization.model.UtilizationSummary.Granularity;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -32,9 +33,14 @@ import lombok.extern.slf4j.Slf4j;
 @ApplicationScoped
 public class UtilizationSummaryValidator {
 
+  private static final double MIN_VALID_CAPACITY = 0.0;
+  private static final List<Granularity> SUPPORTED_GRANULARITY =
+      List.of(Granularity.DAILY, Granularity.HOURLY);
+
   public boolean isValid(UtilizationSummary payload) {
     return hasValidOrgId(payload)
         && hasValidProduct(payload)
+        && hasValidGranularity(payload)
         && hasValidMeasurements(payload)
         && hasValidBillingForPayg(payload);
   }
@@ -62,6 +68,14 @@ public class UtilizationSummaryValidator {
     return true;
   }
 
+  private boolean hasValidGranularity(UtilizationSummary payload) {
+    if (payload.getGranularity() == null) {
+      return false;
+    }
+    UtilizationSummary.Granularity granularity = payload.getGranularity();
+    return granularity != null && SUPPORTED_GRANULARITY.contains(granularity);
+  }
+
   private boolean hasValidMeasurements(UtilizationSummary payload) {
     if (payload.getMeasurements() == null || payload.getMeasurements().isEmpty()) {
       log.warn("Received utilization summary without measurements. Payload: {}", payload);
@@ -72,6 +86,13 @@ public class UtilizationSummaryValidator {
         MetricIdUtils.getMetricIdsFromConfigForTag(payload.getProductId()).toList();
     for (var measurement : payload.getMeasurements()) {
       if (!isValidMetric(measurement.getMetricId(), supportedMetrics, payload)) {
+        return false;
+      }
+
+      if (Boolean.TRUE.equals(measurement.getUnlimited())
+          || measurement.getCapacity() == null
+          || measurement.getCapacity() <= MIN_VALID_CAPACITY
+          || measurement.getCurrentTotal() == null) {
         return false;
       }
     }

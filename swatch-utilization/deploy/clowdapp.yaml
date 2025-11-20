@@ -39,6 +39,8 @@ parameters:
     value: prod
   - name: DISABLE_OTEL
     value: 'false'
+  - name: CUSTOMER_OVER_USAGE_DEFAULT_THRESHOLD_PERCENT
+    value: '5.0'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -128,6 +130,8 @@ objects:
               value: ${QUARKUS_PROFILE}
             - name: DISABLE_OTEL
               value: ${DISABLE_OTEL}
+            - name: CUSTOMER_OVER_USAGE_DEFAULT_THRESHOLD_PERCENT
+              value: ${CUSTOMER_OVER_USAGE_DEFAULT_THRESHOLD_PERCENT}
           volumeMounts:
             - name: logs
               mountPath: /logs
