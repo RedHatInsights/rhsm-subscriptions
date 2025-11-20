@@ -20,8 +20,9 @@
  */
 package tests;
 
-// Intentionally avoid assertions here; keep assertions in test classes.
-
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -36,10 +37,10 @@ import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import domain.Contract;
-import domain.Offering;
 import domain.Subscription;
 import io.restassured.response.Response;
-import java.util.Map;
+import java.util.Objects;
+import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -75,44 +76,33 @@ public class BaseContractComponentTest {
     wiremock.forPartnerAPI().stubContract(contract);
     // Sync offering needed for contract to persist with the SKU
     Response sync = service.syncOffering(contract.getOffering().getSku());
-    assertThat("Sync offering should succeed", sync.statusCode(), is(200));
+    assertThat("Sync offering should succeed", sync.statusCode(), is(HttpStatus.SC_OK));
 
     Response create = service.createContract(contract);
-    assertThat("Creating contract should succeed", create.statusCode(), is(200));
+    assertThat("Creating contract should succeed", create.statusCode(), is(HttpStatus.SC_OK));
   }
 
-  /** Common helper to stub upstream offering with capacity and sync it into the service. */
-  protected void stubOfferingAndSync(String sku, double cores, double sockets) {
-    wiremock.forProductAPI().stubOfferingData(Offering.buildRhelOffering(sku, cores, sockets));
-    Response r = service.syncOffering(sku);
-
-    assertThat("Sync offering should succeed", r.statusCode(), is(200));
+  /** Helper method to await and get initial capacity after contract/subscription creation. */
+  int givenCapacityIsIncreased(Subscription subscription) {
+    return await("Capacity should increase")
+        .atMost(1, MINUTES)
+        .pollInterval(1, SECONDS)
+        .until(
+            () ->
+                Objects.requireNonNull(service.getSkuCapacityBySubscription(subscription).getMeta())
+                    .getCount(),
+            capacity -> capacity > 0);
   }
 
-  /** Common helper to persist a PAYG subscription for the given org/sku with reconcile on. */
-  protected String saveSubscriptionForOrgAndSku(String orgId, String sku) {
-    Subscription sub = Subscription.buildRhelSubscriptionUsingSku(orgId, Map.of(), sku);
-    Response r = service.saveSubscriptions(true, sub);
-
-    assertThat("Building a Rhel subscription should succeed", r.statusCode(), is(200));
-
-    return sub.getSubscriptionId();
-  }
-
-  /** Common helper to fetch the capacity count for a product/org, asserting 200. */
-  protected int getCapacityCount(String productId, String orgId) {
-    Response r = service.getSkuCapacityByProductIdForOrg(productId, orgId);
-    assertThat("Sync offering call should succeed", r.statusCode(), is(200));
-
-    return r.jsonPath().getInt("meta.count");
-  }
-
-  /** Common helper to fetch the full capacity report for a product/org, asserting 200. */
-  protected Response getCapacityReport(String productId, String orgId) {
-    Response r = service.getSkuCapacityByProductIdForOrg(productId, orgId);
-
-    assertThat("Sync offering call should succeed", r.statusCode(), is(200));
-
-    return r;
+  /** Helper method to await capacity decrease and return the new capacity. */
+  int thenCapacityIsDecreased(Subscription subscription, int initialCapacity) {
+    return await("Capacity should decrease")
+        .atMost(1, MINUTES)
+        .pollInterval(1, SECONDS)
+        .until(
+            () ->
+                Objects.requireNonNull(service.getSkuCapacityBySubscription(subscription).getMeta())
+                    .getCount(),
+            capacity -> capacity < initialCapacity);
   }
 }
