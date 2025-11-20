@@ -503,6 +503,22 @@ Test cases should be testable locally and in an ephemeral environment.
   2. The contract's end date is cleared or set to a future date.
   3. The contract status reflects the re-subscription.
 
+**contracts-termination-TC006 - Ensure capacity has decreased after a contract is terminated.**
+- **Description:** Verify that the capacity of the contract is decreased after a contract is terminated.
+- **Setup:** Ensure a contract exists and is currently in an active state.
+- **Action:** Simulate a message to the subscription service to terminate an active contract.
+- **Verification:** Check the capacity of the contract using the GET API.
+- **Expected Result:**
+  1. The capacity of the contract is decreased.
+  
+**contracts-termination-TC007 - Ensure the subscription table is updated after a contract is terminated.**
+- **Description:** Verify that the subscription table is updated after a contract is terminated.
+- **Setup:** Ensure a contract exists and is currently in an active state.
+- **Action:** Simulate a message to the subscription service to terminate an active contract.
+- **Verification:** Check the subscription table using the GET API.
+- **Expected Result:**
+  1. The subscription table is updated with the correct next_event_date of tomorrow and 23:59:59.
+  2. The subscription table is updated with the correct next_event_type of 'Subscription End'
 
 ## Contract Deletion
 

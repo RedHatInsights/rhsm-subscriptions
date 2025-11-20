@@ -21,15 +21,22 @@
 package api;
 
 import static com.redhat.swatch.component.tests.utils.SwatchUtils.SECURITY_HEADERS;
+import static com.redhat.swatch.component.tests.utils.SwatchUtils.securityHeadersWithServiceRole;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.utils.JsonUtils;
 import com.redhat.swatch.contract.test.model.ContractRequest;
+import com.redhat.swatch.contract.test.model.SkuCapacityReportV2;
+import com.redhat.swatch.contract.test.model.SkuCapacityV2;
 import domain.Contract;
+import domain.Product;
 import domain.Subscription;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import java.time.OffsetDateTime;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Stream;
 import utils.ContractRequestMapper;
 import utils.SubscriptionRequestMapper;
@@ -41,6 +48,10 @@ public class ContractsSwatchService extends SwatchService {
   private static final String RESET_DATA_ENDPOINT = ENDPOINT_PREFIX + "/rpc/reset/%s";
   private static final String CONTRACTS_ENDPOINT = ENDPOINT_PREFIX + "/contracts";
   private static final String SUBSCRIPTIONS_ENDPOINT = ENDPOINT_PREFIX + "/subscriptions";
+  private static final String GET_SKU_ENDPOINT =
+      "/api/rhsm-subscriptions/v2/subscriptions/products/{product_id}";
+  private static final String TERMINATE_SUBSCRIPTION_ENDPOINT =
+      ENDPOINT_PREFIX + "/subscriptions/terminate/{subscription_id}";
 
   public Response syncOffering(String sku) {
     Objects.requireNonNull(sku, "sku must not be null");
@@ -99,5 +110,49 @@ public class ContractsSwatchService extends SwatchService {
         .body(JsonUtils.toJson(list))
         .when()
         .post(SUBSCRIPTIONS_ENDPOINT);
+  }
+
+  public Optional<SkuCapacityV2> getSkuCapacityByProductIdForOrgAndSku(
+      Product product, String orgId, String sku) {
+    Objects.requireNonNull(sku, "sku must not be null");
+    SkuCapacityReportV2 report = getSkuCapacityByProductIdForOrg(product, orgId);
+    assertNotNull(report.getData());
+    return report.getData().stream().filter(d -> sku.equals(d.getSku())).findFirst();
+  }
+
+  public SkuCapacityReportV2 getSkuCapacityBySubscription(Subscription subscription) {
+    Objects.requireNonNull(subscription, "subscription must not be null");
+    return getSkuCapacityByProductIdForOrg(subscription.getProduct(), subscription.getOrgId());
+  }
+
+  public SkuCapacityReportV2 getSkuCapacityByProductIdForOrg(Product product, String orgId) {
+    Objects.requireNonNull(product, "product id must not be null");
+    Objects.requireNonNull(orgId, "org id must not be null");
+
+    return given()
+        .headers(securityHeadersWithServiceRole(orgId))
+        .accept("application/vnd.api+json")
+        .pathParam("product_id", product.getName())
+        .get(GET_SKU_ENDPOINT)
+        .then()
+        .extract()
+        .as(SkuCapacityReportV2.class);
+  }
+
+  public Response terminateSubscription(Subscription subscription) {
+    return terminateSubscription(subscription, OffsetDateTime.now());
+  }
+
+  public Response terminateSubscription(Subscription subscription, OffsetDateTime timestamp) {
+    Objects.requireNonNull(subscription, "contract must not be null");
+    Objects.requireNonNull(subscription.getSubscriptionId(), "subscriptionId must not be null");
+    Objects.requireNonNull(timestamp, "timestamp must not be null");
+
+    return given()
+        .headers(SECURITY_HEADERS)
+        .pathParam("subscription_id", subscription.getSubscriptionId())
+        .queryParam("timestamp", timestamp.toString())
+        .when()
+        .post(TERMINATE_SUBSCRIPTION_ENDPOINT);
   }
 }
