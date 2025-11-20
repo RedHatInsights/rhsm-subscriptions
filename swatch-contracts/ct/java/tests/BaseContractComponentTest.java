@@ -43,11 +43,8 @@ import java.util.Objects;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
 
-@ComponentTest
-@Tag("component")
-@Tag("contracts")
+@ComponentTest(name = "swatch-contracts")
 public class BaseContractComponentTest {
   static final MetricId CORES = MetricIdUtils.getCores();
   static final MetricId SOCKETS = MetricIdUtils.getSockets();

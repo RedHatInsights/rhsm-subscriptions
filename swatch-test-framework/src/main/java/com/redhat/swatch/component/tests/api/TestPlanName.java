@@ -28,18 +28,12 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-@Target(ElementType.TYPE)
+@Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @ExtendWith(ComponentTestExtension.class)
 @Inherited
-public @interface ComponentTest {
+public @interface TestPlanName {
 
-  /** Name of the component test being tested. */
-  String name() default "";
-
-  /**
-   * Set the target environment where to run the tests. Fallback property
-   * `swatch.component-tests.global.target`.
-   */
-  String target() default "local";
+  /** Name of the test plan. */
+  String value();
 }
