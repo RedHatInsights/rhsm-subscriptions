@@ -10,3 +10,4 @@ updates:
     schedule:
       interval: "daily"
     target-branch: "main"
+    open-pull-requests-limit: 0  # Disabled: prevents Dependabot from opening PRs
