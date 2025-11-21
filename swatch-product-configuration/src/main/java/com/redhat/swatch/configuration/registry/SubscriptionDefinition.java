@@ -101,6 +101,12 @@ public class SubscriptionDefinition {
   private boolean vdcType;
 
   /**
+   * Over-usage threshold percentage for this product. When usage exceeds capacity by more than this
+   * percentage, over-usage is detected. If not specified, the system default threshold is used.
+   */
+  private Double overUsageThreshold;
+
+  /**
    * Search for a given service type.
    *
    * @param serviceType the service type to search for
@@ -354,6 +360,19 @@ public class SubscriptionDefinition {
 
   public static boolean isVdcType(@NotNull @NotEmpty String id) {
     return lookupSubscriptionByTag(id).map(SubscriptionDefinition::isVdcType).orElse(false);
+  }
+
+  /**
+   * Get the over-usage threshold percentage for a product. Returns the product-specific threshold
+   * if configured, otherwise returns null (indicating the default should be used).
+   *
+   * @param productId the product tag
+   * @return threshold percentage for the product, or null if not configured
+   */
+  public static Double getOverUsageThreshold(@NotNull @NotEmpty String productId) {
+    return lookupSubscriptionByTag(productId)
+        .map(SubscriptionDefinition::getOverUsageThreshold)
+        .orElse(null);
   }
 
   public boolean isPaygEligible() {
