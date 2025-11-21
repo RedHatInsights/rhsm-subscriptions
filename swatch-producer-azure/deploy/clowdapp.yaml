@@ -43,8 +43,22 @@ parameters:
     value: prod
   - name: ENABLE_AZURE_DRY_RUN
     value: 'true'
-  - name: DISABLE_OTEL
+  - name: OTEL_ENABLED
     value: 'false'
+  - name: OTEL_SIDECAR_IMAGE
+    value: quay.io/signalfx/splunk-otel-collector:0.125.0
+  - name: OTEL_SIDECAR_CONFIG_MAP
+    value: splunk-otel-collector-otel-collector
+  - name: OTEL_ENV_NAME
+    value: env-swatch-producer-azure
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: http://localhost:4317
+  - name: SIGNALFX_TOKEN_SECRET_NAME
+    value: signalfx
+  - name: SIGNALFX_TOKEN_SECRET_KEY
+    value: token
+  - name: K8S_CLUSTER_NAME
+    value: ephemeral
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -142,8 +156,10 @@ objects:
               value: ${QUARKUS_PROFILE}
             - name: ENABLE_AZURE_DRY_RUN
               value: ${ENABLE_AZURE_DRY_RUN}
-            - name: DISABLE_OTEL
-              value: ${DISABLE_OTEL}
+            - name: OTEL_ENABLED
+              value: ${OTEL_ENABLED}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
             - name: AZURE_MARKETPLACE_CREDENTIALS
               valueFrom:
                 secretKeyRef:
@@ -155,6 +171,45 @@ objects:
           volumes:
             - name: logs
               emptyDir:
+        sidecars:
+        - name: otel-collector
+          enabled: ${OTEL_ENABLED}
+          configMap: ${OTEL_SIDECAR_CONFIG_MAP}
+          image: ${OTEL_SIDECAR_IMAGE}
+          envVars:
+            - name: ENV_NAME
+              value: ${OTEL_ENV_NAME}
+            - name: K8S_CLUSTER_NAME
+              value: ${K8S_CLUSTER_NAME}
+            - name: SPLUNK_OBSERVABILITY_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: ${SIGNALFX_TOKEN_SECRET_NAME}
+                  key: ${SIGNALFX_TOKEN_SECRET_KEY}
+            - name: SPLUNK_CONFIG
+              value: /etc/otelcol/config.yaml
+            - name: SPLUNK_MEMORY_TOTAL_MIB
+              value: '1024'
+            - name: K8S_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: K8S_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: K8S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: K8S_POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
+            - name: K8S_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
 
 - apiVersion: v1
   kind: Secret
