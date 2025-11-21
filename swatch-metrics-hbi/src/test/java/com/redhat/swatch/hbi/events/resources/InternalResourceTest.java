@@ -42,13 +42,11 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import io.restassured.response.ValidatableResponse;
 import jakarta.inject.Inject;
-import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 import org.apache.http.HttpStatus;
-import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -115,9 +113,9 @@ class InternalResourceTest {
   static Stream<Arguments> flushLockParameters() {
     return Stream.of(
         arguments(true, true, StatusEnum.SUCCESS, StatusEnum.ALREADY_RUNNING),
-        arguments(true, false, StatusEnum.SUCCESS, StatusEnum.STARTED),
+        arguments(true, false, StatusEnum.SUCCESS, StatusEnum.ALREADY_RUNNING),
         arguments(false, true, StatusEnum.STARTED, StatusEnum.ALREADY_RUNNING),
-        arguments(false, false, StatusEnum.STARTED, StatusEnum.STARTED));
+        arguments(false, false, StatusEnum.STARTED, StatusEnum.ALREADY_RUNNING));
   }
 
   @ParameterizedTest
@@ -130,25 +128,28 @@ class InternalResourceTest {
         .thenAnswer(
             (Answer<Long>)
                 invocation -> {
-                  sleep(2000);
+                  sleep(1000);
                   return 100L;
                 });
 
     withSynchronousRequestHeader(firstIsSync);
+    // This needs to be a separate thread because a sync call would complete
+    // before the second call would initiate.
     CompletableFuture<FlushResponse> future1 =
         CompletableFuture.supplyAsync(() -> flushOutbox().extract().body().as(FlushResponse.class));
-    // ensure the order of the threads
-    sleep(1500);
+    // This is to ensure that the previous call gets through the gate first
+    sleep(100);
     withSynchronousRequestHeader(secondIsSync);
-    CompletableFuture<FlushResponse> future2 =
-        CompletableFuture.supplyAsync(() -> flushOutbox().extract().body().as(FlushResponse.class));
+    FlushResponse flushResponse2 = flushOutbox().extract().body().as(FlushResponse.class);
+    assertEquals(secondStatus, flushResponse2.getStatus());
 
-    // Wait for both to complete
-    CompletableFuture.allOf(future1, future2).join();
+    CompletableFuture.allOf(future1).join();
     FlushResponse flushResponse1 = future1.join();
     assertEquals(firstStatus, flushResponse1.getStatus());
-    FlushResponse flushResponse2 = future2.join();
-    assertEquals(secondStatus, flushResponse2.getStatus());
+    if (!firstIsSync || !secondIsSync) {
+      // To ensure any started job is done
+      sleep(1100);
+    }
   }
 
   @Test
@@ -178,17 +179,6 @@ class InternalResourceTest {
 
   private void givenTestApisEnabled() {
     when(securityConfiguration.isTestApisEnabled()).thenReturn(true);
-  }
-
-  private Event givenValidRequest() {
-    Event request = new Event();
-    request.setOrgId("org123");
-    request.setEventSource("HBI_HOST");
-    request.setInstanceId("test-instance-id");
-    request.setEventType("test");
-    request.setServiceType("RHEL System");
-    request.setTimestamp(OffsetDateTime.now());
-    return request;
   }
 
   private void withSynchronousRequestsEnabled(boolean enabled) {
