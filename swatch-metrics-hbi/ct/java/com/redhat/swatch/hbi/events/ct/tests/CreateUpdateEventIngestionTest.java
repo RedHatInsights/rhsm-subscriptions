@@ -256,7 +256,7 @@ class CreateUpdateEventIngestionTest extends BaseSMHBIComponentTest {
    * Verify service accepts HBI Create/Update events for a virtual cloud provider host and produce
    * the expected Swatch Event messages.
    *
-   * <test_steps:
+   * test_steps:
    * 1. Toggle feature flag to allow service to emit swatch events.
    * 2. Send a created/updated message to the HBI event topic to simulate that a host
    * was created in HBI.
