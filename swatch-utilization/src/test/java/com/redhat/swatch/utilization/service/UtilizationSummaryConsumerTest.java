@@ -25,15 +25,23 @@ import static com.redhat.swatch.utilization.resources.InMemoryMessageBrokerKafka
 import static com.redhat.swatch.utilization.service.UtilizationSummaryConsumer.RECEIVED_METRIC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.configuration.util.MetricIdUtils;
+import com.redhat.swatch.utilization.model.Measurement;
+import com.redhat.swatch.utilization.model.UtilizationSummary;
 import com.redhat.swatch.utilization.resources.InMemoryMessageBrokerKafkaResource;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import io.smallrye.reactive.messaging.memory.InMemorySource;
 import jakarta.inject.Inject;
+import java.util.List;
 import java.util.Optional;
 import org.awaitility.Awaitility;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
@@ -50,23 +58,28 @@ public class UtilizationSummaryConsumerTest {
   InMemoryConnector connector;
 
   @Inject MeterRegistry meterRegistry;
+  @InjectMock CustomerOverUsageService customerOverUsageService;
+  @InjectMock UtilizationSummaryValidator payloadValidator;
 
-  InMemorySource<String> source;
+  InMemorySource<UtilizationSummary> source;
 
   @BeforeEach
   void setup() {
     source = connector.source(UTILIZATION);
     meterRegistry.clear();
+    when(payloadValidator.isValid(any())).thenReturn(true);
   }
 
   @Test
   void testMessageIncrementCounter() {
-    whenSendUtilization("{utilization-message}");
+    whenSendUtilization(createValidPaygPayload());
     thenReceivedMetricIsIncremented();
+    thenUtilizationSummaryValidatorIsCalled();
+    thenCustomerOverUsageServiceIsCalled();
   }
 
-  private void whenSendUtilization(String message) {
-    source.send(message);
+  private void whenSendUtilization(UtilizationSummary payload) {
+    source.send(payload);
   }
 
   private void thenReceivedMetricIsIncremented() {
@@ -79,9 +92,26 @@ public class UtilizationSummaryConsumerTest {
             });
   }
 
+  private void thenUtilizationSummaryValidatorIsCalled() {
+    verify(payloadValidator).isValid(any(UtilizationSummary.class));
+  }
+
+  private void thenCustomerOverUsageServiceIsCalled() {
+    verify(customerOverUsageService).check(any(UtilizationSummary.class));
+  }
+
   private Optional<Meter> getReceivedMetric() {
     return meterRegistry.getMeters().stream()
         .filter(m -> RECEIVED_METRIC.equals(m.getId().getName()))
         .findFirst();
+  }
+
+  private UtilizationSummary createValidPaygPayload() {
+    return new UtilizationSummary()
+        .withOrgId("org123")
+        .withProductId("rosa")
+        .withBillingAccountId("billing-123")
+        .withMeasurements(
+            List.of(new Measurement().withMetricId(MetricIdUtils.getCores().getValue())));
   }
 }

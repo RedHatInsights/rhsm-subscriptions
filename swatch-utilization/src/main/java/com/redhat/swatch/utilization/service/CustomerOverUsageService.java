@@ -18,22 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package tests;
+package com.redhat.swatch.utilization.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import com.redhat.swatch.utilization.model.UtilizationSummary;
+import jakarta.enterprise.context.ApplicationScoped;
 
-import com.redhat.swatch.component.tests.api.ComponentTest;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-
-@ComponentTest
-@Tag("component")
-@Tag("contracts")
-public class SimpleContractsComponentTest extends BaseContractComponentTest {
-
-  @Test
-  public void testContractComponentShouldPass() {
-    // Placeholder smoke test; Should be replaced with tests of the swatch-contracts service
-    assertEquals(1, 1);
+@ApplicationScoped
+public class CustomerOverUsageService {
+  public void check(UtilizationSummary payload) {
+    // TODO in SWATCH-3793
   }
 }

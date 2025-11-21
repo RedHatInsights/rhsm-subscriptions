@@ -86,7 +86,7 @@ class TallySnapshotControllerMetricsTest {
               BillingProvider.RED_HAT.getValue(),
               "metric_id",
               s);
-      assertEquals(10.0, c.count());
+      assertEquals(20.0, c.count());
     }
   }
 

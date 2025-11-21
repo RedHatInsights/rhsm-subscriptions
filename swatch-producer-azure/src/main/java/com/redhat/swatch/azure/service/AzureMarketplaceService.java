@@ -28,6 +28,7 @@ import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEventOkRespons
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEventStatusEnum;
 import com.redhat.swatch.clients.azure.marketplace.api.resources.ApiException;
 import com.redhat.swatch.clients.azure.marketplace.api.resources.AzureMarketplaceApi;
+import com.redhat.swatch.faulttolerance.api.RetryWithExponentialBackoff;
 import io.micrometer.common.util.StringUtils;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -54,6 +55,7 @@ public class AzureMarketplaceService {
     this.marketplaceClients = azureMarketplaceClientFactory.createClientForEachTenant();
   }
 
+  @RetryWithExponentialBackoff(maxRetries = "${AZURE_SEND_RETRIES}")
   public UsageEventOkResponse sendUsageEventToAzureMarketplace(UsageEvent usageEvent) {
     // try to find a matching client using the usage event client ID
     var client = findAzureClient(usageEvent.getClientId());

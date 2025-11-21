@@ -1,3 +1,5 @@
+[![Sync Stable with Main](https://github.com/RedHatInsights/rhsm-subscriptions/actions/workflows/sync-stage.yaml/badge.svg)](https://github.com/RedHatInsights/rhsm-subscriptions/actions/workflows/sync-stage.yaml)
+
 # Subscription watch
 
 Subscription watch tracks usage and capacity at an account-level.

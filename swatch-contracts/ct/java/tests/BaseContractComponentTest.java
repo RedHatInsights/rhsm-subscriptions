@@ -20,6 +20,9 @@
  */
 package tests;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -34,7 +37,10 @@ import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import domain.Contract;
+import domain.Subscription;
 import io.restassured.response.Response;
+import java.util.Objects;
+import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -69,10 +75,34 @@ public class BaseContractComponentTest {
     wiremock.forProductAPI().stubOfferingData(contract.getOffering());
     wiremock.forPartnerAPI().stubContract(contract);
     // Sync offering needed for contract to persist with the SKU
-    Response syncOfferingResponse = service.syncOffering(contract.getOffering().getSku());
-    assertThat("Sync offering call should succeed", syncOfferingResponse.statusCode(), is(200));
+    Response sync = service.syncOffering(contract.getOffering().getSku());
+    assertThat("Sync offering should succeed", sync.statusCode(), is(HttpStatus.SC_OK));
 
-    Response createContractResponse = service.createContract(contract);
-    assertThat("Contract creation should succeed", createContractResponse.statusCode(), is(200));
+    Response create = service.createContract(contract);
+    assertThat("Creating contract should succeed", create.statusCode(), is(HttpStatus.SC_OK));
+  }
+
+  /** Helper method to await and get initial capacity after contract/subscription creation. */
+  int givenCapacityIsIncreased(Subscription subscription) {
+    return await("Capacity should increase")
+        .atMost(1, MINUTES)
+        .pollInterval(1, SECONDS)
+        .until(
+            () ->
+                Objects.requireNonNull(service.getSkuCapacityBySubscription(subscription).getMeta())
+                    .getCount(),
+            capacity -> capacity > 0);
+  }
+
+  /** Helper method to await capacity decrease and return the new capacity. */
+  int thenCapacityIsDecreased(Subscription subscription, int initialCapacity) {
+    return await("Capacity should decrease")
+        .atMost(1, MINUTES)
+        .pollInterval(1, SECONDS)
+        .until(
+            () ->
+                Objects.requireNonNull(service.getSkuCapacityBySubscription(subscription).getMeta())
+                    .getCount(),
+            capacity -> capacity < initialCapacity);
   }
 }

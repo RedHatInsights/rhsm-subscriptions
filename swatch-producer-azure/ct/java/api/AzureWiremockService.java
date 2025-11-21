@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.component.tests.api.WiremockService;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -33,6 +34,7 @@ public class AzureWiremockService extends WiremockService {
   private static final String ANY = "_ANY";
   private static final String AZURE_PLAN_ID = "azure-plan-id";
   private static final String AZURE_OFFER_ID = "azureProductCode";
+  private static final String AZURE_USAGE_EVENT_PATH = "/mock/azure/api/usageEvent";
 
   public void setupAzureUsageContext(String azureResourceId, String billingAccountId) {
     // 1. Setup Azure Usage Context endpoint (similar to create_get_azure_usage_context_wiremock)
@@ -137,7 +139,7 @@ public class AzureWiremockService extends WiremockService {
         String url = urlNode.asText();
         String method = methodNode.asText();
 
-        if (url.contains("/mock/azure/api/usageEvent") && "POST".equals(method)) {
+        if (url.contains(AZURE_USAGE_EVENT_PATH) && "POST".equals(method)) {
           String requestBody = bodyNode.asText();
           if (requestBody != null && !requestBody.isEmpty()) {
             JsonNode usage = objectMapper.readTree(requestBody);
@@ -183,6 +185,10 @@ public class AzureWiremockService extends WiremockService {
     }
   }
 
+  public int countAzureUsageRequests() {
+    return countRequests(AZURE_USAGE_EVENT_PATH);
+  }
+
   public void verifyNoAzureUsage() {
     verifyNoAzureUsage(ANY);
   }
@@ -216,7 +222,7 @@ public class AzureWiremockService extends WiremockService {
         String url = urlNode.asText();
         String method = methodNode.asText();
 
-        if (url.contains("/mock/azure/api/usageEvent") && "POST".equals(method)) {
+        if (url.contains(AZURE_USAGE_EVENT_PATH) && "POST".equals(method)) {
           String requestBody = bodyNode.asText();
           if (requestBody != null && !requestBody.isEmpty()) {
             JsonNode usage = objectMapper.readTree(requestBody);
@@ -319,6 +325,48 @@ public class AzureWiremockService extends WiremockService {
                     Map.of("Content-Type", "application/json"),
                     "jsonBody",
                     usageResponse),
+                "metadata",
+                getMetadataTags()))
+        .when()
+        .post("/__admin/mappings")
+        .then()
+        .statusCode(201);
+  }
+
+  public void setupAzureSendUsageTakesTooLong(String azureResourceId) {
+    // Setup Azure send usage endpoint
+    var usageResponse =
+        Map.of(
+            "usageEventId",
+            java.util.UUID.randomUUID().toString(),
+            "status",
+            "Accepted",
+            "messageTime",
+            java.time.Instant.now().toString(),
+            "resourceId",
+            azureResourceId,
+            "planId",
+            AZURE_PLAN_ID);
+
+    given()
+        .contentType("application/json")
+        .body(
+            Map.of(
+                "request",
+                Map.of(
+                    "method", "POST",
+                    "urlPathPattern", "/mock/azure/.*",
+                    "headers", Map.of("Authorization", Map.of("matches", "Bearer .*"))),
+                "response",
+                Map.of(
+                    "status",
+                    200,
+                    "headers",
+                    Map.of("Content-Type", "application/json"),
+                    "jsonBody",
+                    usageResponse,
+                    "fixedDelayMilliseconds",
+                    Duration.ofMinutes(5).toMillis()),
                 "metadata",
                 getMetadataTags()))
         .when()

@@ -24,24 +24,37 @@ import static com.redhat.swatch.component.tests.utils.Topics.UTILIZATION;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
+import com.redhat.swatch.component.tests.utils.RandomUtils;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
+import com.redhat.swatch.utilization.test.model.Measurement;
+import com.redhat.swatch.utilization.test.model.UtilizationSummary;
+import java.util.List;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class SimpleUtilizationComponentTest extends BaseUtilizationComponentTest {
+public class UtilizationSummaryConsumerComponentTest extends BaseUtilizationComponentTest {
 
   protected static final String RECEIVED_METRIC = "swatch_utilization_received_total";
 
-  @Test
-  public void testServiceIsUpAndRunning() {
-    service.managementServer().get("/health").then().statusCode(200);
+  @BeforeAll
+  static void enableSendNotificationsFeatureFlag() {
+    unleash.enableFlag(SEND_NOTIFICATIONS);
+  }
+
+  @AfterAll
+  static void disableSendNotificationsFeatureFlag() {
+    unleash.disableFlag(SEND_NOTIFICATIONS);
   }
 
   @Test
   public void testReceivedMetricIsIncremented() {
     // arrange
     double before = service.getMetricByTags(RECEIVED_METRIC);
+    var utilizationSummary = createValidPaygPayload();
 
     // act
-    kafkaBridge.produceKafkaMessage(UTILIZATION, "any");
+    kafkaBridge.produceKafkaMessage(UTILIZATION, utilizationSummary);
 
     // assert
     AwaitilityUtils.untilAsserted(
@@ -56,5 +69,14 @@ public class SimpleUtilizationComponentTest extends BaseUtilizationComponentTest
                   + after
                   + ".");
         });
+  }
+
+  private UtilizationSummary createValidPaygPayload() {
+    return new UtilizationSummary()
+        .withOrgId(orgId)
+        .withProductId("rosa")
+        .withBillingAccountId(RandomUtils.generateRandom())
+        .withMeasurements(
+            List.of(new Measurement().withMetricId(MetricIdUtils.getCores().getValue())));
   }
 }

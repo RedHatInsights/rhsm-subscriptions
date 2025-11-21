@@ -100,6 +100,7 @@ public class KafkaBridgeService extends RestService {
   }
 
   public void produceKafkaMessage(String topic, String key, Object value) {
+    Log.debug(this, "Sending kafka message to topic '%s': %s", topic, value);
     var data = Map.of("records", List.of(buildMessage(key, value)));
 
     given()

@@ -113,7 +113,7 @@ def _generate_insert(table, **host_fields):
         values.append(value)
     fields = ','.join(fields)
     values = ','.join(db_repr(value) for value in values)
-    output.write(f'insert into {table}({fields}) values ({values});\n')
+    output.write(f'insert into hbi.{table}({fields}) values ({values});\n')
 
 
 def _generate_buckets(host_id, product, sla, usage, as_hypervisor=False, measurement_type=None, cores=None,

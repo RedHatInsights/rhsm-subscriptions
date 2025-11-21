@@ -22,6 +22,7 @@ package com.redhat.swatch.hbi.events.repository;
 
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.persistence.Query;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,6 +32,9 @@ public class HbiEventOutboxRepository implements PanacheRepositoryBase<HbiEventO
   // Native query required to use Postgres' FOR UPDATE SKIP LOCKED functionality.
   private static final String FIND_BY_ORG_ID_WITH_LOCK_QUERY =
       "SELECT * FROM hbi_event_outbox ORDER BY created_on ASC LIMIT :batchSize FOR UPDATE SKIP LOCKED";
+
+  private static final String ESTIMATE_QUERY =
+      "SELECT reltuples::bigint AS estimate FROM pg_class WHERE relname = :tableName";
 
   public List<HbiEventOutbox> findByOrgId(String orgId) {
     return list("orgId", orgId);
@@ -53,5 +57,12 @@ public class HbiEventOutboxRepository implements PanacheRepositoryBase<HbiEventO
         .createNativeQuery(FIND_BY_ORG_ID_WITH_LOCK_QUERY, HbiEventOutbox.class)
         .setParameter("batchSize", batchSize)
         .getResultList();
+  }
+
+  public long estimatedCount() {
+    Query query = getEntityManager().createNativeQuery(ESTIMATE_QUERY);
+    query.setParameter("tableName", "hbi_event_outbox");
+    Number result = (Number) query.getSingleResult();
+    return result.longValue();
   }
 }
