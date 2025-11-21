@@ -27,7 +27,7 @@ Execute tests for a specific service. For example, to run tests for `swatch-prod
 Deploy only the necessary dependencies for a specific service:
 
 ```bash
-bonfire deploy rhsm --source=appsre --ref-env insights-stage --component swatch-kafka-bridge --component wiremock --component swatch-producer-azure --no-remove-resources app:rhsm --remove-dependencies swatch-producer-azure
+bonfire deploy rhsm --source=appsre --ref-env insights-stage --component rhsm --component swatch-kafka-bridge --component wiremock --component swatch-producer-azure --no-remove-resources app:rhsm --remove-dependencies swatch-producer-azure
 ```
 
 ### 2. Run Component Tests Against OpenShift
