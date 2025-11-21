@@ -32,6 +32,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 
@@ -60,7 +61,9 @@ public class AzureMarketplaceClientFactory {
               try {
                 var apiBuilder =
                     RestClientBuilder.newBuilder()
-                        .baseUri(new URI(azureMarketplaceProperties.getMarketplaceBaseUrl()));
+                        .baseUri(new URI(azureMarketplaceProperties.getMarketplaceBaseUrl()))
+                        .readTimeout(
+                            azureMarketplaceProperties.getReadTimeout(), TimeUnit.MILLISECONDS);
                 if (!azureMarketplaceProperties.isDisableAzureOidc()) {
                   apiBuilder.register(
                       new AzureMarketplaceHeaderProvider(

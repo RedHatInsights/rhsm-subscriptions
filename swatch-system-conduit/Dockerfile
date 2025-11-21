@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/openjdk-17:1.23-6.1762870924
+FROM registry.access.redhat.com/ubi9/openjdk-17:1.23-6.1763035539
 
 USER root
 # Add git, so that the build can determine the git hash
@@ -22,13 +22,13 @@ COPY . .
 ARG MAVEN_BUILD_ARGS=''
 ARG MAVEN_TASKS='clean package'
 RUN --mount=type=cache,target=/root/.m2 \
-    ./mvnw ${MAVEN_TASKS} -DskipTests ${MAVEN_BUILD_ARGS}
+    ./mvnw ${MAVEN_TASKS} -pl swatch-system-conduit -am -DskipTests ${MAVEN_BUILD_ARGS}
 
 # See https://stackoverflow.com/a/786515
 RUN (cd /stage/swatch-system-conduit && exec jar -xf ./target/*.jar)
 RUN ls -al /stage/swatch-system-conduit
 
-FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.23-6.1762870926
+FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.23-6.1763034979
 USER root
 RUN microdnf \
     --disablerepo=* \

@@ -36,7 +36,7 @@ public class OutboxRecordGaugeMetric implements MeterBinder {
 
   @Override
   public void bindTo(MeterRegistry registry) {
-    Gauge.builder(GAUGE_NAME, outboxRepo, HbiEventOutboxRepository::count)
+    Gauge.builder(GAUGE_NAME, outboxRepo, HbiEventOutboxRepository::estimatedCount)
         .description("Number of outbox records in the database")
         .tag("table", "hbi_event_outbox")
         .register(registry);
