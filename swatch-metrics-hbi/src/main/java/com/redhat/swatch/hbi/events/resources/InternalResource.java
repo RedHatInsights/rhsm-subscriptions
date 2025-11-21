@@ -58,26 +58,32 @@ public class InternalResource implements DefaultApi {
       return response;
     }
 
-    if (makeSynchronousRequest) {
-      if (!applicationProperties.isSynchronousOperationsEnabled()) {
-        throw new SynchronousRequestsNotEnabledException();
+    try {
+      if (makeSynchronousRequest) {
+        if (!applicationProperties.isSynchronousOperationsEnabled()) {
+          throw new SynchronousRequestsNotEnabledException();
+        }
+
+        log.info("Request received to flush the outbox synchronously!");
+        try {
+          long count = flush();
+          response.setStatus(FlushResponse.StatusEnum.SUCCESS);
+          response.setCount(count);
+          return response;
+        } catch (Exception e) {
+          throw new SynchronousOutboxFlushException(e);
+        }
       }
 
-      log.info("Request received to flush the outbox synchronously!");
-      try {
-        long count = flush();
-        response.setStatus(FlushResponse.StatusEnum.SUCCESS);
-        response.setCount(count);
-        return response;
-      } catch (Exception e) {
-        throw new SynchronousOutboxFlushException(e);
-      }
+      log.info("Request received to flush the outbox asynchronously!");
+      executor.runAsync(this::flush);
+      response.setStatus(FlushResponse.StatusEnum.STARTED);
+      return response;
+    } catch (RuntimeException e) {
+      // Release lock if we fail before flush() is called
+      flushInProgress.set(false);
+      throw e;
     }
-
-    log.info("Request received to flush the outbox asynchronously!");
-    executor.runAsync(this::flush);
-    response.setStatus(FlushResponse.StatusEnum.STARTED);
-    return response;
   }
 
   private long flush() {
