@@ -27,7 +27,7 @@ RUN --mount=type=cache,target=/root/.m2 \
 RUN (cd /stage/swatch-tally && exec jar -xf ./target/*.jar)
 RUN ls -al /stage/swatch-tally
 
-FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.23-6.1762870926
+FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.23-6.1763034979
 USER root
 RUN microdnf \
     --disablerepo=* \
