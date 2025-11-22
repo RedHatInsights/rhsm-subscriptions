@@ -5,5 +5,13 @@
     "enabled": true,
     "automerge": true,
     "schedule": ["* * * * *"]
-  }
+  },
+  "packageRules": [
+    {
+      "description": "Disable dependency updates (Maven/Dockerfile) on hotfix branch",
+      "matchBaseBranches": ["hotfix"],
+      "matchManagers": ["maven", "dockerfile"],
+      "enabled": false
+    }
+  ]
 }
