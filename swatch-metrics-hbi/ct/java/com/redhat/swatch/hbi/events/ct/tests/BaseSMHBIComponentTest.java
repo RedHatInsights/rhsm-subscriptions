@@ -33,11 +33,8 @@ import com.redhat.swatch.hbi.events.ct.api.SwatchMetricsHbiRestService;
 import com.redhat.swatch.hbi.model.FlushResponse;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
-import org.junit.jupiter.api.Tag;
 
-@ComponentTest
-@Tag("component")
-@Tag("metrics-hbi")
+@ComponentTest(name = "swatch-metrics-hbi")
 public class BaseSMHBIComponentTest {
 
   @KafkaBridge

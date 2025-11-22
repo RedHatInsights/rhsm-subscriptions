@@ -66,6 +66,32 @@ public final class ReflectionUtils {
     }
   }
 
+  /**
+   * Finds all annotations from a method and its declaring class hierarchy. Annotations are
+   * collected in the following order: method annotations first, then class annotations (including
+   * superclasses and enclosing classes).
+   *
+   * @return list of all annotations found
+   */
+  public static List<Annotation> findAllAnnotations(Class<?> clazz, String methodName) {
+    var method = ReflectionUtils.findMethod(clazz, methodName);
+
+    List<Annotation> annotations = new ArrayList<>();
+    // First, collect annotations from the method itself
+    method.ifPresent(value -> annotations.addAll(Arrays.asList(value.getAnnotations())));
+
+    // Then, collect annotations from the class hierarchy
+    annotations.addAll(findAllAnnotations(clazz));
+    return annotations;
+  }
+
+  /**
+   * Finds all annotations from a class hierarchy. Annotations are collected from the class itself,
+   * its superclasses, and enclosing classes.
+   *
+   * @param clazz the class to search annotations from
+   * @return list of all annotations found
+   */
   public static List<Annotation> findAllAnnotations(Class<?> clazz) {
     if (clazz == Object.class) {
       return Collections.emptyList();
@@ -138,5 +164,22 @@ public final class ReflectionUtils {
     } catch (ClassNotFoundException e) {
       return Optional.empty();
     }
+  }
+
+  /**
+   * Finds a method by name in a class. If multiple methods with the same name exist (overloads),
+   * returns the first one found.
+   *
+   * @param clazz the class to search in
+   * @param methodName the name of the method to find
+   * @return Optional containing the method if found, empty otherwise
+   */
+  public static Optional<Method> findMethod(Class<?> clazz, String methodName) {
+    for (Method method : clazz.getDeclaredMethods()) {
+      if (method.getName().equals(methodName)) {
+        return Optional.of(method);
+      }
+    }
+    return Optional.empty();
   }
 }

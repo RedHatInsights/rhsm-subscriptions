@@ -18,28 +18,6 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.api;
+package com.redhat.swatch.component.tests.reporting;
 
-import com.redhat.swatch.component.tests.core.ComponentTestExtension;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Inherited;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-import org.junit.jupiter.api.extension.ExtendWith;
-
-@Target(ElementType.TYPE)
-@Retention(RetentionPolicy.RUNTIME)
-@ExtendWith(ComponentTestExtension.class)
-@Inherited
-public @interface ComponentTest {
-
-  /** Name of the component test being tested. */
-  String name() default "";
-
-  /**
-   * Set the target environment where to run the tests. Fallback property
-   * `swatch.component-tests.global.target`.
-   */
-  String target() default "local";
-}
+public record Property(String name, String value) {}

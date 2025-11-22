@@ -7,10 +7,13 @@
       },
       "processing": {
         "property_filter": [
+          "component",
+          "test-plan",
+          "tag"
         ],
         "apply_tfa": false,
         "apply_llm_analysis": false,
-        "disable_testitem_updater": true,
+        "disable_testitem_updater": false,
         "launch": {
           "name": "SERVICE_NAME component tests",
           "description": "SERVICE_NAME component tests ran in Ephemeral through Konflux pipeline.",

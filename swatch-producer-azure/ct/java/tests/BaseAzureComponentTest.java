@@ -31,11 +31,8 @@ import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.api.Wiremock;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
 
-@ComponentTest
-@Tag("component")
-@Tag("azure")
+@ComponentTest(name = "swatch-producer-azure")
 public class BaseAzureComponentTest {
 
   @KafkaBridge

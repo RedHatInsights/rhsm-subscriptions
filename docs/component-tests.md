@@ -315,3 +315,252 @@ The framework provides dependency injection capabilities:
 - Automatic service discovery and injection
 - Parameter resolution for test methods
 - Context-aware resource management
+
+## Custom Test Properties for ReportPortal
+
+The framework automatically enriches Surefire XML reports with custom properties that are sent to ReportPortal via DataRouter. This enables better test traceability, filtering, and organization in ReportPortal.
+
+### Available Properties
+
+The framework provides three built-in property extractors:
+
+#### 1. Component Name (`@ComponentTest.name`)
+
+Identifies which component is being tested:
+
+```java
+@ComponentTest(name = "swatch-utilization")
+public class UtilizationComponentTest {
+    // Generates: <property name="component" value="swatch-utilization"/>
+}
+```
+
+#### 2. Tags (`@Tag`)
+
+Adds tags for categorization and filtering:
+
+```java
+@Tag("smoke")
+@Tag("critical")
+@Test
+public void myTest() {
+    // Generates: 
+    // <property name="tag" value="smoke"/>
+    // <property name="tag" value="critical"/>
+}
+```
+
+Tags can be applied at both class and method level, and are inherited from parent classes.
+
+#### 3. Test Plan Name (`@TestPlanName`)
+
+Links tests to test plan identifiers:
+
+```java
+@TestPlanName("utilization-consumer-0001")
+@Test
+public void testReceivedMetricIsIncremented() {
+    // Generates: <property name="test-plan" value="utilization-consumer-0001"/>
+}
+```
+
+### How It Works
+
+1. **Test Execution**: During test execution, the `ComponentTestReporter` (a JUnit `TestExecutionListener`) collects metadata from test annotations
+2. **XML Post-Processing**: After Surefire generates XML reports, the reporter:
+   - Removes default Surefire properties (system info)
+   - Injects custom properties into each `<testcase>` element
+   - Preserves all original Surefire data (system-out, system-err, failures, etc.)
+3. **DataRouter Filtering**: Only whitelisted properties in `datarouter.json` are sent to ReportPortal
+
+### Adding a New Custom Property
+
+To add support for a new custom property, follow these steps:
+
+#### Step 1: Create the Annotation
+
+Create a new annotation in `swatch-test-framework/src/main/java/com/redhat/swatch/component/tests/api/`:
+
+```java
+package com.redhat.swatch.component.tests.api;
+
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Inherited;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+@Target({ElementType.TYPE, ElementType.METHOD})
+@Retention(RetentionPolicy.RUNTIME)
+@Inherited
+public @interface MyCustomAnnotation {
+  String value();
+}
+```
+
+**Important**: Use `@Retention(RetentionPolicy.RUNTIME)` to ensure the annotation is available at runtime.
+
+#### Step 2: Create the Property Extractor
+
+Create a new extractor in `swatch-test-framework/src/main/java/com/redhat/swatch/component/tests/reporting/extractors/`:
+
+```java
+package com.redhat.swatch.component.tests.reporting.extractors;
+
+import com.redhat.swatch.component.tests.api.MyCustomAnnotation;
+import com.redhat.swatch.component.tests.reporting.Property;
+import com.redhat.swatch.component.tests.reporting.PropertyExtractor;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.junit.platform.launcher.TestIdentifier;
+
+public class MyCustomPropertyExtractor implements PropertyExtractor<MyCustomAnnotation> {
+
+  private static final String KEY = "my-property"; // Property name in XML
+
+  @Override
+  public Class<MyCustomAnnotation> getAnnotation() {
+    return MyCustomAnnotation.class;
+  }
+
+  @Override
+  public Set<Property> extractProperties(
+      TestIdentifier testIdentifier, List<MyCustomAnnotation> annotations) {
+    return annotations.stream()
+        .map(a -> new Property(KEY, a.value()))
+        .collect(Collectors.toSet());
+  }
+}
+```
+
+**Key Points**:
+- Implement `PropertyExtractor<T>` where `T` is your annotation type
+- The `KEY` constant defines the property name in the XML
+- Return a `Set<Property>` to handle multiple annotations
+- Use `Collectors.toSet()` to automatically deduplicate values
+
+#### Step 3: Register the Extractor
+
+Register your extractor in `ComponentTestReporter` constructor:
+
+```java
+public ComponentTestReporter() {
+  this.outputDirectory =
+      System.getProperty("surefire.reports.directory", "target/surefire-reports");
+
+  // Register default property extractors
+  propertyExtractors.add(new TagPropertyExtractor());
+  propertyExtractors.add(new ComponentPropertyExtractor());
+  propertyExtractors.add(new TestPlanNamePropertyExtractor());
+  propertyExtractors.add(new MyCustomPropertyExtractor()); // Add your extractor
+}
+```
+
+#### Step 4: Update DataRouter Configuration
+
+Add your property to the whitelist in `datarouter.json`:
+
+```json
+{
+  "targets": {
+    "reportportal": {
+      "processing": {
+        "property_filter": [
+          "component",
+          "test-plan",
+          "tag",
+          "my-property"  // Add your property here
+        ]
+      }
+    }
+  }
+}
+```
+
+**Important**: Only properties listed in `property_filter` are sent to ReportPortal. This keeps reports clean and focused.
+
+#### Step 5: Use the Annotation
+
+Use your new annotation in tests:
+
+```java
+@ComponentTest(name = "my-service")
+@MyCustomAnnotation("my-value")
+public class MyTest {
+    
+    @Test
+    @MyCustomAnnotation("method-value")
+    public void myTest() {
+        // Both class and method annotations will be collected
+    }
+}
+```
+
+### Advanced: Handling Multiple Values
+
+If your annotation can appear multiple times or needs complex logic:
+
+```java
+@Override
+public Set<Property> extractProperties(
+    TestIdentifier testIdentifier, List<MyCustomAnnotation> annotations) {
+  Set<Property> properties = new HashSet<>();
+  
+  for (MyCustomAnnotation annotation : annotations) {
+    // Custom logic here
+    if (!annotation.value().isEmpty()) {
+      properties.add(new Property(KEY, annotation.value()));
+    }
+  }
+  
+  return properties;
+}
+```
+
+### Annotation Hierarchy
+
+The framework automatically collects annotations from:
+1. **Test method** (highest priority)
+2. **Test class**
+3. **Parent classes** (full inheritance hierarchy)
+
+This means annotations on parent classes are automatically inherited by child test classes.
+
+### Example: Complete Flow
+
+```java
+// 1. Define annotation
+@Target({ElementType.TYPE, ElementType.METHOD})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Priority {
+  String value();
+}
+
+// 2. Create extractor
+public class PriorityPropertyExtractor implements PropertyExtractor<Priority> {
+  @Override
+  public Class<Priority> getAnnotation() { return Priority.class; }
+  
+  @Override
+  public Set<Property> extractProperties(
+      TestIdentifier id, List<Priority> annotations) {
+    return annotations.stream()
+        .map(a -> new Property("priority", a.value()))
+        .collect(Collectors.toSet());
+  }
+}
+
+// 3. Register in ComponentTestReporter
+propertyExtractors.add(new PriorityPropertyExtractor());
+
+// 4. Update datarouter.json
+"property_filter": ["component", "test-plan", "tag", "priority"]
+
+// 5. Use in tests
+@Priority("high")
+@Test
+public void criticalTest() {
+  // Generates: <property name="priority" value="high"/>
+}
+```
