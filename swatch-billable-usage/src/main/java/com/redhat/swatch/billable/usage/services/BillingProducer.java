@@ -49,18 +49,6 @@ public class BillingProducer {
       log.debug("Skipping billable usage; see previous errors/warnings.");
       return;
     }
-
-    // SWATCH-4013: Log billable usage production for traceability
-    // This allows us to track back to the original tally snapshot if needed
-    log.info(
-        "Producing billable usage: tallyId={}, product={}, orgId={}, snapshotDate={}, metricId={}, value={}",
-        usage.getTallyId(),
-        usage.getProductId(),
-        usage.getOrgId(),
-        usage.getSnapshotDate(),
-        usage.getMetricId(),
-        usage.getValue());
-
     emitter.sendAndAwait(usage);
   }
 }

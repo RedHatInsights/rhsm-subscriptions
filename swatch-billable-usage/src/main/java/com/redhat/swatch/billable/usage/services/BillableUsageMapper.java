@@ -26,25 +26,18 @@ import com.redhat.swatch.billable.usage.model.TallySummary;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
-import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 
 @Slf4j
 @ApplicationScoped
-@AllArgsConstructor
 public class BillableUsageMapper {
 
   private static final String HARDWARE_MEASUREMENT_TYPE_TOTAL = "TOTAL";
-  protected static final String FILTERED_SNAPSHOTS_METRIC =
-      "swatch_billable_usage_snapshots_filtered_total";
-
-  private final MeterRegistry meterRegistry;
 
   /**
    * We only want to send snapshot information for PAYG product ids. To prevent duplicate data, we
@@ -89,46 +82,8 @@ public class BillableUsageMapper {
 
     if (!isSnapshotPAYGEligible) {
       log.debug("Snapshot not billable {}", snapshot);
-      trackFilteredSnapshot(snapshot, isHourlyGranularity);
     }
     return isSnapshotPAYGEligible;
-  }
-
-  /**
-   * Track filtered snapshots with metrics for monitoring and alerting. This is critical for
-   * SWATCH-4013 to ensure DAILY snapshots are not being processed.
-   *
-   * @param snapshot the filtered tally snapshot
-   * @param isHourlyGranularity whether the snapshot has HOURLY granularity
-   */
-  private void trackFilteredSnapshot(TallySnapshot snapshot, boolean isHourlyGranularity) {
-    // Only track granularity-based filtering to avoid metric cardinality explosion
-    // This is the critical check for SWATCH-4013 (ensuring only HOURLY processing)
-    if (!isHourlyGranularity && snapshot.getGranularity() != null) {
-      String granularity = snapshot.getGranularity().name(); // Use enum name for consistency
-      String productId = snapshot.getProductId() != null ? snapshot.getProductId() : "unknown";
-
-      meterRegistry
-          .counter(
-              FILTERED_SNAPSHOTS_METRIC,
-              "granularity",
-              granularity,
-              "product",
-              productId,
-              "reason",
-              "non_hourly")
-          .increment();
-
-      // Log at INFO level for DAILY snapshots specifically as they should never appear
-      if (TallySnapshot.Granularity.DAILY.equals(snapshot.getGranularity())) {
-        log.info(
-            "Filtered DAILY snapshot - productId={}, snapshotDate={}, tallyId={}. "
-                + "This should not happen frequently. Investigate if this appears often.",
-            productId,
-            snapshot.getSnapshotDate(),
-            snapshot.getId());
-      }
-    }
   }
 
   public Stream<BillableUsage> fromTallySummary(TallySummary summary) {

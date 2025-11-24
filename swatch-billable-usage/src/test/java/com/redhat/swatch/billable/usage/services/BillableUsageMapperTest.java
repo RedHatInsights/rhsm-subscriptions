@@ -20,13 +20,9 @@
  */
 package com.redhat.swatch.billable.usage.services;
 
-import static com.redhat.swatch.billable.usage.services.BillableUsageMapper.FILTERED_SNAPSHOTS_METRIC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.billable.usage.model.TallyMeasurement;
@@ -35,8 +31,6 @@ import com.redhat.swatch.billable.usage.model.TallySummary;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinitionRegistry;
 import com.redhat.swatch.configuration.registry.Variant;
-import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.MeterRegistry;
 import java.lang.reflect.Field;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -54,10 +48,8 @@ class BillableUsageMapperTest {
 
   private static SubscriptionDefinitionRegistry originalReference;
   private SubscriptionDefinitionRegistry subscriptionDefinitionRegistry;
-  private MeterRegistry meterRegistry;
-  private Counter mockCounter;
 
-  private BillableUsageMapper mapper;
+  private final BillableUsageMapper mapper = new BillableUsageMapper();
 
   @BeforeAll
   static void setupClass() throws Exception {
@@ -92,15 +84,6 @@ class BillableUsageMapperTest {
     variant.setSubscription(subscriptionDefinition);
     when(subscriptionDefinitionRegistry.getSubscriptions())
         .thenReturn(List.of(subscriptionDefinition));
-
-    // Setup MeterRegistry mock
-    meterRegistry = mock(MeterRegistry.class);
-    mockCounter = mock(Counter.class);
-    when(meterRegistry.counter(eq(FILTERED_SNAPSHOTS_METRIC), any(String[].class)))
-        .thenReturn(mockCounter);
-
-    // Initialize mapper with mocked dependencies
-    mapper = new BillableUsageMapper(meterRegistry);
   }
 
   private void setMock(SubscriptionDefinitionRegistry mock) {
@@ -246,24 +229,6 @@ class BillableUsageMapperTest {
   }
 
   @Test
-  void shouldSkipSummaryWithNoMeasurements() {
-    TallySummary tallySummary =
-        createExampleTallySummaryWithOrgId(
-            ROSA,
-            TallySnapshot.Granularity.HOURLY,
-            TallySnapshot.Sla.STANDARD,
-            TallySnapshot.Usage.PRODUCTION,
-            TallySnapshot.BillingProvider.AWS,
-            "123");
-    tallySummary.getTallySnapshots().get(0).setTallyMeasurements(null);
-    assertTrue(mapper.fromTallySummary(tallySummary).findAny().isEmpty());
-  }
-
-  /**
-   * Verify that DAILY granularity tally snapshots are filtered out and do not produce billable
-   * usage. This is critical to ensure accurate billing - only HOURLY snapshots should be processed.
-   */
-  @Test
   void shouldSkipDailyGranularitySnapshots() {
     assertTrue(
         mapper
@@ -279,68 +244,18 @@ class BillableUsageMapperTest {
             .isEmpty());
   }
 
-  /**
-   * SWATCH-4013: Verify that when DAILY snapshots are filtered, a metric is incremented for
-   * monitoring and alerting. This enables production alerts if DAILY snapshots start appearing.
-   */
   @Test
-  void shouldIncrementMetricWhenDailySnapshotIsFiltered() {
-    // When: Process a DAILY snapshot (which should be filtered)
-    // Must consume the stream to trigger the filtering logic
-    mapper
-        .fromTallySummary(
-            createExampleTallySummaryWithOrgId(
-                ROSA,
-                TallySnapshot.Granularity.DAILY,
-                TallySnapshot.Sla.STANDARD,
-                TallySnapshot.Usage.PRODUCTION,
-                TallySnapshot.BillingProvider.AWS,
-                "123"))
-        .toList(); // Consume the stream to trigger filtering
-
-    // Then: Verify metric was incremented with correct tags
-    verify(meterRegistry)
-        .counter(
-            eq(FILTERED_SNAPSHOTS_METRIC),
-            eq("granularity"),
-            eq("DAILY"),
-            eq("product"),
-            eq(ROSA),
-            eq("reason"),
-            eq("non_hourly"));
-    verify(mockCounter).increment();
-  }
-
-  /**
-   * SWATCH-4013: Verify that metrics are also incremented for other non-hourly granularities (e.g.,
-   * YEARLY, MONTHLY).
-   */
-  @Test
-  void shouldIncrementMetricForYearlyGranularity() {
-    // When: Process a YEARLY snapshot (which should be filtered)
-    // Must consume the stream to trigger the filtering logic
-    mapper
-        .fromTallySummary(
-            createExampleTallySummaryWithOrgId(
-                ROSA,
-                TallySnapshot.Granularity.YEARLY,
-                TallySnapshot.Sla.STANDARD,
-                TallySnapshot.Usage.PRODUCTION,
-                TallySnapshot.BillingProvider.AWS,
-                "123"))
-        .toList(); // Consume the stream to trigger filtering
-
-    // Then: Verify metric was incremented with YEARLY granularity tag
-    verify(meterRegistry)
-        .counter(
-            eq(FILTERED_SNAPSHOTS_METRIC),
-            eq("granularity"),
-            eq("YEARLY"),
-            eq("product"),
-            eq(ROSA),
-            eq("reason"),
-            eq("non_hourly"));
-    verify(mockCounter).increment();
+  void shouldSkipSummaryWithNoMeasurements() {
+    TallySummary tallySummary =
+        createExampleTallySummaryWithOrgId(
+            ROSA,
+            TallySnapshot.Granularity.HOURLY,
+            TallySnapshot.Sla.STANDARD,
+            TallySnapshot.Usage.PRODUCTION,
+            TallySnapshot.BillingProvider.AWS,
+            "123");
+    tallySummary.getTallySnapshots().get(0).setTallyMeasurements(null);
+    assertTrue(mapper.fromTallySummary(tallySummary).findAny().isEmpty());
   }
 
   TallySummary createExampleTallySummaryWithOrgId(
