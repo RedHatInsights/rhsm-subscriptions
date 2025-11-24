@@ -246,6 +246,79 @@ class TallySummaryMessageConsumerTest {
                                     && r.getMessage().contains(str))));
   }
 
+  /**
+   * SWATCH-3790 AC4: Negative test to ensure if a DAILY snapshot is processed and sent to the
+   * producers, we are notified via logging.
+   *
+   * <p>This test simulates the scenario where the filtering logic fails (bug) and allows a DAILY
+   * snapshot to bypass the granularity check. We verify that when this happens, the producer logs
+   * the billable usage, allowing us to trace it back via tallyId.
+   */
+  @Test
+  void testDailySnapshotBypassingFilterIsLogged() {
+    // Setup: Configure logging to capture producer logs
+    LoggerCaptor producerLogCaptor = new LoggerCaptor();
+    LogContext.getLogContext()
+        .getLogger(BillingProducer.class.getName())
+        .addHandler(producerLogCaptor);
+
+    // Given: Create a DAILY snapshot (which should normally be filtered out)
+    TallySnapshot dailySnapshot = givenSnapshotWithUsages(80);
+    dailySnapshot.setGranularity(TallySnapshot.Granularity.DAILY); // ← DAILY granularity!
+    UUID dailyTallyId = dailySnapshot.getId();
+
+    // Given: Mock the mapper to bypass filtering (simulating the bug where filtering fails)
+    // In reality, the mapper should filter DAILY, but we're simulating the filtering logic failing
+    givenValidContractWithMetric(8);
+
+    // Create a BillableUsage from the DAILY snapshot (simulating the filter failure)
+    BillableUsage billableUsageFromDaily =
+        new BillableUsage()
+            .withTallyId(dailyTallyId)
+            .withOrgId(ORG_ID)
+            .withProductId(PRODUCT_ID)
+            .withSnapshotDate(snapshotDate)
+            .withMetricId(CORES)
+            .withValue(80.0)
+            .withSla(BillableUsage.Sla.PREMIUM)
+            .withUsage(BillableUsage.Usage.PRODUCTION)
+            .withBillingProvider(BillableUsage.BillingProvider.AWS)
+            .withBillingAccountId(BILLING_ACCOUNT_ID);
+
+    Mockito.doReturn(java.util.stream.Stream.of(billableUsageFromDaily))
+        .when(billableUsageMapper)
+        .fromTallySummary(any());
+
+    // When: Send the DAILY snapshot through the consumer
+    whenSendSnapshots();
+
+    // Then: Verify billable usage was produced (the bug scenario)
+    thenRemittanceIsEmitted();
+
+    // Then: NOTIFICATION MECHANISM - Verify producer logged the billable usage
+    // This is how we're notified if DAILY snapshots bypass filtering
+    Awaitility.await()
+        .untilAsserted(
+            () -> {
+              boolean foundProducerLog =
+                  producerLogCaptor.records.stream()
+                      .anyMatch(
+                          r ->
+                              r.getLevel().equals(Level.INFO)
+                                  && r.getMessage().contains("Producing billable usage")
+                                  && r.getMessage().contains("tallyId=" + dailyTallyId));
+
+              assertTrue(
+                  foundProducerLog,
+                  "Expected INFO log from producer when DAILY snapshot bypasses filtering - this is our notification mechanism!");
+            });
+
+    // Cleanup
+    LogContext.getLogContext()
+        .getLogger(BillingProducer.class.getName())
+        .removeHandler(producerLogCaptor);
+  }
+
   public static class LoggerCaptor extends Handler {
 
     private final List<LogRecord> records = new ArrayList<>();
