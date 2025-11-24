@@ -19,6 +19,7 @@ COPY pom.xml ./
 RUN --mount=type=cache,target=/root/.m2 \
     ./mvnw -P download dependency:resolve-plugins dependency:resolve --fail-never
 COPY . .
+ARG VERSION=1.0.0
 ARG MAVEN_BUILD_ARGS=''
 ARG MAVEN_TASKS='clean package'
 RUN --mount=type=cache,target=/root/.m2 \
@@ -28,6 +29,24 @@ RUN (cd /stage/swatch-tally && exec jar -xf ./target/*.jar)
 RUN ls -al /stage/swatch-tally
 
 FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.23-6.1763034979
+
+ARG VERSION=1.0.0
+
+# Required labels for Enterprise Contract
+LABEL name="rhsm-subscriptions"
+LABEL maintainer="Red Hat, Inc."
+LABEL version="ubi9"
+LABEL release="${VERSION}"
+LABEL vendor="Red Hat, Inc."
+LABEL url="https://github.com/RedHatInsights/rhsm-subscriptions"
+LABEL com.redhat.component="rhsm-subscriptions"
+LABEL distribution-scope="public"
+LABEL io.k8s.description="RHSM Subscriptions service based on UBI9 OpenJDK 17."
+LABEL description="RHSM Subscriptions service based on UBI9 OpenJDK 17."
+
+#label for EULA
+LABEL com.redhat.license_terms="https://www.redhat.com/en/about/red-hat-end-user-license-agreements#UBI"
+
 USER root
 RUN microdnf \
     --disablerepo=* \
