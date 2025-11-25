@@ -29,6 +29,7 @@ import com.redhat.swatch.hbi.model.FlushResponse;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.context.ManagedExecutor;
 
@@ -37,6 +38,7 @@ import org.eclipse.microprofile.context.ManagedExecutor;
 public class InternalResource implements DefaultApi {
 
   public static final String SYNCHRONOUS_REQUEST_HEADER = "x-rh-swatch-synchronous-request";
+  private final AtomicBoolean flushInProgress = new AtomicBoolean(false);
 
   @Inject ManagedExecutor executor;
 
@@ -50,34 +52,51 @@ public class InternalResource implements DefaultApi {
     boolean makeSynchronousRequest = Boolean.TRUE.equals(xRhSynchronousRequestHeader);
     FlushResponse response = new FlushResponse().async(!makeSynchronousRequest);
 
-    if (makeSynchronousRequest) {
-      if (!applicationProperties.isSynchronousOperationsEnabled()) {
-        throw new SynchronousRequestsNotEnabledException();
-      }
-
-      log.info("Request received to flush the outbox synchronously!");
-      try {
-        long count = flush();
-        response.setStatus(FlushResponse.StatusEnum.SUCCESS);
-        response.setCount(count);
-        return response;
-      } catch (Exception e) {
-        throw new SynchronousOutboxFlushException(e);
-      }
+    if (!flushInProgress.compareAndSet(false, true)) {
+      log.warn("Flush already in progress, cannot start another");
+      response.setStatus(FlushResponse.StatusEnum.ALREADY_RUNNING);
+      return response;
     }
 
-    log.info("Request received to flush the outbox asynchronously!");
-    executor.runAsync(this::flush);
-    response.setStatus(FlushResponse.StatusEnum.STARTED);
-    return response;
+    try {
+      if (makeSynchronousRequest) {
+        if (!applicationProperties.isSynchronousOperationsEnabled()) {
+          throw new SynchronousRequestsNotEnabledException();
+        }
+
+        log.info("Request received to flush the outbox synchronously!");
+        try {
+          long count = flush();
+          response.setStatus(FlushResponse.StatusEnum.SUCCESS);
+          response.setCount(count);
+          return response;
+        } catch (Exception e) {
+          throw new SynchronousOutboxFlushException(e);
+        }
+      }
+
+      log.info("Request received to flush the outbox asynchronously!");
+      executor.runAsync(this::flush);
+      response.setStatus(FlushResponse.StatusEnum.STARTED);
+      return response;
+    } catch (RuntimeException e) {
+      // Release lock if we fail before flush() is called
+      flushInProgress.set(false);
+      throw e;
+    }
   }
 
   private long flush() {
     log.debug(
         "Outbox flush running on vertx worker thread: {}",
         io.vertx.core.Context.isOnWorkerThread());
-    long count = outboxService.flushOutboxRecords();
-    log.info("Flushed {} outbox records!", count);
-    return count;
+    try {
+      log.info("Flushing outbox records!");
+      long count = outboxService.flushOutboxRecords();
+      log.info("Flushed {} outbox records!", count);
+      return count;
+    } finally {
+      flushInProgress.set(false);
+    }
   }
 }
