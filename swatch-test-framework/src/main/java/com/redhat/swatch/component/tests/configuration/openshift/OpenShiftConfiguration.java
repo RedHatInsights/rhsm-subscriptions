@@ -21,7 +21,7 @@
 package com.redhat.swatch.component.tests.configuration.openshift;
 
 public final class OpenShiftConfiguration {
-  private boolean printInfoOnError = true;
+  private boolean printInfoOnError = false;
   private String[] additionalResources;
 
   public boolean isPrintInfoOnError() {

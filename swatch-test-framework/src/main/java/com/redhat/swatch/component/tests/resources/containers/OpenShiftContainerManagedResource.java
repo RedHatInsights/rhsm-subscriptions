@@ -23,10 +23,7 @@ package com.redhat.swatch.component.tests.resources.containers;
 import static com.redhat.swatch.component.tests.utils.StringUtils.EMPTY;
 
 import com.redhat.swatch.component.tests.api.clients.OpenshiftClient;
-import com.redhat.swatch.component.tests.configuration.openshift.OpenShiftServiceConfiguration;
-import com.redhat.swatch.component.tests.configuration.openshift.OpenShiftServiceConfigurationBuilder;
 import com.redhat.swatch.component.tests.core.ManagedResource;
-import com.redhat.swatch.component.tests.core.ServiceContext;
 import com.redhat.swatch.component.tests.core.extensions.OpenShiftExtensionBootstrap;
 import com.redhat.swatch.component.tests.logging.LoggingHandler;
 import com.redhat.swatch.component.tests.logging.OpenShiftLoggingHandler;
@@ -107,13 +104,6 @@ public abstract class OpenShiftContainerManagedResource extends ManagedResource 
     }
 
     return client;
-  }
-
-  @Override
-  protected void init(ServiceContext context) {
-    super.init(context);
-    context.loadCustomConfiguration(
-        OpenShiftServiceConfiguration.class, new OpenShiftServiceConfigurationBuilder());
   }
 
   protected Map<String, String> podLabels() {
