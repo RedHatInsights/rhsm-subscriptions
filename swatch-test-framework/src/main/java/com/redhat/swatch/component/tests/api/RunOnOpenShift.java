@@ -34,7 +34,7 @@ public @interface RunOnOpenShift {
    * Print pods, events and status when there are test failures. Fallback property
    * `swatch.component-tests.openshift.print.info.on.error`.
    */
-  boolean printInfoOnError() default true;
+  boolean printInfoOnError() default false;
 
   /**
    * Load the additional resources before running all the tests. Fallback property
