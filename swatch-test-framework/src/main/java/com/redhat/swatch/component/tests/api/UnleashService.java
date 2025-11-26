@@ -34,7 +34,9 @@ public class UnleashService extends RestService {
   private static final String ENVIRONMENT = "development";
   private static final String UNLEASH_BASE_PATH = "/api/admin";
   private static final String UNLEASH_FEATURES_PATH =
-      UNLEASH_BASE_PATH + "/projects/" + PROJECT_ID + "/features/%s/environments/" + ENVIRONMENT;
+      UNLEASH_BASE_PATH + "/projects/" + PROJECT_ID + "/features";
+  private static final String UNLEASH_ENVIRONMENT_PATH =
+      UNLEASH_FEATURES_PATH + "/%s/environments/" + ENVIRONMENT;
 
   public void createFlag(String flag) {
     String payload =
@@ -42,22 +44,16 @@ public class UnleashService extends RestService {
             """
         {
           "name": "%s",
-          "type": "operational",
-          "project": "%s"
+          "type": "operational"
         }
         """,
-            flag, PROJECT_ID);
+            flag);
 
-    given()
-        .body(payload)
-        .when()
-        .post(UNLEASH_BASE_PATH + "/features")
-        .then()
-        .statusCode(HttpStatus.SC_CREATED);
+    given().body(payload).when().post(UNLEASH_FEATURES_PATH).then().log().ifError();
   }
 
   public void enableFlag(String flag) {
-    var response = given().post(UNLEASH_FEATURES_PATH.formatted(flag) + "/on");
+    var response = given().post(UNLEASH_ENVIRONMENT_PATH.formatted(flag) + "/on");
 
     if (response.statusCode() == HttpStatus.SC_NOT_FOUND) {
       createFlag(flag);
@@ -66,7 +62,7 @@ public class UnleashService extends RestService {
   }
 
   public void disableFlag(String flag) {
-    var response = given().post(UNLEASH_FEATURES_PATH.formatted(flag) + "/off");
+    var response = given().post(UNLEASH_ENVIRONMENT_PATH.formatted(flag) + "/off");
 
     if (response.statusCode() == HttpStatus.SC_NOT_FOUND) {
       createFlag(flag);
@@ -75,14 +71,14 @@ public class UnleashService extends RestService {
   }
 
   public void listFlags() {
-    given().get(UNLEASH_BASE_PATH + "/features").then().log().all();
+    given().get(UNLEASH_FEATURES_PATH).then().log().all();
   }
 
   public boolean isFlagEnabled(String flag) {
     return given()
-        .get(UNLEASH_BASE_PATH + "/projects/" + PROJECT_ID + "/features/" + flag)
+        .get(UNLEASH_FEATURES_PATH + "/" + flag)
         .then()
-        .statusCode(200)
+        .statusCode(HttpStatus.SC_OK)
         .extract()
         .path("environments.find { it.name == 'development' }.enabled");
   }
