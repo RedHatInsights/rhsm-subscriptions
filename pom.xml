@@ -331,13 +331,6 @@
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
     </dependency>
-    <!-- overridden to address CVE-2023-44487 -->
-    <dependency>
-      <groupId>io.netty</groupId>
-      <artifactId>netty-codec-http2</artifactId>
-      <version>4.2.6.Final</version>
-      <scope>runtime</scope>
-    </dependency>
   </dependencies>
 
   <build>
