@@ -131,6 +131,82 @@ spec:
           - name: pathInRepo
             value: tasks/teardown.yaml
   tasks:
+    - name: extract-revision
+      params:
+        - name: SNAPSHOT
+          value: "$(params.SNAPSHOT)"
+        - name: COMPONENT_NAME
+          value: "$(params.COMPONENT_NAME)"
+      taskSpec:
+        params:
+          - name: SNAPSHOT
+            type: string
+          - name: COMPONENT_NAME
+            type: string
+        results:
+          - name: GIT_REVISION
+            description: Extracted git revision for the component from SNAPSHOT (empty if not found)
+        steps:
+          - name: extract
+            image: quay.io/konflux-ci/appstudio-utils:latest
+            script: |
+              #!/usr/bin/env bash
+              set -euo pipefail
+              echo "extract-revision: component='$(params.COMPONENT_NAME)'"
+              rev=$(echo '$(params.SNAPSHOT)' | jq -r --arg name '$(params.COMPONENT_NAME)' '.components[] | select(.name==$name) | .source.git.revision // empty')
+              if [ -n "$rev" ] && [ "$rev" != "null" ]; then
+                echo "extract-revision: found revision='$rev'"
+              else
+                echo "extract-revision: no revision found in SNAPSHOT for component; leaving result empty"
+              fi
+              printf "%s" "$rev" > $(results.GIT_REVISION.path)
+    - name: update-extra-deploy-args
+      params:
+        - name: EXTRA_DEPLOY_ARGS
+          value: "$(params.EXTRA_DEPLOY_ARGS)"
+        - name: COMPONENTS
+          value: "$(params.COMPONENTS)"
+        - name: GIT_REVISION
+          value: "$(tasks.extract-revision.results.GIT_REVISION)"
+      runAfter:
+        - extract-revision
+      taskSpec:
+        params:
+          - name: EXTRA_DEPLOY_ARGS
+            type: string
+          - name: COMPONENTS
+            type: string
+          - name: GIT_REVISION
+            type: string
+        results:
+          - name: UPDATED_EXTRA_DEPLOY_ARGS
+            description: Updated EXTRA_DEPLOY_ARGS with template ref if rhsm component is present
+        steps:
+          - name: update-args
+            image: quay.io/konflux-ci/appstudio-utils:latest
+            script: |
+              #!/usr/bin/env bash
+              set -euo pipefail
+              COMPONENTS="$(params.COMPONENTS)"
+              EXTRA_DEPLOY_ARGS="$(params.EXTRA_DEPLOY_ARGS)"
+              GIT_REVISION="$(params.GIT_REVISION)"
+
+              echo "update-extra-deploy-args: COMPONENTS='$COMPONENTS'"
+              echo "update-extra-deploy-args: EXTRA_DEPLOY_ARGS='$EXTRA_DEPLOY_ARGS'"
+              echo "update-extra-deploy-args: GIT_REVISION='$GIT_REVISION'"
+
+              UPDATED_ARGS="$EXTRA_DEPLOY_ARGS"
+
+              # Check if 'rhsm' is in the components list
+              for component in $COMPONENTS; do
+                if [ "$component" = "rhsm" ] && [ -n "$GIT_REVISION" ]; then
+                  UPDATED_ARGS="$UPDATED_ARGS --set-template-ref rhsm=$GIT_REVISION"
+                  break
+                fi
+              done
+
+              echo "update-extra-deploy-args: final args='$UPDATED_ARGS'"
+              printf "%s" "$UPDATED_ARGS" > $(results.UPDATED_EXTRA_DEPLOY_ARGS.path)
     - name: reserve-namespace
       params:
         - name: NS_REQUESTER
@@ -139,6 +215,8 @@ spec:
           value: "$(params.EPHEMERAL_ENV_PROVIDER_SECRET)"
         - name: BONFIRE_IMAGE
           value: "$(params.BONFIRE_IMAGE)"
+      runAfter:
+        - extract-revision
       taskRef:
         resolver: git
         params:
@@ -169,7 +247,7 @@ spec:
         - name: COMPONENTS_W_RESOURCES
           value: "$(params.COMPONENTS_W_RESOURCES)"
         - name: EXTRA_DEPLOY_ARGS
-          value: "$(params.EXTRA_DEPLOY_ARGS)"
+          value: "$(tasks.update-extra-deploy-args.results.UPDATED_EXTRA_DEPLOY_ARGS)"
         - name: DEPLOY_FRONTENDS
           value: "$(params.DEPLOY_FRONTENDS)"
         - name: DEPLOY_TIMEOUT
@@ -178,6 +256,7 @@ spec:
           value: "$(params.DEPLOY_OPTIONAL_DEPS_METHOD)"
       runAfter:
         - reserve-namespace
+        - update-extra-deploy-args
       taskRef:
         resolver: git
         params:
@@ -187,37 +266,6 @@ spec:
             value: "$(params.BONFIRE_REVISION)"
           - name: pathInRepo
             value: tasks/deploy-frontends.yaml
-    - name: extract-revision
-      params:
-        - name: SNAPSHOT
-          value: "$(params.SNAPSHOT)"
-        - name: COMPONENT_NAME
-          value: "$(params.COMPONENT_NAME)"
-      runAfter:
-        - reserve-namespace
-      taskSpec:
-        params:
-          - name: SNAPSHOT
-            type: string
-          - name: COMPONENT_NAME
-            type: string
-        results:
-          - name: GIT_REVISION
-            description: Extracted git revision for the component from SNAPSHOT (empty if not found)
-        steps:
-          - name: extract
-            image: quay.io/konflux-ci/appstudio-utils:latest
-            script: |
-              #!/usr/bin/env bash
-              set -euo pipefail
-              echo "extract-revision: component='$(params.COMPONENT_NAME)'"
-              rev=$(echo '$(params.SNAPSHOT)' | jq -r --arg name '$(params.COMPONENT_NAME)' '.components[] | select(.name==$name) | .source.git.revision // empty')
-              if [ -n "$rev" ] && [ "$rev" != "null" ]; then
-                echo "extract-revision: found revision='$rev'"
-              else
-                echo "extract-revision: no revision found in SNAPSHOT for component; leaving result empty"
-              fi
-              printf "%s" "$rev" > $(results.GIT_REVISION.path)
     - name: clone-repository
       params:
         - name: url
@@ -238,7 +286,6 @@ spec:
           workspace: shared-workspace
       runAfter:
         - deploy-application
-        - extract-revision
     - name: run-tests-task
       params:
         - name: SERVICE
