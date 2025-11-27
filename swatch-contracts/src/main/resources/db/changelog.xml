@@ -23,4 +23,5 @@
   <include file="db/202412051144-primary-keys-on-changelog-table.xml"/>
   <include file="db/202504301500-update-subscription-capacity-view_h2_only-to-set-defaults.xml"/>
   <include file="db/202509021332-assume-ownership-of-offerings-and-subscriptions.xml"/>
+  <include file="db/202511271435_add_index_on_sku_column_in_sku_oid_table.xml"/>
 </databaseChangeLog>
