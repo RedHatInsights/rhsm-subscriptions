@@ -58,6 +58,9 @@ objects:
       - replicas: ${{KAFKA_UTILIZATION_REPLICAS}}
         partitions: ${{KAFKA_UTILIZATION_PARTITIONS}}
         topicName: platform.rhsm-subscriptions.utilization
+      - replicas: ${{KAFKA_UTILIZATION_REPLICAS}}
+        partitions: ${{KAFKA_UTILIZATION_PARTITIONS}}
+        topicName: platform.notifications.ingress
 
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}

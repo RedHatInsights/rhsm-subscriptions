@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.utilization.resources;
 
+import static com.redhat.swatch.utilization.configuration.Channels.NOTIFICATIONS_OUT;
 import static com.redhat.swatch.utilization.configuration.Channels.UTILIZATION;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
@@ -33,7 +34,10 @@ public class InMemoryMessageBrokerKafkaResource implements QuarkusTestResourceLi
 
   @Override
   public Map<String, String> start() {
-    return new HashMap<>(InMemoryConnector.switchIncomingChannelsToInMemory(UTILIZATION));
+    Map<String, String> env = new HashMap<>();
+    env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory(UTILIZATION));
+    env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory(NOTIFICATIONS_OUT));
+    return env;
   }
 
   @Override
