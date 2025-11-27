@@ -18,12 +18,10 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.utilization.configuration;
+package com.redhat.swatch.utilization.service.json;
 
-public class Channels {
+import com.redhat.cloud.notifications.ingress.Action;
+import io.quarkus.kafka.client.serialization.ObjectMapperSerializer;
 
-  public static final String UTILIZATION = "utilization-in";
-  public static final String NOTIFICATIONS_OUT = "notifications-out";
-
-  private Channels() {}
-}
+// Provides quarkus a hint that we want to use Jackson to serialize Action objects */
+public class NotificationActionSerializer extends ObjectMapperSerializer<Action> {}

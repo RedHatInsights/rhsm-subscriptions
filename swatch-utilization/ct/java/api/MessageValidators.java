@@ -18,12 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.utilization.configuration;
+package api;
 
-public class Channels {
+import com.redhat.cloud.notifications.ingress.Action;
+import com.redhat.swatch.component.tests.api.MessageValidator;
 
-  public static final String UTILIZATION = "utilization-in";
-  public static final String NOTIFICATIONS_OUT = "notifications-out";
+public class MessageValidators {
 
-  private Channels() {}
+  public static MessageValidator<Action> matchesOrgId(String orgId) {
+    return new MessageValidator<>(a -> orgId.equals(a.getOrgId()), Action.class);
+  }
 }
