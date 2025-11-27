@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.billable.usage.kafka;
 
+import static com.redhat.swatch.billable.usage.kafka.InMemoryMessageBrokerKafkaResource.IN_MEMORY_CONNECTOR;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import com.redhat.swatch.billable.usage.kafka.streams.FlushTopicService;
@@ -28,9 +29,9 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectSpy;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import io.smallrye.reactive.messaging.memory.InMemorySink;
-import jakarta.enterprise.inject.Any;
 import jakarta.inject.Inject;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
+import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
@@ -39,7 +40,9 @@ import org.junit.jupiter.api.Test;
     restrictToAnnotatedClass = true)
 class FlushTopicServiceTest {
 
-  @Inject @Any InMemoryConnector connector;
+  @Inject
+  @Connector(IN_MEMORY_CONNECTOR)
+  InMemoryConnector connector;
 
   @InjectSpy FlushTopicService service;
 
