@@ -70,10 +70,17 @@ public class UtilizationSummaryValidator {
 
   private boolean hasValidGranularity(UtilizationSummary payload) {
     if (payload.getGranularity() == null) {
+      logValidationFailure(payload, "granularity is null");
       return false;
     }
     UtilizationSummary.Granularity granularity = payload.getGranularity();
-    return granularity != null && SUPPORTED_GRANULARITY.contains(granularity);
+    if (granularity == null || !SUPPORTED_GRANULARITY.contains(granularity)) {
+      logValidationFailure(
+          payload,
+          "unsupported granularity '" + granularity + "'. Supported: " + SUPPORTED_GRANULARITY);
+      return false;
+    }
+    return true;
   }
 
   private boolean hasValidMeasurements(UtilizationSummary payload) {
@@ -89,10 +96,32 @@ public class UtilizationSummaryValidator {
         return false;
       }
 
-      if (Boolean.TRUE.equals(measurement.getUnlimited())
-          || measurement.getCapacity() == null
-          || measurement.getCapacity() <= MIN_VALID_CAPACITY
-          || measurement.getCurrentTotal() == null) {
+      if (Boolean.TRUE.equals(measurement.getUnlimited())) {
+        logValidationFailure(
+            payload, "The metric '%s' has unlimited=true".formatted(measurement.getMetricId()));
+        return false;
+      }
+
+      if (measurement.getCapacity() == null) {
+        logValidationFailure(
+            payload, "The metric '%s' capacity is null".formatted(measurement.getMetricId()));
+        return false;
+      }
+
+      if (measurement.getCapacity() <= MIN_VALID_CAPACITY) {
+        logValidationFailure(
+            payload,
+            "The metric '%s' capacity (%s) <= MIN_VALID_CAPACITY (%s)"
+                .formatted(
+                    measurement.getMetricId(), measurement.getCapacity(), MIN_VALID_CAPACITY));
+        return false;
+      }
+
+      if (measurement.getCurrentTotal() == null) {
+        logValidationFailure(
+            payload,
+            "The metric '%s' currentTotal is null. Capacity: %s"
+                .formatted(measurement.getMetricId(), measurement.getCapacity()));
         return false;
       }
     }
@@ -142,5 +171,20 @@ public class UtilizationSummaryValidator {
     } catch (IllegalArgumentException e) {
       return false;
     }
+  }
+
+  /**
+   * Helper method to log validation failures with common context.
+   *
+   * @param payload the utilization summary being validated
+   * @param reason the reason for the validation failure
+   */
+  private void logValidationFailure(UtilizationSummary payload, String reason) {
+    log.debug(
+        "Validation failed: {}. OrgId: {}, ProductId: {}, BillingAccountId: {}",
+        reason,
+        payload.getOrgId(),
+        payload.getProductId(),
+        payload.getBillingAccountId());
   }
 }
