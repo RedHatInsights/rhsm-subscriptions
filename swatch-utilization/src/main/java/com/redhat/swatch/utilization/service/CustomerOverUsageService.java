@@ -160,8 +160,9 @@ public class CustomerOverUsageService {
           utilizationPercent,
           overagePercent,
           threshold);
-      incrementOverUsageCounter(payload, measurement);
-      sendNotification(payload, measurement, utilizationPercent);
+      MetricId metricId = MetricId.fromString(measurement.getMetricId());
+      incrementOverUsageCounter(payload, metricId);
+      sendNotification(payload, metricId, utilizationPercent);
     }
   }
 
@@ -189,15 +190,10 @@ public class CustomerOverUsageService {
         String.format(PERCENT_FORMAT, threshold));
   }
 
-  private void incrementOverUsageCounter(UtilizationSummary payload, Measurement measurement) {
-    // Bugfix: not part of SWATCH-3793 - removed org_id tag to align with metric tagging standards
+  private void incrementOverUsageCounter(UtilizationSummary payload, MetricId metricId) {
     List<String> tags =
         new ArrayList<>(
-            List.of(
-                "product",
-                payload.getProductId(),
-                "metric_id",
-                MetricId.tryGetValueFromString(measurement.getMetricId())));
+            List.of("product", payload.getProductId(), "metric_id", metricId.getValue()));
 
     if (Objects.nonNull(payload.getBillingProvider())) {
       tags.addAll(List.of("billing", payload.getBillingProvider().value()));
@@ -207,23 +203,23 @@ public class CustomerOverUsageService {
   }
 
   private void sendNotification(
-      UtilizationSummary payload, Measurement measurement, double utilizationPercent) {
+      UtilizationSummary payload, MetricId metricId, double utilizationPercent) {
     if (!featureFlags.sendNotifications()) {
       log.info(
           "Notification not sent for orgId={} productId={} metricId={} - feature flag '{}' is disabled",
           payload.getOrgId(),
           payload.getProductId(),
-          measurement.getMetricId(),
+          metricId,
           FeatureFlags.SEND_NOTIFICATIONS);
       return;
     }
 
-    Action action = buildNotificationAction(payload, measurement, utilizationPercent);
+    Action action = buildNotificationAction(payload, metricId, utilizationPercent);
     notificationsProducer.produce(action);
   }
 
   private Action buildNotificationAction(
-      UtilizationSummary payload, Measurement measurement, double utilizationPercent) {
+      UtilizationSummary payload, MetricId metricId, double utilizationPercent) {
     var action = new Action();
     action.setBundle(BUNDLE);
     action.setApplication(APPLICATION);
@@ -233,7 +229,7 @@ public class CustomerOverUsageService {
     action.setId(Generators.timeBasedEpochGenerator().generate());
 
     action.setEvents(List.of(buildEvent(utilizationPercent)));
-    action.setContext(buildContext(payload, measurement));
+    action.setContext(buildContext(payload, metricId));
     action.setRecipients(List.of(buildRecipient()));
 
     return action;
@@ -253,10 +249,10 @@ public class CustomerOverUsageService {
     return event;
   }
 
-  private Context buildContext(UtilizationSummary payload, Measurement measurement) {
+  private Context buildContext(UtilizationSummary payload, MetricId metricId) {
     return new Context.ContextBuilder()
         .withAdditionalProperty("product_id", payload.getProductId())
-        .withAdditionalProperty("metric_id", measurement.getMetricId())
+        .withAdditionalProperty("metric_id", metricId.getValue())
         .build();
   }
 
