@@ -92,7 +92,7 @@ public class CustomerOverUsageService {
    *
    * @param payload the utilization summary to check
    */
-  public void check(UtilizationSummary payload) {
+  public void check(UtilizationSummary payload, Measurement measurement) {
     // Get threshold for this product (from product configuration or default)
     Double threshold = getThresholdForProduct(payload.getProductId());
 
@@ -106,12 +106,8 @@ public class CustomerOverUsageService {
       return;
     }
 
-    // Check each measurement for over-usage
-    if (payload.getMeasurements() != null) {
-      for (Measurement measurement : payload.getMeasurements()) {
-        checkMeasurement(payload, measurement, threshold);
-      }
-    }
+    // Check measurement for over-usage
+    checkMeasurement(payload, measurement, threshold);
   }
 
   /**

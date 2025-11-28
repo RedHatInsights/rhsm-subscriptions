@@ -59,7 +59,8 @@ public class UtilizationSummaryConsumerTest {
 
   @Inject MeterRegistry meterRegistry;
   @InjectMock CustomerOverUsageService customerOverUsageService;
-  @InjectMock UtilizationSummaryValidator payloadValidator;
+  @InjectMock UtilizationSummaryPayloadValidator payloadValidator;
+  @InjectMock UtilizationSummaryMeasurementValidator measurementValidator;
 
   InMemorySource<UtilizationSummary> source;
 
@@ -67,7 +68,8 @@ public class UtilizationSummaryConsumerTest {
   void setup() {
     source = connector.source(UTILIZATION);
     meterRegistry.clear();
-    when(payloadValidator.isValid(any())).thenReturn(true);
+    when(payloadValidator.isUtilizationSummaryValid(any())).thenReturn(true);
+    when(measurementValidator.isMeasurementValid(any(), any())).thenReturn(true);
   }
 
   @Test
@@ -93,11 +95,12 @@ public class UtilizationSummaryConsumerTest {
   }
 
   private void thenUtilizationSummaryValidatorIsCalled() {
-    verify(payloadValidator).isValid(any(UtilizationSummary.class));
+    verify(payloadValidator).isUtilizationSummaryValid(any());
+    verify(measurementValidator).isMeasurementValid(any(), any());
   }
 
   private void thenCustomerOverUsageServiceIsCalled() {
-    verify(customerOverUsageService).check(any(UtilizationSummary.class));
+    verify(customerOverUsageService).check(any(), any());
   }
 
   private Optional<Meter> getReceivedMetric() {
