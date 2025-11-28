@@ -36,7 +36,6 @@ public enum RemittanceStatus {
   FAILED("failed"),
   UNKNOWN("unknown"),
   SUCCEEDED("succeeded"),
-  RETRYABLE("retryable"),
   IN_PROGRESS("in_progress"),
   SENT("sent");
 

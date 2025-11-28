@@ -99,7 +99,6 @@ class BillableUsageStatusConsumerTest {
         createBillableUsageAggregate(Status.FAILED, ErrorCode.INACTIVE, null, existingRemittance);
     whenSendResponse(message);
     Awaitility.await().untilAsserted(() -> verifyUpdateForFailure(RemittanceErrorCode.INACTIVE));
-    verifyRemittancesHaveNotRetryAfterSet(message.getRemittanceUuids());
   }
 
   @Test
@@ -243,11 +242,6 @@ class BillableUsageStatusConsumerTest {
               assertEquals(expected, result.getErrorCode());
               assertNull(result.getBilledOn());
             });
-  }
-
-  @Transactional
-  void verifyRemittancesHaveNotRetryAfterSet(List<String> uuids) {
-    verifyRemittances(uuids, result -> assertNull(result.getRetryAfter()));
   }
 
   @Transactional
