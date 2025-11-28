@@ -270,7 +270,7 @@ objects:
 - apiVersion: cloud.redhat.com/v1alpha1
   kind: ClowdApp
   metadata:
-    name: swatch-db-changelog-cleanup
+    name: swatch-metrics-hbi-db-cleanup
   spec:
     # The name of the ClowdEnvironment providing the services
     envName: ${ENV_NAME}
@@ -287,7 +287,7 @@ objects:
     kafkaTopics: []
     deployments: []
     jobs:
-      - name: db-changelog-cleanup-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+      - name: changelog-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
         restartPolicy: Never
         podSpec:
           image: ${EGRESS_IMAGE}:${EGRESS_IMAGE_TAG}
@@ -329,8 +329,8 @@ objects:
 - apiVersion: cloud.redhat.com/v1alpha1
   kind: ClowdJobInvocation
   metadata:
-    name: db-changelog-cleanup-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+    name: metrics-hbi-db-changelog-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
   spec:
-    appName: swatch-db-changelog-cleanup
+    appName: swatch-metrics-hbi-db-cleanup
     jobs:
-      - db-changelog-cleanup-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+      - changelog-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
