@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.contract.service;
 
+import static com.redhat.swatch.configuration.registry.MetricId.tryGetValueFromString;
 import static com.redhat.swatch.contract.config.Channels.TALLY_IN;
 
 import com.redhat.swatch.contract.model.Measurement;
@@ -167,7 +168,9 @@ public class TallySnapshotSummaryConsumer {
       // Sum capacity for matching metrics
       if (capacity.getMetrics() != null) {
         for (SubscriptionCapacityViewMetric metric : capacity.getMetrics()) {
-          if (Objects.equals(metric.getMetricId(), measurement.getMetricId())) {
+          if (Objects.equals(
+              tryGetValueFromString(metric.getMetricId()),
+              tryGetValueFromString(measurement.getMetricId()))) {
             totalCapacity += metric.getCapacity();
           }
         }
