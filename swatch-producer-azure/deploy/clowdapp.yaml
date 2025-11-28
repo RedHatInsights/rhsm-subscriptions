@@ -46,7 +46,7 @@ parameters:
   - name: OTEL_DISABLED
     value: 'true'
   - name: OTEL_SIDECAR_IMAGE
-    value: quay.io/signalfx/splunk-otel-collector:0.125.0
+    value: quay.io/signalfx/splunk-otel-collector:0.140.0
   - name: OTEL_SIDECAR_CONFIG_MAP
     value: swatch-otel-config
   - name: OTEL_SIDECAR_SPLUNK_CONFIG
