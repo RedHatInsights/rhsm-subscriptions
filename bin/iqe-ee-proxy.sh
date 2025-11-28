@@ -9,7 +9,7 @@ echo "    {
 NAMESPACE=$(oc project -q)
 
 cleanup() {
-  sudo sed -i "/#===== NAMESPACE $NAMESPACE =====/,/#===== NAMESPACE $NAMESPACE =====/d" /etc/hosts
+  sudo sed -i.bak "/#===== NAMESPACE $NAMESPACE =====/,/#===== NAMESPACE $NAMESPACE =====/d" /etc/hosts && sudo rm -f /etc/hosts.bak
   cat $(dirname $0)/caddy.yaml | oc delete -f -
   rm -rf ${TMP_DIR}
   oc delete configmap/caddyfile
