@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+
+  <changeSet id="202511271435-01" author="jcarvaja" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <indexExists tableName="sku_oid" indexName="sku_oid_sku_idx"/>
+      </not>
+    </preConditions>
+    <comment>Create an index on sku column for sku_oid table to improve query performance</comment>
+    <createIndex indexName="sku_oid_sku_idx" tableName="sku_oid" unique="false">
+      <column name="sku"/>
+    </createIndex>
+    <rollback>
+      <dropIndex tableName="sku_oid" indexName="sku_oid_sku_idx"/>
+    </rollback>
+  </changeSet>
+</databaseChangeLog>
