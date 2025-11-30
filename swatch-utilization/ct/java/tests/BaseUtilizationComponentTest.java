@@ -20,6 +20,8 @@
  */
 package tests;
 
+import static com.redhat.swatch.component.tests.utils.Topics.NOTIFICATIONS;
+
 import com.redhat.swatch.component.tests.api.ComponentTest;
 import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
@@ -35,7 +37,8 @@ public class BaseUtilizationComponentTest {
 
   public static final String SEND_NOTIFICATIONS = "swatch.swatch-notifications.send-notifications";
 
-  @KafkaBridge static KafkaBridgeService kafkaBridge = new KafkaBridgeService();
+  @KafkaBridge
+  static KafkaBridgeService kafkaBridge = new KafkaBridgeService().subscribeToTopic(NOTIFICATIONS);
 
   @Unleash static UnleashService unleash = new UnleashService();
 

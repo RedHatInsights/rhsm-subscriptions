@@ -22,12 +22,20 @@ package com.redhat.swatch.utilization.service;
 
 import static com.redhat.swatch.utilization.service.CustomerOverUsageService.OVER_USAGE_METRIC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import com.redhat.cloud.notifications.ingress.Action;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import com.redhat.swatch.utilization.configuration.FeatureFlags;
 import com.redhat.swatch.utilization.model.Measurement;
 import com.redhat.swatch.utilization.model.UtilizationSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.search.Search;
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import java.util.List;
@@ -40,6 +48,10 @@ class CustomerOverUsageServiceTest {
   @Inject CustomerOverUsageService service;
 
   @Inject MeterRegistry meterRegistry;
+
+  @InjectMock NotificationsProducer notificationsProducer;
+
+  @InjectMock FeatureFlags featureFlags;
 
   // Test data constants
   private static final String ORG_ID = "org123";
@@ -66,7 +78,7 @@ class CustomerOverUsageServiceTest {
         givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
 
     // When
-    service.check(summary);
+    whenCheckSummary(summary);
 
     // Then
     double count = getCounterValue(PRODUCT_ID, ORG_ID, METRIC_ID);
@@ -80,7 +92,7 @@ class CustomerOverUsageServiceTest {
         givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_BELOW_THRESHOLD);
 
     // When
-    service.check(summary);
+    whenCheckSummary(summary);
 
     // Then
     double count = getCounterValue(PRODUCT_ID, ORG_ID, METRIC_ID);
@@ -109,7 +121,7 @@ class CustomerOverUsageServiceTest {
                         .withUnlimited(false)));
 
     // When
-    service.check(summary);
+    whenCheckSummary(summary);
 
     // Then - each measurement creates its own counter, check cores counter
     double coresCount = getCounterValue(PRODUCT_ID, ORG_ID, MetricIdUtils.getCores().getValue());
@@ -148,7 +160,7 @@ class CustomerOverUsageServiceTest {
                         .withUnlimited(false)));
 
     // When
-    service.check(summary);
+    whenCheckSummary(summary);
 
     // Then - only instance hours should be incremented
     double coresCount = getCounterValue(PRODUCT_ID, ORG_ID, MetricIdUtils.getCores().getValue());
@@ -160,6 +172,77 @@ class CustomerOverUsageServiceTest {
         EXPECTED_SINGLE_INCREMENT,
         instanceHoursCount,
         "Instance hours counter should be incremented");
+  }
+
+  @Test
+  void shouldSendNotification_whenUsageExceedsThresholdAndFeatureFlagEnabled() {
+    // Given
+    when(featureFlags.sendNotifications()).thenReturn(true);
+    UtilizationSummary summary =
+        givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
+
+    // When
+    whenCheckSummary(summary);
+
+    // Then
+    verify(notificationsProducer, times(1)).produce(any(Action.class));
+  }
+
+  @Test
+  void shouldNotSendNotification_whenUsageExceedsThresholdButFeatureFlagDisabled() {
+    // Given
+    when(featureFlags.sendNotifications()).thenReturn(false);
+    UtilizationSummary summary =
+        givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
+
+    // When
+    whenCheckSummary(summary);
+
+    // Then
+    verify(notificationsProducer, never()).produce(any(Action.class));
+  }
+
+  @Test
+  void shouldNotSendNotification_whenUsageBelowThreshold() {
+    // Given
+    when(featureFlags.sendNotifications()).thenReturn(true);
+    UtilizationSummary summary =
+        givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_BELOW_THRESHOLD);
+
+    // When
+    whenCheckSummary(summary);
+
+    // Then
+    verify(notificationsProducer, never()).produce(any(Action.class));
+  }
+
+  @Test
+  void shouldSendMultipleNotifications_whenMultipleMeasurementsExceedThreshold() {
+    // Given
+    when(featureFlags.sendNotifications()).thenReturn(true);
+    UtilizationSummary summary =
+        new UtilizationSummary()
+            .withOrgId(ORG_ID)
+            .withProductId(PRODUCT_ID)
+            .withGranularity(UtilizationSummary.Granularity.DAILY)
+            .withMeasurements(
+                List.of(
+                    new Measurement()
+                        .withMetricId(MetricIdUtils.getCores().getValue())
+                        .withCurrentTotal(USAGE_EXCEEDING_THRESHOLD)
+                        .withCapacity(CAPACITY)
+                        .withUnlimited(false),
+                    new Measurement()
+                        .withMetricId(MetricIdUtils.getInstanceHours().getValue())
+                        .withCurrentTotal(USAGE_EXCEEDING_THRESHOLD)
+                        .withCapacity(CAPACITY)
+                        .withUnlimited(false)));
+
+    // When
+    whenCheckSummary(summary);
+
+    // Then - should send one notification per measurement
+    verify(notificationsProducer, times(2)).produce(any(Action.class));
   }
 
   // Helper methods
@@ -176,6 +259,12 @@ class CustomerOverUsageServiceTest {
                     .withCurrentTotal(currentTotal)
                     .withCapacity(capacity)
                     .withUnlimited(false)));
+  }
+
+  private void whenCheckSummary(UtilizationSummary summary) {
+    for (Measurement measurement : summary.getMeasurements()) {
+      service.check(summary, measurement);
+    }
   }
 
   // Bugfix: not part of SWATCH-3793 - removed org_id tag search to align with metric tagging

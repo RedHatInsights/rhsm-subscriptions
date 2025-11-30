@@ -23,6 +23,7 @@ package com.redhat.swatch.utilization.configuration;
 public class Channels {
 
   public static final String UTILIZATION = "utilization-in";
+  public static final String NOTIFICATIONS_OUT = "notifications-out";
 
   private Channels() {}
 }

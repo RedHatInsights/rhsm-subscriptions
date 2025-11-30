@@ -20,12 +20,15 @@
  */
 package tests;
 
+import static com.redhat.swatch.component.tests.utils.Topics.NOTIFICATIONS;
 import static com.redhat.swatch.component.tests.utils.Topics.UTILIZATION;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.notNullValue;
 
+import com.redhat.swatch.component.tests.api.MessageValidator;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
@@ -92,6 +95,7 @@ public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest
 
     thenReceivedCounterShouldBeIncremented();
     thenOverUsageCounterShouldBeIncremented();
+    thenNotificationShouldBeSent();
   }
 
   /** Verify over-usage counter is not incremented when usage is below threshold. */
@@ -339,5 +343,12 @@ public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest
               assertThat(
                   "Over-usage counter should not change", currentCount, equalTo(initialCount));
             });
+  }
+
+  void thenNotificationShouldBeSent() {
+    // Wait for at least one notification message to be sent
+    MessageValidator<Map> validator = new MessageValidator<>(msg -> true, Map.class);
+    Map notification = kafkaBridge.waitForKafkaMessage(NOTIFICATIONS, validator);
+    assertThat("Notification should be sent", notification, notNullValue());
   }
 }
