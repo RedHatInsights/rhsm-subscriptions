@@ -82,9 +82,6 @@ public class BillableUsageRemittanceEntity implements Serializable {
   @Column(name = "remitted_pending_value", nullable = false, precision = 0)
   private Double remittedPendingValue;
 
-  @Column(name = "retry_after")
-  private OffsetDateTime retryAfter;
-
   @Column(name = "tally_id")
   private UUID tallyId;
 
