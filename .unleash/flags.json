@@ -17,6 +17,22 @@
             "createdAt": "2024-10-01T09:18:27.111Z"
         },
         {
+          "name": "swatch.swatch-notifications.send-notifications",
+          "description": "Enable sending of over-usage notifications to platform.notifications.ingress",
+          "type": "operational",
+          "project": "default",
+          "enabled": true,
+          "stale": false,
+          "strategies": [
+            {
+              "name": "default",
+              "parameters": {}
+            }
+          ],
+          "variants": [],
+          "createdAt": "2025-11-28T10:00:00.000Z"
+        },
+        {
             "name": "hbi.api.disable-xjoin",
             "description": "A list of org_id for customers allow listed for postgres direct querying.",
             "type": "operational",
