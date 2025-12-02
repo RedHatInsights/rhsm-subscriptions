@@ -257,18 +257,56 @@ class TallySnapshotSummaryConsumerTest {
     thenUtilizationSummariesSent(2);
   }
 
-  private TallySummary givenTallySummaryMessage() {
+  @Test
+  void testMetricIdNormalizationWithDifferentFormats() {
+    // Test that metric IDs are matched correctly regardless of case and separator format
+    // For example: "MANAGED_NODES" (tally) should match "Managed-nodes" (capacity view)
+
+    // Given tally measurement with uppercase and underscores
+    TallyMeasurement measurement =
+        new TallyMeasurement()
+            .withMetricId("MANAGED_NODES")
+            .withHardwareMeasurementType("PHYSICAL")
+            .withValue(10.0)
+            .withCurrentTotal(100.0);
+
     TallySnapshot snapshot =
         new TallySnapshot()
             .withId(UUID.randomUUID())
-            .withProductId("RHEL")
+            .withProductId("ansible-aap-managed")
             .withSnapshotDate(OffsetDateTime.now())
             .withSla(TallySnapshot.Sla.PREMIUM)
             .withUsage(TallySnapshot.Usage.PRODUCTION)
-            .withBillingProvider(TallySnapshot.BillingProvider.RED_HAT)
-            .withGranularity(TallySnapshot.Granularity.HOURLY);
+            .withBillingProvider(TallySnapshot.BillingProvider.AWS)
+            .withBillingAccountId("aws-123")
+            .withGranularity(TallySnapshot.Granularity.HOURLY)
+            .withTallyMeasurements(List.of(measurement));
 
-    return new TallySummary().withOrgId(ORG_ID).withTallySnapshots(List.of(snapshot));
+    TallySummary tallySummary =
+        new TallySummary().withOrgId(ORG_ID).withTallySnapshots(List.of(snapshot));
+
+    // Given capacity view with mixed case and hyphens
+    SubscriptionCapacityView capacity =
+        givenCapacityViewWithMetric(
+            "sub123",
+            ORG_ID,
+            "ansible-aap-managed",
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.AWS,
+            "aws-123",
+            "Managed-nodes", // Mixed case with hyphen
+            100.0,
+            false);
+
+    givenCapacityServiceReturns(snapshot, List.of(capacity));
+
+    whenReceiveTallySummary(tallySummary);
+
+    // Then should create utilization summary with matched capacity
+    thenUtilizationSummariesSent(1);
+    thenUtilizationSummaryHasSubscriptionFound(true);
+    thenUtilizationSummaryHasProductId("ansible-aap-managed");
   }
 
   private void whenReceiveTallySummary(TallySummary... tallySummaries) {
@@ -367,6 +405,46 @@ class TallySnapshotSummaryConsumerTest {
     if (capacity != null && capacity > 0) {
       SubscriptionCapacityViewMetric metric = new SubscriptionCapacityViewMetric();
       metric.setMetricId("Cores");
+      metric.setCapacity(capacity);
+      metric.setMeasurementType("PHYSICAL");
+      capacityView.setMetrics(Set.of(metric));
+    }
+
+    return capacityView;
+  }
+
+  private SubscriptionCapacityView givenCapacityViewWithMetric(
+      String subscriptionId,
+      String orgId,
+      String productTag,
+      ServiceLevel serviceLevel,
+      Usage usage,
+      BillingProvider billingProvider,
+      String billingAccountId,
+      String metricId,
+      Double capacity,
+      Boolean hasUnlimitedUsage) {
+
+    SubscriptionCapacityView capacityView = new SubscriptionCapacityView();
+    capacityView.setSubscriptionId(subscriptionId);
+    capacityView.setSubscriptionNumber("SUB-" + subscriptionId);
+    capacityView.setOrgId(orgId);
+    capacityView.setProductTag(productTag);
+    capacityView.setSku("RH00001");
+    capacityView.setProductName(productTag + " Product");
+    capacityView.setServiceLevel(serviceLevel);
+    capacityView.setUsage(usage);
+    capacityView.setBillingProvider(billingProvider);
+    capacityView.setBillingAccountId(billingAccountId);
+    capacityView.setQuantity(100L);
+    capacityView.setHasUnlimitedUsage(hasUnlimitedUsage);
+    capacityView.setStartDate(OffsetDateTime.now().minusDays(30));
+    capacityView.setEndDate(OffsetDateTime.now().plusDays(365));
+
+    // Add metrics if capacity is provided
+    if (capacity != null && capacity > 0) {
+      SubscriptionCapacityViewMetric metric = new SubscriptionCapacityViewMetric();
+      metric.setMetricId(metricId);
       metric.setCapacity(capacity);
       metric.setMeasurementType("PHYSICAL");
       capacityView.setMetrics(Set.of(metric));
