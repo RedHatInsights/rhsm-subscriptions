@@ -6,10 +6,17 @@
                       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
 
   <changeSet id="202403131500-1" author="jcarvaja">
+    <!-- 
+      Only drop PK and add unique constraint if current PK exists. If swatch-billable-usage starts first,
+      the table already has the correct PK structure.
+    -->
     <preConditions onFail="MARK_RAN">
-      <not>
-        <tableExists tableName="databasechangelog_swatch_billable_usage"/>
-      </not>
+      <and>
+        <primaryKeyExists tableName="billable_usage_remittance" primaryKeyName="billable_usage_remittance_pkey"/>
+        <not>
+          <uniqueConstraintExists tableName="billable_usage_remittance" constraintName="billable_usage_remittance_unique"/>
+        </not>
+      </and>
     </preConditions>
     <dropPrimaryKey tableName="billable_usage_remittance" constraintName="billable_usage_remittance_pkey"/>
     <addUniqueConstraint columnNames="org_id, product_id, metric_id, accumulation_period, sla, usage, billing_provider,billing_account_id, remittance_pending_date"
@@ -23,9 +30,13 @@
   </changeSet>
 
   <changeSet id="202403131500-2" author="jcarvaja">
+    <!-- 
+      Only add uuid column if it doesn't exist. If swatch-billable-usage starts first,
+      the consolidated script already includes this column.
+    -->
     <preConditions onFail="MARK_RAN">
       <not>
-        <tableExists tableName="databasechangelog_swatch_billable_usage"/>
+        <columnExists tableName="billable_usage_remittance" columnName="uuid"/>
       </not>
     </preConditions>
     <addColumn tableName="billable_usage_remittance">
@@ -38,10 +49,12 @@
   </changeSet>
 
   <changeSet id="202403131500-3" author="jcarvaja" dbms="postgresql">
+    <!-- 
+      Only update UUIDs if column exists and has null values. If swatch-billable-usage starts first,
+      no data migration is needed.
+    -->
     <preConditions onFail="MARK_RAN">
-      <not>
-        <tableExists tableName="databasechangelog_swatch_billable_usage"/>
-      </not>
+      <columnExists tableName="billable_usage_remittance" columnName="uuid"/>
     </preConditions>
     <!-- Credits to https://elvisciotti.medium.com/postgres-gen-random-uuid-in-postgres-9-10-11-12-d31694e74b19 -->
     <sql>UPDATE billable_usage_remittance SET UUID=uuid_in(overlay(overlay(md5(random()::text || ':' || clock_timestamp()::text) placing '4' from 13) placing to_hex(floor(random()*(11-8+1) + 8)::int)::text from 17)::cstring)</sql>
@@ -51,10 +64,12 @@
   </changeSet>
 
   <changeSet id="202403131500-4" author="jcarvaja" dbms="hsqldb">
+    <!-- 
+      Only update UUIDs if column exists and has null values. If swatch-billable-usage starts first,
+      no data migration is needed.
+    -->
     <preConditions onFail="MARK_RAN">
-      <not>
-        <tableExists tableName="databasechangelog_swatch_billable_usage"/>
-      </not>
+      <columnExists tableName="billable_usage_remittance" columnName="uuid"/>
     </preConditions>
     <sql>UPDATE billable_usage_remittance SET UUID=uuid()</sql>
     <rollback>
@@ -63,10 +78,17 @@
   </changeSet>
 
   <changeSet id="202403131500-5" author="jcarvaja">
+    <!-- 
+      Add PK on uuid column. This changeset should execute if the uuid column exists
+      but the PK is not yet on the uuid column (i.e., it's still the old composite PK).
+    -->
     <preConditions onFail="MARK_RAN">
-      <not>
-        <tableExists tableName="databasechangelog_swatch_billable_usage"/>
-      </not>
+      <and>
+        <columnExists tableName="billable_usage_remittance" columnName="uuid"/>
+        <not>
+          <primaryKeyExists tableName="billable_usage_remittance" primaryKeyName="billable_usage_remittance_pkey"/>
+        </not>
+      </and>
     </preConditions>
     <addPrimaryKey tableName="billable_usage_remittance" columnNames="uuid" constraintName="billable_usage_remittance_pkey"/>
     <rollback>

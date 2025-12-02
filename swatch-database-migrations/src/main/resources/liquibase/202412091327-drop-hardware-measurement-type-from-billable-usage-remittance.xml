@@ -5,10 +5,12 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
   <changeSet id="202412091327-01" author="mstead">
+    <!-- 
+      Only drop column if it exists. If swatch-billable-usage starts first,
+      the consolidated script doesn't include this column.
+    -->
     <preConditions onFail="MARK_RAN">
-      <not>
-        <tableExists tableName="databasechangelog_swatch_billable_usage"/>
-      </not>
+      <columnExists tableName="billable_usage_remittance" columnName="hardware_measurement_type"/>
     </preConditions>
     <comment>Drop the hardware_measurement_type column from billable_usage_remittance table.</comment>
     <dropColumn tableName="billable_usage_remittance" columnName="hardware_measurement_type" />

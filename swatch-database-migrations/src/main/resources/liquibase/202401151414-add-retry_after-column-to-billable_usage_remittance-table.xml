@@ -5,9 +5,13 @@
   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
   <changeSet id="202401151414-01" author="lburnett">
+    <!-- 
+      Only add retry_after column if it doesn't exist. If swatch-billable-usage starts first,
+      the consolidated script already includes this column.
+    -->
     <preConditions onFail="MARK_RAN">
       <not>
-        <tableExists tableName="databasechangelog_swatch_billable_usage"/>
+        <columnExists tableName="billable_usage_remittance" columnName="retry_after"/>
       </not>
     </preConditions>
 

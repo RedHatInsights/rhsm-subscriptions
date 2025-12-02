@@ -130,7 +130,7 @@
 
   <changeSet id="202510051200-003" author="jcarvaja">
     <preConditions onFail="MARK_RAN">
-      <tableExists tableName="billable_usage_remittance"/>
+      <columnExists tableName="billable_usage_remittance" columnName="remittance_pending_date"/>
       <not>
         <uniqueConstraintExists tableName="billable_usage_remittance" constraintName="billable_usage_remittance_unique"/>
       </not>
@@ -148,7 +148,7 @@
 
   <changeSet id="202510051200-004" author="jcarvaja">
     <preConditions onFail="MARK_RAN">
-      <tableExists tableName="billable_usage_remittance"/>
+      <columnExists tableName="billable_usage_remittance" columnName="retry_after"/>
       <not>
         <indexExists tableName="billable_usage_remittance" indexName="billable_usage_retry_after_idx"/>
       </not>
