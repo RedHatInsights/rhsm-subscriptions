@@ -75,7 +75,7 @@
 #   accessed directly. (example: "foo.example.com,bar.example.com")
 #
 ###
-FROM registry.access.redhat.com/ubi9/openjdk-17:1.23-6.1764155314
+FROM registry.access.redhat.com/ubi9/openjdk-21:1.23-6.1764155294
 
 USER root
 # Add git, so that the build can determine the git hash
@@ -103,7 +103,7 @@ ARG MAVEN_TASKS='clean package'
 RUN --mount=type=cache,target=/root/.m2 \
     ./mvnw ${MAVEN_TASKS} -pl ${PROJECT_NAME} -am ${MAVEN_BUILD_ARGS}
 
-FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.23-6.1764155309
+FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.23-6.1764155306
 
 ARG VERSION=1.0.0
 ARG PROJECT_NAME='swatch-producer-azure'
@@ -117,8 +117,8 @@ LABEL vendor="Red Hat, Inc."
 LABEL url="https://github.com/RedHatInsights/rhsm-subscriptions"
 LABEL com.redhat.component="${PROJECT_NAME}"
 LABEL distribution-scope="public"
-LABEL io.k8s.description="SWATCH Producer Azure service based on UBI9 OpenJDK 17."
-LABEL description="SWATCH Producer Azure service based on UBI9 OpenJDK 17."
+LABEL io.k8s.description="SWATCH Producer Azure service based on UBI9 OpenJDK 21."
+LABEL description="SWATCH Producer Azure service based on UBI9 OpenJDK 21."
 
 #label for EULA
 LABEL com.redhat.license_terms="https://www.redhat.com/en/about/red-hat-end-user-license-agreements#UBI"
