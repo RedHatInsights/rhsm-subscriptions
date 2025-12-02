@@ -5,10 +5,12 @@
   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
   <changeSet id="202307131456-1" author="mstead">
+    <!-- 
+      Only remove granularity column if it exists. If swatch-billable-usage starts first,
+      the table is created without the granularity column.
+    -->
     <preConditions onFail="MARK_RAN">
-      <not>
-        <tableExists tableName="databasechangelog_swatch_billable_usage"/>
-      </not>
+      <columnExists tableName="billable_usage_remittance" columnName="granularity"/>
     </preConditions>
     <comment>
       Clean up any rolled up DAILY remittance data as it is no longer needed,

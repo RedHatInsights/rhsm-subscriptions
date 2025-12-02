@@ -17,10 +17,12 @@
     </changeSet>
 
     <changeSet id="202211181230-2" author="kshah">
+        <!-- 
+          Only drop PK if it exists with the old structure. If swatch-billable-usage starts first,
+          the PK is already created with the correct structure.
+        -->
         <preConditions onFail="MARK_RAN">
-          <not>
-            <tableExists tableName="databasechangelog_swatch_billable_usage"/>
-          </not>
+          <primaryKeyExists tableName="billable_usage_remittance" primaryKeyName="billable_usage_remittance_pkey"/>
         </preConditions>
         <comment>Drop primary key, so we can recreate it.</comment>
         <dropPrimaryKey constraintName="billable_usage_remittance_pkey"
@@ -28,10 +30,19 @@
     </changeSet>
 
     <changeSet id="202211181230-3" author="kshah">
+        <!-- 
+          Only add composite PK if no PK exists and uuid column doesn't exist.
+          If swatch-billable-usage starts first, the PK is already created with uuid column.
+        -->
         <preConditions onFail="MARK_RAN">
-          <not>
-            <tableExists tableName="databasechangelog_swatch_billable_usage"/>
-          </not>
+          <and>
+            <not>
+              <primaryKeyExists tableName="billable_usage_remittance"/>
+            </not>
+            <not>
+              <columnExists tableName="billable_usage_remittance" columnName="uuid"/>
+            </not>
+          </and>
         </preConditions>
         <comment>Recreate primary key, with org_id instead of account_number.</comment>
         <addPrimaryKey constraintName="billable_usage_remittance_pkey"
@@ -41,10 +52,12 @@
     </changeSet>
 
     <changeSet id="202211181230-4" author="kshah">
+        <!-- 
+          Only drop NOT NULL constraint if it exists. If swatch-billable-usage starts first,
+          account_number is already nullable.
+        -->
         <preConditions onFail="MARK_RAN">
-          <not>
-            <tableExists tableName="databasechangelog_swatch_billable_usage"/>
-          </not>
+          <columnExists tableName="billable_usage_remittance" columnName="account_number"/>
         </preConditions>
         <comment>Drop not null constraint on account_number</comment>
         <dropNotNullConstraint tableName="billable_usage_remittance" columnName="account_number"/>

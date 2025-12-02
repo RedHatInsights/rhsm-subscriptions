@@ -6,10 +6,22 @@
                       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
 
   <changeSet id="202404121601-1" author="karshah">
+    <!-- 
+      Only add columns if they don't exist. If swatch-billable-usage starts first,
+      the consolidated script already includes these columns.
+    -->
     <preConditions onFail="MARK_RAN">
-      <not>
-        <tableExists tableName="databasechangelog_swatch_billable_usage"/>
-      </not>
+      <and>
+        <not>
+          <columnExists tableName="billable_usage_remittance" columnName="billed_on"/>
+        </not>
+        <not>
+          <columnExists tableName="billable_usage_remittance" columnName="error_code"/>
+        </not>
+        <not>
+          <columnExists tableName="billable_usage_remittance" columnName="status"/>
+        </not>
+      </and>
     </preConditions>
     <comment>Add new columns for billable usage retries</comment>
     <addColumn tableName="billable_usage_remittance">

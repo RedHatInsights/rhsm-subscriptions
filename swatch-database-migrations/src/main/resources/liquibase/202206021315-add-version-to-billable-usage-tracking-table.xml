@@ -7,9 +7,13 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
   <changeSet id="202206021315" author="khowell">
+    <!-- 
+      Only add version column if it doesn't exist. If swatch-billable-usage starts first,
+      the consolidated script already includes this column.
+    -->
     <preConditions onFail="MARK_RAN">
       <not>
-        <tableExists tableName="databasechangelog_swatch_billable_usage"/>
+        <columnExists tableName="billable_usage_remittance" columnName="version"/>
       </not>
     </preConditions>
     <comment>Add version column to billable_usage_remittance tracking table for optimistic locking</comment>
