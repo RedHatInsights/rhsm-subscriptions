@@ -730,31 +730,25 @@ deployments will be handled in an internal App-SRE automation repo.
 
 See App-SRE documentation on updating dashboards for more info.
 
-Essentially:
+### Updating the Dashboard ConfigMap
 
-1. Edit the dashboard on the stage grafana instance.
-2. Export the dashboard, choosing to "export for sharing externally", save JSON to a file.
-3. Export the dashboard again, this time not selecting the external sharing option and save that
-   JSON to a file.
-4. For both pieces of JSON, drop them into the `subscription-watch.json` section under `data`
-   in `grafana-dashboard-subscription-watch.configmap.yaml` and update the indentation.
-5. Do a `git diff`.  Select the export that makes the most sense.  In my experience, **not**
-   selecting the "external sharing" option leads to more correct results.  A export formatted
-   for sharing has an `__inputs` section that hardcodes some values we don't want hardcoded.
-6. Rename the file to `subscription-watch.json`.
+#### Step 1: Export the Dashboard JSON
 
-OR
+Obtain the latest dashboard configuration as a JSON file named `subscription-watch.json` using one of the following methods:
 
-1. Edit the dashboard on the stage grafana instance.
-2. Navigate to Dashboard Settings (cogwheel top right of page)
-3. Navigate to JSON Model (left nav)
-4. Save contents of the JSON Model into a file named `subscription-watch.json`.
+* **A. Direct Export:** From the dashboard view, choose **Export $\rightarrow$ Export as JSON**.
+* **B. Save:** After selecting **Edit** on the dashboard on the **Stage Grafana instance**, choose **Save dashboard $\rightarrow$ Save** and save the JSON to a file.
+* **C. JSON Model:**
+  1.  Edit the dashboard on the **Stage Grafana instance**.
+  2.  Navigate to **Dashboard Settings**.
+  3.  Select the **JSON Model** tab (top right).
+  4.  Copy the contents and save them to `subscription-watch.json`.
 
 Use the following command to update the configmap YAML:
 
 ```
-oc create configmap grafana-dashboard-subscription-watch --from-file=subscription-watch.json -o yaml --dry-run=true > ./grafana-dashboard-subscription-watch.configmap.yaml
-cat << EOF >> ./grafana-dashboard-subscription-watch.configmap.yaml
+oc create configmap grafana-dashboard-subscription-watch --from-file=subscription-watch.json -o yaml --dry-run=true > .rhcicd/grafana/grafana-dashboard-subscription-watch.configmap.yaml
+cat << EOF >> .rhcicd/grafana/grafana-dashboard-subscription-watch.configmap.yaml
   annotations:
     grafana-folder: /grafana-dashboard-definitions/Insights
   labels:
@@ -762,14 +756,17 @@ cat << EOF >> ./grafana-dashboard-subscription-watch.configmap.yaml
 EOF
 ```
 
+### Extracting JSON from ConfigMap
 
-Possibly useful, to extract the JSON from the k8s configmap file:
+To extract the JSON from the k8s configmap file:
 
 ```
 oc extract -f .rhcicd/grafana/grafana-dashboard-subscription-watch.configmap.yaml --confirm
 ```
+Once you extract it from the .yaml that's checked into this 
+repo, it will create a `subscription-watch.json` file that you can import into Grafana. import it into the stage instance of grafana by 
+going to `Dashboards -> +Import` from the left nav.
 
-Once you extract it from the .yaml that's checked into this repo, you can import it into the stage instance of grafana by going to `Dashboards -> +Import` from the left nav.
 
 ## APIs
 
