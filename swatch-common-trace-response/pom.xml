@@ -46,7 +46,7 @@
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
-          <release>21</release>
+          <release>${java.version}</release>
         </configuration>
       </plugin>
       <plugin>
