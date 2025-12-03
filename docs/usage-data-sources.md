@@ -73,7 +73,7 @@ graph TB
     ANSIBLE["Ansible"]
     COST_MGMT["Cost Management"]
     
-    KAFKA_TOPIC[("platform.rhsm-subscriptions.metering-tasks<br/>Kafka Topic")]
+    KAFKA_TOPIC[("platform.rhsm-subscriptions.service-instance-ingress<br/>Kafka Topic")]
     
     OBSERVATORIUM["Observatorium<br/>(Prometheus API)"]
     
@@ -118,7 +118,7 @@ graph TB
 ### Technical Details
 
 #### 1. Kafka Integration
-- **Ansible** and **Cost Management** publish usage messages to the Kafka topic `platform.rhsm-subscriptions.metering-tasks`
+- **Ansible** and **Cost Management** publish usage messages to the Kafka topic `platform.rhsm-subscriptions.service-instance-ingress`
 - **SWATCH** consumes messages from this topic to process usage data
 
 #### 2. Observatorium Integration
@@ -138,7 +138,7 @@ graph TB
 ```mermaid
 sequenceDiagram
     participant ANSIBLE as Ansible/Cost Mgmt
-    participant KAFKA as Kafka Topic<br/>(metering-tasks)
+    participant KAFKA as Kafka Topic<br/>(service-instance-ingress)
     participant SWATCH as SWATCH
     participant OBSERVATORIUM as Observatorium<br/>(Prometheus API)
     participant HBI_DB as HBI Database<br/>(Readonly Clone)
