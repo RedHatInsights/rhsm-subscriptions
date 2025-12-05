@@ -50,6 +50,9 @@ public class Offering {
   private final String description;
   private final Integer cores;
   private final Integer sockets;
+  private final Integer hypervisorCores;
+  private final Integer hypervisorSockets;
+  private final String derivedSku;
   private final String level1;
   private final String level2;
   private final String metered;
@@ -59,14 +62,38 @@ public class Offering {
   private final List<Integer> engProducts;
 
   public static Offering buildRhelOffering(String sku, Double cores, Double sockets) {
+    return buildRhelOffering(sku, cores, sockets, RHEL_DESCRIPTION);
+  }
+
+  public static Offering buildRhelOffering(
+      String sku, Double cores, Double sockets, String description) {
     Objects.requireNonNull(sku, "sku cannot be null");
 
     return Offering.builder()
         .sku(sku)
-        .description(RHEL_DESCRIPTION)
+        .description(Objects.requireNonNullElse(description, RHEL_DESCRIPTION))
         .metered(METERED_NO)
         .cores(Optional.ofNullable(cores).map(Double::intValue).orElse(null))
         .sockets(Optional.ofNullable(sockets).map(Double::intValue).orElse(null))
+        .serviceLevel(ServiceLevel.PREMIUM)
+        .usage(Usage.PRODUCTION)
+        .engProducts(List.of(69, 479))
+        .role(RHEL_ROLE)
+        .build();
+  }
+
+  public static Offering buildRhelVirtWhoOffering(
+      String sku, Double hypervisorCores, Double hypervisorSockets, String description) {
+    Objects.requireNonNull(sku, "sku cannot be null");
+
+    return Offering.builder()
+        .sku(sku)
+        .description(Objects.requireNonNullElse(description, RHEL_DESCRIPTION))
+        .metered(METERED_NO)
+        .hypervisorCores(Optional.ofNullable(hypervisorCores).map(Double::intValue).orElse(null))
+        .hypervisorSockets(
+            Optional.ofNullable(hypervisorSockets).map(Double::intValue).orElse(null))
+        .derivedSku(sku)
         .serviceLevel(ServiceLevel.PREMIUM)
         .usage(Usage.PRODUCTION)
         .engProducts(List.of(69, 479))

@@ -50,12 +50,26 @@ public class OfferingStubs {
    */
   public void stubUpstreamProductData(Offering offering) {
     var attributes = new java.util.ArrayList<Map<String, String>>();
+    // For offerings with DERIVED_SKU, use CORES/SOCKET_LIMIT (not VIRTUALIZATION_*)
+    // UpstreamProductData.java:483-489 maps CORES/SOCKET_LIMIT to hypervisor fields when
+    // DERIVED_SKU exists
     if (offering.getCores() != null) {
       attributes.add(Map.of("code", "CORES", "value", String.valueOf(offering.getCores())));
     }
     if (offering.getSockets() != null) {
       attributes.add(
           Map.of("code", "SOCKET_LIMIT", "value", String.valueOf(offering.getSockets())));
+    }
+    if (offering.getHypervisorCores() != null) {
+      attributes.add(
+          Map.of("code", "CORES", "value", String.valueOf(offering.getHypervisorCores())));
+    }
+    if (offering.getHypervisorSockets() != null) {
+      attributes.add(
+          Map.of("code", "SOCKET_LIMIT", "value", String.valueOf(offering.getHypervisorSockets())));
+    }
+    if (offering.getDerivedSku() != null) {
+      attributes.add(Map.of("code", "DERIVED_SKU", "value", offering.getDerivedSku()));
     }
     if (offering.getLevel1() != null) {
       attributes.add(Map.of("code", "LEVEL_1", "value", offering.getLevel1()));
