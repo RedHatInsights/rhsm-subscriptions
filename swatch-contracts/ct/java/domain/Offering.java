@@ -62,16 +62,11 @@ public class Offering {
   private final List<Integer> engProducts;
 
   public static Offering buildRhelOffering(String sku, Double cores, Double sockets) {
-    return buildRhelOffering(sku, cores, sockets, RHEL_DESCRIPTION);
-  }
-
-  public static Offering buildRhelOffering(
-      String sku, Double cores, Double sockets, String description) {
     Objects.requireNonNull(sku, "sku cannot be null");
 
     return Offering.builder()
         .sku(sku)
-        .description(Objects.requireNonNullElse(description, RHEL_DESCRIPTION))
+        .description(RHEL_DESCRIPTION)
         .metered(METERED_NO)
         .cores(Optional.ofNullable(cores).map(Double::intValue).orElse(null))
         .sockets(Optional.ofNullable(sockets).map(Double::intValue).orElse(null))
