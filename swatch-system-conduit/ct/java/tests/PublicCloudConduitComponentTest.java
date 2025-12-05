@@ -40,7 +40,7 @@ public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
   ConduitTestHelpers helpers = new ConduitTestHelpers();
 
   @Test
-  public void testPublicCloudHostSyncWithUsage() {
+  public void testPublicCloudHostSync() {
     // Step 1: Sync conduit for the test orgId
     // This will queue a task message to Kafka which will be consumed by system-conduit
     helpers.syncConduitByOrgId(service, orgId);
