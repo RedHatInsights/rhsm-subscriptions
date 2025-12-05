@@ -39,6 +39,7 @@ import com.redhat.swatch.contract.test.model.SubscriptionEventType;
 import domain.BillingProvider;
 import domain.Contract;
 import domain.Offering;
+import domain.Product;
 import domain.Subscription;
 import io.restassured.response.Response;
 import java.time.OffsetDateTime;
@@ -52,6 +53,10 @@ public class ContractsComponentTest extends BaseContractComponentTest {
   private static final double ROSA_CORES_CAPACITY = 8.0;
   private static final double RHEL_CORES_CAPACITY = 4.0;
   private static final double RHEL_SOCKETS_CAPACITY = 1.0;
+  private static final double RHEL_VIRTHOST_SOCKETS_CAPACITY = 2.0;
+  private static final String VIRT_WHO_SKU = "RH00006";
+  private static final String VIRT_WHO_PRODUCT_DESCRIPTION =
+      " Test component for RHEL for Virtual Datacenters";
 
   @Test
   @Tag("contract")
@@ -226,5 +231,101 @@ public class ContractsComponentTest extends BaseContractComponentTest {
         is(greaterThan(21)));
     assertThat("next_event_date minute should be 59", nextEventDate.getMinute(), equalTo(59));
     assertThat("next_event_date second should be 59", nextEventDate.getSecond(), equalTo(59));
+  }
+
+  @Test
+  @Tag("contract")
+  @Tag("capacity-validation")
+  void shouldValidateSumOfAllSocketsForVirtWhoSkus() {
+    // Given: A virt-who offering with hypervisor sockets capacity
+    wiremock
+        .forProductAPI()
+        .stubOfferingData(
+            Offering.buildRhelVirtWhoOffering(
+                VIRT_WHO_SKU,
+                RHEL_CORES_CAPACITY,
+                RHEL_VIRTHOST_SOCKETS_CAPACITY,
+                VIRT_WHO_PRODUCT_DESCRIPTION));
+    assertThat(
+        "Sync virt-who offering should succeed",
+        service.syncOffering(VIRT_WHO_SKU).statusCode(),
+        is(HttpStatus.SC_OK));
+
+    // Given: Get initial hypervisor capacity via REST API
+    OffsetDateTime beginning = OffsetDateTime.now().minusDays(1);
+    OffsetDateTime ending = OffsetDateTime.now().plusDays(1);
+    Response initialCapacityResponse =
+        service.getCapacityReportByMetricId(
+            Product.RHEL, SOCKETS.toString(), orgId, beginning, ending, "DAILY", "hypervisor");
+    assertThat(
+        "Initial capacity query should succeed",
+        initialCapacityResponse.statusCode(),
+        is(HttpStatus.SC_OK));
+
+    double initialHypervisorSockets = getCapacityValueFromResponse(initialCapacityResponse);
+
+    // When: Create a virt-who subscription with hypervisor sockets
+    Subscription virtWhoSubscription =
+        Subscription.buildRhelSubscriptionUsingSku(
+            orgId, Map.of(SOCKETS, RHEL_VIRTHOST_SOCKETS_CAPACITY), VIRT_WHO_SKU);
+    assertThat(
+        "Creating virt-who subscription should succeed",
+        service.saveSubscriptions(true, virtWhoSubscription).statusCode(),
+        is(HttpStatus.SC_OK));
+
+    // Then: Verify hypervisor capacity increased via REST API
+    double expectedCapacity = initialHypervisorSockets + RHEL_VIRTHOST_SOCKETS_CAPACITY;
+    double finalHypervisorSockets =
+        await("Hypervisor capacity should increase")
+            .atMost(1, MINUTES)
+            .pollInterval(2, SECONDS)
+            .until(
+                () -> {
+                  Response response =
+                      service.getCapacityReportByMetricId(
+                          Product.RHEL,
+                          SOCKETS.toString(),
+                          orgId,
+                          beginning,
+                          ending,
+                          "DAILY",
+                          "hypervisor");
+                  return getCapacityValueFromResponse(response);
+                },
+                capacity -> capacity >= expectedCapacity);
+
+    assertThat(
+        "Hypervisor sockets capacity should increase by subscription amount",
+        finalHypervisorSockets,
+        equalTo(expectedCapacity));
+
+    // Then: Verify the virt-who SKU details via subscription table API
+    Optional<SkuCapacityV2> skuCapacity =
+        service.getSkuCapacityByProductIdForOrgAndSku(Product.RHEL, orgId, VIRT_WHO_SKU);
+    assertTrue(skuCapacity.isPresent(), "Virt-who SKU should be present in subscription table");
+
+    assertThat(
+        "Virt-who SKU product name should not be null",
+        skuCapacity.get().getProductName(),
+        notNullValue());
+    assertTrue(
+        skuCapacity.get().getProductName().contains("Virtual Datacenters"),
+        "Virt-who SKU product name should contain 'Virtual Datacenters'");
+
+    var containsSubscription =
+        skuCapacity.stream()
+            .filter(i -> i.getSubscriptions() != null)
+            .flatMap(i -> i.getSubscriptions().stream())
+            .anyMatch(s -> virtWhoSubscription.getSubscriptionId().equals(s.getId()));
+    assertTrue(containsSubscription, "Virt-who SKU should contain the created subscription");
+  }
+
+  /** Helper method to extract capacity value from the capacity report response. */
+  private double getCapacityValueFromResponse(Response response) {
+    return response.jsonPath().getList("data", Map.class).stream()
+        .filter(data -> Boolean.TRUE.equals(data.get("has_data")))
+        .mapToDouble(data -> ((Number) data.get("value")).doubleValue())
+        .max()
+        .orElse(0.0);
   }
 }
