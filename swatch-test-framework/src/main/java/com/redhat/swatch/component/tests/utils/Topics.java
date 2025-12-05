@@ -29,7 +29,9 @@ public final class Topics {
   public static final String UTILIZATION = SUFFIX + "utilization";
   public static final String SWATCH_SERVICE_INSTANCE_INGRESS = SUFFIX + "service-instance-ingress";
   public static final String HBI_EVENT_IN = "platform.inventory.events";
+  public static final String INVENTORY_HOST_INGRESS = "platform.inventory.host-ingress";
   public static final String TALLY = SUFFIX + "tally";
+  public static final String CONDUIT_TASKS = "platform.rhsm-conduit.tasks";
 
   private Topics() {}
 }
