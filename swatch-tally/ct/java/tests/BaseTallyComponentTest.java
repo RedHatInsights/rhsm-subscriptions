@@ -20,12 +20,19 @@
  */
 package tests;
 
+import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
+
 import com.redhat.swatch.component.tests.api.ComponentTest;
+import com.redhat.swatch.component.tests.api.KafkaBridge;
+import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.SpringBoot;
 import com.redhat.swatch.component.tests.api.SwatchService;
 
 @ComponentTest(name = "swatch-tally")
 public class BaseTallyComponentTest {
+
+  @KafkaBridge
+  static KafkaBridgeService kafkaBridge = new KafkaBridgeService().subscribeToTopic(TALLY);
 
   @SpringBoot(service = "swatch-tally")
   static SwatchService service = new SwatchService();

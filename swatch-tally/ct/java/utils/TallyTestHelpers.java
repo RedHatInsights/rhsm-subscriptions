@@ -26,7 +26,6 @@ import api.MessageValidators;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.logging.Log;
-import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import io.restassured.response.Response;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -34,6 +33,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
+import org.candlepin.subscriptions.billable.usage.TallyMeasurement;
+import org.candlepin.subscriptions.billable.usage.TallySnapshot.Granularity;
+import org.candlepin.subscriptions.billable.usage.TallySummary;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement;
 
@@ -44,6 +47,7 @@ public class TallyTestHelpers {
   private static final String DEFAULT_BILLING_ACCOUNT = "746157280291";
   private static final String TEST_PRODUCT_ID = "204";
   private static final String DEFAULT_PRODUCT_TAG = "rhel-for-x86-els-payg";
+  private static final String DEFAULT_METRIC_ID = "VCPUS";
   private static final int EVENT_EXPIRATION_DAYS = 25;
 
   /** Default constructor. */
@@ -51,6 +55,31 @@ public class TallyTestHelpers {
 
   public Event createEventWithTimestamp(
       String orgId, String instanceId, String timestampStr, String eventIdStr, float value) {
+
+    return createEventWithTimestamp(
+        orgId,
+        instanceId,
+        timestampStr,
+        eventIdStr,
+        DEFAULT_METRIC_ID,
+        value,
+        Event.Sla.PREMIUM,
+        Event.HardwareType.CLOUD,
+        TEST_PRODUCT_ID,
+        DEFAULT_PRODUCT_TAG);
+  }
+
+  public Event createEventWithTimestamp(
+      String orgId,
+      String instanceId,
+      String timestampStr,
+      String eventIdStr,
+      String metricId,
+      float value,
+      Event.Sla sla,
+      Event.HardwareType hardwareType,
+      String productId,
+      String productTag) {
 
     OffsetDateTime timestamp = OffsetDateTime.parse(timestampStr);
     OffsetDateTime expiration = timestamp.plusDays(EVENT_EXPIRATION_DAYS);
@@ -65,21 +94,32 @@ public class TallyTestHelpers {
     event.setExpiration(Optional.of(expiration));
     event.setEventSource("cost-management");
     event.setEventType("snapshot");
-    event.setSla(Event.Sla.PREMIUM);
+
+    event.setSla(sla);
+    event.setHardwareType(hardwareType);
+
+    // Product id and tag from parameters
+    event.setProductIds(List.of(productId));
+    event.setProductTag(Set.of(productTag));
+
     event.setRole(Event.Role.RED_HAT_ENTERPRISE_LINUX_SERVER);
     event.setUsage(Event.Usage.PRODUCTION);
     event.setServiceType("RHEL System");
-    event.setHardwareType(Event.HardwareType.CLOUD);
-    event.setCloudProvider(Event.CloudProvider.AWS);
-    event.setBillingProvider(Event.BillingProvider.AWS);
+
+    // Only set cloud/billing when hardware type is CLOUD
+    if (hardwareType == Event.HardwareType.CLOUD) {
+      event.setCloudProvider(Event.CloudProvider.AWS);
+      event.setBillingProvider(Event.BillingProvider.AWS);
+    } else {
+      event.setCloudProvider(null);
+      event.setBillingProvider(null);
+    }
+
     event.setBillingAccountId(Optional.of(DEFAULT_BILLING_ACCOUNT));
-    event.setConversion(true);
-    event.setProductIds(List.of(TEST_PRODUCT_ID));
-    event.setProductTag(Set.of(DEFAULT_PRODUCT_TAG));
 
     var measurement = new Measurement();
     measurement.setValue((double) value);
-    measurement.setMetricId("VCPUS");
+    measurement.setMetricId(metricId);
     event.setMeasurements(List.of(measurement));
 
     return event;
@@ -129,7 +169,7 @@ public class TallyTestHelpers {
     Log.info("Hourly tally endpoint called successfully for org: %s", orgId);
   }
 
-  public void pollForTallySyncAndMessages(
+  public List<TallySummary> pollForTallySyncAndMessages(
       String testOrgId,
       String productId,
       String metricId,
@@ -149,13 +189,14 @@ public class TallyTestHelpers {
         syncTallyHourly(testOrgId, service);
 
         // Wait for tally messages to be produced
-        kafkaBridge.waitForKafkaMessage(
-            TALLY,
-            MessageValidators.tallySummaryMatches(testOrgId, productId, metricId, granularity),
-            expectedMessageCount);
+        List<TallySummary> tallySummaries =
+            kafkaBridge.waitForKafkaMessage(
+                TALLY,
+                MessageValidators.tallySummaryMatches(testOrgId, productId, metricId, granularity),
+                expectedMessageCount);
 
         // If successful, return
-        return;
+        return tallySummaries;
       } catch (Exception e) {
         lastException = e;
         if (attempts < maxAttempts) {
@@ -173,7 +214,7 @@ public class TallyTestHelpers {
         String.format("Failed to sync tally after %d attempts", maxAttempts), lastException);
   }
 
-  public void pollForTallySyncAndMessages(
+  public List<TallySummary> pollForTallySyncAndMessages(
       String testOrgId,
       String productId,
       String metricId,
@@ -181,7 +222,7 @@ public class TallyTestHelpers {
       int expectedMessageCount,
       SwatchService service,
       KafkaBridgeService kafkaBridge) {
-    pollForTallySyncAndMessages(
+    return pollForTallySyncAndMessages(
         testOrgId,
         productId,
         metricId,
@@ -191,5 +232,49 @@ public class TallyTestHelpers {
         Duration.ofMillis(100),
         service,
         kafkaBridge);
+  }
+
+  public double getTallySummaryValue(
+      List<TallySummary> tallySummaries,
+      String orgId,
+      String productId,
+      String metricId,
+      Granularity granularity,
+      String sla) {
+    return tallySummaries.stream()
+        // Only consider summaries for the requested org
+        .filter(summary -> orgId.equalsIgnoreCase(summary.getOrgId()))
+        // Flatten to snapshots
+        .flatMap(
+            summary ->
+                summary.getTallySnapshots() == null
+                    ? Stream.empty()
+                    : summary.getTallySnapshots().stream())
+        // Match product and granularity
+        .filter(snapshot -> productId.equalsIgnoreCase(snapshot.getProductId()))
+        .filter(snapshot -> granularity.equals(snapshot.getGranularity()))
+        // Optional SLA filter:
+        //  - if sla == null  -> include all SLAs
+        //  - if sla != null -> only include snapshots whose SLA string matches,
+        //                      including the empty-string SLA bucket.
+        .filter(
+            snapshot -> {
+              if (sla == null) {
+                return true;
+              }
+              String snapshotSla = snapshot.getSla() == null ? "" : snapshot.getSla().toString();
+              return snapshotSla.equalsIgnoreCase(sla);
+            })
+        // Flatten to measurements
+        .flatMap(
+            snapshot ->
+                snapshot.getTallyMeasurements() == null
+                    ? Stream.<TallyMeasurement>empty()
+                    : snapshot.getTallyMeasurements().stream())
+        // Match the desired metric
+        .filter(m -> metricId.equalsIgnoreCase(m.getMetricId()))
+        // Sum all matching values
+        .mapToDouble(m -> m.getValue() == null ? 0.0 : m.getValue())
+        .sum();
   }
 }

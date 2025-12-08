@@ -34,5 +34,19 @@
       <type>pom</type>
       <scope>provided</scope>
     </dependency>
+
+    <!-- JSON event models (org.candlepin.subscriptions.json.Event/Measurement) -->
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-model-events</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <!-- TallySummary/TallySnapshot models used on the TALLY topic -->
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-model-billable-usage</artifactId>
+      <version>${project.version}</version>
+    </dependency>
   </dependencies>
 </project>
