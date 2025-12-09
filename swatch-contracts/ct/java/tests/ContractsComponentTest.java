@@ -56,7 +56,7 @@ public class ContractsComponentTest extends BaseContractComponentTest {
   private static final double RHEL_VIRTHOST_SOCKETS_CAPACITY = 2.0;
   private static final String VIRT_WHO_SKU = "RH00006";
   private static final String VIRT_WHO_PRODUCT_DESCRIPTION =
-      " Test component for RHEL for Virtual Datacenters";
+      "Test component for RHEL for Virtual Datacenters";
 
   @Test
   @Tag("contract")
@@ -254,15 +254,8 @@ public class ContractsComponentTest extends BaseContractComponentTest {
     // Given: Get initial hypervisor capacity via REST API
     OffsetDateTime beginning = OffsetDateTime.now().minusDays(1);
     OffsetDateTime ending = OffsetDateTime.now().plusDays(1);
-    Response initialCapacityResponse =
-        service.getCapacityReportByMetricId(
-            Product.RHEL, SOCKETS.toString(), orgId, beginning, ending, "DAILY", "hypervisor");
-    assertThat(
-        "Initial capacity query should succeed",
-        initialCapacityResponse.statusCode(),
-        is(HttpStatus.SC_OK));
-
-    double initialHypervisorSockets = getCapacityValueFromResponse(initialCapacityResponse);
+    double initialHypervisorSockets =
+        getHypervisorSocketCapacity(Product.RHEL, SOCKETS.toString(), beginning, ending);
 
     // When: Create a virt-who subscription with hypervisor sockets
     Subscription virtWhoSubscription =
@@ -280,18 +273,9 @@ public class ContractsComponentTest extends BaseContractComponentTest {
             .atMost(1, MINUTES)
             .pollInterval(2, SECONDS)
             .until(
-                () -> {
-                  Response response =
-                      service.getCapacityReportByMetricId(
-                          Product.RHEL,
-                          SOCKETS.toString(),
-                          orgId,
-                          beginning,
-                          ending,
-                          "DAILY",
-                          "hypervisor");
-                  return getCapacityValueFromResponse(response);
-                },
+                () ->
+                    getHypervisorSocketCapacity(
+                        Product.RHEL, SOCKETS.toString(), beginning, ending),
                 capacity -> capacity >= expectedCapacity);
 
     assertThat(
@@ -318,14 +302,5 @@ public class ContractsComponentTest extends BaseContractComponentTest {
             .flatMap(i -> i.getSubscriptions().stream())
             .anyMatch(s -> virtWhoSubscription.getSubscriptionId().equals(s.getId()));
     assertTrue(containsSubscription, "Virt-who SKU should contain the created subscription");
-  }
-
-  /** Helper method to extract capacity value from the capacity report response. */
-  private double getCapacityValueFromResponse(Response response) {
-    return response.jsonPath().getList("data", Map.class).stream()
-        .filter(data -> Boolean.TRUE.equals(data.get("has_data")))
-        .mapToDouble(data -> ((Number) data.get("value")).doubleValue())
-        .max()
-        .orElse(0.0);
   }
 }

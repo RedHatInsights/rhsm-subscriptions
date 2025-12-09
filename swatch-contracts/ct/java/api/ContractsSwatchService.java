@@ -143,15 +143,15 @@ public class ContractsSwatchService extends SwatchService {
 
   public Response getCapacityReportByMetricId(
       Product product,
-      String metricId,
       String orgId,
+      String metricId,
       OffsetDateTime beginning,
       OffsetDateTime ending,
       String granularity,
       String category) {
     Objects.requireNonNull(product, "product must not be null");
-    Objects.requireNonNull(metricId, "metricId must not be null");
     Objects.requireNonNull(orgId, "orgId must not be null");
+    Objects.requireNonNull(metricId, "metricId must not be null");
     Objects.requireNonNull(beginning, "beginning must not be null");
     Objects.requireNonNull(ending, "ending must not be null");
     Objects.requireNonNull(granularity, "granularity must not be null");
