@@ -28,16 +28,19 @@ public class MessageValidators {
   /**
    * Creates a validator that matches CreateUpdateHostMessage messages for a specific orgId.
    *
-   * @param orgId the organization ID to match
-   * @return a MessageValidator that matches messages with the given orgId
+   * @param orgId the orgId to match
+   * @return a MessageValidator that matches add_host message of the given orgId
    */
-  public static MessageValidator<CreateUpdateHostMessage> hostMessageMatchesOrgId(String orgId) {
+  public static MessageValidator<CreateUpdateHostMessage> addHostMessageMatchesOrgId(String orgId) {
+    var operation = "add_host";
+
     return new MessageValidator<>(
         message -> {
           if (message == null || message.getData() == null) {
             return false;
           }
-          return orgId.equals(message.getData().getOrgId());
+          return operation.equals(message.getOperation())
+              && orgId.equals(message.getData().getOrgId());
         },
         CreateUpdateHostMessage.class);
   }

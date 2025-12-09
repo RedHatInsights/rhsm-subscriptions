@@ -33,27 +33,6 @@ public class ConduitTestHelpers {
   private static final String SYNC_ORG_ENDPOINT = "/api/rhsm-subscriptions/v1/internal/rpc/syncOrg";
 
   public ConduitTestHelpers() {}
-
-  /*
-   * Creates a JsonTaskMessage for syncing an organization's inventory.
-   *
-   * @param orgId the organization ID to sync
-   * @return a JsonTaskMessage configured for UPDATE_ORG_INVENTORY task
-
-  public JsonTaskMessage createOrgSyncTaskMessage(String orgId) {
-    JsonTaskMessage taskMessage = new JsonTaskMessage();
-    taskMessage.setType(TaskType.UPDATE_ORG_INVENTORY.name());
-    // The groupId should be the topic name, not the orgId
-    // This matches how OrgSyncTaskManager creates task descriptors:
-    // TaskDescriptor.builder(TaskType.UPDATE_ORG_INVENTORY, taskQueueProperties.getTopic(), orgId)
-    taskMessage.setGroupId(CONDUIT_TASKS);
-    Map<String, List<String>> args = new HashMap<>();
-    args.put("org_id", Arrays.asList(orgId));
-    // offset is optional - null means start from beginning
-    taskMessage.setArgs(args);
-    return taskMessage;
-  } */
-
   /**
    * Sync rhsm-conduit for org.
    *

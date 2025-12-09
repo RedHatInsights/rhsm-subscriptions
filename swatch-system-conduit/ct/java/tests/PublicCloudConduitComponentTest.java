@@ -26,19 +26,18 @@ import utils.ConduitTestHelpers;
 
 import static com.redhat.swatch.component.tests.utils.Topics.INVENTORY_HOST_INGRESS;
 
-/**
- * Component test that validates the flow of candlepin records through system-conduit:
- *
- * <p>1. Creates a task message on platform.rhsm-conduit.tasks topic 2. System-conduit processes the
- * task and syncs from RHSM API (stub) 3. Validates the output on platform.inventory.host-ingress
- * topic
- *
- * <p>This test is based on test_validate_tally_on_public_cloud_with_usage from the IQE test suite.
- */
+/** Component tests that validate the flow of candlepin records through system-conduit: */
 public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
 
   ConduitTestHelpers helpers = new ConduitTestHelpers();
 
+  /**
+   * Verifies that the inventory host ingress topic receives messages from system-conduit after a
+   * conduit sync.
+   *
+   * 1. Create a task message on platform.rhsm-conduit.tasks topic via Conduit Sync
+   * 2. Validate add_host operation on platform.inventory.host-ingress topic for org_id
+   */
   @Test
   public void testPublicCloudHostSync() {
     // Step 1: Sync conduit for the test orgId
@@ -49,6 +48,6 @@ public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
     // The stub RHSM API will return canned consumer data
     // The message validator ensures the message matches the expected orgId
     kafkaBridge.waitForKafkaMessage(
-        INVENTORY_HOST_INGRESS, MessageValidators.hostMessageMatchesOrgId(orgId));
+        INVENTORY_HOST_INGRESS, MessageValidators.addHostMessageMatchesOrgId(orgId));
   }
 }
