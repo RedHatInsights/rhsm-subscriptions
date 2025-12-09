@@ -46,7 +46,7 @@ public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
 
     // Step 2: Wait for the conduit to process the task and send host data to inventory
     // The stub RHSM API will return canned consumer data
-    // The message validator ensures the message matches the expected orgId
+    // The message validator matches add_host operation for orgId
     kafkaBridge.waitForKafkaMessage(
         INVENTORY_HOST_INGRESS, MessageValidators.addHostMessageMatchesOrgId(orgId));
   }
