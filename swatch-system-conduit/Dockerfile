@@ -29,7 +29,7 @@ RUN --mount=type=cache,target=/root/.m2 \
 RUN (cd /stage/swatch-system-conduit && exec jar -xf ./target/*.jar)
 RUN ls -al /stage/swatch-system-conduit
 
-FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.23-6.1764562148
+FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.23-6.1764764731
 
 ARG VERSION=1.0.0
 

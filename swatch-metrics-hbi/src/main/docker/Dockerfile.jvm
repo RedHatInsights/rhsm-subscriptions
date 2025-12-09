@@ -101,7 +101,7 @@ ARG MAVEN_TASKS='clean package'
 RUN --mount=type=cache,target=/root/.m2 \
     ./mvnw ${MAVEN_TASKS} -pl ${PROJECT_NAME} -am ${MAVEN_BUILD_ARGS}
 
-FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.23-6.1764562148
+FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.23-6.1764764731
 
 ARG VERSION=1.0.0
 ARG PROJECT_NAME='swatch-metrics-hbi'
