@@ -83,7 +83,7 @@ public class TallySlaFiltersTest extends BaseTallyComponentTest {
     // Poll for tally summaries
     List<TallySummary> tallySummaries =
         helpers.pollForTallySyncAndMessages(
-            orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.DAILY, 4, service, kafkaBridge);
+            orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.HOURLY, 4, service, kafkaBridge);
 
     // Compute counts for each SLA
     double finalFilterCount = 0;
@@ -94,7 +94,7 @@ public class TallySlaFiltersTest extends BaseTallyComponentTest {
               orgId,
               TEST_PRODUCT_TAG,
               TEST_METRIC_ID,
-              Granularity.DAILY,
+              Granularity.HOURLY,
               sla.toString());
       finalFilterCount += value;
     }
@@ -106,13 +106,13 @@ public class TallySlaFiltersTest extends BaseTallyComponentTest {
             orgId,
             TEST_PRODUCT_TAG,
             TEST_METRIC_ID,
-            Granularity.DAILY,
+            Granularity.HOURLY,
             Sla.__EMPTY__.toString());
 
     // All tally summary values total: no SLA filter applied
     double allTallySummaries =
         helpers.getTallySummaryValue(
-            tallySummaries, orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.DAILY, null);
+            tallySummaries, orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.HOURLY, null);
 
     // Verify count with SLA filters
     Assertions.assertEquals(allTallySummaries - finalFilterCount, noSla, 0.0001);

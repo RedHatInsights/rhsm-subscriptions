@@ -104,18 +104,16 @@ class SnapshotSummaryProducerTest {
     }
   }
 
-  @ParameterizedTest
-  @MethodSource("snapshotSummaryProducerParams")
-  void testProduceSummary(Pair params) {
-    Granularity granularity = Granularity.valueOf(params.value.toUpperCase());
+  @Test
+  void testProduceSummaryDaily() {
     Map<String, List<TallySnapshot>> updateMap = new HashMap<>();
     updateMap.put(
         "org1",
         List.of(
             buildSnapshot(
                 "org1",
-                "OSD",
-                granularity,
+                "RHEL for x86",
+                Granularity.DAILY,
                 ServiceLevel.PREMIUM,
                 Usage.PRODUCTION,
                 BillingProvider.RED_HAT,
@@ -127,15 +125,16 @@ class SnapshotSummaryProducerTest {
         List.of(
             buildSnapshot(
                 "org2",
-                "OCP",
-                granularity,
+                "RHEL Compute Node",
+                Granularity.DAILY,
                 ServiceLevel.PREMIUM,
                 Usage.PRODUCTION,
                 BillingProvider.AWS,
                 "12345",
                 MetricIdUtils.getCores().getValue(),
                 22.2)));
-    producer.produceTallySummaryMessages(updateMap, List.of(granularity), params.predicate);
+    producer.produceTallySummaryMessages(
+        updateMap, List.of(Granularity.DAILY), SnapshotSummaryProducer.nightlySnapFilter);
     verify(kafka, times(2)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
 
     List<TallySummary> summaries = summaryCaptor.getAllValues();
@@ -145,25 +144,86 @@ class SnapshotSummaryProducerTest {
     assertSummary(
         results,
         "org1",
-        "OSD",
-        granularity,
+        "RHEL for x86",
+        Granularity.DAILY,
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         MetricIdUtils.getCores(),
         20.4,
-        Granularity.HOURLY == granularity ? 1 : 2,
-        Granularity.HOURLY != granularity);
+        1,
+        false);
     assertSummary(
         results,
         "org2",
-        "OCP",
-        granularity,
+        "RHEL Compute Node",
+        Granularity.DAILY,
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         MetricIdUtils.getCores(),
         22.2,
-        Granularity.HOURLY == granularity ? 1 : 2,
-        Granularity.HOURLY != granularity);
+        1,
+        false);
+  }
+
+  @Test
+  void testProduceSummaryHourly() {
+    Map<String, List<TallySnapshot>> updateMap = new HashMap<>();
+    updateMap.put(
+        "org1",
+        List.of(
+            buildSnapshot(
+                "org1",
+                "rosa",
+                Granularity.HOURLY,
+                ServiceLevel.PREMIUM,
+                Usage.PRODUCTION,
+                BillingProvider.RED_HAT,
+                "12345",
+                MetricIdUtils.getCores().getValue(),
+                20.4)));
+    updateMap.put(
+        "org2",
+        List.of(
+            buildSnapshot(
+                "org2",
+                "rhods",
+                Granularity.HOURLY,
+                ServiceLevel.PREMIUM,
+                Usage.PRODUCTION,
+                BillingProvider.AWS,
+                "12345",
+                MetricIdUtils.getCores().getValue(),
+                22.2)));
+    producer.produceTallySummaryMessages(
+        updateMap, List.of(Granularity.HOURLY), SnapshotSummaryProducer.hourlySnapFilter);
+    verify(kafka, times(2)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
+
+    List<TallySummary> summaries = summaryCaptor.getAllValues();
+    assertEquals(2, summaries.size());
+    Map<String, List<TallySummary>> results =
+        summaries.stream().collect(Collectors.groupingBy(TallySummary::getOrgId));
+    assertSummary(
+        results,
+        "org1",
+        "rosa",
+        Granularity.HOURLY,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        MetricIdUtils.getCores(),
+        20.4,
+        1,
+        false);
+    assertSummary(
+        results,
+        "org2",
+        "rhods",
+        Granularity.HOURLY,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        MetricIdUtils.getCores(),
+        22.2,
+        1,
+        false);
   }
 
   @Test
@@ -174,7 +234,7 @@ class SnapshotSummaryProducerTest {
         List.of(
             buildSnapshot(
                 "org1",
-                "OSD",
+                "rhods",
                 Granularity.HOURLY,
                 ServiceLevel.PREMIUM,
                 Usage.PRODUCTION,
@@ -187,7 +247,7 @@ class SnapshotSummaryProducerTest {
         List.of(
             buildSnapshot(
                 "org2",
-                "OCP",
+                "rosa",
                 Granularity.HOURLY,
                 ServiceLevel.PREMIUM,
                 Usage.PRODUCTION,
@@ -200,7 +260,7 @@ class SnapshotSummaryProducerTest {
         List.of(
             buildSnapshot(
                 "org3",
-                "OCP",
+                "RHEL for x86",
                 Granularity.DAILY,
                 ServiceLevel.PREMIUM,
                 Usage.PRODUCTION,
@@ -209,19 +269,17 @@ class SnapshotSummaryProducerTest {
                 MetricIdUtils.getCores().getValue(),
                 42.2)));
     producer.produceTallySummaryMessages(
-        updateMap,
-        List.of(Granularity.HOURLY, Granularity.DAILY),
-        SnapshotSummaryProducer.hourlySnapFilter);
-    verify(kafka, times(3)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
+        updateMap, List.of(Granularity.HOURLY), SnapshotSummaryProducer.hourlySnapFilter);
+    verify(kafka, times(2)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
 
     List<TallySummary> summaries = summaryCaptor.getAllValues();
-    assertEquals(3, summaries.size());
+    assertEquals(2, summaries.size());
     Map<String, List<TallySummary>> results =
         summaries.stream().collect(Collectors.groupingBy(TallySummary::getOrgId));
     assertSummary(
         results,
         "org1",
-        "OSD",
+        "rhods",
         Granularity.HOURLY,
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
@@ -232,7 +290,7 @@ class SnapshotSummaryProducerTest {
     assertSummary(
         results,
         "org2",
-        "OCP",
+        "rosa",
         Granularity.HOURLY,
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
@@ -240,17 +298,6 @@ class SnapshotSummaryProducerTest {
         22.2,
         1,
         false);
-    assertSummary(
-        results,
-        "org3",
-        "OCP",
-        Granularity.DAILY,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        MetricIdUtils.getCores(),
-        42.2,
-        2,
-        true);
   }
 
   @Test
@@ -261,7 +308,7 @@ class SnapshotSummaryProducerTest {
         List.of(
             buildSnapshot(
                 "org1",
-                "OSD",
+                "rosa",
                 Granularity.HOURLY,
                 ServiceLevel.PREMIUM,
                 Usage.PRODUCTION,
@@ -274,7 +321,7 @@ class SnapshotSummaryProducerTest {
         List.of(
             buildSnapshot(
                 "org2",
-                "OCP",
+                "rhods",
                 Granularity.HOURLY,
                 ServiceLevel.PREMIUM,
                 Usage.PRODUCTION,
@@ -287,7 +334,7 @@ class SnapshotSummaryProducerTest {
         List.of(
             buildSnapshot(
                 "org3",
-                "OCP",
+                "rhods",
                 Granularity.DAILY,
                 ServiceLevel.PREMIUM,
                 Usage.PRODUCTION,
@@ -296,9 +343,7 @@ class SnapshotSummaryProducerTest {
                 MetricIdUtils.getCores().getValue(),
                 42.2)));
     producer.produceTallySummaryMessages(
-        updateMap,
-        List.of(Granularity.HOURLY, Granularity.DAILY),
-        SnapshotSummaryProducer.hourlySnapFilter);
+        updateMap, List.of(Granularity.HOURLY), SnapshotSummaryProducer.hourlySnapFilter);
     verify(kafka, times(2)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
 
     List<TallySummary> summaries = summaryCaptor.getAllValues();
@@ -308,7 +353,7 @@ class SnapshotSummaryProducerTest {
     assertSummary(
         results,
         "org1",
-        "OSD",
+        "rosa",
         Granularity.HOURLY,
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
@@ -319,7 +364,7 @@ class SnapshotSummaryProducerTest {
     assertSummary(
         results,
         "org2",
-        "OCP",
+        "rhods",
         Granularity.HOURLY,
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,

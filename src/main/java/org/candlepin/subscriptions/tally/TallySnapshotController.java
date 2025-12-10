@@ -189,7 +189,7 @@ public class TallySnapshotController {
           recordTallyCount(totalSnapshots.values().stream().flatMap(Collection::stream).toList());
           summaryProducer.produceTallySummaryMessages(
               totalSnapshots,
-              List.of(Granularity.HOURLY, Granularity.DAILY),
+              List.of(Granularity.HOURLY),
               SnapshotSummaryProducer.hourlySnapFilter);
         }
 

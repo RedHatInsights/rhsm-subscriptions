@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import com.redhat.swatch.configuration.registry.ProductId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -67,6 +68,13 @@ public class SnapshotSummaryProducer {
               && !Usage._ANY.equals(snapshot.getUsage())
               && hasMeasurements(snapshot);
 
+  public static Predicate<TallySnapshot> paygSnapFilter =
+      snapshot ->
+          Granularity.HOURLY.equals(snapshot.getGranularity())
+                  && ProductId.fromString(snapshot.getProductId()).isPayg()
+              || Granularity.DAILY.equals(snapshot.getGranularity())
+                  && !ProductId.fromString(snapshot.getProductId()).isPayg();
+
   @Autowired
   protected SnapshotSummaryProducer(
       @Qualifier("tallySummaryKafkaTemplate")
@@ -80,6 +88,12 @@ public class SnapshotSummaryProducer {
     this.summaryMapper = summaryMapper;
   }
 
+  /**
+   * Side effect: While producing tally summary messages for the given snapshots, TOTAL measurements
+   * are removed from the original HOURLY snapshot objects that are passed in. The original DAILY
+   * snapshot objects are intentionally left unmodified. This difference in behavior is due to the
+   * usage of these same objects elsewhere in the process.
+   */
   public void produceTallySummaryMessages(
       Map<String, List<TallySnapshot>> newAndUpdatedSnapshots,
       List<Granularity> granularities,
@@ -99,10 +113,11 @@ public class SnapshotSummaryProducer {
                         when we transmit the tally summary message to the BillableUsage component. */
                         snapshots.stream()
                             .filter(filter)
+                            .filter(paygSnapFilter)
                             .map(
                                 snapshot -> {
                                   removeTotalMeasurementsForHourly(snapshot);
-                                  return snapshot;
+                                  return removeTotalMeasurementsForDaily(snapshot);
                                 })
                             .sorted(Comparator.comparing(TallySnapshot::getSnapshotDate))
                             .map(snapshot -> summaryMapper.mapSnapshots(orgId, List.of(snapshot)))
@@ -118,6 +133,21 @@ public class SnapshotSummaryProducer {
             log.info("Produced {} {} TallySummary messages", totalTallies, granularity);
           }
         });
+  }
+
+  public static TallySnapshot removeTotalMeasurementsForDaily(TallySnapshot snapshot) {
+    if (Objects.nonNull(snapshot.getTallyMeasurements())
+        && Granularity.DAILY.equals(snapshot.getGranularity())) {
+      TallySnapshot snapshotCopy = deepCopy(snapshot);
+      snapshotCopy.getTallyMeasurements().remove(HardwareMeasurementType.TOTAL);
+      snapshotCopy
+          .getTallyMeasurements()
+          .entrySet()
+          .removeIf(
+              entry -> HardwareMeasurementType.TOTAL.equals(entry.getKey().getMeasurementType()));
+      return snapshotCopy;
+    }
+    return snapshot;
   }
 
   public static void removeTotalMeasurementsForHourly(TallySnapshot snapshot) {
@@ -178,5 +208,28 @@ public class SnapshotSummaryProducer {
     }
 
     return true;
+  }
+
+  /** Creates independent copy of tally snapshot */
+  public static TallySnapshot deepCopy(TallySnapshot original) {
+    if (original == null) {
+      return null;
+    }
+
+    TallySnapshot copy = new TallySnapshot();
+    copy.setSnapshotDate(original.getSnapshotDate());
+    copy.setProductId(original.getProductId());
+    copy.setGranularity(original.getGranularity());
+    copy.setServiceLevel(original.getServiceLevel());
+    copy.setUsage(original.getUsage());
+    copy.setBillingProvider(original.getBillingProvider());
+    copy.setBillingAccountId(original.getBillingAccountId());
+
+    // Deep copy the map to prevent side effects on the original collection
+    if (original.getTallyMeasurements() != null) {
+      copy.setTallyMeasurements(new HashMap<>(original.getTallyMeasurements()));
+    }
+
+    return copy;
   }
 }
