@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import com.redhat.swatch.configuration.registry.ProductId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -67,6 +68,11 @@ public class SnapshotSummaryProducer {
               && !Usage._ANY.equals(snapshot.getUsage())
               && hasMeasurements(snapshot);
 
+  public static Predicate<TallySnapshot> paygDailySnapFilter =
+      snapshot ->
+          !Granularity.DAILY.equals(snapshot.getGranularity())
+              || !ProductId.fromString(snapshot.getProductId()).isPayg();
+
   @Autowired
   protected SnapshotSummaryProducer(
       @Qualifier("tallySummaryKafkaTemplate")
@@ -99,6 +105,7 @@ public class SnapshotSummaryProducer {
                         when we transmit the tally summary message to the BillableUsage component. */
                         snapshots.stream()
                             .filter(filter)
+                            .filter(paygDailySnapFilter)
                             .map(
                                 snapshot -> {
                                   removeTotalMeasurementsForHourly(snapshot);
