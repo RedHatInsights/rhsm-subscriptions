@@ -53,9 +53,6 @@ public class ContractsComponentTest extends BaseContractComponentTest {
   private static final double ROSA_CORES_CAPACITY = 8.0;
   private static final double RHEL_CORES_CAPACITY = 4.0;
   private static final double RHEL_SOCKETS_CAPACITY = 1.0;
-  private static final String HYPERVISOR_SKU = RandomUtils.generateRandom();
-  private static final String HYPERVISOR_PRODUCT_DESCRIPTION =
-      "Test component for RHEL for Virtual Datacenters";
 
   @Test
   @Tag("contract")
@@ -237,12 +234,13 @@ public class ContractsComponentTest extends BaseContractComponentTest {
   void shouldValidateSumOfAllSocketsForHypervisorSkus() {
 
     // Given: Get initial hypervisor capacity via REST API
-    OffsetDateTime beginning = OffsetDateTime.now().minusDays(1);
-    OffsetDateTime ending = OffsetDateTime.now().plusDays(1);
+    final OffsetDateTime beginning = OffsetDateTime.now().minusDays(1);
+    final OffsetDateTime ending = OffsetDateTime.now().plusDays(1);
+    final String hypervisor_sku = RandomUtils.generateRandom();
     double initialHypervisorSockets =
         getHypervisorSocketCapacity(Product.RHEL, orgId, beginning, ending);
 
-    Subscription hypervisorSubscription = givenHypervisorSubscriptionIsCreated();
+    Subscription hypervisorSubscription = givenHypervisorSubscriptionIsCreated(hypervisor_sku);
 
     // Then: Verify hypervisor capacity increased via REST API
     double expectedCapacity = initialHypervisorSockets + RHEL_SOCKETS_CAPACITY;
@@ -261,7 +259,7 @@ public class ContractsComponentTest extends BaseContractComponentTest {
 
     // Then: Verify the hypervisor SKU details via subscription table API
     Optional<SkuCapacityV2> skuCapacity =
-        service.getSkuCapacityByProductIdForOrgAndSku(Product.RHEL, orgId, HYPERVISOR_SKU);
+        service.getSkuCapacityByProductIdForOrgAndSku(Product.RHEL, orgId, hypervisor_sku);
     assertTrue(skuCapacity.isPresent(), "Hypervisor SKU should be present in subscription table");
 
     assertThat(
@@ -277,25 +275,22 @@ public class ContractsComponentTest extends BaseContractComponentTest {
     assertTrue(containsSubscription, "Hypervisor SKU should contain the created subscription");
   }
 
-  private Subscription givenHypervisorSubscriptionIsCreated() {
+  private Subscription givenHypervisorSubscriptionIsCreated(String hypervisorSKU) {
     // Given: A hypervisor offering with hypervisor sockets capacity
     wiremock
         .forProductAPI()
         .stubOfferingData(
             Offering.buildRhelHypervisorOffering(
-                HYPERVISOR_SKU,
-                RHEL_CORES_CAPACITY,
-                RHEL_SOCKETS_CAPACITY,
-                HYPERVISOR_PRODUCT_DESCRIPTION));
+                hypervisorSKU, RHEL_CORES_CAPACITY, RHEL_SOCKETS_CAPACITY));
     assertThat(
         "Sync hypervisor offering should succeed",
-        service.syncOffering(HYPERVISOR_SKU).statusCode(),
+        service.syncOffering(hypervisorSKU).statusCode(),
         is(HttpStatus.SC_OK));
 
     // When: Create a hypervisor subscription with hypervisor sockets
     Subscription hypervisorSubscription =
         Subscription.buildRhelSubscriptionUsingSku(
-            orgId, Map.of(SOCKETS, RHEL_SOCKETS_CAPACITY), HYPERVISOR_SKU);
+            orgId, Map.of(SOCKETS, RHEL_SOCKETS_CAPACITY), hypervisorSKU);
     assertThat(
         "Creating hypervisor subscription should succeed",
         service.saveSubscriptions(true, hypervisorSubscription).statusCode(),

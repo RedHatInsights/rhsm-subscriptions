@@ -29,6 +29,8 @@ import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.utils.JsonUtils;
 import com.redhat.swatch.contract.test.model.CapacityReportByMetricId;
 import com.redhat.swatch.contract.test.model.ContractRequest;
+import com.redhat.swatch.contract.test.model.GranularityType;
+import com.redhat.swatch.contract.test.model.ReportCategory;
 import com.redhat.swatch.contract.test.model.SkuCapacityReportV2;
 import com.redhat.swatch.contract.test.model.SkuCapacityV2;
 import domain.Contract;
@@ -149,8 +151,8 @@ public class ContractsSwatchService extends SwatchService {
       String metricId,
       OffsetDateTime beginning,
       OffsetDateTime ending,
-      String granularity,
-      String category) {
+      GranularityType granularity,
+      ReportCategory category) {
     Objects.requireNonNull(product, "product must not be null");
     Objects.requireNonNull(orgId, "orgId must not be null");
     Objects.requireNonNull(metricId, "metricId must not be null");

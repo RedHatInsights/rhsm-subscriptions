@@ -20,6 +20,7 @@
  */
 package domain;
 
+import com.redhat.swatch.component.tests.utils.RandomUtils;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -78,12 +79,12 @@ public class Offering {
   }
 
   public static Offering buildRhelHypervisorOffering(
-      String sku, Double hypervisorCores, Double hypervisorSockets, String description) {
+      String sku, Double hypervisorCores, Double hypervisorSockets) {
     Objects.requireNonNull(sku, "sku cannot be null");
 
     return Offering.builder()
         .sku(sku)
-        .description(Objects.requireNonNullElse(description, RHEL_DESCRIPTION))
+        .description(RandomUtils.generateRandom())
         .metered(METERED_NO)
         .hypervisorCores(Optional.ofNullable(hypervisorCores).map(Double::intValue).orElse(null))
         .hypervisorSockets(

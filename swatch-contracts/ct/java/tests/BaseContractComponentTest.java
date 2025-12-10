@@ -37,6 +37,8 @@ import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import com.redhat.swatch.contract.test.model.CapacityReportByMetricId;
+import com.redhat.swatch.contract.test.model.GranularityType;
+import com.redhat.swatch.contract.test.model.ReportCategory;
 import domain.Contract;
 import domain.Product;
 import domain.Subscription;
@@ -51,8 +53,6 @@ import org.junit.jupiter.api.BeforeEach;
 public class BaseContractComponentTest {
   static final MetricId CORES = MetricIdUtils.getCores();
   static final MetricId SOCKETS = MetricIdUtils.getSockets();
-  static final String RHEL_GRANULARITY_DAILY = "daily";
-  static final String RHEL_CATEGORY_HYPERVISOR = "hypervisor";
 
   @KafkaBridge static KafkaBridgeService kafkaBridge = new KafkaBridgeService();
 
@@ -117,8 +117,8 @@ public class BaseContractComponentTest {
             SOCKETS.toString(),
             beginning,
             ending,
-            RHEL_GRANULARITY_DAILY,
-            RHEL_CATEGORY_HYPERVISOR);
+            GranularityType.DAILY,
+            ReportCategory.HYPERVISOR);
     return getCapacityValueFromReport(report);
   }
 
