@@ -52,7 +52,6 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resource.ReportCriteria;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
-import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.tally.filler.ReportFiller;
 import org.candlepin.subscriptions.tally.filler.ReportFillerFactory;
 import org.candlepin.subscriptions.tally.filler.UnroundedTallyReportDataPoint;
@@ -71,6 +70,8 @@ import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Component;
 
 /** Tally API implementation. */
@@ -107,9 +108,10 @@ public class TallyResource implements TallyApi {
   }
 
   @Override
-  @ReportingAccessRequired
+  //  @ReportingAccessRequired
+  @PreAuthorize("hasPermission(#productId, 'write')")
   public TallyReportData getTallyReportData(
-      ProductId productId,
+      @P("productId") ProductId productId,
       MetricId metricId,
       GranularityType granularityType,
       OffsetDateTime beginning,

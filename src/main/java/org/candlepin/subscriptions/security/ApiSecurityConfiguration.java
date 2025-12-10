@@ -32,6 +32,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
+import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authorization.AuthorizationDecision;
@@ -118,6 +120,14 @@ public class ApiSecurityConfiguration {
   // NOTE: intentionally not annotated w/ @Bean; @Bean causes an extra use as an application filter
   public LogPrincipalFilter logPrincipalFilter() {
     return new LogPrincipalFilter();
+  }
+
+  @Bean
+  public MethodSecurityExpressionHandler expressionHandler(RbacV2PermissionEvaluator evaluator) {
+    final DefaultMethodSecurityExpressionHandler expressionHandler =
+        new DefaultMethodSecurityExpressionHandler();
+    expressionHandler.setPermissionEvaluator(evaluator);
+    return expressionHandler;
   }
 
   @Bean
