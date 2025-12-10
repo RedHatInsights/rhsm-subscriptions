@@ -36,12 +36,12 @@ import com.redhat.swatch.component.tests.api.Wiremock;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import com.redhat.swatch.contract.test.model.CapacityReportByMetricId;
 import domain.Contract;
 import domain.Product;
 import domain.Subscription;
 import io.restassured.response.Response;
 import java.time.OffsetDateTime;
-import java.util.Map;
 import java.util.Objects;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterEach;
@@ -110,25 +110,23 @@ public class BaseContractComponentTest {
 
   protected double getHypervisorSocketCapacity(
       Product product, String orgId, OffsetDateTime beginning, OffsetDateTime ending) {
-    Response response =
+    CapacityReportByMetricId report =
         service.getCapacityReportByMetricId(
             product,
-            SOCKETS.toString(),
             orgId,
+            SOCKETS.toString(),
             beginning,
             ending,
             RHEL_GRANULARITY_DAILY,
             RHEL_CATEGORY_HYPERVISOR);
-    assertThat(
-        "Initial capacity query should succeed", response.statusCode(), is(HttpStatus.SC_OK));
-    return getCapacityValueFromResponse(response);
+    return getCapacityValueFromReport(report);
   }
 
-  /** Helper method to extract capacity value from the capacity report response. */
-  protected double getCapacityValueFromResponse(Response response) {
-    return response.jsonPath().getList("data", Map.class).stream()
-        .filter(data -> Boolean.TRUE.equals(data.get("has_data")))
-        .mapToDouble(data -> ((Number) data.get("value")).doubleValue())
+  /** Helper method to extract capacity value from the capacity report. */
+  protected double getCapacityValueFromReport(CapacityReportByMetricId report) {
+    return report.getData().stream()
+        .filter(data -> Boolean.TRUE.equals(data.getHasData()))
+        .mapToDouble(data -> data.getValue().doubleValue())
         .max()
         .orElse(0.0);
   }

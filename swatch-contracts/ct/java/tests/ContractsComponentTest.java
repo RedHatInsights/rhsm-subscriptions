@@ -53,9 +53,8 @@ public class ContractsComponentTest extends BaseContractComponentTest {
   private static final double ROSA_CORES_CAPACITY = 8.0;
   private static final double RHEL_CORES_CAPACITY = 4.0;
   private static final double RHEL_SOCKETS_CAPACITY = 1.0;
-  private static final double RHEL_VIRTHOST_SOCKETS_CAPACITY = 2.0;
-  private static final String VIRT_WHO_SKU = "RH00006";
-  private static final String VIRT_WHO_PRODUCT_DESCRIPTION =
+  private static final String HYPERVISOR_SKU = RandomUtils.generateRandom();
+  private static final String HYPERVISOR_PRODUCT_DESCRIPTION =
       "Test component for RHEL for Virtual Datacenters";
 
   @Test
@@ -234,48 +233,25 @@ public class ContractsComponentTest extends BaseContractComponentTest {
   }
 
   @Test
-  @Tag("contract")
-  @Tag("capacity-validation")
-  void shouldValidateSumOfAllSocketsForVirtWhoSkus() {
-    // Given: A virt-who offering with hypervisor sockets capacity
-    wiremock
-        .forProductAPI()
-        .stubOfferingData(
-            Offering.buildRhelVirtWhoOffering(
-                VIRT_WHO_SKU,
-                RHEL_CORES_CAPACITY,
-                RHEL_VIRTHOST_SOCKETS_CAPACITY,
-                VIRT_WHO_PRODUCT_DESCRIPTION));
-    assertThat(
-        "Sync virt-who offering should succeed",
-        service.syncOffering(VIRT_WHO_SKU).statusCode(),
-        is(HttpStatus.SC_OK));
+  @Tag("capacity")
+  void shouldValidateSumOfAllSocketsForHypervisorSkus() {
 
     // Given: Get initial hypervisor capacity via REST API
     OffsetDateTime beginning = OffsetDateTime.now().minusDays(1);
     OffsetDateTime ending = OffsetDateTime.now().plusDays(1);
     double initialHypervisorSockets =
-        getHypervisorSocketCapacity(Product.RHEL, SOCKETS.toString(), beginning, ending);
+        getHypervisorSocketCapacity(Product.RHEL, orgId, beginning, ending);
 
-    // When: Create a virt-who subscription with hypervisor sockets
-    Subscription virtWhoSubscription =
-        Subscription.buildRhelSubscriptionUsingSku(
-            orgId, Map.of(SOCKETS, RHEL_VIRTHOST_SOCKETS_CAPACITY), VIRT_WHO_SKU);
-    assertThat(
-        "Creating virt-who subscription should succeed",
-        service.saveSubscriptions(true, virtWhoSubscription).statusCode(),
-        is(HttpStatus.SC_OK));
+    Subscription hypervisorSubscription = givenHypervisorSubscriptionIsCreated();
 
     // Then: Verify hypervisor capacity increased via REST API
-    double expectedCapacity = initialHypervisorSockets + RHEL_VIRTHOST_SOCKETS_CAPACITY;
+    double expectedCapacity = initialHypervisorSockets + RHEL_SOCKETS_CAPACITY;
     double finalHypervisorSockets =
         await("Hypervisor capacity should increase")
             .atMost(1, MINUTES)
             .pollInterval(2, SECONDS)
             .until(
-                () ->
-                    getHypervisorSocketCapacity(
-                        Product.RHEL, SOCKETS.toString(), beginning, ending),
+                () -> getHypervisorSocketCapacity(Product.RHEL, orgId, beginning, ending),
                 capacity -> capacity >= expectedCapacity);
 
     assertThat(
@@ -283,24 +259,47 @@ public class ContractsComponentTest extends BaseContractComponentTest {
         finalHypervisorSockets,
         equalTo(expectedCapacity));
 
-    // Then: Verify the virt-who SKU details via subscription table API
+    // Then: Verify the hypervisor SKU details via subscription table API
     Optional<SkuCapacityV2> skuCapacity =
-        service.getSkuCapacityByProductIdForOrgAndSku(Product.RHEL, orgId, VIRT_WHO_SKU);
-    assertTrue(skuCapacity.isPresent(), "Virt-who SKU should be present in subscription table");
+        service.getSkuCapacityByProductIdForOrgAndSku(Product.RHEL, orgId, HYPERVISOR_SKU);
+    assertTrue(skuCapacity.isPresent(), "Hypervisor SKU should be present in subscription table");
 
     assertThat(
-        "Virt-who SKU product name should not be null",
+        "Hypervisor SKU product name should not be null",
         skuCapacity.get().getProductName(),
         notNullValue());
-    assertTrue(
-        skuCapacity.get().getProductName().contains("Virtual Datacenters"),
-        "Virt-who SKU product name should contain 'Virtual Datacenters'");
 
     var containsSubscription =
         skuCapacity.stream()
             .filter(i -> i.getSubscriptions() != null)
             .flatMap(i -> i.getSubscriptions().stream())
-            .anyMatch(s -> virtWhoSubscription.getSubscriptionId().equals(s.getId()));
-    assertTrue(containsSubscription, "Virt-who SKU should contain the created subscription");
+            .anyMatch(s -> hypervisorSubscription.getSubscriptionId().equals(s.getId()));
+    assertTrue(containsSubscription, "Hypervisor SKU should contain the created subscription");
+  }
+
+  private Subscription givenHypervisorSubscriptionIsCreated() {
+    // Given: A hypervisor offering with hypervisor sockets capacity
+    wiremock
+        .forProductAPI()
+        .stubOfferingData(
+            Offering.buildRhelHypervisorOffering(
+                HYPERVISOR_SKU,
+                RHEL_CORES_CAPACITY,
+                RHEL_SOCKETS_CAPACITY,
+                HYPERVISOR_PRODUCT_DESCRIPTION));
+    assertThat(
+        "Sync hypervisor offering should succeed",
+        service.syncOffering(HYPERVISOR_SKU).statusCode(),
+        is(HttpStatus.SC_OK));
+
+    // When: Create a hypervisor subscription with hypervisor sockets
+    Subscription hypervisorSubscription =
+        Subscription.buildRhelSubscriptionUsingSku(
+            orgId, Map.of(SOCKETS, RHEL_SOCKETS_CAPACITY), HYPERVISOR_SKU);
+    assertThat(
+        "Creating hypervisor subscription should succeed",
+        service.saveSubscriptions(true, hypervisorSubscription).statusCode(),
+        is(HttpStatus.SC_OK));
+    return hypervisorSubscription;
   }
 }

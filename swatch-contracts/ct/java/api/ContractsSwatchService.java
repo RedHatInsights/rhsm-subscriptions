@@ -22,10 +22,12 @@ package api;
 
 import static com.redhat.swatch.component.tests.utils.SwatchUtils.SECURITY_HEADERS;
 import static com.redhat.swatch.component.tests.utils.SwatchUtils.securityHeadersWithServiceRole;
+import static org.apache.http.HttpStatus.SC_OK;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.utils.JsonUtils;
+import com.redhat.swatch.contract.test.model.CapacityReportByMetricId;
 import com.redhat.swatch.contract.test.model.ContractRequest;
 import com.redhat.swatch.contract.test.model.SkuCapacityReportV2;
 import com.redhat.swatch.contract.test.model.SkuCapacityV2;
@@ -141,7 +143,7 @@ public class ContractsSwatchService extends SwatchService {
         .as(SkuCapacityReportV2.class);
   }
 
-  public Response getCapacityReportByMetricId(
+  public CapacityReportByMetricId getCapacityReportByMetricId(
       Product product,
       String orgId,
       String metricId,
@@ -170,7 +172,14 @@ public class ContractsSwatchService extends SwatchService {
       request.queryParam("category", category);
     }
 
-    return request.when().get(CAPACITY_REPORT_ENDPOINT);
+    return request
+        .when()
+        .get(CAPACITY_REPORT_ENDPOINT)
+        .then()
+        .statusCode(SC_OK)
+        .and()
+        .extract()
+        .as(CapacityReportByMetricId.class);
   }
 
   public Response terminateSubscription(Subscription subscription) {

@@ -77,7 +77,7 @@ public class Offering {
         .build();
   }
 
-  public static Offering buildRhelVirtWhoOffering(
+  public static Offering buildRhelHypervisorOffering(
       String sku, Double hypervisorCores, Double hypervisorSockets, String description) {
     Objects.requireNonNull(sku, "sku cannot be null");
 
