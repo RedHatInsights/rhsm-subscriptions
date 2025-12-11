@@ -20,9 +20,9 @@
     <codegen.skipIfSpecIsUnchanged>true</codegen.skipIfSpecIsUnchanged>
 
     <!-- Dependencies -->
-    <quarkus.platform.version>3.30.1</quarkus.platform.version>
+    <quarkus.platform.version>3.30.3</quarkus.platform.version>
     <spring.boot.version>3.5.8</spring.boot.version>
-    <resteasy.version>7.0.0.Final</resteasy.version>
+    <resteasy.version>7.0.1.Final</resteasy.version>
     <!-- Only use as provided in the common dependencies.
     Spring and Quarkus already provides the compatible Jackson versions -->
     <jackson.version>2.20.1</jackson.version>
@@ -30,21 +30,21 @@
     <slf4j.version>2.0.17</slf4j.version>
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
-    <opentelemetry-api.version>1.56.0</opentelemetry-api.version>
-    <awssdk-bom.version>2.39.5</awssdk-bom.version>
+    <opentelemetry-api.version>1.57.0</opentelemetry-api.version>
+    <awssdk-bom.version>2.40.6</awssdk-bom.version>
     <guava.version>33.5.0-jre</guava.version>
     <liquibase.version>5.0.1</liquibase.version>
     <postgresql.version>42.7.8</postgresql.version>
     <testcontainers.version>1.21.3</testcontainers.version>
     <junit.version>6.0.1</junit.version>
-    <mockito.version>5.20.0</mockito.version>
+    <mockito.version>5.21.0</mockito.version>
     <rest-assured.version>5.5.6</rest-assured.version>
     <awaitility.version>4.3.0</awaitility.version>
     <hibernate-validator.version>9.1.0.Final</hibernate-validator.version>
     <swagger-parser.version>2.1.36</swagger-parser.version>
     <swagger-ui.version>5.30.3</swagger-ui.version>
     <splunk-otel-javaagent.version>2.22.0</splunk-otel-javaagent.version>
-    <java-uuid-generator.version>5.1.1</java-uuid-generator.version>
+    <insights-notification-schemas-java.version>1.0.1</insights-notification-schemas-java.version>
 
     <!-- Plugins -->
     <compiler-plugin.version>3.14.1</compiler-plugin.version>
@@ -57,7 +57,7 @@
     <checkstyle.version>3.6.0</checkstyle.version>
     <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
     <maven-antrun-plugin.version>3.2.0</maven-antrun-plugin.version>
-    <sonar-maven-plugin.version>5.3.0.6276</sonar-maven-plugin.version>
+    <sonar-maven-plugin.version>5.5.0.6356</sonar-maven-plugin.version>
     <swagger-codegen-maven-plugin.version>3.0.75</swagger-codegen-maven-plugin.version>
 
     <!-- Sonar configuration -->
@@ -319,9 +319,9 @@
         <version>${mockito.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.fasterxml.uuid</groupId>
-        <artifactId>java-uuid-generator</artifactId>
-        <version>${java-uuid-generator.version}</version>
+        <groupId>com.redhat.cloud.common</groupId>
+        <artifactId>insights-notification-schemas-java</artifactId>
+        <version>${insights-notification-schemas-java.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -430,7 +430,7 @@
         <plugin>
           <groupId>io.smallrye</groupId>
           <artifactId>jandex-maven-plugin</artifactId>
-          <version>3.5.2</version>
+          <version>3.5.3</version>
         </plugin>
 
         <plugin>

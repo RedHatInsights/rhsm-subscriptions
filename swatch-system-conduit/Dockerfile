@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/openjdk-17:1.23-6.1764155314
+FROM registry.access.redhat.com/ubi9/openjdk-21:1.23-6.1764765565
 
 USER root
 # Add git, so that the build can determine the git hash
@@ -29,7 +29,7 @@ RUN --mount=type=cache,target=/root/.m2 \
 RUN (cd /stage/swatch-system-conduit && exec jar -xf ./target/*.jar)
 RUN ls -al /stage/swatch-system-conduit
 
-FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.23-6.1764155309
+FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.23-6.1764764731
 
 ARG VERSION=1.0.0
 
@@ -42,8 +42,8 @@ LABEL vendor="Red Hat, Inc."
 LABEL url="https://github.com/RedHatInsights/rhsm-subscriptions"
 LABEL com.redhat.component="swatch-system-conduit"
 LABEL distribution-scope="public"
-LABEL io.k8s.description="SWATCH System Conduit service based on UBI9 OpenJDK 17."
-LABEL description="SWATCH System Conduit service based on UBI9 OpenJDK 17."
+LABEL io.k8s.description="SWATCH System Conduit service based on UBI9 OpenJDK 21."
+LABEL description="SWATCH System Conduit service based on UBI9 OpenJDK 21."
 
 #label for EULA
 LABEL com.redhat.license_terms="https://www.redhat.com/en/about/red-hat-end-user-license-agreements#UBI"

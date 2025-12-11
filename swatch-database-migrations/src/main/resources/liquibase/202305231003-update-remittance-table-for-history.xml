@@ -7,10 +7,19 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
   <changeSet id="202305231003-1" author="kflahert">
+    <!-- 
+      Only execute if the old migration structure exists. Skip if swatch-billable-usage 
+      has already created the table with the final structure.
+    -->
     <preConditions onFail="MARK_RAN">
-      <not>
-        <tableExists tableName="databasechangelog_swatch_billable_usage"/>
-      </not>
+      <and>
+        <not>
+          <tableExists tableName="databasechangelog_swatch_billable_usage"/>
+        </not>
+        <columnExists tableName="billable_usage_remittance" columnName="remittance_date"/>
+        <columnExists tableName="billable_usage_remittance" columnName="remitted_value"/>
+        <columnExists tableName="billable_usage_remittance" columnName="billing_factor"/>
+      </and>
     </preConditions>
     <comment>Update billable_usage_remittance table to track history</comment>
     <!--

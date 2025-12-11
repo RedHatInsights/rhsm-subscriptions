@@ -20,9 +20,7 @@
  */
 package com.redhat.swatch.utilization.service;
 
-import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
-import com.redhat.swatch.configuration.util.MetricIdUtils;
 import com.redhat.swatch.utilization.model.UtilizationSummary;
 import com.redhat.swatch.utilization.model.UtilizationSummary.Granularity;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -31,17 +29,15 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @ApplicationScoped
-public class UtilizationSummaryValidator {
+public class UtilizationSummaryPayloadValidator {
 
-  private static final double MIN_VALID_CAPACITY = 0.0;
   private static final List<Granularity> SUPPORTED_GRANULARITY =
       List.of(Granularity.DAILY, Granularity.HOURLY);
 
-  public boolean isValid(UtilizationSummary payload) {
+  public boolean isUtilizationSummaryValid(UtilizationSummary payload) {
     return hasValidOrgId(payload)
         && hasValidProduct(payload)
         && hasValidGranularity(payload)
-        && hasValidMeasurements(payload)
         && hasValidBillingForPayg(payload);
   }
 
@@ -70,53 +66,24 @@ public class UtilizationSummaryValidator {
 
   private boolean hasValidGranularity(UtilizationSummary payload) {
     if (payload.getGranularity() == null) {
+      logValidationFailure(payload, "granularity is null");
       return false;
     }
     UtilizationSummary.Granularity granularity = payload.getGranularity();
-    return granularity != null && SUPPORTED_GRANULARITY.contains(granularity);
-  }
-
-  private boolean hasValidMeasurements(UtilizationSummary payload) {
-    if (payload.getMeasurements() == null || payload.getMeasurements().isEmpty()) {
-      log.warn("Received utilization summary without measurements. Payload: {}", payload);
+    if (granularity == null || !SUPPORTED_GRANULARITY.contains(granularity)) {
+      logValidationFailure(
+          payload,
+          "unsupported granularity '" + granularity + "'. Supported: " + SUPPORTED_GRANULARITY);
       return false;
     }
 
-    List<MetricId> supportedMetrics =
-        MetricIdUtils.getMetricIdsFromConfigForTag(payload.getProductId()).toList();
-    for (var measurement : payload.getMeasurements()) {
-      if (!isValidMetric(measurement.getMetricId(), supportedMetrics, payload)) {
-        return false;
-      }
-
-      if (Boolean.TRUE.equals(measurement.getUnlimited())
-          || measurement.getCapacity() == null
-          || measurement.getCapacity() <= MIN_VALID_CAPACITY
-          || measurement.getCurrentTotal() == null) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  private boolean isValidMetric(
-      String metricIdString, List<MetricId> supportedMetrics, UtilizationSummary payload) {
-    try {
-      var metric = MetricId.fromString(metricIdString);
-      if (!supportedMetrics.contains(metric)) {
-        log.warn(
-            "Received utilization summary with unsupported metricId '{}' in product '{}'. Payload: {}",
-            metricIdString,
-            payload.getProductId(),
-            payload);
-        return false;
-      }
-    } catch (IllegalArgumentException e) {
-      log.warn(
-          "Received utilization summary with invalid metricId '{}'. Payload: {}",
-          metricIdString,
-          payload);
+    // This following validation is to be removed by SWATCH-4335
+    boolean isPayg = isPaygProduct(payload);
+    if (isPayg && granularity != Granularity.HOURLY) {
+      logValidationFailure(payload, "granularity must be HOURLY for payg products");
+      return false;
+    } else if (!isPayg && granularity != Granularity.DAILY) {
+      logValidationFailure(payload, "granularity must be DAILY for non-payg products");
       return false;
     }
 
@@ -142,5 +109,14 @@ public class UtilizationSummaryValidator {
     } catch (IllegalArgumentException e) {
       return false;
     }
+  }
+
+  private void logValidationFailure(UtilizationSummary payload, String reason) {
+    log.debug(
+        "Validation failed: {}. OrgId: {}, ProductId: {}, BillingAccountId: {}",
+        reason,
+        payload.getOrgId(),
+        payload.getProductId(),
+        payload.getBillingAccountId());
   }
 }

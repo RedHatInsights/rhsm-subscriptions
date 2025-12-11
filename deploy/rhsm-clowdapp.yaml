@@ -103,6 +103,22 @@ objects:
             "version": 1,
             "features": [
                   {
+                    "name": "swatch.swatch-notifications.send-notifications",
+                    "description": "Enable sending of over-usage notifications to platform.notifications.ingress",
+                    "type": "operational",
+                    "project": "default",
+                    "enabled": true,
+                    "stale": false,
+                    "strategies": [
+                        {
+                            "name": "default",
+                            "parameters": {}
+                        }
+                    ],
+                    "variants": [],
+                    "createdAt": "2025-11-28T10:00:00.000Z"
+                  },
+                  {
                     "name": "swatch.swatch-metrics-hbi.emit-events",
                     "description": "Enable sending of HBI events to the Swatch events after conversion.",
                     "type": "operational",

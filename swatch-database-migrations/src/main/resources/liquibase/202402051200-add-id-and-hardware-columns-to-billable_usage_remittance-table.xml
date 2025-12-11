@@ -5,10 +5,19 @@
   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
   <changeSet id="202401151414-01" author="lburnett">
+    <!-- 
+      Only add columns if they don't exist. If swatch-billable-usage starts first,
+      the consolidated script already includes these columns.
+    -->
     <preConditions onFail="MARK_RAN">
-      <not>
-        <tableExists tableName="databasechangelog_swatch_billable_usage"/>
-      </not>
+      <and>
+        <not>
+          <columnExists tableName="billable_usage_remittance" columnName="tally_id"/>
+        </not>
+        <not>
+          <columnExists tableName="billable_usage_remittance" columnName="hardware_measurement_type"/>
+        </not>
+      </and>
     </preConditions>
 
     <comment>Add billable_usage_remittance.tally_id and billable_usage_remittance.hardware_measurement_type columns.</comment>

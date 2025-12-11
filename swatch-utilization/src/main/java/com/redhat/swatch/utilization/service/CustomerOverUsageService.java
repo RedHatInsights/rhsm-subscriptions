@@ -20,16 +20,25 @@
  */
 package com.redhat.swatch.utilization.service;
 
+import com.redhat.cloud.notifications.ingress.Action;
+import com.redhat.cloud.notifications.ingress.Context;
+import com.redhat.cloud.notifications.ingress.Event;
+import com.redhat.cloud.notifications.ingress.Metadata;
+import com.redhat.cloud.notifications.ingress.Payload;
+import com.redhat.cloud.notifications.ingress.Recipient;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.utilization.configuration.FeatureFlags;
 import com.redhat.swatch.utilization.model.Measurement;
 import com.redhat.swatch.utilization.model.UtilizationSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -62,8 +71,15 @@ public class CustomerOverUsageService {
   public static final String OVER_USAGE_METRIC = "swatch_utilization_over_usage";
   private static final double FULL_CAPACITY_PERCENT = 100.0;
   private static final String PERCENT_FORMAT = "%.2f";
+  private static final String BUNDLE = "subscription-services";
+  private static final String APPLICATION = "subscriptions";
+  private static final String EVENT_TYPE = "exceeded-utilization-threshold";
+  private static final boolean NOTIFY_ONLY_ADMINS = false;
+  private static final boolean IGNORE_USER_PREFERENCES = false;
 
   @Inject MeterRegistry meterRegistry;
+  @Inject NotificationsProducer notificationsProducer;
+  @Inject FeatureFlags featureFlags;
 
   @ConfigProperty(name = "CUSTOMER_OVER_USAGE_DEFAULT_THRESHOLD_PERCENT")
   Double defaultThresholdPercent;
@@ -76,7 +92,7 @@ public class CustomerOverUsageService {
    *
    * @param payload the utilization summary to check
    */
-  public void check(UtilizationSummary payload) {
+  public void check(UtilizationSummary payload, Measurement measurement) {
     // Get threshold for this product (from product configuration or default)
     Double threshold = getThresholdForProduct(payload.getProductId());
 
@@ -90,12 +106,8 @@ public class CustomerOverUsageService {
       return;
     }
 
-    // Check each measurement for over-usage
-    if (payload.getMeasurements() != null) {
-      for (Measurement measurement : payload.getMeasurements()) {
-        checkMeasurement(payload, measurement, threshold);
-      }
-    }
+    // Check measurement for over-usage
+    checkMeasurement(payload, measurement, threshold);
   }
 
   /**
@@ -107,8 +119,30 @@ public class CustomerOverUsageService {
    */
   private void checkMeasurement(
       UtilizationSummary payload, Measurement measurement, Double threshold) {
+    // Skip unlimited capacity measurements
+    if (Boolean.TRUE.equals(measurement.getUnlimited())) {
+      log.debug(
+          "Skipping over-usage check for unlimited capacity: orgId={} productId={} metricId={}",
+          payload.getOrgId(),
+          payload.getProductId(),
+          measurement.getMetricId());
+      return;
+    }
+
     double currentTotal = measurement.getCurrentTotal();
     double capacity = measurement.getCapacity();
+
+    // Skip invalid or zero capacity measurements
+    if (capacity <= 0.0) {
+      log.debug(
+          "Skipping over-usage check for invalid capacity: orgId={} productId={} metricId={} capacity={}",
+          payload.getOrgId(),
+          payload.getProductId(),
+          measurement.getMetricId(),
+          capacity);
+      return;
+    }
+
     double utilizationPercent = calculateUtilizationPercent(currentTotal, capacity);
     double overagePercent = utilizationPercent - FULL_CAPACITY_PERCENT;
 
@@ -122,7 +156,20 @@ public class CustomerOverUsageService {
           utilizationPercent,
           overagePercent,
           threshold);
-      incrementOverUsageCounter(payload, measurement);
+      MetricId metricId = MetricId.fromString(measurement.getMetricId());
+      incrementOverUsageCounter(payload, metricId);
+      sendNotification(payload, metricId, utilizationPercent);
+    } else {
+      log.debug(
+          "Usage within threshold: orgId={} productId={} metricId={} currentTotal={} capacity={} utilizationPercent={}% overagePercent={}% threshold={}%",
+          payload.getOrgId(),
+          payload.getProductId(),
+          measurement.getMetricId(),
+          currentTotal,
+          capacity,
+          String.format(PERCENT_FORMAT, utilizationPercent),
+          String.format(PERCENT_FORMAT, overagePercent),
+          String.format(PERCENT_FORMAT, threshold));
     }
   }
 
@@ -150,21 +197,78 @@ public class CustomerOverUsageService {
         String.format(PERCENT_FORMAT, threshold));
   }
 
-  private void incrementOverUsageCounter(UtilizationSummary payload, Measurement measurement) {
-    // Bugfix: not part of SWATCH-3793 - removed org_id tag to align with metric tagging standards
+  private void incrementOverUsageCounter(UtilizationSummary payload, MetricId metricId) {
     List<String> tags =
         new ArrayList<>(
-            List.of(
-                "product",
-                payload.getProductId(),
-                "metric_id",
-                MetricId.tryGetValueFromString(measurement.getMetricId())));
+            List.of("product", payload.getProductId(), "metric_id", metricId.getValue()));
 
     if (Objects.nonNull(payload.getBillingProvider())) {
       tags.addAll(List.of("billing", payload.getBillingProvider().value()));
     }
 
     meterRegistry.counter(OVER_USAGE_METRIC, tags.toArray(new String[0])).increment();
+  }
+
+  private void sendNotification(
+      UtilizationSummary payload, MetricId metricId, double utilizationPercent) {
+    if (!featureFlags.sendNotifications()) {
+      log.info(
+          "Notification not sent for orgId={} productId={} metricId={} - feature flag '{}' is disabled",
+          payload.getOrgId(),
+          payload.getProductId(),
+          metricId,
+          FeatureFlags.SEND_NOTIFICATIONS);
+      return;
+    }
+
+    Action action = buildNotificationAction(payload, metricId, utilizationPercent);
+    notificationsProducer.produce(action);
+  }
+
+  private Action buildNotificationAction(
+      UtilizationSummary payload, MetricId metricId, double utilizationPercent) {
+    var action = new Action();
+    action.setBundle(BUNDLE);
+    action.setApplication(APPLICATION);
+    action.setEventType(EVENT_TYPE);
+    action.setOrgId(payload.getOrgId());
+    action.setTimestamp(LocalDateTime.now());
+    action.setId(UUID.randomUUID());
+
+    action.setEvents(List.of(buildEvent(utilizationPercent)));
+    action.setContext(buildContext(payload, metricId));
+    action.setRecipients(List.of(buildRecipient()));
+
+    return action;
+  }
+
+  private Event buildEvent(double utilizationPercent) {
+    var event = new Event();
+    event.setMetadata(new Metadata());
+
+    var eventPayload =
+        new Payload.PayloadBuilder()
+            .withAdditionalProperty(
+                "utilization_percentage", String.format(PERCENT_FORMAT, utilizationPercent))
+            .build();
+    event.setPayload(eventPayload);
+
+    return event;
+  }
+
+  private Context buildContext(UtilizationSummary payload, MetricId metricId) {
+    return new Context.ContextBuilder()
+        .withAdditionalProperty("product_id", payload.getProductId())
+        .withAdditionalProperty("metric_id", metricId.getValue())
+        .build();
+  }
+
+  private Recipient buildRecipient() {
+    var recipient = new Recipient();
+    recipient.setOnlyAdmins(NOTIFY_ONLY_ADMINS);
+    recipient.setIgnoreUserPreferences(IGNORE_USER_PREFERENCES);
+    recipient.setUsers(List.of());
+    return recipient;
   }
 
   /**

@@ -13,6 +13,12 @@
   <artifactId>swatch-common-trace-response</artifactId>
   <name>SWATCH - Common - Trace Response</name>
 
+  <properties>
+    <!-- TODO: Remove when parent upgraded to Java 21 -->
+    <java.version>21</java.version>
+    <maven.compiler.release>${java.version}</maven.compiler.release>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>io.opentelemetry</groupId>
@@ -37,6 +43,12 @@
 
   <build>
     <plugins>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <release>${java.version}</release>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>io.smallrye</groupId>
         <artifactId>jandex-maven-plugin</artifactId>

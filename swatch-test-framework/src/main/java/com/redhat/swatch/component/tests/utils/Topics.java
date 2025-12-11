@@ -32,6 +32,7 @@ public final class Topics {
   public static final String INVENTORY_HOST_INGRESS = "platform.inventory.host-ingress";
   public static final String TALLY = SUFFIX + "tally";
   public static final String CONDUIT_TASKS = "platform.rhsm-conduit.tasks";
+  public static final String NOTIFICATIONS = "platform.notifications.ingress";
 
   private Topics() {}
 }

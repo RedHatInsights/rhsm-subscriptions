@@ -20,6 +20,7 @@
  */
 package domain;
 
+import com.redhat.swatch.component.tests.utils.RandomUtils;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -50,6 +51,9 @@ public class Offering {
   private final String description;
   private final Integer cores;
   private final Integer sockets;
+  private final Integer hypervisorCores;
+  private final Integer hypervisorSockets;
+  private final String derivedSku;
   private final String level1;
   private final String level2;
   private final String metered;
@@ -67,6 +71,25 @@ public class Offering {
         .metered(METERED_NO)
         .cores(Optional.ofNullable(cores).map(Double::intValue).orElse(null))
         .sockets(Optional.ofNullable(sockets).map(Double::intValue).orElse(null))
+        .serviceLevel(ServiceLevel.PREMIUM)
+        .usage(Usage.PRODUCTION)
+        .engProducts(List.of(69, 479))
+        .role(RHEL_ROLE)
+        .build();
+  }
+
+  public static Offering buildRhelHypervisorOffering(
+      String sku, Double hypervisorCores, Double hypervisorSockets) {
+    Objects.requireNonNull(sku, "sku cannot be null");
+
+    return Offering.builder()
+        .sku(sku)
+        .description(RandomUtils.generateRandom())
+        .metered(METERED_NO)
+        .hypervisorCores(Optional.ofNullable(hypervisorCores).map(Double::intValue).orElse(null))
+        .hypervisorSockets(
+            Optional.ofNullable(hypervisorSockets).map(Double::intValue).orElse(null))
+        .derivedSku(sku)
         .serviceLevel(ServiceLevel.PREMIUM)
         .usage(Usage.PRODUCTION)
         .engProducts(List.of(69, 479))
