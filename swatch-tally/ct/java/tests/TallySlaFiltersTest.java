@@ -44,7 +44,7 @@ public class TallySlaFiltersTest extends BaseTallyComponentTest {
   private static final List<Sla> slas = List.of(Sla.PREMIUM, Sla.STANDARD, Sla.SELF_SUPPORT);
 
   @Test
-  public void testTallyNoSlaFiltersCount() {
+  public void testTallySlaFiltersCount() {
     String orgId = RandomUtils.generateRandom();
     OffsetDateTime now = OffsetDateTime.now();
 
@@ -109,13 +109,13 @@ public class TallySlaFiltersTest extends BaseTallyComponentTest {
             Granularity.DAILY,
             Sla.__EMPTY__.toString());
 
-    // All physical usage: no SLA filter applied
-    double allPhysical =
+    // All tally summary values total: no SLA filter applied
+    double allTallySummaries =
         helpers.getTallySummaryValue(
             tallySummaries, orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.DAILY, null);
 
     // Verify count with SLA filters
-    Assertions.assertEquals(allPhysical - finalFilterCount, noSla, 0.0001);
-    Assertions.assertEquals(finalFilterCount + noSla, allPhysical, 0.0001);
+    Assertions.assertEquals(allTallySummaries - finalFilterCount, noSla, 0.0001);
+    Assertions.assertEquals(finalFilterCount + noSla, allTallySummaries, 0.0001);
   }
 }
