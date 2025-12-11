@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.utilization.service;
 
-import com.fasterxml.uuid.Generators;
 import com.redhat.cloud.notifications.ingress.Action;
 import com.redhat.cloud.notifications.ingress.Context;
 import com.redhat.cloud.notifications.ingress.Event;
@@ -39,6 +38,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -233,7 +233,7 @@ public class CustomerOverUsageService {
     action.setEventType(EVENT_TYPE);
     action.setOrgId(payload.getOrgId());
     action.setTimestamp(LocalDateTime.now());
-    action.setId(Generators.timeBasedEpochGenerator().generate());
+    action.setId(UUID.randomUUID());
 
     action.setEvents(List.of(buildEvent(utilizationPercent)));
     action.setContext(buildContext(payload, metricId));
