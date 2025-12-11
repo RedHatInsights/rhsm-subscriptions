@@ -36,9 +36,14 @@ import com.redhat.swatch.component.tests.api.Wiremock;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import com.redhat.swatch.contract.test.model.CapacityReportByMetricId;
+import com.redhat.swatch.contract.test.model.GranularityType;
+import com.redhat.swatch.contract.test.model.ReportCategory;
 import domain.Contract;
+import domain.Product;
 import domain.Subscription;
 import io.restassured.response.Response;
+import java.time.OffsetDateTime;
 import java.util.Objects;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterEach;
@@ -101,5 +106,28 @@ public class BaseContractComponentTest {
                 Objects.requireNonNull(service.getSkuCapacityBySubscription(subscription).getMeta())
                     .getCount(),
             capacity -> capacity < initialCapacity);
+  }
+
+  protected double getHypervisorSocketCapacity(
+      Product product, String orgId, OffsetDateTime beginning, OffsetDateTime ending) {
+    CapacityReportByMetricId report =
+        service.getCapacityReportByMetricId(
+            product,
+            orgId,
+            SOCKETS.toString(),
+            beginning,
+            ending,
+            GranularityType.DAILY,
+            ReportCategory.HYPERVISOR);
+    return getCapacityValueFromReport(report);
+  }
+
+  /** Helper method to extract capacity value from the capacity report. */
+  protected double getCapacityValueFromReport(CapacityReportByMetricId report) {
+    return report.getData().stream()
+        .filter(data -> Boolean.TRUE.equals(data.getHasData()))
+        .mapToDouble(data -> data.getValue().doubleValue())
+        .max()
+        .orElse(0.0);
   }
 }

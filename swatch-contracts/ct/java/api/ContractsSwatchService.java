@@ -22,11 +22,15 @@ package api;
 
 import static com.redhat.swatch.component.tests.utils.SwatchUtils.SECURITY_HEADERS;
 import static com.redhat.swatch.component.tests.utils.SwatchUtils.securityHeadersWithServiceRole;
+import static org.apache.http.HttpStatus.SC_OK;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.utils.JsonUtils;
+import com.redhat.swatch.contract.test.model.CapacityReportByMetricId;
 import com.redhat.swatch.contract.test.model.ContractRequest;
+import com.redhat.swatch.contract.test.model.GranularityType;
+import com.redhat.swatch.contract.test.model.ReportCategory;
 import com.redhat.swatch.contract.test.model.SkuCapacityReportV2;
 import com.redhat.swatch.contract.test.model.SkuCapacityV2;
 import domain.Contract;
@@ -50,6 +54,8 @@ public class ContractsSwatchService extends SwatchService {
   private static final String SUBSCRIPTIONS_ENDPOINT = ENDPOINT_PREFIX + "/subscriptions";
   private static final String GET_SKU_ENDPOINT =
       "/api/rhsm-subscriptions/v2/subscriptions/products/{product_id}";
+  private static final String CAPACITY_REPORT_ENDPOINT =
+      "/api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}";
   private static final String TERMINATE_SUBSCRIPTION_ENDPOINT =
       ENDPOINT_PREFIX + "/subscriptions/terminate/{subscription_id}";
 
@@ -137,6 +143,45 @@ public class ContractsSwatchService extends SwatchService {
         .then()
         .extract()
         .as(SkuCapacityReportV2.class);
+  }
+
+  public CapacityReportByMetricId getCapacityReportByMetricId(
+      Product product,
+      String orgId,
+      String metricId,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      GranularityType granularity,
+      ReportCategory category) {
+    Objects.requireNonNull(product, "product must not be null");
+    Objects.requireNonNull(orgId, "orgId must not be null");
+    Objects.requireNonNull(metricId, "metricId must not be null");
+    Objects.requireNonNull(beginning, "beginning must not be null");
+    Objects.requireNonNull(ending, "ending must not be null");
+    Objects.requireNonNull(granularity, "granularity must not be null");
+
+    var request =
+        given()
+            .headers(securityHeadersWithServiceRole(orgId))
+            .accept("application/vnd.api+json")
+            .pathParam("product_id", product.getName())
+            .pathParam("metric_id", metricId)
+            .queryParam("beginning", beginning.toString())
+            .queryParam("ending", ending.toString())
+            .queryParam("granularity", granularity);
+
+    if (category != null) {
+      request.queryParam("category", category);
+    }
+
+    return request
+        .when()
+        .get(CAPACITY_REPORT_ENDPOINT)
+        .then()
+        .statusCode(SC_OK)
+        .and()
+        .extract()
+        .as(CapacityReportByMetricId.class);
   }
 
   public Response terminateSubscription(Subscription subscription) {
