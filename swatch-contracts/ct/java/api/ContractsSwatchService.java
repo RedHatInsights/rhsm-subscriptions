@@ -108,6 +108,22 @@ public class ContractsSwatchService extends SwatchService {
     return getContracts(Map.of("org_id", orgId, "billing_provider", billingProvider.toApiModel()));
   }
 
+  public List<com.redhat.swatch.contract.test.model.Contract>
+      getContractsByOrgIdAndBillingProviderAndTimestamp(
+          String orgId, BillingProvider billingProvider, OffsetDateTime timestamp) {
+    Objects.requireNonNull(orgId, "orgId must not be null");
+    Objects.requireNonNull(billingProvider, "billingProvider must not be null");
+    Objects.requireNonNull(timestamp, "timestamp must not be null");
+    return getContracts(
+        Map.of(
+            "org_id",
+            orgId,
+            "billing_provider",
+            billingProvider.toApiModel(),
+            "timestamp",
+            timestamp.toString()));
+  }
+
   public Response createContract(Contract contract) {
     Objects.requireNonNull(contract, "contract must not be null");
 
