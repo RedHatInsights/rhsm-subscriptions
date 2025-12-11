@@ -122,6 +122,20 @@ public class BaseContractComponentTest {
     return getCapacityValueFromReport(report);
   }
 
+  protected double getPhysicalSocketCapacity(
+      Product product, String orgId, OffsetDateTime beginning, OffsetDateTime ending) {
+    CapacityReportByMetricId report =
+        service.getCapacityReportByMetricId(
+            product,
+            orgId,
+            SOCKETS.toString(),
+            beginning,
+            ending,
+            GranularityType.DAILY,
+            ReportCategory.PHYSICAL);
+    return getCapacityValueFromReport(report);
+  }
+
   /** Helper method to extract capacity value from the capacity report. */
   protected double getCapacityValueFromReport(CapacityReportByMetricId report) {
     return report.getData().stream()
