@@ -90,6 +90,22 @@ parameters:
     value: '*/2 * * * *'
   - name: OUTBOX_FLUSH_BATCH_SIZE
     value: '1000'
+  - name: OTEL_DISABLED
+    value: 'true'
+  - name: OTEL_SIDECAR_IMAGE
+    value: quay.io/signalfx/splunk-otel-collector:0.140.0
+  - name: OTEL_SIDECAR_CONFIG_MAP
+    value: swatch-otel-config
+  - name: OTEL_SIDECAR_SPLUNK_CONFIG
+    value: '/etc/otelcol/relay'
+  - name: OTEL_ENV_NAME
+    value: env-swatch-metrics-hbi
+  - name: OTEL_K8S_CLUSTER_NAME
+    value: ephemeral
+  - name: OTEL_SIGNALFX_TOKEN_SECRET_NAME
+    value: signalfx
+  - name: OTEL_SIGNALFX_TOKEN_SECRET_KEY
+    value: token
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -200,6 +216,8 @@ objects:
               value: ${USE_CPU_SYSTEM_FACTS_FOR_ALL_PRODUCTS}
             - name: CULLING_OFFSET
               value: ${CULLING_OFFSET}
+            - name: OTEL_DISABLED
+              value: ${OTEL_DISABLED}
             - name: DATABASE_HOST
               valueFrom:
                 secretKeyRef:
@@ -230,6 +248,25 @@ objects:
           volumeMounts:
             - name: logs
               mountPath: /logs
+          sidecars:
+          - name: otel-collector
+            enabled: true
+            configMap: ${OTEL_SIDECAR_CONFIG_MAP}
+            image: ${OTEL_SIDECAR_IMAGE}
+            envVars:
+              - name: ENV_NAME
+                value: ${OTEL_ENV_NAME}
+              - name: K8S_CLUSTER_NAME
+                value: ${OTEL_K8S_CLUSTER_NAME}
+              - name: SPLUNK_OBSERVABILITY_ACCESS_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: ${OTEL_SIGNALFX_TOKEN_SECRET_NAME}
+                    key: ${OTEL_SIGNALFX_TOKEN_SECRET_KEY}
+              - name: SPLUNK_CONFIG
+                value: ${OTEL_SIDECAR_SPLUNK_CONFIG}
+              - name: SPLUNK_MEMORY_TOTAL_MIB
+                value: '1024'
           volumes:
             - name: logs
               emptyDir:
