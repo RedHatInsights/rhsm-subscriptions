@@ -144,6 +144,22 @@ public class KafkaBridgeService extends RestService {
    */
   public <V> List<V> waitForKafkaMessage(
       String topic, MessageValidator<V> validator, int expectedCount) {
+    return waitForKafkaMessage(topic, validator, expectedCount, AwaitilitySettings.defaults());
+  }
+
+  /**
+   * Waits for multiple Kafka messages that match the validator and returns them with custom
+   * awaitility settings.
+   *
+   * @param topic The Kafka topic to wait for messages from
+   * @param validator The message validator containing the filter and type information
+   * @param expectedCount The number of messages to wait for
+   * @param settings Custom awaitility settings for timeout configuration
+   * @return A list of messages that match the validator
+   * @throws IllegalArgumentException if no consumer exists for the topic
+   */
+  public <V> List<V> waitForKafkaMessage(
+      String topic, MessageValidator<V> validator, int expectedCount, AwaitilitySettings settings) {
     String consumer = consumers.get(topic);
     if (consumer == null) {
       throw new IllegalArgumentException("No consumer for topic " + topic);
@@ -203,7 +219,7 @@ public class KafkaBridgeService extends RestService {
             return false;
           }
         },
-        AwaitilitySettings.defaults().withService(this));
+        settings.withService(this));
 
     return new ArrayList<>(matchedMessages);
   }

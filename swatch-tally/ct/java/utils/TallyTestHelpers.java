@@ -26,6 +26,7 @@ import api.MessageValidators;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.logging.Log;
+import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.tally.test.model.TallyMeasurement;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallySummary;
@@ -177,10 +178,14 @@ public class TallyTestHelpers {
       int expectedMessageCount,
       int maxAttempts,
       Duration pollInterval,
+      Duration awaitTimeout,
       SwatchService service,
       KafkaBridgeService kafkaBridge) {
     int attempts = 0;
     Exception lastException = null;
+
+    AwaitilitySettings kafkaConsumerTimeout =
+        AwaitilitySettings.using(Duration.ofMillis(500), awaitTimeout);
 
     while (attempts < maxAttempts) {
       attempts++;
@@ -188,12 +193,13 @@ public class TallyTestHelpers {
         // Run hourly tally sync
         syncTallyHourly(testOrgId, service);
 
-        // Wait for tally messages to be produced
+        // Wait for tally messages with a short timeout
         List<TallySummary> tallySummaries =
             kafkaBridge.waitForKafkaMessage(
                 TALLY,
                 MessageValidators.tallySummaryMatches(testOrgId, productId, metricId, granularity),
-                expectedMessageCount);
+                expectedMessageCount,
+                kafkaConsumerTimeout);
 
         // If successful, return
         return tallySummaries;
@@ -228,8 +234,9 @@ public class TallyTestHelpers {
         metricId,
         granularity,
         expectedMessageCount,
-        2,
-        Duration.ofMillis(100),
+        10, // max attempts
+        Duration.ofSeconds(2), // delay between attempts
+        Duration.ofSeconds(3), // await timeout per attempt
         service,
         kafkaBridge);
   }
