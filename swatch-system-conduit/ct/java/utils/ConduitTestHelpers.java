@@ -20,19 +20,19 @@
  */
 package utils;
 
+import static com.redhat.swatch.component.tests.utils.SwatchUtils.SECURITY_HEADERS;
+
 import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.logging.Log;
 import io.restassured.response.Response;
-
 import java.util.Map;
-
-import static com.redhat.swatch.component.tests.utils.SwatchUtils.SECURITY_HEADERS;
 
 public class ConduitTestHelpers {
 
   private static final String SYNC_ORG_ENDPOINT = "/api/rhsm-subscriptions/v1/internal/rpc/syncOrg";
 
   public ConduitTestHelpers() {}
+
   /**
    * Sync rhsm-conduit for org.
    *
