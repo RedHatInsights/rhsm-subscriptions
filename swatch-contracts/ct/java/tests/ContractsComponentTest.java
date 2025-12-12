@@ -30,6 +30,8 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.component.tests.utils.RandomUtils;
@@ -62,21 +64,16 @@ public class ContractsComponentTest extends BaseContractComponentTest {
     givenContractIsCreated(contractData);
 
     // Retrieve and verify contract
-    Response getContractsResponse = service.getContracts(contractData);
-    assertThat(
-        "Contract retrieval call should succeed",
-        getContractsResponse.statusCode(),
-        is(HttpStatus.SC_OK));
+    var getContractsResponse = service.getContracts(contractData);
 
-    getContractsResponse
-        .then()
-        .body("size()", equalTo(1))
-        .body("[0].org_id", equalTo(orgId))
-        .body("[0].subscription_number", equalTo(contractData.getSubscriptionNumber()))
-        .body("[0].billing_account_id", equalTo(contractData.getBillingAccountId()))
-        .body("[0].sku", equalTo(contractData.getOffering().getSku()))
-        .body("[0].metrics", notNullValue())
-        .body("[0].metrics.size()", greaterThan(0));
+    assertEquals(1, getContractsResponse.size());
+    var actualContract = getContractsResponse.get(0);
+    assertEquals(orgId, actualContract.getOrgId());
+    assertEquals(contractData.getSubscriptionNumber(), actualContract.getSubscriptionNumber());
+    assertEquals(contractData.getBillingAccountId(), actualContract.getBillingAccountId());
+    assertEquals(contractData.getOffering().getSku(), actualContract.getSku());
+    assertNotNull(actualContract.getMetrics());
+    assertEquals(1, actualContract.getMetrics().size());
   }
 
   /** Verify pure pay-as-you-go ROSA contract is created when all dimensions are incorrect. */
@@ -90,22 +87,18 @@ public class ContractsComponentTest extends BaseContractComponentTest {
     givenContractIsCreated(contractData);
 
     // Retrieve and verify contract
-    Response getContractsResponse = service.getContracts(contractData);
-    assertThat(
-        "Contract retrieval call should succeed",
-        getContractsResponse.statusCode(),
-        is(HttpStatus.SC_OK));
+    var getContractsResponse = service.getContracts(contractData);
 
     // Having metrics size as zero is what is indicating that this is pure paygo because there are
     // no valid prepaid metric amounts
-    getContractsResponse
-        .then()
-        .body("size()", equalTo(1))
-        .body("[0].org_id", equalTo(orgId))
-        .body("[0].subscription_number", equalTo(contractData.getSubscriptionNumber()))
-        .body("[0].billing_account_id", equalTo(contractData.getBillingAccountId()))
-        .body("[0].sku", equalTo(contractData.getOffering().getSku()))
-        .body("[0].metrics.size()", equalTo(0));
+    assertEquals(1, getContractsResponse.size());
+    var actualContract = getContractsResponse.get(0);
+    assertEquals(orgId, actualContract.getOrgId());
+    assertEquals(contractData.getSubscriptionNumber(), actualContract.getSubscriptionNumber());
+    assertEquals(contractData.getBillingAccountId(), actualContract.getBillingAccountId());
+    assertEquals(contractData.getOffering().getSku(), actualContract.getSku());
+    assertNotNull(actualContract.getMetrics());
+    assertEquals(0, actualContract.getMetrics().size());
   }
 
   @Test

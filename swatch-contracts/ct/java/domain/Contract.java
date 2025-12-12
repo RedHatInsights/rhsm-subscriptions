@@ -40,11 +40,20 @@ public class Contract extends Subscription {
   /** Customer ID from marketplace */
   private final String customerId;
 
-  /** Seller Account ID */
+  /** Seller Account ID (only relevant for AWS contracts) */
   private final String sellerAccountId;
 
   /** Product Code */
   private final String productCode;
+
+  /** Plan ID (only relevant for Azure contracts) */
+  private final String planId;
+
+  /** Resource ID (only relevant for Azure contracts) */
+  private final String resourceId;
+
+  /** Client ID (only relevant for Azure contracts) */
+  private final String clientId;
 
   public Map<String, Double> getContractMetrics() {
     Map<String, Double> metrics = new HashMap<>();
@@ -79,6 +88,9 @@ public class Contract extends Subscription {
         .customerId("customer" + seed)
         .sellerAccountId("seller" + seed)
         .productCode("product" + seed)
+        .planId("plan" + seed)
+        .clientId("clientId" + seed)
+        .resourceId("resourceId" + seed)
         .subscriptionMeasurements(capacity)
         .billingProvider(billingProvider)
         .billingAccountId("billing" + seed)
