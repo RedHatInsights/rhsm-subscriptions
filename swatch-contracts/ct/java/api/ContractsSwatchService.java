@@ -33,15 +33,20 @@ import com.redhat.swatch.contract.test.model.GranularityType;
 import com.redhat.swatch.contract.test.model.ReportCategory;
 import com.redhat.swatch.contract.test.model.SkuCapacityReportV2;
 import com.redhat.swatch.contract.test.model.SkuCapacityV2;
+import domain.BillingProvider;
 import domain.Contract;
 import domain.Product;
 import domain.Subscription;
+import io.restassured.common.mapper.TypeRef;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
+import org.apache.http.HttpStatus;
 import utils.ContractRequestMapper;
 import utils.SubscriptionRequestMapper;
 
@@ -66,20 +71,57 @@ public class ContractsSwatchService extends SwatchService {
     return given().headers(SECURITY_HEADERS).when().put(endpoint);
   }
 
-  public Response getContracts(Contract contract) {
+  public List<com.redhat.swatch.contract.test.model.Contract> getContracts(Contract contract) {
     Objects.requireNonNull(contract.getOrgId(), "orgId must not be null");
     Objects.requireNonNull(contract.getBillingProvider(), "billingProvider must not be null");
     Objects.requireNonNull(contract.getBillingAccountId(), "billingAccountId must not be null");
     Objects.requireNonNull(contract.getProduct().getName(), "productTag must not be null");
 
-    return given()
-        .headers(SECURITY_HEADERS)
-        .queryParam("org_id", contract.getOrgId())
-        .queryParam("billing_provider", contract.getBillingProvider().toApiModel())
-        .queryParam("billing_account_id", contract.getBillingAccountId())
-        .queryParam("product_tag", contract.getProduct().getName())
-        .when()
-        .get(CONTRACTS_ENDPOINT);
+    return getContracts(
+        Map.of(
+            "org_id",
+            contract.getOrgId(),
+            "billing_provider",
+            contract.getBillingProvider().toApiModel(),
+            "billing_account_id",
+            contract.getBillingAccountId(),
+            "product_tag",
+            contract.getProduct().getName()));
+  }
+
+  public List<com.redhat.swatch.contract.test.model.Contract> getContractsByOrgId(String orgId) {
+    Objects.requireNonNull(orgId, "orgId must not be null");
+    return getContracts(Map.of("org_id", orgId));
+  }
+
+  public List<com.redhat.swatch.contract.test.model.Contract> getContractsByOrgIdAndTimestamp(
+      String orgId, OffsetDateTime timestamp) {
+    Objects.requireNonNull(orgId, "orgId must not be null");
+    Objects.requireNonNull(timestamp, "timestamp must not be null");
+    return getContracts(Map.of("org_id", orgId, "timestamp", timestamp.toString()));
+  }
+
+  public List<com.redhat.swatch.contract.test.model.Contract> getContractsByOrgIdAndBillingProvider(
+      String orgId, BillingProvider billingProvider) {
+    Objects.requireNonNull(orgId, "orgId must not be null");
+    Objects.requireNonNull(billingProvider, "billingProvider must not be null");
+    return getContracts(Map.of("org_id", orgId, "billing_provider", billingProvider.toApiModel()));
+  }
+
+  public List<com.redhat.swatch.contract.test.model.Contract>
+      getContractsByOrgIdAndBillingProviderAndTimestamp(
+          String orgId, BillingProvider billingProvider, OffsetDateTime timestamp) {
+    Objects.requireNonNull(orgId, "orgId must not be null");
+    Objects.requireNonNull(billingProvider, "billingProvider must not be null");
+    Objects.requireNonNull(timestamp, "timestamp must not be null");
+    return getContracts(
+        Map.of(
+            "org_id",
+            orgId,
+            "billing_provider",
+            billingProvider.toApiModel(),
+            "timestamp",
+            timestamp.toString()));
   }
 
   public Response createContract(Contract contract) {
@@ -199,5 +241,18 @@ public class ContractsSwatchService extends SwatchService {
         .queryParam("timestamp", timestamp.toString())
         .when()
         .post(TERMINATE_SUBSCRIPTION_ENDPOINT);
+  }
+
+  private List<com.redhat.swatch.contract.test.model.Contract> getContracts(
+      Map<String, ?> queryParams) {
+    return given()
+        .headers(SECURITY_HEADERS)
+        .queryParams(queryParams)
+        .when()
+        .get(CONTRACTS_ENDPOINT)
+        .then()
+        .statusCode(HttpStatus.SC_OK)
+        .extract()
+        .as(new TypeRef<>() {});
   }
 }
