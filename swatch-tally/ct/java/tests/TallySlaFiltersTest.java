@@ -23,11 +23,11 @@ package tests;
 import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
 
 import com.redhat.swatch.component.tests.utils.RandomUtils;
+import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
+import com.redhat.swatch.tally.test.model.TallySummary;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
-import org.candlepin.subscriptions.billable.usage.TallySnapshot.Granularity;
-import org.candlepin.subscriptions.billable.usage.TallySummary;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.HardwareType;
 import org.candlepin.subscriptions.json.Event.Sla;
