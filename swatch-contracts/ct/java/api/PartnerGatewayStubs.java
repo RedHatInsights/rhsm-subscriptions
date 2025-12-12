@@ -40,11 +40,88 @@ public class PartnerGatewayStubs {
    * @param contract the contract test data containing product details
    */
   public void stubContract(Contract contract) {
-    if (contract.getBillingProvider() != BillingProvider.AWS) {
+    if (contract.getBillingProvider() == BillingProvider.AWS) {
+      stubAwsContract(contract);
+    } else if (contract.getBillingProvider() == BillingProvider.AZURE) {
+      stubAzureContract(contract);
+    } else {
       throw new UnsupportedOperationException(
           contract.getBillingProvider() + " is not supported yet!");
     }
+  }
 
+  private void stubAzureContract(Contract contract) {
+    var responseBody =
+        Map.of(
+            "rhAccountId",
+            contract.getOrgId(),
+            "sourcePartner",
+            "azure_marketplace",
+            "partnerIdentities",
+            Map.of(
+                "azureCustomerId",
+                contract.getCustomerId(),
+                "clientId",
+                contract.getClientId(),
+                "purchase",
+                Map.of(
+                    "vendorProductCode",
+                    contract.getProductCode(),
+                    "azureResourceId",
+                    contract.getResourceId(),
+                    "contracts",
+                    java.util.List.of(
+                        Map.of(
+                            "startDate",
+                            contract.getStartDate().format(DateTimeFormatter.ISO_INSTANT),
+                            "endDate",
+                            contract.getEndDate().format(DateTimeFormatter.ISO_INSTANT),
+                            "planId",
+                            contract.getPlanId(),
+                            "dimensions",
+                            contract.getContractMetrics().entrySet().stream()
+                                .map(e -> Map.of("name", e.getKey(), "value", e.getValue()))
+                                .toList()))),
+                "rhEntitlements",
+                java.util.List.of(
+                    Map.of(
+                        "sku",
+                        contract.getOffering().getSku(),
+                        "subscriptionNumber",
+                        contract.getSubscriptionNumber()))));
+
+    wiremockService
+        .given()
+        .contentType("application/json")
+        .body(
+            Map.of(
+                "request",
+                Map.of(
+                    "method",
+                    "GET",
+                    "urlPathPattern",
+                    "/mock/partnerApi/v1/partnerSubscriptions.*",
+                    "queryParameters",
+                    Map.of("azureResourceId", Map.of("equalTo", contract.getResourceId()))),
+                "response",
+                Map.of(
+                    "status",
+                    200,
+                    "headers",
+                    Map.of("Content-Type", "application/json"),
+                    "jsonBody",
+                    responseBody),
+                "priority",
+                9,
+                "metadata",
+                wiremockService.getMetadataTags()))
+        .when()
+        .post("/__admin/mappings")
+        .then()
+        .statusCode(201);
+  }
+
+  private void stubAwsContract(Contract contract) {
     var responseBody =
         Map.of(
             "rhAccountId",
@@ -55,8 +132,6 @@ public class PartnerGatewayStubs {
             Map.of(
                 "awsCustomerId",
                 contract.getCustomerId(),
-                "customerAwsAccountId",
-                contract.getBillingAccountId(),
                 "sellerAccountId",
                 contract.getSellerAccountId()),
             "purchase",
