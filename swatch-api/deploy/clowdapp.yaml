@@ -112,17 +112,19 @@ objects:
           podSpec:
             image: ${IMAGE}:${IMAGE_TAG}
             initContainers:
-              - image: ${MIGRATION_IMAGE}:${IMAGE_TAG}
-                command: ["/opt/jboss/container/java/run/run-java.sh"]
-                args: ["core", "update"]
+              - env:
+                  - name: JAVA_DEBUG
+                    value: ${JAVA_DEBUG}
+                  - name: SPRING_PROFILES_ACTIVE
+                    value: liquibase-only
                 inheritEnv: true
                 resources:
                   requests:
-                    cpu: ${MIGRATION_CPU_REQUEST}
-                    memory: ${MIGRATION_MEMORY_REQUEST}
+                    cpu: ${CPU_REQUEST}
+                    memory: ${MEMORY_REQUEST}
                   limits:
-                    cpu: ${MIGRATION_CPU_LIMIT}
-                    memory: ${MIGRATION_MEMORY_LIMIT}
+                    cpu: ${CPU_LIMIT}
+                    memory: ${MEMORY_LIMIT}
             env:
               - name: JAVA_DEBUG
                 value: ${JAVA_DEBUG}
