@@ -34,5 +34,58 @@
       <type>pom</type>
       <scope>provided</scope>
     </dependency>
+
+    <!-- JSON event models (org.candlepin.subscriptions.json.Event/Measurement) -->
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-model-events</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-annotations</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.annotation</groupId>
+      <artifactId>jakarta.annotation-api</artifactId>
+    </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.jsonschema2pojo</groupId>
+        <artifactId>jsonschema2pojo-maven-plugin</artifactId>
+        <configuration>
+          <targetPackage>com.redhat.swatch.tally.test.model</targetPackage>
+          <outputDirectory>${project.build.directory}/generated-sources/src/main/java</outputDirectory>
+          <includeAdditionalProperties>false</includeAdditionalProperties>
+          <includeJsr303Annotations>false</includeJsr303Annotations>
+          <initializeCollections>false</initializeCollections>
+          <dateTimeType>java.time.OffsetDateTime</dateTimeType>
+          <sourceType>yamlschema</sourceType>
+          <generateBuilders>true</generateBuilders>
+          <includeGetters>true</includeGetters>
+          <includeSetters>true</includeSetters>
+          <useJakartaValidation>false</useJakartaValidation>
+          <sourceDirectory>${maven.multiModuleProjectDirectory}/swatch-core/schemas</sourceDirectory>
+        </configuration>
+        <executions>
+          <execution>
+            <id>from-swatch-core</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <sourcePaths>
+                <sourcePath>tally_summary.yaml</sourcePath>
+                <sourcePath>tally_snapshot.yaml</sourcePath>
+              </sourcePaths>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>

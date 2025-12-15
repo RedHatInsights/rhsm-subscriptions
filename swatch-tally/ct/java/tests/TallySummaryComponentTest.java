@@ -21,10 +21,7 @@
 package tests;
 
 import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
-import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 
-import com.redhat.swatch.component.tests.api.KafkaBridge;
-import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import java.time.OffsetDateTime;
@@ -35,9 +32,6 @@ import org.junit.jupiter.api.Test;
 import utils.TallyTestHelpers;
 
 public class TallySummaryComponentTest extends BaseTallyComponentTest {
-
-  @KafkaBridge
-  static KafkaBridgeService kafkaBridge = new KafkaBridgeService().subscribeToTopic(TALLY);
 
   private static final TallyTestHelpers helpers = new TallyTestHelpers();
   private static final String TEST_PRODUCT_ID = "rhel-for-x86-els-payg";
