@@ -56,6 +56,9 @@ import com.redhat.swatch.contract.service.OfferingSyncService;
 import com.redhat.swatch.contract.service.SubscriptionSyncService;
 import com.redhat.swatch.contract.service.UsageContextSubscriptionProvider;
 import io.quarkus.runtime.LaunchMode;
+import io.quarkus.security.PermissionChecker;
+import io.quarkus.security.PermissionsAllowed;
+import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityNotFoundException;
@@ -68,6 +71,7 @@ import jakarta.ws.rs.ProcessingException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -159,8 +163,16 @@ public class ContractsResource implements DefaultApi {
     return new StatusResponse().status("All Contract are Synced");
   }
 
+  @PermissionChecker("org-owner")
+  boolean isOrgOwner(SecurityIdentity identity, String orgId) {
+    log.info("Checking permission on {}", orgId);
+    var r = new Random();
+    return r.nextInt() % 2 == 0;
+  }
+
   @Override
-  @RolesAllowed({"test", "support"})
+  //  @RolesAllowed({"test", "support"})
+  @PermissionsAllowed("org-owner")
   public StatusResponse syncContractsByOrg(
       String orgId, Boolean isPreCleanup, Boolean deleteContractsAndSubs)
       throws ProcessingException {
