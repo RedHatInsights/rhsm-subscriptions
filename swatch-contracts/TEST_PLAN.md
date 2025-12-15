@@ -63,7 +63,7 @@ Test cases should be testable locally and in an ephemeral environment.
   - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)  
   - Validate  
   - `billing_provider`: "aws"  
-  - `billing_provider`_id follows format: "{vendorProductCode};{awsCustomerId};{sellerAccountId}"  
+  - `billing_provider_id` formatted as `{vendorProductCode};{awsCustomerId};{sellerAccountId}`  
   - billing_account_id contains customerAwsAccountId
 
 **contracts-creation-TC002 - Process a valid PURE PAYG contract (without dimensions) for AWS Marketplace**  

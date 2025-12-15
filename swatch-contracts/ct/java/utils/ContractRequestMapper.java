@@ -31,21 +31,44 @@ import com.redhat.swatch.contract.test.model.SaasContractV1;
 import domain.BillingProvider;
 import domain.Contract;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
-public final class ContractRequestMapper {
+/**
+ * Abstract base class for building ContractRequest objects from Contract domain objects. Subclasses
+ * must implement provider-specific methods for source partner, partner identities, and purchase
+ * information.
+ */
+public abstract class ContractRequestMapper {
 
-  private static final String SOURCE_PARTNER = "aws_marketplace";
+  private static final Map<BillingProvider, ContractRequestMapper> MAPPERS =
+      Map.of(
+          BillingProvider.AWS,
+          new AwsContractRequestMapper(),
+          BillingProvider.AZURE,
+          new AzureContractRequestMapper());
 
-  private ContractRequestMapper() {}
+  /** Returns the source partner identifier (e.g., "aws_marketplace", "azure_marketplace"). */
+  protected abstract String getSourcePartner();
+
+  /** Returns the partner identities specific to the billing provider. */
+  protected abstract PartnerIdentityV1 buildPartnerIdentities(Contract contract);
+
+  /** Returns the purchase information specific to the billing provider. */
+  protected abstract PurchaseV1 buildPurchase(Contract contract);
 
   public static ContractRequest buildContractRequest(Contract contract) {
     Objects.requireNonNull(contract, "contract must not be null");
-    if (contract.getBillingProvider() != BillingProvider.AWS) {
+    var mapper = MAPPERS.get(contract.getBillingProvider());
+    if (mapper == null) {
       throw new UnsupportedOperationException(
           contract.getBillingProvider() + " is not supported yet!");
     }
 
+    return mapper.build(contract);
+  }
+
+  public ContractRequest build(Contract contract) {
     PartnerEntitlementV1 partnerEntitlement = buildPartnerEntitlement(contract);
 
     return new ContractRequest()
@@ -53,47 +76,37 @@ public final class ContractRequestMapper {
         .subscriptionId(contract.getSubscriptionId());
   }
 
-  private static PartnerEntitlementV1 buildPartnerEntitlement(Contract contract) {
+  protected PartnerEntitlementV1 buildPartnerEntitlement(Contract contract) {
     return new PartnerEntitlementV1()
         .rhAccountId(contract.getOrgId())
-        .sourcePartner(SOURCE_PARTNER)
+        .sourcePartner(getSourcePartner())
         .entitlementDates(buildEntitlementDates(contract))
         .rhEntitlements(List.of(buildRhEntitlement(contract)))
         .purchase(buildPurchase(contract))
         .partnerIdentities(buildPartnerIdentities(contract));
   }
 
-  private static DimensionV1 buildDimension(String metricName, double metricValue) {
+  protected static DimensionV1 buildDimension(String metricName, double metricValue) {
     return new DimensionV1().name(metricName).value("" + metricValue);
   }
 
-  private static PurchaseV1 buildPurchase(Contract contract) {
-    SaasContractV1 saasContract =
-        new SaasContractV1()
-            .dimensions(
-                contract.getContractMetrics().entrySet().stream()
-                    .map(e -> buildDimension(e.getKey(), e.getValue()))
-                    .toList());
-
-    return new PurchaseV1()
-        .vendorProductCode(contract.getProductCode())
-        .contracts(List.of(saasContract));
+  protected static List<DimensionV1> buildDimensions(Contract contract) {
+    return contract.getContractMetrics().entrySet().stream()
+        .map(e -> buildDimension(e.getKey(), e.getValue()))
+        .toList();
   }
 
-  private static PartnerIdentityV1 buildPartnerIdentities(Contract contract) {
-    return new PartnerIdentityV1()
-        .awsCustomerId(contract.getCustomerId())
-        .sellerAccountId(contract.getSellerAccountId())
-        .customerAwsAccountId(contract.getBillingAccountId());
+  protected static SaasContractV1 buildSaasContract(Contract contract) {
+    return new SaasContractV1().dimensions(buildDimensions(contract));
   }
 
-  private static PartnerEntitlementV1EntitlementDates buildEntitlementDates(Contract contract) {
+  protected static PartnerEntitlementV1EntitlementDates buildEntitlementDates(Contract contract) {
     return new PartnerEntitlementV1EntitlementDates()
         .startDate(contract.getStartDate())
         .endDate(contract.getEndDate());
   }
 
-  private static RhEntitlementV1 buildRhEntitlement(Contract contract) {
+  protected static RhEntitlementV1 buildRhEntitlement(Contract contract) {
     return new RhEntitlementV1()
         .subscriptionNumber(contract.getSubscriptionNumber())
         .sku(contract.getOffering().getSku());

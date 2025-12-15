@@ -21,13 +21,13 @@
 package api;
 
 import com.redhat.swatch.component.tests.api.MessageValidator;
-import com.redhat.swatch.tally.test.model.TallySnapshot;
+import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallySummary;
 
 public class MessageValidators {
 
   public static MessageValidator<TallySummary> tallySummaryMatches(
-      String orgId, String productId, String metricId, TallySnapshot.Granularity granularity) {
+      String orgId, String productId, String metricId, Granularity granularity) {
     return new MessageValidator<>(
         summary ->
             orgId.equals(summary.getOrgId())
