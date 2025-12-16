@@ -1430,6 +1430,7 @@ This section validates capacity calculations across time boundaries. Tests verif
 - **Expected Results**:
   - HYPERVISOR Sockets measurement = 40
 
+## Metered Cores
 **capacity-metrics-TC005 - Decreasing metered Cores**
 - **Description**: Verify that a metered capacity decreases when the cores quantity is decreased
 - **Test Steps**:
@@ -1448,25 +1449,8 @@ This section validates capacity calculations across time boundaries. Tests verif
 - **Expected Results**: 
   - the Cores will reflect 8 cores 
 
-**capacity-metrics-TC007 - Decreasing metered Sockets**
-- **Description**: Verify that a metered capacity decreases when the sockets quantity is decreased
-- **Test Steps**:
-  1. Given: Create a contract with a sku that has Sockets: 4
-  2. When: Update the sku sockets to 2 and run Subscriptions sync 
-  3. Then: Verify that the cores are updated (decreased) and the capacity reflects the update sku
-- **Expected Results**: 
-  - the sockets will reflect 4 cores 
-
-**capacity-metrics-TC008 - Increasing metered Sockets**
-- **Description**: Verify that a metered capacity increases when the sockets quantity is increased
-- **Test Steps**:
-  1. Given: Create a contract with a sku that has sockets:4
-  2. When: Update the sku sockets to 8 and run Subscriptions sync
-  3. Then: Verify that the sockets are updated (increased) and the capacity reflects the updated sku
-- **Expected Results**: 
-  - the sockets will reflect 8 cores 
-
-**capacity-metrics-TC009 - Decreasing Non metered cores**
+## Non-metered cores
+**capacity-metrics-TC007 - Decreasing Non metered cores**
 - **Description**: Verify that a non-metered capacity decreases when the core quantity is decreased
 - **Test Steps**:
   1. Given: create a subscription with OpenShift Container Platform (openshift-container-platform) Cores 8
@@ -1475,7 +1459,7 @@ This section validates capacity calculations across time boundaries. Tests verif
 - **Expected Results**: 
   - the Cores will reflect the 4 cores
 
-**capacity-metrics-TC010 - Increasing Non metered cores**
+**capacity-metrics-TC008 - Increasing Non metered cores**
 - **Description**: Verify that a non-metered capacity increases when the core quantity is increased
 - **Test Steps**:
   1. Given: create a subscription with OpenShift Container Platform (openshift-container-platform) Cores 4
@@ -1484,7 +1468,8 @@ This section validates capacity calculations across time boundaries. Tests verif
 - **Expected Results**: 
   - the Cores will reflect the 8 cores
 
-**capacity-metrics-TC011 - Decreasing Non metered sockets**
+## Non-metered Sockets
+**capacity-metrics-TC009 - Decreasing Non metered sockets**
 - **Description**: Verify that a non-metered capacity decreases when the sockets quantity is decreased
 - **Test Steps**:
   1. Given: create a subscription with Satellite Server product (satellite-server) sockets 8
@@ -1493,7 +1478,7 @@ This section validates capacity calculations across time boundaries. Tests verif
 - **Expected Results**: 
   - the sockets will reflect the 4 cores
 
-**capacity-metrics-TC012 - Increasing Non metered sockets**
+**capacity-metrics-TC010 - Increasing Non metered sockets**
 - **Description**: Verify that a RHEL for x86 (rhel-for-x86) capacity increases when the sockets quantity is increased
 - **Test Steps**:
   1. Given: create a subscription with sku sockets 4
@@ -1502,6 +1487,7 @@ This section validates capacity calculations across time boundaries. Tests verif
 - **Expected Results**: 
   - the sockets will reflect the 8 cores
 
+## Accounts with Subscriptions and or contracts
 **capacity-metrics-TC013 - Increasing subscription on an account with multiple contracts**
 - **Description**: Verify that an Account with multiple contracts and a subscription increases when the capacity quantity is increased
 - **Test Steps**:
