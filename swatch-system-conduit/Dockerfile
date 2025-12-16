@@ -16,14 +16,17 @@ COPY mvnw .
 COPY .mvn .mvn
 COPY pom.xml ./
 
-RUN --mount=type=cache,target=/root/.m2 \
-    ./mvnw -P download dependency:resolve-plugins dependency:resolve --fail-never
+# TEMPORARY WORKAROUND: Removed --mount=type=cache due to runc incompatibility
+# See: https://issues.redhat.com/browse/APPSRE-13062
+# This makes builds slower but allows them to work with runc until infra configures crun
+# TODO: Re-enable cache mounts once infra switches to crun
+RUN ./mvnw -P download dependency:resolve-plugins dependency:resolve --fail-never
 COPY . .
 ARG VERSION=1.0.0
 ARG MAVEN_BUILD_ARGS=''
 ARG MAVEN_TASKS='clean package'
-RUN --mount=type=cache,target=/root/.m2 \
-    ./mvnw ${MAVEN_TASKS} -pl swatch-system-conduit -am -DskipTests ${MAVEN_BUILD_ARGS}
+# TEMPORARY WORKAROUND: Removed --mount=type=cache due to runc incompatibility
+RUN ./mvnw ${MAVEN_TASKS} -pl swatch-system-conduit -am -DskipTests ${MAVEN_BUILD_ARGS}
 
 # See https://stackoverflow.com/a/786515
 RUN (cd /stage/swatch-system-conduit && exec jar -xf ./target/*.jar)
