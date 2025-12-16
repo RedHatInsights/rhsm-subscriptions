@@ -1429,3 +1429,129 @@ This section validates capacity calculations across time boundaries. Tests verif
   3. Reconcile
 - **Expected Results**:
   - HYPERVISOR Sockets measurement = 40
+
+**capacity-metrics-TC005 - Decreasing metered Cores**
+- **Description**: Verify that a metered capacity decreases when the cores quantity is decreased
+- **Test Steps**:
+  1. Given: Create a contract with Rosa (rosa) product that has Core:8
+  2. When: Update the Cores to 4 and run Subscriptions sync
+  3. Then: Verify that the cores are updated (decreased) and the capacity reflects the update sku
+- **Expected Results**: 
+  - the Cores will reflect 4 cores 
+
+**capacity-metrics-TC006 - Increasing metered Cores**
+- **Description**: Verify that a metered capacity increases when the core quantity is increased
+- **Test Steps**:
+  1. Given: Create a contract with a Rosa (rosa) product that has Core:4
+  2. When: Update the Cores to 8 and run Subscriptions sync
+  3. Then: Verify that the cores are updated (increased) and the capacity reflects the updated sku
+- **Expected Results**: 
+  - the Cores will reflect 8 cores 
+
+**capacity-metrics-TC007 - Decreasing metered Sockets**
+- **Description**: Verify that a metered capacity decreases when the sockets quantity is decreased
+- **Test Steps**:
+  1. Given: Create a contract with a sku that has Sockets: 4
+  2. When: Update the sku sockets to 2 and run Subscriptions sync 
+  3. Then: Verify that the cores are updated (decreased) and the capacity reflects the update sku
+- **Expected Results**: 
+  - the sockets will reflect 4 cores 
+
+**capacity-metrics-TC008 - Increasing metered Sockets**
+- **Description**: Verify that a metered capacity increases when the sockets quantity is increased
+- **Test Steps**:
+  1. Given: Create a contract with a sku that has sockets:4
+  2. When: Update the sku sockets to 8 and run Subscriptions sync
+  3. Then: Verify that the sockets are updated (increased) and the capacity reflects the updated sku
+- **Expected Results**: 
+  - the sockets will reflect 8 cores 
+
+**capacity-metrics-TC009 - Decreasing Non metered cores**
+- **Description**: Verify that a non-metered capacity decreases when the core quantity is decreased
+- **Test Steps**:
+  1. Given: create a subscription with OpenShift Container Platform (openshift-container-platform) Cores 8
+  2. When: Update the cores to be 4 and run Subscription sync
+  3. Then: Verify that the cores are updated (decreased) and the capacity reflects the updated sku
+- **Expected Results**: 
+  - the Cores will reflect the 4 cores
+
+**capacity-metrics-TC010 - Increasing Non metered cores**
+- **Description**: Verify that a non-metered capacity increases when the core quantity is increased
+- **Test Steps**:
+  1. Given: create a subscription with OpenShift Container Platform (openshift-container-platform) Cores 4
+  2. When: Update the cores to be 8 and run Subscription sync
+  3. Then: Verify that the cores are updated (increased) and the capacity reflects the updated sku
+- **Expected Results**: 
+  - the Cores will reflect the 8 cores
+
+**capacity-metrics-TC011 - Decreasing Non metered sockets**
+- **Description**: Verify that a non-metered capacity decreases when the sockets quantity is decreased
+- **Test Steps**:
+  1. Given: create a subscription with Satellite Server product (satellite-server) sockets 8
+  2. When: Update the sockets to be 4 and run Subscription sync
+  3. Then: Verify that the sockets are updated (decreased) and the capacity reflects the updated sku
+- **Expected Results**: 
+  - the sockets will reflect the 4 cores
+
+**capacity-metrics-TC012 - Increasing Non metered sockets**
+- **Description**: Verify that a RHEL for x86 (rhel-for-x86) capacity increases when the sockets quantity is increased
+- **Test Steps**:
+  1. Given: create a subscription with sku sockets 4
+  2. When: Update the Satellite Server product (satellite-server) sockets to be 8 and run Subscription sync/Reconcile (?)
+  3. Then: Verify that the sockets are updated (increased) and the capacity reflects the updated sku
+- **Expected Results**: 
+  - the sockets will reflect the 8 cores
+
+**capacity-metrics-TC013 - Increasing subscription on an account with multiple contracts**
+- **Description**: Verify that an Account with multiple contracts and a subscription increases when the capacity quantity is increased
+- **Test Steps**:
+  1. Given: Create an account with two contracts and a subscription
+  2. When: Increase the sku related to the subscription and run Subscription sync
+  3. Then: Verify that the capacity increases
+- **Expected Results**: 
+  - that the capacity increases
+
+**capacity-metrics-TC014 - Decreasing subscription on an account with multiple contracts**
+- **Description**: Verify that an Account with multiple contracts and a subscription decreases when the capacity quantity is decreased
+- **Test Steps**:
+  1. Given: Create an account with two contracts and a subscription
+  2. When: Decrease the sku related to the subscription and run Subscription sync
+  3. Then: Verify that the capacity decreases
+- **Expected Results**: 
+  - that the capacity decreases 
+
+**capacity-metrics-TC015 - Increasing contract on an account with multiple subscriptions**
+- **Description**: Verify that an Account with multiple subscriptions and a contract increases when the capacity quantity is increased
+- **Test Steps**:
+  1. Given: Create an account with two subscriptions and a contract
+  2. When: Increase the sku related to the contract and run Subscription sync
+  3. Then: Verify that the capacity increases
+- **Expected Results**: 
+  - that the capacity increases
+
+**capacity-metrics-TC016 - Decreasing contract on an account with multiple subscriptions**
+- **Description**: Verify that an Account with multiple subscriptions and a contract decreases when the capacity quantity is decreased
+- **Test Steps**:
+  1. Given: Create an account with two subscriptions and a contract
+  2. When: Decrease the sku related to the contract and run Subscription sync
+  3. Then: Verify that the capacity decreases
+- **Expected Results**: 
+  - that the capacity decreases 
+
+**capacity-metrics-TC017 - Increasing capacity with multiple subscriptions**
+- **Description**: Verify that an Account with multiple subscriptions and multiple contracts increases when the capacity quantity is increased
+- **Test Steps**:
+  1. Given: Create an account with two subscriptions and two contracts
+  2. When: Increase the sku related to one of the contracts, increase the sku related to one of the subscriptions and run Subscription sync
+  3. Then: Verify that the capacity increases for both
+- **Expected Results**: 
+  - that the capacity increases for both
+
+**capacity-metrics-TC018 - Decreasing capacity with multiple subscriptions**
+- **Description**: Verify that an Account with multiple subscriptions and multiple contracts decreases when the capacity quantity is decreased
+- **Test Steps**:
+  1. Given: Create an account with two subscriptions and two contracts
+  2. When: Decrease the sku related to the contract, increase the sku related to one of the subscriptions and run Subscription sync
+  3. Then: Verify that the capacity decreases for both
+- **Expected Results**: 
+  - that the capacity decreases for both 
