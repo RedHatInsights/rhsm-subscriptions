@@ -63,6 +63,11 @@ public class ContractsSwatchService extends SwatchService {
       "/api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}";
   private static final String TERMINATE_SUBSCRIPTION_ENDPOINT =
       ENDPOINT_PREFIX + "/subscriptions/terminate/{subscription_id}";
+  private static final String SYNC_CONTRACTS_BY_ORG_ENDPOINT =
+      ENDPOINT_PREFIX + "/rpc/sync/contracts/%s";
+  private static final String SYNC_ALL_CONTRACTS_ENDPOINT = "/internal/rpc/syncAllContracts";
+  private static final String SYNC_SUBSCRIPTIONS_FOR_CONTRACTS_BY_ORG_ENDPOINT =
+      ENDPOINT_PREFIX + "/rpc/sync/contracts/%s/subscriptions";
 
   public Response syncOffering(String sku) {
     Objects.requireNonNull(sku, "sku must not be null");
@@ -241,6 +246,34 @@ public class ContractsSwatchService extends SwatchService {
         .queryParam("timestamp", timestamp.toString())
         .when()
         .post(TERMINATE_SUBSCRIPTION_ENDPOINT);
+  }
+
+  public Response syncContractsByOrg(String orgId) {
+    return syncContractsByOrg(orgId, false, false);
+  }
+
+  public Response syncContractsByOrg(
+      String orgId, Boolean isPreCleanup, Boolean deleteContractsAndSubs) {
+    Objects.requireNonNull(orgId, "orgId must not be null");
+
+    String endpoint = SYNC_CONTRACTS_BY_ORG_ENDPOINT.formatted(orgId);
+    return given()
+        .headers(SECURITY_HEADERS)
+        .queryParam("is_pre_cleanup", isPreCleanup)
+        .queryParam("delete_contracts_and_subs", deleteContractsAndSubs)
+        .when()
+        .post(endpoint);
+  }
+
+  public Response syncAllContracts() {
+    return given().headers(SECURITY_HEADERS).when().post(SYNC_ALL_CONTRACTS_ENDPOINT);
+  }
+
+  public Response syncSubscriptionsForContractsByOrg(String orgId) {
+    Objects.requireNonNull(orgId, "orgId must not be null");
+
+    String endpoint = SYNC_SUBSCRIPTIONS_FOR_CONTRACTS_BY_ORG_ENDPOINT.formatted(orgId);
+    return given().headers(SECURITY_HEADERS).when().post(endpoint);
   }
 
   private List<com.redhat.swatch.contract.test.model.Contract> getContracts(

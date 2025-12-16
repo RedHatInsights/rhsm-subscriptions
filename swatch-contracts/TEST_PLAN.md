@@ -569,8 +569,8 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Action**: POST `/internal/rpc/syncAllContracts`.  
 - **Verification**: Monitor sync progress.  
 - **Expected Result**:  
-  - HTTP 202 Accepted  
-  - StatusResponse: "All Contracts are Synced"  
+  - HTTP 200 OK
+  - StatusResponse: "All Contracts are Synced"
   - Each org's contracts synced
 
 **contracts-sync-TC004 - Sync when no contracts exist**  
@@ -591,14 +591,13 @@ Test cases should be testable locally and in an ephemeral environment.
   - StatusResponse success  
   - Subscriptions synced from Subscription API
 
-**contracts-sync-TC006 - Clear all contracts for the organization**  
-- **Description**: Verify that deleteContractsByOrg removes all org contracts.  
-- **Setup**: Create multiple contracts for the org.  
-- **Action**: DELETE `/api/swatch-contracts/internal/rpc/reset/contracts/{org_id}`.  
-- **Verification**: Query contracts for org.  
+**contracts-sync-TC006 - Clear all contracts for the organization**
+- **Description**: Verify that deleteContractsByOrg removes all org contracts.
+- **Setup**: Create multiple contracts for the org.
+- **Action**: DELETE `/api/swatch-contracts/internal/rpc/reset/{org_id}`.
+- **Verification**: Query contracts for org.
 - **Expected Result**:
-  - HTTP 200 StatusResponse
-  - Status: "Contracts Cleared for given org_id
+  - HTTP 204 No Content
   - No contracts remain for org_id
 
 ## Subscription Management via Kafka
