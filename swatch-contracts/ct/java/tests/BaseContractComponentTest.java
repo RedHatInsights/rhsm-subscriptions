@@ -44,6 +44,8 @@ import domain.Product;
 import domain.Subscription;
 import io.restassured.response.Response;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterEach;
@@ -62,15 +64,31 @@ public class BaseContractComponentTest {
   static ContractsSwatchService service = new ContractsSwatchService();
 
   protected String orgId;
+  private List<String> orgIds = new ArrayList<>();
 
   @BeforeEach
   void setUp() {
-    orgId = RandomUtils.generateRandom();
+    orgId = givenOrgId();
   }
 
   @AfterEach
   void tearDown() {
-    service.deleteDataForOrg(orgId);
+    for (String orgId : orgIds) {
+      service.deleteDataForOrg(orgId);
+    }
+  }
+
+  String givenOrgId() {
+    return givenOrgId(RandomUtils.generateRandom());
+  }
+
+  String givenOrgIdWithSuffix(String suffix) {
+    return givenOrgId(RandomUtils.generateRandom() + suffix);
+  }
+
+  String givenOrgId(String orgId) {
+    orgIds.add(orgId);
+    return orgId;
   }
 
   void givenContractIsCreated(Contract contract) {
