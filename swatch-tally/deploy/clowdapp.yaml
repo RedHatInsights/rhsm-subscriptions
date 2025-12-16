@@ -217,7 +217,7 @@ parameters:
     value: 'grpc'
   - description: database secret name
     name: FLOORIST_DB_SECRET_NAME
-    value: swatch-database-db
+    value: swatch-db-ro
   - description: bucket secret name
     name: FLOORIST_BUCKET_SECRET_NAME
     required: true
