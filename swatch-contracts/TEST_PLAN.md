@@ -1533,7 +1533,7 @@ This section validates capacity calculations across time boundaries. Tests verif
 - **Expected Results**: 
   - that the capacity increases for both
 
-**capacity-metrics-TC018 - Decreasing capacity with multiple subscriptions**
+**capacity-metrics-TC016 - Decreasing capacity with multiple subscriptions**
 - **Description**: Verify that an Account with multiple subscriptions and multiple contracts decreases when the capacity quantity is decreased
 - **Test Steps**:
   1. Given: Create an account with two subscriptions and two contracts
