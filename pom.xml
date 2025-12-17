@@ -583,16 +583,6 @@
     </profile>
 
     <profile>
-      <id>run-migrations</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-      </activation>
-      <modules>
-        <module>swatch-database-migrations</module>
-        <module>swatch-database</module>
-      </modules>
-    </profile>
-    <profile>
       <id>coverage</id>
       <activation>
         <property>
