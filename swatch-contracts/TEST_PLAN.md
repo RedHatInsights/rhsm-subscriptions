@@ -1488,7 +1488,7 @@ This section validates capacity calculations across time boundaries. Tests verif
   - the sockets will reflect the 8 cores
 
 ## Accounts with Subscriptions and or contracts
-**capacity-metrics-TC013 - Increasing subscription on an account with multiple contracts**
+**capacity-metrics-TC011 - Increasing subscription on an account with multiple contracts**
 - **Description**: Verify that an Account with multiple contracts and a subscription increases when the capacity quantity is increased
 - **Test Steps**:
   1. Given: Create an account with two contracts and a subscription
