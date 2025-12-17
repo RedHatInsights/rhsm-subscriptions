@@ -1485,7 +1485,7 @@ This section validates capacity calculations across time boundaries. Tests verif
   2. When: Update the Satellite Server product (satellite-server) sockets to be 8 and run Subscription sync/Reconcile (?)
   3. Then: Verify that the sockets are updated (increased) and the capacity reflects the updated sku
 - **Expected Results**: 
-  - the sockets will reflect the 8 cores
+  - the sockets will reflect the 8 sockets
 
 ## Accounts with Subscriptions and or contracts
 **capacity-metrics-TC011 - Increasing subscription on an account with multiple contracts**
