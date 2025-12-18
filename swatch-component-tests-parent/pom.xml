@@ -36,6 +36,7 @@
         <module>../swatch-metrics-hbi/ct</module>
         <module>../swatch-tally/ct</module>
         <module>../swatch-billable-usage/ct</module>
+        <module>../swatch-system-conduit/ct</module>
       </modules>
     </profile>
   </profiles>
