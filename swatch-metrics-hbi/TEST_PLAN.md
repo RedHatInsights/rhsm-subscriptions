@@ -258,7 +258,7 @@ Test cases should be testable locally and in deployed environments.
 
 **metrics-hbi-delete-TC002 \- Delete physical hypervisor host**
 
-- **Description**: 
+- **Description**: Verify that the service ingests HBI Delete event for an existing physical RHEL hypervisor host and produces the corresponding SWatch events to delete the hypervisor instance and update its mapped guest to an unmapped state with correct measurements.
 - **Setup**:
     - Ensure `EMIT_EVENTS` feature flag is enabled
     - Kafka topics for HBI events and service instance ingress are available
@@ -280,7 +280,7 @@ Test cases should be testable locally and in deployed environments.
 
 **metrics-hbi-delete-TC003 \- Delete mapped virtual guest host**
 
-- **Description**: 
+- **Description**: Verify that the service ingests HBI Delete event for an existing virtual mapped guest host and produces the corresponding SWatch events to delete the guest instance and update the previous hypervisor host so it is no longer treated as a hypervisor, with correct measurements.
 - **Setup**:
     - Ensure `EMIT_EVENTS` feature flag is enabled
     - Kafka topics for HBI events and service instance ingress are available
