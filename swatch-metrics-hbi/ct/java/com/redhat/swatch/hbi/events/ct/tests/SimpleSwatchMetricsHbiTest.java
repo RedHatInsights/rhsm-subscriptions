@@ -24,17 +24,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.hbi.model.FlushResponse;
 import com.redhat.swatch.hbi.model.FlushResponse.StatusEnum;
 import org.junit.jupiter.api.Test;
 
 class SimpleSwatchMetricsHbiTest extends BaseSMHBIComponentTest {
 
+  @TestPlanName("metrics-hbi-api-TC001")
   @Test
   void testServiceIsUpAndRunning() {
     assertTrue(swatchMetricsHbi.isRunning());
   }
 
+  @TestPlanName("metrics-hbi-api-TC002")
   @Test
   void testFlushApi() {
     FlushResponse body = swatchMetricsHbi.flushOutboxSynchronously();
@@ -42,6 +45,7 @@ class SimpleSwatchMetricsHbiTest extends BaseSMHBIComponentTest {
     assertFalse(body.getAsync());
   }
 
+  @TestPlanName("metrics-hbi-api-TC003")
   @Test
   void testUnleashFlagToggling() {
     unleash.enableFlag(EMIT_EVENTS);
