@@ -38,8 +38,8 @@ public class ContractsRetrievalComponentTest extends BaseContractComponentTest {
   @TestPlanName("contracts-retrieval-TC001")
   @Test
   void shouldGetContractByOrgId() {
-    final String firstOrgId = orgId + "a";
-    final String secondOrgId = orgId + "b";
+    final String firstOrgId = givenOrgIdWithSuffix("a");
+    final String secondOrgId = givenOrgIdWithSuffix("b");
     // Create multiple contracts for the first organization
     givenExistingContractForOrgId(firstOrgId);
     givenExistingContractForOrgId(firstOrgId);

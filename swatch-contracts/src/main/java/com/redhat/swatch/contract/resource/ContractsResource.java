@@ -164,7 +164,7 @@ public class ContractsResource implements DefaultApi {
   public StatusResponse syncContractsByOrg(
       String orgId, Boolean isPreCleanup, Boolean deleteContractsAndSubs)
       throws ProcessingException {
-    if (deleteContractsAndSubs == Boolean.TRUE) {
+    if (Boolean.TRUE.equals(deleteContractsAndSubs)) {
       service.deleteContractsByOrgId(orgId);
       service.deletePaygSubscriptionsByOrgId(orgId);
     }
