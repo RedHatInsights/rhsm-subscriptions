@@ -42,7 +42,6 @@ Test cases should be testable locally and in deployed environments.
 - **Description**: Verify that overusage detection works.
 - **Setup**:
     - An organization has capacity for the metric A of the product B
-    - The utilization threshold of product is set to C for that product
 - **Action**:
     - Generate enough usage to exceed the threshold for the metric A of the product B
     - Trigger utilization calculation process
@@ -58,7 +57,6 @@ Test cases should be testable locally and in deployed environments.
 - **Description**: Verify that no overusage notification message when usage is within purchased limits.
 - **Setup**:
     - An organization has capacity for the metric A of the product B
-    - The utilization threshold of product is set to C for that product
 - **Action**:
     - Generate usage data less than the threshold for the metric A of the product B
     - Trigger utilization calculation process
