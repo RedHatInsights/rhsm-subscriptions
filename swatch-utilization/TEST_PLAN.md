@@ -156,7 +156,7 @@ Test cases should be testable locally and in deployed environments.
     - Verify notification payload
 - **Expected Result**:
     - Notification event created (usage now exceeds reduced capacity + threshold)
-    - Notification event contains correct information (org\_id, product_id, metric_id and utilization_percentage)
+    - Notification event contains correct information (org_id, product_id, metric_id and utilization_percentage)
     - Record timestamp reflects current calculation time
 
 ## Multi-Resource Processing
