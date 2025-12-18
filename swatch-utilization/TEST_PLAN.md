@@ -29,9 +29,9 @@ This test plan focuses on covering test scenarios across three levels: component
 
 Test cases should be testable locally and in deployed environments.
 
-- Kafka messages can be injected for event-driven testing.
-- External services' APIs can be mocked.
-- System state can be verified through internal API calls.
+Kafka messages can be injected for event-driven testing.
+  - This implies that there is no need to create an actual organization and contract.
+  - The `Setup` section is only about configuring the utilization summary message.
 
 # Test Cases
 
@@ -70,7 +70,6 @@ Test cases should be testable locally and in deployed environments.
 - **Description**: Verify that no overusage notification message when usage is above purchased limits but does not cross threshold.
 - **Setup**:
     - An organization has capacity for the metric A of the product B
-    - The utilization threshold of product is set to C for that product
 - **Action**:
     - Generate usage data less than the threshold but more than capacity for the metric A of the product B
     - Trigger utilization calculation process
