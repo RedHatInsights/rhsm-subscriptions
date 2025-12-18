@@ -37,7 +37,7 @@ Test cases should be testable locally and in deployed environments.
 
 ## Overage Detection Logic
 
-**utilization-overage-TC001 \- Process overage**
+**utilization-overage-TC001 - Process overage**
 
 - **Description**: Verify that overage detection works.
 - **Setup**:
@@ -50,10 +50,10 @@ Test cases should be testable locally and in deployed environments.
     - Wait for notification message on notifications topic
     - Verify notification payload
 - **Expected Result**:
-    - Notification event contains correct information (org\_id, product\_id, metric\_id and utilization percentage)
+    - Notification event contains correct information (org_id, product_id, metric_id and utilization_percentage)
     - Record timestamp reflects current calculation time
 
-**utilization-overage-TC002 \- No overage when usage is below capacity**
+**utilization-overage-TC002 - No overage when usage is below capacity**
 
 - **Description**: Verify that no overage notification message when usage is within purchased limits.
 - **Setup**:
@@ -67,7 +67,7 @@ Test cases should be testable locally and in deployed environments.
 - **Expected Result**:
     - No notification event created
 
-**utilization-overage-TC003 \- No overage when usage is above capacity but below threshold**
+**utilization-overage-TC003 - No overage when usage is above capacity but below threshold**
 
 - **Description**: Verify that no overage notification message when usage is above purchased limits but does not cross threshold.
 - **Setup**:
@@ -81,7 +81,7 @@ Test cases should be testable locally and in deployed environments.
 - **Expected Result**:
     - No notification event created
 
-**utilization-overage-TC004 \- Overage persists after insufficient capacity increase**
+**utilization-overage-TC004 - Overage persists after insufficient capacity increase**
 
 - **Description**: Verify continued overage detection after insufficient capacity purchase.
 - **Setup**:
@@ -96,10 +96,10 @@ Test cases should be testable locally and in deployed environments.
     - Verify notification payload
 - **Expected Result**:
     - Notification event still created (overage persists)
-    - Notification event contains correct information (org\_id, product\_id, metric\_id and utilization percentage)
+    - Notification event contains correct information (org_id, product_id, metric_id and utilization_percentage)
     - Record timestamp reflects current calculation time
 
-**utilization-overage-TC005 \- Usage above capacity but below threshold after capacity increase**
+**utilization-overage-TC005 - Usage above capacity but below threshold after capacity increase**
 
 - **Description**: Verify overage resolution when usage stays above capacity but capacity increase brings usage below threshold.
 - **Setup**:
@@ -112,9 +112,9 @@ Test cases should be testable locally and in deployed environments.
 - **Verification**:
     - Check absence of notification message on notifications topic
 - **Expected Result**:
-    - No notification event created (overage below threshold despite usage \> 100% capacity)
+    - No notification event created (overage below threshold despite usage > 100% capacity)
 
-**utilization-overage-TC006 \- Overage resolved after sufficient capacity increase**
+**utilization-overage-TC006 - Overage resolved after sufficient capacity increase**
 
 - **Description**: Verify overage resolution when sufficient capacity is purchased to it above utilization.
 - **Setup**:
@@ -128,7 +128,7 @@ Test cases should be testable locally and in deployed environments.
 - **Expected Result**:
     - No notification event created
 
-**utilization-overage-TC007 \- Usage exactly at threshold boundary**
+**utilization-overage-TC007 - Usage exactly at threshold boundary**
 
 - **Description**: Verify behavior when usage is exactly at the threshold.
 - **Setup**:
@@ -141,7 +141,7 @@ Test cases should be testable locally and in deployed environments.
 - **Expected Result**:
     - No notification event created
 
-**utilization-overage-TC008 \- Capacity reduction below current usage**
+**utilization-overage-TC008 - Capacity reduction below current usage**
 
 - **Description**: Verify overage detection when customer downgrades capacity while usage remains high.
 - **Setup**:
@@ -155,13 +155,13 @@ Test cases should be testable locally and in deployed environments.
     - Wait for notification message on notifications topic
     - Verify notification payload
 - **Expected Result**:
-    - Notification event created (usage now exceeds reduced capacity \+ threshold)
-    - Notification event contains correct information (org\_id, product\_id, metric\_id and utilization percentage)
+    - Notification event created (usage now exceeds reduced capacity + threshold)
+    - Notification event contains correct information (org\_id, product_id, metric_id and utilization_percentage)
     - Record timestamp reflects current calculation time
 
 ## Multi-Resource Processing
 
-**utilization-multi-TC001 \- Multiple resources with mixed overage states**
+**utilization-multi-TC001 - Multiple resources with mixed overage states**
 
 - **Description**: Verify overage detection handles multiple resources correctly.
 - **Setup**:
@@ -176,11 +176,11 @@ Test cases should be testable locally and in deployed environments.
     - Verify notification payload
 - **Expected Result**:
     - Overage record created only for product X
-    - Notification event contains correct information (org\_id, product\_id, metric\_id and utilization percentage)
+    - Notification event contains correct information (org_id, product_id, metric_id and utilization_percentage)
     - Record timestamp reflects current calculation time
     - No overage record for product A
 
-**utilization-multi-TC002 \- Multiple metrics with mixed overage states within same product**
+**utilization-multi-TC002 - Multiple metrics with mixed overage states within same product**
 
 - **Description**: Verify overage detection handles multiple metrics correctly within the same product.
 - **Setup**:
@@ -195,13 +195,13 @@ Test cases should be testable locally and in deployed environments.
     - Verify notification payload
 - **Expected Result**:
     - Notification event created only for metric B of product A
-    - Notification event contains correct information (org\_id, product\_id, metric\_id and utilization percentage)
+    - Notification event contains correct information (org_id, product_id, metric_id and utilization_percentage)
     - Record timestamp reflects current calculation time
     - No notification event for metric C of product A
 
 ## Capacity Handling
 
-**utilization-capacity-TC001 \- Zero capacity with positive usage**
+**utilization-capacity-TC001 - Zero capacity with positive usage**
 
 - **Description**: Verify behavior when capacity is zero but usage is positive.
 - **Setup**:
@@ -214,10 +214,10 @@ Test cases should be testable locally and in deployed environments.
     - Verify notification payload
 - **Expected Result**:
     - Notification event created (any usage above zero capacity triggers notification)
-    - Notification event contains correct information (org\_id, product\_id, metric\_id and utilization percentage)
+    - Notification event contains correct information (org_id, product_id, metric_id and utilization_percentage)
     - Record timestamp reflects current calculation time
 
-**utilization-capacity-TC002 \- Unlimited capacity metric**
+**utilization-capacity-TC002 - Unlimited capacity metric**
 
 - **Description**: Verify no notifications for unlimited capacity metrics.
 - **Setup**:
@@ -246,7 +246,7 @@ Test cases should be testable locally and in deployed environments.
 
 ## Configuration
 
-**utilization-config-TC001 \- Negative threshold disables detection**
+**utilization-config-TC001 - Negative threshold disables detection**
 
 - **Description**: Verify products with negative thresholds never trigger notifications regardless of usage.
 - **Setup**:
@@ -260,7 +260,7 @@ Test cases should be testable locally and in deployed environments.
 - **Expected Result**:
     - No notification event created for negative threshold products
 
-**utilization-config-TC002 \- Custom product thresholds**
+**utilization-config-TC002 - Custom product thresholds**
 
 - **Description**: Verify products with custom threshold values work correctly (different from 5% default).
 - **Setup**:
@@ -272,5 +272,5 @@ Test cases should be testable locally and in deployed environments.
 - **Verification**:
     - Check absence of notification message on notifications topic
 - **Expected Result**:
-    - No notification event created (less than 100 \+ custom threshold %)
+    - No notification event created (less than 100 + custom threshold %)
     - Custom threshold takes precedence over default 5%
