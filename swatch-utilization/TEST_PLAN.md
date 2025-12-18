@@ -4,13 +4,13 @@ The **swatch-utilization** module is a service within the Subscription Watch pla
 
 The service processes pre-enriched utilization data from Kafka topics (containing usage from swatch-tally already combined with contract capacity by swatch-contracts), detects over-usage thresholds, and sends notification events via Kafka to the notifications-backend service for email delivery.
 
-This document outlines the test plan for swatch-utilization, which involves overage detection and notification triggering.
+This document outlines the test plan for swatch-utilization, which involves overusage detection and notification triggering.
 
 **Purpose:** To ensure the swatch-utilization service is functional, reliable, and meets all defined requirements for capacity monitoring and notification delivery.
 
 **Scope:**
 
-* Overage Detection Logic
+* overusage Detection Logic
 * Notification Triggering Rules
 * Testing is limited to the functionality of the swatch-utilization service at a component level.
 
@@ -35,11 +35,11 @@ Test cases should be testable locally and in deployed environments.
 
 # Test Cases
 
-## Overage Detection Logic
+## overusage Detection Logic
 
-**utilization-overage-TC001 - Process overage**
+**utilization-overusage-TC001 - Process overusage**
 
-- **Description**: Verify that overage detection works.
+- **Description**: Verify that overusage detection works.
 - **Setup**:
     - An organization has capacity for the metric A of the product B
     - The utilization threshold of product is set to C for that product
@@ -53,9 +53,9 @@ Test cases should be testable locally and in deployed environments.
     - Notification event contains correct information (org_id, product_id, metric_id and utilization_percentage)
     - Record timestamp reflects current calculation time
 
-**utilization-overage-TC002 - No overage when usage is below capacity**
+**utilization-overusage-TC002 - No overusage when usage is below capacity**
 
-- **Description**: Verify that no overage notification message when usage is within purchased limits.
+- **Description**: Verify that no overusage notification message when usage is within purchased limits.
 - **Setup**:
     - An organization has capacity for the metric A of the product B
     - The utilization threshold of product is set to C for that product
@@ -67,9 +67,9 @@ Test cases should be testable locally and in deployed environments.
 - **Expected Result**:
     - No notification event created
 
-**utilization-overage-TC003 - No overage when usage is above capacity but below threshold**
+**utilization-overusage-TC003 - No overusage when usage is above capacity but below threshold**
 
-- **Description**: Verify that no overage notification message when usage is above purchased limits but does not cross threshold.
+- **Description**: Verify that no overusage notification message when usage is above purchased limits but does not cross threshold.
 - **Setup**:
     - An organization has capacity for the metric A of the product B
     - The utilization threshold of product is set to C for that product
@@ -81,9 +81,9 @@ Test cases should be testable locally and in deployed environments.
 - **Expected Result**:
     - No notification event created
 
-**utilization-overage-TC004 - Overage persists after insufficient capacity increase**
+**utilization-overusage-TC004 - overusage persists after insufficient capacity increase**
 
-- **Description**: Verify continued overage detection after insufficient capacity purchase.
+- **Description**: Verify continued overusage detection after insufficient capacity purchase.
 - **Setup**:
     - An organization has capacity for the metric A of the product B
     - Current usage exceeds threshold
@@ -95,40 +95,40 @@ Test cases should be testable locally and in deployed environments.
     - Wait for notification message on notifications topic
     - Verify notification payload
 - **Expected Result**:
-    - Notification event still created (overage persists)
+    - Notification event still created (overusage persists)
     - Notification event contains correct information (org_id, product_id, metric_id and utilization_percentage)
     - Record timestamp reflects current calculation time
 
-**utilization-overage-TC005 - Usage above capacity but below threshold after capacity increase**
+**utilization-overusage-TC005 - Usage above capacity but below threshold after capacity increase**
 
-- **Description**: Verify overage resolution when usage stays above capacity but capacity increase brings usage below threshold.
+- **Description**: Verify overusage resolution when usage stays above capacity but capacity increase brings usage below threshold.
 - **Setup**:
     - An organization has capacity for the metric A of the product B
     - Current usage is above threshold
 - **Action**:
-    - Increase capacity enough to bring overage below threshold (but usage still above 100% capacity)
+    - Increase capacity enough to bring overusage below threshold (but usage still above 100% capacity)
     - Maintain usage at the same level
     - Trigger utilization calculation
 - **Verification**:
     - Check absence of notification message on notifications topic
 - **Expected Result**:
-    - No notification event created (overage below threshold despite usage > 100% capacity)
+    - No notification event created (overusage below threshold despite usage > 100% capacity)
 
-**utilization-overage-TC006 - Overage resolved after sufficient capacity increase**
+**utilization-overusage-TC006 - overusage resolved after sufficient capacity increase**
 
-- **Description**: Verify overage resolution when sufficient capacity is purchased to it above utilization.
+- **Description**: Verify overusage resolution when sufficient capacity is purchased to it above utilization.
 - **Setup**:
     - An organization has capacity for the metric A of the product B
     - Current usage is above threshold
 - **Action**:
-    - Increase capacity enough to bring overage below 100% capacity
+    - Increase capacity enough to bring overusage below 100% capacity
     - Trigger utilization calculation
 - **Verification**:
     - Check absence of notification message on notifications topic
 - **Expected Result**:
     - No notification event created
 
-**utilization-overage-TC007 - Usage exactly at threshold boundary**
+**utilization-overusage-TC007 - Usage exactly at threshold boundary**
 
 - **Description**: Verify behavior when usage is exactly at the threshold.
 - **Setup**:
@@ -141,9 +141,9 @@ Test cases should be testable locally and in deployed environments.
 - **Expected Result**:
     - No notification event created
 
-**utilization-overage-TC008 - Capacity reduction below current usage**
+**utilization-overusage-TC008 - Capacity reduction below current usage**
 
-- **Description**: Verify overage detection when customer downgrades capacity while usage remains high.
+- **Description**: Verify overusage detection when customer downgrades capacity while usage remains high.
 - **Setup**:
     - An organization has capacity for the metric A of the product B
     - Current usage is within capacity limits
@@ -161,9 +161,9 @@ Test cases should be testable locally and in deployed environments.
 
 ## Multi-Resource Processing
 
-**utilization-multi-TC001 - Multiple resources with mixed overage states**
+**utilization-multi-TC001 - Multiple resources with mixed overusage states**
 
-- **Description**: Verify overage detection handles multiple resources correctly.
+- **Description**: Verify overusage detection handles multiple resources correctly.
 - **Setup**:
     - An organization has the following:
     - Product A has capacity for metric B
@@ -175,14 +175,14 @@ Test cases should be testable locally and in deployed environments.
     - Wait for notification message on notifications topic
     - Verify notification payload
 - **Expected Result**:
-    - Overage record created only for product X
+    - overusage record created only for product X
     - Notification event contains correct information (org_id, product_id, metric_id and utilization_percentage)
     - Record timestamp reflects current calculation time
-    - No overage record for product A
+    - No overusage record for product A
 
-**utilization-multi-TC002 - Multiple metrics with mixed overage states within same product**
+**utilization-multi-TC002 - Multiple metrics with mixed overusage states within same product**
 
-- **Description**: Verify overage detection handles multiple metrics correctly within the same product.
+- **Description**: Verify overusage detection handles multiple metrics correctly within the same product.
 - **Setup**:
     - An organization has the following:
     - Product A has capacity for metric B
@@ -223,7 +223,7 @@ Test cases should be testable locally and in deployed environments.
 - **Setup**:
     - An organization has unlimited capacity for the metric A of the product B
 - **Action**:
-    - Generate usage data for the metric A of the product B that would bring it in overage
+    - Generate usage data for the metric A of the product B that would bring it in overusage
     - Trigger utilization calculation process
 - **Verification**:
     - Check absence of notification message on notifications topic
@@ -253,7 +253,7 @@ Test cases should be testable locally and in deployed environments.
     - An organization has capacity for the metric A of the product B
     - The utilization threshold is set to a negative value for that metric
 - **Action**:
-    - Generate enough usage for the metric A of the product B to trigger an overage with default threshold
+    - Generate enough usage for the metric A of the product B to trigger an overusage with default threshold
     - Trigger utilization calculation process
 - **Verification**:
     - Check absence of notification message on notifications topic
