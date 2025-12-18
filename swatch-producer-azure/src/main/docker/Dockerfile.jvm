@@ -93,15 +93,18 @@ COPY mvnw .
 COPY .mvn .mvn
 COPY pom.xml ./
 
-RUN --mount=type=cache,target=/root/.m2 \
-    ./mvnw -P download dependency:resolve-plugins dependency:resolve --fail-never
+# TEMPORARY WORKAROUND: Removed --mount=type=cache due to runc incompatibility
+# See: https://issues.redhat.com/browse/APPSRE-13062
+# This makes builds slower but allows them to work with runc until infra configures crun
+# TODO: Re-enable cache mounts once infra switches to crun
+RUN ./mvnw -P download dependency:resolve-plugins dependency:resolve --fail-never
 COPY . .
 ARG VERSION=1.0.0
 ARG PROJECT_NAME='swatch-producer-azure'
 ARG MAVEN_BUILD_ARGS='-DskipTests'
 ARG MAVEN_TASKS='clean package'
-RUN --mount=type=cache,target=/root/.m2 \
-    ./mvnw ${MAVEN_TASKS} -pl ${PROJECT_NAME} -am ${MAVEN_BUILD_ARGS}
+# TEMPORARY WORKAROUND: Removed --mount=type=cache due to runc incompatibility
+RUN ./mvnw ${MAVEN_TASKS} -pl ${PROJECT_NAME} -am ${MAVEN_BUILD_ARGS}
 
 FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.23-6.1764764731
 
