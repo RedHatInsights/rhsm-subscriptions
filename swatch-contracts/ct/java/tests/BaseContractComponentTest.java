@@ -20,11 +20,13 @@
  */
 package tests;
 
+import static api.PartnerApiStubs.PartnerSubscriptionsStubRequest.forContract;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import api.ContractsSwatchService;
 import api.ContractsWiremockService;
@@ -93,7 +95,7 @@ public class BaseContractComponentTest {
 
   void givenContractIsCreated(Contract contract) {
     wiremock.forProductAPI().stubOfferingData(contract.getOffering());
-    wiremock.forPartnerAPI().stubContract(contract);
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(contract));
     // Sync offering needed for contract to persist with the SKU
     Response sync = service.syncOffering(contract.getOffering().getSku());
     assertThat("Sync offering should succeed", sync.statusCode(), is(HttpStatus.SC_OK));
@@ -161,5 +163,39 @@ public class BaseContractComponentTest {
         .mapToDouble(data -> data.getValue().doubleValue())
         .max()
         .orElse(0.0);
+  }
+
+  /** Helper method to delete a contract by UUID and verify success. */
+  protected void whenContractIsDeleted(String contractUuid) {
+    Response deleteResponse = service.deleteContract(contractUuid);
+    assertThat("Delete should succeed", deleteResponse.statusCode(), is(HttpStatus.SC_NO_CONTENT));
+  }
+
+  /** Helper method to verify that a contract no longer exists for the organization. */
+  protected void thenContractShouldNotExist(String orgId) {
+    var contracts = service.getContractsByOrgId(orgId);
+    assertEquals(0, contracts.size(), "Contract should no longer be retrievable");
+  }
+
+  /** Helper method to get the UUID of the first contract for an organization. */
+  protected String getContractUuid(String orgId) {
+    var contracts = service.getContractsByOrgId(orgId);
+    assertEquals(1, contracts.size(), "Should have exactly one contract");
+    return contracts.get(0).getUuid();
+  }
+
+  /**
+   * Helper method to delete a contract by UUID, handling graceful non-existent contract scenarios.
+   */
+  protected Response whenContractIsDeletedGracefully(String contractUuid) {
+    return service.deleteContract(contractUuid);
+  }
+
+  /** Helper method to verify that contract deletion handles non-existent contracts gracefully. */
+  protected void thenDeleteShouldBeIdempotent(Response deleteResponse) {
+    assertThat(
+        "Delete non-existent contract should return 204 No Content (idempotent behavior)",
+        deleteResponse.statusCode(),
+        is(HttpStatus.SC_NO_CONTENT));
   }
 }

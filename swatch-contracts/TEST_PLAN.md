@@ -335,7 +335,7 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Expected Result**:  
   - Initial contract created  
   - Second message updates existing contract  
-  - StatusResponse: "EXISTING_CONTRACTS_SYNCED"  
+  - StatusResponse: "Existing contracts and subscriptions updated"  
   - End date updated to new value
 
 **contracts-update-TC002 - Process redundant contract message**  
@@ -345,7 +345,7 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Verification**: Check the database for a single contract only  
 - **Expected Result**:  
   - First message creates a contract  
-  - Second message: StatusResponse "REDUNDANT_MESSAGE_IGNORED"  
+  - Second message: StatusResponse "Redundant message ignored"  
   - No duplicate contracts created
 
 ## Contract Update via API
@@ -523,23 +523,23 @@ Test cases should be testable locally and in an ephemeral environment.
 ## Contract Deletion
 
 **contracts-deletion-TC001** - **Delete contract by UUID**  
-- **Description:** Verify hard deletion of contract and its metrics.  
+- **Description:** Verify hard deletion of contract by UUID.  
 - **Setup:** Create a contract and note its UUID.  
 - **Action:** DELETE `/api/swatch-contracts/internal/contracts/{uuid}`.  
-- **Verification:** Attempt to retrieve deleted contract.  
+- **Verification:** 
+  - Verify contract is no longer retrievable
 - **Expected Result:**  
-  - HTTP 200 response  
-  - Contract no longer retrievable  
-  - Associated metrics also deleted
+  - HTTP 204 No Content response
+  - Contract no longer returned by organization contract lookup
 
 **contracts-deletion-TC002** - **Delete non-existent contract**  
-- **Description:** Verify error handling for deleting a non-existent UUID.  
+- **Description:** Verify graceful handling for deleting a non-existent UUID.  
 - **Setup:** Generate a random UUID that doesn't exist.  
 - **Action:** DELETE contract with invalid UUID.  
-- **Verification:** Check error response.  
+- **Verification:** Check response for idempotent behavior.  
 - **Expected Result:**  
-  - HTTP 404 Not Found or appropriate error  
-  - Error message indicates contract not found
+  - HTTP 204 No Content (idempotent behavior - delete succeeds regardless)  
+  - Graceful handling of non-existent contracts
 
 ## Contract Sync
 

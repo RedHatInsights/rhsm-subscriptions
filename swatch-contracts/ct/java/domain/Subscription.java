@@ -31,7 +31,7 @@ import lombok.Getter;
 import lombok.experimental.SuperBuilder;
 
 @Getter
-@SuperBuilder
+@SuperBuilder(toBuilder = true)
 @AllArgsConstructor
 public class Subscription {
   private final String orgId;
