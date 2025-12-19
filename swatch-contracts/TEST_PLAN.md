@@ -1510,7 +1510,7 @@ This section validates capacity calculations across time boundaries. Tests verif
 - **Description**: Verify that an Account with multiple subscriptions and a contract increases when the capacity quantity is increased
 - **Test Steps**:
   1. Given: Create an account with two subscriptions and a contract
-  2. When: Increase the sku related to the contract and run Subscription sync
+  2. When: Increase the metrics related to the contract and run Subscription sync
   3. Then: Verify that the capacity increases
 - **Expected Results**: 
   - that the capacity increases
@@ -1519,7 +1519,7 @@ This section validates capacity calculations across time boundaries. Tests verif
 - **Description**: Verify that an Account with multiple subscriptions and a contract decreases when the capacity quantity is decreased
 - **Test Steps**:
   1. Given: Create an account with two subscriptions and a contract
-  2. When: Decrease the sku related to the contract and run Subscription sync
+  2. When: Decrease the metrics related to the contract and run Subscription sync
   3. Then: Verify that the capacity decreases
 - **Expected Results**: 
   - that the capacity decreases 
@@ -1528,7 +1528,7 @@ This section validates capacity calculations across time boundaries. Tests verif
 - **Description**: Verify that an Account with multiple subscriptions and multiple contracts increases when the capacity quantity is increased
 - **Test Steps**:
   1. Given: Create an account with two subscriptions and two contracts
-  2. When: Increase the sku related to one of the contracts, increase the sku related to one of the subscriptions and run Subscription sync
+  2. When: Increase the metrics related to one of the contracts, increase the sku related to one of the subscriptions and run Subscription sync
   3. Then: Verify that the capacity increases for both
 - **Expected Results**: 
   - that the capacity increases for both
@@ -1537,7 +1537,7 @@ This section validates capacity calculations across time boundaries. Tests verif
 - **Description**: Verify that an Account with multiple subscriptions and multiple contracts decreases when the capacity quantity is decreased
 - **Test Steps**:
   1. Given: Create an account with two subscriptions and two contracts
-  2. When: Decrease the sku related to the contract, increase the sku related to one of the subscriptions and run Subscription sync
+  2. When: Decrease the metrics related to the contract, decrease the sku related to one of the subscriptions and run Subscription sync
   3. Then: Verify that the capacity decreases for both
 - **Expected Results**: 
   - that the capacity decreases for both 
