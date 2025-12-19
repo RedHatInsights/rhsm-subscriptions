@@ -1485,10 +1485,10 @@ This section validates capacity calculations across time boundaries. Tests verif
   2. When: Update the Satellite Server product (satellite-server) sockets to be 8 and run Subscription sync/Reconcile (?)
   3. Then: Verify that the sockets are updated (increased) and the capacity reflects the updated sku
 - **Expected Results**: 
-  - the sockets will reflect the 8 cores
+  - the sockets will reflect the 8 sockets
 
 ## Accounts with Subscriptions and or contracts
-**capacity-metrics-TC013 - Increasing subscription on an account with multiple contracts**
+**capacity-metrics-TC011 - Increasing subscription on an account with multiple contracts**
 - **Description**: Verify that an Account with multiple contracts and a subscription increases when the capacity quantity is increased
 - **Test Steps**:
   1. Given: Create an account with two contracts and a subscription
@@ -1497,7 +1497,7 @@ This section validates capacity calculations across time boundaries. Tests verif
 - **Expected Results**: 
   - that the capacity increases
 
-**capacity-metrics-TC014 - Decreasing subscription on an account with multiple contracts**
+**capacity-metrics-TC012 - Decreasing subscription on an account with multiple contracts**
 - **Description**: Verify that an Account with multiple contracts and a subscription decreases when the capacity quantity is decreased
 - **Test Steps**:
   1. Given: Create an account with two contracts and a subscription
@@ -1506,7 +1506,7 @@ This section validates capacity calculations across time boundaries. Tests verif
 - **Expected Results**: 
   - that the capacity decreases 
 
-**capacity-metrics-TC015 - Increasing contract on an account with multiple subscriptions**
+**capacity-metrics-TC013 - Increasing contract on an account with multiple subscriptions**
 - **Description**: Verify that an Account with multiple subscriptions and a contract increases when the capacity quantity is increased
 - **Test Steps**:
   1. Given: Create an account with two subscriptions and a contract
@@ -1515,7 +1515,7 @@ This section validates capacity calculations across time boundaries. Tests verif
 - **Expected Results**: 
   - that the capacity increases
 
-**capacity-metrics-TC016 - Decreasing contract on an account with multiple subscriptions**
+**capacity-metrics-TC014 - Decreasing contract on an account with multiple subscriptions**
 - **Description**: Verify that an Account with multiple subscriptions and a contract decreases when the capacity quantity is decreased
 - **Test Steps**:
   1. Given: Create an account with two subscriptions and a contract
@@ -1524,7 +1524,7 @@ This section validates capacity calculations across time boundaries. Tests verif
 - **Expected Results**: 
   - that the capacity decreases 
 
-**capacity-metrics-TC017 - Increasing capacity with multiple subscriptions**
+**capacity-metrics-TC015 - Increasing capacity with multiple subscriptions**
 - **Description**: Verify that an Account with multiple subscriptions and multiple contracts increases when the capacity quantity is increased
 - **Test Steps**:
   1. Given: Create an account with two subscriptions and two contracts
@@ -1533,7 +1533,7 @@ This section validates capacity calculations across time boundaries. Tests verif
 - **Expected Results**: 
   - that the capacity increases for both
 
-**capacity-metrics-TC018 - Decreasing capacity with multiple subscriptions**
+**capacity-metrics-TC016 - Decreasing capacity with multiple subscriptions**
 - **Description**: Verify that an Account with multiple subscriptions and multiple contracts decreases when the capacity quantity is decreased
 - **Test Steps**:
   1. Given: Create an account with two subscriptions and two contracts
