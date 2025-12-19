@@ -124,6 +124,17 @@ public class BaseService<T extends Service> implements Service {
   }
 
   @Override
+  public <I> I getManagedResource(Class<I> clazz) {
+    if (clazz.isInstance(managedResource)) {
+      return clazz.cast(managedResource);
+    }
+
+    throw new ClassCastException(
+        "The managed resource for the service %s does not extend the interface %s"
+            .formatted(serviceName, clazz.getName()));
+  }
+
+  @Override
   public String getProperty(String property, String defaultValue) {
     String value = getProperties().get(property);
     if (StringUtils.isNotEmpty(value)) {
