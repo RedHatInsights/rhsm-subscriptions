@@ -25,7 +25,6 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
@@ -67,7 +66,6 @@ public class ContractsDeletionComponentTest extends BaseContractComponentTest {
     // Verify contract is no longer retrievable
     var contractsAfterDelete = service.getContractsByOrgId(orgId);
     assertEquals(0, contractsAfterDelete.size(), "Contract should no longer be retrievable");
-
   }
 
   @TestPlanName("contracts-deletion-TC002")
@@ -90,5 +88,4 @@ public class ContractsDeletionComponentTest extends BaseContractComponentTest {
         deleteResponse.statusCode(),
         is(HttpStatus.SC_NO_CONTENT));
   }
-
 }
