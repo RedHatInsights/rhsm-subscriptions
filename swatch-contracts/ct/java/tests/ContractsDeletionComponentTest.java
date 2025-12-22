@@ -20,12 +20,12 @@
  */
 package tests;
 
+import static com.redhat.swatch.component.tests.utils.SwatchUtils.SECURITY_HEADERS;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static com.redhat.swatch.component.tests.utils.SwatchUtils.SECURITY_HEADERS;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
@@ -56,9 +56,10 @@ public class ContractsDeletionComponentTest extends BaseContractComponentTest {
     String contractUuid = contracts.get(0).getUuid();
 
     // When: DELETE contract by UUID using the existing business logic
-    Response deleteResponse = given()
-        .headers(SECURITY_HEADERS)
-        .get("/api/swatch-contracts/internal/contracts/" + contractUuid);
+    Response deleteResponse =
+        given()
+            .headers(SECURITY_HEADERS)
+            .delete("/api/swatch-contracts/internal/contracts/" + contractUuid);
 
     // Then: Verify deletion succeeded
     assertThat("Delete should succeed", deleteResponse.statusCode(), is(HttpStatus.SC_NO_CONTENT));
@@ -67,8 +68,6 @@ public class ContractsDeletionComponentTest extends BaseContractComponentTest {
     var contractsAfterDelete = service.getContractsByOrgId(orgId);
     assertEquals(0, contractsAfterDelete.size(), "Contract should no longer be retrievable");
 
-    // Verify associated metrics are also deleted (implicit with contract deletion)
-    // Since metrics are part of the contract entity, they get deleted cascadingly
   }
 
   @TestPlanName("contracts-deletion-TC002")
@@ -78,15 +77,18 @@ public class ContractsDeletionComponentTest extends BaseContractComponentTest {
     String nonExistentUuid = UUID.randomUUID().toString();
 
     // When: DELETE contract with invalid UUID using the existing business logic
-    Response deleteResponse = given()
-        .headers(SECURITY_HEADERS)
-        .delete("/api/swatch-contracts/internal/contracts/" + nonExistentUuid);
+    Response deleteResponse =
+        given()
+            .headers(SECURITY_HEADERS)
+            .delete("/api/swatch-contracts/internal/contracts/" + nonExistentUuid);
 
-    // Then: Verify graceful handling - existing implementation returns 204 even for non-existent contracts
+    // Then: Verify graceful handling - existing implementation returns 204 even for non-existent
+    // contracts
     // This is graceful idempotent behavior (delete operation succeeds regardless)
     assertThat(
         "Delete non-existent contract should return 204 No Content (idempotent behavior)",
         deleteResponse.statusCode(),
         is(HttpStatus.SC_NO_CONTENT));
   }
+
 }
