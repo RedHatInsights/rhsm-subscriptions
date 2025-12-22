@@ -31,7 +31,7 @@ import lombok.Getter;
 import lombok.experimental.SuperBuilder;
 
 @Getter
-@SuperBuilder
+@SuperBuilder(toBuilder = true)
 @AllArgsConstructor
 public class Subscription {
   private final String orgId;
@@ -66,6 +66,28 @@ public class Subscription {
         .product(Product.RHEL)
         .offering(
             Offering.buildRhelOffering(
+                Objects.requireNonNullElse(sku, seed),
+                capacity.getOrDefault(MetricIdUtils.getCores(), null),
+                capacity.getOrDefault(MetricIdUtils.getSockets(), null)))
+        .subscriptionId(seed)
+        .subscriptionNumber(seed)
+        .startDate(OffsetDateTime.now().minusDays(1))
+        .endDate(OffsetDateTime.now().plusDays(1))
+        .build();
+  }
+
+  public static Subscription buildOpenShiftSubscriptionUsingSku(
+      String orgId, Map<MetricId, Double> capacity, String sku) {
+    Objects.requireNonNull(orgId, "orgId cannot be null");
+    Objects.requireNonNull(sku, "sku cannot be null");
+
+    String seed = RandomUtils.generateRandom();
+    return Subscription.builder()
+        .subscriptionMeasurements(capacity)
+        .orgId(orgId)
+        .product(Product.OPENSHIFT)
+        .offering(
+            Offering.buildOpenShiftOffering(
                 Objects.requireNonNullElse(sku, seed),
                 capacity.getOrDefault(MetricIdUtils.getCores(), null),
                 capacity.getOrDefault(MetricIdUtils.getSockets(), null)))

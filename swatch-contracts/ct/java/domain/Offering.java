@@ -43,6 +43,10 @@ public class Offering {
   private static final String ROSA_LEVEL1 = "OpenShift";
   private static final String ROSA_LEVEL2 = "ROSA - RH OpenShift on AWS";
 
+  // Constants for OpenShift Container Platform offering defaults
+  private static final String OPENSHIFT_DESCRIPTION =
+      "Test component for OpenShift Container Platform";
+
   // Common Constants
   private static final String METERED_YES = "Y";
   private static final String METERED_NO = "N";
@@ -109,6 +113,21 @@ public class Offering {
         .serviceLevel(ServiceLevel.PREMIUM)
         .usage(Usage.PRODUCTION)
         .engProducts(List.of())
+        .build();
+  }
+
+  public static Offering buildOpenShiftOffering(String sku, Double cores, Double sockets) {
+    Objects.requireNonNull(sku, "sku cannot be null");
+
+    return Offering.builder()
+        .sku(sku)
+        .description(OPENSHIFT_DESCRIPTION)
+        .metered(METERED_NO)
+        .cores(Optional.ofNullable(cores).map(Double::intValue).orElse(null))
+        .sockets(Optional.ofNullable(sockets).map(Double::intValue).orElse(null))
+        .serviceLevel(ServiceLevel.PREMIUM)
+        .usage(Usage.PRODUCTION)
+        .engProducts(List.of(290))
         .build();
   }
 }

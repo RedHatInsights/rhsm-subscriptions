@@ -20,6 +20,7 @@
  */
 package tests;
 
+import static api.PartnerApiStubs.PartnerSubscriptionsStubRequest.forContract;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
@@ -93,7 +94,7 @@ public class BaseContractComponentTest {
 
   void givenContractIsCreated(Contract contract) {
     wiremock.forProductAPI().stubOfferingData(contract.getOffering());
-    wiremock.forPartnerAPI().stubContract(contract);
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(contract));
     // Sync offering needed for contract to persist with the SKU
     Response sync = service.syncOffering(contract.getOffering().getSku());
     assertThat("Sync offering should succeed", sync.statusCode(), is(HttpStatus.SC_OK));

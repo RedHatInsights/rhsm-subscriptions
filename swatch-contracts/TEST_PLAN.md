@@ -335,7 +335,7 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Expected Result**:  
   - Initial contract created  
   - Second message updates existing contract  
-  - StatusResponse: "EXISTING_CONTRACTS_SYNCED"  
+  - StatusResponse: "Existing contracts and subscriptions updated"  
   - End date updated to new value
 
 **contracts-update-TC002 - Process redundant contract message**  
@@ -345,7 +345,7 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Verification**: Check the database for a single contract only  
 - **Expected Result**:  
   - First message creates a contract  
-  - Second message: StatusResponse "REDUNDANT_MESSAGE_IGNORED"  
+  - Second message: StatusResponse "Redundant message ignored"  
   - No duplicate contracts created
 
 ## Contract Update via API
@@ -932,13 +932,13 @@ Test cases should be testable locally and in an ephemeral environment.
 
 *capacity-report-TC001 - Get V2 SKU capacity report**
 - **Description:** Verify the V2 endpoint with an enhanced measurement array.
-- **Setup:** Create subscriptions with multiple metrics.
-- **Action:** GET /api/rhsm-subscriptions/v2/subscriptions/products/rhel
+- **Setup:** Create subscriptions with multiple metrics for a product that supports multiple dimensions.
+- **Action:** GET /api/rhsm-subscriptions/v2/subscriptions/products/{product_id}
 - **Verification:** Ensure the subscription was successfully created.
 - **Expected Result:**
   - SkuCapacityReport_V2 returned
-  - The measurements field is an array of doubles, matching the received values (e.g., [8.0, 100.0]`)
-  - Meta includes measurements array with metric names (e.g., ["Cores", "Instance-hours"])
+  - The measurements field is an array of doubles, matching the received values (e.g., [8.0, 2.0])
+  - Meta includes measurements array with metric names corresponding to product metrics
 
 **capacity-report-TC002 -  Get Capacity Report by Product and Metric**
 - **Description**: Verify capacity report retrieval for a specific product and metric
@@ -947,8 +947,8 @@ Test cases should be testable locally and in an ephemeral environment.
   - User authenticated with a valid org_id
 - **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
 - **Test Steps**:
-  1. Create subscriptions for RHEL with the Cores metric
-  2. GET capacity report for product=RHEL, metric=Cores
+  1. Create subscriptions for a product with a specific metric
+  2. GET capacity report for the product and metric
   3. Specify granularity=DAILY, time range (beginning, ending)
 - **Expected Results**:
   - HTTP 200 OK
@@ -963,18 +963,18 @@ Test cases should be testable locally and in an ephemeral environment.
   - User authenticated with a valid org_id
 - **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
 - **Test Steps**:
-  1. Create 3 subscriptions for the same product with Cores capacity (10, 20, 30)
+  1. Create 3 subscriptions for the same product with varying capacity values
   2. All subscriptions active in the queried time range
   3. GET capacity report
 - **Expected Results**:
-  - Capacity value = sum of all subscriptions (60)
+  - Capacity value = sum of all subscriptions
   - Single data point per time period
 
 **capacity-report-TC004 - Capacity Report with No Data**
 - **Description**: Verify behavior when no subscriptions match the criteria
 - **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
 - **Test Steps**:
-  1. GET capacity for product with no subscriptions
+  1. GET capacity report for a product with no subscriptions
 - **Expected Results**:
   - HTTP 200 OK
   - data array has entries with value=0 and hasData=false
@@ -987,7 +987,7 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
 - **Test Steps**:
   1. Create a subscription with an end_date in the past
-  2. Create an active subscription
+  2. Create an active subscription for the same product
   3. GET capacity report
 - **Expected Results**:
   - Only active subscription capacity included

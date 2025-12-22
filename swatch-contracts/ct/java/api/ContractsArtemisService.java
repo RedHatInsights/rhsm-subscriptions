@@ -18,21 +18,22 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.utils;
+package api;
 
-import java.util.Arrays;
-import java.util.List;
+import com.redhat.swatch.component.tests.api.ArtemisService;
 
-public final class Ports {
+/**
+ * Service for sending messages via Artemis in component tests. Provides specialized builders for
+ * different message types.
+ */
+public class ContractsArtemisService extends ArtemisService {
 
-  public static final int DEFAULT_HTTP_PORT = 8080;
-  public static final int DEFAULT_SSL_PORT = 8443;
-  public static final int ARTEMIS_PORT = 5672;
-  public static final List<Integer> SSL_PORTS = Arrays.asList(DEFAULT_SSL_PORT, 443);
-
-  private Ports() {}
-
-  public static boolean isSsl(int port) {
-    return SSL_PORTS.contains(port);
+  /**
+   * Get facade for building and sending PartnerEntitlementContract messages.
+   *
+   * @return PartnerEntitlementContractBuilder instance
+   */
+  public PartnerContractArtemisSender forContracts() {
+    return new PartnerContractArtemisSender(this);
   }
 }
