@@ -34,9 +34,9 @@ public final class OpenShiftConfigurationBuilder
   @Override
   public OpenShiftConfiguration build() {
     OpenShiftConfiguration config = new OpenShiftConfiguration();
-    loadBoolean(PRINT_INFO_ON_ERROR, a -> a.printInfoOnError())
+    loadBoolean(PRINT_INFO_ON_ERROR, RunOnOpenShift::printInfoOnError)
         .ifPresent(config::setPrintInfoOnError);
-    loadArrayOfStrings(ADDITIONAL_RESOURCES, a -> a.additionalResources())
+    loadArrayOfStrings(ADDITIONAL_RESOURCES, RunOnOpenShift::additionalResources)
         .ifPresent(config::setAdditionalResources);
     return config;
   }

@@ -20,9 +20,9 @@
     <codegen.skipIfSpecIsUnchanged>true</codegen.skipIfSpecIsUnchanged>
 
     <!-- Dependencies -->
-    <quarkus.platform.version>3.29.4</quarkus.platform.version>
-    <spring.boot.version>3.5.7</spring.boot.version>
-    <resteasy.version>7.0.0.Final</resteasy.version>
+    <quarkus.platform.version>3.30.4</quarkus.platform.version>
+    <spring.boot.version>3.5.9</spring.boot.version>
+    <resteasy.version>7.0.1.Final</resteasy.version>
     <!-- Only use as provided in the common dependencies.
     Spring and Quarkus already provides the compatible Jackson versions -->
     <jackson.version>2.20.1</jackson.version>
@@ -30,34 +30,33 @@
     <slf4j.version>2.0.17</slf4j.version>
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
-    <opentelemetry-api.version>1.56.0</opentelemetry-api.version>
-    <awssdk-bom.version>2.38.9</awssdk-bom.version>
+    <opentelemetry-api.version>1.57.0</opentelemetry-api.version>
+    <awssdk-bom.version>2.40.13</awssdk-bom.version>
     <guava.version>33.5.0-jre</guava.version>
     <liquibase.version>5.0.1</liquibase.version>
     <postgresql.version>42.7.8</postgresql.version>
-    <testcontainers.version>1.21.3</testcontainers.version>
+    <testcontainers.version>1.21.4</testcontainers.version>
     <junit.version>6.0.1</junit.version>
-    <mockito.version>5.20.0</mockito.version>
-    <rest-assured.version>5.5.6</rest-assured.version>
+    <mockito.version>5.21.0</mockito.version>
     <awaitility.version>4.3.0</awaitility.version>
     <hibernate-validator.version>9.1.0.Final</hibernate-validator.version>
-    <swagger-parser.version>2.1.35</swagger-parser.version>
-    <swagger-ui.version>5.30.2</swagger-ui.version>
-    <splunk-otel-javaagent.version>2.21.1</splunk-otel-javaagent.version>
-    <java-uuid-generator.version>5.1.1</java-uuid-generator.version>
+    <swagger-parser.version>2.1.37</swagger-parser.version>
+    <swagger-ui.version>5.31.0</swagger-ui.version>
+    <splunk-otel-javaagent.version>2.23.0</splunk-otel-javaagent.version>
+    <insights-notification-schemas-java.version>1.0.1</insights-notification-schemas-java.version>
 
     <!-- Plugins -->
     <compiler-plugin.version>3.14.1</compiler-plugin.version>
     <surefire-plugin.version>3.5.4</surefire-plugin.version>
     <maven-jar-plugin.version>3.5.0</maven-jar-plugin.version>
-    <maven-assembly-plugin.version>3.7.1</maven-assembly-plugin.version>
-    <exec-maven-plugin.version>3.6.2</exec-maven-plugin.version>
-    <openapi-generator.version>7.16.0</openapi-generator.version>
+    <maven-assembly-plugin.version>3.8.0</maven-assembly-plugin.version>
+    <exec-maven-plugin.version>3.6.3</exec-maven-plugin.version>
+    <openapi-generator.version>7.18.0</openapi-generator.version>
     <spotless.version>3.1.0</spotless.version>
     <checkstyle.version>3.6.0</checkstyle.version>
     <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
     <maven-antrun-plugin.version>3.2.0</maven-antrun-plugin.version>
-    <sonar-maven-plugin.version>5.3.0.6276</sonar-maven-plugin.version>
+    <sonar-maven-plugin.version>5.5.0.6356</sonar-maven-plugin.version>
     <swagger-codegen-maven-plugin.version>3.0.75</swagger-codegen-maven-plugin.version>
 
     <!-- Sonar configuration -->
@@ -299,11 +298,6 @@
         <version>3.2.3</version>
       </dependency>
       <dependency>
-        <groupId>io.rest-assured</groupId>
-        <artifactId>rest-assured</artifactId>
-        <version>${rest-assured.version}</version>
-      </dependency>
-      <dependency>
         <groupId>org.awaitility</groupId>
         <artifactId>awaitility</artifactId>
         <version>${awaitility.version}</version>
@@ -319,9 +313,9 @@
         <version>${mockito.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.fasterxml.uuid</groupId>
-        <artifactId>java-uuid-generator</artifactId>
-        <version>${java-uuid-generator.version}</version>
+        <groupId>com.redhat.cloud.common</groupId>
+        <artifactId>insights-notification-schemas-java</artifactId>
+        <version>${insights-notification-schemas-java.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -330,13 +324,6 @@
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
-    </dependency>
-    <!-- overridden to address CVE-2023-44487 -->
-    <dependency>
-      <groupId>io.netty</groupId>
-      <artifactId>netty-codec-http2</artifactId>
-      <version>4.2.6.Final</version>
-      <scope>runtime</scope>
     </dependency>
   </dependencies>
 
@@ -388,7 +375,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-resources-plugin</artifactId>
-          <version>3.3.1</version>
+          <version>3.4.0</version>
         </plugin>
 
         <plugin>
@@ -437,7 +424,7 @@
         <plugin>
           <groupId>io.smallrye</groupId>
           <artifactId>jandex-maven-plugin</artifactId>
-          <version>3.5.2</version>
+          <version>3.5.3</version>
         </plugin>
 
         <plugin>
@@ -532,7 +519,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>12.1.2</version>
+            <version>12.3.0</version>
           </dependency>
         </dependencies>
       </plugin>
@@ -595,16 +582,6 @@
       </modules>
     </profile>
 
-    <profile>
-      <id>run-migrations</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-      </activation>
-      <modules>
-        <module>swatch-database-migrations</module>
-        <module>swatch-database</module>
-      </modules>
-    </profile>
     <profile>
       <id>coverage</id>
       <activation>

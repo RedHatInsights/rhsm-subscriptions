@@ -23,23 +23,22 @@ package domain;
 import com.redhat.swatch.contract.test.model.TallySnapshot;
 
 public enum BillingProvider {
-  AWS;
+  AWS,
+  AZURE;
 
   public String toApiModel() {
-    switch (this) {
-      case AWS:
-        return "aws";
-      default:
-        throw new IllegalArgumentException("Unsupported billing provider: " + this);
-    }
+    return switch (this) {
+      case AWS -> "aws";
+      case AZURE -> "azure";
+      default -> throw new IllegalArgumentException("Unsupported billing provider: " + this);
+    };
   }
 
   public TallySnapshot.BillingProvider toTallySnapshotModel() {
-    switch (this) {
-      case AWS:
-        return TallySnapshot.BillingProvider.AWS;
-      default:
-        throw new IllegalArgumentException("Unsupported billing provider: " + this);
-    }
+    return switch (this) {
+      case AWS -> TallySnapshot.BillingProvider.AWS;
+      case AZURE -> TallySnapshot.BillingProvider.AZURE;
+      default -> throw new IllegalArgumentException("Unsupported billing provider: " + this);
+    };
   }
 }

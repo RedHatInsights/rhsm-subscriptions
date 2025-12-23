@@ -39,6 +39,8 @@ parameters:
     value: prod
   - name: DISABLE_OTEL
     value: 'false'
+  - name: CUSTOMER_OVER_USAGE_DEFAULT_THRESHOLD_PERCENT
+    value: '5.0'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -56,6 +58,9 @@ objects:
       - replicas: ${{KAFKA_UTILIZATION_REPLICAS}}
         partitions: ${{KAFKA_UTILIZATION_PARTITIONS}}
         topicName: platform.rhsm-subscriptions.utilization
+      - replicas: ${{KAFKA_UTILIZATION_REPLICAS}}
+        partitions: ${{KAFKA_UTILIZATION_PARTITIONS}}
+        topicName: platform.notifications.ingress
 
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
@@ -128,6 +133,8 @@ objects:
               value: ${QUARKUS_PROFILE}
             - name: DISABLE_OTEL
               value: ${DISABLE_OTEL}
+            - name: CUSTOMER_OVER_USAGE_DEFAULT_THRESHOLD_PERCENT
+              value: ${CUSTOMER_OVER_USAGE_DEFAULT_THRESHOLD_PERCENT}
           volumeMounts:
             - name: logs
               mountPath: /logs

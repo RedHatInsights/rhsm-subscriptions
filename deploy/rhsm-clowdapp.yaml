@@ -103,6 +103,22 @@ objects:
             "version": 1,
             "features": [
                   {
+                    "name": "swatch.swatch-notifications.send-notifications",
+                    "description": "Enable sending of over-usage notifications to platform.notifications.ingress",
+                    "type": "operational",
+                    "project": "default",
+                    "enabled": true,
+                    "stale": false,
+                    "strategies": [
+                        {
+                            "name": "default",
+                            "parameters": {}
+                        }
+                    ],
+                    "variants": [],
+                    "createdAt": "2025-11-28T10:00:00.000Z"
+                  },
+                  {
                     "name": "swatch.swatch-metrics-hbi.emit-events",
                     "description": "Enable sending of HBI events to the Swatch events after conversion.",
                     "type": "operational",
@@ -119,3 +135,45 @@ objects:
                 }
             ]
         }
+
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: swatch-otel-config
+    data:
+      relay: |
+        extensions:
+          health_check:
+            endpoint: 0.0.0.0:13133
+        receivers:
+          otlp:
+            protocols:
+              grpc:
+                endpoint: 0.0.0.0:4317
+              http:
+                endpoint: 0.0.0.0:4318
+        processors:
+          batch:
+        exporters:
+          debug:
+            verbosity: detailed
+        service:
+          extensions:
+            - health_check
+          pipelines:
+            traces:
+              receivers: [otlp]
+              processors: [batch]
+              exporters: [debug]
+          telemetry:
+            logs:
+              level: info
+
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: signalfx
+    type: Opaque
+    data:
+      # dummy-token for testing purposes only
+      token: ZHVtbXktdG9rZW4=

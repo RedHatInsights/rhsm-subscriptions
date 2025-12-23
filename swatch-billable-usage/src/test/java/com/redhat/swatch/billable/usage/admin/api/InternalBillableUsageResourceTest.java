@@ -22,6 +22,7 @@ package com.redhat.swatch.billable.usage.admin.api;
 
 import static com.redhat.swatch.billable.usage.configuration.Channels.BILLABLE_USAGE_OUT;
 import static com.redhat.swatch.billable.usage.configuration.Channels.ENABLED_ORGS;
+import static com.redhat.swatch.billable.usage.kafka.InMemoryMessageBrokerKafkaResource.IN_MEMORY_CONNECTOR;
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
@@ -42,7 +43,6 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectSpy;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import io.smallrye.reactive.messaging.memory.InMemorySink;
-import jakarta.enterprise.inject.Any;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.time.Duration;
@@ -50,6 +50,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.apache.http.HttpStatus;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
+import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -62,7 +63,10 @@ class InternalBillableUsageResourceTest {
 
   @InjectMock ApplicationConfiguration configuration;
   @InjectSpy BillableUsageRemittanceRepository remittanceRepository;
-  @Inject @Any InMemoryConnector connector;
+
+  @Inject
+  @Connector(IN_MEMORY_CONNECTOR)
+  InMemoryConnector connector;
 
   InMemorySink<EnabledOrgsRequest> enabledOrgsSink;
   InMemorySink<BillableUsage> billableUsageSink;

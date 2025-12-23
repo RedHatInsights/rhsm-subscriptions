@@ -229,6 +229,22 @@ class BillableUsageMapperTest {
   }
 
   @Test
+  void shouldSkipDailyGranularitySnapshots() {
+    assertTrue(
+        mapper
+            .fromTallySummary(
+                createExampleTallySummaryWithOrgId(
+                    ROSA,
+                    TallySnapshot.Granularity.DAILY,
+                    TallySnapshot.Sla.STANDARD,
+                    TallySnapshot.Usage.PRODUCTION,
+                    TallySnapshot.BillingProvider.AWS,
+                    "123"))
+            .findAny()
+            .isEmpty());
+  }
+
+  @Test
   void shouldSkipSummaryWithNoMeasurements() {
     TallySummary tallySummary =
         createExampleTallySummaryWithOrgId(

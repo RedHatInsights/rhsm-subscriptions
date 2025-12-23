@@ -32,11 +32,8 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import domain.Product;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
 
-@ComponentTest
-@Tag("component")
-@Tag("billable-usage")
+@ComponentTest(name = "swatch-billable-usage")
 public class BaseBillableUsageComponentTest {
   static final MetricId CORES = MetricIdUtils.getCores();
   static final Product ROSA = Product.ROSA;

@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/openjdk-17:1.23-6.1763035539
+FROM registry.access.redhat.com/ubi9/openjdk-21:1.24-1
 
 USER root
 # Add git, so that the build can determine the git hash
@@ -16,19 +16,41 @@ COPY mvnw .
 COPY .mvn .mvn
 COPY pom.xml ./
 
-RUN --mount=type=cache,target=/root/.m2 \
-    ./mvnw -P download dependency:resolve-plugins dependency:resolve --fail-never
+# TEMPORARY WORKAROUND: Removed --mount=type=cache due to runc incompatibility
+# See: https://issues.redhat.com/browse/APPSRE-13062
+# This makes builds slower but allows them to work with runc until infra configures crun
+# TODO: Re-enable cache mounts once infra switches to crun
+RUN ./mvnw -P download dependency:resolve-plugins dependency:resolve --fail-never
 COPY . .
+ARG VERSION=1.0.0
 ARG MAVEN_BUILD_ARGS=''
 ARG MAVEN_TASKS='clean package'
-RUN --mount=type=cache,target=/root/.m2 \
-    ./mvnw ${MAVEN_TASKS} -pl swatch-system-conduit -am -DskipTests ${MAVEN_BUILD_ARGS}
+# TEMPORARY WORKAROUND: Removed --mount=type=cache due to runc incompatibility
+RUN ./mvnw ${MAVEN_TASKS} -pl swatch-system-conduit -am -DskipTests ${MAVEN_BUILD_ARGS}
 
 # See https://stackoverflow.com/a/786515
 RUN (cd /stage/swatch-system-conduit && exec jar -xf ./target/*.jar)
 RUN ls -al /stage/swatch-system-conduit
 
-FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.23-6.1763034979
+FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.24-2
+
+ARG VERSION=1.0.0
+
+# Required labels for Enterprise Contract
+LABEL name="swatch-system-conduit"
+LABEL maintainer="Red Hat, Inc."
+LABEL version="ubi9"
+LABEL release="${VERSION}"
+LABEL vendor="Red Hat, Inc."
+LABEL url="https://github.com/RedHatInsights/rhsm-subscriptions"
+LABEL com.redhat.component="swatch-system-conduit"
+LABEL distribution-scope="public"
+LABEL io.k8s.description="SWATCH System Conduit service based on UBI9 OpenJDK 21."
+LABEL description="SWATCH System Conduit service based on UBI9 OpenJDK 21."
+
+#label for EULA
+LABEL com.redhat.license_terms="https://www.redhat.com/en/about/red-hat-end-user-license-agreements#UBI"
+
 USER root
 RUN microdnf \
     --disablerepo=* \

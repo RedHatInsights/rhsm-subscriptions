@@ -47,6 +47,23 @@ public class OfferingStubs {
   /**
    * Stub the upstream product data service to return product tree for a given SKU. This is used by
    * the offering sync API to populate offering data.
+   *
+   * <p><b>Important: Standard vs Hypervisor Capacity Logic</b>
+   *
+   * <p>The {@code UpstreamProductData.calcCapacityForOffering()} method determines whether an
+   * offering provides standard capacity or hypervisor capacity based on the presence of the {@code
+   * DERIVED_SKU} attribute:
+   *
+   * <ul>
+   *   <li>If {@code DERIVED_SKU} attribute is <b>absent</b>: {@code CORES} and {@code SOCKET_LIMIT}
+   *       are mapped to standard capacity fields ({@code cores}, {@code sockets})
+   *   <li>If {@code DERIVED_SKU} attribute is <b>present</b>: {@code CORES} and {@code
+   *       SOCKET_LIMIT} are mapped to hypervisor capacity fields ({@code hypervisorCores}, {@code
+   *       hypervisorSockets})
+   * </ul>
+   *
+   * @param offering the offering to stub
+   * @see com.redhat.swatch.contract.product.UpstreamProductData#calcCapacityForOffering
    */
   public void stubUpstreamProductData(Offering offering) {
     var attributes = new java.util.ArrayList<Map<String, String>>();
@@ -56,6 +73,17 @@ public class OfferingStubs {
     if (offering.getSockets() != null) {
       attributes.add(
           Map.of("code", "SOCKET_LIMIT", "value", String.valueOf(offering.getSockets())));
+    }
+    if (offering.getHypervisorCores() != null) {
+      attributes.add(
+          Map.of("code", "CORES", "value", String.valueOf(offering.getHypervisorCores())));
+    }
+    if (offering.getHypervisorSockets() != null) {
+      attributes.add(
+          Map.of("code", "SOCKET_LIMIT", "value", String.valueOf(offering.getHypervisorSockets())));
+    }
+    if (offering.getDerivedSku() != null) {
+      attributes.add(Map.of("code", "DERIVED_SKU", "value", offering.getDerivedSku()));
     }
     if (offering.getLevel1() != null) {
       attributes.add(Map.of("code", "LEVEL_1", "value", offering.getLevel1()));

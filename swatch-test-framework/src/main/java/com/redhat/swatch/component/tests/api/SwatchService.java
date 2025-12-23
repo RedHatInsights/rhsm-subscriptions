@@ -98,8 +98,8 @@ public class SwatchService extends RestService {
         boolean allTagsPresent = Stream.of(tags).allMatch(line::contains);
 
         if (allTagsPresent) {
-          // Extract the numeric value using regex
-          Pattern pattern = Pattern.compile("([0-9]+\\.?[0-9]*)");
+          // Extract the metric value (the number after } and before #)
+          Pattern pattern = Pattern.compile("\\}\\s+([0-9]+\\.?[0-9]*)\\s+#");
           Matcher matcher = pattern.matcher(line);
 
           if (matcher.find()) {

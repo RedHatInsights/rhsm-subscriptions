@@ -41,6 +41,7 @@ import org.candlepin.subscriptions.resource.ApiConfiguration;
 import org.candlepin.subscriptions.security.AuthProperties;
 import org.candlepin.subscriptions.security.SecurityConfiguration;
 import org.candlepin.subscriptions.tally.TallyWorkerConfiguration;
+import org.candlepin.subscriptions.util.LiquibaseUpdateOnlyConfiguration;
 import org.candlepin.subscriptions.util.UtilConfiguration;
 import org.springframework.boot.actuate.autoconfigure.info.ConditionalOnEnabledInfoContributor;
 import org.springframework.boot.actuate.autoconfigure.info.InfoContributorFallback;
@@ -63,6 +64,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
   DevModeConfiguration.class,
   SecurityConfiguration.class,
   RhsmSubscriptionsDataSourceConfiguration.class,
+  LiquibaseUpdateOnlyConfiguration.class,
   UtilConfiguration.class,
 })
 public class ApplicationConfiguration implements WebMvcConfigurer {

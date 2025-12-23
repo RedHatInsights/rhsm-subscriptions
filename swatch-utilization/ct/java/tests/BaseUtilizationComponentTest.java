@@ -20,6 +20,8 @@
  */
 package tests;
 
+import static com.redhat.swatch.component.tests.utils.Topics.NOTIFICATIONS;
+
 import com.redhat.swatch.component.tests.api.ComponentTest;
 import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
@@ -29,16 +31,14 @@ import com.redhat.swatch.component.tests.api.Unleash;
 import com.redhat.swatch.component.tests.api.UnleashService;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
 
-@ComponentTest
-@Tag("component")
-@Tag("utilization")
+@ComponentTest(name = "swatch-utilization")
 public class BaseUtilizationComponentTest {
 
   public static final String SEND_NOTIFICATIONS = "swatch.swatch-notifications.send-notifications";
 
-  @KafkaBridge static KafkaBridgeService kafkaBridge = new KafkaBridgeService();
+  @KafkaBridge
+  static KafkaBridgeService kafkaBridge = new KafkaBridgeService().subscribeToTopic(NOTIFICATIONS);
 
   @Unleash static UnleashService unleash = new UnleashService();
 

@@ -25,8 +25,10 @@ Execute tests for a specific service. For example, to run tests for `swatch-bill
 Deploy only the necessary dependencies for a specific service:
 
 ```bash
-bonfire deploy rhsm --no-remove-resources app:rhsm --source=appsre --ref-env insights-stage --component swatch-kafka-bridge --component swatch-database --component wiremock --component artemis --component swatch-billable-usage
+bonfire deploy rhsm --no-remove-resources app:rhsm --source=appsre --ref-env insights-stage --component swatch-kafka-bridge --component swatch-database --component wiremock --component artemis --component swatch-billable-usage --remove-dependencies swatch-billable-usage/swatch-contracts
 ```
+
+You can use a custom image of the service by adding the following parameters to the previous command: `-p swatch-billable-usage/IMAGE=quay.io/jcarvaja/swatch-billable-usage -p swatch-billable-usage/IMAGE_TAG=94b0808`.
 
 ### 2. Run Component Tests Against OpenShift
 

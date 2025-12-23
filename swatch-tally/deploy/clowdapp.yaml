@@ -47,16 +47,6 @@ parameters:
     value: 350m
   - name: CPU_LIMIT
     value: 1500m
-  - name: MIGRATION_IMAGE
-    value: quay.io/cloudservices/swatch-database
-  - name: MIGRATION_MEMORY_REQUEST
-    value: 256Mi
-  - name: MIGRATION_MEMORY_LIMIT
-    value: 512Mi
-  - name: MIGRATION_CPU_REQUEST
-    value: 100m
-  - name: MIGRATION_CPU_LIMIT
-    value: 400m
   - name: PROM_URL
     value: http://localhost:8082
   - name: DATABASE_CONNECTION_TIMEOUT_MS
@@ -227,7 +217,7 @@ parameters:
     value: 'grpc'
   - description: database secret name
     name: FLOORIST_DB_SECRET_NAME
-    value: swatch-database-db
+    value: swatch-db-ro
   - description: bucket secret name
     name: FLOORIST_BUCKET_SECRET_NAME
     required: true
@@ -300,17 +290,19 @@ objects:
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
           initContainers:
-            - image: ${MIGRATION_IMAGE}:${IMAGE_TAG}
-              command: ["/opt/jboss/container/java/run/run-java.sh"]
-              args: ["core", "update"]
+            - env:
+                - name: JAVA_DEBUG
+                  value: ${JAVA_DEBUG}
+                - name: SPRING_PROFILES_ACTIVE
+                  value: liquibase-only
               inheritEnv: true
               resources:
                 requests:
-                  cpu: ${MIGRATION_CPU_REQUEST}
-                  memory: ${MIGRATION_MEMORY_REQUEST}
+                  cpu: ${CPU_REQUEST}
+                  memory: ${MEMORY_REQUEST}
                 limits:
-                  cpu: ${MIGRATION_CPU_LIMIT}
-                  memory: ${MIGRATION_MEMORY_LIMIT}
+                  cpu: ${CPU_LIMIT}
+                  memory: ${MEMORY_LIMIT}
           env:
             - name: JAVA_DEBUG
               value: ${JAVA_DEBUG}

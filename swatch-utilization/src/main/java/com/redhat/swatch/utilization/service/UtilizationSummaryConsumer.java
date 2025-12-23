@@ -23,6 +23,7 @@ package com.redhat.swatch.utilization.service;
 import static com.redhat.swatch.utilization.configuration.Channels.UTILIZATION;
 
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.utilization.model.Measurement;
 import com.redhat.swatch.utilization.model.UtilizationSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -37,34 +38,44 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 @ApplicationScoped
 public class UtilizationSummaryConsumer {
 
-  protected static final String RECEIVED_METRIC = "swatch_utilization_received";
+  public static final String RECEIVED_METRIC = "swatch_utilization_received";
 
   @Inject MeterRegistry meterRegistry;
-  @Inject UtilizationSummaryValidator payloadValidator;
+  @Inject UtilizationSummaryPayloadValidator payloadValidator;
+  @Inject UtilizationSummaryMeasurementValidator measurementValidator;
   @Inject CustomerOverUsageService customerOverUsageService;
 
   @Incoming(UTILIZATION)
   public void process(UtilizationSummary payload) {
-    if (payloadValidator.isValid(payload)) {
-      incrementCounter(payload);
-      customerOverUsageService.check(payload);
+    if (payload.getMeasurements() == null || payload.getMeasurements().isEmpty()) {
+      log.debug("Received utilization summary without measurements. Payload: {}", payload);
+      return;
+    }
+
+    if (!payloadValidator.isUtilizationSummaryValid(payload)) {
+      log.debug("Invalid payload received: {}", payload);
+      return;
+    }
+
+    for (var measurement : payload.getMeasurements()) {
+      if (measurementValidator.isMeasurementValid(payload, measurement)) {
+        incrementCounter(payload, measurement);
+        customerOverUsageService.check(payload, measurement);
+      }
     }
   }
 
-  private void incrementCounter(UtilizationSummary payload) {
-    List<String> tags =
-        new ArrayList<>(List.of("product", payload.getProductId(), "org_id", payload.getOrgId()));
+  private void incrementCounter(UtilizationSummary payload, Measurement measurement) {
+    List<String> tags = new ArrayList<>(List.of("product", payload.getProductId()));
 
     if (Objects.nonNull(payload.getBillingProvider())) {
       tags.addAll(List.of("billing", payload.getBillingProvider().value()));
     }
 
-    for (var measurement : payload.getMeasurements()) {
-      var tagsByMetric = new ArrayList<>(tags);
-      tagsByMetric.addAll(
-          List.of("metric_id", MetricId.tryGetValueFromString(measurement.getMetricId())));
-      incrementCounter(tagsByMetric);
-    }
+    var tagsByMetric = new ArrayList<>(tags);
+    tagsByMetric.addAll(
+        List.of("metric_id", MetricId.tryGetValueFromString(measurement.getMetricId())));
+    incrementCounter(tagsByMetric);
   }
 
   private void incrementCounter(List<String> tags) {

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+  <changeSet id="202410211200-01" author="jcarvaja">
+    <!-- 
+      Only create index if it doesn't exist. If swatch-billable-usage starts first,
+      the consolidated script already creates this index.
+    -->
+    <preConditions onFail="MARK_RAN">
+      <and>
+        <columnExists tableName="billable_usage_remittance" columnName="retry_after"/>
+        <not>
+          <indexExists tableName="billable_usage_remittance" indexName="billable_usage_retry_after_idx"/>
+        </not>
+      </and>
+    </preConditions>
+    <createIndex tableName="billable_usage_remittance" indexName="billable_usage_retry_after_idx">
+      <column name="retry_after"/>
+    </createIndex>
+    <!-- rollback automatically generated -->
+  </changeSet>
+</databaseChangeLog>

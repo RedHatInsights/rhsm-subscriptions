@@ -22,22 +22,31 @@ package api;
 
 import static com.redhat.swatch.component.tests.utils.SwatchUtils.SECURITY_HEADERS;
 import static com.redhat.swatch.component.tests.utils.SwatchUtils.securityHeadersWithServiceRole;
+import static org.apache.http.HttpStatus.SC_OK;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.utils.JsonUtils;
+import com.redhat.swatch.contract.test.model.CapacityReportByMetricId;
 import com.redhat.swatch.contract.test.model.ContractRequest;
+import com.redhat.swatch.contract.test.model.GranularityType;
+import com.redhat.swatch.contract.test.model.ReportCategory;
 import com.redhat.swatch.contract.test.model.SkuCapacityReportV2;
 import com.redhat.swatch.contract.test.model.SkuCapacityV2;
+import domain.BillingProvider;
 import domain.Contract;
 import domain.Product;
 import domain.Subscription;
+import io.restassured.common.mapper.TypeRef;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
+import org.apache.http.HttpStatus;
 import utils.ContractRequestMapper;
 import utils.SubscriptionRequestMapper;
 
@@ -50,8 +59,15 @@ public class ContractsSwatchService extends SwatchService {
   private static final String SUBSCRIPTIONS_ENDPOINT = ENDPOINT_PREFIX + "/subscriptions";
   private static final String GET_SKU_ENDPOINT =
       "/api/rhsm-subscriptions/v2/subscriptions/products/{product_id}";
+  private static final String CAPACITY_REPORT_ENDPOINT =
+      "/api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}";
   private static final String TERMINATE_SUBSCRIPTION_ENDPOINT =
       ENDPOINT_PREFIX + "/subscriptions/terminate/{subscription_id}";
+  private static final String SYNC_CONTRACTS_BY_ORG_ENDPOINT =
+      ENDPOINT_PREFIX + "/rpc/sync/contracts/%s";
+  private static final String SYNC_ALL_CONTRACTS_ENDPOINT = "/internal/rpc/syncAllContracts";
+  private static final String SYNC_SUBSCRIPTIONS_FOR_CONTRACTS_BY_ORG_ENDPOINT =
+      ENDPOINT_PREFIX + "/rpc/sync/contracts/%s/subscriptions";
 
   public Response syncOffering(String sku) {
     Objects.requireNonNull(sku, "sku must not be null");
@@ -60,20 +76,57 @@ public class ContractsSwatchService extends SwatchService {
     return given().headers(SECURITY_HEADERS).when().put(endpoint);
   }
 
-  public Response getContracts(Contract contract) {
+  public List<com.redhat.swatch.contract.test.model.Contract> getContracts(Contract contract) {
     Objects.requireNonNull(contract.getOrgId(), "orgId must not be null");
     Objects.requireNonNull(contract.getBillingProvider(), "billingProvider must not be null");
     Objects.requireNonNull(contract.getBillingAccountId(), "billingAccountId must not be null");
     Objects.requireNonNull(contract.getProduct().getName(), "productTag must not be null");
 
-    return given()
-        .headers(SECURITY_HEADERS)
-        .queryParam("org_id", contract.getOrgId())
-        .queryParam("billing_provider", contract.getBillingProvider().toApiModel())
-        .queryParam("billing_account_id", contract.getBillingAccountId())
-        .queryParam("product_tag", contract.getProduct().getName())
-        .when()
-        .get(CONTRACTS_ENDPOINT);
+    return getContracts(
+        Map.of(
+            "org_id",
+            contract.getOrgId(),
+            "billing_provider",
+            contract.getBillingProvider().toApiModel(),
+            "billing_account_id",
+            contract.getBillingAccountId(),
+            "product_tag",
+            contract.getProduct().getName()));
+  }
+
+  public List<com.redhat.swatch.contract.test.model.Contract> getContractsByOrgId(String orgId) {
+    Objects.requireNonNull(orgId, "orgId must not be null");
+    return getContracts(Map.of("org_id", orgId));
+  }
+
+  public List<com.redhat.swatch.contract.test.model.Contract> getContractsByOrgIdAndTimestamp(
+      String orgId, OffsetDateTime timestamp) {
+    Objects.requireNonNull(orgId, "orgId must not be null");
+    Objects.requireNonNull(timestamp, "timestamp must not be null");
+    return getContracts(Map.of("org_id", orgId, "timestamp", timestamp.toString()));
+  }
+
+  public List<com.redhat.swatch.contract.test.model.Contract> getContractsByOrgIdAndBillingProvider(
+      String orgId, BillingProvider billingProvider) {
+    Objects.requireNonNull(orgId, "orgId must not be null");
+    Objects.requireNonNull(billingProvider, "billingProvider must not be null");
+    return getContracts(Map.of("org_id", orgId, "billing_provider", billingProvider.toApiModel()));
+  }
+
+  public List<com.redhat.swatch.contract.test.model.Contract>
+      getContractsByOrgIdAndBillingProviderAndTimestamp(
+          String orgId, BillingProvider billingProvider, OffsetDateTime timestamp) {
+    Objects.requireNonNull(orgId, "orgId must not be null");
+    Objects.requireNonNull(billingProvider, "billingProvider must not be null");
+    Objects.requireNonNull(timestamp, "timestamp must not be null");
+    return getContracts(
+        Map.of(
+            "org_id",
+            orgId,
+            "billing_provider",
+            billingProvider.toApiModel(),
+            "timestamp",
+            timestamp.toString()));
   }
 
   public Response createContract(Contract contract) {
@@ -139,6 +192,45 @@ public class ContractsSwatchService extends SwatchService {
         .as(SkuCapacityReportV2.class);
   }
 
+  public CapacityReportByMetricId getCapacityReportByMetricId(
+      Product product,
+      String orgId,
+      String metricId,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      GranularityType granularity,
+      ReportCategory category) {
+    Objects.requireNonNull(product, "product must not be null");
+    Objects.requireNonNull(orgId, "orgId must not be null");
+    Objects.requireNonNull(metricId, "metricId must not be null");
+    Objects.requireNonNull(beginning, "beginning must not be null");
+    Objects.requireNonNull(ending, "ending must not be null");
+    Objects.requireNonNull(granularity, "granularity must not be null");
+
+    var request =
+        given()
+            .headers(securityHeadersWithServiceRole(orgId))
+            .accept("application/vnd.api+json")
+            .pathParam("product_id", product.getName())
+            .pathParam("metric_id", metricId)
+            .queryParam("beginning", beginning.toString())
+            .queryParam("ending", ending.toString())
+            .queryParam("granularity", granularity);
+
+    if (category != null) {
+      request.queryParam("category", category);
+    }
+
+    return request
+        .when()
+        .get(CAPACITY_REPORT_ENDPOINT)
+        .then()
+        .statusCode(SC_OK)
+        .and()
+        .extract()
+        .as(CapacityReportByMetricId.class);
+  }
+
   public Response terminateSubscription(Subscription subscription) {
     return terminateSubscription(subscription, OffsetDateTime.now());
   }
@@ -154,5 +246,46 @@ public class ContractsSwatchService extends SwatchService {
         .queryParam("timestamp", timestamp.toString())
         .when()
         .post(TERMINATE_SUBSCRIPTION_ENDPOINT);
+  }
+
+  public Response syncContractsByOrg(String orgId) {
+    return syncContractsByOrg(orgId, false, false);
+  }
+
+  public Response syncContractsByOrg(
+      String orgId, Boolean isPreCleanup, Boolean deleteContractsAndSubs) {
+    Objects.requireNonNull(orgId, "orgId must not be null");
+
+    String endpoint = SYNC_CONTRACTS_BY_ORG_ENDPOINT.formatted(orgId);
+    return given()
+        .headers(SECURITY_HEADERS)
+        .queryParam("is_pre_cleanup", isPreCleanup)
+        .queryParam("delete_contracts_and_subs", deleteContractsAndSubs)
+        .when()
+        .post(endpoint);
+  }
+
+  public Response syncAllContracts() {
+    return given().headers(SECURITY_HEADERS).when().post(SYNC_ALL_CONTRACTS_ENDPOINT);
+  }
+
+  public Response syncSubscriptionsForContractsByOrg(String orgId) {
+    Objects.requireNonNull(orgId, "orgId must not be null");
+
+    String endpoint = SYNC_SUBSCRIPTIONS_FOR_CONTRACTS_BY_ORG_ENDPOINT.formatted(orgId);
+    return given().headers(SECURITY_HEADERS).when().post(endpoint);
+  }
+
+  private List<com.redhat.swatch.contract.test.model.Contract> getContracts(
+      Map<String, ?> queryParams) {
+    return given()
+        .headers(SECURITY_HEADERS)
+        .queryParams(queryParams)
+        .when()
+        .get(CONTRACTS_ENDPOINT)
+        .then()
+        .statusCode(HttpStatus.SC_OK)
+        .extract()
+        .as(new TypeRef<>() {});
   }
 }

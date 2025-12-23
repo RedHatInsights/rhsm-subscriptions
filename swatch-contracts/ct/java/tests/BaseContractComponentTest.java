@@ -36,18 +36,22 @@ import com.redhat.swatch.component.tests.api.Wiremock;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import com.redhat.swatch.contract.test.model.CapacityReportByMetricId;
+import com.redhat.swatch.contract.test.model.GranularityType;
+import com.redhat.swatch.contract.test.model.ReportCategory;
 import domain.Contract;
+import domain.Product;
 import domain.Subscription;
 import io.restassured.response.Response;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
 
-@ComponentTest
-@Tag("component")
-@Tag("contracts")
+@ComponentTest(name = "swatch-contracts")
 public class BaseContractComponentTest {
   static final MetricId CORES = MetricIdUtils.getCores();
   static final MetricId SOCKETS = MetricIdUtils.getSockets();
@@ -60,15 +64,31 @@ public class BaseContractComponentTest {
   static ContractsSwatchService service = new ContractsSwatchService();
 
   protected String orgId;
+  private List<String> orgIds = new ArrayList<>();
 
   @BeforeEach
   void setUp() {
-    orgId = RandomUtils.generateRandom();
+    orgId = givenOrgId();
   }
 
   @AfterEach
   void tearDown() {
-    service.deleteDataForOrg(orgId);
+    for (String orgId : orgIds) {
+      service.deleteDataForOrg(orgId);
+    }
+  }
+
+  String givenOrgId() {
+    return givenOrgId(RandomUtils.generateRandom());
+  }
+
+  String givenOrgIdWithSuffix(String suffix) {
+    return givenOrgId(RandomUtils.generateRandom() + suffix);
+  }
+
+  String givenOrgId(String orgId) {
+    orgIds.add(orgId);
+    return orgId;
   }
 
   void givenContractIsCreated(Contract contract) {
@@ -104,5 +124,42 @@ public class BaseContractComponentTest {
                 Objects.requireNonNull(service.getSkuCapacityBySubscription(subscription).getMeta())
                     .getCount(),
             capacity -> capacity < initialCapacity);
+  }
+
+  protected double getHypervisorSocketCapacity(
+      Product product, String orgId, OffsetDateTime beginning, OffsetDateTime ending) {
+    CapacityReportByMetricId report =
+        service.getCapacityReportByMetricId(
+            product,
+            orgId,
+            SOCKETS.toString(),
+            beginning,
+            ending,
+            GranularityType.DAILY,
+            ReportCategory.HYPERVISOR);
+    return getCapacityValueFromReport(report);
+  }
+
+  protected double getPhysicalSocketCapacity(
+      Product product, String orgId, OffsetDateTime beginning, OffsetDateTime ending) {
+    CapacityReportByMetricId report =
+        service.getCapacityReportByMetricId(
+            product,
+            orgId,
+            SOCKETS.toString(),
+            beginning,
+            ending,
+            GranularityType.DAILY,
+            ReportCategory.PHYSICAL);
+    return getCapacityValueFromReport(report);
+  }
+
+  /** Helper method to extract capacity value from the capacity report. */
+  protected double getCapacityValueFromReport(CapacityReportByMetricId report) {
+    return report.getData().stream()
+        .filter(data -> Boolean.TRUE.equals(data.getHasData()))
+        .mapToDouble(data -> data.getValue().doubleValue())
+        .max()
+        .orElse(0.0);
   }
 }

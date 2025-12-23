@@ -24,6 +24,8 @@ import static com.redhat.swatch.common.security.PskHeaderAuthenticationMechanism
 import static com.redhat.swatch.hbi.events.resources.InternalResource.SYNCHRONOUS_REQUEST_HEADER;
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.common.security.SecurityConfiguration;
@@ -40,13 +42,19 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import io.restassured.response.ValidatableResponse;
 import jakarta.inject.Inject;
-import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 import org.apache.http.HttpStatus;
-import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.stubbing.Answer;
 
 @QuarkusTest
 class InternalResourceTest {
@@ -104,6 +112,58 @@ class InternalResourceTest {
     assertEquals("Forced!", error.getDetail());
   }
 
+  static Stream<Arguments> flushLockParameters() {
+    return Stream.of(
+        arguments(true, true, StatusEnum.SUCCESS, StatusEnum.ALREADY_RUNNING),
+        arguments(true, false, StatusEnum.SUCCESS, StatusEnum.ALREADY_RUNNING),
+        arguments(false, true, StatusEnum.STARTED, StatusEnum.ALREADY_RUNNING),
+        arguments(false, false, StatusEnum.STARTED, StatusEnum.ALREADY_RUNNING));
+  }
+
+  @ParameterizedTest
+  @MethodSource("flushLockParameters")
+  void testFlushLockSynchronousScenarios(
+      boolean firstIsSync, boolean secondIsSync, StatusEnum firstStatus, StatusEnum secondStatus)
+      throws Exception {
+    withSynchronousRequestsEnabled(true);
+
+    // Latches to control execution flow
+    CountDownLatch firstRequestStarted = new CountDownLatch(1);
+    CountDownLatch firstRequestCanComplete = new CountDownLatch(1);
+
+    when(outboxService.flushOutboxRecords())
+        .thenAnswer(
+            (Answer<Long>)
+                invocation -> {
+                  firstRequestStarted.countDown(); // Signal that we've started
+                  firstRequestCanComplete.await(); // Wait until test says we can complete
+                  return 100L;
+                });
+
+    // The first request needs to be made in a separate thread because
+    // a synchronous call would complete before the second call would initiate.
+    withSynchronousRequestHeader(firstIsSync);
+    CompletableFuture<FlushResponse> future1 =
+        CompletableFuture.supplyAsync(() -> flushOutbox().extract().body().as(FlushResponse.class));
+
+    // Ensure that the first request thread has started (hits the await state above).
+    // It will stay in the await state until after the second has completed.
+    // The test will not need to wait 2 seconds unless something bad happened with
+    // the service, which is not likely to happen here.
+    assertTrue(firstRequestStarted.await(2, TimeUnit.SECONDS), "First request did not start!");
+
+    withSynchronousRequestHeader(secondIsSync);
+    FlushResponse flushResponse2 = flushOutbox().extract().body().as(FlushResponse.class);
+    assertEquals(secondStatus, flushResponse2.getStatus());
+
+    // Now allow the first request to complete
+    firstRequestCanComplete.countDown();
+
+    // The test will not need to wait 2 seconds, unless something bad happened with the service.
+    FlushResponse flushResponse1 = future1.get(2, TimeUnit.SECONDS);
+    assertEquals(firstStatus, flushResponse1.getStatus());
+  }
+
   @Test
   void testFlushOutboxAsyncDeniedWithInvalidPsk() {
     withInvalidPskHeader();
@@ -131,17 +191,6 @@ class InternalResourceTest {
 
   private void givenTestApisEnabled() {
     when(securityConfiguration.isTestApisEnabled()).thenReturn(true);
-  }
-
-  private Event givenValidRequest() {
-    Event request = new Event();
-    request.setOrgId("org123");
-    request.setEventSource("HBI_HOST");
-    request.setInstanceId("test-instance-id");
-    request.setEventType("test");
-    request.setServiceType("RHEL System");
-    request.setTimestamp(OffsetDateTime.now());
-    return request;
   }
 
   private void withSynchronousRequestsEnabled(boolean enabled) {

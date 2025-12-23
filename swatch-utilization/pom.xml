@@ -67,8 +67,8 @@
       <artifactId>swatch-common-splunk</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.fasterxml.uuid</groupId>
-      <artifactId>java-uuid-generator</artifactId>
+      <groupId>com.redhat.cloud.common</groupId>
+      <artifactId>insights-notification-schemas-java</artifactId>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>

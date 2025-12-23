@@ -33,6 +33,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(ComponentTestExtension.class)
 @Inherited
 public @interface ComponentTest {
+
+  /** Name of the component test being tested. */
+  String name() default "";
+
   /**
    * Set the target environment where to run the tests. Fallback property
    * `swatch.component-tests.global.target`.

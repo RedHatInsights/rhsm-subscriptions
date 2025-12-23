@@ -38,6 +38,10 @@
       <groupId>jakarta.annotation</groupId>
       <artifactId>jakarta.annotation-api</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.redhat.cloud.common</groupId>
+      <artifactId>insights-notification-schemas-java</artifactId>
+    </dependency>
 
     <!-- Required so the Maven reactor compiles this dependency -->
     <dependency>
