@@ -53,9 +53,8 @@ import org.junit.jupiter.api.Test;
 
 public class CapacityReportComponentTest extends BaseContractComponentTest {
 
-  private static final double OPENSHIFT_CORES_CAPACITY = 8.0;
-  private static final double OPENSHIFT_SOCKETS_CAPACITY = 2.0;
-  private static final double OPENSHIFT_INSTANCE_HOURS_CAPACITY = 100.0;
+  private static final double ROSA_CORES_CAPACITY = 8.0;
+  private static final double ROSA_INSTANCE_HOURS_CAPACITY = 100.0;
 
   @TestPlanName("capacity-report-TC001")
   @Test
@@ -71,7 +70,7 @@ public class CapacityReportComponentTest extends BaseContractComponentTest {
         .until(
             () -> {
               SkuCapacityReportV2 report =
-                  service.getSkuCapacityByProductIdForOrg(Product.OPENSHIFT, orgId);
+                  service.getSkuCapacityByProductIdForOrg(Product.ROSA, orgId);
               Assertions.assertNotNull(report.getData());
               return report.getData().stream()
                   .anyMatch(
@@ -83,7 +82,7 @@ public class CapacityReportComponentTest extends BaseContractComponentTest {
 
     // When: Get V2 SKU capacity report
     SkuCapacityReportV2 capacityReport =
-        service.getSkuCapacityByProductIdForOrg(Product.OPENSHIFT, orgId);
+        service.getSkuCapacityByProductIdForOrg(Product.ROSA, orgId);
 
     // Then: Verify SkuCapacityReport_V2 returned with enhanced measurement array
     assertThat("V2 SKU capacity report should not be null", capacityReport, notNullValue());
@@ -150,7 +149,7 @@ public class CapacityReportComponentTest extends BaseContractComponentTest {
             () -> {
               CapacityReportByMetricId report =
                   service.getCapacityReportByMetricId(
-                      Product.OPENSHIFT,
+                      Product.ROSA,
                       orgId,
                       CORES.toString(),
                       OffsetDateTime.now().minusDays(1),
@@ -168,13 +167,7 @@ public class CapacityReportComponentTest extends BaseContractComponentTest {
 
     CapacityReportByMetricId capacityReport =
         service.getCapacityReportByMetricId(
-            Product.OPENSHIFT,
-            orgId,
-            CORES.toString(),
-            beginning,
-            ending,
-            GranularityType.DAILY,
-            null);
+            Product.ROSA, orgId, CORES.toString(), beginning, ending, GranularityType.DAILY, null);
 
     // Then: Verify response contains correct capacity data
     assertThat("Capacity report should not be null", capacityReport, notNullValue());
@@ -199,7 +192,7 @@ public class CapacityReportComponentTest extends BaseContractComponentTest {
     assertThat(
         "Meta product should match",
         capacityReport.getMeta().getProduct(),
-        equalTo(Product.OPENSHIFT.getName()));
+        equalTo(Product.ROSA.getName()));
     assertThat(
         "Meta metricId should match",
         capacityReport.getMeta().getMetricId(),
@@ -219,9 +212,7 @@ public class CapacityReportComponentTest extends BaseContractComponentTest {
             .max()
             .orElse(0.0);
     assertThat(
-        "Capacity should match expected cores capacity",
-        maxCapacity,
-        equalTo(OPENSHIFT_CORES_CAPACITY));
+        "Capacity should match expected cores capacity", maxCapacity, equalTo(ROSA_CORES_CAPACITY));
   }
 
   @TestPlanName("capacity-report-TC003")
@@ -245,7 +236,7 @@ public class CapacityReportComponentTest extends BaseContractComponentTest {
             () -> {
               CapacityReportByMetricId report =
                   service.getCapacityReportByMetricId(
-                      Product.OPENSHIFT,
+                      Product.ROSA,
                       orgId,
                       CORES.toString(),
                       OffsetDateTime.now().minusDays(1),
@@ -347,7 +338,7 @@ public class CapacityReportComponentTest extends BaseContractComponentTest {
             () -> {
               CapacityReportByMetricId report =
                   service.getCapacityReportByMetricId(
-                      Product.OPENSHIFT,
+                      Product.ROSA,
                       orgId,
                       CORES.toString(),
                       OffsetDateTime.now().minusDays(1),
@@ -395,7 +386,7 @@ public class CapacityReportComponentTest extends BaseContractComponentTest {
     wiremock
         .forProductAPI()
         .stubOfferingData(
-            Offering.buildRhelOffering(sku, OPENSHIFT_CORES_CAPACITY, OPENSHIFT_SOCKETS_CAPACITY));
+            Offering.buildRhelOffering(sku, ROSA_CORES_CAPACITY, ROSA_INSTANCE_HOURS_CAPACITY));
     assertThat(
         "Sync offering should succeed",
         service.syncOffering(sku).statusCode(),
@@ -406,8 +397,8 @@ public class CapacityReportComponentTest extends BaseContractComponentTest {
         Subscription.buildRhelSubscriptionUsingSku(
             orgId,
             Map.of(
-                CORES, OPENSHIFT_CORES_CAPACITY,
-                SOCKETS, OPENSHIFT_SOCKETS_CAPACITY),
+                CORES, ROSA_CORES_CAPACITY,
+                SOCKETS, ROSA_INSTANCE_HOURS_CAPACITY),
             sku);
     assertThat(
         "Creating subscription should succeed",
@@ -418,7 +409,7 @@ public class CapacityReportComponentTest extends BaseContractComponentTest {
   }
 
   private Subscription givenSubscriptionWithCoresCapacity(String sku) {
-    return givenSubscriptionWithSpecificCoresCapacity(sku, OPENSHIFT_CORES_CAPACITY);
+    return givenSubscriptionWithSpecificCoresCapacity(sku, ROSA_CORES_CAPACITY);
   }
 
   private Subscription givenSubscriptionWithSpecificCoresCapacity(
@@ -453,7 +444,7 @@ public class CapacityReportComponentTest extends BaseContractComponentTest {
     Subscription subscription =
         Subscription.builder()
             .orgId(orgId)
-            .product(Product.OPENSHIFT)
+            .product(Product.ROSA)
             .subscriptionId(RandomUtils.generateRandom())
             .subscriptionNumber(RandomUtils.generateRandom())
             .offering(Offering.buildRhelOffering(sku, coresCapacity, null))
