@@ -139,7 +139,7 @@
       <dependency>
         <groupId>io.getunleash</groupId>
         <artifactId>springboot-unleash-starter</artifactId>
-        <version>1.2.4</version>
+        <version>1.2.5</version>
       </dependency>
       <dependency>
         <groupId>org.webjars</groupId>
