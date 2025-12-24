@@ -50,7 +50,8 @@ public class ContractUMBMessageConsumer {
     log.info("Consumer was called");
     if (umbEnabled) {
       try {
-        consumeContract(dtoContract);
+        StatusResponse response = consumeContract(dtoContract);
+        log.debug("umb response: {}", response);
       } catch (JsonProcessingException e) {
         throw new CreateContractException(e.getMessage());
       }

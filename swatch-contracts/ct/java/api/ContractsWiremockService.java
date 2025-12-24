@@ -28,16 +28,25 @@ public class ContractsWiremockService extends WiremockService {
    *
    * @return PartnerGatewayStubs facade
    */
-  public PartnerGatewayStubs forPartnerAPI() {
-    return new PartnerGatewayStubs(this);
+  public PartnerApiStubs forPartnerAPI() {
+    return new PartnerApiStubs(this);
   }
 
   /**
-   * Get facade for stubbing Product API (Offering) endpoints.
+   * Get facade for stubbing Product API endpoints.
    *
-   * @return OfferingStubs facade
+   * @return ProductApiStubs facade
    */
-  public OfferingStubs forProductAPI() {
-    return new OfferingStubs(this);
+  public ProductApiStubs forProductAPI() {
+    return new ProductApiStubs(this);
+  }
+
+  /**
+   * Get facade for stubbing Search API endpoints.
+   *
+   * @return SearchApiStubs facade
+   */
+  public SearchApiStubs forSearchApi() {
+    return new SearchApiStubs(this);
   }
 }

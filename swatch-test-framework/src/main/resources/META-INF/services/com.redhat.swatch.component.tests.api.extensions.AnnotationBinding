@@ -3,3 +3,4 @@ com.redhat.swatch.component.tests.resources.kafka.KafkaBridgeAnnotationBinding
 com.redhat.swatch.component.tests.resources.wiremock.WiremockAnnotationBinding
 com.redhat.swatch.component.tests.resources.springboot.SpringBootAnnotationBinding
 com.redhat.swatch.component.tests.resources.unleash.UnleashAnnotationBinding
+com.redhat.swatch.component.tests.resources.artemis.ArtemisAnnotationBinding

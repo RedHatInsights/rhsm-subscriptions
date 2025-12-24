@@ -18,21 +18,13 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.utils;
+package com.redhat.swatch.component.tests.api;
 
-import java.util.Arrays;
-import java.util.List;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public final class Ports {
-
-  public static final int DEFAULT_HTTP_PORT = 8080;
-  public static final int DEFAULT_SSL_PORT = 8443;
-  public static final int ARTEMIS_PORT = 5672;
-  public static final List<Integer> SSL_PORTS = Arrays.asList(DEFAULT_SSL_PORT, 443);
-
-  private Ports() {}
-
-  public static boolean isSsl(int port) {
-    return SSL_PORTS.contains(port);
-  }
-}
+@Target({ElementType.FIELD, ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Artemis {}

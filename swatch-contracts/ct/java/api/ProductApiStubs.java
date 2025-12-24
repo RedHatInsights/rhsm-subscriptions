@@ -25,11 +25,11 @@ import java.util.ArrayList;
 import java.util.Map;
 
 /** Facade for stubbing Product API (Offering) endpoints. */
-public class OfferingStubs {
+public class ProductApiStubs {
 
   private final ContractsWiremockService wiremockService;
 
-  protected OfferingStubs(ContractsWiremockService wiremockService) {
+  protected ProductApiStubs(ContractsWiremockService wiremockService) {
     this.wiremockService = wiremockService;
   }
 
@@ -63,7 +63,6 @@ public class OfferingStubs {
    * </ul>
    *
    * @param offering the offering to stub
-   * @see com.redhat.swatch.contract.product.UpstreamProductData#calcCapacityForOffering
    */
   public void stubUpstreamProductData(Offering offering) {
     var attributes = new java.util.ArrayList<Map<String, String>>();

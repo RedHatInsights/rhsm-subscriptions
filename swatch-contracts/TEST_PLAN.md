@@ -335,7 +335,7 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Expected Result**:  
   - Initial contract created  
   - Second message updates existing contract  
-  - StatusResponse: "EXISTING_CONTRACTS_SYNCED"  
+  - StatusResponse: "Existing contracts and subscriptions updated"  
   - End date updated to new value
 
 **contracts-update-TC002 - Process redundant contract message**  
@@ -345,7 +345,7 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Verification**: Check the database for a single contract only  
 - **Expected Result**:  
   - First message creates a contract  
-  - Second message: StatusResponse "REDUNDANT_MESSAGE_IGNORED"  
+  - Second message: StatusResponse "Redundant message ignored"  
   - No duplicate contracts created
 
 ## Contract Update via API

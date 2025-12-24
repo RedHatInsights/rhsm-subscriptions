@@ -32,7 +32,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.experimental.SuperBuilder;
 
-@SuperBuilder
+@SuperBuilder(toBuilder = true)
 @Getter
 @EqualsAndHashCode(callSuper = true)
 public class Contract extends Subscription {
