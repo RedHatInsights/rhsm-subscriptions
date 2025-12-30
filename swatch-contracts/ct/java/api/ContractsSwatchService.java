@@ -151,6 +151,19 @@ public class ContractsSwatchService extends SwatchService {
     return given().headers(SECURITY_HEADERS).when().delete(CONTRACTS_ENDPOINT + "/" + contractUuid);
   }
 
+  public List<com.redhat.swatch.contract.test.model.Subscription> getSubscriptionsByOrgId(
+      String orgId) {
+    return given()
+        .headers(SECURITY_HEADERS)
+        .when()
+        .queryParam("org_id", orgId)
+        .get(SUBSCRIPTIONS_ENDPOINT)
+        .then()
+        .statusCode(HttpStatus.SC_OK)
+        .extract()
+        .as(new TypeRef<>() {});
+  }
+
   public Response saveSubscriptions(Subscription... subscriptions) {
     return saveSubscriptions(true, subscriptions);
   }

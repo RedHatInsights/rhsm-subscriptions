@@ -20,7 +20,7 @@
  */
 package utils;
 
-import com.redhat.swatch.subscriptions.test.model.Subscription;
+import com.redhat.swatch.subscriptions.test.subscription.model.Subscription;
 
 public final class SubscriptionRequestMapper {
   private SubscriptionRequestMapper() {}
@@ -42,15 +42,15 @@ public final class SubscriptionRequestMapper {
     }
     request.setQuantity(1);
     if (subscription.getOffering() != null) {
-      com.redhat.swatch.subscriptions.test.model.SubscriptionProduct product =
-          new com.redhat.swatch.subscriptions.test.model.SubscriptionProduct();
+      var product =
+          new com.redhat.swatch.subscriptions.test.subscription.model.SubscriptionProduct();
       product.setSku(subscription.getOffering().getSku());
       request.addSubscriptionProductsItem(product);
     }
 
     if (subscription.getBillingProvider() != null || subscription.getBillingAccountId() != null) {
-      com.redhat.swatch.subscriptions.test.model.ExternalReference externalRef =
-          new com.redhat.swatch.subscriptions.test.model.ExternalReference();
+      var externalRef =
+          new com.redhat.swatch.subscriptions.test.subscription.model.ExternalReference();
 
       if (subscription.getBillingAccountId() != null) {
         externalRef.setAccountID(subscription.getBillingAccountId());
