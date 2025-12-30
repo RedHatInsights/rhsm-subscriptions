@@ -328,6 +328,29 @@ paths:
         - support: [ ]
         - test: [ ]
         - service: [ ]
+    get:
+      parameters:
+        - name: org_id
+          schema:
+            type: string
+          in: query
+          required: true
+      operationId: getSubscriptions
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Subscription'
+          description: success
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+      security:
+        - support: [ ]
+        - test: [ ]
+        - service: [ ]
   /api/swatch-contracts/internal/subscriptions/umb:
     description: Save UMB subscription manually.
     post:
@@ -1393,6 +1416,45 @@ components:
       example:
         metric_id: Instance-hours
         value: 68.6
+    Subscription:
+      type: object
+      properties:
+        subscription_id:
+          type: string
+        subscription_number:
+          type: string
+        sku:
+          type: string
+        quantity:
+          type: integer
+        start_date:
+          format: date-time
+          type: string
+        end_date:
+          format: date-time
+          type: string
+        org_id:
+          type: string
+        billing_provider:
+          type: string
+        billing_provider_id:
+          type: string
+        billing_account_id:
+          type: string
+        metrics:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionMeasurement'
+    SubscriptionMeasurement:
+      type: object
+      properties:
+        metric_id:
+          type: string
+        measurement_type:
+          type: string
+        value:
+          format: double
+          type: number
     OfferingProductTags:
       properties:
         data:
