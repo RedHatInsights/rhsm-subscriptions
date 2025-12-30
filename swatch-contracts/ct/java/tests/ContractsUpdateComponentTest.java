@@ -26,7 +26,6 @@ import static org.hamcrest.Matchers.is;
 
 import api.ContractsArtemisService;
 import com.redhat.swatch.component.tests.api.Artemis;
-import com.redhat.swatch.component.tests.api.RunOnOpenShift;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import domain.BillingProvider;
@@ -38,7 +37,6 @@ import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-@RunOnOpenShift
 public class ContractsUpdateComponentTest extends BaseContractComponentTest {
 
   @Artemis static ContractsArtemisService artemis = new ContractsArtemisService();
