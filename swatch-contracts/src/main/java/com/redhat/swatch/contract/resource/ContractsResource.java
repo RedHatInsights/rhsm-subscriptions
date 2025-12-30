@@ -37,6 +37,7 @@ import com.redhat.swatch.contract.openapi.model.OfferingResponse;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.RpcResponse;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
+import com.redhat.swatch.contract.openapi.model.Subscription;
 import com.redhat.swatch.contract.openapi.model.SubscriptionResponse;
 import com.redhat.swatch.contract.openapi.model.TerminationRequest;
 import com.redhat.swatch.contract.openapi.model.TerminationRequestData;
@@ -53,6 +54,7 @@ import com.redhat.swatch.contract.service.ContractService;
 import com.redhat.swatch.contract.service.EnabledOrgsProducer;
 import com.redhat.swatch.contract.service.OfferingProductTagLookupService;
 import com.redhat.swatch.contract.service.OfferingSyncService;
+import com.redhat.swatch.contract.service.SubscriptionListService;
 import com.redhat.swatch.contract.service.SubscriptionSyncService;
 import com.redhat.swatch.contract.service.UsageContextSubscriptionProvider;
 import io.quarkus.runtime.LaunchMode;
@@ -89,6 +91,7 @@ public class ContractsResource implements DefaultApi {
   private final CapacityReconciliationService capacityReconciliationService;
   private final OfferingSyncService offeringSyncService;
   private final OfferingProductTagLookupService offeringProductTagLookupService;
+  private final SubscriptionListService subscriptionListService;
   private final SubscriptionSyncService subscriptionSyncService;
   private final UsageContextSubscriptionProvider usageContextSubscriptionProvider;
   private final MetricMapper metricMapper;
@@ -294,6 +297,18 @@ public class ContractsResource implements DefaultApi {
   @RolesAllowed({"test", "support", "service"})
   public List<MetricResponse> getMetrics(String tag) throws ProcessingException {
     return metricMapper.mapMetrics(Variant.getMetricsForTag(tag).stream().toList());
+  }
+
+  @Override
+  @RolesAllowed({"test", "support", "service"})
+  public List<Subscription> getSubscriptions(String orgId) throws ProcessingException {
+    if (!LaunchMode.current().isDevOrTest()
+        && !applicationConfiguration.isManualSubscriptionEditingEnabled()) {
+      log.warn("subscription list is disabled");
+      return List.of();
+    }
+
+    return subscriptionListService.getSubscriptionsByOrgId(orgId);
   }
 
   /**
