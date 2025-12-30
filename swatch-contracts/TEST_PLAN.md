@@ -600,15 +600,14 @@ Test cases should be testable locally and in an ephemeral environment.
   - HTTP 204 No Content
   - No contracts remain for org_id
 
-## Subscription Management via Kafka
+## Subscription Management via UMB
 
-**subscriptions-creation-TC001 - Process a valid UMB subscription XML message from Kafka**  
-- **Description**: Verify subscription creation via UMB XML Kafka message.  
+**subscriptions-creation-TC001 - Process a valid UMB subscription XML message from UMB**  
+- **Description**: Verify subscription creation via UMB XML message.  
 - **Setup**:  
   - Ensure `UMB_ENABLED=true`
-  - Kafka topic `SUBSCRIPTION_SYNC_TASK_UMB` available  
 - **Action**:  
-  - Publish message to `SUBSCRIPTION_SYNC_TASK_UMB` Kafka topic  
+  - Publish message to `VirtualTopic.canonical.subscription` channel
 - **Verification**:  
   - Query subscription via internal API  
   - Verify subscription created  
@@ -617,13 +616,13 @@ Test cases should be testable locally and in an ephemeral environment.
 - Subscription entity created for org  
 - `subscription_number`  
 - quantity  
-- sku  
+- sku
 - Start and end dates are correctly parsed  
 
 **subscriptions-creation-TC002 - Process UMB subscription with AWS external references**  
 - **Description**: Verify AWS marketplace subscription data extraction from UMB.  
 - **Action**:  
-  - Publish message to `SUBSCRIPTION_SYNC_TASK_UMB` Kafka topic  
+  - Publish message to `VirtualTopic.canonical.subscription` channel  
 - **Verification**: Query subscription and check AWS fields  
 - **Expected Result**:  
   - Subscription created with AWS external references  
@@ -644,7 +643,7 @@ Test cases should be testable locally and in an ephemeral environment.
 **subscriptions-creation-TC004 - Process malformed UMB XML message**  
 - **Description**: Verify error handling for invalid XML.  
 - **Action**:  
-  - Publish malformed UMB XML message to `SUBSCRIPTION_SYNC_TASK_UMB` Kafka topic  
+  - Publish malformed UMB XML message to `VirtualTopic.canonical.subscription` channel  
 - **Verification**: Subscription not created  
 - **Expected Result**:  
   - `JsonProcessingException` thrown (XML parsing error)  
@@ -654,7 +653,7 @@ Test cases should be testable locally and in an ephemeral environment.
 **subscriptions-creation-TC005 - Process UMB message with missing required fields**  
 - **Description**: Verify validation for incomplete subscription data.  
 - **Action**:  
-  - Publish the UMB message  with missing required fields `SUBSCRIPTION_SYNC_TASK_UMB` Kafka topic  
+  - Publish the UMB message with missing required fields to `VirtualTopic.canonical.subscription` channel  
 - **Verification**: Check for validation errors  
 - **Expected Result**:  
   - Validation failure or graceful error handling  
@@ -674,19 +673,10 @@ Test cases should be testable locally and in an ephemeral environment.
   - Updated fields reflected in the database  
   - No duplicate subscriptions
 
-**subscriptions-creation-TC007 - Process UMB message with multiple products/SKUs**  
-- **Description**: Verify a single subscription with multiple product SKUs.  
-- **Action**: Publish a subscription with multiple products/SKUs to the `SUBSCRIPTION_SYNC_TASK_UMB` Kafka topic  
-- **Verification:** Check subscription has multiple product associations  
-- **Expected Result**:  
-  - Single subscription created  
-  - Multiple SKUs associated (parent + children)  
-  - All products stored correctly
-
-**subscriptions-creation-TC008 - Process terminated subscription via UMB**  
+**subscriptions-creation-TC007 - Process terminated subscription via UMB**  
 - **Description**: Verify subscription termination messages.  
 - **Action**:  
-  - Publish message to `SUBSCRIPTION_SYNC_TASK_UMB` Kafka topic  
+  - Publish message to `VirtualTopic.canonical.subscription` channel  
   - Update the end date to the current timestamp  
 - **Verification**: Check subscription `end_date` updated  
 - **Expected Result**:  

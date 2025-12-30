@@ -43,6 +43,7 @@ public class Subscription {
   private final OffsetDateTime endDate;
   private final BillingProvider billingProvider;
   private final String billingAccountId;
+  private final String billingProviderId;
   private final Integer quantity;
   private final Map<MetricId, Double> subscriptionMeasurements;
 
