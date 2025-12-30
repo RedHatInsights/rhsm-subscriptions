@@ -125,7 +125,7 @@
             </goals>
             <configuration>
               <inputSpec>${maven.multiModuleProjectDirectory}/clients/subscription-client/subscription-api-spec.yaml</inputSpec>
-              <modelPackage>com.redhat.swatch.subscriptions.test.model</modelPackage>
+              <modelPackage>com.redhat.swatch.subscriptions.test.subscription.model</modelPackage>
             </configuration>
           </execution>
         </executions>
