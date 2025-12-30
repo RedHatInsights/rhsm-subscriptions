@@ -43,6 +43,7 @@ public class Subscription {
   private final OffsetDateTime endDate;
   private final BillingProvider billingProvider;
   private final String billingAccountId;
+  private final Integer quantity;
   private final Map<MetricId, Double> subscriptionMeasurements;
 
   public static Subscription buildRhelSubscription(String orgId, Map<MetricId, Double> capacity) {
@@ -73,6 +74,7 @@ public class Subscription {
         .subscriptionNumber(seed)
         .startDate(OffsetDateTime.now().minusDays(1))
         .endDate(OffsetDateTime.now().plusDays(1))
+        .quantity(1)
         .build();
   }
 
