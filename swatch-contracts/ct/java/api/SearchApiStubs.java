@@ -161,18 +161,16 @@ public class SearchApiStubs {
 
       if (subscription.getBillingProvider() == domain.BillingProvider.AWS) {
         var awsRef = new HashMap<String, Object>();
-        // Populate AWS marketplace reference with billing account if available
-        if (subscription.getBillingAccountId() != null) {
-          awsRef.put("customerAccountID", subscription.getBillingAccountId());
+        awsRef.put("customerAccountID", subscription.getBillingAccountId());
+        if (subscription.getBillingProviderId() != null) {
+          String[] keys = subscription.getBillingProviderId().split(";");
+          awsRef.put("productCode", keys[0]);
+          awsRef.put("customerID", keys[1]);
+          awsRef.put("sellerAccount", keys[2]);
         }
-        // Add minimal required fields for AWS marketplace
-        awsRef.put("productCode", "awsProductCode");
-        awsRef.put("customerID", "awsCustomerId");
-        awsRef.put("sellerAccount", "awsSellerAccount");
         externalReferences.put("awsMarketplace", awsRef);
       } else if (subscription.getBillingProvider() == domain.BillingProvider.AZURE) {
         var azureRef = new HashMap<String, Object>();
-        // Add subscription ID for Azure/IBM marketplace
         azureRef.put("subscriptionID", "azureSubscriptionId");
         externalReferences.put("ibmmarketplace", azureRef);
       }

@@ -36,4 +36,13 @@ public class ContractsArtemisService extends ArtemisService {
   public PartnerContractArtemisSender forContracts() {
     return new PartnerContractArtemisSender(this);
   }
+
+  /**
+   * Get facade for building and sending CanonicalMessage messages.
+   *
+   * @return CanonicalMessage instance
+   */
+  public CanonicalMessageArtemisSender forSubscriptions() {
+    return new CanonicalMessageArtemisSender(this);
+  }
 }
