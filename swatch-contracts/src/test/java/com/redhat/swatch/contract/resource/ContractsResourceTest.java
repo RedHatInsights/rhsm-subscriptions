@@ -46,24 +46,28 @@ import com.redhat.swatch.contract.openapi.model.AzureUsageContext;
 import com.redhat.swatch.contract.openapi.model.OfferingResponse;
 import com.redhat.swatch.contract.openapi.model.RpcResponse;
 import com.redhat.swatch.contract.openapi.model.ServiceLevelType;
+import com.redhat.swatch.contract.openapi.model.Subscription;
 import com.redhat.swatch.contract.openapi.model.UsageType;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import com.redhat.swatch.contract.service.EnabledOrgsProducer;
 import com.redhat.swatch.contract.service.OfferingProductTagLookupService;
 import com.redhat.swatch.contract.service.OfferingSyncService;
+import com.redhat.swatch.contract.service.SubscriptionListService;
 import com.redhat.swatch.contract.service.SubscriptionSyncService;
 import com.redhat.swatch.contract.test.resources.DisableRbacResource;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import io.restassured.common.mapper.TypeRef;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -85,6 +89,7 @@ class ContractsResourceTest {
   @InjectMock OfferingSyncService offeringSyncService;
   @InjectMock OfferingProductTagLookupService offeringProductTagLookupService;
   @InjectMock SubscriptionSyncService subscriptionSyncService;
+  @InjectMock SubscriptionListService subscriptionListService;
   @InjectMock SubscriptionRepository subscriptionRepository;
   @Inject MeterRegistry meterRegistry;
 
@@ -482,6 +487,28 @@ class ContractsResourceTest {
             .as(AzureUsageContext.class);
 
     assertEquals("resourceId2", azureUsageContext.getAzureResourceId());
+  }
+
+  @Test
+  void testShouldReturnListOfSubscriptions() {
+    String orgId = UUID.randomUUID().toString();
+    Subscription expected = new Subscription();
+    expected.setSubscriptionNumber(UUID.randomUUID().toString());
+    when(subscriptionListService.getSubscriptionsByOrgId(orgId)).thenReturn(List.of(expected));
+
+    var actual =
+        given()
+            .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+            .queryParam("org_id", orgId)
+            .get("/api/swatch-contracts/internal/subscriptions")
+            .then()
+            .statusCode(200)
+            .extract()
+            .as(new TypeRef<List<Subscription>>() {});
+
+    assertNotNull(actual);
+    assertEquals(1, actual.size());
+    assertEquals(expected.getSubscriptionNumber(), actual.get(0).getSubscriptionNumber());
   }
 
   void thenAmbiguousSubscriptionsMetricIs(String provider, double expected) {

@@ -18,31 +18,28 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package api;
+package com.redhat.swatch.contract.service;
 
-import com.redhat.swatch.component.tests.api.ArtemisService;
+import com.redhat.swatch.contract.model.SubscriptionMapper;
+import com.redhat.swatch.contract.openapi.model.Subscription;
+import com.redhat.swatch.contract.repository.SubscriptionRepository;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
+import java.util.List;
+import lombok.AllArgsConstructor;
 
-/**
- * Service for sending messages via Artemis in component tests. Provides specialized builders for
- * different message types.
- */
-public class ContractsArtemisService extends ArtemisService {
+@ApplicationScoped
+@AllArgsConstructor
+public class SubscriptionListService {
 
-  /**
-   * Get facade for building and sending PartnerEntitlementContract messages.
-   *
-   * @return PartnerEntitlementContractBuilder instance
-   */
-  public PartnerContractArtemisSender forContracts() {
-    return new PartnerContractArtemisSender(this);
-  }
+  private final SubscriptionRepository subscriptionRepository;
+  private final SubscriptionMapper subscriptionMapper;
 
-  /**
-   * Get facade for building and sending CanonicalMessage messages.
-   *
-   * @return CanonicalMessage instance
-   */
-  public CanonicalMessageArtemisSender forSubscriptions() {
-    return new CanonicalMessageArtemisSender(this);
+  @Transactional
+  public List<Subscription> getSubscriptionsByOrgId(String orgId) {
+    return subscriptionRepository
+        .streamByOrgId(orgId)
+        .map(subscriptionMapper::mapSubscription)
+        .toList();
   }
 }
