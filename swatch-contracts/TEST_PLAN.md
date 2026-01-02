@@ -1525,7 +1525,7 @@ This section validates capacity calculations across time boundaries. Tests verif
   - that the capacity decreases 
 
 **capacity-metrics-TC015 - Increasing capacity with multiple subscriptions**
-- **Description**: Verify that an Account with multiple subscriptions and multiple contracts increases when the capacity quantity is increased
+- **Description**: Verify that an account with multiple subscriptions and multiple contracts increases when the capacity quantity is increased
 - **Test Steps**:
   1. Given: Create an account with two subscriptions and two contracts
   2. When: Increase the metrics related to one of the contracts, increase the sku related to one of the subscriptions and run Subscription sync
