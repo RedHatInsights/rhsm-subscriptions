@@ -154,7 +154,7 @@ class SnapshotSummaryProducerTest {
         MetricIdUtils.getCores(),
         20.4,
         Granularity.HOURLY == granularity ? 1 : 2,
-        Granularity.HOURLY != granularity);
+        params.predicate != SnapshotSummaryProducer.hourlySnapFilter);
     assertSummary(
         results,
         "org2",
@@ -165,7 +165,7 @@ class SnapshotSummaryProducerTest {
         MetricIdUtils.getCores(),
         22.2,
         Granularity.HOURLY == granularity ? 1 : 2,
-        Granularity.HOURLY != granularity);
+        params.predicate != SnapshotSummaryProducer.hourlySnapFilter);
   }
 
   @ParameterizedTest
@@ -231,7 +231,7 @@ class SnapshotSummaryProducerTest {
         MetricIdUtils.getCores(),
         20.4,
         Granularity.HOURLY == granularity ? 1 : 2,
-        Granularity.HOURLY != granularity);
+        params.predicate != SnapshotSummaryProducer.hourlySnapFilter);
     if (Granularity.HOURLY == granularity) {
       assertSummary(
           results,
@@ -243,7 +243,7 @@ class SnapshotSummaryProducerTest {
           MetricIdUtils.getCores(),
           22.2,
           Granularity.HOURLY == granularity ? 1 : 2,
-          Granularity.HOURLY != granularity);
+          params.predicate != SnapshotSummaryProducer.hourlySnapFilter);
     }
   }
 

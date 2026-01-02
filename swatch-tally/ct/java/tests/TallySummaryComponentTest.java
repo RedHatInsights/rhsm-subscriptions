@@ -167,14 +167,24 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event3);
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event4);
 
-    helpers.pollForTallySyncAndMessages(
-        testOrgId,
-        TEST_PRODUCT_ID_NO_PAYG,
-        TEST_METRIC_ID_NO_PAYG,
-        Granularity.DAILY,
-        1,
-        service,
-        kafkaBridge);
+    List<TallySnapshot> tallySnapshots =
+        helpers.pollForTallySyncAndMessages(
+            testOrgId,
+            TEST_PRODUCT_ID_NO_PAYG,
+            TEST_METRIC_ID_NO_PAYG,
+            Granularity.DAILY,
+            1,
+            service,
+            kafkaBridge);
+    // Confirms no total hardware measurements are present
+    assert (tallySnapshots
+            .get(0)
+            .getMeasurements()
+            .entrySet()
+            .removeIf(
+                entry -> HardwareMeasurementType.TOTAL.equals(entry.getKey().getMeasurementType()))
+            .size()
+        == tallySnapshots.get(0).getMeasurements().size());
   }
 
   @Test
