@@ -146,6 +146,11 @@ public class ContractsSwatchService extends SwatchService {
     return given().headers(SECURITY_HEADERS).delete(RESET_DATA_ENDPOINT.formatted(orgId));
   }
 
+  public Response deleteContract(String contractUuid) {
+    Objects.requireNonNull(contractUuid, "contractUuid must not be null");
+    return given().headers(SECURITY_HEADERS).when().delete(CONTRACTS_ENDPOINT + "/" + contractUuid);
+  }
+
   public Response saveSubscriptions(Subscription... subscriptions) {
     return saveSubscriptions(true, subscriptions);
   }
