@@ -1476,7 +1476,7 @@ This section validates capacity calculations across time boundaries. Tests verif
   2. When: Update the sockets to be 4 and run Subscription sync
   3. Then: Verify that the sockets are updated (decreased) and the capacity reflects the updated sku
 - **Expected Results**: 
-  - the sockets will reflect the 4 cores
+  - the sockets will reflect the 4 sockets
 
 **capacity-metrics-TC010 - Increasing Non metered sockets**
 - **Description**: Verify that a RHEL for x86 (rhel-for-x86) capacity increases when the sockets quantity is increased
