@@ -224,7 +224,7 @@ parameters:
     value: egress-s3
   - name: FLOORIST_LOGLEVEL
     description: Floorist loglevel config
-    value: 'INFO'
+    value: 'DEBUG'
   - name: FLOORIST_SUSPEND
     description: Disable Floorist cronjob execution
     required: true
