@@ -96,10 +96,10 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Expected Result**:  
   - HTTP 200 response  
   - Response contains status.status: "SUCCESS"  
-  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)  
-  - Validate  
-  - `billing_provider=azure`  
-  - `billing_provider_id` formatted as `{azureResourceId};{planId};{vendorProductCode}`  
+  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)
+  - Validate
+  - `billing_provider=azure`
+  - `billing_provider_id` formatted as `{azureResourceId};{planId};{vendorProductCode};{customer};{clientId}`
   - `billing_account_id` contains azureTenantId
 
 **contracts-creation-TC004 -** **Process a valid PURE PAYG contract (without dimensions) for the Azure Marketplace**  
@@ -114,12 +114,12 @@ Test cases should be testable locally and in an ephemeral environment.
   - Query contract via internal API: GET /internal/contracts?org_id=org123  
   - Verify contract exists with correct fields  
 - **Expected Result**:  
-  - HTTP 200 response  
-  - Response contains status.status: "SUCCESS"  
-  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)  
-  - Validate  
-  - `billing_provider=azure`  
-  - `billing_provider_id` formatted as `{azureResourceId};{planId};{vendorProductCode}`  
+  - HTTP 200 response
+  - Response contains status.status: "SUCCESS"
+  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)
+  - Validate
+  - `billing_provider=azure`
+  - `billing_provider_id` formatted as `{azureResourceId};{planId};{vendorProductCode};{customer};{clientId}`
   - `billing_account_id` contains azureTenantId
 
 **contracts-creation-TC005 - Process contract with multiple metrics/dimensions**  
