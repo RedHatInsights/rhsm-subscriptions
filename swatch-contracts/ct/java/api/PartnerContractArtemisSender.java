@@ -50,7 +50,10 @@ public class PartnerContractArtemisSender {
   public PartnerEntitlementContract fromContract(Contract contract) {
     PartnerEntitlementContract message = new PartnerEntitlementContract();
 
-    message.setRedHatSubscriptionNumber(contract.getSubscriptionNumber());
+    // AWS messages include subscription number, Azure messages do not (it comes from Partner API)
+    if (contract.getBillingProvider() == BillingProvider.AWS) {
+      message.setRedHatSubscriptionNumber(contract.getSubscriptionNumber());
+    }
     message.setAction("contract-updated");
 
     // Build cloud identifiers based on billing provider
@@ -63,6 +66,7 @@ public class PartnerContractArtemisSender {
     } else if (contract.getBillingProvider() == BillingProvider.AZURE) {
       cloudIdentifiers.setPartner("azure_marketplace");
       cloudIdentifiers.setAzureResourceId(contract.getResourceId());
+      cloudIdentifiers.setAzureTenantId(contract.getClientId());
       cloudIdentifiers.setAzureOfferId(contract.getProductCode());
       cloudIdentifiers.setPlanId(contract.getPlanId());
     }
