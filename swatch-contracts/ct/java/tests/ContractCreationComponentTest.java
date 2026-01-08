@@ -37,21 +37,11 @@ import domain.Contract;
 import io.restassured.response.Response;
 import java.util.Map;
 import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 public class ContractCreationComponentTest extends BaseContractComponentTest {
 
   @Artemis static ContractsArtemisService artemis = new ContractsArtemisService();
-
-  @AfterEach
-  @Override
-  void tearDown() {
-    super.tearDown();
-    // Clean up WireMock stubs to prevent interference between tests
-    // This is critical for Azure tests which query Partner API differently than AWS
-    wiremock.deleteAllMappings();
-  }
 
   @Test
   void shouldCreatePrepaidRosaContract_whenAllDataIsValid() {
