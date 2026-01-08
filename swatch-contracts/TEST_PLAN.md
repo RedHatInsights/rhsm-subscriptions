@@ -1482,7 +1482,7 @@ This section validates capacity calculations across time boundaries. Tests verif
 - **Description**: Verify that a RHEL for x86 (rhel-for-x86) capacity increases when the sockets quantity is increased
 - **Test Steps**:
   1. Given: create a subscription with sku sockets 4
-  2. When: Update the Satellite Server product (satellite-server) sockets to be 8 and run Subscription sync/Reconcile (?)
+  2. When: Update the RHEL for x86 (rhel-for-x86) sockets to be 8 and run Subscription sync/Reconcile (?)
   3. Then: Verify that the sockets are updated (increased) and the capacity reflects the updated sku
 - **Expected Results**: 
   - the sockets will reflect the 8 sockets
