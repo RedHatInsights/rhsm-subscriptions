@@ -1480,7 +1480,7 @@ This section validates capacity calculations across time boundaries. Tests verif
 
 **capacity-metrics-TC010 - Increasing Non metered sockets**
 - **Description**: Verify that a RHEL for x86 (rhel-for-x86) capacity increases when the sockets quantity is increased
-- **Test Steps**:
+- **Test Steps**: 
   1. Given: create a subscription with sku sockets 4
   2. When: Update the RHEL for x86 (rhel-for-x86) sockets to be 8 and run Subscription sync/Reconcile (?)
   3. Then: Verify that the sockets are updated (increased) and the capacity reflects the updated sku
