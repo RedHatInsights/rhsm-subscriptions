@@ -100,10 +100,11 @@ public class PartnerApiStubs {
         request.contracts.stream()
             .map(
                 contract -> {
+                  String status = request.status != null ? request.status : "SUBSCRIBED";
                   if (contract.getBillingProvider() == BillingProvider.AWS) {
-                    return buildAwsContractBody(contract);
+                    return buildAwsContractBody(contract, status);
                   } else if (contract.getBillingProvider() == BillingProvider.AZURE) {
-                    return buildAzureContractBody(contract);
+                    return buildAzureContractBody(contract, status);
                   } else {
                     throw new UnsupportedOperationException(
                         contract.getBillingProvider() + " is not supported!");
@@ -131,21 +132,30 @@ public class PartnerApiStubs {
     private final String orgId;
     private final List<Contract> contracts;
     private final boolean queryByOrgIdOnly;
+    private final String status;
 
     private PartnerSubscriptionsStubRequest(
-        String orgId, List<Contract> contracts, boolean queryByOrgIdOnly) {
+        String orgId, List<Contract> contracts, boolean queryByOrgIdOnly, String status) {
       this.orgId = orgId;
       this.contracts = contracts;
       this.queryByOrgIdOnly = queryByOrgIdOnly;
+      this.status = status;
     }
 
     public static PartnerSubscriptionsStubRequest forContract(Contract contract) {
-      return new PartnerSubscriptionsStubRequest(contract.getOrgId(), List.of(contract), false);
+      return new PartnerSubscriptionsStubRequest(
+          contract.getOrgId(), List.of(contract), false, "SUBSCRIBED");
+    }
+
+    public static PartnerSubscriptionsStubRequest forContractWithStatus(
+        Contract contract, String status) {
+      return new PartnerSubscriptionsStubRequest(
+          contract.getOrgId(), List.of(contract), false, status);
     }
 
     public static PartnerSubscriptionsStubRequest forContractsInOrgId(
         String orgId, Contract... contracts) {
-      return new PartnerSubscriptionsStubRequest(orgId, List.of(contracts), true);
+      return new PartnerSubscriptionsStubRequest(orgId, List.of(contracts), true, "SUBSCRIBED");
     }
   }
 
@@ -157,13 +167,23 @@ public class PartnerApiStubs {
    * @return AWS contract response body map
    */
   private Map<String, Object> buildAwsContractBody(Contract contract) {
-    return Map.of(
-        "rhAccountId",
-        contract.getOrgId(),
-        "sourcePartner",
-        "aws_marketplace",
-        "entitlementDates",
-        buildEntitlementDates(contract),
+    return buildAwsContractBody(contract, "SUBSCRIBED");
+  }
+
+  /**
+   * Build AWS contract response body for Partner Gateway API with custom status.
+   *
+   * @param contract the contract data
+   * @param status the status (e.g., "SUBSCRIBED", "UNSUBSCRIBED")
+   * @return AWS contract response body map
+   */
+  private Map<String, Object> buildAwsContractBody(Contract contract, String status) {
+    var body = new java.util.HashMap<String, Object>();
+    body.put("rhAccountId", contract.getOrgId());
+    body.put("sourcePartner", "aws_marketplace");
+    body.put("status", status);
+    body.put("entitlementDates", buildEntitlementDates(contract));
+    body.put(
         "partnerIdentities",
         Map.of(
             "awsCustomerId",
@@ -171,15 +191,16 @@ public class PartnerApiStubs {
             "customerAwsAccountId",
             contract.getBillingAccountId(),
             "sellerAccountId",
-            contract.getSellerAccountId()),
+            contract.getSellerAccountId()));
+    body.put(
         "purchase",
         Map.of(
             "vendorProductCode",
             contract.getProductCode(),
             "contracts",
-            java.util.List.of(buildContractDetails(contract))),
-        "rhEntitlements",
-        buildRhEntitlements(contract));
+            java.util.List.of(buildContractDetails(contract))));
+    body.put("rhEntitlements", buildRhEntitlements(contract));
+    return body;
   }
 
   /**
@@ -190,16 +211,26 @@ public class PartnerApiStubs {
    * @return Azure contract response body map
    */
   private Map<String, Object> buildAzureContractBody(Contract contract) {
+    return buildAzureContractBody(contract, "SUBSCRIBED");
+  }
+
+  /**
+   * Build Azure contract response body for Partner Gateway API with custom status.
+   *
+   * @param contract the contract data
+   * @param status the status (e.g., "SUBSCRIBED", "UNSUBSCRIBED")
+   * @return Azure contract response body map
+   */
+  private Map<String, Object> buildAzureContractBody(Contract contract, String status) {
     var contractDetails = new java.util.HashMap<>(buildContractDetails(contract));
     contractDetails.put("planId", contract.getPlanId());
 
-    return Map.of(
-        "rhAccountId",
-        contract.getOrgId(),
-        "sourcePartner",
-        "azure_marketplace",
-        "entitlementDates",
-        buildEntitlementDates(contract),
+    var body = new java.util.HashMap<String, Object>();
+    body.put("rhAccountId", contract.getOrgId());
+    body.put("sourcePartner", "azure_marketplace");
+    body.put("status", status);
+    body.put("entitlementDates", buildEntitlementDates(contract));
+    body.put(
         "partnerIdentities",
         Map.of(
             "azureSubscriptionId",
@@ -209,7 +240,8 @@ public class PartnerApiStubs {
             "azureCustomerId",
             contract.getCustomerId(),
             "clientId",
-            contract.getClientId()),
+            contract.getClientId()));
+    body.put(
         "purchase",
         Map.of(
             "vendorProductCode",
@@ -217,9 +249,9 @@ public class PartnerApiStubs {
             "azureResourceId",
             contract.getResourceId(),
             "contracts",
-            java.util.List.of(contractDetails)),
-        "rhEntitlements",
-        buildRhEntitlements(contract));
+            java.util.List.of(contractDetails)));
+    body.put("rhEntitlements", buildRhEntitlements(contract));
+    return body;
   }
 
   /** Build common entitlement dates map. */
