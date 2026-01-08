@@ -31,7 +31,7 @@ RUN ./mvnw ${MAVEN_TASKS} -pl swatch-tally -am -DskipTests ${MAVEN_BUILD_ARGS}
 RUN (cd /stage/swatch-tally && exec jar -xf ./target/*.jar)
 RUN ls -al /stage/swatch-tally
 
-FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.24-2
+FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.24-2.1767639862
 
 ARG VERSION=1.0.0
 
