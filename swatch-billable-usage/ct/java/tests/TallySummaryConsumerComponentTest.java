@@ -30,6 +30,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import api.MessageValidators;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.redhat.swatch.component.tests.utils.JsonUtils;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import java.math.BigDecimal;
@@ -178,6 +180,9 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     String tallyId = billableUsage.getTallyId().toString();
     waitForRemittanceStatus(tallyId, "PENDING");
 
+    // Capture expected billed_on time before creating status update
+    OffsetDateTime expectedBilledOnTime = OffsetDateTime.now(ZoneOffset.UTC);
+
     // Create and send status update message with SUCCEEDED status
     BillableUsageAggregate statusUpdate =
         createBillableUsageAggregate(
@@ -187,7 +192,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
             "aws-account-123",
             BillableUsage.Status.SUCCEEDED,
             null,
-            OffsetDateTime.now(ZoneOffset.UTC),
+            expectedBilledOnTime, // Use the captured time
             List.of(billableUsage.getUuid().toString()));
 
     kafkaBridge.produceKafkaMessage(BILLABLE_USAGE_STATUS, statusUpdate);
@@ -201,10 +206,10 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     // Verify final SUCCEEDED status via API
     waitForRemittanceStatus(tallyId, "SUCCEEDED");
 
-    // Verify billed_on field was populated
+    // Verify billed_on field was populated with proper timestamp
     String remittanceJson = getRemittanceByTallyId(tallyId);
     assertNotNull(remittanceJson, "Remittance should exist");
-    // Note: In a real test we'd parse the JSON and verify billed_on timestamp
+    verifyBilledOnTimestamp(remittanceJson, expectedBilledOnTime);
   }
 
   /** Verify that status consumer updates remittance with failed status. */
@@ -256,10 +261,10 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     // Verify final FAILED status via API
     waitForRemittanceStatus(tallyId, "FAILED");
 
-    // Verify error code was populated
+    // Verify error code was populated properly
     String remittanceJson = getRemittanceByTallyId(tallyId);
     assertNotNull(remittanceJson, "Remittance should exist");
-    // Note: In a real test we'd parse the JSON and verify error code is "subscription_not_found"
+    verifyErrorCode(remittanceJson, "SUBSCRIPTION_NOT_FOUND");
   }
 
   private BillableUsageAggregate createBillableUsageAggregate(
@@ -343,6 +348,62 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
       }
     } catch (Exception e) {
       return null;
+    }
+  }
+
+  /** Verify that billed_on timestamp is populated and within expected range */
+  private void verifyBilledOnTimestamp(String remittanceJson, OffsetDateTime expectedTime) {
+    try {
+      JsonNode remittanceArray = JsonUtils.getObjectMapper().readTree(remittanceJson);
+      assertTrue(
+          remittanceArray.isArray() && remittanceArray.size() > 0,
+          "Remittance JSON should be a non-empty array");
+
+      JsonNode remittance = remittanceArray.get(0);
+      JsonNode billedOnNode = remittance.get("billedOn");
+
+      assertNotNull(billedOnNode, "billedOn field should be present");
+      assertTrue(!billedOnNode.isNull(), "billedOn should not be null for SUCCEEDED status");
+
+      String billedOnStr = billedOnNode.asText();
+      OffsetDateTime actualBilledOn = OffsetDateTime.parse(billedOnStr);
+
+      // Verify billed_on is within 30 seconds of expected time (allowing for processing delay)
+      Duration timeDiff = Duration.between(expectedTime, actualBilledOn).abs();
+      assertTrue(
+          timeDiff.toSeconds() <= 30,
+          String.format(
+              "billedOn timestamp %s should be within 30 seconds of expected time %s",
+              actualBilledOn, expectedTime));
+
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to parse and verify billedOn timestamp", e);
+    }
+  }
+
+  /** Verify that error code matches expected value */
+  private void verifyErrorCode(String remittanceJson, String expectedErrorCode) {
+    try {
+      JsonNode remittanceArray = JsonUtils.getObjectMapper().readTree(remittanceJson);
+      assertTrue(
+          remittanceArray.isArray() && remittanceArray.size() > 0,
+          "Remittance JSON should be a non-empty array");
+
+      JsonNode remittance = remittanceArray.get(0);
+      JsonNode errorCodeNode = remittance.get("errorCode");
+
+      assertNotNull(errorCodeNode, "errorCode field should be present");
+      assertTrue(!errorCodeNode.isNull(), "errorCode should not be null for FAILED status");
+
+      String actualErrorCode = errorCodeNode.asText();
+      assertEquals(
+          expectedErrorCode,
+          actualErrorCode,
+          String.format(
+              "Expected error code '%s' but got '%s'", expectedErrorCode, actualErrorCode));
+
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to parse and verify error code", e);
     }
   }
 }
