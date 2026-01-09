@@ -136,36 +136,38 @@ class SnapshotSummaryProducerTest {
                 "12345",
                 MetricIdUtils.getCores().getValue(),
                 22.2)));
-    producer.produceTallySummaryMessages(
-        updateMap, List.of(Granularity.HOURLY, Granularity.DAILY), params.predicate);
-    verify(kafka, times(2)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
+    producer.produceTallySummaryMessages(updateMap, List.of(granularity), params.predicate);
+    verify(kafka, times(1)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
 
     List<TallySummary> summaries = summaryCaptor.getAllValues();
-    assertEquals(2, summaries.size());
+    assertEquals(1, summaries.size());
     Map<String, List<TallySummary>> results =
         summaries.stream().collect(Collectors.groupingBy(TallySummary::getOrgId));
-    assertSummary(
-        results,
-        "org1",
-        "RHEL for x86",
-        granularity,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        MetricIdUtils.getCores(),
-        20.4,
-        Granularity.HOURLY == granularity ? 1 : 2,
-        Granularity.HOURLY != granularity);
-    assertSummary(
-        results,
-        "org2",
-        "RHEL Compute Node",
-        granularity,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        MetricIdUtils.getCores(),
-        22.2,
-        Granularity.HOURLY == granularity ? 1 : 2,
-        Granularity.HOURLY != granularity);
+    if (granularity == Granularity.DAILY) {
+      assertSummary(
+          results,
+          "org1",
+          "RHEL for x86",
+          granularity,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
+          MetricIdUtils.getCores(),
+          20.4,
+          1,
+          false);
+    } else {
+      assertSummary(
+          results,
+          "org2",
+          "RHEL Compute Node",
+          granularity,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
+          MetricIdUtils.getCores(),
+          22.2,
+          1,
+          false);
+    }
   }
 
   @ParameterizedTest
@@ -290,9 +292,7 @@ class SnapshotSummaryProducerTest {
                 MetricIdUtils.getCores().getValue(),
                 42.2)));
     producer.produceTallySummaryMessages(
-        updateMap,
-        List.of(Granularity.HOURLY, Granularity.DAILY),
-        SnapshotSummaryProducer.hourlySnapFilter);
+        updateMap, List.of(Granularity.HOURLY), SnapshotSummaryProducer.hourlySnapFilter);
     verify(kafka, times(2)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
 
     List<TallySummary> summaries = summaryCaptor.getAllValues();
@@ -366,9 +366,7 @@ class SnapshotSummaryProducerTest {
                 MetricIdUtils.getCores().getValue(),
                 42.2)));
     producer.produceTallySummaryMessages(
-        updateMap,
-        List.of(Granularity.HOURLY, Granularity.DAILY),
-        SnapshotSummaryProducer.hourlySnapFilter);
+        updateMap, List.of(Granularity.HOURLY), SnapshotSummaryProducer.hourlySnapFilter);
     verify(kafka, times(2)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
 
     List<TallySummary> summaries = summaryCaptor.getAllValues();

@@ -68,10 +68,12 @@ public class SnapshotSummaryProducer {
               && !Usage._ANY.equals(snapshot.getUsage())
               && hasMeasurements(snapshot);
 
-  public static Predicate<TallySnapshot> paygDailySnapFilter =
+  public static Predicate<TallySnapshot> paygSnapFilter =
       snapshot ->
-          !Granularity.DAILY.equals(snapshot.getGranularity())
-              || !ProductId.fromString(snapshot.getProductId()).isPayg();
+          Granularity.HOURLY.equals(snapshot.getGranularity())
+                  && ProductId.fromString(snapshot.getProductId()).isPayg()
+              || Granularity.DAILY.equals(snapshot.getGranularity())
+                  && !ProductId.fromString(snapshot.getProductId()).isPayg();
 
   @Autowired
   protected SnapshotSummaryProducer(
@@ -105,10 +107,10 @@ public class SnapshotSummaryProducer {
                         when we transmit the tally summary message to the BillableUsage component. */
                         snapshots.stream()
                             .filter(filter)
-                            .filter(paygDailySnapFilter)
+                            .filter(paygSnapFilter)
                             .map(
                                 snapshot -> {
-                                  removeTotalMeasurementsForHourly(snapshot);
+                                  removeTotalMeasurementsForHourlyAndDaily(snapshot);
                                   return snapshot;
                                 })
                             .sorted(Comparator.comparing(TallySnapshot::getSnapshotDate))
@@ -127,9 +129,10 @@ public class SnapshotSummaryProducer {
         });
   }
 
-  public static void removeTotalMeasurementsForHourly(TallySnapshot snapshot) {
+  public static void removeTotalMeasurementsForHourlyAndDaily(TallySnapshot snapshot) {
     if (Objects.nonNull(snapshot.getTallyMeasurements())
-        && Granularity.HOURLY.equals(snapshot.getGranularity())) {
+        && (Granularity.HOURLY.equals(snapshot.getGranularity())
+            || Granularity.DAILY.equals(snapshot.getGranularity()))) {
       snapshot
           .getTallyMeasurements()
           .entrySet()
