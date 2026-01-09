@@ -36,6 +36,8 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
   private static final TallyTestHelpers helpers = new TallyTestHelpers();
   private static final String TEST_PRODUCT_ID = "rhel-for-x86-els-payg";
   private static final String TEST_METRIC_ID = "VCPUS";
+  private static final String TEST_PRODUCT_ID_NO_PAYG = "RHEL for x86";
+  private static final String TEST_METRIC_ID_NO_PAYG = "Sockets";
 
   // @Test
   @Ignore("This test should run after https://issues.redhat.com/browse/SWATCH-2922")
@@ -100,7 +102,83 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
   }
 
   @Test
-  public void testTallyHourlySummaryEmitsGranularityDaily() {
+  public void testTallyHourlySummaryEmitsGranularityDailyNoPayg() {
+    final String testOrgId = RandomUtils.generateRandom(); // Use random org ID
+    final String testInstanceId = UUID.randomUUID().toString();
+    final String testEventId = UUID.randomUUID().toString();
+
+    // Create events within the last day for hourly tally
+    OffsetDateTime now = OffsetDateTime.now();
+    Event event1 =
+        helpers.createEventWithTimestamp(
+            testOrgId,
+            testInstanceId,
+            now.minusHours(1).toString(),
+            testEventId,
+            TEST_METRIC_ID_NO_PAYG,
+            1.0f,
+            Event.Sla.PREMIUM,
+            Event.HardwareType.CLOUD,
+            "69",
+            TEST_PRODUCT_ID_NO_PAYG);
+
+    Event event2 =
+        helpers.createEventWithTimestamp(
+            testOrgId,
+            testInstanceId,
+            now.minusHours(2).toString(),
+            testEventId,
+            TEST_METRIC_ID_NO_PAYG,
+            1.0f,
+            Event.Sla.PREMIUM,
+            Event.HardwareType.CLOUD,
+            "69",
+            TEST_PRODUCT_ID_NO_PAYG);
+
+    Event event3 =
+        helpers.createEventWithTimestamp(
+            testOrgId,
+            testInstanceId,
+            now.minusHours(3).toString(),
+            testEventId,
+            TEST_METRIC_ID_NO_PAYG,
+            1.0f,
+            Event.Sla.PREMIUM,
+            Event.HardwareType.CLOUD,
+            "69",
+            TEST_PRODUCT_ID_NO_PAYG);
+
+    Event event4 =
+        helpers.createEventWithTimestamp(
+            testOrgId,
+            testInstanceId,
+            now.minusHours(4).toString(),
+            testEventId,
+            TEST_METRIC_ID_NO_PAYG,
+            1.0f,
+            Event.Sla.PREMIUM,
+            Event.HardwareType.CLOUD,
+            "69",
+            TEST_PRODUCT_ID_NO_PAYG);
+
+    // Produce events to Kafka
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event1);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event2);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event3);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event4);
+
+    helpers.pollForTallySyncAndMessages(
+        testOrgId,
+        TEST_PRODUCT_ID_NO_PAYG,
+        TEST_METRIC_ID_NO_PAYG,
+        Granularity.DAILY,
+        1,
+        service,
+        kafkaBridge);
+  }
+
+  @Test
+  public void testTallyHourlySummaryNotEmitsGranularityDailyPayg() {
     final String testOrgId = RandomUtils.generateRandom(); // Use random org ID
     final String testInstanceId = UUID.randomUUID().toString();
     final String testEventId = UUID.randomUUID().toString();
@@ -130,7 +208,7 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event4);
 
     helpers.pollForTallySyncAndMessages(
-        testOrgId, TEST_PRODUCT_ID, TEST_METRIC_ID, Granularity.DAILY, 1, service, kafkaBridge);
+        testOrgId, TEST_PRODUCT_ID, TEST_METRIC_ID, Granularity.DAILY, 0, service, kafkaBridge);
   }
 
   @Test

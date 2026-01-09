@@ -66,8 +66,6 @@ class MarketplaceResendTallyControllerTest {
     var summaryMap = Map.of("1", tallyList);
     verify(summaryProducer, times(1))
         .produceTallySummaryMessages(
-            summaryMap,
-            List.of(Granularity.HOURLY, Granularity.DAILY),
-            SnapshotSummaryProducer.hourlySnapFilter);
+            summaryMap, List.of(Granularity.HOURLY), SnapshotSummaryProducer.hourlySnapFilter);
   }
 }
