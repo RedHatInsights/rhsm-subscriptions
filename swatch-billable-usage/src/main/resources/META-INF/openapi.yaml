@@ -276,6 +276,11 @@ components:
           type: string
         errorCode:
           type: string
+        billedOn:
+          type: string
+          format: date-time
+          description: "Timestamp when the remittance was successfully billed"
+          nullable: true
         tallyId:
           type: string
     OrgIds:
