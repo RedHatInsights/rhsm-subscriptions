@@ -57,6 +57,7 @@ import org.junit.jupiter.api.BeforeEach;
 public class BaseContractComponentTest {
   static final MetricId CORES = MetricIdUtils.getCores();
   static final MetricId SOCKETS = MetricIdUtils.getSockets();
+  static final MetricId INSTANCE_HOURS = MetricIdUtils.getInstanceHours();
 
   @KafkaBridge static KafkaBridgeService kafkaBridge = new KafkaBridgeService();
 

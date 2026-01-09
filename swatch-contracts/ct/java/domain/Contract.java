@@ -60,9 +60,19 @@ public class Contract extends Subscription {
     for (var entry : getSubscriptionMeasurements().entrySet()) {
       Metric metric = getProduct().getMetric(entry.getKey());
       if (metric != null) {
-        metrics.put(
-            metric.getAwsDimension(),
-            entry.getValue() * getProduct().getMetric(entry.getKey()).getBillingFactor());
+        // Use appropriate dimension based on billing provider
+        String dimensionName =
+            switch (getBillingProvider()) {
+              case AWS -> metric.getAwsDimension();
+              case AZURE -> metric.getAzureDimension();
+              default -> null;
+            };
+
+        if (dimensionName != null) {
+          Double billingFactor = metric.getBillingFactor();
+          double factor = billingFactor != null ? billingFactor : 1.0;
+          metrics.put(dimensionName, entry.getValue() * factor);
+        }
       } else {
         Log.warn("Metric %s not found in product %s", entry.getKey(), getProduct().getId());
       }
