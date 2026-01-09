@@ -284,7 +284,7 @@ components:
         tallyId:
           type: string
     OrgIds:
-      type: string
+      type: object
       properties:
         orgIds:
           type: string
