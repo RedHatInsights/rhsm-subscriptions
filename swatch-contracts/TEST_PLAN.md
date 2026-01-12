@@ -689,20 +689,7 @@ Test cases should be testable locally and in an ephemeral environment.
   - Validate  
   - Contract/subscription table.
 
-**subscriptions-creation-TC010** - **Save subscriptions PURE PAYG**  
-- **Description:** Verify subscription saving when enabled.  
-- **Setup:** Prepare subscriptions with JSON array  
-- **Action:**   
-  - POST `/api/swatch-contracts/internal/subscriptions` with JSON array.  
-  - Sync subscriptions  
-- **Verification:** Query saved subscriptions.  
-  - Expected Result:  
-  - SubscriptionResponse: "Success"  
-  - Subscriptions persisted  
-  - Multiple subscriptions created from an array  
-- **Note:** This endpoint **SUPPORTS multiple subscriptions** via JSON array
-
-**subscriptions-creation-TC003** - **Save subscriptions PAYG**  
+**subscriptions-creation-TC010** - **Save subscriptions PAYG**  
 - **Description:** Verify subscription saving when enabled.  
 - **Setup:** Prepare subscriptions with JSON array  
 - **Action:**   
@@ -721,8 +708,7 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Action:** PUT `/api/swatch-contracts/internal/rpc/subscriptions/sync`.  
 - **Verification**: Monitor sync queue.  
 - **Expected Result:**  
-  - RpcResponse with success  
-  - Sync tasks enqueued for each org
+  - RpcResponse with success
 
 **subscriptions-sync-TC002** - **Sync UMB subscription XML message**  
 - **Description:** Verify processing of UMB CanonicalMessage XML.  
