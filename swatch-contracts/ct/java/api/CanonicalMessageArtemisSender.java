@@ -24,16 +24,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.redhat.swatch.contract.product.umb.CanonicalMessage;
-import com.redhat.swatch.contract.product.umb.Identifiers;
-import com.redhat.swatch.contract.product.umb.Payload;
-import com.redhat.swatch.contract.product.umb.Reference;
-import com.redhat.swatch.contract.product.umb.SubscriptionProduct;
-import com.redhat.swatch.contract.product.umb.SubscriptionProductStatus;
-import com.redhat.swatch.contract.product.umb.SubscriptionStatus;
-import com.redhat.swatch.contract.product.umb.Sync;
-import com.redhat.swatch.contract.product.umb.UmbSubscription;
 import domain.Subscription;
 import io.restassured.http.ContentType;
+import utils.CanonicalMessageMapper;
 
 /**
  * Builder for creating and sending CanonicalMessage messages via Artemis. Provides a fluent API for
@@ -56,7 +49,7 @@ public class CanonicalMessageArtemisSender {
    * @param subscription the subscription test data
    */
   public void send(Subscription subscription) {
-    sendMessage(fromSubscription(subscription, "Active"));
+    sendMessage(CanonicalMessageMapper.mapActiveSubscription(subscription));
   }
 
   /**
@@ -67,7 +60,7 @@ public class CanonicalMessageArtemisSender {
    * @param subscription the subscription test data with termination end date
    */
   public void sendTerminated(Subscription subscription) {
-    sendMessage(fromSubscription(subscription, "Terminated"));
+    sendMessage(CanonicalMessageMapper.mapTerminatedSubscription(subscription));
   }
 
   /**
@@ -82,138 +75,5 @@ public class CanonicalMessageArtemisSender {
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Failed to serialize CanonicalMessage", e);
     }
-  }
-
-  /**
-   * Build a CanonicalMessage object from a Subscription domain object.
-   *
-   * @param subscription the subscription test data
-   * @param productState the state for the product (e.g., "Active", "Terminated")
-   * @return CanonicalMessage object
-   */
-  private CanonicalMessage fromSubscription(Subscription subscription, String productState) {
-    Identifiers identifiers = buildIdentifiers(subscription);
-    SubscriptionStatus status = buildSubscriptionStatus(subscription);
-    SubscriptionProduct[] products = buildProducts(subscription, productState);
-
-    UmbSubscription umbSubscription =
-        UmbSubscription.builder()
-            .identifiers(identifiers)
-            .status(status)
-            .quantity(subscription.getQuantity())
-            .effectiveStartDate(toLocalDateTime(subscription.getStartDate()))
-            .effectiveEndDate(toLocalDateTime(subscription.getEndDate()))
-            .products(products)
-            .build();
-
-    Sync sync = Sync.builder().subscription(umbSubscription).build();
-    Payload payload = Payload.builder().sync(sync).build();
-    return CanonicalMessage.builder().payload(payload).build();
-  }
-
-  /**
-   * Build identifiers including subscription number and customer ID.
-   *
-   * @param subscription the subscription test data
-   * @return Identifiers object
-   */
-  private Identifiers buildIdentifiers(Subscription subscription) {
-    Reference[] identifierRefs =
-        new Reference[] {
-          Reference.builder()
-              .system("SUBSCRIPTION")
-              .entityName("Subscription")
-              .qualifier("number")
-              .value(subscription.getSubscriptionNumber())
-              .build()
-        };
-
-    Reference[] references =
-        new Reference[] {
-          Reference.builder()
-              .system("WEB")
-              .entityName("Customer")
-              .qualifier("id")
-              .value(subscription.getOrgId() + "_ICUST")
-              .build()
-        };
-
-    // Add EBS account number if billing account is present
-    if (subscription.getBillingAccountId() != null) {
-      Reference ebsRef =
-          Reference.builder()
-              .system("EBS")
-              .entityName("Account")
-              .qualifier("number")
-              .value(subscription.getBillingAccountId())
-              .build();
-      Reference[] newRefs = new Reference[references.length + 1];
-      System.arraycopy(references, 0, newRefs, 0, references.length);
-      newRefs[references.length] = ebsRef;
-      references = newRefs;
-    }
-
-    return Identifiers.builder().ids(identifierRefs).references(references).build();
-  }
-
-  /**
-   * Build subscription status.
-   *
-   * @param subscription the subscription test data
-   * @return SubscriptionStatus object
-   */
-  private SubscriptionStatus buildSubscriptionStatus(Subscription subscription) {
-    return SubscriptionStatus.builder()
-        .state("Active")
-        .startDate(toLocalDateTime(subscription.getStartDate()))
-        .build();
-  }
-
-  /**
-   * Build products array with nested product structure.
-   *
-   * @param subscription the subscription test data
-   * @param productState the state for the product (e.g., "Active", "Terminated")
-   * @return SubscriptionProduct array
-   */
-  private SubscriptionProduct[] buildProducts(Subscription subscription, String productState) {
-    // For terminated subscriptions, use the end date as the status start date
-    java.time.LocalDateTime productStatusDate =
-        "Terminated".equals(productState) && subscription.getEndDate() != null
-            ? toLocalDateTime(subscription.getEndDate())
-            : toLocalDateTime(subscription.getStartDate());
-
-    SubscriptionProductStatus[] statuses =
-        new SubscriptionProductStatus[] {
-          SubscriptionProductStatus.builder()
-              .state(productState)
-              .startDate(productStatusDate)
-              .build()
-        };
-
-    SubscriptionProduct innerProduct =
-        SubscriptionProduct.builder()
-            .sku(subscription.getOffering().getSku())
-            .status(statuses)
-            .build();
-
-    SubscriptionProduct outerProduct =
-        SubscriptionProduct.builder()
-            .sku(subscription.getOffering().getSku())
-            .status(statuses)
-            .product(innerProduct)
-            .build();
-
-    return new SubscriptionProduct[] {outerProduct};
-  }
-
-  /**
-   * Convert OffsetDateTime to LocalDateTime, handling null values.
-   *
-   * @param dateTime the OffsetDateTime to convert
-   * @return LocalDateTime or null
-   */
-  private java.time.LocalDateTime toLocalDateTime(java.time.OffsetDateTime dateTime) {
-    return dateTime != null ? dateTime.toLocalDateTime() : null;
   }
 }
