@@ -33,6 +33,9 @@ public final class Topics {
   public static final String TALLY = SUFFIX + "tally";
   public static final String CONDUIT_TASKS = "platform.rhsm-conduit.tasks";
   public static final String NOTIFICATIONS = "platform.notifications.ingress";
+  public static final String ENABLED_ORGS = "platform.rhsm-subscriptions.enabled-orgs-for-tasks";
+  public static final String SUBSCRIPTION_SYNC_TASK =
+      "platform.rhsm-subscriptions.subscription-sync-task";
 
   private Topics() {}
 }

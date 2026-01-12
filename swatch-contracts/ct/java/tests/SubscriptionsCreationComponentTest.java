@@ -21,24 +21,34 @@
 package tests;
 
 import static api.CanonicalMessageArtemisSender.SUBSCRIPTION_CHANNEL;
+import static api.PartnerApiStubs.PartnerSubscriptionsStubRequest.forContract;
 import static com.redhat.swatch.contract.product.umb.UmbSubscription.convertToUtc;
+import static domain.Contract.buildRosaContract;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static utils.DateUtils.assertDatesAreEqual;
 
 import api.ContractsArtemisService;
 import com.redhat.swatch.component.tests.api.Artemis;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
+import com.redhat.swatch.contract.test.model.ContractResponse;
 import domain.BillingProvider;
+import domain.Contract;
+import domain.Offering;
 import domain.Subscription;
 import io.restassured.http.ContentType;
+import io.restassured.response.Response;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -67,8 +77,10 @@ public class SubscriptionsCreationComponentTest extends BaseContractComponentTes
     var actual = thenSubscriptionIsCreated(subscription);
     assertEquals(subscription.getQuantity(), actual.getQuantity());
     assertEquals(subscription.getOffering().getSku(), actual.getSku());
-    assertDates(subscription.getStartDate(), actual.getStartDate());
-    assertDates(subscription.getEndDate(), actual.getEndDate());
+    assertDatesAreEqual(
+        convertToUtc(subscription.getStartDate().toLocalDateTime()), actual.getStartDate());
+    assertDatesAreEqual(
+        convertToUtc(subscription.getEndDate().toLocalDateTime()), actual.getEndDate());
   }
 
   @TestPlanName("subscriptions-creation-TC002")
@@ -200,6 +212,75 @@ public class SubscriptionsCreationComponentTest extends BaseContractComponentTes
         });
   }
 
+  @TestPlanName("subscriptions-creation-TC009")
+  @Test
+  void shouldCreateSubscriptionWhenValidPaygContractIsReceived() {
+    Contract contract = buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0), sku);
+    wiremock.forProductAPI().stubOfferingData(contract.getOffering());
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(contract));
+    Response sync = service.syncOffering(contract.getOffering().getSku());
+    assertThat("Sync offering should succeed", sync.statusCode(), is(HttpStatus.SC_OK));
+
+    // when create the valid PAYG contract
+    Response response = service.createContract(contract);
+
+    // assert the created contract
+    assertThat("Creating contract should succeed", response.statusCode(), is(HttpStatus.SC_OK));
+    var actual = response.then().extract().as(ContractResponse.class);
+    assertNotNull(actual.getContract());
+    var actualContract = actual.getContract();
+    assertEquals(contract.getSubscriptionNumber(), actualContract.getSubscriptionNumber());
+    assertEquals(contract.getOffering().getSku(), actualContract.getSku());
+    assertDatesAreEqual(contract.getStartDate(), actualContract.getStartDate());
+    assertDatesAreEqual(contract.getEndDate(), actualContract.getEndDate());
+    assertEquals(contract.getOrgId(), actualContract.getOrgId());
+    assertEquals(contract.getBillingProvider().toApiModel(), actualContract.getBillingProvider());
+    // assert is in the subscription table as well
+    var subscriptions = service.getSubscriptionsByOrgId(orgId);
+    assertEquals(1, subscriptions.size(), "Should have exactly one subscription");
+    assertSubscription(contract, subscriptions.get(0));
+  }
+
+  @TestPlanName("subscriptions-creation-TC010")
+  @Test
+  void shouldCreateAndSyncMultiplePaygSubscriptions() {
+    // sync common offering for the multiple subscriptions
+    var offering = Offering.buildRosaOffering(sku);
+    wiremock.forProductAPI().stubOfferingData(offering);
+    service.syncOffering(sku);
+
+    // create the multiple subscriptions (which are really contracts)
+    var firstSubscription = buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0), sku);
+    var secondSubscription =
+        buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 20.0), sku);
+    var create = service.saveSubscriptions(firstSubscription, secondSubscription);
+    assertThat("Subscription creation should succeed", create.statusCode(), is(HttpStatus.SC_OK));
+    var sync = service.syncSubscriptionsForContractsByOrg(orgId);
+    assertThat("Subscription sync should succeed", sync.statusCode(), is(HttpStatus.SC_OK));
+
+    // assert is in the subscription table as well
+    var subscriptions = service.getSubscriptionsByOrgId(orgId);
+    assertEquals(2, subscriptions.size(), "Should have exactly two subscriptions");
+    var actualFirstSubscription =
+        subscriptions.stream()
+            .filter(
+                s ->
+                    Objects.equals(
+                        s.getSubscriptionNumber(), firstSubscription.getSubscriptionNumber()))
+            .findFirst();
+    assertTrue(actualFirstSubscription.isPresent());
+    assertSubscription(firstSubscription, actualFirstSubscription.get());
+    var actualSecondSubscription =
+        subscriptions.stream()
+            .filter(
+                s ->
+                    Objects.equals(
+                        s.getSubscriptionNumber(), secondSubscription.getSubscriptionNumber()))
+            .findFirst();
+    assertTrue(actualSecondSubscription.isPresent());
+    assertSubscription(secondSubscription, actualSecondSubscription.get());
+  }
+
   private Subscription givenSubscription() {
     var subscription =
         Subscription.buildRhelSubscription(orgId, Map.of(SOCKETS, RHEL_SOCKETS_CAPACITY), sku);
@@ -237,19 +318,13 @@ public class SubscriptionsCreationComponentTest extends BaseContractComponentTes
         .get(0);
   }
 
-  /**
-   * Assert that two OffsetDateTime values are within 1 second of each other. This is necessary
-   * because timestamp conversions may lose precision in nanoseconds.
-   */
-  private static void assertDates(OffsetDateTime expected, OffsetDateTime actual) {
-    assertNotNull(actual, "Actual date should not be null");
-    assertNotNull(expected, "Expected date should not be null");
-    long expectedInUtc = convertToUtc(expected.toLocalDateTime()).toEpochSecond();
-    long diffSeconds = Math.abs(expectedInUtc - actual.toEpochSecond());
-    assertTrue(
-        diffSeconds <= 1,
-        String.format(
-            "Dates should be within 1 second. Expected: %s, Actual: %s, Difference: %ds",
-            expected, actual, diffSeconds));
+  private void assertSubscription(
+      Contract expected, com.redhat.swatch.contract.test.model.Subscription actual) {
+    assertEquals(expected.getSubscriptionNumber(), actual.getSubscriptionNumber());
+    assertEquals(expected.getOffering().getSku(), actual.getSku());
+    assertDatesAreEqual(expected.getStartDate(), actual.getStartDate());
+    assertDatesAreEqual(expected.getEndDate(), actual.getEndDate());
+    assertEquals(expected.getOrgId(), actual.getOrgId());
+    assertEquals(expected.getBillingProvider().toString(), actual.getBillingProvider());
   }
 }
