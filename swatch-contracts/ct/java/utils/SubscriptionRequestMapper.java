@@ -21,8 +21,12 @@
 package utils;
 
 import com.redhat.swatch.subscriptions.test.subscription.model.Subscription;
+import domain.BillingProvider;
+import java.util.Objects;
 
 public final class SubscriptionRequestMapper {
+  private static final String AWS_MARKETPLACE = "awsMarketplace";
+
   private SubscriptionRequestMapper() {}
 
   public static Subscription buildSubscriptionRequest(domain.Subscription subscription) {
@@ -54,19 +58,42 @@ public final class SubscriptionRequestMapper {
 
       if (subscription.getBillingAccountId() != null) {
         externalRef.setAccountID(subscription.getBillingAccountId());
+        externalRef.setCustomerAccountID(subscription.getBillingAccountId());
       }
       if (subscription.getSubscriptionId() != null) {
         externalRef.setSubscriptionID(subscription.getSubscriptionId());
       }
 
+      // For AWS contracts, populate the required fields for external reference
+      if (subscription instanceof domain.Contract) {
+        domain.Contract contract = (domain.Contract) subscription;
+        if (contract.getProductCode() != null) {
+          externalRef.setProductCode(contract.getProductCode());
+        }
+        if (contract.getCustomerId() != null) {
+          externalRef.setCustomerID(contract.getCustomerId());
+        }
+        if (contract.getSellerAccountId() != null) {
+          externalRef.setSellerAccount(contract.getSellerAccountId());
+        }
+      }
+
       // Add external reference with billing provider as key
       String billingProviderKey =
           subscription.getBillingProvider() != null
-              ? subscription.getBillingProvider().name().toLowerCase()
+              ? getBillingProviderKey(subscription.getBillingProvider())
               : "default";
       request.putExternalReferencesItem(billingProviderKey, externalRef);
     }
 
     return request;
+  }
+
+  private static String getBillingProviderKey(domain.BillingProvider billingProvider) {
+    if (Objects.requireNonNull(billingProvider) == BillingProvider.AWS) {
+      return AWS_MARKETPLACE;
+    }
+
+    return billingProvider.name().toLowerCase();
   }
 }
