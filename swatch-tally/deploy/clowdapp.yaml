@@ -676,7 +676,8 @@ objects:
         and billing_account_id = '_ANY'
         and granularity='DAILY'
         and measurement_type!='TOTAL'
-        AND snapshot_date >= date_trunc('day', now() at time zone 'utc' - interval '2 day');
+        AND snapshot_date >= date_trunc('day', now() at time zone 'utc' - interval '2 day')
+        LIMIT 500000;
       chunksize: 10000
     - prefix: swatch/subscriptions
       query: >-
