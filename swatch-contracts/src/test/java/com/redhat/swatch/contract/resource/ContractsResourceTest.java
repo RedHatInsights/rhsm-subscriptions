@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -46,10 +47,13 @@ import com.redhat.swatch.contract.openapi.model.AzureUsageContext;
 import com.redhat.swatch.contract.openapi.model.OfferingResponse;
 import com.redhat.swatch.contract.openapi.model.RpcResponse;
 import com.redhat.swatch.contract.openapi.model.ServiceLevelType;
+import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.openapi.model.Subscription;
 import com.redhat.swatch.contract.openapi.model.UsageType;
+import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
+import com.redhat.swatch.contract.service.ContractService;
 import com.redhat.swatch.contract.service.EnabledOrgsProducer;
 import com.redhat.swatch.contract.service.OfferingProductTagLookupService;
 import com.redhat.swatch.contract.service.OfferingSyncService;
@@ -68,6 +72,7 @@ import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -79,12 +84,14 @@ class ContractsResourceTest {
   private static final String SKU = "mw123";
   private static final String ORG_ID = "org123";
   private static final String ROSA = "rosa";
+  private static final String SYNC_ALL_CONTRACTS_ENDPOINT = "/internal/rpc/syncAllContracts";
   private final OffsetDateTime defaultEndDate =
       OffsetDateTime.of(2022, 7, 22, 8, 0, 0, 0, ZoneOffset.UTC);
   private final OffsetDateTime defaultLookUpDate =
       OffsetDateTime.of(2022, 6, 22, 8, 0, 0, 0, ZoneOffset.UTC);
 
   @InjectMock ApplicationConfiguration applicationConfiguration;
+  @InjectMock ContractService contractService;
   @InjectMock EnabledOrgsProducer enabledOrgsProducer;
   @InjectMock OfferingSyncService offeringSyncService;
   @InjectMock OfferingProductTagLookupService offeringProductTagLookupService;
@@ -509,6 +516,40 @@ class ContractsResourceTest {
     assertNotNull(actual);
     assertEquals(1, actual.size());
     assertEquals(expected.getSubscriptionNumber(), actual.get(0).getSubscriptionNumber());
+  }
+
+  @Test
+  void testSyncAllContractsWhenNoActiveContracts() {
+    when(contractService.getAllContracts()).thenReturn(Collections.emptyList());
+
+    StatusResponse response = whenSyncAllContractsRequest();
+
+    assertEquals("No active contract found for the orgIds", response.getStatus());
+    verify(contractService).getAllContracts();
+    verify(contractService, times(0)).syncContractByOrgId(any(), anyBoolean());
+  }
+
+  @Test
+  void testSyncAllContractsWithContractsExist() {
+    ContractEntity contract = new ContractEntity();
+    contract.setOrgId(ORG_ID);
+    when(contractService.getAllContracts()).thenReturn(List.of(contract));
+
+    StatusResponse response = whenSyncAllContractsRequest();
+
+    assertEquals("All Contract are Synced", response.getStatus());
+    verify(contractService).getAllContracts();
+    verify(contractService).syncContractByOrgId(ORG_ID, true);
+  }
+
+  private StatusResponse whenSyncAllContractsRequest() {
+    return given()
+        .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+        .post(SYNC_ALL_CONTRACTS_ENDPOINT)
+        .then()
+        .statusCode(HttpStatus.SC_OK)
+        .extract()
+        .as(StatusResponse.class);
   }
 
   void thenAmbiguousSubscriptionsMetricIs(String provider, double expected) {

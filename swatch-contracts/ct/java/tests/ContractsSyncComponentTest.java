@@ -256,17 +256,6 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
 
   @TestPlanName("contracts-sync-TC004")
   @Test
-  void shouldReturnFailedStatusWhenNoContractsExist() {
-    // When: Sync all contracts
-    Response syncResponse = service.syncAllContracts();
-
-    // Then: Verify appropriate status
-    assertThat("Sync should return 200", syncResponse.statusCode(), is(HttpStatus.SC_OK));
-    syncResponse.then().body("status", equalTo(STATUS_NO_CONTRACTS_FOUND));
-  }
-
-  @TestPlanName("contracts-sync-TC005")
-  @Test
   void shouldSyncSubscriptionsForContractsByOrg() {
     // Given: Contracts exist for the organization without subscriptions
     String sku = RandomUtils.generateRandom();
@@ -301,7 +290,7 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
         1, skuCapacity.get().getSubscriptions().size(), "Should have exactly one subscription");
   }
 
-  @TestPlanName("contracts-sync-TC006")
+  @TestPlanName("contracts-sync-TC005")
   @Test
   void shouldClearAllContractsForOrganization() {
     // Given: Multiple contracts exist for the organization

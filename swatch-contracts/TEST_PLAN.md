@@ -573,16 +573,7 @@ Test cases should be testable locally and in an ephemeral environment.
   - StatusResponse: "All Contracts are Synced"
   - Each org's contracts synced
 
-**contracts-sync-TC004 - Sync when no contracts exist**  
-- **Description**: Verify sync all when no active contracts are found.  
-- **Setup**: Ensure no contracts.  
-- **Action:** POST syncAllContracts.  
-- **Verification**: Check response.  
-- **Expected Result**:  
-  - Status: "No active contract found for the orgIds"  
-  - No errors
-
-**contracts-sync-TC005** - Sync subscriptions for contracts by org**  
+**contracts-sync-TC004** - Sync subscriptions for contracts by org**  
 - **Description**: Verify subscription sync for all contracts of an org.  
 - **Setup**: Have contracts for org without subscriptions.  
 - **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{org_id}/subscriptions`.  
@@ -591,7 +582,7 @@ Test cases should be testable locally and in an ephemeral environment.
   - StatusResponse success  
   - Subscriptions synced from Subscription API
 
-**contracts-sync-TC006 - Clear all contracts for the organization**
+**contracts-sync-TC005 - Clear all contracts for the organization**
 - **Description**: Verify that deleteContractsByOrg removes all org contracts.
 - **Setup**: Create multiple contracts for the org.
 - **Action**: DELETE `/api/swatch-contracts/internal/rpc/reset/{org_id}`.
