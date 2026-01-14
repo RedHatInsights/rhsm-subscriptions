@@ -25,19 +25,16 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.contract.test.model.SkuCapacityV2;
-import domain.Offering;
 import domain.Product;
 import domain.Subscription;
 import java.time.OffsetDateTime;
-import java.util.Map;
+import java.time.ZoneOffset;
 import java.util.Optional;
-import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -50,13 +47,15 @@ public class CapacityComponentTest extends BaseContractComponentTest {
   @Test
   void shouldValidateSumOfAllSocketsForHypervisorSkus() {
     // Given: Get initial hypervisor capacity via REST API
-    final OffsetDateTime beginning = OffsetDateTime.now().minusDays(1);
-    final OffsetDateTime ending = OffsetDateTime.now().plusDays(1);
+    final OffsetDateTime beginning = OffsetDateTime.now(ZoneOffset.UTC).minusDays(1);
+    final OffsetDateTime ending = OffsetDateTime.now(ZoneOffset.UTC).plusDays(1);
     final String hypervisor_sku = RandomUtils.generateRandom();
     double initialHypervisorSockets =
         getHypervisorSocketCapacity(Product.RHEL, orgId, beginning, ending);
 
-    Subscription hypervisorSubscription = givenHypervisorSubscriptionIsCreated(hypervisor_sku);
+    Subscription hypervisorSubscription =
+        givenHypervisorSubscriptionIsCreated(
+            hypervisor_sku, RHEL_CORES_CAPACITY, RHEL_SOCKETS_CAPACITY);
 
     // Then: Verify hypervisor capacity increased via REST API
     double expectedCapacity = initialHypervisorSockets + RHEL_SOCKETS_CAPACITY;
@@ -91,13 +90,14 @@ public class CapacityComponentTest extends BaseContractComponentTest {
   @Test
   void shouldValidateSumOfAllSocketsForPhysicalSkus() {
     // Given: Get initial physical capacity via REST API
-    final OffsetDateTime beginning = OffsetDateTime.now().minusDays(1);
-    final OffsetDateTime ending = OffsetDateTime.now().plusDays(1);
+    final OffsetDateTime beginning = OffsetDateTime.now(ZoneOffset.UTC).minusDays(1);
+    final OffsetDateTime ending = OffsetDateTime.now(ZoneOffset.UTC).plusDays(1);
     final String physicalSku = RandomUtils.generateRandom();
     double initialPhysicalSockets =
         getPhysicalSocketCapacity(Product.RHEL, orgId, beginning, ending);
 
-    Subscription physicalSubscription = givenPhysicalSubscriptionIsCreated(physicalSku);
+    Subscription physicalSubscription =
+        givenPhysicalSubscriptionIsCreated(physicalSku, RHEL_CORES_CAPACITY, RHEL_SOCKETS_CAPACITY);
 
     // Then: Verify physical capacity increased via REST API
     double expectedCapacity = initialPhysicalSockets + RHEL_SOCKETS_CAPACITY;
@@ -127,51 +127,6 @@ public class CapacityComponentTest extends BaseContractComponentTest {
     assertTrue(
         containsSubscription(skuCapacity.get(), physicalSubscription),
         "Physical SKU should contain the created subscription");
-  }
-
-  private Subscription givenHypervisorSubscriptionIsCreated(String hypervisorSKU) {
-    // Given: A hypervisor offering with hypervisor sockets capacity
-    wiremock
-        .forProductAPI()
-        .stubOfferingData(
-            Offering.buildRhelHypervisorOffering(
-                hypervisorSKU, RHEL_CORES_CAPACITY, RHEL_SOCKETS_CAPACITY));
-    assertThat(
-        "Sync hypervisor offering should succeed",
-        service.syncOffering(hypervisorSKU).statusCode(),
-        is(HttpStatus.SC_OK));
-
-    // When: Create a hypervisor subscription with hypervisor sockets
-    Subscription hypervisorSubscription =
-        Subscription.buildRhelSubscriptionUsingSku(
-            orgId, Map.of(SOCKETS, RHEL_SOCKETS_CAPACITY), hypervisorSKU);
-    assertThat(
-        "Creating hypervisor subscription should succeed",
-        service.saveSubscriptions(true, hypervisorSubscription).statusCode(),
-        is(HttpStatus.SC_OK));
-    return hypervisorSubscription;
-  }
-
-  private Subscription givenPhysicalSubscriptionIsCreated(String physicalSku) {
-    // Given: A physical offering with standard sockets capacity (no DERIVED_SKU)
-    wiremock
-        .forProductAPI()
-        .stubOfferingData(
-            Offering.buildRhelOffering(physicalSku, RHEL_CORES_CAPACITY, RHEL_SOCKETS_CAPACITY));
-    assertThat(
-        "Sync physical offering should succeed",
-        service.syncOffering(physicalSku).statusCode(),
-        is(HttpStatus.SC_OK));
-
-    // When: Create a physical subscription with sockets
-    Subscription physicalSubscription =
-        Subscription.buildRhelSubscriptionUsingSku(
-            orgId, Map.of(SOCKETS, RHEL_SOCKETS_CAPACITY), physicalSku);
-    assertThat(
-        "Creating physical subscription should succeed",
-        service.saveSubscriptions(true, physicalSubscription).statusCode(),
-        is(HttpStatus.SC_OK));
-    return physicalSubscription;
   }
 
   private boolean containsSubscription(SkuCapacityV2 skuCapacity, Subscription subscription) {
