@@ -24,3 +24,10 @@ buildSrc/.gradle
 .gradle
 !.gradle/wrapper
 .git/index.lock
+
+# Maven wrapper (required for builds)
+!.mvn/
+!.mvn/wrapper/
+!.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.properties
+!mvnw
