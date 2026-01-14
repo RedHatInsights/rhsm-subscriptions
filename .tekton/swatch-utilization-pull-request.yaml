@@ -115,7 +115,7 @@ spec:
         type: string
         description: The format for the resulting image's mediaType. Valid values are oci or docker.
       - name: enable-cache-proxy
-        default: 'true'
+        default: 'false'
         description: Enable cache proxy configuration
         type: string
     results:
