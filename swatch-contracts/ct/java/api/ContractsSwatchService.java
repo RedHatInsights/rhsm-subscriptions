@@ -68,6 +68,8 @@ public class ContractsSwatchService extends SwatchService {
   private static final String SYNC_ALL_CONTRACTS_ENDPOINT = "/internal/rpc/syncAllContracts";
   private static final String SYNC_SUBSCRIPTIONS_FOR_CONTRACTS_BY_ORG_ENDPOINT =
       ENDPOINT_PREFIX + "/rpc/sync/contracts/%s/subscriptions";
+  private static final String SKU_PRODUCT_TAGS_ENDPOINT =
+      ENDPOINT_PREFIX + "/offerings/%s/product_tags";
 
   public Response syncOffering(String sku) {
     Objects.requireNonNull(sku, "sku must not be null");
@@ -292,6 +294,13 @@ public class ContractsSwatchService extends SwatchService {
 
     String endpoint = SYNC_SUBSCRIPTIONS_FOR_CONTRACTS_BY_ORG_ENDPOINT.formatted(orgId);
     return given().headers(SECURITY_HEADERS).when().post(endpoint);
+  }
+
+  public Response getSkuProductTags(String sku) {
+    Objects.requireNonNull(sku, "sku must not be null");
+
+    String endpoint = String.format(SKU_PRODUCT_TAGS_ENDPOINT, sku);
+    return given().headers(SECURITY_HEADERS).accept("application/json").when().get(endpoint);
   }
 
   private List<com.redhat.swatch.contract.test.model.Contract> getContracts(
