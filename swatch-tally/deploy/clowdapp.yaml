@@ -685,6 +685,17 @@ objects:
         and measurement_type!='TOTAL'
         AND snapshot_date >= date_trunc('day', now() at time zone 'utc' - interval '2 day');
       chunksize: 50000
+    - prefix: swatch/recent_snapshots
+      query: >-
+        select * from tally_snapshots
+        where sla = '_ANY'
+        and usage = '_ANY'
+        and billing_provider = '_ANY'
+        and billing_account_id = '_ANY'
+        and granularity='DAILY'
+        and measurement_type!='TOTAL'
+        AND snapshot_date >= date_trunc('day', now() at time zone 'utc' - interval '2 day');
+      chunksize: 50000
     - prefix: swatch/subscriptions
       query: >-
         select distinct
