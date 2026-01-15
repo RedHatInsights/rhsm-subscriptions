@@ -20,12 +20,12 @@
  */
 package tests;
 
+import api.BillableUsageSwatchService;
 import api.ContractsWiremockService;
 import com.redhat.swatch.component.tests.api.ComponentTest;
 import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.Quarkus;
-import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.api.Wiremock;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
@@ -43,7 +43,7 @@ public class BaseBillableUsageComponentTest {
   @Wiremock static ContractsWiremockService contractsWiremock = new ContractsWiremockService();
 
   @Quarkus(service = "swatch-billable-usage")
-  static SwatchService service = new SwatchService();
+  static BillableUsageSwatchService billableUsageService = new BillableUsageSwatchService();
 
   protected String orgId;
 
