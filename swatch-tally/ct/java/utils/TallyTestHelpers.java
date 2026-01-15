@@ -20,6 +20,7 @@
  */
 package utils;
 
+import static com.redhat.swatch.component.tests.utils.SwatchUtils.securityHeadersWithServiceRole;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 
 import api.MessageValidators;
@@ -53,6 +54,10 @@ public class TallyTestHelpers {
 
   /** Default constructor. */
   public TallyTestHelpers() {}
+
+  /** Record representing a date range with start and end times. */
+   public static record MonthlyRange(OffsetDateTime start, OffsetDateTime end) {}
+
 
   public Event createEventWithTimestamp(
       String orgId, String instanceId, String timestampStr, String eventIdStr, float value) {
@@ -168,6 +173,115 @@ public class TallyTestHelpers {
     }
 
     Log.info("Hourly tally endpoint called successfully for org: %s", orgId);
+  }
+
+  public void syncTallyHourly(
+      String orgId, OffsetDateTime start, OffsetDateTime end, SwatchService service)
+      throws Exception {
+    Response response =
+        service
+            .given()
+            .header("x-rh-swatch-psk", TEST_PSK)
+            .queryParam("org", orgId)
+            .queryParam("start", start.toString())
+            .queryParam("end", end.toString())
+            .post("/api/rhsm-subscriptions/v1/internal/tally/hourly")
+            .then()
+            .extract()
+            .response();
+
+    if (response.getStatusCode() != 204) {
+      throw new RuntimeException(
+          "Hourly tally sync failed with status code: "
+              + response.getStatusCode()
+              + ", response body: "
+              + response.getBody().asString());
+    }
+
+    Log.info(
+        "Hourly tally endpoint called successfully for org: %s with start: %s, end: %s",
+        orgId, start, end);
+  }
+
+  public void createOptInConfig(String orgId, SwatchService service) throws Exception {
+    Response response =
+        service
+            .given()
+            .header("x-rh-swatch-psk", TEST_PSK)
+            .queryParam("org_id", orgId)
+            .put("/api/rhsm-subscriptions/v1/internal/rpc/tally/opt-in")
+            .then()
+            .extract()
+            .response();
+
+    if (response.getStatusCode() != 200) {
+      throw new RuntimeException(
+          "Create opt-in config failed with status code: "
+              + response.getStatusCode()
+              + ", response body: "
+              + response.getBody().asString());
+    }
+
+    Log.info("Opt-in config created successfully for org: %s", orgId);
+  }
+
+  public Response getTallyReport(
+      String orgId,
+      String productId,
+      String metricId,
+      String granularity,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      SwatchService service) {
+    Response response =
+        service
+            .given()
+            .headers(securityHeadersWithServiceRole(orgId))
+            .queryParam("granularity", granularity)
+            .queryParam("beginning", beginning.toString())
+            .queryParam("ending", ending.toString())
+            .get("/api/rhsm-subscriptions/v1/tally/products/" + productId + "/" + metricId)
+            .then()
+            .extract()
+            .response();
+
+    if (response.getStatusCode() != 200) {
+      throw new RuntimeException(
+          "Get tally report failed with status code: "
+              + response.getStatusCode()
+              + ", response body: "
+              + response.getBody().asString());
+    }
+
+    return response;
+  }
+
+  public Response getInstancesReport(
+      String orgId,
+      String productId,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      SwatchService service) {
+    Response response =
+        service
+            .given()
+            .headers(securityHeadersWithServiceRole(orgId))
+            .queryParam("beginning", beginning.toString())
+            .queryParam("ending", ending.toString())
+            .get("/api/rhsm-subscriptions/v1/instances/products/" + productId)
+            .then()
+            .extract()
+            .response();
+
+    if (response.getStatusCode() != 200) {
+      throw new RuntimeException(
+          "Get instances report failed with status code: "
+              + response.getStatusCode()
+              + ", response body: "
+              + response.getBody().asString());
+    }
+
+    return response;
   }
 
   public List<TallySummary> pollForTallySyncAndMessages(
