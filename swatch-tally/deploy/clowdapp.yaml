@@ -692,7 +692,7 @@ objects:
         and granularity='DAILY'
         and measurement_type!='TOTAL'
         AND snapshot_date >= date_trunc('day', now() at time zone 'utc' - interval '2 day');
-      chunksize: 50000
+      chunksize: 0
     - prefix: swatch/subscriptions
       query: >-
         select distinct
