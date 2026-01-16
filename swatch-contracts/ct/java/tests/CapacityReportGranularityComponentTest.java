@@ -42,6 +42,73 @@ public class CapacityReportGranularityComponentTest extends BaseContractComponen
   private static final double RHEL_CORES_CAPACITY = 4.0;
   private static final double RHEL_SOCKETS_CAPACITY = 1.0;
 
+  /**
+   * Helper method to verify capacity report contains expected number of snapshots and has valid
+   * data.
+   *
+   * @param capacityReport The capacity report to validate
+   * @param expectedSize Expected number of snapshots
+   * @return List of snapshots for further validation
+   */
+  private List<CapacitySnapshotByMetricId> thenCapacityReportShouldContainSnapshots(
+      CapacityReportByMetricId capacityReport, int expectedSize) {
+    assertThat("Capacity report should not be null", capacityReport, notNullValue());
+    assertThat(
+        "Data array should have expected size", capacityReport.getData(), hasSize(expectedSize));
+
+    List<CapacitySnapshotByMetricId> snapshots = capacityReport.getData();
+    Assertions.assertNotNull(snapshots);
+    thenAtLeastOneSnapshotHasValidCapacity(snapshots);
+
+    return snapshots;
+  }
+
+  /**
+   * Helper method to verify that at least one snapshot in the list contains valid capacity data.
+   *
+   * @param snapshots List of capacity snapshots to validate
+   */
+  private void thenAtLeastOneSnapshotHasValidCapacity(List<CapacitySnapshotByMetricId> snapshots) {
+    boolean hasValidData =
+        snapshots.stream()
+            .anyMatch(
+                snapshot -> {
+                  assertThat("Date should not be null", snapshot.getDate(), notNullValue());
+                  assertThat("Value should not be null", snapshot.getValue(), notNullValue());
+                  assertThat("HasData should not be null", snapshot.getHasData(), notNullValue());
+                  return snapshot.getHasData() && snapshot.getValue() > 0;
+                });
+    assertTrue(hasValidData, "Should have at least one snapshot with valid capacity data");
+  }
+
+  /**
+   * Helper method to verify the first snapshot date matches the expected start timestamp.
+   *
+   * @param snapshots List of capacity snapshots
+   * @param expectedStart Expected start timestamp
+   */
+  private void thenFirstSnapshotShouldStartAt(
+      List<CapacitySnapshotByMetricId> snapshots, OffsetDateTime expectedStart) {
+    assertThat(
+        "First snapshot date should equal the beginning timestamp",
+        snapshots.get(0).getDate(),
+        equalTo(expectedStart));
+  }
+
+  /**
+   * Helper method to verify the last snapshot date matches the expected end timestamp.
+   *
+   * @param snapshots List of capacity snapshots
+   * @param expectedEnd Expected end timestamp
+   */
+  private void thenLastSnapshotShouldEndAt(
+      List<CapacitySnapshotByMetricId> snapshots, OffsetDateTime expectedEnd) {
+    assertThat(
+        "Last snapshot date should equal the expected timestamp",
+        snapshots.get(snapshots.size() - 1).getDate(),
+        equalTo(expectedEnd));
+  }
+
   /*
   capacity-report-granularity-TC002 - Daily Granularity Report
 
@@ -79,29 +146,9 @@ public class CapacityReportGranularityComponentTest extends BaseContractComponen
             null);
 
     // Then: Verify response contains correct capacity data
-    assertThat("Capacity report should not be null", capacityReport, notNullValue());
-    assertThat("Data array should have size 7", capacityReport.getData(), hasSize(7));
-
-    // Verify each snapshot has required fields
-    List<CapacitySnapshotByMetricId> snapshots = capacityReport.getData();
-    Assertions.assertNotNull(snapshots);
-
-    boolean hasValidData =
-        snapshots.stream()
-            .anyMatch(
-                snapshot -> {
-                  assertThat("Date should not be null", snapshot.getDate(), notNullValue());
-                  assertThat("Value should not be null", snapshot.getValue(), notNullValue());
-                  assertThat("HasData should not be null", snapshot.getHasData(), notNullValue());
-                  return snapshot.getHasData() && snapshot.getValue() > 0;
-                });
-    assertTrue(hasValidData, "Should have at least one snapshot with valid capacity data");
-
-    // Verify first snapshot date matches the beginning timestamp
-    assertThat(
-        "First snapshot date should equal the beginning timestamp",
-        snapshots.get(0).getDate(),
-        equalTo(beginning));
+    List<CapacitySnapshotByMetricId> snapshots =
+        thenCapacityReportShouldContainSnapshots(capacityReport, 7);
+    thenFirstSnapshotShouldStartAt(snapshots, beginning);
   }
 
   /*
@@ -149,35 +196,61 @@ public class CapacityReportGranularityComponentTest extends BaseContractComponen
             null);
 
     // Then: Verify response contains correct capacity data
-    assertThat("Capacity report should not be null", capacityReport, notNullValue());
-    assertThat(
-        "Data array should have 4 weekly snapshots", capacityReport.getData(), hasSize(weekRange));
+    List<CapacitySnapshotByMetricId> snapshots =
+        thenCapacityReportShouldContainSnapshots(capacityReport, weekRange);
+    thenFirstSnapshotShouldStartAt(snapshots, beginning);
+    thenLastSnapshotShouldEndAt(snapshots, beginning.plusWeeks(weekRange - 1));
+  }
 
-    // Verify each snapshot has required fields
-    List<CapacitySnapshotByMetricId> snapshots = capacityReport.getData();
-    Assertions.assertNotNull(snapshots);
+  /*
+  capacity-report-granularity-TC004 - Monthly Granularity Report
 
-    boolean hasValidData =
-        snapshots.stream()
-            .anyMatch(
-                snapshot -> {
-                  assertThat("Date should not be null", snapshot.getDate(), notNullValue());
-                  assertThat("Value should not be null", snapshot.getValue(), notNullValue());
-                  assertThat("HasData should not be null", snapshot.getHasData(), notNullValue());
-                  return snapshot.getHasData() && snapshot.getValue() > 0;
-                });
-    assertTrue(hasValidData, "Should have at least one snapshot with valid capacity data");
+    Description: Verify monthly granularity
+    Setup:
+        User authenticated with a valid org_id
+    Action: GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}
+    Test Steps:
+        Create a subscription with capacity
+        GET capacity with granularity=MONTHLY for a 6-month range
+    Expected Results:
+        6 data points
+        Month boundaries are correctly handled
 
-    // Verify the first snapshot date matches the beginning timestamp
-    assertThat(
-        "First snapshot date should equal the beginning timestamp",
-        snapshots.get(0).getDate(),
-        equalTo(beginning));
+   */
 
-    // Verify the last snapshot date is equal to the beginning timestamp plus 3 weeks
-    assertThat(
-        "Last snapshot date should equal the beginning timestamp plus 3 weeks",
-        snapshots.get(weekRange - 1).getDate(),
-        equalTo(beginning.plusWeeks(weekRange - 1)));
+  @TestPlanName("capacity-report-granularity-TC004")
+  @Test
+  void shouldGetCapacityReportMonthlyGranularity() {
+    // Given: Create subscriptions with capacity data for RHEL with Sockets metric
+    final String testSku = RandomUtils.generateRandom();
+    final int monthRange = 6;
+
+    // Create subscription with start date before the last month to ensure it's active at snapshot
+    // time
+    final OffsetDateTime subscriptionStart =
+        clock.startOfCurrentMonth().minusMonths(1).minusDays(3);
+    final OffsetDateTime subscriptionEnd = clock.startOfCurrentMonth().minusMonths(1).plusDays(1);
+    givenPhysicalSubscriptionIsCreated(
+        testSku, RHEL_CORES_CAPACITY, RHEL_SOCKETS_CAPACITY, subscriptionStart, subscriptionEnd);
+
+    // When: Get capacity report for product=RHEL, metric=Sockets
+    final OffsetDateTime beginning = clock.startOfCurrentMonth().minusMonths(monthRange);
+    final OffsetDateTime ending = clock.endOfCurrentMonth().minusMonths(1);
+
+    CapacityReportByMetricId capacityReport =
+        service.getCapacityReportByMetricId(
+            Product.RHEL,
+            orgId,
+            SOCKETS.toString(),
+            beginning,
+            ending,
+            GranularityType.MONTHLY,
+            null);
+
+    // Then: Verify response contains correct capacity data
+    List<CapacitySnapshotByMetricId> snapshots =
+        thenCapacityReportShouldContainSnapshots(capacityReport, monthRange);
+    thenFirstSnapshotShouldStartAt(snapshots, beginning);
+    thenLastSnapshotShouldEndAt(snapshots, beginning.plusMonths(monthRange - 1));
   }
 }
