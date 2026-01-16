@@ -253,4 +253,107 @@ public class CapacityReportGranularityComponentTest extends BaseContractComponen
     thenFirstSnapshotShouldStartAt(snapshots, beginning);
     thenLastSnapshotShouldEndAt(snapshots, beginning.plusMonths(monthRange - 1));
   }
+
+  /*
+  capacity-report-granularity-TC005 - Quarterly Granularity Report
+
+    Description: Verify quarterly granularity
+    Setup:
+        User authenticated with a valid org_id
+    Action: GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}
+    Test Steps:
+        Create a subscription with capacity
+        GET capacity with granularity=QUARTERLY for a 1-year range
+    Expected Results:
+        4 data points
+        Quarter boundaries (Jan 1, Apr 1, Jul 1, Oct 1)
+
+   */
+
+  @TestPlanName("capacity-report-granularity-TC005")
+  @Test
+  void shouldGetCapacityReportQuarterlyGranularity() {
+    // Given: Create subscriptions with capacity data for RHEL with Sockets metric
+    final String testSku = RandomUtils.generateRandom();
+    final int quarterRange = 4;
+
+    // Create subscription with start date before the last quarter to ensure it's active at snapshot
+    // time
+    final OffsetDateTime subscriptionStart =
+        clock.startOfCurrentQuarter().minusMonths(3).minusDays(3);
+    final OffsetDateTime subscriptionEnd = clock.startOfCurrentQuarter().minusMonths(3).plusDays(1);
+    givenPhysicalSubscriptionIsCreated(
+        testSku, RHEL_CORES_CAPACITY, RHEL_SOCKETS_CAPACITY, subscriptionStart, subscriptionEnd);
+
+    // When: Get capacity report for product=RHEL, metric=Sockets
+    final OffsetDateTime beginning = clock.startOfCurrentQuarter().minusMonths(9);
+    final OffsetDateTime ending = clock.endOfCurrentQuarter().minusMonths(3);
+
+    CapacityReportByMetricId capacityReport =
+        service.getCapacityReportByMetricId(
+            Product.RHEL,
+            orgId,
+            SOCKETS.toString(),
+            beginning,
+            ending,
+            GranularityType.QUARTERLY,
+            null);
+
+    // Then: Verify response contains correct capacity data
+    List<CapacitySnapshotByMetricId> snapshots =
+        thenCapacityReportShouldContainSnapshots(capacityReport, quarterRange);
+    thenFirstSnapshotShouldStartAt(snapshots, beginning);
+    thenLastSnapshotShouldEndAt(snapshots, beginning.plusMonths(9));
+  }
+
+  /*
+  capacity-report-granularity-TC006 - Yearly Granularity Report
+
+    Description: Verify yearly granularity
+    Setup:
+        User authenticated with a valid org_id
+    Action: GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}
+    Test Steps:
+        Create a subscription with capacity
+        GET capacity with granularity=YEARLY for a 3-year range
+    Expected Results:
+        3 data points
+        Year boundaries aligned
+
+   */
+
+  @TestPlanName("capacity-report-granularity-TC006")
+  @Test
+  void shouldGetCapacityReportYearlyGranularity() {
+    // Given: Create subscriptions with capacity data for RHEL with Sockets metric
+    final String testSku = RandomUtils.generateRandom();
+    final int yearRange = 3;
+
+    // Create subscription with start date before the last year to ensure it's active at snapshot
+    // time
+    final OffsetDateTime subscriptionStart = clock.startOfCurrentYear().minusYears(1).minusDays(3);
+    final OffsetDateTime subscriptionEnd = clock.startOfCurrentYear().minusYears(1).plusDays(1);
+    givenPhysicalSubscriptionIsCreated(
+        testSku, RHEL_CORES_CAPACITY, RHEL_SOCKETS_CAPACITY, subscriptionStart, subscriptionEnd);
+
+    // When: Get capacity report for product=RHEL, metric=Sockets
+    final OffsetDateTime beginning = clock.startOfCurrentYear().minusYears(3);
+    final OffsetDateTime ending = clock.endOfCurrentYear().minusYears(1);
+
+    CapacityReportByMetricId capacityReport =
+        service.getCapacityReportByMetricId(
+            Product.RHEL,
+            orgId,
+            SOCKETS.toString(),
+            beginning,
+            ending,
+            GranularityType.YEARLY,
+            null);
+
+    // Then: Verify response contains correct capacity data
+    List<CapacitySnapshotByMetricId> snapshots =
+        thenCapacityReportShouldContainSnapshots(capacityReport, yearRange);
+    thenFirstSnapshotShouldStartAt(snapshots, beginning);
+    thenLastSnapshotShouldEndAt(snapshots, beginning.plusYears(yearRange - 1));
+  }
 }
