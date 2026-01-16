@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+  <!--
+    This index is highly specialized for a data exporting query we're running with Floorist:
+
+    select org_id,
+    snapshot_date,
+    product_id,
+    measurement_type,
+    metric_id,
+    metric_id as uom,
+    value
+    from tally_snapshots s
+    join tally_measurements tm on s.id = tm.snapshot_id
+    where sla = '_ANY'
+    and usage = '_ANY'
+    and billing_provider = '_ANY'
+    and billing_account_id = '_ANY'
+    and granularity='DAILY'
+    and measurement_type!='TOTAL'
+    and snapshot_date >= date_trunc('day', now() at time zone 'utc' - interval '2 day');
+
+    If we change this query or dispense with it altogether, we should revisit these indexes to
+    see if they are still needed as they do require substantial disk space.
+  -->
+  <changeSet id="202601161450-01" author="awood" dbms="postgresql" runInTransaction="false">
+    <!--
+    Because this index is a covering index (uses an include clause), we can't use Liquibase's
+    native createIndex.
+
+    The INCLUDE clause specifies a list of columns which will be included in the index
+    as non-key columns. A non-key column cannot be used in an index scan search qualification, and
+    it is disregarded for purposes of any uniqueness or exclusion constraint enforced by the index.
+    However, an index-only scan can return the contents of non-key columns without having to
+    visit the index's table, since they are available directly from the index entry.
+    Thus, addition of non-key columns allows index-only scans to be used for queries that otherwise
+    could not use them.
+    -->
+    <sql>
+      CREATE INDEX CONCURRENTLY IF NOT EXISTS tally_snapshots_floorist_idx
+      ON tally_snapshots(snapshot_date, granularity, sla, usage, billing_provider, billing_account_id)
+      INCLUDE (id, org_id, product_id);
+    </sql>
+    <rollback>
+      DROP INDEX IF EXISTS tally_snapshots_floorist_idx;
+    </rollback>
+  </changeSet>
+</databaseChangeLog>

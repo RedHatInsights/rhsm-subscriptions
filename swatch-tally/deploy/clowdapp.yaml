@@ -232,6 +232,8 @@ parameters:
   # allow overriding to support independent deploy with bonfire
   - name: DB_POD
     value: swatch-database
+  - name: POSTGRES_STATEMENT_TIMEOUT
+    value: 10min
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -295,6 +297,8 @@ objects:
                   value: ${JAVA_DEBUG}
                 - name: SPRING_PROFILES_ACTIVE
                   value: liquibase-only
+                - name: POSTGRES_STATEMENT_TIMEOUT
+                  value: ${POSTGRES_STATEMENT_TIMEOUT}
               inheritEnv: true
               resources:
                 requests:

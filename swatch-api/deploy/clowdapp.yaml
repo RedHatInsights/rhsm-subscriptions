@@ -81,6 +81,8 @@ parameters:
     value: 'grpc'
   - name: DB_POD
     value: swatch-database
+  - name: POSTGRES_STATEMENT_TIMEOUT
+    value: 10min
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -117,6 +119,8 @@ objects:
                     value: ${JAVA_DEBUG}
                   - name: SPRING_PROFILES_ACTIVE
                     value: liquibase-only
+                  - name: POSTGRES_STATEMENT_TIMEOUT
+                    value: ${POSTGRES_STATEMENT_TIMEOUT}
                 inheritEnv: true
                 resources:
                   requests:
@@ -342,15 +346,15 @@ objects:
               rewrite ^/api/rhsm-subscriptions/v1/subscriptions/billing_account_ids$ /api/swatch-contracts/v1/subscriptions/billing_account_ids break;
               proxy_pass http://swatch-contracts;
             }
-        
+
             location /api/rhsm-subscriptions/v1/subscriptions/products {
               proxy_pass http://swatch-contracts;
             }
-    
+
             location /api/rhsm-subscriptions/v2/subscriptions/products {
               proxy_pass http://swatch-contracts;
             }
-    
+
             location /api/rhsm-subscriptions/v1/capacity/products {
               proxy_pass http://swatch-contracts;
             }
