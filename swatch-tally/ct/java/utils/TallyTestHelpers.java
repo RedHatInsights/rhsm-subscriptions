@@ -20,7 +20,6 @@
  */
 package utils;
 
-import static com.redhat.swatch.component.tests.utils.SwatchUtils.securityHeadersWithServiceRole;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 
 import api.MessageValidators;
@@ -56,8 +55,7 @@ public class TallyTestHelpers {
   public TallyTestHelpers() {}
 
   /** Record representing a date range with start and end times. */
-   public static record MonthlyRange(OffsetDateTime start, OffsetDateTime end) {}
-
+  public static record MonthlyRange(OffsetDateTime start, OffsetDateTime end) {}
 
   public Event createEventWithTimestamp(
       String orgId, String instanceId, String timestampStr, String eventIdStr, float value) {
@@ -236,7 +234,7 @@ public class TallyTestHelpers {
     Response response =
         service
             .given()
-            .headers(securityHeadersWithServiceRole(orgId))
+            .header("x-rh-identity", createUserIdentityHeader(orgId))
             .queryParam("granularity", granularity)
             .queryParam("beginning", beginning.toString())
             .queryParam("ending", ending.toString())
@@ -256,16 +254,33 @@ public class TallyTestHelpers {
     return response;
   }
 
+  private String createUserIdentityHeader(String orgId) {
+    String json =
+        "{\"identity\":{"
+            + "\"account_number\":\"\","
+            + "\"type\":\"User\","
+            + "\"user\":{\"is_org_admin\":true},"
+            + "\"internal\":{\"org_id\":\""
+            + orgId
+            + "\"}"
+            + "}}";
+    return java.util.Base64.getEncoder()
+        .encodeToString(json.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+  }
+
   public Response getInstancesReport(
       String orgId,
       String productId,
       OffsetDateTime beginning,
       OffsetDateTime ending,
       SwatchService service) {
+    // Use User type identity header
+    // Format:
+    // {"identity":{"account_number":"","type":"User","user":{"is_org_admin":true},"internal":{"org_id":"..."}}}
     Response response =
         service
             .given()
-            .headers(securityHeadersWithServiceRole(orgId))
+            .header("x-rh-identity", createUserIdentityHeader(orgId))
             .queryParam("beginning", beginning.toString())
             .queryParam("ending", ending.toString())
             .get("/api/rhsm-subscriptions/v1/instances/products/" + productId)

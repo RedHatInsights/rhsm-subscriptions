@@ -41,6 +41,8 @@ import utils.TallyTestHelpers;
  *
  * <p>Based on test_verify_rhel_els_payg_tally_not_changed_with_datetime_range_variations from
  * iqe-rhsm-subscriptions-plugin.
+ * 
+ * https://issues.redhat.com/browse/ENT-3713
  */
 public class TallyPersistenceTest extends BaseTallyComponentTest {
 
@@ -182,14 +184,14 @@ public class TallyPersistenceTest extends BaseTallyComponentTest {
     String orgId = RandomUtils.generateRandom();
     OffsetDateTime now = OffsetDateTime.now();
 
-    // Calculate monthly ranges - matching Python get_monthly_range()
+    // Calculate monthly ranges
     OffsetDateTime currentMonthStart =
         now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
     OffsetDateTime lastHour = now.minusHours(1);
     OffsetDateTime currentMonthEnd =
         lastHour.truncatedTo(ChronoUnit.HOURS).plusHours(1).minusSeconds(1).minusNanos(1);
 
-    // Last month range - matching Python get_last_month_range()
+    // Last month range
     OffsetDateTime lastMonthStart = currentMonthStart.minusMonths(1);
     OffsetDateTime lastMonthEnd = currentMonthStart.minusSeconds(1).minusNanos(1);
 
