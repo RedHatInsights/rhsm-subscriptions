@@ -296,4 +296,17 @@ public class BaseContractComponentTest {
         is(HttpStatus.SC_OK));
     return subscription;
   }
+
+  /**
+   * Helper method to create a ROSA contract with specified SKU and cores capacity. ROSA requires a
+   * contract (not just a subscription) because it's a marketplace product with billing provider
+   * information.
+   */
+  protected Contract givenRosaContractIsCreated(String sku, double coresCapacity) {
+    Contract contract =
+        Contract.buildRosaContract(
+            orgId, domain.BillingProvider.AWS, java.util.Map.of(CORES, coresCapacity), sku);
+    givenContractIsCreated(contract);
+    return contract;
+  }
 }

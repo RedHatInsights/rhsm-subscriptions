@@ -41,6 +41,7 @@ public class CapacityReportGranularityComponentTest extends BaseContractComponen
 
   private static final double RHEL_CORES_CAPACITY = 4.0;
   private static final double RHEL_SOCKETS_CAPACITY = 1.0;
+  private static final double ROSA_CORES_CAPACITY = 8.0;
 
   /**
    * Helper method to verify capacity report contains expected number of snapshots and has valid
@@ -107,6 +108,79 @@ public class CapacityReportGranularityComponentTest extends BaseContractComponen
         "Last snapshot date should equal the expected timestamp",
         snapshots.get(snapshots.size() - 1).getDate(),
         equalTo(expectedEnd));
+  }
+
+  /**
+   * Helper method to verify all snapshots are aligned to hour boundaries.
+   *
+   * @param snapshots List of capacity snapshots to validate
+   */
+  private void thenAllSnapshotsAreAlignedToHourBoundaries(
+      List<CapacitySnapshotByMetricId> snapshots) {
+    for (int i = 0; i < snapshots.size(); i++) {
+      OffsetDateTime snapshotDate = snapshots.get(i).getDate();
+      assertThat(
+          "Snapshot " + i + " should be aligned to hour boundary (minutes, seconds, nanos = 0)",
+          snapshotDate,
+          equalTo(clock.startOfHour(snapshotDate)));
+    }
+  }
+
+  /**
+   * Helper method to verify all snapshots with data have consistent capacity values.
+   *
+   * @param snapshots List of capacity snapshots to validate
+   */
+  private void thenAllSnapshotsHaveConsistentCapacity(List<CapacitySnapshotByMetricId> snapshots) {
+    List<Double> capacityValues =
+        snapshots.stream()
+            .filter(snapshot -> Boolean.TRUE.equals(snapshot.getHasData()))
+            .map(snapshot -> snapshot.getValue().doubleValue())
+            .distinct()
+            .toList();
+
+    assertThat(
+        "All snapshots with data should have the same capacity value", capacityValues, hasSize(1));
+  }
+
+  /*
+  capacity-report-granularity-TC001 - Hourly Granularity Report
+
+    Description: Verify capacity report with hourly granularity
+    Setup:
+        User authenticated with a valid org_id
+    Action: GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}
+    Test Steps:
+        Create a subscription with capacity
+        GET capacity with granularity=HOURLY for 24-hour range
+    Expected Results:
+        24 data points returned (one per hour)
+        Each snapshot is aligned to the hour boundary
+        Consistent capacity values across hours
+
+   */
+
+  @TestPlanName("capacity-report-granularity-TC001")
+  @Test
+  void shouldGetCapacityReportHourlyGranularity() {
+    // Given: Create ROSA contract with capacity data for Cores metric
+    final String testSku = RandomUtils.generateRandom();
+    givenRosaContractIsCreated(testSku, ROSA_CORES_CAPACITY);
+
+    // When: Get capacity report for product=ROSA, metric=Cores
+    final OffsetDateTime beginning = clock.startOfCurrentHour().minusHours(23);
+    final OffsetDateTime ending = clock.endOfCurrentHour();
+
+    CapacityReportByMetricId capacityReport =
+        service.getCapacityReportByMetricId(
+            Product.ROSA, orgId, CORES.toString(), beginning, ending, GranularityType.HOURLY, null);
+
+    // Then: Verify response contains correct capacity data
+    List<CapacitySnapshotByMetricId> snapshots =
+        thenCapacityReportShouldContainSnapshots(capacityReport, 24);
+    thenFirstSnapshotShouldStartAt(snapshots, beginning);
+    thenAllSnapshotsAreAlignedToHourBoundaries(snapshots);
+    thenAllSnapshotsHaveConsistentCapacity(snapshots);
   }
 
   /*
