@@ -55,11 +55,9 @@ public class TallyPersistenceTest extends BaseTallyComponentTest {
   private TestSetup setup;
 
   @BeforeEach
-  public void setUp() throws Exception {
+  public void setUp() throws Exception { 
     setup = setupTest();
-    // Create org config to allow access to reporting endpoints
-    helpers.createOptInConfig(setup.orgId, service);
-  }
+}
 
   @Test
   public void testTallyReportPersistsWithDateTimeRangeVariations() throws Exception {
@@ -183,6 +181,10 @@ public class TallyPersistenceTest extends BaseTallyComponentTest {
   private TestSetup setupTest() throws Exception {
     String orgId = RandomUtils.generateRandom();
     OffsetDateTime now = OffsetDateTime.now();
+
+    // Create org config to allow access to reporting endpoints
+    helpers.createOptInConfig(orgId, service);
+    
 
     // Calculate monthly ranges
     OffsetDateTime currentMonthStart =
