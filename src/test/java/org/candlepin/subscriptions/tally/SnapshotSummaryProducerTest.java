@@ -446,6 +446,52 @@ class SnapshotSummaryProducerTest {
     assertEquals(value, measurement.getValue());
   }
 
+  @Test
+  void testDeepCopy() {
+    // Test with fully populated snapshot
+    OffsetDateTime snapshotDate = OffsetDateTime.now();
+    Map<TallyMeasurementKey, Double> measurements = new HashMap<>();
+    TallyMeasurementKey key =
+        new TallyMeasurementKey(
+            HardwareMeasurementType.PHYSICAL, MetricIdUtils.getCores().getValue());
+    measurements.put(key, 42.0);
+
+    TallySnapshot original =
+        TallySnapshot.builder()
+            .orgId("org-456")
+            .productId("RHEL for x86")
+            .snapshotDate(snapshotDate)
+            .granularity(Granularity.DAILY)
+            .serviceLevel(ServiceLevel.PREMIUM)
+            .usage(Usage.PRODUCTION)
+            .billingProvider(BillingProvider.RED_HAT)
+            .billingAccountId("billing-789")
+            .tallyMeasurements(measurements)
+            .build();
+
+    TallySnapshot copy = SnapshotSummaryProducer.deepCopy(original);
+
+    // Verify all fields are copied
+    assertEquals(original.getOrgId(), copy.getOrgId());
+    assertEquals(original.getProductId(), copy.getProductId());
+    assertEquals(original.getSnapshotDate(), copy.getSnapshotDate());
+    assertEquals(original.getGranularity(), copy.getGranularity());
+    assertEquals(original.getServiceLevel(), copy.getServiceLevel());
+    assertEquals(original.getUsage(), copy.getUsage());
+    assertEquals(original.getBillingProvider(), copy.getBillingProvider());
+    assertEquals(original.getBillingAccountId(), copy.getBillingAccountId());
+    assertEquals(original.getTallyMeasurements(), copy.getTallyMeasurements());
+
+    // Verify the copy is independent (deep copy)
+    copy.getTallyMeasurements()
+        .put(
+            new TallyMeasurementKey(
+                HardwareMeasurementType.TOTAL, MetricIdUtils.getCores().getValue()),
+            100.0);
+    assertEquals(1, original.getTallyMeasurements().size());
+    assertEquals(2, copy.getTallyMeasurements().size());
+  }
+
   TallySnapshot buildSnapshot(
       String orgId,
       String productId,

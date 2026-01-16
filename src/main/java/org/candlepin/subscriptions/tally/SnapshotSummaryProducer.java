@@ -217,6 +217,7 @@ public class SnapshotSummaryProducer {
     }
 
     TallySnapshot copy = new TallySnapshot();
+    copy.setOrgId(original.getOrgId());
     copy.setSnapshotDate(original.getSnapshotDate());
     copy.setProductId(original.getProductId());
     copy.setGranularity(original.getGranularity());
