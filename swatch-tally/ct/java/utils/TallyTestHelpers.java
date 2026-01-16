@@ -251,6 +251,13 @@ public class TallyTestHelpers {
               + response.getBody().asString());
     }
 
+    Log.info(
+        "Tally report response for orgId=%s, productId=%s, metricId=%s: %s",
+        orgId,
+        productId,
+        metricId,
+        response.getBody().asString());
+
     return response;
   }
 
@@ -295,6 +302,12 @@ public class TallyTestHelpers {
               + ", response body: "
               + response.getBody().asString());
     }
+
+    Log.info(
+        "Instances report response for orgId=%s, productId=%s: %s",
+        orgId,
+        productId,
+        response.getBody().asString());
 
     return response;
   }

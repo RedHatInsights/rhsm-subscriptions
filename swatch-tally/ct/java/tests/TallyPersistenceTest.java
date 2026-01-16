@@ -47,9 +47,9 @@ import utils.TallyTestHelpers;
 public class TallyPersistenceTest extends BaseTallyComponentTest {
 
   private static final TallyTestHelpers helpers = new TallyTestHelpers();
-  private static final String TEST_PRODUCT_TAG = "rhel-for-x86-els-payg";
-  private static final String TEST_PRODUCT_ID = "204";
-  private static final String TEST_METRIC_ID = "VCPUS";
+  private static final String TEST_PRODUCT_TAG = "RHEL for x86";
+  private static final String TEST_PRODUCT_ID = "69";
+  private static final String TEST_METRIC_ID = "Sockets";
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
   private TestSetup setup;
