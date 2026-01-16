@@ -50,6 +50,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.apache.http.HttpStatus;
+import org.candlepin.clock.ApplicationClock;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -66,6 +67,8 @@ public class BaseContractComponentTest {
 
   @Quarkus(service = "swatch-contracts")
   static ContractsSwatchService service = new ContractsSwatchService();
+
+  protected static final ApplicationClock clock = new ApplicationClock();
 
   protected String orgId;
   private List<String> orgIds = new ArrayList<>();
@@ -204,6 +207,24 @@ public class BaseContractComponentTest {
   /** Helper method to create a physical subscription with specified SKU and capacity values. */
   protected Subscription givenPhysicalSubscriptionIsCreated(
       String physicalSku, double coresCapacity, double socketsCapacity) {
+    return givenPhysicalSubscriptionIsCreated(
+        physicalSku,
+        coresCapacity,
+        socketsCapacity,
+        OffsetDateTime.now().minusDays(1),
+        OffsetDateTime.now().plusDays(1));
+  }
+
+  /**
+   * Helper method to create a physical subscription with specified SKU, capacity values, and custom
+   * dates.
+   */
+  protected Subscription givenPhysicalSubscriptionIsCreated(
+      String physicalSku,
+      double coresCapacity,
+      double socketsCapacity,
+      OffsetDateTime startDate,
+      OffsetDateTime endDate) {
     // Given: A physical offering with standard sockets capacity (no DERIVED_SKU)
     wiremock
         .forProductAPI()
@@ -214,10 +235,14 @@ public class BaseContractComponentTest {
         service.syncOffering(physicalSku).statusCode(),
         is(HttpStatus.SC_OK));
 
-    // When: Create a physical subscription with sockets
+    // When: Create a physical subscription with sockets and custom dates
     Subscription physicalSubscription =
         Subscription.buildRhelSubscriptionUsingSku(
-            orgId, java.util.Map.of(SOCKETS, socketsCapacity), physicalSku);
+                orgId, java.util.Map.of(SOCKETS, socketsCapacity), physicalSku)
+            .toBuilder()
+            .startDate(startDate)
+            .endDate(endDate)
+            .build();
     assertThat(
         "Creating physical subscription should succeed",
         service.saveSubscriptions(true, physicalSubscription).statusCode(),

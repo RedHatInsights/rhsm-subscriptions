@@ -28,6 +28,10 @@
   <dependencies>
     <dependency>
       <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-common-clock</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
       <artifactId>swatch-product-configuration</artifactId>
     </dependency>
     <dependency>

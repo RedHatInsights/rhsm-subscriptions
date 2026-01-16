@@ -32,10 +32,7 @@ import com.redhat.swatch.contract.test.model.CapacityReportByMetricId;
 import com.redhat.swatch.contract.test.model.CapacitySnapshotByMetricId;
 import com.redhat.swatch.contract.test.model.GranularityType;
 import domain.Product;
-import java.time.LocalTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -68,9 +65,8 @@ public class CapacityReportGranularityComponentTest extends BaseContractComponen
     givenPhysicalSubscriptionIsCreated(testSku, RHEL_CORES_CAPACITY, RHEL_SOCKETS_CAPACITY);
 
     // When: Get capacity report for product=RHEL, metric=Sockets
-    final OffsetDateTime beginning =
-        OffsetDateTime.now(ZoneOffset.UTC).minusDays(6).truncatedTo(ChronoUnit.DAYS);
-    final OffsetDateTime ending = OffsetDateTime.now(ZoneOffset.UTC).with(LocalTime.MAX);
+    final OffsetDateTime beginning = clock.startOfToday().minusDays(6);
+    final OffsetDateTime ending = clock.endOfToday();
 
     CapacityReportByMetricId capacityReport =
         service.getCapacityReportByMetricId(
@@ -84,7 +80,7 @@ public class CapacityReportGranularityComponentTest extends BaseContractComponen
 
     // Then: Verify response contains correct capacity data
     assertThat("Capacity report should not be null", capacityReport, notNullValue());
-    assertThat("Data array should not be empty", capacityReport.getData(), hasSize(7));
+    assertThat("Data array should have size 7", capacityReport.getData(), hasSize(7));
 
     // Verify each snapshot has required fields
     List<CapacitySnapshotByMetricId> snapshots = capacityReport.getData();
@@ -106,5 +102,82 @@ public class CapacityReportGranularityComponentTest extends BaseContractComponen
         "First snapshot date should equal the beginning timestamp",
         snapshots.get(0).getDate(),
         equalTo(beginning));
+  }
+
+  /*
+  capacity-report-granularity-TC003 - Weekly Granularity Report
+
+    Description: Verify capacity report with weekly granularity
+    Setup:
+        User authenticated with a valid org_id
+    Action: GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}
+    Test Steps:
+        Create a subscription with capacity for the last week only
+        GET capacity with granularity=WEEKLY for past 4 weeks
+    Expected Results:
+        4 data points returned (one per week, Sunday snapshots)
+        Each snapshot is aligned to Sunday 00:00 UTC
+        Only the last week (most recent) shows capacity = 1
+   */
+
+  @TestPlanName("capacity-report-granularity-TC003")
+  @Test
+  void shouldGetCapacityReportWeeklyGranularity() {
+    // Given: Create subscriptions with capacity data for RHEL with Sockets metric
+    final String testSku = RandomUtils.generateRandom();
+    final int weekRange = 4;
+
+    // Create subscription with start date before the last week to ensure it's active at snapshot
+    // time
+    final OffsetDateTime subscriptionStart = clock.startOfCurrentWeek().minusWeeks(1).minusDays(3);
+    final OffsetDateTime subscriptionEnd = clock.startOfCurrentWeek().minusWeeks(1).plusDays(1);
+    givenPhysicalSubscriptionIsCreated(
+        testSku, RHEL_CORES_CAPACITY, RHEL_SOCKETS_CAPACITY, subscriptionStart, subscriptionEnd);
+
+    // When: Get capacity report for product=RHEL, metric=Sockets
+    final OffsetDateTime beginning = clock.startOfCurrentWeek().minusWeeks(weekRange);
+    final OffsetDateTime ending = clock.endOfCurrentWeek().minusWeeks(1);
+
+    CapacityReportByMetricId capacityReport =
+        service.getCapacityReportByMetricId(
+            Product.RHEL,
+            orgId,
+            SOCKETS.toString(),
+            beginning,
+            ending,
+            GranularityType.WEEKLY,
+            null);
+
+    // Then: Verify response contains correct capacity data
+    assertThat("Capacity report should not be null", capacityReport, notNullValue());
+    assertThat(
+        "Data array should have 4 weekly snapshots", capacityReport.getData(), hasSize(weekRange));
+
+    // Verify each snapshot has required fields
+    List<CapacitySnapshotByMetricId> snapshots = capacityReport.getData();
+    Assertions.assertNotNull(snapshots);
+
+    boolean hasValidData =
+        snapshots.stream()
+            .anyMatch(
+                snapshot -> {
+                  assertThat("Date should not be null", snapshot.getDate(), notNullValue());
+                  assertThat("Value should not be null", snapshot.getValue(), notNullValue());
+                  assertThat("HasData should not be null", snapshot.getHasData(), notNullValue());
+                  return snapshot.getHasData() && snapshot.getValue() > 0;
+                });
+    assertTrue(hasValidData, "Should have at least one snapshot with valid capacity data");
+
+    // Verify the first snapshot date matches the beginning timestamp
+    assertThat(
+        "First snapshot date should equal the beginning timestamp",
+        snapshots.get(0).getDate(),
+        equalTo(beginning));
+
+    // Verify the last snapshot date is equal to the beginning timestamp plus 3 weeks
+    assertThat(
+        "Last snapshot date should equal the beginning timestamp plus 3 weeks",
+        snapshots.get(weekRange - 1).getDate(),
+        equalTo(beginning.plusWeeks(weekRange - 1)));
   }
 }
