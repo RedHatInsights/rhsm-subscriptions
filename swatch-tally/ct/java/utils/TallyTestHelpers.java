@@ -20,17 +20,19 @@
  */
 package utils;
 
-import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
-
 import api.MessageValidators;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
+import com.redhat.swatch.component.tests.utils.SwatchUtils;
 import com.redhat.swatch.tally.test.model.TallyMeasurement;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallySummary;
 import io.restassured.response.Response;
+import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.json.Measurement;
+
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -38,8 +40,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
-import org.candlepin.subscriptions.json.Event;
-import org.candlepin.subscriptions.json.Measurement;
+
+import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 
 public class TallyTestHelpers {
 
@@ -53,9 +55,6 @@ public class TallyTestHelpers {
 
   /** Default constructor. */
   public TallyTestHelpers() {}
-
-  /** Record representing a date range with start and end times. */
-  public static record MonthlyRange(OffsetDateTime start, OffsetDateTime end) {}
 
   public Event createEventWithTimestamp(
       String orgId, String instanceId, String timestampStr, String eventIdStr, float value) {
@@ -173,34 +172,6 @@ public class TallyTestHelpers {
     Log.info("Hourly tally endpoint called successfully for org: %s", orgId);
   }
 
-  public void syncTallyHourly(
-      String orgId, OffsetDateTime start, OffsetDateTime end, SwatchService service)
-      throws Exception {
-    Response response =
-        service
-            .given()
-            .header("x-rh-swatch-psk", TEST_PSK)
-            .queryParam("org", orgId)
-            .queryParam("start", start.toString())
-            .queryParam("end", end.toString())
-            .post("/api/rhsm-subscriptions/v1/internal/tally/hourly")
-            .then()
-            .extract()
-            .response();
-
-    if (response.getStatusCode() != 204) {
-      throw new RuntimeException(
-          "Hourly tally sync failed with status code: "
-              + response.getStatusCode()
-              + ", response body: "
-              + response.getBody().asString());
-    }
-
-    Log.info(
-        "Hourly tally endpoint called successfully for org: %s with start: %s, end: %s",
-        orgId, start, end);
-  }
-
   public void createOptInConfig(String orgId, SwatchService service) throws Exception {
     Response response =
         service
@@ -234,7 +205,7 @@ public class TallyTestHelpers {
     Response response =
         service
             .given()
-            .header("x-rh-identity", createUserIdentityHeader(orgId))
+            .header("x-rh-identity", SwatchUtils.createUserIdentityHeader(orgId))
             .queryParam("granularity", granularity)
             .queryParam("beginning", beginning.toString())
             .queryParam("ending", ending.toString())
@@ -253,26 +224,9 @@ public class TallyTestHelpers {
 
     Log.info(
         "Tally report response for orgId=%s, productId=%s, metricId=%s: %s",
-        orgId,
-        productId,
-        metricId,
-        response.getBody().asString());
+        orgId, productId, metricId, response.getBody().asString());
 
     return response;
-  }
-
-  private String createUserIdentityHeader(String orgId) {
-    String json =
-        "{\"identity\":{"
-            + "\"account_number\":\"\","
-            + "\"type\":\"User\","
-            + "\"user\":{\"is_org_admin\":true},"
-            + "\"internal\":{\"org_id\":\""
-            + orgId
-            + "\"}"
-            + "}}";
-    return java.util.Base64.getEncoder()
-        .encodeToString(json.getBytes(java.nio.charset.StandardCharsets.UTF_8));
   }
 
   public Response getInstancesReport(
@@ -281,13 +235,10 @@ public class TallyTestHelpers {
       OffsetDateTime beginning,
       OffsetDateTime ending,
       SwatchService service) {
-    // Use User type identity header
-    // Format:
-    // {"identity":{"account_number":"","type":"User","user":{"is_org_admin":true},"internal":{"org_id":"..."}}}
     Response response =
         service
             .given()
-            .header("x-rh-identity", createUserIdentityHeader(orgId))
+            .header("x-rh-identity", SwatchUtils.createUserIdentityHeader(orgId))
             .queryParam("beginning", beginning.toString())
             .queryParam("ending", ending.toString())
             .get("/api/rhsm-subscriptions/v1/instances/products/" + productId)
@@ -305,9 +256,7 @@ public class TallyTestHelpers {
 
     Log.info(
         "Instances report response for orgId=%s, productId=%s: %s",
-        orgId,
-        productId,
-        response.getBody().asString());
+        orgId, productId, response.getBody().asString());
 
     return response;
   }
