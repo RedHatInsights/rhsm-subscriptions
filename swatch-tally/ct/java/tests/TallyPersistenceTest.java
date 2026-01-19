@@ -20,33 +20,26 @@
  */
 package tests;
 
+import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
+import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import utils.TallyTestHelpers;
 
-import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.UUID;
-
-import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
-
 /**
- * Test to verify that tally data persists correctly when running hourly tally sync with different
- * time ranges. This test verifies that re-running tally with a different time range doesn't change
- * the already calculated tally data for previous periods.
+ * Tests to verify that Tally Report and Instance report endpoints are not changing persists
+ * correctly when called with different time ranges. This test verifies that re-running tally
+ * doesn't change the already calculated tally data for previous periods.
  *
- * <p>Based on test_verify_rhel_els_payg_tally_not_changed_with_datetime_range_variations from
- * iqe-rhsm-subscriptions-plugin.
- *
- * <p>This test uses a day-based approach instead of monthly to work better with hourly tally sync,
- * which processes events newer than the last processed event date.
- *
- * <p>https://issues.redhat.com/browse/ENT-3713
+ * <p><a href="https://issues.redhat.com/browse/ENT-3713">...</a>
  */
 public class TallyPersistenceTest extends BaseTallyComponentTest {
 
@@ -83,9 +76,7 @@ public class TallyPersistenceTest extends BaseTallyComponentTest {
 
     // Verify persistence - tally reports should not change
     Assertions.assertEquals(
-        todayTallyBefore,
-        todayTallyAfter,
-        "Today's tally should not change after re-tally");
+        todayTallyBefore, todayTallyAfter, "Today's tally should not change after re-tally");
     Assertions.assertEquals(
         yesterdayTallyBefore,
         yesterdayTallyAfter,
@@ -178,13 +169,12 @@ public class TallyPersistenceTest extends BaseTallyComponentTest {
   private JsonNode getInstancesReportJson(DateRange range) throws Exception {
     return objectMapper.readTree(
         helpers
-            .getInstancesReport(
-                setup.orgId, TEST_PRODUCT_TAG, range.start(), range.end(), service)
+            .getInstancesReport(setup.orgId, TEST_PRODUCT_TAG, range.start(), range.end(), service)
             .asString());
   }
 
   private JsonNode removeLastAppliedEventDate(JsonNode json) {
-    if (json.has("data") && json.get("data").isArray() && json.get("data").size() > 0) {
+    if (json.has("data") && json.get("data").isArray() && !json.get("data").isEmpty()) {
       com.fasterxml.jackson.databind.node.ObjectNode firstItem =
           (com.fasterxml.jackson.databind.node.ObjectNode) json.get("data").get(0);
       firstItem.remove("last_applied_event_record_date");

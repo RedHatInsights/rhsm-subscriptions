@@ -26,7 +26,6 @@ import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.SwatchUtils;
-import com.redhat.swatch.tally.test.model.TallyMeasurement;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallySummary;
 import io.restassured.response.Response;
@@ -128,7 +127,7 @@ public class TallyTestHelpers {
     return event;
   }
 
-  public void syncTallyNightly(String orgId, SwatchService service) throws Exception {
+  public void syncTallyNightly(String orgId, SwatchService service) {
     Response response =
         service
             .given()
@@ -150,7 +149,7 @@ public class TallyTestHelpers {
     Log.info("Sync nightly tally endpoint called successfully for org: %s", orgId);
   }
 
-  public void syncTallyHourly(String orgId, SwatchService service) throws Exception {
+  public void syncTallyHourly(String orgId, SwatchService service) {
     Response response =
         service
             .given()
@@ -172,7 +171,7 @@ public class TallyTestHelpers {
     Log.info("Hourly tally endpoint called successfully for org: %s", orgId);
   }
 
-  public void createOptInConfig(String orgId, SwatchService service) throws Exception {
+  public void createOptInConfig(String orgId, SwatchService service) {
     Response response =
         service
             .given()
@@ -285,15 +284,13 @@ public class TallyTestHelpers {
         syncTallyHourly(testOrgId, service);
 
         // Wait for tally messages with a short timeout
-        List<TallySummary> tallySummaries =
-            kafkaBridge.waitForKafkaMessage(
-                TALLY,
-                MessageValidators.tallySummaryMatches(testOrgId, productId, metricId, granularity),
-                expectedMessageCount,
-                kafkaConsumerTimeout);
 
         // If successful, return
-        return tallySummaries;
+        return kafkaBridge.waitForKafkaMessage(
+            TALLY,
+            MessageValidators.tallySummaryMatches(testOrgId, productId, metricId, granularity),
+            expectedMessageCount,
+            kafkaConsumerTimeout);
       } catch (Exception e) {
         lastException = e;
         if (attempts < maxAttempts) {
@@ -367,7 +364,7 @@ public class TallyTestHelpers {
         .flatMap(
             snapshot ->
                 snapshot.getTallyMeasurements() == null
-                    ? Stream.<TallyMeasurement>empty()
+                    ? Stream.empty()
                     : snapshot.getTallyMeasurements().stream())
         // Match the desired metric
         .filter(m -> metricId.equalsIgnoreCase(m.getMetricId()))
