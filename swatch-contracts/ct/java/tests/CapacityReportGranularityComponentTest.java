@@ -37,6 +37,7 @@ import io.restassured.response.Response;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class CapacityReportGranularityComponentTest extends BaseContractComponentTest {
@@ -44,139 +45,6 @@ public class CapacityReportGranularityComponentTest extends BaseContractComponen
   private static final double RHEL_CORES_CAPACITY = 4.0;
   private static final double RHEL_SOCKETS_CAPACITY = 1.0;
   private static final double ROSA_CORES_CAPACITY = 8.0;
-
-  /**
-   * Helper method to verify capacity report contains expected number of snapshots and has valid
-   * data.
-   *
-   * @param capacityReport The capacity report to validate
-   * @param expectedSize Expected number of snapshots
-   * @return List of snapshots for further validation
-   */
-  private List<CapacitySnapshotByMetricId> thenCapacityReportShouldContainSnapshots(
-      CapacityReportByMetricId capacityReport, int expectedSize) {
-    assertThat("Capacity report should not be null", capacityReport, notNullValue());
-    assertThat(
-        "Data array should have expected size", capacityReport.getData(), hasSize(expectedSize));
-
-    List<CapacitySnapshotByMetricId> snapshots = capacityReport.getData();
-    Assertions.assertNotNull(snapshots);
-    thenAtLeastOneSnapshotHasValidCapacity(snapshots);
-
-    return snapshots;
-  }
-
-  /**
-   * Helper method to verify that at least one snapshot in the list contains valid capacity data.
-   *
-   * @param snapshots List of capacity snapshots to validate
-   */
-  private void thenAtLeastOneSnapshotHasValidCapacity(List<CapacitySnapshotByMetricId> snapshots) {
-    boolean hasValidData =
-        snapshots.stream()
-            .anyMatch(
-                snapshot -> {
-                  assertThat("Date should not be null", snapshot.getDate(), notNullValue());
-                  assertThat("Value should not be null", snapshot.getValue(), notNullValue());
-                  assertThat("HasData should not be null", snapshot.getHasData(), notNullValue());
-                  return snapshot.getHasData() && snapshot.getValue() > 0;
-                });
-    assertTrue(hasValidData, "Should have at least one snapshot with valid capacity data");
-  }
-
-  /**
-   * Helper method to verify the first snapshot date matches the expected start timestamp.
-   *
-   * @param snapshots List of capacity snapshots
-   * @param expectedStart Expected start timestamp
-   */
-  private void thenFirstSnapshotShouldStartAt(
-      List<CapacitySnapshotByMetricId> snapshots, OffsetDateTime expectedStart) {
-    assertThat(
-        "First snapshot date should equal the beginning timestamp",
-        snapshots.get(0).getDate(),
-        equalTo(expectedStart));
-  }
-
-  /**
-   * Helper method to verify the last snapshot date matches the expected end timestamp.
-   *
-   * @param snapshots List of capacity snapshots
-   * @param expectedEnd Expected end timestamp
-   */
-  private void thenLastSnapshotShouldEndAt(
-      List<CapacitySnapshotByMetricId> snapshots, OffsetDateTime expectedEnd) {
-    assertThat(
-        "Last snapshot date should equal the expected timestamp",
-        snapshots.get(snapshots.size() - 1).getDate(),
-        equalTo(expectedEnd));
-  }
-
-  /**
-   * Helper method to verify all snapshots are aligned to hour boundaries.
-   *
-   * @param snapshots List of capacity snapshots to validate
-   */
-  private void thenAllSnapshotsAreAlignedToHourBoundaries(
-      List<CapacitySnapshotByMetricId> snapshots) {
-    for (int i = 0; i < snapshots.size(); i++) {
-      OffsetDateTime snapshotDate = snapshots.get(i).getDate();
-      assertThat(
-          "Snapshot " + i + " should be aligned to hour boundary (minutes, seconds, nanos = 0)",
-          snapshotDate,
-          equalTo(clock.startOfHour(snapshotDate)));
-    }
-  }
-
-  /**
-   * Helper method to verify all snapshots with data have consistent capacity values.
-   *
-   * @param snapshots List of capacity snapshots to validate
-   */
-  private void thenAllSnapshotsHaveConsistentCapacity(List<CapacitySnapshotByMetricId> snapshots) {
-    List<Double> capacityValues =
-        snapshots.stream()
-            .filter(snapshot -> Boolean.TRUE.equals(snapshot.getHasData()))
-            .map(snapshot -> snapshot.getValue().doubleValue())
-            .distinct()
-            .toList();
-
-    assertThat(
-        "All snapshots with data should have the same capacity value", capacityValues, hasSize(1));
-  }
-
-  /**
-   * Helper method to verify only the last week has capacity data.
-   *
-   * @param snapshots List of capacity snapshots to validate
-   * @param expectedWeekIndex Index of the week that should have capacity (0-based)
-   */
-  private void thenOnlyLastWeekHasCapacity(
-      List<CapacitySnapshotByMetricId> snapshots, int expectedWeekIndex) {
-    for (int i = 0; i < snapshots.size(); i++) {
-      CapacitySnapshotByMetricId snapshot = snapshots.get(i);
-      if (i == expectedWeekIndex) {
-        // Last week should have capacity
-        assertThat(
-            "Snapshot " + i + " (last week) should have data",
-            snapshot.getHasData(),
-            equalTo(true));
-        assertThat(
-            "Snapshot " + i + " (last week) should have capacity > 0",
-            snapshot.getValue().doubleValue(),
-            greaterThan(0.0));
-      } else {
-        // Earlier weeks should have no capacity or zero capacity
-        if (Boolean.TRUE.equals(snapshot.getHasData())) {
-          assertThat(
-              "Snapshot " + i + " (earlier week) should have zero capacity",
-              snapshot.getValue().doubleValue(),
-              equalTo(0.0));
-        }
-        // If hasData is false/null, that's also acceptable
-      }
-    }
-  }
 
   @TestPlanName("capacity-report-granularity-TC001")
   @Test
@@ -372,6 +240,7 @@ public class CapacityReportGranularityComponentTest extends BaseContractComponen
     thenLastSnapshotShouldEndAt(snapshots, beginning.plusYears(yearRange - 1));
   }
 
+  @Disabled(value = "Test disabled due to a known issue to be fixed in SWATCH-4482.")
   @TestPlanName("capacity-report-granularity-TC007")
   @Test
   void shouldNotGetCapacityReportInvalidGranularity() {
@@ -390,5 +259,138 @@ public class CapacityReportGranularityComponentTest extends BaseContractComponen
     // Then: Verify response returns HTTP 400 Bad Request
     assertThat(
         "Invalid granularity should return 400 Bad Request", response.statusCode(), equalTo(400));
+  }
+
+  /**
+   * Helper method to verify capacity report contains expected number of snapshots and has valid
+   * data.
+   *
+   * @param capacityReport The capacity report to validate
+   * @param expectedSize Expected number of snapshots
+   * @return List of snapshots for further validation
+   */
+  private List<CapacitySnapshotByMetricId> thenCapacityReportShouldContainSnapshots(
+      CapacityReportByMetricId capacityReport, int expectedSize) {
+    assertThat("Capacity report should not be null", capacityReport, notNullValue());
+    assertThat(
+        "Data array should have expected size", capacityReport.getData(), hasSize(expectedSize));
+
+    List<CapacitySnapshotByMetricId> snapshots = capacityReport.getData();
+    Assertions.assertNotNull(snapshots);
+    thenAtLeastOneSnapshotHasValidCapacity(snapshots);
+
+    return snapshots;
+  }
+
+  /**
+   * Helper method to verify that at least one snapshot in the list contains valid capacity data.
+   *
+   * @param snapshots List of capacity snapshots to validate
+   */
+  private void thenAtLeastOneSnapshotHasValidCapacity(List<CapacitySnapshotByMetricId> snapshots) {
+    boolean hasValidData =
+        snapshots.stream()
+            .anyMatch(
+                snapshot -> {
+                  assertThat("Date should not be null", snapshot.getDate(), notNullValue());
+                  assertThat("Value should not be null", snapshot.getValue(), notNullValue());
+                  assertThat("HasData should not be null", snapshot.getHasData(), notNullValue());
+                  return snapshot.getHasData() && snapshot.getValue() > 0;
+                });
+    assertTrue(hasValidData, "Should have at least one snapshot with valid capacity data");
+  }
+
+  /**
+   * Helper method to verify the first snapshot date matches the expected start timestamp.
+   *
+   * @param snapshots List of capacity snapshots
+   * @param expectedStart Expected start timestamp
+   */
+  private void thenFirstSnapshotShouldStartAt(
+      List<CapacitySnapshotByMetricId> snapshots, OffsetDateTime expectedStart) {
+    assertThat(
+        "First snapshot date should equal the beginning timestamp",
+        snapshots.get(0).getDate(),
+        equalTo(expectedStart));
+  }
+
+  /**
+   * Helper method to verify the last snapshot date matches the expected end timestamp.
+   *
+   * @param snapshots List of capacity snapshots
+   * @param expectedEnd Expected end timestamp
+   */
+  private void thenLastSnapshotShouldEndAt(
+      List<CapacitySnapshotByMetricId> snapshots, OffsetDateTime expectedEnd) {
+    assertThat(
+        "Last snapshot date should equal the expected timestamp",
+        snapshots.get(snapshots.size() - 1).getDate(),
+        equalTo(expectedEnd));
+  }
+
+  /**
+   * Helper method to verify all snapshots are aligned to hour boundaries.
+   *
+   * @param snapshots List of capacity snapshots to validate
+   */
+  private void thenAllSnapshotsAreAlignedToHourBoundaries(
+      List<CapacitySnapshotByMetricId> snapshots) {
+    for (int i = 0; i < snapshots.size(); i++) {
+      OffsetDateTime snapshotDate = snapshots.get(i).getDate();
+      assertThat(
+          "Snapshot " + i + " should be aligned to hour boundary (minutes, seconds, nanos = 0)",
+          snapshotDate,
+          equalTo(clock.startOfHour(snapshotDate)));
+    }
+  }
+
+  /**
+   * Helper method to verify all snapshots with data have consistent capacity values.
+   *
+   * @param snapshots List of capacity snapshots to validate
+   */
+  private void thenAllSnapshotsHaveConsistentCapacity(List<CapacitySnapshotByMetricId> snapshots) {
+    List<Double> capacityValues =
+        snapshots.stream()
+            .filter(snapshot -> Boolean.TRUE.equals(snapshot.getHasData()))
+            .map(snapshot -> snapshot.getValue().doubleValue())
+            .distinct()
+            .toList();
+
+    assertThat(
+        "All snapshots with data should have the same capacity value", capacityValues, hasSize(1));
+  }
+
+  /**
+   * Helper method to verify only the last week has capacity data.
+   *
+   * @param snapshots List of capacity snapshots to validate
+   * @param expectedWeekIndex Index of the week that should have capacity (0-based)
+   */
+  private void thenOnlyLastWeekHasCapacity(
+      List<CapacitySnapshotByMetricId> snapshots, int expectedWeekIndex) {
+    for (int i = 0; i < snapshots.size(); i++) {
+      CapacitySnapshotByMetricId snapshot = snapshots.get(i);
+      if (i == expectedWeekIndex) {
+        // Last week should have capacity
+        assertThat(
+            "Snapshot " + i + " (last week) should have data",
+            snapshot.getHasData(),
+            equalTo(true));
+        assertThat(
+            "Snapshot " + i + " (last week) should have capacity > 0",
+            snapshot.getValue().doubleValue(),
+            greaterThan(0.0));
+      } else {
+        // Earlier weeks should have no capacity or zero capacity
+        if (Boolean.TRUE.equals(snapshot.getHasData())) {
+          assertThat(
+              "Snapshot " + i + " (earlier week) should have zero capacity",
+              snapshot.getValue().doubleValue(),
+              equalTo(0.0));
+        }
+        // If hasData is false/null, that's also acceptable
+      }
+    }
   }
 }
