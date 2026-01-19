@@ -839,13 +839,13 @@ Test cases should be testable locally and in an ephemeral environment.
   - Product tag reflects changes from updated attributes.
   - Update operation completes without errors.
 
-**offering-update-TC002: Handle malformed events**
-- **Description:** Verify that invalid or malformed UMB messages are handled gracefully without affecting system stability.
-- **Setup:** Prepare various malformed UMB messages (invalid JSON, missing required fields, corrupted data).
-- **Action:** Send malformed UMB messages through message broker.
+**offering-update-TC002: Handle malformed event**
+- **Description:** Verify that the malformed UMB message is handled gracefully without affecting system stability.
+- **Setup:** Prepare one malformed UMB message (invalid JSON).
+- **Action:** Send the malformed UMB message through message broker.
 - **Verification:** Check system logs and verify no offering data corruption, system remains operational.
 - **Expected Result:**
-  - System processes malformed events without crashing or data corruption.
+  - System processes the malformed event without crashing or data corruption.
   - Valid offerings remain unaffected by malformed UMB events.
   - Appropriate error handling and logging for debugging malformed events.
 

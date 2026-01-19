@@ -45,4 +45,13 @@ public class ContractsArtemisService extends ArtemisService {
   public CanonicalMessageArtemisSender forSubscriptions() {
     return new CanonicalMessageArtemisSender(this);
   }
+
+  /**
+   * Get facade for building and sending OperationalProductEvent messages.
+   *
+   * @return OperationalProductEvent instance
+   */
+  public OperationalProductArtemisSender forOfferings() {
+    return new OperationalProductArtemisSender(this);
+  }
 }
