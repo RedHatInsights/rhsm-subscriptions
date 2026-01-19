@@ -28,6 +28,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.DateUtils.assertDatesAreEqual;
 
@@ -50,7 +51,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class SubscriptionsCreationComponentTest extends BaseContractComponentTest {
@@ -97,11 +97,6 @@ public class SubscriptionsCreationComponentTest extends BaseContractComponentTes
     assertEquals(subscription.getBillingAccountId(), actual.getBillingAccountId());
   }
 
-  /**
-   * Disabled since this is not supported via UMB message. To be investigated as part of
-   * SWATCH-4433.
-   */
-  @Disabled
   @TestPlanName("subscriptions-creation-TC003")
   @Test
   void shouldProcessValidSubscriptionMessageWithAzureExternalReferences() {
@@ -110,9 +105,10 @@ public class SubscriptionsCreationComponentTest extends BaseContractComponentTes
     artemis.forSubscriptions().send(subscription);
 
     var actual = thenSubscriptionIsCreated(subscription);
-    // Verify AWS external references
-    assertEquals(BillingProvider.AZURE.name(), actual.getBillingProvider());
-    assertEquals(subscription.getBillingAccountId(), actual.getBillingAccountId());
+    // Verify external references
+    // For Azure subscriptions, subscription sync does not populate the billing information
+    assertNull(actual.getBillingProvider());
+    assertNull(actual.getBillingAccountId());
   }
 
   @TestPlanName("subscriptions-creation-TC004")
