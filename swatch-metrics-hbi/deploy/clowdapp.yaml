@@ -133,6 +133,8 @@ objects:
 
     dependencies:
       - ${DB_POD}
+      # The rhsm component is a dependency in order to get the OTEL configuration.
+      - rhsm
 
     deployments:
       - name: service
