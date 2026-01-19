@@ -20,6 +20,8 @@
  */
 package utils;
 
+import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
+
 import api.MessageValidators;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.SwatchService;
@@ -29,9 +31,6 @@ import com.redhat.swatch.component.tests.utils.SwatchUtils;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallySummary;
 import io.restassured.response.Response;
-import org.candlepin.subscriptions.json.Event;
-import org.candlepin.subscriptions.json.Measurement;
-
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -39,8 +38,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
-
-import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
+import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.json.Measurement;
 
 public class TallyTestHelpers {
 
