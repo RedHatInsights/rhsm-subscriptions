@@ -33,7 +33,6 @@ import com.redhat.swatch.contract.test.model.SkuCapacityV2;
 import domain.Product;
 import domain.Subscription;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.Optional;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -47,8 +46,8 @@ public class CapacityComponentTest extends BaseContractComponentTest {
   @Test
   void shouldValidateSumOfAllSocketsForHypervisorSkus() {
     // Given: Get initial hypervisor capacity via REST API
-    final OffsetDateTime beginning = OffsetDateTime.now(ZoneOffset.UTC).minusDays(1);
-    final OffsetDateTime ending = OffsetDateTime.now(ZoneOffset.UTC).plusDays(1);
+    final OffsetDateTime beginning = clock.now().minusDays(1);
+    final OffsetDateTime ending = clock.now().plusDays(1);
     final String hypervisor_sku = RandomUtils.generateRandom();
     double initialHypervisorSockets =
         getHypervisorSocketCapacity(Product.RHEL, orgId, beginning, ending);
@@ -90,8 +89,8 @@ public class CapacityComponentTest extends BaseContractComponentTest {
   @Test
   void shouldValidateSumOfAllSocketsForPhysicalSkus() {
     // Given: Get initial physical capacity via REST API
-    final OffsetDateTime beginning = OffsetDateTime.now(ZoneOffset.UTC).minusDays(1);
-    final OffsetDateTime ending = OffsetDateTime.now(ZoneOffset.UTC).plusDays(1);
+    final OffsetDateTime beginning = clock.now().minusDays(1);
+    final OffsetDateTime ending = clock.now().plusDays(1);
     final String physicalSku = RandomUtils.generateRandom();
     double initialPhysicalSockets =
         getPhysicalSocketCapacity(Product.RHEL, orgId, beginning, ending);

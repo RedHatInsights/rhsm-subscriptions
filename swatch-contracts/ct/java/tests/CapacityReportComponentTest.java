@@ -41,7 +41,6 @@ import domain.Offering;
 import domain.Product;
 import domain.Subscription;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -111,8 +110,8 @@ public class CapacityReportComponentTest extends BaseContractComponentTest {
     givenSubscriptionWithCoresCapacity(testSku);
 
     // When: Get capacity report for product=OpenShift, metric=Cores
-    final OffsetDateTime beginning = OffsetDateTime.now(ZoneOffset.UTC).minusDays(1);
-    final OffsetDateTime ending = OffsetDateTime.now(ZoneOffset.UTC).plusDays(1);
+    final OffsetDateTime beginning = clock.now().minusDays(1);
+    final OffsetDateTime ending = clock.now().plusDays(1);
 
     CapacityReportByMetricId capacityReport =
         service.getCapacityReportByMetricId(
