@@ -178,23 +178,6 @@ public class CapacityReportGranularityComponentTest extends BaseContractComponen
     }
   }
 
-  /*
-  capacity-report-granularity-TC001 - Hourly Granularity Report
-
-    Description: Verify capacity report with hourly granularity
-    Setup:
-        User authenticated with a valid org_id
-    Action: GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}
-    Test Steps:
-        Create a subscription with capacity
-        GET capacity with granularity=HOURLY for 24-hour range
-    Expected Results:
-        24 data points returned (one per hour)
-        Each snapshot is aligned to the hour boundary
-        Consistent capacity values across hours
-
-   */
-
   @TestPlanName("capacity-report-granularity-TC001")
   @Test
   void shouldGetCapacityReportHourlyGranularity() {
@@ -217,21 +200,6 @@ public class CapacityReportGranularityComponentTest extends BaseContractComponen
     thenAllSnapshotsAreAlignedToHourBoundaries(snapshots);
     thenAllSnapshotsHaveConsistentCapacity(snapshots);
   }
-
-  /*
-  capacity-report-granularity-TC002 - Daily Granularity Report
-
-      Description: Verify the daily granularity capacity report
-      Setup:
-          User authenticated with a valid org_id
-      Action: GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}
-      Test Steps:
-          Create a subscription with capacity
-          GET capacity with granularity=DAILY for 7-day range
-      Expected Results:
-          7 data points (one per day)
-          Timestamps aligned to the day start
-   */
 
   @TestPlanName("capacity-report-granularity-TC002")
   @Test
@@ -260,22 +228,6 @@ public class CapacityReportGranularityComponentTest extends BaseContractComponen
     thenFirstSnapshotShouldStartAt(snapshots, beginning);
     thenLastSnapshotShouldEndAt(snapshots, clock.startOfDay(ending));
   }
-
-  /*
-  capacity-report-granularity-TC003 - Weekly Granularity Report
-
-    Description: Verify capacity report with weekly granularity
-    Setup:
-        User authenticated with a valid org_id
-    Action: GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}
-    Test Steps:
-        Create a subscription with capacity for the last week only
-        GET capacity with granularity=WEEKLY for past 4 weeks
-    Expected Results:
-        4 data points returned (one per week, Sunday snapshots)
-        Each snapshot is aligned to Sunday 00:00 UTC
-        Only the last week (most recent) shows capacity = 1
-   */
 
   @TestPlanName("capacity-report-granularity-TC003")
   @Test
@@ -313,22 +265,6 @@ public class CapacityReportGranularityComponentTest extends BaseContractComponen
     thenOnlyLastWeekHasCapacity(snapshots, weekRange - 1);
   }
 
-  /*
-  capacity-report-granularity-TC004 - Monthly Granularity Report
-
-    Description: Verify monthly granularity
-    Setup:
-        User authenticated with a valid org_id
-    Action: GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}
-    Test Steps:
-        Create a subscription with capacity
-        GET capacity with granularity=MONTHLY for a 6-month range
-    Expected Results:
-        6 data points
-        Month boundaries are correctly handled
-
-   */
-
   @TestPlanName("capacity-report-granularity-TC004")
   @Test
   void shouldGetCapacityReportMonthlyGranularity() {
@@ -364,22 +300,6 @@ public class CapacityReportGranularityComponentTest extends BaseContractComponen
     thenFirstSnapshotShouldStartAt(snapshots, beginning);
     thenLastSnapshotShouldEndAt(snapshots, beginning.plusMonths(monthRange - 1));
   }
-
-  /*
-  capacity-report-granularity-TC005 - Quarterly Granularity Report
-
-    Description: Verify quarterly granularity
-    Setup:
-        User authenticated with a valid org_id
-    Action: GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}
-    Test Steps:
-        Create a subscription with capacity
-        GET capacity with granularity=QUARTERLY for a 1-year range
-    Expected Results:
-        4 data points
-        Quarter boundaries (Jan 1, Apr 1, Jul 1, Oct 1)
-
-   */
 
   @TestPlanName("capacity-report-granularity-TC005")
   @Test
@@ -417,22 +337,6 @@ public class CapacityReportGranularityComponentTest extends BaseContractComponen
     thenLastSnapshotShouldEndAt(snapshots, beginning.plusMonths(9));
   }
 
-  /*
-  capacity-report-granularity-TC006 - Yearly Granularity Report
-
-    Description: Verify yearly granularity
-    Setup:
-        User authenticated with a valid org_id
-    Action: GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}
-    Test Steps:
-        Create a subscription with capacity
-        GET capacity with granularity=YEARLY for a 3-year range
-    Expected Results:
-        3 data points
-        Year boundaries aligned
-
-   */
-
   @TestPlanName("capacity-report-granularity-TC006")
   @Test
   void shouldGetCapacityReportYearlyGranularity() {
@@ -467,20 +371,6 @@ public class CapacityReportGranularityComponentTest extends BaseContractComponen
     thenFirstSnapshotShouldStartAt(snapshots, beginning);
     thenLastSnapshotShouldEndAt(snapshots, beginning.plusYears(yearRange - 1));
   }
-
-  /*
-  capacity-report-granularity-TC007 - Invalid Granularity for Product
-
-    Description: Verify error when requesting unsupported granularity
-    Setup:
-        User authenticated with a valid org_id
-    Action: GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}
-    Test Steps:
-        Create a subscription with capacity
-        GET capacity for unsupported granularity with granularity=HOURLLY
-    Expected Results:
-        HTTP 400 Bad Request
-   */
 
   @TestPlanName("capacity-report-granularity-TC007")
   @Test
