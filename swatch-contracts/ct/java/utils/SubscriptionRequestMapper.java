@@ -44,7 +44,7 @@ public final class SubscriptionRequestMapper {
     if (subscription.getEndDate() != null) {
       request.setEffectiveEndDate(subscription.getEndDate().toInstant().toEpochMilli());
     }
-    request.setQuantity(1);
+    request.setQuantity(Objects.requireNonNullElse(subscription.getQuantity(), 1));
     if (subscription.getOffering() != null) {
       var product =
           new com.redhat.swatch.subscriptions.test.subscription.model.SubscriptionProduct();

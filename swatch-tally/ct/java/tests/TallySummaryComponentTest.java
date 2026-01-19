@@ -26,42 +26,19 @@ import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import java.time.OffsetDateTime;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.Ignore;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import utils.TallyTestHelpers;
 
+@Slf4j
 public class TallySummaryComponentTest extends BaseTallyComponentTest {
 
   private static final TallyTestHelpers helpers = new TallyTestHelpers();
   private static final String TEST_PRODUCT_ID = "rhel-for-x86-els-payg";
   private static final String TEST_METRIC_ID = "VCPUS";
-
-  // @Test
-  @Ignore("This test should run after https://issues.redhat.com/browse/SWATCH-2922")
-  public void testTallyNightlySummaryEmitsGranularityHourly() {
-    final String testOrgId = RandomUtils.generateRandom(); // Use random org ID
-    final String testInstanceId = UUID.randomUUID().toString();
-    final String testEventId = UUID.randomUUID().toString();
-
-    // Create events within the last 24-48 hours for nightly tally
-    OffsetDateTime now = OffsetDateTime.now();
-    Event event1 =
-        helpers.createEventWithTimestamp(
-            testOrgId, testInstanceId, now.minusHours(24).toString(), testEventId, 1.0f);
-
-    Event event2 =
-        helpers.createEventWithTimestamp(
-            testOrgId, testInstanceId, now.minusHours(48).toString(), testEventId, 1.0f);
-
-    // Produce events to Kafka
-    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event1);
-    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event2);
-
-    // Run hourly tally and wait for messages with polling
-    helpers.pollForTallySyncAndMessages(
-        testOrgId, TEST_PRODUCT_ID, "CORES", Granularity.HOURLY, 1, service, kafkaBridge);
-  }
 
   // @Test
   @Ignore("This test should run after https://issues.redhat.com/browse/SWATCH-2922")
@@ -74,19 +51,19 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     OffsetDateTime now = OffsetDateTime.now();
     Event event1 =
         helpers.createEventWithTimestamp(
-            testOrgId, testInstanceId, now.minusHours(1).toString(), testEventId, 1.0f);
+            testOrgId, testInstanceId, now.minusDays(1).toString(), testEventId, 1.0f);
 
     Event event2 =
         helpers.createEventWithTimestamp(
-            testOrgId, testInstanceId, now.minusHours(2).toString(), testEventId, 1.0f);
+            testOrgId, testInstanceId, now.minusDays(2).toString(), testEventId, 1.0f);
 
     Event event3 =
         helpers.createEventWithTimestamp(
-            testOrgId, testInstanceId, now.minusHours(3).toString(), testEventId, 1.0f);
+            testOrgId, testInstanceId, now.minusDays(3).toString(), testEventId, 1.0f);
 
     Event event4 =
         helpers.createEventWithTimestamp(
-            testOrgId, testInstanceId, now.minusHours(4).toString(), testEventId, 1.0f);
+            testOrgId, testInstanceId, now.minusDays(4).toString(), testEventId, 1.0f);
 
     // Produce events to Kafka
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event1);
@@ -94,13 +71,24 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event3);
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event4);
 
-    // Run hourly tally and wait for messages with polling
-    helpers.pollForTallySyncAndMessages(
-        testOrgId, TEST_PRODUCT_ID, TEST_METRIC_ID, Granularity.HOURLY, 4, service, kafkaBridge);
+    // Polls then extracts measurements from resulting snapshots.
+    // Ensures that the appropriate number of summaries is present
+    // and that no measurements are of type 'TOTAL'
+    helpers
+        .pollForTallySyncAndMessages(
+            testOrgId, TEST_PRODUCT_ID, TEST_METRIC_ID, Granularity.DAILY, 4, service, kafkaBridge)
+        .stream()
+        .flatMap(summary -> summary.getTallySnapshots().stream())
+        .flatMap(snapshot -> snapshot.getTallyMeasurements().stream())
+        .forEach(
+            measurement -> {
+              Assertions.assertFalse(
+                  measurement.getHardwareMeasurementType().toUpperCase() == "TOTAL");
+            });
   }
 
   @Test
-  public void testTallyHourlySummaryEmitsGranularityDaily() {
+  public void testTallyHourlySummaryEmitsNoGranularityDaily() {
     final String testOrgId = RandomUtils.generateRandom(); // Use random org ID
     final String testInstanceId = UUID.randomUUID().toString();
     final String testEventId = UUID.randomUUID().toString();
@@ -130,7 +118,7 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event4);
 
     helpers.pollForTallySyncAndMessages(
-        testOrgId, TEST_PRODUCT_ID, TEST_METRIC_ID, Granularity.DAILY, 1, service, kafkaBridge);
+        testOrgId, TEST_PRODUCT_ID, TEST_METRIC_ID, Granularity.DAILY, 0, service, kafkaBridge);
   }
 
   @Test
@@ -163,7 +151,19 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event3);
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event4);
 
-    helpers.pollForTallySyncAndMessages(
-        testOrgId, TEST_PRODUCT_ID, TEST_METRIC_ID, Granularity.HOURLY, 4, service, kafkaBridge);
+    // Polls then extracts measurements from resulting snapshots.
+    // Ensures that the appropriate number of summaries is present
+    // and that no measurements are of type 'TOTAL'
+    helpers
+        .pollForTallySyncAndMessages(
+            testOrgId, TEST_PRODUCT_ID, TEST_METRIC_ID, Granularity.HOURLY, 4, service, kafkaBridge)
+        .stream()
+        .flatMap(summary -> summary.getTallySnapshots().stream())
+        .flatMap(snapshot -> snapshot.getTallyMeasurements().stream())
+        .forEach(
+            measurement -> {
+              Assertions.assertFalse(
+                  measurement.getHardwareMeasurementType().toUpperCase() == "TOTAL");
+            });
   }
 }

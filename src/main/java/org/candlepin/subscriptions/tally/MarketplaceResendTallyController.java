@@ -64,9 +64,7 @@ public class MarketplaceResendTallyController {
     Map<String, List<TallySnapshot>> totalSnapshots =
         snapshots.stream().collect(Collectors.groupingBy(TallySnapshot::getOrgId));
     summaryProducer.produceTallySummaryMessages(
-        totalSnapshots,
-        List.of(Granularity.HOURLY, Granularity.DAILY),
-        SnapshotSummaryProducer.hourlySnapFilter);
+        totalSnapshots, List.of(Granularity.HOURLY), SnapshotSummaryProducer.hourlySnapFilter);
     return snapshots.size();
   }
 }
