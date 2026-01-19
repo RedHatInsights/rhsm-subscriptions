@@ -22,6 +22,7 @@ package tests;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -32,6 +33,7 @@ import com.redhat.swatch.contract.test.model.CapacityReportByMetricId;
 import com.redhat.swatch.contract.test.model.CapacitySnapshotByMetricId;
 import com.redhat.swatch.contract.test.model.GranularityType;
 import domain.Product;
+import io.restassured.response.Response;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
@@ -143,6 +145,39 @@ public class CapacityReportGranularityComponentTest extends BaseContractComponen
         "All snapshots with data should have the same capacity value", capacityValues, hasSize(1));
   }
 
+  /**
+   * Helper method to verify only the last week has capacity data.
+   *
+   * @param snapshots List of capacity snapshots to validate
+   * @param expectedWeekIndex Index of the week that should have capacity (0-based)
+   */
+  private void thenOnlyLastWeekHasCapacity(
+      List<CapacitySnapshotByMetricId> snapshots, int expectedWeekIndex) {
+    for (int i = 0; i < snapshots.size(); i++) {
+      CapacitySnapshotByMetricId snapshot = snapshots.get(i);
+      if (i == expectedWeekIndex) {
+        // Last week should have capacity
+        assertThat(
+            "Snapshot " + i + " (last week) should have data",
+            snapshot.getHasData(),
+            equalTo(true));
+        assertThat(
+            "Snapshot " + i + " (last week) should have capacity > 0",
+            snapshot.getValue().doubleValue(),
+            greaterThan(0.0));
+      } else {
+        // Earlier weeks should have no capacity or zero capacity
+        if (Boolean.TRUE.equals(snapshot.getHasData())) {
+          assertThat(
+              "Snapshot " + i + " (earlier week) should have zero capacity",
+              snapshot.getValue().doubleValue(),
+              equalTo(0.0));
+        }
+        // If hasData is false/null, that's also acceptable
+      }
+    }
+  }
+
   /*
   capacity-report-granularity-TC001 - Hourly Granularity Report
 
@@ -223,6 +258,7 @@ public class CapacityReportGranularityComponentTest extends BaseContractComponen
     List<CapacitySnapshotByMetricId> snapshots =
         thenCapacityReportShouldContainSnapshots(capacityReport, 7);
     thenFirstSnapshotShouldStartAt(snapshots, beginning);
+    thenLastSnapshotShouldEndAt(snapshots, clock.startOfDay(ending));
   }
 
   /*
@@ -274,6 +310,7 @@ public class CapacityReportGranularityComponentTest extends BaseContractComponen
         thenCapacityReportShouldContainSnapshots(capacityReport, weekRange);
     thenFirstSnapshotShouldStartAt(snapshots, beginning);
     thenLastSnapshotShouldEndAt(snapshots, beginning.plusWeeks(weekRange - 1));
+    thenOnlyLastWeekHasCapacity(snapshots, weekRange - 1);
   }
 
   /*
@@ -360,7 +397,7 @@ public class CapacityReportGranularityComponentTest extends BaseContractComponen
         testSku, RHEL_CORES_CAPACITY, RHEL_SOCKETS_CAPACITY, subscriptionStart, subscriptionEnd);
 
     // When: Get capacity report for product=RHEL, metric=Sockets
-    final OffsetDateTime beginning = clock.startOfCurrentQuarter().minusMonths(9);
+    final OffsetDateTime beginning = clock.startOfCurrentQuarter().minusMonths(12);
     final OffsetDateTime ending = clock.endOfCurrentQuarter().minusMonths(3);
 
     CapacityReportByMetricId capacityReport =
@@ -429,5 +466,39 @@ public class CapacityReportGranularityComponentTest extends BaseContractComponen
         thenCapacityReportShouldContainSnapshots(capacityReport, yearRange);
     thenFirstSnapshotShouldStartAt(snapshots, beginning);
     thenLastSnapshotShouldEndAt(snapshots, beginning.plusYears(yearRange - 1));
+  }
+
+  /*
+  capacity-report-granularity-TC007 - Invalid Granularity for Product
+
+    Description: Verify error when requesting unsupported granularity
+    Setup:
+        User authenticated with a valid org_id
+    Action: GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}
+    Test Steps:
+        Create a subscription with capacity
+        GET capacity for unsupported granularity with granularity=HOURLLY
+    Expected Results:
+        HTTP 400 Bad Request
+   */
+
+  @TestPlanName("capacity-report-granularity-TC007")
+  @Test
+  void shouldNotGetCapacityReportInvalidGranularity() {
+    // Given: Create ROSA contract with capacity data for Cores metric
+    final String testSku = RandomUtils.generateRandom();
+    givenRosaContractIsCreated(testSku, ROSA_CORES_CAPACITY);
+
+    // When: Request capacity report with invalid granularity "HOURLLY" (typo)
+    final OffsetDateTime beginning = clock.startOfCurrentHour().minusHours(23);
+    final OffsetDateTime ending = clock.endOfCurrentHour();
+
+    Response response =
+        service.getCapacityReportByMetricIdRaw(
+            Product.ROSA, orgId, CORES.toString(), beginning, ending, "HOURLLY", null);
+
+    // Then: Verify response returns HTTP 400 Bad Request
+    assertThat(
+        "Invalid granularity should return 400 Bad Request", response.statusCode(), equalTo(400));
   }
 }
