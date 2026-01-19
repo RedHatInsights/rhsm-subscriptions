@@ -132,7 +132,7 @@ objects:
       sharedDbAppName: ${DB_POD}
 
     dependencies:
-      - swatch-database
+      - ${DB_POD}
 
     deployments:
       - name: service

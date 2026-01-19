@@ -33,6 +33,7 @@ import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static utils.DateUtils.assertDatesAreEqual;
 
 import api.ContractsArtemisService;
 import api.PartnerApiStubs;
@@ -333,18 +334,5 @@ public class ContractsTerminationComponentTest extends BaseContractComponentTest
         is(greaterThan(21)));
     assertThat("next_event_date minute should be 59", nextEventDate.getMinute(), equalTo(59));
     assertThat("next_event_date second should be 59", nextEventDate.getSecond(), equalTo(59));
-  }
-
-  private static void assertDatesAreEqual(OffsetDateTime expected, OffsetDateTime actual) {
-    assertNotNull(actual, "Actual date should not be null");
-    assertNotNull(expected, "Expected date should not be null");
-    long expectedInUtc = expected.toEpochSecond();
-    long actualInUtc = actual.toEpochSecond();
-    long diffSeconds = Math.abs(expectedInUtc - actualInUtc);
-    assertTrue(
-        diffSeconds <= 1,
-        String.format(
-            "Dates should be within 1 second. Expected: %s, Actual: %s, Difference: %ds",
-            expected, actual, diffSeconds));
   }
 }

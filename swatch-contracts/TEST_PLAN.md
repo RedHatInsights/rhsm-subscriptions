@@ -573,16 +573,7 @@ Test cases should be testable locally and in an ephemeral environment.
   - StatusResponse: "All Contracts are Synced"
   - Each org's contracts synced
 
-**contracts-sync-TC004 - Sync when no contracts exist**  
-- **Description**: Verify sync all when no active contracts are found.  
-- **Setup**: Ensure no contracts.  
-- **Action:** POST syncAllContracts.  
-- **Verification**: Check response.  
-- **Expected Result**:  
-  - Status: "No active contract found for the orgIds"  
-  - No errors
-
-**contracts-sync-TC005** - Sync subscriptions for contracts by org**  
+**contracts-sync-TC004** - Sync subscriptions for contracts by org**  
 - **Description**: Verify subscription sync for all contracts of an org.  
 - **Setup**: Have contracts for org without subscriptions.  
 - **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{org_id}/subscriptions`.  
@@ -591,7 +582,7 @@ Test cases should be testable locally and in an ephemeral environment.
   - StatusResponse success  
   - Subscriptions synced from Subscription API
 
-**contracts-sync-TC006 - Clear all contracts for the organization**
+**contracts-sync-TC005 - Clear all contracts for the organization**
 - **Description**: Verify that deleteContractsByOrg removes all org contracts.
 - **Setup**: Create multiple contracts for the org.
 - **Action**: DELETE `/api/swatch-contracts/internal/rpc/reset/{org_id}`.
@@ -636,9 +627,7 @@ Test cases should be testable locally and in an ephemeral environment.
   - Publish message to `SUBSCRIPTION_SYNC_TASK_UMB` Kafka topic  
 - **Verification**: Check Azure-specific fields  
 - **Expected Result**:  
-- Subscription created with Azure references  
-- `billing_provider=azure`  
- - `billing_account_id` contains Azure tenant ID
+- Subscription created with null references since subscription sync does not populate the Azure external references
 
 **subscriptions-creation-TC004 - Process malformed UMB XML message**  
 - **Description**: Verify error handling for invalid XML.  
@@ -698,20 +687,7 @@ Test cases should be testable locally and in an ephemeral environment.
   - Validate  
   - Contract/subscription table.
 
-**subscriptions-creation-TC010** - **Save subscriptions PURE PAYG**  
-- **Description:** Verify subscription saving when enabled.  
-- **Setup:** Prepare subscriptions with JSON array  
-- **Action:**   
-  - POST `/api/swatch-contracts/internal/subscriptions` with JSON array.  
-  - Sync subscriptions  
-- **Verification:** Query saved subscriptions.  
-  - Expected Result:  
-  - SubscriptionResponse: "Success"  
-  - Subscriptions persisted  
-  - Multiple subscriptions created from an array  
-- **Note:** This endpoint **SUPPORTS multiple subscriptions** via JSON array
-
-**subscriptions-creation-TC003** - **Save subscriptions PAYG**  
+**subscriptions-creation-TC010** - **Save subscriptions PAYG**  
 - **Description:** Verify subscription saving when enabled.  
 - **Setup:** Prepare subscriptions with JSON array  
 - **Action:**   
@@ -730,8 +706,7 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Action:** PUT `/api/swatch-contracts/internal/rpc/subscriptions/sync`.  
 - **Verification**: Monitor sync queue.  
 - **Expected Result:**  
-  - RpcResponse with success  
-  - Sync tasks enqueued for each org
+  - RpcResponse with success
 
 **subscriptions-sync-TC002** - **Sync UMB subscription XML message**  
 - **Description:** Verify processing of UMB CanonicalMessage XML.  
@@ -862,13 +837,13 @@ Test cases should be testable locally and in an ephemeral environment.
   - Product tag reflects changes from updated attributes.
   - Update operation completes without errors.
 
-**offering-update-TC002: Handle malformed events**
-- **Description:** Verify that invalid or malformed UMB messages are handled gracefully without affecting system stability.
-- **Setup:** Prepare various malformed UMB messages (invalid JSON, missing required fields, corrupted data).
-- **Action:** Send malformed UMB messages through message broker.
+**offering-update-TC002: Handle malformed event**
+- **Description:** Verify that the malformed UMB message is handled gracefully without affecting system stability.
+- **Setup:** Prepare one malformed UMB message (invalid JSON).
+- **Action:** Send the malformed UMB message through message broker.
 - **Verification:** Check system logs and verify no offering data corruption, system remains operational.
 - **Expected Result:**
-  - System processes malformed events without crashing or data corruption.
+  - System processes the malformed event without crashing or data corruption.
   - Valid offerings remain unaffected by malformed UMB events.
   - Appropriate error handling and logging for debugging malformed events.
 

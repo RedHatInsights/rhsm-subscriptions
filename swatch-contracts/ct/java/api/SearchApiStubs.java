@@ -169,11 +169,10 @@ public class SearchApiStubs {
           awsRef.put("sellerAccount", keys[2]);
         }
         externalReferences.put("awsMarketplace", awsRef);
-      } else if (subscription.getBillingProvider() == domain.BillingProvider.AZURE) {
-        var azureRef = new HashMap<String, Object>();
-        azureRef.put("subscriptionID", "azureSubscriptionId");
-        externalReferences.put("ibmmarketplace", azureRef);
       }
+
+      // Note that for azure subscriptions, the Search API does not provide external references
+      // See ADR: 0003-azure-subscription-sync-limitation.md for further information.
 
       apiSubscription.put("externalReferences", externalReferences);
     }
