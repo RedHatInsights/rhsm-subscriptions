@@ -30,7 +30,7 @@ import lombok.experimental.SuperBuilder;
 
 /** Test data model for building offering test scenarios in component tests. */
 @Getter
-@SuperBuilder
+@SuperBuilder(toBuilder = true)
 @AllArgsConstructor
 public class Offering {
 
@@ -49,13 +49,13 @@ public class Offering {
       "Test component for OpenShift Container Platform";
 
   // Common Constants
-  private static final String METERED_YES = "Y";
-  private static final String METERED_NO = "N";
+  public static final String METERED_YES = "Y";
+  public static final String METERED_NO = "N";
 
   // Product ID Constants
-  private static final int PRODUCT_ID_RHEL_SERVER = 69; // Red Hat Enterprise Linux Server
-  private static final int PRODUCT_ID_RHEL_X86 = 479; // RHEL for x86 catch-all
-  private static final int PRODUCT_ID_OPENSHIFT = 290; // OpenShift Container Platform
+  public static final int PRODUCT_ID_RHEL_SERVER = 69; // Red Hat Enterprise Linux Server
+  public static final int PRODUCT_ID_RHEL_X86 = 479; // RHEL for x86 catch-all
+  public static final int PRODUCT_ID_OPENSHIFT = 290; // OpenShift Container Platform
 
   private final String sku;
   private final String description;
