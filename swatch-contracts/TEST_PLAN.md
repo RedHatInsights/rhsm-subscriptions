@@ -627,9 +627,7 @@ Test cases should be testable locally and in an ephemeral environment.
   - Publish message to `SUBSCRIPTION_SYNC_TASK_UMB` Kafka topic  
 - **Verification**: Check Azure-specific fields  
 - **Expected Result**:  
-- Subscription created with Azure references  
-- `billing_provider=azure`  
- - `billing_account_id` contains Azure tenant ID
+- Subscription created with null references since subscription sync does not populate the Azure external references
 
 **subscriptions-creation-TC004 - Process malformed UMB XML message**  
 - **Description**: Verify error handling for invalid XML.  
