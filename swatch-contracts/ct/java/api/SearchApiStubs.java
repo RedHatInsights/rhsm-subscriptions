@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 /** Facade for stubbing Subscription API endpoints. */
 public class SearchApiStubs {
@@ -50,7 +49,29 @@ public class SearchApiStubs {
    */
   public void stubGetSubscriptionBySubscriptionNumber(Subscription subscription) {
     var responseBody = mapToApiModel(subscription);
+    stubSubscriptionBySubscriptionNumber(
+        subscription.getSubscriptionNumber(), List.of(responseBody));
+  }
 
+  /**
+   * Stub the getSubscriptionBySubscriptionNumber endpoint to return an empty array (not found).
+   * This simulates the scenario where a subscription is not found in the search API.
+   *
+   * @param subscriptionNumber the subscription number to stub as not found
+   */
+  public void stubSearchApiNotFound(String subscriptionNumber) {
+    stubSubscriptionBySubscriptionNumber(subscriptionNumber, List.of());
+  }
+
+  /**
+   * Internal method to stub the getSubscriptionBySubscriptionNumber endpoint with a given response
+   * body.
+   *
+   * @param subscriptionNumber the subscription number to match
+   * @param responseBody the response body (list of subscriptions or empty list)
+   */
+  private void stubSubscriptionBySubscriptionNumber(
+      String subscriptionNumber, List<Map<String, Object>> responseBody) {
     wiremockService
         .given()
         .contentType("application/json")
@@ -63,47 +84,7 @@ public class SearchApiStubs {
                     "urlPathPattern",
                     String.format(
                         "/mock/subscriptionApi/search/criteria;subscription_number=%s/options;products=ALL;showExternalReferences=true/",
-                        subscription.getSubscriptionNumber())),
-                "response",
-                Map.of(
-                    "status",
-                    200,
-                    "headers",
-                    Map.of("Content-Type", "application/json"),
-                    "jsonBody",
-                    List.of(responseBody)),
-                "priority",
-                9,
-                "metadata",
-                wiremockService.getMetadataTags()))
-        .when()
-        .post("/__admin/mappings")
-        .then()
-        .statusCode(201);
-  }
-
-  /**
-   * Stub the searchSubscriptionsByOrgId endpoint to return subscriptions for a given orgId. This
-   * creates a generic stub that matches any index/pageSize parameters.
-   *
-   * @param subscriptions the subscriptions to stub
-   */
-  public void stubSearchSubscriptionsByOrgId(String orgId, Subscription... subscriptions) {
-    var responseBody = Stream.of(subscriptions).map(this::mapToApiModel).toList();
-
-    wiremockService
-        .given()
-        .contentType("application/json")
-        .body(
-            Map.of(
-                "request",
-                Map.of(
-                    "method",
-                    "GET",
-                    "urlPathPattern",
-                    String.format(
-                        "/mock/subscription/search/criteria;web_customer_id=%s/options;products=ALL;showExternalReferences=true;firstResultIndex=.*;maxResults=.*/",
-                        orgId)),
+                        subscriptionNumber)),
                 "response",
                 Map.of(
                     "status",
