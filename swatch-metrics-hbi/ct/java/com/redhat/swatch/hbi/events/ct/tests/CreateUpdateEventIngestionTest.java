@@ -31,20 +31,20 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Set;
 import org.candlepin.subscriptions.json.Event;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 class CreateUpdateEventIngestionTest extends BaseSMHBIComponentTest {
 
-  @BeforeEach
-  void setupTest() {
+  @BeforeAll
+  static void enableEmitEventsFeatureFlag() {
     unleash.enableFlag(EMIT_EVENTS);
   }
 
-  @AfterEach
-  void teardown() {
+  @AfterAll
+  static void disableEmitEventsFeatureFlag() {
     unleash.disableFlag(EMIT_EVENTS);
   }
 
@@ -74,12 +74,7 @@ class CreateUpdateEventIngestionTest extends BaseSMHBIComponentTest {
 
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiEvent);
 
-    flushOutbox(1);
-
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-        MessageValidators.swatchEventEquals(swatchEvent),
-        1);
+    waitForSwatchEvents(MessageValidators.swatchEventEquals(swatchEvent));
   }
 
   @TestPlanName("metrics-hbi-create-update-TC002")
@@ -109,12 +104,7 @@ class CreateUpdateEventIngestionTest extends BaseSMHBIComponentTest {
 
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiEvent);
 
-    flushOutbox(1);
-
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-        MessageValidators.swatchEventEquals(swatchEvent),
-        1);
+    waitForSwatchEvents(MessageValidators.swatchEventEquals(swatchEvent));
   }
 
   @TestPlanName("metrics-hbi-create-update-TC003")
@@ -143,12 +133,7 @@ class CreateUpdateEventIngestionTest extends BaseSMHBIComponentTest {
 
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiEvent);
 
-    flushOutbox(1);
-
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-        MessageValidators.swatchEventEquals(swatchEvent),
-        1);
+    waitForSwatchEvents(MessageValidators.swatchEventEquals(swatchEvent));
   }
 
   @TestPlanName("metrics-hbi-create-update-TC004")
@@ -177,12 +162,7 @@ class CreateUpdateEventIngestionTest extends BaseSMHBIComponentTest {
 
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiEvent);
 
-    flushOutbox(1);
-
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-        MessageValidators.swatchEventEquals(swatchEvent),
-        1);
+    waitForSwatchEvents(MessageValidators.swatchEventEquals(swatchEvent));
   }
 
   @TestPlanName("metrics-hbi-create-update-TC005")
@@ -211,12 +191,7 @@ class CreateUpdateEventIngestionTest extends BaseSMHBIComponentTest {
 
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiEvent);
 
-    flushOutbox(1);
-
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-        MessageValidators.swatchEventEquals(swatchEvent),
-        1);
+    waitForSwatchEvents(MessageValidators.swatchEventEquals(swatchEvent));
   }
 
   @TestPlanName("metrics-hbi-create-update-TC006")
@@ -252,20 +227,10 @@ class CreateUpdateEventIngestionTest extends BaseSMHBIComponentTest {
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hypervisorEvent);
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, guestEvent);
 
-    flushOutbox(3);
-
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
+    waitForSwatchEvents(
         MessageValidators.swatchEventEquals(swatchEventHypervisor),
-        1);
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
         MessageValidators.swatchEventEquals(swatchEventMappedGuest),
-        1);
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-        MessageValidators.swatchEventEquals(swatchEventUpdatedHypervisor),
-        1);
+        MessageValidators.swatchEventEquals(swatchEventUpdatedHypervisor));
   }
 
   @TestPlanName("metrics-hbi-create-update-TC007")
@@ -301,19 +266,9 @@ class CreateUpdateEventIngestionTest extends BaseSMHBIComponentTest {
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, guestEvent);
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hypervisorEvent);
 
-    flushOutbox(3);
-
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
+    waitForSwatchEvents(
         MessageValidators.swatchEventEquals(swatchEventUnmappedGuest),
-        1);
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
         MessageValidators.swatchEventEquals(swatchEventHypervisor),
-        1);
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-        MessageValidators.swatchEventEquals(swatchEventUpdatedMappedGuest),
-        1);
+        MessageValidators.swatchEventEquals(swatchEventUpdatedMappedGuest));
   }
 }

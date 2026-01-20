@@ -23,6 +23,7 @@ package com.redhat.swatch.hbi.events.ct.tests;
 import com.redhat.swatch.component.tests.api.ComponentTest;
 import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
+import com.redhat.swatch.component.tests.api.MessageValidator;
 import com.redhat.swatch.component.tests.api.Quarkus;
 import com.redhat.swatch.component.tests.api.Unleash;
 import com.redhat.swatch.component.tests.api.UnleashService;
@@ -30,9 +31,8 @@ import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.Topics;
 import com.redhat.swatch.hbi.events.ct.api.SwatchMetricsHbiRestService;
-import com.redhat.swatch.hbi.model.FlushResponse;
 import java.time.Duration;
-import java.util.concurrent.atomic.AtomicLong;
+import org.candlepin.subscriptions.json.Event;
 
 @ComponentTest(name = "swatch-metrics-hbi")
 public class BaseSMHBIComponentTest {
@@ -49,23 +49,28 @@ public class BaseSMHBIComponentTest {
   protected static final String EMIT_EVENTS = "swatch.swatch-metrics-hbi.emit-events";
 
   /**
-   * Flush the outbox and continue until the expected flush count is reached, or we reach the
-   * configured await timeout.
+   * Wait for the expected Swatch events to appear in Kafka, flushing the outbox as needed.
    *
-   * @param expectedFlushCount the expected number of records to flush.
+   * @param expectedMessages the message validators for the expected Swatch events
    */
-  protected void flushOutbox(int expectedFlushCount) {
-    AtomicLong counter = new AtomicLong(0);
+  @SafeVarargs
+  protected final void waitForSwatchEvents(MessageValidator<Event>... expectedMessages) {
     AwaitilitySettings settings =
-        AwaitilitySettings.using(Duration.ofSeconds(2), Duration.ofSeconds(5))
+        AwaitilitySettings.using(Duration.ofSeconds(2), Duration.ofSeconds(30))
             .timeoutMessage(
-                "Unable to flush the expected number of outbox records in time: %s",
-                expectedFlushCount);
+                "Expected Swatch events did not appear in Kafka within the timeout: %s events expected",
+                expectedMessages.length);
 
-    AwaitilityUtils.untilIsTrue(
+    AwaitilityUtils.untilAsserted(
         () -> {
-          FlushResponse response = swatchMetricsHbi.flushOutboxSynchronously();
-          return counter.addAndGet(response.getCount()) >= expectedFlushCount;
+          // Flush the outbox to ensure events are sent to Kafka
+          swatchMetricsHbi.flushOutboxSynchronously();
+
+          // Verify each expected message appears in Kafka
+          for (var expectedMessage : expectedMessages) {
+            kafkaBridge.waitForKafkaMessage(
+                Topics.SWATCH_SERVICE_INSTANCE_INGRESS, expectedMessage, 1);
+          }
         },
         settings);
   }

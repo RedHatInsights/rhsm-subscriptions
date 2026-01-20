@@ -33,19 +33,19 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 class DeleteEventIngestionTest extends BaseSMHBIComponentTest {
 
-  @BeforeEach
-  void setupTest() {
+  @BeforeAll
+  static void enableEmitEventsFeatureFlag() {
     unleash.enableFlag(EMIT_EVENTS);
   }
 
-  @AfterEach
-  void teardown() {
+  @AfterAll
+  static void disableEmitEventsFeatureFlag() {
     unleash.disableFlag(EMIT_EVENTS);
   }
 
@@ -67,12 +67,7 @@ class DeleteEventIngestionTest extends BaseSMHBIComponentTest {
 
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiDeleteEvent);
 
-    flushOutbox(1);
-
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-        MessageValidators.swatchEventEquals(swatchEvent),
-        1);
+    waitForSwatchEvents(MessageValidators.swatchEventEquals(swatchEvent));
   }
 
   @TestPlanName("metrics-hbi-delete-TC002")
@@ -99,16 +94,9 @@ class DeleteEventIngestionTest extends BaseSMHBIComponentTest {
 
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiDeleteEvent);
 
-    flushOutbox(2);
-
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
+    waitForSwatchEvents(
         MessageValidators.swatchEventEquals(swatchEventHypervisor),
-        1);
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-        MessageValidators.swatchEventEquals(swatchEventGuest),
-        1);
+        MessageValidators.swatchEventEquals(swatchEventGuest));
   }
 
   @TestPlanName("metrics-hbi-delete-TC003")
@@ -135,16 +123,9 @@ class DeleteEventIngestionTest extends BaseSMHBIComponentTest {
 
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiDeleteEvent);
 
-    flushOutbox(2);
-
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
+    waitForSwatchEvents(
         MessageValidators.swatchEventEquals(swatchEventGuest),
-        1);
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-        MessageValidators.swatchEventEquals(swatchEventHypervisor),
-        1);
+        MessageValidators.swatchEventEquals(swatchEventHypervisor));
   }
 
   @TestPlanName("metrics-hbi-delete-TC004")
@@ -163,12 +144,7 @@ class DeleteEventIngestionTest extends BaseSMHBIComponentTest {
 
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiDeleteEvent);
 
-    flushOutbox(1);
-
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-        MessageValidators.swatchEventEquals(swatchEvent),
-        1);
+    waitForSwatchEvents(MessageValidators.swatchEventEquals(swatchEvent));
   }
 
   // --- helpers: get existing HBI events for delete tests ---
@@ -201,12 +177,7 @@ class DeleteEventIngestionTest extends BaseSMHBIComponentTest {
 
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiEvent);
 
-    flushOutbox(1);
-
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-        MessageValidators.swatchEventEquals(swatchEvent),
-        1);
+    waitForSwatchEvents(MessageValidators.swatchEventEquals(swatchEvent));
 
     return hbiEvent;
   }
@@ -245,20 +216,10 @@ class DeleteEventIngestionTest extends BaseSMHBIComponentTest {
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hypervisorEvent);
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, guestEvent);
 
-    flushOutbox(3);
-
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
+    waitForSwatchEvents(
         MessageValidators.swatchEventEquals(swatchEventHypervisor),
-        1);
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
         MessageValidators.swatchEventEquals(swatchEventMappedGuest),
-        1);
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-        MessageValidators.swatchEventEquals(swatchEventUpdatedHypervisor),
-        1);
+        MessageValidators.swatchEventEquals(swatchEventUpdatedHypervisor));
 
     return hbiEvents;
   }
