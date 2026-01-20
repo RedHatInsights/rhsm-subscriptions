@@ -668,10 +668,10 @@ objects:
     resources:
       limits:
         cpu: 400m
-        memory: 500Mi
+        memory: 2Gi
       requests:
         cpu: 200m
-        memory: 250Mi
+        memory: 4Gi
     queries:
     - prefix: swatch/tally
       query: >-
@@ -692,7 +692,7 @@ objects:
         and granularity='DAILY'
         and measurement_type!='TOTAL'
         AND snapshot_date >= date_trunc('day', now() at time zone 'utc' - interval '2 day');
-      chunksize: 50000
+      chunksize: 0
     - prefix: swatch/subscriptions
       query: >-
         select distinct
