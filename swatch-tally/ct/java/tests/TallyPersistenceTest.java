@@ -20,19 +20,20 @@
  */
 package tests;
 
-import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
-import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import utils.TallyTestHelpers;
+
+import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.UUID;
+
+import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
 
 /**
  * Tests to verify that Tally Report and Instance report endpoints are not changing persists
@@ -60,7 +61,7 @@ public class TallyPersistenceTest extends BaseTallyComponentTest {
   public void testTallyReportPersistsWithDateTimeRangeVariations() throws Exception {
     // Run initial tally after setup
     helpers.syncTallyHourly(setup.orgId, service);
-    Thread.sleep(5000);
+    Thread.sleep(3000);
 
     // Get initial tally reports
     JsonNode todayTallyBefore = getTallyReportJson(setup.today);
@@ -68,7 +69,7 @@ public class TallyPersistenceTest extends BaseTallyComponentTest {
 
     // Run hourly tally again
     helpers.syncTallyHourly(setup.orgId, service);
-    Thread.sleep(5000);
+    Thread.sleep(3000);
 
     // Get tally reports after second tally
     JsonNode todayTallyAfter = getTallyReportJson(setup.today);
@@ -87,14 +88,14 @@ public class TallyPersistenceTest extends BaseTallyComponentTest {
   public void testInstanceReportPersistsWithDateTimeRangeVariations() throws Exception {
     // Run initial tally
     helpers.syncTallyHourly(setup.orgId, service);
-    Thread.sleep(5000);
+    Thread.sleep(3000);
 
     // Get initial instances report for yesterday
     JsonNode yesterdayInstancesBefore = getInstancesReportJson(setup.yesterday);
 
     // Run hourly tally again
     helpers.syncTallyHourly(setup.orgId, service);
-    Thread.sleep(5000);
+    Thread.sleep(3000);
 
     // Get instances report after second tally
     JsonNode yesterdayInstancesAfter = getInstancesReportJson(setup.yesterday);
