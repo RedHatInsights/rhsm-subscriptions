@@ -51,4 +51,25 @@ public final class SwatchUtils {
 
     return Map.of(ORIGIN_HEADER, ORIGIN_HEADER_VALUE, X_RH_IDENTITY_HEADER, rhId);
   }
+
+  /**
+   * This is used to create a User type identity header that includes org_id for Springboot services
+   * in DEV_MODE
+   *
+   * @param orgId the organization ID to include in the identity header
+   * @return Base64 encoded string of the identity header
+   */
+  public static String createUserIdentityHeader(String orgId) {
+    String json =
+        "{\"identity\":{"
+            + "\"account_number\":\"\","
+            + "\"type\":\"User\","
+            + "\"user\":{\"is_org_admin\":true},"
+            + "\"internal\":{\"org_id\":\""
+            + orgId
+            + "\"}"
+            + "}}";
+    return java.util.Base64.getEncoder()
+        .encodeToString(json.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+  }
 }
