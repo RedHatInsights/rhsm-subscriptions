@@ -211,12 +211,13 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     Contract contract = buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0));
     wiremock.forProductAPI().stubOfferingData(contract.getOffering());
     wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(contract));
-    // NOTE: We intentionally DO NOT stub the search API to simulate missing subscription data
+    // NOTE: Explicitly stub the search API to return empty array (no subscription found)
+    wiremock.forSearchApi().stubSearchApiNotFound(contract.getSubscriptionNumber());
 
     Response sync = service.syncOffering(contract.getOffering().getSku());
     assertThat("Sync offering should succeed", sync.statusCode(), is(HttpStatus.SC_OK));
 
-    // When: Publish message to Kafka topic (via Artemis) without subscription stub
+    // When: Publish message to Kafka topic (via Artemis) without subscription data
     artemis.forContracts().send(contract);
 
     // Then: Verify the contract was NOT created due to missing required subscription data
