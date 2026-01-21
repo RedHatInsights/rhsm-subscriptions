@@ -412,7 +412,7 @@ spec:
             - name: name
               value: clamav-scan
             - name: bundle
-              value: quay.io/konflux-ci/tekton-catalog/task-clamav-scan:0.3@sha256:bcd83ff3e8731db0f76400974c1989de41b6db39c3bef27973fd328b535ecc1f
+              value: quay.io/konflux-ci/tekton-catalog/task-clamav-scan:0.3@sha256:78f0349720a18e25546fd57a0eb15925ec4da6d9e1d9290b73a4770ae9ad77f5
             - name: kind
               value: task
           resolver: bundles
