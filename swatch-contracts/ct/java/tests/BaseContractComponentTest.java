@@ -50,6 +50,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.apache.http.HttpStatus;
+import org.candlepin.clock.ApplicationClock;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -58,6 +59,7 @@ public class BaseContractComponentTest {
   static final MetricId CORES = MetricIdUtils.getCores();
   static final MetricId SOCKETS = MetricIdUtils.getSockets();
   static final MetricId INSTANCE_HOURS = MetricIdUtils.getInstanceHours();
+  static final MetricId VCPUS = MetricIdUtils.getVCpus();
 
   @KafkaBridge static KafkaBridgeService kafkaBridge = new KafkaBridgeService();
 
@@ -65,6 +67,8 @@ public class BaseContractComponentTest {
 
   @Quarkus(service = "swatch-contracts")
   static ContractsSwatchService service = new ContractsSwatchService();
+
+  protected static final ApplicationClock clock = new ApplicationClock();
 
   protected String orgId;
   private List<String> orgIds = new ArrayList<>();
@@ -198,5 +202,111 @@ public class BaseContractComponentTest {
         "Delete non-existent contract should return 204 No Content (idempotent behavior)",
         deleteResponse.statusCode(),
         is(HttpStatus.SC_NO_CONTENT));
+  }
+
+  /** Helper method to create a physical subscription with specified SKU and capacity values. */
+  protected Subscription givenPhysicalSubscriptionIsCreated(
+      String physicalSku, double coresCapacity, double socketsCapacity) {
+    return givenPhysicalSubscriptionIsCreated(
+        physicalSku,
+        coresCapacity,
+        socketsCapacity,
+        OffsetDateTime.now().minusDays(1),
+        OffsetDateTime.now().plusDays(1));
+  }
+
+  /**
+   * Helper method to create a physical subscription with specified SKU, capacity values, and custom
+   * dates.
+   */
+  protected Subscription givenPhysicalSubscriptionIsCreated(
+      String physicalSku,
+      double coresCapacity,
+      double socketsCapacity,
+      OffsetDateTime startDate,
+      OffsetDateTime endDate) {
+    // Given: A physical offering with standard sockets capacity (no DERIVED_SKU)
+    wiremock
+        .forProductAPI()
+        .stubOfferingData(
+            domain.Offering.buildRhelOffering(physicalSku, coresCapacity, socketsCapacity));
+    assertThat(
+        "Sync physical offering should succeed",
+        service.syncOffering(physicalSku).statusCode(),
+        is(HttpStatus.SC_OK));
+
+    // When: Create a physical subscription with sockets and custom dates
+    Subscription physicalSubscription =
+        Subscription.buildRhelSubscriptionUsingSku(
+                orgId, java.util.Map.of(SOCKETS, socketsCapacity), physicalSku)
+            .toBuilder()
+            .startDate(startDate)
+            .endDate(endDate)
+            .build();
+    assertThat(
+        "Creating physical subscription should succeed",
+        service.saveSubscriptions(true, physicalSubscription).statusCode(),
+        is(HttpStatus.SC_OK));
+    return physicalSubscription;
+  }
+
+  /** Helper method to create a hypervisor subscription with specified SKU and capacity values. */
+  protected Subscription givenHypervisorSubscriptionIsCreated(
+      String hypervisorSku, double coresCapacity, double socketsCapacity) {
+    // Given: A hypervisor offering with hypervisor sockets capacity
+    wiremock
+        .forProductAPI()
+        .stubOfferingData(
+            domain.Offering.buildRhelHypervisorOffering(
+                hypervisorSku, coresCapacity, socketsCapacity));
+    assertThat(
+        "Sync hypervisor offering should succeed",
+        service.syncOffering(hypervisorSku).statusCode(),
+        is(HttpStatus.SC_OK));
+
+    // When: Create a hypervisor subscription with hypervisor sockets
+    Subscription hypervisorSubscription =
+        Subscription.buildRhelSubscriptionUsingSku(
+            orgId, java.util.Map.of(SOCKETS, socketsCapacity), hypervisorSku);
+    assertThat(
+        "Creating hypervisor subscription should succeed",
+        service.saveSubscriptions(true, hypervisorSubscription).statusCode(),
+        is(HttpStatus.SC_OK));
+    return hypervisorSubscription;
+  }
+
+  /** Helper method to create an OpenShift subscription with specified SKU and cores capacity. */
+  protected Subscription givenSubscriptionWithCoresCapacity(String sku, double coresCapacity) {
+    // Create offering with cores capacity
+    wiremock
+        .forProductAPI()
+        .stubOfferingData(domain.Offering.buildOpenShiftOffering(sku, coresCapacity, null));
+    assertThat(
+        "Sync offering should succeed",
+        service.syncOffering(sku).statusCode(),
+        is(HttpStatus.SC_OK));
+
+    // Create subscription with cores capacity
+    Subscription subscription =
+        Subscription.buildOpenShiftSubscriptionUsingSku(
+            orgId, java.util.Map.of(CORES, coresCapacity), sku);
+    assertThat(
+        "Creating subscription should succeed",
+        service.saveSubscriptions(true, subscription).statusCode(),
+        is(HttpStatus.SC_OK));
+    return subscription;
+  }
+
+  /**
+   * Helper method to create a ROSA contract with specified SKU and cores capacity. ROSA requires a
+   * contract (not just a subscription) because it's a marketplace product with billing provider
+   * information.
+   */
+  protected Contract givenRosaContractIsCreated(String sku, double coresCapacity) {
+    Contract contract =
+        Contract.buildRosaContract(
+            orgId, domain.BillingProvider.AWS, java.util.Map.of(CORES, coresCapacity), sku);
+    givenContractIsCreated(contract);
+    return contract;
   }
 }
