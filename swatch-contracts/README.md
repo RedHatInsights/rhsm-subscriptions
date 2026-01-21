@@ -1,54 +1,136 @@
 # swatch-contracts
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+swatch-contracts is a service deployed within the Subscription Watch ecosystem that manages
+customer subscription and contract data. The service synchronizes subscription information from
+Red Hat IT backoffice services, processes contract entitlements from cloud marketplace partners
+(AWS, Azure), and provides contract coverage information to other SWATCH services for billing
+calculations.
 
-If you want to learn more about Quarkus, please visit its website: https://quarkus.io/ .
+The service receives contract entitlement events from Partner Gateway via UMB (Unified Message Bus),
+enriches them with data from Partner API and Subscription API, and stores normalized contract and
+subscription data in the database. It also performs periodic synchronization of subscription data
+from IT Subscription Service and offering definitions from IT Product Service to keep the local
+data up to date.
 
-## Running the application in dev mode
+An incoming partner entitlement event contains information about a customer's marketplace purchase,
+including subscription details, contract dimensions (metrics and their contracted values), billing
+identifiers, and validity dates. The service processes this data to create or update contract records
+that other SWATCH services can query to determine what usage is covered by customer contracts.
 
-You can run your application in dev mode that enables live coding using:
+An outgoing contract coverage response will contain:
+  - The total contracted amount for a specific metric
+  - Whether the contract is marked as gratis (free usage)
+  - The contract validity period
+  - Billing provider and account information
 
-```shell script
-./mvnw quarkus:dev
-```
+In short, swatch-contracts acts as the source of truth for subscription and contract data within
+the SWATCH ecosystem, enabling accurate billing calculations by swatch-billable-usage and proper
+capacity tracking across the system.
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only
-> at http://localhost:8000/q/dev/.
+## Component/Flow Diagram
+![Container diagram for Subscription Sync](../docs/container-subscription-sync.svg)
 
-## Packaging and running the application
+### Contract UMB Message Consumer
+The Contract UMB Message Consumer is the main entry point for partner entitlement events. It consumes
+messages from the Partner Gateway UMB topic (VirtualTopic.services.partner-entitlement-gateway) when
+customers purchase or modify subscriptions through cloud marketplace partners.
 
-The application can be packaged using:
+#### Partner Entitlement Processing
+When a partner entitlement event is received:
+1. The service parses the PartnerEntitlementContract message from UMB.
+2. It queries the Partner API to retrieve full entitlement details including contract dimensions,
+   billing identifiers, and subscription numbers.
+3. It queries the Subscription API to find the corresponding subscription ID that matches the
+   entitlement data.
+4. The service creates or updates contract records in the database with normalized data including:
+   - Contract metadata (subscription number, SKU, start/end dates, organization ID)
+   - Billing information (provider, provider ID, billing account ID)
+   - Contract metrics (metric ID and contracted values for each dimension)
+5. Associated subscription records are created or updated to link the contract to the subscription ID.
 
-```shell script
-./mvnw clean install
-```
+### Subscription Synchronization
+The Subscription Sync Service performs periodic bulk synchronization of subscription data from the
+IT Subscription Service. A scheduled cron job triggers the sync process, which:
+- Produces subscription sync tasks to the Kafka topic for parallel processing.
+- Queries the IT Subscription Service for all active subscriptions.
+- Creates or updates subscription entities in the database.
+- Links subscriptions to offering definitions (product configurations).
+- Triggers capacity reconciliation for affected organizations.
 
-It produces the `quarkus-run.jar` file in the `build/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into
-the `build/quarkus-app/lib/` directory.
+This ensures that even if UMB events are missed, the system remains synchronized with the authoritative
+subscription data in IT systems.
 
-The application is now runnable using `java -jar build/quarkus-app/quarkus-run.jar`.
+### Offering Synchronization
+The Offering Sync Service synchronizes product offering definitions from the IT Product Service. A
+scheduled cron job triggers the sync process, which:
+- Produces offering sync tasks to the Kafka topic for parallel processing.
+- Queries the IT Product Service for offering definitions including product tags, metrics, and
+  variant configurations.
+- Creates or updates offering entities in the database.
+- Links offerings to their parent products and tracks supported metrics.
+- Triggers capacity reconciliation when offerings change.
 
-## Mapping Partner API with Swatch data
+Offering definitions determine which products are tracked by SWATCH, what metrics are measured, and
+how usage data should be interpreted.
+
+### Product Status UMB Consumer
+The service consumes product status events from the IT Product Service UMB topic
+(VirtualTopic.services.productservice.Product) to receive real-time notifications about changes to
+product and offering definitions. When a product status event is received, the service triggers an
+offering sync for the affected product.
+
+### Subscription Status UMB Consumer
+The service consumes subscription status events from the IT Subscription Service UMB topic
+(VirtualTopic.canonical.subscription) to receive real-time notifications about subscription changes.
+When a subscription status event is received, the service processes the subscription update and
+triggers capacity reconciliation if needed.
+
+### Capacity Reconciliation
+The Capacity Reconciliation Service processes capacity reconciliation tasks to ensure that the
+subscription capacity views (aggregated views of contract coverage by organization and product) are
+up to date. When subscriptions or contracts change, reconciliation tasks are produced to the Kafka
+topic for asynchronous processing. The service:
+- Aggregates contract metrics by organization, product, metric, and time period.
+- Calculates total contracted capacity from all active contracts.
+- Updates subscription capacity views for consumption by other services (swatch-billable-usage).
+- Handles contract termination and subscription expiration.
+
+### Contract Coverage Queries
+Other SWATCH services (particularly swatch-billable-usage) query swatch-contracts via REST API to
+retrieve contract coverage information for billing calculations. The service provides endpoints to:
+- Query contracts by organization, product, vendor, and billing account.
+- Retrieve aggregated contract metrics for a specific time period.
+- Determine if usage should be billed or is covered by contracts.
+- Check if contract coverage is marked as gratis (no billing required).
+
+### Data Export
+The service supports exporting subscription and contract data in JSON and CSV formats for reporting
+and integration purposes. Export requests are processed asynchronously via Kafka consumers to handle
+large data sets efficiently.
+
+## Mapping Partner API with Swatch Data
 
 We enrich our data (contracts and subscriptions) from different third parties like Partner API and the Subscription API. 
 In swatch-contracts, we trigger the enrichment when receiving events from the Partner Gateway, then 
 we call again the Partner API to gather extra information <1> we need to move forward and 
 finally, we call the Subscription API to find the subscription ID <2> that matches with the event <1> we received. 
 Each of these sources are enumerated as follows:
-<1> the response from Partner API is of type [PartnerEntitlements](https://github.com/RedHatInsights/rhsm-subscriptions/blob/5bce20986bb3c1b2750502db63efc694461cce57/clients/rh-partner-gateway-client/rh-partner-gateway-api-spec.yaml#L41)
-<2> from the response from Subscription API, we simply extract the subscription ID. 
+- <1> the response from Partner API is of type [PartnerEntitlements](https://github.com/RedHatInsights/rhsm-subscriptions/blob/5bce20986bb3c1b2750502db63efc694461cce57/clients/rh-partner-gateway-client/rh-partner-gateway-api-spec.yaml#L41)
+- <2> from the response from Subscription API, we simply extract the subscription ID.
+
+## Testing Internal Contracts Endpoint
 
 For testing purposes, we can use the POST endpoint `/api/swatch-contracts/internal/contracts` with payload:
 
-```
+```json
 {
   "partner_entitlement": <1>,
   "subscription_id": <2>
 }
 ```
 
-You can find more information about how to fill the request using the following table:
+### Field Mapping Reference
+
 
 | Table            | Column               | Source                                                                                                                                                                          |
 |------------------|----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------| 
@@ -68,9 +150,9 @@ You can find more information about how to fill the request using the following 
 | contract_metrics | metric_value         | <1>.purchase.contracts[*].dimensions[*].value                                                                                                                                   |
 | subscription     | subscription_id      | <2>                                                                                                                                                                             |
 
-You can find a full example as follows:
+### Complete Example
 
-```
+```bash
 curl -v -X POST http://localhost:8000/api/swatch-contracts/internal/contracts \
 -H 'Content-Type: application/json' \
 --data-binary @- << EOF
@@ -114,7 +196,8 @@ curl -v -X POST http://localhost:8000/api/swatch-contracts/internal/contracts \
 EOF
 ```
 
-Output:
+**Expected Output:**
+
 ```json
 {
   "status": {
@@ -136,39 +219,3 @@ Output:
   }
 }
 ```
-
-## Related Guides
-
-- SmallRye Reactive Messaging ([guide](https://quarkus.io/guides/reactive-messaging)): Produce and
-  consume messages and implement event driven and data streaming applications
-- SmallRye Reactive Messaging - Kafka
-  Connector ([guide](https://quarkus.io/guides/kafka-reactive-getting-started)): Connect to Kafka
-  with Reactive Messaging
-- Hibernate ORM with Panache ([guide](https://quarkus.io/guides/hibernate-orm-panache)): Simplify
-  your persistence code for Hibernate ORM via the active record or the repository pattern
-- Liquibase ([guide](https://quarkus.io/guides/liquibase)): Handle your database schema migrations
-  with Liquibase
-- JDBC Driver - PostgreSQL ([guide](https://quarkus.io/guides/datasource)): Connect to the
-  PostgreSQL database via JDBC
-
-## Provided Code
-
-### Hibernate ORM
-
-Create your first JPA entity
-
-[Related guide section...](https://quarkus.io/guides/hibernate-orm)
-
-[Related Hibernate with Panache section...](https://quarkus.io/guides/hibernate-orm-panache)
-
-### Reactive Messaging codestart
-
-Use SmallRye Reactive Messaging
-
-[Related Apache Kafka guide section...](https://quarkus.io/guides/kafka-reactive-getting-started)
-
-### RESTEasy Reactive
-
-Easily start your Reactive RESTful Web Services
-
-[Related guide section...](https://quarkus.io/guides/getting-started-reactive#reactive-jax-rs-resources)
