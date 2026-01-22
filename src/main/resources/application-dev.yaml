@@ -4,3 +4,12 @@ SERVER_PORT: 8010
 METRICS_SERVER_PORT: 9010
 ENABLE_SYNCHRONOUS_OPERATIONS: true
 DEV_MODE: true
+
+# OpenTelemetry configuration for component tests
+# These properties are used by the OTEL Java agent and Micrometer Tracing
+# The Java agent is configured via JVM arguments in TallyLocalSpringBootManagedResource
+# Default OTEL endpoint for local development (can be overridden via system properties)
+OTEL_EXPORTER_OTLP_ENDPOINT: http://localhost:4317
+OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+OTEL_SERVICE_NAME: swatch-tally
+OTEL_JAVAAGENT_ENABLED: true

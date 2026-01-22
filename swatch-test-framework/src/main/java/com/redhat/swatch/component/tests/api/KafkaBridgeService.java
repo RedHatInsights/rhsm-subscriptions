@@ -46,6 +46,7 @@ public class KafkaBridgeService extends RestService {
 
   private static final String CONTENT_TYPE = "application/vnd.kafka.json.v2+json";
   private static final String CONSUMER_GROUP = "component-tests";
+  private static final String TRACEPARENT_HEADER = "traceparent";
 
   // Consumers by topic
   private final Map<String, String> consumers = new HashMap<>();
@@ -55,6 +56,19 @@ public class KafkaBridgeService extends RestService {
 
   // In-memory cache of all messages received by topic
   private final Map<String, CopyOnWriteArrayList<Object>> messageCache = new ConcurrentHashMap<>();
+
+  // Traceparent header - set by test classes to automatically include in messages
+  private String traceParentHeader;
+
+  /**
+   * Sets the traceparent header value for this KafkaBridgeService instance. This will be
+   * automatically included in all Kafka messages produced via produceKafkaMessage() calls.
+   *
+   * @param traceParent the W3C traceparent header value (format: 00-{trace-id}-{parent-id}-{flags})
+   */
+  public void setTraceParentHeader(String traceParent) {
+    this.traceParentHeader = traceParent;
+  }
 
   public KafkaBridgeService subscribeToTopic(String topic) {
     String consumerId = UUID.randomUUID().toString();
@@ -100,24 +114,41 @@ public class KafkaBridgeService extends RestService {
   }
 
   public void produceKafkaMessage(String topic, String key, Object value) {
-    Log.debug(this, "Sending kafka message to topic '%s': %s", topic, value);
-    var data = Map.of("records", List.of(buildMessage(key, value)));
+    produceKafkaMessage(topic, key, value, null);
+  }
 
-    given()
-        .config(
-            RestAssuredConfig.config()
-                .objectMapperConfig(
-                    ObjectMapperConfig.objectMapperConfig()
-                        .jackson2ObjectMapperFactory((cls, charset) -> JsonUtils.getObjectMapper()))
-                .encoderConfig(
-                    EncoderConfig.encoderConfig()
-                        .appendDefaultContentCharsetToContentTypeIfUndefined(false)))
-        .contentType("application/vnd.kafka.json.v2+json")
-        .body(data)
-        .when()
-        .post("/topics/" + topic)
-        .then()
-        .statusCode(200);
+  public void produceKafkaMessage(
+      String topic, String key, Object value, Map<String, String> headers) {
+    Log.debug(this, "Sending kafka message to topic '%s': %s", topic, value);
+    // Automatically merge traceparent header if set and not already present in headers
+    Map<String, String> mergedHeaders = mergeTraceParentHeader(headers);
+    var data = Map.of("records", List.of(buildMessage(key, value, mergedHeaders)));
+
+    var response =
+        given()
+            .config(
+                RestAssuredConfig.config()
+                    .objectMapperConfig(
+                        ObjectMapperConfig.objectMapperConfig()
+                            .jackson2ObjectMapperFactory(
+                                (cls, charset) -> JsonUtils.getObjectMapper()))
+                    .encoderConfig(
+                        EncoderConfig.encoderConfig()
+                            .appendDefaultContentCharsetToContentTypeIfUndefined(false)))
+            .contentType("application/vnd.kafka.json.v2+json")
+            .body(data)
+            .when()
+            .post("/topics/" + topic);
+
+    if (response.getStatusCode() != 200) {
+      Log.error(
+          this,
+          "Failed to produce Kafka message. Status: %d, Response: %s",
+          response.getStatusCode(),
+          response.getBody().asString());
+    }
+
+    response.then().statusCode(200);
   }
 
   /**
@@ -196,6 +227,34 @@ public class KafkaBridgeService extends RestService {
                 KafkaMessage<V> typedMessage =
                     JsonUtils.getObjectMapper().readValue(messageJson, messageType);
                 V message = typedMessage.getValue();
+
+                // Log headers if present
+                if (typedMessage.getHeaders() != null && !typedMessage.getHeaders().isEmpty()) {
+                  String headersStr =
+                      typedMessage.getHeaders().stream()
+                          .map(
+                              h -> {
+                                String key = h.get("key");
+                                String value = h.get("value");
+                                // Decode Base64 header value for logging
+                                try {
+                                  String decodedValue =
+                                      new String(
+                                          java.util.Base64.getDecoder().decode(value),
+                                          java.nio.charset.StandardCharsets.UTF_8);
+                                  return key + "=" + decodedValue;
+                                } catch (Exception e) {
+                                  // If decoding fails, show the raw value
+                                  return key + "=" + value + " (raw)";
+                                }
+                              })
+                          .collect(java.util.stream.Collectors.joining(", "));
+                  Log.info(
+                      this,
+                      "Kafka message received from topic '%s' with headers: %s",
+                      topic,
+                      headersStr);
+                }
 
                 if (validator.test(message)) {
                   matchedMessages.add(message);
@@ -394,11 +453,55 @@ public class KafkaBridgeService extends RestService {
   }
 
   private Map<String, Object> buildMessage(String key, Object value) {
+    return buildMessage(key, value, null);
+  }
+
+  private Map<String, Object> buildMessage(String key, Object value, Map<String, String> headers) {
     Map<String, Object> message = new HashMap<>();
     message.put("value", value);
     if (key != null) {
       message.put("key", key);
     }
+    if (headers != null && !headers.isEmpty()) {
+      // Kafka Bridge API expects headers as an array of objects with "key" and "value" properties
+      // Header values must be Base64-encoded strings to match the pattern validation
+      List<Map<String, String>> headersArray = new ArrayList<>();
+      for (Map.Entry<String, String> entry : headers.entrySet()) {
+        Map<String, String> headerEntry = new HashMap<>();
+        headerEntry.put("key", entry.getKey());
+        // Base64 encode the header value to match Kafka Bridge pattern validation
+        String base64Value =
+            java.util.Base64.getEncoder()
+                .encodeToString(entry.getValue().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        headerEntry.put("value", base64Value);
+        headersArray.add(headerEntry);
+      }
+      message.put("headers", headersArray);
+    }
     return message;
+  }
+
+  /**
+   * Merges the instance traceparent header into the provided headers map if it's set. If
+   * traceparent is already present in the provided headers, it will be preserved (not overridden).
+   *
+   * @param headers the headers map provided by the caller, may be null
+   * @return a new map with traceparent header merged in if it was set
+   */
+  private Map<String, String> mergeTraceParentHeader(Map<String, String> headers) {
+    if (traceParentHeader == null) {
+      // No traceparent set for this instance, return headers as-is
+      return headers != null ? headers : Map.of();
+    }
+
+    Map<String, String> merged = new HashMap<>();
+    if (headers != null) {
+      merged.putAll(headers);
+    }
+    // Only add traceparent if not already present (allow explicit headers to override)
+    if (!merged.containsKey(TRACEPARENT_HEADER)) {
+      merged.put(TRACEPARENT_HEADER, traceParentHeader);
+    }
+    return merged;
   }
 }

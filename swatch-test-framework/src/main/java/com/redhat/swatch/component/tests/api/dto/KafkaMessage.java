@@ -20,6 +20,8 @@
  */
 package com.redhat.swatch.component.tests.api.dto;
 
+import java.util.List;
+import java.util.Map;
 import lombok.Data;
 
 @Data
@@ -27,4 +29,5 @@ public class KafkaMessage<T> {
   String topic;
   String key;
   T value;
+  List<Map<String, String>> headers;
 }
