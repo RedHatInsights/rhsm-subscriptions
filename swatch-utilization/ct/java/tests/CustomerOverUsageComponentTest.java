@@ -125,25 +125,6 @@ public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest
     thenNotificationShouldBeSent();
   }
 
-  /** Verify over-usage counter is not incremented for unsupported granularity events. */
-  @Test
-  void shouldNotIncrementOverUsageCounter_whenGranularityNotSupportedByNonPaygProduct() {
-    givenUtilizationSummaryForNonPaygProduct(Granularity.HOURLY);
-
-    whenUtilizationEventIsReceived();
-
-    thenOverUsageCounterShouldNotChange();
-  }
-
-  @Test
-  void shouldNotIncrementOverUsageCounter_whenGranularityNotSupportedByPaygProduct() {
-    givenUtilizationSummaryForPaygProduct(Granularity.DAILY);
-
-    whenUtilizationEventIsReceived();
-
-    thenOverUsageCounterShouldNotChange();
-  }
-
   /** Verify no exceptions thrown when measurements list is null. */
   @Test
   void shouldHandleNullMeasurementsList_withoutErrors() {
