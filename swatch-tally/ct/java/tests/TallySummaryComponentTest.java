@@ -66,10 +66,10 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
             testOrgId, testInstanceId, now.minusDays(4).toString(), testEventId, 1.0f);
 
     // Produce events to Kafka (traceparent header is automatically included)
-    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, null, event1);
-    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, null, event2);
-    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, null, event3);
-    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, null, event4);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event1);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event2);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event3);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event4);
 
     // Polls then extracts measurements from resulting snapshots.
     // Ensures that the appropriate number of summaries is present
@@ -112,10 +112,10 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
             testOrgId, testInstanceId, now.minusHours(4).toString(), testEventId, 1.0f);
 
     // Produce events to Kafka (traceparent header is automatically included)
-    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, null, event1);
-    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, null, event2);
-    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, null, event3);
-    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, null, event4);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event1);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event2);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event3);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event4);
 
     helpers.pollForTallySyncAndMessages(
         testOrgId, TEST_PRODUCT_ID, TEST_METRIC_ID, Granularity.DAILY, 0, service, kafkaBridge);
@@ -146,10 +146,10 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
             testOrgId, testInstanceId, now.minusHours(4).toString(), testEventId, 1.0f);
 
     // Produce events to Kafka (traceparent header is automatically included)
-    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, null, event1);
-    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, null, event2);
-    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, null, event3);
-    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, null, event4);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event1);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event2);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event3);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event4);
 
     // Polls then extracts measurements from resulting snapshots.
     // Ensures that the appropriate number of summaries is present
