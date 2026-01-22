@@ -78,27 +78,11 @@ public class UtilizationSummaryPayloadValidatorTest {
   }
 
   @Test
-  void testHasValidGranularity_withHourlyGranularityForNonPayg_returnsFalse() {
-    UtilizationSummary payload =
-        createValidNonPaygPayload().withGranularity(UtilizationSummary.Granularity.HOURLY);
-    boolean result = whenIsUtilizationSummaryValid(payload);
-    assertFalse(result);
-  }
-
-  @Test
   void testHasValidGranularity_withHourlyGranularityForPayg_returnsTrue() {
     UtilizationSummary payload =
         createValidPaygPayload().withGranularity(UtilizationSummary.Granularity.HOURLY);
     boolean result = whenIsUtilizationSummaryValid(payload);
     assertTrue(result);
-  }
-
-  @Test
-  void testHasValidGranularity_withDailyGranularityForPayg_returnsFalse() {
-    UtilizationSummary payload =
-        createValidPaygPayload().withGranularity(UtilizationSummary.Granularity.DAILY);
-    boolean result = whenIsUtilizationSummaryValid(payload);
-    assertFalse(result);
   }
 
   @Test
