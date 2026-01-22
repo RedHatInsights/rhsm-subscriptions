@@ -251,7 +251,7 @@ public class ContractsTerminationComponentTest extends BaseContractComponentTest
         .stubPartnerSubscriptions(
             PartnerApiStubs.PartnerSubscriptionsStubRequest.forContractWithStatus(
                 updatedContract, status));
-    artemis.forContracts().send(updatedContract);
+    artemis.forContracts().sendAsText(updatedContract);
     return updatedContract;
   }
 
@@ -264,7 +264,7 @@ public class ContractsTerminationComponentTest extends BaseContractComponentTest
     assertThat("Sync offering should succeed", sync.statusCode(), is(HttpStatus.SC_OK));
 
     // Send the contract via Message Broker (Artemis)
-    artemis.forContracts().send(contract);
+    artemis.forContracts().sendAsText(contract);
 
     // Wait for the contract to be processed
     AwaitilityUtils.until(() -> service.getContracts(contract).size(), is(1));

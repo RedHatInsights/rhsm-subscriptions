@@ -114,7 +114,7 @@ public class SubscriptionsCreationComponentTest extends BaseContractComponentTes
   @TestPlanName("subscriptions-creation-TC004")
   @Test
   void shouldProcessMalformedMessage() {
-    artemis.send(SUBSCRIPTION_CHANNEL, "<mal>for</med>", ContentType.XML.toString());
+    artemis.sendText(SUBSCRIPTION_CHANNEL, "<mal>for</med>", ContentType.XML.toString());
 
     service
         .logs()
@@ -124,7 +124,7 @@ public class SubscriptionsCreationComponentTest extends BaseContractComponentTes
   @TestPlanName("subscriptions-creation-TC005")
   @Test
   void shouldProcessMessageWithMissingRequiredFields() {
-    artemis.send(SUBSCRIPTION_CHANNEL, "<empty></empty>", ContentType.XML.toString());
+    artemis.sendText(SUBSCRIPTION_CHANNEL, "<empty></empty>", ContentType.XML.toString());
 
     service
         .logs()

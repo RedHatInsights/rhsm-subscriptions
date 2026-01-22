@@ -51,7 +51,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     Contract updatedContract =
         initialContract.toBuilder().endDate(OffsetDateTime.now().plusDays(30)).build();
     wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(updatedContract));
-    artemis.forContracts().send(updatedContract);
+    artemis.forContracts().sendAsText(updatedContract);
 
     // then: The existing contract should be updated with the new end date
     service.logs().assertContains("Existing contracts and subscriptions updated");
@@ -68,7 +68,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     Contract contract = givenContractCreatedViaMessageBroker();
 
     // update send the same message again
-    artemis.forContracts().send(contract);
+    artemis.forContracts().sendAsText(contract);
 
     // then message is ignored as redundant
     service.logs().assertContains("Redundant message ignored");
@@ -86,7 +86,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     assertThat("Sync offering should succeed", sync.statusCode(), is(HttpStatus.SC_OK));
 
     // Send the contract via Message Broker (Artemis)
-    artemis.forContracts().send(contract);
+    artemis.forContracts().sendAsText(contract);
 
     // Wait for the contract to be processed
     AwaitilityUtils.until(() -> service.getContracts(contract).size(), is(1));
