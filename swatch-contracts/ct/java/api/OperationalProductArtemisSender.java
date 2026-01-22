@@ -59,7 +59,7 @@ public class OperationalProductArtemisSender {
    * @param malformedJson the malformed JSON string
    */
   public void sendMalformed(String malformedJson) {
-    artemisService.send(PRODUCT_EVENT_CHANNEL, malformedJson, ContentType.JSON.toString());
+    artemisService.sendText(PRODUCT_EVENT_CHANNEL, malformedJson, ContentType.JSON.toString());
   }
 
   /**
@@ -84,7 +84,7 @@ public class OperationalProductArtemisSender {
    */
   private void sendMessage(OperationalProductEvent event) {
     try {
-      artemisService.send(
+      artemisService.sendText(
           PRODUCT_EVENT_CHANNEL, mapper.writeValueAsString(event), ContentType.JSON.toString());
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Failed to serialize OperationalProductEvent", e);

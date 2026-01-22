@@ -94,12 +94,22 @@ public class PartnerContractArtemisSender {
   }
 
   /**
-   * Build and send a PartnerEntitlementContract message from a Contract domain object.
+   * Build and send a PartnerEntitlementContract message from a Contract domain object using text.
    *
    * @param contract the contract test data
    */
-  public void send(Contract contract) {
+  public void sendAsText(Contract contract) {
     PartnerEntitlementContract message = fromContract(contract);
-    artemisService.sendAsJson(CONTRACTS_CHANNEL, message);
+    artemisService.sendTextAsJson(CONTRACTS_CHANNEL, message);
+  }
+
+  /**
+   * Build and send a PartnerEntitlementContract message from a Contract domain object using byte[].
+   *
+   * @param contract the contract test data
+   */
+  public void sendAsSerializable(Contract contract) {
+    PartnerEntitlementContract message = fromContract(contract);
+    artemisService.sendSerializableAsJson(CONTRACTS_CHANNEL, message);
   }
 }

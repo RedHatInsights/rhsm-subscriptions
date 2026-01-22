@@ -29,18 +29,58 @@ import com.redhat.swatch.component.tests.utils.JsonUtils;
 import io.restassured.http.ContentType;
 import jakarta.jms.Connection;
 import jakarta.jms.JMSException;
+import jakarta.jms.Message;
 import jakarta.jms.MessageProducer;
 import jakarta.jms.Session;
+import java.io.Serializable;
+import java.util.function.BiFunction;
 import org.apache.qpid.jms.JmsConnectionFactory;
 
 public class ArtemisService extends BaseService<ArtemisService> {
 
-  public void sendAsJson(String channel, Object message) {
+  public void sendTextAsJson(String channel, Object message) {
     String jsonMessage = JsonUtils.toJson(message);
-    this.send(channel, jsonMessage, ContentType.JSON.toString());
+    this.sendText(channel, jsonMessage, ContentType.JSON.toString());
   }
 
-  public void send(String channel, String messageBody, String contentType) {
+  public void sendSerializableAsJson(String channel, Object message) {
+    String jsonMessage = JsonUtils.toJson(message);
+    this.sendSerializable(channel, jsonMessage, ContentType.JSON.toString());
+  }
+
+  public void sendSerializable(String channel, Serializable messageBody, String contentType) {
+    send(
+        channel,
+        messageBody,
+        contentType,
+        (session, body) -> {
+          try {
+            return session.createObjectMessage(body);
+          } catch (JMSException e) {
+            throw new RuntimeException(e);
+          }
+        });
+  }
+
+  public void sendText(String channel, String messageBody, String contentType) {
+    send(
+        channel,
+        messageBody,
+        contentType,
+        (session, body) -> {
+          try {
+            return session.createTextMessage(body);
+          } catch (JMSException e) {
+            throw new RuntimeException(e);
+          }
+        });
+  }
+
+  private <T> void send(
+      String channel,
+      T messageBody,
+      String contentType,
+      BiFunction<Session, T, Message> messageCreator) {
     String normalizedChannel =
         getManagedResource(ArtemisEnvironmentResource.class).normalizeChannel(channel);
     Log.info(this, "Preparing to send message to channel '%s'", normalizedChannel);
@@ -60,7 +100,7 @@ public class ArtemisService extends BaseService<ArtemisService> {
       var destination = session.createTopic(normalizedChannel);
       producer = session.createProducer(destination);
 
-      var message = session.createTextMessage(messageBody);
+      var message = messageCreator.apply(session, messageBody);
       if (contentType != null) {
         message.setStringProperty("contentType", contentType);
       }

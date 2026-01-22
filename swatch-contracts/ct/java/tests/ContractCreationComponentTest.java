@@ -26,6 +26,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import api.ContractsArtemisService;
 import com.redhat.swatch.component.tests.api.Artemis;
@@ -218,7 +219,7 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     assertThat("Sync offering should succeed", sync.statusCode(), is(HttpStatus.SC_OK));
 
     // When: Publish message to Kafka topic (via Artemis) without subscription data
-    artemis.forContracts().send(contract);
+    artemis.forContracts().sendAsText(contract);
 
     // Then: Verify the contract was NOT created due to missing required subscription data
     // Wait for message to be processed - contract should NOT be created
@@ -229,6 +230,31 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
                 0,
                 service.getContractsByOrgId(orgId).size(),
                 "Contract should not be created when required subscription data is missing"));
+  }
+
+  @TestPlanName("contracts-creation-TC016")
+  @Test
+  void shouldProcessValidPaygContractWhenReceivingAnObjectMessage() {
+    Contract contract = buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0));
+    wiremock.forProductAPI().stubOfferingData(contract.getOffering());
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(contract));
+    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(contract);
+
+    Response sync = service.syncOffering(contract.getOffering().getSku());
+    assertEquals(HttpStatus.SC_OK, sync.statusCode(), "Sync offering should succeed");
+
+    artemis.forContracts().sendAsSerializable(contract);
+
+    assertTrue(service.isRunning(), "All Health Checks should be UP");
+
+    // Wait for contract to be processed - getContracts() validates HTTP 200 internally
+    AwaitilityUtils.untilAsserted(
+        () -> {
+          var actualContracts = service.getContracts(contract);
+          assertEquals(1, actualContracts.size());
+          verifyCommonContractFields(contract, actualContracts.get(0));
+          assertTrue(service.isRunning(), "All Health Checks should be UP after contract creation");
+        });
   }
 
   /**
@@ -245,7 +271,7 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     Response sync = service.syncOffering(contract.getOffering().getSku());
     assertThat("Sync offering should succeed", sync.statusCode(), is(HttpStatus.SC_OK));
 
-    artemis.forContracts().send(contract);
+    artemis.forContracts().sendAsText(contract);
 
     // Wait for contract to be processed - getContracts() validates HTTP 200 internally
     AwaitilityUtils.until(() -> service.getContracts(contract).size(), is(1));

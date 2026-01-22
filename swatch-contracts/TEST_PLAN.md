@@ -44,7 +44,7 @@ Test cases should be testable locally and in an ephemeral environment.
 
 # Test Cases
 
-## Contract Creation via Kafka Messages
+## Contract Creation via Event messages
 
 **contracts-creation-TC001 - Process a valid PAYG contract with one valid dimension for AWS Marketplace**  
 - **Description**: Verify that an AWS PAYG contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
@@ -171,6 +171,21 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Expected Result**:  
   - HTTP 400 Bad Request  
   - Error message indicates a missing required field
+
+**contracts-creation-TC016 - Process a valid PAYG contract sent as an object instead of text via message broker (UMB)**
+- **Description**: Verify that an AWS PAYG contract can be successfully created when receiving the message as an object instead of text.
+- **Setup**:
+  - Ensure `UMB_ENABLED=true`
+  - Prepare a valid AWS partner entitlement message
+- **Action:**
+  - Publish message to UMB channel as an object instead of text
+- **Verification**:
+  - Query contract via internal API: GET /internal/contracts?org_id=org123
+  - Verify contract exists with correct fields
+  - Verify service is UP and running
+- **Expected Result**:
+  - HTTP 200 response
+  - Response contains the created contract
 
 ## Contract Creation via Internal API
 

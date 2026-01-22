@@ -70,7 +70,7 @@ public class CanonicalMessageArtemisSender {
    */
   private void sendMessage(CanonicalMessage message) {
     try {
-      artemisService.send(
+      artemisService.sendText(
           SUBSCRIPTION_CHANNEL, mapper.writeValueAsString(message), ContentType.XML.toString());
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Failed to serialize CanonicalMessage", e);
