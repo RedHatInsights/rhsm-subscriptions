@@ -181,6 +181,7 @@
     <include file="liquibase/202504291554-add-updated-at-column-to-billable-usage-remittance.xml"/>
     <include file="liquibase/202505131100-update-subscription-capacity-view-to-filter-start-date.xml"/>
     <include file="liquibase/202506191100-add-host-service-type-table.xml"/>
+    <include file="/liquibase/202601231332-add-is-primary-to-tally-snapshots.xml"/>
     <!--
     - From this point forward, the following tables and views are managed under swatch-contracts:
       * offering
