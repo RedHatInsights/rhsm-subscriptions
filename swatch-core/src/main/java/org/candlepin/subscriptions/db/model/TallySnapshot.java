@@ -62,6 +62,10 @@ public class TallySnapshot implements Serializable {
   @GeneratedValue(strategy = GenerationType.AUTO)
   private UUID id;
 
+  @Builder.Default
+  @Column(name = "is_primary")
+  private boolean isPrimary = false;
+
   @Column(name = "snapshot_date")
   private OffsetDateTime snapshotDate;
 
