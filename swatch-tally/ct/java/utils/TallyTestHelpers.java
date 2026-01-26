@@ -33,7 +33,9 @@ import com.redhat.swatch.tally.test.model.TallySummary;
 import io.restassured.response.Response;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -193,20 +195,21 @@ public class TallyTestHelpers {
   }
 
   public Response getTallyReport(
+      SwatchService service,
       String orgId,
       String productId,
       String metricId,
-      String granularity,
-      OffsetDateTime beginning,
-      OffsetDateTime ending,
-      SwatchService service) {
+      Map<String, ?> queryParams) {
+    Map<String, Object> params = new HashMap<>();
+    if (queryParams != null) {
+      params.putAll(queryParams);
+    }
+    
     Response response =
         service
             .given()
             .header("x-rh-identity", SwatchUtils.createUserIdentityHeader(orgId))
-            .queryParam("granularity", granularity)
-            .queryParam("beginning", beginning.toString())
-            .queryParam("ending", ending.toString())
+            .queryParams(params)
             .get("/api/rhsm-subscriptions/v1/tally/products/" + productId + "/" + metricId)
             .then()
             .extract()
@@ -226,6 +229,25 @@ public class TallyTestHelpers {
 
     return response;
   }
+
+  /*
+   * Get tally report with raw query parameters (for testing invalid values).
+   *
+   * @return Raw Response object for status code validation
+   */
+  public Response getTallyReportRaw(
+    SwatchService service,
+    String orgId,
+    String productId,
+    String metricId,
+    Map<String, ?> queryParams) {
+  Map<String, Object> params = new HashMap<>();
+  if (queryParams != null) {
+    params.putAll(queryParams);
+  }
+
+  return service.given().header("x-rh-identity", SwatchUtils.createUserIdentityHeader(orgId)).queryParams(params).get("/api/rhsm-subscriptions/v1/tally/products/" + productId + "/" + metricId).then().extract().response();
+}
 
   public Response getInstancesReport(
       String orgId,
