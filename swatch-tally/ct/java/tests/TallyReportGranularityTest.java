@@ -176,7 +176,7 @@ public class TallyReportGranularityTest extends BaseTallyComponentTest {
 
     Response resp =
         helpers.getTallyReportRaw(service, orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams);
-    
+
     assertEquals(400, resp.getStatusCode());
     assertTrue(resp.getBody().asString().contains("granularity: must not be null"));
   }

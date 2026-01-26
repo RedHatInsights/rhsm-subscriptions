@@ -204,7 +204,7 @@ public class TallyTestHelpers {
     if (queryParams != null) {
       params.putAll(queryParams);
     }
-    
+
     Response response =
         service
             .given()
@@ -236,18 +236,25 @@ public class TallyTestHelpers {
    * @return Raw Response object for status code validation
    */
   public Response getTallyReportRaw(
-    SwatchService service,
-    String orgId,
-    String productId,
-    String metricId,
-    Map<String, ?> queryParams) {
-  Map<String, Object> params = new HashMap<>();
-  if (queryParams != null) {
-    params.putAll(queryParams);
-  }
+      SwatchService service,
+      String orgId,
+      String productId,
+      String metricId,
+      Map<String, ?> queryParams) {
+    Map<String, Object> params = new HashMap<>();
+    if (queryParams != null) {
+      params.putAll(queryParams);
+    }
 
-  return service.given().header("x-rh-identity", SwatchUtils.createUserIdentityHeader(orgId)).queryParams(params).get("/api/rhsm-subscriptions/v1/tally/products/" + productId + "/" + metricId).then().extract().response();
-}
+    return service
+        .given()
+        .header("x-rh-identity", SwatchUtils.createUserIdentityHeader(orgId))
+        .queryParams(params)
+        .get("/api/rhsm-subscriptions/v1/tally/products/" + productId + "/" + metricId)
+        .then()
+        .extract()
+        .response();
+  }
 
   public Response getInstancesReport(
       String orgId,
