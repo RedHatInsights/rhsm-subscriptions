@@ -1,0 +1,751 @@
+---
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: bonfire-integration-tests-pipeline
+  labels:
+    build.appstudio.redhat.com/pipeline: "bonfire-integration-tests"
+spec:
+  params:
+    # Bonfire repository configuration
+    - name: BONFIRE_REPO
+      type: string
+      description: URL of the Git repository to use for fetching the bonfire tasks
+      default: 'https://github.com/RedHatInsights/bonfire-tekton'
+    - name: BONFIRE_REVISION
+      type: string
+      description: Git commit revision to use for fetching the bonfire tasks
+      default: main
+    - name: BONFIRE_IMAGE
+      type: string
+      description: The container Bonfire image to use for the tekton tasks
+    
+    # Snapshot and pipeline metadata
+    - name: SNAPSHOT
+      description: The Snapshot JSON containing all component images
+      type: string
+    - name: PIPELINERUN_NAME
+      description: Name of this PipelineRun
+      type: string
+      default: ""
+    - name: PIPELINERUN_UID
+      description: UID of this PipelineRun
+      type: string
+      default: ""
+    
+    # Ephemeral environment configuration
+    - name: EPHEMERAL_ENV_PROVIDER_SECRET
+      type: string
+      default: ephemeral-env-provider
+      description: Secret for connecting to ephemeral env provider cluster
+    - name: APP_INTERFACE_SECRET
+      type: string
+      default: app-interface
+      description: Secret for connecting to app-interface
+    - name: AWS_SECRET
+      type: string
+      default: rh-artifacts-bucket
+      description: Secret with connection details to S3
+    - name: NAMESPACE_RESERVE_DURATION
+      type: string
+      description: Duration to reserve the namespace for
+      default: "120m"
+    
+    # Application configuration
+    - name: APP_NAME
+      type: string
+      description: Name of app-sre application folder this component lives in
+      default: "rhsm"
+    - name: COMPONENT_NAME
+      type: string
+      description: Name of app-sre resourceTemplate in deploy.yaml for this component
+      default: "rhsm"
+    - name: COMPONENTS
+      type: string
+      description: Space-separated list of components to load (optional, deploys all if empty)
+      default: ""
+    - name: COMPONENTS_W_RESOURCES
+      type: string
+      description: Components to keep resources for (passed to --no-remove-resources)
+      default: "app:rhsm app:export-service"
+    
+    # Deployment configuration
+    - name: EXTRA_DEPLOY_ARGS
+      type: string
+      description: Extra arguments for the deployment
+      default: "--timeout 1800"
+    - name: DEPLOY_FRONTENDS
+      type: string
+      description: Deploy frontend in the env or not
+      default: "false"
+    - name: DEPLOY_TIMEOUT
+      type: string
+      description: Deploy timeout
+      default: "1800"
+    
+    # IQE test configuration
+    - name: IQE_PLUGINS
+      type: string
+      description: Name of the IQE plugin for this app
+      default: "rhsm-subscriptions"
+    - name: IQE_MARKER_EXPRESSION
+      type: string
+      description: Value passed to pytest -m
+      default: "ephemeral"
+    - name: IQE_FILTER_EXPRESSION
+      type: string
+      description: Value passed to pytest -k
+      default: ""
+    - name: IQE_CJI_TIMEOUT
+      type: string
+      description: Time to wait for smoke test to complete or fail
+      default: "120m"
+    - name: IQE_ENV
+      type: string
+      description: Value to set for ENV_FOR_DYNACONF
+      default: "clowder_smoke"
+    - name: IQE_IMAGE_TAG
+      type: string
+      description: Tag of the IQE image to be used
+      default: "rhsm-subscriptions"
+    - name: IQE_PARALLEL_ENABLED
+      type: string
+      description: Whether to run IQE with --parallel-enabled
+      default: "false"
+    - name: IQE_RP_ARGS
+      type: string
+      description: Arguments to send to Report Portal
+      default: "true"
+    - name: IQE_LOG_LEVEL
+      type: string
+      description: IQE log level
+      default: "debug"
+    
+    # Data Router configuration
+    - name: DATAROUTER_CREDENTIALS_NAME
+      type: string
+      description: Secret name for Data Router credentials
+      default: "smqe-datarouter-credentials"
+    - name: DATAROUTER_URL
+      type: string
+      default: "https://datarouter.ccitredhat.com"
+      description: Data Router public URL
+  
+  
+  results:
+    - name: ARTIFACTS_URL
+      description: URL for the test artifacts
+      value: $(finally.teardown.results.ARTIFACTS_URL)
+  
+  tasks:
+    # Wait for verify-snapshot-components to complete
+    # This ensures all components in the snapshot have the same SHA
+    - name: wait-for-snapshot-verification
+      params:
+        - name: SNAPSHOT
+          value: $(params.SNAPSHOT)
+        - name: INTEGRATION_TEST_SCENARIOS
+          value: |
+            rhsm-subscriptions-verify-snapshot-components
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/konflux-ci/tekton-integration-catalog.git
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: tasks/wait-for-integration-tests/0.1/wait-for-integration-tests.yaml
+    
+    # Verify snapshot completeness for push events
+    # Skips tests if not all monorepo components have the same git SHA
+    - name: verify-snapshot-completeness
+      runAfter:
+        - wait-for-snapshot-verification
+      params:
+        - name: SNAPSHOT
+          value: $(params.SNAPSHOT)
+      taskSpec:
+        params:
+          - name: SNAPSHOT
+        results:
+          - name: SKIP_TESTS
+        steps:
+          - name: check-snapshot
+            image: quay.io/konflux-ci/konflux-test:stable
+            script: |
+              #!/bin/bash
+              set -euo pipefail
+              
+              MONOREPO_COMPONENTS="swatch-api swatch-tally swatch-contracts swatch-billable-usage swatch-utilization swatch-producer-aws swatch-producer-azure swatch-metrics swatch-metrics-hbi swatch-system-conduit swatch-database"
+              REFERENCE_SHA=""
+              ALL_MATCH=true
+              
+              for component in $MONOREPO_COMPONENTS; do
+                SHA=$(echo '$(params.SNAPSHOT)' | jq -r --arg name "$component" \
+                  '.components[] | select(.name==$name) | .source.git.revision // empty')
+                
+                [ -z "$SHA" ] && continue
+                
+                if [ -z "$REFERENCE_SHA" ]; then
+                  REFERENCE_SHA="$SHA"
+                  echo "Reference SHA: $REFERENCE_SHA"
+                elif [ "$SHA" != "$REFERENCE_SHA" ]; then
+                  ALL_MATCH=false
+                  echo "Mismatch in $component: $SHA != $REFERENCE_SHA"
+                fi
+              done
+              
+              if [ -z "$REFERENCE_SHA" ]; then
+                echo "No monorepo components found - skipping tests"
+                printf "true" > $(results.SKIP_TESTS.path)
+              elif [ "$ALL_MATCH" = "true" ]; then
+                echo "Complete snapshot - running tests"
+                printf "false" > $(results.SKIP_TESTS.path)
+              else
+                echo "Partial snapshot - skipping tests"
+                printf "true" > $(results.SKIP_TESTS.path)
+              fi
+
+    - name: print-snapshot-info
+      runAfter:
+        - verify-snapshot-completeness
+      when:
+        - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
+          operator: in
+          values: ["false"]
+      params:
+        - name: SNAPSHOT
+          value: $(params.SNAPSHOT)
+      taskSpec:
+        params:
+          - name: SNAPSHOT
+        steps:
+          - name: print-snapshot
+            image: quay.io/konflux-ci/konflux-test:stable
+            script: |
+              #!/bin/bash
+              set -x
+              
+              echo "========================================="
+              echo "SNAPSHOT INFORMATION"
+              echo "========================================="
+              echo '$(params.SNAPSHOT)' | jq -r '.components[] | "Component: \(.name)\nImage: \(.containerImage)"'
+              echo ""
+              echo "========================================"
+
+    - name: extract-revision
+      runAfter:
+        - print-snapshot-info
+      when:
+        - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
+          operator: in
+          values: ["false"]
+      params:
+        - name: SNAPSHOT
+          value: "$(params.SNAPSHOT)"
+        - name: COMPONENT_NAME
+          value: "$(params.COMPONENT_NAME)"
+      taskSpec:
+        params:
+          - name: SNAPSHOT
+            type: string
+          - name: COMPONENT_NAME
+            type: string
+        results:
+          - name: GIT_REVISION
+            description: Extracted git revision for the component from SNAPSHOT
+        steps:
+          - name: extract
+            image: quay.io/konflux-ci/appstudio-utils:latest
+            script: |
+              #!/usr/bin/env bash
+              set -euo pipefail
+              echo "Extracting git revision for component: $(params.COMPONENT_NAME)"
+              
+              # Try to extract revision from any component in the snapshot
+              # Use the first component with a revision, as they should all have the same SHA
+              rev=$(echo '$(params.SNAPSHOT)' | jq -r '.components[0].source.git.revision // empty')
+              
+              if [ -n "$rev" ] && [ "$rev" != "null" ]; then
+                echo "Found revision: $rev"
+              else
+                echo "Warning: No revision found in SNAPSHOT"
+                rev=""
+              fi
+              
+              printf "%s" "$rev" > $(results.GIT_REVISION.path)
+
+    - name: build-extra-deploy-args
+      runAfter:
+        - extract-revision
+      when:
+        - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
+          operator: in
+          values: ["false"]
+      params:
+        - name: EXTRA_DEPLOY_ARGS
+          value: "$(params.EXTRA_DEPLOY_ARGS)"
+        - name: SNAPSHOT
+          value: "$(params.SNAPSHOT)"
+        - name: GIT_REVISION
+          value: "$(tasks.extract-revision.results.GIT_REVISION)"
+      taskSpec:
+        params:
+          - name: EXTRA_DEPLOY_ARGS
+            type: string
+          - name: SNAPSHOT
+            type: string
+          - name: GIT_REVISION
+            type: string
+        results:
+          - name: UPDATED_EXTRA_DEPLOY_ARGS
+            description: Updated EXTRA_DEPLOY_ARGS with template refs for all monorepo components
+        steps:
+          - name: build-args
+            image: quay.io/konflux-ci/appstudio-utils:latest
+            script: |
+              #!/usr/bin/env bash
+              set -euo pipefail
+              
+              EXTRA_DEPLOY_ARGS="$(params.EXTRA_DEPLOY_ARGS)"
+              GIT_REVISION="$(params.GIT_REVISION)"
+              
+              echo "Building extra deploy args..."
+              echo "Git revision: $GIT_REVISION"
+              
+              UPDATED_ARGS="$EXTRA_DEPLOY_ARGS"
+              
+              # Extract all component names from the snapshot and add --set-template-ref for each
+              if [ -n "$GIT_REVISION" ]; then
+                echo "Adding --set-template-ref for all components in snapshot..."
+                
+                # Get all component names from the snapshot
+                COMPONENTS=$(echo '$(params.SNAPSHOT)' | jq -r '.components[].name' | tr '\n' ' ')
+                
+                echo "Components found in snapshot: $COMPONENTS"
+                
+                for component in $COMPONENTS; do
+                  UPDATED_ARGS="$UPDATED_ARGS --set-template-ref ${component}=${GIT_REVISION}"
+                  echo "  Added: --set-template-ref ${component}=${GIT_REVISION}"
+                done
+              fi
+              
+              echo ""
+              echo "Final args: $UPDATED_ARGS"
+              printf "%s" "$UPDATED_ARGS" > $(results.UPDATED_EXTRA_DEPLOY_ARGS.path)
+
+    - name: reserve-namespace
+      runAfter:
+        - extract-revision
+      when:
+        - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
+          operator: in
+          values: ["false"]
+      params:
+        - name: NS_REQUESTER
+          value: "$(context.pipelineRun.name)"
+        - name: EPHEMERAL_ENV_PROVIDER_SECRET
+          value: "$(params.EPHEMERAL_ENV_PROVIDER_SECRET)"
+        - name: BONFIRE_IMAGE
+          value: "$(params.BONFIRE_IMAGE)"
+        - name: RESERVE_DURATION
+          value: "$(params.NAMESPACE_RESERVE_DURATION)"
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: "$(params.BONFIRE_REPO)"
+          - name: revision
+            value: "$(params.BONFIRE_REVISION)"
+          - name: pathInRepo
+            value: tasks/reserve-namespace.yaml
+
+    - name: deploy-application
+      runAfter:
+        - reserve-namespace
+        - build-extra-deploy-args
+      when:
+        - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
+          operator: in
+          values: ["false"]
+      params:
+        - name: BONFIRE_IMAGE
+          value: "$(params.BONFIRE_IMAGE)"
+        - name: SNAPSHOT
+          value: "$(params.SNAPSHOT)"
+        - name: NS
+          value: "$(tasks.reserve-namespace.results.NS)"
+        - name: NS_REQUESTER
+          value: "$(context.pipelineRun.name)"
+        - name: APP_INTERFACE_SECRET
+          value: "$(params.APP_INTERFACE_SECRET)"
+        - name: APP_NAME
+          value: "$(params.APP_NAME)"
+        - name: BONFIRE_COMPONENT_NAME
+          value: ""
+        - name: COMPONENTS
+          value: "$(params.COMPONENTS)"
+        - name: COMPONENTS_W_RESOURCES
+          value: "$(params.COMPONENTS_W_RESOURCES)"
+        - name: EXTRA_DEPLOY_ARGS
+          value: "$(tasks.build-extra-deploy-args.results.UPDATED_EXTRA_DEPLOY_ARGS)"
+        - name: DEPLOY_FRONTENDS
+          value: "$(params.DEPLOY_FRONTENDS)"
+        - name: DEPLOY_TIMEOUT
+          value: "$(params.DEPLOY_TIMEOUT)"
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: "$(params.BONFIRE_REPO)"
+          - name: revision
+            value: "$(params.BONFIRE_REVISION)"
+          - name: pathInRepo
+            value: tasks/deploy-frontends.yaml
+
+    - name: run-iqe-tests
+      runAfter:
+        - deploy-application
+      when:
+        - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
+          operator: in
+          values: ["false"]
+      params:
+        - name: BONFIRE_IMAGE
+          value: "$(params.BONFIRE_IMAGE)"
+        - name: NS
+          value: "$(tasks.reserve-namespace.results.NS)"
+        - name: NS_REQUESTER
+          value: "$(context.pipelineRun.name)"
+        - name: EPHEMERAL_ENV_PROVIDER_SECRET
+          value: "$(params.EPHEMERAL_ENV_PROVIDER_SECRET)"
+        - name: COMPONENT_NAME
+          value: "$(params.COMPONENT_NAME)"
+        - name: BONFIRE_COMPONENT_NAME
+          value: ""
+        - name: IQE_PLUGINS
+          value: "$(params.IQE_PLUGINS)"
+        - name: IQE_MARKER_EXPRESSION
+          value: "$(params.IQE_MARKER_EXPRESSION)"
+        - name: IQE_FILTER_EXPRESSION
+          value: "$(params.IQE_FILTER_EXPRESSION)"
+        - name: IQE_CJI_TIMEOUT
+          value: "$(params.IQE_CJI_TIMEOUT)"
+        - name: IQE_ENV
+          value: "$(params.IQE_ENV)"
+        - name: IQE_IMAGE_TAG
+          value: "$(params.IQE_IMAGE_TAG)"
+        - name: IQE_PARALLEL_ENABLED
+          value: "$(params.IQE_PARALLEL_ENABLED)"
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: "$(params.BONFIRE_REPO)"
+          - name: revision
+            value: "$(params.BONFIRE_REVISION)"
+          - name: pathInRepo
+            value: tasks/run-iqe-cji.yaml
+    
+  
+  finally:
+    - name: teardown
+      when:
+        - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
+          operator: in
+          values: ["false"]
+      params:
+        - name: NS
+          value: "$(tasks.reserve-namespace.results.NS)"
+        - name: NS_REQUESTER
+          value: "$(context.pipelineRun.name)"
+        - name: ARTIFACTS_KEY
+          value: "$(context.pipelineRun.namespace)/$(context.pipelineRun.name)"
+        - name: AWS_SECRET
+          value: "$(params.AWS_SECRET)"
+        - name: BONFIRE_IMAGE
+          value: "$(params.BONFIRE_IMAGE)"
+        - name: EPHEMERAL_ENV_PROVIDER_SECRET
+          value: "$(params.EPHEMERAL_ENV_PROVIDER_SECRET)"
+        - name: DATAROUTER_CREDENTIALS_NAME
+          value: "$(params.DATAROUTER_CREDENTIALS_NAME)"
+        - name: DATAROUTER_URL
+          value: "$(params.DATAROUTER_URL)"
+        - name: PIPELINE_NAME
+          value: "$(context.pipelineRun.name)"
+      taskSpec:
+        params:
+          - name: NS
+          - name: NS_REQUESTER
+          - name: ARTIFACTS_KEY
+          - name: AWS_SECRET
+          - name: BONFIRE_IMAGE
+          - name: EPHEMERAL_ENV_PROVIDER_SECRET
+          - name: DATAROUTER_CREDENTIALS_NAME
+          - name: DATAROUTER_URL
+          - name: PIPELINE_NAME
+        results:
+          - name: ARTIFACTS_URL
+        volumes:
+          - name: artifacts
+            emptyDir: {}
+        steps:
+          - name: collect-logs
+            image: "$(params.BONFIRE_IMAGE)"
+            env:
+              - name: OC_LOGIN_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.EPHEMERAL_ENV_PROVIDER_SECRET)
+                    key: token
+              - name: OC_LOGIN_SERVER
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.EPHEMERAL_ENV_PROVIDER_SECRET)
+                    key: url
+              - name: BONFIRE_BOT
+                value: "true"
+            onError: continue
+            volumeMounts:
+              - name: artifacts
+                mountPath: /artifacts
+            script: |
+              #!/bin/bash
+              set -ex
+              
+              # Install jq if not present (required by minio-collect.sh)
+              # Temporary workaround until https://github.com/RedHatInsights/cicd-tools/pull/181 is merged and new image is published
+              if ! command -v jq &> /dev/null; then
+                echo "jq not found, downloading binary..."
+                mkdir -p /tmp/bin
+                curl -L https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux64 -o /tmp/bin/jq
+                chmod +x /tmp/bin/jq
+                export PATH="/tmp/bin:$PATH"
+              fi
+              
+              echo "Connecting to the ephemeral namespace cluster"
+              login.sh
+              
+              echo "Collecting logs and test results from namespace: $(params.NS)"
+              collect-logs.sh "$(params.NS)" /artifacts || :
+              minio-collect.sh "$(params.NS)" /artifacts
+          
+          - name: send-to-datarouter
+            image: quay.io/dno/droute:latest
+            imagePullPolicy: Always
+            env:
+              - name: DATAROUTER_USERNAME
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.DATAROUTER_CREDENTIALS_NAME)
+                    key: username
+              - name: DATAROUTER_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.DATAROUTER_CREDENTIALS_NAME)
+                    key: password
+              - name: PIPELINE_NAME
+                value: "$(params.PIPELINE_NAME)"
+              - name: EVENT_TYPE
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.labels['pac.test.appstudio.openshift.io/event-type']
+              - name: GROUP_TEST_INFO
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.annotations['test.appstudio.openshift.io/group-test-info']
+            onError: continue
+            volumeMounts:
+              - name: artifacts
+                mountPath: /artifacts
+            script: |
+              #!/bin/bash
+              set -euo pipefail
+              
+              METADATA_FILE="/tmp/datarouter.json"
+              
+              echo "Generating Data Router metadata for event type: ${EVENT_TYPE}"
+              
+              # Extract PR number from GROUP_TEST_INFO if available
+              PR_NUMBER=""
+              if [ -n "${GROUP_TEST_INFO:-}" ]; then
+                echo "GROUP_TEST_INFO annotation found, extracting pullRequestNumber..."
+                PR_NUMBER=$(echo "${GROUP_TEST_INFO}" | jq -r '.[0].pullRequestNumber // empty' 2>/dev/null || echo "")
+                if [ -n "$PR_NUMBER" ]; then
+                  echo "Extracted PR number: $PR_NUMBER"
+                else
+                  echo "No pullRequestNumber found in GROUP_TEST_INFO"
+                fi
+              else
+                echo "GROUP_TEST_INFO annotation not available"
+              fi
+              
+              # Generate base metadata JSON
+              cat > "$METADATA_FILE" << EOF
+              {
+                "targets": {
+                  "reportportal": {
+                    "config": {
+                      "hostname": "reportportal-smqe.apps.dno.ocp-hub.prod.psi.redhat.com",
+                      "project": "SUBSCRIPTION_WATCH"
+                    },
+                    "processing": {
+                      "property_filter": [
+                        "component",
+                        "test-plan",
+                        "tag"
+                      ],
+                      "apply_tfa": false,
+                      "apply_llm_analysis": false,
+                      "disable_testitem_updater": false,
+                      "launch": {
+                        "name": "rhsm-subscriptions iqe tests",
+                        "description": "Integration tests ran in Ephemeral through Konflux pipeline.",
+                        "attributes": [
+                          {
+                            "key": "tool",
+                            "value": "data-router"
+                          },
+                          {
+                            "key": "environment",
+                            "value": "ephemeral"
+                          },
+                          {
+                            "key": "event_type",
+                            "value": "${EVENT_TYPE}"
+                          },
+                          {
+                            "key": "pipeline_name",
+                            "value": "${PIPELINE_NAME}"
+                          }
+                        ]
+                      },
+                      "tfa": {
+                        "add_attributes": false,
+                        "auto_finalize_defect_type": false,
+                        "auto_finalization_threshold": 0.55
+                      },
+                      "testcase_concat_char": " "
+                    }
+                  }
+                }
+              }
+              EOF
+              
+              # Add pull_request attribute if PR number is available
+              if [ -n "$PR_NUMBER" ]; then
+                echo "Adding pull_request attribute with value: $PR_NUMBER"
+                jq --arg pr "$PR_NUMBER" \
+                  '.targets.reportportal.processing.launch.attributes += [{"key": "pull_request", "value": $pr}]' \
+                  "$METADATA_FILE" > "${METADATA_FILE}.tmp" && mv "${METADATA_FILE}.tmp" "$METADATA_FILE"
+              else
+                echo "Skipping pull_request attribute"
+              fi
+              
+              echo "Metadata content:"
+              cat "$METADATA_FILE" | jq . || cat "$METADATA_FILE"
+              
+              echo "Executing Data Router send"
+              echo "  URL: $(params.DATAROUTER_URL)"
+              echo "  Metadata: $METADATA_FILE"
+              echo "  Results: /artifacts/junit-rhsm_subscriptions-sequential.xml"
+              echo "  Username: $DATAROUTER_USERNAME"
+              echo "  Artifact directory: /artifacts"
+              
+              MAX_RETRIES=3
+              RETRY_DELAY=45
+              
+              execute_with_retry() {
+                local attempt=1
+                local OUTPUT=""
+                local EXIT_CODE=0
+                
+                while [ $attempt -le $MAX_RETRIES ]; do
+                  echo "=== Attempt $attempt of $MAX_RETRIES ==="
+                  set +e
+                  OUTPUT=$(/droute send --url=$(params.DATAROUTER_URL) --username=$DATAROUTER_USERNAME --password=$DATAROUTER_PASSWORD --metadata=$METADATA_FILE --results=/artifacts/junit-rhsm_subscriptions-sequential.xml 2>&1)
+                  EXIT_CODE=$?
+                  set -e
+                  
+                  echo "Command completed with exit code: $EXIT_CODE"
+                  echo "Output: $OUTPUT"
+                  
+                  if [[ $EXIT_CODE -eq 0 ]]; then
+                    echo "Data Router send operation completed successfully"
+                    return 0
+                  fi
+                  
+                  if echo "$OUTPUT" | grep -qi -E "5[0-9][0-9] "; then
+                    if [ $attempt -lt $MAX_RETRIES ]; then
+                      echo "5XX server error detected. Retrying in $RETRY_DELAY seconds..."
+                      sleep $RETRY_DELAY
+                      attempt=$((attempt + 1))
+                    else
+                      echo "Maximum retries reached. Data Router send operation failed."
+                      return $EXIT_CODE
+                    fi
+                  else
+                    echo "Non-retryable error detected. Failing immediately."
+                    return $EXIT_CODE
+                  fi
+                done
+                return $EXIT_CODE
+              }
+              
+              execute_with_retry || echo "Warning: Data Router send failed, continuing with teardown..."
+          
+          - name: upload-artifacts-to-s3
+            image: "$(params.BONFIRE_IMAGE)"
+            env:
+              - name: AWS_ACCESS_KEY_ID
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.AWS_SECRET)
+                    key: aws_access_key_id
+              - name: AWS_SECRET_ACCESS_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.AWS_SECRET)
+                    key: aws_secret_access_key
+              - name: AWS_DEFAULT_REGION
+                value: us-east-1
+              - name: BUCKET
+                value: rh-artifacts-bucket
+              - name: ARTIFACTS_KEY
+                value: $(params.ARTIFACTS_KEY)
+            onError: continue
+            volumeMounts:
+              - name: artifacts
+                mountPath: /artifacts
+            script: |
+              #!/bin/bash
+              set -ex
+              
+              echo "Copying files to S3"
+              upload-to-s3.sh | tee "$(results.ARTIFACTS_URL.path)"
+          
+          - name: release-namespace
+            image: "$(params.BONFIRE_IMAGE)"
+            env:
+              - name: OC_LOGIN_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.EPHEMERAL_ENV_PROVIDER_SECRET)
+                    key: token
+              - name: OC_LOGIN_SERVER
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.EPHEMERAL_ENV_PROVIDER_SECRET)
+                    key: url
+              - name: BONFIRE_BOT
+                value: "true"
+            script: |
+              #!/bin/bash
+              set -ex
+              
+              echo "Connecting to the ephemeral namespace cluster"
+              login.sh
+              
+              echo "Releasing ephemeral namespace: $(params.NS)"
+              release-ns.sh "$(params.NS)" "$(params.NS_REQUESTER)"

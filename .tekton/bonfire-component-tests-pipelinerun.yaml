@@ -12,6 +12,14 @@ spec:
         value: "main"
       - name: pathInRepo
         value: .tekton/bonfire-component-tests-pipeline.yaml
+  params:
+    # Bonfire configuration
+    - name: BONFIRE_REPO
+      value: "https://github.com/RedHatInsights/bonfire-tekton"
+    - name: BONFIRE_REVISION
+      value: "main"
+    - name: BONFIRE_IMAGE
+      value: "quay.io/redhat-services-prod/hcm-eng-prod-tenant/cicd-tools:ef98909"
   workspaces:
     - name: shared-workspace
       volumeClaimTemplate:
