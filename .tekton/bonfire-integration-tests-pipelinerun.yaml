@@ -13,7 +13,7 @@ spec:
       - name: url
         value: "https://github.com/RedHatInsights/rhsm-subscriptions.git"
       - name: revision
-        value: "jcarvaja/ee"
+        value: "main"
       - name: pathInRepo
         value: .tekton/bonfire-integration-tests-pipeline.yaml
   params:
@@ -23,7 +23,7 @@ spec:
     - name: BONFIRE_REVISION
       value: "main"
     - name: BONFIRE_IMAGE
-      value: "quay.io/redhat-services-prod/hcm-eng-prod-tenant/cicd-tools:ef98909"
+      value: "quay.io/redhat-services-prod/hcm-eng-prod-tenant/cicd-tools:3a72fea"
     
     # Ephemeral environment configuration
     - name: NAMESPACE_RESERVE_DURATION

@@ -31,7 +31,7 @@
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
     <opentelemetry-api.version>1.58.0</opentelemetry-api.version>
-    <awssdk-bom.version>2.41.14</awssdk-bom.version>
+    <awssdk-bom.version>2.41.16</awssdk-bom.version>
     <guava.version>33.5.0-jre</guava.version>
     <liquibase.version>5.0.1</liquibase.version>
     <postgresql.version>42.7.9</postgresql.version>
@@ -52,7 +52,7 @@
     <maven-assembly-plugin.version>3.8.0</maven-assembly-plugin.version>
     <exec-maven-plugin.version>3.6.3</exec-maven-plugin.version>
     <openapi-generator.version>7.19.0</openapi-generator.version>
-    <spotless.version>3.2.0</spotless.version>
+    <spotless.version>3.2.1</spotless.version>
     <checkstyle.version>3.6.0</checkstyle.version>
     <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
     <maven-antrun-plugin.version>3.2.0</maven-antrun-plugin.version>
