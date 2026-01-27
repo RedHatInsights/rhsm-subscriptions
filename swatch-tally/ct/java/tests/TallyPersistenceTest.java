@@ -21,15 +21,17 @@
 package tests;
 
 import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import utils.TallyTestHelpers;
@@ -75,9 +77,9 @@ public class TallyPersistenceTest extends BaseTallyComponentTest {
     JsonNode yesterdayTallyAfter = getTallyReportJson(setup.yesterday);
 
     // Verify persistence - tally reports should not change
-    Assertions.assertEquals(
+    assertEquals(
         todayTallyBefore, todayTallyAfter, "Today's tally should not change after re-tally");
-    Assertions.assertEquals(
+    assertEquals(
         yesterdayTallyBefore,
         yesterdayTallyAfter,
         "Yesterday's tally should not change after re-tally");
@@ -101,7 +103,7 @@ public class TallyPersistenceTest extends BaseTallyComponentTest {
 
     // Verify persistence - instances report should not change (excluding
     // last_applied_event_record_date)
-    Assertions.assertEquals(
+    assertEquals(
         removeLastAppliedEventDate(yesterdayInstancesBefore),
         removeLastAppliedEventDate(yesterdayInstancesAfter),
         "Yesterday's instances report should not change after re-tally");
@@ -109,7 +111,7 @@ public class TallyPersistenceTest extends BaseTallyComponentTest {
 
   private TestSetup setupTest() throws Exception {
     String orgId = RandomUtils.generateRandom();
-    OffsetDateTime now = OffsetDateTime.now();
+    OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
 
     helpers.createOptInConfig(orgId, service);
 
@@ -156,13 +158,17 @@ public class TallyPersistenceTest extends BaseTallyComponentTest {
     return objectMapper.readTree(
         helpers
             .getTallyReport(
+                service,
                 setup.orgId,
                 TEST_PRODUCT_TAG,
                 TEST_METRIC_ID,
-                "Hourly",
-                range.start(),
-                range.end(),
-                service)
+                Map.of(
+                    "granularity",
+                    "Hourly",
+                    "beginning",
+                    range.start().toString(),
+                    "ending",
+                    range.end().toString()))
             .asString());
   }
 
