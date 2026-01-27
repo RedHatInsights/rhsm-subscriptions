@@ -671,7 +671,7 @@ objects:
         memory: 2Gi
       requests:
         cpu: 200m
-        memory: 4Gi
+        memory: 1Gi
     queries:
     - prefix: swatch/tally
       query: >-
