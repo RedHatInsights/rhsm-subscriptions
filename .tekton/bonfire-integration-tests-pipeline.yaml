@@ -138,8 +138,6 @@ spec:
       value: $(finally.teardown.results.ARTIFACTS_URL)
   
   tasks:
-    # Wait for verify-snapshot-components to complete
-    # This ensures all components in the snapshot have the same SHA
     - name: wait-for-snapshot-verification
       params:
         - name: SNAPSHOT
@@ -156,9 +154,7 @@ spec:
             value: main
           - name: pathInRepo
             value: tasks/wait-for-integration-tests/0.1/wait-for-integration-tests.yaml
-    
-    # Verify snapshot completeness for push events
-    # Skips tests if not all monorepo components have the same git SHA
+
     - name: verify-snapshot-completeness
       runAfter:
         - wait-for-snapshot-verification
@@ -207,36 +203,9 @@ spec:
                 printf "true" > $(results.SKIP_TESTS.path)
               fi
 
-    - name: print-snapshot-info
-      runAfter:
-        - verify-snapshot-completeness
-      when:
-        - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
-          operator: in
-          values: ["false"]
-      params:
-        - name: SNAPSHOT
-          value: $(params.SNAPSHOT)
-      taskSpec:
-        params:
-          - name: SNAPSHOT
-        steps:
-          - name: print-snapshot
-            image: quay.io/konflux-ci/konflux-test:stable
-            script: |
-              #!/bin/bash
-              set -x
-              
-              echo "========================================="
-              echo "SNAPSHOT INFORMATION"
-              echo "========================================="
-              echo '$(params.SNAPSHOT)' | jq -r '.components[] | "Component: \(.name)\nImage: \(.containerImage)"'
-              echo ""
-              echo "========================================"
-
     - name: extract-revision
       runAfter:
-        - print-snapshot-info
+        - verify-snapshot-completeness
       when:
         - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
           operator: in
@@ -514,16 +483,6 @@ spec:
               #!/bin/bash
               set -ex
               
-              # Install jq if not present (required by minio-collect.sh)
-              # Temporary workaround until https://github.com/RedHatInsights/cicd-tools/pull/181 is merged and new image is published
-              if ! command -v jq &> /dev/null; then
-                echo "jq not found, downloading binary..."
-                mkdir -p /tmp/bin
-                curl -L https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux64 -o /tmp/bin/jq
-                chmod +x /tmp/bin/jq
-                export PATH="/tmp/bin:$PATH"
-              fi
-              
               echo "Connecting to the ephemeral namespace cluster"
               login.sh
               
@@ -640,7 +599,7 @@ spec:
                   '.targets.reportportal.processing.launch.attributes += [{"key": "pull_request", "value": $pr}]' \
                   "$METADATA_FILE" > "${METADATA_FILE}.tmp" && mv "${METADATA_FILE}.tmp" "$METADATA_FILE"
               else
-                echo "Skipping pull_request attribute"
+                echo "Skipping pull_request attribute (not a PR event or PR number not available)"
               fi
               
               echo "Metadata content:"
