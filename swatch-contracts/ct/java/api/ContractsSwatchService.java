@@ -246,6 +246,58 @@ public class ContractsSwatchService extends SwatchService {
       ServiceLevelType sla,
       UsageType usage,
       String billingAccountId) {
+    return getCapacityReportByMetricId(
+        product,
+        orgId,
+        metricId,
+        beginning,
+        ending,
+        granularity,
+        category,
+        sla,
+        usage,
+        billingAccountId,
+        null,
+        null);
+  }
+
+  public CapacityReportByMetricId getCapacityReportByMetricId(
+      Product product,
+      String orgId,
+      String metricId,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      GranularityType granularity,
+      Integer offset,
+      Integer limit) {
+    return getCapacityReportByMetricId(
+        product,
+        orgId,
+        metricId,
+        beginning,
+        ending,
+        granularity,
+        null,
+        null,
+        null,
+        null,
+        offset,
+        limit);
+  }
+
+  public CapacityReportByMetricId getCapacityReportByMetricId(
+      Product product,
+      String orgId,
+      String metricId,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      GranularityType granularity,
+      ReportCategory category,
+      ServiceLevelType sla,
+      UsageType usage,
+      String billingAccountId,
+      Integer offset,
+      Integer limit) {
     Objects.requireNonNull(product, "product must not be null");
     Objects.requireNonNull(orgId, "orgId must not be null");
     Objects.requireNonNull(metricId, "metricId must not be null");
@@ -274,6 +326,14 @@ public class ContractsSwatchService extends SwatchService {
     }
     if (billingAccountId != null) {
       request.queryParam("billing_account_id", billingAccountId);
+    }
+
+    if (offset != null) {
+      request.queryParam("offset", offset);
+    }
+
+    if (limit != null) {
+      request.queryParam("limit", limit);
     }
 
     return request
