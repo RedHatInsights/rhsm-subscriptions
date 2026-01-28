@@ -13,7 +13,7 @@ spec:
       - name: url
         value: "https://github.com/RedHatInsights/rhsm-subscriptions.git"
       - name: revision
-        value: "jcarvaja/ee"
+        value: "main"
       - name: pathInRepo
         value: .tekton/bonfire-integration-tests-pipeline.yaml
   params:
