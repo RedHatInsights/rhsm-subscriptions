@@ -44,10 +44,9 @@ import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
 
 /**
- * Component tests for capacity report filtering functionality.
- *
- * These tests verify that capacity reports can be filtered by various criteria: * Service Level
- * (SLA) * Usage * Billing Account ID * Report Category (Physical/Hypervisor) * Combined filters
+ * Component tests for capacity report filtering functionality. These tests verify that capacity
+ * reports can be filtered by various criteria: * Service Level (SLA) * Usage * Billing Account ID *
+ * Report Category (Physical/Hypervisor) * Combined filters
  */
 public class CapacityReportFilteringComponentTest extends BaseContractComponentTest {
 
