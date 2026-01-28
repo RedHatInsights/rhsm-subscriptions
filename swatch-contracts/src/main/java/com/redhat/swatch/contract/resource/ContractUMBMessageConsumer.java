@@ -27,6 +27,7 @@ import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.service.ContractService;
+import com.redhat.swatch.contract.utils.MessageUtils;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -46,11 +47,20 @@ public class ContractUMBMessageConsumer {
 
   @Blocking
   @Incoming("contracts")
-  public void consumeMessage(String dtoContract) {
+  public void consumeMessage(Object dtoContract) {
     log.info("Consumer was called");
-    if (umbEnabled) {
+    if (umbEnabled && dtoContract != null) {
       try {
-        consumeContract(dtoContract);
+        String dtoContractString = MessageUtils.toString(dtoContract);
+        if (dtoContractString == null) {
+          log.error(
+              "Unsupported message type: {}. Expected byte[] or String",
+              dtoContract.getClass().getName());
+          return;
+        }
+
+        StatusResponse response = consumeContract(dtoContractString);
+        log.debug("umb response: {}", response);
       } catch (JsonProcessingException e) {
         throw new CreateContractException(e.getMessage());
       }
