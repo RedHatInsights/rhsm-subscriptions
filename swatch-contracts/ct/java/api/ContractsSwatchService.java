@@ -231,53 +231,11 @@ public class ContractsSwatchService extends SwatchService {
       OffsetDateTime ending,
       GranularityType granularity,
       ReportCategory category) {
-    Objects.requireNonNull(product, "product must not be null");
-    Objects.requireNonNull(orgId, "orgId must not be null");
-    Objects.requireNonNull(metricId, "metricId must not be null");
-    Objects.requireNonNull(beginning, "beginning must not be null");
-    Objects.requireNonNull(ending, "ending must not be null");
-    Objects.requireNonNull(granularity, "granularity must not be null");
-
-    var request =
-        given()
-            .headers(securityHeadersWithServiceRole(orgId))
-            .accept("application/vnd.api+json")
-            .pathParam("product_id", product.getName())
-            .pathParam("metric_id", metricId)
-            .queryParam("beginning", beginning.toString())
-            .queryParam("ending", ending.toString())
-            .queryParam("granularity", granularity);
-
-    if (category != null) {
-      request.queryParam("category", category);
-    }
-
-    return request
-        .when()
-        .get(CAPACITY_REPORT_ENDPOINT)
-        .then()
-        .statusCode(SC_OK)
-        .and()
-        .extract()
-        .as(CapacityReportByMetricId.class);
+    return getCapacityReportByMetricId(
+        product, orgId, metricId, beginning, ending, granularity, category, null, null, null);
   }
 
-  /**
-   * Get capacity report by metric ID with filter parameters.
-   *
-   * @param product the product to query capacity for
-   * @param orgId the organization ID
-   * @param metricId the metric ID (e.g., Cores, Sockets)
-   * @param beginning the start of the report period
-   * @param ending the end of the report period
-   * @param granularity the granularity of the report
-   * @param category the report category (PHYSICAL, HYPERVISOR)
-   * @param sla the service level filter (Premium, Standard)
-   * @param usage the usage filter (Production, Development/Test)
-   * @param billingAccountId the billing account ID filter
-   * @return the capacity report
-   */
-  public CapacityReportByMetricId getCapacityReportByMetricIdWithFilters(
+  public CapacityReportByMetricId getCapacityReportByMetricId(
       Product product,
       String orgId,
       String metricId,

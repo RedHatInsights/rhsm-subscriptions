@@ -67,22 +67,9 @@ public class CapacityReportFilteringComponentTest extends BaseContractComponentT
     givenSubscriptionWithServiceLevel(premiumSku, PREMIUM_CORES_CAPACITY, ServiceLevel.PREMIUM);
     givenSubscriptionWithServiceLevel(standardSku, STANDARD_CORES_CAPACITY, ServiceLevel.STANDARD);
 
-    final OffsetDateTime beginning = clock.now().minusDays(1);
-    final OffsetDateTime ending = clock.now().plusDays(1);
-
     // When: Get capacity with sla=Premium
     CapacityReportByMetricId capacityReport =
-        service.getCapacityReportByMetricIdWithFilters(
-            Product.OPENSHIFT,
-            orgId,
-            CORES.toString(),
-            beginning,
-            ending,
-            GranularityType.DAILY,
-            null,
-            ServiceLevelType.PREMIUM,
-            null,
-            null);
+        whenGetCapacityReportByServiceLevel(ServiceLevelType.PREMIUM);
 
     // Then: Only Premium subscription capacity is included
     double actualCapacity = getMaxCapacityFromReport(capacityReport);
@@ -102,22 +89,8 @@ public class CapacityReportFilteringComponentTest extends BaseContractComponentT
     givenSubscriptionWithUsage(productionSku, PRODUCTION_CORES_CAPACITY, Usage.PRODUCTION);
     givenSubscriptionWithUsage(devTestSku, DEV_TEST_CORES_CAPACITY, Usage.DEVELOPMENT_TEST);
 
-    final OffsetDateTime beginning = clock.now().minusDays(1);
-    final OffsetDateTime ending = clock.now().plusDays(1);
-
     // When: Get capacity with usage=Production
-    CapacityReportByMetricId capacityReport =
-        service.getCapacityReportByMetricIdWithFilters(
-            Product.OPENSHIFT,
-            orgId,
-            CORES.toString(),
-            beginning,
-            ending,
-            GranularityType.DAILY,
-            null,
-            null,
-            UsageType.PRODUCTION,
-            null);
+    CapacityReportByMetricId capacityReport = whenGetCapacityReportByUsage(UsageType.PRODUCTION);
 
     // Then: Only Production subscription capacity is included
     double actualCapacity = getMaxCapacityFromReport(capacityReport);
@@ -142,22 +115,9 @@ public class CapacityReportFilteringComponentTest extends BaseContractComponentT
     givenSubscriptionWithBillingAccount(sku1, account1Capacity, billingAccountId1);
     givenSubscriptionWithBillingAccount(sku2, account2Capacity, billingAccountId2);
 
-    final OffsetDateTime beginning = clock.now().minusDays(1);
-    final OffsetDateTime ending = clock.now().plusDays(1);
-
     // When: Get capacity with billing_account_id filter
     CapacityReportByMetricId capacityReport =
-        service.getCapacityReportByMetricIdWithFilters(
-            Product.OPENSHIFT,
-            orgId,
-            CORES.toString(),
-            beginning,
-            ending,
-            GranularityType.DAILY,
-            null,
-            null,
-            null,
-            billingAccountId1);
+        whenGetCapacityReportByBillingAccount(billingAccountId1);
 
     // Then: Only specified billing account capacity is returned
     double actualCapacity = getMaxCapacityFromReport(capacityReport);
@@ -174,22 +134,9 @@ public class CapacityReportFilteringComponentTest extends BaseContractComponentT
     givenPhysicalAndHypervisorSubscription(
         sku, PHYSICAL_SOCKETS_CAPACITY, HYPERVISOR_SOCKETS_CAPACITY);
 
-    final OffsetDateTime beginning = clock.now().minusDays(1);
-    final OffsetDateTime ending = clock.now().plusDays(1);
-
     // When: Get capacity with category=PHYSICAL (maps to NON_HYPERVISOR in API)
     CapacityReportByMetricId capacityReport =
-        service.getCapacityReportByMetricIdWithFilters(
-            Product.RHEL,
-            orgId,
-            SOCKETS.toString(),
-            beginning,
-            ending,
-            GranularityType.DAILY,
-            ReportCategory.PHYSICAL,
-            null,
-            null,
-            null);
+        whenGetCapacityReportByCategory(Product.RHEL, ReportCategory.PHYSICAL);
 
     // Then: Only PHYSICAL measurements are included in the capacity
     double actualCapacity = getMaxCapacityFromReport(capacityReport);
@@ -207,22 +154,9 @@ public class CapacityReportFilteringComponentTest extends BaseContractComponentT
 
     givenHypervisorSubscription(hypervisorSku, HYPERVISOR_SOCKETS_CAPACITY);
 
-    final OffsetDateTime beginning = clock.now().minusDays(1);
-    final OffsetDateTime ending = clock.now().plusDays(1);
-
     // When: Get capacity with category=HYPERVISOR
     CapacityReportByMetricId capacityReport =
-        service.getCapacityReportByMetricIdWithFilters(
-            Product.RHEL,
-            orgId,
-            SOCKETS.toString(),
-            beginning,
-            ending,
-            GranularityType.DAILY,
-            ReportCategory.HYPERVISOR,
-            null,
-            null,
-            null);
+        whenGetCapacityReportByCategory(Product.RHEL, ReportCategory.HYPERVISOR);
 
     // Then: Only HYPERVISOR measurements are included
     double actualCapacity = getMaxCapacityFromReport(capacityReport);
@@ -230,38 +164,6 @@ public class CapacityReportFilteringComponentTest extends BaseContractComponentT
         HYPERVISOR_SOCKETS_CAPACITY,
         actualCapacity,
         "Only HYPERVISOR measurements should be included");
-  }
-
-  private void givenHypervisorSubscription(String sku, double hypervisorSockets) {
-    // Create hypervisor offering
-    Offering hypervisorOffering =
-        Offering.buildRhelHypervisorOffering(sku, null, hypervisorSockets);
-
-    wiremock.forProductAPI().stubOfferingData(hypervisorOffering);
-    assertThat(
-        "Sync hypervisor offering should succeed",
-        service.syncOffering(sku).statusCode(),
-        is(HttpStatus.SC_OK));
-
-    // Create subscription with hypervisor sockets
-    // Reconciliation will create HYPERVISOR SOCKETS from offering.hypervisorSockets
-    Subscription subscription =
-        Subscription.builder()
-            .orgId(orgId)
-            .product(Product.RHEL)
-            .subscriptionId(RandomUtils.generateRandom())
-            .subscriptionNumber(RandomUtils.generateRandom())
-            .offering(hypervisorOffering)
-            .subscriptionMeasurements(Map.of(SOCKETS, hypervisorSockets))
-            .startDate(OffsetDateTime.now().minusDays(1))
-            .endDate(OffsetDateTime.now().plusDays(1))
-            .quantity(1)
-            .build();
-
-    assertThat(
-        "Creating hypervisor subscription should succeed",
-        service.saveSubscriptions(true, subscription).statusCode(),
-        is(HttpStatus.SC_OK));
   }
 
   @TestPlanName("capacity-report-filtering-TC006")
@@ -291,22 +193,14 @@ public class CapacityReportFilteringComponentTest extends BaseContractComponentT
     givenSubscriptionWithAllCriteria(
         nonMatchingSku3, 2.0, ServiceLevel.STANDARD, Usage.DEVELOPMENT_TEST);
 
-    final OffsetDateTime beginning = clock.now().minusDays(1);
-    final OffsetDateTime ending = clock.now().plusDays(1);
-
     // When: Get capacity with multiple filters (sla=Premium, usage=Production, category=PHYSICAL)
     CapacityReportByMetricId capacityReport =
-        service.getCapacityReportByMetricIdWithFilters(
+        whenGetCapacityReportWithFilters(
             Product.RHEL,
-            orgId,
             SOCKETS.toString(),
-            beginning,
-            ending,
-            GranularityType.DAILY,
             ReportCategory.PHYSICAL,
             ServiceLevelType.PREMIUM,
-            UsageType.PRODUCTION,
-            null);
+            UsageType.PRODUCTION);
 
     // Then: Only subscriptions matching ALL criteria are included
     double actualCapacity = getMaxCapacityFromReport(capacityReport);
@@ -317,6 +211,92 @@ public class CapacityReportFilteringComponentTest extends BaseContractComponentT
   }
 
   // ==================== Helper Methods ====================
+
+  private CapacityReportByMetricId whenGetCapacityReportByServiceLevel(ServiceLevelType sla) {
+    OffsetDateTime beginning = clock.now().minusDays(1);
+    OffsetDateTime ending = clock.now().plusDays(1);
+    return service.getCapacityReportByMetricId(
+        Product.OPENSHIFT,
+        orgId,
+        CORES.toString(),
+        beginning,
+        ending,
+        GranularityType.DAILY,
+        null,
+        sla,
+        null,
+        null);
+  }
+
+  private CapacityReportByMetricId whenGetCapacityReportByUsage(UsageType usage) {
+    OffsetDateTime beginning = clock.now().minusDays(1);
+    OffsetDateTime ending = clock.now().plusDays(1);
+    return service.getCapacityReportByMetricId(
+        Product.OPENSHIFT,
+        orgId,
+        CORES.toString(),
+        beginning,
+        ending,
+        GranularityType.DAILY,
+        null,
+        null,
+        usage,
+        null);
+  }
+
+  private CapacityReportByMetricId whenGetCapacityReportByBillingAccount(String billingAccountId) {
+    OffsetDateTime beginning = clock.now().minusDays(1);
+    OffsetDateTime ending = clock.now().plusDays(1);
+    return service.getCapacityReportByMetricId(
+        Product.OPENSHIFT,
+        orgId,
+        CORES.toString(),
+        beginning,
+        ending,
+        GranularityType.DAILY,
+        null,
+        null,
+        null,
+        billingAccountId);
+  }
+
+  private CapacityReportByMetricId whenGetCapacityReportByCategory(
+      Product product, ReportCategory category) {
+    OffsetDateTime beginning = clock.now().minusDays(1);
+    OffsetDateTime ending = clock.now().plusDays(1);
+    return service.getCapacityReportByMetricId(
+        product,
+        orgId,
+        SOCKETS.toString(),
+        beginning,
+        ending,
+        GranularityType.DAILY,
+        category,
+        null,
+        null,
+        null);
+  }
+
+  private CapacityReportByMetricId whenGetCapacityReportWithFilters(
+      Product product,
+      String metricId,
+      ReportCategory category,
+      ServiceLevelType sla,
+      UsageType usage) {
+    OffsetDateTime beginning = clock.now().minusDays(1);
+    OffsetDateTime ending = clock.now().plusDays(1);
+    return service.getCapacityReportByMetricId(
+        product,
+        orgId,
+        metricId,
+        beginning,
+        ending,
+        GranularityType.DAILY,
+        category,
+        sla,
+        usage,
+        null);
+  }
 
   private void givenSubscriptionWithServiceLevel(
       String sku, double coresCapacity, ServiceLevel serviceLevel) {
@@ -425,6 +405,38 @@ public class CapacityReportFilteringComponentTest extends BaseContractComponentT
 
     assertThat(
         "Creating subscription should succeed",
+        service.saveSubscriptions(true, subscription).statusCode(),
+        is(HttpStatus.SC_OK));
+  }
+
+  private void givenHypervisorSubscription(String sku, double hypervisorSockets) {
+    // Create hypervisor offering
+    Offering hypervisorOffering =
+        Offering.buildRhelHypervisorOffering(sku, null, hypervisorSockets);
+
+    wiremock.forProductAPI().stubOfferingData(hypervisorOffering);
+    assertThat(
+        "Sync hypervisor offering should succeed",
+        service.syncOffering(sku).statusCode(),
+        is(HttpStatus.SC_OK));
+
+    // Create subscription with hypervisor sockets
+    // Reconciliation will create HYPERVISOR SOCKETS from offering.hypervisorSockets
+    Subscription subscription =
+        Subscription.builder()
+            .orgId(orgId)
+            .product(Product.RHEL)
+            .subscriptionId(RandomUtils.generateRandom())
+            .subscriptionNumber(RandomUtils.generateRandom())
+            .offering(hypervisorOffering)
+            .subscriptionMeasurements(Map.of(SOCKETS, hypervisorSockets))
+            .startDate(OffsetDateTime.now().minusDays(1))
+            .endDate(OffsetDateTime.now().plusDays(1))
+            .quantity(1)
+            .build();
+
+    assertThat(
+        "Creating hypervisor subscription should succeed",
         service.saveSubscriptions(true, subscription).statusCode(),
         is(HttpStatus.SC_OK));
   }
