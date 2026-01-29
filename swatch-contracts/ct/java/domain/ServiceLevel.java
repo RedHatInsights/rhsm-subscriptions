@@ -23,12 +23,15 @@ package domain;
 import com.redhat.swatch.contract.test.model.TallySnapshot.Sla;
 
 public enum ServiceLevel {
-  PREMIUM;
+  PREMIUM,
+  STANDARD;
 
   public Sla toTallySnapshotModel() {
     switch (this) {
       case PREMIUM:
         return Sla.PREMIUM;
+      case STANDARD:
+        return Sla.STANDARD;
       default:
         throw new IllegalArgumentException("Unsupported service level: " + this);
     }
@@ -39,6 +42,8 @@ public enum ServiceLevel {
     switch (this) {
       case PREMIUM:
         return "Premium";
+      case STANDARD:
+        return "Standard";
       default:
         throw new IllegalArgumentException("Unsupported service level: " + this);
     }
