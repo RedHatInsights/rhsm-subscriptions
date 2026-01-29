@@ -23,12 +23,15 @@ package domain;
 import com.redhat.swatch.contract.test.model.TallySnapshot;
 
 public enum Usage {
-  PRODUCTION;
+  PRODUCTION,
+  DEVELOPMENT_TEST;
 
   public TallySnapshot.Usage toTallySnapshotModel() {
     switch (this) {
       case PRODUCTION:
         return TallySnapshot.Usage.PRODUCTION;
+      case DEVELOPMENT_TEST:
+        return TallySnapshot.Usage.DEVELOPMENT_TEST;
       default:
         throw new IllegalArgumentException("Unsupported usage: " + this);
     }
@@ -39,6 +42,8 @@ public enum Usage {
     switch (this) {
       case PRODUCTION:
         return "Production";
+      case DEVELOPMENT_TEST:
+        return "Development/Test";
       default:
         throw new IllegalArgumentException("Unsupported usage: " + this);
     }
