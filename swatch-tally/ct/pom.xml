@@ -50,6 +50,12 @@
       <groupId>jakarta.annotation</groupId>
       <artifactId>jakarta.annotation-api</artifactId>
     </dependency>
+
+    <!-- Temporary: direct DB seeding for nightly tally CTs -->
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+    </dependency>
   </dependencies>
 
   <build>

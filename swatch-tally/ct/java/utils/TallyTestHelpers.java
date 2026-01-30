@@ -194,6 +194,29 @@ public class TallyTestHelpers {
     Log.info("Opt-in config created successfully for org: %s", orgId);
   }
 
+  /**
+   * Temporary nightly-tally pre-req seeding for CTs.
+   *
+   * <p>Nightly tally expects host-buckets to already exist. In CT we seed them directly into the DB
+   * (via {@link TallyDbHostSeeder}). This is intentionally isolated so it can be removed later.
+   *
+   * <p>Implementation detail: reconciliation deletes swatch-only HBI_HOST systems unless the host
+   * is considered "metered" (currently mapped to PAYG eligibility), so we seed one PAYG bucket to
+   * keep the host and one non-PAYG bucket that we assert on for DAILY summary messages.
+   */
+  public UUID seedNightlyTallyHostBuckets(
+      String orgId, String productId, String inventoryId, SwatchService service) {
+    createOptInConfig(orgId, service);
+
+    var hostId = TallyDbHostSeeder.insertHbiHost(orgId, inventoryId);
+    // Keep the host from being deleted (PAYG-eligible tag)
+    TallyDbHostSeeder.insertBuckets(
+        hostId, "rhel-for-x86-els-payg", "Premium", "Production", 4, 2, "AWS");
+    // Produce DAILY summary messages (non-PAYG tag)
+    TallyDbHostSeeder.insertBuckets(hostId, productId, "Premium", "Production", 4, 2, "PHYSICAL");
+    return hostId;
+  }
+
   public Response getTallyReport(
       SwatchService service,
       String orgId,

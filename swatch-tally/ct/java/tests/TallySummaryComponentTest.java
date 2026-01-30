@@ -21,14 +21,19 @@
 package tests;
 
 import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
+import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 
+import api.MessageValidators;
+import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
+import com.redhat.swatch.tally.test.model.TallySummary;
+import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.json.Event;
-import org.junit.Ignore;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import utils.TallyTestHelpers;
@@ -40,51 +45,55 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
   private static final String TEST_PRODUCT_ID = "rhel-for-x86-els-payg";
   private static final String TEST_METRIC_ID = "VCPUS";
 
-  // @Test
-  @Ignore("This test should run after https://issues.redhat.com/browse/SWATCH-2922")
+  @Test
   public void testTallyNightlySummaryEmitsGranularityDaily() {
-    final String testOrgId = RandomUtils.generateRandom(); // Use random org ID
-    final String testInstanceId = UUID.randomUUID().toString();
-    final String testEventId = UUID.randomUUID().toString();
+    final String testProductId = "rhel-for-x86-els-unconverted";
+    final String testOrgId = RandomUtils.generateRandom();
+    final String testInventoryId = UUID.randomUUID().toString();
 
-    // Create events within the last 24-48 hours for nightly tally
-    OffsetDateTime now = OffsetDateTime.now();
-    Event event1 =
-        helpers.createEventWithTimestamp(
-            testOrgId, testInstanceId, now.minusDays(1).toString(), testEventId, 1.0f);
+    helpers.seedNightlyTallyHostBuckets(testOrgId, testProductId, testInventoryId, service);
 
-    Event event2 =
-        helpers.createEventWithTimestamp(
-            testOrgId, testInstanceId, now.minusDays(2).toString(), testEventId, 1.0f);
+    // Trigger nightly tally (PUT snapshots for org)
+    helpers.syncTallyNightly(testOrgId, service);
 
-    Event event3 =
-        helpers.createEventWithTimestamp(
-            testOrgId, testInstanceId, now.minusDays(3).toString(), testEventId, 1.0f);
+    // Wait for tally summary messages with DAILY granularity
+    kafkaBridge.waitForKafkaMessage(
+        TALLY,
+        MessageValidators.tallySummaryMatches(
+            testOrgId, testProductId, "SOCKETS", Granularity.DAILY),
+        1);
+  }
 
-    Event event4 =
-        helpers.createEventWithTimestamp(
-            testOrgId, testInstanceId, now.minusDays(4).toString(), testEventId, 1.0f);
+  @Test
+  public void testTallyNightlySummaryHasNoTotalMeasurements() {
+    final String testProductId = "rhel-for-x86-els-unconverted";
+    final String testOrgId = RandomUtils.generateRandom();
+    final String testInventoryId = UUID.randomUUID().toString();
 
-    // Produce events to Kafka
-    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event1);
-    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event2);
-    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event3);
-    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event4);
+    helpers.seedNightlyTallyHostBuckets(testOrgId, testProductId, testInventoryId, service);
 
-    // Polls then extracts measurements from resulting snapshots.
-    // Ensures that the appropriate number of summaries is present
-    // and that no measurements are of type 'TOTAL'
-    helpers
-        .pollForTallySyncAndMessages(
-            testOrgId, TEST_PRODUCT_ID, TEST_METRIC_ID, Granularity.DAILY, 4, service, kafkaBridge)
-        .stream()
+    helpers.syncTallyNightly(testOrgId, service);
+
+    AwaitilitySettings kafkaConsumerTimeout =
+        AwaitilitySettings.using(Duration.ofMillis(500), Duration.ofSeconds(60));
+    List<TallySummary> summaries =
+        kafkaBridge.waitForKafkaMessage(
+            TALLY,
+            MessageValidators.tallySummaryMatches(
+                testOrgId, testProductId, "SOCKETS", Granularity.DAILY),
+            1,
+            kafkaConsumerTimeout);
+
+    Assertions.assertFalse(summaries.isEmpty());
+    summaries.stream()
         .flatMap(summary -> summary.getTallySnapshots().stream())
         .flatMap(snapshot -> snapshot.getTallyMeasurements().stream())
         .forEach(
-            measurement -> {
-              Assertions.assertFalse(
-                  measurement.getHardwareMeasurementType().toUpperCase() == "TOTAL");
-            });
+            measurement ->
+                Assertions.assertNotEquals(
+                    "TOTAL",
+                    measurement.getHardwareMeasurementType().toUpperCase(),
+                    "Nightly snapshots should not emit TOTAL measurement type"));
   }
 
   @Test
