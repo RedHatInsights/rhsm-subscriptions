@@ -1217,8 +1217,8 @@ This section validates capacity calculations across time boundaries. Tests verif
   1. Create a subscription ending on day 5 of 10 days
   2. GET capacity
 - **Expected Results**:
-  - Days 1-5: capacity included
-  - Days 6-10: capacity excluded
+  - Days 1-4: capacity included
+  - Days 5-10: capacity excluded
 
 **capacity-report-temporal-boundaries-TC003 - Subscription Completely Outside Range**
 - **Description**: Verify subscription outside the time range is excluded
