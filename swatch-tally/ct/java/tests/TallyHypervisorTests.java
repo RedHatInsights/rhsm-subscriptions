@@ -21,24 +21,23 @@
 package tests;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
-import com.redhat.swatch.component.tests.utils.SwatchUtils;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import io.restassured.response.Response;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import utils.TallyDbHostSeeder;
 import utils.TallyTestHelpers;
 
-public class TallyHypervisorComponentTests extends BaseTallyComponentTest {
+public class TallyHypervisorTests extends BaseTallyComponentTest {
 
   private static final TallyTestHelpers helpers = new TallyTestHelpers();
   private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -49,66 +48,54 @@ public class TallyHypervisorComponentTests extends BaseTallyComponentTest {
   @Test
   public void testTallyReportOfHypervisorWithNoGuests() throws Exception {
     String orgId = RandomUtils.generateRandom();
-    helpers.createOptInConfig(orgId, service);
 
     // Seed baseline usage (non-zero) so we can assert it doesn't change.
-    String baselineInventoryId = UUID.randomUUID().toString();
-    var baselineHostId = TallyDbHostSeeder.insertHbiHost(orgId, baselineInventoryId);
-    TallyDbHostSeeder.insertBuckets(
-        baselineHostId, PRODUCT_TAG_RHEL_FOR_X86, "Premium", "Production", 4, 2, "PHYSICAL");
+    helpers.seedNightlyTallyHostBuckets(
+        orgId, PRODUCT_TAG_RHEL_FOR_X86, UUID.randomUUID().toString(), service);
 
     helpers.syncTallyNightly(orgId, service);
 
-    OffsetDateTime startOfToday = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
+    OffsetDateTime startOfToday =
+        OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
     OffsetDateTime endOfToday = startOfToday.plusDays(1).minusNanos(1);
 
-    int initialSockets = getDailyTotalSockets(orgId, startOfToday, endOfToday);
+    int initialSockets = getDailySocketsTotal(orgId, startOfToday, endOfToday);
 
-    // Seed a "hypervisor" host with no guests, but DO NOT seed any buckets for it. This should:
-    // - not contribute to tally totals
-    // - not appear in the instances ("system table") report
-    String hypervisorInventoryId = UUID.randomUUID().toString();
+    // Seed a "hypervisor" host with no guests and no buckets.
     TallyDbHostSeeder.SeededHost hypervisorHost =
         TallyDbHostSeeder.insertHost(
-            orgId, hypervisorInventoryId, "VIRTUAL", false, false, true, 0, null);
+            orgId, UUID.randomUUID().toString(), "VIRTUAL", false, false, true, 0, null);
 
     helpers.syncTallyNightly(orgId, service);
 
-    int newSockets = getDailyTotalSockets(orgId, startOfToday, endOfToday);
+    int newSockets = getDailySocketsTotal(orgId, startOfToday, endOfToday);
     assertEquals(
         initialSockets, newSockets, "Hypervisor without guests should not change total sockets");
 
     // System table check: ensure the host does not show up in instances report.
-    JsonNode instances =
-        getInstancesReportJson(orgId, PRODUCT_TAG_RHEL_FOR_X86, startOfToday, endOfToday);
-    JsonNode data = instances.path("data");
+    Response instancesResponse =
+        helpers.getInstancesReport(
+            orgId, PRODUCT_TAG_RHEL_FOR_X86, startOfToday, endOfToday, service);
+    JsonNode data = objectMapper.readTree(instancesResponse.asString()).path("data");
 
-    // Prefer an exact filter by sub-man id if present. Otherwise count==0 is still acceptable.
     boolean found = containsSubscriptionManagerId(data, hypervisorHost.subscriptionManagerId());
-    assertTrue(!found, "Hypervisor without guests should not appear in instances report");
+    assertFalse(found, "Hypervisor without guests should not appear in instances report");
   }
 
-  private int getDailyTotalSockets(String orgId, OffsetDateTime beginning, OffsetDateTime ending)
+  private int getDailySocketsTotal(String orgId, OffsetDateTime beginning, OffsetDateTime ending)
       throws Exception {
-    // Use path params to safely handle product tags with spaces.
-    String body =
-        service
-            .given()
-            .header("x-rh-identity", SwatchUtils.createUserIdentityHeader(orgId))
-            .queryParam("granularity", "Daily")
-            .queryParam("beginning", beginning.toString())
-            .queryParam("ending", ending.toString())
-            .get(
-                "/api/rhsm-subscriptions/v1/tally/products/{productId}/{metricId}",
-                PRODUCT_TAG_RHEL_FOR_X86,
-                METRIC_ID_SOCKETS)
-            .then()
-            .statusCode(200)
-            .extract()
-            .response()
-            .asString();
+    Response resp =
+        helpers.getTallyReport(
+            service,
+            orgId,
+            PRODUCT_TAG_RHEL_FOR_X86,
+            METRIC_ID_SOCKETS,
+            Map.of(
+                "granularity", "Daily",
+                "beginning", beginning.toString(),
+                "ending", ending.toString()));
 
-    JsonNode json = objectMapper.readTree(body);
+    JsonNode json = objectMapper.readTree(resp.asString());
     JsonNode data = json.path("data");
     if (!data.isArray() || data.isEmpty()) {
       return 0;
@@ -119,27 +106,6 @@ public class TallyHypervisorComponentTests extends BaseTallyComponentTest {
       total += point.path("value").asInt(0);
     }
     return total;
-  }
-
-  private JsonNode getInstancesReportJson(
-      String orgId, String productTag, OffsetDateTime beginning, OffsetDateTime ending)
-      throws Exception {
-    // TallyTestHelpers has an instances helper, but it concatenates the product into the URL.
-    // Use explicit encoding to safely handle tags with spaces.
-    String encodedProduct = URLEncoder.encode(productTag, StandardCharsets.UTF_8);
-    String body =
-        service
-            .given()
-            .header("x-rh-identity", SwatchUtils.createUserIdentityHeader(orgId))
-            .queryParam("beginning", beginning.toString())
-            .queryParam("ending", ending.toString())
-            .get("/api/rhsm-subscriptions/v1/instances/products/" + encodedProduct)
-            .then()
-            .statusCode(200)
-            .extract()
-            .response()
-            .asString();
-    return objectMapper.readTree(body);
   }
 
   private boolean containsSubscriptionManagerId(JsonNode data, String subscriptionManagerId) {

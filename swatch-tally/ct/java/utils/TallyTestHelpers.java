@@ -233,7 +233,11 @@ public class TallyTestHelpers {
             .given()
             .header("x-rh-identity", SwatchUtils.createUserIdentityHeader(orgId))
             .queryParams(params)
-            .get("/api/rhsm-subscriptions/v1/tally/products/" + productId + "/" + metricId)
+            // Use path params so product IDs with spaces are safely encoded.
+            .get(
+                "/api/rhsm-subscriptions/v1/tally/products/{productId}/{metricId}",
+                productId,
+                metricId)
             .then()
             .extract()
             .response();
@@ -273,7 +277,8 @@ public class TallyTestHelpers {
         .given()
         .header("x-rh-identity", SwatchUtils.createUserIdentityHeader(orgId))
         .queryParams(params)
-        .get("/api/rhsm-subscriptions/v1/tally/products/" + productId + "/" + metricId)
+        // Use path params so product IDs with spaces are safely encoded.
+        .get("/api/rhsm-subscriptions/v1/tally/products/{productId}/{metricId}", productId, metricId)
         .then()
         .extract()
         .response();
@@ -291,7 +296,8 @@ public class TallyTestHelpers {
             .header("x-rh-identity", SwatchUtils.createUserIdentityHeader(orgId))
             .queryParam("beginning", beginning.toString())
             .queryParam("ending", ending.toString())
-            .get("/api/rhsm-subscriptions/v1/instances/products/" + productId)
+            // Use path params so product IDs with spaces are safely encoded.
+            .get("/api/rhsm-subscriptions/v1/instances/products/{productId}", productId)
             .then()
             .extract()
             .response();
