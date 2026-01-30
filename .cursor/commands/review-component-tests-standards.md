@@ -254,6 +254,71 @@ Helper methods should follow naming conventions:
 - `then*()` - for verification
 - `assert*()` - for custom assertions
 
+### Method Ordering
+
+**CRITICAL**: Methods must follow Java conventions and the established order:
+
+1. **Access Modifier Order** (per Google Java Style and project codestyle):
+   - `static` methods first
+   - `public` methods
+   - `protected` methods
+   - `private` methods
+
+2. **Test Helper Method Order**:
+   - Within each access level, order helper methods by their prefix:
+     - `given*()` methods first
+     - `when*()` methods second
+     - `then*()` methods third
+   - This ordering makes tests more readable and helps maintain consistency
+
+**Example of proper method ordering:**
+```java
+@ComponentTest(name = "swatch-contracts")
+public class BaseContractComponentTest {
+  // Static fields first
+  @KafkaBridge 
+  static KafkaBridgeService kafkaBridge = new KafkaBridgeService();
+  
+  // Instance fields
+  protected String orgId;
+  
+  // Static methods
+  static void staticHelperMethod() { }
+  
+  // Public lifecycle methods
+  @BeforeEach
+  void setUp() { }
+  
+  @AfterEach
+  void tearDown() { }
+  
+  // Public test methods
+  @Test
+  void shouldCreateContract() { }
+  
+  // Protected given methods
+  protected Contract givenContractIsCreated() { }
+  protected String givenOrgId() { }
+  
+  // Protected when methods (if any)
+  protected void whenSomeActionIsPerformed() { }
+  
+  // Protected then methods
+  protected void thenContractShouldExist(String contractId) { }
+  
+  // Private given methods
+  private Contract givenAwsContract() { }
+  
+  // Private when methods (if any)
+  private void whenInternalActionOccurs() { }
+  
+  // Private then methods
+  private void thenInternalVerification() { }
+}
+```
+
+**Reference**: See `config/codestyle/intellij-java-google-style.xml` for the project's code style configuration.
+
 ## Code Quality Standards
 
 ### 1. Method Length and Complexity
@@ -278,7 +343,24 @@ Helper methods should follow naming conventions:
 - Similar test data creation → Use test helpers or domain object builders
 - Common cleanup logic → Use `@AfterEach` or base class teardown
 
-### 3. Naming Conventions
+### 3. Method Ordering and Structure
+
+**Requirements:**
+- Methods must follow Java access modifier conventions (per `config/codestyle/intellij-java-google-style.xml`):
+  - `static` methods before instance methods
+  - `public` before `protected` before `private`
+- Test helper methods must follow the given-when-then order within each access level:
+  - `given*()` methods first
+  - `when*()` methods second  
+  - `then*()` methods third
+- This ordering improves code readability and maintains consistency across the codebase
+
+**When to Refactor:**
+- Methods are out of order → Reorder following the conventions above
+- Multiple `given` methods are scattered → Group them together
+- Helper methods don't follow naming conventions → Rename appropriately
+
+### 4. Naming Conventions
 
 **Classes:**
 - Test classes: `*ComponentTest`
@@ -339,7 +421,7 @@ public OfferingProductTags getSkuProductTagsExpectSuccess(String sku) { }
 public Response getProductTagsBySku(String sku) { }
 ```
 
-### 6. Test Data Management
+### 7. Test Data Management
 
 **Best Practices:**
 - Use `RandomUtils.generateRandom()` for unique identifiers
@@ -348,7 +430,7 @@ public Response getProductTagsBySku(String sku) { }
 - Make test data creation intention-revealing
 - Avoid hardcoded test data when uniqueness matters
 
-### 7. Maven Dependencies Review
+### 8. Maven Dependencies Review
 
 ### Performance Concerns
 
@@ -417,6 +499,8 @@ When reviewing a component test:
 - [ ] Are methods reasonably sized (< 30 lines guideline)?
 - [ ] Is duplicated code extracted to helper methods?
 - [ ] Are helper methods named appropriately (`given*`, `when*`, `then*`)?
+- [ ] Are methods ordered correctly (static → public → protected → private)?
+- [ ] Within each access level, are helper methods ordered by given-when-then sequence?
 - [ ] Are assertions clear with descriptive messages?
 - [ ] Is test data creation using domain objects and helpers?
 - [ ] Do test class names follow the test plan naming convention (e.g., `offering-tags-TC001` → `OfferingTagsComponentTest`)?
@@ -523,12 +607,14 @@ assertEquals(2, contracts.size(), "Should have exactly two contracts");
 - **Always check** for `TEST_PLAN.md` in the service directory and validate `@TestPlanName` correspondence
 - **Always verify** test class names match test plan naming convention (remove `-TCXXX` suffix, add `ComponentTest`)
 - **Always verify** service facade methods match OpenAPI `operationId` names exactly
+- **Always verify** methods are ordered according to Java conventions (static → public → protected → private) and helper methods follow given-when-then order
 - **Always respond in English** regardless of user's language
 - **Focus on patterns** used in existing component tests
 - **Prioritize performance** when reviewing dependencies
 - **Emphasize readability** - tests are documentation
 - **Be specific** with examples and suggestions
 - **Reference existing code** as examples when possible
+- **Reference** `config/codestyle/intellij-java-google-style.xml` for code style guidelines
 
 Your goal is to ensure component tests are maintainable, performant, readable, and follow established patterns consistently across all SWATCH services.
 

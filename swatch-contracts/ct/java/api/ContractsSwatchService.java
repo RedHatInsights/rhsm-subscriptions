@@ -35,9 +35,11 @@ import com.redhat.swatch.contract.test.model.CapacityReportByMetricId;
 import com.redhat.swatch.contract.test.model.ContractRequest;
 import com.redhat.swatch.contract.test.model.GranularityType;
 import com.redhat.swatch.contract.test.model.ReportCategory;
+import com.redhat.swatch.contract.test.model.ServiceLevelType;
 import com.redhat.swatch.contract.test.model.SkuCapacityReportV2;
 import com.redhat.swatch.contract.test.model.SkuCapacityV2;
 import com.redhat.swatch.contract.test.model.SubscriptionResponse;
+import com.redhat.swatch.contract.test.model.UsageType;
 import domain.BillingProvider;
 import domain.Contract;
 import domain.Product;
@@ -229,6 +231,73 @@ public class ContractsSwatchService extends SwatchService {
       OffsetDateTime ending,
       GranularityType granularity,
       ReportCategory category) {
+    return getCapacityReportByMetricId(
+        product, orgId, metricId, beginning, ending, granularity, category, null, null, null);
+  }
+
+  public CapacityReportByMetricId getCapacityReportByMetricId(
+      Product product,
+      String orgId,
+      String metricId,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      GranularityType granularity,
+      ReportCategory category,
+      ServiceLevelType sla,
+      UsageType usage,
+      String billingAccountId) {
+    return getCapacityReportByMetricId(
+        product,
+        orgId,
+        metricId,
+        beginning,
+        ending,
+        granularity,
+        category,
+        sla,
+        usage,
+        billingAccountId,
+        null,
+        null);
+  }
+
+  public CapacityReportByMetricId getCapacityReportByMetricId(
+      Product product,
+      String orgId,
+      String metricId,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      GranularityType granularity,
+      Integer offset,
+      Integer limit) {
+    return getCapacityReportByMetricId(
+        product,
+        orgId,
+        metricId,
+        beginning,
+        ending,
+        granularity,
+        null,
+        null,
+        null,
+        null,
+        offset,
+        limit);
+  }
+
+  public CapacityReportByMetricId getCapacityReportByMetricId(
+      Product product,
+      String orgId,
+      String metricId,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      GranularityType granularity,
+      ReportCategory category,
+      ServiceLevelType sla,
+      UsageType usage,
+      String billingAccountId,
+      Integer offset,
+      Integer limit) {
     Objects.requireNonNull(product, "product must not be null");
     Objects.requireNonNull(orgId, "orgId must not be null");
     Objects.requireNonNull(metricId, "metricId must not be null");
@@ -248,6 +317,23 @@ public class ContractsSwatchService extends SwatchService {
 
     if (category != null) {
       request.queryParam("category", category);
+    }
+    if (sla != null) {
+      request.queryParam("sla", sla);
+    }
+    if (usage != null) {
+      request.queryParam("usage", usage);
+    }
+    if (billingAccountId != null) {
+      request.queryParam("billing_account_id", billingAccountId);
+    }
+
+    if (offset != null) {
+      request.queryParam("offset", offset);
+    }
+
+    if (limit != null) {
+      request.queryParam("limit", limit);
     }
 
     return request

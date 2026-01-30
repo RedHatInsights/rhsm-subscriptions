@@ -86,13 +86,15 @@ class HbiEventConsumerTransactionBoundaryTest {
 
     hbiEventsIn.send(hbiEvent);
 
-    // Wait for the event to be processed. The outbox repository persist call must happen.
+    // Wait for the event to be processed (including retries).
+    // The consumer has @RetryWithExponentialBackoff, so we need to wait for all retries to
+    // complete.
     Awaitility.await()
-        .atMost(Duration.ofSeconds(2))
+        .atMost(Duration.ofSeconds(5))
         .untilAsserted(
             () -> {
-              verify(repo, times(1)).persist(any(HbiHostRelationship.class));
-              verify(outboxRepository, times(1)).persist(any(HbiEventOutbox.class));
+              verify(repo, times(2)).persist(any(HbiHostRelationship.class));
+              verify(outboxRepository, times(2)).persist(any(HbiEventOutbox.class));
             });
 
     // If the outbox record could not be persisted, the relationship change should have
