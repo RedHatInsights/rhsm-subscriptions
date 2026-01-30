@@ -1,5 +1,9 @@
 ---
 version: '3.8'
+volumes:
+  # Postgresql data will be stored in this volume.  To delete the volume when taking
+  # an environment down run podman-compose down -v
+  pgdata:
 services:
   nginx:
     image: docker.io/library/nginx:latest
@@ -42,6 +46,7 @@ services:
     # - SwatchPostgreSQLContainer.POSTGRESQL_IMAGE
     # - .github/workflows/pr.yaml (step "Setup Postgresql Database")
     image: quay.io/sclorg/postgresql-16-c9s:c9s
+    shm_size: "2g"
     environment:
       - POSTGRES_HOST_AUTH_METHOD=trust
       - POSTGRESQL_MAX_CONNECTIONS=5000
@@ -56,6 +61,7 @@ services:
       - ./init_dbs.sh:/usr/share/container-scripts/postgresql/init/init_dbs.sh:z
       - ./postgresql.conf:/opt/app-root/src/postgresql-cfg/postgresql.conf:z
       - ./pg_hba.conf:/pg_hba.conf:z
+      - pgdata:/var/lib/pgsql/
     ports:
       - "127.0.0.1:5432:5432"
     networks:
