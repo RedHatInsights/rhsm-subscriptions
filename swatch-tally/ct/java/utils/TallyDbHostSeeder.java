@@ -58,6 +58,8 @@ public final class TallyDbHostSeeder {
 
   private TallyDbHostSeeder() {}
 
+  public record SeededHost(UUID hostId, String inventoryId, String subscriptionManagerId) {}
+
   /** Insert a single HBI_HOST in the swatch DB and return its UUID. */
   public static UUID insertHbiHost(String orgId, String inventoryId) {
     Objects.requireNonNull(orgId, "orgId is required");
@@ -110,6 +112,79 @@ public final class TallyDbHostSeeder {
 
       conn.commit();
       return hostId;
+    } catch (SQLException e) {
+      throw new RuntimeException("Failed to seed host in DB: " + e.getMessage(), e);
+    }
+  }
+
+  /** Insert a host row only (no buckets) and return identifying fields for assertions. */
+  public static SeededHost insertHost(
+      String orgId,
+      String inventoryId,
+      String hardwareType,
+      boolean isGuest,
+      boolean isUnmappedGuest,
+      boolean isHypervisor,
+      Integer numOfGuests,
+      String hypervisorUuid) {
+    Objects.requireNonNull(orgId, "orgId is required");
+    Objects.requireNonNull(inventoryId, "inventoryId is required");
+
+    UUID hostId = UUID.randomUUID();
+    String subManId = UUID.randomUUID().toString();
+    OffsetDateTime now = OffsetDateTime.now();
+
+    try (Connection conn = DriverManager.getConnection(jdbcUrl(), dbUser(), dbPassword())) {
+      conn.setAutoCommit(false);
+
+      try (PreparedStatement ps =
+          conn.prepareStatement(
+              "INSERT INTO account_services (org_id, service_type) VALUES (?, ?) ON CONFLICT DO NOTHING")) {
+        ps.setString(1, orgId);
+        ps.setString(2, HBI_INSTANCE_TYPE);
+        ps.executeUpdate();
+      }
+
+      try (PreparedStatement ps =
+          conn.prepareStatement(
+              """
+              INSERT INTO hosts
+                (id, instance_id, inventory_id, insights_id, display_name, org_id,
+                 subscription_manager_id, is_guest, is_unmapped_guest, is_hypervisor,
+                 hardware_type, num_of_guests, last_seen, instance_type, billing_provider,
+                 billing_account_id, hypervisor_uuid)
+              VALUES
+                (?, ?, ?, ?, ?, ?,
+                 ?, ?, ?, ?,
+                 ?, ?, ?, ?, ?,
+                 ?, ?)
+              """)) {
+        ps.setObject(1, hostId);
+        ps.setString(2, inventoryId);
+        ps.setString(3, inventoryId);
+        ps.setString(4, inventoryId);
+        ps.setString(5, inventoryId);
+        ps.setString(6, orgId);
+        ps.setString(7, subManId);
+        ps.setBoolean(8, isGuest);
+        ps.setBoolean(9, isUnmappedGuest);
+        ps.setBoolean(10, isHypervisor);
+        ps.setString(11, hardwareType);
+        if (numOfGuests == null) {
+          ps.setNull(12, java.sql.Types.INTEGER);
+        } else {
+          ps.setInt(12, numOfGuests);
+        }
+        ps.setObject(13, now);
+        ps.setString(14, HBI_INSTANCE_TYPE);
+        ps.setString(15, DEFAULT_BILLING_PROVIDER);
+        ps.setString(16, DEFAULT_BILLING_ACCOUNT_ID);
+        ps.setString(17, hypervisorUuid);
+        ps.executeUpdate();
+      }
+
+      conn.commit();
+      return new SeededHost(hostId, inventoryId, subManId);
     } catch (SQLException e) {
       throw new RuntimeException("Failed to seed host in DB: " + e.getMessage(), e);
     }
