@@ -24,6 +24,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.UUID;
@@ -62,59 +63,7 @@ public final class TallyDbHostSeeder {
 
   /** Insert a single HBI_HOST in the swatch DB and return its UUID. */
   public static UUID insertHbiHost(String orgId, String inventoryId) {
-    Objects.requireNonNull(orgId, "orgId is required");
-    Objects.requireNonNull(inventoryId, "inventoryId is required");
-
-    UUID hostId = UUID.randomUUID();
-    String subManId = UUID.randomUUID().toString();
-    OffsetDateTime now = OffsetDateTime.now();
-
-    try (Connection conn = DriverManager.getConnection(jdbcUrl(), dbUser(), dbPassword())) {
-      conn.setAutoCommit(false);
-
-      try (PreparedStatement ps =
-          conn.prepareStatement(
-              "INSERT INTO account_services (org_id, service_type) VALUES (?, ?) ON CONFLICT DO NOTHING")) {
-        ps.setString(1, orgId);
-        ps.setString(2, HBI_INSTANCE_TYPE);
-        ps.executeUpdate();
-      }
-
-      try (PreparedStatement ps =
-          conn.prepareStatement(
-              """
-              INSERT INTO hosts
-                (id, instance_id, inventory_id, insights_id, display_name, org_id,
-                 subscription_manager_id, is_guest, is_unmapped_guest, is_hypervisor,
-                 hardware_type, last_seen, instance_type, billing_provider, billing_account_id)
-              VALUES
-                (?, ?, ?, ?, ?, ?,
-                 ?, ?, ?, ?,
-                 ?, ?, ?, ?, ?)
-              """)) {
-        ps.setObject(1, hostId);
-        ps.setString(2, inventoryId);
-        ps.setString(3, inventoryId);
-        ps.setString(4, inventoryId);
-        ps.setString(5, inventoryId);
-        ps.setString(6, orgId);
-        ps.setString(7, subManId);
-        ps.setBoolean(8, false);
-        ps.setBoolean(9, false);
-        ps.setBoolean(10, false);
-        ps.setString(11, "PHYSICAL");
-        ps.setObject(12, now);
-        ps.setString(13, HBI_INSTANCE_TYPE);
-        ps.setString(14, DEFAULT_BILLING_PROVIDER);
-        ps.setString(15, DEFAULT_BILLING_ACCOUNT_ID);
-        ps.executeUpdate();
-      }
-
-      conn.commit();
-      return hostId;
-    } catch (SQLException e) {
-      throw new RuntimeException("Failed to seed host in DB: " + e.getMessage(), e);
-    }
+    return insertHost(orgId, inventoryId, "PHYSICAL", false, false, false, null, null).hostId();
   }
 
   /** Insert a host row only (no buckets) and return identifying fields for assertions. */
@@ -137,13 +86,7 @@ public final class TallyDbHostSeeder {
     try (Connection conn = DriverManager.getConnection(jdbcUrl(), dbUser(), dbPassword())) {
       conn.setAutoCommit(false);
 
-      try (PreparedStatement ps =
-          conn.prepareStatement(
-              "INSERT INTO account_services (org_id, service_type) VALUES (?, ?) ON CONFLICT DO NOTHING")) {
-        ps.setString(1, orgId);
-        ps.setString(2, HBI_INSTANCE_TYPE);
-        ps.executeUpdate();
-      }
+      ensureAccountServiceRow(conn, orgId);
 
       try (PreparedStatement ps =
           conn.prepareStatement(
@@ -171,7 +114,7 @@ public final class TallyDbHostSeeder {
         ps.setBoolean(10, isHypervisor);
         ps.setString(11, hardwareType);
         if (numOfGuests == null) {
-          ps.setNull(12, java.sql.Types.INTEGER);
+          ps.setNull(12, Types.INTEGER);
         } else {
           ps.setInt(12, numOfGuests);
         }
@@ -267,6 +210,16 @@ public final class TallyDbHostSeeder {
       ps.setInt(8, cores);
       ps.setInt(9, sockets);
       ps.setString(10, measurementType);
+      ps.executeUpdate();
+    }
+  }
+
+  private static void ensureAccountServiceRow(Connection conn, String orgId) throws SQLException {
+    try (PreparedStatement ps =
+        conn.prepareStatement(
+            "INSERT INTO account_services (org_id, service_type) VALUES (?, ?) ON CONFLICT DO NOTHING")) {
+      ps.setString(1, orgId);
+      ps.setString(2, HBI_INSTANCE_TYPE);
       ps.executeUpdate();
     }
   }
