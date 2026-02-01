@@ -46,21 +46,6 @@ public class TallyHypervisorTests extends BaseTallyComponentTest {
   private static final String METRIC_ID_SOCKETS = "Sockets";
 
   @Test
-  /**
-   * Verify tally data and instances ("system table") behavior for a hypervisor with no guests.
-   *
-   * <p>Test steps:
-   *
-   * <p>1. Create an org and seed baseline nightly-tally host buckets.
-   *
-   * <p>2. Trigger nightly tally and record the current Daily sockets total.
-   *
-   * <p>3. Insert a host marked as a hypervisor with 0 guests and no buckets.
-   *
-   * <p>4. Trigger nightly tally again and verify the Daily sockets total is unchanged.
-   *
-   * <p>5. Query the instances report and verify the hypervisor host is absent.
-   */
   public void testHypervisorWithNoGuestsDoesNotShowInInstancesReport() throws Exception {
     String orgId = RandomUtils.generateRandom();
 
@@ -92,19 +77,6 @@ public class TallyHypervisorTests extends BaseTallyComponentTest {
   }
 
   @Test
-  /**
-   * Verify a hypervisor with no guests does not contribute to the daily tally report.
-   *
-   * <p>Test steps:
-   *
-   * <p>1. Create an org and seed baseline nightly-tally host buckets.
-   *
-   * <p>2. Trigger nightly tally and record the current Daily sockets total.
-   *
-   * <p>3. Insert a host marked as a hypervisor with 0 guests and no buckets.
-   *
-   * <p>4. Trigger nightly tally again and verify the Daily sockets total is unchanged.
-   */
   public void testHypervisorWithNoGuestsDoesNotChangeDailyTotal() throws Exception {
     String orgId = RandomUtils.generateRandom();
 
