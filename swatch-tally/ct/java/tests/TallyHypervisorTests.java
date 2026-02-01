@@ -46,7 +46,66 @@ public class TallyHypervisorTests extends BaseTallyComponentTest {
   private static final String METRIC_ID_SOCKETS = "Sockets";
 
   @Test
-  public void testTallyReportOfHypervisorWithNoGuests() throws Exception {
+  /**
+   * Verify tally data and instances ("system table") behavior for a hypervisor with no guests.
+   *
+   * <p>Test steps:
+   *
+   * <p>1. Create an org and seed baseline nightly-tally host buckets.
+   *
+   * <p>2. Trigger nightly tally and record the current Daily sockets total.
+   *
+   * <p>3. Insert a host marked as a hypervisor with 0 guests and no buckets.
+   *
+   * <p>4. Trigger nightly tally again and verify the Daily sockets total is unchanged.
+   *
+   * <p>5. Query the instances report and verify the hypervisor host is absent.
+   */
+  public void testHypervisorWithNoGuestsDoesNotShowInInstancesReport() throws Exception {
+    String orgId = RandomUtils.generateRandom();
+
+    helpers.seedNightlyTallyHostBuckets(
+        orgId, PRODUCT_TAG_RHEL_FOR_X86, UUID.randomUUID().toString(), service);
+
+    helpers.syncTallyNightly(orgId, service);
+
+    OffsetDateTime startOfToday = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
+    OffsetDateTime endOfToday = startOfToday.plusDays(1).minusNanos(1);
+
+    int initialSockets = getDailySocketsTotal(orgId, startOfToday, endOfToday);
+
+    // Seed a "hypervisor" host with no guests and no buckets.
+    TallyDbHostSeeder.SeededHost hypervisorHost =
+        TallyDbHostSeeder.insertHost(
+            orgId, UUID.randomUUID().toString(), "VIRTUAL", false, false, true, 0, null);
+
+    helpers.syncTallyNightly(orgId, service);
+
+    // System table check: ensure the host does not show up in instances report.
+    Response instancesResponse =
+        helpers.getInstancesReport(
+            orgId, PRODUCT_TAG_RHEL_FOR_X86, startOfToday, endOfToday, service);
+    JsonNode data = objectMapper.readTree(instancesResponse.asString()).path("data");
+
+    boolean found = containsSubscriptionManagerId(data, hypervisorHost.subscriptionManagerId());
+    assertFalse(found, "Hypervisor without guests should not appear in instances report");
+  }
+
+  @Test
+  /**
+   * Verify a hypervisor with no guests does not contribute to the daily tally report.
+   *
+   * <p>Test steps:
+   *
+   * <p>1. Create an org and seed baseline nightly-tally host buckets.
+   *
+   * <p>2. Trigger nightly tally and record the current Daily sockets total.
+   *
+   * <p>3. Insert a host marked as a hypervisor with 0 guests and no buckets.
+   *
+   * <p>4. Trigger nightly tally again and verify the Daily sockets total is unchanged.
+   */
+  public void testHypervisorWithNoGuestsDoesNotChangeDailyTotal() throws Exception {
     String orgId = RandomUtils.generateRandom();
 
     // Seed baseline usage (non-zero) so we can assert it doesn't change.
@@ -55,8 +114,7 @@ public class TallyHypervisorTests extends BaseTallyComponentTest {
 
     helpers.syncTallyNightly(orgId, service);
 
-    OffsetDateTime startOfToday =
-        OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
+    OffsetDateTime startOfToday = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
     OffsetDateTime endOfToday = startOfToday.plusDays(1).minusNanos(1);
 
     int initialSockets = getDailySocketsTotal(orgId, startOfToday, endOfToday);
@@ -71,15 +129,6 @@ public class TallyHypervisorTests extends BaseTallyComponentTest {
     int newSockets = getDailySocketsTotal(orgId, startOfToday, endOfToday);
     assertEquals(
         initialSockets, newSockets, "Hypervisor without guests should not change total sockets");
-
-    // System table check: ensure the host does not show up in instances report.
-    Response instancesResponse =
-        helpers.getInstancesReport(
-            orgId, PRODUCT_TAG_RHEL_FOR_X86, startOfToday, endOfToday, service);
-    JsonNode data = objectMapper.readTree(instancesResponse.asString()).path("data");
-
-    boolean found = containsSubscriptionManagerId(data, hypervisorHost.subscriptionManagerId());
-    assertFalse(found, "Hypervisor without guests should not appear in instances report");
   }
 
   private int getDailySocketsTotal(String orgId, OffsetDateTime beginning, OffsetDateTime ending)

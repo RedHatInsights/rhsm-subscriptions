@@ -54,8 +54,6 @@ public final class TallyDbHostSeeder {
   private static final String DEFAULT_DB_PASSWORD = "rhsm-subscriptions";
 
   private static final String HBI_INSTANCE_TYPE = "HBI_HOST";
-  private static final String DEFAULT_BILLING_PROVIDER = "_ANY";
-  private static final String DEFAULT_BILLING_ACCOUNT_ID = "_ANY";
 
   private TallyDbHostSeeder() {}
 
@@ -120,8 +118,8 @@ public final class TallyDbHostSeeder {
         }
         ps.setObject(13, now);
         ps.setString(14, HBI_INSTANCE_TYPE);
-        ps.setString(15, DEFAULT_BILLING_PROVIDER);
-        ps.setString(16, DEFAULT_BILLING_ACCOUNT_ID);
+        ps.setNull(15, Types.VARCHAR);
+        ps.setNull(16, Types.VARCHAR);
         ps.setString(17, hypervisorUuid);
         ps.executeUpdate();
       }
@@ -155,23 +153,7 @@ public final class TallyDbHostSeeder {
 
     try (Connection conn = DriverManager.getConnection(jdbcUrl(), dbUser(), dbPassword())) {
       conn.setAutoCommit(false);
-      String[] slas = new String[] {"_ANY", sla};
-      String[] usages = new String[] {"_ANY", usage};
-      for (String nextSla : slas) {
-        for (String nextUsage : usages) {
-          insertBucket(
-              conn,
-              hostId,
-              productId,
-              nextSla,
-              nextUsage,
-              DEFAULT_BILLING_PROVIDER,
-              DEFAULT_BILLING_ACCOUNT_ID,
-              cores,
-              sockets,
-              measurementType);
-        }
-      }
+      insertBucket(conn, hostId, productId, sla, usage, cores, sockets, measurementType);
       conn.commit();
     } catch (SQLException e) {
       throw new RuntimeException("Failed to seed host buckets in DB: " + e.getMessage(), e);
@@ -184,8 +166,6 @@ public final class TallyDbHostSeeder {
       String productId,
       String sla,
       String usage,
-      String billingProvider,
-      String billingAccountId,
       int cores,
       int sockets,
       String measurementType)
@@ -194,22 +174,20 @@ public final class TallyDbHostSeeder {
         conn.prepareStatement(
             """
             INSERT INTO host_tally_buckets
-              (host_id, product_id, usage, sla, billing_provider, billing_account_id, as_hypervisor,
+              (host_id, product_id, usage, sla, as_hypervisor,
                cores, sockets, measurement_type, version)
             VALUES
-              (?, ?, ?, ?, ?, ?, ?,
+              (?, ?, ?, ?, ?,
                ?, ?, ?, 0)
             """)) {
       ps.setObject(1, hostId);
       ps.setString(2, productId);
       ps.setString(3, usage);
       ps.setString(4, sla);
-      ps.setString(5, billingProvider);
-      ps.setString(6, billingAccountId);
-      ps.setBoolean(7, false);
-      ps.setInt(8, cores);
-      ps.setInt(9, sockets);
-      ps.setString(10, measurementType);
+      ps.setBoolean(5, false);
+      ps.setInt(6, cores);
+      ps.setInt(7, sockets);
+      ps.setString(8, measurementType);
       ps.executeUpdate();
     }
   }

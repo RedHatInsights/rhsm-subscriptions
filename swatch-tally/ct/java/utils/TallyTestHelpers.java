@@ -278,7 +278,8 @@ public class TallyTestHelpers {
         .header("x-rh-identity", SwatchUtils.createUserIdentityHeader(orgId))
         .queryParams(params)
         // Use path params so product IDs with spaces are safely encoded.
-        .get("/api/rhsm-subscriptions/v1/tally/products/{productId}/{metricId}", productId, metricId)
+        .get(
+            "/api/rhsm-subscriptions/v1/tally/products/{productId}/{metricId}", productId, metricId)
         .then()
         .extract()
         .response();
