@@ -33,12 +33,7 @@ import com.redhat.swatch.tally.test.model.TallySummary;
 import io.restassured.response.Response;
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement;
@@ -48,9 +43,12 @@ public class TallyTestHelpers {
   // Test configuration constants
   private static final String TEST_PSK = "placeholder";
   private static final String DEFAULT_BILLING_ACCOUNT = "746157280291";
-  private static final String TEST_PRODUCT_ID = "204";
-  private static final String DEFAULT_PRODUCT_TAG = "rhel-for-x86-els-payg";
-  private static final String DEFAULT_METRIC_ID = "VCPUS";
+  private static final String DEFAULT_PRODUCT_ID =
+      TallyTestProducts.RHEL_FOR_X86_ELS_PAYG.productId();
+  private static final String DEFAULT_PRODUCT_TAG =
+      TallyTestProducts.RHEL_FOR_X86_ELS_PAYG.productTag();
+  private static final String DEFAULT_METRIC_ID =
+      TallyTestProducts.RHEL_FOR_X86_ELS_PAYG.metricIds().get(1);
   private static final int EVENT_EXPIRATION_DAYS = 25;
 
   /** Default constructor. */
@@ -68,7 +66,7 @@ public class TallyTestHelpers {
         value,
         Event.Sla.PREMIUM,
         Event.HardwareType.CLOUD,
-        TEST_PRODUCT_ID,
+        DEFAULT_PRODUCT_ID,
         DEFAULT_PRODUCT_TAG);
   }
 
@@ -202,19 +200,24 @@ public class TallyTestHelpers {
    *
    * <p>Implementation detail: reconciliation deletes swatch-only HBI_HOST systems unless the host
    * is considered "metered" (currently mapped to PAYG eligibility), so we seed one PAYG bucket to
-   * keep the host and one non-PAYG bucket that we assert on for DAILY summary messages.
+   * keep the host and one non-PAYG bucket that we assert on.
    */
-  public UUID seedNightlyTallyHostBuckets(
+  public void seedNightlyTallyHostBuckets(
       String orgId, String productId, String inventoryId, SwatchService service) {
     createOptInConfig(orgId, service);
 
     var hostId = TallyDbHostSeeder.insertHbiHost(orgId, inventoryId);
     // Keep the host from being deleted (PAYG-eligible tag)
     TallyDbHostSeeder.insertBuckets(
-        hostId, "rhel-for-x86-els-payg", "Premium", "Production", 4, 2, "AWS");
+        hostId,
+        TallyTestProducts.RHEL_FOR_X86_ELS_PAYG.productTag(),
+        "Premium",
+        "Production",
+        4,
+        2,
+        "AWS");
     // Produce DAILY summary messages (non-PAYG tag)
     TallyDbHostSeeder.insertBuckets(hostId, productId, "Premium", "Production", 4, 2, "PHYSICAL");
-    return hostId;
   }
 
   public Response getTallyReport(

@@ -20,39 +20,39 @@
  */
 package tests;
 
-import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
-import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
-import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
-
 import api.MessageValidators;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallySummary;
-import java.time.Duration;
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import utils.TallyTestHelpers;
 
+import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.UUID;
+
+import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
+import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
+import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
+import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_UNCONVERTED;
+
 @Slf4j
 public class TallySummaryComponentTest extends BaseTallyComponentTest {
 
   private static final TallyTestHelpers helpers = new TallyTestHelpers();
-  private static final String TEST_PRODUCT_TAG = RHEL_FOR_X86_ELS_PAYG.productTag();
-  private static final String TEST_METRIC_ID = RHEL_FOR_X86_ELS_PAYG.metricIds().get(1);
 
   @Test
   public void testTallyNightlySummaryEmitsGranularityDaily() {
-    final String testProductId = "rhel-for-x86-els-unconverted";
     final String testOrgId = RandomUtils.generateRandom();
     final String testInventoryId = UUID.randomUUID().toString();
 
-    helpers.seedNightlyTallyHostBuckets(testOrgId, testProductId, testInventoryId, service);
+    helpers.seedNightlyTallyHostBuckets(
+        testOrgId, RHEL_FOR_X86_ELS_UNCONVERTED.productTag(), testInventoryId, service);
 
     // Trigger nightly tally (PUT snapshots for org)
     helpers.syncTallyNightly(testOrgId, service);
@@ -61,17 +61,20 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     kafkaBridge.waitForKafkaMessage(
         TALLY,
         MessageValidators.tallySummaryMatches(
-            testOrgId, testProductId, "SOCKETS", Granularity.DAILY),
+            testOrgId,
+            RHEL_FOR_X86_ELS_UNCONVERTED.productTag(),
+            RHEL_FOR_X86_ELS_UNCONVERTED.metricIds().get(1),
+            Granularity.DAILY),
         1);
   }
 
   @Test
   public void testTallyNightlySummaryHasNoTotalMeasurements() {
-    final String testProductId = "rhel-for-x86-els-unconverted";
     final String testOrgId = RandomUtils.generateRandom();
     final String testInventoryId = UUID.randomUUID().toString();
 
-    helpers.seedNightlyTallyHostBuckets(testOrgId, testProductId, testInventoryId, service);
+    helpers.seedNightlyTallyHostBuckets(
+        testOrgId, RHEL_FOR_X86_ELS_UNCONVERTED.productTag(), testInventoryId, service);
 
     helpers.syncTallyNightly(testOrgId, service);
 
@@ -81,7 +84,10 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
         kafkaBridge.waitForKafkaMessage(
             TALLY,
             MessageValidators.tallySummaryMatches(
-                testOrgId, testProductId, "SOCKETS", Granularity.DAILY),
+                testOrgId,
+                RHEL_FOR_X86_ELS_UNCONVERTED.productTag(),
+                RHEL_FOR_X86_ELS_UNCONVERTED.metricIds().get(1),
+                Granularity.DAILY),
             1,
             kafkaConsumerTimeout);
 
@@ -128,7 +134,13 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event4);
 
     helpers.pollForTallySyncAndMessages(
-        testOrgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.DAILY, 0, service, kafkaBridge);
+        testOrgId,
+        RHEL_FOR_X86_ELS_PAYG.productTag(),
+        RHEL_FOR_X86_ELS_PAYG.metricIds().get(1),
+        Granularity.DAILY,
+        0,
+        service,
+        kafkaBridge);
   }
 
   @Test
@@ -167,8 +179,8 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     helpers
         .pollForTallySyncAndMessages(
             testOrgId,
-            TEST_PRODUCT_TAG,
-            TEST_METRIC_ID,
+            RHEL_FOR_X86_ELS_PAYG.productTag(),
+            RHEL_FOR_X86_ELS_PAYG.metricIds().get(1),
             Granularity.HOURLY,
             4,
             service,
@@ -177,9 +189,8 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
         .flatMap(summary -> summary.getTallySnapshots().stream())
         .flatMap(snapshot -> snapshot.getTallyMeasurements().stream())
         .forEach(
-            measurement -> {
-              Assertions.assertFalse(
-                  measurement.getHardwareMeasurementType().toUpperCase() == "TOTAL");
-            });
+            measurement ->
+                Assertions.assertNotSame(
+                    "TOTAL", measurement.getHardwareMeasurementType().toUpperCase()));
   }
 }

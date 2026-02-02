@@ -20,44 +20,41 @@
  */
 package tests;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import io.restassured.response.Response;
+import org.junit.jupiter.api.Test;
+import utils.TallyDbHostSeeder;
+import utils.TallyTestHelpers;
+
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
-import org.junit.jupiter.api.Test;
-import utils.TallyDbHostSeeder;
-import utils.TallyTestHelpers;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static utils.TallyTestProducts.RHEL_FOR_X86;
 
 public class TallyHypervisorTests extends BaseTallyComponentTest {
 
   private static final TallyTestHelpers helpers = new TallyTestHelpers();
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
-  private static final String PRODUCT_TAG_RHEL_FOR_X86 = "RHEL for x86";
-  private static final String METRIC_ID_SOCKETS = "Sockets";
-
   @Test
   public void testHypervisorWithNoGuestsDoesNotShowInInstancesReport() throws Exception {
     String orgId = RandomUtils.generateRandom();
 
     helpers.seedNightlyTallyHostBuckets(
-        orgId, PRODUCT_TAG_RHEL_FOR_X86, UUID.randomUUID().toString(), service);
+        orgId, RHEL_FOR_X86.productTag(), UUID.randomUUID().toString(), service);
 
     helpers.syncTallyNightly(orgId, service);
 
     OffsetDateTime startOfToday = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
     OffsetDateTime endOfToday = startOfToday.plusDays(1).minusNanos(1);
-
-    int initialSockets = getDailySocketsTotal(orgId, startOfToday, endOfToday);
 
     // Seed a "hypervisor" host with no guests and no buckets.
     TallyDbHostSeeder.SeededHost hypervisorHost =
@@ -69,7 +66,7 @@ public class TallyHypervisorTests extends BaseTallyComponentTest {
     // System table check: ensure the host does not show up in instances report.
     Response instancesResponse =
         helpers.getInstancesReport(
-            orgId, PRODUCT_TAG_RHEL_FOR_X86, startOfToday, endOfToday, service);
+            orgId, RHEL_FOR_X86.productTag(), startOfToday, endOfToday, service);
     JsonNode data = objectMapper.readTree(instancesResponse.asString()).path("data");
 
     boolean found = containsSubscriptionManagerId(data, hypervisorHost.subscriptionManagerId());
@@ -82,7 +79,7 @@ public class TallyHypervisorTests extends BaseTallyComponentTest {
 
     // Seed baseline usage (non-zero) so we can assert it doesn't change.
     helpers.seedNightlyTallyHostBuckets(
-        orgId, PRODUCT_TAG_RHEL_FOR_X86, UUID.randomUUID().toString(), service);
+        orgId, RHEL_FOR_X86.productTag(), UUID.randomUUID().toString(), service);
 
     helpers.syncTallyNightly(orgId, service);
 
@@ -92,9 +89,8 @@ public class TallyHypervisorTests extends BaseTallyComponentTest {
     int initialSockets = getDailySocketsTotal(orgId, startOfToday, endOfToday);
 
     // Seed a "hypervisor" host with no guests and no buckets.
-    TallyDbHostSeeder.SeededHost hypervisorHost =
-        TallyDbHostSeeder.insertHost(
-            orgId, UUID.randomUUID().toString(), "VIRTUAL", false, false, true, 0, null);
+    TallyDbHostSeeder.insertHost(
+         orgId, UUID.randomUUID().toString(), "VIRTUAL", false, false, true, 0, null);
 
     helpers.syncTallyNightly(orgId, service);
 
@@ -109,8 +105,8 @@ public class TallyHypervisorTests extends BaseTallyComponentTest {
         helpers.getTallyReport(
             service,
             orgId,
-            PRODUCT_TAG_RHEL_FOR_X86,
-            METRIC_ID_SOCKETS,
+            RHEL_FOR_X86.productTag(),
+            RHEL_FOR_X86.metricIds().get(0),
             Map.of(
                 "granularity", "Daily",
                 "beginning", beginning.toString(),
