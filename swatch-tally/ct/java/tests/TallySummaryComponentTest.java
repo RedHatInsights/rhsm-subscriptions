@@ -22,6 +22,7 @@ package tests;
 
 import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
+import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 
 import api.MessageValidators;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
@@ -42,8 +43,8 @@ import utils.TallyTestHelpers;
 public class TallySummaryComponentTest extends BaseTallyComponentTest {
 
   private static final TallyTestHelpers helpers = new TallyTestHelpers();
-  private static final String TEST_PRODUCT_ID = "rhel-for-x86-els-payg";
-  private static final String TEST_METRIC_ID = "VCPUS";
+  private static final String TEST_PRODUCT_TAG = RHEL_FOR_X86_ELS_PAYG.productTag();
+  private static final String TEST_METRIC_ID = RHEL_FOR_X86_ELS_PAYG.metricIds().get(1);
 
   @Test
   public void testTallyNightlySummaryEmitsGranularityDaily() {
@@ -127,7 +128,7 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event4);
 
     helpers.pollForTallySyncAndMessages(
-        testOrgId, TEST_PRODUCT_ID, TEST_METRIC_ID, Granularity.DAILY, 0, service, kafkaBridge);
+        testOrgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.DAILY, 0, service, kafkaBridge);
   }
 
   @Test
@@ -165,7 +166,13 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     // and that no measurements are of type 'TOTAL'
     helpers
         .pollForTallySyncAndMessages(
-            testOrgId, TEST_PRODUCT_ID, TEST_METRIC_ID, Granularity.HOURLY, 4, service, kafkaBridge)
+            testOrgId,
+            TEST_PRODUCT_TAG,
+            TEST_METRIC_ID,
+            Granularity.HOURLY,
+            4,
+            service,
+            kafkaBridge)
         .stream()
         .flatMap(summary -> summary.getTallySnapshots().stream())
         .flatMap(snapshot -> snapshot.getTallyMeasurements().stream())
