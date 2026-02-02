@@ -25,11 +25,11 @@ import java.util.ArrayList;
 import java.util.Map;
 
 /** Facade for stubbing Product API (Offering) endpoints. */
-public class OfferingStubs {
+public class ProductApiStubs {
 
   private final ContractsWiremockService wiremockService;
 
-  protected OfferingStubs(ContractsWiremockService wiremockService) {
+  protected ProductApiStubs(ContractsWiremockService wiremockService) {
     this.wiremockService = wiremockService;
   }
 
@@ -63,17 +63,27 @@ public class OfferingStubs {
    * </ul>
    *
    * @param offering the offering to stub
-   * @see com.redhat.swatch.contract.product.UpstreamProductData#calcCapacityForOffering
    */
   public void stubUpstreamProductData(Offering offering) {
     var attributes = new java.util.ArrayList<Map<String, String>>();
-    if (offering.getCores() != null) {
-      attributes.add(Map.of("code", "CORES", "value", String.valueOf(offering.getCores())));
+
+    // For unlimited offerings, send "Unlimited" as the attribute value
+    // For regular offerings, send numeric values
+    if (offering.getHasUnlimitedUsage() != null && offering.getHasUnlimitedUsage()) {
+      // Unlimited offerings use the string "Unlimited" for CORES and SOCKET_LIMIT
+      attributes.add(Map.of("code", "CORES", "value", "Unlimited"));
+      attributes.add(Map.of("code", "SOCKET_LIMIT", "value", "Unlimited"));
+    } else {
+      // Regular offerings use numeric values
+      if (offering.getCores() != null) {
+        attributes.add(Map.of("code", "CORES", "value", String.valueOf(offering.getCores())));
+      }
+      if (offering.getSockets() != null) {
+        attributes.add(
+            Map.of("code", "SOCKET_LIMIT", "value", String.valueOf(offering.getSockets())));
+      }
     }
-    if (offering.getSockets() != null) {
-      attributes.add(
-          Map.of("code", "SOCKET_LIMIT", "value", String.valueOf(offering.getSockets())));
-    }
+
     if (offering.getHypervisorCores() != null) {
       attributes.add(
           Map.of("code", "CORES", "value", String.valueOf(offering.getHypervisorCores())));

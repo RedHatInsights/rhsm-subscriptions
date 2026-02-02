@@ -33,8 +33,9 @@ import lombok.Getter;
 
 @Getter
 public enum Product {
-  ROSA("rosa", MetricIdUtils.getCores()),
-  RHEL("RHEL for x86", MetricIdUtils.getSockets());
+  ROSA("rosa", MetricIdUtils.getCores(), MetricIdUtils.getInstanceHours()),
+  RHEL("RHEL for x86", MetricIdUtils.getSockets()),
+  OPENSHIFT("OpenShift Container Platform", MetricIdUtils.getCores(), MetricIdUtils.getSockets());
 
   private final ProductId id;
   private final Map<MetricId, Metric> metrics;

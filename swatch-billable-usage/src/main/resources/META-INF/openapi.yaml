@@ -100,7 +100,7 @@ paths:
             type: array
             uniqueItems: true
             items:
-              $ref: "#/components/schemas/OrgIds"
+              type: string
             description: "List of organization IDs. Use this parameter if updating by organization IDs."
           allowEmptyValue: false
         - name: billing_account_ids
@@ -276,12 +276,12 @@ components:
           type: string
         errorCode:
           type: string
-        tallyId:
+        billedOn:
           type: string
-    OrgIds:
-      type: string
-      properties:
-        orgIds:
+          format: date-time
+          description: "Timestamp when the remittance was successfully billed"
+          nullable: true
+        tallyId:
           type: string
     Error:
       required:

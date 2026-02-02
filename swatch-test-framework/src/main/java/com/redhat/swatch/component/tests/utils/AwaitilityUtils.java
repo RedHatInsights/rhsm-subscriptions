@@ -24,6 +24,7 @@ import com.redhat.swatch.component.tests.logging.Log;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.awaitility.Awaitility;
@@ -148,6 +149,15 @@ public final class AwaitilityUtils {
 
   public static <T> T until(Supplier<T> supplier, Matcher<T> matcher, AwaitilitySettings settings) {
     return awaits(settings).until(get(supplier), matcher);
+  }
+
+  public static <T> T until(Supplier<T> supplier, Predicate<T> predicate) {
+    return until(supplier, predicate, AwaitilitySettings.defaults());
+  }
+
+  public static <T> T until(
+      Supplier<T> supplier, Predicate<T> predicate, AwaitilitySettings settings) {
+    return awaits(settings).until(get(supplier), predicate);
   }
 
   private static <T> Callable<T> get(Supplier<T> supplier) {

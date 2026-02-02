@@ -1,0 +1,143 @@
+/*
+ * Copyright Red Hat, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Red Hat trademarks are not licensed under GPLv3. No permission is
+ * granted to use or replicate Red Hat trademarks that are incorporated
+ * in this software or its documentation.
+ */
+package com.redhat.swatch.component.tests.api;
+
+import static com.redhat.swatch.component.tests.utils.Ports.ARTEMIS_PORT;
+
+import com.redhat.swatch.component.tests.core.BaseService;
+import com.redhat.swatch.component.tests.logging.Log;
+import com.redhat.swatch.component.tests.resources.artemis.ArtemisEnvironmentResource;
+import com.redhat.swatch.component.tests.utils.JsonUtils;
+import io.restassured.http.ContentType;
+import jakarta.jms.Connection;
+import jakarta.jms.JMSException;
+import jakarta.jms.Message;
+import jakarta.jms.MessageProducer;
+import jakarta.jms.Session;
+import java.io.Serializable;
+import java.util.function.BiFunction;
+import org.apache.qpid.jms.JmsConnectionFactory;
+
+public class ArtemisService extends BaseService<ArtemisService> {
+
+  public void sendTextAsJson(String channel, Object message) {
+    String jsonMessage = JsonUtils.toJson(message);
+    this.sendText(channel, jsonMessage, ContentType.JSON.toString());
+  }
+
+  public void sendSerializableAsJson(String channel, Object message) {
+    String jsonMessage = JsonUtils.toJson(message);
+    this.sendSerializable(channel, jsonMessage, ContentType.JSON.toString());
+  }
+
+  public void sendSerializable(String channel, Serializable messageBody, String contentType) {
+    send(
+        channel,
+        messageBody,
+        contentType,
+        (session, body) -> {
+          try {
+            return session.createObjectMessage(body);
+          } catch (JMSException e) {
+            throw new RuntimeException(e);
+          }
+        });
+  }
+
+  public void sendText(String channel, String messageBody, String contentType) {
+    send(
+        channel,
+        messageBody,
+        contentType,
+        (session, body) -> {
+          try {
+            return session.createTextMessage(body);
+          } catch (JMSException e) {
+            throw new RuntimeException(e);
+          }
+        });
+  }
+
+  private <T> void send(
+      String channel,
+      T messageBody,
+      String contentType,
+      BiFunction<Session, T, Message> messageCreator) {
+    String normalizedChannel =
+        getManagedResource(ArtemisEnvironmentResource.class).normalizeChannel(channel);
+    Log.info(this, "Preparing to send message to channel '%s'", normalizedChannel);
+    Log.debug(this, "Message body: %s", messageBody);
+
+    Connection connection = null;
+    Session session = null;
+    MessageProducer producer = null;
+
+    try {
+      var factory = new JmsConnectionFactory(this.getUmbBrokerUrl());
+
+      connection = factory.createConnection();
+      connection.start();
+
+      session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+      var destination = session.createTopic(normalizedChannel);
+      producer = session.createProducer(destination);
+
+      var message = messageCreator.apply(session, messageBody);
+      if (contentType != null) {
+        message.setStringProperty("contentType", contentType);
+      }
+
+      producer.send(message);
+
+      Log.info(this, "Message sent to channel '%s' successfully", normalizedChannel);
+
+    } catch (JMSException e) {
+      Log.error(
+          this, "Failed to send message to channel '%s': %s", normalizedChannel, e.getMessage());
+      throw new RuntimeException(
+          "Failed to send message to channel '" + normalizedChannel + "'", e);
+    } catch (Exception e) {
+      Log.error(this, "Unexpected error while sending AMQP message: %s", e.getMessage(), e);
+      throw e;
+    } finally {
+      try {
+        if (producer != null) {
+          producer.close();
+        }
+
+        if (session != null) {
+          session.close();
+        }
+
+        if (connection != null) {
+          connection.close();
+          Log.debug(this, "Connection closed successfully");
+        }
+      } catch (JMSException e) {
+        Log.warn(this, "Error closing connection: %s", e.getMessage());
+      }
+    }
+  }
+
+  private String getUmbBrokerUrl() {
+    return "amqp://%s:%s".formatted(getHost(), getMappedPort(ARTEMIS_PORT));
+  }
+}

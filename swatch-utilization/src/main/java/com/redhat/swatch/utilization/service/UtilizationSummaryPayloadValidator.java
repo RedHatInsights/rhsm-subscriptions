@@ -77,16 +77,6 @@ public class UtilizationSummaryPayloadValidator {
       return false;
     }
 
-    // This following validation is to be removed by SWATCH-4335
-    boolean isPayg = isPaygProduct(payload);
-    if (isPayg && granularity != Granularity.HOURLY) {
-      logValidationFailure(payload, "granularity must be HOURLY for payg products");
-      return false;
-    } else if (!isPayg && granularity != Granularity.DAILY) {
-      logValidationFailure(payload, "granularity must be DAILY for non-payg products");
-      return false;
-    }
-
     return true;
   }
 

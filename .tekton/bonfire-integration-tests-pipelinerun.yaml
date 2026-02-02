@@ -1,0 +1,64 @@
+---
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: bonfire-integration-tests-pipelinerun-
+  annotations:
+    build.appstudio.openshift.io/repo: https://github.com/RedHatInsights/rhsm-subscriptions
+    pipelinesascode.tekton.dev/max-keep-runs: "3"
+spec:
+  pipelineRef:
+    resolver: git
+    params:
+      - name: url
+        value: "https://github.com/RedHatInsights/rhsm-subscriptions.git"
+      - name: revision
+        value: "main"
+      - name: pathInRepo
+        value: .tekton/bonfire-integration-tests-pipeline.yaml
+  params:
+    # Bonfire configuration
+    - name: BONFIRE_REPO
+      value: "https://github.com/RedHatInsights/bonfire-tekton"
+    - name: BONFIRE_REVISION
+      value: "main"
+    - name: BONFIRE_IMAGE
+      value: "quay.io/redhat-services-prod/hcm-eng-prod-tenant/cicd-tools:3a72fea"
+    
+    # Ephemeral environment configuration
+    - name: NAMESPACE_RESERVE_DURATION
+      value: "120m"
+    
+    # Application configuration
+    - name: APP_NAME
+      value: "rhsm"
+    - name: COMPONENT_NAME
+      value: "rhsm"
+    - name: COMPONENTS_W_RESOURCES
+      value: "app:rhsm app:export-service"
+    
+    # Deployment configuration
+    - name: EXTRA_DEPLOY_ARGS
+      value: "--timeout 1800"
+    - name: DEPLOY_FRONTENDS
+      value: "false"
+    - name: DEPLOY_TIMEOUT
+      value: "1800"
+    
+    # IQE test configuration
+    - name: IQE_PLUGINS
+      value: "rhsm-subscriptions"
+    - name: IQE_MARKER_EXPRESSION
+      value: "ephemeral"
+    - name: IQE_FILTER_EXPRESSION
+      value: ""
+    - name: IQE_CJI_TIMEOUT
+      value: "120m"
+    - name: IQE_ENV
+      value: "clowder_smoke"
+    - name: IQE_IMAGE_TAG
+      value: "rhsm-subscriptions"
+    - name: IQE_PARALLEL_ENABLED
+      value: "false"
+    - name: IQE_LOG_LEVEL
+      value: "debug"

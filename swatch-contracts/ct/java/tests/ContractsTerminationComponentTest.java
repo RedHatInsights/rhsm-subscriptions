@@ -20,6 +20,7 @@
  */
 package tests;
 
+import static api.PartnerApiStubs.PartnerSubscriptionsStubRequest.forContract;
 import static domain.Contract.buildRosaContract;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -30,9 +31,15 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static utils.DateUtils.assertDatesAreEqual;
 
+import api.ContractsArtemisService;
+import api.PartnerApiStubs;
+import com.redhat.swatch.component.tests.api.Artemis;
 import com.redhat.swatch.component.tests.api.TestPlanName;
+import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.contract.test.model.SkuCapacityV2;
 import com.redhat.swatch.contract.test.model.SubscriptionEventType;
@@ -45,6 +52,7 @@ import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.http.HttpStatus;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class ContractsTerminationComponentTest extends BaseContractComponentTest {
@@ -52,6 +60,96 @@ public class ContractsTerminationComponentTest extends BaseContractComponentTest
   private static final double ROSA_CORES_CAPACITY = 8.0;
   private static final double RHEL_CORES_CAPACITY = 4.0;
   private static final double RHEL_SOCKETS_CAPACITY = 1.0;
+  private static final String SUBSCRIBED = "SUBSCRIBED";
+  private static final String UNSUBSCRIBED = "UNSUBSCRIBED";
+
+  @Artemis static ContractsArtemisService artemis = new ContractsArtemisService();
+
+  @TestPlanName("contracts-termination-TC001")
+  @Test
+  void shouldRemainActiveAfterReceivingANonTerminationEvent() {
+    // Given: An active contract exists
+    Contract initialContract = givenContractCreatedViaMessageBroker();
+
+    // When: A UMB message is received with status "SUBSCRIBED"
+    whenUpdateContractWithStatusViaMessageBroker(initialContract, SUBSCRIBED);
+
+    // Then: The existing contract should remain active
+    var actual = thenContractIsUpdatedViaMessageBroker(initialContract);
+    assertNotNull(actual.getEndDate());
+    assertTrue(
+        actual.getEndDate().isAfter(OffsetDateTime.now()),
+        "End date should still be in the future (contract remains active)");
+  }
+
+  @TestPlanName("contracts-termination-TC002")
+  @Test
+  void shouldUpdateEndDateAfterReceivingATerminationEvent() {
+    // Given: An active contract exists
+    Contract initialContract = givenContractCreatedViaMessageBroker();
+
+    // When: A UMB message is received with status "UNSUBSCRIBED"
+    Contract updatedContract =
+        whenUpdateContractWithStatusViaMessageBroker(initialContract, UNSUBSCRIBED);
+
+    // Then: The existing contract should remain active
+    var actual = thenContractIsUpdatedViaMessageBroker(initialContract);
+    assertNotNull(actual.getEndDate(), "End date should not be null");
+    assertDatesAreEqual(updatedContract.getEndDate(), actual.getEndDate());
+  }
+
+  @TestPlanName("contracts-termination-TC003")
+  @Test
+  void shouldUpdateEndDateForExistingTerminatedContractAfterReceivingATerminationEvent() {
+    // Given: A terminated contract exists
+    Contract terminatedContract = givenContractTerminatedViaMessageBroker();
+
+    // When: A UMB message is received with status "UNSUBSCRIBED"
+    Contract updatedContract =
+        whenUpdateContractWithStatusViaMessageBroker(terminatedContract, UNSUBSCRIBED);
+
+    // Then: The existing contract should remain active
+    var actual = thenContractIsUpdatedViaMessageBroker(updatedContract);
+    assertDatesAreEqual(actual.getEndDate(), updatedContract.getEndDate());
+  }
+
+  @TestPlanName("contracts-termination-TC004")
+  @Test
+  void shouldCreateContractAfterReceivingMessageForNonExistingContract() {
+    // Given non-existing contract
+
+    // When: A UMB message is received with status "UNSUBSCRIBED"
+    Contract contract =
+        Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, ROSA_CORES_CAPACITY));
+    wiremock.forProductAPI().stubOfferingData(contract.getOffering());
+    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(contract);
+    service.syncOffering(contract.getOffering().getSku());
+    whenUpdateContractWithStatusViaMessageBroker(contract, UNSUBSCRIBED);
+
+    // Wait for the contract to be processed
+    AwaitilityUtils.until(() -> service.getContracts(contract).size(), is(1));
+
+    // Then: The existing contract should remain active
+    var actual = thenContractIsCreatedViaMessageBroker(contract);
+    assertNotNull(actual.getEndDate(), "End date should not be null");
+    assertTrue(actual.getEndDate().isAfter(OffsetDateTime.now()), "End date should be updated");
+  }
+
+  @TestPlanName("contracts-termination-TC005")
+  @Test
+  void shouldUpdateEndDateForExistingTerminatedContractAfterReceivingANonTerminationEvent() {
+    // Given: A terminated contract exists
+    Contract terminatedContract = givenContractTerminatedViaMessageBroker();
+
+    // When: A UMB message is received with status "SUBSCRIBED"
+    Contract updatedContract =
+        whenUpdateContractWithStatusViaMessageBroker(terminatedContract, SUBSCRIBED);
+
+    // Then: The existing contract should remain active
+    var actual = thenContractIsUpdatedViaMessageBroker(updatedContract);
+    assertNotNull(actual.getEndDate(), "End date should not be null");
+    assertDatesAreEqual(updatedContract.getEndDate(), actual.getEndDate());
+  }
 
   @TestPlanName("contracts-termination-TC006")
   @Test
@@ -92,6 +190,22 @@ public class ContractsTerminationComponentTest extends BaseContractComponentTest
     thenSubscriptionIsUpdatedWithNextEventData(subscription);
   }
 
+  private Contract givenContractTerminatedViaMessageBroker() {
+    Contract contract =
+        Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, ROSA_CORES_CAPACITY))
+            // end date in the past
+            .toBuilder()
+            .endDate(OffsetDateTime.now().minusDays(1))
+            .build();
+    return whenSendContractViaMessageBroker(contract);
+  }
+
+  private Contract givenContractCreatedViaMessageBroker() {
+    Contract contract =
+        Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, ROSA_CORES_CAPACITY));
+    return whenSendContractViaMessageBroker(contract);
+  }
+
   /** Helper method to verify a subscription is active in the capacity report. */
   private Subscription givenRhelSubscriptionIsActiveInCapacityReport() {
     String sku = RandomUtils.generateRandom();
@@ -126,6 +240,56 @@ public class ContractsTerminationComponentTest extends BaseContractComponentTest
             .anyMatch(s -> sub.getSubscriptionId().equals(s.getId()));
     assertTrue(containsId, "Active subscriptions should include created subscription id");
     return sub;
+  }
+
+  private Contract whenUpdateContractWithStatusViaMessageBroker(
+      Contract initialContract, String status) {
+    Contract updatedContract =
+        initialContract.toBuilder().endDate(OffsetDateTime.now().plusDays(30)).build();
+    wiremock
+        .forPartnerAPI()
+        .stubPartnerSubscriptions(
+            PartnerApiStubs.PartnerSubscriptionsStubRequest.forContractWithStatus(
+                updatedContract, status));
+    artemis.forContracts().sendAsText(updatedContract);
+    return updatedContract;
+  }
+
+  private Contract whenSendContractViaMessageBroker(Contract contract) {
+    wiremock.forProductAPI().stubOfferingData(contract.getOffering());
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(contract));
+    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(contract);
+
+    Response sync = service.syncOffering(contract.getOffering().getSku());
+    assertThat("Sync offering should succeed", sync.statusCode(), is(HttpStatus.SC_OK));
+
+    // Send the contract via Message Broker (Artemis)
+    artemis.forContracts().sendAsText(contract);
+
+    // Wait for the contract to be processed
+    AwaitilityUtils.until(() -> service.getContracts(contract).size(), is(1));
+    return contract;
+  }
+
+  private com.redhat.swatch.contract.test.model.Contract thenContractIsUpdatedViaMessageBroker(
+      Contract initialContract) {
+    return thenContractIsUpdatedWithMessageViaMessageBroker(
+        initialContract, "Existing contracts and subscriptions updated");
+  }
+
+  private com.redhat.swatch.contract.test.model.Contract thenContractIsCreatedViaMessageBroker(
+      Contract initialContract) {
+    return thenContractIsUpdatedWithMessageViaMessageBroker(
+        initialContract, "New contract created");
+  }
+
+  private com.redhat.swatch.contract.test.model.Contract
+      thenContractIsUpdatedWithMessageViaMessageBroker(
+          Contract initialContract, String expectedMessage) {
+    service.logs().assertContains(expectedMessage);
+    var contracts = service.getContracts(initialContract);
+    Assertions.assertEquals(1, contracts.size());
+    return contracts.get(0);
   }
 
   private void thenSubscriptionIsUpdatedWithNextEventData(Subscription subscription) {

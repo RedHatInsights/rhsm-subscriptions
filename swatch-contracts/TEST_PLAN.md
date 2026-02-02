@@ -44,7 +44,7 @@ Test cases should be testable locally and in an ephemeral environment.
 
 # Test Cases
 
-## Contract Creation via Kafka Messages
+## Contract Creation via Event messages
 
 **contracts-creation-TC001 - Process a valid PAYG contract with one valid dimension for AWS Marketplace**  
 - **Description**: Verify that an AWS PAYG contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
@@ -96,10 +96,10 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Expected Result**:  
   - HTTP 200 response  
   - Response contains status.status: "SUCCESS"  
-  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)  
-  - Validate  
-  - `billing_provider=azure`  
-  - `billing_provider_id` formatted as `{azureResourceId};{planId};{vendorProductCode}`  
+  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)
+  - Validate
+  - `billing_provider=azure`
+  - `billing_provider_id` formatted as `{azureResourceId};{planId};{vendorProductCode};{customer};{clientId}`
   - `billing_account_id` contains azureTenantId
 
 **contracts-creation-TC004 -** **Process a valid PURE PAYG contract (without dimensions) for the Azure Marketplace**  
@@ -114,12 +114,12 @@ Test cases should be testable locally and in an ephemeral environment.
   - Query contract via internal API: GET /internal/contracts?org_id=org123  
   - Verify contract exists with correct fields  
 - **Expected Result**:  
-  - HTTP 200 response  
-  - Response contains status.status: "SUCCESS"  
-  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)  
-  - Validate  
-  - `billing_provider=azure`  
-  - `billing_provider_id` formatted as `{azureResourceId};{planId};{vendorProductCode}`  
+  - HTTP 200 response
+  - Response contains status.status: "SUCCESS"
+  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)
+  - Validate
+  - `billing_provider=azure`
+  - `billing_provider_id` formatted as `{azureResourceId};{planId};{vendorProductCode};{customer};{clientId}`
   - `billing_account_id` contains azureTenantId
 
 **contracts-creation-TC005 - Process contract with multiple metrics/dimensions**  
@@ -171,6 +171,21 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Expected Result**:  
   - HTTP 400 Bad Request  
   - Error message indicates a missing required field
+
+**contracts-creation-TC016 - Process a valid PAYG contract sent as an object instead of text via message broker (UMB)**
+- **Description**: Verify that an AWS PAYG contract can be successfully created when receiving the message as an object instead of text.
+- **Setup**:
+  - Ensure `UMB_ENABLED=true`
+  - Prepare a valid AWS partner entitlement message
+- **Action:**
+  - Publish message to UMB channel as an object instead of text
+- **Verification**:
+  - Query contract via internal API: GET /internal/contracts?org_id=org123
+  - Verify contract exists with correct fields
+  - Verify service is UP and running
+- **Expected Result**:
+  - HTTP 200 response
+  - Response contains the created contract
 
 ## Contract Creation via Internal API
 
@@ -335,7 +350,7 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Expected Result**:  
   - Initial contract created  
   - Second message updates existing contract  
-  - StatusResponse: "EXISTING_CONTRACTS_SYNCED"  
+  - StatusResponse: "Existing contracts and subscriptions updated"  
   - End date updated to new value
 
 **contracts-update-TC002 - Process redundant contract message**  
@@ -345,7 +360,7 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Verification**: Check the database for a single contract only  
 - **Expected Result**:  
   - First message creates a contract  
-  - Second message: StatusResponse "REDUNDANT_MESSAGE_IGNORED"  
+  - Second message: StatusResponse "Redundant message ignored"  
   - No duplicate contracts created
 
 ## Contract Update via API
@@ -523,23 +538,23 @@ Test cases should be testable locally and in an ephemeral environment.
 ## Contract Deletion
 
 **contracts-deletion-TC001** - **Delete contract by UUID**  
-- **Description:** Verify hard deletion of contract and its metrics.  
+- **Description:** Verify hard deletion of contract by UUID.  
 - **Setup:** Create a contract and note its UUID.  
 - **Action:** DELETE `/api/swatch-contracts/internal/contracts/{uuid}`.  
-- **Verification:** Attempt to retrieve deleted contract.  
+- **Verification:** 
+  - Verify contract is no longer retrievable
 - **Expected Result:**  
-  - HTTP 200 response  
-  - Contract no longer retrievable  
-  - Associated metrics also deleted
+  - HTTP 204 No Content response
+  - Contract no longer returned by organization contract lookup
 
 **contracts-deletion-TC002** - **Delete non-existent contract**  
-- **Description:** Verify error handling for deleting a non-existent UUID.  
+- **Description:** Verify graceful handling for deleting a non-existent UUID.  
 - **Setup:** Generate a random UUID that doesn't exist.  
 - **Action:** DELETE contract with invalid UUID.  
-- **Verification:** Check error response.  
+- **Verification:** Check response for idempotent behavior.  
 - **Expected Result:**  
-  - HTTP 404 Not Found or appropriate error  
-  - Error message indicates contract not found
+  - HTTP 204 No Content (idempotent behavior - delete succeeds regardless)  
+  - Graceful handling of non-existent contracts
 
 ## Contract Sync
 
@@ -573,16 +588,7 @@ Test cases should be testable locally and in an ephemeral environment.
   - StatusResponse: "All Contracts are Synced"
   - Each org's contracts synced
 
-**contracts-sync-TC004 - Sync when no contracts exist**  
-- **Description**: Verify sync all when no active contracts are found.  
-- **Setup**: Ensure no contracts.  
-- **Action:** POST syncAllContracts.  
-- **Verification**: Check response.  
-- **Expected Result**:  
-  - Status: "No active contract found for the orgIds"  
-  - No errors
-
-**contracts-sync-TC005** - Sync subscriptions for contracts by org**  
+**contracts-sync-TC004** - Sync subscriptions for contracts by org**  
 - **Description**: Verify subscription sync for all contracts of an org.  
 - **Setup**: Have contracts for org without subscriptions.  
 - **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{org_id}/subscriptions`.  
@@ -591,7 +597,7 @@ Test cases should be testable locally and in an ephemeral environment.
   - StatusResponse success  
   - Subscriptions synced from Subscription API
 
-**contracts-sync-TC006 - Clear all contracts for the organization**
+**contracts-sync-TC005 - Clear all contracts for the organization**
 - **Description**: Verify that deleteContractsByOrg removes all org contracts.
 - **Setup**: Create multiple contracts for the org.
 - **Action**: DELETE `/api/swatch-contracts/internal/rpc/reset/{org_id}`.
@@ -600,15 +606,14 @@ Test cases should be testable locally and in an ephemeral environment.
   - HTTP 204 No Content
   - No contracts remain for org_id
 
-## Subscription Management via Kafka
+## Subscription Management via UMB
 
-**subscriptions-creation-TC001 - Process a valid UMB subscription XML message from Kafka**  
-- **Description**: Verify subscription creation via UMB XML Kafka message.  
+**subscriptions-creation-TC001 - Process a valid UMB subscription XML message from UMB**  
+- **Description**: Verify subscription creation via UMB XML message.  
 - **Setup**:  
   - Ensure `UMB_ENABLED=true`
-  - Kafka topic `SUBSCRIPTION_SYNC_TASK_UMB` available  
 - **Action**:  
-  - Publish message to `SUBSCRIPTION_SYNC_TASK_UMB` Kafka topic  
+  - Publish message to `VirtualTopic.canonical.subscription` channel
 - **Verification**:  
   - Query subscription via internal API  
   - Verify subscription created  
@@ -617,13 +622,13 @@ Test cases should be testable locally and in an ephemeral environment.
 - Subscription entity created for org  
 - `subscription_number`  
 - quantity  
-- sku  
+- sku
 - Start and end dates are correctly parsed  
 
 **subscriptions-creation-TC002 - Process UMB subscription with AWS external references**  
 - **Description**: Verify AWS marketplace subscription data extraction from UMB.  
 - **Action**:  
-  - Publish message to `SUBSCRIPTION_SYNC_TASK_UMB` Kafka topic  
+  - Publish message to `VirtualTopic.canonical.subscription` channel  
 - **Verification**: Query subscription and check AWS fields  
 - **Expected Result**:  
   - Subscription created with AWS external references  
@@ -637,14 +642,12 @@ Test cases should be testable locally and in an ephemeral environment.
   - Publish message to `SUBSCRIPTION_SYNC_TASK_UMB` Kafka topic  
 - **Verification**: Check Azure-specific fields  
 - **Expected Result**:  
-- Subscription created with Azure references  
-- `billing_provider=azure`  
- - `billing_account_id` contains Azure tenant ID
+- Subscription created with null references since subscription sync does not populate the Azure external references
 
 **subscriptions-creation-TC004 - Process malformed UMB XML message**  
 - **Description**: Verify error handling for invalid XML.  
 - **Action**:  
-  - Publish malformed UMB XML message to `SUBSCRIPTION_SYNC_TASK_UMB` Kafka topic  
+  - Publish malformed UMB XML message to `VirtualTopic.canonical.subscription` channel  
 - **Verification**: Subscription not created  
 - **Expected Result**:  
   - `JsonProcessingException` thrown (XML parsing error)  
@@ -654,7 +657,7 @@ Test cases should be testable locally and in an ephemeral environment.
 **subscriptions-creation-TC005 - Process UMB message with missing required fields**  
 - **Description**: Verify validation for incomplete subscription data.  
 - **Action**:  
-  - Publish the UMB message  with missing required fields `SUBSCRIPTION_SYNC_TASK_UMB` Kafka topic  
+  - Publish the UMB message with missing required fields to `VirtualTopic.canonical.subscription` channel  
 - **Verification**: Check for validation errors  
 - **Expected Result**:  
   - Validation failure or graceful error handling  
@@ -674,19 +677,10 @@ Test cases should be testable locally and in an ephemeral environment.
   - Updated fields reflected in the database  
   - No duplicate subscriptions
 
-**subscriptions-creation-TC007 - Process UMB message with multiple products/SKUs**  
-- **Description**: Verify a single subscription with multiple product SKUs.  
-- **Action**: Publish a subscription with multiple products/SKUs to the `SUBSCRIPTION_SYNC_TASK_UMB` Kafka topic  
-- **Verification:** Check subscription has multiple product associations  
-- **Expected Result**:  
-  - Single subscription created  
-  - Multiple SKUs associated (parent + children)  
-  - All products stored correctly
-
-**subscriptions-creation-TC008 - Process terminated subscription via UMB**  
+**subscriptions-creation-TC007 - Process terminated subscription via UMB**  
 - **Description**: Verify subscription termination messages.  
 - **Action**:  
-  - Publish message to `SUBSCRIPTION_SYNC_TASK_UMB` Kafka topic  
+  - Publish message to `VirtualTopic.canonical.subscription` channel  
   - Update the end date to the current timestamp  
 - **Verification**: Check subscription `end_date` updated  
 - **Expected Result**:  
@@ -708,20 +702,7 @@ Test cases should be testable locally and in an ephemeral environment.
   - Validate  
   - Contract/subscription table.
 
-**subscriptions-creation-TC010** - **Save subscriptions PURE PAYG**  
-- **Description:** Verify subscription saving when enabled.  
-- **Setup:** Prepare subscriptions with JSON array  
-- **Action:**   
-  - POST `/api/swatch-contracts/internal/subscriptions` with JSON array.  
-  - Sync subscriptions  
-- **Verification:** Query saved subscriptions.  
-  - Expected Result:  
-  - SubscriptionResponse: "Success"  
-  - Subscriptions persisted  
-  - Multiple subscriptions created from an array  
-- **Note:** This endpoint **SUPPORTS multiple subscriptions** via JSON array
-
-**subscriptions-creation-TC003** - **Save subscriptions PAYG**  
+**subscriptions-creation-TC010** - **Save subscriptions PAYG**  
 - **Description:** Verify subscription saving when enabled.  
 - **Setup:** Prepare subscriptions with JSON array  
 - **Action:**   
@@ -740,8 +721,7 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Action:** PUT `/api/swatch-contracts/internal/rpc/subscriptions/sync`.  
 - **Verification**: Monitor sync queue.  
 - **Expected Result:**  
-  - RpcResponse with success  
-  - Sync tasks enqueued for each org
+  - RpcResponse with success
 
 **subscriptions-sync-TC002** - **Sync UMB subscription XML message**  
 - **Description:** Verify processing of UMB CanonicalMessage XML.  
@@ -872,13 +852,13 @@ Test cases should be testable locally and in an ephemeral environment.
   - Product tag reflects changes from updated attributes.
   - Update operation completes without errors.
 
-**offering-update-TC002: Handle malformed events**
-- **Description:** Verify that invalid or malformed UMB messages are handled gracefully without affecting system stability.
-- **Setup:** Prepare various malformed UMB messages (invalid JSON, missing required fields, corrupted data).
-- **Action:** Send malformed UMB messages through message broker.
+**offering-update-TC002: Handle malformed event**
+- **Description:** Verify that the malformed UMB message is handled gracefully without affecting system stability.
+- **Setup:** Prepare one malformed UMB message (invalid JSON).
+- **Action:** Send the malformed UMB message through message broker.
 - **Verification:** Check system logs and verify no offering data corruption, system remains operational.
 - **Expected Result:**
-  - System processes malformed events without crashing or data corruption.
+  - System processes the malformed event without crashing or data corruption.
   - Valid offerings remain unaffected by malformed UMB events.
   - Appropriate error handling and logging for debugging malformed events.
 
@@ -932,13 +912,13 @@ Test cases should be testable locally and in an ephemeral environment.
 
 *capacity-report-TC001 - Get V2 SKU capacity report**
 - **Description:** Verify the V2 endpoint with an enhanced measurement array.
-- **Setup:** Create subscriptions with multiple metrics.
-- **Action:** GET /api/rhsm-subscriptions/v2/subscriptions/products/rhel
+- **Setup:** Create subscriptions with multiple metrics for a product that supports multiple dimensions.
+- **Action:** GET /api/rhsm-subscriptions/v2/subscriptions/products/{product_id}
 - **Verification:** Ensure the subscription was successfully created.
 - **Expected Result:**
   - SkuCapacityReport_V2 returned
-  - The measurements field is an array of doubles, matching the received values (e.g., [8.0, 100.0]`)
-  - Meta includes measurements array with metric names (e.g., ["Cores", "Instance-hours"])
+  - The measurements field is an array of doubles, matching the received values (e.g., [8.0, 2.0])
+  - Meta includes measurements array with metric names corresponding to product metrics
 
 **capacity-report-TC002 -  Get Capacity Report by Product and Metric**
 - **Description**: Verify capacity report retrieval for a specific product and metric
@@ -947,8 +927,8 @@ Test cases should be testable locally and in an ephemeral environment.
   - User authenticated with a valid org_id
 - **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
 - **Test Steps**:
-  1. Create subscriptions for RHEL with the Cores metric
-  2. GET capacity report for product=RHEL, metric=Cores
+  1. Create subscriptions for a product with a specific metric
+  2. GET capacity report for the product and metric
   3. Specify granularity=DAILY, time range (beginning, ending)
 - **Expected Results**:
   - HTTP 200 OK
@@ -963,18 +943,18 @@ Test cases should be testable locally and in an ephemeral environment.
   - User authenticated with a valid org_id
 - **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
 - **Test Steps**:
-  1. Create 3 subscriptions for the same product with Cores capacity (10, 20, 30)
+  1. Create 3 subscriptions for the same product with varying capacity values
   2. All subscriptions active in the queried time range
   3. GET capacity report
 - **Expected Results**:
-  - Capacity value = sum of all subscriptions (60)
+  - Capacity value = sum of all subscriptions
   - Single data point per time period
 
 **capacity-report-TC004 - Capacity Report with No Data**
 - **Description**: Verify behavior when no subscriptions match the criteria
 - **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
 - **Test Steps**:
-  1. GET capacity for product with no subscriptions
+  1. GET capacity report for a product with no subscriptions
 - **Expected Results**:
   - HTTP 200 OK
   - data array has entries with value=0 and hasData=false
@@ -987,7 +967,7 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
 - **Test Steps**:
   1. Create a subscription with an end_date in the past
-  2. Create an active subscription
+  2. Create an active subscription for the same product
   3. GET capacity report
 - **Expected Results**:
   - Only active subscription capacity included
@@ -1237,8 +1217,8 @@ This section validates capacity calculations across time boundaries. Tests verif
   1. Create a subscription ending on day 5 of 10 days
   2. GET capacity
 - **Expected Results**:
-  - Days 1-5: capacity included
-  - Days 6-10: capacity excluded
+  - Days 1-4: capacity included
+  - Days 5-10: capacity excluded
 
 **capacity-report-temporal-boundaries-TC003 - Subscription Completely Outside Range**
 - **Description**: Verify subscription outside the time range is excluded
@@ -1428,3 +1408,115 @@ This section validates capacity calculations across time boundaries. Tests verif
   3. Reconcile
 - **Expected Results**:
   - HYPERVISOR Sockets measurement = 40
+
+## Metered Cores
+**capacity-metrics-TC005 - Decreasing metered Cores**
+- **Description**: Verify that a metered capacity decreases when the cores quantity is decreased
+- **Test Steps**:
+  1. Given: Create a contract with Rosa (rosa) product that has Core:8
+  2. When: Update the Cores to 4 and run Subscriptions sync
+  3. Then: Verify that the cores are updated (decreased) and the capacity reflects the update sku
+- **Expected Results**: 
+  - the Cores will reflect 4 cores 
+
+**capacity-metrics-TC006 - Increasing metered Cores**
+- **Description**: Verify that a metered capacity increases when the core quantity is increased
+- **Test Steps**:
+  1. Given: Create a contract with a Rosa (rosa) product that has Core:4
+  2. When: Update the Cores to 8 and run Subscriptions sync
+  3. Then: Verify that the cores are updated (increased) and the capacity reflects the updated sku
+- **Expected Results**: 
+  - the Cores will reflect 8 cores 
+
+## Non-metered cores
+**capacity-metrics-TC007 - Decreasing Non metered cores**
+- **Description**: Verify that a non-metered capacity decreases when the core quantity is decreased
+- **Test Steps**:
+  1. Given: create a subscription with OpenShift Container Platform (openshift-container-platform) Cores 8
+  2. When: Update the cores to be 4 and run Subscription sync
+  3. Then: Verify that the cores are updated (decreased) and the capacity reflects the updated sku
+- **Expected Results**: 
+  - the Cores will reflect the 4 cores
+
+**capacity-metrics-TC008 - Increasing Non metered cores**
+- **Description**: Verify that a non-metered capacity increases when the core quantity is increased
+- **Test Steps**:
+  1. Given: create a subscription with OpenShift Container Platform (openshift-container-platform) Cores 4
+  2. When: Update the cores to be 8 and run Subscription sync
+  3. Then: Verify that the cores are updated (increased) and the capacity reflects the updated sku
+- **Expected Results**: 
+  - the Cores will reflect the 8 cores
+
+## Non-metered Sockets
+**capacity-metrics-TC009 - Decreasing Non metered sockets**
+- **Description**: Verify that a non-metered capacity decreases when the sockets quantity is decreased
+- **Test Steps**:
+  1. Given: create a subscription with Satellite Server product (satellite-server) sockets 8
+  2. When: Update the sockets to be 4 and run Subscription sync
+  3. Then: Verify that the sockets are updated (decreased) and the capacity reflects the updated sku
+- **Expected Results**: 
+  - the sockets will reflect the 4 sockets
+
+**capacity-metrics-TC010 - Increasing Non metered sockets**
+- **Description**: Verify that a RHEL for x86 (rhel-for-x86) capacity increases when the sockets quantity is increased
+- **Test Steps**: 
+  1. Given: create a subscription with sku sockets 4
+  2. When: Update the RHEL for x86 (rhel-for-x86) sockets to be 8 and run Subscription sync/Reconcile (?)
+  3. Then: Verify that the sockets are updated (increased) and the capacity reflects the updated sku
+- **Expected Results**: 
+  - the sockets will reflect the 8 sockets
+
+## Accounts with Subscriptions and or contracts
+**capacity-metrics-TC011 - Increasing subscription on an account with multiple contracts**
+- **Description**: Verify that an account with multiple contracts and a subscription increases when the capacity quantity is increased
+- **Test Steps**:
+  1. Given: Create an account with two contracts and a subscription
+  2. When: Increase the sku related to the subscription and run Subscription sync
+  3. Then: Verify that the capacity increases
+- **Expected Results**: 
+  - that the capacity increases
+
+**capacity-metrics-TC012 - Decreasing subscription on an account with multiple contracts**
+- **Description**: Verify that an account with multiple contracts and a subscription decreases when the capacity quantity is decreased
+- **Test Steps**:
+  1. Given: Create an account with two contracts and a subscription
+  2. When: Decrease the sku related to the subscription and run Subscription sync
+  3. Then: Verify that the capacity decreases
+- **Expected Results**: 
+  - that the capacity decreases 
+
+**capacity-metrics-TC013 - Increasing contract on an account with multiple subscriptions**
+- **Description**: Verify that an account with multiple subscriptions and a contract increases when the capacity quantity is increased
+- **Test Steps**:
+  1. Given: Create an account with two subscriptions and a contract
+  2. When: Increase the metrics related to the contract and run Subscription sync
+  3. Then: Verify that the capacity increases
+- **Expected Results**: 
+  - that the capacity increases
+
+**capacity-metrics-TC014 - Decreasing contract on an account with multiple subscriptions**
+- **Description**: Verify that an Account with multiple subscriptions and a contract decreases when the capacity quantity is decreased
+- **Test Steps**:
+  1. Given: Create an account with two subscriptions and a contract
+  2. When: Decrease the metrics related to the contract and run Subscription sync
+  3. Then: Verify that the capacity decreases
+- **Expected Results**: 
+  - that the capacity decreases 
+
+**capacity-metrics-TC015 - Increasing capacity with multiple subscriptions**
+- **Description**: Verify that an account with multiple subscriptions and multiple contracts increases when the capacity quantity is increased
+- **Test Steps**:
+  1. Given: Create an account with two subscriptions and two contracts
+  2. When: Increase the metrics related to one of the contracts, increase the sku related to one of the subscriptions and run Subscription sync
+  3. Then: Verify that the capacity increases for both
+- **Expected Results**: 
+  - that the capacity increases for both
+
+**capacity-metrics-TC016 - Decreasing capacity with multiple subscriptions**
+- **Description**: Verify that an account with multiple subscriptions and multiple contracts decreases when the capacity quantity is decreased
+- **Test Steps**:
+  1. Given: Create an account with two subscriptions and two contracts
+  2. When: Decrease the metrics related to the contract, decrease the sku related to one of the subscriptions and run Subscription sync
+  3. Then: Verify that the capacity decreases for both
+- **Expected Results**: 
+  - that the capacity decreases for both 

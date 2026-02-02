@@ -30,12 +30,13 @@ import lombok.experimental.SuperBuilder;
 
 /** Test data model for building offering test scenarios in component tests. */
 @Getter
-@SuperBuilder
+@SuperBuilder(toBuilder = true)
 @AllArgsConstructor
 public class Offering {
 
   // Constants for RHEL for x86 offering defaults
   private static final String RHEL_DESCRIPTION = "Test component for RHEL for x86";
+  private static final String RHEL_UNLIMITED_DESCRIPTION = "Test offering with unlimited usage";
   private static final String RHEL_ROLE = "Red Hat Enterprise Linux Server";
 
   // Constants for ROSA offering defaults
@@ -43,9 +44,18 @@ public class Offering {
   private static final String ROSA_LEVEL1 = "OpenShift";
   private static final String ROSA_LEVEL2 = "ROSA - RH OpenShift on AWS";
 
+  // Constants for OpenShift Container Platform offering defaults
+  private static final String OPENSHIFT_DESCRIPTION =
+      "Test component for OpenShift Container Platform";
+
   // Common Constants
-  private static final String METERED_YES = "Y";
-  private static final String METERED_NO = "N";
+  public static final String METERED_YES = "Y";
+  public static final String METERED_NO = "N";
+
+  // Product ID Constants
+  public static final int PRODUCT_ID_RHEL_SERVER = 69; // Red Hat Enterprise Linux Server
+  public static final int PRODUCT_ID_RHEL_X86 = 479; // RHEL for x86 catch-all
+  public static final int PRODUCT_ID_OPENSHIFT = 290; // OpenShift Container Platform
 
   private final String sku;
   private final String description;
@@ -57,6 +67,7 @@ public class Offering {
   private final String level1;
   private final String level2;
   private final String metered;
+  private final Boolean hasUnlimitedUsage;
   private final ServiceLevel serviceLevel;
   private final Usage usage;
   private final String role;
@@ -73,7 +84,7 @@ public class Offering {
         .sockets(Optional.ofNullable(sockets).map(Double::intValue).orElse(null))
         .serviceLevel(ServiceLevel.PREMIUM)
         .usage(Usage.PRODUCTION)
-        .engProducts(List.of(69, 479))
+        .engProducts(List.of(PRODUCT_ID_RHEL_SERVER, PRODUCT_ID_RHEL_X86))
         .role(RHEL_ROLE)
         .build();
   }
@@ -92,7 +103,7 @@ public class Offering {
         .derivedSku(sku)
         .serviceLevel(ServiceLevel.PREMIUM)
         .usage(Usage.PRODUCTION)
-        .engProducts(List.of(69, 479))
+        .engProducts(List.of(PRODUCT_ID_RHEL_SERVER, PRODUCT_ID_RHEL_X86))
         .role(RHEL_ROLE)
         .build();
   }
@@ -109,6 +120,51 @@ public class Offering {
         .serviceLevel(ServiceLevel.PREMIUM)
         .usage(Usage.PRODUCTION)
         .engProducts(List.of())
+        .build();
+  }
+
+  public static Offering buildOpenShiftOffering(String sku, Double cores, Double sockets) {
+    Objects.requireNonNull(sku, "sku cannot be null");
+
+    return Offering.builder()
+        .sku(sku)
+        .description(OPENSHIFT_DESCRIPTION)
+        .metered(METERED_NO)
+        .cores(Optional.ofNullable(cores).map(Double::intValue).orElse(null))
+        .sockets(Optional.ofNullable(sockets).map(Double::intValue).orElse(null))
+        .serviceLevel(ServiceLevel.PREMIUM)
+        .usage(Usage.PRODUCTION)
+        .engProducts(List.of(PRODUCT_ID_OPENSHIFT))
+        .build();
+  }
+
+  public static Offering buildRhacmOffering(String sku) {
+    Objects.requireNonNull(sku, "sku cannot be null");
+
+    return Offering.builder()
+        .sku(sku)
+        .description("Test component for RHACM")
+        .level1("OpenShift")
+        .level2("ACM - Advanced Cluster Management")
+        .metered(METERED_YES)
+        .serviceLevel(ServiceLevel.PREMIUM)
+        .usage(Usage.PRODUCTION)
+        .engProducts(List.of())
+        .build();
+  }
+
+  public static Offering buildRhelUnlimitedOffering(String sku) {
+    Objects.requireNonNull(sku, "sku cannot be null");
+
+    return Offering.builder()
+        .sku(sku)
+        .description(RHEL_UNLIMITED_DESCRIPTION)
+        .metered(METERED_NO)
+        .hasUnlimitedUsage(true)
+        .cores(null) // Unlimited offerings have no numeric capacity limits
+        .sockets(null) // Unlimited offerings have no numeric capacity limits
+        .engProducts(List.of(PRODUCT_ID_RHEL_SERVER, PRODUCT_ID_RHEL_X86))
+        .role(RHEL_ROLE)
         .build();
   }
 }

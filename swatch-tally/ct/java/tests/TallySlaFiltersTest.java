@@ -21,6 +21,7 @@
 package tests;
 
 import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
+import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
@@ -38,9 +39,9 @@ import utils.TallyTestHelpers;
 public class TallySlaFiltersTest extends BaseTallyComponentTest {
 
   private static final TallyTestHelpers helpers = new TallyTestHelpers();
-  private static final String TEST_PRODUCT_TAG = "rhel-for-x86-els-payg";
-  private static final String TEST_PRODUCT_ID = "204";
-  private static final String TEST_METRIC_ID = "VCPUS";
+  private static final String TEST_PRODUCT_TAG = RHEL_FOR_X86_ELS_PAYG.productTag();
+  private static final String TEST_METRIC_ID = RHEL_FOR_X86_ELS_PAYG.metricIds().get(1);
+  private static final String TEST_PRODUCT_ID = RHEL_FOR_X86_ELS_PAYG.productId();
   private static final List<Sla> slas = List.of(Sla.PREMIUM, Sla.STANDARD, Sla.SELF_SUPPORT);
 
   @Test
@@ -83,7 +84,7 @@ public class TallySlaFiltersTest extends BaseTallyComponentTest {
     // Poll for tally summaries
     List<TallySummary> tallySummaries =
         helpers.pollForTallySyncAndMessages(
-            orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.DAILY, 4, service, kafkaBridge);
+            orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.HOURLY, 4, service, kafkaBridge);
 
     // Compute counts for each SLA
     double finalFilterCount = 0;
@@ -94,7 +95,7 @@ public class TallySlaFiltersTest extends BaseTallyComponentTest {
               orgId,
               TEST_PRODUCT_TAG,
               TEST_METRIC_ID,
-              Granularity.DAILY,
+              Granularity.HOURLY,
               sla.toString());
       finalFilterCount += value;
     }
@@ -106,13 +107,13 @@ public class TallySlaFiltersTest extends BaseTallyComponentTest {
             orgId,
             TEST_PRODUCT_TAG,
             TEST_METRIC_ID,
-            Granularity.DAILY,
+            Granularity.HOURLY,
             Sla.__EMPTY__.toString());
 
     // All tally summary values total: no SLA filter applied
     double allTallySummaries =
         helpers.getTallySummaryValue(
-            tallySummaries, orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.DAILY, null);
+            tallySummaries, orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.HOURLY, null);
 
     // Verify count with SLA filters
     Assertions.assertEquals(allTallySummaries - finalFilterCount, noSla, 0.0001);

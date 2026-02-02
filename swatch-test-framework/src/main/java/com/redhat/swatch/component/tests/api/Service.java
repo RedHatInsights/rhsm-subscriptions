@@ -51,6 +51,8 @@ public interface Service extends AutoCloseable {
 
   List<String> getLogs();
 
+  <I> I getManagedResource(Class<I> clazz);
+
   ServiceContext register(String serviceName, ComponentTestContext context);
 
   void init(ManagedResource resource);

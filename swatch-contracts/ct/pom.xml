@@ -28,6 +28,10 @@
   <dependencies>
     <dependency>
       <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-common-clock</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
       <artifactId>swatch-product-configuration</artifactId>
     </dependency>
     <dependency>
@@ -37,6 +41,14 @@
     <dependency>
       <groupId>jakarta.annotation</groupId>
       <artifactId>jakarta.annotation-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-xml</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.module</groupId>
+      <artifactId>jackson-module-jakarta-xmlbind-annotations</artifactId>
     </dependency>
 
     <!-- Required so the Maven reactor compiles this dependency -->
@@ -125,7 +137,53 @@
             </goals>
             <configuration>
               <inputSpec>${maven.multiModuleProjectDirectory}/clients/subscription-client/subscription-api-spec.yaml</inputSpec>
-              <modelPackage>com.redhat.swatch.subscriptions.test.model</modelPackage>
+              <modelPackage>com.redhat.swatch.subscriptions.test.subscription.model</modelPackage>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- workaround until we migrate UMB to Kafka in SWATCH-3989 -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copy-external-sources</id>
+            <phase>generate-test-sources</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.build.directory}/generated-test-sources/external-contracts</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${maven.multiModuleProjectDirectory}/swatch-contracts/src/main/java</directory>
+                  <includes>
+                    <include>com/redhat/swatch/contract/product/umb/**</include>
+                  </includes>
+                  <excludes>
+                    <exclude>**/ProductStatusUMBMessageConsumer.java</exclude>
+                  </excludes>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>add-umb-package</id>
+            <phase>generate-test-sources</phase>
+            <goals>
+              <goal>add-test-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>${project.build.directory}/generated-test-sources/external-contracts</source>
+              </sources>
             </configuration>
           </execution>
         </executions>

@@ -27,13 +27,15 @@ import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
-import com.redhat.swatch.tally.test.model.TallyMeasurement;
+import com.redhat.swatch.component.tests.utils.SwatchUtils;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallySummary;
 import io.restassured.response.Response;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -126,7 +128,7 @@ public class TallyTestHelpers {
     return event;
   }
 
-  public void syncTallyNightly(String orgId, SwatchService service) throws Exception {
+  public void syncTallyNightly(String orgId, SwatchService service) {
     Response response =
         service
             .given()
@@ -148,7 +150,7 @@ public class TallyTestHelpers {
     Log.info("Sync nightly tally endpoint called successfully for org: %s", orgId);
   }
 
-  public void syncTallyHourly(String orgId, SwatchService service) throws Exception {
+  public void syncTallyHourly(String orgId, SwatchService service) {
     Response response =
         service
             .given()
@@ -168,6 +170,122 @@ public class TallyTestHelpers {
     }
 
     Log.info("Hourly tally endpoint called successfully for org: %s", orgId);
+  }
+
+  public void createOptInConfig(String orgId, SwatchService service) {
+    Response response =
+        service
+            .given()
+            .header("x-rh-swatch-psk", TEST_PSK)
+            .queryParam("org_id", orgId)
+            .put("/api/rhsm-subscriptions/v1/internal/rpc/tally/opt-in")
+            .then()
+            .extract()
+            .response();
+
+    if (response.getStatusCode() != 200) {
+      throw new RuntimeException(
+          "Create opt-in config failed with status code: "
+              + response.getStatusCode()
+              + ", response body: "
+              + response.getBody().asString());
+    }
+
+    Log.info("Opt-in config created successfully for org: %s", orgId);
+  }
+
+  public Response getTallyReport(
+      SwatchService service,
+      String orgId,
+      String productId,
+      String metricId,
+      Map<String, ?> queryParams) {
+    Map<String, Object> params = new HashMap<>();
+    if (queryParams != null) {
+      params.putAll(queryParams);
+    }
+
+    Response response =
+        service
+            .given()
+            .header("x-rh-identity", SwatchUtils.createUserIdentityHeader(orgId))
+            .queryParams(params)
+            .get("/api/rhsm-subscriptions/v1/tally/products/" + productId + "/" + metricId)
+            .then()
+            .extract()
+            .response();
+
+    if (response.getStatusCode() != 200) {
+      throw new RuntimeException(
+          "Get tally report failed with status code: "
+              + response.getStatusCode()
+              + ", response body: "
+              + response.getBody().asString());
+    }
+
+    Log.info(
+        "Tally report response for orgId=%s, productId=%s, metricId=%s: %s",
+        orgId, productId, metricId, response.getBody().asString());
+
+    return response;
+  }
+
+  /*
+   * Get tally report with raw query parameters (for testing invalid values).
+   *
+   * @return Raw Response object for status code validation
+   */
+  public Response getTallyReportRaw(
+      SwatchService service,
+      String orgId,
+      String productId,
+      String metricId,
+      Map<String, ?> queryParams) {
+    Map<String, Object> params = new HashMap<>();
+    if (queryParams != null) {
+      params.putAll(queryParams);
+    }
+
+    return service
+        .given()
+        .header("x-rh-identity", SwatchUtils.createUserIdentityHeader(orgId))
+        .queryParams(params)
+        .get("/api/rhsm-subscriptions/v1/tally/products/" + productId + "/" + metricId)
+        .then()
+        .extract()
+        .response();
+  }
+
+  public Response getInstancesReport(
+      String orgId,
+      String productId,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      SwatchService service) {
+    Response response =
+        service
+            .given()
+            .header("x-rh-identity", SwatchUtils.createUserIdentityHeader(orgId))
+            .queryParam("beginning", beginning.toString())
+            .queryParam("ending", ending.toString())
+            .get("/api/rhsm-subscriptions/v1/instances/products/" + productId)
+            .then()
+            .extract()
+            .response();
+
+    if (response.getStatusCode() != 200) {
+      throw new RuntimeException(
+          "Get instances report failed with status code: "
+              + response.getStatusCode()
+              + ", response body: "
+              + response.getBody().asString());
+    }
+
+    Log.info(
+        "Instances report response for orgId=%s, productId=%s: %s",
+        orgId, productId, response.getBody().asString());
+
+    return response;
   }
 
   public List<TallySummary> pollForTallySyncAndMessages(
@@ -194,15 +312,13 @@ public class TallyTestHelpers {
         syncTallyHourly(testOrgId, service);
 
         // Wait for tally messages with a short timeout
-        List<TallySummary> tallySummaries =
-            kafkaBridge.waitForKafkaMessage(
-                TALLY,
-                MessageValidators.tallySummaryMatches(testOrgId, productId, metricId, granularity),
-                expectedMessageCount,
-                kafkaConsumerTimeout);
 
         // If successful, return
-        return tallySummaries;
+        return kafkaBridge.waitForKafkaMessage(
+            TALLY,
+            MessageValidators.tallySummaryMatches(testOrgId, productId, metricId, granularity),
+            expectedMessageCount,
+            kafkaConsumerTimeout);
       } catch (Exception e) {
         lastException = e;
         if (attempts < maxAttempts) {
@@ -276,7 +392,7 @@ public class TallyTestHelpers {
         .flatMap(
             snapshot ->
                 snapshot.getTallyMeasurements() == null
-                    ? Stream.<TallyMeasurement>empty()
+                    ? Stream.empty()
                     : snapshot.getTallyMeasurements().stream())
         // Match the desired metric
         .filter(m -> metricId.equalsIgnoreCase(m.getMetricId()))

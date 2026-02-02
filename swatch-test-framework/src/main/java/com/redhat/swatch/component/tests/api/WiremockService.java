@@ -27,8 +27,9 @@ public class WiremockService extends RestService {
   private static final String METADATA_TAG = "component-test-generated";
 
   @Override
-  public void start() {
-    super.start();
+  public void onTestStarted() {
+    super.onTestStarted();
+
     deleteAllMappings();
     clearAllRequests();
   }

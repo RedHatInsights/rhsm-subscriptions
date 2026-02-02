@@ -20,6 +20,7 @@
  */
 package tests;
 
+import static api.PartnerApiStubs.PartnerSubscriptionsStubRequest.forContractsInOrgId;
 import static java.util.Collections.disjoint;
 import static java.util.stream.Collectors.toSet;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -36,7 +37,6 @@ import com.redhat.swatch.contract.test.model.SkuCapacitySubscription;
 import domain.BillingProvider;
 import domain.Contract;
 import io.restassured.response.Response;
-import java.util.List;
 import java.util.Map;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
@@ -60,7 +60,10 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
 
     // Stub offering and partner API
     wiremock.forProductAPI().stubOfferingData(awsContract.getOffering());
-    wiremock.forPartnerAPI().stubSyncContractsByOrg(orgId, List.of(awsContract, azureContract));
+    wiremock
+        .forPartnerAPI()
+        .stubPartnerSubscriptions(forContractsInOrgId(orgId, awsContract, azureContract));
+    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(awsContract, azureContract);
 
     // Sync offering needed for contracts to persist with the SKU
     Response syncOffering = service.syncOffering(sku);
@@ -152,7 +155,8 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     // Setup new upstream contracts (different from existing - same SKU, different provider)
     Contract newContract =
         Contract.buildRosaContract(orgId, BillingProvider.AZURE, Map.of(CORES, 20.0), sku);
-    wiremock.forPartnerAPI().stubSyncContractsByOrg(orgId, List.of(newContract));
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContractsInOrgId(orgId, newContract));
+    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(newContract);
 
     // When: Sync with delete_contracts_and_subs flag enabled
     Response syncResponse = service.syncContractsByOrg(orgId, false, true);
@@ -196,8 +200,8 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
   @Test
   void shouldSyncAllContractsAcrossAllOrganizations() {
     // Given: Multiple organizations with contracts
-    String firstOrg = givenOrgIdWithSuffix("a");
-    String secondOrg = givenOrgIdWithSuffix("b");
+    String firstOrg = givenOrgIdWithSuffix("1");
+    String secondOrg = givenOrgIdWithSuffix("2");
 
     String sku = RandomUtils.generateRandom();
 
@@ -208,8 +212,15 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
 
     // Stub offering and partner API for both orgs
     wiremock.forProductAPI().stubOfferingData(firstOrgContract.getOffering());
-    wiremock.forPartnerAPI().stubSyncContractsByOrg(firstOrg, List.of(firstOrgContract));
-    wiremock.forPartnerAPI().stubSyncContractsByOrg(secondOrg, List.of(secondOrgContract));
+    wiremock
+        .forPartnerAPI()
+        .stubPartnerSubscriptions(forContractsInOrgId(firstOrg, firstOrgContract));
+    wiremock
+        .forPartnerAPI()
+        .stubPartnerSubscriptions(forContractsInOrgId(secondOrg, secondOrgContract));
+    wiremock
+        .forSearchApi()
+        .stubGetSubscriptionBySubscriptionNumber(firstOrgContract, secondOrgContract);
 
     // Sync offering
     Response syncOffering = service.syncOffering(sku);
@@ -245,17 +256,6 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
 
   @TestPlanName("contracts-sync-TC004")
   @Test
-  void shouldReturnFailedStatusWhenNoContractsExist() {
-    // When: Sync all contracts
-    Response syncResponse = service.syncAllContracts();
-
-    // Then: Verify appropriate status
-    assertThat("Sync should return 200", syncResponse.statusCode(), is(HttpStatus.SC_OK));
-    syncResponse.then().body("status", equalTo(STATUS_NO_CONTRACTS_FOUND));
-  }
-
-  @TestPlanName("contracts-sync-TC005")
-  @Test
   void shouldSyncSubscriptionsForContractsByOrg() {
     // Given: Contracts exist for the organization without subscriptions
     String sku = RandomUtils.generateRandom();
@@ -264,7 +264,7 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
 
     // Stub offering and partner API
     wiremock.forProductAPI().stubOfferingData(contract.getOffering());
-    wiremock.forPartnerAPI().stubSyncContractsByOrg(orgId, List.of(contract));
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContractsInOrgId(orgId, contract));
 
     // Sync offering
     Response syncOffering = service.syncOffering(sku);
@@ -290,7 +290,7 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
         1, skuCapacity.get().getSubscriptions().size(), "Should have exactly one subscription");
   }
 
-  @TestPlanName("contracts-sync-TC006")
+  @TestPlanName("contracts-sync-TC005")
   @Test
   void shouldClearAllContractsForOrganization() {
     // Given: Multiple contracts exist for the organization
