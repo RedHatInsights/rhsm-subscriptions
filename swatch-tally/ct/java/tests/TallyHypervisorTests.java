@@ -20,24 +20,23 @@
  */
 package tests;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static utils.TallyTestProducts.RHEL_FOR_X86;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import io.restassured.response.Response;
-import org.junit.jupiter.api.Test;
-import utils.TallyDbHostSeeder;
-import utils.TallyTestHelpers;
-
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static utils.TallyTestProducts.RHEL_FOR_X86;
+import org.junit.jupiter.api.Test;
+import utils.TallyDbHostSeeder;
+import utils.TallyTestHelpers;
 
 public class TallyHypervisorTests extends BaseTallyComponentTest {
 

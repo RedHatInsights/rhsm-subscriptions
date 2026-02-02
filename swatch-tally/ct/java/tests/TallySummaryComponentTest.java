@@ -20,26 +20,25 @@
  */
 package tests;
 
+import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
+import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
+import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
+import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_UNCONVERTED;
+
 import api.MessageValidators;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallySummary;
+import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import utils.TallyTestHelpers;
-
-import java.time.Duration;
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.UUID;
-
-import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
-import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
-import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
-import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_UNCONVERTED;
 
 @Slf4j
 public class TallySummaryComponentTest extends BaseTallyComponentTest {
