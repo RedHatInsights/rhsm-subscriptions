@@ -23,6 +23,7 @@ package tests;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -39,8 +40,8 @@ public class TallyReportGranularityTest extends BaseTallyComponentTest {
 
   private static final TallyTestHelpers helpers = new TallyTestHelpers();
   private static final ObjectMapper objectMapper = new ObjectMapper();
-  private static final String TEST_PRODUCT_TAG = "rhel-for-x86-els-payg";
-  private static final String TEST_METRIC_ID = "vCPUs";
+  private static final String TEST_PRODUCT_TAG = RHEL_FOR_X86_ELS_PAYG.productTag();
+  private static final String TEST_METRIC_ID = RHEL_FOR_X86_ELS_PAYG.metricIds().get(0);
   private static final String TEST_SLA = "Premium";
   private static final String TEST_USAGE = "Production";
   private static final String TEST_BILLING_PROVIDER = "aws";

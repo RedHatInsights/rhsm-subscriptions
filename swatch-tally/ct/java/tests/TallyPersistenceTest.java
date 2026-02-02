@@ -22,6 +22,7 @@ package tests;
 
 import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static utils.TallyTestProducts.OPENSHIFT_DEDICATED;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -46,9 +47,9 @@ import utils.TallyTestHelpers;
 public class TallyPersistenceTest extends BaseTallyComponentTest {
 
   private static final TallyTestHelpers helpers = new TallyTestHelpers();
-  private static final String TEST_PRODUCT_TAG = "OpenShift-dedicated-metrics";
-  private static final String TEST_PRODUCT_ID = "openshift-dedicated-metrics";
-  private static final String TEST_METRIC_ID = "Instance-hours";
+  private static final String TEST_PRODUCT_TAG = OPENSHIFT_DEDICATED.productTag();
+  private static final String TEST_METRIC_ID = OPENSHIFT_DEDICATED.metricIds().get(1);
+  private static final String TEST_PRODUCT_ID = OPENSHIFT_DEDICATED.productId();
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
   private TestSetup setup;
