@@ -90,7 +90,7 @@ public class TallyHypervisorTests extends BaseTallyComponentTest {
 
     // Seed a "hypervisor" host with no guests and no buckets.
     TallyDbHostSeeder.insertHost(
-         orgId, UUID.randomUUID().toString(), "VIRTUAL", false, false, true, 0, null);
+        orgId, UUID.randomUUID().toString(), "VIRTUAL", false, false, true, 0, null);
 
     helpers.syncTallyNightly(orgId, service);
 
