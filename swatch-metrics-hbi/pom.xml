@@ -12,6 +12,7 @@
 
   <artifactId>swatch-metrics-hbi</artifactId>
   <name>SWATCH - Services - Metrics HBI</name>
+  <packaging>quarkus</packaging>
 
   <properties>
     <!-- TODO: Remove when parent upgraded to Java 21 -->

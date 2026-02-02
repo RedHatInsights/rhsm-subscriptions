@@ -12,6 +12,7 @@
 
   <artifactId>swatch-utilization</artifactId>
   <name>SWATCH - Services - Utilization</name>
+  <packaging>quarkus</packaging>
 
   <dependencies>
     <dependency>

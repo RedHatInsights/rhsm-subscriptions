@@ -12,6 +12,7 @@
 
   <artifactId>swatch-billable-usage</artifactId>
   <name>SWATCH - Services - Billable Usage</name>
+  <packaging>quarkus</packaging>
 
   <dependencies>
     <dependency>

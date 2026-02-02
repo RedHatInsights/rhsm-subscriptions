@@ -12,6 +12,7 @@
 
   <artifactId>swatch-metrics</artifactId>
   <name>SWATCH - Services - Metrics</name>
+  <packaging>quarkus</packaging>
 
   <dependencies>
     <dependency>

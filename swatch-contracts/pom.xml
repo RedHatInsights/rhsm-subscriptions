@@ -12,6 +12,7 @@
 
   <artifactId>swatch-contracts</artifactId>
   <name>SWATCH - Services - Contracts</name>
+  <packaging>quarkus</packaging>
 
   <dependencies>
     <dependency>

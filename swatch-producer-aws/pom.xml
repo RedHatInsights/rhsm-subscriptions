@@ -12,6 +12,7 @@
 
   <artifactId>swatch-producer-aws</artifactId>
   <name>SWATCH - Services - Producer AWS</name>
+  <packaging>quarkus</packaging>
 
   <dependencyManagement>
     <dependencies>
