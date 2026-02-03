@@ -48,9 +48,12 @@ public class TallyTestHelpers {
   // Test configuration constants
   private static final String TEST_PSK = "placeholder";
   private static final String DEFAULT_BILLING_ACCOUNT = "746157280291";
-  private static final String TEST_PRODUCT_ID = "204";
-  private static final String DEFAULT_PRODUCT_TAG = "rhel-for-x86-els-payg";
-  private static final String DEFAULT_METRIC_ID = "VCPUS";
+  private static final String DEFAULT_PRODUCT_ID =
+      TallyTestProducts.RHEL_FOR_X86_ELS_PAYG.productId();
+  private static final String DEFAULT_PRODUCT_TAG =
+      TallyTestProducts.RHEL_FOR_X86_ELS_PAYG.productTag();
+  private static final String DEFAULT_METRIC_ID =
+      TallyTestProducts.RHEL_FOR_X86_ELS_PAYG.metricIds().get(1);
   private static final int EVENT_EXPIRATION_DAYS = 25;
 
   /** Default constructor. */
@@ -68,7 +71,7 @@ public class TallyTestHelpers {
         value,
         Event.Sla.PREMIUM,
         Event.HardwareType.CLOUD,
-        TEST_PRODUCT_ID,
+        DEFAULT_PRODUCT_ID,
         DEFAULT_PRODUCT_TAG);
   }
 
@@ -194,6 +197,34 @@ public class TallyTestHelpers {
     Log.info("Opt-in config created successfully for org: %s", orgId);
   }
 
+  /**
+   * Temporary nightly-tally pre-req seeding for CTs.
+   *
+   * <p>Nightly tally expects host-buckets to already exist. In CT we seed them directly into the DB
+   * (via {@link TallyDbHostSeeder}). This is intentionally isolated so it can be removed later.
+   *
+   * <p>Implementation detail: reconciliation deletes swatch-only HBI_HOST systems unless the host
+   * is considered "metered" (currently mapped to PAYG eligibility), so we seed one PAYG bucket to
+   * keep the host and one non-PAYG bucket that we assert on.
+   */
+  public void seedNightlyTallyHostBuckets(
+      String orgId, String productId, String inventoryId, SwatchService service) {
+    createOptInConfig(orgId, service);
+
+    var hostId = TallyDbHostSeeder.insertHbiHost(orgId, inventoryId);
+    // Keep the host from being deleted (PAYG-eligible tag)
+    TallyDbHostSeeder.insertBuckets(
+        hostId,
+        TallyTestProducts.RHEL_FOR_X86_ELS_PAYG.productTag(),
+        "Premium",
+        "Production",
+        4,
+        2,
+        "AWS");
+    // Produce DAILY summary messages (non-PAYG tag)
+    TallyDbHostSeeder.insertBuckets(hostId, productId, "Premium", "Production", 4, 2, "PHYSICAL");
+  }
+
   public Response getTallyReport(
       SwatchService service,
       String orgId,
@@ -210,7 +241,11 @@ public class TallyTestHelpers {
             .given()
             .header("x-rh-identity", SwatchUtils.createUserIdentityHeader(orgId))
             .queryParams(params)
-            .get("/api/rhsm-subscriptions/v1/tally/products/" + productId + "/" + metricId)
+            // Use path params so product IDs with spaces are safely encoded.
+            .get(
+                "/api/rhsm-subscriptions/v1/tally/products/{productId}/{metricId}",
+                productId,
+                metricId)
             .then()
             .extract()
             .response();
@@ -250,7 +285,9 @@ public class TallyTestHelpers {
         .given()
         .header("x-rh-identity", SwatchUtils.createUserIdentityHeader(orgId))
         .queryParams(params)
-        .get("/api/rhsm-subscriptions/v1/tally/products/" + productId + "/" + metricId)
+        // Use path params so product IDs with spaces are safely encoded.
+        .get(
+            "/api/rhsm-subscriptions/v1/tally/products/{productId}/{metricId}", productId, metricId)
         .then()
         .extract()
         .response();
@@ -268,7 +305,8 @@ public class TallyTestHelpers {
             .header("x-rh-identity", SwatchUtils.createUserIdentityHeader(orgId))
             .queryParam("beginning", beginning.toString())
             .queryParam("ending", ending.toString())
-            .get("/api/rhsm-subscriptions/v1/instances/products/" + productId)
+            // Use path params so product IDs with spaces are safely encoded.
+            .get("/api/rhsm-subscriptions/v1/instances/products/{productId}", productId)
             .then()
             .extract()
             .response();

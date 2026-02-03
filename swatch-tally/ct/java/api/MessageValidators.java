@@ -35,12 +35,15 @@ public class MessageValidators {
                 && summary.getTallySnapshots().stream()
                     .anyMatch(
                         snapshot ->
-                            productId.equals(snapshot.getProductId())
+                            productId.equalsIgnoreCase(snapshot.getProductId())
                                 && granularity.equals(snapshot.getGranularity())
                                 && snapshot.getTallyMeasurements() != null
                                 && snapshot.getTallyMeasurements().stream()
                                     .anyMatch(
-                                        measurement -> metricId.equals(measurement.getMetricId()))),
+                                        measurement ->
+                                            measurement.getMetricId() != null
+                                                && metricId.equalsIgnoreCase(
+                                                    measurement.getMetricId()))),
         TallySummary.class);
   }
 }

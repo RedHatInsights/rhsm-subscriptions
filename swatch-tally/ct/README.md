@@ -1,5 +1,11 @@
 # Guide for "swatch-tally" Component Tests
 
+## Nightly Tally Tests (temporary DB seeding)
+
+Nightly tally CTs currently seed host-buckets **directly into the DB** (CT-only helper in `swatch-tally/ct/java/utils/`). This is intentionally isolated so it can be removed later.
+
+DB connection can be overridden via env vars: `SWATCH_CT_DB_HOST`, `SWATCH_CT_DB_PORT`, `SWATCH_CT_DB_NAME`, `SWATCH_CT_DB_USER`, `SWATCH_CT_DB_PASSWORD`, `SWATCH_CT_DB_SSLMODE`.
+
 ## Running Tests Locally
 
 ### 1. Start Local Dependencies
