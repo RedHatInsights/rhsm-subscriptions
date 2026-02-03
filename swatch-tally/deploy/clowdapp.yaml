@@ -218,10 +218,6 @@ parameters:
   - description: database secret name
     name: FLOORIST_DB_SECRET_NAME
     value: swatch-db-ro
-  - description: bucket secret name
-    name: FLOORIST_BUCKET_SECRET_NAME
-    required: true
-    value: egress-s3
   - name: FLOORIST_LOGLEVEL
     description: Floorist loglevel config
     value: 'DEBUG'
@@ -229,6 +225,21 @@ parameters:
     description: Disable Floorist cronjob execution
     required: true
     value: 'false'
+  - name: FLOORIST_AWS_REGION
+    description: AWS region for Floorist
+    value: ''
+  - name: FLOORIST_AWS_ACCESS_KEY_ID
+    description: AWS access key ID for Floorist
+    value: ''
+  - name: FLOORIST_AWS_SECRET_ACCESS_KEY
+    description: AWS secret access key for Floorist
+    value: ''
+  - name: FLOORIST_SNOWPIPE_S3_ROLE_ARN
+    description: ARN of the snowpipe-s3 IAM role for Floorist
+    value: ''
+  - name: FLOORIST_DATAVERSE_ROLE_ARN
+    description: ARN of the dataverse IAM role for Floorist
+    value: ''
   # allow overriding to support independent deploy with bonfire
   - name: DB_POD
     value: swatch-database
@@ -646,6 +657,46 @@ objects:
   data:
     export_psk: dGVzdGluZy1hLXBzaw==
 
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: floorist-aws-config
+  type: Opaque
+  stringData:
+    config: |
+      [default]
+      region = ${FLOORIST_AWS_REGION}
+      output = json
+
+      [profile snowpipe-s3]
+      region = ${FLOORIST_AWS_REGION}
+      output = json
+
+      [profile dataverse]
+      region = ${FLOORIST_AWS_REGION}
+      output = json
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: floorist-aws-credentials
+  type: Opaque
+  stringData:
+    credentials: |
+      [default]
+      aws_access_key_id=${FLOORIST_AWS_ACCESS_KEY_ID}
+      aws_secret_access_key=${FLOORIST_AWS_SECRET_ACCESS_KEY}
+
+      [profile snowpipe-s3]
+      source_profile = default
+      role_arn = ${FLOORIST_SNOWPIPE_S3_ROLE_ARN}
+      role_session_name = floorist
+
+      [profile dataverse]
+      source_profile = snowpipe-s3
+      role_arn = ${FLOORIST_DATAVERSE_ROLE_ARN}
+      role_session_name = floorist
+
 - apiVersion: metrics.console.redhat.com/v1alpha1
   kind: FloorPlan
   metadata:
@@ -654,7 +705,14 @@ objects:
     database:
       secretName: ${FLOORIST_DB_SECRET_NAME}
     objectStore:
-      secretName: ${FLOORIST_BUCKET_SECRET_NAME}
+      aws:
+        credentialsSecret:
+          name: floorist-aws-credentials
+          key: credentials
+        configSecret:
+          name: floorist-aws-config
+          key: config
+        profile: dataverse
     logLevel: ${FLOORIST_LOGLEVEL}
     suspend: ${{FLOORIST_SUSPEND}}
     resources:
