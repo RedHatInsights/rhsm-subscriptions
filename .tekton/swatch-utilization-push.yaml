@@ -364,7 +364,7 @@ spec:
             - name: name
               value: ecosystem-cert-preflight-checks
             - name: bundle
-              value: quay.io/konflux-ci/tekton-catalog/task-ecosystem-cert-preflight-checks:0.2@sha256:204fd3914d83c7b60e8eee72b5a944337720c79a3e660e7c994435456dcf7175
+              value: quay.io/konflux-ci/tekton-catalog/task-ecosystem-cert-preflight-checks:0.2@sha256:33b7133c0c132c361295c30947f73bd45a3a3b62a24b83f3d8cd7c71f757828c
             - name: kind
               value: task
           resolver: bundles
@@ -592,7 +592,7 @@ spec:
             - name: name
               value: rpms-signature-scan
             - name: bundle
-              value: quay.io/konflux-ci/tekton-catalog/task-rpms-signature-scan:0.2@sha256:ddb3bca3f7c585ffc5557e2cfef9d82afd353696a7375dcf494289bbd017ca10
+              value: quay.io/konflux-ci/tekton-catalog/task-rpms-signature-scan:0.2@sha256:ccd087c879899b4c7fe2e05c5a2fa5b9829f4826fa2bd60e0db5b1d4bf1a716e
             - name: kind
               value: task
           resolver: bundles
