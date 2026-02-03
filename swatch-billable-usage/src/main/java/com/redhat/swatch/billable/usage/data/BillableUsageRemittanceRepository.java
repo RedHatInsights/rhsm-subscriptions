@@ -98,7 +98,8 @@ public class BillableUsageRemittanceRepository
   }
 
   public List<BillableUsageRemittanceEntity> findByIdInAndStatusNotPending(List<String> uuids) {
-    return find("uuid in (?1) and status != ?2", uuids, RemittanceStatus.PENDING).list();
+    List<UUID> uuidList = uuids.stream().map(UUID::fromString).toList();
+    return find("uuid in (?1) and status != ?2", uuidList, RemittanceStatus.PENDING).list();
   }
 
   @Transactional
@@ -107,13 +108,14 @@ public class BillableUsageRemittanceRepository
       RemittanceStatus status,
       OffsetDateTime billedOn,
       RemittanceErrorCode errorCode) {
+    List<UUID> uuidList = uuids.stream().map(UUID::fromString).toList();
     update(
         "status = ?1, billedOn=?2, errorCode=?3, updatedAt=?4 where uuid in (?5)",
         status,
         billedOn,
         errorCode,
         OffsetDateTime.now(ZoneOffset.UTC),
-        uuids);
+        uuidList);
   }
 
   public int resetBillableUsageRemittance(

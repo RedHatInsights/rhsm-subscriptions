@@ -50,10 +50,10 @@ public class HbiHostRelationship extends PanacheEntityBase {
 
   @Id @GeneratedValue private UUID id;
 
-  @Column(name = "inventory_id")
+  @Column(name = "inventory_id", nullable = false)
   private UUID inventoryId;
 
-  @Column(name = "org_id")
+  @Column(name = "org_id", nullable = false)
   private String orgId;
 
   @Column(name = "subscription_manager_id")
@@ -69,9 +69,9 @@ public class HbiHostRelationship extends PanacheEntityBase {
   private OffsetDateTime lastUpdated;
 
   @JdbcTypeCode(SqlTypes.JSON)
-  @Column(name = "latest_hbi_event_data", columnDefinition = "jsonb")
+  @Column(name = "latest_hbi_event_data", columnDefinition = "jsonb", nullable = false)
   private String latestHbiEventData;
 
-  @Column(name = "is_unmapped_guest")
+  @Column(name = "is_unmapped_guest", nullable = false)
   private boolean isUnmappedGuest;
 }
