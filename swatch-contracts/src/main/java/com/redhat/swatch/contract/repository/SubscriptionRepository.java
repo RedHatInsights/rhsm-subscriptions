@@ -81,7 +81,12 @@ public class SubscriptionRepository
   }
 
   public List<SubscriptionEntity> findUnlimited(DbReportCriteria dbReportCriteria) {
-    var searchCriteria = SubscriptionEntity.buildSearchSpecification(dbReportCriteria);
+    // Create criteria without metricId and hypervisorReportCategory to avoid the inner join
+    // on subscription_measurements that would exclude unlimited subscriptions (which don't have
+    // measurements because they're unlimited).
+    var criteriaWithoutMetrics =
+        dbReportCriteria.toBuilder().metricId(null).hypervisorReportCategory(null).build();
+    var searchCriteria = SubscriptionEntity.buildSearchSpecification(criteriaWithoutMetrics);
     searchCriteria = searchCriteria.and(SubscriptionEntity.hasUnlimitedUsage());
     return find(SubscriptionEntity.class, searchCriteria);
   }

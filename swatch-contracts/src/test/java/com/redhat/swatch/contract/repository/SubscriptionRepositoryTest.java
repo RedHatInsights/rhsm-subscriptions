@@ -531,6 +531,42 @@ class SubscriptionRepositoryTest {
 
   @TestTransaction
   @Test
+  void findsUnlimitedSubscriptionsEvenWhenMetricIdIsSpecified() {
+    // Unlimited subscriptions don't have measurements (they're unlimited!), so when
+    // metricId is specified in the criteria, we must not filter them out due to the
+    // inner join on subscription_measurements.
+    var unlimitedSub = createSubscription("org123", "unlimited123", "seller123");
+    var unlimitedOffering = createOffering("unlimitedSku", "rosa", 1066, null, null, null);
+    unlimitedOffering.setHasUnlimitedUsage(true);
+    unlimitedSub.setOffering(unlimitedOffering);
+    // Note: unlimited subscription has NO measurements
+
+    var limitedSub = createSubscription("org123", "limited456", "seller123");
+    var limitedOffering = createOffering("limitedSku", "rosa", 1066, null, null, null);
+    limitedOffering.setHasUnlimitedUsage(false);
+    limitedSub.setOffering(limitedOffering);
+    limitedSub.addSubscriptionMeasurement("Cores", "PHYSICAL", 10.0);
+
+    offeringRepo.persist(unlimitedOffering);
+    offeringRepo.persist(limitedOffering);
+    subscriptionRepo.persistAndFlush(unlimitedSub);
+    subscriptionRepo.persistAndFlush(limitedSub);
+
+    // When metricId is specified, unlimited subscriptions should still be found
+    var criteriaWithMetricId =
+        DbReportCriteria.builder()
+            .orgId("org123")
+            .metricId("Cores")
+            .hypervisorReportCategory(HypervisorReportCategory.NON_HYPERVISOR)
+            .build();
+    var result = subscriptionRepo.findUnlimited(criteriaWithMetricId);
+
+    // The unlimited subscription should be found even though it has no measurements
+    assertThat(result, Matchers.containsInAnyOrder(unlimitedSub));
+  }
+
+  @TestTransaction
+  @Test
   void testSubscriptionIsActive() {
     // Because the findActiveSubscription query uses CURRENT_TIMESTAMP,
     // reset NOW so that it is current and not fixed.
