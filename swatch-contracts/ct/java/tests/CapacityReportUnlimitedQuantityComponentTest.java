@@ -36,12 +36,10 @@ import domain.Subscription;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class CapacityReportUnlimitedQuantityComponentTest extends BaseContractComponentTest {
 
-  @Disabled(value = "To be fixed by SWATCH-4518")
   @TestPlanName("capacity-report-unlimited-quantity-TC001")
   @Test
   void shouldReportHasInfiniteQuantityForUnlimitedSubscription() {
@@ -73,7 +71,6 @@ public class CapacityReportUnlimitedQuantityComponentTest extends BaseContractCo
     assertTrue(isInfiniteQuantity(todaySnapshot));
   }
 
-  @Disabled(value = "To be fixed by SWATCH-4518")
   @TestPlanName("capacity-report-unlimited-quantity-TC002")
   @Test
   void shouldReportHasInfiniteQuantityForMixedSubscriptions() {

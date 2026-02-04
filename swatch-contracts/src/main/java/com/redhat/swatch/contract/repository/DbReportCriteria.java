@@ -28,7 +28,7 @@ import lombok.Data;
 
 /** Common criteria that can be used to filter instances, subscriptions, and tally snapshots */
 @Data
-@Builder
+@Builder(toBuilder = true)
 public class DbReportCriteria {
   private String orgId;
   private String productTag;
