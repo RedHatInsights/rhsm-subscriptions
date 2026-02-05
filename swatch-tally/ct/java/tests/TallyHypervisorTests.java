@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static utils.TallyTestProducts.RHEL_FOR_X86;
 
+import api.SwatchTallyRestAPIService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
@@ -41,6 +42,7 @@ import utils.TallyTestHelpers;
 public class TallyHypervisorTests extends BaseTallyComponentTest {
 
   private static final TallyTestHelpers helpers = new TallyTestHelpers();
+  private static final SwatchTallyRestAPIService tallyApi = new SwatchTallyRestAPIService();
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
   @Test
@@ -50,7 +52,7 @@ public class TallyHypervisorTests extends BaseTallyComponentTest {
     helpers.seedNightlyTallyHostBuckets(
         orgId, RHEL_FOR_X86.productTag(), UUID.randomUUID().toString(), service);
 
-    helpers.syncTallyNightly(orgId, service);
+    tallyApi.syncTallyNightly(orgId, service);
 
     OffsetDateTime startOfToday = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
     OffsetDateTime endOfToday = startOfToday.plusDays(1).minusNanos(1);
@@ -60,11 +62,11 @@ public class TallyHypervisorTests extends BaseTallyComponentTest {
         TallyDbHostSeeder.insertHost(
             orgId, UUID.randomUUID().toString(), "VIRTUAL", false, false, true, 0, null);
 
-    helpers.syncTallyNightly(orgId, service);
+    tallyApi.syncTallyNightly(orgId, service);
 
     // System table check: ensure the host does not show up in instances report.
     Response instancesResponse =
-        helpers.getInstancesReport(
+        tallyApi.getInstancesReport(
             orgId, RHEL_FOR_X86.productTag(), startOfToday, endOfToday, service);
     JsonNode data = objectMapper.readTree(instancesResponse.asString()).path("data");
 
@@ -80,7 +82,7 @@ public class TallyHypervisorTests extends BaseTallyComponentTest {
     helpers.seedNightlyTallyHostBuckets(
         orgId, RHEL_FOR_X86.productTag(), UUID.randomUUID().toString(), service);
 
-    helpers.syncTallyNightly(orgId, service);
+    tallyApi.syncTallyNightly(orgId, service);
 
     OffsetDateTime startOfToday = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
     OffsetDateTime endOfToday = startOfToday.plusDays(1).minusNanos(1);
@@ -91,7 +93,7 @@ public class TallyHypervisorTests extends BaseTallyComponentTest {
     TallyDbHostSeeder.insertHost(
         orgId, UUID.randomUUID().toString(), "VIRTUAL", false, false, true, 0, null);
 
-    helpers.syncTallyNightly(orgId, service);
+    tallyApi.syncTallyNightly(orgId, service);
 
     int newSockets = getDailySocketsTotal(orgId, startOfToday, endOfToday);
     assertEquals(
@@ -101,7 +103,7 @@ public class TallyHypervisorTests extends BaseTallyComponentTest {
   private int getDailySocketsTotal(String orgId, OffsetDateTime beginning, OffsetDateTime ending)
       throws Exception {
     Response resp =
-        helpers.getTallyReport(
+        tallyApi.getTallyReport(
             service,
             orgId,
             RHEL_FOR_X86.productTag(),

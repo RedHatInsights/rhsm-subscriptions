@@ -23,19 +23,15 @@ package utils;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 
 import api.MessageValidators;
+import api.SwatchTallyRestAPIService;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.SwatchService;
-import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
-import com.redhat.swatch.component.tests.utils.SwatchUtils;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallySummary;
-import io.restassured.response.Response;
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -46,7 +42,6 @@ import org.candlepin.subscriptions.json.Measurement;
 public class TallyTestHelpers {
 
   // Test configuration constants
-  private static final String TEST_PSK = "placeholder";
   private static final String DEFAULT_BILLING_ACCOUNT = "746157280291";
   private static final String DEFAULT_PRODUCT_ID =
       TallyTestProducts.RHEL_FOR_X86_ELS_PAYG.productId();
@@ -55,6 +50,8 @@ public class TallyTestHelpers {
   private static final String DEFAULT_METRIC_ID =
       TallyTestProducts.RHEL_FOR_X86_ELS_PAYG.metricIds().get(1);
   private static final int EVENT_EXPIRATION_DAYS = 25;
+
+  private final SwatchTallyRestAPIService restApiService = new SwatchTallyRestAPIService();
 
   /** Default constructor. */
   public TallyTestHelpers() {}
@@ -131,72 +128,6 @@ public class TallyTestHelpers {
     return event;
   }
 
-  public void syncTallyNightly(String orgId, SwatchService service) {
-    Response response =
-        service
-            .given()
-            .header("x-rh-swatch-psk", TEST_PSK)
-            .header("x-rh-swatch-synchronous-request", "true")
-            .put("/api/rhsm-subscriptions/v1/internal/rpc/tally/snapshots/" + orgId)
-            .then()
-            .extract()
-            .response();
-
-    if (response.getStatusCode() != 200) {
-      throw new RuntimeException(
-          "Tally sync failed with status code: "
-              + response.getStatusCode()
-              + ", response body: "
-              + response.getBody().asString());
-    }
-
-    Log.info("Sync nightly tally endpoint called successfully for org: %s", orgId);
-  }
-
-  public void syncTallyHourly(String orgId, SwatchService service) {
-    Response response =
-        service
-            .given()
-            .header("x-rh-swatch-psk", TEST_PSK)
-            .queryParam("org", orgId)
-            .post("/api/rhsm-subscriptions/v1/internal/tally/hourly")
-            .then()
-            .extract()
-            .response();
-
-    if (response.getStatusCode() != 204) {
-      throw new RuntimeException(
-          "Hourly tally sync failed with status code: "
-              + response.getStatusCode()
-              + ", response body: "
-              + response.getBody().asString());
-    }
-
-    Log.info("Hourly tally endpoint called successfully for org: %s", orgId);
-  }
-
-  public void createOptInConfig(String orgId, SwatchService service) {
-    Response response =
-        service
-            .given()
-            .header("x-rh-swatch-psk", TEST_PSK)
-            .queryParam("org_id", orgId)
-            .put("/api/rhsm-subscriptions/v1/internal/rpc/tally/opt-in")
-            .then()
-            .extract()
-            .response();
-
-    if (response.getStatusCode() != 200) {
-      throw new RuntimeException(
-          "Create opt-in config failed with status code: "
-              + response.getStatusCode()
-              + ", response body: "
-              + response.getBody().asString());
-    }
-
-    Log.info("Opt-in config created successfully for org: %s", orgId);
-  }
-
   /**
    * Temporary nightly-tally pre-req seeding for CTs.
    *
@@ -209,7 +140,7 @@ public class TallyTestHelpers {
    */
   public void seedNightlyTallyHostBuckets(
       String orgId, String productId, String inventoryId, SwatchService service) {
-    createOptInConfig(orgId, service);
+    restApiService.createOptInConfig(orgId, service);
 
     var hostId = TallyDbHostSeeder.insertHbiHost(orgId, inventoryId);
     // Keep the host from being deleted (PAYG-eligible tag)
@@ -223,107 +154,6 @@ public class TallyTestHelpers {
         "AWS");
     // Produce DAILY summary messages (non-PAYG tag)
     TallyDbHostSeeder.insertBuckets(hostId, productId, "Premium", "Production", 4, 2, "PHYSICAL");
-  }
-
-  public Response getTallyReport(
-      SwatchService service,
-      String orgId,
-      String productId,
-      String metricId,
-      Map<String, ?> queryParams) {
-    Map<String, Object> params = new HashMap<>();
-    if (queryParams != null) {
-      params.putAll(queryParams);
-    }
-
-    Response response =
-        service
-            .given()
-            .header("x-rh-identity", SwatchUtils.createUserIdentityHeader(orgId))
-            .queryParams(params)
-            // Use path params so product IDs with spaces are safely encoded.
-            .get(
-                "/api/rhsm-subscriptions/v1/tally/products/{productId}/{metricId}",
-                productId,
-                metricId)
-            .then()
-            .extract()
-            .response();
-
-    if (response.getStatusCode() != 200) {
-      throw new RuntimeException(
-          "Get tally report failed with status code: "
-              + response.getStatusCode()
-              + ", response body: "
-              + response.getBody().asString());
-    }
-
-    Log.info(
-        "Tally report response for orgId=%s, productId=%s, metricId=%s: %s",
-        orgId, productId, metricId, response.getBody().asString());
-
-    return response;
-  }
-
-  /*
-   * Get tally report with raw query parameters (for testing invalid values).
-   *
-   * @return Raw Response object for status code validation
-   */
-  public Response getTallyReportRaw(
-      SwatchService service,
-      String orgId,
-      String productId,
-      String metricId,
-      Map<String, ?> queryParams) {
-    Map<String, Object> params = new HashMap<>();
-    if (queryParams != null) {
-      params.putAll(queryParams);
-    }
-
-    return service
-        .given()
-        .header("x-rh-identity", SwatchUtils.createUserIdentityHeader(orgId))
-        .queryParams(params)
-        // Use path params so product IDs with spaces are safely encoded.
-        .get(
-            "/api/rhsm-subscriptions/v1/tally/products/{productId}/{metricId}", productId, metricId)
-        .then()
-        .extract()
-        .response();
-  }
-
-  public Response getInstancesReport(
-      String orgId,
-      String productId,
-      OffsetDateTime beginning,
-      OffsetDateTime ending,
-      SwatchService service) {
-    Response response =
-        service
-            .given()
-            .header("x-rh-identity", SwatchUtils.createUserIdentityHeader(orgId))
-            .queryParam("beginning", beginning.toString())
-            .queryParam("ending", ending.toString())
-            // Use path params so product IDs with spaces are safely encoded.
-            .get("/api/rhsm-subscriptions/v1/instances/products/{productId}", productId)
-            .then()
-            .extract()
-            .response();
-
-    if (response.getStatusCode() != 200) {
-      throw new RuntimeException(
-          "Get instances report failed with status code: "
-              + response.getStatusCode()
-              + ", response body: "
-              + response.getBody().asString());
-    }
-
-    Log.info(
-        "Instances report response for orgId=%s, productId=%s: %s",
-        orgId, productId, response.getBody().asString());
-
-    return response;
   }
 
   public List<TallySummary> pollForTallySyncAndMessages(
@@ -347,7 +177,7 @@ public class TallyTestHelpers {
       attempts++;
       try {
         // Run hourly tally sync
-        syncTallyHourly(testOrgId, service);
+        restApiService.syncTallyHourly(testOrgId, service);
 
         // Wait for tally messages with a short timeout
 
