@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 
+import api.SwatchTallyRestAPIService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
@@ -39,6 +40,7 @@ import utils.TallyTestHelpers;
 public class TallyReportGranularityTest extends BaseTallyComponentTest {
 
   private static final TallyTestHelpers helpers = new TallyTestHelpers();
+  private static final SwatchTallyRestAPIService tallyApi = new SwatchTallyRestAPIService();
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final String TEST_PRODUCT_TAG = RHEL_FOR_X86_ELS_PAYG.productTag();
   private static final String TEST_METRIC_ID = RHEL_FOR_X86_ELS_PAYG.metricIds().get(0);
@@ -50,7 +52,7 @@ public class TallyReportGranularityTest extends BaseTallyComponentTest {
   @Test
   public void testTallyReportGranularityDailyAllFilters() throws Exception {
     String orgId = RandomUtils.generateRandom();
-    helpers.createOptInConfig(orgId, service);
+    tallyApi.createOptInConfig(orgId, service);
 
     OffsetDateTime beginning =
         OffsetDateTime.now(ZoneOffset.UTC).minusDays(3).truncatedTo(ChronoUnit.DAYS);
@@ -67,7 +69,7 @@ public class TallyReportGranularityTest extends BaseTallyComponentTest {
             "billing_account_id", TEST_BILLING_ACCOUNT_ID);
 
     String body =
-        helpers
+        tallyApi
             .getTallyReport(service, orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams)
             .asString();
 
@@ -87,7 +89,7 @@ public class TallyReportGranularityTest extends BaseTallyComponentTest {
   @Test
   public void testTallyReportGranularityDailySomeFilters() throws Exception {
     String orgId = RandomUtils.generateRandom();
-    helpers.createOptInConfig(orgId, service);
+    tallyApi.createOptInConfig(orgId, service);
 
     OffsetDateTime beginning =
         OffsetDateTime.now(ZoneOffset.UTC).minusDays(3).truncatedTo(ChronoUnit.DAYS);
@@ -107,7 +109,7 @@ public class TallyReportGranularityTest extends BaseTallyComponentTest {
             TEST_USAGE);
 
     String body =
-        helpers
+        tallyApi
             .getTallyReport(service, orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams)
             .asString();
 
@@ -127,7 +129,7 @@ public class TallyReportGranularityTest extends BaseTallyComponentTest {
   @Test
   public void testTallyReportGranularityHourly() throws Exception {
     String orgId = RandomUtils.generateRandom();
-    helpers.createOptInConfig(orgId, service);
+    tallyApi.createOptInConfig(orgId, service);
 
     OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.HOURS);
     OffsetDateTime beginning = now.minusHours(4);
@@ -144,7 +146,7 @@ public class TallyReportGranularityTest extends BaseTallyComponentTest {
             "billing_account_id", TEST_BILLING_ACCOUNT_ID);
 
     String body =
-        helpers
+        tallyApi
             .getTallyReport(service, orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams)
             .asString();
 
@@ -164,7 +166,7 @@ public class TallyReportGranularityTest extends BaseTallyComponentTest {
   @Test
   public void testTallyReportInvalidWithoutGranularity() {
     String orgId = RandomUtils.generateRandom();
-    helpers.createOptInConfig(orgId, service);
+    tallyApi.createOptInConfig(orgId, service);
 
     OffsetDateTime beginning =
         OffsetDateTime.now(ZoneOffset.UTC).minusDays(3).truncatedTo(ChronoUnit.DAYS);
@@ -176,7 +178,7 @@ public class TallyReportGranularityTest extends BaseTallyComponentTest {
             "ending", ending.toString());
 
     Response resp =
-        helpers.getTallyReportRaw(service, orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams);
+        tallyApi.getTallyReportRaw(service, orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams);
 
     assertEquals(400, resp.getStatusCode());
     assertTrue(resp.getBody().asString().contains("granularity: must not be null"));
