@@ -3,6 +3,13 @@
 # getting loaded.
 # See https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html#boot-features-external-config-application-property-files
 
+# ?
+ephemeral:
+  OTEL_DISABLED: true
+# ?
+dev:
+  OTEL_DISABLED: true
+
 spring:
   # load the common core definitions
   config:
@@ -15,6 +22,13 @@ spring:
   jms:
     listener:
       auto-startup: ${UMB_ENABLED:false}
+  otel:
+    sdk: ${OTEL_DISABLED}
+    exporter:
+      otlp:
+        endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}
+        traces:
+          protocol: ${OTEL_EXPORTER_OTLP_PROTOCOL:grpc}
 
 rhsm-subscriptions:
   jobs:
