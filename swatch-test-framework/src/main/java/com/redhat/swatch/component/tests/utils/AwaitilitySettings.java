@@ -33,6 +33,7 @@ public final class AwaitilitySettings {
   Service service;
   String timeoutMessage = StringUtils.EMPTY;
   boolean doNotIgnoreExceptions = false;
+  Runnable onConditionNotMet = null;
 
   public static AwaitilitySettings defaults() {
     return new AwaitilitySettings();
@@ -63,6 +64,11 @@ public final class AwaitilitySettings {
 
   public AwaitilitySettings doNotIgnoreExceptions() {
     this.doNotIgnoreExceptions = true;
+    return this;
+  }
+
+  public AwaitilitySettings onConditionNotMet(Runnable runnable) {
+    this.onConditionNotMet = runnable;
     return this;
   }
 }
