@@ -35,6 +35,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.MapKeyClass;
 import jakarta.persistence.Table;
 import java.io.Serializable;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -46,6 +47,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.Generated;
 
 /** Model object to represent pieces of tally data. */
 @ToString
@@ -90,6 +93,11 @@ public class TallySnapshot implements Serializable {
   @Column(name = "granularity")
   private Granularity granularity;
 
+  @Column(name = "last_modified", insertable = false, updatable = false)
+  @ColumnDefault("CURRENT_TIMESTAMP")
+  @Generated
+  private Instant lastModified;
+
   @ElementCollection(fetch = FetchType.EAGER)
   @CollectionTable(name = "tally_measurements", joinColumns = @JoinColumn(name = "snapshot_id"))
   @Column(name = "value")
@@ -123,7 +131,8 @@ public class TallySnapshot implements Serializable {
         && usage == that.usage
         && granularity == that.granularity
         && billingProvider == that.billingProvider
-        && Objects.equals(billingAccountId, that.billingAccountId);
+        && Objects.equals(billingAccountId, that.billingAccountId)
+        && Objects.equals(lastModified, that.lastModified);
   }
 
   @Override
@@ -136,6 +145,7 @@ public class TallySnapshot implements Serializable {
         usage,
         granularity,
         billingProvider,
-        billingAccountId);
+        billingAccountId,
+        lastModified);
   }
 }
