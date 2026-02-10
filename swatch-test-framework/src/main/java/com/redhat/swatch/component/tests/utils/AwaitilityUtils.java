@@ -176,16 +176,11 @@ public final class AwaitilityUtils {
     ConditionFactory factory =
         Awaitility.await()
             .pollInterval(settings.interval.toSeconds(), TimeUnit.SECONDS)
-            .atMost(timeoutInSeconds(settings), TimeUnit.SECONDS);
+            .atMost(timeoutInSeconds(settings), TimeUnit.SECONDS)
+            .conditionEvaluationListener(new CustomConditionEvaluationListener(settings));
 
     if (!settings.doNotIgnoreExceptions) {
       factory = factory.ignoreExceptions();
-    }
-
-    if (settings.service != null || StringUtils.isNotEmpty(settings.timeoutMessage)) {
-      // Enable logging
-      factory =
-          factory.conditionEvaluationListener(new CustomConditionEvaluationListener(settings));
     }
 
     return factory;
@@ -211,10 +206,16 @@ public final class AwaitilityUtils {
 
     @Override
     public void conditionEvaluated(EvaluatedCondition condition) {
-      if (settings.service != null) {
-        Log.trace(settings.service, condition.getDescription());
-      } else {
-        Log.debug(condition.getDescription());
+      if (StringUtils.isNotEmpty(settings.timeoutMessage)) {
+        if (settings.service != null) {
+          Log.trace(settings.service, condition.getDescription());
+        } else {
+          Log.debug(condition.getDescription());
+        }
+      }
+
+      if (!condition.isSatisfied() && settings.onConditionNotMet != null) {
+        settings.onConditionNotMet.run();
       }
     }
 
