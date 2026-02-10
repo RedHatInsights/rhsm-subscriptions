@@ -30,8 +30,8 @@
     <slf4j.version>2.0.17</slf4j.version>
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
-    <opentelemetry-api.version>1.58.0</opentelemetry-api.version>
-    <awssdk-bom.version>2.41.21</awssdk-bom.version>
+    <opentelemetry-api.version>1.59.0</opentelemetry-api.version>
+    <awssdk-bom.version>2.41.25</awssdk-bom.version>
     <guava.version>33.5.0-jre</guava.version>
     <liquibase.version>5.0.1</liquibase.version>
     <postgresql.version>42.7.9</postgresql.version>
@@ -57,7 +57,7 @@
     <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
     <maven-antrun-plugin.version>3.2.0</maven-antrun-plugin.version>
     <sonar-maven-plugin.version>5.5.0.6356</sonar-maven-plugin.version>
-    <swagger-codegen-maven-plugin.version>3.0.76</swagger-codegen-maven-plugin.version>
+    <swagger-codegen-maven-plugin.version>3.0.77</swagger-codegen-maven-plugin.version>
 
     <!-- Sonar configuration -->
     <sonar.host.url>https://sonarcloud.io</sonar.host.url>
@@ -215,7 +215,7 @@
       <dependency>
         <groupId>org.openapitools</groupId>
         <artifactId>jackson-databind-nullable</artifactId>
-        <version>0.2.8</version>
+        <version>0.2.9</version>
       </dependency>
       <dependency>
         <groupId>org.codehaus.janino</groupId>
@@ -519,7 +519,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>13.1.0</version>
+            <version>13.2.0</version>
           </dependency>
         </dependencies>
       </plugin>

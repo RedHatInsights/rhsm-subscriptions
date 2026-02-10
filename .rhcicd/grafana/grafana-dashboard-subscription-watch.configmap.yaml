@@ -4466,33 +4466,7 @@ data:
                     ]
                   },
                   "unit": "short"
-                },
-                "overrides": [
-                  {
-                    "__systemRef": "hideSeriesFrom",
-                    "matcher": {
-                      "id": "byNames",
-                      "options": {
-                        "mode": "exclude",
-                        "names": [
-                          "swatch-utilization-consumer"
-                        ],
-                        "prefix": "All except:",
-                        "readOnly": true
-                      }
-                    },
-                    "properties": [
-                      {
-                        "id": "custom.hideFrom",
-                        "value": {
-                          "legend": false,
-                          "tooltip": false,
-                          "viz": true
-                        }
-                      }
-                    ]
-                  }
-                ]
+                }
               },
               "gridPos": {
                 "h": 9,
@@ -4522,13 +4496,13 @@ data:
                     "uid": "${aws_kafka_datasource}"
                   },
                   "editorMode": "code",
-                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.utilization\",consumer_group!~\"iqe.*\"}) by (consumer_group)",
+                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.tally\",consumer_group=\"swatch-contracts-tally-worker\"})",
                   "legendFormat": "__auto",
                   "range": true,
                   "refId": "A"
                 }
               ],
-              "title": "Swatch-Utilization Kafka Listener Lag ",
+              "title": "Tally to Contracts Lag",
               "type": "timeseries"
             },
             {

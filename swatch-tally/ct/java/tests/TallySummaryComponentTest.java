@@ -26,6 +26,7 @@ import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_UNCONVERTED;
 
 import api.MessageValidators;
+import api.SwatchTallyRestAPIService;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
@@ -44,6 +45,7 @@ import utils.TallyTestHelpers;
 public class TallySummaryComponentTest extends BaseTallyComponentTest {
 
   private static final TallyTestHelpers helpers = new TallyTestHelpers();
+  private static final SwatchTallyRestAPIService tallyApi = new SwatchTallyRestAPIService();
 
   @Test
   public void testTallyNightlySummaryEmitsGranularityDaily() {
@@ -54,7 +56,7 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
         testOrgId, RHEL_FOR_X86_ELS_UNCONVERTED.productTag(), testInventoryId, service);
 
     // Trigger nightly tally (PUT snapshots for org)
-    helpers.syncTallyNightly(testOrgId, service);
+    tallyApi.syncTallyNightly(testOrgId, service);
 
     // Wait for tally summary messages with DAILY granularity
     kafkaBridge.waitForKafkaMessage(
@@ -75,7 +77,7 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     helpers.seedNightlyTallyHostBuckets(
         testOrgId, RHEL_FOR_X86_ELS_UNCONVERTED.productTag(), testInventoryId, service);
 
-    helpers.syncTallyNightly(testOrgId, service);
+    tallyApi.syncTallyNightly(testOrgId, service);
 
     AwaitilitySettings kafkaConsumerTimeout =
         AwaitilitySettings.using(Duration.ofMillis(500), Duration.ofSeconds(60));

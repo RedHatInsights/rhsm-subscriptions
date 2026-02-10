@@ -140,6 +140,55 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     assertThat("Task should be enqueued with correct SKU", task.getSku(), is(testSku));
   }
 
+  @TestPlanName("capacity-reconciliation-kafka-TC001")
+  @Test
+  void shouldProcessReconciliationTaskFromKafka() {
+    // Given: An offering with subscriptions exists
+    final String testSku = givenOfferingWithMultipleSubscriptions();
+
+    // When: A ReconcileCapacityByOfferingTask is published to the Kafka topic
+    ReconcileCapacityByOfferingTask task =
+        ReconcileCapacityByOfferingTask.builder().sku(testSku).offset(0).limit(100).build();
+    kafkaBridge.produceKafkaMessage(CAPACITY_RECONCILE, task);
+
+    // Then: Consumer receives task and reconciles capacity for the offering
+    service
+        .logs()
+        .assertContains(
+            "Capacity Reconciliation Worker is reconciling capacity for offering with values");
+
+    // Verify all subscriptions are reconciled with updated measurements
+    thenAllSubscriptionsAreReconciled(testSku);
+  }
+
+  @TestPlanName("capacity-reconciliation-kafka-TC002")
+  @Test
+  void shouldHandleMalformedReconciliationTask() {
+    // Given: An offering with subscriptions exists and a valid task is ready
+    final String testSku = givenOfferingWithMultipleSubscriptions();
+    ReconcileCapacityByOfferingTask validTask =
+        ReconcileCapacityByOfferingTask.builder().sku(testSku).offset(0).limit(100).build();
+
+    // When: A malformed message is published followed by a valid message
+    // With fail-on-deserialization-failure=false, malformed message is gracefully skipped
+    Map<String, Object> malformedTask = Map.of("sku", 12345, "offset", "invalid", "limit", true);
+    kafkaBridge.produceKafkaMessage(CAPACITY_RECONCILE, malformedTask);
+    kafkaBridge.produceKafkaMessage(CAPACITY_RECONCILE, validTask);
+
+    // Then: Service logs the deserialization error for the malformed message
+    service.logs().assertContains("consume has thrown an exception");
+
+    // And: Service remains stable and processes valid message successfully
+    // (If consumer crashed from malformed message, this await would fail)
+    service
+        .logs()
+        .assertContains(
+            "Capacity Reconciliation Worker is reconciling capacity for offering with values");
+
+    // Verify reconciliation actually completed (measurements updated)
+    thenAllSubscriptionsAreReconciled(testSku);
+  }
+
   // Helper methods
 
   /**

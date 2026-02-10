@@ -24,6 +24,7 @@ import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INST
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static utils.TallyTestProducts.OPENSHIFT_DEDICATED;
 
+import api.SwatchTallyRestAPIService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
@@ -47,6 +48,7 @@ import utils.TallyTestHelpers;
 public class TallyPersistenceTest extends BaseTallyComponentTest {
 
   private static final TallyTestHelpers helpers = new TallyTestHelpers();
+  private static final SwatchTallyRestAPIService tallyApi = new SwatchTallyRestAPIService();
   private static final String TEST_PRODUCT_TAG = OPENSHIFT_DEDICATED.productTag();
   private static final String TEST_METRIC_ID = OPENSHIFT_DEDICATED.metricIds().get(1);
   private static final String TEST_PRODUCT_ID = OPENSHIFT_DEDICATED.productId();
@@ -62,7 +64,7 @@ public class TallyPersistenceTest extends BaseTallyComponentTest {
   @Test
   public void testTallyReportPersistsWithDateTimeRangeVariations() throws Exception {
     // Run initial tally after setup
-    helpers.syncTallyHourly(setup.orgId, service);
+    tallyApi.syncTallyHourly(setup.orgId, service);
     Thread.sleep(3000);
 
     // Get initial tally reports
@@ -70,7 +72,7 @@ public class TallyPersistenceTest extends BaseTallyComponentTest {
     JsonNode yesterdayTallyBefore = getTallyReportJson(setup.yesterday);
 
     // Run hourly tally again
-    helpers.syncTallyHourly(setup.orgId, service);
+    tallyApi.syncTallyHourly(setup.orgId, service);
     Thread.sleep(3000);
 
     // Get tally reports after second tally
@@ -89,14 +91,14 @@ public class TallyPersistenceTest extends BaseTallyComponentTest {
   @Test
   public void testInstanceReportPersistsWithDateTimeRangeVariations() throws Exception {
     // Run initial tally
-    helpers.syncTallyHourly(setup.orgId, service);
+    tallyApi.syncTallyHourly(setup.orgId, service);
     Thread.sleep(3000);
 
     // Get initial instances report for yesterday
     JsonNode yesterdayInstancesBefore = getInstancesReportJson(setup.yesterday);
 
     // Run hourly tally again
-    helpers.syncTallyHourly(setup.orgId, service);
+    tallyApi.syncTallyHourly(setup.orgId, service);
     Thread.sleep(3000);
 
     // Get instances report after second tally
@@ -114,7 +116,7 @@ public class TallyPersistenceTest extends BaseTallyComponentTest {
     String orgId = RandomUtils.generateRandom();
     OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
 
-    helpers.createOptInConfig(orgId, service);
+    tallyApi.createOptInConfig(orgId, service);
 
     // Calculate day ranges (today and yesterday)
     // TallyState initializes with latestEventRecordDate = start of yesterday
@@ -157,7 +159,7 @@ public class TallyPersistenceTest extends BaseTallyComponentTest {
 
   private JsonNode getTallyReportJson(DateRange range) throws Exception {
     return objectMapper.readTree(
-        helpers
+        tallyApi
             .getTallyReport(
                 service,
                 setup.orgId,
@@ -175,7 +177,7 @@ public class TallyPersistenceTest extends BaseTallyComponentTest {
 
   private JsonNode getInstancesReportJson(DateRange range) throws Exception {
     return objectMapper.readTree(
-        helpers
+        tallyApi
             .getInstancesReport(setup.orgId, TEST_PRODUCT_TAG, range.start(), range.end(), service)
             .asString());
   }
