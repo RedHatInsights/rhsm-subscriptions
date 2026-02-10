@@ -88,7 +88,7 @@ parameters:
   - name: OTEL_SIDECAR_SPLUNK_CONFIG
     value: '/etc/otelcol/relay'
   - name: OTEL_ENV_NAME
-    value: ephemeral
+    value: env-swatch-api
   - name: OTEL_K8S_CLUSTER_NAME
     value: ephemeral
   - name: OTEL_SIGNALFX_TOKEN_SECRET_NAME
