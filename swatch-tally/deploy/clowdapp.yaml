@@ -501,8 +501,7 @@ objects:
               value: ${OTEL_JAVAAGENT_ENABLED}
             - name: EVENT_RECORD_RETENTION
               value: ${EVENT_RECORD_RETENTION}
-            - name: OTEL_DISABLED
-              value: ${OTEL_DISABLED}
+
           livenessProbe:
             failureThreshold: 3
             httpGet:
