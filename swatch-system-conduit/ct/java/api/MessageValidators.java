@@ -20,7 +20,7 @@
  */
 package api;
 
-import com.redhat.swatch.component.tests.api.MessageValidator;
+import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
 import org.candlepin.subscriptions.conduit.inventory.kafka.CreateUpdateHostMessage;
 
 public class MessageValidators {
@@ -31,10 +31,11 @@ public class MessageValidators {
    * @param orgId the orgId to match
    * @return a MessageValidator that matches add_host message of the given orgId
    */
-  public static MessageValidator<CreateUpdateHostMessage> addHostMessageMatchesOrgId(String orgId) {
+  public static DefaultMessageValidator<CreateUpdateHostMessage> addHostMessageMatchesOrgId(
+      String orgId) {
     var operation = "add_host";
 
-    return new MessageValidator<>(
+    return new DefaultMessageValidator<>(
         message -> {
           if (message == null || message.getData() == null) {
             return false;

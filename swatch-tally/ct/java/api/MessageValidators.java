@@ -20,15 +20,15 @@
  */
 package api;
 
-import com.redhat.swatch.component.tests.api.MessageValidator;
+import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallySummary;
 
 public class MessageValidators {
 
-  public static MessageValidator<TallySummary> tallySummaryMatches(
+  public static DefaultMessageValidator<TallySummary> tallySummaryMatches(
       String orgId, String productId, String metricId, Granularity granularity) {
-    return new MessageValidator<>(
+    return new DefaultMessageValidator<>(
         summary ->
             orgId.equals(summary.getOrgId())
                 && summary.getTallySnapshots() != null
