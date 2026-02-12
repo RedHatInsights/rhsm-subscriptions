@@ -42,6 +42,7 @@ import com.redhat.swatch.contract.repository.HypervisorReportCategory;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import com.redhat.swatch.contract.resource.InMemoryPager;
+import com.redhat.swatch.contract.resource.OrgIdResolver;
 import com.redhat.swatch.contract.resource.ResourceUtils;
 import com.redhat.swatch.contract.resteasy.Page;
 import com.redhat.swatch.contract.resteasy.PageLinkCreator;
@@ -50,10 +51,12 @@ import com.redhat.swatch.contract.utils.SnapshotTimeAdjuster;
 import io.quarkus.panache.common.Sort;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.SecurityContext;
 import jakarta.ws.rs.core.UriInfo;
 import java.time.OffsetDateTime;
@@ -75,6 +78,7 @@ public class CapacityResourceV1 implements CapacityApi {
   public static final String PHYSICAL = HardwareMeasurementType.PHYSICAL.toString().toUpperCase();
   public static final String HYPERVISOR =
       HardwareMeasurementType.HYPERVISOR.toString().toUpperCase();
+
   private final ApiModelMapperV1 mapper;
   private final SubscriptionRepository subscriptionRepository;
   private final PageLinkCreator pageLinkCreator;
@@ -82,6 +86,8 @@ public class CapacityResourceV1 implements CapacityApi {
 
   @Context UriInfo uriInfo;
   @Context SecurityContext securityContext;
+  @Context HttpHeaders httpHeaders;
+  @Inject OrgIdResolver orgIdResolver;
 
   public CapacityResourceV1(
       ApiModelMapperV1 apiModelMapper,
@@ -89,7 +95,6 @@ public class CapacityResourceV1 implements CapacityApi {
       PageLinkCreator pageLinkCreator,
       ApplicationClock clock) {
     this.mapper = apiModelMapper;
-
     this.subscriptionRepository = subscriptionRepository;
     this.pageLinkCreator = pageLinkCreator;
     this.clock = clock;
@@ -133,7 +138,7 @@ public class CapacityResourceV1 implements CapacityApi {
     }
 
     Granularity granularityValue = Granularity.fromString(granularityType.toString());
-    String orgId = getOrgId();
+    String orgId = orgIdResolver.getOrgId(securityContext, httpHeaders);
     List<CapacitySnapshotByMetricId> capacities =
         getCapacitiesByMetricId(
             orgId,
@@ -298,9 +303,5 @@ public class CapacityResourceV1 implements CapacityApi {
       throw new BadRequestException(
           String.format("%s does not support granularity %s", productId, granularity.getValue()));
     }
-  }
-
-  private String getOrgId() {
-    return securityContext.getUserPrincipal().getName();
   }
 }
