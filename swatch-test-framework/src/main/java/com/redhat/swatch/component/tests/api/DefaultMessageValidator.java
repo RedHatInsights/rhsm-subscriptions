@@ -18,13 +18,19 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.api.dto;
+package com.redhat.swatch.component.tests.api;
 
-import lombok.Data;
+import java.util.function.Predicate;
 
-@Data
-public class KafkaMessage<K, T> {
-  String topic;
-  K key;
-  T value;
+public class DefaultMessageValidator<T> extends MessageValidator<String, T> {
+
+  /**
+   * Validator that ignores the message key and filters only by value (key is treated as String).
+   *
+   * @param filter the {@code Predicate<T>} to use for filtering the value.
+   * @param valueType the {@code Class<T>} for the message value.
+   */
+  public DefaultMessageValidator(Predicate<T> filter, Class<T> valueType) {
+    super((k, v) -> filter.test(v), String.class, valueType);
+  }
 }

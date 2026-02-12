@@ -20,22 +20,24 @@
  */
 package api;
 
+import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
 import com.redhat.swatch.component.tests.api.MessageValidator;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
+import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 
 public class MessageValidators {
 
-  public static MessageValidator<BillableUsage> billableUsageMatches(
+  public static DefaultMessageValidator<BillableUsage> billableUsageMatches(
       String orgId, String productId) {
-    return new MessageValidator<>(
+    return new DefaultMessageValidator<>(
         usage -> orgId.equals(usage.getOrgId()) && productId.equals(usage.getProductId()),
         BillableUsage.class);
   }
 
-  public static MessageValidator<BillableUsage> billableUsageMatchesWithValue(
+  public static DefaultMessageValidator<BillableUsage> billableUsageMatchesWithValue(
       String orgId, String productId, double expectedValue) {
-    return new MessageValidator<>(
+    return new DefaultMessageValidator<>(
         usage ->
             orgId.equals(usage.getOrgId())
                 && productId.equals(usage.getProductId())
@@ -43,20 +45,11 @@ public class MessageValidators {
         BillableUsage.class);
   }
 
-  public static MessageValidator<BillableUsageAggregate> aggregateMatches(
-      String orgId, BillableUsage.Status status) {
+  public static MessageValidator<BillableUsageAggregateKey, BillableUsageAggregate>
+      billableUsageAggregateMatchesOrg(String orgId) {
     return new MessageValidator<>(
-        aggregate ->
-            orgId.equals(aggregate.getAggregateKey().getOrgId())
-                && status.equals(aggregate.getStatus()),
+        (key, value) -> orgId.equals(key.getOrgId()),
+        BillableUsageAggregateKey.class,
         BillableUsageAggregate.class);
-  }
-
-  public static MessageValidator<BillableUsage> alwaysMatchBillableUsage() {
-    return new MessageValidator<>(usage -> true, BillableUsage.class);
-  }
-
-  public static MessageValidator<BillableUsageAggregate> alwaysMatchAggregate() {
-    return new MessageValidator<>(agg -> true, BillableUsageAggregate.class);
   }
 }
