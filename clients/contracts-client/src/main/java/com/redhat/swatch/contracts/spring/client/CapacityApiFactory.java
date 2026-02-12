@@ -33,14 +33,17 @@ import org.springframework.util.StringUtils;
 public class CapacityApiFactory implements FactoryBean<CapacityApi> {
 
   private final HttpClientProperties properties;
+  private final IdentityHeaderProvider identityHeaderProvider;
 
-  public CapacityApiFactory(HttpClientProperties properties) {
+  public CapacityApiFactory(
+      HttpClientProperties properties, IdentityHeaderProvider identityHeaderProvider) {
     this.properties = properties;
+    this.identityHeaderProvider = identityHeaderProvider;
   }
 
   @Override
   public CapacityApi getObject() throws Exception {
-    ApiClient client = Configuration.getDefaultApiClient();
+    ApiClient client = new IdentityHeaderApiClient(identityHeaderProvider);
     client.setHttpClient(
         HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
 
