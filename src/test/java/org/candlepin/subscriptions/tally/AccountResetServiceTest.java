@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.redhat.swatch.configuration.registry.MetricId;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.UUID;
@@ -111,6 +112,7 @@ class AccountResetServiceTest {
             BillingProvider.EMPTY,
             "billingAccount123",
             Granularity.DAILY,
+            Instant.now(),
             Map.of(new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, "CORES"), 10.0));
     tallySnapshotRepository.save(snapshot);
 

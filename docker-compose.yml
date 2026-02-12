@@ -1,5 +1,4 @@
 ---
-version: '3.8'
 volumes:
   # Postgresql data will be stored in this volume.  To delete the volume when taking
   # an environment down run podman-compose down -v
