@@ -20,7 +20,7 @@
  */
 package api;
 
-import com.redhat.swatch.component.tests.api.MessageValidator;
+import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
 import com.redhat.swatch.contract.test.model.TallySnapshot;
 import com.redhat.swatch.contract.test.model.UtilizationSummary;
 import java.util.List;
@@ -28,10 +28,10 @@ import java.util.List;
 /** Utility class containing pre-defined message validators for common message types. */
 public class MessageValidators {
 
-  public static MessageValidator<UtilizationSummary> isUtilizationSummaryByTallySnapshots(
+  public static DefaultMessageValidator<UtilizationSummary> isUtilizationSummaryByTallySnapshots(
       List<TallySnapshot> tallySnapshots) {
     var tallyIds = tallySnapshots.stream().map(TallySnapshot::getId).toList();
-    return new MessageValidator<>(
+    return new DefaultMessageValidator<>(
         summary -> tallyIds.contains(summary.getTallySnapshotUuid()), UtilizationSummary.class);
   }
 }

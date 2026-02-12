@@ -32,6 +32,7 @@ public class BillableUsageSwatchService extends SwatchService {
   private static final String ENDPOINT_PREFIX = "/api/swatch-billable-usage/internal";
   private static final String REMITTANCE_ENDPOINT =
       ENDPOINT_PREFIX + "/remittance/accountRemittances/{tallyId}";
+  private static final String FLUSH_ENDPOINT = ENDPOINT_PREFIX + "/rpc/topics/flush";
 
   /**
    * Get remittances by tally ID using internal API
@@ -46,5 +47,10 @@ public class BillableUsageSwatchService extends SwatchService {
         .statusCode(HttpStatus.SC_OK)
         .extract()
         .as(new TypeRef<List<TallyRemittance>>() {});
+  }
+
+  /** Flush Kafka topics using internal API. */
+  public void flushBillableUsageAggregationTopic() {
+    given().put(FLUSH_ENDPOINT).then().statusCode(HttpStatus.SC_OK);
   }
 }
