@@ -3,11 +3,7 @@
 # getting loaded.
 # See https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html#boot-features-external-config-application-property-files
 
-# ?
 ephemeral:
-  OTEL_DISABLED: true
-# ?
-dev:
   OTEL_DISABLED: true
 
 spring:
@@ -27,8 +23,6 @@ spring:
     exporter:
       otlp:
         endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}
-        traces:
-          protocol: ${OTEL_EXPORTER_OTLP_PROTOCOL:grpc}
 
 rhsm-subscriptions:
   jobs:
