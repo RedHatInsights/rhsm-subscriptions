@@ -26,9 +26,7 @@ import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_UNCONVERTED;
 
 import api.MessageValidators;
-import api.SwatchTallyRestAPIService;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
-import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallySummary;
 import java.time.Duration;
@@ -39,30 +37,25 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import utils.TallyTestHelpers;
 
 @Slf4j
 public class TallySummaryComponentTest extends BaseTallyComponentTest {
 
-  private static final TallyTestHelpers helpers = new TallyTestHelpers();
-  private static final SwatchTallyRestAPIService tallyApi = new SwatchTallyRestAPIService();
-
   @Test
   public void testTallyNightlySummaryEmitsGranularityDaily() {
-    final String testOrgId = RandomUtils.generateRandom();
     final String testInventoryId = UUID.randomUUID().toString();
 
     helpers.seedNightlyTallyHostBuckets(
-        testOrgId, RHEL_FOR_X86_ELS_UNCONVERTED.productTag(), testInventoryId, service);
+        orgId, RHEL_FOR_X86_ELS_UNCONVERTED.productTag(), testInventoryId, service);
 
     // Trigger nightly tally (PUT snapshots for org)
-    tallyApi.syncTallyNightly(testOrgId, service);
+    service.tallyOrg(orgId);
 
     // Wait for tally summary messages with DAILY granularity
     kafkaBridge.waitForKafkaMessage(
         TALLY,
         MessageValidators.tallySummaryMatches(
-            testOrgId,
+            orgId,
             RHEL_FOR_X86_ELS_UNCONVERTED.productTag(),
             RHEL_FOR_X86_ELS_UNCONVERTED.metricIds().get(1),
             Granularity.DAILY),
@@ -71,13 +64,12 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
 
   @Test
   public void testTallyNightlySummaryHasNoTotalMeasurements() {
-    final String testOrgId = RandomUtils.generateRandom();
     final String testInventoryId = UUID.randomUUID().toString();
 
     helpers.seedNightlyTallyHostBuckets(
-        testOrgId, RHEL_FOR_X86_ELS_UNCONVERTED.productTag(), testInventoryId, service);
+        orgId, RHEL_FOR_X86_ELS_UNCONVERTED.productTag(), testInventoryId, service);
 
-    tallyApi.syncTallyNightly(testOrgId, service);
+    service.tallyOrg(orgId);
 
     AwaitilitySettings kafkaConsumerTimeout =
         AwaitilitySettings.using(Duration.ofMillis(500), Duration.ofSeconds(60));
@@ -85,7 +77,7 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
         kafkaBridge.waitForKafkaMessage(
             TALLY,
             MessageValidators.tallySummaryMatches(
-                testOrgId,
+                orgId,
                 RHEL_FOR_X86_ELS_UNCONVERTED.productTag(),
                 RHEL_FOR_X86_ELS_UNCONVERTED.metricIds().get(1),
                 Granularity.DAILY),
@@ -106,7 +98,6 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
 
   @Test
   public void testTallyHourlySummaryEmitsNoGranularityDaily() {
-    final String testOrgId = RandomUtils.generateRandom(); // Use random org ID
     final String testInstanceId = UUID.randomUUID().toString();
     final String testEventId = UUID.randomUUID().toString();
 
@@ -114,19 +105,19 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     OffsetDateTime now = OffsetDateTime.now();
     Event event1 =
         helpers.createEventWithTimestamp(
-            testOrgId, testInstanceId, now.minusHours(1).toString(), testEventId, 1.0f);
+            orgId, testInstanceId, now.minusHours(1).toString(), testEventId, 1.0f);
 
     Event event2 =
         helpers.createEventWithTimestamp(
-            testOrgId, testInstanceId, now.minusHours(2).toString(), testEventId, 1.0f);
+            orgId, testInstanceId, now.minusHours(2).toString(), testEventId, 1.0f);
 
     Event event3 =
         helpers.createEventWithTimestamp(
-            testOrgId, testInstanceId, now.minusHours(3).toString(), testEventId, 1.0f);
+            orgId, testInstanceId, now.minusHours(3).toString(), testEventId, 1.0f);
 
     Event event4 =
         helpers.createEventWithTimestamp(
-            testOrgId, testInstanceId, now.minusHours(4).toString(), testEventId, 1.0f);
+            orgId, testInstanceId, now.minusHours(4).toString(), testEventId, 1.0f);
 
     // Produce events to Kafka
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event1);
@@ -135,7 +126,7 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event4);
 
     helpers.pollForTallySyncAndMessages(
-        testOrgId,
+        orgId,
         RHEL_FOR_X86_ELS_PAYG.productTag(),
         RHEL_FOR_X86_ELS_PAYG.metricIds().get(1),
         Granularity.DAILY,
@@ -146,7 +137,6 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
 
   @Test
   public void testTallyHourlySummaryEmitsGranularityHourly() {
-    final String testOrgId = RandomUtils.generateRandom(); // Use random org ID
     final String testInstanceId = UUID.randomUUID().toString();
     final String testEventId = UUID.randomUUID().toString();
 
@@ -154,19 +144,19 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     OffsetDateTime now = OffsetDateTime.now();
     Event event1 =
         helpers.createEventWithTimestamp(
-            testOrgId, testInstanceId, now.minusHours(1).toString(), testEventId, 1.0f);
+            orgId, testInstanceId, now.minusHours(1).toString(), testEventId, 1.0f);
 
     Event event2 =
         helpers.createEventWithTimestamp(
-            testOrgId, testInstanceId, now.minusHours(2).toString(), testEventId, 1.0f);
+            orgId, testInstanceId, now.minusHours(2).toString(), testEventId, 1.0f);
 
     Event event3 =
         helpers.createEventWithTimestamp(
-            testOrgId, testInstanceId, now.minusHours(3).toString(), testEventId, 1.0f);
+            orgId, testInstanceId, now.minusHours(3).toString(), testEventId, 1.0f);
 
     Event event4 =
         helpers.createEventWithTimestamp(
-            testOrgId, testInstanceId, now.minusHours(4).toString(), testEventId, 1.0f);
+            orgId, testInstanceId, now.minusHours(4).toString(), testEventId, 1.0f);
 
     // Produce events to Kafka
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event1);
@@ -179,7 +169,7 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
     // and that no measurements are of type 'TOTAL'
     helpers
         .pollForTallySyncAndMessages(
-            testOrgId,
+            orgId,
             RHEL_FOR_X86_ELS_PAYG.productTag(),
             RHEL_FOR_X86_ELS_PAYG.metricIds().get(1),
             Granularity.HOURLY,

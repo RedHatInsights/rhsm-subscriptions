@@ -1,7 +1,7 @@
 # See https://goessner.net/articles/JsonPath/ for JSON Path syntax
 
 RHSM_RBAC_URL: ${clowder.endpoints.rbac-service.url:http://localhost:8819}
-RHSM_CONTRACTS_URL: ${clowder.endpoints.swatch-contracts-service.url:http://localhost:8001}
+RHSM_CONTRACTS_URL: ${clowder.endpoints.swatch-contracts-service.url:http://localhost:8006}
 
 rhsm-subscriptions:
   pretty-print-json: ${PRETTY_PRINT_JSON:false}
