@@ -145,18 +145,35 @@ public class TallyResource implements TallyApi {
             offset,
             limit);
 
-    Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage =
-        repository.findSnapshot(
-            reportCriteria.getOrgId(),
-            reportCriteria.getProductId(),
-            reportCriteria.getGranularity(),
-            reportCriteria.getServiceLevel(),
-            reportCriteria.getUsage(),
-            reportCriteria.getBillingProvider(),
-            reportCriteria.getBillingAccountId(),
-            reportCriteria.getBeginning(),
-            reportCriteria.getEnding(),
-            reportCriteria.getPageable());
+    final boolean isOrgLevelBilling =
+        ResourceUtils.ANY.equals(reportCriteria.getBillingAccountId());
+    Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage;
+    if (isOrgLevelBilling) {
+      snapshotPage =
+          repository.findSnapshotForOrg(
+              reportCriteria.getOrgId(),
+              reportCriteria.getProductId(),
+              reportCriteria.getGranularity(),
+              reportCriteria.getServiceLevel(),
+              reportCriteria.getUsage(),
+              reportCriteria.getBillingProvider(),
+              reportCriteria.getBeginning(),
+              reportCriteria.getEnding(),
+              reportCriteria.getPageable());
+    } else {
+      snapshotPage =
+          repository.findSnapshot(
+              reportCriteria.getOrgId(),
+              reportCriteria.getProductId(),
+              reportCriteria.getGranularity(),
+              reportCriteria.getServiceLevel(),
+              reportCriteria.getUsage(),
+              reportCriteria.getBillingProvider(),
+              reportCriteria.getBillingAccountId(),
+              reportCriteria.getBeginning(),
+              reportCriteria.getEnding(),
+              reportCriteria.getPageable());
+    }
 
     Map<OffsetDateTime, Integer> capacityByDate =
         Objects.nonNull(billingCategory)
@@ -177,10 +194,15 @@ public class TallyResource implements TallyApi {
     List<org.candlepin.subscriptions.db.model.TallySnapshot> snapshots =
         snapshotPage.stream().toList();
 
-    List<UnroundedTallyReportDataPoint> snaps =
-        snapshots.stream()
-            .map(snapshot -> unroundedDataPointFromSnapshot(metricId, category, snapshot))
-            .collect(Collectors.toList());
+    List<UnroundedTallyReportDataPoint> snaps;
+    if (isOrgLevelBilling && !snapshots.isEmpty()) {
+      snaps = aggregateSnapshotsByDate(snapshots, metricId, category);
+    } else {
+      snaps =
+          snapshots.stream()
+              .map(snapshot -> unroundedDataPointFromSnapshot(metricId, category, snapshot))
+              .collect(Collectors.toList());
+    }
 
     TallyReportData report = new TallyReportData();
     report.setMeta(new TallyReportDataMeta());
@@ -284,10 +306,33 @@ public class TallyResource implements TallyApi {
             category,
             sla,
             usageType);
-    return capacityReportByMetricId.getData().stream()
-        .collect(
-            Collectors.toMap(
-                CapacitySnapshotByMetricId::getDate, CapacitySnapshotByMetricId::getValue));
+    // Normalize capacity snapshot dates to this service's start-of-day so lookups in
+    // transformToRunningTotalFormat match (avoids zero capacity when contracts returns
+    // dates with a different offset).
+    Map<OffsetDateTime, Integer> capacityByDate =
+        capacityReportByMetricId.getData().stream()
+            .collect(
+                Collectors.toMap(
+                    snapshot -> clock.startOfDay(snapshot.getDate()),
+                    CapacitySnapshotByMetricId::getValue,
+                    (a, b) -> a));
+    if (log.isDebugEnabled() && !capacityByDate.isEmpty()) {
+      log.debug(
+          "Capacity report product={} metric={} billingAcctId={}: {} snapshots, sample date={} value={}",
+          productId,
+          metricId,
+          billingAccountId,
+          capacityByDate.size(),
+          capacityByDate.keySet().stream().min(OffsetDateTime::compareTo).orElse(null),
+          capacityByDate.values().stream().max(Integer::compareTo).orElse(0));
+    } else if (capacityByDate.isEmpty()) {
+      log.warn(
+          "Capacity report empty for product={} metric={} billingAcctId={}; prepaid/on-demand will show zero capacity",
+          productId,
+          metricId,
+          billingAccountId);
+    }
+    return capacityByDate;
   }
 
   /** Validate and extract report criteria */
@@ -349,6 +394,32 @@ public class TallyResource implements TallyApi {
         .beginning(beginning)
         .ending(ending)
         .build();
+  }
+
+  /**
+   * Aggregate snapshots by date (one point per day) so org-level capacity can be applied. When
+   * billing account is _ANY we fetch snapshots for all accounts; grouping by date and summing
+   * yields org-level usage that matches the org-level capacity from contracts.
+   */
+  private List<UnroundedTallyReportDataPoint> aggregateSnapshotsByDate(
+      List<org.candlepin.subscriptions.db.model.TallySnapshot> snapshots,
+      MetricId metricId,
+      ReportCategory category) {
+    return snapshots.stream()
+        .collect(
+            Collectors.groupingBy(
+                s -> clock.startOfDay(s.getSnapshotDate()),
+                Collectors.reducing(
+                    new double[] {0.0, 0.0},
+                    s -> new double[] {extractRawValue(metricId, category, s), 1.0},
+                    (a, b) -> new double[] {a[0] + b[0], Math.max(a[1], b[1])})))
+        .entrySet()
+        .stream()
+        .sorted(Map.Entry.comparingByKey())
+        .map(
+            e ->
+                new UnroundedTallyReportDataPoint(e.getKey(), e.getValue()[0], e.getValue()[1] > 0))
+        .toList();
   }
 
   private UnroundedTallyReportDataPoint unroundedDataPointFromSnapshot(

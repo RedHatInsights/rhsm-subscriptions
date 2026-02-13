@@ -85,6 +85,42 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
       @Param("ending") OffsetDateTime ending,
       @Param("pageable") Pageable pageable);
 
+  /**
+   * Find snapshots for org-level report (all billing accounts). Used when billing account is _ANY
+   * so that org-level prepaid/on-demand can consume capacity from subscriptions in any account.
+   */
+  @Query(
+      value =
+          "SELECT distinct t FROM TallySnapshot t left join fetch t.tallyMeasurements where "
+              + "t.orgId = :orgId and "
+              + "t.productId = :productId and "
+              + "t.granularity = :granularity and "
+              + "t.serviceLevel = :serviceLevel and "
+              + "t.usage = :usage and "
+              + "t.billingProvider = :billingProvider and "
+              + "t.snapshotDate between :beginning and :ending "
+              + "order by t.snapshotDate",
+      countQuery =
+          "SELECT count(t) FROM TallySnapshot t where "
+              + "t.orgId = :orgId and "
+              + "t.productId = :productId and "
+              + "t.granularity = :granularity and "
+              + "t.serviceLevel = :serviceLevel and "
+              + "t.usage = :usage and "
+              + "t.billingProvider = :billingProvider and "
+              + "t.snapshotDate between :beginning and :ending ")
+  @SuppressWarnings("java:S107")
+  Page<TallySnapshot> findSnapshotForOrg(
+      @Param("orgId") String orgId,
+      @Param("productId") String productId,
+      @Param("granularity") Granularity granularity,
+      @Param("serviceLevel") ServiceLevel serviceLevel,
+      @Param("usage") Usage usage,
+      @Param("billingProvider") BillingProvider billingProvider,
+      @Param("beginning") OffsetDateTime beginning,
+      @Param("ending") OffsetDateTime ending,
+      @Param("pageable") Pageable pageable);
+
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   @Modifying
   @Query(
