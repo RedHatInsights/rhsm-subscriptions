@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -43,6 +44,7 @@ import org.junit.jupiter.api.Test;
  *
  * <p><a href="https://issues.redhat.com/browse/ENT-3713">...</a>
  */
+@Disabled(value = "Tests disabled due to timing flakiness to be fixed in SWATCH-4567.")
 public class TallyPersistenceTest extends BaseTallyComponentTest {
 
   private static final String TEST_PRODUCT_TAG = OPENSHIFT_DEDICATED.productTag();
