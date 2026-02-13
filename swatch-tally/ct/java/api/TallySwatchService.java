@@ -173,4 +173,38 @@ public class TallySwatchService extends SwatchService {
 
     return response.as(InstanceResponse.class);
   }
+
+  public Response getBillingAccountIds(String orgId, Map<String, ?> queryParams) {
+    Map<String, Object> params = new HashMap<>();
+    params.put("org_id", orgId);
+    if (queryParams != null) {
+      params.putAll(queryParams);
+    }
+
+    Response response =
+        given()
+            .header(X_RH_IDENTITY_HEADER, SwatchUtils.createUserIdentityHeader(orgId))
+            .queryParams(params)
+            .get(API_PATH + "/instances/billing_account_ids")
+            .then()
+            .extract()
+            .response();
+
+      assertEquals(
+              HttpStatus.SC_OK,
+              response.getStatusCode(),
+              "Get billing account IDs failed with status code: "
+                      + response.getStatusCode()
+                      + ", response body: "
+                      + response.getBody().asString());
+
+      Log.debug(
+        this,
+        "Billing account IDs response for orgId=%s: status=%d, body=%s",
+        orgId,
+        response.getStatusCode(),
+        response.getBody().asString());
+
+    return response;
+  }
 }

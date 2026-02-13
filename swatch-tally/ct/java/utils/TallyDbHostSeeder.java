@@ -64,6 +64,92 @@ public final class TallyDbHostSeeder {
     return insertHost(orgId, inventoryId, "PHYSICAL", false, false, false, null, null).hostId();
   }
 
+  /**
+   * Insert a host with billing account and billing provider information and associated buckets.
+   *
+   * @param orgId the organization ID
+   * @param inventoryId the inventory ID
+   * @param productTag the product tag for buckets
+   * @param billingProvider the billing provider (e.g., "AWS", "AZURE")
+   * @param billingAccountId the billing account ID
+   * @return the host UUID
+   */
+  public static UUID insertHostWithBillingAccount(
+      String orgId,
+      String inventoryId,
+      String productTag,
+      String billingProvider,
+      String billingAccountId) {
+    Objects.requireNonNull(orgId, "orgId is required");
+    Objects.requireNonNull(inventoryId, "inventoryId is required");
+    Objects.requireNonNull(productTag, "productTag is required");
+    Objects.requireNonNull(billingProvider, "billingProvider is required");
+    Objects.requireNonNull(billingAccountId, "billingAccountId is required");
+
+    UUID hostId = UUID.randomUUID();
+    String subManId = UUID.randomUUID().toString();
+    OffsetDateTime now = OffsetDateTime.now();
+
+    try (Connection conn = DriverManager.getConnection(jdbcUrl(), dbUser(), dbPassword())) {
+      conn.setAutoCommit(false);
+
+      ensureAccountServiceRow(conn, orgId);
+
+      try (PreparedStatement ps =
+          conn.prepareStatement(
+              """
+              INSERT INTO hosts
+                (id, instance_id, inventory_id, insights_id, display_name, org_id,
+                 subscription_manager_id, is_guest, is_unmapped_guest, is_hypervisor,
+                 hardware_type, num_of_guests, last_seen, instance_type, billing_provider,
+                 billing_account_id, hypervisor_uuid)
+              VALUES
+                (?, ?, ?, ?, ?, ?,
+                 ?, ?, ?, ?,
+                 ?, ?, ?, ?, ?,
+                 ?, ?)
+              """)) {
+        ps.setObject(1, hostId);
+        ps.setString(2, inventoryId);
+        ps.setString(3, inventoryId);
+        ps.setString(4, inventoryId);
+        ps.setString(5, inventoryId);
+        ps.setString(6, orgId);
+        ps.setString(7, subManId);
+        ps.setBoolean(8, false); // is_guest
+        ps.setBoolean(9, false); // is_unmapped_guest
+        ps.setBoolean(10, false); // is_hypervisor
+        ps.setString(11, "CLOUD"); // hardware_type
+        ps.setNull(12, Types.INTEGER); // num_of_guests
+        ps.setObject(13, now);
+        ps.setString(14, HBI_INSTANCE_TYPE);
+        ps.setString(15, billingProvider);
+        ps.setString(16, billingAccountId);
+        ps.setNull(17, Types.VARCHAR); // hypervisor_uuid
+        ps.executeUpdate();
+      }
+
+      // Insert buckets for the product tag with billing provider and billing account ID
+      insertBucket(
+          conn,
+          hostId,
+          productTag,
+          "Premium",
+          "Production",
+          4,
+          2,
+          "CLOUD",
+          billingProvider,
+          billingAccountId);
+
+      conn.commit();
+      return hostId;
+    } catch (SQLException e) {
+      throw new RuntimeException(
+          "Failed to seed host with billing account in DB: " + e.getMessage(), e);
+    }
+  }
+
   /** Insert a host row only (no buckets) and return identifying fields for assertions. */
   public static SeededHost insertHost(
       String orgId,
@@ -170,15 +256,54 @@ public final class TallyDbHostSeeder {
       int sockets,
       String measurementType)
       throws SQLException {
+    insertBucket(conn, hostId, productId, sla, usage, cores, sockets, measurementType, null);
+  }
+
+  private static void insertBucket(
+      Connection conn,
+      UUID hostId,
+      String productId,
+      String sla,
+      String usage,
+      int cores,
+      int sockets,
+      String measurementType,
+      String billingAccountId)
+      throws SQLException {
+    insertBucket(
+        conn,
+        hostId,
+        productId,
+        sla,
+        usage,
+        cores,
+        sockets,
+        measurementType,
+        null,
+        billingAccountId);
+  }
+
+  private static void insertBucket(
+      Connection conn,
+      UUID hostId,
+      String productId,
+      String sla,
+      String usage,
+      int cores,
+      int sockets,
+      String measurementType,
+      String billingProvider,
+      String billingAccountId)
+      throws SQLException {
     try (PreparedStatement ps =
         conn.prepareStatement(
             """
             INSERT INTO host_tally_buckets
               (host_id, product_id, usage, sla, as_hypervisor,
-               cores, sockets, measurement_type, version)
+               cores, sockets, measurement_type, billing_provider, billing_account_id, version)
             VALUES
               (?, ?, ?, ?, ?,
-               ?, ?, ?, 0)
+               ?, ?, ?, ?, ?, 0)
             """)) {
       ps.setObject(1, hostId);
       ps.setString(2, productId);
@@ -188,6 +313,16 @@ public final class TallyDbHostSeeder {
       ps.setInt(6, cores);
       ps.setInt(7, sockets);
       ps.setString(8, measurementType);
+      if (billingProvider == null) {
+        ps.setNull(9, Types.VARCHAR);
+      } else {
+        ps.setString(9, billingProvider);
+      }
+      if (billingAccountId == null) {
+        ps.setNull(10, Types.VARCHAR);
+      } else {
+        ps.setString(10, billingAccountId);
+      }
       ps.executeUpdate();
     }
   }
