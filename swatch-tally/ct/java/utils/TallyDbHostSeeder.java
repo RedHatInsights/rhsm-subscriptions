@@ -80,15 +80,38 @@ public final class TallyDbHostSeeder {
       String productTag,
       String billingProvider,
       String billingAccountId) {
+    return insertHostWithBillingAccountAndDate(
+        orgId, inventoryId, productTag, billingProvider, billingAccountId, OffsetDateTime.now());
+  }
+
+  /**
+   * Insert a host with billing account, billing provider information, custom last_seen date, and
+   * associated buckets.
+   *
+   * @param orgId the organization ID
+   * @param inventoryId the inventory ID
+   * @param productTag the product tag for buckets
+   * @param billingProvider the billing provider (e.g., "AWS", "AZURE")
+   * @param billingAccountId the billing account ID
+   * @param lastSeen the last_seen date for the host
+   * @return the host UUID
+   */
+  public static UUID insertHostWithBillingAccountAndDate(
+      String orgId,
+      String inventoryId,
+      String productTag,
+      String billingProvider,
+      String billingAccountId,
+      OffsetDateTime lastSeen) {
     Objects.requireNonNull(orgId, "orgId is required");
     Objects.requireNonNull(inventoryId, "inventoryId is required");
     Objects.requireNonNull(productTag, "productTag is required");
     Objects.requireNonNull(billingProvider, "billingProvider is required");
     Objects.requireNonNull(billingAccountId, "billingAccountId is required");
+    Objects.requireNonNull(lastSeen, "lastSeen is required");
 
     UUID hostId = UUID.randomUUID();
     String subManId = UUID.randomUUID().toString();
-    OffsetDateTime now = OffsetDateTime.now();
 
     try (Connection conn = DriverManager.getConnection(jdbcUrl(), dbUser(), dbPassword())) {
       conn.setAutoCommit(false);
@@ -121,7 +144,7 @@ public final class TallyDbHostSeeder {
         ps.setBoolean(10, false); // is_hypervisor
         ps.setString(11, "CLOUD"); // hardware_type
         ps.setNull(12, Types.INTEGER); // num_of_guests
-        ps.setObject(13, now);
+        ps.setObject(13, lastSeen);
         ps.setString(14, HBI_INSTANCE_TYPE);
         ps.setString(15, billingProvider);
         ps.setString(16, billingAccountId);

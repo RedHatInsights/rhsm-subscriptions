@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 
 import io.restassured.response.Response;
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,8 +41,42 @@ import utils.TallyDbHostSeeder;
 public class TallyInstancesComponentTest extends BaseTallyComponentTest {
 
   @Test
+  public void testGetBillingAccountIdsCurrentMonthBoundaryViaInstances() {
+    // Given: A host with a last_seen date from last month (35 days ago)
+    final String testInventoryId = UUID.randomUUID().toString();
+    final String billingAccountId = UUID.randomUUID().toString();
+    final OffsetDateTime lastMonthDate = OffsetDateTime.now().minusDays(35);
+
+    service.createOptInConfig(orgId);
+
+    TallyDbHostSeeder.insertHostWithBillingAccountAndDate(
+        orgId, testInventoryId, RHEL_FOR_X86_ELS_PAYG.productTag(), "AWS", billingAccountId, lastMonthDate);
+
+    // When: Calling get billing account ids
+    Map<String, Object> queryParams = new HashMap<>();
+    Response response = service.getBillingAccountIds(orgId, queryParams);
+
+    // Then: Response should not contain the billing account from last month
+    List<Map<String, String>> ids = response.jsonPath().getList("ids");
+    assertNotNull(ids, "Response ids should not be null");
+
+    boolean containsOldAccount =
+        ids.stream()
+            .anyMatch(
+                entry ->
+                    orgId.equals(entry.get("org_id"))
+                        && billingAccountId.equals(entry.get("billing_account_id"))
+                        && RHEL_FOR_X86_ELS_PAYG.productTag().equals(entry.get("product_tag"))
+                        && "aws".equals(entry.get("billing_provider")));
+
+    assertFalse(
+        containsOldAccount,
+        "Response should not contain billing account from last month: " + billingAccountId);
+  }
+
+  @Test
   public void testGetBillingAccountIdsViaInstances() {
-    // Step 1: Insert Hosts into Hosts Table with billing account IDs
+    // Given: Two hosts with different billing account IDs
     final String testInventoryId1 = UUID.randomUUID().toString();
     final String testInventoryId2 = UUID.randomUUID().toString();
     final String billingAccountId1 = UUID.randomUUID().toString();
@@ -49,31 +84,25 @@ public class TallyInstancesComponentTest extends BaseTallyComponentTest {
 
     service.createOptInConfig(orgId);
 
-    // Insert first host with billing account ID
     TallyDbHostSeeder.insertHostWithBillingAccount(
         orgId, testInventoryId1, RHEL_FOR_X86_ELS_PAYG.productTag(), "AWS", billingAccountId1);
 
-    // Insert second host with different billing account ID
     TallyDbHostSeeder.insertHostWithBillingAccount(
         orgId, testInventoryId2, RHEL_FOR_X86_ELS_PAYG.productTag(), "AWS", billingAccountId2);
 
-    // Step 2: Call get billing account ids without filters
-    // (filters can be added as optional test parameters if needed)
+    // When: Calling get billing account ids
     Map<String, Object> queryParams = new HashMap<>();
-
     Response response = service.getBillingAccountIds(orgId, queryParams);
 
-    // Verify response has expected data
+    // Then: Response contains both billing account IDs with correct structure
     List<Map<String, String>> ids = response.jsonPath().getList("ids");
     assertNotNull(
         ids, "Response ids should not be null. Response body: " + response.getBody().asString());
     assertEquals(2, ids.size(), "Should return two billing account entries");
 
-    // Extract billing account IDs for verification
     List<String> billingAccountIds =
         ids.stream().map(item -> item.get("billing_account_id")).toList();
 
-    // Verify the specific billing account IDs we inserted are in the response
     assertTrue(
         billingAccountIds.contains(billingAccountId1),
         "Response should contain billing account ID: " + billingAccountId1);
@@ -81,7 +110,6 @@ public class TallyInstancesComponentTest extends BaseTallyComponentTest {
         billingAccountIds.contains(billingAccountId2),
         "Response should contain billing account ID: " + billingAccountId2);
 
-    // Verify each response entry has the expected structure
     for (Map<String, String> entry : ids) {
       assertEquals(orgId, entry.get("org_id"), "Entry should have correct org_id");
       assertEquals(
