@@ -20,20 +20,26 @@
  */
 package tests;
 
+import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 
+import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
+import com.redhat.swatch.tally.test.model.InstanceData;
+import com.redhat.swatch.tally.test.model.InstanceResponse;
 import io.restassured.response.Response;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpStatus;
+import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.Test;
 import utils.TallyDbHostSeeder;
 
@@ -119,5 +125,88 @@ public class TallyInstancesComponentTest extends BaseTallyComponentTest {
       assertEquals(
           "aws", entry.get("billing_provider"), "Entry should have correct billing_provider");
     }
+  }
+
+  @Test
+  public void testGetInstancesByProductPayg() {
+    // Given: An event from the first day of the previous month
+    final String billingAccountId = UUID.randomUUID().toString();
+    final String instanceId = UUID.randomUUID().toString();
+    final String eventId = UUID.randomUUID().toString();
+    final String metricId = RHEL_FOR_X86_ELS_PAYG.metricIds().get(0);
+
+    service.createOptInConfig(orgId);
+
+    // Calculate first day of current and previous month
+    OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+    OffsetDateTime firstOfCurrentMonth =
+        now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+    OffsetDateTime firstOfPreviousMonth = firstOfCurrentMonth.minusMonths(1);
+    OffsetDateTime eventTimestamp = firstOfPreviousMonth.plusHours(1);
+
+    // Create and publish event for previous month
+    Event event =
+        helpers.createEventWithTimestamp(
+            orgId,
+            instanceId,
+            eventTimestamp.toString(),
+            eventId,
+            metricId,
+            1.0f,
+            Event.Sla.PREMIUM,
+            Event.HardwareType.CLOUD,
+            RHEL_FOR_X86_ELS_PAYG.productId(),
+            RHEL_FOR_X86_ELS_PAYG.productTag());
+    event.setBillingAccountId(java.util.Optional.of(billingAccountId));
+    event.setBillingProvider(Event.BillingProvider.AWS);
+    event.setCloudProvider(Event.CloudProvider.AWS);
+
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event);
+
+    // When: Running hourly tally and waiting for instances to be available
+    Map<String, Object> queryParams = Map.of("billing_account_id", billingAccountId);
+    AwaitilityUtils.untilAsserted(
+        () -> {
+          service.performHourlyTallyForOrg(orgId);
+
+          // Then: Current month should have no metered value
+          InstanceResponse currentMonthResponse =
+              service.getInstancesByProduct(
+                  orgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, now, queryParams);
+
+          double meteredValueThisMonth = sumMeteredValues(currentMonthResponse);
+
+          assertEquals(
+              0.0,
+              meteredValueThisMonth,
+              0.001,
+              "Current month should have no metered value for event from previous month");
+
+          // And: Previous month should have the metered value
+          InstanceResponse previousMonthResponse =
+              service.getInstancesByProduct(
+                  orgId,
+                  RHEL_FOR_X86_ELS_PAYG.productTag(),
+                  firstOfPreviousMonth,
+                  firstOfPreviousMonth.plusDays(1),
+                  queryParams);
+
+          double meteredValueLastMonth = sumMeteredValues(previousMonthResponse);
+
+          assertTrue(
+              meteredValueLastMonth > 0.0,
+              "Previous month should have metered value greater than 0. Got: "
+                  + meteredValueLastMonth);
+        });
+  }
+
+  private double sumMeteredValues(InstanceResponse response) {
+    if (response.getData() == null) {
+      return 0.0;
+    }
+    return response.getData().stream()
+        .filter(instance -> instance.getMeasurements() != null)
+        .flatMapToDouble(instance -> instance.getMeasurements().stream().mapToDouble(Double::doubleValue))
+        .sum();
   }
 }
