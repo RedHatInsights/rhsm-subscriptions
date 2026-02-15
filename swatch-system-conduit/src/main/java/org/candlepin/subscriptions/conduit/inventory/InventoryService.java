@@ -126,7 +126,7 @@ public abstract class InventoryService {
     host.setInsightsId(facts.getInsightsId());
     host.setProviderId(facts.getProviderId());
     host.setProviderType(facts.getProviderType());
-
+    host.setOpenshiftClusterId(facts.getOpenshiftClusterId());
     host.setSystemProfile(createSystemProfile(facts));
 
     return host;

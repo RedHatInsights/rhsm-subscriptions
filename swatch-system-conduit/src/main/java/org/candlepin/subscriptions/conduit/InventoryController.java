@@ -107,6 +107,9 @@ public class InventoryController {
   public static final String VIRT_IS_GUEST = "virt.is_guest";
   public static final String INSIGHTS_ID = "insights_id";
   public static final String OPENSHIFT_CLUSTER_UUID = "openshift.cluster_uuid";
+  // RHSM fact for OCM cluster ID
+  public static final String OPENSHIFT_CLUSTER_ID = "openshift.cluster_id";
+
   public static final String AZURE_OFFER = "azure_offer";
   public static final String AWS_BILLING_PRODUCTS = "aws_billing_products";
   public static final String GCP_LICENSE_CODES = "gcp_license_codes";
@@ -198,6 +201,7 @@ public class InventoryController {
     facts.setSysPurposeAddons(consumer.getSysPurposeAddons());
     facts.setSysPurposeUnits(rhsmFacts.get(OCM_UNITS));
     facts.setBillingModel(rhsmFacts.get(OCM_BILLING_MODEL));
+    facts.setOpenshiftClusterId(rhsmFacts.get(OPENSHIFT_CLUSTER_ID));
     extractConversionsActivity(rhsmFacts, facts);
 
     extractNetworkFacts(consumer, rhsmFacts, facts);
