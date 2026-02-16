@@ -21,38 +21,38 @@
 package tests;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 
-import api.SwatchTallyRestAPIService;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.redhat.swatch.component.tests.utils.RandomUtils;
+import com.redhat.swatch.tally.test.model.BillingProviderType;
+import com.redhat.swatch.tally.test.model.GranularityType;
+import com.redhat.swatch.tally.test.model.ServiceLevelType;
+import com.redhat.swatch.tally.test.model.TallyReportData;
+import com.redhat.swatch.tally.test.model.TallyReportDataMeta;
+import com.redhat.swatch.tally.test.model.TallyReportDataPoint;
+import com.redhat.swatch.tally.test.model.UsageType;
 import io.restassured.response.Response;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import utils.TallyTestHelpers;
 
 public class TallyReportGranularityTest extends BaseTallyComponentTest {
 
-  private static final TallyTestHelpers helpers = new TallyTestHelpers();
-  private static final SwatchTallyRestAPIService tallyApi = new SwatchTallyRestAPIService();
-  private static final ObjectMapper objectMapper = new ObjectMapper();
   private static final String TEST_PRODUCT_TAG = RHEL_FOR_X86_ELS_PAYG.productTag();
   private static final String TEST_METRIC_ID = RHEL_FOR_X86_ELS_PAYG.metricIds().get(0);
-  private static final String TEST_SLA = "Premium";
-  private static final String TEST_USAGE = "Production";
-  private static final String TEST_BILLING_PROVIDER = "aws";
+  private static final ServiceLevelType TEST_SLA = ServiceLevelType.PREMIUM;
+  private static final UsageType TEST_USAGE = UsageType.PRODUCTION;
+  private static final BillingProviderType TEST_BILLING_PROVIDER = BillingProviderType.AWS;
   private static final String TEST_BILLING_ACCOUNT_ID = "746157280291";
 
   @Test
-  public void testTallyReportGranularityDailyAllFilters() throws Exception {
-    String orgId = RandomUtils.generateRandom();
-    tallyApi.createOptInConfig(orgId, service);
+  public void testTallyReportGranularityDailyAllFilters() {
+    service.createOptInConfig(orgId);
 
     OffsetDateTime beginning =
         OffsetDateTime.now(ZoneOffset.UTC).minusDays(3).truncatedTo(ChronoUnit.DAYS);
@@ -68,28 +68,27 @@ public class TallyReportGranularityTest extends BaseTallyComponentTest {
             "billing_provider", TEST_BILLING_PROVIDER,
             "billing_account_id", TEST_BILLING_ACCOUNT_ID);
 
-    String body =
-        tallyApi
-            .getTallyReport(service, orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams)
-            .asString();
+    TallyReportData response =
+        service.getTallyReportData(orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams);
 
-    JsonNode json = objectMapper.readTree(body);
-    JsonNode meta = json.path("meta");
+    List<TallyReportDataPoint> data = response.getData();
+    TallyReportDataMeta meta = response.getMeta();
 
-    assertEquals(json.path("data").size(), meta.path("count").asInt());
-    assertEquals("Daily", meta.path("granularity").asText());
-    assertEquals(TEST_PRODUCT_TAG, meta.path("product").asText());
-    assertEquals(TEST_METRIC_ID, meta.path("metric_id").asText());
-    assertEquals(TEST_SLA, meta.path("service_level").asText());
-    assertEquals(TEST_USAGE, meta.path("usage").asText());
-    assertEquals(TEST_BILLING_PROVIDER, meta.path("billing_provider").asText());
-    assertEquals(TEST_BILLING_ACCOUNT_ID, meta.path("billing_acount_id").asText());
+    assertNotNull(data);
+    assertNotNull(meta);
+    assertEquals(data.size(), meta.getCount());
+    assertEquals(GranularityType.DAILY, meta.getGranularity());
+    assertEquals(TEST_PRODUCT_TAG, meta.getProduct());
+    assertEquals(TEST_METRIC_ID, meta.getMetricId());
+    assertEquals(TEST_SLA, meta.getServiceLevel());
+    assertEquals(TEST_USAGE, meta.getUsage());
+    assertEquals(TEST_BILLING_PROVIDER, meta.getBillingProvider());
+    assertEquals(TEST_BILLING_ACCOUNT_ID, meta.getBillingAcountId());
   }
 
   @Test
-  public void testTallyReportGranularityDailySomeFilters() throws Exception {
-    String orgId = RandomUtils.generateRandom();
-    tallyApi.createOptInConfig(orgId, service);
+  public void testTallyReportGranularityDailySomeFilters() {
+    service.createOptInConfig(orgId);
 
     OffsetDateTime beginning =
         OffsetDateTime.now(ZoneOffset.UTC).minusDays(3).truncatedTo(ChronoUnit.DAYS);
@@ -108,28 +107,27 @@ public class TallyReportGranularityTest extends BaseTallyComponentTest {
             "usage",
             TEST_USAGE);
 
-    String body =
-        tallyApi
-            .getTallyReport(service, orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams)
-            .asString();
+    TallyReportData response =
+        service.getTallyReportData(orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams);
 
-    JsonNode json = objectMapper.readTree(body);
-    JsonNode meta = json.path("meta");
+    List<TallyReportDataPoint> data = response.getData();
+    TallyReportDataMeta meta = response.getMeta();
 
-    assertEquals(json.path("data").size(), meta.path("count").asInt());
-    assertEquals("Daily", meta.path("granularity").asText());
-    assertEquals(TEST_PRODUCT_TAG, meta.path("product").asText());
-    assertEquals(TEST_METRIC_ID, meta.path("metric_id").asText());
-    assertEquals(TEST_SLA, meta.path("service_level").asText());
-    assertEquals(TEST_USAGE, meta.path("usage").asText());
-    assertFalse(meta.has("billing_provider"), "meta should not contain billing_provider");
-    assertFalse(meta.has("billing_acount_id"), "meta should not contain billing_acount_id");
+    assertNotNull(data);
+    assertNotNull(meta);
+    assertEquals(data.size(), meta.getCount());
+    assertEquals(GranularityType.DAILY, meta.getGranularity());
+    assertEquals(TEST_PRODUCT_TAG, meta.getProduct());
+    assertEquals(TEST_METRIC_ID, meta.getMetricId());
+    assertEquals(TEST_SLA, meta.getServiceLevel());
+    assertEquals(TEST_USAGE, meta.getUsage());
+    assertNull(meta.getBillingProvider(), "meta should not contain billing_provider");
+    assertNull(meta.getBillingAcountId(), "meta should not contain billing_acount_id");
   }
 
   @Test
-  public void testTallyReportGranularityHourly() throws Exception {
-    String orgId = RandomUtils.generateRandom();
-    tallyApi.createOptInConfig(orgId, service);
+  public void testTallyReportGranularityHourly() {
+    service.createOptInConfig(orgId);
 
     OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.HOURS);
     OffsetDateTime beginning = now.minusHours(4);
@@ -145,28 +143,27 @@ public class TallyReportGranularityTest extends BaseTallyComponentTest {
             "billing_provider", TEST_BILLING_PROVIDER,
             "billing_account_id", TEST_BILLING_ACCOUNT_ID);
 
-    String body =
-        tallyApi
-            .getTallyReport(service, orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams)
-            .asString();
+    TallyReportData response =
+        service.getTallyReportData(orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams);
 
-    JsonNode json = objectMapper.readTree(body);
-    JsonNode meta = json.path("meta");
+    List<TallyReportDataPoint> data = response.getData();
+    TallyReportDataMeta meta = response.getMeta();
 
-    assertEquals(json.path("data").size(), meta.path("count").asInt());
-    assertEquals("Hourly", meta.path("granularity").asText());
-    assertEquals(TEST_PRODUCT_TAG, meta.path("product").asText());
-    assertEquals(TEST_METRIC_ID, meta.path("metric_id").asText());
-    assertEquals(TEST_SLA, meta.path("service_level").asText());
-    assertEquals(TEST_USAGE, meta.path("usage").asText());
-    assertEquals(TEST_BILLING_PROVIDER, meta.path("billing_provider").asText());
-    assertEquals(TEST_BILLING_ACCOUNT_ID, meta.path("billing_acount_id").asText());
+    assertNotNull(data);
+    assertNotNull(meta);
+    assertEquals(data.size(), meta.getCount());
+    assertEquals(GranularityType.HOURLY, meta.getGranularity());
+    assertEquals(TEST_PRODUCT_TAG, meta.getProduct());
+    assertEquals(TEST_METRIC_ID, meta.getMetricId());
+    assertEquals(TEST_SLA, meta.getServiceLevel());
+    assertEquals(TEST_USAGE, meta.getUsage());
+    assertEquals(TEST_BILLING_PROVIDER, meta.getBillingProvider());
+    assertEquals(TEST_BILLING_ACCOUNT_ID, meta.getBillingAcountId());
   }
 
   @Test
   public void testTallyReportInvalidWithoutGranularity() {
-    String orgId = RandomUtils.generateRandom();
-    tallyApi.createOptInConfig(orgId, service);
+    service.createOptInConfig(orgId);
 
     OffsetDateTime beginning =
         OffsetDateTime.now(ZoneOffset.UTC).minusDays(3).truncatedTo(ChronoUnit.DAYS);
@@ -178,7 +175,7 @@ public class TallyReportGranularityTest extends BaseTallyComponentTest {
             "ending", ending.toString());
 
     Response resp =
-        tallyApi.getTallyReportRaw(service, orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams);
+        service.getTallyReportDataRaw(orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams);
 
     assertEquals(400, resp.getStatusCode());
     assertTrue(resp.getBody().asString().contains("granularity: must not be null"));

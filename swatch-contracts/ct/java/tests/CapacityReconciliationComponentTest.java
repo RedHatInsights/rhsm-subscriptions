@@ -32,7 +32,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import com.redhat.swatch.component.tests.api.MessageValidator;
+import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
@@ -239,7 +239,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
   private ReconcileCapacityByOfferingTask thenReconciliationTaskIsPublished(String expectedSku) {
     return kafkaBridge.waitForKafkaMessage(
         CAPACITY_RECONCILE,
-        new MessageValidator<>(
+        new DefaultMessageValidator<>(
             task -> expectedSku.equals(task.getSku()), ReconcileCapacityByOfferingTask.class));
   }
 
@@ -255,7 +255,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     var messages =
         kafkaBridge.waitForKafkaMessage(
             CAPACITY_RECONCILE,
-            new MessageValidator<>(
+            new DefaultMessageValidator<>(
                 task -> sku.equals(task.getSku()), ReconcileCapacityByOfferingTask.class),
             0, // Expected count is 0
             AwaitilitySettings.usingTimeout(Duration.ofSeconds(5)));

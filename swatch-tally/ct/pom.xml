@@ -41,6 +41,10 @@
       <artifactId>swatch-model-events</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-common-clock</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
@@ -49,6 +53,10 @@
     <dependency>
       <groupId>jakarta.annotation</groupId>
       <artifactId>jakarta.annotation-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.openapitools</groupId>
+      <artifactId>jackson-databind-nullable</artifactId>
     </dependency>
 
     <!-- Temporary: direct DB seeding for nightly tally CTs -->
@@ -88,6 +96,41 @@
                 <sourcePath>tally_summary.yaml</sourcePath>
                 <sourcePath>tally_snapshot.yaml</sourcePath>
               </sourcePaths>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- OpenAPI Generator for contract request/response models -->
+      <plugin>
+        <groupId>org.openapitools</groupId>
+        <artifactId>openapi-generator-maven-plugin</artifactId>
+        <configuration>
+          <generatorName>java</generatorName>
+          <library>rest-assured</library>
+          <output>${project.build.directory}/generated-sources</output>
+          <generateModels>true</generateModels>
+          <generateApis>false</generateApis>
+          <generateApiTests>false</generateApiTests>
+          <generateModelTests>false</generateModelTests>
+          <generateSupportingFiles>false</generateSupportingFiles>
+          <configOptions>
+            <serializationLibrary>jackson</serializationLibrary>
+            <useJakartaEe>true</useJakartaEe>
+            <dateLibrary>java8</dateLibrary>
+            <hideGenerationTimestamp>true</hideGenerationTimestamp>
+          </configOptions>
+        </configuration>
+        <executions>
+          <execution>
+            <id>generate-v1-test-models</id>
+            <phase>generate-test-sources</phase>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpec>${project.basedir}/../../api/rhsm-subscriptions-api-v1-spec.yaml</inputSpec>
+              <modelPackage>com.redhat.swatch.tally.test.model</modelPackage>
             </configuration>
           </execution>
         </executions>

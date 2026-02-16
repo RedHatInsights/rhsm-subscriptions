@@ -40,9 +40,10 @@ function get_docker_file_path() {
 }
 
 function usage() {
-  echo "Usage: $0 [-k] [-t tag] [BUILD_ARTIFACT...]"
-  echo "-k       keep built images"
-  echo "-t [tag] image tag"
+  echo "Usage: $0 [-k] [-p platform] [-t tag] [BUILD_ARTIFACT...]"
+  echo "-k            keep built images"
+  echo "-p [platform] target platform (e.g. linux/amd64). Auto-detected on Apple Silicon."
+  echo "-t [tag]      image tag"
   print_valid_artifacts
   echo "Providing no artifact ids will result in a build for all artifacts"
   exit 0
@@ -53,11 +54,20 @@ pushd "$(git rev-parse --show-toplevel)" || exit
 commit=$(git rev-parse --short=7 HEAD)
 tag="$commit"
 keep=0
+platform=""
 
-while getopts ":hkt:" o; do
+# Auto-detect Apple Silicon and default to linux/amd64
+if [[ "$(uname -s)" == "Darwin" && "$(uname -m)" == "arm64" ]]; then
+  platform="linux/amd64"
+fi
+
+while getopts ":hkp:t:" o; do
     case "$o" in
         k)
             keep=1
+            ;;
+        p)
+            platform=${OPTARG}
             ;;
         t)
             tag=${OPTARG}
@@ -103,12 +113,19 @@ fi
 # Exit script if a podman command fails
 trap build_failed ERR
 
+platform_args=()
+if [[ -n "$platform" ]]; then
+  echo "Target platform: $platform"
+  platform_args+=(--platform "$platform")
+fi
+
 ./mvnw clean
 for p in "${projects[@]}"; do
   echo "Building ${p}"
 
   docker_file=$(get_docker_file_path "$p")
   podman build . -f "$docker_file" \
+    "${platform_args[@]}" \
     --build-arg-file bin/dev-argfile.conf \
     -t quay.io/$quay_user/$p:$tag \
     --label "git-commit=${commit}" --ulimit nofile=2048:2048

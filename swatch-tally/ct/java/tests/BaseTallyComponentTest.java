@@ -22,18 +22,34 @@ package tests;
 
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 
+import api.TallySwatchService;
+import api.TallyWiremockService;
 import com.redhat.swatch.component.tests.api.ComponentTest;
 import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.SpringBoot;
-import com.redhat.swatch.component.tests.api.SwatchService;
+import com.redhat.swatch.component.tests.api.Wiremock;
+import com.redhat.swatch.component.tests.utils.RandomUtils;
+import org.junit.jupiter.api.BeforeEach;
+import utils.TallyTestHelpers;
 
 @ComponentTest(name = "swatch-tally")
 public class BaseTallyComponentTest {
+
+  static final TallyTestHelpers helpers = new TallyTestHelpers();
+
+  @Wiremock static TallyWiremockService wiremock = new TallyWiremockService();
 
   @KafkaBridge
   static KafkaBridgeService kafkaBridge = new KafkaBridgeService().subscribeToTopic(TALLY);
 
   @SpringBoot(service = "swatch-tally")
-  static SwatchService service = new SwatchService();
+  static TallySwatchService service = new TallySwatchService();
+
+  protected String orgId;
+
+  @BeforeEach
+  void setUp() {
+    orgId = RandomUtils.generateRandom();
+  }
 }

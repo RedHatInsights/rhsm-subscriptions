@@ -24,7 +24,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.redhat.swatch.component.tests.api.MessageValidator;
+import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
 import com.redhat.swatch.component.tests.utils.JsonUtils;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
@@ -37,8 +37,9 @@ import org.candlepin.subscriptions.json.Event;
 
 public class MessageValidators {
 
-  public static MessageValidator<HbiEvent> hbiEventEquals(HbiHostCreateUpdateEvent hbiEvent) {
-    return new MessageValidator<>(
+  public static DefaultMessageValidator<HbiEvent> hbiEventEquals(
+      HbiHostCreateUpdateEvent hbiEvent) {
+    return new DefaultMessageValidator<>(
         event -> {
           try {
             var mapper = JsonUtils.getObjectMapper();
@@ -52,8 +53,8 @@ public class MessageValidators {
         HbiEvent.class);
   }
 
-  public static MessageValidator<Event> swatchEventEquals(Event swatchEvent) {
-    return new MessageValidator<>(
+  public static DefaultMessageValidator<Event> swatchEventEquals(Event swatchEvent) {
+    return new DefaultMessageValidator<>(
         event -> {
           try {
             ObjectMapper mapper = JsonUtils.getObjectMapper();

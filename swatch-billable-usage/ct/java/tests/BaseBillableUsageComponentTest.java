@@ -43,7 +43,7 @@ public class BaseBillableUsageComponentTest {
   @Wiremock static ContractsWiremockService contractsWiremock = new ContractsWiremockService();
 
   @Quarkus(service = "swatch-billable-usage")
-  static BillableUsageSwatchService billableUsageService = new BillableUsageSwatchService();
+  static BillableUsageSwatchService service = new BillableUsageSwatchService();
 
   protected String orgId;
 

@@ -23,14 +23,18 @@ package tests;
 import static api.BillableUsageTestHelper.createTallySummaryWithDefaults;
 import static api.BillableUsageTestHelper.createTallySummaryWithGranularity;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
+import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_HOURLY_AGGREGATE;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_STATUS;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import api.MessageValidators;
 import com.redhat.swatch.billable.usage.openapi.model.TallyRemittance;
+import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
+import domain.BillingProvider;
 import domain.RemittanceErrorCode;
 import domain.RemittanceStatus;
 import java.math.BigDecimal;
@@ -52,30 +56,31 @@ import org.junit.jupiter.api.Test;
 
 public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponentTest {
 
-  private static final double TOTAL_USAGE = 8.0;
+  private static final double VALUE = 8.0;
   private static final double BILLING_FACTOR = ROSA.getBillingFactor(CORES);
   private static final String AWS_DIMENSION = ROSA.getMetric(CORES).getAwsDimension();
   private static final double CONTRACT_COVERAGE = 1.0;
 
   @BeforeAll
-  static void subscribeToBillableUsageTopic() {
+  static void subscribeToBillableUsageTopics() {
     kafkaBridge.subscribeToTopic(BILLABLE_USAGE);
+    kafkaBridge.subscribeToTopic(BILLABLE_USAGE_HOURLY_AGGREGATE);
   }
 
   /** Verify tally summary is processed and billable usage is produced with no contract coverage. */
   @Test
   public void testBasicTallyToBillableUsageFlow() {
     // Setup wiremock endpoints
-    contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
+    givenNoContractCoverageExists();
 
     // Create and send tally summary
     TallySummary tallySummary =
-        createTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), TOTAL_USAGE);
+        createTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), VALUE);
     kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
 
     // Verify billable usage is produced
     // Expected: 8.0 × 0.25 = 2.0 four_vcpu_hour units
-    double expectedValue = TOTAL_USAGE * BILLING_FACTOR;
+    double expectedValue = VALUE * BILLING_FACTOR;
     kafkaBridge.waitForKafkaMessage(
         BILLABLE_USAGE,
         MessageValidators.billableUsageMatchesWithValue(orgId, ROSA.getName(), expectedValue),
@@ -91,12 +96,12 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
 
     // Create and send tally summary
     TallySummary tallySummary =
-        createTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), TOTAL_USAGE);
+        createTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), VALUE);
     kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
 
     // Verify billable usage accounts for contract coverage
     // Expected: (8.0 × 0.25) - 1.0 = 1.0 four_vcpu_hour units
-    double expectedValue = TOTAL_USAGE * BILLING_FACTOR - CONTRACT_COVERAGE;
+    double expectedValue = VALUE * BILLING_FACTOR - CONTRACT_COVERAGE;
     kafkaBridge.waitForKafkaMessage(
         BILLABLE_USAGE,
         MessageValidators.billableUsageMatchesWithValue(orgId, ROSA.getName(), expectedValue),
@@ -110,7 +115,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
   @Test
   public void testOnlyHourlyGranularityIsProcessed() {
     // Setup wiremock endpoints
-    contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
+    givenNoContractCoverageExists();
 
     UUID dailySnapshotId = UUID.randomUUID();
     UUID hourlySnapshotId = UUID.randomUUID();
@@ -121,7 +126,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
             orgId,
             ROSA.getName(),
             CORES.toString(),
-            TOTAL_USAGE,
+            VALUE,
             TallySnapshot.Granularity.DAILY,
             dailySnapshotId);
     kafkaBridge.produceKafkaMessage(TALLY, dailyTallySummary);
@@ -132,7 +137,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
             orgId,
             ROSA.getName(),
             CORES.toString(),
-            TOTAL_USAGE,
+            VALUE,
             TallySnapshot.Granularity.HOURLY,
             hourlySnapshotId);
     kafkaBridge.produceKafkaMessage(TALLY, hourlyTallySummary);
@@ -170,8 +175,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
         createBillableUsageAggregate(
             orgId,
             ROSA.getName(),
-            "aws",
-            "aws-account-123",
+            billableUsage.getBillingAccountId(),
             BillableUsage.Status.SUCCEEDED,
             null,
             expectedBilledOnTime, // Use the captured time
@@ -183,9 +187,9 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     waitForRemittanceStatus(tallyId, RemittanceStatus.SUCCEEDED);
 
     // Verify billed_on field was populated with proper timestamp
-    List<TallyRemittance> remittances = billableUsageService.getRemittancesByTallyId(tallyId);
+    List<TallyRemittance> remittances = service.getRemittancesByTallyId(tallyId);
     assertNotNull(remittances, "Remittances should exist");
-    assertTrue(!remittances.isEmpty(), "Should have at least one remittance");
+    assertFalse(remittances.isEmpty(), "Should have at least one remittance");
     verifyBilledOnTimestamp(remittances.get(0), expectedBilledOnTime);
   }
 
@@ -204,8 +208,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
         createBillableUsageAggregate(
             orgId,
             ROSA.getName(),
-            "aws",
-            "aws-account-123",
+            billableUsage.getBillingAccountId(),
             BillableUsage.Status.FAILED,
             BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND,
             null,
@@ -217,16 +220,49 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     waitForRemittanceStatus(tallyId, RemittanceStatus.FAILED);
 
     // Verify error code was populated properly
-    List<TallyRemittance> remittances = billableUsageService.getRemittancesByTallyId(tallyId);
+    List<TallyRemittance> remittances = service.getRemittancesByTallyId(tallyId);
     assertNotNull(remittances, "Remittances should exist");
-    assertTrue(!remittances.isEmpty(), "Should have at least one remittance");
+    assertFalse(remittances.isEmpty(), "Should have at least one remittance");
     verifyErrorCode(remittances.get(0), RemittanceErrorCode.SUBSCRIPTION_NOT_FOUND.name());
+  }
+
+  /**
+   * Verify that usage from different billing accounts is not aggregated together. When the same org
+   * sends tally snapshots with two different billing account IDs, two separate hourly aggregate
+   * messages must be produced (one per billing account).
+   */
+  @Test
+  public void testMultipleTallySummariesNotAggregatedForDifferentBillingAccountIds() {
+    // Given: No contract coverage and two distinct billing account IDs for the same org
+    givenNoContractCoverageExists();
+    double value1 = 10.0;
+    double value2 = 6.0;
+
+    TallySummary tallySummary1 = whenSendTallySummaryWithValue(value1);
+    TallySummary tallySummary2 = whenSendTallySummaryWithValue(value2);
+
+    // Then: Two separate hourly aggregate messages are produced (one per billing account).
+    // Use a longer timeout because aggregation window must close before messages are emitted.
+    List<BillableUsageAggregate> aggregates =
+        kafkaBridge.waitForKafkaMessage(
+            BILLABLE_USAGE_HOURLY_AGGREGATE,
+            MessageValidators.billableUsageAggregateMatchesOrg(orgId),
+            2,
+            AwaitilitySettings.defaults()
+                .onConditionNotMet(service::flushBillableUsageAggregationTopic));
+
+    BillableUsageAggregate aggregateForAccount1 =
+        thenBillableUsageAggregateIsFound(aggregates, tallySummary1);
+    thenBillableUsageAggregateTotalValueIs(aggregateForAccount1, value1);
+
+    BillableUsageAggregate aggregateForAccount2 =
+        thenBillableUsageAggregateIsFound(aggregates, tallySummary2);
+    thenBillableUsageAggregateTotalValueIs(aggregateForAccount2, value2);
   }
 
   private BillableUsageAggregate createBillableUsageAggregate(
       String orgId,
       String productId,
-      String billingProvider,
       String billingAccountId,
       BillableUsage.Status status,
       BillableUsage.ErrorCode errorCode,
@@ -239,7 +275,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     aggregateKey.setMetricId(CORES.toString());
     aggregateKey.setSla("Premium");
     aggregateKey.setUsage("Production");
-    aggregateKey.setBillingProvider(billingProvider);
+    aggregateKey.setBillingProvider(BillingProvider.AWS.name());
     aggregateKey.setBillingAccountId(billingAccountId);
 
     var aggregate = new BillableUsageAggregate();
@@ -263,6 +299,10 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     return aggregate;
   }
 
+  private void givenNoContractCoverageExists() {
+    contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
+  }
+
   /**
    * Sets up test preconditions: creates tally summary, waits for billable usage with pending
    * remittance
@@ -274,12 +314,10 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
 
     // Create and send tally summary to generate billable usage with remittance
-    TallySummary tallySummary =
-        createTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), TOTAL_USAGE);
-    kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
+    whenSendTallySummaryWithValue(VALUE);
 
     // Wait for billable usage to be produced
-    double expectedValue = TOTAL_USAGE * BILLING_FACTOR;
+    double expectedValue = VALUE * BILLING_FACTOR;
     List<BillableUsage> billableUsages =
         kafkaBridge.waitForKafkaMessage(
             BILLABLE_USAGE,
@@ -290,6 +328,13 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     return billableUsages.get(0);
   }
 
+  private TallySummary whenSendTallySummaryWithValue(double value) {
+    TallySummary tallySummary =
+        createTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), value);
+    kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
+    return tallySummary;
+  }
+
   /** Wait for remittance to reach expected status using API polling */
   private void waitForRemittanceStatus(String tallyId, RemittanceStatus expectedStatus) {
     Awaitility.await()
@@ -297,10 +342,9 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
         .pollInterval(Duration.ofSeconds(2))
         .untilAsserted(
             () -> {
-              List<TallyRemittance> remittances =
-                  billableUsageService.getRemittancesByTallyId(tallyId);
+              List<TallyRemittance> remittances = service.getRemittancesByTallyId(tallyId);
               assertNotNull(remittances, "Remittances should exist for tallyId: " + tallyId);
-              assertTrue(!remittances.isEmpty(), "Should have at least one remittance");
+              assertFalse(remittances.isEmpty(), "Should have at least one remittance");
 
               String actualStatusString = remittances.get(0).getStatus();
               RemittanceStatus actualStatus = RemittanceStatus.valueOf(actualStatusString);
@@ -333,5 +377,32 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
         remittance.getErrorCode(),
         String.format(
             "Expected error code '%s' but got '%s'", expectedErrorCode, remittance.getErrorCode()));
+  }
+
+  private BillableUsageAggregate thenBillableUsageAggregateIsFound(
+      List<BillableUsageAggregate> aggregates, TallySummary tallySummary) {
+    String billingAccountId = tallySummary.getTallySnapshots().get(0).getBillingAccountId();
+    BillableUsageAggregate found =
+        aggregates.stream()
+            .filter(
+                a ->
+                    billingAccountId.equals(
+                        a.getAggregateKey() != null
+                            ? a.getAggregateKey().getBillingAccountId()
+                            : null))
+            .findFirst()
+            .orElse(null);
+    assertNotNull(found, "Expected one aggregate for billing account " + billingAccountId);
+    return found;
+  }
+
+  private void thenBillableUsageAggregateTotalValueIs(
+      BillableUsageAggregate aggregate, double value) {
+    double expectedValue = Math.ceil(value * BILLING_FACTOR);
+    assertEquals(
+        expectedValue,
+        aggregate.getTotalValue().doubleValue(),
+        0.001,
+        "Aggregate should have total value " + expectedValue);
   }
 }

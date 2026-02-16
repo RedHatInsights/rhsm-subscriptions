@@ -21,9 +21,9 @@
 package com.redhat.swatch.hbi.events.ct.tests;
 
 import com.redhat.swatch.component.tests.api.ComponentTest;
+import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
 import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
-import com.redhat.swatch.component.tests.api.MessageValidator;
 import com.redhat.swatch.component.tests.api.Quarkus;
 import com.redhat.swatch.component.tests.api.Unleash;
 import com.redhat.swatch.component.tests.api.UnleashService;
@@ -54,7 +54,7 @@ public class BaseSMHBIComponentTest {
    * @param expectedMessages the message validators for the expected Swatch events
    */
   @SafeVarargs
-  protected final void waitForSwatchEvents(MessageValidator<Event>... expectedMessages) {
+  protected final void waitForSwatchEvents(DefaultMessageValidator<Event>... expectedMessages) {
     AwaitilitySettings settings =
         AwaitilitySettings.using(Duration.ofSeconds(2), Duration.ofSeconds(30))
             .timeoutMessage(

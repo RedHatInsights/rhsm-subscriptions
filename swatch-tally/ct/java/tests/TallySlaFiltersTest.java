@@ -23,7 +23,6 @@ package tests;
 import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
 import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 
-import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallySummary;
 import java.time.OffsetDateTime;
@@ -34,11 +33,9 @@ import org.candlepin.subscriptions.json.Event.HardwareType;
 import org.candlepin.subscriptions.json.Event.Sla;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import utils.TallyTestHelpers;
 
 public class TallySlaFiltersTest extends BaseTallyComponentTest {
 
-  private static final TallyTestHelpers helpers = new TallyTestHelpers();
   private static final String TEST_PRODUCT_TAG = RHEL_FOR_X86_ELS_PAYG.productTag();
   private static final String TEST_METRIC_ID = RHEL_FOR_X86_ELS_PAYG.metricIds().get(1);
   private static final String TEST_PRODUCT_ID = RHEL_FOR_X86_ELS_PAYG.productId();
@@ -46,7 +43,6 @@ public class TallySlaFiltersTest extends BaseTallyComponentTest {
 
   @Test
   public void testTallySlaFiltersCount() {
-    String orgId = RandomUtils.generateRandom();
     OffsetDateTime now = OffsetDateTime.now();
 
     // Produce events for each SLA

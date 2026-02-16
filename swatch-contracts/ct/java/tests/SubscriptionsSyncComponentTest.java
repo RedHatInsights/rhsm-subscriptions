@@ -24,7 +24,7 @@ import static com.redhat.swatch.component.tests.utils.Topics.ENABLED_ORGS;
 import static com.redhat.swatch.component.tests.utils.Topics.SUBSCRIPTION_SYNC_TASK;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.redhat.swatch.component.tests.api.MessageValidator;
+import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.contract.test.model.EnabledOrgsRequest;
 import domain.Subscription;
@@ -47,7 +47,7 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
     assertEquals(HttpStatus.SC_OK, response.statusCode());
     kafkaBridge.waitForKafkaMessage(
         ENABLED_ORGS,
-        new MessageValidator<>(
+        new DefaultMessageValidator<>(
             request -> SUBSCRIPTION_SYNC_TASK.equals(request.getTargetTopic()),
             EnabledOrgsRequest.class));
   }

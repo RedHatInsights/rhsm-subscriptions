@@ -20,57 +20,39 @@
  */
 package com.redhat.swatch.component.tests.api;
 
-import java.util.function.Predicate;
+import java.util.function.BiPredicate;
 import lombok.Getter;
 
 @Getter
-public class MessageValidator<T> {
-  private final Predicate<T> filter;
-  private final Class<T> type;
+public class MessageValidator<K, T> {
+  private final BiPredicate<K, T> filter;
+  private final Class<K> keyType;
+  private final Class<T> valueType;
 
   /**
-   * Constructs a Filterable object.
+   * Constructs a MessageValidator that filters by both key and value.
    *
-   * @param filter the {@code Predicate<T>} to use for filtering.
-   * @param type the {@code Class<T>} object representing the type {@code T}.
+   * @param filter the {@code BiPredicate<K, T>} to use for filtering (key, value).
+   * @param keyType the {@code Class<K>} for the message key.
+   * @param valueType the {@code Class<T>} for the message value.
    */
-  public MessageValidator(Predicate<T> filter, Class<T> type) {
-    if (filter == null || type == null) {
+  public MessageValidator(BiPredicate<K, T> filter, Class<K> keyType, Class<T> valueType) {
+    if (filter == null || keyType == null || valueType == null) {
       throw new IllegalArgumentException("Filter and type must not be null.");
     }
     this.filter = filter;
-    this.type = type;
+    this.keyType = keyType;
+    this.valueType = valueType;
   }
 
   /**
    * Applies the stored predicate to a given value.
    *
+   * @param key The key to test.
    * @param value The value to test.
    * @return true if the value matches the predicate, false otherwise.
    */
-  public boolean test(T value) {
-    return filter.test(value);
-  }
-
-  /**
-   * Gets the Class object for the type T.
-   *
-   * @return the {@code Class<T>} object.
-   */
-  public Class<T> getType() {
-    return type;
-  }
-
-  /**
-   * Gets the stored Predicate.
-   *
-   * @return the {@code Predicate<T>} object.
-   */
-  public Predicate<T> getFilter() {
-    return filter;
-  }
-
-  public String getTypeName() {
-    return type.getName();
+  public boolean test(K key, T value) {
+    return filter.test(key, value);
   }
 }

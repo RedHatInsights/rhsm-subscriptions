@@ -18,13 +18,24 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.api.dto;
+package api;
 
-import lombok.Data;
+import com.redhat.swatch.component.tests.api.WiremockService;
 
-@Data
-public class KafkaMessage<K, T> {
-  String topic;
-  K key;
-  T value;
+/**
+ * Wiremock service facade for swatch-tally component tests.
+ *
+ * <p>Provides access to stub classes for mocking external services that swatch-tally depends on,
+ * such as the swatch-contracts capacity API.
+ */
+public class TallyWiremockService extends WiremockService {
+
+  /**
+   * Get facade for stubbing the swatch-contracts Capacity API endpoints.
+   *
+   * @return CapacityApiStubs facade
+   */
+  public CapacityApiStubs forCapacityAPI() {
+    return new CapacityApiStubs(this);
+  }
 }

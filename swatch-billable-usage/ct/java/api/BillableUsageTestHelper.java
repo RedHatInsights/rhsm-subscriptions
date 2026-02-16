@@ -20,6 +20,8 @@
  */
 package api;
 
+import com.redhat.swatch.component.tests.utils.RandomUtils;
+import domain.BillingProvider;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -37,7 +39,7 @@ public final class BillableUsageTestHelper {
       String productId,
       String metricId,
       double value,
-      String billingProvider,
+      BillingProvider billingProvider,
       String billingAccountId) {
 
     OffsetDateTime snapshotDate =
@@ -52,7 +54,7 @@ public final class BillableUsageTestHelper {
     var snapshot = new TallySnapshot();
     snapshot.setId(UUID.randomUUID());
     snapshot.setProductId(productId);
-    snapshot.setBillingProvider(TallySnapshot.BillingProvider.fromValue(billingProvider));
+    snapshot.setBillingProvider(billingProvider.toTallyApiModel());
     snapshot.setBillingAccountId(billingAccountId);
     snapshot.setSnapshotDate(snapshotDate);
     snapshot.setSla(TallySnapshot.Sla.PREMIUM);
@@ -69,7 +71,8 @@ public final class BillableUsageTestHelper {
 
   public static TallySummary createTallySummaryWithDefaults(
       String orgId, String productId, String metricId, double value) {
-    return createTallySummary(orgId, productId, metricId, value, "aws", "aws-account-123");
+    return createTallySummary(
+        orgId, productId, metricId, value, BillingProvider.AWS, RandomUtils.generateRandom());
   }
 
   public static TallySummary createTallySummaryWithGranularity(
@@ -80,8 +83,7 @@ public final class BillableUsageTestHelper {
       TallySnapshot.Granularity granularity,
       UUID snapshotId) {
 
-    TallySummary tallySummary =
-        createTallySummary(orgId, productId, metricId, value, "aws", "aws-account-123");
+    TallySummary tallySummary = createTallySummaryWithDefaults(orgId, productId, metricId, value);
     TallySnapshot snapshot = tallySummary.getTallySnapshots().get(0);
     snapshot.setGranularity(granularity);
     snapshot.setId(snapshotId);

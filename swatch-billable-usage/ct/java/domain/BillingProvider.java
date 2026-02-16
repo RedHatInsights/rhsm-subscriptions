@@ -18,13 +18,16 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.component.tests.api.dto;
+package domain;
 
-import lombok.Data;
+import org.candlepin.subscriptions.billable.usage.TallySnapshot;
 
-@Data
-public class KafkaMessage<K, T> {
-  String topic;
-  K key;
-  T value;
+public enum BillingProvider {
+  AWS;
+
+  public TallySnapshot.BillingProvider toTallyApiModel() {
+    return switch (this) {
+      case AWS -> TallySnapshot.BillingProvider.AWS;
+    };
+  }
 }

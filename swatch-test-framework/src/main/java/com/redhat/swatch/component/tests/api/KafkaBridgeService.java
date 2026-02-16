@@ -99,7 +99,7 @@ public class KafkaBridgeService extends RestService {
     produceKafkaMessage(topic, null, value);
   }
 
-  public void produceKafkaMessage(String topic, String key, Object value) {
+  public void produceKafkaMessage(String topic, Object key, Object value) {
     Log.debug(this, "Sending kafka message to topic '%s': %s", topic, value);
     var data = Map.of("records", List.of(buildMessage(key, value)));
 
@@ -128,7 +128,7 @@ public class KafkaBridgeService extends RestService {
    * @return The first message that matches the validator
    * @throws IllegalArgumentException if no consumer exists for the topic
    */
-  public <V> V waitForKafkaMessage(String topic, MessageValidator<V> validator) {
+  public <K, V> V waitForKafkaMessage(String topic, MessageValidator<K, V> validator) {
     List<V> messages = waitForKafkaMessage(topic, validator, 1);
     return messages.isEmpty() ? null : messages.get(0);
   }
@@ -142,8 +142,8 @@ public class KafkaBridgeService extends RestService {
    * @return A list of messages that match the validator
    * @throws IllegalArgumentException if no consumer exists for the topic
    */
-  public <V> List<V> waitForKafkaMessage(
-      String topic, MessageValidator<V> validator, int expectedCount) {
+  public <K, V> List<V> waitForKafkaMessage(
+      String topic, MessageValidator<K, V> validator, int expectedCount) {
     return waitForKafkaMessage(topic, validator, expectedCount, AwaitilitySettings.defaults());
   }
 
@@ -158,8 +158,11 @@ public class KafkaBridgeService extends RestService {
    * @return A list of messages that match the validator
    * @throws IllegalArgumentException if no consumer exists for the topic
    */
-  public <V> List<V> waitForKafkaMessage(
-      String topic, MessageValidator<V> validator, int expectedCount, AwaitilitySettings settings) {
+  public <K, V> List<V> waitForKafkaMessage(
+      String topic,
+      MessageValidator<K, V> validator,
+      int expectedCount,
+      AwaitilitySettings settings) {
     String consumer = consumers.get(topic);
     if (consumer == null) {
       throw new IllegalArgumentException("No consumer for topic " + topic);
@@ -192,12 +195,14 @@ public class KafkaBridgeService extends RestService {
                 String messageJson = JsonUtils.getObjectMapper().writeValueAsString(rawMessage);
                 TypeFactory typeFactory = JsonUtils.getObjectMapper().getTypeFactory();
                 JavaType messageType =
-                    typeFactory.constructParametricType(KafkaMessage.class, validator.getType());
-                KafkaMessage<V> typedMessage =
+                    typeFactory.constructParametricType(
+                        KafkaMessage.class, validator.getKeyType(), validator.getValueType());
+                KafkaMessage<K, V> typedMessage =
                     JsonUtils.getObjectMapper().readValue(messageJson, messageType);
+                K key = typedMessage.getKey();
                 V message = typedMessage.getValue();
 
-                if (validator.test(message)) {
+                if (validator.test(key, message)) {
                   matchedMessages.add(message);
                   Log.debug(this, "Valid message found: %s", message);
                 }
@@ -317,7 +322,7 @@ public class KafkaBridgeService extends RestService {
 
                   // Parse and cache any messages received
                   try {
-                    List<Map<String, Object>> rawMessages = parseRawMessages(responseBody);
+                    List<Map<Object, Object>> rawMessages = parseRawMessages(responseBody);
                     if (!rawMessages.isEmpty()) {
                       CopyOnWriteArrayList<Object> topicCache = messageCache.get(topic);
                       if (topicCache != null) {
@@ -374,7 +379,7 @@ public class KafkaBridgeService extends RestService {
   }
 
   /** Parses raw message response from Kafka Bridge into a list of message objects. */
-  private List<Map<String, Object>> parseRawMessages(String responseBody) {
+  private List<Map<Object, Object>> parseRawMessages(String responseBody) {
     try {
       if (responseBody == null
           || responseBody.trim().isEmpty()
@@ -393,12 +398,13 @@ public class KafkaBridgeService extends RestService {
     }
   }
 
-  private Map<String, Object> buildMessage(String key, Object value) {
+  private Map<String, Object> buildMessage(Object key, Object value) {
     Map<String, Object> message = new HashMap<>();
     message.put("value", value);
     if (key != null) {
       message.put("key", key);
     }
+
     return message;
   }
 }

@@ -101,17 +101,19 @@ class AccountResetServiceTest {
     eventRecordRepo.save(e);
 
     TallySnapshot snapshot =
-        new TallySnapshot(
-            null,
-            OffsetDateTime.now(),
-            "RHEL",
-            "org123",
-            ServiceLevel.PREMIUM,
-            Usage.PRODUCTION,
-            BillingProvider.EMPTY,
-            "billingAccount123",
-            Granularity.DAILY,
-            Map.of(new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, "CORES"), 10.0));
+        TallySnapshot.builder()
+            .id(null)
+            .snapshotDate(OffsetDateTime.now())
+            .productId("RHEL")
+            .orgId("org123")
+            .serviceLevel(ServiceLevel.PREMIUM)
+            .usage(Usage.PRODUCTION)
+            .billingProvider(BillingProvider.EMPTY)
+            .billingAccountId("billingAccount123")
+            .granularity(Granularity.DAILY)
+            .tallyMeasurements(
+                Map.of(new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, "CORES"), 10.0))
+            .build();
     tallySnapshotRepository.save(snapshot);
 
     TallyState tallyState = new TallyState("org123", "HBI_HOST", OffsetDateTime.now());

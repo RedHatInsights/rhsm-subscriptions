@@ -43,7 +43,25 @@ Regardless of the underlying translator, you still use the `--platform` flag to 
 podman-compose --podman-pull-args "--platform linux/amd64" --podman-run-args "--platform linux/amd64" --podman-build-args "--platform linux/amd64" up -d
 ```
 
-#### 2. Port Binding Conflict ("Address Already in Use")
+#### 2. Building Container Images with `build-images.sh`
+
+**Problem:**
+When running `bin/build-images.sh` on Apple Silicon, the built images default to the `linux/arm64` architecture. These images will fail with `exec format error` when deployed to `linux/amd64` environments (e.g., ephemeral clusters, OpenShift).
+
+**Solution:**
+The script **auto-detects Apple Silicon** and automatically adds `--platform linux/amd64` to the `podman build` commands. No extra flags are needed:
+```bash
+bin/build-images.sh swatch-contracts
+```
+
+You can also override the platform explicitly with `-p`:
+```bash
+bin/build-images.sh -p linux/amd64 swatch-contracts
+```
+
+**Prerequisites:** Make sure Rosetta 2 is installed and enabled in Podman (see section 1 above).
+
+#### 3. Port Binding Conflict ("Address Already in Use")
 
 **Problem:**
 A service may fail to start with an error like `listen tcp4 ...: bind: address already in use`, even when commands like `sudo lsof` on the macOS host show the port is free.

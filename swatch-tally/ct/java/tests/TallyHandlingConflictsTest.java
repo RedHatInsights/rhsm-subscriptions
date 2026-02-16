@@ -26,48 +26,45 @@ import static utils.TallyTestProducts.RHACM;
 import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 import static utils.TallyTestProducts.ROSA;
 
-import api.SwatchTallyRestAPIService;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
-import com.redhat.swatch.component.tests.utils.RandomUtils;
-import io.restassured.response.Response;
+import com.redhat.swatch.tally.test.model.InstanceData;
+import com.redhat.swatch.tally.test.model.InstanceResponse;
+import com.redhat.swatch.tally.test.model.TallyReportData;
+import com.redhat.swatch.tally.test.model.TallyReportDataPoint;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import utils.TallyTestHelpers;
 import utils.TallyTestProducts;
 
 public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
-
-  private static final TallyTestHelpers helpers = new TallyTestHelpers();
-  private static final SwatchTallyRestAPIService tallyApi = new SwatchTallyRestAPIService();
-  private static final ObjectMapper objectMapper = new ObjectMapper();
   private TestSetup setup;
 
   @BeforeEach
-  public void setUp() throws Exception {
+  public void setUp() {
+    super.setUp();
     setup = setupTest();
   }
 
   @Test
-  public void testTallyCorrectlyHandlesPositiveMetricValueUpdates() throws Exception {
+  public void testTallyCorrectlyHandlesPositiveMetricValueUpdates() {
     float initialValue = 10.0f;
     float updatedValue = 25.0f;
     String metricId = RHEL_FOR_X86_ELS_PAYG.metricIds().get(0);
 
     // Initial event
     createEventForProduct(setup.start, RHEL_FOR_X86_ELS_PAYG, metricId, initialValue);
-    tallyApi.syncTallyHourly(setup.orgId, service);
+    service.performHourlyTallyForOrg(setup.orgId);
     double before =
         awaitHourlyTallySum(
             RHEL_FOR_X86_ELS_PAYG.productTag(),
@@ -78,7 +75,7 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
 
     // Update event: same instanceId + same timestamp hour, different positive value
     createEventForProduct(setup.start, RHEL_FOR_X86_ELS_PAYG, metricId, updatedValue);
-    tallyApi.syncTallyHourly(setup.orgId, service);
+    service.performHourlyTallyForOrg(setup.orgId);
     double after =
         awaitHourlyTallySum(
             RHEL_FOR_X86_ELS_PAYG.productTag(),
@@ -91,14 +88,14 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
   }
 
   @Test
-  public void testTallyCorrectlyHandlesNegativeMetricValueNoUpdates() throws Exception {
+  public void testTallyCorrectlyHandlesNegativeMetricValueNoUpdates() {
     float initialValue = 10.0f;
     float updatedValue = -25.0f;
     String metricId = RHEL_FOR_X86_ELS_PAYG.metricIds().get(0);
 
     // Initial event
     createEventForProduct(setup.start, RHEL_FOR_X86_ELS_PAYG, metricId, initialValue);
-    tallyApi.syncTallyHourly(setup.orgId, service);
+    service.performHourlyTallyForOrg(setup.orgId);
     double before =
         awaitHourlyTallySum(
             RHEL_FOR_X86_ELS_PAYG.productTag(),
@@ -109,7 +106,7 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
 
     // Update event: same instanceId + same timestamp hour, different negative value
     createEventForProduct(setup.start, RHEL_FOR_X86_ELS_PAYG, metricId, updatedValue);
-    tallyApi.syncTallyHourly(setup.orgId, service);
+    service.performHourlyTallyForOrg(setup.orgId);
     double after =
         awaitHourlyTallySum(
             RHEL_FOR_X86_ELS_PAYG.productTag(),
@@ -122,7 +119,7 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
   }
 
   @Test
-  public void testTallyMultipleProductsSameInstance() throws Exception {
+  public void testTallyMultipleProductsSameInstance() {
     // Produce one event per (product, metric) combination.
     for (TallyTestProducts product : List.of(RHACM, ROSA)) {
       for (String metricId : product.metricIds()) {
@@ -130,7 +127,7 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
         createEventForProduct(setup.start, product, metricId, value);
       }
     }
-    tallyApi.syncTallyHourly(setup.orgId, service);
+    service.performHourlyTallyForOrg(setup.orgId);
 
     // Verify instances + tally totals by product/metric.
     for (TallyTestProducts product : List.of(RHACM, ROSA)) {
@@ -149,7 +146,7 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
   }
 
   @Test
-  public void testTallyMultipleProductsSameInstanceConflictingEvents() throws Exception {
+  public void testTallyMultipleProductsSameInstanceConflictingEvents() {
     // Produce an event for each product in the starting hour
     for (TallyTestProducts product : List.of(RHACM, ROSA)) {
       for (String metricId : product.metricIds()) {
@@ -157,7 +154,7 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
         createEventForProduct(setup.start, product, metricId, value);
       }
     }
-    tallyApi.syncTallyHourly(setup.orgId, service);
+    service.performHourlyTallyForOrg(setup.orgId);
 
     // Produce another conflicting event for each product in the next hour
     for (TallyTestProducts product : List.of(RHACM, ROSA)) {
@@ -166,7 +163,7 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
         createEventForProduct(setup.start.plusHours(1), product, metricId, value);
       }
     }
-    tallyApi.syncTallyHourly(setup.orgId, service);
+    service.performHourlyTallyForOrg(setup.orgId);
 
     // Verify instances + tally totals by product/metric.
     for (TallyTestProducts product : List.of(RHACM, ROSA)) {
@@ -188,9 +185,8 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
   /*
    * Sets up variables used in each test.
    */
-  private TestSetup setupTest() throws Exception {
-    String orgId = RandomUtils.generateRandom();
-    tallyApi.createOptInConfig(orgId, service);
+  private TestSetup setupTest() {
+    service.createOptInConfig(orgId);
 
     // Use a fixed hour bucket so events collide (same instance_id + same hour).
     OffsetDateTime start =
@@ -235,27 +231,22 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
   /*
    * Gets the number of instances by display name.
    */
-  private int getInstancesCountByDisplayName(
+  private long getInstancesCountByDisplayName(
       String productTag,
       OffsetDateTime beginning,
       OffsetDateTime ending,
-      String displayNameContains)
-      throws Exception {
-    String body =
-        tallyApi.getInstancesReport(setup.orgId, productTag, beginning, ending, service).asString();
-    JsonNode json = objectMapper.readTree(body);
-    JsonNode data = json.path("data");
-
-    int count = 0;
-    if (data.isArray()) {
-      for (JsonNode row : data) {
-        String displayName = row.path("display_name").asText("");
-        if (displayName.contains(displayNameContains)) {
-          count++;
-        }
-      }
+      String displayNameContains) {
+    InstanceResponse response =
+        service.getInstancesByProduct(setup.orgId, productTag, beginning, ending);
+    if (response.getData() == null) {
+      return 0;
     }
-    return count;
+
+    return response.getData().stream()
+        .map(InstanceData::getDisplayName)
+        .filter(Objects::nonNull)
+        .filter(d -> d.contains(displayNameContains))
+        .count();
   }
 
   /*
@@ -266,8 +257,7 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
       OffsetDateTime beginning,
       OffsetDateTime ending,
       String displayNameContains,
-      int expectedCount)
-      throws Exception {
+      int expectedCount) {
     AwaitilitySettings settings =
         AwaitilitySettings.using(Duration.ofSeconds(1), Duration.ofSeconds(30))
             .withService(service)
@@ -276,7 +266,7 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
 
     AwaitilityUtils.untilAsserted(
         () -> {
-          tallyApi.syncTallyHourly(setup.orgId, service);
+          service.performHourlyTallyForOrg(setup.orgId);
           assertEquals(
               expectedCount,
               getInstancesCountByDisplayName(productTag, beginning, ending, displayNameContains));
@@ -288,29 +278,22 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
    * Gets the hourly tally sum for a given product, metric, and time range.
    */
   private double getHourlyTallySum(
-      String productTag, String metricId, OffsetDateTime beginning, OffsetDateTime ending)
-      throws Exception {
+      String productTag, String metricId, OffsetDateTime beginning, OffsetDateTime ending) {
     Map<String, ?> queryParams =
         Map.of(
             "granularity", "Hourly",
             "beginning", beginning.toString(),
             "ending", ending.toString());
 
-    Response resp =
-        tallyApi.getTallyReport(service, setup.orgId, productTag, metricId, queryParams);
-    JsonNode json = objectMapper.readTree(resp.asString());
-    JsonNode data = json.path("data");
-
-    double sum = 0.0;
-    if (data.isArray()) {
-      for (JsonNode row : data) {
-        JsonNode valueNode = row.get("value");
-        if (valueNode != null && valueNode.isNumber()) {
-          sum += valueNode.asDouble();
-        }
-      }
+    TallyReportData resp =
+        service.getTallyReportData(setup.orgId, productTag, metricId, queryParams);
+    if (resp.getData() == null) {
+      return 0.0;
     }
-    return sum;
+
+    return resp.getData().stream()
+        .collect(Collectors.summarizingInt(TallyReportDataPoint::getValue))
+        .getSum();
   }
 
   /*
@@ -321,8 +304,7 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
       String metricId,
       OffsetDateTime beginning,
       OffsetDateTime ending,
-      double expected)
-      throws Exception {
+      double expected) {
     AwaitilitySettings settings =
         AwaitilitySettings.using(Duration.ofSeconds(1), Duration.ofSeconds(30))
             .withService(service)
@@ -332,7 +314,7 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
 
     AwaitilityUtils.untilAsserted(
         () -> {
-          tallyApi.syncTallyHourly(setup.orgId, service);
+          service.performHourlyTallyForOrg(setup.orgId);
           assertEquals(
               expected, getHourlyTallySum(productTag, metricId, beginning, ending), 0.0001);
         },

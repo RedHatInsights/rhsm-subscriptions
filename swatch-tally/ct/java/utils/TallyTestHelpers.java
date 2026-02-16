@@ -23,9 +23,8 @@ package utils;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 
 import api.MessageValidators;
-import api.SwatchTallyRestAPIService;
+import api.TallySwatchService;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
-import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallySummary;
@@ -50,8 +49,6 @@ public class TallyTestHelpers {
   private static final String DEFAULT_METRIC_ID =
       TallyTestProducts.RHEL_FOR_X86_ELS_PAYG.metricIds().get(1);
   private static final int EVENT_EXPIRATION_DAYS = 25;
-
-  private final SwatchTallyRestAPIService restApiService = new SwatchTallyRestAPIService();
 
   /** Default constructor. */
   public TallyTestHelpers() {}
@@ -139,8 +136,8 @@ public class TallyTestHelpers {
    * keep the host and one non-PAYG bucket that we assert on.
    */
   public void seedNightlyTallyHostBuckets(
-      String orgId, String productId, String inventoryId, SwatchService service) {
-    restApiService.createOptInConfig(orgId, service);
+      String orgId, String productId, String inventoryId, TallySwatchService service) {
+    service.createOptInConfig(orgId);
 
     var hostId = TallyDbHostSeeder.insertHbiHost(orgId, inventoryId);
     // Keep the host from being deleted (PAYG-eligible tag)
@@ -165,7 +162,7 @@ public class TallyTestHelpers {
       int maxAttempts,
       Duration pollInterval,
       Duration awaitTimeout,
-      SwatchService service,
+      TallySwatchService service,
       KafkaBridgeService kafkaBridge) {
     int attempts = 0;
     Exception lastException = null;
@@ -177,7 +174,7 @@ public class TallyTestHelpers {
       attempts++;
       try {
         // Run hourly tally sync
-        restApiService.syncTallyHourly(testOrgId, service);
+        service.performHourlyTallyForOrg(testOrgId);
 
         // Wait for tally messages with a short timeout
 
@@ -210,7 +207,7 @@ public class TallyTestHelpers {
       String metricId,
       Granularity granularity,
       int expectedMessageCount,
-      SwatchService service,
+      TallySwatchService service,
       KafkaBridgeService kafkaBridge) {
     return pollForTallySyncAndMessages(
         testOrgId,

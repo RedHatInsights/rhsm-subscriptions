@@ -21,11 +21,11 @@
 package api;
 
 import com.redhat.cloud.notifications.ingress.Action;
-import com.redhat.swatch.component.tests.api.MessageValidator;
+import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
 
 public class MessageValidators {
 
-  public static MessageValidator<Action> matchesOrgId(String orgId) {
-    return new MessageValidator<>(a -> orgId.equals(a.getOrgId()), Action.class);
+  public static DefaultMessageValidator<Action> matchesOrgId(String orgId) {
+    return new DefaultMessageValidator<>(a -> orgId.equals(a.getOrgId()), Action.class);
   }
 }
