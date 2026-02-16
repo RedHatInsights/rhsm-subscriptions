@@ -374,6 +374,7 @@ spec:
             value: tasks/deploy-frontends.yaml
 
     - name: run-iqe-tests
+      timeout: "1h45m"
       runAfter:
         - deploy-application
       when:

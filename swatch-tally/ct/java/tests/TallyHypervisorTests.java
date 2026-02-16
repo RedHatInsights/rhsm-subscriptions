@@ -24,35 +24,27 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static utils.TallyTestProducts.RHEL_FOR_X86;
 
-import api.SwatchTallyRestAPIService;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.redhat.swatch.component.tests.utils.RandomUtils;
-import io.restassured.response.Response;
+import com.redhat.swatch.tally.test.model.InstanceData;
+import com.redhat.swatch.tally.test.model.TallyReportDataPoint;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import utils.TallyDbHostSeeder;
-import utils.TallyTestHelpers;
 
 public class TallyHypervisorTests extends BaseTallyComponentTest {
 
-  private static final TallyTestHelpers helpers = new TallyTestHelpers();
-  private static final SwatchTallyRestAPIService tallyApi = new SwatchTallyRestAPIService();
-  private static final ObjectMapper objectMapper = new ObjectMapper();
-
   @Test
-  public void testHypervisorWithNoGuestsDoesNotShowInInstancesReport() throws Exception {
-    String orgId = RandomUtils.generateRandom();
-
+  public void testHypervisorWithNoGuestsDoesNotShowInInstancesReport() {
     helpers.seedNightlyTallyHostBuckets(
         orgId, RHEL_FOR_X86.productTag(), UUID.randomUUID().toString(), service);
 
-    tallyApi.syncTallyNightly(orgId, service);
+    service.tallyOrg(orgId);
 
     OffsetDateTime startOfToday = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
     OffsetDateTime endOfToday = startOfToday.plusDays(1).minusNanos(1);
@@ -62,49 +54,44 @@ public class TallyHypervisorTests extends BaseTallyComponentTest {
         TallyDbHostSeeder.insertHost(
             orgId, UUID.randomUUID().toString(), "VIRTUAL", false, false, true, 0, null);
 
-    tallyApi.syncTallyNightly(orgId, service);
+    service.tallyOrg(orgId);
 
     // System table check: ensure the host does not show up in instances report.
-    Response instancesResponse =
-        tallyApi.getInstancesReport(
-            orgId, RHEL_FOR_X86.productTag(), startOfToday, endOfToday, service);
-    JsonNode data = objectMapper.readTree(instancesResponse.asString()).path("data");
+    var instancesResponse =
+        service.getInstancesByProduct(orgId, RHEL_FOR_X86.productTag(), startOfToday, endOfToday);
+    var data = instancesResponse.getData();
 
     boolean found = containsSubscriptionManagerId(data, hypervisorHost.subscriptionManagerId());
     assertFalse(found, "Hypervisor without guests should not appear in instances report");
   }
 
   @Test
-  public void testHypervisorWithNoGuestsDoesNotChangeDailyTotal() throws Exception {
-    String orgId = RandomUtils.generateRandom();
-
+  public void testHypervisorWithNoGuestsDoesNotChangeDailyTotal() {
     // Seed baseline usage (non-zero) so we can assert it doesn't change.
     helpers.seedNightlyTallyHostBuckets(
         orgId, RHEL_FOR_X86.productTag(), UUID.randomUUID().toString(), service);
 
-    tallyApi.syncTallyNightly(orgId, service);
+    service.tallyOrg(orgId);
 
     OffsetDateTime startOfToday = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
     OffsetDateTime endOfToday = startOfToday.plusDays(1).minusNanos(1);
 
-    int initialSockets = getDailySocketsTotal(orgId, startOfToday, endOfToday);
+    long initialSockets = getDailySocketsTotal(startOfToday, endOfToday);
 
     // Seed a "hypervisor" host with no guests and no buckets.
     TallyDbHostSeeder.insertHost(
         orgId, UUID.randomUUID().toString(), "VIRTUAL", false, false, true, 0, null);
 
-    tallyApi.syncTallyNightly(orgId, service);
+    service.tallyOrg(orgId);
 
-    int newSockets = getDailySocketsTotal(orgId, startOfToday, endOfToday);
+    long newSockets = getDailySocketsTotal(startOfToday, endOfToday);
     assertEquals(
         initialSockets, newSockets, "Hypervisor without guests should not change total sockets");
   }
 
-  private int getDailySocketsTotal(String orgId, OffsetDateTime beginning, OffsetDateTime ending)
-      throws Exception {
-    Response resp =
-        tallyApi.getTallyReport(
-            service,
+  private long getDailySocketsTotal(OffsetDateTime beginning, OffsetDateTime ending) {
+    var resp =
+        service.getTallyReportData(
             orgId,
             RHEL_FOR_X86.productTag(),
             RHEL_FOR_X86.metricIds().get(0),
@@ -113,34 +100,22 @@ public class TallyHypervisorTests extends BaseTallyComponentTest {
                 "beginning", beginning.toString(),
                 "ending", ending.toString()));
 
-    JsonNode json = objectMapper.readTree(resp.asString());
-    JsonNode data = json.path("data");
-    if (!data.isArray() || data.isEmpty()) {
+    if (resp.getData() == null) {
       return 0;
     }
     // When a range is requested, the report filler may include multiple points; sum them.
-    int total = 0;
-    for (JsonNode point : data) {
-      total += point.path("value").asInt(0);
-    }
-    return total;
+    return resp.getData().stream()
+        .collect(Collectors.summarizingInt(TallyReportDataPoint::getValue))
+        .getSum();
   }
 
-  private boolean containsSubscriptionManagerId(JsonNode data, String subscriptionManagerId) {
-    if (data == null || !data.isArray()) {
+  private boolean containsSubscriptionManagerId(
+      List<InstanceData> data, String subscriptionManagerId) {
+    if (data == null) {
       return false;
     }
-    Iterator<JsonNode> it = data.elements();
-    while (it.hasNext()) {
-      JsonNode row = it.next();
-      if (subscriptionManagerId.equals(row.path("subscription_manager_id").asText(null))) {
-        return true;
-      }
-      // Some serializers use camelCase in CT fixtures; tolerate both.
-      if (subscriptionManagerId.equals(row.path("subscriptionManagerId").asText(null))) {
-        return true;
-      }
-    }
-    return false;
+
+    return data.stream()
+        .anyMatch(i -> Objects.equals(i.getSubscriptionManagerId(), subscriptionManagerId));
   }
 }
