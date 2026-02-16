@@ -37,6 +37,7 @@ import com.redhat.cloud.event.parser.GenericConsoleCloudEvent;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import java.util.Map;
+import java.util.UUID;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 public class ExportServiceWireMockResource implements QuarkusTestResourceLifecycleManager {
@@ -134,6 +135,22 @@ public class ExportServiceWireMockResource implements QuarkusTestResourceLifecyc
                     request.getData().getResourceRequest().getExportRequestUUID(),
                     request.getData().getResourceRequest().getUUID())))
             .willReturn(status(HttpResponseStatus.GATEWAY_TIMEOUT.code())));
+  }
+
+  public void verifyUploadWasSent(UUID exportId, String application, UUID resourceId) {
+    Awaitility.await()
+        .untilAsserted(
+            () ->
+                wireMockServer.verify(
+                    postRequestedFor(
+                        urlPathMatching(
+                            "/app/export/v1/"
+                                + exportId
+                                + "/"
+                                + application
+                                + "/"
+                                + resourceId
+                                + "/upload"))));
   }
 
   private static WireMockServer startWireMockServer() {
