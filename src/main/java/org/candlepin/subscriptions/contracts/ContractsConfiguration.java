@@ -21,6 +21,8 @@
 package org.candlepin.subscriptions.contracts;
 
 import com.redhat.swatch.contracts.spring.client.CapacityApiFactory;
+import com.redhat.swatch.contracts.spring.client.IdentityHeaderProvider;
+import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
 import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -48,9 +50,14 @@ public class ContractsConfiguration {
     return new ContractsClientProperties();
   }
 
+  @Bean
+  public IdentityHeaderProvider identityHeaderProvider() {
+    return ResourceUtils::getCurrentIdentityHeader;
+  }
+
   @Bean(name = "capacityApi")
   public CapacityApiFactory contractsCapacityApiFactory(
-      ContractsClientProperties clientProperties) {
-    return new CapacityApiFactory(clientProperties);
+      ContractsClientProperties clientProperties, IdentityHeaderProvider identityHeaderProvider) {
+    return new CapacityApiFactory(clientProperties, identityHeaderProvider);
   }
 }

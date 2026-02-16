@@ -29,11 +29,13 @@ import com.redhat.swatch.contract.openapi.model.SkuCapacityReportV2;
 import com.redhat.swatch.contract.openapi.model.SortDirection;
 import com.redhat.swatch.contract.openapi.model.UsageType;
 import com.redhat.swatch.contract.openapi.resource.SubscriptionsV2Api;
+import com.redhat.swatch.contract.resource.OrgIdResolver;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.validation.constraints.Min;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.SecurityContext;
 import java.time.OffsetDateTime;
 
@@ -41,7 +43,9 @@ import java.time.OffsetDateTime;
 @ApplicationScoped
 public class SubscriptionResourceV2 implements SubscriptionsV2Api {
   @Context SecurityContext securityContext;
+  @Context HttpHeaders httpHeaders;
   @Inject SubscriptionTableControllerV2 subscriptionTableController;
+  @Inject OrgIdResolver orgIdResolver;
 
   @RolesAllowed({"customer", "service"})
   @Override
@@ -60,7 +64,7 @@ public class SubscriptionResourceV2 implements SubscriptionsV2Api {
       SkuCapacityReportSortV2 sort,
       SortDirection dir) {
     return subscriptionTableController.capacityReportBySkuV2(
-        securityContext.getUserPrincipal().getName(),
+        orgIdResolver.getOrgId(securityContext, httpHeaders),
         productId,
         offset,
         limit,
