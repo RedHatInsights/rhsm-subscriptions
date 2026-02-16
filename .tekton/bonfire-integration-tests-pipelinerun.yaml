@@ -7,6 +7,10 @@ metadata:
     build.appstudio.openshift.io/repo: https://github.com/RedHatInsights/rhsm-subscriptions
     pipelinesascode.tekton.dev/max-keep-runs: "3"
 spec:
+  timeouts:
+    pipeline: "2h0m0s"
+    tasks: "1h45m0s"
+    finally: "15m0s"
   pipelineRef:
     resolver: git
     params:
