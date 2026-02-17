@@ -57,7 +57,7 @@
     <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
     <maven-antrun-plugin.version>3.2.0</maven-antrun-plugin.version>
     <sonar-maven-plugin.version>5.5.0.6356</sonar-maven-plugin.version>
-    <swagger-codegen-maven-plugin.version>3.0.77</swagger-codegen-maven-plugin.version>
+    <swagger-codegen-maven-plugin.version>3.0.78</swagger-codegen-maven-plugin.version>
 
     <!-- Sonar configuration -->
     <sonar.host.url>https://sonarcloud.io</sonar.host.url>
