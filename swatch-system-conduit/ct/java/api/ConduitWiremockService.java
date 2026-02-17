@@ -20,29 +20,22 @@
  */
 package api;
 
-import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
-import models.CreateUpdateHostMessage;
+import com.redhat.swatch.component.tests.api.WiremockService;
 
-public class MessageValidators {
+/**
+ * Wiremock service facade for swatch-system-conduit component tests.
+ *
+ * <p>Provides access to stub classes for mocking external services that system-conduit depends on,
+ * such as the RHSM API (consumers/feeds).
+ */
+public class ConduitWiremockService extends WiremockService {
 
   /**
-   * Creates a validator that matches CreateUpdateHostMessage messages for a specific orgId.
+   * Get facade for stubbing RHSM API endpoints.
    *
-   * @param orgId the orgId to match
-   * @return a MessageValidator that matches add_host message of the given orgId
+   * @return RhsmApiStubs facade
    */
-  public static DefaultMessageValidator<CreateUpdateHostMessage> addHostMessageMatchesOrgId(
-      String orgId) {
-    var operation = "add_host";
-
-    return new DefaultMessageValidator<>(
-        message -> {
-          if (message == null || message.getData() == null) {
-            return false;
-          }
-          return operation.equals(message.getOperation())
-              && orgId.equals(message.getData().getOrgId());
-        },
-        CreateUpdateHostMessage.class);
+  public RhsmApiStubs forRhsmApi() {
+    return new RhsmApiStubs(this);
   }
 }

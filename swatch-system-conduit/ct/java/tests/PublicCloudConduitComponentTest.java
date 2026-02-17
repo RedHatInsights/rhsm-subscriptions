@@ -21,8 +21,17 @@
 package tests;
 
 import static com.redhat.swatch.component.tests.utils.Topics.INVENTORY_HOST_INGRESS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import api.MessageValidators;
+import api.RhsmApiStubs;
+import java.util.List;
+import java.util.Map;
+import models.CreateUpdateHostMessage;
+import org.candlepin.subscriptions.conduit.json.inventory.HbiFactSet;
+import org.candlepin.subscriptions.conduit.json.inventory.HbiHost;
+import org.candlepin.subscriptions.conduit.json.inventory.HbiSystemProfile;
 import org.junit.jupiter.api.Test;
 import utils.ConduitTestHelpers;
 
@@ -31,23 +40,102 @@ public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
 
   ConduitTestHelpers helpers = new ConduitTestHelpers();
 
+  // Expected values used in the stubbed RHSM consumer and asserted on the HbiHost response
+  private static final String EXPECTED_CONSUMER_ID = "test-consumer-1";
+  private static final String EXPECTED_DISPLAY_NAME = "test-display-name";
+  private static final String EXPECTED_UUID = "550e8400-e29b-41d4-a716-446655440000";
+  private static final String EXPECTED_FQDN = "host1.openshift.test.com";
+  private static final String EXPECTED_BIOS_UUID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+  private static final String EXPECTED_OPENSHIFT_CLUSTER_ID =
+      "5dd23807-2bf1-4670-9d6a-42364dc4fddb";
+  private static final String EXPECTED_INSIGHTS_ID = "e7f8c9d0-1a2b-3c4d-5e6f-7890abcdef12";
+  private static final List<String> EXPECTED_IP_ADDRESSES = List.of("192.168.1.10", "10.0.0.5");
+  private static final List<String> EXPECTED_MAC_ADDRESSES = List.of("00:11:22:33:44:55");
+  private static final String EXPECTED_ARCH = "x86_64";
+  private static final int EXPECTED_CPU_SOCKETS = 2;
+  private static final int EXPECTED_CORES_PER_SOCKET = 4;
+  private static final long EXPECTED_MEMORY_BYTES = 16_384_000_000L;
+  private static final String EXPECTED_REPORTER = "rhsm-conduit";
+
   /**
-   * Verifies that the inventory host ingress topic receives messages from system-conduit after a
-   * conduit sync.
+   * Verifies that the inventory host ingress topic receives an add_host message with every field
+   * accurately reflecting the stubbed RHSM consumer data, including openshift_cluster_id.
    *
-   * <p>1. Create a task message on platform.rhsm-conduit.tasks topic via Conduit Sync 2. Validate
-   * add_host operation on platform.inventory.host-ingress topic for org_id
+   * <p>1. Stub RHSM API via WireMock with a full consumer (org_id, fqdn, openshift_cluster_id,
+   * etc.) 2. Sync conduit for the test orgId 3. Wait for add_host on
+   * platform.inventory.host-ingress 4. Assert all HbiHost fields match the expected values
    */
   @Test
   public void testPublicCloudHostSync() {
-    // Sync conduit for the test orgId
-    // This will queue a task message to Kafka which will be consumed by system-conduit
+    // Stub the RHSM API with a full consumer so we can assert every field in the response
+    Map<String, Object> consumer =
+        RhsmApiStubs.buildFullConsumer(
+            orgId,
+            EXPECTED_CONSUMER_ID,
+            EXPECTED_DISPLAY_NAME,
+            EXPECTED_UUID,
+            EXPECTED_FQDN,
+            EXPECTED_BIOS_UUID,
+            EXPECTED_OPENSHIFT_CLUSTER_ID,
+            null,
+            EXPECTED_INSIGHTS_ID,
+            EXPECTED_IP_ADDRESSES,
+            EXPECTED_MAC_ADDRESSES,
+            EXPECTED_ARCH,
+            EXPECTED_CPU_SOCKETS,
+            EXPECTED_CORES_PER_SOCKET,
+            EXPECTED_MEMORY_BYTES);
+    wiremock.forRhsmApi().stubConsumersForOrg(orgId, List.of(consumer));
+
     helpers.syncConduitByOrgId(service, orgId);
 
-    // Wait for the conduit to process the task and send host data to inventory
-    // The stub RHSM API will return canned consumer data
-    // The message validator matches add_host operation for orgId
-    kafkaBridge.waitForKafkaMessage(
-        INVENTORY_HOST_INGRESS, MessageValidators.addHostMessageMatchesOrgId(orgId));
+    CreateUpdateHostMessage message =
+        kafkaBridge.waitForKafkaMessage(
+            INVENTORY_HOST_INGRESS, MessageValidators.addHostMessageMatchesOrgId(orgId));
+    assertNotNull(message, "Expected one add_host message");
+    assertNotNull(message.getData(), "Message data (HbiHost) must not be null");
+
+    HbiHost data = message.getData();
+
+    // Canonical and identity fields
+    assertEquals("add_host", message.getOperation());
+    assertEquals(orgId, data.getOrgId());
+    assertEquals(EXPECTED_DISPLAY_NAME, data.getDisplayName());
+    assertEquals(EXPECTED_FQDN, data.getFqdn());
+    assertEquals(EXPECTED_UUID, data.getSubscriptionManagerId());
+    assertEquals(EXPECTED_BIOS_UUID, data.getBiosUuid());
+    assertEquals(EXPECTED_INSIGHTS_ID, data.getInsightsId());
+
+    // Openshift cluster id (required by user)
+    assertEquals(EXPECTED_OPENSHIFT_CLUSTER_ID, data.getOpenshiftClusterId());
+
+    // Reporter and timestamps
+    assertEquals(EXPECTED_REPORTER, data.getReporter());
+    assertNotNull(data.getStaleTimestamp(), "stale_timestamp must be set");
+
+    // Network
+    assertEquals(EXPECTED_IP_ADDRESSES, data.getIpAddresses());
+    assertEquals(EXPECTED_MAC_ADDRESSES, data.getMacAddresses());
+
+    // Facts: rhsm namespace with orgId present
+    assertNotNull(data.getFacts());
+    assertEquals(1, data.getFacts().size());
+    HbiFactSet rhsmFactSet = data.getFacts().get(0);
+    assertEquals("rhsm", rhsmFactSet.getNamespace());
+    assertNotNull(rhsmFactSet.getFacts());
+    @SuppressWarnings("unchecked")
+    Map<String, Object> rhsmFacts = (Map<String, Object>) rhsmFactSet.getFacts();
+    assertEquals(orgId, rhsmFacts.get("orgId"));
+    assertNotNull(rhsmFacts.get("SYNC_TIMESTAMP"));
+
+    // System profile
+    HbiSystemProfile systemProfile = data.getSystemProfile();
+    assertNotNull(systemProfile);
+    assertEquals(EXPECTED_ARCH, systemProfile.getArch());
+    assertEquals(EXPECTED_CPU_SOCKETS, systemProfile.getNumberOfSockets());
+    assertEquals(EXPECTED_CORES_PER_SOCKET, systemProfile.getCoresPerSocket());
+    assertEquals(EXPECTED_UUID, systemProfile.getOwnerId());
+    assertEquals(
+        EXPECTED_MEMORY_BYTES, ((Number) systemProfile.getSystemMemoryBytes()).longValue());
   }
 }
