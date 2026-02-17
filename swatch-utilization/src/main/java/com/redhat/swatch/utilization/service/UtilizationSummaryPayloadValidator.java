@@ -43,7 +43,7 @@ public class UtilizationSummaryPayloadValidator {
 
   private boolean hasValidOrgId(UtilizationSummary payload) {
     if (payload.getOrgId() == null) {
-      log.warn("Received utilization summary without orgId. Payload: {}", payload);
+      log.warn("Received utilization summary without orgId. ProductId: {}", payload.getProductId());
       return false;
     }
 
@@ -55,9 +55,9 @@ public class UtilizationSummaryPayloadValidator {
       ProductId.fromString(payload.getProductId());
     } catch (IllegalArgumentException e) {
       log.warn(
-          "Received utilization summary with invalid productId '{}'. Payload: {}",
+          "Received utilization summary with invalid productId '{}'. OrgId: {}",
           payload.getProductId(),
-          payload);
+          payload.getOrgId());
       return false;
     }
 
@@ -86,7 +86,10 @@ public class UtilizationSummaryPayloadValidator {
     }
 
     if (payload.getBillingAccountId() == null) {
-      log.warn("Received utilization summary without payg. Payload: {}", payload);
+      log.warn(
+          "Received utilization summary without billingAccountId for PAYG product '{}'. OrgId: {}",
+          payload.getProductId(),
+          payload.getOrgId());
       return false;
     }
     return true;
