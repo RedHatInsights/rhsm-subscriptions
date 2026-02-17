@@ -27,13 +27,13 @@
 
   <dependencies>
     <dependency>
-      <groupId>com.redhat.swatch</groupId>
-      <artifactId>swatch-test-framework</artifactId>
-      <version>${project.version}</version>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch</groupId>
-      <artifactId>swatch-system-conduit</artifactId>
+      <artifactId>swatch-test-framework</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -56,4 +56,29 @@
       <scope>provided</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>add-source</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>add-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>../target/generated-sources</source>
+                <source>../target/generated/src/gen/java</source>
+              </sources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>
