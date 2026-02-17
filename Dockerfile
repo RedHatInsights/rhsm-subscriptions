@@ -55,11 +55,13 @@ RUN microdnf \
     --disablerepo=* \
     --enablerepo=ubi-9-baseos-rpms \
     install -y tar rsync
+# --nobest: skip packages whose dependencies can't be resolved (e.g. partial
+# repo syncs).  Updates everything it can and avoids hard failures.
 RUN microdnf \
   --disablerepo=* \
   --enablerepo=ubi-9-appstream-rpms \
   --enablerepo=ubi-9-baseos-rpms \
-  update -y
+  update -y --nobest
 
 # TODO: Investigate layertools? See https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#container-images.efficient-images.layering
 # and https://spring.io/guides/topicals/spring-boot-docker/#_spring_boot_layer_index

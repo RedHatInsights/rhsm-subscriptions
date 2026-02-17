@@ -129,11 +129,13 @@ RUN microdnf \
     --disablerepo=* \
     --enablerepo=ubi-9-baseos-rpms \
     install -y tar rsync
+# --nobest: skip packages whose dependencies can't be resolved (e.g. partial
+# repo syncs).  Updates everything it can and avoids hard failures.
 RUN microdnf \
   --disablerepo=* \
   --enablerepo=ubi-9-appstream-rpms \
   --enablerepo=ubi-9-baseos-rpms \
-  update -y
+  update -y --nobest
 
 # Used by Quarkus dev mode
 RUN chown default:root /deployments
