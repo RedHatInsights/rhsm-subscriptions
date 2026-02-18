@@ -74,7 +74,7 @@ parameters:
   - name: OTEL_ENABLED
     value: 'off'
   - name: OTEL_JAVAAGENT_ENABLED
-    value: 'false'
+    value: 'true'
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: 'http://localhost:4317'
   - name: OTEL_EXPORTER_OTLP_PROTOCOL
@@ -133,6 +133,10 @@ objects:
                     value: ${JAVA_DEBUG}
                   - name: SPRING_PROFILES_ACTIVE
                     value: liquibase-only
+                  - name: JAVA_TOOL_OPTIONS
+                    value: ''
+                  - name: OTEL_JAVAAGENT_ENABLED
+                    value: 'true'
                 inheritEnv: true
                 resources:
                   requests:
@@ -154,6 +158,8 @@ objects:
                 value: api
               - name: JAVA_MAX_MEM_RATIO
                 value: '85'
+              - name: JAVA_TOOL_OPTIONS
+                value: -javaagent:/opt/splunk-otel-javaagent.jar
               - name: GC_MAX_METASPACE_SIZE
                 value: '256'
               - name: LOGGING_LEVEL_ROOT
@@ -282,6 +288,7 @@ objects:
                 enabled: true
                 configMap: ${OTEL_SIDECAR_CONFIG_MAP}
                 image: ${OTEL_SIDECAR_IMAGE}
+                restartPolicy: Always
                 envVars:
                   - name: ENV_NAME
                     value: ${OTEL_ENV_NAME}
@@ -317,6 +324,8 @@ objects:
                 value: ${OTEL_EXPORTER_OTLP_PROTOCOL}
               - name: OTEL_SERVICE_NAME
                 value: swatch-api-nginx-proxy
+              - name: JAVA_TOOL_OPTIONS
+                value: -javaagent:/opt/splunk-otel-javaagent.jar
             volumeMounts:
               - name: swatch-api-nginx-conf
                 mountPath: /etc/nginx
@@ -329,6 +338,7 @@ objects:
                 enabled: true
                 configMap: ${OTEL_SIDECAR_CONFIG_MAP}
                 image: ${OTEL_SIDECAR_IMAGE}
+                restartPolicy: Always
                 envVars:
                   - name: ENV_NAME
                     value: ${OTEL_ENV_NAME}
