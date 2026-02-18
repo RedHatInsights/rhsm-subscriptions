@@ -20,9 +20,9 @@
  */
 package models;
 
+import com.redhat.swatch.system.conduit.test.model.inventory.HbiHost;
 import java.util.HashMap;
 import java.util.Map;
-import org.candlepin.subscriptions.conduit.json.inventory.HbiHost;
 
 /**
  * Represents a message that is sent to the inventory service's kafka instance to request the

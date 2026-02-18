@@ -26,12 +26,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import api.MessageValidators;
 import api.RhsmApiStubs;
+import com.redhat.swatch.system.conduit.test.model.inventory.HbiFactSet;
+import com.redhat.swatch.system.conduit.test.model.inventory.HbiHost;
+import com.redhat.swatch.system.conduit.test.model.inventory.HbiSystemProfile;
 import java.util.List;
 import java.util.Map;
 import models.CreateUpdateHostMessage;
-import org.candlepin.subscriptions.conduit.json.inventory.HbiFactSet;
-import org.candlepin.subscriptions.conduit.json.inventory.HbiHost;
-import org.candlepin.subscriptions.conduit.json.inventory.HbiSystemProfile;
 import org.junit.jupiter.api.Test;
 import utils.ConduitTestHelpers;
 
@@ -101,6 +101,7 @@ public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
             INVENTORY_HOST_INGRESS, MessageValidators.addHostMessageMatchesOrgId(orgId));
     assertNotNull(message, "Expected one add_host message");
     assertNotNull(message.getData(), "Message data (HbiHost) must not be null");
+
     return message;
   }
 
