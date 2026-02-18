@@ -108,6 +108,7 @@ class CustomerOverUsageServiceTest {
   @Test
   void shouldIncrementCounter_whenUsageExceedsThreshold() {
     // Given
+    when(featureFlags.sendNotifications()).thenReturn(true);
     UtilizationSummary summary =
         givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
 
@@ -136,6 +137,7 @@ class CustomerOverUsageServiceTest {
   @Test
   void shouldIncrementCounterOnce_forEachMeasurementExceedingThreshold() {
     // Given - two measurements, both exceeding threshold
+    when(featureFlags.sendNotifications()).thenReturn(true);
     UtilizationSummary summary =
         new UtilizationSummary()
             .withOrgId(ORG_ID)
@@ -173,6 +175,7 @@ class CustomerOverUsageServiceTest {
   @Test
   void shouldIncrementCounterSelectively_whenMixedMeasurements() {
     // Given
+    when(featureFlags.sendNotifications()).thenReturn(true);
     UtilizationSummary summary =
         new UtilizationSummary()
             .withOrgId(ORG_ID)
