@@ -49,7 +49,6 @@ import org.junit.jupiter.api.Test;
 
 public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest {
 
-  protected static final String RECEIVED_METRIC = "swatch_utilization_received_total";
   protected static final String OVER_USAGE_METRIC = "swatch_utilization_over_usage_total";
 
   // Test data constants - aligned with CUSTOMER_OVER_USAGE_DEFAULT_THRESHOLD_PERCENT=5.0
@@ -86,7 +85,6 @@ public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest
 
     whenUtilizationEventIsReceived();
 
-    thenReceivedCounterShouldBeIncremented();
     thenOverUsageCounterShouldBeIncremented();
     thenNotificationShouldBeSent();
   }
@@ -208,7 +206,7 @@ public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest
             .withBillingAccountId(RandomUtils.generateRandom())
             .withMeasurements(new ArrayList<>());
 
-    for (String metric : List.of(OVER_USAGE_METRIC, RECEIVED_METRIC)) {
+    for (String metric : List.of(OVER_USAGE_METRIC)) {
       double initialCount =
           service.getMetricByTags(metric, metricIdTag(product.getFirstMetricId()));
       initialCounters.put(metric, initialCount);
@@ -223,10 +221,6 @@ public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest
   // Then helpers
   void thenOverUsageCounterShouldBeIncremented() {
     thenCounterShouldBeIncremented(OVER_USAGE_METRIC);
-  }
-
-  void thenReceivedCounterShouldBeIncremented() {
-    thenCounterShouldBeIncremented(RECEIVED_METRIC);
   }
 
   void thenCounterShouldBeIncremented(String metric) {
