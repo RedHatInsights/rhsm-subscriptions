@@ -79,8 +79,6 @@ parameters:
     value: 'http://localhost:4317'
   - name: OTEL_EXPORTER_OTLP_PROTOCOL
     value: 'grpc'
-  - name: OTEL_DISABLED
-    value: 'true'
   - name: OTEL_SIDECAR_IMAGE
     value: quay.io/signalfx/splunk-otel-collector:0.140.0
   - name: OTEL_SIDECAR_CONFIG_MAP
@@ -235,8 +233,6 @@ objects:
                 value: ${SPLUNK_HEC_BATCH_SIZE}
               - name: SPLUNK_HEC_TERMINATION_TIMEOUT
                 value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
-              - name: OTEL_DISABLED
-                value: ${OTEL_DISABLED}
               - name: OTEL_EXPORTER_OTLP_ENDPOINT
                 value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
               - name: OTEL_EXPORTER_OTLP_PROTOCOL
@@ -288,7 +284,6 @@ objects:
                 enabled: true
                 configMap: ${OTEL_SIDECAR_CONFIG_MAP}
                 image: ${OTEL_SIDECAR_IMAGE}
-                restartPolicy: Always
                 envVars:
                   - name: ENV_NAME
                     value: ${OTEL_ENV_NAME}
@@ -324,8 +319,6 @@ objects:
                 value: ${OTEL_EXPORTER_OTLP_PROTOCOL}
               - name: OTEL_SERVICE_NAME
                 value: swatch-api-nginx-proxy
-              - name: JAVA_TOOL_OPTIONS
-                value: -javaagent:/opt/splunk-otel-javaagent.jar
             volumeMounts:
               - name: swatch-api-nginx-conf
                 mountPath: /etc/nginx
@@ -338,7 +331,6 @@ objects:
                 enabled: true
                 configMap: ${OTEL_SIDECAR_CONFIG_MAP}
                 image: ${OTEL_SIDECAR_IMAGE}
-                restartPolicy: Always
                 envVars:
                   - name: ENV_NAME
                     value: ${OTEL_ENV_NAME}
