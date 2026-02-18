@@ -22,15 +22,9 @@ package com.redhat.swatch.utilization.service;
 
 import static com.redhat.swatch.utilization.configuration.Channels.UTILIZATION;
 
-import com.redhat.swatch.configuration.registry.MetricId;
-import com.redhat.swatch.utilization.model.Measurement;
 import com.redhat.swatch.utilization.model.UtilizationSummary;
-import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 
@@ -38,9 +32,6 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 @ApplicationScoped
 public class UtilizationSummaryConsumer {
 
-  public static final String RECEIVED_METRIC = "swatch_utilization_received";
-
-  @Inject MeterRegistry meterRegistry;
   @Inject UtilizationSummaryPayloadValidator payloadValidator;
   @Inject UtilizationSummaryMeasurementValidator measurementValidator;
   @Inject CustomerOverUsageService customerOverUsageService;
@@ -59,26 +50,8 @@ public class UtilizationSummaryConsumer {
 
     for (var measurement : payload.getMeasurements()) {
       if (measurementValidator.isMeasurementValid(payload, measurement)) {
-        incrementCounter(payload, measurement);
         customerOverUsageService.check(payload, measurement);
       }
     }
-  }
-
-  private void incrementCounter(UtilizationSummary payload, Measurement measurement) {
-    List<String> tags = new ArrayList<>(List.of("product", payload.getProductId()));
-
-    if (Objects.nonNull(payload.getBillingProvider())) {
-      tags.addAll(List.of("billing", payload.getBillingProvider().value()));
-    }
-
-    var tagsByMetric = new ArrayList<>(tags);
-    tagsByMetric.addAll(
-        List.of("metric_id", MetricId.tryGetValueFromString(measurement.getMetricId())));
-    incrementCounter(tagsByMetric);
-  }
-
-  private void incrementCounter(List<String> tags) {
-    meterRegistry.counter(RECEIVED_METRIC, tags.toArray(new String[0])).increment();
   }
 }
