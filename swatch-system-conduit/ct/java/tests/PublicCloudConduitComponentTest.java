@@ -105,7 +105,10 @@ public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
   }
 
   private void verifyAddHostMessage(CreateUpdateHostMessage message) {
-    assertEquals("add_host", message.getOperation());
+    assertEquals(
+        "add_host",
+        message.getOperation(),
+        "Message operation should be add_host for new host from RHSM consumer");
     HbiHost data = message.getData();
     verifyHbiHostIdentityFields(data);
     verifyHbiHostReporterAndTimestamps(data);
@@ -115,45 +118,76 @@ public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
   }
 
   private void verifyHbiHostIdentityFields(HbiHost data) {
-    assertEquals(orgId, data.getOrgId());
-    assertEquals(EXPECTED_DISPLAY_NAME, data.getDisplayName());
-    assertEquals(EXPECTED_FQDN, data.getFqdn());
-    assertEquals(EXPECTED_UUID, data.getSubscriptionManagerId());
-    assertEquals(EXPECTED_BIOS_UUID, data.getBiosUuid());
-    assertEquals(EXPECTED_INSIGHTS_ID, data.getInsightsId());
-    assertEquals(EXPECTED_OPENSHIFT_CLUSTER_ID, data.getOpenshiftClusterId());
+    assertEquals(orgId, data.getOrgId(), "HbiHost orgId should match stubbed consumer");
+    assertEquals(
+        EXPECTED_DISPLAY_NAME, data.getDisplayName(), "Display name should match consumer name");
+    assertEquals(EXPECTED_FQDN, data.getFqdn(), "FQDN should match network.fqdn fact");
+    assertEquals(
+        EXPECTED_UUID,
+        data.getSubscriptionManagerId(),
+        "Subscription manager ID should match consumer uuid");
+    assertEquals(EXPECTED_BIOS_UUID, data.getBiosUuid(), "BIOS UUID should match dmi.system.uuid");
+    assertEquals(
+        EXPECTED_INSIGHTS_ID, data.getInsightsId(), "Insights ID should match insights_id fact");
+    assertEquals(
+        EXPECTED_OPENSHIFT_CLUSTER_ID,
+        data.getOpenshiftClusterId(),
+        "OpenShift cluster ID should match openshift.cluster_id fact");
   }
 
   private void verifyHbiHostReporterAndTimestamps(HbiHost data) {
-    assertEquals(EXPECTED_REPORTER, data.getReporter());
+    assertEquals(
+        EXPECTED_REPORTER,
+        data.getReporter(),
+        "Reporter should be rhsm-conduit for conduit-synced hosts");
     assertNotNull(data.getStaleTimestamp(), "stale_timestamp must be set");
   }
 
   private void verifyHbiHostNetwork(HbiHost data) {
-    assertEquals(EXPECTED_IP_ADDRESSES, data.getIpAddresses());
-    assertEquals(EXPECTED_MAC_ADDRESSES, data.getMacAddresses());
+    assertEquals(
+        EXPECTED_IP_ADDRESSES,
+        data.getIpAddresses(),
+        "IP addresses should match net.interface.eth0.ipv4_address_list fact");
+    assertEquals(
+        EXPECTED_MAC_ADDRESSES,
+        data.getMacAddresses(),
+        "MAC addresses should match net.interface.eth0.mac_address fact");
   }
 
   private void verifyHbiHostRhsmFacts(HbiHost data) {
-    assertNotNull(data.getFacts());
-    assertEquals(1, data.getFacts().size());
+    assertNotNull(data.getFacts(), "HbiHost should have at least one fact set");
+    assertEquals(
+        1, data.getFacts().size(), "Should have exactly one fact set (rhsm) for conduit host");
     HbiFactSet rhsmFactSet = data.getFacts().get(0);
-    assertEquals("rhsm", rhsmFactSet.getNamespace());
-    assertNotNull(rhsmFactSet.getFacts());
+    assertEquals(
+        "rhsm", rhsmFactSet.getNamespace(), "Fact set namespace should be rhsm for RHSM facts");
+    assertNotNull(rhsmFactSet.getFacts(), "RHSM fact set should have facts map");
     @SuppressWarnings("unchecked")
     Map<String, Object> rhsmFacts = (Map<String, Object>) rhsmFactSet.getFacts();
-    assertEquals(orgId, rhsmFacts.get("orgId"));
-    assertNotNull(rhsmFacts.get("SYNC_TIMESTAMP"));
+    assertEquals(orgId, rhsmFacts.get("orgId"), "RHSM facts should include orgId");
+    assertNotNull(
+        rhsmFacts.get("SYNC_TIMESTAMP"), "RHSM facts should include SYNC_TIMESTAMP from conduit");
   }
 
   private void verifyHbiHostSystemProfile(HbiHost data) {
     HbiSystemProfile systemProfile = data.getSystemProfile();
-    assertNotNull(systemProfile);
-    assertEquals(EXPECTED_ARCH, systemProfile.getArch());
-    assertEquals(EXPECTED_CPU_SOCKETS, systemProfile.getNumberOfSockets());
-    assertEquals(EXPECTED_CORES_PER_SOCKET, systemProfile.getCoresPerSocket());
-    assertEquals(EXPECTED_UUID, systemProfile.getOwnerId());
+    assertNotNull(systemProfile, "HbiHost should have system_profile");
+    assertEquals(EXPECTED_ARCH, systemProfile.getArch(), "Arch should match uname.machine fact");
     assertEquals(
-        EXPECTED_MEMORY_BYTES, ((Number) systemProfile.getSystemMemoryBytes()).longValue());
+        EXPECTED_CPU_SOCKETS,
+        systemProfile.getNumberOfSockets(),
+        "Number of sockets should match cpu.cpu_socket(s) fact");
+    assertEquals(
+        EXPECTED_CORES_PER_SOCKET,
+        systemProfile.getCoresPerSocket(),
+        "Cores per socket should match cpu.core(s)_per_socket fact");
+    assertEquals(
+        EXPECTED_UUID,
+        systemProfile.getOwnerId(),
+        "System profile owner_id should match consumer uuid");
+    assertEquals(
+        EXPECTED_MEMORY_BYTES,
+        ((Number) systemProfile.getSystemMemoryBytes()).longValue(),
+        "System memory bytes should match memory.memtotal (converted from KiB)");
   }
 }
