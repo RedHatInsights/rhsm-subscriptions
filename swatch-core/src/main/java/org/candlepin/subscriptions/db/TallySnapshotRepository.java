@@ -99,7 +99,7 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
 
   @Query(
       value =
-          "SELECT distinct t FROM TallySnapshot t left join fetch t.tallyMeasurements where "
+          "SELECT t FROM TallySnapshot t left join fetch t.tallyMeasurements where "
               + "t.orgId = :orgId and "
               + "t.productId in (:productIds) and "
               + "t.granularity = :granularity  and "
