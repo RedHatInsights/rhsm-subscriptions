@@ -519,43 +519,41 @@ public class MetricUsageCollector {
             .flatMap(Set::stream)
             .map(Variant::getTag)
             .collect(Collectors.toSet());
-    AccountUsageCalculation calc;
-    try (Stream<TallySnapshot> snapshots =
+    Stream<TallySnapshot> snapshots =
         snapshotRepository.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
             event.getOrgId(),
             products,
             Granularity.HOURLY,
             event.getTimestamp(),
-            clock.endOfHour(event.getTimestamp()))) {
+            clock.endOfHour(event.getTimestamp()));
 
-      calc = new AccountUsageCalculation(event.getOrgId());
-      snapshots.forEach(
-          snap -> {
-            Key usageKey = Key.fromTallySnapshot(snap);
-            snap.getTallyMeasurements().entrySet().stream()
-                // Do not accumulate the TOTAL measurements as the calculation object calculates the
-                // totals based on the measurements that are added to it.
-                .filter(e -> !HardwareMeasurementType.TOTAL.equals(e.getKey().getMeasurementType()))
-                .forEach(
-                    entry -> {
-                      var measurementKey = entry.getKey();
-                      var metricId = MetricId.fromString(measurementKey.getMetricId());
-                      if (isMetricSupportedByProduct(metricId, usageKey.getProductId())) {
-                        calc.addUsage(
-                            usageKey,
-                            measurementKey.getMeasurementType(),
-                            metricId,
-                            entry.getValue());
-                      } else {
-                        log.warn(
-                            "Metric '{}' is not supported by product '{}'. Skipping measurement: {}",
-                            metricId,
-                            usageKey.getProductId(),
-                            measurementKey);
-                      }
-                    });
-          });
-    }
+    AccountUsageCalculation calc = new AccountUsageCalculation(event.getOrgId());
+    snapshots.forEach(
+        snap -> {
+          Key usageKey = Key.fromTallySnapshot(snap);
+          snap.getTallyMeasurements().entrySet().stream()
+              // Do not accumulate the TOTAL measurements as the calculation object calculates the
+              // totals based on the measurements that are added to it.
+              .filter(e -> !HardwareMeasurementType.TOTAL.equals(e.getKey().getMeasurementType()))
+              .forEach(
+                  entry -> {
+                    var measurementKey = entry.getKey();
+                    var metricId = MetricId.fromString(measurementKey.getMetricId());
+                    if (isMetricSupportedByProduct(metricId, usageKey.getProductId())) {
+                      calc.addUsage(
+                          usageKey,
+                          measurementKey.getMeasurementType(),
+                          metricId,
+                          entry.getValue());
+                    } else {
+                      log.warn(
+                          "Metric '{}' is not supported by product '{}'. Skipping measurement: {}",
+                          metricId,
+                          usageKey.getProductId(),
+                          measurementKey);
+                    }
+                  });
+        });
     return calc;
   }
 }
