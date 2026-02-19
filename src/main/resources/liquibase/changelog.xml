@@ -199,5 +199,6 @@
 
       Perform any changes to these tables or views in the swatch-billable-usage migrations
     -->
+    <include file="liquibase/202601301404-last-modified-on-snapshots-and-measurements.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
