@@ -74,7 +74,7 @@ parameters:
   - name: OTEL_ENABLED
     value: 'off'
   - name: OTEL_JAVAAGENT_ENABLED
-    value: 'true'
+    value: 'false'
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: 'http://localhost:4317'
   - name: OTEL_EXPORTER_OTLP_PROTOCOL
@@ -133,8 +133,6 @@ objects:
                     value: liquibase-only
                   - name: JAVA_TOOL_OPTIONS
                     value: ''
-                  - name: OTEL_JAVAAGENT_ENABLED
-                    value: 'true'
                 inheritEnv: true
                 resources:
                   requests:
