@@ -94,7 +94,7 @@ public class Host implements Serializable {
   @Column(name = "value")
   private Map<String, Double> measurements = new HashMap<>();
 
-  @ElementCollection(fetch = FetchType.EAGER)
+  @ElementCollection(fetch = FetchType.LAZY)
   @CollectionTable(name = "instance_monthly_totals", joinColumns = @JoinColumn(name = "host_id"))
   @Column(name = "value")
   private Map<InstanceMonthlyTotalKey, Double> monthlyTotals = new HashMap<>();
