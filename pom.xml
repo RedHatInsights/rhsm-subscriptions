@@ -20,7 +20,7 @@
     <codegen.skipIfSpecIsUnchanged>true</codegen.skipIfSpecIsUnchanged>
 
     <!-- Dependencies -->
-    <quarkus.platform.version>3.31.3</quarkus.platform.version>
+    <quarkus.platform.version>3.31.4</quarkus.platform.version>
     <spring.boot.version>3.5.10</spring.boot.version>
     <resteasy.version>7.0.0.Final</resteasy.version>
     <!-- Only use as provided in the common dependencies.
@@ -31,7 +31,7 @@
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
     <opentelemetry-api.version>1.59.0</opentelemetry-api.version>
-    <awssdk-bom.version>2.41.31</awssdk-bom.version>
+    <awssdk-bom.version>2.41.32</awssdk-bom.version>
     <guava.version>33.5.0-jre</guava.version>
     <liquibase.version>5.0.1</liquibase.version>
     <postgresql.version>42.7.10</postgresql.version>
@@ -40,7 +40,7 @@
     <mockito.version>5.21.0</mockito.version>
     <awaitility.version>4.3.0</awaitility.version>
     <hibernate-validator.version>9.1.0.Final</hibernate-validator.version>
-    <swagger-parser.version>2.1.37</swagger-parser.version>
+    <swagger-parser.version>2.1.38</swagger-parser.version>
     <swagger-ui.version>5.31.0</swagger-ui.version>
     <splunk-otel-javaagent.version>2.24.0</splunk-otel-javaagent.version>
     <insights-notification-schemas-java.version>1.1.0</insights-notification-schemas-java.version>
@@ -57,7 +57,7 @@
     <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
     <maven-antrun-plugin.version>3.2.0</maven-antrun-plugin.version>
     <sonar-maven-plugin.version>5.5.0.6356</sonar-maven-plugin.version>
-    <swagger-codegen-maven-plugin.version>3.0.77</swagger-codegen-maven-plugin.version>
+    <swagger-codegen-maven-plugin.version>3.0.78</swagger-codegen-maven-plugin.version>
 
     <!-- Sonar configuration -->
     <sonar.host.url>https://sonarcloud.io</sonar.host.url>
