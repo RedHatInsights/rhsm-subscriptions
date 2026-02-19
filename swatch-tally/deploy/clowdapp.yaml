@@ -210,11 +210,15 @@ parameters:
   - name: OTEL_SERVICE_NAME
     value: swatch-tally
   - name: OTEL_JAVAAGENT_ENABLED
-    value: 'false'
+    value: 'true'
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: 'http://localhost:4317'
   - name: OTEL_EXPORTER_OTLP_PROTOCOL
     value: 'grpc'
+  - name: OTEL_TRACES_EXPORTER
+    value: 'otlp'
+  - name: OTEL_METRICS_EXPORTER
+    value: 'none'
   - description: database secret name
     name: FLOORIST_DB_SECRET_NAME
     value: swatch-db-ro
@@ -311,6 +315,10 @@ objects:
                   value: ${JAVA_DEBUG}
                 - name: SPRING_PROFILES_ACTIVE
                   value: liquibase-only
+                - name: JAVA_TOOL_OPTIONS
+                  value: ''
+                - name: OTEL_JAVAAGENT_ENABLED
+                  value: 'false'
               inheritEnv: true
               resources:
                 requests:
@@ -323,6 +331,8 @@ objects:
             - name: JAVA_DEBUG
               value: ${JAVA_DEBUG}
             - name: USER_OPTS_APPEND
+              value: ${USER_OPTS_APPEND}
+            - name: JAVA_TOOL_OPTIONS
               value: -javaagent:/opt/splunk-otel-javaagent.jar
             - name: ENABLE_SPLUNK_HEC
               value: ${ENABLE_SPLUNK_HEC}
@@ -499,6 +509,14 @@ objects:
               value: ${OTEL_SERVICE_NAME}
             - name: OTEL_JAVAAGENT_ENABLED
               value: ${OTEL_JAVAAGENT_ENABLED}
+            - name: OTEL_DISABLED
+              value: ${OTEL_DISABLED}
+            - name: OTEL_SDK_DISABLED
+              value: ${OTEL_DISABLED}
+            - name: OTEL_TRACES_EXPORTER
+              value: ${OTEL_TRACES_EXPORTER}
+            - name: OTEL_METRICS_EXPORTER
+              value: ${OTEL_METRICS_EXPORTER}
             - name: EVENT_RECORD_RETENTION
               value: ${EVENT_RECORD_RETENTION}
 
@@ -548,7 +566,7 @@ objects:
             image: ${OTEL_SIDECAR_IMAGE}
             envVars:
               - name: ENV_NAME
-                value: ${OTEL_ENV_NAMEOTEL_ENV_NAME}
+                value: ${OTEL_ENV_NAME}
               - name: K8S_CLUSTER_NAME
                 value: ${OTEL_K8S_CLUSTER_NAME}
               - name: SPLUNK_OBSERVABILITY_ACCESS_TOKEN
