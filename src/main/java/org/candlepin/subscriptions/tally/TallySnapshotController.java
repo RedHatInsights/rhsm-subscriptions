@@ -135,7 +135,7 @@ public class TallySnapshotController {
     // fetched by service type just once.
     Set<String> serviceTypes = SubscriptionDefinition.getAllServiceTypes();
     for (String serviceType : serviceTypes) {
-      log.info("Producing hourly snapshots for orgId {} for service type {} ", orgId, serviceType);
+      log.debug("Producing hourly snapshots for orgId {} for service type {} ", orgId, serviceType);
 
       try {
         TallyState currentState =
