@@ -87,7 +87,6 @@ public interface HostRepository
       from Host h
       left join fetch h.measurements
       left join fetch h.buckets
-      left join fetch h.monthlyTotals
       left join fetch h.lastAppliedEventRecordDateByServiceType
       where h.orgId=:orgId
         and h.instanceType='HBI_HOST'
@@ -95,6 +94,15 @@ public interface HostRepository
           """)
   @QueryHints(value = {@QueryHint(name = HINT_FETCH_SIZE, value = "1024")})
   Stream<Host> streamHbiHostsByOrgId(@Param("orgId") String orgId);
+
+  @Query(
+      value =
+          """
+     SELECT h FROM Host h
+     LEFT JOIN FETCH h.monthlyTotals
+          """)
+  /* Used in testing since we don't have a session which can resolve the proxy objects associated with a lazy fetch */
+  List<Host> findAllEagerly();
 
   /**
    * Find all Hosts by bucket criteria and return a page of TallyHostView objects. A TallyHostView
