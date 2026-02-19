@@ -40,7 +40,7 @@
     <mockito.version>5.21.0</mockito.version>
     <awaitility.version>4.3.0</awaitility.version>
     <hibernate-validator.version>9.1.0.Final</hibernate-validator.version>
-    <swagger-parser.version>2.1.37</swagger-parser.version>
+    <swagger-parser.version>2.1.38</swagger-parser.version>
     <swagger-ui.version>5.31.0</swagger-ui.version>
     <splunk-otel-javaagent.version>2.24.0</splunk-otel-javaagent.version>
     <insights-notification-schemas-java.version>1.1.0</insights-notification-schemas-java.version>
