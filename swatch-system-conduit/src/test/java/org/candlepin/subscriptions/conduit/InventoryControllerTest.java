@@ -607,6 +607,27 @@ class InventoryControllerTest {
   }
 
   @Test
+  void testOpenshiftClusterIdCollected() {
+    String uuid = UUID.randomUUID().toString();
+    String openshiftClusterId = UUID.randomUUID().toString();
+    Consumer consumer = new Consumer();
+    consumer.setUuid(uuid);
+    consumer.getFacts().put(InventoryController.OPENSHIFT_CLUSTER_ID, openshiftClusterId);
+
+    ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertEquals(openshiftClusterId, conduitFacts.getOpenshiftClusterId());
+  }
+
+  @Test
+  void testOpenshiftClusterIdNullWhenFactAbsent() {
+    Consumer consumer = new Consumer();
+    consumer.setUuid(UUID.randomUUID().toString());
+
+    ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertNull(conduitFacts.getOpenshiftClusterId());
+  }
+
+  @Test
   void testCanonicalFactsUuidIsNormalizedWithHyphens() {
     String insightsId = "40819041673b443b98765b0a1c2cc1b1\n";
     String uuid = "ca85ccb82d384317a5d14dc05a6ea1e9";
