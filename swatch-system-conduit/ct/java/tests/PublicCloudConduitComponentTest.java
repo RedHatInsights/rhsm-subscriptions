@@ -58,12 +58,12 @@ public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
   private static final String EXPECTED_REPORTER = "rhsm-conduit";
 
   @Test
-  void shouldEmitAddHostWithAllFields_whenConduitSyncsRhsmConsumer() {
-    // Given: RHSM API stubbed with a full consumer (org_id, fqdn, openshift_cluster_id, etc.)
+  void shouldEmitAddHostWhenConduitSyncsRhsmConsumer() {
+    // Given: RHSM API stubbed with a consumer
     givenRhsmConsumerWithFullData();
 
     // When: Conduit syncs for the test org
-    whenConduitSyncsForOrg(orgId);
+    helpers.syncConduitByOrgId(service, orgId);
 
     // Then: Inventory host ingress receives add_host and all HbiHost fields match RHSM consumer
     CreateUpdateHostMessage message = thenAddHostMessageReceived();
@@ -89,10 +89,6 @@ public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
             EXPECTED_CORES_PER_SOCKET,
             EXPECTED_MEMORY_BYTES);
     wiremock.forRhsmApi().stubConsumersForOrg(orgId, List.of(consumer));
-  }
-
-  private void whenConduitSyncsForOrg(String orgId) {
-    helpers.syncConduitByOrgId(service, orgId);
   }
 
   private CreateUpdateHostMessage thenAddHostMessageReceived() {
