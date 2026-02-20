@@ -56,7 +56,10 @@ define SPRING_PROXY
     $(call BUILD,$(1))
 	SERVER_PORT=$(2) MANAGEMENT_SERVER_PORT=$(shell echo $$((1000 + $(2)))) \
 	SPRING_PROFILES_INCLUDE=$(subst $(space),$(comma),$(PROFILES)) \
-	./mvnw -pl $(1) spring-boot:run -DskipTests
+	./mvnw -pl $(1) spring-boot:run -DskipTests \
+	-Dspring-boot.run.arguments="--logging.level.org.hibernate.SQL=DEBUG \
+	--logging.level.org.hibernate.type.descriptor.sql.BasicBinder=TRACE \
+	-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005"
 endef
 
 # $1 is the directory with the application to start.
