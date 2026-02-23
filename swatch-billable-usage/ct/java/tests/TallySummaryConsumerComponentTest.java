@@ -33,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import api.MessageValidators;
+import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
 import com.redhat.swatch.billable.usage.openapi.model.TallyRemittance;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
@@ -45,6 +46,8 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -179,7 +182,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
 
     // Create and send status update message with SUCCEEDED status
     BillableUsageAggregate statusUpdate =
-        createBillableUsageAggregate(
+        givenBillableUsageAggregate(
             orgId,
             ROSA.getName(),
             billableUsage.getBillingAccountId(),
@@ -212,7 +215,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
 
     // Create and send status update message with FAILED status
     BillableUsageAggregate statusUpdate =
-        createBillableUsageAggregate(
+        givenBillableUsageAggregate(
             orgId,
             ROSA.getName(),
             billableUsage.getBillingAccountId(),
@@ -276,7 +279,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
 
     // When: Status update with FAILED and SUBSCRIPTION_NOT_FOUND is sent (marketplace response)
     BillableUsageAggregate statusUpdate =
-        createBillableUsageAggregate(
+        givenBillableUsageAggregate(
             orgId,
             ROSA.getName(),
             billableUsage.getBillingAccountId(),
@@ -461,7 +464,75 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
         aggregates, valueRosa * BILLING_FACTOR, valueRhelAddon);
   }
 
-  private BillableUsageAggregate createBillableUsageAggregate(
+  /**
+   * Verify that usage from last month is not tallied with usage from the current month: two tally
+   * snapshots with different snapshot dates (last month and current month) produce two separate
+   * remittances (one per accumulation period), not aggregated into one.
+   */
+  @Test
+  public void testLastMonthUsageNotTalliedWithCurrentMonth() {
+    // Given: No contract coverage, one org, one billing account, same product/metric for both
+    double value = 5.0;
+    String billingAccountId = RandomUtils.generateRandom();
+    OffsetDateTime snapshotDateLastMonth = OffsetDateTime.now(ZoneOffset.UTC).minusDays(35);
+    OffsetDateTime snapshotDateCurrentMonth = OffsetDateTime.now(ZoneOffset.UTC).minusDays(1);
+    contractsWiremock.setupNoContractCoverage(orgId, RHEL_PAYG_ADDON_PRODUCT);
+
+    // When: Tally snapshots are sent for last month and current month (same account/product/metric)
+    whenTallySummariesAreSentWithSnapshotDates(
+        billingAccountId, value, snapshotDateLastMonth, snapshotDateCurrentMonth);
+
+    // Then: Both tallies are processed (2 billable usage messages)
+    List<BillableUsage> billableUsages =
+        kafkaBridge.waitForKafkaMessage(
+            BILLABLE_USAGE,
+            MessageValidators.billableUsageMatches(orgId, RHEL_PAYG_ADDON_PRODUCT),
+            2);
+    assertEquals(2, billableUsages.size(), "Expected exactly 2 billable usage messages");
+
+    // Then: Each usage has one remittance with accumulation period and value set
+    thenEachBillableUsageHasOneRemittanceWithValue(billableUsages, value);
+
+    // Then: The two remittances are for different months (not aggregated)
+    String expectedPeriodLastMonth =
+        snapshotDateLastMonth.format(DateTimeFormatter.ofPattern("yyyy-MM"));
+    String expectedPeriodCurrentMonth =
+        snapshotDateCurrentMonth.format(DateTimeFormatter.ofPattern("yyyy-MM"));
+    thenRemittancesSpanExpectedMonths(
+        billableUsages, expectedPeriodLastMonth, expectedPeriodCurrentMonth);
+  }
+
+  private void givenNoContractCoverageExists() {
+    contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
+  }
+
+  /**
+   * Sets up test preconditions: creates tally summary, waits for billable usage with pending
+   * remittance
+   *
+   * @return The generated BillableUsage that has an associated pending remittance
+   */
+  private BillableUsage givenPendingRemittanceExists() {
+    // Setup wiremock endpoints
+    contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
+
+    // Create and send tally summary to generate billable usage with remittance
+    whenSendTallySummaryWithValue(VALUE);
+
+    // Wait for billable usage to be produced
+    double expectedValue = VALUE * BILLING_FACTOR;
+    List<BillableUsage> billableUsages =
+        kafkaBridge.waitForKafkaMessage(
+            BILLABLE_USAGE,
+            MessageValidators.billableUsageMatchesWithValue(orgId, ROSA.getName(), expectedValue),
+            1);
+
+    assertEquals(1, billableUsages.size(), "Expected exactly 1 billable usage message");
+    return billableUsages.get(0);
+  }
+
+  /** Builds a billable usage aggregate (status update) for use in status consumer tests. */
+  private BillableUsageAggregate givenBillableUsageAggregate(
       String orgId,
       String productId,
       String billingAccountId,
@@ -498,35 +569,6 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     }
 
     return aggregate;
-  }
-
-  private void givenNoContractCoverageExists() {
-    contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
-  }
-
-  /**
-   * Sets up test preconditions: creates tally summary, waits for billable usage with pending
-   * remittance
-   *
-   * @return The generated BillableUsage that has an associated pending remittance
-   */
-  private BillableUsage givenPendingRemittanceExists() {
-    // Setup wiremock endpoints
-    contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
-
-    // Create and send tally summary to generate billable usage with remittance
-    whenSendTallySummaryWithValue(VALUE);
-
-    // Wait for billable usage to be produced
-    double expectedValue = VALUE * BILLING_FACTOR;
-    List<BillableUsage> billableUsages =
-        kafkaBridge.waitForKafkaMessage(
-            BILLABLE_USAGE,
-            MessageValidators.billableUsageMatchesWithValue(orgId, ROSA.getName(), expectedValue),
-            1);
-
-    assertEquals(1, billableUsages.size(), "Expected exactly 1 billable usage message");
-    return billableUsages.get(0);
   }
 
   private TallySummary whenSendTallySummaryWithValue(double value) {
@@ -566,6 +608,33 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
             billingAccountId);
     kafkaBridge.produceKafkaMessage(TALLY, tallySummaryCores);
     kafkaBridge.produceKafkaMessage(TALLY, tallySummaryInstanceHours);
+  }
+
+  private void whenTallySummariesAreSentWithSnapshotDates(
+      String billingAccountId,
+      double value,
+      OffsetDateTime snapshotDateLastMonth,
+      OffsetDateTime snapshotDateCurrentMonth) {
+    TallySummary tallyLastMonth =
+        createTallySummary(
+            orgId,
+            RHEL_PAYG_ADDON_PRODUCT,
+            RHEL_PAYG_ADDON_METRIC,
+            value,
+            BillingProvider.AWS,
+            billingAccountId,
+            snapshotDateLastMonth);
+    TallySummary tallyCurrentMonth =
+        createTallySummary(
+            orgId,
+            RHEL_PAYG_ADDON_PRODUCT,
+            RHEL_PAYG_ADDON_METRIC,
+            value,
+            BillingProvider.AWS,
+            billingAccountId,
+            snapshotDateCurrentMonth);
+    kafkaBridge.produceKafkaMessage(TALLY, tallyLastMonth);
+    kafkaBridge.produceKafkaMessage(TALLY, tallyCurrentMonth);
   }
 
   private void whenTallySummariesAreSentForTwoProducts(
@@ -776,6 +845,109 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
         usage.getValue(),
         0.001,
         "Billable usage value for product " + productId + " should be " + expectedValue);
+  }
+
+  /**
+   * Asserts each billable usage has exactly one remittance with non-null accumulation period and
+   * expected value. The service overwrites usage.snapshotDate before sending to Kafka, so
+   * accumulation period is not matched to usage here; use thenRemittancesSpanExpectedMonths for
+   * month coverage.
+   */
+  private void thenEachBillableUsageHasOneRemittanceWithValue(
+      List<BillableUsage> billableUsages, double expectedValue) {
+    for (BillableUsage usage : billableUsages) {
+      waitForRemittanceStatus(usage.getTallyId().toString(), RemittanceStatus.PENDING);
+      List<TallyRemittance> remittances =
+          service.getRemittancesByTallyId(usage.getTallyId().toString());
+      assertNotNull(remittances, "Remittances should exist for tallyId: " + usage.getTallyId());
+      assertEquals(1, remittances.size(), "Exactly one remittance per tally");
+      TallyRemittance remittance = remittances.get(0);
+      assertNotNull(remittance.getAccumulationPeriod(), "Accumulation period should be set");
+      double actualValue =
+          remittance.getRemittedPendingValue() != null ? remittance.getRemittedPendingValue() : 0.0;
+      assertEquals(expectedValue, actualValue, 0.001, "Remittance value should match tally value");
+    }
+  }
+
+  /**
+   * Asserts the remittances for the given usages have exactly the two expected accumulation
+   * periods.
+   */
+  private void thenRemittancesSpanExpectedMonths(
+      List<BillableUsage> billableUsages,
+      String expectedPeriodFirstMonth,
+      String expectedPeriodSecondMonth) {
+    List<String> periods =
+        billableUsages.stream()
+            .map(
+                u ->
+                    service
+                        .getRemittancesByTallyId(u.getTallyId().toString())
+                        .get(0)
+                        .getAccumulationPeriod())
+            .sorted()
+            .toList();
+    List<String> expectedPeriods =
+        List.of(expectedPeriodFirstMonth, expectedPeriodSecondMonth).stream().sorted().toList();
+    assertEquals(
+        expectedPeriods,
+        periods,
+        "Should have one remittance for last month and one for current month");
+  }
+
+  private List<MonthlyRemittance> thenAccountRemittancesAreAvailable(
+      String productId,
+      String orgId,
+      String metricId,
+      String billingProvider,
+      String billingAccountId,
+      int expectedCount) {
+    return Awaitility.await()
+        .atMost(Duration.ofSeconds(60))
+        .pollInterval(Duration.ofSeconds(2))
+        .until(
+            () ->
+                service.getRemittances(
+                    productId, orgId, metricId, billingProvider, billingAccountId),
+            list ->
+                list != null
+                    && list.size() >= expectedCount
+                    && list.stream().allMatch(r -> r.getAccumulationPeriod() != null));
+  }
+
+  private void thenMonthlyRemittancesMatchSnapshotDatesAndValue(
+      List<MonthlyRemittance> remittances,
+      OffsetDateTime snapshotDateLastMonth,
+      OffsetDateTime snapshotDateCurrentMonth,
+      double expectedValue) {
+    assertNotNull(remittances, "Remittances should exist");
+    assertEquals(
+        2,
+        remittances.size(),
+        "Expected exactly 2 monthly remittances (one per accumulation period)");
+    remittances.sort(Comparator.comparing(MonthlyRemittance::getAccumulationPeriod));
+    String expectedPeriodLastMonth =
+        snapshotDateLastMonth.format(DateTimeFormatter.ofPattern("yyyy-MM"));
+    String expectedPeriodCurrentMonth =
+        snapshotDateCurrentMonth.format(DateTimeFormatter.ofPattern("yyyy-MM"));
+    assertEquals(
+        expectedPeriodLastMonth,
+        remittances.get(0).getAccumulationPeriod(),
+        "First remittance accumulation period should match last month snapshot");
+    assertEquals(
+        expectedPeriodCurrentMonth,
+        remittances.get(1).getAccumulationPeriod(),
+        "Second remittance accumulation period should match current month snapshot");
+    assertEquals(
+        expectedValue,
+        remittances.get(0).getRemittedValue(),
+        0.001,
+        "First remittance remitted value should match tally value");
+    assertEquals(
+        expectedValue,
+        remittances.get(1).getRemittedValue(),
+        0.001,
+        "Second remittance remitted value should match tally value");
   }
 
   private void thenHourlyAggregatePerProductHasExpectedTotalValues(
