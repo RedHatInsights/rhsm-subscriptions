@@ -21,6 +21,7 @@
 package api;
 
 import com.redhat.swatch.component.tests.api.WiremockService;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -74,6 +75,66 @@ public class ContractsWiremockService extends WiremockService {
                     List.of(contractData)),
                 // the default mapping defined in config/wiremock uses priority 10,
                 // so we need a higher priority here.
+                "priority",
+                9,
+                "metadata",
+                getMetadataTags()))
+        .when()
+        .post("/__admin/mappings")
+        .then()
+        .statusCode(201);
+  }
+
+  /**
+   * Setup the contracts API to return a contract with a custom date range and no coverage. Use this
+   * to simulate an inactive/expired subscription (e.g. contract that ended last month). When the
+   * tally snapshot date falls outside this range, no contract is valid for that usage.
+   *
+   * @param orgId Organization ID
+   * @param productId Product ID
+   * @param startDate Contract start date (inclusive)
+   * @param endDate Contract end date (exclusive for usage comparison)
+   */
+  public void setupContractWithDateRange(
+      String orgId, String productId, OffsetDateTime startDate, OffsetDateTime endDate) {
+    String startDateStr = startDate.toString();
+    String endDateStr = endDate.toString();
+
+    var contractData =
+        Map.of(
+            "org_id",
+            orgId,
+            "product_id",
+            productId,
+            "start_date",
+            startDateStr,
+            "end_date",
+            endDateStr,
+            "metrics",
+            List.of());
+
+    given()
+        .contentType("application/json")
+        .body(
+            Map.of(
+                "request",
+                Map.of(
+                    "method",
+                    "GET",
+                    "urlPathPattern",
+                    "/mock/contractApi/api/swatch-contracts/internal/contracts.*",
+                    "queryParameters",
+                    Map.of(
+                        "org_id", Map.of("equalTo", orgId),
+                        "product_tag", Map.of("equalTo", productId))),
+                "response",
+                Map.of(
+                    "status",
+                    200,
+                    "headers",
+                    Map.of("Content-Type", "application/json"),
+                    "jsonBody",
+                    List.of(contractData)),
                 "priority",
                 9,
                 "metadata",

@@ -227,6 +227,67 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
   }
 
   /**
+   * Verify that remittance ends up FAILED with subscription_not_found when the subscription is
+   * inactive for the event date (contract valid only for last month, snapshot date is current).
+   */
+  @Test
+  public void shouldFailRemittanceWithSubscriptionNotFoundWhenSubscriptionInactiveForEventDate() {
+    // Given: Contract valid only for last month; tally snapshot date (now - 1h) is outside that
+    // range
+    OffsetDateTime startLastMonth =
+        OffsetDateTime.now(ZoneOffset.UTC)
+            .minusMonths(1)
+            .withDayOfMonth(1)
+            .withHour(0)
+            .withMinute(0)
+            .withSecond(0)
+            .withNano(0);
+    OffsetDateTime endLastMonth =
+        OffsetDateTime.now(ZoneOffset.UTC)
+            .withDayOfMonth(1)
+            .withHour(0)
+            .withMinute(0)
+            .withSecond(0)
+            .withNano(0);
+    contractsWiremock.setupContractWithDateRange(
+        orgId, ROSA.getName(), startLastMonth, endLastMonth);
+
+    TallySummary tallySummary =
+        createTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), VALUE);
+    kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
+
+    double expectedValue = VALUE * BILLING_FACTOR;
+    List<BillableUsage> billableUsages =
+        kafkaBridge.waitForKafkaMessage(
+            BILLABLE_USAGE,
+            MessageValidators.billableUsageMatchesWithValue(orgId, ROSA.getName(), expectedValue),
+            1);
+    assertEquals(1, billableUsages.size(), "Expected exactly 1 billable usage message");
+    BillableUsage billableUsage = billableUsages.get(0);
+    String tallyId = billableUsage.getTallyId().toString();
+    waitForRemittanceStatus(tallyId, RemittanceStatus.PENDING);
+
+    // When: Status update with FAILED and SUBSCRIPTION_NOT_FOUND is sent (marketplace response)
+    BillableUsageAggregate statusUpdate =
+        createBillableUsageAggregate(
+            orgId,
+            ROSA.getName(),
+            billableUsage.getBillingAccountId(),
+            BillableUsage.Status.FAILED,
+            BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND,
+            null,
+            List.of(billableUsage.getUuid().toString()));
+    kafkaBridge.produceKafkaMessage(BILLABLE_USAGE_STATUS, statusUpdate);
+
+    // Then: Remittance is FAILED and error code is SUBSCRIPTION_NOT_FOUND
+    waitForRemittanceStatus(tallyId, RemittanceStatus.FAILED);
+    List<TallyRemittance> remittances = service.getRemittancesByTallyId(tallyId);
+    assertNotNull(remittances, "Remittances should exist");
+    assertFalse(remittances.isEmpty(), "Should have at least one remittance");
+    verifyErrorCode(remittances.get(0), RemittanceErrorCode.SUBSCRIPTION_NOT_FOUND.name());
+  }
+
+  /**
    * Verify that usage from different billing accounts is not aggregated together. When the same org
    * sends tally snapshots with two different billing account IDs, two separate hourly aggregate
    * messages must be produced (one per billing account).
