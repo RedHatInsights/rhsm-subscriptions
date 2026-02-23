@@ -47,7 +47,7 @@
 
     <!-- Plugins -->
     <compiler-plugin.version>3.15.0</compiler-plugin.version>
-    <surefire-plugin.version>3.5.4</surefire-plugin.version>
+    <surefire-plugin.version>3.5.5</surefire-plugin.version>
     <maven-jar-plugin.version>3.5.0</maven-jar-plugin.version>
     <maven-assembly-plugin.version>3.8.0</maven-assembly-plugin.version>
     <exec-maven-plugin.version>3.6.3</exec-maven-plugin.version>
