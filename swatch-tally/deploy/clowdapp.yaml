@@ -138,6 +138,12 @@ parameters:
     value: '1'
   - name: DB_CHANGELOG_CLEANUP_SQL
     value: 'select 1'
+# Increment in AppInterface before each migration
+  - name: DB_MIGRATION_RUN_NUMBER
+    value: '1'
+# Using a value of 'select 1' makes this job a no-op by default.
+  - name: DB_MIGRATION_SQL
+    value: 'select 1'
   - name: KAFKA_BILLABLE_USAGE_REPLICAS
     value: '3'
   - name: KAFKA_BILLABLE_USAGE_PARTITIONS
@@ -775,7 +781,7 @@ objects:
         podSpec:
           image: ${EGRESS_IMAGE}:${EGRESS_IMAGE_TAG}
           name: db-changelog-cleanup
-          command: ["/bin/sh", "-c"]
+          command: [ "/bin/sh", "-c" ]
           args:
           - psql -h $POSTGRESQL_SERVICE_HOST -U $POSTGRESQL_USER $POSTGRESQL_DATABASE -c "$DB_CHANGELOG_CLEANUP_SQL"
           resources:
@@ -809,6 +815,45 @@ objects:
           - name: DB_CHANGELOG_CLEANUP_SQL
             value: ${DB_CHANGELOG_CLEANUP_SQL}
 
+      - name: tally-manual-migration-${DB_MIGRATION_RUN_NUMBER}
+        restartPolicy: Never
+        podSpec:
+          image: ${EGRESS_IMAGE}:${EGRESS_IMAGE_TAG}
+          name: db-changelog-cleanup
+          command: [ "/bin/sh", "-c" ]
+          args:
+          - psql -h $POSTGRESQL_SERVICE_HOST -U $POSTGRESQL_USER $POSTGRESQL_DATABASE -c "$DB_MIGRATION_SQL"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 50Mi
+            limits:
+              cpu: 100m
+              memory: 100Mi
+          env:
+          - name: POSTGRESQL_SERVICE_HOST
+            valueFrom:
+              secretKeyRef:
+                name: ${DB_POD}-db
+                key: db.host
+          - name: POSTGRESQL_USER
+            valueFrom:
+              secretKeyRef:
+                name: ${DB_POD}-db
+                key: db.user
+          - name: POSTGRESQL_DATABASE
+            valueFrom:
+              secretKeyRef:
+                name: ${DB_POD}-db
+                key: db.name
+          - name: PGPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: ${DB_POD}-db
+                key: db.password
+          - name: DB_MIGRATION_SQL
+            value: ${DB_MIGRATION_SQL}
+
 - apiVersion: cloud.redhat.com/v1alpha1
   kind: ClowdJobInvocation
   metadata:
@@ -817,3 +862,12 @@ objects:
     appName: swatch-db-changelog-cleanup
     jobs:
       - db-changelog-cleanup-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdJobInvocation
+  metadata:
+    name: tally-manual-migration-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+  spec:
+    appName: swatch-db-changelog-cleanup
+    jobs:
+    - tally-manual-migration-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
