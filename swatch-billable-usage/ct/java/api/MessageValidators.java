@@ -68,4 +68,20 @@ public class MessageValidators {
         BillableUsageAggregateKey.class,
         BillableUsageAggregate.class);
   }
+
+  public static DefaultMessageValidator<BillableUsage> billableUsageMatchesAnyProduct(
+      String orgId, Set<String> productIds) {
+    return new DefaultMessageValidator<>(
+        usage -> orgId.equals(usage.getOrgId()) && productIds.contains(usage.getProductId()),
+        BillableUsage.class);
+  }
+
+  public static MessageValidator<BillableUsageAggregateKey, BillableUsageAggregate>
+      billableUsageAggregateMatchesAnyProduct(String orgId, Set<String> productIds) {
+    return new MessageValidator<>(
+        (key, value) ->
+            key != null && orgId.equals(key.getOrgId()) && productIds.contains(key.getProductId()),
+        BillableUsageAggregateKey.class,
+        BillableUsageAggregate.class);
+  }
 }

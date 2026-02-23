@@ -65,6 +65,8 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
   private static final String AWS_DIMENSION = ROSA.getMetric(CORES).getAwsDimension();
   private static final double CONTRACT_COVERAGE = 1.0;
   private static final MetricId INSTANCE_HOURS = MetricIdUtils.getInstanceHours();
+  private static final String RHEL_PAYG_ADDON_PRODUCT = "rhel-for-x86-els-payg-addon";
+  private static final String RHEL_PAYG_ADDON_METRIC = "vCPUs";
 
   @BeforeAll
   static void subscribeToBillableUsageTopics() {
@@ -417,6 +419,48 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
         aggregates, valueCores * BILLING_FACTOR, valueInstanceHours);
   }
 
+  /**
+   * Verify that when multiple tally snapshots are sent for the same org and billing account but
+   * different product IDs, a remittance is created for each product and an hourly aggregate message
+   * is sent for each product with the correct totalValue.
+   */
+  @Test
+  public void testMultipleProductIdsProduceRemittanceAndHourlyAggregatePerProduct() {
+    // Given: No contract coverage for two distinct products, same org and billing account
+    double valueRosa = 40.0; // ROSA Cores (billing factor 0.25 -> 10.0)
+    double valueRhelAddon = 17.0; // RHEL addon vCPUs (billing factor 1.0 -> 17.0)
+    String billingAccountId = RandomUtils.generateRandom();
+    Set<String> productIds = Set.of(ROSA.getName(), RHEL_PAYG_ADDON_PRODUCT);
+    contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
+    contractsWiremock.setupNoContractCoverage(orgId, RHEL_PAYG_ADDON_PRODUCT);
+
+    // When: Tally snapshots are sent for the same org/billing account with different products
+    whenTallySummariesAreSentForTwoProducts(billingAccountId, valueRosa, valueRhelAddon);
+
+    // Then: Billable usage is produced for each product with expected value per product
+    List<BillableUsage> billableUsages =
+        kafkaBridge.waitForKafkaMessage(
+            BILLABLE_USAGE, MessageValidators.billableUsageMatchesAnyProduct(orgId, productIds), 2);
+    assertEquals(
+        2, billableUsages.size(), "Expected exactly 2 billable usage messages (one per product)");
+    thenBillableUsageHasValueForProduct(billableUsages, ROSA.getName(), valueRosa * BILLING_FACTOR);
+    thenBillableUsageHasValueForProduct(billableUsages, RHEL_PAYG_ADDON_PRODUCT, valueRhelAddon);
+
+    // Then: Remittance table has a record for each (one remittance per tally)
+    thenRemittanceExistsForEachBillableUsage(billableUsages);
+
+    // Then: An hourly aggregate message is sent for each product with correct totalValue
+    List<BillableUsageAggregate> aggregates =
+        kafkaBridge.waitForKafkaMessage(
+            BILLABLE_USAGE_HOURLY_AGGREGATE,
+            MessageValidators.billableUsageAggregateMatchesAnyProduct(orgId, productIds),
+            2,
+            AwaitilitySettings.defaults()
+                .onConditionNotMet(service::flushBillableUsageAggregationTopic));
+    thenHourlyAggregatePerProductHasExpectedTotalValues(
+        aggregates, valueRosa * BILLING_FACTOR, valueRhelAddon);
+  }
+
   private BillableUsageAggregate createBillableUsageAggregate(
       String orgId,
       String productId,
@@ -522,6 +566,28 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
             billingAccountId);
     kafkaBridge.produceKafkaMessage(TALLY, tallySummaryCores);
     kafkaBridge.produceKafkaMessage(TALLY, tallySummaryInstanceHours);
+  }
+
+  private void whenTallySummariesAreSentForTwoProducts(
+      String billingAccountId, double valueRosa, double valueRhelAddon) {
+    TallySummary tallySummaryRosa =
+        createTallySummary(
+            orgId,
+            ROSA.getName(),
+            CORES.toString(),
+            valueRosa,
+            BillingProvider.AWS,
+            billingAccountId);
+    TallySummary tallySummaryRhelAddon =
+        createTallySummary(
+            orgId,
+            RHEL_PAYG_ADDON_PRODUCT,
+            RHEL_PAYG_ADDON_METRIC,
+            valueRhelAddon,
+            BillingProvider.AWS,
+            billingAccountId);
+    kafkaBridge.produceKafkaMessage(TALLY, tallySummaryRosa);
+    kafkaBridge.produceKafkaMessage(TALLY, tallySummaryRhelAddon);
   }
 
   /** Wait for remittance to reach expected status using API polling */
@@ -681,5 +747,47 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
         usage.getValue(),
         0.001,
         "Billable usage value for metric " + metricId + " should be " + expectedValue);
+  }
+
+  private BillableUsageAggregate thenBillableUsageAggregateIsFoundForProduct(
+      List<BillableUsageAggregate> aggregates, String productId) {
+    BillableUsageAggregate found =
+        aggregates.stream()
+            .filter(
+                a ->
+                    a.getAggregateKey() != null
+                        && productId.equals(a.getAggregateKey().getProductId()))
+            .findFirst()
+            .orElse(null);
+    assertNotNull(found, "Expected one aggregate for product " + productId);
+    return found;
+  }
+
+  private void thenBillableUsageHasValueForProduct(
+      List<BillableUsage> billableUsages, String productId, double expectedValue) {
+    BillableUsage usage =
+        billableUsages.stream()
+            .filter(u -> productId.equals(u.getProductId()))
+            .findFirst()
+            .orElse(null);
+    assertNotNull(usage, "Expected billable usage for product " + productId);
+    assertEquals(
+        expectedValue,
+        usage.getValue(),
+        0.001,
+        "Billable usage value for product " + productId + " should be " + expectedValue);
+  }
+
+  private void thenHourlyAggregatePerProductHasExpectedTotalValues(
+      List<BillableUsageAggregate> aggregates,
+      double expectedValueRosa,
+      double expectedValueRhelAddon) {
+    assertEquals(
+        2, aggregates.size(), "Expected exactly 2 hourly aggregate messages (one per product)");
+    thenBillableUsageAggregateHasTotalValue(
+        thenBillableUsageAggregateIsFoundForProduct(aggregates, ROSA.getName()), expectedValueRosa);
+    thenBillableUsageAggregateHasTotalValue(
+        thenBillableUsageAggregateIsFoundForProduct(aggregates, RHEL_PAYG_ADDON_PRODUCT),
+        expectedValueRhelAddon);
   }
 }
