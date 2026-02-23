@@ -7,5 +7,6 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
 
   <include file="/db/202510051200-create-billable-usage-remittance-table.xml"/>
+  <include file="/db/202602231200-add-partial-unique-index-active-remittance.xml"/>
 
 </databaseChangeLog>
