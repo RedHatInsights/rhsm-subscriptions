@@ -20,6 +20,7 @@
  */
 package tests;
 
+import static api.BillableUsageTestHelper.createTallySummary;
 import static api.BillableUsageTestHelper.createTallySummaryWithDefaults;
 import static api.BillableUsageTestHelper.createTallySummaryWithGranularity;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
@@ -35,6 +36,8 @@ import api.MessageValidators;
 import com.redhat.swatch.billable.usage.openapi.model.TallyRemittance;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
+import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import domain.BillingProvider;
 import domain.RemittanceErrorCode;
 import domain.RemittanceStatus;
@@ -61,6 +64,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
   private static final double BILLING_FACTOR = ROSA.getBillingFactor(CORES);
   private static final String AWS_DIMENSION = ROSA.getMetric(CORES).getAwsDimension();
   private static final double CONTRACT_COVERAGE = 1.0;
+  private static final MetricId INSTANCE_HOURS = MetricIdUtils.getInstanceHours();
 
   @BeforeAll
   static void subscribeToBillableUsageTopics() {
@@ -371,6 +375,48 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
         thenBillableUsageAggregateIsFoundForOrg(aggregates, org2), value2);
   }
 
+  /**
+   * Verify that when multiple tally snapshots are sent for the same org and billing account but
+   * different metric IDs, a remittance is created for each metric and an hourly aggregate message
+   * is sent for each metric with the correct totalValue.
+   */
+  @Test
+  public void testMultipleMetricIdsProduceRemittanceAndHourlyAggregatePerMetric() {
+    // Given: No contract coverage, one org, one billing account, two different metrics
+    double valueCores = 4.0; // Cores (billing factor 0.25 -> 1.0)
+    double valueInstanceHours = 9.0; // Instance-hours (billing factor 1.0 -> 9.0)
+    String billingAccountId = RandomUtils.generateRandom();
+    givenNoContractCoverageExists();
+
+    // When: Tally snapshots are sent for the same org/billing account with different metrics
+    whenTallySummariesAreSentForTwoMetrics(billingAccountId, valueCores, valueInstanceHours);
+
+    // Then: Billable usage is produced for each metric with expected value per metric
+    List<BillableUsage> billableUsages =
+        kafkaBridge.waitForKafkaMessage(
+            BILLABLE_USAGE, MessageValidators.billableUsageMatches(orgId, ROSA.getName()), 2);
+    assertEquals(
+        2, billableUsages.size(), "Expected exactly 2 billable usage messages (one per metric)");
+    thenBillableUsageHasValueForMetric(
+        billableUsages, CORES.toString(), valueCores * BILLING_FACTOR);
+    thenBillableUsageHasValueForMetric(
+        billableUsages, INSTANCE_HOURS.toString(), valueInstanceHours);
+
+    // Then: Remittance table has a record for each (one remittance per tally)
+    thenRemittanceExistsForEachBillableUsage(billableUsages);
+
+    // Then: An hourly aggregate message is sent for each metric with correct totalValue
+    List<BillableUsageAggregate> aggregates =
+        kafkaBridge.waitForKafkaMessage(
+            BILLABLE_USAGE_HOURLY_AGGREGATE,
+            MessageValidators.billableUsageAggregateMatchesOrg(orgId),
+            2,
+            AwaitilitySettings.defaults()
+                .onConditionNotMet(service::flushBillableUsageAggregationTopic));
+    thenHourlyAggregatePerMetricHasExpectedTotalValues(
+        aggregates, valueCores * BILLING_FACTOR, valueInstanceHours);
+  }
+
   private BillableUsageAggregate createBillableUsageAggregate(
       String orgId,
       String productId,
@@ -454,6 +500,28 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
         createTallySummaryWithDefaults(org2, ROSA.getName(), CORES.toString(), value2);
     kafkaBridge.produceKafkaMessage(TALLY, tallySummary1);
     kafkaBridge.produceKafkaMessage(TALLY, tallySummary2);
+  }
+
+  private void whenTallySummariesAreSentForTwoMetrics(
+      String billingAccountId, double valueCores, double valueInstanceHours) {
+    TallySummary tallySummaryCores =
+        createTallySummary(
+            orgId,
+            ROSA.getName(),
+            CORES.toString(),
+            valueCores,
+            BillingProvider.AWS,
+            billingAccountId);
+    TallySummary tallySummaryInstanceHours =
+        createTallySummary(
+            orgId,
+            ROSA.getName(),
+            INSTANCE_HOURS.toString(),
+            valueInstanceHours,
+            BillingProvider.AWS,
+            billingAccountId);
+    kafkaBridge.produceKafkaMessage(TALLY, tallySummaryCores);
+    kafkaBridge.produceKafkaMessage(TALLY, tallySummaryInstanceHours);
   }
 
   /** Wait for remittance to reach expected status using API polling */
@@ -561,5 +629,57 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
         aggregate.getTotalValue().doubleValue(),
         0.001,
         "Aggregate should have total value " + expectedValue);
+  }
+
+  private BillableUsageAggregate thenBillableUsageAggregateIsFoundForMetric(
+      List<BillableUsageAggregate> aggregates, String metricId) {
+    BillableUsageAggregate found =
+        aggregates.stream()
+            .filter(
+                a ->
+                    a.getAggregateKey() != null
+                        && metricId.equals(a.getAggregateKey().getMetricId()))
+            .findFirst()
+            .orElse(null);
+    assertNotNull(found, "Expected one aggregate for metric " + metricId);
+    return found;
+  }
+
+  private void thenBillableUsageAggregateHasTotalValue(
+      BillableUsageAggregate aggregate, double expectedValue) {
+    assertEquals(
+        expectedValue,
+        aggregate.getTotalValue().doubleValue(),
+        0.001,
+        "Aggregate should have total value " + expectedValue);
+  }
+
+  private void thenHourlyAggregatePerMetricHasExpectedTotalValues(
+      List<BillableUsageAggregate> aggregates,
+      double expectedValueCores,
+      double expectedValueInstanceHours) {
+    assertEquals(
+        2, aggregates.size(), "Expected exactly 2 hourly aggregate messages (one per metric)");
+    thenBillableUsageAggregateHasTotalValue(
+        thenBillableUsageAggregateIsFoundForMetric(aggregates, CORES.toString()),
+        expectedValueCores);
+    thenBillableUsageAggregateHasTotalValue(
+        thenBillableUsageAggregateIsFoundForMetric(aggregates, INSTANCE_HOURS.toString()),
+        expectedValueInstanceHours);
+  }
+
+  private void thenBillableUsageHasValueForMetric(
+      List<BillableUsage> billableUsages, String metricId, double expectedValue) {
+    BillableUsage usage =
+        billableUsages.stream()
+            .filter(u -> metricId.equals(u.getMetricId()))
+            .findFirst()
+            .orElse(null);
+    assertNotNull(usage, "Expected billable usage for metric " + metricId);
+    assertEquals(
+        expectedValue,
+        usage.getValue(),
+        0.001,
+        "Billable usage value for metric " + metricId + " should be " + expectedValue);
   }
 }
