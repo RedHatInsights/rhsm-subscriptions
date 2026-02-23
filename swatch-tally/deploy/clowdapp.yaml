@@ -665,25 +665,31 @@ objects:
         cpu: 200m
         memory: 250Mi
     queries:
-    - prefix: swatch/tally
+    - prefix: swatch/tally_snapshots
       query: >-
         select
-        org_id,
-        snapshot_date,
-        product_id,
-        measurement_type,
-        metric_id,
-        metric_id as uom,
-        value
+        s.id,
+        s.org_id,
+        s.snapshot_date,
+        s.product_id
         from tally_snapshots s
-        join tally_measurements tm on s.id = tm.snapshot_id
-        where sla = '_ANY'
-        and usage = '_ANY'
-        and billing_provider = '_ANY'
-        and billing_account_id = '_ANY'
-        and granularity='DAILY'
-        and measurement_type!='TOTAL'
-        AND snapshot_date >= date_trunc('day', now() at time zone 'utc' - interval '2 day');
+        where s.sla = '_ANY'
+        and s.usage = '_ANY'
+        and s.billing_provider = '_ANY'
+        and s.billing_account_id = '_ANY'
+        and s.granularity = 'DAILY'
+        and s.last_modified >= date_trunc('day', now() at time zone 'utc' - interval '2 day')
+      chunksize: 50000
+    - prefix: swatch/tally_measurements
+      query: >-
+        select
+        m.snapshot_id,
+        m.measurement_type,
+        m.metric_id,
+        m.value
+        from tally_measurements m
+        where m.measurement_type != 'TOTAL'
+        and m.last_modified >= date_trunc('day', now() at time zone 'utc' - interval '2 day')
       chunksize: 50000
     - prefix: swatch/subscriptions
       query: >-
