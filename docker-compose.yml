@@ -157,7 +157,7 @@ services:
       kafka:
         condition: service_healthy
   inventory:
-    image: quay.io/cloudservices/insights-inventory
+    image: quay.io/redhat-services-prod/insights-management-tenant/insights-host-inventory/insights-host-inventory
     entrypoint: /bin/bash -c
     command: ["make upgrade_db && ./run_gunicorn.py"]
     environment:

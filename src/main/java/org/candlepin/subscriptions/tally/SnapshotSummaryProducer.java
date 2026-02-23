@@ -130,7 +130,7 @@ public class SnapshotSummaryProducer {
                                   totalTallies.getAndIncrement();
                                 }));
 
-            log.info("Produced {} {} TallySummary messages", totalTallies, granularity);
+            log.debug("Produced {} {} TallySummary messages", totalTallies, granularity);
           }
         });
   }
