@@ -210,15 +210,11 @@ parameters:
   - name: OTEL_SERVICE_NAME
     value: swatch-tally
   - name: OTEL_JAVAAGENT_ENABLED
-    value: 'true'
+    value: 'false'
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: 'http://localhost:4317'
   - name: OTEL_EXPORTER_OTLP_PROTOCOL
     value: 'grpc'
-  - name: OTEL_TRACES_EXPORTER
-    value: 'otlp'
-  - name: OTEL_METRICS_EXPORTER
-    value: 'none'
   - description: database secret name
     name: FLOORIST_DB_SECRET_NAME
     value: swatch-db-ro
@@ -236,8 +232,6 @@ parameters:
   # allow overriding to support independent deploy with bonfire
   - name: DB_POD
     value: swatch-database
-  - name: OTEL_DISABLED
-    value: 'true'
   - name: OTEL_SIDECAR_IMAGE
     value: quay.io/signalfx/splunk-otel-collector:0.140.0
   - name: OTEL_SIDECAR_CONFIG_MAP
@@ -317,8 +311,6 @@ objects:
                   value: liquibase-only
                 - name: JAVA_TOOL_OPTIONS
                   value: ''
-                - name: OTEL_JAVAAGENT_ENABLED
-                  value: 'false'
               inheritEnv: true
               resources:
                 requests:
@@ -509,14 +501,6 @@ objects:
               value: ${OTEL_SERVICE_NAME}
             - name: OTEL_JAVAAGENT_ENABLED
               value: ${OTEL_JAVAAGENT_ENABLED}
-            - name: OTEL_DISABLED
-              value: ${OTEL_DISABLED}
-            - name: OTEL_SDK_DISABLED
-              value: ${OTEL_DISABLED}
-            - name: OTEL_TRACES_EXPORTER
-              value: ${OTEL_TRACES_EXPORTER}
-            - name: OTEL_METRICS_EXPORTER
-              value: ${OTEL_METRICS_EXPORTER}
             - name: EVENT_RECORD_RETENTION
               value: ${EVENT_RECORD_RETENTION}
 
