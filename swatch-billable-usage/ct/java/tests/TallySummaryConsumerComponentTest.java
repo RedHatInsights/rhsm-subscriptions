@@ -34,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import api.MessageValidators;
 import com.redhat.swatch.billable.usage.openapi.model.TallyRemittance;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
+import com.redhat.swatch.component.tests.utils.RandomUtils;
 import domain.BillingProvider;
 import domain.RemittanceErrorCode;
 import domain.RemittanceStatus;
@@ -321,6 +322,55 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     thenBillableUsageAggregateTotalValueIs(aggregateForAccount2, value2);
   }
 
+  /**
+   * Verify that when multiple tally snapshots are sent for different orgs, a remittance record is
+   * created for each org and an hourly aggregate message is sent for each org with the correct
+   * totalValue per org.
+   */
+  @Test
+  public void testMultipleOrgsProduceRemittanceAndHourlyAggregatePerOrg() {
+    // Given: No contract coverage for two distinct orgs, with different tally values per org
+    double value1 = 10.0;
+    double value2 = 6.0;
+    String org1 = orgId;
+    String org2 = RandomUtils.generateRandom();
+    Set<String> orgIds = Set.of(org1, org2);
+    contractsWiremock.setupNoContractCoverage(org1, ROSA.getName());
+    contractsWiremock.setupNoContractCoverage(org2, ROSA.getName());
+
+    // When: Tally snapshots are sent for each org (different values per org)
+    whenTallySummariesAreSentForTwoOrgs(org1, value1, org2, value2);
+
+    // Then: Billable usage is produced for each org with expected value per org
+    List<BillableUsage> billableUsages =
+        kafkaBridge.waitForKafkaMessage(
+            BILLABLE_USAGE,
+            MessageValidators.billableUsageMatchesAnyOrg(orgIds, ROSA.getName()),
+            2);
+    assertEquals(
+        2, billableUsages.size(), "Expected exactly 2 billable usage messages (one per org)");
+    thenBillableUsageHasValueForOrg(billableUsages, org1, value1);
+    thenBillableUsageHasValueForOrg(billableUsages, org2, value2);
+
+    // Then: Remittance table has a record for each org (one remittance per tally)
+    thenRemittanceExistsForEachBillableUsage(billableUsages);
+
+    // Then: An hourly aggregate message is sent for each org with correct totalValue
+    List<BillableUsageAggregate> aggregates =
+        kafkaBridge.waitForKafkaMessage(
+            BILLABLE_USAGE_HOURLY_AGGREGATE,
+            MessageValidators.billableUsageAggregateMatchesAnyOrg(orgIds),
+            2,
+            AwaitilitySettings.defaults()
+                .onConditionNotMet(service::flushBillableUsageAggregationTopic));
+    assertEquals(
+        2, aggregates.size(), "Expected exactly 2 hourly aggregate messages (one per org)");
+    thenBillableUsageAggregateTotalValueIs(
+        thenBillableUsageAggregateIsFoundForOrg(aggregates, org1), value1);
+    thenBillableUsageAggregateTotalValueIs(
+        thenBillableUsageAggregateIsFoundForOrg(aggregates, org2), value2);
+  }
+
   private BillableUsageAggregate createBillableUsageAggregate(
       String orgId,
       String productId,
@@ -396,6 +446,16 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     return tallySummary;
   }
 
+  private void whenTallySummariesAreSentForTwoOrgs(
+      String org1, double value1, String org2, double value2) {
+    TallySummary tallySummary1 =
+        createTallySummaryWithDefaults(org1, ROSA.getName(), CORES.toString(), value1);
+    TallySummary tallySummary2 =
+        createTallySummaryWithDefaults(org2, ROSA.getName(), CORES.toString(), value2);
+    kafkaBridge.produceKafkaMessage(TALLY, tallySummary1);
+    kafkaBridge.produceKafkaMessage(TALLY, tallySummary2);
+  }
+
   /** Wait for remittance to reach expected status using API polling */
   private void waitForRemittanceStatus(String tallyId, RemittanceStatus expectedStatus) {
     Awaitility.await()
@@ -455,6 +515,42 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
             .orElse(null);
     assertNotNull(found, "Expected one aggregate for billing account " + billingAccountId);
     return found;
+  }
+
+  private BillableUsageAggregate thenBillableUsageAggregateIsFoundForOrg(
+      List<BillableUsageAggregate> aggregates, String orgId) {
+    BillableUsageAggregate found =
+        aggregates.stream()
+            .filter(
+                a -> a.getAggregateKey() != null && orgId.equals(a.getAggregateKey().getOrgId()))
+            .findFirst()
+            .orElse(null);
+    assertNotNull(found, "Expected one aggregate for org " + orgId);
+    return found;
+  }
+
+  private void thenBillableUsageHasValueForOrg(
+      List<BillableUsage> billableUsages, String orgId, double value) {
+    BillableUsage usage =
+        billableUsages.stream().filter(u -> orgId.equals(u.getOrgId())).findFirst().orElse(null);
+    assertNotNull(usage, "Expected billable usage for org " + orgId);
+    double expectedValue = Math.ceil(value * BILLING_FACTOR);
+    assertEquals(
+        expectedValue,
+        usage.getValue(),
+        0.001,
+        "Billable usage value for org " + orgId + " should be " + expectedValue);
+  }
+
+  private void thenRemittanceExistsForEachBillableUsage(List<BillableUsage> billableUsages) {
+    for (BillableUsage usage : billableUsages) {
+      String tallyId = usage.getTallyId().toString();
+      waitForRemittanceStatus(tallyId, RemittanceStatus.PENDING);
+      List<TallyRemittance> remittances = service.getRemittancesByTallyId(tallyId);
+      assertNotNull(remittances, "Remittances should exist for tallyId: " + tallyId);
+      assertFalse(
+          remittances.isEmpty(), "Should have at least one remittance for org " + usage.getOrgId());
+    }
   }
 
   private void thenBillableUsageAggregateTotalValueIs(

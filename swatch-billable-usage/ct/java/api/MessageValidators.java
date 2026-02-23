@@ -22,6 +22,7 @@ package api;
 
 import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
 import com.redhat.swatch.component.tests.api.MessageValidator;
+import java.util.Set;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
@@ -49,6 +50,21 @@ public class MessageValidators {
       billableUsageAggregateMatchesOrg(String orgId) {
     return new MessageValidator<>(
         (key, value) -> orgId.equals(key.getOrgId()),
+        BillableUsageAggregateKey.class,
+        BillableUsageAggregate.class);
+  }
+
+  public static DefaultMessageValidator<BillableUsage> billableUsageMatchesAnyOrg(
+      Set<String> orgIds, String productId) {
+    return new DefaultMessageValidator<>(
+        usage -> orgIds.contains(usage.getOrgId()) && productId.equals(usage.getProductId()),
+        BillableUsage.class);
+  }
+
+  public static MessageValidator<BillableUsageAggregateKey, BillableUsageAggregate>
+      billableUsageAggregateMatchesAnyOrg(Set<String> orgIds) {
+    return new MessageValidator<>(
+        (key, value) -> key != null && orgIds.contains(key.getOrgId()),
         BillableUsageAggregateKey.class,
         BillableUsageAggregate.class);
   }
