@@ -860,7 +860,7 @@ objects:
           name: db-changelog-cleanup
           command: [ "/bin/sh", "-c" ]
           args:
-          - psql -h $POSTGRESQL_SERVICE_HOST -U $POSTGRESQL_USER $POSTGRESQL_DATABASE -c "$DB_MIGRATION_SQL"
+          - echo '$DB_MIGRATION_SQL' | psql -h $POSTGRESQL_SERVICE_HOST -U $POSTGRESQL_USER $POSTGRESQL_DATABASE
           resources:
             requests:
               cpu: 100m
