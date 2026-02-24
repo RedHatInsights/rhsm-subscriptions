@@ -119,6 +119,48 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
   }
 
   /**
+   * Verify remittance and hourly aggregate match tally snapshot data for a non-contract product
+   * with billing factor below one: billable usage and hourly aggregate use the scaled value (e.g.
+   * 20 Cores × 0.25 = 5.0); remittance stores the metric/tally value (20.0).
+   */
+  @Test
+  public void
+      testRemittanceMatchesTallySnapshotDataForNonContractProductsWithBillingFactorBelowOne() {
+    // Given: No contract coverage; product with billing factor below one (ROSA Cores = 0.25)
+    givenNoContractCoverageExists();
+    double tallyValue = 20.0;
+    double expectedValueAfterBillingFactor = tallyValue * BILLING_FACTOR; // 20 * 0.25 = 5.0
+
+    // When: One tally snapshot is sent
+    TallySummary tallySummary = whenSendTallySummaryWithValue(tallyValue);
+
+    // Then: Billable usage is produced with value 5.0 (tally value × billing factor)
+    List<BillableUsage> billableUsages =
+        kafkaBridge.waitForKafkaMessage(
+            BILLABLE_USAGE,
+            MessageValidators.billableUsageMatchesWithValue(
+                orgId, ROSA.getName(), expectedValueAfterBillingFactor),
+            1);
+    assertEquals(
+        1, billableUsages.size(), "Expected exactly one billable usage message for the tally");
+    BillableUsage usage = billableUsages.get(0);
+
+    // Then: Remittance by tally has correct remitted value (metric/tally value 20.0)
+    thenEachBillableUsageHasOneRemittanceWithValue(List.of(usage), tallyValue);
+
+    // Then: Hourly aggregate is produced with totalValue 5.0
+    List<BillableUsageAggregate> aggregates =
+        kafkaBridge.waitForKafkaMessage(
+            BILLABLE_USAGE_HOURLY_AGGREGATE,
+            MessageValidators.billableUsageAggregateMatchesOrg(orgId),
+            1,
+            AwaitilitySettings.defaults()
+                .onConditionNotMet(service::flushBillableUsageAggregationTopic));
+    thenBillableUsageAggregateTotalValueIs(
+        thenBillableUsageAggregateIsFound(aggregates, tallySummary), tallyValue);
+  }
+
+  /**
    * Verify that when both DAILY and HOURLY tally snapshots are sent, only the HOURLY snapshot
    * produces billable usage and DAILY is filtered out by the consumer.
    */
