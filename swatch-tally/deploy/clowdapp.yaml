@@ -138,6 +138,12 @@ parameters:
     value: '1'
   - name: DB_CHANGELOG_CLEANUP_SQL
     value: 'select 1'
+# Increment in AppInterface before each migration
+  - name: DB_MIGRATION_RUN_NUMBER
+    value: '1'
+# Using a value of 'select 1' makes this job a no-op by default.
+  - name: DB_MIGRATION_SQL
+    value: 'select 1'
   - name: KAFKA_BILLABLE_USAGE_REPLICAS
     value: '3'
   - name: KAFKA_BILLABLE_USAGE_PARTITIONS
@@ -665,25 +671,31 @@ objects:
         cpu: 200m
         memory: 250Mi
     queries:
-    - prefix: swatch/tally
+    - prefix: swatch/tally_snapshots
       query: >-
         select
-        org_id,
-        snapshot_date,
-        product_id,
-        measurement_type,
-        metric_id,
-        metric_id as uom,
-        value
+        s.id,
+        s.org_id,
+        s.snapshot_date,
+        s.product_id
         from tally_snapshots s
-        join tally_measurements tm on s.id = tm.snapshot_id
-        where sla = '_ANY'
-        and usage = '_ANY'
-        and billing_provider = '_ANY'
-        and billing_account_id = '_ANY'
-        and granularity='DAILY'
-        and measurement_type!='TOTAL'
-        AND snapshot_date >= date_trunc('day', now() at time zone 'utc' - interval '2 day');
+        where s.sla = '_ANY'
+        and s.usage = '_ANY'
+        and s.billing_provider = '_ANY'
+        and s.billing_account_id = '_ANY'
+        and s.granularity = 'DAILY'
+        and s.last_modified >= date_trunc('day', now() at time zone 'utc' - interval '2 day')
+      chunksize: 50000
+    - prefix: swatch/tally_measurements
+      query: >-
+        select
+        m.snapshot_id,
+        m.measurement_type,
+        m.metric_id,
+        m.value
+        from tally_measurements m
+        where m.measurement_type != 'TOTAL'
+        and m.last_modified >= date_trunc('day', now() at time zone 'utc' - interval '2 day')
       chunksize: 50000
     - prefix: swatch/subscriptions
       query: >-
@@ -769,7 +781,7 @@ objects:
         podSpec:
           image: ${EGRESS_IMAGE}:${EGRESS_IMAGE_TAG}
           name: db-changelog-cleanup
-          command: ["/bin/sh", "-c"]
+          command: [ "/bin/sh", "-c" ]
           args:
           - psql -h $POSTGRESQL_SERVICE_HOST -U $POSTGRESQL_USER $POSTGRESQL_DATABASE -c "$DB_CHANGELOG_CLEANUP_SQL"
           resources:
@@ -803,6 +815,45 @@ objects:
           - name: DB_CHANGELOG_CLEANUP_SQL
             value: ${DB_CHANGELOG_CLEANUP_SQL}
 
+      - name: tally-manual-migration-${DB_MIGRATION_RUN_NUMBER}
+        restartPolicy: Never
+        podSpec:
+          image: ${EGRESS_IMAGE}:${EGRESS_IMAGE_TAG}
+          name: db-changelog-cleanup
+          command: [ "/bin/sh", "-c" ]
+          args:
+          - psql -h $POSTGRESQL_SERVICE_HOST -U $POSTGRESQL_USER $POSTGRESQL_DATABASE -c "$DB_MIGRATION_SQL"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 50Mi
+            limits:
+              cpu: 100m
+              memory: 100Mi
+          env:
+          - name: POSTGRESQL_SERVICE_HOST
+            valueFrom:
+              secretKeyRef:
+                name: ${DB_POD}-db
+                key: db.host
+          - name: POSTGRESQL_USER
+            valueFrom:
+              secretKeyRef:
+                name: ${DB_POD}-db
+                key: db.user
+          - name: POSTGRESQL_DATABASE
+            valueFrom:
+              secretKeyRef:
+                name: ${DB_POD}-db
+                key: db.name
+          - name: PGPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: ${DB_POD}-db
+                key: db.password
+          - name: DB_MIGRATION_SQL
+            value: ${DB_MIGRATION_SQL}
+
 - apiVersion: cloud.redhat.com/v1alpha1
   kind: ClowdJobInvocation
   metadata:
@@ -811,3 +862,12 @@ objects:
     appName: swatch-db-changelog-cleanup
     jobs:
       - db-changelog-cleanup-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdJobInvocation
+  metadata:
+    name: tally-manual-migration-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+  spec:
+    appName: swatch-db-changelog-cleanup
+    jobs:
+    - tally-manual-migration-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}

@@ -136,7 +136,7 @@ public class CombiningRollupSnapshotStrategy {
             .flatMap(List::stream)
             .collect(Collectors.groupingBy(TallySnapshot::getOrgId));
 
-    log.info("Finished producing finestGranularitySnapshots for orgId={}.", orgId);
+    log.debug("Finished producing finestGranularitySnapshots for orgId={}.", orgId);
     return totalSnapshotsToSend;
   }
 

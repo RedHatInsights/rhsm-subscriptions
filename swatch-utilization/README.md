@@ -129,11 +129,6 @@ Invalid summaries or measurements are logged and skipped without processing.
 ### Monitoring and Metrics
 The service exposes several metrics for monitoring and alerting:
 
-**swatch_utilization_received**: Counter tracking all processed utilization summaries, tagged by:
-- `product`: Product ID
-- `metric_id`: Metric ID
-- `billing`: Billing provider (if present)
-
 **swatch_utilization_over_usage**: Counter tracking detected over-usage events, tagged by:
 - `product`: Product ID
 - `metric_id`: Metric ID

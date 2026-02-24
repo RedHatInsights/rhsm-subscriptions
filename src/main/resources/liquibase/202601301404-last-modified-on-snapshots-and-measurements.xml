@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+  <!--
+  Why are we using a trigger here?  Especially since Hibernate's @CurrentTimestamp(source=DB)
+  annotation offers this ability?  The catch with the annotation is it requires an extra round-trip
+  to the database to fetch the current time.  We want the last_modified column to use the
+  CURRENT_TIMESTAMP from the database since these timestamps are later referenced by jobs that
+  run in different environments (not in the JVM).  We want the DB to be the final authority on
+  what time it is.  However, high performance for these tables is critical, so we don't want any
+  additional overhead that we can avoid.  Using a trigger and
+
+  @Column(name = "last_modified", insertable = false, updatable = false)
+  @ColumnDefault("CURRENT_TIMESTAMP")
+  @Generated
+  private Instant lastModified;
+
+  will populate the entity correctly using a RETURNING clause after an UPDATE or INSERT which
+  avoids a round-trip while keeping timestamp generation on the DB.
+  -->
+
+  <changeSet id="202601301404-01" author="awood" dbms="postgresql">
+    <createProcedure>
+      CREATE OR REPLACE FUNCTION update_last_modified_column()
+        RETURNS TRIGGER AS
+      $$
+      BEGIN
+        NEW.last_modified = CURRENT_TIMESTAMP;
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+    </createProcedure>
+    <rollback>
+      DROP FUNCTION IF EXISTS update_last_modified_column();
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202601301404-02" author="awood">
+    <addColumn tableName="tally_snapshots">
+      <column name="last_modified" type="TIMESTAMP WITH TIME ZONE"/>
+    </addColumn>
+  </changeSet>
+
+  <changeSet id="202601301404-03" author="awood" dbms="postgresql">
+    <sql>
+      CREATE OR REPLACE TRIGGER trg_tally_snapshots_last_modified
+        BEFORE INSERT OR UPDATE
+        ON tally_snapshots
+        FOR EACH ROW
+      EXECUTE FUNCTION update_last_modified_column();
+    </sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS trg_tally_snapshots_last_modified ON tally_snapshots;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202601301404-04" author="awood" dbms="hsqldb">
+    <sql splitStatements="false">
+      CREATE TRIGGER trg_tally_snapshots_last_modified_create
+        BEFORE INSERT
+        ON tally_snapshots
+        REFERENCING NEW AS newrow
+        FOR EACH ROW
+      BEGIN
+        ATOMIC
+        SET newrow.last_modified = CURRENT_TIMESTAMP;
+      END
+    </sql>
+    <sql splitStatements="false">
+      CREATE TRIGGER trg_tally_snapshots_last_modified_update
+        BEFORE UPDATE
+        ON tally_snapshots
+        REFERENCING NEW AS newrow
+        FOR EACH ROW
+      BEGIN
+        ATOMIC
+        SET newrow.last_modified = CURRENT_TIMESTAMP;
+      END
+    </sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS trg_tally_snapshots_last_modified_create
+      DROP TRIGGER IF EXISTS trg_tally_snapshots_last_modified_update
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202601301404-05" author="awood">
+    <!-- This column is unmapped in Hibernate since the records in tally_measurements are not
+    their own entities.  They're members of a CollectionTable.  Mapping this column would require
+    converting tally_snapshots to be mapped to tally_measurements with a @OneToMany -->
+    <addColumn tableName="tally_measurements">
+      <column name="last_modified" type="TIMESTAMP WITH TIME ZONE"/>
+    </addColumn>
+  </changeSet>
+
+  <changeSet id="202601301404-06" author="awood" dbms="postgresql">
+    <sql>
+      CREATE OR REPLACE TRIGGER trg_tally_measurements_last_modified
+        BEFORE INSERT OR UPDATE
+        ON tally_measurements
+        FOR EACH ROW
+      EXECUTE FUNCTION update_last_modified_column();
+    </sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS trg_tally_measurements_last_modified ON tally_measurements;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202601301404-07" author="awood" dbms="hsqldb">
+    <sql splitStatements="false">
+      CREATE TRIGGER trg_tally_measurements_last_modified_create
+        BEFORE INSERT
+        ON tally_measurements
+        REFERENCING NEW AS newrow
+        FOR EACH ROW
+      BEGIN
+        ATOMIC
+        SET newrow.last_modified = CURRENT_TIMESTAMP;
+      END
+    </sql>
+    <sql splitStatements="false">
+      CREATE TRIGGER trg_tally_measurements_last_modified_update
+        BEFORE UPDATE
+        ON tally_measurements
+        REFERENCING NEW AS newrow
+        FOR EACH ROW
+      BEGIN
+        ATOMIC
+        SET newrow.last_modified = CURRENT_TIMESTAMP;
+      END
+    </sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS trg_tally_measurements_last_modified_create
+      DROP TRIGGER IF EXISTS trg_tally_measurements_last_modified_update
+    </rollback>
+  </changeSet>
+</databaseChangeLog>

@@ -395,6 +395,9 @@ spec:
               ARTIFACT_DIR="${SERVICE}"/ct/target/surefire-reports
               METADATA_FILE="$(params.DATAROUTER-METADATA-PATH)"
               
+              # Skip unsupported attributes by datarouter from the surefire reports:
+              find "$ARTIFACT_DIR" -name "TEST-*.xml" -exec sed -i 's/ flakes="[0-9]*"//g' {} \;
+              
               # Customize metadata for the current service
               sed -i "s/SERVICE_NAME/$SERVICE/g" datarouter.json
               sed -i "s/EVENT_TYPE_PLACEHOLDER/$EVENT_TYPE/g" datarouter.json
