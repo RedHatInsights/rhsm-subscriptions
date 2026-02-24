@@ -36,6 +36,7 @@ import static org.mockito.Mockito.when;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceEntity;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
 import com.redhat.swatch.billable.usage.data.RemittanceStatus;
+import com.redhat.swatch.billable.usage.test.resources.PostgresTestProfile;
 import com.redhat.swatch.clients.contracts.api.model.Contract;
 import com.redhat.swatch.clients.contracts.api.model.Metric;
 import com.redhat.swatch.clients.contracts.api.resources.ApiException;
@@ -49,6 +50,7 @@ import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.junit.mockito.InjectSpy;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -62,6 +64,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
@@ -78,6 +86,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 @Slf4j
 @QuarkusTest
+@TestProfile(PostgresTestProfile.class)
 class BillableUsageServiceTest {
   private static final ApplicationClock CLOCK =
       new ApplicationClock(
@@ -454,11 +463,75 @@ class BillableUsageServiceTest {
     // failures be included
     givenExistingRemittanceForUsage(usage, startOfUsage.plusDays(4), 10.0, RemittanceStatus.FAILED);
     // failures with retry after null should be filtered out
-    givenExistingRemittanceForUsage(usage, startOfUsage.plusDays(4), 30.0, RemittanceStatus.FAILED);
-    givenExistingRemittanceForUsage(usage, startOfUsage.plusDays(4), 20.0, null);
+    givenExistingRemittanceForUsage(usage, startOfUsage.plusDays(5), 30.0, RemittanceStatus.FAILED);
+    givenExistingRemittanceForUsage(usage, startOfUsage.plusDays(6), 20.0, null);
 
     var result = service.getTotalRemitted(usage);
     assertEquals(26.0, result);
+  }
+
+  /**
+   * Reproduces a race condition in produceMonthlyBillable() where concurrent calls for the same
+   * tally create duplicate remittance records. The partial unique index on
+   * billable_usage_remittance_active_unique ensures only one active remittance per tally_id +
+   * business keys combination. Concurrent duplicates are rejected at the database level.
+   */
+  @Test
+  void concurrentSubmitsShouldNotCreateDuplicateRemittance() throws Exception {
+    int threadCount = 4;
+    BillableUsage usage = givenInstanceHoursUsageForRosa(10.0);
+    UUID sharedTallyId = usage.getTallyId();
+    givenExistingContractForUsage(usage);
+
+    CountDownLatch readyLatch = new CountDownLatch(threadCount);
+    CountDownLatch startLatch = new CountDownLatch(1);
+    ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+
+    try {
+      List<CompletableFuture<Void>> futures =
+          IntStream.range(0, threadCount)
+              .mapToObj(
+                  i ->
+                      CompletableFuture.runAsync(
+                          () -> {
+                            readyLatch.countDown();
+                            try {
+                              startLatch.await(5, TimeUnit.SECONDS);
+                            } catch (InterruptedException e) {
+                              Thread.currentThread().interrupt();
+                              return;
+                            }
+                            BillableUsage copy = givenInstanceHoursUsageForRosa(10.0);
+                            copy.setSnapshotDate(usage.getSnapshotDate());
+                            copy.setTallyId(sharedTallyId);
+                            givenExistingContractForUsage(copy);
+                            service.submitBillableUsage(copy);
+                          },
+                          executor))
+              .toList();
+
+      readyLatch.await(5, TimeUnit.SECONDS);
+      startLatch.countDown();
+
+      CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get(30, TimeUnit.SECONDS);
+    } finally {
+      executor.shutdown();
+    }
+
+    List<BillableUsageRemittanceEntity> remittances = findRemittancesForOrg();
+    double totalRemitted =
+        remittances.stream()
+            .mapToDouble(BillableUsageRemittanceEntity::getRemittedPendingValue)
+            .sum();
+
+    assertEquals(
+        1,
+        remittances.size(),
+        String.format(
+            "Expected exactly 1 remittance record but found %d (total remitted: %.1f). "
+                + "Concurrent calls to produceMonthlyBillable() created duplicate remittance "
+                + "due to read-then-write race in getTotalRemitted()/createRemittance().",
+            remittances.size(), totalRemitted));
   }
 
   static Stream<Arguments> remittanceBillingFactorParameters() {
@@ -606,10 +679,9 @@ class BillableUsageServiceTest {
             .sla(usage.getSla().value())
             .usage(usage.getUsage().value())
             .remittancePendingDate(remittancePendingDate)
-            .tallyId(usage.getTallyId())
+            .tallyId(UUID.randomUUID())
             .status(status)
             .build();
-    // Remitted value should be set to usages metric_value rather than billing_value
     newRemittance.setRemittedPendingValue(remittedPendingValue);
     remittanceRepo.persist(newRemittance);
   }
@@ -633,6 +705,11 @@ class BillableUsageServiceTest {
 
     setSubscriptionDefinitionRegistry(mockSubscriptionDefinitionRegistry);
     when(mockSubscriptionDefinitionRegistry.getSubscriptions()).thenReturn(List.of(definition));
+  }
+
+  @Transactional
+  List<BillableUsageRemittanceEntity> findRemittancesForOrg() {
+    return remittanceRepo.findAll().stream().filter(r -> ORG_ID.equals(r.getOrgId())).toList();
   }
 
   private void performRemittanceTesting(

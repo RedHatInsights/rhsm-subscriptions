@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+  <changeSet id="202602231200-001" author="jcarvaja" dbms="postgresql">
+    <comment>
+      Mark duplicate active remittances as failed before creating the partial unique
+      index. For each group of duplicates (same business keys + tally_id with a
+      non-terminal status), keep the row with the highest remitted_pending_value and
+      mark the rest as failed.
+    </comment>
+    <sql>
+      UPDATE billable_usage_remittance
+      SET status = 'failed', error_code = 'duplicated'
+      WHERE uuid IN (
+        SELECT uuid FROM (
+          SELECT uuid,
+                 ROW_NUMBER() OVER (
+                   PARTITION BY org_id, product_id, metric_id, accumulation_period,
+                                sla, usage, billing_provider, billing_account_id, tally_id
+                   ORDER BY remitted_pending_value DESC
+                 ) AS rn
+          FROM billable_usage_remittance
+          WHERE status NOT IN ('failed', 'succeeded', 'gratis')
+            AND tally_id IS NOT NULL
+        ) ranked
+        WHERE rn > 1
+      );
+    </sql>
+  </changeSet>
+
+  <changeSet id="202602231200-002" author="jcarvaja" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <indexExists tableName="billable_usage_remittance"
+                     indexName="billable_usage_remittance_active_unique"/>
+      </not>
+    </preConditions>
+
+    <comment>
+      Partial unique index to prevent duplicate active remittances for the same tally.
+      Only enforced when status is not a terminal state (failed, succeeded, gratis)
+      and tally_id is not null (excludes legacy records). Allows retries to create
+      new rows once the previous attempt has reached a terminal state.
+    </comment>
+    <sql>
+      CREATE UNIQUE INDEX billable_usage_remittance_active_unique
+      ON billable_usage_remittance (
+        org_id, product_id, metric_id, accumulation_period,
+        sla, usage, billing_provider, billing_account_id, tally_id
+      )
+      WHERE status NOT IN ('failed', 'succeeded', 'gratis')
+        AND tally_id IS NOT NULL;
+    </sql>
+
+    <rollback>
+      <sql>DROP INDEX IF EXISTS billable_usage_remittance_active_unique;</sql>
+    </rollback>
+  </changeSet>
+
+</databaseChangeLog>
