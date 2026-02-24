@@ -183,7 +183,8 @@
     <include file="liquibase/202506191100-add-host-service-type-table.xml"/>
     <include file="liquibase/202601231332-add-is-primary-to-tally-snapshots.xml"/>
     <include file="liquibase/202602091104-add-tally-index-is-primary.xml"/>
-    <!--
+    <include file="liquibase/202602241326-add-org-prod-snap-date-idx.xml"/>
+<!--
     - From this point forward, the following tables and views are managed under swatch-contracts:
       * offering
       * sku_child_sku
