@@ -28,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
-import com.redhat.swatch.tally.test.model.InstanceData;
 import com.redhat.swatch.tally.test.model.InstanceResponse;
 import io.restassured.response.Response;
 import java.time.OffsetDateTime;
@@ -38,7 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.http.HttpStatus;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.Test;
 import utils.TallyDbHostSeeder;
@@ -56,7 +54,12 @@ public class TallyInstancesComponentTest extends BaseTallyComponentTest {
     service.createOptInConfig(orgId);
 
     TallyDbHostSeeder.insertHostWithBillingAccountAndDate(
-        orgId, testInventoryId, RHEL_FOR_X86_ELS_PAYG.productTag(), "AWS", billingAccountId, lastMonthDate);
+        orgId,
+        testInventoryId,
+        RHEL_FOR_X86_ELS_PAYG.productTag(),
+        "AWS",
+        billingAccountId,
+        lastMonthDate);
 
     // When: Calling get billing account ids
     Map<String, Object> queryParams = new HashMap<>();
@@ -206,7 +209,8 @@ public class TallyInstancesComponentTest extends BaseTallyComponentTest {
     }
     return response.getData().stream()
         .filter(instance -> instance.getMeasurements() != null)
-        .flatMapToDouble(instance -> instance.getMeasurements().stream().mapToDouble(Double::doubleValue))
+        .flatMapToDouble(
+            instance -> instance.getMeasurements().stream().mapToDouble(Double::doubleValue))
         .sum();
   }
 }
