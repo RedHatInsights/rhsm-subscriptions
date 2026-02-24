@@ -549,6 +549,40 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
   }
 
   /**
+   * Verify that when a new tally summary has a current_total greater than already remitted usage, a
+   * new remittance is created with the difference. First tally (6) creates remittance with value 6;
+   * after it succeeds, second tally (10) creates remittance with value 4 (10 - 6). Uses RHEL addon
+   * (billing factor 1.0) so remittance values match tally values directly.
+   */
+  @Test
+  public void testVerifyRemittanceDiffWhenTallySummaryTotalGreaterThanRemittanceUsage() {
+    // Given: First remittance exists (value 6) and has succeeded
+    double valueExisting = 6.0;
+    double valueLargerNew = 10.0;
+    double expectedDiff = valueLargerNew - valueExisting;
+    String billingAccountId = RandomUtils.generateRandom();
+    BillableUsage firstBillableUsage =
+        givenFirstRemittanceSucceeded(valueExisting, billingAccountId);
+
+    // When: Second tally summary is sent with value 10 (greater than first)
+    whenSecondTallySummaryIsSent(valueLargerNew, billingAccountId);
+
+    // Then: Second billable usage is produced with the diff value (4)
+    List<BillableUsage> secondBillableUsages =
+        kafkaBridge.waitForKafkaMessage(
+            BILLABLE_USAGE,
+            MessageValidators.billableUsageMatchesWithValue(
+                orgId, RHEL_PAYG_ADDON_PRODUCT, expectedDiff),
+            1);
+    assertEquals(
+        1, secondBillableUsages.size(), "Expected exactly 1 billable usage for second tally");
+
+    // Then: Two remittances exist - first with value 6, second with value 4 (the diff)
+    thenRemittanceHasValue(firstBillableUsage.getTallyId().toString(), valueExisting);
+    thenRemittanceHasValue(secondBillableUsages.get(0).getTallyId().toString(), expectedDiff);
+  }
+
+  /**
    * Verify that usage from last month is not tallied with usage from the current month: two tally
    * snapshots with different snapshot dates (last month and current month) produce two separate
    * remittances (one per accumulation period), not aggregated into one.
@@ -619,6 +653,49 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     return billableUsages.get(0);
   }
 
+  /**
+   * Sets up first remittance (RHEL addon, billing factor 1.0): sends tally, waits for billable
+   * usage, sends SUCCEEDED status update.
+   */
+  private BillableUsage givenFirstRemittanceSucceeded(double value, String billingAccountId) {
+    givenNoContractCoverageForRhelAddon();
+
+    TallySummary firstTallySummary =
+        createTallySummary(
+            orgId,
+            RHEL_PAYG_ADDON_PRODUCT,
+            RHEL_PAYG_ADDON_METRIC,
+            value,
+            BillingProvider.AWS,
+            billingAccountId);
+    kafkaBridge.produceKafkaMessage(TALLY, firstTallySummary);
+
+    List<BillableUsage> firstBillableUsages =
+        kafkaBridge.waitForKafkaMessage(
+            BILLABLE_USAGE,
+            MessageValidators.billableUsageMatchesWithValue(orgId, RHEL_PAYG_ADDON_PRODUCT, value),
+            1);
+    assertEquals(
+        1, firstBillableUsages.size(), "Expected exactly 1 billable usage for first tally");
+    BillableUsage firstBillableUsage = firstBillableUsages.get(0);
+    waitForRemittanceStatus(firstBillableUsage.getTallyId().toString(), RemittanceStatus.PENDING);
+
+    BillableUsageAggregate statusUpdate =
+        givenBillableUsageAggregate(
+            orgId,
+            RHEL_PAYG_ADDON_PRODUCT,
+            RHEL_PAYG_ADDON_METRIC,
+            billingAccountId,
+            BillableUsage.Status.SUCCEEDED,
+            null,
+            OffsetDateTime.now(ZoneOffset.UTC),
+            List.of(firstBillableUsage.getUuid().toString()));
+    kafkaBridge.produceKafkaMessage(BILLABLE_USAGE_STATUS, statusUpdate);
+    waitForRemittanceStatus(firstBillableUsage.getTallyId().toString(), RemittanceStatus.SUCCEEDED);
+
+    return firstBillableUsage;
+  }
+
   /** Builds a billable usage aggregate (status update) for use in status consumer tests. */
   private BillableUsageAggregate givenBillableUsageAggregate(
       String orgId,
@@ -628,11 +705,31 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
       BillableUsage.ErrorCode errorCode,
       OffsetDateTime billedOn,
       List<String> remittanceUuids) {
+    return givenBillableUsageAggregate(
+        orgId,
+        productId,
+        CORES.toString(),
+        billingAccountId,
+        status,
+        errorCode,
+        billedOn,
+        remittanceUuids);
+  }
+
+  private BillableUsageAggregate givenBillableUsageAggregate(
+      String orgId,
+      String productId,
+      String metricId,
+      String billingAccountId,
+      BillableUsage.Status status,
+      BillableUsage.ErrorCode errorCode,
+      OffsetDateTime billedOn,
+      List<String> remittanceUuids) {
 
     var aggregateKey = new BillableUsageAggregateKey();
     aggregateKey.setOrgId(orgId);
     aggregateKey.setProductId(productId);
-    aggregateKey.setMetricId(CORES.toString());
+    aggregateKey.setMetricId(metricId);
     aggregateKey.setSla("Premium");
     aggregateKey.setUsage("Production");
     aggregateKey.setBillingProvider(BillingProvider.AWS.name());
@@ -672,6 +769,18 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
             orgId, RHEL_PAYG_ADDON_PRODUCT, RHEL_PAYG_ADDON_METRIC, value);
     kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
     return tallySummary;
+  }
+
+  private void whenSecondTallySummaryIsSent(double value, String billingAccountId) {
+    TallySummary secondTallySummary =
+        createTallySummary(
+            orgId,
+            RHEL_PAYG_ADDON_PRODUCT,
+            RHEL_PAYG_ADDON_METRIC,
+            value,
+            BillingProvider.AWS,
+            billingAccountId);
+    kafkaBridge.produceKafkaMessage(TALLY, secondTallySummary);
   }
 
   private void whenTallySummariesAreSentForTwoOrgs(
@@ -850,6 +959,17 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
       assertFalse(
           remittances.isEmpty(), "Should have at least one remittance for org " + usage.getOrgId());
     }
+  }
+
+  private void thenRemittanceHasValue(String tallyId, double expectedValue) {
+    List<TallyRemittance> remittances = service.getRemittancesByTallyId(tallyId);
+    assertNotNull(remittances, "Remittances should exist for tallyId: " + tallyId);
+    assertEquals(1, remittances.size(), "Exactly one remittance per tally");
+    assertEquals(
+        expectedValue,
+        remittances.get(0).getRemittedPendingValue(),
+        0.001,
+        "Remittance should have value " + expectedValue);
   }
 
   private void thenBillableUsageAggregateTotalValueIs(
