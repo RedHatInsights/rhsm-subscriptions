@@ -279,7 +279,7 @@ public final class TallyDbHostSeeder {
       int sockets,
       String measurementType)
       throws SQLException {
-    insertBucket(conn, hostId, productId, sla, usage, cores, sockets, measurementType, null);
+    insertBucket(conn, hostId, productId, sla, usage, cores, sockets, measurementType, "");
   }
 
   private static void insertBucket(
@@ -294,16 +294,7 @@ public final class TallyDbHostSeeder {
       String billingAccountId)
       throws SQLException {
     insertBucket(
-        conn,
-        hostId,
-        productId,
-        sla,
-        usage,
-        cores,
-        sockets,
-        measurementType,
-        null,
-        billingAccountId);
+        conn, hostId, productId, sla, usage, cores, sockets, measurementType, "", billingAccountId);
   }
 
   private static void insertBucket(
@@ -336,8 +327,8 @@ public final class TallyDbHostSeeder {
       ps.setInt(6, cores);
       ps.setInt(7, sockets);
       ps.setString(8, measurementType);
-      if (billingProvider == null) {
-        ps.setNull(9, Types.VARCHAR);
+      if (billingProvider == null || billingProvider.isEmpty()) {
+        ps.setString(9, "");
       } else {
         ps.setString(9, billingProvider);
       }
