@@ -866,8 +866,8 @@ objects:
 - apiVersion: cloud.redhat.com/v1alpha1
   kind: ClowdJobInvocation
   metadata:
-    name: tally-manual-migration-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+    name: tally-manual-migration-${DB_MIGRATION_RUN_NUMBER}
   spec:
     appName: swatch-db-changelog-cleanup
     jobs:
-    - tally-manual-migration-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+    - tally-manual-migration-${DB_MIGRATION_RUN_NUMBER}
