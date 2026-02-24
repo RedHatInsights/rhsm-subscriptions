@@ -161,6 +161,48 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
   }
 
   /**
+   * Verify remittance and hourly aggregate match tally snapshot data for a non-contract product
+   * with billing factor equal to one: billable usage, remittance, and hourly aggregate all use the
+   * same value (no scaling applied).
+   */
+  @Test
+  public void
+      testRemittanceMatchesTallySnapshotDataForNonContractProductsWithBillingFactorEqualOne() {
+    // Given: No contract coverage; product with billing factor 1.0 (RHEL addon vCPUs)
+    givenNoContractCoverageForRhelAddon();
+    double tallyValue = 12.0;
+    double expectedValue = tallyValue; // No scaling when billing factor is 1.0
+
+    // When: One tally snapshot is sent for RHEL addon product
+    TallySummary tallySummary = whenSendTallySummaryForRhelAddonWithValue(tallyValue);
+
+    // Then: Billable usage is produced with value 12.0 (tally value × 1.0 = tally value)
+    List<BillableUsage> billableUsages =
+        kafkaBridge.waitForKafkaMessage(
+            BILLABLE_USAGE,
+            MessageValidators.billableUsageMatchesWithValue(
+                orgId, RHEL_PAYG_ADDON_PRODUCT, expectedValue),
+            1);
+    assertEquals(
+        1, billableUsages.size(), "Expected exactly one billable usage message for the tally");
+    BillableUsage usage = billableUsages.get(0);
+
+    // Then: Remittance by tally has correct remitted value (metric/tally value 12.0)
+    thenEachBillableUsageHasOneRemittanceWithValue(List.of(usage), tallyValue);
+
+    // Then: Hourly aggregate is produced with totalValue 12.0 (no scaling)
+    List<BillableUsageAggregate> aggregates =
+        kafkaBridge.waitForKafkaMessage(
+            BILLABLE_USAGE_HOURLY_AGGREGATE,
+            MessageValidators.billableUsageAggregateMatchesOrg(orgId),
+            1,
+            AwaitilitySettings.defaults()
+                .onConditionNotMet(service::flushBillableUsageAggregationTopic));
+    thenBillableUsageAggregateHasTotalValue(
+        thenBillableUsageAggregateIsFound(aggregates, tallySummary), expectedValue);
+  }
+
+  /**
    * Verify that when both DAILY and HOURLY tally snapshots are sent, only the HOURLY snapshot
    * produces billable usage and DAILY is filtered out by the consumer.
    */
@@ -548,6 +590,10 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
   }
 
+  private void givenNoContractCoverageForRhelAddon() {
+    contractsWiremock.setupNoContractCoverage(orgId, RHEL_PAYG_ADDON_PRODUCT);
+  }
+
   /**
    * Sets up test preconditions: creates tally summary, waits for billable usage with pending
    * remittance
@@ -616,6 +662,14 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
   private TallySummary whenSendTallySummaryWithValue(double value) {
     TallySummary tallySummary =
         createTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), value);
+    kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
+    return tallySummary;
+  }
+
+  private TallySummary whenSendTallySummaryForRhelAddonWithValue(double value) {
+    TallySummary tallySummary =
+        createTallySummaryWithDefaults(
+            orgId, RHEL_PAYG_ADDON_PRODUCT, RHEL_PAYG_ADDON_METRIC, value);
     kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
     return tallySummary;
   }
