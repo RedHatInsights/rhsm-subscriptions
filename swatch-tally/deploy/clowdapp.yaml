@@ -816,6 +816,11 @@ objects:
           name: db-changelog-cleanup
           command: [ "/bin/sh", "-c" ]
           args:
+          # **Note that DB_MIGRATION_SQL will not be run in a transaction!**
+          # If you need a transaction, the SQL must declare it.  The lack of a transaction here is
+          # intentional since creating indexes concurrently requires running them outside a
+          # transaction.  psql has a -c argument to run a command, but that argument implicitly
+          # wraps the statement in a transaction
           - echo '$DB_MIGRATION_SQL' | psql -h $POSTGRESQL_SERVICE_HOST -U $POSTGRESQL_USER $POSTGRESQL_DATABASE
           resources:
             requests:
