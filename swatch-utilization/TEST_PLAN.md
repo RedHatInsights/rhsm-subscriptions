@@ -207,12 +207,9 @@ Kafka messages can be injected for event-driven testing.
     - Generate usage data for the metric A of the product B
     - Trigger utilization calculation process
 - **Verification**:
-    - Wait for notification message on notifications topic
-    - Verify notification payload
+     - Check absence of notification message on notifications topic
 - **Expected Result**:
-    - Notification event created (any usage above zero capacity triggers notification)
-    - Notification event contains correct information (org_id, product_id, metric_id and utilization_percentage)
-    - Record timestamp reflects current calculation time
+    - No notification event created
 
 **utilization-capacity-TC002 - Unlimited capacity metric**
 
