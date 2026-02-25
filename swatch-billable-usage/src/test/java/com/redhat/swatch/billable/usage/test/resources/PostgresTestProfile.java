@@ -18,31 +18,23 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package api;
+package com.redhat.swatch.billable.usage.test.resources;
 
-import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
-import models.CreateUpdateHostMessage;
+import io.quarkus.test.junit.QuarkusTestProfile;
+import java.util.List;
+import java.util.Map;
 
-public class MessageValidators {
+public class PostgresTestProfile implements QuarkusTestProfile {
 
-  /**
-   * Creates a validator that matches CreateUpdateHostMessage messages for a specific orgId.
-   *
-   * @param orgId the orgId to match
-   * @return a MessageValidator that matches add_host message of the given orgId
-   */
-  public static DefaultMessageValidator<CreateUpdateHostMessage> addHostMessageMatchesOrgId(
-      String orgId) {
-    var operation = "add_host";
+  @Override
+  public Map<String, String> getConfigOverrides() {
+    return Map.of(
+        "quarkus.datasource.db-kind", "postgresql",
+        "quarkus.hibernate-orm.database.generation", "none");
+  }
 
-    return new DefaultMessageValidator<>(
-        message -> {
-          if (message == null || message.getData() == null) {
-            return false;
-          }
-          return operation.equals(message.getOperation())
-              && orgId.equals(message.getData().getOrgId());
-        },
-        CreateUpdateHostMessage.class);
+  @Override
+  public List<TestResourceEntry> testResources() {
+    return List.of(new TestResourceEntry(PostgresResource.class));
   }
 }

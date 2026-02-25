@@ -18,31 +18,30 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package api;
+package com.redhat.swatch.billable.usage.test.resources;
 
-import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
-import models.CreateUpdateHostMessage;
+import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import java.util.Map;
+import org.candlepin.testcontainers.SwatchPostgreSQLContainer;
 
-public class MessageValidators {
+public class PostgresResource implements QuarkusTestResourceLifecycleManager {
 
-  /**
-   * Creates a validator that matches CreateUpdateHostMessage messages for a specific orgId.
-   *
-   * @param orgId the orgId to match
-   * @return a MessageValidator that matches add_host message of the given orgId
-   */
-  public static DefaultMessageValidator<CreateUpdateHostMessage> addHostMessageMatchesOrgId(
-      String orgId) {
-    var operation = "add_host";
+  static SwatchPostgreSQLContainer db = new SwatchPostgreSQLContainer("rhsm-subscriptions");
 
-    return new DefaultMessageValidator<>(
-        message -> {
-          if (message == null || message.getData() == null) {
-            return false;
-          }
-          return operation.equals(message.getOperation())
-              && orgId.equals(message.getData().getOrgId());
-        },
-        CreateUpdateHostMessage.class);
+  @Override
+  public Map<String, String> start() {
+    db.start();
+    return Map.of(
+        "quarkus.datasource.jdbc.url",
+        db.getJdbcUrl(),
+        "quarkus.datasource.username",
+        db.getUsername(),
+        "quarkus.datasource.password",
+        db.getPassword());
+  }
+
+  @Override
+  public void stop() {
+    db.stop();
   }
 }

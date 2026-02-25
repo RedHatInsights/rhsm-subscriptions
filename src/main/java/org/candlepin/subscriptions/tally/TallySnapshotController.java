@@ -128,14 +128,14 @@ public class TallySnapshotController {
       throw new IllegalArgumentException("A non-null orgId is required for tally operations.");
     }
 
-    log.info("Producing snapshots for Org ID {}.", orgId);
+    log.info("Producing hourly snapshots for Org ID {}.", orgId);
     // Because we would have already seen the events once by service type, the loop will result in a
     // retally if we fetch duplicate service types and loop through again, which is why we must use
     // Set in this situation rather than List. Set enables us to guarantee that each event is
     // fetched by service type just once.
     Set<String> serviceTypes = SubscriptionDefinition.getAllServiceTypes();
     for (String serviceType : serviceTypes) {
-      log.info("Producing hourly snapshots for orgId {} for service type {} ", orgId, serviceType);
+      log.debug("Producing hourly snapshots for orgId {} for service type {} ", orgId, serviceType);
 
       try {
         TallyState currentState =
@@ -193,7 +193,7 @@ public class TallySnapshotController {
               SnapshotSummaryProducer.hourlySnapFilter);
         }
 
-        log.info("Finished producing {} hourly snapshots for orgId {}", serviceType, orgId);
+        log.debug("Finished producing {} hourly snapshots for orgId {}", serviceType, orgId);
       } catch (Exception e) {
         log.error(
             "Could not collect {} metrics and/or produce snapshots for with orgId {}",
@@ -202,6 +202,7 @@ public class TallySnapshotController {
             e);
       }
     }
+    log.info("Finished producing hourly snapshots for Org ID {}.", orgId);
   }
 
   private void recordTallyCount(List<TallySnapshot> snapshots) {

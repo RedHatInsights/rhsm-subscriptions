@@ -157,6 +157,8 @@ objects:
             - name: JAVA_DEBUG
               value: ${JAVA_DEBUG}
             - name: USER_OPTS_APPEND
+              value: ${USER_OPTS_APPEND}
+            - name: JAVA_TOOL_OPTIONS
               value: -javaagent:/opt/splunk-otel-javaagent.jar
             - name: SPRING_LIQUIBASE_ENABLED
               value: 'false'

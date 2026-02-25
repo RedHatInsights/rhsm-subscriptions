@@ -138,6 +138,12 @@ parameters:
     value: '1'
   - name: DB_CHANGELOG_CLEANUP_SQL
     value: 'select 1'
+# Increment in AppInterface before each migration
+  - name: DB_MIGRATION_RUN_NUMBER
+    value: '1'
+# Using a value of 'select 1' makes this job a no-op by default.
+  - name: DB_MIGRATION_SQL
+    value: 'select 1'
   - name: KAFKA_BILLABLE_USAGE_REPLICAS
     value: '3'
   - name: KAFKA_BILLABLE_USAGE_PARTITIONS
@@ -232,6 +238,20 @@ parameters:
   # allow overriding to support independent deploy with bonfire
   - name: DB_POD
     value: swatch-database
+  - name: OTEL_SIDECAR_IMAGE
+    value: quay.io/signalfx/splunk-otel-collector:0.140.0
+  - name: OTEL_SIDECAR_CONFIG_MAP
+    value: swatch-otel-config
+  - name: OTEL_SIDECAR_SPLUNK_CONFIG
+    value: '/etc/otelcol/relay'
+  - name: OTEL_ENV_NAME
+    value: env-swatch-tally
+  - name: OTEL_K8S_CLUSTER_NAME
+    value: ephemeral
+  - name: OTEL_SIGNALFX_TOKEN_SECRET_NAME
+    value: signalfx
+  - name: OTEL_SIGNALFX_TOKEN_SECRET_KEY
+    value: token
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -295,6 +315,8 @@ objects:
                   value: ${JAVA_DEBUG}
                 - name: SPRING_PROFILES_ACTIVE
                   value: liquibase-only
+                - name: JAVA_TOOL_OPTIONS
+                  value: ''
               inheritEnv: true
               resources:
                 requests:
@@ -307,6 +329,8 @@ objects:
             - name: JAVA_DEBUG
               value: ${JAVA_DEBUG}
             - name: USER_OPTS_APPEND
+              value: ${USER_OPTS_APPEND}
+            - name: JAVA_TOOL_OPTIONS
               value: -javaagent:/opt/splunk-otel-javaagent.jar
             - name: ENABLE_SPLUNK_HEC
               value: ${ENABLE_SPLUNK_HEC}
@@ -485,6 +509,7 @@ objects:
               value: ${OTEL_JAVAAGENT_ENABLED}
             - name: EVENT_RECORD_RETENTION
               value: ${EVENT_RECORD_RETENTION}
+
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -524,6 +549,25 @@ objects:
               secret:
                 secretName: pinhead
           machinePool: ${MACHINE_POOL}
+          sidecars:
+          - name: otel-collector
+            enabled: true
+            configMap: ${OTEL_SIDECAR_CONFIG_MAP}
+            image: ${OTEL_SIDECAR_IMAGE}
+            envVars:
+              - name: ENV_NAME
+                value: ${OTEL_ENV_NAME}
+              - name: K8S_CLUSTER_NAME
+                value: ${OTEL_K8S_CLUSTER_NAME}
+              - name: SPLUNK_OBSERVABILITY_ACCESS_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: ${OTEL_SIGNALFX_TOKEN_SECRET_NAME}
+                    key: ${OTEL_SIGNALFX_TOKEN_SECRET_KEY}
+              - name: SPLUNK_CONFIG
+                value: ${OTEL_SIDECAR_SPLUNK_CONFIG}
+              - name: SPLUNK_MEMORY_TOTAL_MIB
+                value: '1024'
 
     jobs:
       - name: tally
@@ -665,25 +709,31 @@ objects:
         cpu: 200m
         memory: 250Mi
     queries:
-    - prefix: swatch/tally
+    - prefix: swatch/tally_snapshots
       query: >-
         select
-        org_id,
-        snapshot_date,
-        product_id,
-        measurement_type,
-        metric_id,
-        metric_id as uom,
-        value
+        s.id,
+        s.org_id,
+        s.snapshot_date,
+        s.product_id
         from tally_snapshots s
-        join tally_measurements tm on s.id = tm.snapshot_id
-        where sla = '_ANY'
-        and usage = '_ANY'
-        and billing_provider = '_ANY'
-        and billing_account_id = '_ANY'
-        and granularity='DAILY'
-        and measurement_type!='TOTAL'
-        AND snapshot_date >= date_trunc('day', now() at time zone 'utc' - interval '2 day');
+        where s.sla = '_ANY'
+        and s.usage = '_ANY'
+        and s.billing_provider = '_ANY'
+        and s.billing_account_id = '_ANY'
+        and s.granularity = 'DAILY'
+        and s.last_modified >= date_trunc('day', now() at time zone 'utc' - interval '2 day')
+      chunksize: 50000
+    - prefix: swatch/tally_measurements
+      query: >-
+        select
+        m.snapshot_id,
+        m.measurement_type,
+        m.metric_id,
+        m.value
+        from tally_measurements m
+        where m.measurement_type != 'TOTAL'
+        and m.last_modified >= date_trunc('day', now() at time zone 'utc' - interval '2 day')
       chunksize: 50000
     - prefix: swatch/subscriptions
       query: >-
@@ -769,7 +819,7 @@ objects:
         podSpec:
           image: ${EGRESS_IMAGE}:${EGRESS_IMAGE_TAG}
           name: db-changelog-cleanup
-          command: ["/bin/sh", "-c"]
+          command: [ "/bin/sh", "-c" ]
           args:
           - psql -h $POSTGRESQL_SERVICE_HOST -U $POSTGRESQL_USER $POSTGRESQL_DATABASE -c "$DB_CHANGELOG_CLEANUP_SQL"
           resources:
@@ -803,6 +853,50 @@ objects:
           - name: DB_CHANGELOG_CLEANUP_SQL
             value: ${DB_CHANGELOG_CLEANUP_SQL}
 
+      - name: tally-manual-migration-${DB_MIGRATION_RUN_NUMBER}
+        restartPolicy: Never
+        podSpec:
+          image: ${EGRESS_IMAGE}:${EGRESS_IMAGE_TAG}
+          name: db-changelog-cleanup
+          command: [ "/bin/sh", "-c" ]
+          args:
+          # **Note that DB_MIGRATION_SQL will not be run in a transaction!**
+          # If you need a transaction, the SQL must declare it.  The lack of a transaction here is
+          # intentional since creating indexes concurrently requires running them outside a
+          # transaction.  psql has a -c argument to run a command, but that argument implicitly
+          # wraps the statement in a transaction
+          - echo '$DB_MIGRATION_SQL' | psql -h $POSTGRESQL_SERVICE_HOST -U $POSTGRESQL_USER $POSTGRESQL_DATABASE
+          resources:
+            requests:
+              cpu: 100m
+              memory: 50Mi
+            limits:
+              cpu: 100m
+              memory: 100Mi
+          env:
+          - name: POSTGRESQL_SERVICE_HOST
+            valueFrom:
+              secretKeyRef:
+                name: ${DB_POD}-db
+                key: db.host
+          - name: POSTGRESQL_USER
+            valueFrom:
+              secretKeyRef:
+                name: ${DB_POD}-db
+                key: db.user
+          - name: POSTGRESQL_DATABASE
+            valueFrom:
+              secretKeyRef:
+                name: ${DB_POD}-db
+                key: db.name
+          - name: PGPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: ${DB_POD}-db
+                key: db.password
+          - name: DB_MIGRATION_SQL
+            value: ${DB_MIGRATION_SQL}
+
 - apiVersion: cloud.redhat.com/v1alpha1
   kind: ClowdJobInvocation
   metadata:
@@ -811,3 +905,12 @@ objects:
     appName: swatch-db-changelog-cleanup
     jobs:
       - db-changelog-cleanup-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdJobInvocation
+  metadata:
+    name: tally-manual-migration-${DB_MIGRATION_RUN_NUMBER}
+  spec:
+    appName: swatch-db-changelog-cleanup
+    jobs:
+    - tally-manual-migration-${DB_MIGRATION_RUN_NUMBER}

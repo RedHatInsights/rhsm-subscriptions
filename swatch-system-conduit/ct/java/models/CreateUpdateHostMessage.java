@@ -18,31 +18,28 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package api;
+package models;
 
-import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
-import models.CreateUpdateHostMessage;
+import com.redhat.swatch.system.conduit.test.model.inventory.HbiHost;
+import java.util.HashMap;
+import java.util.Map;
 
-public class MessageValidators {
+/**
+ * Represents a message that is sent to the inventory service's kafka instance to request the
+ * creation/update of a host in the inventory service.
+ */
+public class CreateUpdateHostMessage extends HostOperationMessage<Map<String, String>, HbiHost> {
 
-  /**
-   * Creates a validator that matches CreateUpdateHostMessage messages for a specific orgId.
-   *
-   * @param orgId the orgId to match
-   * @return a MessageValidator that matches add_host message of the given orgId
-   */
-  public static DefaultMessageValidator<CreateUpdateHostMessage> addHostMessageMatchesOrgId(
-      String orgId) {
-    var operation = "add_host";
+  public CreateUpdateHostMessage() {
+    this.operation = "add_host";
+    this.metadata = new HashMap<>();
+  }
 
-    return new DefaultMessageValidator<>(
-        message -> {
-          if (message == null || message.getData() == null) {
-            return false;
-          }
-          return operation.equals(message.getOperation())
-              && orgId.equals(message.getData().getOrgId());
-        },
-        CreateUpdateHostMessage.class);
+  public CreateUpdateHostMessage(HbiHost host) {
+    super("add_host", new HashMap<>(), host);
+  }
+
+  public void setMetadata(String key, String value) {
+    this.metadata.put(key, value);
   }
 }

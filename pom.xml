@@ -20,18 +20,18 @@
     <codegen.skipIfSpecIsUnchanged>true</codegen.skipIfSpecIsUnchanged>
 
     <!-- Dependencies -->
-    <quarkus.platform.version>3.31.3</quarkus.platform.version>
-    <spring.boot.version>3.5.10</spring.boot.version>
+    <quarkus.platform.version>3.31.4</quarkus.platform.version>
+    <spring.boot.version>3.5.11</spring.boot.version>
     <resteasy.version>7.0.0.Final</resteasy.version>
     <!-- Only use as provided in the common dependencies.
     Spring and Quarkus already provides the compatible Jackson versions -->
-    <jackson.version>2.21.0</jackson.version>
+    <jackson.version>2.21.1</jackson.version>
     <mapstruct.version>1.6.3</mapstruct.version>
     <slf4j.version>2.0.17</slf4j.version>
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
     <opentelemetry-api.version>1.59.0</opentelemetry-api.version>
-    <awssdk-bom.version>2.41.31</awssdk-bom.version>
+    <awssdk-bom.version>2.42.1</awssdk-bom.version>
     <guava.version>33.5.0-jre</guava.version>
     <liquibase.version>5.0.1</liquibase.version>
     <postgresql.version>42.7.10</postgresql.version>
@@ -40,14 +40,14 @@
     <mockito.version>5.21.0</mockito.version>
     <awaitility.version>4.3.0</awaitility.version>
     <hibernate-validator.version>9.1.0.Final</hibernate-validator.version>
-    <swagger-parser.version>2.1.37</swagger-parser.version>
-    <swagger-ui.version>5.31.0</swagger-ui.version>
-    <splunk-otel-javaagent.version>2.24.0</splunk-otel-javaagent.version>
+    <swagger-parser.version>2.1.38</swagger-parser.version>
+    <swagger-ui.version>5.31.2</swagger-ui.version>
+    <splunk-otel-javaagent.version>2.25.0</splunk-otel-javaagent.version>
     <insights-notification-schemas-java.version>1.1.0</insights-notification-schemas-java.version>
 
     <!-- Plugins -->
     <compiler-plugin.version>3.15.0</compiler-plugin.version>
-    <surefire-plugin.version>3.5.4</surefire-plugin.version>
+    <surefire-plugin.version>3.5.5</surefire-plugin.version>
     <maven-jar-plugin.version>3.5.0</maven-jar-plugin.version>
     <maven-assembly-plugin.version>3.8.0</maven-assembly-plugin.version>
     <exec-maven-plugin.version>3.6.3</exec-maven-plugin.version>
@@ -57,7 +57,7 @@
     <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
     <maven-antrun-plugin.version>3.2.0</maven-antrun-plugin.version>
     <sonar-maven-plugin.version>5.5.0.6356</sonar-maven-plugin.version>
-    <swagger-codegen-maven-plugin.version>3.0.77</swagger-codegen-maven-plugin.version>
+    <swagger-codegen-maven-plugin.version>3.0.78</swagger-codegen-maven-plugin.version>
 
     <!-- Sonar configuration -->
     <sonar.host.url>https://sonarcloud.io</sonar.host.url>

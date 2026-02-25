@@ -1,5 +1,4 @@
 ---
-version: '3.8'
 volumes:
   # Postgresql data will be stored in this volume.  To delete the volume when taking
   # an environment down run podman-compose down -v
@@ -157,7 +156,7 @@ services:
       kafka:
         condition: service_healthy
   inventory:
-    image: quay.io/cloudservices/insights-inventory
+    image: quay.io/redhat-services-prod/insights-management-tenant/insights-host-inventory/insights-host-inventory
     entrypoint: /bin/bash -c
     command: ["make upgrade_db && ./run_gunicorn.py"]
     environment:
