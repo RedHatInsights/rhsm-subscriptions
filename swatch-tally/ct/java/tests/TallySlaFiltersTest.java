@@ -23,6 +23,8 @@ package tests;
 import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
 import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 
+import com.redhat.swatch.component.tests.annotations.TestPlanName;
+
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallySummary;
 import java.time.OffsetDateTime;
@@ -42,6 +44,7 @@ public class TallySlaFiltersTest extends BaseTallyComponentTest {
   private static final List<Sla> slas = List.of(Sla.PREMIUM, Sla.STANDARD, Sla.SELF_SUPPORT);
 
   @Test
+  @TestPlanName("tally-sla-filters-TC001")
   public void testTallySlaFiltersCount() {
     // Given: Events for each SLA type and one event with no SLA
     OffsetDateTime now = OffsetDateTime.now();

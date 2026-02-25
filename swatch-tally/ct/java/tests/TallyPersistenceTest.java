@@ -24,6 +24,7 @@ import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INST
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static utils.TallyTestProducts.OPENSHIFT_DEDICATED;
 
+import com.redhat.swatch.component.tests.annotations.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.tally.test.model.InstanceResponse;
 import com.redhat.swatch.tally.test.model.TallyReportData;
@@ -60,6 +61,7 @@ public class TallyPersistenceTest extends BaseTallyComponentTest {
   }
 
   @Test
+  @TestPlanName("tally-persistence-TC001")
   public void testTallyReportPersistsWithDateTimeRangeVariations() {
     // Given: Initial tally reports for today and yesterday
     service.performHourlyTallyForOrg(setup.orgId);
@@ -82,6 +84,7 @@ public class TallyPersistenceTest extends BaseTallyComponentTest {
   }
 
   @Test
+  @TestPlanName("tally-persistence-TC002")
   public void testInstanceReportPersistsWithDateTimeRangeVariations() {
     // Given: Initial instances report for yesterday
     service.performHourlyTallyForOrg(setup.orgId);

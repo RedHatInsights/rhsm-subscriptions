@@ -26,6 +26,7 @@ import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_UNCONVERTED;
 
 import api.MessageValidators;
+import com.redhat.swatch.component.tests.annotations.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallySummary;
@@ -42,6 +43,7 @@ import org.junit.jupiter.api.Test;
 public class TallySummaryComponentTest extends BaseTallyComponentTest {
 
   @Test
+  @TestPlanName("tally-summary-TC001")
   public void testTallyNightlySummaryEmitsGranularityDaily() {
     // Given: Seeded nightly tally host buckets
     final String testInventoryId = UUID.randomUUID().toString();
@@ -63,6 +65,7 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
   }
 
   @Test
+  @TestPlanName("tally-summary-TC002")
   public void testTallyNightlySummaryHasNoTotalMeasurements() {
     // Given: Seeded nightly tally host buckets
     final String testInventoryId = UUID.randomUUID().toString();
@@ -99,6 +102,7 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
   }
 
   @Test
+  @TestPlanName("tally-summary-TC003")
   public void testTallyHourlySummaryEmitsNoGranularityDaily() {
     // Given: Events within the last day for hourly tally
     final String testInstanceId = UUID.randomUUID().toString();
@@ -135,6 +139,7 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
   }
 
   @Test
+  @TestPlanName("tally-summary-TC004")
   public void testTallyHourlySummaryEmitsGranularityHourly() {
     // Given: Events within the last day for hourly tally
     final String testInstanceId = UUID.randomUUID().toString();

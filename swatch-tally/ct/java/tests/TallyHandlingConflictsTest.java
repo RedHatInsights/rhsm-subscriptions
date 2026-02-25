@@ -26,6 +26,7 @@ import static utils.TallyTestProducts.RHACM;
 import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 import static utils.TallyTestProducts.ROSA;
 
+import com.redhat.swatch.component.tests.annotations.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.tally.test.model.InstanceData;
@@ -57,6 +58,7 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
   }
 
   @Test
+  @TestPlanName("tally-conflicts-TC001")
   public void testTallyCorrectlyHandlesPositiveMetricValueUpdates() {
     // Given: An initial event with a metric value and a subsequent event with a higher positive
     // value
@@ -91,6 +93,7 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
   }
 
   @Test
+  @TestPlanName("tally-conflicts-TC002")
   public void testTallyCorrectlyHandlesNegativeMetricValueNoUpdates() {
     // Given: An initial event with a positive metric value
     float initialValue = 10.0f;
@@ -124,6 +127,7 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
   }
 
   @Test
+  @TestPlanName("tally-conflicts-TC003")
   public void testTallyMultipleProductsSameInstance() {
     // Given: One event per (product, metric) combination for the same instance
     for (TallyTestProducts product : List.of(RHACM, ROSA)) {
@@ -153,6 +157,7 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
   }
 
   @Test
+  @TestPlanName("tally-conflicts-TC004")
   public void testTallyMultipleProductsSameInstanceConflictingEvents() {
     // Given: Events for each product in the starting hour and conflicting events in the next hour
     for (TallyTestProducts product : List.of(RHACM, ROSA)) {
