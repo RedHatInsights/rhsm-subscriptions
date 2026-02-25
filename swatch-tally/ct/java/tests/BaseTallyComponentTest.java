@@ -33,10 +33,27 @@ import com.redhat.swatch.component.tests.utils.RandomUtils;
 import org.junit.jupiter.api.BeforeEach;
 import utils.TallyTestHelpers;
 
+/**
+ * Base class for swatch-tally component tests.
+ *
+ * <p>Provides common setup and infrastructure for all tally component tests:
+ *
+ * <ul>
+ *   <li>Static service instances - Configured with appropriate framework annotations
+ *   <li>Helper utilities - Common test data creation and verification methods
+ *   <li>Test setup - Generates unique organization ID for each test
+ * </ul>
+ *
+ * <p>Test classes should extend this base class and use the provided service instances and helpers.
+ */
 @ComponentTest(name = "swatch-tally")
 public class BaseTallyComponentTest {
 
+  // --- Static helper utilities ---
+
   static final TallyTestHelpers helpers = new TallyTestHelpers();
+
+  // --- Static service instances ---
 
   @Wiremock static TallyWiremockService wiremock = new TallyWiremockService();
 
@@ -46,7 +63,11 @@ public class BaseTallyComponentTest {
   @SpringBoot(service = "swatch-tally")
   static TallySwatchService service = new TallySwatchService();
 
+  // --- Instance fields ---
+
   protected String orgId;
+
+  // --- Lifecycle methods ---
 
   @BeforeEach
   void setUp() {

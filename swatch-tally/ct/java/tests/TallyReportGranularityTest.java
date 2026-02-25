@@ -52,6 +52,7 @@ public class TallyReportGranularityTest extends BaseTallyComponentTest {
 
   @Test
   public void testTallyReportGranularityDailyAllFilters() {
+    // Given: An org with opt-in config and daily granularity query parameters with all filters
     service.createOptInConfig(orgId);
 
     OffsetDateTime beginning =
@@ -68,26 +69,33 @@ public class TallyReportGranularityTest extends BaseTallyComponentTest {
             "billing_provider", TEST_BILLING_PROVIDER,
             "billing_account_id", TEST_BILLING_ACCOUNT_ID);
 
+    // When: Requesting tally report data with all filters
     TallyReportData response =
         service.getTallyReportData(orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams);
 
+    // Then: Response metadata should reflect all specified filters
     List<TallyReportDataPoint> data = response.getData();
     TallyReportDataMeta meta = response.getMeta();
 
-    assertNotNull(data);
-    assertNotNull(meta);
-    assertEquals(data.size(), meta.getCount());
-    assertEquals(GranularityType.DAILY, meta.getGranularity());
-    assertEquals(TEST_PRODUCT_TAG, meta.getProduct());
-    assertEquals(TEST_METRIC_ID, meta.getMetricId());
-    assertEquals(TEST_SLA, meta.getServiceLevel());
-    assertEquals(TEST_USAGE, meta.getUsage());
-    assertEquals(TEST_BILLING_PROVIDER, meta.getBillingProvider());
-    assertEquals(TEST_BILLING_ACCOUNT_ID, meta.getBillingAcountId());
+    assertNotNull(data, "Response data should not be null");
+    assertNotNull(meta, "Response metadata should not be null");
+    assertEquals(data.size(), meta.getCount(), "Data size should match metadata count");
+    assertEquals(GranularityType.DAILY, meta.getGranularity(), "Granularity should be DAILY");
+    assertEquals(TEST_PRODUCT_TAG, meta.getProduct(), "Product tag should match request");
+    assertEquals(TEST_METRIC_ID, meta.getMetricId(), "Metric ID should match request");
+    assertEquals(TEST_SLA, meta.getServiceLevel(), "Service level should match request");
+    assertEquals(TEST_USAGE, meta.getUsage(), "Usage should match request");
+    assertEquals(
+        TEST_BILLING_PROVIDER, meta.getBillingProvider(), "Billing provider should match request");
+    assertEquals(
+        TEST_BILLING_ACCOUNT_ID,
+        meta.getBillingAcountId(),
+        "Billing account ID should match request");
   }
 
   @Test
   public void testTallyReportGranularityDailySomeFilters() {
+    // Given: An org with opt-in config and daily granularity query parameters with partial filters
     service.createOptInConfig(orgId);
 
     OffsetDateTime beginning =
@@ -107,26 +115,29 @@ public class TallyReportGranularityTest extends BaseTallyComponentTest {
             "usage",
             TEST_USAGE);
 
+    // When: Requesting tally report data with some filters
     TallyReportData response =
         service.getTallyReportData(orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams);
 
+    // Then: Response metadata should reflect specified filters and omit unspecified ones
     List<TallyReportDataPoint> data = response.getData();
     TallyReportDataMeta meta = response.getMeta();
 
-    assertNotNull(data);
-    assertNotNull(meta);
-    assertEquals(data.size(), meta.getCount());
-    assertEquals(GranularityType.DAILY, meta.getGranularity());
-    assertEquals(TEST_PRODUCT_TAG, meta.getProduct());
-    assertEquals(TEST_METRIC_ID, meta.getMetricId());
-    assertEquals(TEST_SLA, meta.getServiceLevel());
-    assertEquals(TEST_USAGE, meta.getUsage());
-    assertNull(meta.getBillingProvider(), "meta should not contain billing_provider");
-    assertNull(meta.getBillingAcountId(), "meta should not contain billing_acount_id");
+    assertNotNull(data, "Response data should not be null");
+    assertNotNull(meta, "Response metadata should not be null");
+    assertEquals(data.size(), meta.getCount(), "Data size should match metadata count");
+    assertEquals(GranularityType.DAILY, meta.getGranularity(), "Granularity should be DAILY");
+    assertEquals(TEST_PRODUCT_TAG, meta.getProduct(), "Product tag should match request");
+    assertEquals(TEST_METRIC_ID, meta.getMetricId(), "Metric ID should match request");
+    assertEquals(TEST_SLA, meta.getServiceLevel(), "Service level should match request");
+    assertEquals(TEST_USAGE, meta.getUsage(), "Usage should match request");
+    assertNull(meta.getBillingProvider(), "Billing provider should not be present");
+    assertNull(meta.getBillingAcountId(), "Billing account ID should not be present");
   }
 
   @Test
   public void testTallyReportGranularityHourly() {
+    // Given: An org with opt-in config and hourly granularity query parameters with all filters
     service.createOptInConfig(orgId);
 
     OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.HOURS);
@@ -143,26 +154,33 @@ public class TallyReportGranularityTest extends BaseTallyComponentTest {
             "billing_provider", TEST_BILLING_PROVIDER,
             "billing_account_id", TEST_BILLING_ACCOUNT_ID);
 
+    // When: Requesting tally report data with hourly granularity
     TallyReportData response =
         service.getTallyReportData(orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams);
 
+    // Then: Response metadata should reflect hourly granularity and all filters
     List<TallyReportDataPoint> data = response.getData();
     TallyReportDataMeta meta = response.getMeta();
 
-    assertNotNull(data);
-    assertNotNull(meta);
-    assertEquals(data.size(), meta.getCount());
-    assertEquals(GranularityType.HOURLY, meta.getGranularity());
-    assertEquals(TEST_PRODUCT_TAG, meta.getProduct());
-    assertEquals(TEST_METRIC_ID, meta.getMetricId());
-    assertEquals(TEST_SLA, meta.getServiceLevel());
-    assertEquals(TEST_USAGE, meta.getUsage());
-    assertEquals(TEST_BILLING_PROVIDER, meta.getBillingProvider());
-    assertEquals(TEST_BILLING_ACCOUNT_ID, meta.getBillingAcountId());
+    assertNotNull(data, "Response data should not be null");
+    assertNotNull(meta, "Response metadata should not be null");
+    assertEquals(data.size(), meta.getCount(), "Data size should match metadata count");
+    assertEquals(GranularityType.HOURLY, meta.getGranularity(), "Granularity should be HOURLY");
+    assertEquals(TEST_PRODUCT_TAG, meta.getProduct(), "Product tag should match request");
+    assertEquals(TEST_METRIC_ID, meta.getMetricId(), "Metric ID should match request");
+    assertEquals(TEST_SLA, meta.getServiceLevel(), "Service level should match request");
+    assertEquals(TEST_USAGE, meta.getUsage(), "Usage should match request");
+    assertEquals(
+        TEST_BILLING_PROVIDER, meta.getBillingProvider(), "Billing provider should match request");
+    assertEquals(
+        TEST_BILLING_ACCOUNT_ID,
+        meta.getBillingAcountId(),
+        "Billing account ID should match request");
   }
 
   @Test
   public void testTallyReportInvalidWithoutGranularity() {
+    // Given: An org with opt-in config and query parameters missing granularity
     service.createOptInConfig(orgId);
 
     OffsetDateTime beginning =
@@ -174,10 +192,14 @@ public class TallyReportGranularityTest extends BaseTallyComponentTest {
             "beginning", beginning.toString(),
             "ending", ending.toString());
 
+    // When: Requesting tally report data without granularity parameter
     Response resp =
         service.getTallyReportDataRaw(orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams);
 
-    assertEquals(400, resp.getStatusCode());
-    assertTrue(resp.getBody().asString().contains("granularity: must not be null"));
+    // Then: Request should fail with validation error
+    assertEquals(400, resp.getStatusCode(), "Request should return 400 Bad Request");
+    assertTrue(
+        resp.getBody().asString().contains("granularity: must not be null"),
+        "Error message should indicate granularity is required");
   }
 }

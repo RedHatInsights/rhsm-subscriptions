@@ -41,22 +41,22 @@ public class TallyHypervisorTests extends BaseTallyComponentTest {
 
   @Test
   public void testHypervisorWithNoGuestsDoesNotShowInInstancesReport() {
+    // Given: Baseline tally data and a hypervisor host with no guests
     helpers.seedNightlyTallyHostBuckets(
         orgId, RHEL_FOR_X86.productTag(), UUID.randomUUID().toString(), service);
-
     service.tallyOrg(orgId);
 
     OffsetDateTime startOfToday = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
     OffsetDateTime endOfToday = startOfToday.plusDays(1).minusNanos(1);
 
-    // Seed a "hypervisor" host with no guests and no buckets.
     TallyDbHostSeeder.SeededHost hypervisorHost =
         TallyDbHostSeeder.insertHost(
             orgId, UUID.randomUUID().toString(), "VIRTUAL", false, false, true, 0, null);
 
+    // When: Running tally for the org
     service.tallyOrg(orgId);
 
-    // System table check: ensure the host does not show up in instances report.
+    // Then: Hypervisor without guests should not appear in instances report
     var instancesResponse =
         service.getInstancesByProduct(orgId, RHEL_FOR_X86.productTag(), startOfToday, endOfToday);
     var data = instancesResponse.getData();
@@ -67,10 +67,9 @@ public class TallyHypervisorTests extends BaseTallyComponentTest {
 
   @Test
   public void testHypervisorWithNoGuestsDoesNotChangeDailyTotal() {
-    // Seed baseline usage (non-zero) so we can assert it doesn't change.
+    // Given: Baseline usage and a hypervisor host with no guests
     helpers.seedNightlyTallyHostBuckets(
         orgId, RHEL_FOR_X86.productTag(), UUID.randomUUID().toString(), service);
-
     service.tallyOrg(orgId);
 
     OffsetDateTime startOfToday = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
@@ -78,16 +77,19 @@ public class TallyHypervisorTests extends BaseTallyComponentTest {
 
     long initialSockets = getDailySocketsTotal(startOfToday, endOfToday);
 
-    // Seed a "hypervisor" host with no guests and no buckets.
     TallyDbHostSeeder.insertHost(
         orgId, UUID.randomUUID().toString(), "VIRTUAL", false, false, true, 0, null);
 
+    // When: Running tally for the org
     service.tallyOrg(orgId);
 
+    // Then: Hypervisor without guests should not change the total sockets
     long newSockets = getDailySocketsTotal(startOfToday, endOfToday);
     assertEquals(
         initialSockets, newSockets, "Hypervisor without guests should not change total sockets");
   }
+
+  // --- Then helper methods ---
 
   private long getDailySocketsTotal(OffsetDateTime beginning, OffsetDateTime ending) {
     var resp =
