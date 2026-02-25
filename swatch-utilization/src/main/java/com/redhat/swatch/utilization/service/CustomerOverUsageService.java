@@ -157,7 +157,6 @@ public class CustomerOverUsageService {
           overagePercent,
           threshold);
       MetricId metricId = MetricId.fromString(measurement.getMetricId());
-      incrementOverUsageCounter(payload, metricId);
       sendNotification(payload, metricId, utilizationPercent);
     } else {
       log.debug(
@@ -222,6 +221,7 @@ public class CustomerOverUsageService {
     }
 
     Action action = buildNotificationAction(payload, metricId, utilizationPercent);
+    incrementOverUsageCounter(payload, metricId);
     notificationsProducer.produce(action);
   }
 

@@ -76,16 +76,17 @@ public class UtilizationSummaryMeasurementValidator {
       metric = MetricId.fromString(metricIdString);
       if (!supportedMetrics.contains(metric)) {
         log.warn(
-            "Received utilization summary with unsupported metricId '{}' in product '{}'. Payload: {}",
+            "Received utilization summary with unsupported metricId '{}' in product '{}'. OrgId: {}",
             metricIdString,
             payload.getProductId(),
-            payload);
+            payload.getOrgId());
       }
     } catch (IllegalArgumentException e) {
       log.warn(
-          "Received utilization summary with invalid metricId '{}'. Payload: {}",
+          "Received utilization summary with invalid metricId '{}' for product '{}'. OrgId: {}",
           metricIdString,
-          payload);
+          payload.getProductId(),
+          payload.getOrgId());
     }
 
     return metric;
