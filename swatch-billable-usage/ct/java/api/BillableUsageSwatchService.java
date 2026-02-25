@@ -32,9 +32,9 @@ public class BillableUsageSwatchService extends SwatchService {
 
   private static final String ENDPOINT_PREFIX = "/api/swatch-billable-usage/internal";
   private static final String REMITTANCE_ENDPOINT =
-      ENDPOINT_PREFIX + "/remittance/accountRemittances/{tallyId}";
-  private static final String ACCOUNT_REMITTANCES_ENDPOINT =
       ENDPOINT_PREFIX + "/remittance/accountRemittances";
+  private static final String REMITTANCE_ENDPOINT_BY_TALLY_ID =
+      ENDPOINT_PREFIX + "/remittance/accountRemittances/{tallyId}";
   private static final String FLUSH_ENDPOINT = ENDPOINT_PREFIX + "/rpc/topics/flush";
 
   /**
@@ -45,7 +45,7 @@ public class BillableUsageSwatchService extends SwatchService {
    */
   public List<TallyRemittance> getRemittancesByTallyId(String tallyId) {
     return given()
-        .get(REMITTANCE_ENDPOINT, tallyId)
+        .get(REMITTANCE_ENDPOINT_BY_TALLY_ID, tallyId)
         .then()
         .statusCode(HttpStatus.SC_OK)
         .extract()
@@ -75,7 +75,7 @@ public class BillableUsageSwatchService extends SwatchService {
         .queryParam("metricId", metricId)
         .queryParam("billingProvider", billingProvider)
         .queryParam("billingAccountId", billingAccountId)
-        .get(ACCOUNT_REMITTANCES_ENDPOINT)
+        .get(REMITTANCE_ENDPOINT)
         .then()
         .statusCode(HttpStatus.SC_OK)
         .extract()

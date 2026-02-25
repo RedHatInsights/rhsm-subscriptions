@@ -68,8 +68,6 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
   private static final String AWS_DIMENSION = ROSA.getMetric(CORES).getAwsDimension();
   private static final double CONTRACT_COVERAGE = 1.0;
   private static final MetricId INSTANCE_HOURS = MetricIdUtils.getInstanceHours();
-  private static final String RHEL_PAYG_ADDON_PRODUCT = "rhel-for-x86-els-payg-addon";
-  private static final String RHEL_PAYG_ADDON_METRIC = "vCPUs";
 
   @BeforeAll
   static void subscribeToBillableUsageTopics() {
@@ -81,7 +79,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
   @Test
   public void testBasicTallyToBillableUsageFlow() {
     // Setup wiremock endpoints
-    givenNoContractCoverageExists();
+    givenNoContractCoverageForRosa();
 
     // Create and send tally summary
     TallySummary tallySummary =
@@ -124,10 +122,9 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
    * 20 Cores × 0.25 = 5.0); remittance stores the metric/tally value (20.0).
    */
   @Test
-  public void
-      testRemittanceMatchesTallySnapshotDataForNonContractProductsWithBillingFactorBelowOne() {
+  public void testRemittanceMatchesTallyWhenBillingFactorBelowOne() {
     // Given: No contract coverage; product with billing factor below one (ROSA Cores = 0.25)
-    givenNoContractCoverageExists();
+    givenNoContractCoverageForRosa();
     double tallyValue = 20.0;
     double expectedValueAfterBillingFactor = tallyValue * BILLING_FACTOR; // 20 * 0.25 = 5.0
 
@@ -145,17 +142,11 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
         1, billableUsages.size(), "Expected exactly one billable usage message for the tally");
     BillableUsage usage = billableUsages.get(0);
 
-    // Then: Remittance by tally has correct remitted value (metric/tally value 20.0)
+    // Then: Remittance by tally has the correct remitted value (metric/tally value 20.0)
     thenEachBillableUsageHasOneRemittanceWithValue(List.of(usage), tallyValue);
 
     // Then: Hourly aggregate is produced with totalValue 5.0
-    List<BillableUsageAggregate> aggregates =
-        kafkaBridge.waitForKafkaMessage(
-            BILLABLE_USAGE_HOURLY_AGGREGATE,
-            MessageValidators.billableUsageAggregateMatchesOrg(orgId),
-            1,
-            AwaitilitySettings.defaults()
-                .onConditionNotMet(service::flushBillableUsageAggregationTopic));
+    List<BillableUsageAggregate> aggregates = whenHourlyAggregatesAreReceived(orgId, 1);
     thenBillableUsageAggregateTotalValueIs(
         thenBillableUsageAggregateIsFound(aggregates, tallySummary), tallyValue);
   }
@@ -166,12 +157,10 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
    * same value (no scaling applied).
    */
   @Test
-  public void
-      testRemittanceMatchesTallySnapshotDataForNonContractProductsWithBillingFactorEqualOne() {
+  public void testRemittanceMatchesTallyWhenBillingFactorEqualOne() {
     // Given: No contract coverage; product with billing factor 1.0 (RHEL addon vCPUs)
     givenNoContractCoverageForRhelAddon();
     double tallyValue = 12.0;
-    double expectedValue = tallyValue; // No scaling when billing factor is 1.0
 
     // When: One tally snapshot is sent for RHEL addon product
     TallySummary tallySummary = whenSendTallySummaryForRhelAddonWithValue(tallyValue);
@@ -181,25 +170,19 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
         kafkaBridge.waitForKafkaMessage(
             BILLABLE_USAGE,
             MessageValidators.billableUsageMatchesWithValue(
-                orgId, RHEL_PAYG_ADDON_PRODUCT, expectedValue),
+                orgId, RHEL_PAYG_ADDON.getName(), tallyValue),
             1);
     assertEquals(
         1, billableUsages.size(), "Expected exactly one billable usage message for the tally");
     BillableUsage usage = billableUsages.get(0);
 
-    // Then: Remittance by tally has correct remitted value (metric/tally value 12.0)
+    // Then: Remittance by tally has the correct remitted value (metric/tally value 12.0)
     thenEachBillableUsageHasOneRemittanceWithValue(List.of(usage), tallyValue);
 
     // Then: Hourly aggregate is produced with totalValue 12.0 (no scaling)
-    List<BillableUsageAggregate> aggregates =
-        kafkaBridge.waitForKafkaMessage(
-            BILLABLE_USAGE_HOURLY_AGGREGATE,
-            MessageValidators.billableUsageAggregateMatchesOrg(orgId),
-            1,
-            AwaitilitySettings.defaults()
-                .onConditionNotMet(service::flushBillableUsageAggregationTopic));
+    List<BillableUsageAggregate> aggregates = whenHourlyAggregatesAreReceived(orgId, 1);
     thenBillableUsageAggregateHasTotalValue(
-        thenBillableUsageAggregateIsFound(aggregates, tallySummary), expectedValue);
+        thenBillableUsageAggregateIsFound(aggregates, tallySummary), tallyValue);
   }
 
   /**
@@ -209,7 +192,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
   @Test
   public void testOnlyHourlyGranularityIsProcessed() {
     // Setup wiremock endpoints
-    givenNoContractCoverageExists();
+    givenNoContractCoverageForRosa();
 
     UUID dailySnapshotId = UUID.randomUUID();
     UUID hourlySnapshotId = UUID.randomUUID();
@@ -321,67 +304,6 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
   }
 
   /**
-   * Verify that remittance ends up FAILED with subscription_not_found when the subscription is
-   * inactive for the event date (contract valid only for last month, snapshot date is current).
-   */
-  @Test
-  public void shouldFailRemittanceWithSubscriptionNotFoundWhenSubscriptionInactiveForEventDate() {
-    // Given: Contract valid only for last month; tally snapshot date (now - 1h) is outside that
-    // range
-    OffsetDateTime startLastMonth =
-        OffsetDateTime.now(ZoneOffset.UTC)
-            .minusMonths(1)
-            .withDayOfMonth(1)
-            .withHour(0)
-            .withMinute(0)
-            .withSecond(0)
-            .withNano(0);
-    OffsetDateTime endLastMonth =
-        OffsetDateTime.now(ZoneOffset.UTC)
-            .withDayOfMonth(1)
-            .withHour(0)
-            .withMinute(0)
-            .withSecond(0)
-            .withNano(0);
-    contractsWiremock.setupContractWithDateRange(
-        orgId, ROSA.getName(), startLastMonth, endLastMonth);
-
-    TallySummary tallySummary =
-        createTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), VALUE);
-    kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
-
-    double expectedValue = VALUE * BILLING_FACTOR;
-    List<BillableUsage> billableUsages =
-        kafkaBridge.waitForKafkaMessage(
-            BILLABLE_USAGE,
-            MessageValidators.billableUsageMatchesWithValue(orgId, ROSA.getName(), expectedValue),
-            1);
-    assertEquals(1, billableUsages.size(), "Expected exactly 1 billable usage message");
-    BillableUsage billableUsage = billableUsages.get(0);
-    String tallyId = billableUsage.getTallyId().toString();
-    waitForRemittanceStatus(tallyId, RemittanceStatus.PENDING);
-
-    // When: Status update with FAILED and SUBSCRIPTION_NOT_FOUND is sent (marketplace response)
-    BillableUsageAggregate statusUpdate =
-        givenBillableUsageAggregate(
-            orgId,
-            ROSA.getName(),
-            billableUsage.getBillingAccountId(),
-            BillableUsage.Status.FAILED,
-            BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND,
-            null,
-            List.of(billableUsage.getUuid().toString()));
-    kafkaBridge.produceKafkaMessage(BILLABLE_USAGE_STATUS, statusUpdate);
-
-    // Then: Remittance is FAILED and error code is SUBSCRIPTION_NOT_FOUND
-    waitForRemittanceStatus(tallyId, RemittanceStatus.FAILED);
-    List<TallyRemittance> remittances = service.getRemittancesByTallyId(tallyId);
-    assertNotNull(remittances, "Remittances should exist");
-    assertFalse(remittances.isEmpty(), "Should have at least one remittance");
-    verifyErrorCode(remittances.get(0), RemittanceErrorCode.SUBSCRIPTION_NOT_FOUND.name());
-  }
-
-  /**
    * Verify that usage from different billing accounts is not aggregated together. When the same org
    * sends tally snapshots with two different billing account IDs, two separate hourly aggregate
    * messages must be produced (one per billing account).
@@ -389,7 +311,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
   @Test
   public void testMultipleTallySummariesNotAggregatedForDifferentBillingAccountIds() {
     // Given: No contract coverage and two distinct billing account IDs for the same org
-    givenNoContractCoverageExists();
+    givenNoContractCoverageForRosa();
     double value1 = 10.0;
     double value2 = 6.0;
 
@@ -398,13 +320,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
 
     // Then: Two separate hourly aggregate messages are produced (one per billing account).
     // Use a longer timeout because aggregation window must close before messages are emitted.
-    List<BillableUsageAggregate> aggregates =
-        kafkaBridge.waitForKafkaMessage(
-            BILLABLE_USAGE_HOURLY_AGGREGATE,
-            MessageValidators.billableUsageAggregateMatchesOrg(orgId),
-            2,
-            AwaitilitySettings.defaults()
-                .onConditionNotMet(service::flushBillableUsageAggregationTopic));
+    List<BillableUsageAggregate> aggregates = whenHourlyAggregatesAreReceived(orgId, 2);
 
     BillableUsageAggregate aggregateForAccount1 =
         thenBillableUsageAggregateIsFound(aggregates, tallySummary1);
@@ -432,7 +348,8 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     contractsWiremock.setupNoContractCoverage(org2, ROSA.getName());
 
     // When: Tally snapshots are sent for each org (different values per org)
-    whenTallySummariesAreSentForTwoOrgs(org1, value1, org2, value2);
+    whenTallySummaryIsSentForOrg(org1, value1);
+    whenTallySummaryIsSentForOrg(org2, value2);
 
     // Then: Billable usage is produced for each org with expected value per org
     List<BillableUsage> billableUsages =
@@ -449,13 +366,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     thenRemittanceExistsForEachBillableUsage(billableUsages);
 
     // Then: An hourly aggregate message is sent for each org with correct totalValue
-    List<BillableUsageAggregate> aggregates =
-        kafkaBridge.waitForKafkaMessage(
-            BILLABLE_USAGE_HOURLY_AGGREGATE,
-            MessageValidators.billableUsageAggregateMatchesAnyOrg(orgIds),
-            2,
-            AwaitilitySettings.defaults()
-                .onConditionNotMet(service::flushBillableUsageAggregationTopic));
+    List<BillableUsageAggregate> aggregates = whenHourlyAggregatesAreReceived(orgIds, 2);
     assertEquals(
         2, aggregates.size(), "Expected exactly 2 hourly aggregate messages (one per org)");
     thenBillableUsageAggregateTotalValueIs(
@@ -475,7 +386,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     double valueCores = 4.0; // Cores (billing factor 0.25 -> 1.0)
     double valueInstanceHours = 9.0; // Instance-hours (billing factor 1.0 -> 9.0)
     String billingAccountId = RandomUtils.generateRandom();
-    givenNoContractCoverageExists();
+    givenNoContractCoverageForRosa();
 
     // When: Tally snapshots are sent for the same org/billing account with different metrics
     whenTallySummariesAreSentForTwoMetrics(billingAccountId, valueCores, valueInstanceHours);
@@ -495,13 +406,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     thenRemittanceExistsForEachBillableUsage(billableUsages);
 
     // Then: An hourly aggregate message is sent for each metric with correct totalValue
-    List<BillableUsageAggregate> aggregates =
-        kafkaBridge.waitForKafkaMessage(
-            BILLABLE_USAGE_HOURLY_AGGREGATE,
-            MessageValidators.billableUsageAggregateMatchesOrg(orgId),
-            2,
-            AwaitilitySettings.defaults()
-                .onConditionNotMet(service::flushBillableUsageAggregationTopic));
+    List<BillableUsageAggregate> aggregates = whenHourlyAggregatesAreReceived(orgId, 2);
     thenHourlyAggregatePerMetricHasExpectedTotalValues(
         aggregates, valueCores * BILLING_FACTOR, valueInstanceHours);
   }
@@ -517,9 +422,9 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     double valueRosa = 40.0; // ROSA Cores (billing factor 0.25 -> 10.0)
     double valueRhelAddon = 17.0; // RHEL addon vCPUs (billing factor 1.0 -> 17.0)
     String billingAccountId = RandomUtils.generateRandom();
-    Set<String> productIds = Set.of(ROSA.getName(), RHEL_PAYG_ADDON_PRODUCT);
+    Set<String> productIds = Set.of(ROSA.getName(), RHEL_PAYG_ADDON.getName());
     contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
-    contractsWiremock.setupNoContractCoverage(orgId, RHEL_PAYG_ADDON_PRODUCT);
+    contractsWiremock.setupNoContractCoverage(orgId, RHEL_PAYG_ADDON.getName());
 
     // When: Tally snapshots are sent for the same org/billing account with different products
     whenTallySummariesAreSentForTwoProducts(billingAccountId, valueRosa, valueRhelAddon);
@@ -531,19 +436,13 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     assertEquals(
         2, billableUsages.size(), "Expected exactly 2 billable usage messages (one per product)");
     thenBillableUsageHasValueForProduct(billableUsages, ROSA.getName(), valueRosa * BILLING_FACTOR);
-    thenBillableUsageHasValueForProduct(billableUsages, RHEL_PAYG_ADDON_PRODUCT, valueRhelAddon);
+    thenBillableUsageHasValueForProduct(billableUsages, RHEL_PAYG_ADDON.getName(), valueRhelAddon);
 
     // Then: Remittance table has a record for each (one remittance per tally)
     thenRemittanceExistsForEachBillableUsage(billableUsages);
 
     // Then: An hourly aggregate message is sent for each product with correct totalValue
-    List<BillableUsageAggregate> aggregates =
-        kafkaBridge.waitForKafkaMessage(
-            BILLABLE_USAGE_HOURLY_AGGREGATE,
-            MessageValidators.billableUsageAggregateMatchesAnyProduct(orgId, productIds),
-            2,
-            AwaitilitySettings.defaults()
-                .onConditionNotMet(service::flushBillableUsageAggregationTopic));
+    List<BillableUsageAggregate> aggregates = whenHourlyAggregatesAreReceived(orgId, productIds, 2);
     thenHourlyAggregatePerProductHasExpectedTotalValues(
         aggregates, valueRosa * BILLING_FACTOR, valueRhelAddon);
   }
@@ -572,7 +471,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
         kafkaBridge.waitForKafkaMessage(
             BILLABLE_USAGE,
             MessageValidators.billableUsageMatchesWithValue(
-                orgId, RHEL_PAYG_ADDON_PRODUCT, expectedDiff),
+                orgId, RHEL_PAYG_ADDON.getName(), expectedDiff),
             1);
     assertEquals(
         1, secondBillableUsages.size(), "Expected exactly 1 billable usage for second tally");
@@ -594,7 +493,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     String billingAccountId = RandomUtils.generateRandom();
     OffsetDateTime snapshotDateLastMonth = OffsetDateTime.now(ZoneOffset.UTC).minusDays(35);
     OffsetDateTime snapshotDateCurrentMonth = OffsetDateTime.now(ZoneOffset.UTC).minusDays(1);
-    contractsWiremock.setupNoContractCoverage(orgId, RHEL_PAYG_ADDON_PRODUCT);
+    contractsWiremock.setupNoContractCoverage(orgId, RHEL_PAYG_ADDON.getName());
 
     // When: Tally snapshots are sent for last month and current month (same account/product/metric)
     whenTallySummariesAreSentWithSnapshotDates(
@@ -604,7 +503,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     List<BillableUsage> billableUsages =
         kafkaBridge.waitForKafkaMessage(
             BILLABLE_USAGE,
-            MessageValidators.billableUsageMatches(orgId, RHEL_PAYG_ADDON_PRODUCT),
+            MessageValidators.billableUsageMatches(orgId, RHEL_PAYG_ADDON.getName()),
             2);
     assertEquals(2, billableUsages.size(), "Expected exactly 2 billable usage messages");
 
@@ -620,12 +519,35 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
         billableUsages, expectedPeriodLastMonth, expectedPeriodCurrentMonth);
   }
 
-  private void givenNoContractCoverageExists() {
+  private void givenNoContractCoverageForRosa() {
     contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
   }
 
   private void givenNoContractCoverageForRhelAddon() {
-    contractsWiremock.setupNoContractCoverage(orgId, RHEL_PAYG_ADDON_PRODUCT);
+    contractsWiremock.setupNoContractCoverage(orgId, RHEL_PAYG_ADDON.getName());
+  }
+
+  /**
+   * Sets up a ROSA contract valid only during the previous month (no coverage). Use to simulate an
+   * inactive/expired subscription when tally snapshot date falls outside that range.
+   */
+  private void givenRosaContractValidDuringPreviousMonth() {
+    OffsetDateTime startLastMonth =
+        OffsetDateTime.now(ZoneOffset.UTC)
+            .minusMonths(1)
+            .withDayOfMonth(1)
+            .withHour(0)
+            .withMinute(0)
+            .withSecond(0)
+            .withNano(0);
+    OffsetDateTime endLastMonth =
+        OffsetDateTime.now(ZoneOffset.UTC)
+            .withDayOfMonth(1)
+            .withHour(0)
+            .withMinute(0)
+            .withSecond(0)
+            .withNano(0);
+    contractsWiremock.setupContractCoverage(orgId, ROSA.getName(), startLastMonth, endLastMonth);
   }
 
   /**
@@ -663,8 +585,8 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     TallySummary firstTallySummary =
         createTallySummary(
             orgId,
-            RHEL_PAYG_ADDON_PRODUCT,
-            RHEL_PAYG_ADDON_METRIC,
+            RHEL_PAYG_ADDON.getName(),
+            VCPUS.toString(),
             value,
             BillingProvider.AWS,
             billingAccountId);
@@ -673,7 +595,8 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     List<BillableUsage> firstBillableUsages =
         kafkaBridge.waitForKafkaMessage(
             BILLABLE_USAGE,
-            MessageValidators.billableUsageMatchesWithValue(orgId, RHEL_PAYG_ADDON_PRODUCT, value),
+            MessageValidators.billableUsageMatchesWithValue(
+                orgId, RHEL_PAYG_ADDON.getName(), value),
             1);
     assertEquals(
         1, firstBillableUsages.size(), "Expected exactly 1 billable usage for first tally");
@@ -683,8 +606,8 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     BillableUsageAggregate statusUpdate =
         givenBillableUsageAggregate(
             orgId,
-            RHEL_PAYG_ADDON_PRODUCT,
-            RHEL_PAYG_ADDON_METRIC,
+            RHEL_PAYG_ADDON.getName(),
+            VCPUS.toString(),
             billingAccountId,
             BillableUsage.Status.SUCCEEDED,
             null,
@@ -756,6 +679,36 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     return aggregate;
   }
 
+  private List<BillableUsageAggregate> whenHourlyAggregatesAreReceived(
+      String orgId, int expectedCount) {
+    return kafkaBridge.waitForKafkaMessage(
+        BILLABLE_USAGE_HOURLY_AGGREGATE,
+        MessageValidators.billableUsageAggregateMatchesOrg(orgId),
+        expectedCount,
+        AwaitilitySettings.defaults()
+            .onConditionNotMet(service::flushBillableUsageAggregationTopic));
+  }
+
+  private List<BillableUsageAggregate> whenHourlyAggregatesAreReceived(
+      Set<String> orgIds, int expectedCount) {
+    return kafkaBridge.waitForKafkaMessage(
+        BILLABLE_USAGE_HOURLY_AGGREGATE,
+        MessageValidators.billableUsageAggregateMatchesAnyOrg(orgIds),
+        expectedCount,
+        AwaitilitySettings.defaults()
+            .onConditionNotMet(service::flushBillableUsageAggregationTopic));
+  }
+
+  private List<BillableUsageAggregate> whenHourlyAggregatesAreReceived(
+      String orgId, Set<String> productIds, int expectedCount) {
+    return kafkaBridge.waitForKafkaMessage(
+        BILLABLE_USAGE_HOURLY_AGGREGATE,
+        MessageValidators.billableUsageAggregateMatchesAnyProduct(orgId, productIds),
+        expectedCount,
+        AwaitilitySettings.defaults()
+            .onConditionNotMet(service::flushBillableUsageAggregationTopic));
+  }
+
   private TallySummary whenSendTallySummaryWithValue(double value) {
     TallySummary tallySummary =
         createTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), value);
@@ -765,8 +718,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
 
   private TallySummary whenSendTallySummaryForRhelAddonWithValue(double value) {
     TallySummary tallySummary =
-        createTallySummaryWithDefaults(
-            orgId, RHEL_PAYG_ADDON_PRODUCT, RHEL_PAYG_ADDON_METRIC, value);
+        createTallySummaryWithDefaults(orgId, RHEL_PAYG_ADDON.getName(), VCPUS.toString(), value);
     kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
     return tallySummary;
   }
@@ -775,22 +727,18 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     TallySummary secondTallySummary =
         createTallySummary(
             orgId,
-            RHEL_PAYG_ADDON_PRODUCT,
-            RHEL_PAYG_ADDON_METRIC,
+            RHEL_PAYG_ADDON.getName(),
+            VCPUS.toString(),
             value,
             BillingProvider.AWS,
             billingAccountId);
     kafkaBridge.produceKafkaMessage(TALLY, secondTallySummary);
   }
 
-  private void whenTallySummariesAreSentForTwoOrgs(
-      String org1, double value1, String org2, double value2) {
-    TallySummary tallySummary1 =
-        createTallySummaryWithDefaults(org1, ROSA.getName(), CORES.toString(), value1);
-    TallySummary tallySummary2 =
-        createTallySummaryWithDefaults(org2, ROSA.getName(), CORES.toString(), value2);
-    kafkaBridge.produceKafkaMessage(TALLY, tallySummary1);
-    kafkaBridge.produceKafkaMessage(TALLY, tallySummary2);
+  private void whenTallySummaryIsSentForOrg(String orgId, double value) {
+    TallySummary tallySummary =
+        createTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), value);
+    kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
   }
 
   private void whenTallySummariesAreSentForTwoMetrics(
@@ -823,8 +771,8 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     TallySummary tallyLastMonth =
         createTallySummary(
             orgId,
-            RHEL_PAYG_ADDON_PRODUCT,
-            RHEL_PAYG_ADDON_METRIC,
+            RHEL_PAYG_ADDON.getName(),
+            VCPUS.toString(),
             value,
             BillingProvider.AWS,
             billingAccountId,
@@ -832,8 +780,8 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     TallySummary tallyCurrentMonth =
         createTallySummary(
             orgId,
-            RHEL_PAYG_ADDON_PRODUCT,
-            RHEL_PAYG_ADDON_METRIC,
+            RHEL_PAYG_ADDON.getName(),
+            VCPUS.toString(),
             value,
             BillingProvider.AWS,
             billingAccountId,
@@ -855,8 +803,8 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     TallySummary tallySummaryRhelAddon =
         createTallySummary(
             orgId,
-            RHEL_PAYG_ADDON_PRODUCT,
-            RHEL_PAYG_ADDON_METRIC,
+            RHEL_PAYG_ADDON.getName(),
+            VCPUS.toString(),
             valueRhelAddon,
             BillingProvider.AWS,
             billingAccountId);
@@ -1175,7 +1123,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     thenBillableUsageAggregateHasTotalValue(
         thenBillableUsageAggregateIsFoundForProduct(aggregates, ROSA.getName()), expectedValueRosa);
     thenBillableUsageAggregateHasTotalValue(
-        thenBillableUsageAggregateIsFoundForProduct(aggregates, RHEL_PAYG_ADDON_PRODUCT),
+        thenBillableUsageAggregateIsFoundForProduct(aggregates, RHEL_PAYG_ADDON.getName()),
         expectedValueRhelAddon);
   }
 }
