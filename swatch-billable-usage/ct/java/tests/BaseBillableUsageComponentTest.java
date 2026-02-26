@@ -36,7 +36,9 @@ import org.junit.jupiter.api.BeforeEach;
 @ComponentTest(name = "swatch-billable-usage")
 public class BaseBillableUsageComponentTest {
   static final MetricId CORES = MetricIdUtils.getCores();
+  static final MetricId VCPUS = MetricIdUtils.getVCpus();
   static final Product ROSA = Product.ROSA;
+  static final Product RHEL_PAYG_ADDON = Product.RHEL_PAYG_ADDON;
 
   @KafkaBridge static KafkaBridgeService kafkaBridge = new KafkaBridgeService();
 
