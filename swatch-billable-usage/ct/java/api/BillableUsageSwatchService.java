@@ -20,6 +20,7 @@
  */
 package api;
 
+import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
 import com.redhat.swatch.billable.usage.openapi.model.TallyRemittance;
 import com.redhat.swatch.component.tests.api.SwatchService;
 import io.restassured.common.mapper.TypeRef;
@@ -31,6 +32,8 @@ public class BillableUsageSwatchService extends SwatchService {
 
   private static final String ENDPOINT_PREFIX = "/api/swatch-billable-usage/internal";
   private static final String REMITTANCE_ENDPOINT =
+      ENDPOINT_PREFIX + "/remittance/accountRemittances";
+  private static final String REMITTANCE_ENDPOINT_BY_TALLY_ID =
       ENDPOINT_PREFIX + "/remittance/accountRemittances/{tallyId}";
   private static final String FLUSH_ENDPOINT = ENDPOINT_PREFIX + "/rpc/topics/flush";
 
@@ -42,11 +45,41 @@ public class BillableUsageSwatchService extends SwatchService {
    */
   public List<TallyRemittance> getRemittancesByTallyId(String tallyId) {
     return given()
-        .get(REMITTANCE_ENDPOINT, tallyId)
+        .get(REMITTANCE_ENDPOINT_BY_TALLY_ID, tallyId)
         .then()
         .statusCode(HttpStatus.SC_OK)
         .extract()
         .as(new TypeRef<List<TallyRemittance>>() {});
+  }
+
+  /**
+   * Get monthly remittances for an account (product, org, metric, billing provider, billing
+   * account). Use to verify remittances per accumulation period (e.g. last month vs current month).
+   *
+   * @param productId product ID
+   * @param orgId organization ID
+   * @param metricId metric ID
+   * @param billingProvider billing provider
+   * @param billingAccountId billing account ID
+   * @return list of monthly remittances for the account
+   */
+  public List<MonthlyRemittance> getRemittances(
+      String productId,
+      String orgId,
+      String metricId,
+      String billingProvider,
+      String billingAccountId) {
+    return given()
+        .queryParam("productId", productId)
+        .queryParam("orgId", orgId)
+        .queryParam("metricId", metricId)
+        .queryParam("billingProvider", billingProvider)
+        .queryParam("billingAccountId", billingAccountId)
+        .get(REMITTANCE_ENDPOINT)
+        .then()
+        .statusCode(HttpStatus.SC_OK)
+        .extract()
+        .as(new TypeRef<List<MonthlyRemittance>>() {});
   }
 
   /** Flush Kafka topics using internal API. */

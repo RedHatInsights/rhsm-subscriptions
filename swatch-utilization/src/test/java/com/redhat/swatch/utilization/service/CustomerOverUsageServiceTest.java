@@ -332,6 +332,50 @@ class CustomerOverUsageServiceTest {
   }
 
   @Test
+  void shouldSendNotification_whenOrgIsWhitelistedAndGlobalFlagDisabled() {
+    // Given - the global flag disabled but org is in whitelist
+    when(featureFlags.sendNotifications()).thenReturn(false);
+    when(featureFlags.isOrgWhitelistedForNotifications(ORG_ID)).thenReturn(true);
+    UtilizationSummary summary =
+        givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
+
+    // When
+    whenCheckSummary(summary);
+
+    // Then - notification should be sent because org is whitelisted
+    verify(notificationsProducer, times(1)).produce(any(Action.class));
+  }
+
+  @Test
+  void shouldNotSendNotification_whenOrgIsNotWhitelistedAndGlobalFlagDisabled() {
+    // Given - global flag disabled and org NOT in whitelist
+    when(featureFlags.sendNotifications()).thenReturn(false);
+    when(featureFlags.isOrgWhitelistedForNotifications(ORG_ID)).thenReturn(false);
+    UtilizationSummary summary =
+        givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
+
+    // When
+    whenCheckSummary(summary);
+
+    // Then - no notification because global flag is off and org is not whitelisted
+    verify(notificationsProducer, never()).produce(any(Action.class));
+  }
+
+  @Test
+  void shouldSendNotification_whenOrgIsWhitelistedAndGlobalFlagEnabled() {
+    // Given - both global flag and whitelist allow sending
+    when(featureFlags.sendNotifications()).thenReturn(true);
+    UtilizationSummary summary =
+        givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
+
+    // When
+    whenCheckSummary(summary);
+
+    // Then - notification sent (global flag takes priority, no need to check whitelist)
+    verify(notificationsProducer, times(1)).produce(any(Action.class));
+  }
+
+  @Test
   void shouldSkipOverUsageDetection_whenThresholdIsNegative() {
     // Given - negative threshold disables over-usage detection
     subscriptionDefinition
