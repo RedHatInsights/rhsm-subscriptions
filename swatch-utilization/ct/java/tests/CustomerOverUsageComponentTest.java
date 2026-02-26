@@ -64,12 +64,12 @@ public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest
 
   @BeforeAll
   static void enableSendNotificationsFeatureFlag() {
-    unleash.enableFlag(SEND_NOTIFICATIONS);
+    unleash.enableSendNotificationsFlag();
   }
 
   @AfterAll
   static void disableSendNotificationsFeatureFlag() {
-    unleash.disableFlag(SEND_NOTIFICATIONS);
+    unleash.disableSendNotificationsFlag();
   }
 
   /**
