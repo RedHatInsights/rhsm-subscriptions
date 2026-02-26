@@ -70,6 +70,36 @@ public class UnleashService extends RestService {
     }
   }
 
+  public void setVariant(String flag, String variantName, String payloadValue) {
+    String payload =
+        String.format(
+            """
+        [{
+          "name": "%s",
+          "weight": 1000,
+          "weightType": "variable",
+          "payload": {
+            "type": "string",
+            "value": "%s"
+          }
+        }]
+        """,
+            variantName, payloadValue);
+
+    var response =
+        given().body(payload).when().put(UNLEASH_FEATURES_PATH + "/" + flag + "/variants");
+    response.then().log().ifError();
+    if (response.statusCode() == HttpStatus.SC_NOT_FOUND) {
+      createFlag(flag);
+      enableFlag(flag);
+      setVariant(flag, variantName, payloadValue);
+    }
+  }
+
+  public void clearVariants(String flag) {
+    given().body("[]").when().put(UNLEASH_FEATURES_PATH + "/" + flag + "/variants");
+  }
+
   public void listFlags() {
     given().get(UNLEASH_FEATURES_PATH).then().log().all();
   }

@@ -66,12 +66,12 @@ public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest
 
   @BeforeAll
   static void enableSendNotificationsFeatureFlag() {
-    unleash.enableFlag(SEND_NOTIFICATIONS);
+    unleash.enableSendNotificationsFlag();
   }
 
   @AfterAll
   static void disableSendNotificationsFeatureFlag() {
-    unleash.disableFlag(SEND_NOTIFICATIONS);
+    unleash.disableSendNotificationsFlag();
   }
 
   /**
@@ -157,11 +157,6 @@ public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest
               currentCount - initialInstanceHoursCount,
               equalTo(EXPECTED_SINGLE_INCREMENT));
         });
-  }
-
-  // Helper methods
-  private String metricIdTag(MetricId metricId) {
-    return String.format("metric_id=\"%s\"", metricId.getValue());
   }
 
   // Given helpers
