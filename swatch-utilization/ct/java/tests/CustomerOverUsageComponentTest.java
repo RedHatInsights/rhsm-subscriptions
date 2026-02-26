@@ -49,6 +49,8 @@ import org.junit.jupiter.api.Test;
 
 public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest {
 
+  protected static final String OVER_USAGE_METRIC = "swatch_utilization_over_usage_total";
+
   // Test data constants - aligned with CUSTOMER_OVER_USAGE_DEFAULT_THRESHOLD_PERCENT=5.0
   private static final double BASELINE_CAPACITY = 100.0;
   private static final double USAGE_EXCEEDING_THRESHOLD = 110.0; // 10% over capacity
