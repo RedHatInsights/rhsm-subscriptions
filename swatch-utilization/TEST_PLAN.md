@@ -238,6 +238,54 @@ Kafka messages can be injected for event-driven testing.
   - No notification event created (contracts without dimensions have null capacity and over-usage check is skipped)  
   - Service handles null capacity data gracefully
 
+## Org Whitelist for Notifications
+
+**utilization-whitelist-TC001 - Whitelisted org receives notification even when the global flag is disabled**
+
+- **Description**: Verify that when the global send-notifications flag is disabled but the org is in the whitelist, notifications are still sent.
+- **Setup**:
+    - The global `swatch.swatch-notifications.send-notifications` flag is disabled
+    - The `swatch.swatch-notifications.send-notifications-orgs-whitelist` flag is enabled with the org ID in its variant payload
+    - An organization has capacity for the metric A of the product B
+- **Action**:
+    - Generate enough usage to exceed the threshold for the metric A of the product B
+    - Trigger utilization calculation process
+- **Verification**:
+    - Wait for notification message on notifications topic
+    - Verify notification payload
+- **Expected Result**:
+    - Notification event contains correct information (org_id, product_id, metric_id and utilization_percentage)
+
+**utilization-whitelist-TC002 - Non-whitelisted org does not receive notification when the global flag is disabled**
+
+- **Description**: Verify that when the global send-notifications flag is disabled and the org is NOT in the whitelist, no notification is sent.
+- **Setup**:
+    - The global `swatch.swatch-notifications.send-notifications` flag is disabled
+    - The `swatch.swatch-notifications.send-notifications-orgs-whitelist` flag is enabled with different org IDs in its variant payload
+    - An organization has capacity for the metric A of the product B
+- **Action**:
+    - Generate enough usage to exceed the threshold for the metric A of the product B
+    - Trigger utilization calculation process
+- **Verification**:
+    - Check the absence of the notification message on the notifications topic
+- **Expected Result**:
+    - No notification event created
+
+**utilization-whitelist-TC003 - Empty whitelist does not affect behavior**
+
+- **Description**: Verify that when the whitelist flag is enabled but the variant payload is empty, behavior falls back to the global flag.
+- **Setup**:
+    - The global `swatch.swatch-notifications.send-notifications` flag is disabled
+    - The `swatch.swatch-notifications.send-notifications-orgs-whitelist` flag is enabled with an empty variant payload
+    - An organization has capacity for the metric A of the product B
+- **Action**:
+    - Generate enough usage to exceed the threshold for the metric A of the product B
+    - Trigger utilization calculation process
+- **Verification**:
+    - Check absence of notification message on notifications topic
+- **Expected Result**:
+    - No notification event created
+
 ## Configuration
 
 **utilization-config-TC001 - Negative threshold disables detection**
