@@ -25,7 +25,7 @@ import com.redhat.swatch.component.tests.api.UnleashService;
 public class UtilizationUnleashService extends UnleashService {
   private static final String SEND_NOTIFICATIONS = "swatch.swatch-notifications.send-notifications";
   private static final String SEND_NOTIFICATIONS_ORGS_ALLOWLIST =
-      "swatch.swatch-notifications.send-notifications-orgs-whitelist";
+      "swatch.swatch-notifications.send-notifications-orgs-allowlist";
   private static final String ORGS_VARIANT = "orgs";
 
   public void enableSendNotificationsFlag() {

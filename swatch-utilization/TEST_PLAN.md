@@ -248,7 +248,7 @@ Kafka messages can be injected for event-driven testing.
 - **Description**: Verify that when the global send-notifications flag is disabled but the org is in the allowlist, notifications are still sent.
 - **Setup**:
     - The global `swatch.swatch-notifications.send-notifications` flag is disabled
-    - The `swatch.swatch-notifications.send-notifications-orgs-whitelist` flag is enabled with the org ID in its variant payload
+    - The `swatch.swatch-notifications.send-notifications-orgs-allowlist` flag is enabled with the org ID in its variant payload
     - An organization has capacity for the metric A of the product B
 - **Action**:
     - Generate enough usage to exceed the threshold for the metric A of the product B
@@ -264,7 +264,7 @@ Kafka messages can be injected for event-driven testing.
 - **Description**: Verify that when the global send-notifications flag is disabled and the org is NOT in the allowlist, no notification is sent.
 - **Setup**:
     - The global `swatch.swatch-notifications.send-notifications` flag is disabled
-    - The `swatch.swatch-notifications.send-notifications-orgs-whitelist` flag is enabled with different org IDs in its variant payload
+    - The `swatch.swatch-notifications.send-notifications-orgs-allowlist` flag is enabled with different org IDs in its variant payload
     - An organization has capacity for the metric A of the product B
 - **Action**:
     - Generate enough usage to exceed the threshold for the metric A of the product B
@@ -279,7 +279,7 @@ Kafka messages can be injected for event-driven testing.
 - **Description**: Verify that when the allowlist flag is enabled but the variant payload is empty, behavior falls back to the global flag.
 - **Setup**:
     - The global `swatch.swatch-notifications.send-notifications` flag is disabled
-    - The `swatch.swatch-notifications.send-notifications-orgs-whitelist` flag is enabled with an empty variant payload
+    - The `swatch.swatch-notifications.send-notifications-orgs-allowlist` flag is enabled with an empty variant payload
     - An organization has capacity for the metric A of the product B
 - **Action**:
     - Generate enough usage to exceed the threshold for the metric A of the product B

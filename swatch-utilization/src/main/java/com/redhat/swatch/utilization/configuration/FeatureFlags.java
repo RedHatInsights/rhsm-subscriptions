@@ -31,7 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 public class FeatureFlags {
   public static final String SEND_NOTIFICATIONS = "swatch.swatch-notifications.send-notifications";
   public static final String SEND_NOTIFICATIONS_ORGS_ALLOWLIST =
-      "swatch.swatch-notifications.send-notifications-orgs-whitelist";
+      "swatch.swatch-notifications.send-notifications-orgs-allowlist";
   public static final String ORGS_VARIANT = "orgs";
 
   private final Unleash unleash;
