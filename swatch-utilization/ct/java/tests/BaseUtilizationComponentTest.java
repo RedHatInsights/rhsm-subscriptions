@@ -22,25 +22,25 @@ package tests;
 
 import static com.redhat.swatch.component.tests.utils.Topics.NOTIFICATIONS;
 
+import api.UtilizationUnleashService;
 import com.redhat.swatch.component.tests.api.ComponentTest;
 import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.Quarkus;
 import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.api.Unleash;
-import com.redhat.swatch.component.tests.api.UnleashService;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
+import com.redhat.swatch.configuration.registry.MetricId;
 import org.junit.jupiter.api.BeforeEach;
 
 @ComponentTest(name = "swatch-utilization")
 public class BaseUtilizationComponentTest {
-
-  public static final String SEND_NOTIFICATIONS = "swatch.swatch-notifications.send-notifications";
+  protected static final String OVER_USAGE_METRIC = "swatch_utilization_over_usage_total";
 
   @KafkaBridge
   static KafkaBridgeService kafkaBridge = new KafkaBridgeService().subscribeToTopic(NOTIFICATIONS);
 
-  @Unleash static UnleashService unleash = new UnleashService();
+  @Unleash static UtilizationUnleashService unleash = new UtilizationUnleashService();
 
   @Quarkus(service = "swatch-utilization")
   static SwatchService service = new SwatchService();
@@ -50,5 +50,9 @@ public class BaseUtilizationComponentTest {
   @BeforeEach
   void setUp() {
     orgId = RandomUtils.generateRandom();
+  }
+
+  protected static String metricIdTag(MetricId metricId) {
+    return String.format("metric_id=\"%s\"", metricId.getValue());
   }
 }
