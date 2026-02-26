@@ -33,7 +33,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import api.MessageValidators;
-import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
 import com.redhat.swatch.billable.usage.openapi.model.TallyRemittance;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
@@ -47,7 +46,6 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -145,10 +143,11 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     // Then: Remittance by tally has the correct remitted value (metric/tally value 20.0)
     thenEachBillableUsageHasOneRemittanceWithValue(List.of(usage), tallyValue);
 
-    // Then: Hourly aggregate is produced with totalValue 5.0
+    // Then: Hourly aggregate is produced with totalValue 5.0 (tally value × billing factor)
     List<BillableUsageAggregate> aggregates = whenHourlyAggregatesAreReceived(orgId, 1);
-    thenBillableUsageAggregateTotalValueIs(
-        thenBillableUsageAggregateIsFound(aggregates, tallySummary), tallyValue);
+    thenBillableUsageAggregateHasTotalValue(
+        thenBillableUsageAggregateIsFound(aggregates, tallySummary),
+        Math.ceil(tallyValue * BILLING_FACTOR));
   }
 
   /**
@@ -324,11 +323,13 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
 
     BillableUsageAggregate aggregateForAccount1 =
         thenBillableUsageAggregateIsFound(aggregates, tallySummary1);
-    thenBillableUsageAggregateTotalValueIs(aggregateForAccount1, value1);
+    thenBillableUsageAggregateHasTotalValue(
+        aggregateForAccount1, Math.ceil(value1 * BILLING_FACTOR));
 
     BillableUsageAggregate aggregateForAccount2 =
         thenBillableUsageAggregateIsFound(aggregates, tallySummary2);
-    thenBillableUsageAggregateTotalValueIs(aggregateForAccount2, value2);
+    thenBillableUsageAggregateHasTotalValue(
+        aggregateForAccount2, Math.ceil(value2 * BILLING_FACTOR));
   }
 
   /**
@@ -369,10 +370,12 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     List<BillableUsageAggregate> aggregates = whenHourlyAggregatesAreReceived(orgIds, 2);
     assertEquals(
         2, aggregates.size(), "Expected exactly 2 hourly aggregate messages (one per org)");
-    thenBillableUsageAggregateTotalValueIs(
-        thenBillableUsageAggregateIsFoundForOrg(aggregates, org1), value1);
-    thenBillableUsageAggregateTotalValueIs(
-        thenBillableUsageAggregateIsFoundForOrg(aggregates, org2), value2);
+    thenBillableUsageAggregateHasTotalValue(
+        thenBillableUsageAggregateIsFoundForOrg(aggregates, org1),
+        Math.ceil(value1 * BILLING_FACTOR));
+    thenBillableUsageAggregateHasTotalValue(
+        thenBillableUsageAggregateIsFoundForOrg(aggregates, org2),
+        Math.ceil(value2 * BILLING_FACTOR));
   }
 
   /**
@@ -525,29 +528,6 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
 
   private void givenNoContractCoverageForRhelAddon() {
     contractsWiremock.setupNoContractCoverage(orgId, RHEL_PAYG_ADDON.getName());
-  }
-
-  /**
-   * Sets up a ROSA contract valid only during the previous month (no coverage). Use to simulate an
-   * inactive/expired subscription when tally snapshot date falls outside that range.
-   */
-  private void givenRosaContractValidDuringPreviousMonth() {
-    OffsetDateTime startLastMonth =
-        OffsetDateTime.now(ZoneOffset.UTC)
-            .minusMonths(1)
-            .withDayOfMonth(1)
-            .withHour(0)
-            .withMinute(0)
-            .withSecond(0)
-            .withNano(0);
-    OffsetDateTime endLastMonth =
-        OffsetDateTime.now(ZoneOffset.UTC)
-            .withDayOfMonth(1)
-            .withHour(0)
-            .withMinute(0)
-            .withSecond(0)
-            .withNano(0);
-    contractsWiremock.setupContractCoverage(orgId, ROSA.getName(), startLastMonth, endLastMonth);
   }
 
   /**
@@ -920,16 +900,6 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
         "Remittance should have value " + expectedValue);
   }
 
-  private void thenBillableUsageAggregateTotalValueIs(
-      BillableUsageAggregate aggregate, double value) {
-    double expectedValue = Math.ceil(value * BILLING_FACTOR);
-    assertEquals(
-        expectedValue,
-        aggregate.getTotalValue().doubleValue(),
-        0.001,
-        "Aggregate should have total value " + expectedValue);
-  }
-
   private BillableUsageAggregate thenBillableUsageAggregateIsFoundForMetric(
       List<BillableUsageAggregate> aggregates, String metricId) {
     BillableUsageAggregate found =
@@ -1057,61 +1027,6 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
         expectedPeriods,
         periods,
         "Should have one remittance for last month and one for current month");
-  }
-
-  private List<MonthlyRemittance> thenAccountRemittancesAreAvailable(
-      String productId,
-      String orgId,
-      String metricId,
-      String billingProvider,
-      String billingAccountId,
-      int expectedCount) {
-    return Awaitility.await()
-        .atMost(Duration.ofSeconds(60))
-        .pollInterval(Duration.ofSeconds(2))
-        .until(
-            () ->
-                service.getRemittances(
-                    productId, orgId, metricId, billingProvider, billingAccountId),
-            list ->
-                list != null
-                    && list.size() >= expectedCount
-                    && list.stream().allMatch(r -> r.getAccumulationPeriod() != null));
-  }
-
-  private void thenMonthlyRemittancesMatchSnapshotDatesAndValue(
-      List<MonthlyRemittance> remittances,
-      OffsetDateTime snapshotDateLastMonth,
-      OffsetDateTime snapshotDateCurrentMonth,
-      double expectedValue) {
-    assertNotNull(remittances, "Remittances should exist");
-    assertEquals(
-        2,
-        remittances.size(),
-        "Expected exactly 2 monthly remittances (one per accumulation period)");
-    remittances.sort(Comparator.comparing(MonthlyRemittance::getAccumulationPeriod));
-    String expectedPeriodLastMonth =
-        snapshotDateLastMonth.format(DateTimeFormatter.ofPattern("yyyy-MM"));
-    String expectedPeriodCurrentMonth =
-        snapshotDateCurrentMonth.format(DateTimeFormatter.ofPattern("yyyy-MM"));
-    assertEquals(
-        expectedPeriodLastMonth,
-        remittances.get(0).getAccumulationPeriod(),
-        "First remittance accumulation period should match last month snapshot");
-    assertEquals(
-        expectedPeriodCurrentMonth,
-        remittances.get(1).getAccumulationPeriod(),
-        "Second remittance accumulation period should match current month snapshot");
-    assertEquals(
-        expectedValue,
-        remittances.get(0).getRemittedValue(),
-        0.001,
-        "First remittance remitted value should match tally value");
-    assertEquals(
-        expectedValue,
-        remittances.get(1).getRemittedValue(),
-        0.001,
-        "Second remittance remitted value should match tally value");
   }
 
   private void thenHourlyAggregatePerProductHasExpectedTotalValues(

@@ -35,54 +35,9 @@ public class ContractsWiremockService extends WiremockService {
    * @param productId Product ID
    */
   public void setupNoContractCoverage(String orgId, String productId) {
-    // Set contract dates: valid from 1 month ago to 1 year from now
-    String startDate = java.time.OffsetDateTime.now().minusMonths(1).toString();
-    String endDate = java.time.OffsetDateTime.now().plusYears(1).toString();
-
-    // Contract with empty metrics list (no coverage)
-    var contractData =
-        Map.of(
-            "org_id",
-            orgId,
-            "product_id",
-            productId,
-            "start_date",
-            startDate,
-            "end_date",
-            endDate,
-            "metrics",
-            List.of());
-
-    given()
-        .contentType("application/json")
-        .body(
-            Map.of(
-                "request",
-                Map.of(
-                    "method",
-                    "GET",
-                    "urlPathPattern",
-                    "/mock/contractApi/api/swatch-contracts/internal/contracts.*",
-                    "queryParameters",
-                    Map.of("org_id", Map.of("equalTo", orgId))),
-                "response",
-                Map.of(
-                    "status",
-                    200,
-                    "headers",
-                    Map.of("Content-Type", "application/json"),
-                    "jsonBody",
-                    List.of(contractData)),
-                // the default mapping defined in config/wiremock uses priority 10,
-                // so we need a higher priority here.
-                "priority",
-                9,
-                "metadata",
-                getMetadataTags()))
-        .when()
-        .post("/__admin/mappings")
-        .then()
-        .statusCode(201);
+    OffsetDateTime startDate = OffsetDateTime.now().minusMonths(1);
+    OffsetDateTime endDate = OffsetDateTime.now().plusYears(1);
+    registerContractStub(orgId, productId, startDate, endDate, List.of());
   }
 
   /**
