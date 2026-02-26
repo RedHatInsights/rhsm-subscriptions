@@ -22,12 +22,14 @@ package org.candlepin.subscriptions.test;
 
 import org.candlepin.testcontainers.SwatchPostgreSQLContainer;
 import org.junit.jupiter.api.Tag;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Tag("integration")
 public interface ExtendWithSwatchDatabase {
 
@@ -38,6 +40,11 @@ public interface ExtendWithSwatchDatabase {
   static void registerSwatchDbProperties(DynamicPropertyRegistry registry) {
     registry.add("DATABASE_HOST", swatchDatabase::getHost);
     registry.add("DATABASE_PORT", swatchDatabase::getFirstMappedPort);
+    // Also register spring.datasource.url for Liquibase
+    registry.add("spring.datasource.url", swatchDatabase::getJdbcUrl);
+    registry.add("spring.datasource.username", swatchDatabase::getUsername);
+    registry.add("spring.datasource.password", swatchDatabase::getPassword);
+    registry.add("spring.liquibase.enabled", () -> "true");
     registry.add("spring.liquibase.change-log", () -> "classpath:/liquibase/changelog.xml");
     registry.add("spring.liquibase.show-summary", () -> "summary");
   }
