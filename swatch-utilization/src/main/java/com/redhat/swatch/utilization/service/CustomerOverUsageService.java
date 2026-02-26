@@ -212,7 +212,7 @@ public class CustomerOverUsageService {
       UtilizationSummary payload, MetricId metricId, double utilizationPercent) {
     if (!canSendNotification(payload.getOrgId())) {
       log.info(
-          "Notification not sent for orgId={} productId={} metricId={} - feature flag '{}' is disabled and org is not whitelisted",
+          "Notification not sent for orgId={} productId={} metricId={} - feature flag '{}' is disabled and org is not allowlisted",
           payload.getOrgId(),
           payload.getProductId(),
           metricId,
@@ -226,7 +226,7 @@ public class CustomerOverUsageService {
   }
 
   private boolean canSendNotification(String orgId) {
-    return featureFlags.sendNotifications() || featureFlags.isOrgWhitelistedForNotifications(orgId);
+    return featureFlags.sendNotifications() || featureFlags.isOrgAllowlistedForNotifications(orgId);
   }
 
   private Action buildNotificationAction(
