@@ -332,38 +332,38 @@ class CustomerOverUsageServiceTest {
   }
 
   @Test
-  void shouldSendNotification_whenOrgIsWhitelistedAndGlobalFlagDisabled() {
-    // Given - the global flag disabled but org is in whitelist
+  void shouldSendNotification_whenOrgIsAllowlistedAndGlobalFlagDisabled() {
+    // Given - the global flag disabled but org is in allowlist
     when(featureFlags.sendNotifications()).thenReturn(false);
-    when(featureFlags.isOrgWhitelistedForNotifications(ORG_ID)).thenReturn(true);
+    when(featureFlags.isOrgAllowlistedForNotifications(ORG_ID)).thenReturn(true);
     UtilizationSummary summary =
         givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
 
     // When
     whenCheckSummary(summary);
 
-    // Then - notification should be sent because org is whitelisted
+    // Then - notification should be sent because org is allowlisted
     verify(notificationsProducer, times(1)).produce(any(Action.class));
   }
 
   @Test
-  void shouldNotSendNotification_whenOrgIsNotWhitelistedAndGlobalFlagDisabled() {
-    // Given - global flag disabled and org NOT in whitelist
+  void shouldNotSendNotification_whenOrgIsNotAllowlistedAndGlobalFlagDisabled() {
+    // Given - global flag disabled and org NOT in allowlist
     when(featureFlags.sendNotifications()).thenReturn(false);
-    when(featureFlags.isOrgWhitelistedForNotifications(ORG_ID)).thenReturn(false);
+    when(featureFlags.isOrgAllowlistedForNotifications(ORG_ID)).thenReturn(false);
     UtilizationSummary summary =
         givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
 
     // When
     whenCheckSummary(summary);
 
-    // Then - no notification because global flag is off and org is not whitelisted
+    // Then - no notification because global flag is off and org is not allowlisted
     verify(notificationsProducer, never()).produce(any(Action.class));
   }
 
   @Test
-  void shouldSendNotification_whenOrgIsWhitelistedAndGlobalFlagEnabled() {
-    // Given - both global flag and whitelist allow sending
+  void shouldSendNotification_whenOrgIsAllowlistedAndGlobalFlagEnabled() {
+    // Given - both global flag and allowlist allow sending
     when(featureFlags.sendNotifications()).thenReturn(true);
     UtilizationSummary summary =
         givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
@@ -371,7 +371,7 @@ class CustomerOverUsageServiceTest {
     // When
     whenCheckSummary(summary);
 
-    // Then - notification sent (global flag takes priority, no need to check whitelist)
+    // Then - notification sent (global flag takes priority, no need to check allowlist)
     verify(notificationsProducer, times(1)).produce(any(Action.class));
   }
 

@@ -24,8 +24,8 @@ import com.redhat.swatch.component.tests.api.UnleashService;
 
 public class UtilizationUnleashService extends UnleashService {
   private static final String SEND_NOTIFICATIONS = "swatch.swatch-notifications.send-notifications";
-  private static final String SEND_NOTIFICATIONS_ORGS_WHITELIST =
-      "swatch.swatch-notifications.send-notifications-orgs-whitelist";
+  private static final String SEND_NOTIFICATIONS_ORGS_ALLOWLIST =
+      "swatch.swatch-notifications.send-notifications-orgs-allowlist";
   private static final String ORGS_VARIANT = "orgs";
 
   public void enableSendNotificationsFlag() {
@@ -34,8 +34,8 @@ public class UtilizationUnleashService extends UnleashService {
   }
 
   public void enableSendNotificationsFlagForOrgs(String... orgs) {
-    enableFlag(SEND_NOTIFICATIONS_ORGS_WHITELIST);
-    setVariant(SEND_NOTIFICATIONS_ORGS_WHITELIST, ORGS_VARIANT, String.join(",", orgs));
+    enableFlag(SEND_NOTIFICATIONS_ORGS_ALLOWLIST);
+    setVariant(SEND_NOTIFICATIONS_ORGS_ALLOWLIST, ORGS_VARIANT, String.join(",", orgs));
     waitForUnleashPropagation();
   }
 
@@ -45,8 +45,8 @@ public class UtilizationUnleashService extends UnleashService {
   }
 
   public void disableSendNotificationsFlagForOrgs() {
-    clearVariants(SEND_NOTIFICATIONS_ORGS_WHITELIST);
-    disableFlag(SEND_NOTIFICATIONS_ORGS_WHITELIST);
+    clearVariants(SEND_NOTIFICATIONS_ORGS_ALLOWLIST);
+    disableFlag(SEND_NOTIFICATIONS_ORGS_ALLOWLIST);
     waitForUnleashPropagation();
   }
 
