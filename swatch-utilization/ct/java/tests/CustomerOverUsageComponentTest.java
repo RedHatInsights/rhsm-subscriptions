@@ -49,8 +49,6 @@ import org.junit.jupiter.api.Test;
 
 public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest {
 
-  protected static final String OVER_USAGE_METRIC = "swatch_utilization_over_usage_total";
-
   // Test data constants - aligned with CUSTOMER_OVER_USAGE_DEFAULT_THRESHOLD_PERCENT=5.0
   private static final double BASELINE_CAPACITY = 100.0;
   private static final double USAGE_EXCEEDING_THRESHOLD = 110.0; // 10% over capacity
@@ -66,12 +64,12 @@ public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest
 
   @BeforeAll
   static void enableSendNotificationsFeatureFlag() {
-    unleash.enableFlag(SEND_NOTIFICATIONS);
+    unleash.enableSendNotificationsFlag();
   }
 
   @AfterAll
   static void disableSendNotificationsFeatureFlag() {
-    unleash.disableFlag(SEND_NOTIFICATIONS);
+    unleash.disableSendNotificationsFlag();
   }
 
   /**
@@ -157,11 +155,6 @@ public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest
               currentCount - initialInstanceHoursCount,
               equalTo(EXPECTED_SINGLE_INCREMENT));
         });
-  }
-
-  // Helper methods
-  private String metricIdTag(MetricId metricId) {
-    return String.format("metric_id=\"%s\"", metricId.getValue());
   }
 
   // Given helpers

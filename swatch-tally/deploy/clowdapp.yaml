@@ -869,7 +869,7 @@ objects:
           # intentional since creating indexes concurrently requires running them outside a
           # transaction.  psql has a -c argument to run a command, but that argument implicitly
           # wraps the statement in a transaction
-          - echo '$DB_MIGRATION_SQL' | psql -h $POSTGRESQL_SERVICE_HOST -U $POSTGRESQL_USER $POSTGRESQL_DATABASE
+          - echo "$DB_MIGRATION_SQL" | psql -h $POSTGRESQL_SERVICE_HOST -U $POSTGRESQL_USER $POSTGRESQL_DATABASE
           resources:
             requests:
               cpu: 100m

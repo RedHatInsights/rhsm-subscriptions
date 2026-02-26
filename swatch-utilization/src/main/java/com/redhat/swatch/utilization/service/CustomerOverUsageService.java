@@ -210,9 +210,9 @@ public class CustomerOverUsageService {
 
   private void sendNotification(
       UtilizationSummary payload, MetricId metricId, double utilizationPercent) {
-    if (!featureFlags.sendNotifications()) {
+    if (!canSendNotification(payload.getOrgId())) {
       log.info(
-          "Notification not sent for orgId={} productId={} metricId={} - feature flag '{}' is disabled",
+          "Notification not sent for orgId={} productId={} metricId={} - feature flag '{}' is disabled and org is not allowlisted",
           payload.getOrgId(),
           payload.getProductId(),
           metricId,
@@ -223,6 +223,10 @@ public class CustomerOverUsageService {
     Action action = buildNotificationAction(payload, metricId, utilizationPercent);
     incrementOverUsageCounter(payload, metricId);
     notificationsProducer.produce(action);
+  }
+
+  private boolean canSendNotification(String orgId) {
+    return featureFlags.sendNotifications() || featureFlags.isOrgAllowlistedForNotifications(orgId);
   }
 
   private Action buildNotificationAction(

@@ -119,6 +119,22 @@ objects:
                     "createdAt": "2025-11-28T10:00:00.000Z"
                   },
                   {
+                    "name": "swatch.swatch-notifications.send-notifications-orgs-allowlist",
+                    "description": "Comma-separated list of org IDs allowed to receive over-usage notifications regardless of the global send-notifications flag. Used for targeted testing in production without affecting other users.",
+                    "type": "operational",
+                    "project": "default",
+                    "enabled": true,
+                    "stale": false,
+                    "strategies": [
+                        {
+                            "name": "default",
+                            "parameters": {}
+                        }
+                    ],
+                    "variants": [],
+                    "createdAt": "2026-02-26T10:00:00.000Z"
+                  },
+                  {
                     "name": "swatch.swatch-metrics-hbi.emit-events",
                     "description": "Enable sending of HBI events to the Swatch events after conversion.",
                     "type": "operational",
