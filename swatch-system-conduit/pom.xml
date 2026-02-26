@@ -14,6 +14,10 @@
   <name>SWATCH - Services - System Conduit</name>
 
   <properties>
+    <!-- TODO: Remove when parent upgraded to Java 21 -->
+    <java.version>21</java.version>
+    <maven.compiler.source>${java.version}</maven.compiler.source>
+    <maven.compiler.target>${java.version}</maven.compiler.target>
     <openapi.spec.folder>src/main/spec</openapi.spec.folder>
     <openapi.spec.api>internal-organizations-sync-api-spec.yaml</openapi.spec.api>
     <openapi.config.file>internal-organizations-sync-api-config.json</openapi.config.file>
