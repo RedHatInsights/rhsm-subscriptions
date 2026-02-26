@@ -26,7 +26,6 @@ import java.util.UUID;
 import org.candlepin.testcontainers.InventoryContainer;
 import org.candlepin.testcontainers.SwatchPostgreSQLContainer;
 import org.junit.jupiter.api.Tag;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.Network;
@@ -36,7 +35,6 @@ import org.testcontainers.shaded.com.fasterxml.jackson.core.JsonProcessingExcept
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 
 @Testcontainers
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Tag("integration")
 public interface ExtendWithInventoryService {
 

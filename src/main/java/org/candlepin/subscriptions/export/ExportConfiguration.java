@@ -34,8 +34,8 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -61,7 +61,7 @@ public class ExportConfiguration {
   @Bean(EXPORT_CONSUMER_FACTORY_QUALIFIER)
   ConsumerFactory<String, String> exportConsumerFactory(KafkaProperties kafkaProperties) {
     return new DefaultKafkaConsumerFactory<>(
-        kafkaProperties.buildConsumerProperties(null),
+        kafkaProperties.buildConsumerProperties(),
         new StringDeserializer(),
         new StringDeserializer());
   }

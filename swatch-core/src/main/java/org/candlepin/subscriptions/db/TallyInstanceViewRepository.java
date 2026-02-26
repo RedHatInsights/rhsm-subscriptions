@@ -25,6 +25,7 @@ import com.redhat.swatch.configuration.registry.ProductId;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.MapJoin;
+import jakarta.persistence.criteria.Nulls;
 import jakarta.persistence.criteria.Order;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Root;
@@ -46,7 +47,6 @@ import org.candlepin.subscriptions.db.model.TallyInstancesDbReportCriteria;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.utilization.api.v1.model.SortDirection;
-import org.hibernate.query.NullPrecedence;
 import org.hibernate.query.criteria.JpaOrder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
@@ -263,10 +263,10 @@ public class TallyInstanceViewRepository {
   private static JpaOrder orderByColumn(
       CriteriaBuilder builder, Path<Object> column, boolean isAscending) {
     if (isAscending) {
-      return ((JpaOrder) builder.asc(column)).nullPrecedence(NullPrecedence.FIRST);
+      return ((JpaOrder) builder.asc(column)).nullPrecedence(Nulls.FIRST);
     }
 
-    return ((JpaOrder) builder.desc(column)).nullPrecedence(NullPrecedence.LAST);
+    return ((JpaOrder) builder.desc(column)).nullPrecedence(Nulls.LAST);
   }
 
   private static MapJoin<Object, Object, Object> leftJoinMetricsBy(
@@ -284,7 +284,7 @@ public class TallyInstanceViewRepository {
   @SuppressWarnings("java:S107")
   public static <T extends TallyInstanceView> Specification<T> buildSearchSpecification(
       TallyInstancesDbReportCriteria criteria) {
-    var searchCriteria = Specification.<T>where(null);
+    var searchCriteria = Specification.<T>where((root, query, builder) -> null);
     searchCriteria =
         searchCriteria.and(
             socketsAndCoresGreaterThanOrEqualTo(criteria.getMinCores(), criteria.getMinSockets()));

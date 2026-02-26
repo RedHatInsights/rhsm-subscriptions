@@ -25,8 +25,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.boot.http.client.HttpRedirects;
+import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
@@ -44,7 +45,7 @@ class SwaggerTest {
   @LocalServerPort int port;
 
   private final TestRestTemplate restTemplate =
-      new TestRestTemplate(TestRestTemplate.HttpClientOption.ENABLE_REDIRECTS);
+      new TestRestTemplate().withRedirects(HttpRedirects.FOLLOW);
 
   @ParameterizedTest
   @ValueSource(strings = {"swatch-tally"})

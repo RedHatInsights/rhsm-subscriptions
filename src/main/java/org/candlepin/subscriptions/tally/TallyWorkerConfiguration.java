@@ -53,9 +53,9 @@ import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -289,7 +289,7 @@ public class TallyWorkerConfiguration {
   ConsumerFactory<String, String> serviceInstanceConsumerFactory(
       KafkaProperties kafkaProperties,
       @Qualifier("serviceInstanceTopicProperties") TaskQueueProperties taskQueueProperties) {
-    var props = kafkaProperties.buildConsumerProperties(null);
+    var props = kafkaProperties.buildConsumerProperties();
     props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, taskQueueProperties.getMaxPollRecords());
     return new DefaultKafkaConsumerFactory<>(
         props, new StringDeserializer(), new StringDeserializer());
@@ -350,7 +350,7 @@ public class TallyWorkerConfiguration {
       KafkaProperties kafkaProperties,
       @Qualifier(ENABLED_ORGS_TOPIC_PROPERTIES_BEAN)
           TaskQueueProperties enabledOrgsTopicProperties) {
-    var props = kafkaProperties.buildConsumerProperties(null);
+    var props = kafkaProperties.buildConsumerProperties();
     props.put(
         ConsumerConfig.MAX_POLL_RECORDS_CONFIG, enabledOrgsTopicProperties.getMaxPollRecords());
     var jsonDeserializer = new JsonDeserializer<>(EnabledOrgsRequest.class, objectMapper, false);
