@@ -39,7 +39,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class UtilizationWhitelistComponentTest extends BaseUtilizationComponentTest {
+public class UtilizationAllowlistComponentTest extends BaseUtilizationComponentTest {
 
   private static final double BASELINE_CAPACITY = 100.0;
   private static final double USAGE_EXCEEDING_THRESHOLD = 110.0;
@@ -50,14 +50,14 @@ public class UtilizationWhitelistComponentTest extends BaseUtilizationComponentT
   }
 
   @AfterAll
-  static void clearNotificationsWhitelistFlag() {
+  static void clearNotificationsAllowlistFlag() {
     unleash.disableSendNotificationsFlagForOrgs();
   }
 
   @Test
-  @TestPlanName("utilization-whitelist-TC001")
-  void shouldSendNotification_whenOrgIsWhitelistedAndGlobalFlagDisabled() {
-    givenOrgIsWhitelisted(orgId);
+  @TestPlanName("utilization-allowlist-TC001")
+  void shouldSendNotification_whenOrgIsAllowlistedAndGlobalFlagDisabled() {
+    givenOrgIsAllowlisted(orgId);
 
     // When
     whenOverUsageEventIsSent();
@@ -67,10 +67,10 @@ public class UtilizationWhitelistComponentTest extends BaseUtilizationComponentT
   }
 
   @Test
-  @TestPlanName("utilization-whitelist-TC002")
-  void shouldNotSendNotification_whenOrgIsNotWhitelistedAndGlobalFlagDisabled() {
+  @TestPlanName("utilization-allowlist-TC002")
+  void shouldNotSendNotification_whenOrgIsNotAllowlistedAndGlobalFlagDisabled() {
     // Given
-    givenOrgIsWhitelisted("some-other-org-id");
+    givenOrgIsAllowlisted("some-other-org-id");
 
     // When
     whenOverUsageEventIsSent();
@@ -80,10 +80,10 @@ public class UtilizationWhitelistComponentTest extends BaseUtilizationComponentT
   }
 
   @Test
-  @TestPlanName("utilization-whitelist-TC003")
-  void shouldNotSendNotification_whenWhitelistIsEmptyAndGlobalFlagDisabled() {
+  @TestPlanName("utilization-allowlist-TC003")
+  void shouldNotSendNotification_whenAllowlistIsEmptyAndGlobalFlagDisabled() {
     // Given
-    givenWhitelistFlagEnabledWithEmptyPayload();
+    givenAllowlistFlagEnabledWithEmptyPayload();
 
     // When
     whenOverUsageEventIsSent();
@@ -92,11 +92,11 @@ public class UtilizationWhitelistComponentTest extends BaseUtilizationComponentT
     thenNotificationIsNotSent();
   }
 
-  private void givenOrgIsWhitelisted(String whitelistedOrgId) {
-    unleash.enableSendNotificationsFlagForOrgs(whitelistedOrgId);
+  private void givenOrgIsAllowlisted(String allowlistedOrgId) {
+    unleash.enableSendNotificationsFlagForOrgs(allowlistedOrgId);
   }
 
-  private void givenWhitelistFlagEnabledWithEmptyPayload() {
+  private void givenAllowlistFlagEnabledWithEmptyPayload() {
     unleash.enableSendNotificationsFlagForOrgs(" ");
   }
 
@@ -119,7 +119,7 @@ public class UtilizationWhitelistComponentTest extends BaseUtilizationComponentT
 
   private void thenNotificationShouldBeSent() {
     Action notification = kafkaBridge.waitForKafkaMessage(NOTIFICATIONS, matchesOrgId(orgId));
-    assertThat("Notification should be sent for whitelisted org", notification, notNullValue());
+    assertThat("Notification should be sent for allowlisted org", notification, notNullValue());
     assertThat(
         "Context should contain correct product_id",
         notification.getContext().getAdditionalProperties().get("product_id"),
