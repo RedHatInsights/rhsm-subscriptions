@@ -145,11 +145,26 @@ public class TallySwatchService extends SwatchService {
 
   public InstanceResponse getInstancesByProduct(
       String orgId, String productId, OffsetDateTime beginning, OffsetDateTime ending) {
+    return getInstancesByProduct(orgId, productId, beginning, ending, null);
+  }
+
+  public InstanceResponse getInstancesByProduct(
+      String orgId,
+      String productId,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      Map<String, ?> queryParams) {
+    Map<String, Object> params = new HashMap<>();
+    params.put("beginning", beginning.toString());
+    params.put("ending", ending.toString());
+    if (queryParams != null) {
+      params.putAll(queryParams);
+    }
+
     Response response =
         given()
             .header(X_RH_IDENTITY_HEADER, SwatchUtils.createUserIdentityHeader(orgId))
-            .queryParam("beginning", beginning.toString())
-            .queryParam("ending", ending.toString())
+            .queryParams(params)
             // Use path params so product IDs with spaces are safely encoded.
             .get(API_PATH + "/instances/products/{productId}", productId)
             .then()
@@ -172,5 +187,39 @@ public class TallySwatchService extends SwatchService {
         response.getBody().asString());
 
     return response.as(InstanceResponse.class);
+  }
+
+  public Response getBillingAccountIds(String orgId, Map<String, ?> queryParams) {
+    Map<String, Object> params = new HashMap<>();
+    params.put("org_id", orgId);
+    if (queryParams != null) {
+      params.putAll(queryParams);
+    }
+
+    Response response =
+        given()
+            .header(X_RH_IDENTITY_HEADER, SwatchUtils.createUserIdentityHeader(orgId))
+            .queryParams(params)
+            .get(API_PATH + "/instances/billing_account_ids")
+            .then()
+            .extract()
+            .response();
+
+    assertEquals(
+        HttpStatus.SC_OK,
+        response.getStatusCode(),
+        "Get billing account IDs failed with status code: "
+            + response.getStatusCode()
+            + ", response body: "
+            + response.getBody().asString());
+
+    Log.debug(
+        this,
+        "Billing account IDs response for orgId=%s: status=%d, body=%s",
+        orgId,
+        response.getStatusCode(),
+        response.getBody().asString());
+
+    return response;
   }
 }
