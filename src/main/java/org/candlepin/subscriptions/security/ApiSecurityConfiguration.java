@@ -26,8 +26,8 @@ import org.candlepin.subscriptions.rbac.RbacProperties;
 import org.candlepin.subscriptions.rbac.RbacService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.boot.actuate.autoconfigure.web.server.ManagementServerProperties;
+import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -43,7 +43,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.csrf.CsrfFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
 /**
  * Configuration class for Spring Security.
@@ -225,7 +225,7 @@ public class ApiSecurityConfiguration {
         .authorizeHttpRequests(
             requests -> {
               for (String url : URLS_PERMITTED_WITHOUT_AUTH) {
-                requests.requestMatchers(new AntPathRequestMatcher(url)).permitAll();
+                requests.requestMatchers(PathPatternRequestMatcher.pathPattern(url)).permitAll();
               }
               requests.requestMatchers(this::isDummyRequest).permitAll();
               requests
@@ -241,10 +241,12 @@ public class ApiSecurityConfiguration {
                * applied to the defined path ("//metrics") rather than the de facto path ("/metrics").
                * Accordingly, I've put in a custom rule in the security config to allow for access to "/metrics"
                */
-              requests.requestMatchers(new AntPathRequestMatcher("/metrics")).permitAll();
+              requests
+                  .requestMatchers(PathPatternRequestMatcher.pathPattern("/metrics"))
+                  .permitAll();
               // Intentionally not prefixed with "ROLE_"
               requests
-                  .requestMatchers(new AntPathRequestMatcher("/**/internal/**"))
+                  .requestMatchers(PathPatternRequestMatcher.pathPattern("/api/*/internal/**"))
                   .hasRole("INTERNAL");
               /* For Spring Security 6, we can use
                * .access(
@@ -253,10 +255,10 @@ public class ApiSecurityConfiguration {
                */
               requests
                   .requestMatchers(
-                      new AntPathRequestMatcher("/**/capacity/**"),
-                      new AntPathRequestMatcher("/**/tally/**"),
-                      new AntPathRequestMatcher("/**/hosts/**"),
-                      new AntPathRequestMatcher("/**/instances/**"))
+                      PathPatternRequestMatcher.pathPattern("/api/*/capacity/**"),
+                      PathPatternRequestMatcher.pathPattern("/api/*/tally/**"),
+                      PathPatternRequestMatcher.pathPattern("/api/*/hosts/**"),
+                      PathPatternRequestMatcher.pathPattern("/api/*/instances/**"))
                   .access(
                       (auth, req) ->
                           new AuthorizationDecision(optInChecker.checkAccess(auth.get())));

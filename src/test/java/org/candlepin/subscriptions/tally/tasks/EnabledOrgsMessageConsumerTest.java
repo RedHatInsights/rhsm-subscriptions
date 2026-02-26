@@ -41,7 +41,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
+import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -72,7 +72,7 @@ class EnabledOrgsMessageConsumerTest implements ExtendWithEmbeddedKafka {
   @BeforeEach
   public void setup() {
     Mockito.reset(consumer);
-    Map<String, Object> properties = kafkaProperties.buildProducerProperties(null);
+    Map<String, Object> properties = kafkaProperties.buildProducerProperties();
     properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
     properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
 

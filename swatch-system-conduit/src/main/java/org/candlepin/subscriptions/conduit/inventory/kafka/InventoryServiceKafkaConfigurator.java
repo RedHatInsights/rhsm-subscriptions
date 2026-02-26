@@ -24,7 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
+import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
@@ -40,7 +40,7 @@ public class InventoryServiceKafkaConfigurator {
 
   public DefaultKafkaProducerFactory<String, CreateUpdateHostMessage> defaultProducerFactory(
       KafkaProperties kafkaProperties, ObjectMapper mapper) {
-    Map<String, Object> producerConfig = kafkaProperties.buildProducerProperties(null);
+    Map<String, Object> producerConfig = kafkaProperties.buildProducerProperties();
     producerConfig.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
 
     DefaultKafkaProducerFactory<String, CreateUpdateHostMessage> factory =

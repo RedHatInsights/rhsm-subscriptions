@@ -26,6 +26,9 @@
   <suppress checks=".*" files=".*[\\/]generated-sources[\\/].*.java"/>
   <suppress checks=".*" files="buildSrc[\\/]build[\\/].*.java"/>
 
+  <!-- Ignore RESTEasy workaround files (copied from resteasy-servlet-spring-boot-starter) -->
+  <suppress checks=".*" files=".*[\\/]org[\\/]jboss[\\/]resteasy[\\/]springboot[\\/].*.java"/>
+
   <!-- The first Javadoc sentence is supposed to end with a period. -->
   <suppress checks="SummaryJavadoc" files="."/>
 

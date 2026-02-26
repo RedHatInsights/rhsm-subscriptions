@@ -25,7 +25,7 @@ import java.nio.charset.Charset;
 import java.util.function.Consumer;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
+import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.Resource;
 

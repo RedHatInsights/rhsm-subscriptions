@@ -1,0 +1,3 @@
+# RESTEasy autoconfiguration with Spring Boot 4 compatibility fix
+# This replaces the one from resteasy-servlet-spring-boot-starter:6.3.0.Final
+org.jboss.resteasy.springboot.ResteasyAutoConfiguration
