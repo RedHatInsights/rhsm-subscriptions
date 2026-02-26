@@ -119,7 +119,7 @@ objects:
                     "createdAt": "2025-11-28T10:00:00.000Z"
                   },
                   {
-                    "name": "swatch.swatch-notifications.send-notifications-orgs-whitelist",
+                    "name": "swatch.swatch-notifications.send-notifications-orgs-allowlist",
                     "description": "Comma-separated list of org IDs allowed to receive over-usage notifications regardless of the global send-notifications flag. Used for targeted testing in production without affecting other users.",
                     "type": "operational",
                     "project": "default",

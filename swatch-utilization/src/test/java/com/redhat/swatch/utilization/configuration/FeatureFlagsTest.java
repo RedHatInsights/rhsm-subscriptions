@@ -52,59 +52,59 @@ class FeatureFlagsTest {
   }
 
   @Test
-  void shouldReturnTrue_whenOrgIsInWhitelist() {
-    givenWhitelistFlagEnabledForOrgs("org1", "org2", "org3");
+  void shouldReturnTrue_whenOrgIsInAllowlist() {
+    givenAllowlistFlagEnabledForOrgs("org1", "org2", "org3");
 
-    assertTrue(featureFlags.isOrgWhitelistedForNotifications("org2"));
+    assertTrue(featureFlags.isOrgAllowlistedForNotifications("org2"));
   }
 
   @Test
-  void shouldReturnFalse_whenOrgIsNotInWhitelist() {
-    givenWhitelistFlagEnabledForOrgs("org1", "org2", "org3");
+  void shouldReturnFalse_whenOrgIsNotInAllowlist() {
+    givenAllowlistFlagEnabledForOrgs("org1", "org2", "org3");
 
-    assertFalse(featureFlags.isOrgWhitelistedForNotifications("org999"));
+    assertFalse(featureFlags.isOrgAllowlistedForNotifications("org999"));
   }
 
   @Test
-  void shouldReturnFalse_whenWhitelistFlagIsDisabled() {
-    when(unleash.isEnabled(FeatureFlags.SEND_NOTIFICATIONS_ORGS_WHITELIST)).thenReturn(false);
+  void shouldReturnFalse_whenAllowlistFlagIsDisabled() {
+    when(unleash.isEnabled(FeatureFlags.SEND_NOTIFICATIONS_ORGS_ALLOWLIST)).thenReturn(false);
 
-    assertFalse(featureFlags.isOrgWhitelistedForNotifications("org1"));
+    assertFalse(featureFlags.isOrgAllowlistedForNotifications("org1"));
   }
 
   @Test
-  void shouldReturnFalse_whenWhitelistPayloadIsEmpty() {
-    givenWhitelistFlagEnabledForOrgs();
+  void shouldReturnFalse_whenAllowlistPayloadIsEmpty() {
+    givenAllowlistFlagEnabledForOrgs();
 
-    assertFalse(featureFlags.isOrgWhitelistedForNotifications("org1"));
+    assertFalse(featureFlags.isOrgAllowlistedForNotifications("org1"));
   }
 
   @Test
-  void shouldReturnFalse_whenWhitelistPayloadIsNull() {
-    givenWhitelistFlagEnabledWithoutOrgs();
+  void shouldReturnFalse_whenAllowlistPayloadIsNull() {
+    givenAllowlistFlagEnabledWithoutOrgs();
 
-    assertFalse(featureFlags.isOrgWhitelistedForNotifications("org1"));
+    assertFalse(featureFlags.isOrgAllowlistedForNotifications("org1"));
   }
 
   @Test
-  void shouldReturnTrue_whenWhitelistContainsSingleMatchingOrg() {
-    givenWhitelistFlagEnabledForOrgs("org1");
+  void shouldReturnTrue_whenAllowlistContainsSingleMatchingOrg() {
+    givenAllowlistFlagEnabledForOrgs("org1");
 
-    assertTrue(featureFlags.isOrgWhitelistedForNotifications("org1"));
+    assertTrue(featureFlags.isOrgAllowlistedForNotifications("org1"));
   }
 
-  private void givenWhitelistFlagEnabledForOrgs(String... orgIds) {
-    givenWhitelistFlagEnabled(new Payload("string", String.join(",", orgIds)));
+  private void givenAllowlistFlagEnabledForOrgs(String... orgIds) {
+    givenAllowlistFlagEnabled(new Payload("string", String.join(",", orgIds)));
   }
 
-  private void givenWhitelistFlagEnabledWithoutOrgs() {
-    givenWhitelistFlagEnabled(null);
+  private void givenAllowlistFlagEnabledWithoutOrgs() {
+    givenAllowlistFlagEnabled(null);
   }
 
-  private void givenWhitelistFlagEnabled(Payload payload) {
-    when(unleash.isEnabled(FeatureFlags.SEND_NOTIFICATIONS_ORGS_WHITELIST)).thenReturn(true);
+  private void givenAllowlistFlagEnabled(Payload payload) {
+    when(unleash.isEnabled(FeatureFlags.SEND_NOTIFICATIONS_ORGS_ALLOWLIST)).thenReturn(true);
     Variant variant =
         new Variant(FeatureFlags.ORGS_VARIANT, payload, true, FeatureFlags.ORGS_VARIANT, true);
-    when(unleash.getVariant(FeatureFlags.SEND_NOTIFICATIONS_ORGS_WHITELIST)).thenReturn(variant);
+    when(unleash.getVariant(FeatureFlags.SEND_NOTIFICATIONS_ORGS_ALLOWLIST)).thenReturn(variant);
   }
 }
