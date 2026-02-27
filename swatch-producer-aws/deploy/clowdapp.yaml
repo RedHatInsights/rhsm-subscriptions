@@ -63,8 +63,26 @@ parameters:
     value: '3'
   - name: QUARKUS_PROFILE
     value: prod
+  # NOTE: DISABLE_OTEL is deprecated, use OTEL_DISABLED instead. Keep it for backwards compatibility.
+  # Will be removed as part of SWATCH-4305.
   - name: DISABLE_OTEL
     value: 'false'
+  - name: OTEL_DISABLED
+    value: 'true'
+  - name: OTEL_SIDECAR_IMAGE
+    value: quay.io/signalfx/splunk-otel-collector:0.140.0
+  - name: OTEL_SIDECAR_CONFIG_MAP
+    value: swatch-otel-config
+  - name: OTEL_SIDECAR_SPLUNK_CONFIG
+    value: '/etc/otelcol/relay'
+  - name: OTEL_ENV_NAME
+    value: env-swatch-producer-aws
+  - name: OTEL_K8S_CLUSTER_NAME
+    value: ephemeral
+  - name: OTEL_SIGNALFX_TOKEN_SECRET_NAME
+    value: signalfx
+  - name: OTEL_SIGNALFX_TOKEN_SECRET_KEY
+    value: token
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -187,6 +205,8 @@ objects:
               value: ${QUARKUS_PROFILE}
             - name: DISABLE_OTEL
               value: ${DISABLE_OTEL}
+            - name: OTEL_DISABLED
+              value: ${OTEL_DISABLED}
           volumeMounts:
             - name: logs
               mountPath: /logs
@@ -194,6 +214,25 @@ objects:
               mountPath: /pinhead
             - name: aws-marketplace-credentials
               mountPath: /aws-marketplace-credentials
+          sidecars:
+          - name: otel-collector
+            enabled: true
+            configMap: ${OTEL_SIDECAR_CONFIG_MAP}
+            image: ${OTEL_SIDECAR_IMAGE}
+            envVars:
+              - name: ENV_NAME
+                value: ${OTEL_ENV_NAME}
+              - name: K8S_CLUSTER_NAME
+                value: ${OTEL_K8S_CLUSTER_NAME}
+              - name: SPLUNK_OBSERVABILITY_ACCESS_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: ${OTEL_SIGNALFX_TOKEN_SECRET_NAME}
+                    key: ${OTEL_SIGNALFX_TOKEN_SECRET_KEY}
+              - name: SPLUNK_CONFIG
+                value: ${OTEL_SIDECAR_SPLUNK_CONFIG}
+              - name: SPLUNK_MEMORY_TOTAL_MIB
+                value: '1024'
           volumes:
             - name: logs
               emptyDir:
