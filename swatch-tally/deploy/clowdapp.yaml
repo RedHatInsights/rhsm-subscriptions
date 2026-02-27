@@ -237,7 +237,6 @@ parameters:
     value: 'false'
   - name: FLOORIST_S3_SNOWPIPE_PATH
     description: Path for dataproduct in snowpipe s3 bucket
-    required: true
     value: ''
   # allow overriding to support independent deploy with bonfire
   - name: DB_POD
