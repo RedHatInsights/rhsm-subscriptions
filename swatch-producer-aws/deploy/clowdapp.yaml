@@ -63,10 +63,6 @@ parameters:
     value: '3'
   - name: QUARKUS_PROFILE
     value: prod
-  # NOTE: DISABLE_OTEL is deprecated, use OTEL_DISABLED instead. Keep it for backwards compatibility.
-  # Will be removed as part of SWATCH-4305.
-  - name: DISABLE_OTEL
-    value: 'false'
   - name: OTEL_DISABLED
     value: 'true'
   - name: OTEL_SIDECAR_IMAGE
@@ -203,8 +199,6 @@ objects:
               value: ${ENABLE_AWS_DRY_RUN}
             - name: QUARKUS_PROFILE
               value: ${QUARKUS_PROFILE}
-            - name: DISABLE_OTEL
-              value: ${DISABLE_OTEL}
             - name: OTEL_DISABLED
               value: ${OTEL_DISABLED}
           volumeMounts:

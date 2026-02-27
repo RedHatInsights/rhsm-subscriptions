@@ -118,10 +118,6 @@ parameters:
     value: 100m
   - name: CURL_CRON_CPU_LIMIT
     value: 100m
-  # NOTE: DISABLE_OTEL is deprecated, use OTEL_DISABLED instead. Keep it for backwards compatibility.
-  # Will be removed as part of SWATCH-4305.
-  - name: DISABLE_OTEL
-    value: 'false'
   - name: OTEL_DISABLED
     value: 'true'
   - name: OTEL_SIDECAR_IMAGE
@@ -355,8 +351,6 @@ objects:
                 value: ${SUBSCRIPTION_IGNORE_STARTING_LATER_THAN}
               - name: ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC
                 value: ${ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC}
-              - name: DISABLE_OTEL
-                value: ${DISABLE_OTEL}
               - name: OTEL_DISABLED
                 value: ${OTEL_DISABLED}
             volumeMounts:
