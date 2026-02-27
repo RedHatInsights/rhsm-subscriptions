@@ -59,7 +59,7 @@ public class BaseContractComponentTest {
   static final MetricId CORES = MetricIdUtils.getCores();
   static final MetricId SOCKETS = MetricIdUtils.getSockets();
   static final MetricId INSTANCE_HOURS = MetricIdUtils.getInstanceHours();
-  static final MetricId VCPUS = MetricIdUtils.getVCpus();
+  static final String SUCCESS_MESSAGE = "SUCCESS";
 
   @KafkaBridge static KafkaBridgeService kafkaBridge = new KafkaBridgeService();
 
