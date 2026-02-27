@@ -161,6 +161,34 @@ public class BaseContractComponentTest {
     return getCapacityValueFromReport(report);
   }
 
+  protected double getPhysicalCoreCapacity(
+      Product product, String orgId, OffsetDateTime beginning, OffsetDateTime ending) {
+    CapacityReportByMetricId report =
+        service.getCapacityReportByMetricId(
+            product,
+            orgId,
+            CORES.toString(),
+            beginning,
+            ending,
+            GranularityType.DAILY,
+            ReportCategory.PHYSICAL);
+    return getCapacityValueFromReport(report);
+  }
+
+  protected double getHypervisorCoreCapacity(
+      Product product, String orgId, OffsetDateTime beginning, OffsetDateTime ending) {
+    CapacityReportByMetricId report =
+        service.getCapacityReportByMetricId(
+            product,
+            orgId,
+            CORES.toString(),
+            beginning,
+            ending,
+            GranularityType.DAILY,
+            ReportCategory.HYPERVISOR);
+    return getCapacityValueFromReport(report);
+  }
+
   /** Helper method to extract capacity value from the capacity report. */
   protected double getCapacityValueFromReport(CapacityReportByMetricId report) {
     return report.getData().stream()
