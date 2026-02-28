@@ -459,7 +459,7 @@ public ComponentTestReporter() {
 
 #### Step 4: Update DataRouter Configuration
 
-Add your property to the whitelist in `datarouter.json`:
+Add your property to the allowlist in `datarouter.json`:
 
 ```json
 {
