@@ -1265,75 +1265,138 @@ This section validates capacity calculations across time boundaries. Tests verif
   - Reconciliation task enqueued
 
 ### Subscription-Level Reconciliation
-**capacity-reconciliation-TC004 - Reconcile Subscription with Cores**
-- **Description**: Verify capacity calculation for subscription with Cores offering
+
+**Note**: The product data model does not support both physical and hypervisor capacity in the same offering (DERIVED_SKU determines mapping: absent = physical, present = hypervisor). Physical and hypervisor scenarios are covered in separate test cases.
+
+**capacity-reconciliation-TC004 - Reconcile Subscription with Physical Cores**
+- **Description**: Verify capacity calculation for subscription with physical Cores offering
 - **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
 - **Test Steps**:
-  1. Create offering with cores=4, hypervisorCores=2
+  1. Create offering with cores=4 (physical, no DERIVED_SKU)
   2. Create a subscription with quantity=10
   3. Reconcile subscription
 - **Expected Results**:
   - PHYSICAL Cores measurement = 4 * 10 = 40
+  - Measurements persisted in subscription_measurements
+
+**capacity-reconciliation-TC004b - Reconcile Subscription with Hypervisor Cores**
+- **Description**: Verify capacity calculation for subscription with hypervisor Cores offering
+- **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
+- **Test Steps**:
+  1. Create hypervisor offering (with DERIVED_SKU) with hypervisorCores=2
+  2. Create a subscription with quantity=10
+  3. Reconcile subscription
+- **Expected Results**:
   - HYPERVISOR Cores measurement = 2 * 10 = 20
   - Measurements persisted in subscription_measurements
 
-**capacity-reconciliation-TC005 - Reconcile Subscription with Sockets**
-- **Description**: Verify capacity calculation for Sockets
+**capacity-reconciliation-TC005 - Reconcile Subscription with Physical Sockets**
+- **Description**: Verify capacity calculation for subscription with physical Sockets offering
 - **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
 - **Test Steps**:
-  1. Create offering with sockets=2, hypervisorSockets=1
+  1. Create offering with sockets=2 (physical, no DERIVED_SKU)
   2. Create a subscription with quantity=5
   3. Reconcile
 - **Expected Results**:
   - PHYSICAL Sockets = 2 * 5 = 10
-  - HYPERVISOR Sockets = 1 * 5 = 5
 
-**capacity-reconciliation-TC006 - Reconcile Subscription with Mixed Metrics**
-- **Description**: Verify subscription with both Cores and Sockets
+**capacity-reconciliation-TC005b - Reconcile Subscription with Hypervisor Sockets**
+- **Description**: Verify capacity calculation for subscription with hypervisor Sockets offering
 - **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
 - **Test Steps**:
-  1. Offering has cores=8, sockets=2, hypervisorCores=4, hypervisorSockets=1
+  1. Create hypervisor offering (with DERIVED_SKU) with hypervisorSockets=1
+  2. Create a subscription with quantity=5
+  3. Reconcile
+- **Expected Results**:
+  - HYPERVISOR Sockets = 1 * 5 = 5
+
+**capacity-reconciliation-TC006 - Reconcile Subscription with Mixed Physical Metrics**
+- **Description**: Verify subscription with both physical Cores and Sockets
+- **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
+- **Test Steps**:
+  1. Offering has cores=8, sockets=2 (physical only)
   2. Subscription quantity=3
   3. Reconcile
 - **Expected Results**:
-  - 4 measurements created:
-    - PHYSICAL Cores = 24
-    - PHYSICAL Sockets = 6
-    - HYPERVISOR Cores = 12
-    - HYPERVISOR Sockets = 3
+  - PHYSICAL Cores = 24
+  - PHYSICAL Sockets = 6
 
-**capacity-reconciliation-TC007 - Update Existing Measurements**
-- **Description**: Verify existing measurements are updated when offering changes
+**capacity-reconciliation-TC006b - Reconcile Subscription with Mixed Hypervisor Metrics**
+- **Description**: Verify subscription with both hypervisor Cores and Sockets
 - **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
 - **Test Steps**:
-  1. Subscription has PHYSICAL Cores = 40
+  1. Create hypervisor offering with hypervisorCores=4, hypervisorSockets=1
+  2. Subscription quantity=3
+  3. Reconcile
+- **Expected Results**:
+  - HYPERVISOR Cores = 12
+  - HYPERVISOR Sockets = 3
+
+**capacity-reconciliation-TC007 - Update Existing Physical Measurements**
+- **Description**: Verify existing physical measurements are updated when offering changes
+- **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
+- **Test Steps**:
+  1. Subscription has PHYSICAL Cores = 40 (cores=8, quantity=5)
   2. Offering updated with cores=6
   3. Reconcile subscription
 - **Expected Results**:
-  - Existing measurement updated to new value (6 * quantity)
+  - Existing measurement updated to new value (6 * 5 = 30)
   - measurementsUpdated counter incremented
   - Log message indicates update
 
-**capacity-reconciliation-TC008 - Create New Measurements**  
-- **Description:** Verify new measurements are created  
+**capacity-reconciliation-TC007b - Update Existing Hypervisor Measurements**
+- **Description**: Verify existing hypervisor measurements are updated when offering changes
+- **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
+- **Test Steps**:
+  1. Subscription has HYPERVISOR Cores = 20 (hypervisorCores=2, quantity=10)
+  2. Offering updated with hypervisorCores=3
+  3. Reconcile subscription
+- **Expected Results**:
+  - Existing measurement updated to new value (3 * 10 = 30)
+  - measurementsUpdated counter incremented
+
+**capacity-reconciliation-TC008 - Create New Physical Measurements**  
+- **Description:** Verify new physical measurements are created  
 - **Action:** `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`  
 - **Test Steps:**
-  1. Subscription has no measurements
-  2. Reconcile with the offering that has capacity
+  1. Subscription has no measurements (saved with reconcileCapacity=false)
+  2. Reconcile with the offering that has physical capacity
 - **Expected Results**:
   - New measurements created
   - measurementsCreated counter incremented
 
-**capacity-reconciliation-TC009 - Delete Stale Measurements**
-- **Description**: Verify removal of measurements no longer in offering
+**capacity-reconciliation-TC008b - Create New Hypervisor Measurements**  
+- **Description:** Verify new hypervisor measurements are created  
+- **Action:** `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`  
+- **Test Steps:**
+  1. Subscription has no measurements (saved with reconcileCapacity=false)
+  2. Reconcile with the hypervisor offering that has capacity
+- **Expected Results**:
+  - New hypervisor measurements created
+  - measurementsCreated counter incremented
+
+**capacity-reconciliation-TC009 - Delete Stale Physical Measurements**
+- **Description**: Verify removal of physical measurements no longer in offering
 - **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
 - **Test Steps**:
-  1. Subscription has PHYSICAL Cores and HYPERVISOR Cores measurements
-  2. Offering updates only to have PHYSICAL Cores (hypervisorCores = null)
+  1. Subscription has PHYSICAL Cores and PHYSICAL Sockets (offering has cores=8, sockets=2)
+  2. Offering updates to have PHYSICAL Cores only (sockets = null)
   3. Reconcile
 - **Expected Results**:
   - PHYSICAL Cores measurement retained
-  - HYPERVISOR Cores measurement deleted
+  - PHYSICAL Sockets measurement deleted
+  - measurementsDeleted counter incremented
+
+**capacity-reconciliation-TC009b - Delete Stale Hypervisor Measurements**
+- **Description**: Verify removal of hypervisor measurements no longer in offering
+- **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
+- **Test Steps**:
+  1. Subscription has HYPERVISOR Cores and HYPERVISOR Sockets (offering has hypervisorCores=4, hypervisorSockets=1)
+  2. Offering updates to have HYPERVISOR Cores only (hypervisorSockets = null)
+  3. Reconcile
+- **Expected Results**:
+  - HYPERVISOR Cores measurement retained
+  - HYPERVISOR Sockets measurement deleted
   - measurementsDeleted counter incremented
 
 **capacity-reconciliation-TC010 - Null or Zero Capacity Values**

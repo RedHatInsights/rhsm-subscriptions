@@ -37,6 +37,7 @@ import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.contract.test.model.OfferingResponse;
 import domain.Offering;
 import domain.Product;
@@ -44,6 +45,7 @@ import domain.ReconcileCapacityByOfferingTask;
 import domain.Subscription;
 import io.restassured.response.Response;
 import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.http.HttpStatus;
@@ -306,6 +308,116 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     thenSubscriptionHasNoCapacityMeasurements(testSku);
   }
 
+  @TestPlanName("capacity-reconciliation-TC004b")
+  @Test
+  void shouldReconcileSubscriptionWithHypervisorCores() {
+    // Given: A hypervisor offering with hypervisorCores=2 and a subscription with quantity=10
+    final String testSku = RandomUtils.generateRandom();
+    Offering offering = Offering.buildRhelHypervisorOffering(testSku, 2.0, null);
+    Subscription subscription = givenHypervisorSubscription(offering, Map.of(CORES, 2.0), 10);
+
+    // When: Subscription is saved with reconcileCapacity=true (triggers reconciliation)
+    givenOfferingAndSubscriptionReconciled(offering, subscription);
+
+    // Then: HYPERVISOR Cores measurement = 2 * 10 = 20
+    thenSubscriptionHasHypervisorCoresMeasurement(20.0);
+  }
+
+  @TestPlanName("capacity-reconciliation-TC005b")
+  @Test
+  void shouldReconcileSubscriptionWithHypervisorSockets() {
+    // Given: A hypervisor offering with hypervisorSockets=1 and a subscription with quantity=5
+    final String testSku = RandomUtils.generateRandom();
+    Offering offering = Offering.buildRhelHypervisorOffering(testSku, null, 1.0);
+    Subscription subscription = givenHypervisorSubscription(offering, Map.of(SOCKETS, 1.0), 5);
+
+    // When: Subscription is saved with reconcileCapacity=true (triggers reconciliation)
+    givenOfferingAndSubscriptionReconciled(offering, subscription);
+
+    // Then: HYPERVISOR Sockets = 1 * 5 = 5
+    thenSubscriptionHasHypervisorSocketsMeasurement(5.0);
+  }
+
+  @TestPlanName("capacity-reconciliation-TC006b")
+  @Test
+  void shouldReconcileSubscriptionWithMixedHypervisorMetrics() {
+    // Given: A hypervisor offering with hypervisorCores=4, hypervisorSockets=1 and quantity=3
+    final String testSku = RandomUtils.generateRandom();
+    Offering offering = Offering.buildRhelHypervisorOffering(testSku, 4.0, 1.0);
+    Subscription subscription =
+        givenHypervisorSubscription(offering, Map.of(CORES, 4.0, SOCKETS, 1.0), 3);
+
+    // When: Subscription is saved with reconcileCapacity=true (triggers reconciliation)
+    givenOfferingAndSubscriptionReconciled(offering, subscription);
+
+    // Then: HYPERVISOR Cores = 12, HYPERVISOR Sockets = 3
+    thenSubscriptionHasHypervisorCoresAndSocketsMeasurements(12.0, 3.0);
+  }
+
+  @TestPlanName("capacity-reconciliation-TC007b")
+  @Test
+  void shouldUpdateExistingHypervisorMeasurementsWhenOfferingChanges() {
+    // Given: Subscription has HYPERVISOR Cores = 20 (hypervisorCores=2, quantity=10)
+    final String testSku = RandomUtils.generateRandom();
+    Offering initialOffering = Offering.buildRhelHypervisorOffering(testSku, 2.0, null);
+    Subscription subscription =
+        givenHypervisorSubscription(initialOffering, Map.of(CORES, 2.0), 10);
+    givenOfferingAndSubscriptionReconciled(initialOffering, subscription);
+    thenSubscriptionHasHypervisorCoresMeasurement(20.0);
+    // Given: Offering updated with hypervisorCores=3
+    Offering updatedOffering = Offering.buildRhelHypervisorOffering(testSku, 3.0, null);
+    givenOfferingIsUpdatedAndSynced(updatedOffering);
+
+    // When: Force reconcile
+    Response reconcileResponse = whenCapacityReconciliationIsForced(testSku);
+
+    // Then: Existing measurement updated to new value (3 * 10 = 30)
+    assertThat(
+        "Force reconcile should succeed", reconcileResponse.statusCode(), is(HttpStatus.SC_OK));
+    thenSubscriptionHasHypervisorCoresMeasurement(30.0);
+  }
+
+  @TestPlanName("capacity-reconciliation-TC008b")
+  @Test
+  void shouldCreateNewHypervisorMeasurementsWhenSubscriptionHasNone() {
+    // Given: Subscription has no measurements (saved with reconcileCapacity=false)
+    final String testSku = RandomUtils.generateRandom();
+    Offering offering = Offering.buildRhelHypervisorOffering(testSku, 2.0, null);
+    Subscription subscription = givenHypervisorSubscription(offering, Map.of(CORES, 2.0), 5);
+    givenOfferingAndSubscriptionSavedWithoutReconciliation(offering, subscription);
+
+    // When: Force reconcile
+    Response reconcileResponse = whenCapacityReconciliationIsForced(testSku);
+
+    // Then: New hypervisor measurements created (2 * 5 = 10)
+    assertThat(
+        "Force reconcile should succeed", reconcileResponse.statusCode(), is(HttpStatus.SC_OK));
+    thenSubscriptionHasHypervisorCoresMeasurement(10.0);
+  }
+
+  @TestPlanName("capacity-reconciliation-TC009b")
+  @Test
+  void shouldDeleteStaleHypervisorMeasurementsWhenOfferingNoLongerHasThem() {
+    // Given: Subscription has HYPERVISOR Cores and HYPERVISOR Sockets (4, 1, quantity=3)
+    final String testSku = RandomUtils.generateRandom();
+    Offering initialOffering = Offering.buildRhelHypervisorOffering(testSku, 4.0, 1.0);
+    Subscription subscription =
+        givenHypervisorSubscription(initialOffering, Map.of(CORES, 4.0, SOCKETS, 1.0), 3);
+    givenOfferingAndSubscriptionReconciled(initialOffering, subscription);
+    thenSubscriptionHasHypervisorCoresAndSocketsMeasurements(12.0, 3.0);
+    // Given: Offering updated to have HYPERVISOR Cores only (hypervisorSockets = null)
+    Offering coresOnlyOffering = Offering.buildRhelHypervisorOffering(testSku, 4.0, null);
+    givenOfferingIsUpdatedAndSynced(coresOnlyOffering);
+
+    // When: Force reconcile
+    Response reconcileResponse = whenCapacityReconciliationIsForced(testSku);
+
+    // Then: HYPERVISOR Cores retained (12), HYPERVISOR Sockets measurement deleted
+    assertThat(
+        "Force reconcile should succeed", reconcileResponse.statusCode(), is(HttpStatus.SC_OK));
+    thenSubscriptionHasHypervisorCoresMeasurement(12.0);
+  }
+
   @TestPlanName("capacity-reconciliation-kafka-TC002")
   @Test
   void shouldHandleMalformedReconciliationTask() {
@@ -335,6 +447,29 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
   }
 
   // Helper methods
+
+  /**
+   * Creates a RHEL hypervisor subscription for the given offering and capacity.
+   *
+   * @param offering The hypervisor offering (must be synced separately)
+   * @param capacity Map of metric to capacity value (e.g. CORES, SOCKETS)
+   * @param quantity The subscription quantity
+   * @return The subscription
+   */
+  private Subscription givenHypervisorSubscription(
+      Offering offering, Map<MetricId, Double> capacity, int quantity) {
+    return Subscription.builder()
+        .orgId(orgId)
+        .product(Product.RHEL)
+        .subscriptionId(RandomUtils.generateRandom())
+        .subscriptionNumber(RandomUtils.generateRandom())
+        .offering(offering)
+        .subscriptionMeasurements(capacity)
+        .startDate(OffsetDateTime.now().minusDays(1))
+        .endDate(OffsetDateTime.now().plusDays(1))
+        .quantity(quantity)
+        .build();
+  }
 
   /**
    * Stubs the offering in Wiremock and syncs it.
@@ -650,6 +785,65 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     assertFalse(
         skuCapacity.isPresent(),
         "SKU should not appear in capacity report when offering doesn't exist");
+  }
+
+  /**
+   * Verifies that the subscription has the expected HYPERVISOR Cores measurement. Uses await for
+   * force-reconcile tests where Kafka processing is async. Verification is org-level (capacity
+   * report aggregates by org).
+   *
+   * @param expectedCores The expected HYPERVISOR Cores value (offering hypervisorCores * quantity)
+   */
+  private void thenSubscriptionHasHypervisorCoresMeasurement(double expectedCores) {
+    OffsetDateTime beginning = clock.now().minusDays(1);
+    OffsetDateTime ending = clock.now().plusDays(1);
+    await("HYPERVISOR Cores measurement should match")
+        .atMost(2, MINUTES)
+        .pollInterval(2, SECONDS)
+        .untilAsserted(
+            () -> {
+              double actual = getHypervisorCoresCapacity(Product.RHEL, orgId, beginning, ending);
+              assertThat(
+                  "HYPERVISOR Cores measurement should match offering hypervisorCores * quantity",
+                  actual,
+                  closeTo(expectedCores, 0.01));
+            });
+  }
+
+  /**
+   * Verifies that the subscription has the expected HYPERVISOR Sockets measurement. Verification is
+   * org-level (capacity report aggregates by org).
+   *
+   * @param expectedSockets The expected HYPERVISOR Sockets value (offering hypervisorSockets *
+   *     quantity)
+   */
+  private void thenSubscriptionHasHypervisorSocketsMeasurement(double expectedSockets) {
+    OffsetDateTime beginning = clock.now().minusDays(1);
+    OffsetDateTime ending = clock.now().plusDays(1);
+    await("HYPERVISOR Sockets measurement should match")
+        .atMost(2, MINUTES)
+        .pollInterval(2, SECONDS)
+        .untilAsserted(
+            () -> {
+              double actual = getHypervisorSocketCapacity(Product.RHEL, orgId, beginning, ending);
+              assertThat(
+                  "HYPERVISOR Sockets measurement should match offering hypervisorSockets * quantity",
+                  actual,
+                  closeTo(expectedSockets, 0.01));
+            });
+  }
+
+  /**
+   * Verifies that the subscription has the expected HYPERVISOR Cores and Sockets measurements.
+   * Verification is org-level (capacity report aggregates by org).
+   *
+   * @param expectedCores The expected HYPERVISOR Cores value
+   * @param expectedSockets The expected HYPERVISOR Sockets value
+   */
+  private void thenSubscriptionHasHypervisorCoresAndSocketsMeasurements(
+      double expectedCores, double expectedSockets) {
+    thenSubscriptionHasHypervisorCoresMeasurement(expectedCores);
+    thenSubscriptionHasHypervisorSocketsMeasurement(expectedSockets);
   }
 
   /**
