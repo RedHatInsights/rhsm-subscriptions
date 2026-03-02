@@ -473,50 +473,49 @@ Test cases should be testable locally and in an ephemeral environment.
 
 ## Contract Termination
 
-**contracts-termination-TC001 - A contract remains active after receiving a non-termination event.**
-- **Description:** Verify that a UMB message with a non-terminating status (i.e., `"status": "SUBSCRIBED"`) does not cause a contract to be terminated.
-- **Setup:** Ensure a contract exists and is currently in an active state.
-- **Action:** Simulate a UMB message from the IT partner gateway for the active contract, with the field "status": "SUBSCRIBED".
+**contracts-termination-TC001 - A contract remains active after receiving a message with a future end date.**
+- **Description:** Verify that a UMB message with an end date in the future does not cause a contract to be terminated. The backend determines contract state solely based on start/end dates, not the status field.
+- **Setup:** Ensure a contract exists and is currently in an active state (end date in the future).
+- **Action:** Simulate a UMB message from the IT partner gateway for the active contract, with an end date in the future.
 - **Verification:** Check the contract using the GET API.
 - **Expected Result:**
-  - The end date is empty or higher than now.
+  - The end date remains in the future (contract stays active).
 
-**contracts-update-TC002 - Terminate an existing and active contract.**
-- **Description:*** Verify that an active contract can be successfully terminated when a UMB message with a status: "UNSUBSCRIBED" is received.
+**contracts-termination-TC002 - Update the end date of an existing and active contract.**
+- **Description:** Verify that an active contract's end date is updated when a UMB message with a different end date is received. The backend uses the entitlement dates from the message, not the status field.
 - **Setup:** Ensure a contract exists and is currently in an active state.
-- **Action:** Simulate a UMB message from the IT partner gateway for the active contract, with the field `"status": "UNSUBSCRIBED"`.
+- **Action:** Simulate a UMB message from the IT partner gateway for the active contract, with a new end date.
 - **Verification:** Check the contract using the GET API.
 - **Expected Result:**
   - The end date should be the one contained in the UMB message.
 
-**contracts-termination-TC003 - Receive a termination event for an already terminated contract.**
-- **Description:** Verify that receiving a UMB message with `"status": "UNSUBSCRIBED"` for a contract that is already in a terminated state does not cause an error or change its status.
-- **Setup:** Ensure a contract exists and its status is already 'TERMINATED'.
-- **Action:** Simulate a UMB message from the IT partner gateway for the terminated contract, with the field `"status": "UNSUBSCRIBED"`.
+**contracts-termination-TC003 - Update the end date for an already terminated contract.**
+- **Description:** Verify that receiving a UMB message for a contract that is already terminated (end date in the past) updates the end date without errors.
+- **Setup:** Ensure a contract exists and is already terminated (end date in the past).
+- **Action:** Simulate a UMB message from the IT partner gateway for the terminated contract, with a new end date.
 - **Verification:** Check the contract using the GET API.
 - **Expected Result:**
   - No errors should be logged.
-  - The contract's status should remain “TERMINATED”.
-  - The end date is updated.
+  - The end date is updated to the value from the message.
 
-**contracts-termination-TC004 - Receive a termination event for a non-existing contract.**
-- **Description:** Verify that a contract with a subscription_number but no corresponding record in the Subscriptions table can be correctly terminated when a UMB message with a `"status": "UNSUBSCRIBED"` is received.
+**contracts-termination-TC004 - Process a message for a non-existing contract.**
+- **Description:** Verify that a UMB message for a contract that does not yet exist in the database results in the contract being created.
 - **Setup:** Ensure a contract does not exist in the Contract table.
-- **Action:** Simulate a UMB message from the IT partner gateway for the contract unexisting contract, and with the field `"status": "UNSUBSCRIBED"`.
+- **Action:** Simulate a UMB message from the IT partner gateway for the non-existing contract.
 - **Verification:** Check the contract using the GET API.
 - **Expected result:**
   - The contract is created.
-  - Its end date is empty or higher than now.
+  - Its end date matches the value from the message.
 
-**contracts-termination-TC005 - Receive a subscribed event for a terminated contract.**
-- **Description:** Verify that a terminated contract can be re-enabled when a UMB message with `"status": "SUBSCRIBED"` is received for the same org, SKU, subscription, and billing account ID with a new date.
-- **Setup:** Ensure a contract exists and is currently in a terminated state (has an end date).
-- **Action:** Simulate a UMB message from the IT partner gateway for the terminated contract, with the field `"status": "SUBSCRIBED"` and a new date.
+**contracts-termination-TC005 - Update a terminated contract with a future end date to reactivate it.**
+- **Description:** Verify that a terminated contract (end date in the past) becomes active again when a UMB message with a future end date is received for the same org, SKU, subscription, and billing account ID.
+- **Setup:** Ensure a contract exists and is currently in a terminated state (end date in the past).
+- **Action:** Simulate a UMB message from the IT partner gateway for the terminated contract, with a future end date.
 - **Verification:** Check the contract using the GET API.
 - **Expected Result:**
-  1. The contract is updated and returns to active status.
-  2. The contract's end date is cleared or set to a future date.
-  3. The contract status reflects the re-subscription.
+  1. The contract is updated.
+  2. The contract's end date is set to the future date from the message.
+  3. The contract is effectively active again (end date > now).
 
 **contracts-termination-TC006 - Ensure capacity has decreased after a contract is terminated.**
 - **Description:** Verify that the capacity of the contract is decreased after a contract is terminated.
