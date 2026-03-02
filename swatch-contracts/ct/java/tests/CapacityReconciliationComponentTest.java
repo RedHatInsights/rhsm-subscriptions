@@ -27,6 +27,7 @@ import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -113,21 +114,13 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
   @TestPlanName("capacity-reconciliation-TC003")
   @Test
   void shouldForceReconcileViaAPI() {
-    // Given: An offering with a subscription
+    // Given: An offering with a subscription (saved without reconciliation)
     final String testSku = RandomUtils.generateRandom();
     Offering offering = Offering.buildOpenShiftOffering(testSku, CORES_CAPACITY, null);
-    wiremock.forProductAPI().stubOfferingData(offering);
-
-    Response syncResponse = service.syncOffering(testSku);
-    assertThat("Sync offering should succeed", syncResponse.statusCode(), is(HttpStatus.SC_OK));
-
-    // Create one subscription (minimum needed for task to be published)
     Subscription subscription =
         Subscription.buildOpenShiftSubscriptionUsingSku(
             orgId, Map.of(CORES, CORES_CAPACITY), testSku);
-    Response saveResponse = service.saveSubscriptions(false, subscription);
-    assertThat(
-        "Creating subscription should succeed", saveResponse.statusCode(), is(HttpStatus.SC_OK));
+    givenOfferingAndSubscriptionSavedWithoutReconciliation(offering, subscription);
 
     // When: Force reconcile is triggered via API endpoint
     Response response = whenCapacityReconciliationIsForced(testSku);
@@ -161,6 +154,158 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     thenAllSubscriptionsAreReconciled(testSku);
   }
 
+  @TestPlanName("capacity-reconciliation-TC004")
+  @Test
+  void shouldReconcileSubscriptionWithCores() {
+    // Given: An offering with cores=4 and a subscription with quantity=10
+    final String testSku = RandomUtils.generateRandom();
+    Offering offering = Offering.buildOpenShiftOffering(testSku, 4.0, null);
+    Subscription subscription =
+        Subscription.buildOpenShiftSubscriptionUsingSku(orgId, Map.of(CORES, 4.0), testSku)
+            .toBuilder()
+            .quantity(10)
+            .build();
+
+    // When: Subscription is saved with reconcileCapacity=true (triggers reconciliation)
+    givenOfferingAndSubscriptionReconciled(offering, subscription);
+
+    // Then: PHYSICAL Cores measurement = 4 * 10 = 40
+    thenSubscriptionHasCoresMeasurement(testSku, 40.0);
+  }
+
+  @TestPlanName("capacity-reconciliation-TC005")
+  @Test
+  void shouldReconcileSubscriptionWithSockets() {
+    // Given: An offering with sockets=2 and a subscription with quantity=5
+    final String testSku = RandomUtils.generateRandom();
+    Offering offering = Offering.buildRhelOffering(testSku, null, 2.0);
+    Subscription subscription =
+        Subscription.buildRhelSubscriptionUsingSku(orgId, Map.of(SOCKETS, 2.0), testSku).toBuilder()
+            .quantity(5)
+            .build();
+
+    // When: Subscription is saved with reconcileCapacity=true (triggers reconciliation)
+    givenOfferingAndSubscriptionReconciled(offering, subscription);
+
+    // Then: PHYSICAL Sockets = 2 * 5 = 10
+    thenSubscriptionHasSocketsMeasurement(testSku, 10.0);
+  }
+
+  @TestPlanName("capacity-reconciliation-TC006")
+  @Test
+  void shouldReconcileSubscriptionWithMixedMetrics() {
+    // Given: An offering with cores=8, sockets=2 and a subscription with quantity=3
+    final String testSku = RandomUtils.generateRandom();
+    Offering offering = Offering.buildOpenShiftOffering(testSku, 8.0, 2.0);
+    Subscription subscription =
+        Subscription.buildOpenShiftSubscriptionUsingSku(
+                orgId, Map.of(CORES, 8.0, SOCKETS, 2.0), testSku)
+            .toBuilder()
+            .quantity(3)
+            .build();
+
+    // When: Subscription is saved with reconcileCapacity=true (triggers reconciliation)
+    givenOfferingAndSubscriptionReconciled(offering, subscription);
+
+    // Then: PHYSICAL Cores = 24, PHYSICAL Sockets = 6
+    thenSubscriptionHasCoresAndSocketsMeasurements(testSku, 24.0, 6.0);
+  }
+
+  @TestPlanName("capacity-reconciliation-TC007")
+  @Test
+  void shouldUpdateExistingMeasurementsWhenOfferingChanges() {
+    // Given: Subscription has PHYSICAL Cores = 40 (cores=8, quantity=5)
+    final String testSku = RandomUtils.generateRandom();
+    Offering initialOffering = Offering.buildOpenShiftOffering(testSku, 8.0, null);
+    Subscription subscription =
+        Subscription.buildOpenShiftSubscriptionUsingSku(orgId, Map.of(CORES, 8.0), testSku)
+            .toBuilder()
+            .quantity(5)
+            .build();
+    givenOfferingAndSubscriptionReconciled(initialOffering, subscription);
+    thenSubscriptionHasCoresMeasurement(testSku, 40.0);
+    // Given: Offering updated with cores=6
+    Offering updatedOffering = Offering.buildOpenShiftOffering(testSku, 6.0, null);
+    givenOfferingIsUpdatedAndSynced(updatedOffering);
+
+    // When: Force reconcile
+    Response reconcileResponse = whenCapacityReconciliationIsForced(testSku);
+
+    // Then: Existing measurement updated to new value (6 * 5 = 30)
+    assertThat(
+        "Force reconcile should succeed", reconcileResponse.statusCode(), is(HttpStatus.SC_OK));
+    thenSubscriptionHasCoresMeasurement(testSku, 30.0);
+  }
+
+  @TestPlanName("capacity-reconciliation-TC008")
+  @Test
+  void shouldCreateNewMeasurementsWhenSubscriptionHasNone() {
+    // Given: Subscription has no measurements (saved with reconcileCapacity=false)
+    final String testSku = RandomUtils.generateRandom();
+    Offering offering = Offering.buildOpenShiftOffering(testSku, 4.0, null);
+    Subscription subscription =
+        Subscription.buildOpenShiftSubscriptionUsingSku(orgId, Map.of(CORES, 4.0), testSku)
+            .toBuilder()
+            .quantity(5)
+            .build();
+    givenOfferingAndSubscriptionSavedWithoutReconciliation(offering, subscription);
+
+    // When: Force reconcile
+    Response reconcileResponse = whenCapacityReconciliationIsForced(testSku);
+
+    // Then: New measurements created (4 * 5 = 20)
+    assertThat(
+        "Force reconcile should succeed", reconcileResponse.statusCode(), is(HttpStatus.SC_OK));
+    thenSubscriptionHasCoresMeasurement(testSku, 20.0);
+  }
+
+  @TestPlanName("capacity-reconciliation-TC009")
+  @Test
+  void shouldDeleteStaleMeasurementsWhenOfferingNoLongerHasThem() {
+    // Given: Subscription has PHYSICAL Cores and PHYSICAL Sockets (cores=8, sockets=2, quantity=3)
+    final String testSku = RandomUtils.generateRandom();
+    Offering initialOffering = Offering.buildOpenShiftOffering(testSku, 8.0, 2.0);
+    Subscription subscription =
+        Subscription.buildOpenShiftSubscriptionUsingSku(
+                orgId, Map.of(CORES, 8.0, SOCKETS, 2.0), testSku)
+            .toBuilder()
+            .quantity(3)
+            .build();
+    givenOfferingAndSubscriptionReconciled(initialOffering, subscription);
+    thenSubscriptionHasCoresAndSocketsMeasurements(testSku, 24.0, 6.0);
+    // Given: Offering updated to have PHYSICAL Cores only (sockets = null)
+    Offering coresOnlyOffering = Offering.buildOpenShiftOffering(testSku, 8.0, null);
+    givenOfferingIsUpdatedAndSynced(coresOnlyOffering);
+
+    // When: Force reconcile
+    Response reconcileResponse = whenCapacityReconciliationIsForced(testSku);
+
+    // Then: PHYSICAL Cores retained (24), PHYSICAL Sockets measurement deleted
+    assertThat(
+        "Force reconcile should succeed", reconcileResponse.statusCode(), is(HttpStatus.SC_OK));
+    thenSubscriptionHasCoresMeasurement(testSku, 24.0);
+  }
+
+  @TestPlanName("capacity-reconciliation-TC010")
+  @Test
+  void shouldNotCreateMeasurementsForNullOrZeroCapacityValues() {
+    // Given: Offering has cores=null, sockets=0
+    final String testSku = RandomUtils.generateRandom();
+    Offering offering = Offering.buildOpenShiftOffering(testSku, null, 0.0);
+    Subscription subscription =
+        Subscription.buildOpenShiftSubscriptionUsingSku(
+                orgId, Map.of(CORES, 0.0, SOCKETS, 0.0), testSku)
+            .toBuilder()
+            .quantity(5)
+            .build();
+
+    // When: Subscription is saved with reconcileCapacity=true (triggers reconciliation)
+    givenOfferingAndSubscriptionReconciled(offering, subscription);
+
+    // Then: No measurements created for null or zero values
+    thenSubscriptionHasNoCapacityMeasurements(testSku);
+  }
+
   @TestPlanName("capacity-reconciliation-kafka-TC002")
   @Test
   void shouldHandleMalformedReconciliationTask() {
@@ -192,19 +337,25 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
   // Helper methods
 
   /**
+   * Stubs the offering in Wiremock and syncs it.
+   *
+   * @param offering the offering to stub and sync
+   */
+  private void givenOfferingIsStubbedAndSynced(Offering offering) {
+    wiremock.forProductAPI().stubOfferingData(offering);
+    Response syncResponse = service.syncOffering(offering.getSku());
+    assertThat("Sync offering should succeed", syncResponse.statusCode(), is(HttpStatus.SC_OK));
+  }
+
+  /**
    * Creates an offering with multiple subscriptions for testing reconciliation.
    *
    * @return The SKU of the created offering
    */
   private String givenOfferingWithMultipleSubscriptions() {
     final String testSku = RandomUtils.generateRandom();
-
-    // Create offering
     Offering offering = Offering.buildOpenShiftOffering(testSku, CORES_CAPACITY, null);
-    wiremock.forProductAPI().stubOfferingData(offering);
-
-    Response syncResponse = service.syncOffering(testSku);
-    assertThat("Sync offering should succeed", syncResponse.statusCode(), is(HttpStatus.SC_OK));
+    givenOfferingIsStubbedAndSynced(offering);
 
     // Create 5 subscriptions for this offering
     for (int i = 0; i < SUBSCRIPTION_COUNT; i++) {
@@ -218,6 +369,52 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     }
 
     return testSku;
+  }
+
+  /**
+   * Stubs the offering, syncs it, and saves the subscription.
+   *
+   * @param offering the offering to create
+   * @param subscription the subscription to save (must reference the offering's SKU)
+   * @param reconcileCapacity whether to reconcile capacity on save
+   */
+  private void givenOfferingAndSubscriptionSaved(
+      Offering offering, Subscription subscription, boolean reconcileCapacity) {
+    givenOfferingIsStubbedAndSynced(offering);
+    Response saveResponse = service.saveSubscriptions(reconcileCapacity, subscription);
+    assertThat(
+        "Creating subscription should succeed", saveResponse.statusCode(), is(HttpStatus.SC_OK));
+  }
+
+  /**
+   * Stubs the offering, syncs it, and saves the subscription with reconcileCapacity=true.
+   *
+   * @param offering the offering to create
+   * @param subscription the subscription to save (must reference the offering's SKU)
+   */
+  private void givenOfferingAndSubscriptionReconciled(
+      Offering offering, Subscription subscription) {
+    givenOfferingAndSubscriptionSaved(offering, subscription, true);
+  }
+
+  /**
+   * Stubs the offering, syncs it, and saves the subscription with reconcileCapacity=false.
+   *
+   * @param offering the offering to create
+   * @param subscription the subscription to save (must reference the offering's SKU)
+   */
+  private void givenOfferingAndSubscriptionSavedWithoutReconciliation(
+      Offering offering, Subscription subscription) {
+    givenOfferingAndSubscriptionSaved(offering, subscription, false);
+  }
+
+  /**
+   * Updates the offering stub and syncs it (for tests that change offering after initial setup).
+   *
+   * @param offering the updated offering to stub and sync
+   */
+  private void givenOfferingIsUpdatedAndSynced(Offering offering) {
+    givenOfferingIsStubbedAndSynced(offering);
   }
 
   /**
@@ -312,6 +509,134 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
   }
 
   /**
+   * Verifies that the subscription has the expected PHYSICAL Cores measurement after
+   * reconciliation.
+   *
+   * @param sku The SKU to check
+   * @param expectedCores The expected PHYSICAL Cores value (offering cores * quantity)
+   */
+  private void thenSubscriptionHasCoresMeasurement(String sku, double expectedCores) {
+    thenSubscriptionHasCoresMeasurement(sku, expectedCores, Product.OPENSHIFT);
+  }
+
+  /**
+   * Verifies that the subscription has the expected PHYSICAL Cores measurement after
+   * reconciliation.
+   *
+   * @param sku The SKU to check
+   * @param expectedCores The expected PHYSICAL Cores value (offering cores * quantity)
+   * @param product The product for the capacity report (OPENSHIFT or RHEL)
+   */
+  private void thenSubscriptionHasCoresMeasurement(
+      String sku, double expectedCores, Product product) {
+    var capacityReport = service.getSkuCapacityByProductIdForOrg(product, orgId);
+    assertNotNull(capacityReport.getData());
+    var skuCapacity =
+        capacityReport.getData().stream()
+            .filter(s -> sku.equals(s.getSku()))
+            .findFirst()
+            .orElse(null);
+    assertThat(
+        "SKU should be present in capacity report after reconciliation",
+        skuCapacity,
+        notNullValue());
+    assertThat(
+        "SKU should have measurements after reconciliation",
+        Objects.requireNonNull(skuCapacity).getMeasurements(),
+        notNullValue());
+    assertFalse(
+        skuCapacity.getMeasurements().isEmpty(),
+        "Measurements should not be empty after reconciliation");
+
+    int coresIndex = capacityReport.getMeta().getMeasurements().indexOf("Cores");
+    assertThat("Cores metric should be in report", coresIndex, greaterThanOrEqualTo(0));
+    assertThat(
+        "PHYSICAL Cores measurement should match offering cores * quantity",
+        skuCapacity.getMeasurements().get(coresIndex),
+        closeTo(expectedCores, 0.01));
+  }
+
+  /**
+   * Verifies that the subscription has the expected PHYSICAL Sockets measurement after
+   * reconciliation.
+   *
+   * @param sku The SKU to check
+   * @param expectedSockets The expected PHYSICAL Sockets value (offering sockets * quantity)
+   */
+  private void thenSubscriptionHasSocketsMeasurement(String sku, double expectedSockets) {
+    var capacityReport = service.getSkuCapacityByProductIdForOrg(Product.RHEL, orgId);
+    assertNotNull(capacityReport.getData());
+    var skuCapacity =
+        capacityReport.getData().stream()
+            .filter(s -> sku.equals(s.getSku()))
+            .findFirst()
+            .orElse(null);
+    assertThat(
+        "SKU should be present in capacity report after reconciliation",
+        skuCapacity,
+        notNullValue());
+    assertThat(
+        "SKU should have measurements after reconciliation",
+        Objects.requireNonNull(skuCapacity).getMeasurements(),
+        notNullValue());
+    assertFalse(
+        skuCapacity.getMeasurements().isEmpty(),
+        "Measurements should not be empty after reconciliation");
+
+    int socketsIndex = capacityReport.getMeta().getMeasurements().indexOf("Sockets");
+    assertThat("Sockets metric should be in report", socketsIndex, greaterThanOrEqualTo(0));
+    assertThat(
+        "PHYSICAL Sockets measurement should match offering sockets * quantity",
+        skuCapacity.getMeasurements().get(socketsIndex),
+        closeTo(expectedSockets, 0.01));
+  }
+
+  /**
+   * Verifies that the subscription has the expected PHYSICAL Cores and Sockets measurements after
+   * reconciliation.
+   *
+   * @param sku The SKU to check
+   * @param expectedCores The expected PHYSICAL Cores value (offering cores * quantity)
+   * @param expectedSockets The expected PHYSICAL Sockets value (offering sockets * quantity)
+   */
+  private void thenSubscriptionHasCoresAndSocketsMeasurements(
+      String sku, double expectedCores, double expectedSockets) {
+    var capacityReport = service.getSkuCapacityByProductIdForOrg(Product.OPENSHIFT, orgId);
+    assertNotNull(capacityReport.getData());
+    var skuCapacity =
+        capacityReport.getData().stream()
+            .filter(s -> sku.equals(s.getSku()))
+            .findFirst()
+            .orElse(null);
+    assertThat(
+        "SKU should be present in capacity report after reconciliation",
+        skuCapacity,
+        notNullValue());
+    assertThat(
+        "SKU should have measurements after reconciliation",
+        Objects.requireNonNull(skuCapacity).getMeasurements(),
+        notNullValue());
+    assertThat(
+        "Should have Cores and Sockets measurements",
+        skuCapacity.getMeasurements().size(),
+        greaterThanOrEqualTo(2));
+
+    var metricOrder = capacityReport.getMeta().getMeasurements();
+    int coresIndex = metricOrder.indexOf("Cores");
+    int socketsIndex = metricOrder.indexOf("Sockets");
+    assertThat("Cores metric should be in report", coresIndex, greaterThanOrEqualTo(0));
+    assertThat("Sockets metric should be in report", socketsIndex, greaterThanOrEqualTo(0));
+    assertThat(
+        "PHYSICAL Cores measurement should match offering cores * quantity",
+        skuCapacity.getMeasurements().get(coresIndex),
+        closeTo(expectedCores, 0.01));
+    assertThat(
+        "PHYSICAL Sockets measurement should match offering sockets * quantity",
+        skuCapacity.getMeasurements().get(socketsIndex),
+        closeTo(expectedSockets, 0.01));
+  }
+
+  /**
    * Verifies that the SKU has no capacity (reconciliation didn't run because SKU doesn't exist).
    *
    * @param sku The SKU to check
@@ -325,5 +650,35 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     assertFalse(
         skuCapacity.isPresent(),
         "SKU should not appear in capacity report when offering doesn't exist");
+  }
+
+  /**
+   * Verifies that the subscription has no capacity measurements (null/zero offering values create
+   * no measurements).
+   *
+   * @param sku The SKU to check
+   */
+  private void thenSubscriptionHasNoCapacityMeasurements(String sku) {
+    var capacityReport = service.getSkuCapacityByProductIdForOrg(Product.OPENSHIFT, orgId);
+    assertNotNull(capacityReport.getData());
+    var skuCapacity =
+        capacityReport.getData().stream()
+            .filter(s -> sku.equals(s.getSku()))
+            .findFirst()
+            .orElse(null);
+
+    assertThat(
+        "SKU should be present in capacity report (subscription exists)",
+        skuCapacity,
+        notNullValue());
+
+    double totalCapacity =
+        Objects.requireNonNull(skuCapacity).getMeasurements().stream()
+            .mapToDouble(d -> d != null ? d : 0.0)
+            .sum();
+    assertThat(
+        "No measurements should be created for null or zero capacity values",
+        totalCapacity,
+        closeTo(0.0, 0.01));
   }
 }
