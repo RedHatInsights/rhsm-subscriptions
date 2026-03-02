@@ -156,7 +156,7 @@ Test cases should be testable locally and in deployed environments.
 
 ## Data Persistence
 
-**tally-persistence-TC001 - Tally report persistence across re-tally**
+**tally-persistence-TC001 - Tally report persistence across separate tally runs**
 
 - **Description**: Verify that tally reports remain unchanged when hourly tally is re-run for the same time period
 - **Setup**:
@@ -175,7 +175,7 @@ Test cases should be testable locally and in deployed environments.
     - Tally reports are idempotent
     - Re-running tally does not modify previously calculated data
 
-**tally-persistence-TC002 - Instance report persistence across re-tally**
+**tally-persistence-TC002 - Instance report persistence across separate tally runs**
 
 - **Description**: Verify that instance reports remain unchanged when hourly tally is re-run for the same time period
 - **Setup**:
@@ -351,3 +351,60 @@ Test cases should be testable locally and in deployed environments.
     - Hourly tally produces HOURLY granularity summaries
     - One summary per event hour
     - TOTAL measurements are excluded
+
+## Instance Reporting
+
+**tally-instances-TC001 - Billing account IDs exclude old month data**
+
+- **Description**: Verify that the billing account IDs endpoint only returns accounts with activity in the current month
+- **Setup**:
+    - Organization is opted in
+    - Host with billing account ID created with last_seen date from 35 days ago (previous month)
+- **Action**:
+    - Call get billing account IDs endpoint
+- **Verification**:
+    - Response does not contain the billing account from last month
+    - Only current month billing accounts are included
+- **Expected Result**:
+    - Service correctly filters billing accounts by current month boundary
+    - Old billing account data is excluded from response
+
+**tally-instances-TC002 - Multiple billing account IDs returned correctly**
+
+- **Description**: Verify that the billing account IDs endpoint returns all active billing accounts with correct structure
+- **Setup**:
+    - Organization is opted in
+    - Two hosts created with different billing account IDs
+    - Both hosts associated with AWS billing provider
+- **Action**:
+    - Call get billing account IDs endpoint
+- **Verification**:
+    - Response contains exactly 2 billing account entries
+    - Both billing account IDs are present in response
+    - Each entry has correct org_id, product_tag, and billing_provider fields
+    - Billing provider is correctly set to "aws"
+- **Expected Result**:
+    - All active billing accounts are returned
+    - Response structure includes all required fields
+    - Multiple billing accounts are properly differentiated
+
+**tally-instances-TC003 - PAYG instances metered by month boundary**
+
+- **Description**: Verify that PAYG instances are correctly metered and reported based on the month boundary of the event timestamp
+- **Setup**:
+    - Organization is opted in
+    - Event created with timestamp from first day of previous month
+    - Event includes billing account ID and AWS provider information
+- **Action**:
+    - Produce event to Kafka
+    - Perform hourly tally
+    - Query instances for current month
+    - Query instances for previous month
+- **Verification**:
+    - Current month instances report shows 0 metered value
+    - Previous month instances report shows metered value > 0
+    - Metered values are correctly attributed to the month of the event
+- **Expected Result**:
+    - Service correctly assigns metered values to the appropriate month
+    - Month boundaries are respected for PAYG billing
+    - Instance data is segregated by month correctly
