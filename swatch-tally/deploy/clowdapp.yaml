@@ -235,6 +235,9 @@ parameters:
     description: Disable Floorist cronjob execution
     required: true
     value: 'false'
+  - name: FLOORIST_S3_SNOWPIPE_PATH
+    description: Path for dataproduct in snowpipe s3 bucket
+    value: ''
   # allow overriding to support independent deploy with bonfire
   - name: DB_POD
     value: swatch-database
@@ -709,7 +712,7 @@ objects:
         cpu: 200m
         memory: 250Mi
     queries:
-    - prefix: swatch/tally_snapshots
+    - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/swatch/tally_snapshots
       query: >-
         select
         s.id,
@@ -735,7 +738,7 @@ objects:
         where m.measurement_type != 'TOTAL'
         and m.last_modified >= date_trunc('day', now() at time zone 'utc' - interval '2 day')
       chunksize: 50000
-    - prefix: swatch/subscriptions
+    - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/swatch/subscriptions
       query: >-
         select distinct
         subscription.org_id,
@@ -757,7 +760,7 @@ objects:
           ('INSTANCE_HOURS', 'Instance-hours')
         ) as metric_id_normalized(value, normalized) on subscription_measurements.metric_id=metric_id_normalized.value
       chunksize: 50000
-    - prefix: swatch/ocp_cluster_data
+    - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/swatch/ocp_cluster_data
       query: >-
         select
           org_id,
@@ -775,14 +778,14 @@ objects:
         and usage!='_ANY'
         and sla!='_ANY'
       chunksize: 50000
-    - prefix: swatch/sku_product_tag
+    - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/swatch/sku_product_tag
       query: >-
         select
           sku,
           product_tag
         from sku_product_tag
       chunksize: 50000
-    - prefix: swatch/pg_stat_user_tables
+    - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/swatch/pg_stat_user_tables
       query: >-
         SELECT
           CURRENT_DATE,
