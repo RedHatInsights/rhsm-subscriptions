@@ -114,6 +114,22 @@ parameters:
     value: 'grpc'
   - name: DB_POD
     value: swatch-database
+  - name: JAVA_TOOL_OPTIONS
+    value: '-javaagent:/opt/splunk-otel-javaagent.jar'
+  - name: OTEL_SIDECAR_IMAGE
+    value: quay.io/signalfx/splunk-otel-collector:0.140.0
+  - name: OTEL_SIDECAR_CONFIG_MAP
+    value: swatch-otel-config
+  - name: OTEL_SIDECAR_SPLUNK_CONFIG
+    value: '/etc/otelcol/relay'
+  - name: OTEL_ENV_NAME
+    value: env-swatch-system-conduit
+  - name: OTEL_K8S_CLUSTER_NAME
+    value: ephemeral
+  - name: OTEL_SIGNALFX_TOKEN_SECRET_NAME
+    value: signalfx
+  - name: OTEL_SIGNALFX_TOKEN_SECRET_KEY
+    value: token
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -159,7 +175,7 @@ objects:
             - name: USER_OPTS_APPEND
               value: ${USER_OPTS_APPEND}
             - name: JAVA_TOOL_OPTIONS
-              value: -javaagent:/opt/splunk-otel-javaagent.jar
+              value: ${JAVA_TOOL_OPTIONS}
             - name: SPRING_LIQUIBASE_ENABLED
               value: 'false'
             - name: ENABLE_SPLUNK_HEC
@@ -333,6 +349,26 @@ objects:
             - name: pinhead
               secret:
                 secretName: pinhead
+          sidecars:
+          - name: otel-collector
+            enabled: true
+            configMap: ${OTEL_SIDECAR_CONFIG_MAP}
+            image: ${OTEL_SIDECAR_IMAGE}
+            envVars:
+              - name: ENV_NAME
+                value: ${OTEL_ENV_NAME}
+              - name: K8S_CLUSTER_NAME
+                value: ${OTEL_K8S_CLUSTER_NAME}
+              - name: SPLUNK_OBSERVABILITY_ACCESS_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: ${OTEL_SIGNALFX_TOKEN_SECRET_NAME}
+                    key: ${OTEL_SIGNALFX_TOKEN_SECRET_KEY}
+              - name: SPLUNK_CONFIG
+                value: ${OTEL_SIDECAR_SPLUNK_CONFIG}
+              - name: SPLUNK_MEMORY_TOTAL_MIB
+                value: '1024'
+
     jobs:
       - name: sync
         schedule: ${ORG_SYNC_SCHEDULE}
