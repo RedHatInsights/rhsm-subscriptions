@@ -148,6 +148,12 @@ public class ContractsSwatchService extends SwatchService {
     Objects.requireNonNull(contract, "contract must not be null");
 
     ContractRequest contractRequest = ContractRequestMapper.buildContractRequest(contract);
+    return createContract(contractRequest);
+  }
+
+  public Response createContract(ContractRequest contractRequest) {
+    Objects.requireNonNull(contractRequest, "contractRequest must not be null");
+
     return given()
         .headers(SECURITY_HEADERS)
         .contentType("application/json")

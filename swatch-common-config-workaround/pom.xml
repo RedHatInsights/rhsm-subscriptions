@@ -14,7 +14,6 @@
   <name>SWATCH - Common - Config Workaround for Quarkus</name>
 
   <properties>
-    <!-- TODO: Remove when parent upgraded to Java 21 -->
     <java.version>21</java.version>
     <maven.compiler.release>${java.version}</maven.compiler.release>
   </properties>

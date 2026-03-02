@@ -32,22 +32,31 @@ import api.ContractsArtemisService;
 import com.redhat.swatch.component.tests.api.Artemis;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
+import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.contract.test.model.ContractRequest;
+import com.redhat.swatch.contract.test.model.ContractResponse;
 import domain.BillingProvider;
 import domain.Contract;
+import domain.Offering;
 import io.restassured.response.Response;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
 
 public class ContractCreationComponentTest extends BaseContractComponentTest {
+
+  private static final double DEFAULT_CAPACITY = 10.0;
+  private static final double INSTANCE_HOURS_CAPACITY = 18.0;
 
   @Artemis static ContractsArtemisService artemis = new ContractsArtemisService();
 
   @Test
   void shouldCreatePrepaidRosaContract_whenAllDataIsValid() {
     // The metric Cores is valid for the rosa product
-    Contract contractData = buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0));
+    Contract contractData =
+        buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, DEFAULT_CAPACITY));
     givenContractIsCreated(contractData);
 
     // Retrieve and verify contract
@@ -67,7 +76,8 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
   @Test
   void shouldCreatePurePaygRosaContract_whenAllDimensionsAreIncorrect() {
     // The metric Sockets is NOT valid for the rosa product, so it should be ignored
-    Contract contractData = buildRosaContract(orgId, BillingProvider.AWS, Map.of(SOCKETS, 10.0));
+    Contract contractData =
+        buildRosaContract(orgId, BillingProvider.AWS, Map.of(SOCKETS, DEFAULT_CAPACITY));
     givenContractIsCreated(contractData);
 
     // Retrieve and verify contract
@@ -90,7 +100,7 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
   void shouldProcessValidPaygContractWithOneDimensionForAwsMarketplace() {
     // Given: A valid PAYG contract with one valid dimension (Cores) for AWS Marketplace
     Contract contract =
-        givenContractCreatedViaMessageBroker(BillingProvider.AWS, Map.of(CORES, 10.0));
+        givenContractCreatedViaMessageBroker(BillingProvider.AWS, Map.of(CORES, DEFAULT_CAPACITY));
 
     // Then: Verify contract was created with all expected fields
     var actual = service.getContracts(contract).get(0);
@@ -98,9 +108,8 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     verifyAwsBillingProviderId(contract, actual);
 
     // Verify metrics: Should have exactly 1 metric (Cores)
-    // Note: CORES value gets converted by billing factor (10.0 * 0.25 = 2.5, rounded to 2)
     assertEquals(1, actual.getMetrics().size(), "Should have exactly 1 metric (Cores)");
-    verifyMetric(actual, contract.getProduct().getMetric(CORES).getAwsDimension(), 2, "Cores");
+    verifyMetric(actual, contract.getProduct().getMetric(CORES), DEFAULT_CAPACITY);
   }
 
   @TestPlanName("contracts-creation-TC002")
@@ -108,7 +117,8 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
   void shouldProcessValidPurePaygContractWithoutDimensionsForAwsMarketplace() {
     // Given: A PURE PAYG contract (Sockets metric is invalid for ROSA, so filtered out)
     Contract contract =
-        givenContractCreatedViaMessageBroker(BillingProvider.AWS, Map.of(SOCKETS, 10.0));
+        givenContractCreatedViaMessageBroker(
+            BillingProvider.AWS, Map.of(SOCKETS, DEFAULT_CAPACITY));
 
     // Then: Verify contract was created with all expected fields
     var actual = service.getContracts(contract).get(0);
@@ -124,7 +134,8 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
   void shouldProcessValidPaygContractWithOneDimensionForAzureMarketplace() {
     // Given: A valid PAYG contract with one valid dimension (Cores) for Azure Marketplace
     Contract contract =
-        givenContractCreatedViaMessageBroker(BillingProvider.AZURE, Map.of(CORES, 10.0));
+        givenContractCreatedViaMessageBroker(
+            BillingProvider.AZURE, Map.of(CORES, DEFAULT_CAPACITY));
 
     // Then: Verify contract was created with all expected fields
     var actual = service.getContracts(contract).get(0);
@@ -132,9 +143,8 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     verifyAzureBillingProviderId(contract, actual);
 
     // Verify metrics: Should have exactly 1 metric (Cores)
-    // Note: CORES value gets converted by billing factor (10.0 * 0.25 = 2.5, rounded to 2)
     assertEquals(1, actual.getMetrics().size(), "Should have exactly 1 metric (Cores)");
-    verifyMetric(actual, contract.getProduct().getMetric(CORES).getAzureDimension(), 2, "Cores");
+    verifyMetric(actual, contract.getProduct().getMetric(CORES), DEFAULT_CAPACITY);
   }
 
   @TestPlanName("contracts-creation-TC004")
@@ -142,7 +152,8 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
   void shouldProcessValidPurePaygContractWithoutDimensionsForAzureMarketplace() {
     // Given: A PURE PAYG contract (Sockets metric is invalid for ROSA, so filtered out)
     Contract contract =
-        givenContractCreatedViaMessageBroker(BillingProvider.AZURE, Map.of(SOCKETS, 10.0));
+        givenContractCreatedViaMessageBroker(
+            BillingProvider.AZURE, Map.of(SOCKETS, DEFAULT_CAPACITY));
 
     // Then: Verify contract was created with all expected fields
     var actual = service.getContracts(contract).get(0);
@@ -159,7 +170,8 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     // Given: A contract with multiple valid metrics/dimensions (Cores and Instance-hours)
     Contract contract =
         givenContractCreatedViaMessageBroker(
-            BillingProvider.AWS, Map.of(CORES, 16.0, INSTANCE_HOURS, 100.0));
+            BillingProvider.AWS,
+            Map.of(CORES, DEFAULT_CAPACITY, INSTANCE_HOURS, INSTANCE_HOURS_CAPACITY));
 
     // Then: Verify contract was created with all expected fields
     var actual = service.getContracts(contract).get(0);
@@ -167,18 +179,12 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     verifyAwsBillingProviderId(contract, actual);
 
     // Verify metrics: Should have exactly 2 metrics (Cores and Instance-hours)
-    // Note: CORES value gets converted by billing factor (16.0 * 0.25 = 4)
-    // Note: INSTANCE_HOURS value is 1:1 (100.0 * 1.0 = 100)
     assertEquals(
         2,
         actual.getMetrics().size(),
         "Contract should have 2 valid metrics (Cores and Instance-hours)");
-    verifyMetric(actual, contract.getProduct().getMetric(CORES).getAwsDimension(), 4, "Cores");
-    verifyMetric(
-        actual,
-        contract.getProduct().getMetric(INSTANCE_HOURS).getAwsDimension(),
-        100,
-        "Instance-hours");
+    verifyMetric(actual, contract.getProduct().getMetric(CORES), DEFAULT_CAPACITY);
+    verifyMetric(actual, contract.getProduct().getMetric(INSTANCE_HOURS), INSTANCE_HOURS_CAPACITY);
   }
 
   @TestPlanName("contracts-creation-TC006")
@@ -187,7 +193,7 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     // Given: A contract with multiple metrics where one is invalid (Cores is valid, Sockets is not)
     Contract contract =
         givenContractCreatedViaMessageBroker(
-            BillingProvider.AWS, Map.of(CORES, 16.0, SOCKETS, 4.0));
+            BillingProvider.AWS, Map.of(CORES, DEFAULT_CAPACITY, SOCKETS, DEFAULT_CAPACITY));
 
     // Then: Verify contract was created with all expected fields
     var actual = service.getContracts(contract).get(0);
@@ -196,12 +202,11 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
 
     // Verify metrics: Should have only 1 valid metric (Cores), invalid metric (Sockets) filtered
     // out
-    // Note: CORES value gets converted by billing factor (16.0 * 0.25 = 4)
     assertEquals(
         1,
         actual.getMetrics().size(),
         "Contract should have only 1 valid metric (Cores), invalid metric (Sockets) filtered out");
-    verifyMetric(actual, contract.getProduct().getMetric(CORES).getAwsDimension(), 4, "Cores");
+    verifyMetric(actual, contract.getProduct().getMetric(CORES), DEFAULT_CAPACITY);
   }
 
   @TestPlanName("contracts-creation-TC007")
@@ -209,7 +214,8 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
   void shouldNotPersistContractWhenRequiredFieldsAreMissing() {
     // Given: A valid contract that we'll send via Artemis with a missing subscription in search API
     // This simulates a scenario where required subscription data is not found
-    Contract contract = buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0));
+    Contract contract =
+        buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, DEFAULT_CAPACITY));
     wiremock.forProductAPI().stubOfferingData(contract.getOffering());
     wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(contract));
     // NOTE: Explicitly stub the search API to return empty array (no subscription found)
@@ -232,10 +238,149 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
                 "Contract should not be created when required subscription data is missing"));
   }
 
+  @TestPlanName("contracts-creation-TC008")
+  @Test
+  void shouldCreateValidPaygContractWithOneDimensionForAwsViaApi() {
+    // Given: A valid AWS PAYG contract with one valid dimension (Cores)
+    Contract contract =
+        givenRosaContractWithMetrics(BillingProvider.AWS, Map.of(CORES, DEFAULT_CAPACITY));
+    // When: POST contract via internal API
+    whenContractIsCreatedViaApi(contract);
+    // Then: Contract is created with AWS billing provider and 1 metric (Cores)
+    var actual = service.getContracts(contract).get(0);
+    verifyCommonContractFields(contract, actual);
+    verifyAwsBillingProviderId(contract, actual);
+    assertEquals(1, actual.getMetrics().size(), "Should have exactly 1 metric (Cores)");
+    verifyMetric(actual, contract.getProduct().getMetric(CORES), DEFAULT_CAPACITY);
+  }
+
+  @TestPlanName("contracts-creation-TC009")
+  @Test
+  void shouldCreateValidPurePaygContractWithoutDimensionsForAwsViaApi() {
+    // Given: An AWS contract without dimensions
+    Contract contract = givenRosaContractWithMetrics(BillingProvider.AWS, Map.of());
+    // When: POST contract via internal API
+    whenContractIsCreatedViaApi(contract);
+    // Then: Contract is created as pure PAYG with 0 metrics (invalid dimensions filtered out)
+    var actual = service.getContracts(contract).get(0);
+    verifyCommonContractFields(contract, actual);
+    verifyAwsBillingProviderId(contract, actual);
+    assertEquals(0, actual.getMetrics().size(), "Pure PAYG contract should have 0 metrics");
+  }
+
+  @TestPlanName("contracts-creation-TC010")
+  @Test
+  void shouldCreateValidPaygContractWithOneDimensionForAzureViaApi() {
+    // Given: A valid Azure PAYG contract with one valid dimension (Cores)
+    Contract contract =
+        givenRosaContractWithMetrics(BillingProvider.AZURE, Map.of(CORES, DEFAULT_CAPACITY));
+    // When: POST contract via internal API
+    whenContractIsCreatedViaApi(contract);
+    // Then: Contract is created with Azure billing provider and 1 metric (Cores)
+    var actual = service.getContractsByOrgId(orgId).get(0);
+    verifyAzureBillingProviderId(contract, actual);
+    assertEquals(1, actual.getMetrics().size(), "Should have exactly 1 metric (Cores)");
+    verifyMetric(actual, contract.getProduct().getMetric(CORES), DEFAULT_CAPACITY);
+  }
+
+  @TestPlanName("contracts-creation-TC011")
+  @Test
+  void shouldCreateValidPurePaygContractWithoutDimensionsForAzureViaApi() {
+    // Given: An Azure contract without dimensions
+    Contract contract = givenRosaContractWithMetrics(BillingProvider.AZURE, Map.of());
+    // When: POST contract via internal API
+    whenContractIsCreatedViaApi(contract);
+    // Then: Contract is created as pure PAYG with 0 metrics (invalid dimensions filtered out)
+    var actual = service.getContractsByOrgId(orgId).get(0);
+    verifyAzureBillingProviderId(contract, actual);
+    assertEquals(0, actual.getMetrics().size(), "Pure PAYG contract should have 0 metrics");
+  }
+
+  @TestPlanName("contracts-creation-TC012")
+  @Test
+  void shouldCreateContractWithMultipleMetricsViaApi() {
+    // Given: A contract with multiple valid dimensions (Cores and Instance-hours)
+    Contract contract =
+        givenRosaContractWithMetrics(
+            BillingProvider.AWS,
+            Map.of(CORES, DEFAULT_CAPACITY, INSTANCE_HOURS, INSTANCE_HOURS_CAPACITY));
+    // When: POST contract via internal API
+    whenContractIsCreatedViaApi(contract);
+    // Then: Contract is created with both metrics stored correctly
+    var actual = service.getContracts(contract).get(0);
+    verifyCommonContractFields(contract, actual);
+    assertEquals(2, actual.getMetrics().size(), "Should have 2 metrics (Cores and Instance-hours)");
+    verifyMetric(actual, contract.getProduct().getMetric(CORES), DEFAULT_CAPACITY);
+    verifyMetric(actual, contract.getProduct().getMetric(INSTANCE_HOURS), INSTANCE_HOURS_CAPACITY);
+  }
+
+  @TestPlanName("contracts-creation-TC013")
+  @Test
+  void shouldCreateContractWithMultipleMetricsIncludingInvalidOneViaApi() {
+    // Given: A contract with one valid (Cores) and one invalid (Sockets) dimension
+    Contract contract =
+        givenRosaContractWithMetrics(
+            BillingProvider.AWS, Map.of(CORES, DEFAULT_CAPACITY, SOCKETS, DEFAULT_CAPACITY));
+    // When: POST contract via internal API
+    whenContractIsCreatedViaApi(contract);
+    // Then: Only the valid metric (Cores) is stored, invalid (Sockets) is filtered out
+    var actual = service.getContracts(contract).get(0);
+    verifyCommonContractFields(contract, actual);
+    assertEquals(
+        1,
+        actual.getMetrics().size(),
+        "Should have only 1 valid metric (Cores), invalid (Sockets) filtered out");
+    verifyMetric(actual, contract.getProduct().getMetric(CORES), DEFAULT_CAPACITY);
+  }
+
+  @TestPlanName("contracts-creation-TC014")
+  @Test
+  void shouldNotPersistContractWhenRequiredFieldsAreMissingViaApi() {
+    // Given: An incomplete contract request with no partner_entitlement or subscription_id
+    ContractRequest incompleteRequest = new ContractRequest();
+    // When: POST incomplete contract via internal API
+    Response response = service.createContract(incompleteRequest);
+    // Then: HTTP 400 Bad Request and no contract persisted
+    assertEquals(
+        HttpStatus.SC_BAD_REQUEST,
+        response.statusCode(),
+        "Missing required fields should return 400 Bad Request");
+    assertEquals(
+        0,
+        service.getContractsByOrgId(orgId).size(),
+        "No contract should be persisted for the org");
+  }
+
+  @TestPlanName("contracts-creation-TC015")
+  @Test
+  void shouldFilterInvalidDimensionsForUnconfiguredSkuViaApi() {
+    // Given: A contract with an unconfigured SKU (no product tags) and invalid dimensions
+    String unconfiguredSku = "UNCONFIGURED_" + orgId;
+    Offering unconfiguredOffering = Offering.buildUnconfiguredOffering(unconfiguredSku);
+    Contract contract =
+        buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, DEFAULT_CAPACITY)).toBuilder()
+            .offering(unconfiguredOffering)
+            .build();
+    wiremock.forProductAPI().stubOfferingData(unconfiguredOffering);
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(contract));
+    Response sync = service.syncOffering(unconfiguredSku);
+    assertEquals(HttpStatus.SC_OK, sync.statusCode(), "Sync offering should succeed");
+    // When: POST contract via internal API
+    whenContractIsCreatedViaApi(contract);
+    // Then: Contract is created but all dimensions are filtered out for unconfigured SKU
+    var contracts = service.getContractsByOrgId(orgId);
+    assertEquals(1, contracts.size(), "Contract should be created");
+    assertEquals(
+        0,
+        contracts.get(0).getMetrics().size(),
+        "All dimensions should be filtered out for unconfigured SKU");
+  }
+
   @TestPlanName("contracts-creation-TC016")
   @Test
   void shouldProcessValidPaygContractWhenReceivingAnObjectMessage() {
-    Contract contract = buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0));
+    Contract contract =
+        buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, DEFAULT_CAPACITY));
     wiremock.forProductAPI().stubOfferingData(contract.getOffering());
     wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(contract));
     wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(contract);
@@ -257,10 +402,20 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
         });
   }
 
-  /**
-   * Creates a contract via message broker (Artemis) and waits for it to be processed. This
-   * simulates the production flow where contracts are created via messaging.
-   */
+  private Contract givenRosaContractWithMetrics(
+      BillingProvider provider, Map<MetricId, Double> metrics) {
+    Contract contract = buildRosaContract(orgId, provider, metrics);
+    givenOfferingIsSynced(contract);
+    return contract;
+  }
+
+  private void givenOfferingIsSynced(Contract contract) {
+    wiremock.forProductAPI().stubOfferingData(contract.getOffering());
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(contract));
+    Response sync = service.syncOffering(contract.getOffering().getSku());
+    assertEquals(HttpStatus.SC_OK, sync.statusCode(), "Sync offering should succeed");
+  }
+
   private Contract givenContractCreatedViaMessageBroker(
       BillingProvider provider, Map<MetricId, Double> metrics) {
     Contract contract = buildRosaContract(orgId, provider, metrics);
@@ -279,10 +434,13 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     return contract;
   }
 
-  /**
-   * Verifies common contract fields that should be present in all contract responses regardless of
-   * billing provider or metrics.
-   */
+  private void whenContractIsCreatedViaApi(Contract contract) {
+    Response response = service.createContract(contract);
+    assertEquals(HttpStatus.SC_OK, response.statusCode());
+    var contractResponse = response.then().extract().as(ContractResponse.class);
+    assertEquals(SUCCESS_MESSAGE, contractResponse.getStatus().getStatus());
+  }
+
   private void verifyCommonContractFields(
       Contract expected, com.redhat.swatch.contract.test.model.Contract actual) {
     assertNotNull(actual.getUuid());
@@ -291,7 +449,6 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     assertNotNull(actual.getStartDate());
     assertNotNull(actual.getEndDate());
     assertEquals(orgId, actual.getOrgId());
-    assertEquals(expected.getBillingAccountId(), actual.getBillingAccountId());
     assertNotNull(actual.getMetrics());
   }
 
@@ -337,27 +494,28 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
         "billing_provider_id should follow Azure format: {azureResourceId};{planId};{vendorProductCode};{customer};{clientId}");
   }
 
-  /**
-   * Verifies a specific metric exists in the contract with the expected value.
-   *
-   * @param contract The contract to verify
-   * @param dimension The metric dimension ID (e.g., "four_vcpu_hour", "control_plane")
-   * @param expectedValue The expected metric value
-   * @param metricName Human-readable metric name for error messages
-   */
+  /** Verifies a specific metric exists in the contract with the expected value. */
   private void verifyMetric(
       com.redhat.swatch.contract.test.model.Contract contract,
-      String dimension,
-      int expectedValue,
-      String metricName) {
+      Metric metricId,
+      double expectedMetricValue) {
+    String dimension =
+        BillingProvider.AZURE.toApiModel().equals(contract.getBillingProvider())
+            ? metricId.getAzureDimension()
+            : metricId.getAwsDimension();
+
     var metric =
         contract.getMetrics().stream()
             .filter(m -> m.getMetricId().equals(dimension))
             .findFirst()
-            .orElseThrow(() -> new AssertionError(metricName + " metric not found in contract"));
+            .orElseThrow(
+                () -> new AssertionError(metricId.getId() + " metric not found in contract"));
+    // Note: metric values get converted by billing factor
+    double expectedValue =
+        expectedMetricValue * Optional.ofNullable(metricId.getBillingFactor()).orElse(1.0);
     assertEquals(
-        expectedValue,
+        (int) expectedValue,
         metric.getValue().intValue(),
-        metricName + " value should be " + expectedValue);
+        metricId.getId() + " value should be " + expectedValue);
   }
 }

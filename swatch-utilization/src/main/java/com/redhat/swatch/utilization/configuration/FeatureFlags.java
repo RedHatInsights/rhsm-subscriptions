@@ -21,13 +21,18 @@
 package com.redhat.swatch.utilization.configuration;
 
 import io.getunleash.Unleash;
+import io.getunleash.variant.Variant;
 import jakarta.enterprise.context.ApplicationScoped;
+import java.util.Arrays;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @ApplicationScoped
 public class FeatureFlags {
   public static final String SEND_NOTIFICATIONS = "swatch.swatch-notifications.send-notifications";
+  public static final String SEND_NOTIFICATIONS_ORGS_ALLOWLIST =
+      "swatch.swatch-notifications.send-notifications-orgs-allowlist";
+  public static final String ORGS_VARIANT = "orgs";
 
   private final Unleash unleash;
 
@@ -37,5 +42,33 @@ public class FeatureFlags {
 
   public boolean sendNotifications() {
     return unleash.isEnabled(FeatureFlags.SEND_NOTIFICATIONS);
+  }
+
+  public boolean isOrgAllowlistedForNotifications(String orgId) {
+    if (!unleash.isEnabled(SEND_NOTIFICATIONS_ORGS_ALLOWLIST)) {
+      log.debug("Feature flag '{}' is disabled", SEND_NOTIFICATIONS_ORGS_ALLOWLIST);
+      return false;
+    }
+
+    Variant variant = unleash.getVariant(SEND_NOTIFICATIONS_ORGS_ALLOWLIST);
+    if (!ORGS_VARIANT.equals(variant.getName()) || variant.getPayload().isEmpty()) {
+      log.debug("Feature flag '{}' with no variants", SEND_NOTIFICATIONS_ORGS_ALLOWLIST);
+      return false;
+    }
+
+    String value = variant.getPayload().get().getValue();
+    if (value == null || value.isBlank()) {
+      log.debug(
+          "Feature flag '{}' with no organizations in the allowlist",
+          SEND_NOTIFICATIONS_ORGS_ALLOWLIST);
+      return false;
+    }
+
+    log.debug(
+        "Feature flag '{}' with the following organizations '{}' in the allowlist",
+        SEND_NOTIFICATIONS_ORGS_ALLOWLIST,
+        value);
+
+    return Arrays.stream(value.split(",")).map(String::trim).anyMatch(orgId::equals);
   }
 }

@@ -59,7 +59,7 @@ public class BaseContractComponentTest {
   static final MetricId CORES = MetricIdUtils.getCores();
   static final MetricId SOCKETS = MetricIdUtils.getSockets();
   static final MetricId INSTANCE_HOURS = MetricIdUtils.getInstanceHours();
-  static final MetricId VCPUS = MetricIdUtils.getVCpus();
+  static final String SUCCESS_MESSAGE = "SUCCESS";
 
   @KafkaBridge static KafkaBridgeService kafkaBridge = new KafkaBridgeService();
 
@@ -158,6 +158,34 @@ public class BaseContractComponentTest {
             ending,
             GranularityType.DAILY,
             ReportCategory.PHYSICAL);
+    return getCapacityValueFromReport(report);
+  }
+
+  protected double getPhysicalCoreCapacity(
+      Product product, String orgId, OffsetDateTime beginning, OffsetDateTime ending) {
+    CapacityReportByMetricId report =
+        service.getCapacityReportByMetricId(
+            product,
+            orgId,
+            CORES.toString(),
+            beginning,
+            ending,
+            GranularityType.DAILY,
+            ReportCategory.PHYSICAL);
+    return getCapacityValueFromReport(report);
+  }
+
+  protected double getHypervisorCoreCapacity(
+      Product product, String orgId, OffsetDateTime beginning, OffsetDateTime ending) {
+    CapacityReportByMetricId report =
+        service.getCapacityReportByMetricId(
+            product,
+            orgId,
+            CORES.toString(),
+            beginning,
+            ending,
+            GranularityType.DAILY,
+            ReportCategory.HYPERVISOR);
     return getCapacityValueFromReport(report);
   }
 

@@ -41,9 +41,28 @@ public final class BillableUsageTestHelper {
       double value,
       BillingProvider billingProvider,
       String billingAccountId) {
+    return createTallySummary(
+        orgId,
+        productId,
+        metricId,
+        value,
+        billingProvider,
+        billingAccountId,
+        OffsetDateTime.now().minusHours(1).withOffsetSameInstant(ZoneOffset.UTC));
+  }
 
-    OffsetDateTime snapshotDate =
-        OffsetDateTime.now().minusHours(1).withOffsetSameInstant(ZoneOffset.UTC);
+  /**
+   * Create a tally summary with a specific snapshot date. Use for time-boundary tests (e.g. last
+   * month vs current month).
+   */
+  public static TallySummary createTallySummary(
+      String orgId,
+      String productId,
+      String metricId,
+      double value,
+      BillingProvider billingProvider,
+      String billingAccountId,
+      OffsetDateTime snapshotDate) {
 
     var measurement = new TallyMeasurement();
     measurement.setHardwareMeasurementType("PHYSICAL");

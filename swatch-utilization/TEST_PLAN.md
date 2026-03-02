@@ -207,12 +207,9 @@ Kafka messages can be injected for event-driven testing.
     - Generate usage data for the metric A of the product B
     - Trigger utilization calculation process
 - **Verification**:
-    - Wait for notification message on notifications topic
-    - Verify notification payload
+     - Check absence of notification message on notifications topic
 - **Expected Result**:
-    - Notification event created (any usage above zero capacity triggers notification)
-    - Notification event contains correct information (org_id, product_id, metric_id and utilization_percentage)
-    - Record timestamp reflects current calculation time
+    - No notification event created
 
 **utilization-capacity-TC002 - Unlimited capacity metric**
 
@@ -240,6 +237,54 @@ Kafka messages can be injected for event-driven testing.
 - **Expected Result**:  
   - No notification event created (contracts without dimensions have null capacity and over-usage check is skipped)  
   - Service handles null capacity data gracefully
+
+## Org Allowlist for Notifications
+
+**utilization-allowlist-TC001 - Allowlisted org receives notification even when the global flag is disabled**
+
+- **Description**: Verify that when the global send-notifications flag is disabled but the org is in the allowlist, notifications are still sent.
+- **Setup**:
+    - The global `swatch.swatch-notifications.send-notifications` flag is disabled
+    - The `swatch.swatch-notifications.send-notifications-orgs-allowlist` flag is enabled with the org ID in its variant payload
+    - An organization has capacity for the metric A of the product B
+- **Action**:
+    - Generate enough usage to exceed the threshold for the metric A of the product B
+    - Trigger utilization calculation process
+- **Verification**:
+    - Wait for notification message on notifications topic
+    - Verify notification payload
+- **Expected Result**:
+    - Notification event contains correct information (org_id, product_id, metric_id and utilization_percentage)
+
+**utilization-allowlist-TC002 - Non-allowlisted org does not receive notification when the global flag is disabled**
+
+- **Description**: Verify that when the global send-notifications flag is disabled and the org is NOT in the allowlist, no notification is sent.
+- **Setup**:
+    - The global `swatch.swatch-notifications.send-notifications` flag is disabled
+    - The `swatch.swatch-notifications.send-notifications-orgs-allowlist` flag is enabled with different org IDs in its variant payload
+    - An organization has capacity for the metric A of the product B
+- **Action**:
+    - Generate enough usage to exceed the threshold for the metric A of the product B
+    - Trigger utilization calculation process
+- **Verification**:
+    - Check the absence of the notification message on the notifications topic
+- **Expected Result**:
+    - No notification event created
+
+**utilization-allowlist-TC003 - Empty allowlist does not affect behavior**
+
+- **Description**: Verify that when the allowlist flag is enabled but the variant payload is empty, behavior falls back to the global flag.
+- **Setup**:
+    - The global `swatch.swatch-notifications.send-notifications` flag is disabled
+    - The `swatch.swatch-notifications.send-notifications-orgs-allowlist` flag is enabled with an empty variant payload
+    - An organization has capacity for the metric A of the product B
+- **Action**:
+    - Generate enough usage to exceed the threshold for the metric A of the product B
+    - Trigger utilization calculation process
+- **Verification**:
+    - Check absence of notification message on notifications topic
+- **Expected Result**:
+    - No notification event created
 
 ## Configuration
 

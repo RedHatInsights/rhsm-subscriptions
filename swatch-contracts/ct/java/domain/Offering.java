@@ -153,6 +153,17 @@ public class Offering {
         .build();
   }
 
+  public static Offering buildUnconfiguredOffering(String sku) {
+    Objects.requireNonNull(sku, "sku cannot be null");
+
+    return Offering.builder()
+        .sku(sku)
+        .description("Unconfigured offering with no product tags")
+        .metered(METERED_YES)
+        .engProducts(List.of())
+        .build();
+  }
+
   public static Offering buildRhelUnlimitedOffering(String sku) {
     Objects.requireNonNull(sku, "sku cannot be null");
 
