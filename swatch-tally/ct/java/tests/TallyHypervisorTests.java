@@ -25,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static utils.TallyTestProducts.RHEL_FOR_X86;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
-
 import com.redhat.swatch.tally.test.model.InstanceData;
 import com.redhat.swatch.tally.test.model.TallyReportDataPoint;
 import java.time.OffsetDateTime;

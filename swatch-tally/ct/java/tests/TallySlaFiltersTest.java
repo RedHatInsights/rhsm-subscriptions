@@ -24,7 +24,6 @@ import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INST
 import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
-
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallySummary;
 import java.time.OffsetDateTime;
