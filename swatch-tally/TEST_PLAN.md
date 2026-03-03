@@ -195,7 +195,7 @@ Test cases should be testable locally and in deployed environments.
 
 ## Report Granularity and Filtering
 
-**tally-granularity-TC001 - Daily granularity with all filters**
+**tally-report-granularity-TC001 - Daily granularity with all filters**
 
 - **Description**: Verify that tally report API correctly returns daily granularity data with all filter parameters
 - **Setup**:
@@ -213,7 +213,7 @@ Test cases should be testable locally and in deployed environments.
     - API correctly returns daily tally data with all specified filters
     - Metadata accurately reflects the request parameters
 
-**tally-granularity-TC002 - Daily granularity with partial filters**
+**tally-report-granularity-TC002 - Daily granularity with partial filters**
 
 - **Description**: Verify that tally report API correctly returns daily granularity data with only some filter parameters
 - **Setup**:
@@ -230,7 +230,7 @@ Test cases should be testable locally and in deployed environments.
     - API correctly handles partial filter sets
     - Unspecified filters are not present in metadata
 
-**tally-granularity-TC003 - Hourly granularity with all filters**
+**tally-report-granularity-TC003 - Hourly granularity with all filters**
 
 - **Description**: Verify that tally report API correctly returns hourly granularity data with all filter parameters
 - **Setup**:
@@ -246,7 +246,7 @@ Test cases should be testable locally and in deployed environments.
     - API correctly returns hourly tally data
     - Hourly granularity works with all filter combinations
 
-**tally-granularity-TC004 - Invalid request without granularity**
+**tally-report-granularity-TC004 - Invalid request without granularity**
 
 - **Description**: Verify that tally report API returns validation error when granularity parameter is missing
 - **Setup**:
