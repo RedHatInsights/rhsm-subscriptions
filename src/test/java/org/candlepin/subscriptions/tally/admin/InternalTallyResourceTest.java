@@ -70,6 +70,7 @@ class InternalTallyResourceTest {
   @Mock private SecurityProperties properties;
   @Mock private EventRecordRepository eventRecordRepository;
   @Mock private KafkaTemplate<String, Event> kafkaTemplate;
+  @Mock private IsPrimaryUpdateService isPrimaryUpdateService;
 
   private EventRecordsRetentionProperties eventRecordsRetentionProperties;
   private InternalTallyResource resource;
@@ -97,6 +98,7 @@ class InternalTallyResourceTest {
             eventRecordsRetentionProperties,
             objectMapper(appProps),
             kafkaTemplate,
+            isPrimaryUpdateService,
             taskQueueProperties);
   }
 

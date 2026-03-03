@@ -207,4 +207,52 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
       @Param("beginning") OffsetDateTime beginning,
       @Param("ending") OffsetDateTime ending,
       @Param("measurementKey") TallyMeasurementKey measurementKey);
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  @Modifying
+  @Query(
+      """
+    UPDATE TallySnapshot t
+    SET t.isPrimary = true
+    WHERE t.productId = :productId
+      AND (COALESCE(:orgId, t.orgId) = t.orgId)
+      AND t.snapshotDate >= :startDate
+      AND t.snapshotDate < :endDate
+      AND t.serviceLevel <> :anyServiceLevel
+      AND t.usage <> :anyUsage
+      AND t.billingProvider <> :anyBillingProvider
+      AND t.billingAccountId <> '_ANY'
+  """)
+  int setIsPrimaryForPayg(
+      @Param("orgId") String orgId,
+      @Param("productId") String productId,
+      @Param("startDate") OffsetDateTime startDate,
+      @Param("endDate") OffsetDateTime endDate,
+      @Param("anyServiceLevel") ServiceLevel anyServiceLevel,
+      @Param("anyUsage") Usage anyUsage,
+      @Param("anyBillingProvider") BillingProvider anyBillingProvider);
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  @Modifying
+  @Query(
+      """
+    UPDATE TallySnapshot t
+    SET t.isPrimary = true
+    WHERE t.productId = :productId
+      AND (COALESCE(:orgId, t.orgId) = t.orgId)
+      AND t.snapshotDate >= :startDate
+      AND t.snapshotDate < :endDate
+      AND t.serviceLevel <> :anyServiceLevel
+      AND t.usage <> :anyUsage
+      AND t.billingProvider = :anyBillingProvider
+      AND t.billingAccountId = '_ANY'
+  """)
+  int setIsPrimaryForNonPayg(
+      @Param("orgId") String orgId,
+      @Param("productId") String productId,
+      @Param("startDate") OffsetDateTime startDate,
+      @Param("endDate") OffsetDateTime endDate,
+      @Param("anyServiceLevel") ServiceLevel anyServiceLevel,
+      @Param("anyUsage") Usage anyUsage,
+      @Param("anyBillingProvider") BillingProvider anyBillingProvider);
 }
