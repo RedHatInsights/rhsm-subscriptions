@@ -26,7 +26,7 @@ import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_UNCONVERTED;
 
 import api.MessageValidators;
-import com.redhat.swatch.component.tests.annotations.TestPlanName;
+import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallySummary;

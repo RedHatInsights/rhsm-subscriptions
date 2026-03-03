@@ -24,7 +24,7 @@ import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INST
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static utils.TallyTestProducts.OPENSHIFT_DEDICATED;
 
-import com.redhat.swatch.component.tests.annotations.TestPlanName;
+import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.tally.test.model.InstanceResponse;
 import com.redhat.swatch.tally.test.model.TallyReportData;
