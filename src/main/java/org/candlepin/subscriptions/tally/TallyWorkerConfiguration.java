@@ -237,6 +237,19 @@ public class TallyWorkerConfiguration {
     return new KafkaTemplate<>(eventProducerFactory);
   }
 
+  @Bean(name = "updatePrimaryTallySnapshotsTaskExecutor")
+  public Executor getAsyncExecutor() {
+    ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+    executor.setThreadNamePrefix("is-primary-update-");
+    // Single thread to avoid database lock contention
+    executor.setCorePoolSize(1);
+    executor.setMaxPoolSize(1);
+    // Queue capacity to prevent rejection
+    executor.setQueueCapacity(50);
+    executor.initialize();
+    return executor;
+  }
+
   @Bean(name = "purgeTallySnapshotsJobExecutor")
   public Executor getPurgeSnapshotsJobExecutor() {
     ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();

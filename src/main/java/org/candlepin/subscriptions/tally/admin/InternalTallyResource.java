@@ -79,6 +79,7 @@ public class InternalTallyResource implements InternalTallyApi {
   private final KafkaTemplate<String, Event> eventKafkaTemplate;
   private final ObjectMapper objectMapper;
   private final String eventTopic;
+  private final IsPrimaryUpdateService isPrimaryUpdateService;
 
   @SuppressWarnings("java:S107")
   public InternalTallyResource(
@@ -93,6 +94,7 @@ public class InternalTallyResource implements InternalTallyApi {
       EventRecordsRetentionProperties eventRecordsRetentionProperties,
       ObjectMapper objectMapper,
       KafkaTemplate<String, Event> eventKafkaTemplate,
+      IsPrimaryUpdateService isPrimaryUpdateService,
       @Qualifier("serviceInstanceTopicProperties")
           TaskQueueProperties serviceInstanceTopicProperties) {
     this.clock = clock;
@@ -107,6 +109,7 @@ public class InternalTallyResource implements InternalTallyApi {
     this.eventKafkaTemplate = eventKafkaTemplate;
     this.objectMapper = objectMapper;
     this.eventTopic = serviceInstanceTopicProperties.getTopic();
+    this.isPrimaryUpdateService = isPrimaryUpdateService;
   }
 
   @Override
@@ -357,6 +360,51 @@ public class InternalTallyResource implements InternalTallyApi {
     }
 
     return isAllowed;
+  }
+
+  @Override
+  public DefaultResponse updateIsPrimary(
+      String productId,
+      OffsetDateTime startDate,
+      OffsetDateTime endDate,
+      String orgId,
+      Boolean xRhSwatchSynchronousRequest) {
+    log.info(
+        "Received request to update tally snapshot is_primary for org={}, product={}, dates=[{}, {}], sync={}",
+        orgId,
+        productId,
+        startDate,
+        endDate,
+        xRhSwatchSynchronousRequest);
+
+    try {
+      if (Boolean.TRUE.equals(xRhSwatchSynchronousRequest)) {
+        int rowsUpdated =
+            isPrimaryUpdateService.updateIsPrimarySync(orgId, productId, startDate, endDate);
+        log.info(
+            "Synchronous tally snapshot is_primary update completed. Rows updated: {}",
+            rowsUpdated);
+        return getDefaultResponse("Completed");
+      } else {
+        isPrimaryUpdateService.updateIsPrimaryAsync(orgId, productId, startDate, endDate);
+        return getDefaultResponse("Accepted");
+      }
+    } catch (TaskRejectedException e) {
+      log.warn(
+          "Tally snapshot is_primary update task rejected (queue full) for org={}, product={}",
+          orgId,
+          productId);
+      return getDefaultResponse(REJECTED_STATUS);
+    } catch (Exception e) {
+      log.error(
+          "Tally snapshot is_primary update failed for org={}, product={}, dates=[{}, {}]",
+          orgId,
+          productId,
+          startDate,
+          endDate,
+          e);
+      throw e;
+    }
   }
 
   @NotNull
