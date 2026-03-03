@@ -47,7 +47,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.billable.usage.AccumulationPeriodFormatter;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
-import org.hibernate.exception.ConstraintViolationException;
 
 @Slf4j
 @ApplicationScoped
@@ -77,15 +76,13 @@ public class BillableUsageService {
       }
     } catch (ContractCoverageException exception) {
       log.debug("Skipping billable usage; see previous errors/warnings.", exception);
-    } catch (ConstraintViolationException cve) {
-      String constraintName = cve.getConstraintName();
-      if (constraintName != null
-          && constraintName.contains(REMITTANCE_ACTIVE_DUPLICATE_CONSTRAINT)) {
+    } catch (Exception ex) {
+      if (isDuplicateRemittanceViolation(ex)) {
         log.info(
             "Duplicate active remittance detected for tallyId={}, skipping.", usage.getTallyId());
         return;
       }
-      throw cve;
+      throw ex;
     }
   }
 
@@ -282,6 +279,11 @@ public class BillableUsageService {
 
     double remainingCoverage = contractCoveredMetric - previousTotalUsageMetric;
     incrementMetric(COVERED_USAGE_METRIC, usage, Math.min(remainingCoverage, newUsageMetric));
+  }
+
+  private static boolean isDuplicateRemittanceViolation(Exception ex) {
+    String message = ex.getMessage();
+    return message != null && message.contains(REMITTANCE_ACTIVE_DUPLICATE_CONSTRAINT);
   }
 
   private void incrementMetric(String metric, BillableUsage usage, double value) {

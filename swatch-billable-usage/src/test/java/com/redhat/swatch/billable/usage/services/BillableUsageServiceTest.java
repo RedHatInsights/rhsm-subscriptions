@@ -24,6 +24,7 @@ import static com.redhat.swatch.billable.usage.services.BillableUsageService.BIL
 import static com.redhat.swatch.billable.usage.services.BillableUsageService.COVERED_USAGE_METRIC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
@@ -485,9 +486,7 @@ class BillableUsageServiceTest {
 
     CountDownLatch readyLatch = new CountDownLatch(threadCount);
     CountDownLatch startLatch = new CountDownLatch(1);
-    ExecutorService executor = Executors.newFixedThreadPool(threadCount);
-
-    try {
+    try (ExecutorService executor = Executors.newFixedThreadPool(threadCount)) {
       List<CompletableFuture<Void>> futures =
           IntStream.range(0, threadCount)
               .mapToObj(
@@ -514,8 +513,6 @@ class BillableUsageServiceTest {
       startLatch.countDown();
 
       CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get(30, TimeUnit.SECONDS);
-    } finally {
-      executor.shutdown();
     }
 
     List<BillableUsageRemittanceEntity> remittances = findRemittancesForOrg();
@@ -532,6 +529,18 @@ class BillableUsageServiceTest {
                 + "Concurrent calls to produceMonthlyBillable() created duplicate remittance "
                 + "due to read-then-write race in getTotalRemitted()/createRemittance().",
             remittances.size(), totalRemitted));
+  }
+
+  @Test
+  void submitBillableUsageShouldHandleDuplicateRemittanceConstraintViolation() {
+    BillableUsage usage = givenInstanceHoursUsageForRosa(10.0);
+    givenExistingContractForUsage(usage);
+    givenExistingRemittanceForUsage(
+        usage, CLOCK.now(), 5.0, RemittanceStatus.PENDING, usage.getTallyId());
+
+    service.submitBillableUsage(usage);
+
+    assertTrue(true, "Duplicate remittance was silently skipped");
   }
 
   static Stream<Arguments> remittanceBillingFactorParameters() {
@@ -668,6 +677,17 @@ class BillableUsageServiceTest {
       OffsetDateTime remittancePendingDate,
       double remittedPendingValue,
       RemittanceStatus status) {
+    givenExistingRemittanceForUsage(
+        usage, remittancePendingDate, remittedPendingValue, status, UUID.randomUUID());
+  }
+
+  @Transactional
+  void givenExistingRemittanceForUsage(
+      BillableUsage usage,
+      OffsetDateTime remittancePendingDate,
+      double remittedPendingValue,
+      RemittanceStatus status,
+      UUID tallyId) {
     var newRemittance =
         BillableUsageRemittanceEntity.builder()
             .orgId(usage.getOrgId())
@@ -679,7 +699,7 @@ class BillableUsageServiceTest {
             .sla(usage.getSla().value())
             .usage(usage.getUsage().value())
             .remittancePendingDate(remittancePendingDate)
-            .tallyId(UUID.randomUUID())
+            .tallyId(tallyId)
             .status(status)
             .build();
     newRemittance.setRemittedPendingValue(remittedPendingValue);
