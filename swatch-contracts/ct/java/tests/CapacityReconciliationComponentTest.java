@@ -57,6 +57,11 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
 
   private static final int SUBSCRIPTION_COUNT = 5;
   private static final double CORES_CAPACITY = 8.0;
+  private static final String MSG_FORCE_RECONCILE_SUCCESS = "Force reconcile should succeed";
+  private static final String MSG_CREATE_SUBSCRIPTION_SUCCESS =
+      "Creating subscription should succeed";
+  private static final String MSG_SKU_PRESENT_IN_REPORT =
+      "SKU should be present in capacity report after reconciliation";
 
   @BeforeAll
   static void subscribeToCapacityReconcileTopic() {
@@ -73,7 +78,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     Response response = whenCapacityReconciliationIsForced(testSku);
 
     // Then: Reconciliation task messages should be published to Kafka
-    assertThat("Force reconcile should succeed", response.statusCode(), is(HttpStatus.SC_OK));
+    assertThat(MSG_FORCE_RECONCILE_SUCCESS, response.statusCode(), is(HttpStatus.SC_OK));
 
     ReconcileCapacityByOfferingTask task = thenReconciliationTaskIsPublished(testSku);
     assertThat("Task should contain correct SKU", task.getSku(), is(testSku));
@@ -271,8 +276,13 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
             .toBuilder()
             .quantity(5)
             .build();
+
+    // When: Subscription is saved with reconcileCapacity=true (triggers reconciliation)
     whenOfferingAndSubscriptionReconciled(initialOffering, subscription);
+
+    // Then: PHYSICAL Cores = 40
     thenSubscriptionHasCoresMeasurement(testSku, 40.0);
+
     // Given: Offering updated with cores=6
     Offering updatedOffering = Offering.buildOpenShiftOffering(testSku, 6.0, null);
     givenOfferingIsStubbedAndSynced(updatedOffering);
@@ -281,8 +291,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     Response reconcileResponse = whenCapacityReconciliationIsForced(testSku);
 
     // Then: Existing measurement updated to new value (6 * 5 = 30)
-    assertThat(
-        "Force reconcile should succeed", reconcileResponse.statusCode(), is(HttpStatus.SC_OK));
+    assertThat(MSG_FORCE_RECONCILE_SUCCESS, reconcileResponse.statusCode(), is(HttpStatus.SC_OK));
     thenSubscriptionHasCoresMeasurementAfterForceReconcile(testSku, 30.0);
   }
 
@@ -304,8 +313,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     Response reconcileResponse = whenCapacityReconciliationIsForced(testSku);
 
     // Then: Existing measurement updated to new value (3 * 10 = 30)
-    assertThat(
-        "Force reconcile should succeed", reconcileResponse.statusCode(), is(HttpStatus.SC_OK));
+    assertThat(MSG_FORCE_RECONCILE_SUCCESS, reconcileResponse.statusCode(), is(HttpStatus.SC_OK));
     thenSubscriptionHasHypervisorCoresMeasurement(30.0);
   }
 
@@ -326,8 +334,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     Response reconcileResponse = whenCapacityReconciliationIsForced(testSku);
 
     // Then: New measurements created (4 * 5 = 20)
-    assertThat(
-        "Force reconcile should succeed", reconcileResponse.statusCode(), is(HttpStatus.SC_OK));
+    assertThat(MSG_FORCE_RECONCILE_SUCCESS, reconcileResponse.statusCode(), is(HttpStatus.SC_OK));
     thenSubscriptionHasCoresMeasurementAfterForceReconcile(testSku, 20.0);
   }
 
@@ -344,8 +351,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     Response reconcileResponse = whenCapacityReconciliationIsForced(testSku);
 
     // Then: New hypervisor measurements created (2 * 5 = 10)
-    assertThat(
-        "Force reconcile should succeed", reconcileResponse.statusCode(), is(HttpStatus.SC_OK));
+    assertThat(MSG_FORCE_RECONCILE_SUCCESS, reconcileResponse.statusCode(), is(HttpStatus.SC_OK));
     thenSubscriptionHasHypervisorCoresMeasurement(10.0);
   }
 
@@ -371,8 +377,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     Response reconcileResponse = whenCapacityReconciliationIsForced(testSku);
 
     // Then: PHYSICAL Cores retained (24), PHYSICAL Sockets measurement deleted
-    assertThat(
-        "Force reconcile should succeed", reconcileResponse.statusCode(), is(HttpStatus.SC_OK));
+    assertThat(MSG_FORCE_RECONCILE_SUCCESS, reconcileResponse.statusCode(), is(HttpStatus.SC_OK));
     thenSubscriptionHasCoresMeasurementAfterForceReconcile(testSku, 24.0);
   }
 
@@ -394,8 +399,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     Response reconcileResponse = whenCapacityReconciliationIsForced(testSku);
 
     // Then: HYPERVISOR Cores retained (12), HYPERVISOR Sockets measurement deleted
-    assertThat(
-        "Force reconcile should succeed", reconcileResponse.statusCode(), is(HttpStatus.SC_OK));
+    assertThat(MSG_FORCE_RECONCILE_SUCCESS, reconcileResponse.statusCode(), is(HttpStatus.SC_OK));
     thenSubscriptionHasHypervisorCoresMeasurement(12.0);
   }
 
@@ -500,8 +504,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
               orgId, Map.of(CORES, CORES_CAPACITY), testSku);
 
       Response saveResponse = service.saveSubscriptions(false, subscription);
-      assertThat(
-          "Creating subscription should succeed", saveResponse.statusCode(), is(HttpStatus.SC_OK));
+      assertThat(MSG_CREATE_SUBSCRIPTION_SUCCESS, saveResponse.statusCode(), is(HttpStatus.SC_OK));
     }
 
     return testSku;
@@ -518,8 +521,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
       Offering offering, Subscription subscription, boolean reconcileCapacity) {
     givenOfferingIsStubbedAndSynced(offering);
     Response saveResponse = service.saveSubscriptions(reconcileCapacity, subscription);
-    assertThat(
-        "Creating subscription should succeed", saveResponse.statusCode(), is(HttpStatus.SC_OK));
+    assertThat(MSG_CREATE_SUBSCRIPTION_SUCCESS, saveResponse.statusCode(), is(HttpStatus.SC_OK));
   }
 
   /**
@@ -612,10 +614,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
                       .findFirst()
                       .orElse(null);
 
-              assertThat(
-                  "SKU should be present in capacity report after reconciliation",
-                  skuCapacity,
-                  notNullValue());
+              assertThat(MSG_SKU_PRESENT_IN_REPORT, skuCapacity, notNullValue());
               assertThat(
                   "SKU should have measurements array after reconciliation",
                   Objects.requireNonNull(skuCapacity).getMeasurements(),
@@ -671,10 +670,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
                   .filter(s -> sku.equals(s.getSku()))
                   .findFirst()
                   .orElse(null);
-          assertThat(
-              "SKU should be present in capacity report after reconciliation",
-              skuCapacity,
-              notNullValue());
+          assertThat(MSG_SKU_PRESENT_IN_REPORT, skuCapacity, notNullValue());
           assertThat(
               "SKU should have measurements after reconciliation",
               Objects.requireNonNull(skuCapacity).getMeasurements(),
