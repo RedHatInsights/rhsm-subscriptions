@@ -515,6 +515,12 @@ spec:
                 valueFrom:
                   fieldRef:
                     fieldPath: metadata.annotations['test.appstudio.openshift.io/group-test-info']
+              - name: GIT_REVISION
+                value: "$(tasks.extract-revision.results.GIT_REVISION)"
+              - name: INTEGRATION_TEST_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.labels['test.appstudio.openshift.io/scenario']
             onError: continue
             volumeMounts:
               - name: artifacts
@@ -578,6 +584,14 @@ spec:
                           {
                             "key": "pipeline_name",
                             "value": "${PIPELINE_NAME}"
+                          },
+                          {
+                            "key": "git_revision",
+                            "value": "${GIT_REVISION}"
+                          },
+                          {
+                            "key": "integration_test_name",
+                            "value": "${INTEGRATION_TEST_NAME}"
                           }
                         ]
                       },

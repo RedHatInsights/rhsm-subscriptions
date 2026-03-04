@@ -37,6 +37,14 @@
             {
               "key": "pipeline_name",
               "value": "PIPELINE_NAME_PLACEHOLDER"
+            },
+            {
+              "key": "git_revision",
+              "value": "GIT_REVISION_PLACEHOLDER"
+            },
+            {
+              "key": "integration_test_name",
+              "value": "INTEGRATION_TEST_NAME_PLACEHOLDER"
             }
           ]
         },
