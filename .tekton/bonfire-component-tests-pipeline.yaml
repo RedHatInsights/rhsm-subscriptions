@@ -388,6 +388,12 @@ spec:
                     fieldPath: metadata.labels['pac.test.appstudio.openshift.io/event-type']
               - name: PIPELINE_NAME
                 value: "$(context.pipelineRun.name)"
+              - name: GIT_REVISION
+                value: "$(tasks.extract-revision.results.GIT_REVISION)"
+              - name: INTEGRATION_TEST_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.labels['test.appstudio.openshift.io/scenario']
             script: |
               #!/bin/bash
               set -euo pipefail
@@ -402,6 +408,8 @@ spec:
               sed -i "s/SERVICE_NAME/$SERVICE/g" datarouter.json
               sed -i "s/EVENT_TYPE_PLACEHOLDER/$EVENT_TYPE/g" datarouter.json
               sed -i "s/PIPELINE_NAME_PLACEHOLDER/$PIPELINE_NAME/g" datarouter.json
+              sed -i "s/GIT_REVISION_PLACEHOLDER/$GIT_REVISION/g" datarouter.json
+              sed -i "s/INTEGRATION_TEST_NAME_PLACEHOLDER/$INTEGRATION_TEST_NAME/g" datarouter.json
               
               echo "Using metadata from: $METADATA_FILE"
               echo "Metadata content:"
