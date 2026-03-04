@@ -712,42 +712,51 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
   }
 
   /**
-   * Verifies that the subscription has the expected PHYSICAL Cores measurement after
-   * reconciliation.
-   *
-   * @param sku The SKU to check
-   * @param expectedCores The expected PHYSICAL Cores value (offering cores * quantity)
+   * Base verification for PHYSICAL capacity measurements. Delegates to
+   * thenSubscriptionHasCapacityMeasurements with minMeasurements derived from expectations count.
    */
-  private void thenSubscriptionHasCoresMeasurement(String sku, double expectedCores) {
-    thenSubscriptionHasCoresMeasurement(sku, expectedCores, Product.OPENSHIFT, false);
-  }
-
-  /**
-   * Verifies that the subscription has the expected PHYSICAL Cores measurement after
-   * force-reconcile. Uses await for Kafka async processing.
-   *
-   * @param sku The SKU to check
-   * @param expectedCores The expected PHYSICAL Cores value (offering cores * quantity)
-   */
-  private void thenSubscriptionHasCoresMeasurementAfterForceReconcile(
-      String sku, double expectedCores) {
-    thenSubscriptionHasCoresMeasurement(sku, expectedCores, Product.OPENSHIFT, true);
-  }
-
-  /**
-   * Verifies that the subscription has PHYSICAL Cores only (Sockets measurement deleted). Uses
-   * await for force-reconcile tests where Kafka processing is async.
-   *
-   * @param sku The SKU to check
-   * @param expectedCores The expected PHYSICAL Cores value (offering cores * quantity)
-   */
-  private void thenSubscriptionHasCoresOnlyMeasurementAfterForceReconcile(
-      String sku, double expectedCores) {
+  private void thenSubscriptionHasPhysicalMeasurements(
+      Product product, String sku, boolean awaitForAsync, MetricExpectation... expectations) {
+    int minMeasurements = expectations.length;
+    String message =
+        minMeasurements == 1
+            ? "Measurements should not be empty after reconciliation"
+            : "Should have Cores and Sockets measurements";
     thenSubscriptionHasCapacityMeasurements(
+        product, sku, minMeasurements, message, awaitForAsync, expectations);
+  }
+
+  /** Verifies PHYSICAL Cores measurement after reconciliation. */
+  private void thenSubscriptionHasCoresMeasurement(String sku, double expectedCores) {
+    thenSubscriptionHasPhysicalMeasurements(
         Product.OPENSHIFT,
         sku,
-        2,
-        "Should have Cores and Sockets slots in report",
+        false,
+        new MetricExpectation(
+            "Cores",
+            expectedCores,
+            "PHYSICAL Cores measurement should match offering cores * quantity"));
+  }
+
+  /** Verifies PHYSICAL Cores after force-reconcile (uses await for async). */
+  private void thenSubscriptionHasCoresMeasurementAfterForceReconcile(
+      String sku, double expectedCores) {
+    thenSubscriptionHasPhysicalMeasurements(
+        Product.OPENSHIFT,
+        sku,
+        true,
+        new MetricExpectation(
+            "Cores",
+            expectedCores,
+            "PHYSICAL Cores measurement should match offering cores * quantity"));
+  }
+
+  /** Verifies PHYSICAL Cores retained and Sockets deleted after force-reconcile. */
+  private void thenSubscriptionHasCoresOnlyMeasurementAfterForceReconcile(
+      String sku, double expectedCores) {
+    thenSubscriptionHasPhysicalMeasurements(
+        Product.OPENSHIFT,
+        sku,
         true,
         new MetricExpectation(
             "Cores",
@@ -757,78 +766,25 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
             "Sockets", 0.0, "PHYSICAL Sockets measurement should be deleted (0)"));
   }
 
-  /**
-   * Verifies that the subscription has the expected PHYSICAL Cores measurement after
-   * reconciliation.
-   *
-   * @param sku The SKU to check
-   * @param expectedCores The expected PHYSICAL Cores value (offering cores * quantity)
-   * @param product The product for the capacity report (OPENSHIFT or RHEL)
-   */
-  private void thenSubscriptionHasCoresMeasurement(
-      String sku, double expectedCores, Product product) {
-    thenSubscriptionHasCoresMeasurement(sku, expectedCores, product, false);
-  }
-
-  /**
-   * Verifies that the subscription has the expected PHYSICAL Cores measurement. Uses await when
-   * verification follows force-reconcile (Kafka processing is async).
-   *
-   * @param sku The SKU to check
-   * @param expectedCores The expected PHYSICAL Cores value (offering cores * quantity)
-   * @param product The product for the capacity report (OPENSHIFT or RHEL)
-   * @param awaitForAsync When true, uses await for force-reconcile tests where Kafka processing is
-   *     async
-   */
-  private void thenSubscriptionHasCoresMeasurement(
-      String sku, double expectedCores, Product product, boolean awaitForAsync) {
-    thenSubscriptionHasCapacityMeasurements(
-        product,
-        sku,
-        1,
-        "Measurements should not be empty after reconciliation",
-        awaitForAsync,
-        new MetricExpectation(
-            "Cores",
-            expectedCores,
-            "PHYSICAL Cores measurement should match offering cores * quantity"));
-  }
-
-  /**
-   * Verifies that the subscription has the expected PHYSICAL Sockets measurement after
-   * reconciliation.
-   *
-   * @param sku The SKU to check
-   * @param expectedSockets The expected PHYSICAL Sockets value (offering sockets * quantity)
-   */
+  /** Verifies PHYSICAL Sockets measurement after reconciliation. */
   private void thenSubscriptionHasSocketsMeasurement(String sku, double expectedSockets) {
-    thenSubscriptionHasCapacityMeasurements(
+    thenSubscriptionHasPhysicalMeasurements(
         Product.RHEL,
         sku,
-        1,
-        "Measurements should not be empty after reconciliation",
+        false,
         new MetricExpectation(
             "Sockets",
             expectedSockets,
             "PHYSICAL Sockets measurement should match offering sockets * quantity"));
   }
 
-  /**
-   * Verifies that the subscription has the expected PHYSICAL Cores and Sockets measurements after
-   * reconciliation. Uses await for force-reconcile tests where Kafka processing is async.
-   *
-   * @param sku The SKU to check
-   * @param expectedCores The expected PHYSICAL Cores value (offering cores * quantity)
-   * @param expectedSockets The expected PHYSICAL Sockets value (offering sockets * quantity)
-   */
+  /** Verifies PHYSICAL Cores and Sockets measurements (uses await for async). */
   private void thenSubscriptionHasCoresAndSocketsMeasurements(
       String sku, double expectedCores, double expectedSockets) {
-    thenSubscriptionHasCapacityMeasurements(
+    thenSubscriptionHasPhysicalMeasurements(
         Product.OPENSHIFT,
         sku,
-        2,
-        "Should have Cores and Sockets measurements",
-        true, // await for async Kafka processing
+        true,
         new MetricExpectation(
             "Cores",
             expectedCores,
