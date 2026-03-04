@@ -406,12 +406,12 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
   @TestPlanName("capacity-reconciliation-TC010")
   @Test
   void shouldNotCreateMeasurementsForNullOrZeroCapacityValues() {
-    // Given: Offering has cores=null, sockets=0
+    // Given: Offering has cores=null, sockets=0 (subscription mirrors offering: no cores,
+    // sockets=0)
     final String testSku = RandomUtils.generateRandom();
     Offering offering = Offering.buildOpenShiftOffering(testSku, null, 0.0);
     Subscription subscription =
-        Subscription.buildOpenShiftSubscriptionUsingSku(
-                orgId, Map.of(CORES, 0.0, SOCKETS, 0.0), testSku)
+        Subscription.buildOpenShiftSubscriptionUsingSku(orgId, Map.of(SOCKETS, 0.0), testSku)
             .toBuilder()
             .quantity(5)
             .build();
