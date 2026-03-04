@@ -13,6 +13,7 @@ This document outlines the test plan for swatch-tally, including event processin
 * Tally report generation with various filters
 * Instance report generation
 * Conflict handling and data persistence
+* Idempotency of tally operations
 * SLA and usage filtering
 
 **Assumptions:**
@@ -119,13 +120,13 @@ Test cases should be testable locally and in deployed environments.
 
 ## Hypervisor Handling
 
-**tally-hypervisor-TC001 - Hypervisor without guests not in instances report**
+**tally-hypervisor-TC001 - Hypervisor without usage data not in instances report**
 
-- **Description**: Verify that a hypervisor with no guests does not appear in the instances report
+- **Description**: Verify that a hypervisor with no usage data (no buckets) does not appear in the instances report
 - **Setup**:
     - Organization with baseline tally data
     - Nightly tally is performed
-    - Hypervisor host is inserted with no guests and no buckets
+    - Hypervisor host is inserted with no buckets (no usage data)
 - **Action**:
     - Perform tally for organization
     - Retrieve instances report for the day
@@ -133,16 +134,18 @@ Test cases should be testable locally and in deployed environments.
     - Hypervisor's subscription manager ID is not in instances report data
     - Instances report does not include the hypervisor
 - **Expected Result**:
-    - Hypervisors without guests are excluded from instances reports
-    - Only hosts with actual usage are visible
+    - Hypervisors without usage buckets are excluded from instances reports
+    - Only hosts with actual usage data are visible
 
-**tally-hypervisor-TC002 - Hypervisor without guests does not change daily total**
 
-- **Description**: Verify that a hypervisor with no guests does not affect the daily total socket count
+
+**tally-hypervisor-TC002 - Hypervisor without usage data does not affect totals**
+
+- **Description**: Verify that a hypervisor with no usage data (no buckets) does not affect the daily total socket count
 - **Setup**:
     - Organization with baseline usage (non-zero sockets)
     - Nightly tally is performed to establish baseline
-    - Hypervisor host is inserted with no guests and no buckets
+    - Hypervisor host is inserted with no buckets (no usage data)
 - **Action**:
     - Capture initial daily sockets total
     - Perform tally for organization
@@ -151,12 +154,12 @@ Test cases should be testable locally and in deployed environments.
     - Initial sockets total equals new sockets total
     - Hypervisor did not contribute to total
 - **Expected Result**:
-    - Hypervisors without guests do not affect tally totals
+    - Hypervisors without usage buckets do not affect tally totals
     - Only hosts with buckets contribute to aggregated metrics
 
 ## Data Persistence
 
-**tally-persistence-TC001 - Tally report persistence across separate tally runs**
+**tally-persistence-TC001 - Tally report is idempotent across separate tally runs**
 
 - **Description**: Verify that tally reports remain unchanged when hourly tally is re-run for the same time period
 - **Setup**:
@@ -175,7 +178,7 @@ Test cases should be testable locally and in deployed environments.
     - Tally reports are idempotent
     - Re-running tally does not modify previously calculated data
 
-**tally-persistence-TC002 - Instance report persistence across separate tally runs**
+**tally-persistence-TC002 - Instance report is idempotent across separate tally runs**
 
 - **Description**: Verify that instance reports remain unchanged when hourly tally is re-run for the same time period
 - **Setup**:
