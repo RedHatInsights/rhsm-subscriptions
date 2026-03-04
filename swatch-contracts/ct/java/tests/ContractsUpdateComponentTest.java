@@ -362,18 +362,6 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     return contract;
   }
 
-  private void givenOfferingIsSynced(Contract contract) {
-    wiremock.forProductAPI().stubOfferingData(contract.getOffering());
-    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(contract));
-    Response sync = service.syncOffering(contract.getOffering().getSku());
-    assertThat("Sync offering should succeed", sync.statusCode(), is(HttpStatus.SC_OK));
-  }
-
-  private void whenContractIsCreatedViaApi(Contract contract) {
-    Response response = service.createContract(contract);
-    assertThat("Creating contract should succeed", response.statusCode(), is(HttpStatus.SC_OK));
-  }
-
   private void whenContractIsUpdatedViaApi(Contract contract) {
     Response response = service.createContract(contract);
     assertThat("Updating contract should succeed", response.statusCode(), is(HttpStatus.SC_OK));
