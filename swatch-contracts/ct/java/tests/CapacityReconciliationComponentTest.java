@@ -942,7 +942,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
             .mapToDouble(d -> d != null ? d : 0.0)
             .sum();
     assertThat(
-        "No measurements should be created for null or zero capacity values",
+        "Total capacity should be 0 when no measurements are created (null/zero offering values)",
         totalCapacity,
         closeTo(0.0, 0.01));
   }
