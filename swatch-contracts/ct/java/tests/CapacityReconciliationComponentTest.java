@@ -378,7 +378,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
 
     // Then: PHYSICAL Cores retained (24), PHYSICAL Sockets measurement deleted
     assertThat(MSG_FORCE_RECONCILE_SUCCESS, reconcileResponse.statusCode(), is(HttpStatus.SC_OK));
-    thenSubscriptionHasCoresMeasurementAfterForceReconcile(testSku, 24.0);
+    thenSubscriptionHasCoresOnlyMeasurementAfterForceReconcile(testSku, 24.0);
   }
 
   @TestPlanName("capacity-reconciliation-TC009b")
@@ -401,6 +401,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     // Then: HYPERVISOR Cores retained (12), HYPERVISOR Sockets measurement deleted
     assertThat(MSG_FORCE_RECONCILE_SUCCESS, reconcileResponse.statusCode(), is(HttpStatus.SC_OK));
     thenSubscriptionHasHypervisorCoresMeasurement(12.0);
+    thenSubscriptionHasHypervisorSocketsMeasurement(0.0);
   }
 
   @TestPlanName("capacity-reconciliation-TC010")
@@ -731,6 +732,29 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
   private void thenSubscriptionHasCoresMeasurementAfterForceReconcile(
       String sku, double expectedCores) {
     thenSubscriptionHasCoresMeasurement(sku, expectedCores, Product.OPENSHIFT, true);
+  }
+
+  /**
+   * Verifies that the subscription has PHYSICAL Cores only (Sockets measurement deleted). Uses
+   * await for force-reconcile tests where Kafka processing is async.
+   *
+   * @param sku The SKU to check
+   * @param expectedCores The expected PHYSICAL Cores value (offering cores * quantity)
+   */
+  private void thenSubscriptionHasCoresOnlyMeasurementAfterForceReconcile(
+      String sku, double expectedCores) {
+    thenSubscriptionHasCapacityMeasurements(
+        Product.OPENSHIFT,
+        sku,
+        2,
+        "Should have Cores and Sockets slots in report",
+        true,
+        new MetricExpectation(
+            "Cores",
+            expectedCores,
+            "PHYSICAL Cores measurement should match offering cores * quantity"),
+        new MetricExpectation(
+            "Sockets", 0.0, "PHYSICAL Sockets measurement should be deleted (0)"));
   }
 
   /**
