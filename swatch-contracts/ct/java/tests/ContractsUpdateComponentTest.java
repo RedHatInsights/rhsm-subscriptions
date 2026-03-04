@@ -42,7 +42,7 @@ import org.junit.jupiter.api.Test;
 
 public class ContractsUpdateComponentTest extends BaseContractComponentTest {
 
-  private static final double DEFAULT_CAPACITY = 8.0;
+  private static final double CORES_CAPACITY = 8.0;
   private static final double INSTANCE_HOURS_CAPACITY = 100.0;
 
   @Artemis static ContractsArtemisService artemis = new ContractsArtemisService();
@@ -90,7 +90,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     OffsetDateTime initialEndDate = OffsetDateTime.parse("2024-12-31T23:59:59Z");
     Contract initialContract =
         givenContractWithDatesAndMetrics(
-            BillingProvider.AWS, initialStartDate, initialEndDate, Map.of(CORES, DEFAULT_CAPACITY));
+            BillingProvider.AWS, initialStartDate, initialEndDate, Map.of(CORES, CORES_CAPACITY));
 
     // Store the initial UUID for comparison
     var createdContract = service.getContractsByOrgId(orgId).get(0);
@@ -125,7 +125,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     OffsetDateTime initialEndDate = OffsetDateTime.parse("2024-12-31T23:59:59Z");
     Contract initialContract =
         givenContractWithDatesAndMetrics(
-            BillingProvider.AWS, startDate, initialEndDate, Map.of(CORES, DEFAULT_CAPACITY));
+            BillingProvider.AWS, startDate, initialEndDate, Map.of(CORES, CORES_CAPACITY));
 
     // Store the initial UUID for comparison
     var createdContract = service.getContractsByOrgId(orgId).get(0);
@@ -168,7 +168,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
             BillingProvider.AWS,
             startDate,
             endDate,
-            Map.of(CORES, DEFAULT_CAPACITY, INSTANCE_HOURS, INSTANCE_HOURS_CAPACITY));
+            Map.of(CORES, CORES_CAPACITY, INSTANCE_HOURS, INSTANCE_HOURS_CAPACITY));
 
     var initial = service.getContractsByOrgId(orgId).get(0);
     String initialUuid = initial.getUuid();
@@ -177,7 +177,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     Contract upgradedContract =
         initialContract.toBuilder()
             .subscriptionMeasurements(
-                Map.of(CORES, DEFAULT_CAPACITY * 2, INSTANCE_HOURS, INSTANCE_HOURS_CAPACITY * 2))
+                Map.of(CORES, CORES_CAPACITY * 2, INSTANCE_HOURS, INSTANCE_HOURS_CAPACITY * 2))
             .build();
     whenContractIsUpdatedViaApiExpectingUpdate(upgradedContract);
 
@@ -188,7 +188,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     var actual = contracts.get(0);
     Assertions.assertEquals(initialUuid, actual.getUuid(), "UUID should remain unchanged");
     Assertions.assertEquals(2, actual.getMetrics().size(), "Should have 2 metrics");
-    thenMetricShouldHaveValue(actual, CORES, DEFAULT_CAPACITY * 2);
+    thenMetricShouldHaveValue(actual, CORES, CORES_CAPACITY * 2);
     thenMetricShouldHaveValue(actual, INSTANCE_HOURS, INSTANCE_HOURS_CAPACITY * 2);
   }
 
@@ -211,7 +211,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     Contract upgradedContract =
         initialContract.toBuilder()
             .subscriptionMeasurements(
-                Map.of(CORES, DEFAULT_CAPACITY, INSTANCE_HOURS, INSTANCE_HOURS_CAPACITY))
+                Map.of(CORES, CORES_CAPACITY, INSTANCE_HOURS, INSTANCE_HOURS_CAPACITY))
             .build();
     whenContractIsUpdatedViaApiExpectingUpdate(upgradedContract);
 
@@ -222,7 +222,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     var actual = contracts.get(0);
     Assertions.assertEquals(initialUuid, actual.getUuid(), "UUID should remain unchanged");
     Assertions.assertEquals(2, actual.getMetrics().size(), "Should now have 2 metrics");
-    thenMetricShouldHaveValue(actual, CORES, DEFAULT_CAPACITY);
+    thenMetricShouldHaveValue(actual, CORES, CORES_CAPACITY);
     thenMetricShouldHaveValue(actual, INSTANCE_HOURS, INSTANCE_HOURS_CAPACITY);
   }
 
@@ -234,7 +234,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     OffsetDateTime futureEndDate = OffsetDateTime.now().plusDays(30);
     Contract initialContract =
         givenContractWithDatesAndMetrics(
-            BillingProvider.AWS, startDate, futureEndDate, Map.of(CORES, DEFAULT_CAPACITY));
+            BillingProvider.AWS, startDate, futureEndDate, Map.of(CORES, CORES_CAPACITY));
 
     var initial = service.getContractsByOrgId(orgId).get(0);
     String initialUuid = initial.getUuid();
@@ -268,7 +268,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     OffsetDateTime endDate = OffsetDateTime.parse("2024-12-31T23:59:59Z");
     Contract initialContract =
         givenContractWithDatesAndMetrics(
-            BillingProvider.AWS, startDate, endDate, Map.of(CORES, DEFAULT_CAPACITY));
+            BillingProvider.AWS, startDate, endDate, Map.of(CORES, CORES_CAPACITY));
 
     var initial = service.getContractsByOrgId(orgId).get(0);
     String initialUuid = initial.getUuid();
@@ -278,7 +278,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     Contract updatedContract =
         initialContract.toBuilder()
             .subscriptionMeasurements(
-                Map.of(CORES, DEFAULT_CAPACITY, INSTANCE_HOURS, INSTANCE_HOURS_CAPACITY))
+                Map.of(CORES, CORES_CAPACITY, INSTANCE_HOURS, INSTANCE_HOURS_CAPACITY))
             .build();
     whenContractIsUpdatedViaApiExpectingUpdate(updatedContract);
 
@@ -289,7 +289,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     var actual = contracts.get(0);
     Assertions.assertEquals(initialUuid, actual.getUuid(), "UUID should remain unchanged");
     Assertions.assertEquals(2, actual.getMetrics().size(), "Should now have 2 metrics");
-    thenMetricShouldHaveValue(actual, CORES, DEFAULT_CAPACITY);
+    thenMetricShouldHaveValue(actual, CORES, CORES_CAPACITY);
     thenMetricShouldHaveValue(actual, INSTANCE_HOURS, INSTANCE_HOURS_CAPACITY);
   }
 
@@ -304,7 +304,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
             BillingProvider.AWS,
             startDate,
             endDate,
-            Map.of(CORES, DEFAULT_CAPACITY, INSTANCE_HOURS, INSTANCE_HOURS_CAPACITY));
+            Map.of(CORES, CORES_CAPACITY, INSTANCE_HOURS, INSTANCE_HOURS_CAPACITY));
 
     var initial = service.getContractsByOrgId(orgId).get(0);
     String initialUuid = initial.getUuid();
@@ -312,9 +312,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
 
     // When: Remove one metric (keep only Cores: 8, remove Instance-hours)
     Contract updatedContract =
-        initialContract.toBuilder()
-            .subscriptionMeasurements(Map.of(CORES, DEFAULT_CAPACITY))
-            .build();
+        initialContract.toBuilder().subscriptionMeasurements(Map.of(CORES, CORES_CAPACITY)).build();
     whenContractIsUpdatedViaApiExpectingUpdate(updatedContract);
 
     // Then: Specified metric removed, other metric remains
@@ -324,7 +322,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     var actual = contracts.get(0);
     Assertions.assertEquals(initialUuid, actual.getUuid(), "UUID should remain unchanged");
     Assertions.assertEquals(1, actual.getMetrics().size(), "Should now have 1 metric");
-    thenMetricShouldHaveValue(actual, CORES, DEFAULT_CAPACITY);
+    thenMetricShouldHaveValue(actual, CORES, CORES_CAPACITY);
     thenMetricShouldNotExist(actual, INSTANCE_HOURS);
   }
 
