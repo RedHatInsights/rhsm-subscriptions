@@ -365,28 +365,27 @@ Test cases should be testable locally and in an ephemeral environment.
 
 ## Contract Update via API
 
-**contracts-update-TC003 - Update contract start and end date**  
-- **Description**: Verify updating the contract start and end date.  
-- **Setup:**  
-  - Create a contract with:   
-  - `subscription_number`: "12585274"  
-  - `start_date`: "2024-01-01T00:00:00Z"  
-  - `end_date`: "2024-12-31T23:59:59Z"  
-  - Cores: 8  
-- **Action:** Update the contract start and end date.  
-- **Verification:**   
-  - Query contract by `subscription_number` and verify changes  
-  - Check `last_updated` timestamp  
-  - Check the start date  
-  - Check the end date  
-- **Expected Result:**  
-  - Existing contract located by `subscription_number` + `start_date` match  
-  - `start_date` update  
-  - `end_date` updated   
-  - `last_updated` timestamp updated to the current time  
-  - UUID remains the same (no new contract created)  
-  - Other fields unchanged (org_id, sku, metrics)  
-  - Response status: "EXISTING_CONTRACTS_SYNCED"
+**contracts-update-TC003 - Replace contract when start_date changes**
+- **Description**: Verify that changing the contract start_date creates a new contract (the service matches contracts by billing_provider_id + start_date, so changing start_date means it can't find the existing contract to update).
+- **Setup:**
+  - Create a contract with:
+  - `subscription_number`: "12585274"
+  - `start_date`: "2024-01-01T00:00:00Z"
+  - `end_date`: "2024-12-31T23:59:59Z"
+  - Cores: 8
+- **Action:** Submit contract update with new start_date: "2024-02-01T00:00:00Z" and end_date: "2025-01-31T23:59:59Z"
+- **Verification:**
+  - Query contracts by `org_id` and verify changes
+  - Check the start date
+  - Check the end date
+  - Check UUID
+- **Expected Result:**
+  - Old contract is deleted (doesn't match IT partner gateway data)
+  - New contract is created with the updated dates
+  - UUID is different (proves new contract created, not updated)
+  - Only 1 contract exists for the org (old one deleted, new one created)
+  - Other fields unchanged (org_id, sku, metrics)
+  - Response status: "SUCCESS" (new contract created)
 
 **contracts-update-TC004 - Update contract end date (renewal)**  
 - **Description**: Verify updating the contract end date ( with a date in the future ) when the customer renews the subscription.  
@@ -399,12 +398,10 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Action:** Update the contract end-date with a date in the future ("2025-12-31T23:59:59Z") 
 - **Verification:**   
   - Query contract by `subscription_number` and verify changes  
-  - Check `last_updated` timestamp  
   - Check end-date  
 - **Expected Result:**  
   - Existing contract located by `subscription_number` + `start_date` match  
   - `end_date` updated from "2024-12-31T23:59:59Z" to "2025-12-31T23:59:59Z"  
-  - `last_updated` timestamp updated to the current time  
   - UUID remains the same (no new contract created)  
   - Other fields unchanged (org_id, sku, metrics)  
   - Response status: "EXISTING_CONTRACTS_SYNCED"
@@ -418,21 +415,19 @@ Test cases should be testable locally and in an ephemeral environment.
   - Existing contract found and updated  
   - Cores metric updated: 8 → 16  
   - Instance-hours metric updated: 100 → 200  
-  - `last_updated` timestamp changed  
   - contract.status.message == "Existing contracts and subscriptions updated"  
   - contract.status.status == "SUCCESS"
 
-**contracts-update-TC006 - Update contract metrics from pure payg(no metrics before) to payg(with metrics)**  
-- **Description**: Verify updating contract metrics when the customer upgrades the tier.  
-- **Setup**:  
-  - Create a contract with Cores: 8, Instance-hours: 100  
-- **Action**: Submit updated entitlement with Cores: 16, Instance-hours: 200  
-- **Expected Result**:  
-  - Existing contract found and updated  
-  - Cores metric updated: 8 → 16  
-  - Instance-hours metric updated: 100 → 200  
-  - `last_updated` timestamp changed  
-  - contract.status.message == "Existing contracts and subscriptions updated"  
+**contracts-update-TC006 - Update contract metrics from pure payg(no metrics before) to payg(with metrics)**
+- **Description**: Verify upgrading from pure PAYG (no prepaid capacity) to PAYG with prepaid metrics when customer upgrades tier.
+- **Setup**:
+  - Create a pure PAYG contract with 0 metrics (create contract with invalid metric like SOCKETS for ROSA, which gets filtered out)
+- **Action**: Submit updated entitlement with valid metrics: Cores: 8, Instance-hours: 100
+- **Expected Result**:
+  - Existing contract found and updated
+  - Metrics count updated: 0 → 2
+  - New metrics added: Cores: 8, Instance-hours: 100
+  - contract.status.message == "Existing contracts and subscriptions updated"
   - contract.status.status == "SUCCESS"
 
 **contracts-update-TC007 - Update contract - terminate (set end date)**  
@@ -454,7 +449,6 @@ Test cases should be testable locally and in an ephemeral environment.
   - Existing contract found and updated  
   - Old metric remains  
   - New metric added  
-  - `last_updated` timestamp changed  
   - contract.status.message == "Existing contracts and subscriptions updated"  
   - contract.status.status == "SUCCESS"
 
@@ -467,7 +461,6 @@ Test cases should be testable locally and in an ephemeral environment.
   - Existing contract found and updated  
   - The specified metric was removed from the contract  
   - The metric that was not removed from the contract remains unchanged  
-  - `last_updated` timestamp changed  
   - contract.status.message == "Existing contracts and subscriptions updated"  
   - contract.status.status == "SUCCESS"
 

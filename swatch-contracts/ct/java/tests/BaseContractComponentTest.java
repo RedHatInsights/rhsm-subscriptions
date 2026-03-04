@@ -60,6 +60,8 @@ public class BaseContractComponentTest {
   static final MetricId SOCKETS = MetricIdUtils.getSockets();
   static final MetricId INSTANCE_HOURS = MetricIdUtils.getInstanceHours();
   static final String SUCCESS_MESSAGE = "SUCCESS";
+  static final String EXISTING_CONTRACTS_SYNCED_MESSAGE =
+      "Existing contracts and subscriptions updated";
 
   @KafkaBridge static KafkaBridgeService kafkaBridge = new KafkaBridgeService();
 
