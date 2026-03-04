@@ -275,7 +275,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     thenSubscriptionHasCoresMeasurement(testSku, 40.0);
     // Given: Offering updated with cores=6
     Offering updatedOffering = Offering.buildOpenShiftOffering(testSku, 6.0, null);
-    givenOfferingIsUpdatedAndSynced(updatedOffering);
+    givenOfferingIsStubbedAndSynced(updatedOffering);
 
     // When: Force reconcile
     Response reconcileResponse = whenCapacityReconciliationIsForced(testSku);
@@ -298,7 +298,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     thenSubscriptionHasHypervisorCoresMeasurement(20.0);
     // Given: Offering updated with hypervisorCores=3
     Offering updatedOffering = Offering.buildRhelHypervisorOffering(testSku, 3.0, null);
-    givenOfferingIsUpdatedAndSynced(updatedOffering);
+    givenOfferingIsStubbedAndSynced(updatedOffering);
 
     // When: Force reconcile
     Response reconcileResponse = whenCapacityReconciliationIsForced(testSku);
@@ -365,7 +365,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     thenSubscriptionHasCoresAndSocketsMeasurements(testSku, 24.0, 6.0);
     // Given: Offering updated to have PHYSICAL Cores only (sockets = null)
     Offering coresOnlyOffering = Offering.buildOpenShiftOffering(testSku, 8.0, null);
-    givenOfferingIsUpdatedAndSynced(coresOnlyOffering);
+    givenOfferingIsStubbedAndSynced(coresOnlyOffering);
 
     // When: Force reconcile
     Response reconcileResponse = whenCapacityReconciliationIsForced(testSku);
@@ -388,7 +388,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     thenSubscriptionHasHypervisorCoresAndSocketsMeasurements(12.0, 3.0);
     // Given: Offering updated to have HYPERVISOR Cores only (hypervisorSockets = null)
     Offering coresOnlyOffering = Offering.buildRhelHypervisorOffering(testSku, 4.0, null);
-    givenOfferingIsUpdatedAndSynced(coresOnlyOffering);
+    givenOfferingIsStubbedAndSynced(coresOnlyOffering);
 
     // When: Force reconcile
     Response reconcileResponse = whenCapacityReconciliationIsForced(testSku);
@@ -542,15 +542,6 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
   private void givenOfferingAndSubscriptionSavedWithoutReconciliation(
       Offering offering, Subscription subscription) {
     givenOfferingAndSubscriptionSaved(offering, subscription, false);
-  }
-
-  /**
-   * Updates the offering stub and syncs it (for tests that change offering after initial setup).
-   *
-   * @param offering the updated offering to stub and sync
-   */
-  private void givenOfferingIsUpdatedAndSynced(Offering offering) {
-    givenOfferingIsStubbedAndSynced(offering);
   }
 
   /**
@@ -804,7 +795,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
 
   /**
    * Verifies that the subscription has the expected PHYSICAL Cores and Sockets measurements after
-   * reconciliation.
+   * reconciliation. Uses await for force-reconcile tests where Kafka processing is async.
    *
    * @param sku The SKU to check
    * @param expectedCores The expected PHYSICAL Cores value (offering cores * quantity)
@@ -817,6 +808,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
         sku,
         2,
         "Should have Cores and Sockets measurements",
+        true, // await for async Kafka processing
         new MetricExpectation(
             "Cores",
             expectedCores,
