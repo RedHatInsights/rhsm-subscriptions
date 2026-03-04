@@ -45,7 +45,7 @@ Test cases should be testable locally and in deployed environments.
 
 **tally-conflicts-TC001 - Positive metric value updates**
 
-- **Description**: Verify that tally correctly handles updates to metric values when a new event with a higher positive value is received for the same instance and timestamp hour
+- **Description**: Verify that tally replaces existing metric values when a new event with a higher positive value is received for the same instance and timestamp hour
 - **Setup**:
     - Organization is opted in
     - Initial event with metric value 10.0 for a specific instance and hour
@@ -58,12 +58,12 @@ Test cases should be testable locally and in deployed environments.
     - Updated tally sum equals 25.0
     - Tally reflects the most recent positive measurement value
 - **Expected Result**:
-    - Service correctly updates the tally to reflect the new positive metric value
+    - Service updates the tally to reflect the new positive metric value
     - Previous value is replaced, not accumulated
 
 **tally-conflicts-TC002 - Negative metric value rejection**
 
-- **Description**: Verify that tally correctly rejects updates when a negative metric value is received for the same instance and timestamp hour
+- **Description**: Verify that tally ignores updates when a negative metric value is received for the same instance and timestamp hour
 - **Setup**:
     - Organization is opted in
     - Initial event with metric value 10.0 for a specific instance and hour
@@ -81,7 +81,7 @@ Test cases should be testable locally and in deployed environments.
 
 **tally-conflicts-TC003 - Multiple products same instance**
 
-- **Description**: Verify that tally correctly handles multiple products associated with the same instance ID
+- **Description**: Verify that tally maintains separate counts for multiple products associated with the same instance ID
 - **Setup**:
     - Organization is opted in
     - Events for same instance ID with different products (RHACM, ROSA)
@@ -94,12 +94,12 @@ Test cases should be testable locally and in deployed environments.
     - Each product/metric combination has correct tally totals
     - Instance counts are per-product, not global
 - **Expected Result**:
-    - Service correctly tallies metrics per product
+    - Service tallies metrics separately per product
     - Same instance can contribute to multiple product tallies
 
 **tally-conflicts-TC004 - Multiple products conflicting events across hours**
 
-- **Description**: Verify that tally correctly handles conflicting events for multiple products on the same instance across different hours
+- **Description**: Verify that tally deduplicates instances while aggregating metrics for multiple products across different hours
 - **Setup**:
     - Organization is opted in
     - Events for same instance with different products in hour 1
@@ -114,7 +114,7 @@ Test cases should be testable locally and in deployed environments.
     - Tally totals are doubled (sum of both hours)
     - Instance count remains 1 per product
 - **Expected Result**:
-    - Service correctly aggregates metrics across multiple hours
+    - Service aggregates metrics across multiple hours
     - Instance deduplication works across time ranges
 
 ## Hypervisor Handling
@@ -197,7 +197,7 @@ Test cases should be testable locally and in deployed environments.
 
 **tally-report-granularity-TC001 - Daily granularity with all filters**
 
-- **Description**: Verify that tally report API correctly returns daily granularity data with all filter parameters
+- **Description**: Verify that tally report API returns daily granularity data with all filter parameters
 - **Setup**:
     - Organization is opted in
     - Daily time range is specified (3 days ago to 2 days ago)
@@ -210,12 +210,12 @@ Test cases should be testable locally and in deployed environments.
     - Metadata includes product, metric, SLA, usage, billing provider, and billing account ID
     - Data count matches metadata count
 - **Expected Result**:
-    - API correctly returns daily tally data with all specified filters
+    - API returns daily tally data with all specified filters
     - Metadata accurately reflects the request parameters
 
 **tally-report-granularity-TC002 - Daily granularity with partial filters**
 
-- **Description**: Verify that tally report API correctly returns daily granularity data with only some filter parameters
+- **Description**: Verify that tally report API returns daily granularity data with only some filter parameters
 - **Setup**:
     - Organization is opted in
     - Daily time range is specified
@@ -227,12 +227,12 @@ Test cases should be testable locally and in deployed environments.
     - Metadata does not include billing provider or billing account ID
     - Metadata granularity is DAILY
 - **Expected Result**:
-    - API correctly handles partial filter sets
+    - API accepts partial filter sets
     - Unspecified filters are not present in metadata
 
 **tally-report-granularity-TC003 - Hourly granularity with all filters**
 
-- **Description**: Verify that tally report API correctly returns hourly granularity data with all filter parameters
+- **Description**: Verify that tally report API returns hourly granularity data with all filter parameters
 - **Setup**:
     - Organization is opted in
     - Hourly time range is specified (4 hours ago to 1 hour from now)
@@ -243,8 +243,8 @@ Test cases should be testable locally and in deployed environments.
     - Metadata granularity is HOURLY
     - All filter parameters are reflected in metadata
 - **Expected Result**:
-    - API correctly returns hourly tally data
-    - Hourly granularity works with all filter combinations
+    - API returns hourly tally data
+    - Hourly granularity data includes all applied filters
 
 **tally-report-granularity-TC004 - Invalid request without granularity**
 
@@ -265,7 +265,7 @@ Test cases should be testable locally and in deployed environments.
 
 **tally-sla-filters-TC001 - SLA filter counts**
 
-- **Description**: Verify that tally correctly filters and counts metrics by SLA level
+- **Description**: Verify that tally segregates and counts metrics by SLA level
 - **Setup**:
     - Organization is opted in
     - Events created for each SLA type (PREMIUM, STANDARD, SELF_SUPPORT)
@@ -278,9 +278,9 @@ Test cases should be testable locally and in deployed environments.
     - Sum of SLA-filtered values plus no-SLA value equals total
     - Each SLA bucket contains correct metric values
 - **Expected Result**:
-    - Tally correctly segregates metrics by SLA
+    - Tally segregates metrics by SLA
     - No-SLA bucket is separate from defined SLA buckets
-    - Totals reconcile correctly
+    - SLA-filtered totals sum to overall total
 
 ## Tally Summary Messages
 
@@ -366,12 +366,12 @@ Test cases should be testable locally and in deployed environments.
     - Response does not contain the billing account from last month
     - Only current month billing accounts are included
 - **Expected Result**:
-    - Service correctly filters billing accounts by current month boundary
+    - Service filters billing accounts by current month boundary
     - Old billing account data is excluded from response
 
-**tally-instances-TC002 - Multiple billing account IDs returned correctly**
+**tally-instances-TC002 - Multiple billing account IDs returned**
 
-- **Description**: Verify that the billing account IDs endpoint returns all active billing accounts with correct structure
+- **Description**: Verify that the billing account IDs endpoint returns all active billing accounts
 - **Setup**:
     - Organization is opted in
     - Two hosts created with different billing account IDs
@@ -382,7 +382,7 @@ Test cases should be testable locally and in deployed environments.
     - Response contains exactly 2 billing account entries
     - Both billing account IDs are present in response
     - Each entry has correct org_id, product_tag, and billing_provider fields
-    - Billing provider is correctly set to "aws"
+    - Billing provider is set to "aws"
 - **Expected Result**:
     - All active billing accounts are returned
     - Response structure includes all required fields
@@ -390,7 +390,7 @@ Test cases should be testable locally and in deployed environments.
 
 **tally-instances-TC003 - PAYG instances metered by month boundary**
 
-- **Description**: Verify that PAYG instances are correctly metered and reported based on the month boundary of the event timestamp
+- **Description**: Verify that PAYG instances are metered and reported based on the month boundary of the event timestamp
 - **Setup**:
     - Organization is opted in
     - Event created with timestamp from first day of previous month
@@ -403,8 +403,8 @@ Test cases should be testable locally and in deployed environments.
 - **Verification**:
     - Current month instances report shows 0 metered value
     - Previous month instances report shows metered value > 0
-    - Metered values are correctly attributed to the month of the event
+    - Metered values are attributed to the month of the event
 - **Expected Result**:
-    - Service correctly assigns metered values to the appropriate month
+    - Service assigns metered values to the appropriate month
     - Month boundaries are respected for PAYG billing
-    - Instance data is segregated by month correctly
+    - Instance data is segregated by month
