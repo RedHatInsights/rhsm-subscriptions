@@ -62,6 +62,10 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
       "Creating subscription should succeed";
   private static final String MSG_SKU_PRESENT_IN_REPORT =
       "SKU should be present in capacity report after reconciliation";
+  private static final String MSG_PHYSICAL_CORES_MATCH =
+      "PHYSICAL Cores measurement should match offering cores * quantity";
+  private static final String MSG_PHYSICAL_SOCKETS_MATCH =
+      "PHYSICAL Sockets measurement should match offering sockets * quantity";
 
   @BeforeAll
   static void subscribeToCapacityReconcileTopic() {
@@ -303,9 +307,14 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     Offering initialOffering = Offering.buildRhelHypervisorOffering(testSku, 2.0, null);
     Subscription subscription =
         givenHypervisorSubscription(initialOffering, Map.of(CORES, 2.0), 10);
+
+    // When: Subscription is saved with reconcileCapacity=true (triggers reconciliation)
     whenOfferingAndSubscriptionReconciled(initialOffering, subscription);
+
+    // Then: HYPERVISOR Cores = 20
     thenSubscriptionHasHypervisorCoresMeasurement(20.0);
-    // Given: Offering updated with hypervisorCores=3
+
+    // Given: Offering updated with hypervisorCores=3 (offering changes)
     Offering updatedOffering = Offering.buildRhelHypervisorOffering(testSku, 3.0, null);
     givenOfferingIsStubbedAndSynced(updatedOffering);
 
@@ -732,10 +741,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
         Product.OPENSHIFT,
         sku,
         false,
-        new MetricExpectation(
-            "Cores",
-            expectedCores,
-            "PHYSICAL Cores measurement should match offering cores * quantity"));
+        new MetricExpectation("Cores", expectedCores, MSG_PHYSICAL_CORES_MATCH));
   }
 
   /** Verifies PHYSICAL Cores after force-reconcile (uses await for async). */
@@ -745,10 +751,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
         Product.OPENSHIFT,
         sku,
         true,
-        new MetricExpectation(
-            "Cores",
-            expectedCores,
-            "PHYSICAL Cores measurement should match offering cores * quantity"));
+        new MetricExpectation("Cores", expectedCores, MSG_PHYSICAL_CORES_MATCH));
   }
 
   /** Verifies PHYSICAL Cores retained and Sockets deleted after force-reconcile. */
@@ -758,10 +761,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
         Product.OPENSHIFT,
         sku,
         true,
-        new MetricExpectation(
-            "Cores",
-            expectedCores,
-            "PHYSICAL Cores measurement should match offering cores * quantity"),
+        new MetricExpectation("Cores", expectedCores, MSG_PHYSICAL_CORES_MATCH),
         new MetricExpectation(
             "Sockets", 0.0, "PHYSICAL Sockets measurement should be deleted (0)"));
   }
@@ -772,10 +772,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
         Product.RHEL,
         sku,
         false,
-        new MetricExpectation(
-            "Sockets",
-            expectedSockets,
-            "PHYSICAL Sockets measurement should match offering sockets * quantity"));
+        new MetricExpectation("Sockets", expectedSockets, MSG_PHYSICAL_SOCKETS_MATCH));
   }
 
   /** Verifies PHYSICAL Cores and Sockets measurements (uses await for async). */
@@ -785,14 +782,8 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
         Product.OPENSHIFT,
         sku,
         true,
-        new MetricExpectation(
-            "Cores",
-            expectedCores,
-            "PHYSICAL Cores measurement should match offering cores * quantity"),
-        new MetricExpectation(
-            "Sockets",
-            expectedSockets,
-            "PHYSICAL Sockets measurement should match offering sockets * quantity"));
+        new MetricExpectation("Cores", expectedCores, MSG_PHYSICAL_CORES_MATCH),
+        new MetricExpectation("Sockets", expectedSockets, MSG_PHYSICAL_SOCKETS_MATCH));
   }
 
   private record MetricExpectation(
