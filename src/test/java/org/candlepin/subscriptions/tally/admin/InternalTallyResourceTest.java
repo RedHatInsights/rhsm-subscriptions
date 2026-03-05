@@ -20,9 +20,11 @@
  */
 package org.candlepin.subscriptions.tally.admin;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -209,6 +211,147 @@ class InternalTallyResourceTest {
     resource.purgeEventRecords();
     verify(eventRecordRepository)
         .deleteInBulkEventRecordsByTimestampBefore(expectedRetentionTarget);
+  }
+
+  @Test
+  void testUpdateIsPrimaryAsyncWithValidProduct() {
+    // Given: Request parameters for ROSA product
+    String productId = "rosa";
+    OffsetDateTime startDate = OffsetDateTime.parse("2026-01-01T00:00:00Z");
+    OffsetDateTime endDate = OffsetDateTime.parse("2026-02-01T00:00:00Z");
+
+    // When: Calling updateIsPrimary with async mode
+    var response = resource.updateIsPrimary(productId, startDate, endDate, ORG_ID, false);
+
+    // Then: Should delegate to async service and return Accepted status
+    verify(isPrimaryUpdateService).updateIsPrimaryAsync(ORG_ID, productId, startDate, endDate);
+    assertEquals("Accepted", response.getStatus(), "Async request should return Accepted status");
+  }
+
+  @Test
+  void testUpdateIsPrimaryAsyncWithNullOrgId() {
+    // Given: Request parameters with null orgId (all orgs)
+    String productId = "rosa";
+    OffsetDateTime startDate = OffsetDateTime.parse("2026-01-01T00:00:00Z");
+    OffsetDateTime endDate = OffsetDateTime.parse("2026-02-01T00:00:00Z");
+
+    // When: Calling updateIsPrimary with null orgId
+    var response = resource.updateIsPrimary(productId, startDate, endDate, null, false);
+
+    // Then: Should pass null orgId to service
+    verify(isPrimaryUpdateService).updateIsPrimaryAsync(null, productId, startDate, endDate);
+    assertEquals("Accepted", response.getStatus(), "Async request should return Accepted status");
+  }
+
+  @Test
+  void testUpdateIsPrimaryAsyncWithNullSyncFlag() {
+    // Given: Request with null sync flag (defaults to async)
+    String productId = "rosa";
+    OffsetDateTime startDate = OffsetDateTime.parse("2026-01-01T00:00:00Z");
+    OffsetDateTime endDate = OffsetDateTime.parse("2026-02-01T00:00:00Z");
+
+    // When: Calling with null sync flag
+    var response = resource.updateIsPrimary(productId, startDate, endDate, ORG_ID, null);
+
+    // Then: Should default to async mode
+    verify(isPrimaryUpdateService).updateIsPrimaryAsync(ORG_ID, productId, startDate, endDate);
+    assertEquals("Accepted", response.getStatus(), "Null sync flag should default to async");
+  }
+
+  @Test
+  void testUpdateIsPrimarySyncWithValidProduct() {
+    // Given: Request parameters and expected rows updated
+    String productId = "rosa";
+    OffsetDateTime startDate = OffsetDateTime.parse("2026-01-01T00:00:00Z");
+    OffsetDateTime endDate = OffsetDateTime.parse("2026-02-01T00:00:00Z");
+    int expectedRowsUpdated = 150;
+
+    when(isPrimaryUpdateService.updateIsPrimarySync(ORG_ID, productId, startDate, endDate))
+        .thenReturn(expectedRowsUpdated);
+
+    // When: Calling updateIsPrimary with sync mode
+    var response = resource.updateIsPrimary(productId, startDate, endDate, ORG_ID, true);
+
+    // Then: Should delegate to sync service and return Completed status
+    verify(isPrimaryUpdateService).updateIsPrimarySync(ORG_ID, productId, startDate, endDate);
+    assertEquals("Completed", response.getStatus(), "Sync request should return Completed status");
+  }
+
+  @Test
+  void testUpdateIsPrimarySyncWithNullOrgId() {
+    // Given: Request with null orgId (all orgs)
+    String productId = "rosa";
+    OffsetDateTime startDate = OffsetDateTime.parse("2026-01-01T00:00:00Z");
+    OffsetDateTime endDate = OffsetDateTime.parse("2026-02-01T00:00:00Z");
+    int expectedRowsUpdated = 2500;
+
+    when(isPrimaryUpdateService.updateIsPrimarySync(null, productId, startDate, endDate))
+        .thenReturn(expectedRowsUpdated);
+
+    // When: Calling with null orgId in sync mode
+    var response = resource.updateIsPrimary(productId, startDate, endDate, null, true);
+
+    // Then: Should pass null orgId to service
+    verify(isPrimaryUpdateService).updateIsPrimarySync(null, productId, startDate, endDate);
+    assertEquals("Completed", response.getStatus(), "Sync request should return Completed status");
+  }
+
+  @Test
+  void testUpdateIsPrimaryAsyncTaskRejected() {
+    // Given: Executor queue is full
+    String productId = "rosa";
+    OffsetDateTime startDate = OffsetDateTime.parse("2026-01-01T00:00:00Z");
+    OffsetDateTime endDate = OffsetDateTime.parse("2026-02-01T00:00:00Z");
+
+    doThrow(new org.springframework.core.task.TaskRejectedException("Queue full"))
+        .when(isPrimaryUpdateService)
+        .updateIsPrimaryAsync(ORG_ID, productId, startDate, endDate);
+
+    // When: Attempting async update with full queue
+    var response = resource.updateIsPrimary(productId, startDate, endDate, ORG_ID, false);
+
+    // Then: Should return Rejected status
+    verify(isPrimaryUpdateService).updateIsPrimaryAsync(ORG_ID, productId, startDate, endDate);
+    assertEquals(
+        "Rejected", response.getStatus(), "Should return Rejected when executor queue is full");
+  }
+
+  @Test
+  void testUpdateIsPrimarySyncThrowsException() {
+    // Given: Database error occurs during sync update
+    String productId = "rosa";
+    OffsetDateTime startDate = OffsetDateTime.parse("2026-01-01T00:00:00Z");
+    OffsetDateTime endDate = OffsetDateTime.parse("2026-02-01T00:00:00Z");
+
+    when(isPrimaryUpdateService.updateIsPrimarySync(ORG_ID, productId, startDate, endDate))
+        .thenThrow(new RuntimeException("Database error"));
+
+    assertThrows(
+        RuntimeException.class,
+        () -> resource.updateIsPrimary(productId, startDate, endDate, ORG_ID, true),
+        "Sync mode error");
+
+    verify(isPrimaryUpdateService).updateIsPrimarySync(ORG_ID, productId, startDate, endDate);
+  }
+
+  @Test
+  void testUpdateIsPrimaryAsyncThrowsNonTaskRejectedException() {
+    // Given: Unexpected error occurs in async mode
+    String productId = "rosa";
+    OffsetDateTime startDate = OffsetDateTime.parse("2026-01-01T00:00:00Z");
+    OffsetDateTime endDate = OffsetDateTime.parse("2026-02-01T00:00:00Z");
+
+    doThrow(new RuntimeException("Unexpected error"))
+        .when(isPrimaryUpdateService)
+        .updateIsPrimaryAsync(ORG_ID, productId, startDate, endDate);
+
+    // When/Then: Should propagate non-TaskRejectedException
+    assertThrows(
+        RuntimeException.class,
+        () -> resource.updateIsPrimary(productId, startDate, endDate, ORG_ID, false),
+        "Async mode errors");
+
+    verify(isPrimaryUpdateService).updateIsPrimaryAsync(ORG_ID, productId, startDate, endDate);
   }
 
   ObjectMapper objectMapper(ApplicationProperties applicationProperties) {
