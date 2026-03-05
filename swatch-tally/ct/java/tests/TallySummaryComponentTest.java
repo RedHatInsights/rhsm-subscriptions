@@ -26,6 +26,7 @@ import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_UNCONVERTED;
 
 import api.MessageValidators;
+import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallySummary;
@@ -42,16 +43,17 @@ import org.junit.jupiter.api.Test;
 public class TallySummaryComponentTest extends BaseTallyComponentTest {
 
   @Test
+  @TestPlanName("tally-summary-TC001")
   public void testTallyNightlySummaryEmitsGranularityDaily() {
+    // Given: Seeded nightly tally host buckets
     final String testInventoryId = UUID.randomUUID().toString();
-
     helpers.seedNightlyTallyHostBuckets(
         orgId, RHEL_FOR_X86_ELS_UNCONVERTED.productTag(), testInventoryId, service);
 
-    // Trigger nightly tally (PUT snapshots for org)
+    // When: Triggering nightly tally
     service.tallyOrg(orgId);
 
-    // Wait for tally summary messages with DAILY granularity
+    // Then: Tally summary messages should have DAILY granularity
     kafkaBridge.waitForKafkaMessage(
         TALLY,
         MessageValidators.tallySummaryMatches(
@@ -63,14 +65,17 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
   }
 
   @Test
+  @TestPlanName("tally-summary-TC002")
   public void testTallyNightlySummaryHasNoTotalMeasurements() {
+    // Given: Seeded nightly tally host buckets
     final String testInventoryId = UUID.randomUUID().toString();
-
     helpers.seedNightlyTallyHostBuckets(
         orgId, RHEL_FOR_X86_ELS_UNCONVERTED.productTag(), testInventoryId, service);
 
+    // When: Triggering nightly tally
     service.tallyOrg(orgId);
 
+    // Then: Nightly snapshots should not emit TOTAL measurement type
     AwaitilitySettings kafkaConsumerTimeout =
         AwaitilitySettings.using(Duration.ofMillis(500), Duration.ofSeconds(60));
     List<TallySummary> summaries =
@@ -84,7 +89,7 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
             1,
             kafkaConsumerTimeout);
 
-    Assertions.assertFalse(summaries.isEmpty());
+    Assertions.assertFalse(summaries.isEmpty(), "Summaries should not be empty");
     summaries.stream()
         .flatMap(summary -> summary.getTallySnapshots().stream())
         .flatMap(snapshot -> snapshot.getTallyMeasurements().stream())
@@ -97,34 +102,32 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
   }
 
   @Test
+  @TestPlanName("tally-summary-TC003")
   public void testTallyHourlySummaryEmitsNoGranularityDaily() {
+    // Given: Events within the last day for hourly tally
     final String testInstanceId = UUID.randomUUID().toString();
     final String testEventId = UUID.randomUUID().toString();
 
-    // Create events within the last day for hourly tally
     OffsetDateTime now = OffsetDateTime.now();
     Event event1 =
         helpers.createEventWithTimestamp(
             orgId, testInstanceId, now.minusHours(1).toString(), testEventId, 1.0f);
-
     Event event2 =
         helpers.createEventWithTimestamp(
             orgId, testInstanceId, now.minusHours(2).toString(), testEventId, 1.0f);
-
     Event event3 =
         helpers.createEventWithTimestamp(
             orgId, testInstanceId, now.minusHours(3).toString(), testEventId, 1.0f);
-
     Event event4 =
         helpers.createEventWithTimestamp(
             orgId, testInstanceId, now.minusHours(4).toString(), testEventId, 1.0f);
 
-    // Produce events to Kafka
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event1);
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event2);
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event3);
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event4);
 
+    // When/Then: Polling for tally summaries with DAILY granularity should find 0 messages
     helpers.pollForTallySyncAndMessages(
         orgId,
         RHEL_FOR_X86_ELS_PAYG.productTag(),
@@ -136,52 +139,51 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
   }
 
   @Test
+  @TestPlanName("tally-summary-TC004")
   public void testTallyHourlySummaryEmitsGranularityHourly() {
+    // Given: Events within the last day for hourly tally
     final String testInstanceId = UUID.randomUUID().toString();
     final String testEventId = UUID.randomUUID().toString();
 
-    // Create events within the last day for hourly tally
     OffsetDateTime now = OffsetDateTime.now();
     Event event1 =
         helpers.createEventWithTimestamp(
             orgId, testInstanceId, now.minusHours(1).toString(), testEventId, 1.0f);
-
     Event event2 =
         helpers.createEventWithTimestamp(
             orgId, testInstanceId, now.minusHours(2).toString(), testEventId, 1.0f);
-
     Event event3 =
         helpers.createEventWithTimestamp(
             orgId, testInstanceId, now.minusHours(3).toString(), testEventId, 1.0f);
-
     Event event4 =
         helpers.createEventWithTimestamp(
             orgId, testInstanceId, now.minusHours(4).toString(), testEventId, 1.0f);
 
-    // Produce events to Kafka
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event1);
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event2);
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event3);
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event4);
 
-    // Polls then extracts measurements from resulting snapshots.
-    // Ensures that the appropriate number of summaries is present
-    // and that no measurements are of type 'TOTAL'
-    helpers
-        .pollForTallySyncAndMessages(
+    // When: Polling for tally summaries with HOURLY granularity
+    List<TallySummary> summaries =
+        helpers.pollForTallySyncAndMessages(
             orgId,
             RHEL_FOR_X86_ELS_PAYG.productTag(),
             RHEL_FOR_X86_ELS_PAYG.metricIds().get(1),
             Granularity.HOURLY,
             4,
             service,
-            kafkaBridge)
-        .stream()
+            kafkaBridge);
+
+    // Then: Should have 4 summaries and measurements should not be of type TOTAL
+    summaries.stream()
         .flatMap(summary -> summary.getTallySnapshots().stream())
         .flatMap(snapshot -> snapshot.getTallyMeasurements().stream())
         .forEach(
             measurement ->
                 Assertions.assertNotSame(
-                    "TOTAL", measurement.getHardwareMeasurementType().toUpperCase()));
+                    "TOTAL",
+                    measurement.getHardwareMeasurementType().toUpperCase(),
+                    "Hourly measurements should not be of type TOTAL"));
   }
 }
