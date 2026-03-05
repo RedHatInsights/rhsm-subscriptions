@@ -10,6 +10,7 @@ This document outlines the test plan for swatch-tally, including event processin
 
 * Event ingestion and processing
 * Hourly and nightly tally snapshot generation
+* Task queue isolation (hourly vs nightly Kafka topics)
 * Tally report generation with various filters
 * Instance report generation
 * Conflict handling and data persistence
@@ -469,6 +470,37 @@ Test cases should be testable locally and in deployed environments.
     - Hourly tally produces HOURLY granularity summaries
     - One summary per event hour
     - TOTAL measurements are excluded
+
+## Task Queue Isolation
+
+**tally-task-queue-isolation-TC001 - Hourly snapshot tasks produced to tally-hourly-tasks topic**
+
+- **Description**: Verify that hourly snapshot tasks are produced to the dedicated tally-hourly-tasks Kafka topic so that hourly runs are not backed up behind the multi-hour nightly batch
+- **Setup**:
+    - Organization is opted in for tally
+- **Action**:
+    - Trigger hourly snapshot production for all configured orgs (PUT .../rpc/tally/snapshots)
+- **Verification**:
+    - UPDATE_HOURLY_SNAPSHOTS task is received on tally-hourly-tasks topic
+    - Task contains the opted-in org ID in args
+- **Expected Result**:
+    - Hourly tasks are enqueued to the dedicated topic
+    - Hourly tally runs independently of nightly batch
+
+**tally-task-queue-isolation-TC002 - Nightly snapshot tasks produced to main tasks topic**
+
+- **Description**: Verify that nightly snapshot tasks are produced to the main tasks Kafka topic
+- **Setup**:
+    - Organization is opted in
+    - Nightly tally host buckets are seeded for the org
+- **Action**:
+    - Trigger async tally for the org (enqueues UPDATE_SNAPSHOTS to main tasks topic)
+- **Verification**:
+    - UPDATE_SNAPSHOTS task is received on main tasks topic
+    - Task contains the org ID in args.orgs
+- **Expected Result**:
+    - Nightly tasks are enqueued to the main tasks topic
+    - Nightly and hourly tasks use separate Kafka topics
 
 ## Instance Reporting
 

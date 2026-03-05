@@ -20,13 +20,14 @@
  */
 package tests;
 
-import static com.redhat.swatch.component.tests.utils.Topics.TASKS;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY_HOURLY_TASKS;
+import static com.redhat.swatch.component.tests.utils.Topics.TASKS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import api.TaskMessage;
 import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
+import com.redhat.swatch.component.tests.api.TestPlanName;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,9 +36,9 @@ import org.junit.jupiter.api.Test;
 import utils.TallyTestProducts;
 
 /**
- * Verifies that hourly and nightly tally tasks are produced to separate Kafka topics so that
- * hourly runs are not backed up behind the multi-hour nightly batch (swatch-tally is Spring-based;
- * other swatch-* CTs in this repo are Quarkus-based).
+ * Verifies that hourly and nightly tally tasks are produced to separate Kafka topics so that hourly
+ * runs are not backed up behind the multi-hour nightly batch (swatch-tally is Spring-based; other
+ * swatch-* CTs in this repo are Quarkus-based).
  *
  * <p>In Clowder environments the main tasks topic name may be suffixed (e.g. {@code
  * ...-env-swatch-tally}). Set {@code TASKS_TOPIC} in the test environment to that name so the
@@ -56,6 +57,7 @@ public class TallyTaskQueueIsolationComponentTest extends BaseTallyComponentTest
   }
 
   @Test
+  @TestPlanName("tally-task-queue-isolation-TC001")
   public void shouldProduceHourlySnapshotTasksToTallyHourlyTasksTopic() {
     // Given: An org is opted in for tally
     service.createOptInConfig(orgId);
@@ -90,6 +92,7 @@ public class TallyTaskQueueIsolationComponentTest extends BaseTallyComponentTest
   }
 
   @Test
+  @TestPlanName("tally-task-queue-isolation-TC002")
   public void shouldProduceNightlySnapshotTasksToMainTasksTopic() {
     // Given: Nightly tally host buckets are seeded for an org
     helpers.seedNightlyTallyHostBuckets(
