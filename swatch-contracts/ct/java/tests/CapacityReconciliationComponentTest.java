@@ -644,16 +644,16 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
   }
 
   /**
-   * Base verification for capacity measurements. Fetches the capacity report, validates SKU
-   * presence and measurement count, then asserts each metric's expected value.
-   *
+   * Base verification for PHYSICAL capacity measurements. Fetches the capacity report, validates
+   * SKU presence and measurement count, then asserts each metric's expected value.
    */
-  private void thenSubscriptionHasCapacityMeasurements(
-      Product product,
-      String sku,
-      int minMeasurements,
-      String minMeasurementsMessage,
-      MetricExpectation... expectations) {
+  private void thenSubscriptionHasPhysicalMeasurements(
+      Product product, String sku, MetricExpectation... expectations) {
+    int minMeasurements = expectations.length;
+    String minMeasurementsMessage =
+        minMeasurements == 1
+            ? "Measurements should not be empty after reconciliation"
+            : "Should have Cores and Sockets measurements";
     await("Capacity measurement should match")
         .atMost(2, MINUTES)
         .pollInterval(2, SECONDS)
@@ -689,20 +689,6 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
                     closeTo(exp.expectedValue(), 0.01));
               }
             });
-  }
-
-  /**
-   * Base verification for PHYSICAL capacity measurements. Delegates to
-   * thenSubscriptionHasCapacityMeasurements with minMeasurements derived from expectations count.
-   */
-  private void thenSubscriptionHasPhysicalMeasurements(
-      Product product, String sku, MetricExpectation... expectations) {
-    int minMeasurements = expectations.length;
-    String message =
-        minMeasurements == 1
-            ? "Measurements should not be empty after reconciliation"
-            : "Should have Cores and Sockets measurements";
-    thenSubscriptionHasCapacityMeasurements(product, sku, minMeasurements, message, expectations);
   }
 
   /** Verifies PHYSICAL Cores measurement after reconciliation. */
