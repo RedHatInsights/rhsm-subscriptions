@@ -34,9 +34,9 @@ import org.junit.jupiter.api.Test;
 import utils.TallyTestProducts;
 
 /**
- * Verifies that hourly and nightly tally tasks are produced to separate Kafka topics so that
- * hourly runs are not backed up behind the multi-hour nightly batch (swatch-tally is Spring-based;
- * other swatch-* CTs in this repo are Quarkus-based).
+ * Verifies that hourly and nightly tally tasks are produced to separate Kafka topics so that hourly
+ * runs are not backed up behind the multi-hour nightly batch (swatch-tally is Spring-based; other
+ * swatch-* CTs in this repo are Quarkus-based).
  */
 public class TallyTaskQueueIsolationComponentTest extends BaseTallyComponentTest {
 
@@ -100,8 +100,7 @@ public class TallyTaskQueueIsolationComponentTest extends BaseTallyComponentTest
             1);
 
     assertFalse(
-        nightlyTasks.isEmpty(),
-        "Expected at least one UPDATE_SNAPSHOTS task on tasks topic");
+        nightlyTasks.isEmpty(), "Expected at least one UPDATE_SNAPSHOTS task on tasks topic");
     assertEquals(
         "UPDATE_SNAPSHOTS",
         nightlyTasks.get(0).getType(),
