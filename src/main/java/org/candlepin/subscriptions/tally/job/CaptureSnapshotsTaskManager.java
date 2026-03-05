@@ -51,6 +51,7 @@ public class CaptureSnapshotsTaskManager {
   private static final Logger log = LoggerFactory.getLogger(CaptureSnapshotsTaskManager.class);
 
   private final TaskQueueProperties taskQueueProperties;
+  private final TaskQueueProperties tallyHourlyTaskQueueProperties;
   private final TaskQueue queue;
   private final ExecutorTaskQueue inMemoryQueue;
   private final OrgConfigRepository orgRepo;
@@ -58,11 +59,14 @@ public class CaptureSnapshotsTaskManager {
   @Autowired
   public CaptureSnapshotsTaskManager(
       @Qualifier("tallyTaskQueueProperties") TaskQueueProperties tallyTaskQueueProperties,
+      @Qualifier("tallyHourlyTaskQueueProperties")
+          TaskQueueProperties tallyHourlyTaskQueueProperties,
       TaskQueue queue,
       ExecutorTaskQueue inMemoryQueue,
       OrgConfigRepository orgRepo) {
 
     this.taskQueueProperties = tallyTaskQueueProperties;
+    this.tallyHourlyTaskQueueProperties = tallyHourlyTaskQueueProperties;
     this.queue = queue;
     this.inMemoryQueue = inMemoryQueue;
     this.orgRepo = orgRepo;
@@ -115,9 +119,10 @@ public class CaptureSnapshotsTaskManager {
   public void tallyOrgByHourly(String orgId, boolean useThreadPoolExecutor) {
     LogUtils.addOrgIdToMdc(orgId);
     log.info("Queuing hourly snapshot production for orgId {}", orgId);
+    // Use dedicated hourly topic so hourly tasks are not backed up behind nightly tally.
+    String hourlyTopic = tallyHourlyTaskQueueProperties.getTopic();
     TaskDescriptor task =
-        TaskDescriptor.builder(
-                TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic(), orgId)
+        TaskDescriptor.builder(TaskType.UPDATE_HOURLY_SNAPSHOTS, hourlyTopic, orgId)
             .setSingleValuedArg("orgId", orgId)
             .build();
 
