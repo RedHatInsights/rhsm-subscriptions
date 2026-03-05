@@ -15,8 +15,7 @@
 
   <properties>
     <java.version>21</java.version>
-    <maven.compiler.source>${java.version}</maven.compiler.source>
-    <maven.compiler.target>${java.version}</maven.compiler.target>
+    <maven.compiler.release>${java.version}</maven.compiler.release>
     <openapi.spec.folder>src/main/spec</openapi.spec.folder>
     <openapi.spec.api>internal-organizations-sync-api-spec.yaml</openapi.spec.api>
     <openapi.config.file>internal-organizations-sync-api-config.json</openapi.config.file>
