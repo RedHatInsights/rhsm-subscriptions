@@ -34,7 +34,7 @@ parameters:
   - name: SPLUNK_SOURCE
     value: 'swatch-metrics-hbi'
   - name: SPLUNK_SOURCE_TYPE
-    value: 'quarkus_service'
+    value: 'swatch'
   - name: SPLUNK_HEC_BATCH_SIZE
     value: '1000'
   - name: SPLUNK_HEC_BATCH_INTERVAL
