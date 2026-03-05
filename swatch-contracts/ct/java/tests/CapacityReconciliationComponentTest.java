@@ -647,11 +647,6 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
    * Base verification for capacity measurements. Fetches the capacity report, validates SKU
    * presence and measurement count, then asserts each metric's expected value.
    *
-   * @param product The product for the capacity report
-   * @param sku The SKU to check
-   * @param minMeasurements Minimum number of measurements required
-   * @param minMeasurementsMessage Assertion message when measurement count is insufficient
-   * @param expectations Metric name, expected value, and assertion message for each metric
    */
   private void thenSubscriptionHasCapacityMeasurements(
       Product product,
