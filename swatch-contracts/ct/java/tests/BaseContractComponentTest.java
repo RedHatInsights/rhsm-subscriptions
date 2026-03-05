@@ -133,27 +133,17 @@ public class BaseContractComponentTest {
             capacity -> capacity < initialCapacity);
   }
 
-  protected double getHypervisorCoresCapacity(
-      Product product, String orgId, OffsetDateTime beginning, OffsetDateTime ending) {
+  protected double getHypervisorCapacityByMetric(
+      Product product,
+      String orgId,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      MetricId metric) {
     CapacityReportByMetricId report =
         service.getCapacityReportByMetricId(
             product,
             orgId,
-            CORES.toString(),
-            beginning,
-            ending,
-            GranularityType.DAILY,
-            ReportCategory.HYPERVISOR);
-    return getCapacityValueFromReport(report);
-  }
-
-  protected double getHypervisorSocketCapacity(
-      Product product, String orgId, OffsetDateTime beginning, OffsetDateTime ending) {
-    CapacityReportByMetricId report =
-        service.getCapacityReportByMetricId(
-            product,
-            orgId,
-            SOCKETS.toString(),
+            metric.toString(),
             beginning,
             ending,
             GranularityType.DAILY,

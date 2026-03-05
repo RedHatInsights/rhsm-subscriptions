@@ -790,7 +790,8 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
         .pollInterval(2, SECONDS)
         .untilAsserted(
             () -> {
-              double actual = getHypervisorCoresCapacity(Product.RHEL, orgId, beginning, ending);
+              double actual =
+                  getHypervisorCapacityByMetric(Product.RHEL, orgId, beginning, ending, CORES);
               assertThat(
                   "HYPERVISOR Cores measurement should match offering hypervisorCores * quantity",
                   actual,
@@ -813,7 +814,8 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
         .pollInterval(2, SECONDS)
         .untilAsserted(
             () -> {
-              double actual = getHypervisorSocketCapacity(Product.RHEL, orgId, beginning, ending);
+              double actual =
+                  getHypervisorCapacityByMetric(Product.RHEL, orgId, beginning, ending, SOCKETS);
               assertThat(
                   "HYPERVISOR Sockets measurement should match offering hypervisorSockets * quantity",
                   actual,
