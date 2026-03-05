@@ -49,7 +49,6 @@ import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.http.HttpStatus;
-import org.awaitility.core.ThrowingRunnable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -660,64 +659,41 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
       int minMeasurements,
       String minMeasurementsMessage,
       MetricExpectation... expectations) {
-    thenSubscriptionHasCapacityMeasurements(
-        product, sku, minMeasurements, minMeasurementsMessage, false, expectations);
-  }
+    await("Capacity measurement should match")
+        .atMost(2, MINUTES)
+        .pollInterval(2, SECONDS)
+        .untilAsserted(
+            () -> {
+              var capacityReport = service.getSkuCapacityByProductIdForOrg(product, orgId);
+              assertNotNull(capacityReport.getData());
+              var skuCapacity =
+                  capacityReport.getData().stream()
+                      .filter(s -> sku.equals(s.getSku()))
+                      .findFirst()
+                      .orElse(null);
+              assertThat(MSG_SKU_PRESENT_IN_REPORT, skuCapacity, notNullValue());
+              assertThat(
+                  "SKU should have measurements after reconciliation",
+                  Objects.requireNonNull(skuCapacity).getMeasurements(),
+                  notNullValue());
+              assertThat(
+                  minMeasurementsMessage,
+                  skuCapacity.getMeasurements().size(),
+                  greaterThanOrEqualTo(minMeasurements));
 
-  private void thenSubscriptionHasCapacityMeasurements(
-      Product product,
-      String sku,
-      int minMeasurements,
-      String minMeasurementsMessage,
-      boolean awaitForAsync,
-      MetricExpectation... expectations) {
-    ThrowingRunnable verify =
-        () -> {
-          var capacityReport = service.getSkuCapacityByProductIdForOrg(product, orgId);
-          assertNotNull(capacityReport.getData());
-          var skuCapacity =
-              capacityReport.getData().stream()
-                  .filter(s -> sku.equals(s.getSku()))
-                  .findFirst()
-                  .orElse(null);
-          assertThat(MSG_SKU_PRESENT_IN_REPORT, skuCapacity, notNullValue());
-          assertThat(
-              "SKU should have measurements after reconciliation",
-              Objects.requireNonNull(skuCapacity).getMeasurements(),
-              notNullValue());
-          assertThat(
-              minMeasurementsMessage,
-              skuCapacity.getMeasurements().size(),
-              greaterThanOrEqualTo(minMeasurements));
-
-          var metricOrder = capacityReport.getMeta().getMeasurements();
-          for (MetricExpectation exp : expectations) {
-            int metricIndex = metricOrder.indexOf(exp.metricName());
-            assertThat(
-                exp.metricName() + " metric should be in report",
-                metricIndex,
-                greaterThanOrEqualTo(0));
-            assertThat(
-                exp.assertionMessage(),
-                skuCapacity.getMeasurements().get(metricIndex),
-                closeTo(exp.expectedValue(), 0.01));
-          }
-        };
-
-    if (awaitForAsync) {
-      await("PHYSICAL capacity measurement should match")
-          .atMost(2, MINUTES)
-          .pollInterval(2, SECONDS)
-          .untilAsserted(verify);
-    } else {
-      try {
-        verify.run();
-      } catch (Throwable t) {
-        if (t instanceof Error) throw (Error) t;
-        if (t instanceof RuntimeException) throw (RuntimeException) t;
-        throw new RuntimeException(t);
-      }
-    }
+              var metricOrder = capacityReport.getMeta().getMeasurements();
+              for (MetricExpectation exp : expectations) {
+                int metricIndex = metricOrder.indexOf(exp.metricName());
+                assertThat(
+                    exp.metricName() + " metric should be in report",
+                    metricIndex,
+                    greaterThanOrEqualTo(0));
+                assertThat(
+                    exp.assertionMessage(),
+                    skuCapacity.getMeasurements().get(metricIndex),
+                    closeTo(exp.expectedValue(), 0.01));
+              }
+            });
   }
 
   /**
@@ -725,14 +701,13 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
    * thenSubscriptionHasCapacityMeasurements with minMeasurements derived from expectations count.
    */
   private void thenSubscriptionHasPhysicalMeasurements(
-      Product product, String sku, boolean awaitForAsync, MetricExpectation... expectations) {
+      Product product, String sku, MetricExpectation... expectations) {
     int minMeasurements = expectations.length;
     String message =
         minMeasurements == 1
             ? "Measurements should not be empty after reconciliation"
             : "Should have Cores and Sockets measurements";
-    thenSubscriptionHasCapacityMeasurements(
-        product, sku, minMeasurements, message, awaitForAsync, expectations);
+    thenSubscriptionHasCapacityMeasurements(product, sku, minMeasurements, message, expectations);
   }
 
   /** Verifies PHYSICAL Cores measurement after reconciliation. */
@@ -740,17 +715,15 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     thenSubscriptionHasPhysicalMeasurements(
         Product.OPENSHIFT,
         sku,
-        false,
         new MetricExpectation("Cores", expectedCores, MSG_PHYSICAL_CORES_MATCH));
   }
 
-  /** Verifies PHYSICAL Cores after force-reconcile (uses await for async). */
+  /** Verifies PHYSICAL Cores after force-reconcile. */
   private void thenSubscriptionHasCoresMeasurementAfterForceReconcile(
       String sku, double expectedCores) {
     thenSubscriptionHasPhysicalMeasurements(
         Product.OPENSHIFT,
         sku,
-        true,
         new MetricExpectation("Cores", expectedCores, MSG_PHYSICAL_CORES_MATCH));
   }
 
@@ -760,7 +733,6 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     thenSubscriptionHasPhysicalMeasurements(
         Product.OPENSHIFT,
         sku,
-        true,
         new MetricExpectation("Cores", expectedCores, MSG_PHYSICAL_CORES_MATCH),
         new MetricExpectation(
             "Sockets", 0.0, "PHYSICAL Sockets measurement should be deleted (0)"));
@@ -771,17 +743,15 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     thenSubscriptionHasPhysicalMeasurements(
         Product.RHEL,
         sku,
-        false,
         new MetricExpectation("Sockets", expectedSockets, MSG_PHYSICAL_SOCKETS_MATCH));
   }
 
-  /** Verifies PHYSICAL Cores and Sockets measurements (uses await for async). */
+  /** Verifies PHYSICAL Cores and Sockets measurements. */
   private void thenSubscriptionHasCoresAndSocketsMeasurements(
       String sku, double expectedCores, double expectedSockets) {
     thenSubscriptionHasPhysicalMeasurements(
         Product.OPENSHIFT,
         sku,
-        true,
         new MetricExpectation("Cores", expectedCores, MSG_PHYSICAL_CORES_MATCH),
         new MetricExpectation("Sockets", expectedSockets, MSG_PHYSICAL_SOCKETS_MATCH));
   }
