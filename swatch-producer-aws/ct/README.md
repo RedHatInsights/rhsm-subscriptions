@@ -10,20 +10,7 @@ Start the required local services using Docker Compose:
 podman compose up -d kafka kafka-bridge kafka-setup wiremock
 ```
 
-### 2. Run swatch-producer-aws
-
-Start the service in dev mode. The `Makefile` already sets
-`AWS_SHARED_CREDENTIALS_FILE=$(CURDIR)/config/moto/local-config.ini`, which provides a fake
-AWS credentials profile named `1234567`. The service requires this profile to exist in order
-to build the AWS Marketplace client and make the actual HTTP call to wiremock. Without it,
-`AwsMissingCredentialsException` is silently swallowed and the service emits `SUCCEEDED` without
-ever calling the marketplace endpoint, making the happy-path test pass vacuously.
-
-```bash
-make swatch-producer-aws
-```
-
-### 3. Run Component Tests
+### 2. Run Component Tests
 
 Execute the component tests for `swatch-producer-aws`:
 
