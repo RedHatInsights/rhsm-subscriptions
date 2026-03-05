@@ -108,7 +108,7 @@ parameters:
   - name: SPLUNK_SOURCE
     value: 'rhsm-subscription-hec'
   - name: SPLUNK_SOURCE_TYPE
-    value: 'springboot_server'
+    value: 'swatch'
   - name: SPLUNK_MESSAGE_FORMAT
     value: 'text'
   - name: SPLUNK_HEC_URL
