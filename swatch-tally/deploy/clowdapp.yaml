@@ -283,6 +283,9 @@ objects:
       - replicas: ${{KAFKA_SUBSCRIPTIONS_TASKS_REPLICAS}}
         partitions: ${{KAFKA_SUBSCRIPTIONS_TASKS_PARTITIONS}}
         topicName: platform.rhsm-subscriptions.tasks
+      - replicas: ${{KAFKA_SUBSCRIPTIONS_TASKS_REPLICAS}}
+        partitions: ${{KAFKA_SUBSCRIPTIONS_TASKS_PARTITIONS}}
+        topicName: platform.rhsm-subscriptions.tally-hourly-tasks
       - replicas: ${{KAFKA_SERVICE_INSTANCE_REPLICAS}}
         partitions: ${{KAFKA_SERVICE_INSTANCE_PARTITIONS}}
         topicName: platform.rhsm-subscriptions.service-instance-ingress

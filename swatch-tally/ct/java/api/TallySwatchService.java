@@ -122,6 +122,30 @@ public class TallySwatchService extends SwatchService {
     Log.info(this, "Hourly tally endpoint called successfully for org: %s", orgId);
   }
 
+  /**
+   * Trigger hourly snapshot production for all configured orgs (same as the cron PUT
+   * .../tally/snapshots). Tasks are enqueued to the dedicated tally-hourly-tasks topic.
+   */
+  public void triggerHourlySnapshotsForAllOrgs() {
+    Response response =
+        given()
+            .headers(SECURITY_HEADERS)
+            .put(INTERNAL_API_PATH + "/rpc/tally/snapshots")
+            .then()
+            .extract()
+            .response();
+
+    assertEquals(
+        HttpStatus.SC_OK,
+        response.getStatusCode(),
+        "Trigger hourly snapshots for all orgs failed with status code: "
+            + response.getStatusCode()
+            + ", response body: "
+            + response.getBody().asString());
+
+    Log.info(this, "Hourly snapshots for all orgs triggered successfully");
+  }
+
   public void tallyOrg(String orgId) {
     Response response =
         given()

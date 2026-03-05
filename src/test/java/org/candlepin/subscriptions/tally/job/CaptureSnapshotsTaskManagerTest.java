@@ -42,6 +42,7 @@ import org.candlepin.subscriptions.task.queue.inmemory.ExecutorTaskQueueConsumer
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
@@ -59,6 +60,10 @@ class CaptureSnapshotsTaskManagerTest {
   @Autowired private CaptureSnapshotsTaskManager manager;
 
   @Autowired private TaskQueueProperties taskQueueProperties;
+
+  @Autowired
+  @Qualifier("tallyHourlyTaskQueueProperties")
+  private TaskQueueProperties tallyHourlyTaskQueueProperties;
 
   @Autowired private ApplicationProperties appProperties;
 
@@ -159,7 +164,9 @@ class CaptureSnapshotsTaskManagerTest {
           verify(queue, times(1))
               .enqueue(
                   TaskDescriptor.builder(
-                          TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic(), null)
+                          TaskType.UPDATE_HOURLY_SNAPSHOTS,
+                          tallyHourlyTaskQueueProperties.getTopic(),
+                          null)
                       .setSingleValuedArg("orgId", orgId)
                       .build());
         });

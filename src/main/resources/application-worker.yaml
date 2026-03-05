@@ -65,6 +65,12 @@ rhsm-subscriptions:
     kafka-group-id: ${KAFKA_GROUP_ID:rhsm-subscriptions-task-processor}
     seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
     seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
+  # Isolated queue for hourly snapshot tasks so they are not backed up behind nightly tally.
+  tally-hourly-tasks:
+    topic: ${TALLY_HOURLY_TASKS_TOPIC:platform.rhsm-subscriptions.tally-hourly-tasks}
+    kafka-group-id: ${KAFKA_TALLY_HOURLY_GROUP_ID:swatch-tally-hourly-processor}
+    seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
+    seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
   enabled-orgs:
     target-topics-allowed: platform.rhsm-subscriptions.subscription-sync-task, platform.rhsm-subscriptions.remittances-purge-task
     incoming:
