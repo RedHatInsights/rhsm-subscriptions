@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally.job;
 
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doThrow;
@@ -54,6 +55,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 class CaptureSnapshotsTaskManagerTest {
 
   @MockitoBean ExecutorTaskQueue queue;
+
+  @MockitoBean(name = "inMemoryQueue")
+  ExecutorTaskQueue inMemoryQueue;
 
   @MockitoBean ExecutorTaskQueueConsumerFactory consumerFactory;
 
@@ -170,6 +174,42 @@ class CaptureSnapshotsTaskManagerTest {
                       .setSingleValuedArg("orgId", orgId)
                       .build());
         });
+  }
+
+  @Test
+  void tallyOrgByHourlyWithThreadPoolExecutorUsesInMemoryQueue() {
+    manager.tallyOrgByHourly(ORG_ID, true);
+
+    verify(inMemoryQueue, times(1))
+        .enqueue(
+            TaskDescriptor.builder(
+                    TaskType.UPDATE_HOURLY_SNAPSHOTS,
+                    tallyHourlyTaskQueueProperties.getTopic(),
+                    ORG_ID)
+                .setSingleValuedArg("orgId", ORG_ID)
+                .build());
+    verify(queue, never()).enqueue(any());
+  }
+
+  @Test
+  void nightlyAndHourlyUseDifferentTopics() {
+    String mainTopic = taskQueueProperties.getTopic();
+    String hourlyTopic = tallyHourlyTaskQueueProperties.getTopic();
+
+    assertNotEquals(
+        mainTopic,
+        hourlyTopic,
+        "Nightly (main) and hourly tasks must use different Kafka topics for queue isolation");
+
+    manager.updateOrgSnapshots(ORG_ID);
+    verify(queue).enqueue(createDescriptorOrg(ORG_ID));
+
+    manager.tallyOrgByHourly(ORG_ID, false);
+    verify(queue)
+        .enqueue(
+            TaskDescriptor.builder(TaskType.UPDATE_HOURLY_SNAPSHOTS, hourlyTopic, ORG_ID)
+                .setSingleValuedArg("orgId", ORG_ID)
+                .build());
   }
 
   private TaskDescriptor createDescriptorAccount(List<String> accounts) {
