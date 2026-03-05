@@ -146,6 +146,7 @@ public class TallySwatchService extends SwatchService {
     Log.info(this, "Hourly snapshots for all orgs triggered successfully");
   }
 
+  /** Triggers tally for an org synchronously (runs in-process; no Kafka task enqueued). */
   public void tallyOrg(String orgId) {
     Response response =
         given()
@@ -165,6 +166,31 @@ public class TallySwatchService extends SwatchService {
             + response.getBody().asString());
 
     Log.info(this, "Sync nightly tally endpoint called successfully for org: %s", orgId);
+  }
+
+  /**
+   * Triggers tally for an org asynchronously (enqueues UPDATE_SNAPSHOTS to the main tasks topic).
+   * Use when asserting that nightly tasks are produced to the tasks topic.
+   */
+  public void tallyOrgAsync(String orgId) {
+    Response response =
+        given()
+            .headers(SECURITY_HEADERS)
+            .header("x-rh-swatch-synchronous-request", "false")
+            .put(INTERNAL_API_PATH + "/rpc/tally/snapshots/" + orgId)
+            .then()
+            .extract()
+            .response();
+
+    assertEquals(
+        HttpStatus.SC_OK,
+        response.getStatusCode(),
+        "Tally async failed with status code: "
+            + response.getStatusCode()
+            + ", response body: "
+            + response.getBody().asString());
+
+    Log.info(this, "Async nightly tally endpoint called for org: %s", orgId);
   }
 
   public InstanceResponse getInstancesByProduct(
