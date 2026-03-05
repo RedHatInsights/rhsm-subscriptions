@@ -41,7 +41,7 @@ import utils.TallyDbHostSeeder;
 public class TallyHypervisorTests extends BaseTallyComponentTest {
 
   @Test
-  @TestPlanName("tally-hypervisor-TC001")
+  @TestPlanName("tally-hypervisor-TC003")
   public void testHypervisorWithNoGuestsDoesNotShowInInstancesReport() {
     // Given: Baseline tally data and a hypervisor host with no guests
     helpers.seedNightlyTallyHostBuckets(
@@ -68,7 +68,7 @@ public class TallyHypervisorTests extends BaseTallyComponentTest {
   }
 
   @Test
-  @TestPlanName("tally-hypervisor-TC002")
+  @TestPlanName("tally-hypervisor-TC004")
   public void testHypervisorWithNoGuestsDoesNotChangeDailyTotal() {
     // Given: Baseline usage and a hypervisor host with no guests
     helpers.seedNightlyTallyHostBuckets(

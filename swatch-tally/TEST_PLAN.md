@@ -127,7 +127,6 @@ Test cases should be testable locally and in deployed environments.
     - Organization is opted in
     - Nightly tally is performed
     - RHEL hypervisor host is inserted with RHEL for x86 buckets but no guests
-    - Product: RHEL for x86
 - **Action**:
     - Perform tally for organization
     - Retrieve instances report for RHEL for x86 product for the day
@@ -147,7 +146,6 @@ Test cases should be testable locally and in deployed environments.
     - Organization with baseline usage (non-zero sockets) for RHEL for x86
     - Nightly tally is performed to establish baseline
     - RHEL hypervisor host is inserted with RHEL for x86 buckets but no guests
-    - Product: RHEL for x86
 - **Action**:
     - Capture initial daily sockets total for RHEL for x86
     - Perform tally for organization
@@ -161,44 +159,42 @@ Test cases should be testable locally and in deployed environments.
     - Guest count does not affect whether the hypervisor contributes to totals
     - Hypervisor usage is aggregated with other RHEL instances
 
-**tally-hypervisor-TC003 - Non-RHEL hypervisor without guests not in instances report**
+**tally-hypervisor-TC003 - Non-RHEL hypervisor without usage data not in instances report**
 
-- **Description**: Verify that a non-RHEL hypervisor with no guests does not appear in the instances report for products running on that hypervisor
+- **Description**: Verify that a non-RHEL hypervisor without RHEL usage data does not appear in the RHEL instances report
 - **Setup**:
-    - Organization with baseline tally data for ROSA
+    - Organization with baseline tally data for RHEL for x86
     - Nightly tally is performed
-    - Non-RHEL hypervisor host (e.g., ESXi, Hyper-V) is inserted with no guests and no ROSA buckets
-    - Product: ROSA
+    - Non-RHEL hypervisor host (e.g., ESXi, Hyper-V) is inserted with no guests and no RHEL for x86 buckets
 - **Action**:
     - Perform tally for organization
-    - Retrieve instances report for ROSA product for the day
+    - Retrieve instances report for RHEL for x86 product for the day
 - **Verification**:
     - Hypervisor's subscription manager ID is not in instances report data
     - Instances report does not include the hypervisor
 - **Expected Result**:
-    - Non-RHEL hypervisors without usage buckets are excluded from instances reports
-    - Only VMs/guests with usage data appear in product reports
-    - Hypervisors running non-RHEL operating systems (ESXi, Hyper-V) do not contribute to product metrics without guests
+    - Non-RHEL hypervisors without RHEL buckets are excluded from RHEL instances reports
+    - Only hosts with RHEL usage data appear in RHEL reports
+    - Hypervisors not running RHEL (ESXi, Hyper-V) do not contribute to RHEL metrics
 
-**tally-hypervisor-TC004 - Non-RHEL hypervisor without guests does not affect daily total**
+**tally-hypervisor-TC004 - Non-RHEL hypervisor without usage data does not affect daily total**
 
-- **Description**: Verify that a non-RHEL hypervisor with no guests does not affect the daily total core count for products running on that hypervisor
+- **Description**: Verify that a non-RHEL hypervisor without RHEL usage data does not affect the daily total socket count for RHEL
 - **Setup**:
-    - Organization with baseline usage (non-zero cores) for ROSA
+    - Organization with baseline usage (non-zero sockets) for RHEL for x86
     - Nightly tally is performed to establish baseline
-    - Non-RHEL hypervisor host (e.g., ESXi, Hyper-V) is inserted with no guests and no ROSA buckets
-    - Product: ROSA
+    - Non-RHEL hypervisor host (e.g., ESXi, Hyper-V) is inserted with no guests and no RHEL for x86 buckets
 - **Action**:
-    - Capture initial daily cores total for ROSA
+    - Capture initial daily sockets total for RHEL for x86
     - Perform tally for organization
-    - Capture new daily cores total for ROSA
+    - Capture new daily sockets total for RHEL for x86
 - **Verification**:
-    - Initial cores total equals new cores total
+    - Initial sockets total equals new sockets total
     - Hypervisor did not contribute to total
 - **Expected Result**:
-    - Non-RHEL hypervisors without usage buckets do not affect product tally totals
-    - Only VMs/guests with usage buckets contribute to aggregated product metrics
-    - Hypervisor platform type does not create product usage where none exists
+    - Non-RHEL hypervisors without RHEL buckets do not affect RHEL tally totals
+    - Only hosts with RHEL buckets contribute to aggregated RHEL metrics
+    - Hypervisor platform type does not create RHEL usage where none exists
 
 ## Data Persistence
 
