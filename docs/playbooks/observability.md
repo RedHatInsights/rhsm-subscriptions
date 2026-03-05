@@ -42,7 +42,7 @@ java -DENABLE_SPLUNK_HEC=true \
 -DSPLUNK_HEC_URL=https://localhost:8088 \
 -DSPLUNK_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75 \
 -DSPLUNK_DISABLE_CERTIFICATE_VALIDATION=true \
--DSPLUNK_SOURCE_TYPE=springboot_server \
+-DSPLUNK_SOURCE_TYPE=swatch \
 -DINVENTORY_DATABASE_SCHEMA=hbi \
 -Dspring.profiles.active=worker,api,kafka-queue \
 -jar build/libs/rhsm-subscriptions-*.jar
@@ -70,7 +70,7 @@ java -DENABLE_SPLUNK_HEC=true \
 -DSPLUNK_HEC_URL=https://localhost:8088 \
 -DSPLUNK_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75 \
 -DSPLUNK_DISABLE_CERTIFICATE_VALIDATION=true \
--DSPLUNK_SOURCE_TYPE=springboot_server \
+-DSPLUNK_SOURCE_TYPE=swatch \
 -DRHSM_USE_STUB=true \
 -DRHSM_BATCH_SIZE=1 \
 -jar swatch-system-conduit/build/libs/swatch-system-conduit-*.jar
