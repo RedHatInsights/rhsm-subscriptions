@@ -120,42 +120,85 @@ Test cases should be testable locally and in deployed environments.
 
 ## Hypervisor Handling
 
-**tally-hypervisor-TC001 - Hypervisor without usage data not in instances report**
+**tally-hypervisor-TC001 - RHEL hypervisor without guests appears in instances report**
 
-- **Description**: Verify that a hypervisor with no usage data (no buckets) does not appear in the instances report
+- **Description**: Verify that a RHEL-based hypervisor with no guests appears in the instances report when the hypervisor itself has RHEL usage data
 - **Setup**:
-    - Organization with baseline tally data
+    - Organization is opted in
     - Nightly tally is performed
-    - Hypervisor host is inserted with no buckets (no usage data)
+    - RHEL hypervisor host is inserted with RHEL for x86 buckets but no guests
+    - Product: RHEL for x86
 - **Action**:
     - Perform tally for organization
-    - Retrieve instances report for the day
+    - Retrieve instances report for RHEL for x86 product for the day
+- **Verification**:
+    - Hypervisor's subscription manager ID is in instances report data
+    - Instances report includes the hypervisor
+    - Hypervisor shows expected socket/core counts from its buckets
+- **Expected Result**:
+    - RHEL-based hypervisors appear in instances reports based on their own RHEL usage
+    - Guest count is irrelevant when the hypervisor itself is running RHEL
+    - Hypervisor is treated as a RHEL instance
+
+**tally-hypervisor-TC002 - RHEL hypervisor without guests contributes to daily total**
+
+- **Description**: Verify that a RHEL-based hypervisor with no guests contributes to the daily total socket count based on its own RHEL usage
+- **Setup**:
+    - Organization with baseline usage (non-zero sockets) for RHEL for x86
+    - Nightly tally is performed to establish baseline
+    - RHEL hypervisor host is inserted with RHEL for x86 buckets but no guests
+    - Product: RHEL for x86
+- **Action**:
+    - Capture initial daily sockets total for RHEL for x86
+    - Perform tally for organization
+    - Capture new daily sockets total for RHEL for x86
+- **Verification**:
+    - New sockets total is greater than initial sockets total
+    - Difference equals the hypervisor's socket count from its buckets
+    - Hypervisor contributed to the total
+- **Expected Result**:
+    - RHEL-based hypervisors contribute to tally totals based on their own RHEL usage
+    - Guest count does not affect whether the hypervisor contributes to totals
+    - Hypervisor usage is aggregated with other RHEL instances
+
+**tally-hypervisor-TC003 - Non-RHEL hypervisor without guests not in instances report**
+
+- **Description**: Verify that a non-RHEL hypervisor with no guests does not appear in the instances report for products running on that hypervisor
+- **Setup**:
+    - Organization with baseline tally data for ROSA
+    - Nightly tally is performed
+    - Non-RHEL hypervisor host (e.g., ESXi, Hyper-V) is inserted with no guests and no ROSA buckets
+    - Product: ROSA
+- **Action**:
+    - Perform tally for organization
+    - Retrieve instances report for ROSA product for the day
 - **Verification**:
     - Hypervisor's subscription manager ID is not in instances report data
     - Instances report does not include the hypervisor
 - **Expected Result**:
-    - Hypervisors without usage buckets are excluded from instances reports
-    - Only hosts with actual usage data are visible
+    - Non-RHEL hypervisors without usage buckets are excluded from instances reports
+    - Only VMs/guests with usage data appear in product reports
+    - Hypervisors running non-RHEL operating systems (ESXi, Hyper-V) do not contribute to product metrics without guests
 
+**tally-hypervisor-TC004 - Non-RHEL hypervisor without guests does not affect daily total**
 
-
-**tally-hypervisor-TC002 - Hypervisor without usage data does not affect totals**
-
-- **Description**: Verify that a hypervisor with no usage data (no buckets) does not affect the daily total socket count
+- **Description**: Verify that a non-RHEL hypervisor with no guests does not affect the daily total core count for products running on that hypervisor
 - **Setup**:
-    - Organization with baseline usage (non-zero sockets)
+    - Organization with baseline usage (non-zero cores) for ROSA
     - Nightly tally is performed to establish baseline
-    - Hypervisor host is inserted with no buckets (no usage data)
+    - Non-RHEL hypervisor host (e.g., ESXi, Hyper-V) is inserted with no guests and no ROSA buckets
+    - Product: ROSA
 - **Action**:
-    - Capture initial daily sockets total
+    - Capture initial daily cores total for ROSA
     - Perform tally for organization
-    - Capture new daily sockets total
+    - Capture new daily cores total for ROSA
 - **Verification**:
-    - Initial sockets total equals new sockets total
+    - Initial cores total equals new cores total
     - Hypervisor did not contribute to total
 - **Expected Result**:
-    - Hypervisors without usage buckets do not affect tally totals
-    - Only hosts with buckets contribute to aggregated metrics
+    - Non-RHEL hypervisors without usage buckets do not affect product tally totals
+    - Only VMs/guests with usage buckets contribute to aggregated product metrics
+    - Hypervisor platform type does not create product usage where none exists
 
 ## Data Persistence
 
@@ -216,7 +259,83 @@ Test cases should be testable locally and in deployed environments.
     - API returns daily tally data with all specified filters
     - Metadata accurately reflects the request parameters
 
-**tally-report-granularity-TC002 - Daily granularity with partial filters**
+**tally-report-granularity-TC002 - Daily granularity filtered by SLA**
+
+- **Description**: Verify that tally report API filters data by SLA parameter
+- **Setup**:
+    - Organization is opted in
+    - Event 1 created with SLA=PREMIUM
+    - Event 2 created with SLA=STANDARD
+    - Hourly tally is performed
+    - Daily time range is specified
+- **Action**:
+    - Request tally report with granularity=Daily and sla=STANDARD
+- **Verification**:
+    - Response data contains only Event 2's data
+    - Response metadata includes SLA=STANDARD
+    - Response does not include Event 1's data
+- **Expected Result**:
+    - API filters tally data by SLA parameter
+    - Only data matching the specified SLA is returned
+
+**tally-report-granularity-TC003 - Daily granularity filtered by usage**
+
+- **Description**: Verify that tally report API filters data by usage parameter
+- **Setup**:
+    - Organization is opted in
+    - Event 1 created with usage=PRODUCTION
+    - Event 2 created with usage=DEVELOPMENT
+    - Hourly tally is performed
+    - Daily time range is specified
+- **Action**:
+    - Request tally report with granularity=Daily and usage=DEVELOPMENT
+- **Verification**:
+    - Response data contains only Event 2's data
+    - Response metadata includes usage=DEVELOPMENT
+    - Response does not include Event 1's data
+- **Expected Result**:
+    - API filters tally data by usage parameter
+    - Only data matching the specified usage is returned
+
+**tally-report-granularity-TC004 - Daily granularity filtered by billing provider**
+
+- **Description**: Verify that tally report API filters data by billing provider parameter
+- **Setup**:
+    - Organization is opted in
+    - Event 1 created with billing_provider=AWS
+    - Event 2 created with billing_provider=AZURE
+    - Hourly tally is performed
+    - Daily time range is specified
+- **Action**:
+    - Request tally report with granularity=Daily and billing_provider=AZURE
+- **Verification**:
+    - Response data contains only Event 2's data
+    - Response metadata includes billing_provider=AZURE
+    - Response does not include Event 1's data
+- **Expected Result**:
+    - API filters tally data by billing provider parameter
+    - Only data matching the specified billing provider is returned
+
+**tally-report-granularity-TC005 - Daily granularity filtered by billing account ID**
+
+- **Description**: Verify that tally report API filters data by billing account ID parameter
+- **Setup**:
+    - Organization is opted in
+    - Event 1 created with billing_account_id=account1
+    - Event 2 created with billing_account_id=account2
+    - Hourly tally is performed
+    - Daily time range is specified
+- **Action**:
+    - Request tally report with granularity=Daily and billing_account_id=account2
+- **Verification**:
+    - Response data contains only Event 2's data
+    - Response metadata includes billing_account_id=account2
+    - Response does not include Event 1's data
+- **Expected Result**:
+    - API filters tally data by billing account ID parameter
+    - Only data matching the specified billing account ID is returned
+
+**tally-report-granularity-TC006 - Daily granularity with partial filters**
 
 - **Description**: Verify that tally report API returns daily granularity data with only some filter parameters
 - **Setup**:
@@ -233,7 +352,7 @@ Test cases should be testable locally and in deployed environments.
     - API accepts partial filter sets
     - Unspecified filters are not present in metadata
 
-**tally-report-granularity-TC003 - Hourly granularity with all filters**
+**tally-report-granularity-TC007 - Hourly granularity with all filters**
 
 - **Description**: Verify that tally report API returns hourly granularity data with all filter parameters
 - **Setup**:
@@ -249,7 +368,7 @@ Test cases should be testable locally and in deployed environments.
     - API returns hourly tally data
     - Hourly granularity data includes all applied filters
 
-**tally-report-granularity-TC004 - Invalid request without granularity**
+**tally-report-granularity-TC008 - Invalid request without granularity**
 
 - **Description**: Verify that tally report API returns validation error when granularity parameter is missing
 - **Setup**:

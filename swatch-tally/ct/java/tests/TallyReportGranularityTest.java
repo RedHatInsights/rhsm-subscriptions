@@ -96,7 +96,7 @@ public class TallyReportGranularityTest extends BaseTallyComponentTest {
   }
 
   @Test
-  @TestPlanName("tally-report-granularity-TC002")
+  @TestPlanName("tally-report-granularity-TC006")
   public void testTallyReportGranularityDailySomeFilters() {
     // Given: An org with opt-in config and daily granularity query parameters with partial filters
     service.createOptInConfig(orgId);
@@ -139,7 +139,7 @@ public class TallyReportGranularityTest extends BaseTallyComponentTest {
   }
 
   @Test
-  @TestPlanName("tally-report-granularity-TC003")
+  @TestPlanName("tally-report-granularity-TC007")
   public void testTallyReportGranularityHourly() {
     // Given: An org with opt-in config and hourly granularity query parameters with all filters
     service.createOptInConfig(orgId);
@@ -183,7 +183,7 @@ public class TallyReportGranularityTest extends BaseTallyComponentTest {
   }
 
   @Test
-  @TestPlanName("tally-report-granularity-TC004")
+  @TestPlanName("tally-report-granularity-TC008")
   public void testTallyReportInvalidWithoutGranularity() {
     // Given: An org with opt-in config and query parameters missing granularity
     service.createOptInConfig(orgId);
