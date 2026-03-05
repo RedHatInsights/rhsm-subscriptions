@@ -45,7 +45,6 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.model.AccountServiceInventory;
 import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
-import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.json.InstancesExportJson;
 import org.candlepin.subscriptions.rbac.RbacApiException;
 import org.candlepin.subscriptions.rbac.RbacService;
@@ -82,7 +81,6 @@ public abstract class BaseDataExporterServiceTest
 
   protected ConsoleCloudEventParser parser;
   protected KafkaTemplate<String, String> kafkaTemplate;
-  protected Offering offering;
   protected AccountServiceInventory accountServiceInventory;
   protected GenericConsoleCloudEvent<ResourceRequest> request;
 
