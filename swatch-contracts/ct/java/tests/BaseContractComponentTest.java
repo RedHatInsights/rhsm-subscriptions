@@ -60,6 +60,8 @@ public class BaseContractComponentTest {
   static final MetricId SOCKETS = MetricIdUtils.getSockets();
   static final MetricId INSTANCE_HOURS = MetricIdUtils.getInstanceHours();
   static final String SUCCESS_MESSAGE = "SUCCESS";
+  static final String EXISTING_CONTRACTS_SYNCED_MESSAGE =
+      "Existing contracts and subscriptions updated";
 
   @KafkaBridge static KafkaBridgeService kafkaBridge = new KafkaBridgeService();
 
@@ -336,5 +338,22 @@ public class BaseContractComponentTest {
             orgId, domain.BillingProvider.AWS, java.util.Map.of(CORES, coresCapacity), sku);
     givenContractIsCreated(contract);
     return contract;
+  }
+
+  /** Syncs the offering data for a contract via Wiremock and the sync API. */
+  protected void givenOfferingIsSynced(Contract contract) {
+    wiremock.forProductAPI().stubOfferingData(contract.getOffering());
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(contract));
+    Response sync = service.syncOffering(contract.getOffering().getSku());
+    assertEquals(HttpStatus.SC_OK, sync.statusCode(), "Sync offering should succeed");
+  }
+
+  /** Creates a contract via the internal API and verifies the response status. */
+  protected void whenContractIsCreatedViaApi(Contract contract) {
+    Response response = service.createContract(contract);
+    assertEquals(HttpStatus.SC_OK, response.statusCode());
+    var contractResponse =
+        response.then().extract().as(com.redhat.swatch.contract.test.model.ContractResponse.class);
+    assertEquals(SUCCESS_MESSAGE, contractResponse.getStatus().getStatus());
   }
 }
