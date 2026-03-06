@@ -23,14 +23,13 @@ package tests;
 import static api.MessageValidators.isUtilizationSummaryByTallySnapshots;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 import static com.redhat.swatch.component.tests.utils.Topics.UTILIZATION;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import api.ContractsTestHelper;
+import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.contract.test.model.TallySnapshot;
@@ -42,10 +41,11 @@ import domain.SubscriptionEvent;
 import io.restassured.response.Response;
 import java.util.List;
 import java.util.Map;
+import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class TallySnapshotSummaryConsumerComponentTest extends BaseContractComponentTest {
+public class TallyConsumerComponentTest extends BaseContractComponentTest {
   private static final double DEFAULT_CAPACITY = 10.0;
   private static final double TALLY_VALUE = 1.0;
 
@@ -54,72 +54,69 @@ public class TallySnapshotSummaryConsumerComponentTest extends BaseContractCompo
     kafkaBridge.subscribeToTopic(UTILIZATION);
   }
 
+  @TestPlanName("tally-consumer-TC001")
   @Test
-  void whenTallySummaryWithMatchingContractThenCapacityIsEnriched() {
-    // Given contract with capacity in database
+  void shouldEnrichCapacityWhenTallySummaryMatchesContract() {
+    // Given: A ROSA contract with capacity in the database
     var contract = givenRosaSubscription();
-
-    // Given tally snapshot
     var tallySnapshot = givenTallySnapshot(contract, CORES, TALLY_VALUE);
 
-    // When tally summary is processed
+    // When: Tally summary is processed
     whenTallySummaryMessageIsSent(tallySnapshot);
 
-    // Then capacity should be enriched and subscription found
+    // Then: Capacity should be enriched and subscription found
     UtilizationSummary utilizationSummary = thenUtilizationMessageIsProduced(tallySnapshot);
     thenUtilizationSummaryMatches(utilizationSummary, contract, CORES);
   }
 
+  @TestPlanName("tally-consumer-TC002")
   @Test
-  void whenTallySummaryWithMatchingSubscriptionThenCapacityIsEnriched() {
-    // Given subscription with capacity in database
+  void shouldEnrichCapacityWhenTallySummaryMatchesSubscription() {
+    // Given: A RHEL subscription with capacity in the database
     var subscription = givenRhelSubscription();
-
-    // Given tally snapshot
     var tallySnapshot = givenTallySnapshot(subscription, SOCKETS, TALLY_VALUE);
 
-    // When tally summary is processed
+    // When: Tally summary is processed
     whenTallySummaryMessageIsSent(tallySnapshot);
 
-    // Then capacity should be enriched and subscription found
+    // Then: Capacity should be enriched and subscription found
     UtilizationSummary utilizationSummary = thenUtilizationMessageIsProduced(tallySnapshot);
     thenUtilizationSummaryMatches(utilizationSummary, subscription, SOCKETS);
   }
 
+  @TestPlanName("tally-consumer-TC003")
   @Test
-  void whenTallySummaryWithNoMatchingSubscriptionThenSubscriptionNotFound() {
-    // Given tally snapshot with criteria that don't match any subscription
+  void shouldSetSubscriptionNotFoundWhenNoMatchingSubscription() {
+    // Given: A tally snapshot with criteria that don't match any subscription
     var subscription = givenNonExistingSubscription();
     var tallySnapshot = givenTallySnapshot(subscription, CORES, TALLY_VALUE);
 
-    // When tally summary is processed
+    // When: Tally summary is processed
     whenTallySummaryMessageIsSent(tallySnapshot);
 
-    // Then should process but subscription not found
+    // Then: Utilization summary produced but subscription not found
     UtilizationSummary utilizationSummary = thenUtilizationMessageIsProduced(tallySnapshot);
     assertNotNull(utilizationSummary, "Utilization summary should be produced");
     assertFalse(utilizationSummary.getSubscriptionFound(), "Should not find matching subscription");
   }
 
+  @TestPlanName("tally-consumer-TC004")
   @Test
-  void whenTallySummaryWithMultipleMatchingSubscriptionsThenCapacityIsAggregated() {
-    // Given multiple subscriptions with same SKU
+  void shouldAggregateCapacityFromMultipleMatchingSubscriptions() {
+    // Given: Multiple subscriptions with same SKU
     var subscriptions = givenMultipleSubscriptionsWithSameSku();
-
-    // Given tally snapshot
     var tallySnapshots = givenTallySnapshots(subscriptions, SOCKETS, TALLY_VALUE);
 
-    // When tally summary is processed
+    // When: Tally summary is processed
     whenTallySummaryMessageIsSent(tallySnapshots);
 
-    // Then capacity should be aggregated
+    // Then: Capacity should be aggregated from all matching subscriptions
     UtilizationSummary utilizationSummary = thenUtilizationMessageIsProduced(tallySnapshots);
     assertNotNull(utilizationSummary, "Utilization summary should be produced");
     assertTrue(utilizationSummary.getSubscriptionFound(), "Should find matching subscriptions");
     assertNotNull(utilizationSummary.getMeasurements(), "Should have measurements");
     assertFalse(
         utilizationSummary.getMeasurements().isEmpty(), "Should have at least one measurement");
-    // Verify that capacity is aggregated from multiple subscriptions
     var sockets =
         utilizationSummary.getMeasurements().stream()
             .filter(m -> SOCKETS.getValue().equals(m.getMetricId()))
@@ -130,35 +127,35 @@ public class TallySnapshotSummaryConsumerComponentTest extends BaseContractCompo
     assertEquals(expectedCapacity, sockets.get().getCapacity(), "Should have aggregated capacity");
   }
 
+  @TestPlanName("tally-consumer-TC005")
   @Test
-  void whenTallySummaryWithMultipleDifferentSubscriptionsThenCapacityIsNotAggregated() {
-    // Given multiple subscriptions with other billing account
+  void shouldProduceSeparateUtilizationSummariesForDifferentBillingAccounts() {
+    // Given: Multiple subscriptions with different billing accounts
     var subscriptions = givenMultipleSubscriptionsWithDifferentBillingAccount();
-
-    // Given tally snapshot
     var tallySnapshots = givenTallySnapshots(subscriptions, CORES, TALLY_VALUE);
 
-    // When tally summary is processed
+    // When: Tally summary is processed
     whenTallySummaryMessageIsSent(tallySnapshots);
 
-    // Then capacity should NOT be aggregated
+    // Then: Separate utilization summaries produced (one per billing account)
     List<UtilizationSummary> utilizationSummaries =
         thenUtilizationMessagesAreProduced(tallySnapshots);
     assertEquals(subscriptions.size(), utilizationSummaries.size());
   }
 
+  @TestPlanName("tally-consumer-TC006")
   @Test
-  void whenTallySummaryWithMixedContractAndSubscriptionThenTwoUtilizationSummariesAreProduced() {
-    // Given one rosa contract and rhel subscription
+  void shouldProduceTwoUtilizationSummariesForMixedContractAndSubscription() {
+    // Given: One ROSA contract and one RHEL subscription
     var contract = givenRosaSubscription();
     var subscription = givenRhelSubscription();
     var tallySnapshotForContract = givenTallySnapshot(contract, CORES, TALLY_VALUE);
     var tallySnapshotForSubscription = givenTallySnapshot(subscription, SOCKETS, TALLY_VALUE);
 
-    // When tally summary is processed individually
+    // When: Tally summary with both snapshots is processed
     whenTallySummaryMessageIsSent(tallySnapshotForContract, tallySnapshotForSubscription);
 
-    // Then capacity should be aggregated
+    // Then: Two utilization summaries produced, each with correct capacity
     var utilizationForContract = thenUtilizationMessageIsProduced(tallySnapshotForContract);
     thenUtilizationSummaryMatches(utilizationForContract, contract, CORES);
 
@@ -188,21 +185,7 @@ public class TallySnapshotSummaryConsumerComponentTest extends BaseContractCompo
     return subscriptions;
   }
 
-  private TallySnapshot[] givenTallySnapshots(
-      List<? extends Subscription> subscriptions, MetricId metricId, double value) {
-    return subscriptions.stream()
-        .map(s -> givenTallySnapshot(s, metricId, value))
-        .toArray(TallySnapshot[]::new);
-  }
-
-  private TallySnapshot givenTallySnapshot(
-      Subscription subscription, MetricId metricId, double value) {
-    return ContractsTestHelper.givenTallySnapshot(
-        SubscriptionEvent.eventFor(subscription, metricId, value));
-  }
-
   private Subscription givenNonExistingSubscription() {
-    // New contract, not created using service.createContract().
     return Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, DEFAULT_CAPACITY));
   }
 
@@ -219,14 +202,32 @@ public class TallySnapshotSummaryConsumerComponentTest extends BaseContractCompo
     return subscription;
   }
 
+  private TallySnapshot[] givenTallySnapshots(
+      List<? extends Subscription> subscriptions, MetricId metricId, double value) {
+    return subscriptions.stream()
+        .map(s -> givenTallySnapshot(s, metricId, value))
+        .toArray(TallySnapshot[]::new);
+  }
+
+  private TallySnapshot givenTallySnapshot(
+      Subscription subscription, MetricId metricId, double value) {
+    return ContractsTestHelper.givenTallySnapshot(
+        SubscriptionEvent.eventFor(subscription, metricId, value));
+  }
+
   private void givenSubscriptionIsCreated(Subscription subscription) {
     wiremock.forProductAPI().stubOfferingData(subscription.getOffering());
     Response syncOfferingResponse = service.syncOffering(subscription.getOffering().getSku());
-    assertThat("Sync offering call should succeed", syncOfferingResponse.statusCode(), is(200));
+    assertEquals(
+        HttpStatus.SC_OK,
+        syncOfferingResponse.statusCode(),
+        "Sync offering call should succeed");
 
     Response createSubscriptionResponse = service.saveSubscriptions(subscription);
-    assertThat(
-        "Subscription creation should succeed", createSubscriptionResponse.statusCode(), is(200));
+    assertEquals(
+        HttpStatus.SC_OK,
+        createSubscriptionResponse.statusCode(),
+        "Subscription creation should succeed");
   }
 
   private void whenTallySummaryMessageIsSent(TallySnapshot... snapshots) {
