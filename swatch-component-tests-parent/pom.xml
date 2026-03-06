@@ -33,6 +33,7 @@
         <module>../swatch-utilization/ct</module>
         <module>../swatch-contracts/ct</module>
         <module>../swatch-producer-azure/ct</module>
+        <module>../swatch-producer-aws/ct</module>
         <module>../swatch-metrics-hbi/ct</module>
         <module>../swatch-tally/ct</module>
         <module>../swatch-billable-usage/ct</module>
