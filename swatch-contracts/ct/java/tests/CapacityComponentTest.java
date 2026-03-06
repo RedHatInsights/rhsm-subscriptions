@@ -20,20 +20,19 @@
  */
 package tests;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.awaitility.Awaitility.await;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
+import com.redhat.swatch.contract.test.model.ReportCategory;
 import com.redhat.swatch.contract.test.model.SkuCapacityV2;
 import domain.Product;
 import domain.Subscription;
 import java.time.OffsetDateTime;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -43,44 +42,44 @@ public class CapacityComponentTest extends BaseContractComponentTest {
   private static final double RHEL_CORES_CAPACITY = 4.0;
   private static final double RHEL_SOCKETS_CAPACITY = 1.0;
 
+  private OffsetDateTime beginning;
+  private OffsetDateTime ending;
+  private String sku;
+
+  @BeforeEach
+  void setUp() {
+    super.setUp();
+    beginning = clock.now().minusDays(1);
+    ending = clock.now().plusDays(1);
+    sku = RandomUtils.generateRandom();
+  }
+
   @Test
   void shouldValidateSumOfAllSocketsForHypervisorSkus() {
     // Given: Get initial hypervisor capacity via REST API
-    final OffsetDateTime beginning = clock.now().minusDays(1);
-    final OffsetDateTime ending = clock.now().plusDays(1);
-    final String hypervisor_sku = RandomUtils.generateRandom();
-    double initialHypervisorSockets =
-        getHypervisorCapacityByMetric(Product.RHEL, orgId, beginning, ending, SOCKETS);
+    double initialHypervisorSockets = getDailyHypervisorSocketCapacity();
 
     Subscription hypervisorSubscription =
-        givenHypervisorSubscriptionIsCreated(
-            hypervisor_sku, RHEL_CORES_CAPACITY, RHEL_SOCKETS_CAPACITY);
+        givenHypervisorSubscriptionIsCreated(sku, RHEL_CORES_CAPACITY, RHEL_SOCKETS_CAPACITY);
 
     // Then: Verify hypervisor capacity increased via REST API
     double expectedCapacity = initialHypervisorSockets + RHEL_SOCKETS_CAPACITY;
     double finalHypervisorSockets =
-        await("Hypervisor capacity should increase")
-            .atMost(1, MINUTES)
-            .pollInterval(2, SECONDS)
-            .until(
-                () ->
-                    getHypervisorCapacityByMetric(Product.RHEL, orgId, beginning, ending, SOCKETS),
-                capacity -> capacity >= expectedCapacity);
+        AwaitilityUtils.until(
+            this::getDailyHypervisorSocketCapacity, capacity -> capacity >= expectedCapacity);
 
-    assertThat(
-        "Hypervisor sockets capacity should increase by subscription amount",
+    assertEquals(
+        expectedCapacity,
         finalHypervisorSockets,
-        equalTo(expectedCapacity));
+        "Hypervisor sockets capacity should increase by subscription amount");
 
     // Then: Verify the hypervisor SKU details via subscription table API
     Optional<SkuCapacityV2> skuCapacity =
-        service.getSkuCapacityByProductIdForOrgAndSku(Product.RHEL, orgId, hypervisor_sku);
+        service.getSkuCapacityByProductIdForOrgAndSku(Product.RHEL, orgId, sku);
     assertTrue(skuCapacity.isPresent(), "Hypervisor SKU should be present in subscription table");
 
-    assertThat(
-        "Hypervisor SKU product name should not be null",
-        skuCapacity.get().getProductName(),
-        notNullValue());
+    assertNotNull(
+        skuCapacity.get().getProductName(), "Hypervisor SKU product name should not be null");
 
     assertTrue(
         containsSubscription(skuCapacity.get(), hypervisorSubscription),
@@ -90,43 +89,43 @@ public class CapacityComponentTest extends BaseContractComponentTest {
   @Test
   void shouldValidateSumOfAllSocketsForPhysicalSkus() {
     // Given: Get initial physical capacity via REST API
-    final OffsetDateTime beginning = clock.now().minusDays(1);
-    final OffsetDateTime ending = clock.now().plusDays(1);
-    final String physicalSku = RandomUtils.generateRandom();
-    double initialPhysicalSockets =
-        getPhysicalSocketCapacity(Product.RHEL, orgId, beginning, ending);
+    double initialPhysicalSockets = getDailyPhysicalSocketCapacity();
 
     Subscription physicalSubscription =
-        givenPhysicalSubscriptionIsCreated(physicalSku, RHEL_CORES_CAPACITY, RHEL_SOCKETS_CAPACITY);
+        givenPhysicalSubscriptionIsCreated(sku, RHEL_CORES_CAPACITY, RHEL_SOCKETS_CAPACITY);
 
     // Then: Verify physical capacity increased via REST API
     double expectedCapacity = initialPhysicalSockets + RHEL_SOCKETS_CAPACITY;
     double finalPhysicalSockets =
-        await("Physical capacity should increase")
-            .atMost(1, MINUTES)
-            .pollInterval(2, SECONDS)
-            .until(
-                () -> getPhysicalSocketCapacity(Product.RHEL, orgId, beginning, ending),
-                capacity -> capacity >= expectedCapacity);
+        AwaitilityUtils.until(
+            this::getDailyPhysicalSocketCapacity, capacity -> capacity >= expectedCapacity);
 
-    assertThat(
-        "Physical sockets capacity should increase by subscription amount",
+    assertEquals(
+        expectedCapacity,
         finalPhysicalSockets,
-        equalTo(expectedCapacity));
+        "Physical sockets capacity should increase by subscription amount");
 
     // Then: Verify the physical SKU details via subscription table API
     Optional<SkuCapacityV2> skuCapacity =
-        service.getSkuCapacityByProductIdForOrgAndSku(Product.RHEL, orgId, physicalSku);
+        service.getSkuCapacityByProductIdForOrgAndSku(Product.RHEL, orgId, sku);
     assertTrue(skuCapacity.isPresent(), "Physical SKU should be present in subscription table");
 
-    assertThat(
-        "Physical SKU product name should not be null",
-        skuCapacity.get().getProductName(),
-        notNullValue());
+    assertNotNull(
+        skuCapacity.get().getProductName(), "Physical SKU product name should not be null");
 
     assertTrue(
         containsSubscription(skuCapacity.get(), physicalSubscription),
         "Physical SKU should contain the created subscription");
+  }
+
+  private double getDailyPhysicalSocketCapacity() {
+    return getDailyCapacityByCategoryAndMetric(
+        Product.RHEL, orgId, beginning, ending, ReportCategory.PHYSICAL, SOCKETS);
+  }
+
+  private double getDailyHypervisorSocketCapacity() {
+    return getDailyCapacityByCategoryAndMetric(
+        Product.RHEL, orgId, beginning, ending, ReportCategory.HYPERVISOR, SOCKETS);
   }
 
   private boolean containsSubscription(SkuCapacityV2 skuCapacity, Subscription subscription) {
