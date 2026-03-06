@@ -38,7 +38,10 @@ public class UtilizationSummaryPayloadValidator {
     return hasValidOrgId(payload)
         && hasValidProduct(payload)
         && hasValidGranularity(payload)
-        && hasValidBillingForPayg(payload);
+        && hasValidBillingForPayg(payload)
+        // Support of sla/usage will be part of SWATCH-4622
+        && hasAnyServiceLevel(payload)
+        && hasAnyUsage(payload);
   }
 
   private boolean hasValidOrgId(UtilizationSummary payload) {
@@ -102,6 +105,30 @@ public class UtilizationSummaryPayloadValidator {
     } catch (IllegalArgumentException e) {
       return false;
     }
+  }
+
+  private boolean hasAnyServiceLevel(UtilizationSummary payload) {
+    if (payload.getSla() != null && payload.getSla() != UtilizationSummary.Sla.ANY) {
+      log.debug(
+          "Skipping utilization summary with non _ANY service level: orgId={} productId={} sla={}",
+          payload.getOrgId(),
+          payload.getProductId(),
+          payload.getSla());
+      return false;
+    }
+    return true;
+  }
+
+  private boolean hasAnyUsage(UtilizationSummary payload) {
+    if (payload.getUsage() != null && payload.getUsage() != UtilizationSummary.Usage.ANY) {
+      log.debug(
+          "Skipping utilization summary with non _ANY usage: orgId={} productId={} usage={}",
+          payload.getOrgId(),
+          payload.getProductId(),
+          payload.getUsage());
+      return false;
+    }
+    return true;
   }
 
   private void logValidationFailure(UtilizationSummary payload, String reason) {
