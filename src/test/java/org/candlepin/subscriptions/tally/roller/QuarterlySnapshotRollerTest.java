@@ -20,9 +20,22 @@
  */
 package org.candlepin.subscriptions.tally.roller;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import com.redhat.swatch.configuration.util.MetricIdUtils;
+import java.util.List;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.tally.AccountUsageCalculation;
+import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,6 +44,7 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -76,5 +90,76 @@ class QuarterlySnapshotRollerTest {
   void testHandlesDuplicates() {
     tester.performRemovesDuplicates(
         Granularity.QUARTERLY, clock.startOfCurrentQuarter(), clock.endOfCurrentQuarter());
+  }
+
+  @Test
+  void testPrimaryFlagSetCorrectly() {
+    String orgId = "org123";
+    String product = "RHEL for x86";
+
+    UsageCalculation.Key primaryKey =
+        new UsageCalculation.Key(
+            product, ServiceLevel.PREMIUM, Usage.PRODUCTION, BillingProvider._ANY, "_ANY");
+    UsageCalculation primaryCalc = new UsageCalculation(primaryKey);
+    primaryCalc.add(HardwareMeasurementType.PHYSICAL, MetricIdUtils.getCores(), 12.0);
+
+    AccountUsageCalculation primaryAccountCalc = new AccountUsageCalculation(orgId);
+    primaryAccountCalc.addCalculation(primaryCalc);
+
+    QuarterlySnapshotRoller roller = new QuarterlySnapshotRoller(repository, clock);
+    roller.rollSnapshots(primaryAccountCalc);
+
+    List<TallySnapshot> primarySnapshots =
+        repository
+            .findSnapshot(
+                orgId,
+                product,
+                Granularity.QUARTERLY,
+                ServiceLevel.PREMIUM,
+                Usage.PRODUCTION,
+                BillingProvider._ANY,
+                "_ANY",
+                clock.startOfCurrentQuarter(),
+                clock.endOfCurrentQuarter(),
+                PageRequest.of(0, 100))
+            .stream()
+            .toList();
+
+    assertEquals(1, primarySnapshots.size(), "Should have created exactly one snapshot");
+    assertTrue(
+        primarySnapshots.getFirst().isPrimary(),
+        "Traditional product with SLA/Usage specified should be primary");
+
+    String orgId2 = "org456";
+    UsageCalculation.Key nonPrimaryKey =
+        new UsageCalculation.Key(
+            product, ServiceLevel._ANY, Usage.PRODUCTION, BillingProvider._ANY, "_ANY");
+    UsageCalculation nonPrimaryCalc = new UsageCalculation(nonPrimaryKey);
+    nonPrimaryCalc.add(HardwareMeasurementType.PHYSICAL, MetricIdUtils.getCores(), 12.0);
+
+    AccountUsageCalculation nonPrimaryAccountCalc = new AccountUsageCalculation(orgId2);
+    nonPrimaryAccountCalc.addCalculation(nonPrimaryCalc);
+
+    roller.rollSnapshots(nonPrimaryAccountCalc);
+
+    List<TallySnapshot> nonPrimarySnapshots =
+        repository
+            .findSnapshot(
+                orgId2,
+                product,
+                Granularity.QUARTERLY,
+                ServiceLevel._ANY,
+                Usage.PRODUCTION,
+                BillingProvider._ANY,
+                "_ANY",
+                clock.startOfCurrentQuarter(),
+                clock.endOfCurrentQuarter(),
+                PageRequest.of(0, 100))
+            .stream()
+            .toList();
+
+    assertEquals(1, nonPrimarySnapshots.size(), "Should have created exactly one snapshot");
+    assertFalse(
+        nonPrimarySnapshots.getFirst().isPrimary(), "Snapshot with SLA _ANY should not be primary");
   }
 }

@@ -43,6 +43,7 @@ import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.util.DateRange;
+import org.candlepin.subscriptions.util.PrimaryRecordUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -212,6 +213,7 @@ public class CombiningRollupSnapshotStrategy {
     snapshot.setOrgId(orgId);
     snapshot.setBillingAccountId(productCalc.getBillingAccountId());
     snapshot.setBillingProvider(productCalc.getBillingProvider());
+    snapshot.setPrimary(PrimaryRecordUtils.isPrimaryRecord(snapshot));
 
     Set<TallyMeasurementKey> seenMeasurements = new HashSet<>();
     // Copy the calculated hardware measurements to the snapshots
@@ -423,6 +425,7 @@ public class CombiningRollupSnapshotStrategy {
           snapshot.setUsage(usageKey.getUsage());
           snapshot.setBillingAccountId(usageKey.getBillingAccountId());
           snapshot.setBillingProvider(usageKey.getBillingProvider());
+          snapshot.setPrimary(PrimaryRecordUtils.isPrimaryRecord(snapshot));
           measurements.forEach(
               (measurementKey, value) ->
                   snapshot.setMeasurement(
