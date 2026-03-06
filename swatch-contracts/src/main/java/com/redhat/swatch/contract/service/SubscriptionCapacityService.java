@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 
@@ -152,7 +153,22 @@ public class SubscriptionCapacityService {
       return false;
     }
 
-    // if product is payg, snapshot needs to match by billing provider and billing account ID too
+    ServiceLevel snapshotServiceLevel = mapServiceLevel(snapshot.getSla());
+    ServiceLevel capacityServiceLevel = capacity.getServiceLevel();
+    if (isNotAnyOrEmpty(snapshotServiceLevel)
+        && isNotAnyOrEmpty(capacityServiceLevel)
+        && !snapshotServiceLevel.equals(capacityServiceLevel)) {
+      return false;
+    }
+
+    Usage snapshotUsage = mapUsage(snapshot.getUsage());
+    Usage capacityUsage = Optional.ofNullable(capacity.getUsage()).orElse(Usage._ANY);
+    if (isNotAnyOrEmpty(snapshotUsage)
+        && isNotAnyOrEmpty(capacityUsage)
+        && !snapshotUsage.equals(capacityUsage)) {
+      return false;
+    }
+
     if (productId.isPayg()) {
       BillingProvider billingProvider = mapBillingProvider(snapshot.getBillingProvider());
       if (!Objects.equals(capacity.getBillingProvider(), billingProvider)) {
@@ -165,6 +181,28 @@ public class SubscriptionCapacityService {
     }
 
     return true;
+  }
+
+  private boolean isNotAnyOrEmpty(ServiceLevel level) {
+    return level != null && level != ServiceLevel._ANY && level != ServiceLevel.EMPTY;
+  }
+
+  private boolean isNotAnyOrEmpty(Usage usage) {
+    return usage != null && usage != Usage._ANY && usage != Usage.EMPTY;
+  }
+
+  private ServiceLevel mapServiceLevel(TallySnapshot.Sla sla) {
+    if (sla == null) {
+      return ServiceLevel._ANY;
+    }
+    return ServiceLevel.fromString(sla.toString());
+  }
+
+  private Usage mapUsage(TallySnapshot.Usage usage) {
+    if (usage == null) {
+      return Usage._ANY;
+    }
+    return Usage.fromString(usage.toString());
   }
 
   private BillingProvider mapBillingProvider(TallySnapshot.BillingProvider billingProvider) {
