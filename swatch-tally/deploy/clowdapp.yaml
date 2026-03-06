@@ -201,6 +201,8 @@ parameters:
     value: '2'
   - name: CONTRACT_CLIENT_MAX_ATTEMPTS
     value: '1'
+  - name: RHSM_CONTRACTS_URL
+    value: 'http://swatch-contracts-service:8000'
   - name: CURL_CRON_IMAGE
     value: registry.access.redhat.com/ubi8/ubi-minimal
   - name: CURL_CRON_IMAGE_TAG
@@ -335,6 +337,16 @@ objects:
               value: ${USER_OPTS_APPEND}
             - name: JAVA_TOOL_OPTIONS
               value: -javaagent:/opt/splunk-otel-javaagent.jar
+            - name: CONTRACT_CLIENT_BACK_OFF_INITIAL_INTERVAL_MILLIS
+              value: ${CONTRACT_CLIENT_BACK_OFF_INITIAL_INTERVAL_MILLIS}
+            - name: CONTRACT_CLIENT_BACK_OFF_MAX_INTERVAL_MILLIS
+              value: ${CONTRACT_CLIENT_BACK_OFF_MAX_INTERVAL_MILLIS}
+            - name: CONTRACT_CLIENT_BACK_OFF_MULTIPLIER
+              value: ${CONTRACT_CLIENT_BACK_OFF_MULTIPLIER}
+            - name: CONTRACT_CLIENT_MAX_ATTEMPTS
+              value: ${CONTRACT_CLIENT_MAX_ATTEMPTS}
+            - name: RHSM_CONTRACTS_URL
+              value: ${RHSM_CONTRACTS_URL}
             - name: ENABLE_SPLUNK_HEC
               value: ${ENABLE_SPLUNK_HEC}
             - name: SPLUNKMETA_namespace

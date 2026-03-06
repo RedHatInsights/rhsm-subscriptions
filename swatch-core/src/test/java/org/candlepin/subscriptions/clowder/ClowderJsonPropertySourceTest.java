@@ -136,6 +136,13 @@ class ClowderJsonPropertySourceTest {
             "Actual value was '%s' and expected expression is '%s'", result, expectedValue));
   }
 
+  @Test
+  void testMissingEndpointReturnsNull() throws Exception {
+    var source = new ClowderJsonPropertySource(jsonFromResource(TEST_CLOWDER_CONFIG_JSON));
+    var result = source.getProperty("clowder.endpoints.swatch-contracts-service.url");
+    assertNull(result);
+  }
+
   private void testServletPropertySource(String servletContextPropertySourceName) throws Exception {
     environment
         .getPropertySources()
