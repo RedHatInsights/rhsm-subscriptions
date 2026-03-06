@@ -26,12 +26,14 @@ import static com.redhat.swatch.component.tests.utils.Topics.UTILIZATION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import api.ContractsTestHelper;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.contract.test.model.TallyMeasurement;
 import com.redhat.swatch.contract.test.model.TallySnapshot;
 import com.redhat.swatch.contract.test.model.UtilizationSummary;
 import domain.BillingProvider;
@@ -39,8 +41,10 @@ import domain.Contract;
 import domain.Subscription;
 import domain.SubscriptionEvent;
 import io.restassured.response.Response;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -163,6 +167,65 @@ public class TallyConsumerComponentTest extends BaseContractComponentTest {
     thenUtilizationSummaryMatches(utilizationForSubscription, subscription, SOCKETS);
   }
 
+  @TestPlanName("tally-consumer-TC007")
+  @Test
+  void shouldEnrichCapacityWhenSnapshotSlaAndUsageIsAny() {
+    // Given: A RHEL subscription with Premium/Production SLA/Usage
+    String sku = RandomUtils.generateRandom();
+    var subscription = givenPhysicalSubscriptionIsCreated(sku, 0, DEFAULT_CAPACITY);
+
+    // Given: A tally snapshot with _ANY/_ANY SLA/Usage
+    var snapshot =
+        givenTallySnapshotWithSlaAndUsage(
+            subscription, SOCKETS, TALLY_VALUE, TallySnapshot.Sla.ANY, TallySnapshot.Usage.ANY);
+
+    // When: Tally summary is processed
+    whenTallySummaryMessageIsSent(snapshot);
+
+    // Then: Capacity is enriched from the Premium/Production subscription
+    var utilization = thenUtilizationMessageIsProduced(snapshot);
+    var sockets =
+        utilization.getMeasurements().stream()
+            .filter(m -> SOCKETS.getValue().equals(m.getMetricId()))
+            .findFirst();
+    assertTrue(sockets.isPresent(), "Should have sockets measurement");
+    assertEquals(
+        DEFAULT_CAPACITY, sockets.get().getCapacity(), 0.001, "_ANY snapshot should have capacity");
+  }
+
+  @TestPlanName("tally-consumer-TC008")
+  @Test
+  void shouldNotEnrichCapacityWhenSnapshotSlaAndUsageDoNotMatchSubscription() {
+    // Given: A RHEL subscription with Premium/Production SLA/Usage
+    String sku = RandomUtils.generateRandom();
+    givenPhysicalSubscriptionIsCreated(sku, 0, DEFAULT_CAPACITY);
+
+    // Given: A tally snapshot with Self-Support/Development-Test SLA/Usage (no matching sub)
+    var subscription =
+        Subscription.buildRhelSubscriptionUsingSku(orgId, Map.of(SOCKETS, DEFAULT_CAPACITY), sku);
+    var snapshot =
+        givenTallySnapshotWithSlaAndUsage(
+            subscription,
+            SOCKETS,
+            TALLY_VALUE,
+            TallySnapshot.Sla.SELF_SUPPORT,
+            TallySnapshot.Usage.DEVELOPMENT_TEST);
+
+    // When: Tally summary is processed
+    whenTallySummaryMessageIsSent(snapshot);
+
+    // Then: Capacity should be null (no subscription matches Self-Support/Dev-Test)
+    var utilization = thenUtilizationMessageIsProduced(snapshot);
+    var sockets =
+        utilization.getMeasurements().stream()
+            .filter(m -> SOCKETS.getValue().equals(m.getMetricId()))
+            .findFirst();
+    assertTrue(sockets.isPresent(), "Should have sockets measurement");
+    assertNull(
+        sockets.get().getCapacity(),
+        "Should have null capacity (no subscription matches Self-Support/Dev-Test)");
+  }
+
   private List<Contract> givenMultipleSubscriptionsWithDifferentBillingAccount() {
     var subscriptions =
         List.of(
@@ -202,6 +265,25 @@ public class TallyConsumerComponentTest extends BaseContractComponentTest {
     return subscription;
   }
 
+  private TallySnapshot givenTallySnapshotWithSlaAndUsage(
+      Subscription subscription,
+      MetricId metricId,
+      double value,
+      TallySnapshot.Sla sla,
+      TallySnapshot.Usage usage) {
+    var measurement = new TallyMeasurement();
+    measurement.setMetricId(metricId.getValue());
+    measurement.setValue(value);
+    return new TallySnapshot()
+        .withId(UUID.randomUUID())
+        .withProductId(subscription.getProduct().getName())
+        .withSnapshotDate(OffsetDateTime.now())
+        .withSla(sla)
+        .withUsage(usage)
+        .withGranularity(TallySnapshot.Granularity.DAILY)
+        .withTallyMeasurements(List.of(measurement));
+  }
+
   private TallySnapshot[] givenTallySnapshots(
       List<? extends Subscription> subscriptions, MetricId metricId, double value) {
     return subscriptions.stream()
@@ -219,9 +301,7 @@ public class TallyConsumerComponentTest extends BaseContractComponentTest {
     wiremock.forProductAPI().stubOfferingData(subscription.getOffering());
     Response syncOfferingResponse = service.syncOffering(subscription.getOffering().getSku());
     assertEquals(
-        HttpStatus.SC_OK,
-        syncOfferingResponse.statusCode(),
-        "Sync offering call should succeed");
+        HttpStatus.SC_OK, syncOfferingResponse.statusCode(), "Sync offering call should succeed");
 
     Response createSubscriptionResponse = service.saveSubscriptions(subscription);
     assertEquals(
