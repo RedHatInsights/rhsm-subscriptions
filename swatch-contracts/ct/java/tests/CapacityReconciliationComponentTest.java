@@ -36,9 +36,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
+import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.contract.test.model.OfferingResponse;
+import com.redhat.swatch.contract.test.model.ReportCategory;
 import domain.Offering;
 import domain.Product;
 import domain.ReconcileCapacityByOfferingTask;
@@ -50,6 +52,7 @@ import java.util.Map;
 import java.util.Objects;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class CapacityReconciliationComponentTest extends BaseContractComponentTest {
@@ -69,6 +72,16 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
   @BeforeAll
   static void subscribeToCapacityReconcileTopic() {
     kafkaBridge.subscribeToTopic(CAPACITY_RECONCILE);
+  }
+
+  private OffsetDateTime beginning;
+  private OffsetDateTime ending;
+
+  @BeforeEach
+  void setUp() {
+    super.setUp();
+    beginning = clock.now().minusDays(1);
+    ending = clock.now().plusDays(1);
   }
 
   @TestPlanName("capacity-reconciliation-TC001")
@@ -691,7 +704,6 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
             });
   }
 
-  /** Verifies PHYSICAL Cores measurement after reconciliation. */
   private void thenSubscriptionHasCoresMeasurement(String sku, double expectedCores) {
     thenSubscriptionHasPhysicalMeasurements(
         Product.OPENSHIFT,
@@ -699,7 +711,6 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
         new MetricExpectation("Cores", expectedCores, MSG_PHYSICAL_CORES_MATCH));
   }
 
-  /** Verifies PHYSICAL Cores after force-reconcile. */
   private void thenSubscriptionHasCoresMeasurementAfterForceReconcile(
       String sku, double expectedCores) {
     thenSubscriptionHasPhysicalMeasurements(
@@ -708,7 +719,6 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
         new MetricExpectation("Cores", expectedCores, MSG_PHYSICAL_CORES_MATCH));
   }
 
-  /** Verifies PHYSICAL Cores retained and Sockets deleted after force-reconcile. */
   private void thenSubscriptionHasCoresOnlyMeasurementAfterForceReconcile(
       String sku, double expectedCores) {
     thenSubscriptionHasPhysicalMeasurements(
@@ -719,7 +729,6 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
             "Sockets", 0.0, "PHYSICAL Sockets measurement should be deleted (0)"));
   }
 
-  /** Verifies PHYSICAL Sockets measurement after reconciliation. */
   private void thenSubscriptionHasSocketsMeasurement(String sku, double expectedSockets) {
     thenSubscriptionHasPhysicalMeasurements(
         Product.RHEL,
@@ -727,7 +736,6 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
         new MetricExpectation("Sockets", expectedSockets, MSG_PHYSICAL_SOCKETS_MATCH));
   }
 
-  /** Verifies PHYSICAL Cores and Sockets measurements. */
   private void thenSubscriptionHasCoresAndSocketsMeasurements(
       String sku, double expectedCores, double expectedSockets) {
     thenSubscriptionHasPhysicalMeasurements(
@@ -740,11 +748,6 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
   private record MetricExpectation(
       String metricName, double expectedValue, String assertionMessage) {}
 
-  /**
-   * Verifies that the SKU has no capacity (reconciliation didn't run because SKU doesn't exist).
-   *
-   * @param sku The SKU to check
-   */
   private void thenSkuHasNoCapacity(String sku) {
     var capacityReport = service.getSkuCapacityByProductIdForOrg(Product.OPENSHIFT, orgId);
     assertNotNull(capacityReport.getData());
@@ -756,73 +759,22 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
         "SKU should not appear in capacity report when offering doesn't exist");
   }
 
-  /**
-   * Verifies that the subscription has the expected HYPERVISOR Cores measurement. Uses await for
-   * force-reconcile tests where Kafka processing is async. Verification is org-level (capacity
-   * report aggregates by org).
-   *
-   * @param expectedCores The expected HYPERVISOR Cores value (offering hypervisorCores * quantity)
-   */
   private void thenSubscriptionHasHypervisorCoresMeasurement(double expectedCores) {
-    OffsetDateTime beginning = clock.now().minusDays(1);
-    OffsetDateTime ending = clock.now().plusDays(1);
-    await("HYPERVISOR Cores measurement should match")
-        .atMost(2, MINUTES)
-        .pollInterval(2, SECONDS)
-        .untilAsserted(
-            () -> {
-              double actual =
-                  getHypervisorCapacityByMetric(Product.RHEL, orgId, beginning, ending, CORES);
-              assertThat(
-                  "HYPERVISOR Cores measurement should match offering hypervisorCores * quantity",
-                  actual,
-                  closeTo(expectedCores, 0.01));
-            });
+    AwaitilityUtils.until(
+        () -> getDailyHypervisorCapacityByMetricId(CORES), closeTo(expectedCores, 0.01));
   }
 
-  /**
-   * Verifies that the subscription has the expected HYPERVISOR Sockets measurement. Verification is
-   * org-level (capacity report aggregates by org).
-   *
-   * @param expectedSockets The expected HYPERVISOR Sockets value (offering hypervisorSockets *
-   *     quantity)
-   */
   private void thenSubscriptionHasHypervisorSocketsMeasurement(double expectedSockets) {
-    OffsetDateTime beginning = clock.now().minusDays(1);
-    OffsetDateTime ending = clock.now().plusDays(1);
-    await("HYPERVISOR Sockets measurement should match")
-        .atMost(2, MINUTES)
-        .pollInterval(2, SECONDS)
-        .untilAsserted(
-            () -> {
-              double actual =
-                  getHypervisorCapacityByMetric(Product.RHEL, orgId, beginning, ending, SOCKETS);
-              assertThat(
-                  "HYPERVISOR Sockets measurement should match offering hypervisorSockets * quantity",
-                  actual,
-                  closeTo(expectedSockets, 0.01));
-            });
+    AwaitilityUtils.until(
+        () -> getDailyHypervisorCapacityByMetricId(SOCKETS), closeTo(expectedSockets, 0.01));
   }
 
-  /**
-   * Verifies that the subscription has the expected HYPERVISOR Cores and Sockets measurements.
-   * Verification is org-level (capacity report aggregates by org).
-   *
-   * @param expectedCores The expected HYPERVISOR Cores value
-   * @param expectedSockets The expected HYPERVISOR Sockets value
-   */
   private void thenSubscriptionHasHypervisorCoresAndSocketsMeasurements(
       double expectedCores, double expectedSockets) {
     thenSubscriptionHasHypervisorCoresMeasurement(expectedCores);
     thenSubscriptionHasHypervisorSocketsMeasurement(expectedSockets);
   }
 
-  /**
-   * Verifies that the subscription has no capacity measurements (null/zero offering values create
-   * no measurements).
-   *
-   * @param sku The SKU to check
-   */
   private void thenSubscriptionHasNoCapacityMeasurements(String sku) {
     var capacityReport = service.getSkuCapacityByProductIdForOrg(Product.OPENSHIFT, orgId);
     assertNotNull(capacityReport.getData());
@@ -832,10 +784,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
             .findFirst()
             .orElse(null);
 
-    assertThat(
-        "SKU should be present in capacity report (subscription exists)",
-        skuCapacity,
-        notNullValue());
+    assertNotNull(skuCapacity, "SKU should be present in capacity report (subscription exists)");
 
     double totalCapacity =
         Objects.requireNonNull(skuCapacity).getMeasurements().stream()
@@ -845,5 +794,10 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
         "Total capacity should be 0 when no measurements are created (null/zero offering values)",
         totalCapacity,
         closeTo(0.0, 0.01));
+  }
+
+  private double getDailyHypervisorCapacityByMetricId(MetricId metricId) {
+    return getDailyCapacityByCategoryAndMetric(
+        Product.RHEL, orgId, beginning, ending, ReportCategory.HYPERVISOR, metricId);
   }
 }

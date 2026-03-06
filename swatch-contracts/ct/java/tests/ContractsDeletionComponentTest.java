@@ -20,6 +20,8 @@
  */
 package tests;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import domain.BillingProvider;
@@ -27,6 +29,7 @@ import domain.Contract;
 import io.restassured.response.Response;
 import java.util.Map;
 import java.util.UUID;
+import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
 
 public class ContractsDeletionComponentTest extends BaseContractComponentTest {
@@ -55,9 +58,16 @@ public class ContractsDeletionComponentTest extends BaseContractComponentTest {
     String nonExistentUuid = UUID.randomUUID().toString();
 
     // When: Contract deletion is attempted with invalid UUID
-    Response deleteResponse = whenContractIsDeletedGracefully(nonExistentUuid);
+    Response deleteResponse = whenContractIsDeleted(nonExistentUuid);
 
     // Then: Verify graceful idempotent handling
     thenDeleteShouldBeIdempotent(deleteResponse);
+  }
+
+  private void thenDeleteShouldBeIdempotent(Response deleteResponse) {
+    assertEquals(
+        HttpStatus.SC_NO_CONTENT,
+        deleteResponse.statusCode(),
+        "Delete non-existent contract should return 204 No Content (idempotent behavior)");
   }
 }
