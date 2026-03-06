@@ -38,7 +38,8 @@ public class UtilizationSummaryPayloadValidator {
     return hasValidOrgId(payload)
         && hasValidProduct(payload)
         && hasValidGranularity(payload)
-        && hasValidBillingForPayg(payload);
+        && hasValidBillingForPayg(payload)
+        && hasAnySlaAndUsage(payload);
   }
 
   private boolean hasValidOrgId(UtilizationSummary payload) {
@@ -102,6 +103,20 @@ public class UtilizationSummaryPayloadValidator {
     } catch (IllegalArgumentException e) {
       return false;
     }
+  }
+
+  private boolean hasAnySlaAndUsage(UtilizationSummary payload) {
+    if (payload.getSla() != UtilizationSummary.Sla.ANY
+        || payload.getUsage() != UtilizationSummary.Usage.ANY) {
+      log.debug(
+          "Skipping utilization summary with non-_ANY dimensions: orgId={} productId={} sla={} usage={}",
+          payload.getOrgId(),
+          payload.getProductId(),
+          payload.getSla(),
+          payload.getUsage());
+      return false;
+    }
+    return true;
   }
 
   private void logValidationFailure(UtilizationSummary payload, String reason) {
