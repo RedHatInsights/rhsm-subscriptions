@@ -50,7 +50,7 @@ public class CapacityComponentTest extends BaseContractComponentTest {
     final OffsetDateTime ending = clock.now().plusDays(1);
     final String hypervisor_sku = RandomUtils.generateRandom();
     double initialHypervisorSockets =
-        getHypervisorSocketCapacity(Product.RHEL, orgId, beginning, ending);
+        getHypervisorCapacityByMetric(Product.RHEL, orgId, beginning, ending, SOCKETS);
 
     Subscription hypervisorSubscription =
         givenHypervisorSubscriptionIsCreated(
@@ -63,7 +63,8 @@ public class CapacityComponentTest extends BaseContractComponentTest {
             .atMost(1, MINUTES)
             .pollInterval(2, SECONDS)
             .until(
-                () -> getHypervisorSocketCapacity(Product.RHEL, orgId, beginning, ending),
+                () ->
+                    getHypervisorCapacityByMetric(Product.RHEL, orgId, beginning, ending, SOCKETS),
                 capacity -> capacity >= expectedCapacity);
 
     assertThat(

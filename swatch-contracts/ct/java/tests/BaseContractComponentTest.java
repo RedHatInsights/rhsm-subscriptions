@@ -135,13 +135,17 @@ public class BaseContractComponentTest {
             capacity -> capacity < initialCapacity);
   }
 
-  protected double getHypervisorSocketCapacity(
-      Product product, String orgId, OffsetDateTime beginning, OffsetDateTime ending) {
+  protected double getHypervisorCapacityByMetric(
+      Product product,
+      String orgId,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      MetricId metric) {
     CapacityReportByMetricId report =
         service.getCapacityReportByMetricId(
             product,
             orgId,
-            SOCKETS.toString(),
+            metric.toString(),
             beginning,
             ending,
             GranularityType.DAILY,
