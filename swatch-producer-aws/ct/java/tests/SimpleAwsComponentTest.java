@@ -41,7 +41,8 @@ public class SimpleAwsComponentTest extends BaseAwsComponentTest {
   public void testValidAwsUsageMessages() {
     String metricId = Product.ROSA.getFirstMetric().getId();
 
-    wiremock.setupAwsUsageContext(awsAccountId, rhSubscriptionId, customerId, productCode);
+    wiremock.setupAwsUsageContext(
+        awsAccountId, awsSellerAccountId, rhSubscriptionId, customerId, productCode);
 
     BillableUsageAggregate aggregateData =
         createUsageAggregate(Product.ROSA.getName(), awsAccountId, metricId, TOTAL_VALUE, orgId);
@@ -59,7 +60,8 @@ public class SimpleAwsComponentTest extends BaseAwsComponentTest {
   public void testNullUsageMessage() {
     String metricId = Product.ROSA.getFirstMetric().getId();
 
-    wiremock.setupAwsUsageContext(awsAccountId, rhSubscriptionId, customerId, productCode);
+    wiremock.setupAwsUsageContext(
+        awsAccountId, awsSellerAccountId, rhSubscriptionId, customerId, productCode);
 
     kafkaBridge.produceKafkaMessage(BILLABLE_USAGE_HOURLY_AGGREGATE, Map.of());
 

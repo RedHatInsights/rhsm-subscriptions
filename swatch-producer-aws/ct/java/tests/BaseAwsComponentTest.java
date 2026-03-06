@@ -46,6 +46,7 @@ public class BaseAwsComponentTest {
 
   protected String orgId;
   protected String awsAccountId;
+  protected String awsSellerAccountId;
   protected String rhSubscriptionId;
   protected String customerId;
   protected String productCode;
@@ -54,6 +55,7 @@ public class BaseAwsComponentTest {
   void setUp() {
     orgId = RandomUtils.generateRandom();
     awsAccountId = RandomUtils.generateRandom();
+    awsSellerAccountId = RandomUtils.generateRandom();
     rhSubscriptionId = RandomUtils.generateRandom();
     customerId = RandomUtils.generateRandom();
     productCode = RandomUtils.generateRandom();

@@ -29,24 +29,21 @@ public class AwsWiremockService extends WiremockService {
   private static final String AWS_USAGE_EVENT_PATH = "/mock/aws";
 
   /**
-   * The seller account ID must match a profile name in the AWS credentials file (both locally in
-   * config/moto/local-config.ini and in the ephemeral secret aws-marketplace-credentials) so that
-   * the service can load credentials. The profile in those files is named "1234567".
-   */
-  public static final String SELLER_ACCOUNT_ID = "1234567";
-
-  /**
    * Sets up the AWS usage context endpoint (contracts API) and a wiremock stub for the AWS
    * Marketplace BatchMeterUsage endpoint (at /mock/aws).
    */
   public void setupAwsUsageContext(
-      String awsAccountId, String rhSubscriptionId, String customerId, String productCode) {
+      String awsAccountId,
+      String awsSellerAccountId,
+      String rhSubscriptionId,
+      String customerId,
+      String productCode) {
     var contextData =
         Map.of(
             "rhSubscriptionId", rhSubscriptionId,
             "customerId", customerId,
             "productCode", productCode,
-            "awsSellerAccountId", SELLER_ACCOUNT_ID,
+            "awsSellerAccountId", awsSellerAccountId,
             "subscriptionStartDate", "2020-01-01T00:00:00Z");
 
     given()
