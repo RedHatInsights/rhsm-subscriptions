@@ -122,10 +122,12 @@ public class CustomerOverUsageService {
     // Skip unlimited capacity measurements
     if (Boolean.TRUE.equals(measurement.getUnlimited())) {
       log.debug(
-          "Skipping over-usage check for unlimited capacity: orgId={} productId={} metricId={}",
+          "Skipping over-usage check for unlimited capacity: orgId={} productId={} metricId={} sla={} usage={}",
           payload.getOrgId(),
           payload.getProductId(),
-          measurement.getMetricId());
+          measurement.getMetricId(),
+          payload.getSla(),
+          payload.getUsage());
       return;
     }
 
@@ -135,10 +137,12 @@ public class CustomerOverUsageService {
     // Skip invalid or zero capacity measurements
     if (capacity <= 0.0) {
       log.debug(
-          "Skipping over-usage check for invalid capacity: orgId={} productId={} metricId={} capacity={}",
+          "Skipping over-usage check for invalid capacity: orgId={} productId={} metricId={} sla={} usage={} capacity={}",
           payload.getOrgId(),
           payload.getProductId(),
           measurement.getMetricId(),
+          payload.getSla(),
+          payload.getUsage(),
           capacity);
       return;
     }
@@ -160,10 +164,12 @@ public class CustomerOverUsageService {
       sendNotification(payload, metricId, utilizationPercent);
     } else {
       log.debug(
-          "Usage within threshold: orgId={} productId={} metricId={} currentTotal={} capacity={} utilizationPercent={}% overagePercent={}% threshold={}%",
+          "Usage within threshold: orgId={} productId={} metricId={} sla={} usage={} currentTotal={} capacity={} utilizationPercent={}% overagePercent={}% threshold={}%",
           payload.getOrgId(),
           payload.getProductId(),
           measurement.getMetricId(),
+          payload.getSla(),
+          payload.getUsage(),
           currentTotal,
           capacity,
           String.format(PERCENT_FORMAT, utilizationPercent),
@@ -185,10 +191,12 @@ public class CustomerOverUsageService {
       double overagePercent,
       Double threshold) {
     log.info(
-        "Over-usage detected: orgId={} productId={} metricId={} currentTotal={} capacity={} utilizationPercent={}% overagePercent={}% threshold={}%",
+        "Over-usage detected: orgId={} productId={} metricId={} sla={} usage={} currentTotal={} capacity={} utilizationPercent={}% overagePercent={}% threshold={}%",
         payload.getOrgId(),
         payload.getProductId(),
         measurement.getMetricId(),
+        payload.getSla(),
+        payload.getUsage(),
         currentTotal,
         capacity,
         String.format(PERCENT_FORMAT, utilizationPercent),

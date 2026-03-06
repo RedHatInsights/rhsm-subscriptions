@@ -157,6 +157,86 @@ class SubscriptionCapacityServiceTest {
   }
 
   @Test
+  void testSnapshotWithAnySlaMatchesAllCapacities() {
+    // Given capacity with Premium SLA
+    SubscriptionCapacityView capacity = createCapacityView("sub123", "org123", RHEL);
+    capacity.setServiceLevel(com.redhat.swatch.common.model.ServiceLevel.PREMIUM);
+    capacity.setUsage(com.redhat.swatch.common.model.Usage.PRODUCTION);
+    givenExistingCapacityViews(capacity);
+
+    // Given tally snapshot with _ANY SLA/Usage
+    TallySnapshot snapshot = createTallySnapshot(RHEL);
+    snapshot.setSla(TallySnapshot.Sla.ANY);
+    snapshot.setUsage(TallySnapshot.Usage.ANY);
+    TallySummary tallySummary = new TallySummary();
+    tallySummary.setOrgId("org123");
+    tallySummary.setTallySnapshots(List.of(snapshot));
+
+    var result = subscriptionCapacityService.getCapacityForTallySummaries(List.of(tallySummary));
+
+    assertEquals(1, result.size());
+    assertEquals("sub123", result.values().iterator().next().get(0).getSubscriptionId());
+  }
+
+  @Test
+  void testSnapshotWithMismatchedSlaDoesNotMatchCapacity() {
+    // Given capacity with Premium SLA
+    SubscriptionCapacityView capacity = createCapacityView("sub123", "org123", RHEL);
+    capacity.setServiceLevel(com.redhat.swatch.common.model.ServiceLevel.PREMIUM);
+    capacity.setUsage(com.redhat.swatch.common.model.Usage.PRODUCTION);
+    givenExistingCapacityViews(capacity);
+
+    // Given tally snapshot with Self-Support SLA (no matching subscription)
+    TallySnapshot snapshot = createTallySnapshot(RHEL);
+    snapshot.setSla(TallySnapshot.Sla.SELF_SUPPORT);
+    snapshot.setUsage(TallySnapshot.Usage.DEVELOPMENT_TEST);
+    TallySummary tallySummary = new TallySummary();
+    tallySummary.setOrgId("org123");
+    tallySummary.setTallySnapshots(List.of(snapshot));
+
+    var result = subscriptionCapacityService.getCapacityForTallySummaries(List.of(tallySummary));
+
+    assertTrue(result.isEmpty());
+  }
+
+  @Test
+  void testSnapshotWithMatchingSlaGetsCorrectCapacity() {
+    // Given two capacities: one Premium and one Self-Support
+    SubscriptionCapacityView premiumCapacity = createCapacityView("sub-premium", "org123", RHEL);
+    premiumCapacity.setServiceLevel(com.redhat.swatch.common.model.ServiceLevel.PREMIUM);
+    premiumCapacity.setUsage(com.redhat.swatch.common.model.Usage.PRODUCTION);
+
+    SubscriptionCapacityView selfSupportCapacity =
+        createCapacityView("sub-self-support", "org123", RHEL);
+    selfSupportCapacity.setServiceLevel(com.redhat.swatch.common.model.ServiceLevel.SELF_SUPPORT);
+    selfSupportCapacity.setUsage(com.redhat.swatch.common.model.Usage.DEVELOPMENT_TEST);
+
+    givenExistingCapacityViews(premiumCapacity, selfSupportCapacity);
+
+    // Given two snapshots: one _ANY and one Self-Support
+    TallySnapshot anySnapshot = createTallySnapshot(RHEL);
+    anySnapshot.setSla(TallySnapshot.Sla.ANY);
+    anySnapshot.setUsage(TallySnapshot.Usage.ANY);
+
+    TallySnapshot selfSupportSnapshot = createTallySnapshot(RHEL);
+    selfSupportSnapshot.setSla(TallySnapshot.Sla.SELF_SUPPORT);
+    selfSupportSnapshot.setUsage(TallySnapshot.Usage.DEVELOPMENT_TEST);
+
+    TallySummary tallySummary = new TallySummary();
+    tallySummary.setOrgId("org123");
+    tallySummary.setTallySnapshots(List.of(anySnapshot, selfSupportSnapshot));
+
+    var result = subscriptionCapacityService.getCapacityForTallySummaries(List.of(tallySummary));
+
+    // _ANY snapshot matches both capacities
+    assertEquals(2, result.get(anySnapshot).size());
+
+    // Self-Support snapshot matches only the Self-Support capacity
+    assertEquals(1, result.get(selfSupportSnapshot).size());
+    assertEquals("sub-self-support", result.get(selfSupportSnapshot).get(0).getSubscriptionId());
+  }
+
+  @Test
   void testGetCapacityForTallySummariesWithNoCapacityFound() {
     // Given tally summary but no matching capacity data
     List<TallySummary> tallyMessages = List.of(createTallySummary("org123", RHEL));

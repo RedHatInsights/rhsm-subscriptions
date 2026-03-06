@@ -118,12 +118,26 @@ public class SubscriptionCapacityService {
         orgId,
         productId,
         null, // category
-        ServiceLevel._ANY,
-        Usage._ANY,
+        mapServiceLevel(snapshot.getSla()),
+        mapUsage(snapshot.getUsage()),
         productId.isPayg() ? billingProvider : BillingProvider._ANY,
         productId.isPayg() ? snapshot.getBillingAccountId() : null,
         null // metricId
         );
+  }
+
+  private ServiceLevel mapServiceLevel(TallySnapshot.Sla sla) {
+    if (sla == null) {
+      return ServiceLevel._ANY;
+    }
+    return ServiceLevel.fromString(sla.toString());
+  }
+
+  private Usage mapUsage(TallySnapshot.Usage usage) {
+    if (usage == null) {
+      return Usage._ANY;
+    }
+    return Usage.fromString(usage.toString());
   }
 
   private List<TallySnapshot> findTallySnapshotsForCapacity(
@@ -152,7 +166,17 @@ public class SubscriptionCapacityService {
       return false;
     }
 
-    // if product is payg, snapshot needs to match by billing provider and billing account ID too
+    ServiceLevel snapshotSla = mapServiceLevel(snapshot.getSla());
+    if (snapshotSla != ServiceLevel._ANY
+        && !Objects.equals(capacity.getServiceLevel(), snapshotSla)) {
+      return false;
+    }
+
+    Usage snapshotUsage = mapUsage(snapshot.getUsage());
+    if (snapshotUsage != Usage._ANY && !Objects.equals(capacity.getUsage(), snapshotUsage)) {
+      return false;
+    }
+
     if (productId.isPayg()) {
       BillingProvider billingProvider = mapBillingProvider(snapshot.getBillingProvider());
       if (!Objects.equals(capacity.getBillingProvider(), billingProvider)) {

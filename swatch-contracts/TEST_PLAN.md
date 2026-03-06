@@ -1575,3 +1575,112 @@ This section validates capacity calculations across time boundaries. Tests verif
   3. Then: Verify that the capacity decreases for both
 - **Expected Results**: 
   - that the capacity decreases for both 
+
+## Tally Snapshot Summary Consumer
+
+This section validates the tally-to-utilization pipeline, where `swatch-contracts` consumes tally snapshot summaries from Kafka, enriches them with subscription capacity data, and produces utilization summaries on the utilization Kafka topic. These utilization summaries are consumed downstream by `swatch-utilization` for over-usage detection.
+
+**tally-consumer-TC001 - Tally summary with matching PAYG contract produces enriched utilization summary**  
+- **Description**: Verify that a tally snapshot matching an existing PAYG contract (e.g., ROSA on AWS) produces a utilization summary with the correct capacity and subscription found.  
+- **Setup**:  
+  - Create a ROSA contract with AWS billing provider and a Cores capacity of 10  
+  - Prepare a tally snapshot matching the contract's org, product, and billing dimensions  
+- **Action**:  
+  - Publish the tally summary to the tally Kafka topic  
+- **Verification**:  
+  - Wait for a utilization summary on the utilization Kafka topic  
+- **Expected Result**:  
+  - Utilization summary is produced with `subscriptionFound=true`  
+  - The Cores measurement has `capacity=10` and `value=1.0`  
+  - Org ID and product ID match the contract  
+
+**tally-consumer-TC002 - Tally summary with matching non-PAYG subscription produces enriched utilization summary**  
+- **Description**: Verify that a tally snapshot matching an existing non-PAYG subscription (e.g., RHEL) produces a utilization summary with the correct capacity.  
+- **Setup**:  
+  - Create a RHEL subscription with a Sockets capacity of 10  
+  - Prepare a tally snapshot matching the subscription's org and product  
+- **Action**:  
+  - Publish the tally summary to the tally Kafka topic  
+- **Verification**:  
+  - Wait for a utilization summary on the utilization Kafka topic  
+- **Expected Result**:  
+  - Utilization summary is produced with `subscriptionFound=true`  
+  - The Sockets measurement has `capacity=10` and `value=1.0`  
+  - Org ID and product ID match the subscription  
+
+**tally-consumer-TC003 - Tally summary with no matching subscription produces utilization summary with subscriptionFound=false**  
+- **Description**: Verify that when a tally snapshot doesn't match any existing subscription or contract, the system still produces a utilization summary but flags that no subscription was found.  
+- **Setup**:  
+  - Prepare a tally snapshot for an org/product/billing combination that has no corresponding subscription or contract in the database  
+- **Action**:  
+  - Publish the tally summary to the tally Kafka topic  
+- **Verification**:  
+  - Wait for a utilization summary on the utilization Kafka topic  
+- **Expected Result**:  
+  - Utilization summary is produced  
+  - `subscriptionFound=false`  
+
+**tally-consumer-TC004 - Tally summary with multiple matching subscriptions aggregates capacity**  
+- **Description**: Verify that when multiple subscriptions with the same SKU match a tally snapshot, their capacities are summed in the resulting utilization summary.  
+- **Setup**:  
+  - Create two RHEL subscriptions with the same SKU, each with a Sockets capacity of 10  
+  - Prepare a tally snapshot matching these subscriptions  
+- **Action**:  
+  - Publish the tally summary to the tally Kafka topic  
+- **Verification**:  
+  - Wait for a utilization summary on the utilization Kafka topic  
+- **Expected Result**:  
+  - Utilization summary is produced with `subscriptionFound=true`  
+  - The Sockets measurement has `capacity=20` (aggregated from both subscriptions)  
+
+**tally-consumer-TC005 - Tally summary with subscriptions from different billing accounts produces separate utilization summaries**  
+- **Description**: Verify that tally snapshots linked to subscriptions with different billing accounts produce separate utilization summaries (one per snapshot), and capacity is not aggregated across them.  
+- **Setup**:  
+  - Create two ROSA contracts with different billing account IDs, each with Cores capacity of 10  
+  - Prepare tally snapshots for each contract  
+- **Action**:  
+  - Publish the tally summary containing both snapshots to the tally Kafka topic  
+- **Verification**:  
+  - Wait for utilization summaries on the utilization Kafka topic  
+- **Expected Result**:  
+  - Two separate utilization summaries are produced (one per billing account)  
+  - Each has its own capacity, not aggregated  
+
+**tally-consumer-TC006 - Tally summary with mixed contract and subscription produces two utilization summaries**  
+- **Description**: Verify that a single tally summary containing snapshots for both a PAYG contract (ROSA) and a non-PAYG subscription (RHEL) produces two independent utilization summaries, each enriched with the correct capacity.  
+- **Setup**:  
+  - Create a ROSA contract with Cores capacity of 10  
+  - Create a RHEL subscription with Sockets capacity of 10  
+  - Prepare one tally snapshot per product  
+- **Action**:  
+  - Publish the tally summary (with both snapshots) to the tally Kafka topic  
+- **Verification**:  
+  - Wait for two utilization summaries on the utilization Kafka topic  
+- **Expected Result**:  
+  - One utilization summary for ROSA with `subscriptionFound=true`, Cores `capacity=10`  
+  - One utilization summary for RHEL with `subscriptionFound=true`, Sockets `capacity=10`  
+
+**tally-consumer-TC007 - Capacity is enriched when tally snapshot uses _ANY into the SLA and Usage fields**  
+- **Description**: Verify that a tally snapshot with `sla=_ANY` and `usage=_ANY` matches a subscription regardless of its specific SLA/Usage values, and gets the correct capacity.  
+- **Setup**:  
+  - Create a RHEL subscription with `SLA=Premium`, `Usage=Production`, and Sockets capacity  
+  - Prepare a tally snapshot with `sla=_ANY`, `usage=_ANY` for the same product  
+- **Action**:  
+  - Publish the tally summary to the tally Kafka topic  
+- **Verification**:  
+  - Wait for a utilization summary on the utilization Kafka topic  
+- **Expected Result**:  
+  - Utilization summary is produced with the correct Sockets capacity from the subscription  
+
+**tally-consumer-TC008 - Capacity is null when tally snapshot SLA/Usage does not match any subscription**  
+- **Description**: Verify that when a tally snapshot has specific SLA and Usage dimensions (e.g., `Self-Support` / `Development/Test`) that don't match any existing subscription, the capacity enrichment returns null, preventing false over-usage notifications.  
+- **Setup**:  
+  - Create a RHEL subscription with `SLA=Premium`, `Usage=Production`, and Sockets capacity  
+  - Prepare a tally snapshot with `sla=Self-Support`, `usage=Development/Test` for the same product  
+- **Action**:  
+  - Publish the tally summary to the tally Kafka topic  
+- **Verification**:  
+  - Wait for a utilization summary on the utilization Kafka topic  
+- **Expected Result**:  
+  - Utilization summary is produced but with `capacity=null` for the Sockets measurement (no subscription matches that SLA/Usage combination)  
+  - This snapshot should not be eligible to trigger an over-usage notification
