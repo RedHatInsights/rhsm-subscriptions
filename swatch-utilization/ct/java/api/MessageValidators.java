@@ -23,9 +23,30 @@ package api;
 import com.redhat.cloud.notifications.ingress.Action;
 import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
 
+/** Message validators for notification messages in utilization component tests. */
 public class MessageValidators {
 
+  /** Matches notifications by organization ID. */
   public static DefaultMessageValidator<Action> matchesOrgId(String orgId) {
     return new DefaultMessageValidator<>(a -> orgId.equals(a.getOrgId()), Action.class);
+  }
+
+  /** Matches overage notifications by org_id, product_id, and metric_id. */
+  public static DefaultMessageValidator<Action> matchesOverageNotification(
+      String orgId, String productId, String metricId) {
+    return new DefaultMessageValidator<>(
+        action -> {
+          if (!orgId.equals(action.getOrgId())) {
+            return false;
+          }
+          var context = action.getContext();
+          if (context == null) {
+            return false;
+          }
+          var props = context.getAdditionalProperties();
+          return productId.equals(props.get("product_id"))
+              && metricId.equals(props.get("metric_id"));
+        },
+        Action.class);
   }
 }
