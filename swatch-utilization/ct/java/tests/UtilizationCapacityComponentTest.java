@@ -23,14 +23,12 @@ package tests;
 import static com.redhat.swatch.component.tests.utils.Topics.UTILIZATION;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
-import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.utilization.test.model.Measurement;
 import com.redhat.swatch.utilization.test.model.UtilizationSummary;
 import com.redhat.swatch.utilization.test.model.UtilizationSummary.Granularity;
 import domain.Product;
-import java.time.Duration;
 import java.util.ArrayList;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -43,9 +41,6 @@ public class UtilizationCapacityComponentTest extends BaseUtilizationComponentTe
   private static final double BASELINE_CAPACITY = 100.0;
   private static final double POSITIVE_USAGE = 50.0;
   private static final double USAGE_EXCEEDING_THRESHOLD = 110.0;
-  private static final Duration MESSAGE_PROCESSING_DELAY = Duration.ofSeconds(2);
-  private static final String MSG_OVER_USAGE_COUNTER_UNCHANGED =
-      "Over-usage counter should not change";
 
   private UtilizationSummary utilizationSummary;
   private double initialOverUsageCount;
@@ -139,9 +134,7 @@ public class UtilizationCapacityComponentTest extends BaseUtilizationComponentTe
           double currentCount =
               service.getMetricByTags(OVER_USAGE_METRIC, metricIdTag(product.getFirstMetricId()));
           Assertions.assertEquals(
-              initialOverUsageCount, currentCount, MSG_OVER_USAGE_COUNTER_UNCHANGED);
-        },
-        AwaitilitySettings.using(MESSAGE_PROCESSING_DELAY, Duration.ofSeconds(30))
-            .timeoutMessage(MSG_OVER_USAGE_COUNTER_UNCHANGED));
+              initialOverUsageCount, currentCount, "Over-usage counter should not change");
+        });
   }
 }

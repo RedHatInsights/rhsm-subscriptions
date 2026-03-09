@@ -378,38 +378,12 @@ protected double getPhysicalSocketCapacity(...) { ... }
 - Repeated assertion patterns → Create custom assertion methods
 - Similar test data creation → Use test helpers or domain object builders
 - Common cleanup logic → Use `@AfterEach` or base class teardown
-<<<<<<< Updated upstream
 - Multiple methods with same body differing only by a parameter → Consolidate into one parameterized method
-=======
 - **Unused methods left behind after refactoring** → Remove dead code when modifying files
 - **New method needed** → Before creating one, search for existing similar methods that could be extended (e.g. by adding parameters or overloads) instead of introducing a new, duplicate method
->>>>>>> Stashed changes
 
-### 3. Constants and Repetitive Values
 
-**Review for repetitive values that can be extracted as constants:**
-
-- **Search for repeated string literals** (assertion messages, error messages, labels) used 2+ times → Extract to `private static final String` constants
-- **Repeated numeric or configuration values** used across multiple tests → Extract to `private static final` constants
-- **Common patterns**: Assertion messages like "X should succeed", "Y should be present", status/error descriptions
-
-**When to extract:**
-- Same string literal appears in 2 or more places
-- The value conveys semantic meaning (e.g., `MSG_FORCE_RECONCILE_SUCCESS` vs inline "Force reconcile should succeed")
-- Constants improve maintainability and ensure consistency when messages change
-
-**Example:**
-```java
-// Before: Repeated assertion messages
-assertThat("Force reconcile should succeed", response.statusCode(), is(HttpStatus.SC_OK));
-// ... used 7 times across tests
-
-// After: Extract to constant
-private static final String MSG_FORCE_RECONCILE_SUCCESS = "Force reconcile should succeed";
-assertThat(MSG_FORCE_RECONCILE_SUCCESS, response.statusCode(), is(HttpStatus.SC_OK));
-```
-
-### 4. Method Ordering and Structure
+### 3. Method Ordering and Structure
 
 **Requirements:**
 - Methods must follow Java access modifier conventions (per `config/codestyle/intellij-java-google-style.xml`):
