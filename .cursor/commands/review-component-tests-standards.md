@@ -242,6 +242,7 @@ public class BaseContractComponentTest {
 ### Test Naming and Documentation
 
 - Test method names should be descriptive and start with `should` or `test`
+- Test and helper method names must not exceed **65 characters** (improves readability in IDEs and diffs)
 - Use `@TestPlanName` annotation to link to test plans
 - **NEVER add Javadoc comments to methods whose name already explains what they do.** Javadocs are only justified for genuinely complex methods where the name alone cannot convey the intent, constraints, or non-obvious behavior. Helper methods like `givenContractIsCreated`, `whenContractIsDeleted`, or `thenCapacityIsDecreased` are self-explanatory and MUST NOT have Javadoc.
 - Assertion messages should be clear and actionable
@@ -377,9 +378,38 @@ protected double getPhysicalSocketCapacity(...) { ... }
 - Repeated assertion patterns → Create custom assertion methods
 - Similar test data creation → Use test helpers or domain object builders
 - Common cleanup logic → Use `@AfterEach` or base class teardown
+<<<<<<< Updated upstream
 - Multiple methods with same body differing only by a parameter → Consolidate into one parameterized method
+=======
+- **Unused methods left behind after refactoring** → Remove dead code when modifying files
+- **New method needed** → Before creating one, search for existing similar methods that could be extended (e.g. by adding parameters or overloads) instead of introducing a new, duplicate method
+>>>>>>> Stashed changes
 
-### 3. Method Ordering and Structure
+### 3. Constants and Repetitive Values
+
+**Review for repetitive values that can be extracted as constants:**
+
+- **Search for repeated string literals** (assertion messages, error messages, labels) used 2+ times → Extract to `private static final String` constants
+- **Repeated numeric or configuration values** used across multiple tests → Extract to `private static final` constants
+- **Common patterns**: Assertion messages like "X should succeed", "Y should be present", status/error descriptions
+
+**When to extract:**
+- Same string literal appears in 2 or more places
+- The value conveys semantic meaning (e.g., `MSG_FORCE_RECONCILE_SUCCESS` vs inline "Force reconcile should succeed")
+- Constants improve maintainability and ensure consistency when messages change
+
+**Example:**
+```java
+// Before: Repeated assertion messages
+assertThat("Force reconcile should succeed", response.statusCode(), is(HttpStatus.SC_OK));
+// ... used 7 times across tests
+
+// After: Extract to constant
+private static final String MSG_FORCE_RECONCILE_SUCCESS = "Force reconcile should succeed";
+assertThat(MSG_FORCE_RECONCILE_SUCCESS, response.statusCode(), is(HttpStatus.SC_OK));
+```
+
+### 4. Method Ordering and Structure
 
 **Requirements:**
 - Methods must follow Java access modifier conventions (per `config/codestyle/intellij-java-google-style.xml`):
@@ -580,6 +610,7 @@ When reviewing a component test:
 - [ ] Does the test follow Given-When-Then structure with clearly identifiable sections?
 - [ ] Is there only ONE action (When) per test?
 - [ ] Is the test method name descriptive?
+- [ ] Do test and helper method names not exceed 65 characters?
 - [ ] Is `@TestPlanName` annotation present (if applicable)?
 - [ ] If `@TestPlanName` is used, does the service have a `TEST_PLAN.md` file?
 - [ ] If `TEST_PLAN.md` exists, does the test implementation match the test case definition?
@@ -589,6 +620,8 @@ When reviewing a component test:
 
 - [ ] Are methods reasonably sized (< 30 lines guideline)?
 - [ ] Is duplicated code extracted to helper methods?
+- [ ] Are repeated string literals (assertion messages, labels) extracted to constants when used 2+ times?
+- [ ] Are there no unused methods left behind in modified files?
 - [ ] Are helper methods named appropriately (`given*`, `when*`, `then*`)?
 - [ ] Are methods ordered correctly (static → public → protected → private)?
 - [ ] Within each access level, are helper methods ordered by given-when-then sequence?
@@ -712,6 +745,7 @@ assertEquals(2, contracts.size(), "Should have exactly two contracts");
 - **Focus on patterns** used in existing component tests
 - **Prioritize performance** when reviewing dependencies
 - **Emphasize readability** - tests are documentation
+- **Look for repetitive values** - extract repeated strings and literals to constants
 - **Be specific** with examples and suggestions
 - **Reference existing code** as examples when possible
 - **Reference** `config/codestyle/intellij-java-google-style.xml` for code style guidelines
