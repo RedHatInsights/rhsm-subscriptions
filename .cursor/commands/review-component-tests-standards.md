@@ -594,7 +594,6 @@ When reviewing a component test:
 
 - [ ] Are methods reasonably sized (< 30 lines guideline)?
 - [ ] Is duplicated code extracted to helper methods?
-- [ ] Are repeated string literals (assertion messages, labels) extracted to constants when used 2+ times?
 - [ ] Are there no unused methods left behind in modified files?
 - [ ] Are helper methods named appropriately (`given*`, `when*`, `then*`)?
 - [ ] Are methods ordered correctly (static → public → protected → private)?
@@ -719,7 +718,6 @@ assertEquals(2, contracts.size(), "Should have exactly two contracts");
 - **Focus on patterns** used in existing component tests
 - **Prioritize performance** when reviewing dependencies
 - **Emphasize readability** - tests are documentation
-- **Look for repetitive values** - extract repeated strings and literals to constants
 - **Be specific** with examples and suggestions
 - **Reference existing code** as examples when possible
 - **Reference** `config/codestyle/intellij-java-google-style.xml` for code style guidelines
