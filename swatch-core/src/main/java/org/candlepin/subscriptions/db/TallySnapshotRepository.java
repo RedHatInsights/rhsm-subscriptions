@@ -222,6 +222,7 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
       AND t.usage <> :anyUsage
       AND t.billingProvider <> :anyBillingProvider
       AND t.billingAccountId <> '_ANY'
+      AND t.isPrimary = false
   """)
   int setIsPrimaryForPayg(
       @Param("orgId") String orgId,
@@ -246,6 +247,7 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
       AND t.usage <> :anyUsage
       AND t.billingProvider = :anyBillingProvider
       AND t.billingAccountId = '_ANY'
+      AND t.isPrimary = false
   """)
   int setIsPrimaryForNonPayg(
       @Param("orgId") String orgId,

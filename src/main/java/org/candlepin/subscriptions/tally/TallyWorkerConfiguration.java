@@ -245,7 +245,7 @@ public class TallyWorkerConfiguration {
     executor.setCorePoolSize(1);
     executor.setMaxPoolSize(1);
     // Queue capacity to prevent rejection
-    executor.setQueueCapacity(50);
+    executor.setQueueCapacity(5);
     executor.initialize();
     return executor;
   }
