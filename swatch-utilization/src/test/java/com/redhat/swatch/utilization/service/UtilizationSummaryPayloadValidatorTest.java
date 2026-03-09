@@ -100,52 +100,10 @@ public class UtilizationSummaryPayloadValidatorTest {
     assertFalse(result);
   }
 
-  @Test
-  void testHasAnySlaAndUsage_withAnySlaAndUsage_returnsTrue() {
-    UtilizationSummary payload =
-        createValidNonPaygPayload()
-            .withSla(UtilizationSummary.Sla.ANY)
-            .withUsage(UtilizationSummary.Usage.ANY);
-    boolean result = whenIsUtilizationSummaryValid(payload);
-    assertTrue(result);
-  }
-
-  @Test
-  void testHasAnySlaAndUsage_withSpecificSla_returnsFalse() {
-    UtilizationSummary payload =
-        createValidNonPaygPayload().withSla(UtilizationSummary.Sla.PREMIUM);
-    boolean result = whenIsUtilizationSummaryValid(payload);
-    assertFalse(result);
-  }
-
-  @Test
-  void testHasAnySlaAndUsage_withSpecificUsage_returnsFalse() {
-    UtilizationSummary payload =
-        createValidNonPaygPayload().withUsage(UtilizationSummary.Usage.PRODUCTION);
-    boolean result = whenIsUtilizationSummaryValid(payload);
-    assertFalse(result);
-  }
-
-  @Test
-  void testHasAnySlaAndUsage_withNullSla_returnsTrue() {
-    UtilizationSummary payload = createValidNonPaygPayload().withSla(null);
-    boolean result = whenIsUtilizationSummaryValid(payload);
-    assertTrue(result);
-  }
-
-  @Test
-  void testHasAnySlaAndUsage_withNullUsage_returnsTrue() {
-    UtilizationSummary payload = createValidNonPaygPayload().withUsage(null);
-    boolean result = whenIsUtilizationSummaryValid(payload);
-    assertTrue(result);
-  }
-
   private UtilizationSummary createValidNonPaygPayload() {
     return new UtilizationSummary()
         .withOrgId("org123")
         .withProductId("RHEL for x86")
-        .withSla(UtilizationSummary.Sla.ANY)
-        .withUsage(UtilizationSummary.Usage.ANY)
         .withGranularity(UtilizationSummary.Granularity.DAILY)
         .withMeasurements(
             List.of(
@@ -161,8 +119,6 @@ public class UtilizationSummaryPayloadValidatorTest {
         .withOrgId("org123")
         .withProductId("rosa")
         .withBillingAccountId("billing-123")
-        .withSla(UtilizationSummary.Sla.ANY)
-        .withUsage(UtilizationSummary.Usage.ANY)
         .withGranularity(UtilizationSummary.Granularity.HOURLY)
         .withMeasurements(
             List.of(
