@@ -16,8 +16,7 @@
 
   <properties>
     <java.version>21</java.version>
-    <maven.compiler.source>${java.version}</maven.compiler.source>
-    <maven.compiler.target>${java.version}</maven.compiler.target>
+    <maven.compiler.release>${java.version}</maven.compiler.release>
   </properties>
 
   <dependencies>
@@ -159,11 +158,6 @@
     <dependency>
       <groupId>org.awaitility</groupId>
       <artifactId>awaitility</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.redhat.swatch</groupId>
-      <artifactId>swatch-common-testcontainers</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

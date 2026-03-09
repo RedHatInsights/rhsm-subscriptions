@@ -24,6 +24,7 @@ import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INST
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static utils.TallyTestProducts.OPENSHIFT_DEDICATED;
 
+import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.tally.test.model.InstanceResponse;
 import com.redhat.swatch.tally.test.model.TallyReportData;
@@ -60,22 +61,20 @@ public class TallyPersistenceTest extends BaseTallyComponentTest {
   }
 
   @Test
+  @TestPlanName("tally-persistence-TC001")
   public void testTallyReportPersistsWithDateTimeRangeVariations() {
-    // Run initial tally after setup
+    // Given: Initial tally reports for today and yesterday
     service.performHourlyTallyForOrg(setup.orgId);
-
-    // Get initial tally reports
     TallyReportData todayTallyBefore = getTallyReport(setup.today);
     TallyReportData yesterdayTallyBefore = getTallyReport(setup.yesterday);
 
-    // Run hourly tally again
+    // When: Running hourly tally again
     service.performHourlyTallyForOrg(setup.orgId);
 
-    // Get tally reports after second tally
+    // Then: Tally reports should not change after re-tally
     TallyReportData todayTallyAfter = getTallyReport(setup.today);
     TallyReportData yesterdayTallyAfter = getTallyReport(setup.yesterday);
 
-    // Verify persistence - tally reports should not change
     assertEquals(
         todayTallyBefore, todayTallyAfter, "Today's tally should not change after re-tally");
     assertEquals(
@@ -85,30 +84,29 @@ public class TallyPersistenceTest extends BaseTallyComponentTest {
   }
 
   @Test
+  @TestPlanName("tally-persistence-TC002")
   public void testInstanceReportPersistsWithDateTimeRangeVariations() {
-    // Run initial tally
+    // Given: Initial instances report for yesterday
     service.performHourlyTallyForOrg(setup.orgId);
-
-    // Get initial instances report for yesterday
     OffsetDateTime yesterdayInstancesBefore =
         AwaitilityUtils.untilIsNotNull(
             () -> getLastAppliedEventDate(getInstancesReport(setup.yesterday)));
 
-    // Run hourly tally again
+    // When: Running hourly tally again
     service.performHourlyTallyForOrg(setup.orgId);
 
-    // Get instances report after second tally
+    // Then: Instances report should not change after re-tally
     OffsetDateTime yesterdayInstancesAfter =
         AwaitilityUtils.untilIsNotNull(
             () -> getLastAppliedEventDate(getInstancesReport(setup.yesterday)));
 
-    // Verify persistence - instances report should not change (excluding
-    // last_applied_event_record_date)
     assertEquals(
         yesterdayInstancesBefore,
         yesterdayInstancesAfter,
         "Yesterday's instances report should not change after re-tally");
   }
+
+  // --- Given helper methods ---
 
   private TestSetup setupTest() {
     OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
@@ -152,6 +150,8 @@ public class TallyPersistenceTest extends BaseTallyComponentTest {
     event.setRole(Event.Role.OSD);
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event);
   }
+
+  // --- Then helper methods ---
 
   private TallyReportData getTallyReport(DateRange range) {
     return service.getTallyReportData(

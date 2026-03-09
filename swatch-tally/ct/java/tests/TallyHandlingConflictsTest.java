@@ -26,6 +26,7 @@ import static utils.TallyTestProducts.RHACM;
 import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 import static utils.TallyTestProducts.ROSA;
 
+import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.tally.test.model.InstanceData;
@@ -57,12 +58,14 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
   }
 
   @Test
+  @TestPlanName("tally-conflicts-TC001")
   public void testTallyCorrectlyHandlesPositiveMetricValueUpdates() {
+    // Given: An initial event with a metric value and a subsequent event with a higher positive
+    // value
     float initialValue = 10.0f;
     float updatedValue = 25.0f;
     String metricId = RHEL_FOR_X86_ELS_PAYG.metricIds().get(0);
 
-    // Initial event
     createEventForProduct(setup.start, RHEL_FOR_X86_ELS_PAYG, metricId, initialValue);
     service.performHourlyTallyForOrg(setup.orgId);
     double before =
@@ -73,9 +76,11 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
             setup.start.plusHours(1),
             initialValue);
 
-    // Update event: same instanceId + same timestamp hour, different positive value
+    // When: An update event with same instanceId and timestamp hour but different positive value
     createEventForProduct(setup.start, RHEL_FOR_X86_ELS_PAYG, metricId, updatedValue);
     service.performHourlyTallyForOrg(setup.orgId);
+
+    // Then: Tally should reflect the updated positive measurement
     double after =
         awaitHourlyTallySum(
             RHEL_FOR_X86_ELS_PAYG.productTag(),
@@ -88,12 +93,13 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
   }
 
   @Test
+  @TestPlanName("tally-conflicts-TC002")
   public void testTallyCorrectlyHandlesNegativeMetricValueNoUpdates() {
+    // Given: An initial event with a positive metric value
     float initialValue = 10.0f;
     float updatedValue = -25.0f;
     String metricId = RHEL_FOR_X86_ELS_PAYG.metricIds().get(0);
 
-    // Initial event
     createEventForProduct(setup.start, RHEL_FOR_X86_ELS_PAYG, metricId, initialValue);
     service.performHourlyTallyForOrg(setup.orgId);
     double before =
@@ -104,9 +110,11 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
             setup.start.plusHours(1),
             initialValue);
 
-    // Update event: same instanceId + same timestamp hour, different negative value
+    // When: An update event with same instanceId and timestamp hour but negative value
     createEventForProduct(setup.start, RHEL_FOR_X86_ELS_PAYG, metricId, updatedValue);
     service.performHourlyTallyForOrg(setup.orgId);
+
+    // Then: Tally should not reflect the negative measurement
     double after =
         awaitHourlyTallySum(
             RHEL_FOR_X86_ELS_PAYG.productTag(),
@@ -119,17 +127,20 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
   }
 
   @Test
+  @TestPlanName("tally-conflicts-TC003")
   public void testTallyMultipleProductsSameInstance() {
-    // Produce one event per (product, metric) combination.
+    // Given: One event per (product, metric) combination for the same instance
     for (TallyTestProducts product : List.of(RHACM, ROSA)) {
       for (String metricId : product.metricIds()) {
         float value = (float) expectedMetricValue(metricId);
         createEventForProduct(setup.start, product, metricId, value);
       }
     }
+
+    // When: Performing hourly tally
     service.performHourlyTallyForOrg(setup.orgId);
 
-    // Verify instances + tally totals by product/metric.
+    // Then: Each product should have correct instance count and tally totals per metric
     for (TallyTestProducts product : List.of(RHACM, ROSA)) {
       awaitInstancesCount(
           product.productTag(), setup.start, setup.start.plusHours(1), setup.instanceId, 1);
@@ -146,8 +157,9 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
   }
 
   @Test
+  @TestPlanName("tally-conflicts-TC004")
   public void testTallyMultipleProductsSameInstanceConflictingEvents() {
-    // Produce an event for each product in the starting hour
+    // Given: Events for each product in the starting hour and conflicting events in the next hour
     for (TallyTestProducts product : List.of(RHACM, ROSA)) {
       for (String metricId : product.metricIds()) {
         float value = (float) expectedMetricValue(metricId);
@@ -156,16 +168,17 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
     }
     service.performHourlyTallyForOrg(setup.orgId);
 
-    // Produce another conflicting event for each product in the next hour
     for (TallyTestProducts product : List.of(RHACM, ROSA)) {
       for (String metricId : product.metricIds()) {
         float value = (float) expectedMetricValue(metricId);
         createEventForProduct(setup.start.plusHours(1), product, metricId, value);
       }
     }
+
+    // When: Performing hourly tally after conflicting events
     service.performHourlyTallyForOrg(setup.orgId);
 
-    // Verify instances + tally totals by product/metric.
+    // Then: Each product should have one instance and doubled tally totals across both hours
     for (TallyTestProducts product : List.of(RHACM, ROSA)) {
       awaitInstancesCount(
           product.productTag(), setup.start, setup.start.plusHours(2), setup.instanceId, 1);
@@ -180,11 +193,8 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
     }
   }
 
-  // --- helpers ---
+  // --- Given helper methods ---
 
-  /*
-   * Sets up variables used in each test.
-   */
   private TestSetup setupTest() {
     service.createOptInConfig(orgId);
 
@@ -196,9 +206,6 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
     return new TestSetup(orgId, start, instanceId);
   }
 
-  /*
-   * Creates an event for a given product and metric.
-   */
   private void createEventForProduct(
       OffsetDateTime timestamp, TallyTestProducts product, String metricId, float value) {
     Event event =
@@ -219,18 +226,12 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event);
   }
 
-  /*
-   * Returns the expected metric value for a given metric ID.
-   * If the metric ID is "Instance-hours", returns 1.0.
-   * Otherwise, returns 40.0.
-   */
   private double expectedMetricValue(String metricId) {
     return "Instance-hours".equals(metricId) ? 1.0 : 40.0;
   }
 
-  /*
-   * Gets the number of instances by display name.
-   */
+  // --- Then helper methods ---
+
   private long getInstancesCountByDisplayName(
       String productTag,
       OffsetDateTime beginning,
@@ -249,9 +250,6 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
         .count();
   }
 
-  /*
-   * Awaits the number of instances to reach the expected count.
-   */
   private void awaitInstancesCount(
       String productTag,
       OffsetDateTime beginning,
@@ -269,14 +267,12 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
           service.performHourlyTallyForOrg(setup.orgId);
           assertEquals(
               expectedCount,
-              getInstancesCountByDisplayName(productTag, beginning, ending, displayNameContains));
+              getInstancesCountByDisplayName(productTag, beginning, ending, displayNameContains),
+              "Instance count should match expected value");
         },
         settings);
   }
 
-  /*
-   * Gets the hourly tally sum for a given product, metric, and time range.
-   */
   private double getHourlyTallySum(
       String productTag, String metricId, OffsetDateTime beginning, OffsetDateTime ending) {
     Map<String, ?> queryParams =
@@ -296,9 +292,6 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
         .getSum();
   }
 
-  /*
-   * Awaits the hourly tally sum to reach the expected value.
-   */
   private double awaitHourlyTallySum(
       String productTag,
       String metricId,
@@ -316,7 +309,10 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
         () -> {
           service.performHourlyTallyForOrg(setup.orgId);
           assertEquals(
-              expected, getHourlyTallySum(productTag, metricId, beginning, ending), 0.0001);
+              expected,
+              getHourlyTallySum(productTag, metricId, beginning, ending),
+              0.0001,
+              "Hourly tally sum should match expected value");
         },
         settings);
 

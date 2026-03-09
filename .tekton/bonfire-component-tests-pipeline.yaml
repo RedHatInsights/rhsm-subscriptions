@@ -276,7 +276,7 @@ spec:
           - name: name
             value: git-clone
           - name: bundle
-            value: quay.io/konflux-ci/tekton-catalog/task-git-clone:0.1@sha256:865cdbe6094ff52d9e5dfc40d44ca5cfa6cee4b665aef91306356652fb84d7cc
+            value: quay.io/konflux-ci/tekton-catalog/task-git-clone:0.1@sha256:7db7ad9653dccc771407cb0294487cf4be9064fa782ffad7e983db1a8ba57e21
           - name: kind
             value: task
         resolver: bundles
@@ -330,7 +330,7 @@ spec:
               # Persist kubeconfig for the next step
               oc config view --minify --raw > "$(workspaces.output.path)/kubeconfig"
           - name: tests
-            image: registry.access.redhat.com/ubi9/openjdk-21-runtime
+            image: registry.access.redhat.com/ubi9/openjdk-21
             workingDir: $(workspaces.output.path)/source
             env:
               - name: KUBECONFIG
@@ -388,6 +388,12 @@ spec:
                     fieldPath: metadata.labels['pac.test.appstudio.openshift.io/event-type']
               - name: PIPELINE_NAME
                 value: "$(context.pipelineRun.name)"
+              - name: GIT_REVISION
+                value: "$(tasks.extract-revision.results.GIT_REVISION)"
+              - name: INTEGRATION_TEST_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.labels['test.appstudio.openshift.io/scenario']
             script: |
               #!/bin/bash
               set -euo pipefail
@@ -402,6 +408,8 @@ spec:
               sed -i "s/SERVICE_NAME/$SERVICE/g" datarouter.json
               sed -i "s/EVENT_TYPE_PLACEHOLDER/$EVENT_TYPE/g" datarouter.json
               sed -i "s/PIPELINE_NAME_PLACEHOLDER/$PIPELINE_NAME/g" datarouter.json
+              sed -i "s/GIT_REVISION_PLACEHOLDER/$GIT_REVISION/g" datarouter.json
+              sed -i "s/INTEGRATION_TEST_NAME_PLACEHOLDER/$INTEGRATION_TEST_NAME/g" datarouter.json
               
               echo "Using metadata from: $METADATA_FILE"
               echo "Metadata content:"

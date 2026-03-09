@@ -365,28 +365,27 @@ Test cases should be testable locally and in an ephemeral environment.
 
 ## Contract Update via API
 
-**contracts-update-TC003 - Update contract start and end date**  
-- **Description**: Verify updating the contract start and end date.  
-- **Setup:**  
-  - Create a contract with:   
-  - `subscription_number`: "12585274"  
-  - `start_date`: "2024-01-01T00:00:00Z"  
-  - `end_date`: "2024-12-31T23:59:59Z"  
-  - Cores: 8  
-- **Action:** Update the contract start and end date.  
-- **Verification:**   
-  - Query contract by `subscription_number` and verify changes  
-  - Check `last_updated` timestamp  
-  - Check the start date  
-  - Check the end date  
-- **Expected Result:**  
-  - Existing contract located by `subscription_number` + `start_date` match  
-  - `start_date` update  
-  - `end_date` updated   
-  - `last_updated` timestamp updated to the current time  
-  - UUID remains the same (no new contract created)  
-  - Other fields unchanged (org_id, sku, metrics)  
-  - Response status: "EXISTING_CONTRACTS_SYNCED"
+**contracts-update-TC003 - Replace contract when start_date changes**
+- **Description**: Verify that changing the contract start_date creates a new contract (the service matches contracts by billing_provider_id + start_date, so changing start_date means it can't find the existing contract to update).
+- **Setup:**
+  - Create a contract with:
+  - `subscription_number`: "12585274"
+  - `start_date`: "2024-01-01T00:00:00Z"
+  - `end_date`: "2024-12-31T23:59:59Z"
+  - Cores: 8
+- **Action:** Submit contract update with new start_date: "2024-02-01T00:00:00Z" and end_date: "2025-01-31T23:59:59Z"
+- **Verification:**
+  - Query contracts by `org_id` and verify changes
+  - Check the start date
+  - Check the end date
+  - Check UUID
+- **Expected Result:**
+  - Old contract is deleted (doesn't match IT partner gateway data)
+  - New contract is created with the updated dates
+  - UUID is different (proves new contract created, not updated)
+  - Only 1 contract exists for the org (old one deleted, new one created)
+  - Other fields unchanged (org_id, sku, metrics)
+  - Response status: "SUCCESS" (new contract created)
 
 **contracts-update-TC004 - Update contract end date (renewal)**  
 - **Description**: Verify updating the contract end date ( with a date in the future ) when the customer renews the subscription.  
@@ -399,12 +398,10 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Action:** Update the contract end-date with a date in the future ("2025-12-31T23:59:59Z") 
 - **Verification:**   
   - Query contract by `subscription_number` and verify changes  
-  - Check `last_updated` timestamp  
   - Check end-date  
 - **Expected Result:**  
   - Existing contract located by `subscription_number` + `start_date` match  
   - `end_date` updated from "2024-12-31T23:59:59Z" to "2025-12-31T23:59:59Z"  
-  - `last_updated` timestamp updated to the current time  
   - UUID remains the same (no new contract created)  
   - Other fields unchanged (org_id, sku, metrics)  
   - Response status: "EXISTING_CONTRACTS_SYNCED"
@@ -418,21 +415,19 @@ Test cases should be testable locally and in an ephemeral environment.
   - Existing contract found and updated  
   - Cores metric updated: 8 → 16  
   - Instance-hours metric updated: 100 → 200  
-  - `last_updated` timestamp changed  
   - contract.status.message == "Existing contracts and subscriptions updated"  
   - contract.status.status == "SUCCESS"
 
-**contracts-update-TC006 - Update contract metrics from pure payg(no metrics before) to payg(with metrics)**  
-- **Description**: Verify updating contract metrics when the customer upgrades the tier.  
-- **Setup**:  
-  - Create a contract with Cores: 8, Instance-hours: 100  
-- **Action**: Submit updated entitlement with Cores: 16, Instance-hours: 200  
-- **Expected Result**:  
-  - Existing contract found and updated  
-  - Cores metric updated: 8 → 16  
-  - Instance-hours metric updated: 100 → 200  
-  - `last_updated` timestamp changed  
-  - contract.status.message == "Existing contracts and subscriptions updated"  
+**contracts-update-TC006 - Update contract metrics from pure payg(no metrics before) to payg(with metrics)**
+- **Description**: Verify upgrading from pure PAYG (no prepaid capacity) to PAYG with prepaid metrics when customer upgrades tier.
+- **Setup**:
+  - Create a pure PAYG contract with 0 metrics (create contract with invalid metric like SOCKETS for ROSA, which gets filtered out)
+- **Action**: Submit updated entitlement with valid metrics: Cores: 8, Instance-hours: 100
+- **Expected Result**:
+  - Existing contract found and updated
+  - Metrics count updated: 0 → 2
+  - New metrics added: Cores: 8, Instance-hours: 100
+  - contract.status.message == "Existing contracts and subscriptions updated"
   - contract.status.status == "SUCCESS"
 
 **contracts-update-TC007 - Update contract - terminate (set end date)**  
@@ -454,7 +449,6 @@ Test cases should be testable locally and in an ephemeral environment.
   - Existing contract found and updated  
   - Old metric remains  
   - New metric added  
-  - `last_updated` timestamp changed  
   - contract.status.message == "Existing contracts and subscriptions updated"  
   - contract.status.status == "SUCCESS"
 
@@ -467,7 +461,6 @@ Test cases should be testable locally and in an ephemeral environment.
   - Existing contract found and updated  
   - The specified metric was removed from the contract  
   - The metric that was not removed from the contract remains unchanged  
-  - `last_updated` timestamp changed  
   - contract.status.message == "Existing contracts and subscriptions updated"  
   - contract.status.status == "SUCCESS"
 
@@ -1265,75 +1258,138 @@ This section validates capacity calculations across time boundaries. Tests verif
   - Reconciliation task enqueued
 
 ### Subscription-Level Reconciliation
-**capacity-reconciliation-TC004 - Reconcile Subscription with Cores**
-- **Description**: Verify capacity calculation for subscription with Cores offering
+
+**Note**: The product data model does not support both physical and hypervisor capacity in the same offering (DERIVED_SKU determines mapping: absent = physical, present = hypervisor). Physical and hypervisor scenarios are covered in separate test cases.
+
+**capacity-reconciliation-TC004 - Reconcile Subscription with Physical Cores**
+- **Description**: Verify capacity calculation for subscription with physical Cores offering
 - **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
 - **Test Steps**:
-  1. Create offering with cores=4, hypervisorCores=2
+  1. Create offering with cores=4 (physical, no DERIVED_SKU)
   2. Create a subscription with quantity=10
   3. Reconcile subscription
 - **Expected Results**:
   - PHYSICAL Cores measurement = 4 * 10 = 40
+  - Measurements persisted in subscription_measurements
+
+**capacity-reconciliation-TC004b - Reconcile Subscription with Hypervisor Cores**
+- **Description**: Verify capacity calculation for subscription with hypervisor Cores offering
+- **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
+- **Test Steps**:
+  1. Create hypervisor offering (with DERIVED_SKU) with hypervisorCores=2
+  2. Create a subscription with quantity=10
+  3. Reconcile subscription
+- **Expected Results**:
   - HYPERVISOR Cores measurement = 2 * 10 = 20
   - Measurements persisted in subscription_measurements
 
-**capacity-reconciliation-TC005 - Reconcile Subscription with Sockets**
-- **Description**: Verify capacity calculation for Sockets
+**capacity-reconciliation-TC005 - Reconcile Subscription with Physical Sockets**
+- **Description**: Verify capacity calculation for subscription with physical Sockets offering
 - **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
 - **Test Steps**:
-  1. Create offering with sockets=2, hypervisorSockets=1
+  1. Create offering with sockets=2 (physical, no DERIVED_SKU)
   2. Create a subscription with quantity=5
   3. Reconcile
 - **Expected Results**:
   - PHYSICAL Sockets = 2 * 5 = 10
-  - HYPERVISOR Sockets = 1 * 5 = 5
 
-**capacity-reconciliation-TC006 - Reconcile Subscription with Mixed Metrics**
-- **Description**: Verify subscription with both Cores and Sockets
+**capacity-reconciliation-TC005b - Reconcile Subscription with Hypervisor Sockets**
+- **Description**: Verify capacity calculation for subscription with hypervisor Sockets offering
 - **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
 - **Test Steps**:
-  1. Offering has cores=8, sockets=2, hypervisorCores=4, hypervisorSockets=1
+  1. Create hypervisor offering (with DERIVED_SKU) with hypervisorSockets=1
+  2. Create a subscription with quantity=5
+  3. Reconcile
+- **Expected Results**:
+  - HYPERVISOR Sockets = 1 * 5 = 5
+
+**capacity-reconciliation-TC006 - Reconcile Subscription with Mixed Physical Metrics**
+- **Description**: Verify subscription with both physical Cores and Sockets
+- **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
+- **Test Steps**:
+  1. Offering has cores=8, sockets=2 (physical only)
   2. Subscription quantity=3
   3. Reconcile
 - **Expected Results**:
-  - 4 measurements created:
-    - PHYSICAL Cores = 24
-    - PHYSICAL Sockets = 6
-    - HYPERVISOR Cores = 12
-    - HYPERVISOR Sockets = 3
+  - PHYSICAL Cores = 24
+  - PHYSICAL Sockets = 6
 
-**capacity-reconciliation-TC007 - Update Existing Measurements**
-- **Description**: Verify existing measurements are updated when offering changes
+**capacity-reconciliation-TC006b - Reconcile Subscription with Mixed Hypervisor Metrics**
+- **Description**: Verify subscription with both hypervisor Cores and Sockets
 - **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
 - **Test Steps**:
-  1. Subscription has PHYSICAL Cores = 40
+  1. Create hypervisor offering with hypervisorCores=4, hypervisorSockets=1
+  2. Subscription quantity=3
+  3. Reconcile
+- **Expected Results**:
+  - HYPERVISOR Cores = 12
+  - HYPERVISOR Sockets = 3
+
+**capacity-reconciliation-TC007 - Update Existing Physical Measurements**
+- **Description**: Verify existing physical measurements are updated when offering changes
+- **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
+- **Test Steps**:
+  1. Subscription has PHYSICAL Cores = 40 (cores=8, quantity=5)
   2. Offering updated with cores=6
   3. Reconcile subscription
 - **Expected Results**:
-  - Existing measurement updated to new value (6 * quantity)
+  - Existing measurement updated to new value (6 * 5 = 30)
   - measurementsUpdated counter incremented
   - Log message indicates update
 
-**capacity-reconciliation-TC008 - Create New Measurements**  
-- **Description:** Verify new measurements are created  
+**capacity-reconciliation-TC007b - Update Existing Hypervisor Measurements**
+- **Description**: Verify existing hypervisor measurements are updated when offering changes
+- **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
+- **Test Steps**:
+  1. Subscription has HYPERVISOR Cores = 20 (hypervisorCores=2, quantity=10)
+  2. Offering updated with hypervisorCores=3
+  3. Reconcile subscription
+- **Expected Results**:
+  - Existing measurement updated to new value (3 * 10 = 30)
+  - measurementsUpdated counter incremented
+
+**capacity-reconciliation-TC008 - Create New Physical Measurements**  
+- **Description:** Verify new physical measurements are created  
 - **Action:** `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`  
 - **Test Steps:**
-  1. Subscription has no measurements
-  2. Reconcile with the offering that has capacity
+  1. Subscription has no measurements (saved with reconcileCapacity=false)
+  2. Reconcile with the offering that has physical capacity
 - **Expected Results**:
   - New measurements created
   - measurementsCreated counter incremented
 
-**capacity-reconciliation-TC009 - Delete Stale Measurements**
-- **Description**: Verify removal of measurements no longer in offering
+**capacity-reconciliation-TC008b - Create New Hypervisor Measurements**  
+- **Description:** Verify new hypervisor measurements are created  
+- **Action:** `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`  
+- **Test Steps:**
+  1. Subscription has no measurements (saved with reconcileCapacity=false)
+  2. Reconcile with the hypervisor offering that has capacity
+- **Expected Results**:
+  - New hypervisor measurements created
+  - measurementsCreated counter incremented
+
+**capacity-reconciliation-TC009 - Delete Stale Physical Measurements**
+- **Description**: Verify removal of physical measurements no longer in offering
 - **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
 - **Test Steps**:
-  1. Subscription has PHYSICAL Cores and HYPERVISOR Cores measurements
-  2. Offering updates only to have PHYSICAL Cores (hypervisorCores = null)
+  1. Subscription has PHYSICAL Cores and PHYSICAL Sockets (offering has cores=8, sockets=2)
+  2. Offering updates to have PHYSICAL Cores only (sockets = null)
   3. Reconcile
 - **Expected Results**:
   - PHYSICAL Cores measurement retained
-  - HYPERVISOR Cores measurement deleted
+  - PHYSICAL Sockets measurement deleted
+  - measurementsDeleted counter incremented
+
+**capacity-reconciliation-TC009b - Delete Stale Hypervisor Measurements**
+- **Description**: Verify removal of hypervisor measurements no longer in offering
+- **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
+- **Test Steps**:
+  1. Subscription has HYPERVISOR Cores and HYPERVISOR Sockets (offering has hypervisorCores=4, hypervisorSockets=1)
+  2. Offering updates to have HYPERVISOR Cores only (hypervisorSockets = null)
+  3. Reconcile
+- **Expected Results**:
+  - HYPERVISOR Cores measurement retained
+  - HYPERVISOR Sockets measurement deleted
   - measurementsDeleted counter incremented
 
 **capacity-reconciliation-TC010 - Null or Zero Capacity Values**

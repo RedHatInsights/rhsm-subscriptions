@@ -35,7 +35,6 @@ import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.contract.test.model.ContractRequest;
-import com.redhat.swatch.contract.test.model.ContractResponse;
 import domain.BillingProvider;
 import domain.Contract;
 import domain.Offering;
@@ -409,13 +408,6 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     return contract;
   }
 
-  private void givenOfferingIsSynced(Contract contract) {
-    wiremock.forProductAPI().stubOfferingData(contract.getOffering());
-    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(contract));
-    Response sync = service.syncOffering(contract.getOffering().getSku());
-    assertEquals(HttpStatus.SC_OK, sync.statusCode(), "Sync offering should succeed");
-  }
-
   private Contract givenContractCreatedViaMessageBroker(
       BillingProvider provider, Map<MetricId, Double> metrics) {
     Contract contract = buildRosaContract(orgId, provider, metrics);
@@ -432,13 +424,6 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     AwaitilityUtils.until(() -> service.getContracts(contract).size(), is(1));
 
     return contract;
-  }
-
-  private void whenContractIsCreatedViaApi(Contract contract) {
-    Response response = service.createContract(contract);
-    assertEquals(HttpStatus.SC_OK, response.statusCode());
-    var contractResponse = response.then().extract().as(ContractResponse.class);
-    assertEquals(SUCCESS_MESSAGE, contractResponse.getStatus().getStatus());
   }
 
   private void verifyCommonContractFields(

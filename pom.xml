@@ -13,14 +13,13 @@
   <properties>
     <!-- configuration -->
     <java.version>21</java.version>
-    <maven.compiler.source>${java.version}</maven.compiler.source>
-    <maven.compiler.target>${java.version}</maven.compiler.target>
+    <maven.compiler.release>${java.version}</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <codegen.skipIfSpecIsUnchanged>true</codegen.skipIfSpecIsUnchanged>
 
     <!-- Dependencies -->
-    <quarkus.platform.version>3.32.1</quarkus.platform.version>
+    <quarkus.platform.version>3.32.2</quarkus.platform.version>
     <spring.boot.version>3.5.11</spring.boot.version>
     <resteasy.version>7.0.0.Final</resteasy.version>
     <!-- Only use as provided in the common dependencies.
@@ -30,10 +29,10 @@
     <slf4j.version>2.0.17</slf4j.version>
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
-    <opentelemetry-api.version>1.59.0</opentelemetry-api.version>
-    <awssdk-bom.version>2.42.4</awssdk-bom.version>
+    <opentelemetry-api.version>1.60.1</opentelemetry-api.version>
+    <awssdk-bom.version>2.42.8</awssdk-bom.version>
     <guava.version>33.5.0-jre</guava.version>
-    <liquibase.version>5.0.1</liquibase.version>
+    <liquibase.version>5.0.2</liquibase.version>
     <postgresql.version>42.7.10</postgresql.version>
     <testcontainers.version>1.21.4</testcontainers.version>
     <junit.version>6.0.3</junit.version>
@@ -52,7 +51,7 @@
     <maven-assembly-plugin.version>3.8.0</maven-assembly-plugin.version>
     <exec-maven-plugin.version>3.6.3</exec-maven-plugin.version>
     <openapi-generator.version>7.20.0</openapi-generator.version>
-    <spotless.version>3.2.1</spotless.version>
+    <spotless.version>3.3.0</spotless.version>
     <checkstyle.version>3.6.0</checkstyle.version>
     <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
     <maven-antrun-plugin.version>3.2.0</maven-antrun-plugin.version>
@@ -375,7 +374,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-resources-plugin</artifactId>
-          <version>3.4.0</version>
+          <version>3.5.0</version>
         </plugin>
 
         <plugin>
