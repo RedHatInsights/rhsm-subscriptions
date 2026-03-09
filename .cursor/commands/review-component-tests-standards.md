@@ -242,6 +242,7 @@ public class BaseContractComponentTest {
 ### Test Naming and Documentation
 
 - Test method names should be descriptive and start with `should` or `test`
+- Test and helper method names must not exceed **65 characters** (improves readability in IDEs and diffs)
 - Use `@TestPlanName` annotation to link to test plans
 - **NEVER add Javadoc comments to methods whose name already explains what they do.** Javadocs are only justified for genuinely complex methods where the name alone cannot convey the intent, constraints, or non-obvious behavior. Helper methods like `givenContractIsCreated`, `whenContractIsDeleted`, or `thenCapacityIsDecreased` are self-explanatory and MUST NOT have Javadoc.
 - Assertion messages should be clear and actionable
@@ -378,6 +379,9 @@ protected double getPhysicalSocketCapacity(...) { ... }
 - Similar test data creation → Use test helpers or domain object builders
 - Common cleanup logic → Use `@AfterEach` or base class teardown
 - Multiple methods with same body differing only by a parameter → Consolidate into one parameterized method
+- **Unused methods left behind after refactoring** → Remove dead code when modifying files
+- **New method needed** → Before creating one, search for existing similar methods that could be extended (e.g. by adding parameters or overloads) instead of introducing a new, duplicate method
+
 
 ### 3. Method Ordering and Structure
 
@@ -580,6 +584,7 @@ When reviewing a component test:
 - [ ] Does the test follow Given-When-Then structure with clearly identifiable sections?
 - [ ] Is there only ONE action (When) per test?
 - [ ] Is the test method name descriptive?
+- [ ] Do test and helper method names not exceed 65 characters?
 - [ ] Is `@TestPlanName` annotation present (if applicable)?
 - [ ] If `@TestPlanName` is used, does the service have a `TEST_PLAN.md` file?
 - [ ] If `TEST_PLAN.md` exists, does the test implementation match the test case definition?
@@ -589,6 +594,7 @@ When reviewing a component test:
 
 - [ ] Are methods reasonably sized (< 30 lines guideline)?
 - [ ] Is duplicated code extracted to helper methods?
+- [ ] Are there no unused methods left behind in modified files?
 - [ ] Are helper methods named appropriately (`given*`, `when*`, `then*`)?
 - [ ] Are methods ordered correctly (static → public → protected → private)?
 - [ ] Within each access level, are helper methods ordered by given-when-then sequence?
