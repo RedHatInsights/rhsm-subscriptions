@@ -33,6 +33,7 @@ import lombok.Getter;
 
 @Getter
 public enum Product {
+  BASILISK("BASILISK", MetricIdUtils.getInstanceHours()),
   ROSA("rosa", MetricIdUtils.getCores()),
   RHEL("RHEL for x86", MetricIdUtils.getSockets());
 

@@ -21,6 +21,8 @@ serviceType: BASILISK Instance
 
 contractEnabled: true
 
+overUsageThreshold: -1
+
 metrics:
   - id: Transfer-gibibytes
     type: counter
