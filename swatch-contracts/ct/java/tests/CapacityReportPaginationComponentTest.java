@@ -35,7 +35,6 @@ import com.redhat.swatch.contract.test.model.GranularityType;
 import com.redhat.swatch.contract.test.model.PageLinks;
 import domain.Product;
 import java.time.OffsetDateTime;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class CapacityReportPaginationComponentTest extends BaseContractComponentTest {
@@ -44,7 +43,6 @@ public class CapacityReportPaginationComponentTest extends BaseContractComponent
   private static final int PAGE_SIZE = 10;
   private static final int DAYS_TO_QUERY = DATA_POINTS_COUNT - 1; // 99 days to get 100 data points
 
-  @Disabled(value = "Test disabled due to pagination bug to be fixed in SWATCH-4520.")
   @TestPlanName("capacity-report-pagination-TC001")
   @Test
   void shouldGeneratePaginatedCapacityReport() {
@@ -93,7 +91,6 @@ public class CapacityReportPaginationComponentTest extends BaseContractComponent
         equalTo(DATA_POINTS_COUNT));
   }
 
-  @Disabled(value = "Test disabled due to pagination bug to be fixed in SWATCH-4520.")
   @TestPlanName("capacity-report-pagination-TC002")
   @Test
   void shouldNavigatePaginationLinks() {

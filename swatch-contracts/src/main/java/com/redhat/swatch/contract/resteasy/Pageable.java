@@ -21,20 +21,14 @@
 package com.redhat.swatch.contract.resteasy;
 
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 
+@Getter
 @AllArgsConstructor
 public class Pageable {
   final Integer pageSize;
   final Integer offset;
   final Integer size;
-
-  public Integer getPageSize() {
-    return pageSize;
-  }
-
-  public Integer getOffset() {
-    return offset;
-  }
 
   public Integer getNextOffset() {
     if (pageSize == null) {
