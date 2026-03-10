@@ -286,18 +286,3 @@ Kafka messages can be injected for event-driven testing.
 - **Expected Result**:
     - No notification event created
 
-## Configuration
-
-**utilization-config-TC001 - Negative threshold disables detection**
-
-- **Description**: Verify products with negative thresholds never trigger notifications regardless of usage.
-- **Setup**:
-    - An organization has capacity for the metric A of the product B
-    - The utilization threshold is set to a negative value for that metric
-- **Action**:
-    - Generate enough usage for the metric A of the product B to trigger an overusage with default threshold
-    - Trigger utilization calculation process
-- **Verification**:
-    - Check absence of notification message on notifications topic
-- **Expected Result**:
-    - No notification event created for negative threshold products
