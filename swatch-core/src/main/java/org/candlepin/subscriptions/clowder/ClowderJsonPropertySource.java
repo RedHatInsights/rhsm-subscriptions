@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -488,15 +489,17 @@ public class ClowderJsonPropertySource extends PropertySource<ClowderJson>
       return null;
     }
     String endpoint = extractName(name, ENDPOINTS);
-    Map<String, Object> found =
-        endpoints.stream()
-            .filter(c -> endpoint.equals(getEndpointName(c)))
-            .findFirst()
-            .orElseThrow(
-                () ->
-                    new IllegalStateException(
-                        "Could not find the endpoint configuration for property: " + name));
-    return configFunction.apply(this, found);
+    Optional<Map<String, Object>> found =
+        endpoints.stream().filter(c -> endpoint.equals(getEndpointName(c))).findFirst();
+    if (found.isPresent()) {
+      return configFunction.apply(this, found.get());
+    }
+    // If our endpoint isn't present at all in the Clowder config, we're likely in a component
+    // testing context, so we do still want to continue, but we should print a warning to the
+    // user in case an endpoint is accidentally missing.
+    log.warn(
+        "Endpoint {} not present in Clowder config but referenced in {}", endpoint, CLOWDER + name);
+    return null;
   }
 
   private Object getPrivateEndpointConfig(String name, EndpointConfigMapper configFunction) {

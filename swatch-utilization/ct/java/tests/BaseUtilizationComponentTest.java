@@ -31,6 +31,10 @@ import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.api.Unleash;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.utilization.test.model.Measurement;
+import com.redhat.swatch.utilization.test.model.UtilizationSummary;
+import domain.Product;
+import java.util.ArrayList;
 import org.junit.jupiter.api.BeforeEach;
 
 @ComponentTest(name = "swatch-utilization")
@@ -50,6 +54,33 @@ public class BaseUtilizationComponentTest {
   @BeforeEach
   void setUp() {
     orgId = RandomUtils.generateRandom();
+  }
+
+  /** Creates a UtilizationSummary with ROSA product, HOURLY granularity, and empty measurements. */
+  protected UtilizationSummary givenUtilizationSummaryWithDefaults() {
+    return new UtilizationSummary()
+        .withOrgId(orgId)
+        .withProductId(Product.ROSA.getName())
+        .withGranularity(UtilizationSummary.Granularity.HOURLY)
+        .withBillingAccountId(RandomUtils.generateRandom())
+        .withMeasurements(new ArrayList<>());
+  }
+
+  /** Adds a measurement to the UtilizationSummary. */
+  protected void givenMeasurement(
+      UtilizationSummary summary,
+      MetricId metricId,
+      double currentTotal,
+      double capacity,
+      boolean unlimited) {
+    summary
+        .getMeasurements()
+        .add(
+            new Measurement()
+                .withMetricId(metricId.getValue())
+                .withCurrentTotal(currentTotal)
+                .withCapacity(capacity)
+                .withUnlimited(unlimited));
   }
 
   protected static String metricIdTag(MetricId metricId) {
