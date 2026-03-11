@@ -21,16 +21,11 @@
 package tests;
 
 import static api.MessageValidators.matchesOrgId;
-import static api.MessageValidators.matchesOverageNotification;
 import static com.redhat.swatch.component.tests.utils.Topics.NOTIFICATIONS;
 import static com.redhat.swatch.component.tests.utils.Topics.UTILIZATION;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.notNullValue;
 
-import com.redhat.cloud.notifications.ingress.Action;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.configuration.registry.MetricId;
@@ -79,7 +74,8 @@ public class UtilizationOverUsageComponentTest extends BaseUtilizationComponentT
     kafkaBridge.produceKafkaMessage(UTILIZATION, utilizationSummary);
 
     // Then: Notification event contains correct information
-    thenNotificationShouldBeSent(metricId, 110.0, STANDARD_CAPACITY);
+    thenNotificationShouldBeSent(
+        utilizationSummary.getProductId(), metricId, 110.0, STANDARD_CAPACITY);
   }
 
   /** Verify no notification is sent when usage is below capacity. */
@@ -127,7 +123,8 @@ public class UtilizationOverUsageComponentTest extends BaseUtilizationComponentT
     kafkaBridge.produceKafkaMessage(UTILIZATION, utilizationSummary);
 
     // Then: Notification event still created (overage persists)
-    thenNotificationShouldBeSent(metricId, USAGE_SIGNIFICANTLY_ABOVE_THRESHOLD, 110.0);
+    thenNotificationShouldBeSent(
+        utilizationSummary.getProductId(), metricId, USAGE_SIGNIFICANTLY_ABOVE_THRESHOLD, 110.0);
   }
 
   /** Verify overusage resolves when capacity increase brings overage below threshold. */
@@ -193,45 +190,11 @@ public class UtilizationOverUsageComponentTest extends BaseUtilizationComponentT
     kafkaBridge.produceKafkaMessage(UTILIZATION, utilizationSummary);
 
     // Then: Notification event created (usage now exceeds reduced capacity + threshold)
-    thenNotificationShouldBeSent(metricId, USAGE_SIGNIFICANTLY_ABOVE_THRESHOLD, 100.0);
+    thenNotificationShouldBeSent(
+        utilizationSummary.getProductId(), metricId, USAGE_SIGNIFICANTLY_ABOVE_THRESHOLD, 100.0);
   }
 
   // Helper methods - Then
-
-  private void thenNotificationShouldBeSent(
-      MetricId metricId, double currentTotal, double capacity) {
-    // Use the validator that checks org_id, product_id, and metric_id
-    Action notification =
-        kafkaBridge.waitForKafkaMessage(
-            NOTIFICATIONS,
-            matchesOverageNotification(
-                orgId, utilizationSummary.getProductId(), metricId.getValue()));
-
-    assertThat("Notification should be sent", notification, notNullValue());
-
-    // Verify event payload contains expected utilization_percentage
-    var events = notification.getEvents();
-    assertThat("Notification should contain events list", events, notNullValue());
-    assertThat("Notification should have at least one event", events.size(), greaterThan(0));
-
-    var event = events.get(0);
-    var payload = event.getPayload();
-    assertThat("Notification event should contain payload", payload, notNullValue());
-
-    // Calculate expected utilization percentage
-    double expectedUtilizationPercent = (currentTotal / capacity) * 100.0;
-    String expectedUtilizationStr = String.format("%.2f", expectedUtilizationPercent);
-
-    assertThat(
-        "Payload should contain correct utilization_percentage",
-        payload.getAdditionalProperties().get("utilization_percentage"),
-        equalTo(expectedUtilizationStr));
-
-    // Verify timestamp reflects current calculation time
-    assertThat(
-        "Notification timestamp should not be null", notification.getTimestamp(), notNullValue());
-  }
-
   private void thenNoNotificationShouldBeSent() {
     // Use a short timeout to verify no notification messages arrive
     var notifications =
