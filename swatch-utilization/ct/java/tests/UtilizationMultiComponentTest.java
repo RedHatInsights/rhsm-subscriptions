@@ -36,7 +36,6 @@ import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
-import com.redhat.swatch.utilization.test.model.Measurement;
 import com.redhat.swatch.utilization.test.model.UtilizationSummary;
 import com.redhat.swatch.utilization.test.model.UtilizationSummary.Granularity;
 import domain.Product;
@@ -72,10 +71,10 @@ public class UtilizationMultiComponentTest extends BaseUtilizationComponentTest 
   void shouldCreateOverusageRecordOnlyForProductExceedingThreshold() {
     // Given: Two products with different usage levels
     UtilizationSummary rosaProduct = givenUtilizationSummary(Product.ROSA, Granularity.HOURLY);
-    givenMetricUsage(rosaProduct, getCores(), USAGE_BELOW_THRESHOLD);
+    givenMeasurement(rosaProduct, getCores(), USAGE_BELOW_THRESHOLD, CAPACITY, false);
 
     UtilizationSummary rhelProduct = givenUtilizationSummary(Product.RHEL, Granularity.DAILY);
-    givenMetricUsage(rhelProduct, getSockets(), USAGE_ABOVE_THRESHOLD);
+    givenMeasurement(rhelProduct, getSockets(), USAGE_ABOVE_THRESHOLD, CAPACITY, false);
 
     double initialRosaCount = service.getMetricByTags(OVER_USAGE_METRIC, metricIdTag(getCores()));
     double initialRhelCount = service.getMetricByTags(OVER_USAGE_METRIC, metricIdTag(getSockets()));
@@ -98,8 +97,8 @@ public class UtilizationMultiComponentTest extends BaseUtilizationComponentTest 
   void shouldCreateNotificationOnlyForMetricExceedingThresholdWithinSameProduct() {
     // Given: One product with multiple metrics at different usage levels
     UtilizationSummary rosaProduct = givenUtilizationSummary(Product.ROSA, Granularity.HOURLY);
-    givenMetricUsage(rosaProduct, getCores(), USAGE_ABOVE_THRESHOLD);
-    givenMetricUsage(rosaProduct, getInstanceHours(), USAGE_BELOW_THRESHOLD);
+    givenMeasurement(rosaProduct, getCores(), USAGE_ABOVE_THRESHOLD, CAPACITY, false);
+    givenMeasurement(rosaProduct, getInstanceHours(), USAGE_BELOW_THRESHOLD, CAPACITY, false);
 
     double initialCoresCount = service.getMetricByTags(OVER_USAGE_METRIC, metricIdTag(getCores()));
     double initialInstanceHoursCount =
@@ -125,18 +124,6 @@ public class UtilizationMultiComponentTest extends BaseUtilizationComponentTest 
         .withGranularity(granularity)
         .withBillingAccountId(RandomUtils.generateRandom())
         .withMeasurements(new ArrayList<>());
-  }
-
-  /** Adds a measurement to a utilization summary with default capacity and not unlimited. */
-  private void givenMetricUsage(UtilizationSummary summary, MetricId metric, double usage) {
-    summary
-        .getMeasurements()
-        .add(
-            new Measurement()
-                .withMetricId(metric.getValue())
-                .withCurrentTotal(usage)
-                .withCapacity(CAPACITY)
-                .withUnlimited(false));
   }
 
   // When helpers
