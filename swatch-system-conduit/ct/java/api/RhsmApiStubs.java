@@ -122,9 +122,11 @@ public class RhsmApiStubs {
   }
 
   /**
-   * Build a full consumer map with all fields needed to validate the resulting HbiHost message,
-   * including openshift_cluster_id. Use fixed UUIDs/values when you need to assert exact match in
-   * the test.
+   * Build a full consumer map with all fields needed to validate the resulting HbiHost message.
+   * Use fixed UUIDs/values when you need to assert exact match in the test.
+   *
+   * <p>TODO SWATCH-4637: openshift_cluster_id was backed out (legacy values failed HBI validation)
+   * and will be re-added as part of SWATCH-4637. Param retained for stub compatibility until then.
    */
   public static Map<String, Object> buildFullConsumer(
       String orgId,
@@ -160,6 +162,7 @@ public class RhsmApiStubs {
     Map<String, String> facts = new HashMap<>();
     facts.put("network.fqdn", fqdn);
     facts.put("dmi.system.uuid", biosUuid);
+    // TODO SWATCH-4637: openshift_cluster_id was backed out (legacy values failed HBI validation), will be re-added in SWATCH-4637
     if (openshiftClusterId != null) {
       facts.put("openshift.cluster_id", openshiftClusterId);
     }
