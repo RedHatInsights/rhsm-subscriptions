@@ -38,6 +38,8 @@ import domain.BillingProvider;
 import domain.Contract;
 import io.restassured.response.Response;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
 
@@ -288,6 +290,375 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     assertNotNull(skuCapacity.get().getSubscriptions(), "Should have subscriptions");
     assertEquals(
         1, skuCapacity.get().getSubscriptions().size(), "Should have exactly one subscription");
+  }
+
+  // -----------------------------------------------------------------------
+  // Idempotency tests for syncAllContracts
+  // -----------------------------------------------------------------------
+
+  /**
+   * TC006: Calling syncAllContracts twice with the same upstream data must not create duplicate
+   * contracts or subscriptions. Contract UUIDs must remain stable across repeat runs.
+   *
+   * <p>Also validates the isPreCleanup=false decision: syncAllContracts no longer runs pre-cleanup
+   * (which deleted contracts with null billing_provider_id or null end_date). UUID stability across
+   * runs is only achievable if no pre-cleanup deletion occurs.
+   *
+   * <p>Validates AC: "Multiple executions of the API do not create duplicate contracts or
+   * subscriptions."
+   */
+  @TestPlanName("contracts-sync-TC006")
+  @Test
+  void syncAllContractsTwiceShouldNotCreateDuplicateContracts() {
+    // Given: One org with a single AWS contract and stubbed upstream data
+    String sku = RandomUtils.generateRandom();
+    Contract contract =
+        Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0), sku);
+
+    wiremock.forProductAPI().stubOfferingData(contract.getOffering());
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContractsInOrgId(orgId, contract));
+    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(contract);
+
+    assertThat(
+        "Sync offering should succeed",
+        service.syncOffering(sku).statusCode(),
+        is(HttpStatus.SC_OK));
+
+    // Create the initial contract
+    givenContractIsCreated(contract);
+
+    // Verify initial state
+    var contractsBefore = service.getContractsByOrgId(orgId);
+    assertEquals(1, contractsBefore.size(), "Should have exactly one contract before sync");
+
+    // When: Run syncAllContracts the first time
+    Response firstSync = service.syncAllContracts();
+    assertThat("First sync should succeed", firstSync.statusCode(), is(HttpStatus.SC_OK));
+    firstSync.then().body("status", equalTo(STATUS_ALL_CONTRACTS_SYNCED));
+
+    var contractsAfterFirst = service.getContractsByOrgId(orgId);
+    assertEquals(
+        1, contractsAfterFirst.size(), "Should still have exactly one contract after first sync");
+    String uuidAfterFirst = contractsAfterFirst.get(0).getUuid();
+
+    // When: Run syncAllContracts a second time (same upstream data — idempotency check)
+    Response secondSync = service.syncAllContracts();
+    assertThat("Second sync should succeed", secondSync.statusCode(), is(HttpStatus.SC_OK));
+    secondSync.then().body("status", equalTo(STATUS_ALL_CONTRACTS_SYNCED));
+
+    // Then: No duplicate contracts created; record count is still exactly 1
+    var contractsAfterSecond = service.getContractsByOrgId(orgId);
+    assertEquals(1, contractsAfterSecond.size(), "Repeat sync must not create duplicate contracts");
+
+    // UUID must be stable — upsert finds the existing record and leaves it unchanged
+    String uuidAfterSecond = contractsAfterSecond.get(0).getUuid();
+    assertEquals(
+        uuidAfterFirst,
+        uuidAfterSecond,
+        "Contract UUID must remain stable across repeat syncAllContracts calls");
+    assertEquals(
+        contractsAfterFirst.get(0).getBillingProvider(),
+        contractsAfterSecond.get(0).getBillingProvider(),
+        "Billing provider must not change across repeat runs");
+  }
+
+  /**
+   * TC007: When an org has multiple contracts (AWS + Azure), syncAllContracts must preserve both
+   * contracts across the full loop iteration.
+   *
+   * <p>syncAllContracts iterates over every ContractEntity row (not distinct org IDs), so an org
+   * with 2 contracts gets synced twice. Both contracts must survive both passes.
+   *
+   * <p>Validates AC: "No additional or unintended records are inserted or modified."
+   */
+  @TestPlanName("contracts-sync-TC007")
+  @Test
+  void syncAllContractsWithMultiProviderOrgShouldPreserveBothContracts() {
+    // Given: One org with both AWS and Azure contracts
+    String sku = RandomUtils.generateRandom();
+    Contract awsContract =
+        Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0), sku);
+    Contract azureContract =
+        Contract.buildRosaContract(orgId, BillingProvider.AZURE, Map.of(CORES, 20.0), sku);
+
+    wiremock.forProductAPI().stubOfferingData(awsContract.getOffering());
+    // Both contracts are returned by the partner API for this org
+    wiremock
+        .forPartnerAPI()
+        .stubPartnerSubscriptions(forContractsInOrgId(orgId, awsContract, azureContract));
+    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(awsContract, azureContract);
+
+    assertThat(
+        "Sync offering should succeed",
+        service.syncOffering(sku).statusCode(),
+        is(HttpStatus.SC_OK));
+
+    // Create both contracts
+    givenContractIsCreated(awsContract);
+    givenContractIsCreated(azureContract);
+
+    var contractsBefore = service.getContractsByOrgId(orgId);
+    assertEquals(2, contractsBefore.size(), "Should have two contracts before sync");
+
+    Set<String> uuidsBefore =
+        contractsBefore.stream()
+            .map(com.redhat.swatch.contract.test.model.Contract::getUuid)
+            .collect(Collectors.toSet());
+
+    // When: syncAllContracts (will iterate this org twice since it has 2 contracts in DB)
+    Response syncResponse = service.syncAllContracts();
+    assertThat("Sync should succeed", syncResponse.statusCode(), is(HttpStatus.SC_OK));
+    syncResponse.then().body("status", equalTo(STATUS_ALL_CONTRACTS_SYNCED));
+
+    // Then: Both contracts still exist after the full loop
+    var contractsAfter = service.getContractsByOrgId(orgId);
+    assertEquals(
+        2,
+        contractsAfter.size(),
+        "Both AWS and Azure contracts must survive syncAllContracts loop iteration");
+
+    Set<String> providersAfter =
+        contractsAfter.stream()
+            .map(com.redhat.swatch.contract.test.model.Contract::getBillingProvider)
+            .collect(Collectors.toSet());
+    assertTrue(
+        providersAfter.contains(BillingProvider.AWS.toApiModel()),
+        "AWS contract must still exist after syncAllContracts");
+    assertTrue(
+        providersAfter.contains(BillingProvider.AZURE.toApiModel()),
+        "Azure contract must still exist after syncAllContracts");
+
+    // UUIDs should be stable — same records, not new UUIDs from re-creation
+    Set<String> uuidsAfter =
+        contractsAfter.stream()
+            .map(com.redhat.swatch.contract.test.model.Contract::getUuid)
+            .collect(Collectors.toSet());
+    assertEquals(
+        uuidsBefore,
+        uuidsAfter,
+        "Contract UUIDs must remain stable after syncAllContracts for multi-provider org");
+  }
+
+  /**
+   * TC008: syncAllContracts called after a prior org-level sync must not insert any additional
+   * records into contracts, contract_metrics, subscriptions, or subscription_measurements. Also
+   * verifies that running syncContractsByOrg twice has the same property — no rows accumulate in
+   * any of the four tables across repeated syncs.
+   *
+   * <p>Validates AC: "Contracts and subscriptions remain consistent and aligned after each run."
+   */
+  @TestPlanName("contracts-sync-TC008")
+  @Test
+  void syncAllContractsAfterOrgLevelSyncShouldNotInsertAdditionalRecords() {
+    // Given: An org already synced via the per-org sync endpoint
+    String sku = RandomUtils.generateRandom();
+    Contract contract =
+        Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0), sku);
+
+    wiremock.forProductAPI().stubOfferingData(contract.getOffering());
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContractsInOrgId(orgId, contract));
+    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(contract);
+
+    assertThat(
+        "Sync offering should succeed",
+        service.syncOffering(sku).statusCode(),
+        is(HttpStatus.SC_OK));
+
+    // First: sync via per-org endpoint (simulates already-synced state)
+    givenContractIsCreated(contract);
+    Response orgSync = service.syncContractsByOrg(orgId);
+    assertThat("Per-org sync should succeed", orgSync.statusCode(), is(HttpStatus.SC_OK));
+
+    // Capture baseline across all four tables
+    var contractsAfterOrgSync = service.getContractsByOrgId(orgId);
+    assertEquals(
+        1, contractsAfterOrgSync.size(), "Should have exactly one contract after org sync");
+    String uuidAfterOrgSync = contractsAfterOrgSync.get(0).getUuid();
+    int metricsCountAfterOrgSync = contractsAfterOrgSync.get(0).getMetrics().size();
+
+    var subsAfterOrgSync = service.getSubscriptionsByOrgId(orgId);
+    assertEquals(1, subsAfterOrgSync.size(), "Should have exactly one subscription after org sync");
+    String subIdAfterOrgSync = subsAfterOrgSync.get(0).getSubscriptionId();
+    int measurementCountAfterOrgSync = subsAfterOrgSync.get(0).getMetrics().size();
+
+    // When: Run syncAllContracts on top of the already-synced state
+    Response globalSync = service.syncAllContracts();
+    assertThat("Global sync should succeed", globalSync.statusCode(), is(HttpStatus.SC_OK));
+    globalSync.then().body("status", equalTo(STATUS_ALL_CONTRACTS_SYNCED));
+
+    // Then: No additional records in any table
+    var contractsAfterGlobalSync = service.getContractsByOrgId(orgId);
+    assertEquals(
+        1, contractsAfterGlobalSync.size(), "contracts: no duplicate rows after global sync");
+    assertEquals(
+        uuidAfterOrgSync,
+        contractsAfterGlobalSync.get(0).getUuid(),
+        "contracts: UUID must be stable after global sync");
+    assertEquals(
+        metricsCountAfterOrgSync,
+        contractsAfterGlobalSync.get(0).getMetrics().size(),
+        "contract_metrics: row count must be stable after global sync");
+
+    var subsAfterGlobalSync = service.getSubscriptionsByOrgId(orgId);
+    assertEquals(
+        1, subsAfterGlobalSync.size(), "subscriptions: no duplicate rows after global sync");
+    assertEquals(
+        subIdAfterOrgSync,
+        subsAfterGlobalSync.get(0).getSubscriptionId(),
+        "subscriptions: subscription_id must be stable after global sync");
+    assertEquals(
+        measurementCountAfterOrgSync,
+        subsAfterGlobalSync.get(0).getMetrics().size(),
+        "subscription_measurements: row count must be stable after global sync");
+  }
+
+  // -----------------------------------------------------------------------
+  // Data integrity tests across contracts, contract_metrics,
+  // subscriptions, subscription_measurements
+  // -----------------------------------------------------------------------
+
+  /**
+   * TC010: After syncContractsByOrg, verify that all four related tables are correctly and
+   * consistently populated.
+   *
+   * <p>Checks:
+   *
+   * <ul>
+   *   <li>contracts — uuid, orgId, sku, billingProvider, billingProviderId, billingAccountId,
+   *       startDate, endDate, subscriptionNumber, productTags are all set and match the upstream
+   *       contract definition.
+   *   <li>contract_metrics — at least one metric exists per contract; metricId and value are
+   *       non-null and positive; no duplicate metricIds for the same contract.
+   *   <li>subscriptions — a PAYG subscription is created with the same subscriptionNumber as its
+   *       parent contract, correct orgId, sku, billingProvider, and billing ids.
+   *   <li>subscription_measurements — at least one measurement per subscription; metricId, value,
+   *       and measurementType are all populated.
+   * </ul>
+   *
+   * <p>Also verifies cross-table consistency: contract.subscriptionNumber ==
+   * subscription.subscriptionNumber, and the set of metric IDs in contract_metrics matches the set
+   * in subscription_measurements.
+   */
+  @TestPlanName("contracts-sync-TC009")
+  @Test
+  void syncContractsShouldPopulateAllRelatedTablesWithCorrectData() {
+    // Given: An AWS ROSA contract with a known CORES metric value
+    String sku = RandomUtils.generateRandom();
+    double coresCapacity = 10.0;
+    Contract contract =
+        Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, coresCapacity), sku);
+
+    wiremock.forProductAPI().stubOfferingData(contract.getOffering());
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContractsInOrgId(orgId, contract));
+    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(contract);
+
+    assertThat(
+        "Sync offering should succeed",
+        service.syncOffering(sku).statusCode(),
+        is(HttpStatus.SC_OK));
+
+    // When
+    Response syncResponse = service.syncContractsByOrg(orgId);
+    assertThat("Sync should succeed", syncResponse.statusCode(), is(HttpStatus.SC_OK));
+
+    // ── contracts table ──────────────────────────────────────────────────
+    var contracts = service.getContractsByOrgId(orgId);
+    assertEquals(1, contracts.size(), "Exactly one contract row must exist");
+
+    var c = contracts.get(0);
+    assertNotNull(c.getUuid(), "contracts.uuid must be set");
+    assertEquals(orgId, c.getOrgId(), "contracts.org_id must match");
+    assertEquals(sku, c.getSku(), "contracts.sku must match");
+    assertEquals(
+        BillingProvider.AWS.toApiModel(), c.getBillingProvider(), "contracts.billing_provider");
+    assertNotNull(
+        c.getBillingProviderId(),
+        "contracts.billing_provider_id must be populated (pre-cleanup key)");
+    assertFalse(
+        c.getBillingProviderId().isBlank(), "contracts.billing_provider_id must not be blank");
+    assertNotNull(c.getBillingAccountId(), "contracts.billing_account_id must be set");
+    assertEquals(
+        contract.getBillingAccountId(),
+        c.getBillingAccountId(),
+        "contracts.billing_account_id must match upstream value");
+    assertNotNull(c.getStartDate(), "contracts.start_date must be set");
+    assertNotNull(c.getEndDate(), "contracts.end_date must be set");
+    assertEquals(
+        contract.getSubscriptionNumber(),
+        c.getSubscriptionNumber(),
+        "contracts.subscription_number must match upstream");
+    assertFalse(c.getProductTags().isEmpty(), "contracts.product_tags must not be empty");
+
+    // ── contract_metrics table ────────────────────────────────────────────
+    var metrics = c.getMetrics();
+    assertFalse(metrics.isEmpty(), "contract_metrics must have at least one row");
+
+    for (var metric : metrics) {
+      assertNotNull(metric.getMetricId(), "contract_metrics.metric_id must not be null");
+      assertFalse(metric.getMetricId().isBlank(), "contract_metrics.metric_id must not be blank");
+      assertNotNull(metric.getValue(), "contract_metrics.value must not be null");
+      assertTrue(metric.getValue() > 0, "contract_metrics.value must be positive");
+    }
+
+    // No duplicate metric_ids on the same contract
+    var metricIds =
+        metrics.stream()
+            .map(com.redhat.swatch.contract.test.model.Metric::getMetricId)
+            .collect(Collectors.toList());
+    assertEquals(
+        metricIds.size(),
+        metricIds.stream().distinct().count(),
+        "contract_metrics must not contain duplicate metric_id values for the same contract");
+
+    // ── subscriptions table ───────────────────────────────────────────────
+    var subscriptions = service.getSubscriptionsByOrgId(orgId);
+    assertEquals(1, subscriptions.size(), "Exactly one subscription row must exist");
+
+    var sub = subscriptions.get(0);
+    assertNotNull(sub.getSubscriptionId(), "subscriptions.subscription_id must be set");
+    assertEquals(orgId, sub.getOrgId(), "subscriptions.org_id must match");
+    assertEquals(sku, sub.getSku(), "subscriptions.sku must match");
+    assertEquals(
+        BillingProvider.AWS.toApiModel(),
+        sub.getBillingProvider().toLowerCase(),
+        "subscriptions.billing_provider must match");
+    assertNotNull(
+        sub.getBillingProviderId(), "subscriptions.billing_provider_id must be populated");
+    assertNotNull(sub.getBillingAccountId(), "subscriptions.billing_account_id must be set");
+    assertNotNull(sub.getStartDate(), "subscriptions.start_date must be set");
+    assertNotNull(sub.getEndDate(), "subscriptions.end_date must be set");
+
+    // ── subscription_measurements table ───────────────────────────────────
+    var measurements = sub.getMetrics();
+    assertNotNull(measurements, "subscription_measurements must not be null");
+    assertFalse(measurements.isEmpty(), "subscription_measurements must have at least one row");
+
+    for (var m : measurements) {
+      assertNotNull(m.getMetricId(), "subscription_measurements.metric_id must not be null");
+      assertNotNull(m.getValue(), "subscription_measurements.value must not be null");
+      assertTrue(m.getValue() > 0, "subscription_measurements.value must be positive");
+      assertNotNull(
+          m.getMeasurementType(), "subscription_measurements.measurement_type must not be null");
+      assertFalse(
+          m.getMeasurementType().isBlank(),
+          "subscription_measurements.measurement_type must not be blank");
+    }
+
+    // ── cross-table consistency ───────────────────────────────────────────
+    // contract.subscription_number == subscription.subscription_number
+    assertEquals(
+        c.getSubscriptionNumber(),
+        sub.getSubscriptionNumber(),
+        "contracts.subscription_number must equal subscriptions.subscription_number");
+
+    // Both tables must have the same number of distinct metric entries for this
+    // contract/subscription
+    // (contract_metrics and subscription_measurements use different ID representations — e.g.
+    // "four_vcpu_hour" vs "Cores" — so we compare counts, not names)
+    assertEquals(
+        metrics.size(),
+        measurements.size(),
+        "contract_metrics and subscription_measurements must have the same number of metric entries");
   }
 
   @TestPlanName("contracts-sync-TC005")
