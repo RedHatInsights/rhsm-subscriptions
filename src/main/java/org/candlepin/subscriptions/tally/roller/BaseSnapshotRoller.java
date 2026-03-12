@@ -40,6 +40,7 @@ import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation.Totals;
+import org.candlepin.subscriptions.util.PrimaryRecordUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -143,13 +144,21 @@ public abstract class BaseSnapshotRoller {
       if (isGranularitySupported) {
         TallySnapshot snap = orgSnapsByUsageKey.get(usageKey);
         UsageCalculation productCalc = accountCalc.getCalculation(usageKey);
+
         if (snap == null && productCalc.hasMeasurements()) {
           snap =
               createSnapshotFromProductUsageCalculation(
                   accountCalc.getOrgId(), productCalc, targetGranularity);
+          snap.setPrimary(PrimaryRecordUtils.isPrimaryRecord(snap));
           snaps.add(snap);
-        } else if (snap != null && updateMaxValues(snap, productCalc)) {
-          snaps.add(snap);
+        } else if (snap != null) {
+          boolean measurementsChanged = updateMaxValues(snap, productCalc);
+          boolean isPrimary = PrimaryRecordUtils.isPrimaryRecord(snap);
+          boolean primaryChanged = snap.isPrimary() != isPrimary;
+          if (measurementsChanged || primaryChanged) {
+            snap.setPrimary(isPrimary);
+            snaps.add(snap);
+          }
         }
       }
     }
