@@ -230,6 +230,41 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   @Test
+  void syncContractByOrgWithPreCleanupDeletesContractsWithNullEndDateOrBillingProviderId() {
+    // Given: A contract with end_date=null, which matches the pre-cleanup delete predicate
+    // (billing_provider_id IS NULL OR billing_provider_id='' OR end_date IS NULL)
+    givenContractEntityWithNullEndDate();
+    assertEquals(1, contractRepository.getContractsByOrgId(ORG_ID).size());
+
+    // When: Per-org sync with isPreCleanup=true
+    StatusResponse statusResponse = contractService.syncContractByOrgId(ORG_ID, true);
+
+    // Then: The incomplete contract is deleted before re-sync; none come back from upstream
+    assertEquals("Contracts Synced for " + ORG_ID, statusResponse.getMessage());
+    assertEquals(
+        0,
+        contractRepository.getContractsByOrgId(ORG_ID).size(),
+        "Pre-cleanup must delete contracts with null end_date before re-syncing");
+  }
+
+  @Test
+  void syncContractByOrgWithoutPreCleanupPreservesContractsWithNullEndDate() {
+    // Given: A contract with end_date=null
+    givenContractEntityWithNullEndDate();
+    assertEquals(1, contractRepository.getContractsByOrgId(ORG_ID).size());
+
+    // When: Per-org sync with isPreCleanup=false (the global sync default per ADR-0004)
+    StatusResponse statusResponse = contractService.syncContractByOrgId(ORG_ID, false);
+
+    // Then: The contract is not deleted by pre-cleanup; it remains in the DB
+    assertEquals("Contracts Synced for " + ORG_ID, statusResponse.getMessage());
+    assertEquals(
+        1,
+        contractRepository.getContractsByOrgId(ORG_ID).size(),
+        "Without pre-cleanup, contracts with null end_date must be preserved");
+  }
+
+  @Test
   void testCreatePartnerContractSetsCorrectDimensionAzure() throws Exception {
     var contract = new PartnerEntitlementContract();
     contract.setRedHatSubscriptionNumber(SUBSCRIPTION_NUMBER);
@@ -712,5 +747,22 @@ class ContractServiceTest extends BaseUnitTest {
 
   private static ArgumentMatcher<SubscriptionEntity> sameSubscription(SubscriptionEntity expected) {
     return actual -> actual.getSubscriptionNumber().equals(expected.getSubscriptionNumber());
+  }
+
+  @Transactional
+  void givenContractEntityWithNullEndDate() {
+    var entity = new ContractEntity();
+    entity.setUuid(UUID.randomUUID());
+    entity.setOrgId(ORG_ID);
+    entity.setStartDate(DEFAULT_START_DATE);
+    entity.setEndDate(null);
+    entity.setBillingProvider("aws");
+    entity.setBillingAccountId("billAcct123");
+    entity.setSubscriptionNumber(SUBSCRIPTION_NUMBER);
+    entity.setVendorProductCode("vendorProductCode");
+    entity.setOffering(offeringRepository.findById(SKU));
+    entity.setLastUpdated(OffsetDateTime.now());
+    contractRepository.persist(entity);
+    reset(contractRepository);
   }
 }
