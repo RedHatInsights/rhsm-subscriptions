@@ -292,21 +292,6 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
         1, skuCapacity.get().getSubscriptions().size(), "Should have exactly one subscription");
   }
 
-  // -----------------------------------------------------------------------
-  // Idempotency tests for syncAllContracts
-  // -----------------------------------------------------------------------
-
-  /**
-   * TC006: Calling syncAllContracts twice with the same upstream data must not create duplicate
-   * contracts or subscriptions. Contract UUIDs must remain stable across repeat runs.
-   *
-   * <p>Also validates the isPreCleanup=false decision: syncAllContracts no longer runs pre-cleanup
-   * (which deleted contracts with null billing_provider_id or null end_date). UUID stability across
-   * runs is only achievable if no pre-cleanup deletion occurs.
-   *
-   * <p>Validates AC: "Multiple executions of the API do not create duplicate contracts or
-   * subscriptions."
-   */
   @TestPlanName("contracts-sync-TC006")
   @Test
   void syncAllContractsTwiceShouldNotCreateDuplicateContracts() {
@@ -362,15 +347,6 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
         "Billing provider must not change across repeat runs");
   }
 
-  /**
-   * TC007: When an org has multiple contracts (AWS + Azure), syncAllContracts must preserve both
-   * contracts across the full loop iteration.
-   *
-   * <p>syncAllContracts iterates over every ContractEntity row (not distinct org IDs), so an org
-   * with 2 contracts gets synced twice. Both contracts must survive both passes.
-   *
-   * <p>Validates AC: "No additional or unintended records are inserted or modified."
-   */
   @TestPlanName("contracts-sync-TC007")
   @Test
   void syncAllContractsWithMultiProviderOrgShouldPreserveBothContracts() {
@@ -439,14 +415,6 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
         "Contract UUIDs must remain stable after syncAllContracts for multi-provider org");
   }
 
-  /**
-   * TC008: syncAllContracts called after a prior org-level sync must not insert any additional
-   * records into contracts, contract_metrics, subscriptions, or subscription_measurements. Also
-   * verifies that running syncContractsByOrg twice has the same property — no rows accumulate in
-   * any of the four tables across repeated syncs.
-   *
-   * <p>Validates AC: "Contracts and subscriptions remain consistent and aligned after each run."
-   */
   @TestPlanName("contracts-sync-TC008")
   @Test
   void syncAllContractsAfterOrgLevelSyncShouldNotInsertAdditionalRecords() {
@@ -512,33 +480,6 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
         "subscription_measurements: row count must be stable after global sync");
   }
 
-  // -----------------------------------------------------------------------
-  // Data integrity tests across contracts, contract_metrics,
-  // subscriptions, subscription_measurements
-  // -----------------------------------------------------------------------
-
-  /**
-   * TC010: After syncContractsByOrg, verify that all four related tables are correctly and
-   * consistently populated.
-   *
-   * <p>Checks:
-   *
-   * <ul>
-   *   <li>contracts — uuid, orgId, sku, billingProvider, billingProviderId, billingAccountId,
-   *       startDate, endDate, subscriptionNumber, productTags are all set and match the upstream
-   *       contract definition.
-   *   <li>contract_metrics — at least one metric exists per contract; metricId and value are
-   *       non-null and positive; no duplicate metricIds for the same contract.
-   *   <li>subscriptions — a PAYG subscription is created with the same subscriptionNumber as its
-   *       parent contract, correct orgId, sku, billingProvider, and billing ids.
-   *   <li>subscription_measurements — at least one measurement per subscription; metricId, value,
-   *       and measurementType are all populated.
-   * </ul>
-   *
-   * <p>Also verifies cross-table consistency: contract.subscriptionNumber ==
-   * subscription.subscriptionNumber, and the set of metric IDs in contract_metrics matches the set
-   * in subscription_measurements.
-   */
   @TestPlanName("contracts-sync-TC009")
   @Test
   void syncContractsShouldPopulateAllRelatedTablesWithCorrectData() {
