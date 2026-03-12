@@ -33,12 +33,9 @@ import java.util.List;
 import java.util.Map;
 import models.CreateUpdateHostMessage;
 import org.junit.jupiter.api.Test;
-import utils.ConduitTestHelpers;
 
 /** Component tests that validate the flow of candlepin records through system-conduit. */
 public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
-
-  private final ConduitTestHelpers helpers = new ConduitTestHelpers();
 
   // Expected values used in the stubbed RHSM consumer and asserted on the HbiHost response
   private static final String EXPECTED_CONSUMER_ID = "test-consumer-1";
@@ -63,7 +60,7 @@ public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
     givenRhsmConsumerWithFullData();
 
     // When: Conduit syncs for the test org
-    helpers.syncConduitByOrgId(service, orgId);
+    service.syncConduitByOrgId(orgId);
 
     // Then: Inventory host ingress receives add_host and all HbiHost fields match RHSM consumer
     CreateUpdateHostMessage message = thenAddHostMessageReceived();
