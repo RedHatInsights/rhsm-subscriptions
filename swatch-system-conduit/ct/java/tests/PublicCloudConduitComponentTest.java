@@ -77,7 +77,8 @@ public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
             EXPECTED_UUID,
             EXPECTED_FQDN,
             EXPECTED_BIOS_UUID,
-            null, // TODO SWATCH-4637: openshift_cluster_id was backed out (legacy values failed HBI validation); will be re-added as part of SWATCH-4637
+            null, // TODO SWATCH-4637: openshift_cluster_id was backed out (legacy values failed HBI
+            // validation); will be re-added as part of SWATCH-4637
             null,
             EXPECTED_INSIGHTS_ID,
             EXPECTED_IP_ADDRESSES,
