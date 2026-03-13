@@ -76,10 +76,6 @@ spec:
       type: string
       description: "Method to deploy optional dependencies - see bonfire docs https://github.com/redhatinsights/bonfire?tab=readme-ov-file#dependency-processing"
       default: "hybrid"
-    - name: PROJECT_REPO
-      type: string
-      description: "Project repository"
-      default: "https://github.com/RedHatInsights/rhsm-subscriptions"
     - name: DATAROUTER_CREDENTIALS_NAME
       type: string
       description: Secret name to take the data router credentials from.
@@ -100,6 +96,20 @@ spec:
       type: string
       default: ""
       description: Directory containing attachments to upload with test results.
+
+    # Project configuration
+    - name: GITHUB_TOKEN_SECRET
+      type: string
+      description: Secret name containing the GitHub API token for posting PR comments
+      default: "swatch-ci-github-token"
+    - name: PROJECT_REPO
+      type: string
+      description: "Project repository in owner/repo format"
+      default: "RedHatInsights/rhsm-subscriptions"
+    - name: PROJECT_TASKS_REVISION
+      type: string
+      description: Git revision used to resolve rhsm-subscriptions task definitions
+      default: "main"
   workspaces:
     - name: shared-workspace
       description: A workspace to share data between tasks
@@ -108,6 +118,40 @@ spec:
       description: URL for the test's artifacts
       value: $(finally.teardown.results.ARTIFACTS_URL)
   finally:
+    - name: check-test-results
+      params:
+        - name: DEPLOY_STATUS
+          value: "$(tasks.deploy-application.status)"
+        - name: TEST_STATUS
+          value: "$(tasks.run-tests-task.status)"
+      taskSpec:
+        params:
+          - name: DEPLOY_STATUS
+            type: string
+          - name: TEST_STATUS
+            type: string
+        steps:
+          - name: check
+            image: quay.io/konflux-ci/appstudio-utils:latest
+            script: |
+              #!/bin/bash
+              FAILED=false
+              echo "Deploy status: $(params.DEPLOY_STATUS)"
+              if [ "$(params.DEPLOY_STATUS)" != "Succeeded" ]; then
+                echo "Deploy did not succeed."
+                FAILED=true
+              fi
+              echo "Component tests status: $(params.TEST_STATUS)"
+              if [ "$(params.TEST_STATUS)" != "Succeeded" ]; then
+                echo "Component tests did not succeed."
+                FAILED=true
+              fi
+              if [ "$FAILED" = "true" ]; then
+                echo "Pipeline failed."
+                exit 1
+              fi
+              echo "All steps passed."
+
     - name: teardown
       params:
         - name: NS
@@ -130,35 +174,51 @@ spec:
           - name: pathInRepo
             value: tasks/teardown.yaml
   tasks:
-    - name: extract-revision
+    - name: extract-metadata
       params:
         - name: SNAPSHOT
           value: "$(params.SNAPSHOT)"
         - name: COMPONENT_NAME
           value: "$(params.COMPONENT_NAME)"
-      taskSpec:
+      taskRef:
+        resolver: git
         params:
-          - name: SNAPSHOT
-            type: string
-          - name: COMPONENT_NAME
-            type: string
-        results:
-          - name: GIT_REVISION
-            description: Extracted git revision for the component from SNAPSHOT (empty if not found)
-        steps:
-          - name: extract
-            image: quay.io/konflux-ci/appstudio-utils:latest
-            script: |
-              #!/usr/bin/env bash
-              set -euo pipefail
-              echo "extract-revision: component='$(params.COMPONENT_NAME)'"
-              rev=$(echo '$(params.SNAPSHOT)' | jq -r --arg name '$(params.COMPONENT_NAME)' '.components[] | select(.name==$name) | .source.git.revision // empty')
-              if [ -n "$rev" ] && [ "$rev" != "null" ]; then
-                echo "extract-revision: found revision='$rev'"
-              else
-                echo "extract-revision: no revision found in SNAPSHOT for component; leaving result empty"
-              fi
-              printf "%s" "$rev" > $(results.GIT_REVISION.path)
+          - name: url
+            value: "https://github.com/$(params.PROJECT_REPO).git"
+          - name: revision
+            value: "$(params.PROJECT_TASKS_REVISION)"
+          - name: pathInRepo
+            value: .tekton/tasks/extract-metadata.yaml
+
+    - name: github-delete-old-comments
+      runAfter:
+        - extract-metadata
+      when:
+        - input: "$(tasks.extract-metadata.results.IS_PULL_REQUEST)"
+          operator: in
+          values: ["true"]
+        - input: "$(tasks.extract-metadata.results.PR_NUMBER)"
+          operator: notin
+          values: ["none", ""]
+      params:
+        - name: PROJECT_REPO
+          value: "$(params.PROJECT_REPO)"
+        - name: PR_NUMBER
+          value: "$(tasks.extract-metadata.results.PR_NUMBER)"
+        - name: COMMENT_MARKER
+          value: "<!-- swatch-ct-results:$(params.COMPONENT_NAME) -->"
+        - name: GITHUB_TOKEN_SECRET
+          value: "$(params.GITHUB_TOKEN_SECRET)"
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: "https://github.com/$(params.PROJECT_REPO).git"
+          - name: revision
+            value: "$(params.PROJECT_TASKS_REVISION)"
+          - name: pathInRepo
+            value: .tekton/tasks/github-delete-comment.yaml
+
     - name: update-extra-deploy-args
       params:
         - name: EXTRA_DEPLOY_ARGS
@@ -166,9 +226,9 @@ spec:
         - name: COMPONENTS
           value: "$(params.COMPONENTS)"
         - name: GIT_REVISION
-          value: "$(tasks.extract-revision.results.GIT_REVISION)"
+          value: "$(tasks.extract-metadata.results.GIT_REVISION)"
       runAfter:
-        - extract-revision
+        - extract-metadata
       taskSpec:
         params:
           - name: EXTRA_DEPLOY_ARGS
@@ -215,7 +275,7 @@ spec:
         - name: BONFIRE_IMAGE
           value: "$(params.BONFIRE_IMAGE)"
       runAfter:
-        - extract-revision
+        - extract-metadata
       taskRef:
         resolver: git
         params:
@@ -226,6 +286,13 @@ spec:
           - name: pathInRepo
             value: tasks/reserve-namespace.yaml
     - name: deploy-application
+      onError: continue
+      runAfter:
+        - reserve-namespace
+        - update-extra-deploy-args
+      workspaces:
+        - name: artifacts
+          workspace: shared-workspace
       params:
         - name: BONFIRE_IMAGE
           value: "$(params.BONFIRE_IMAGE)"
@@ -253,24 +320,153 @@ spec:
           value: "$(params.DEPLOY_TIMEOUT)"
         - name: OPTIONAL_DEPS_METHOD
           value: "$(params.DEPLOY_OPTIONAL_DEPS_METHOD)"
+      taskSpec:
+        params:
+          - name: BONFIRE_IMAGE
+            type: string
+          - name: SNAPSHOT
+            type: string
+          - name: NS
+            type: string
+          - name: NS_REQUESTER
+            type: string
+          - name: APP_INTERFACE_SECRET
+            type: string
+          - name: APP_NAME
+            type: string
+          - name: BONFIRE_COMPONENT_NAME
+            type: string
+          - name: COMPONENTS
+            type: string
+          - name: COMPONENTS_W_RESOURCES
+            type: string
+          - name: EXTRA_DEPLOY_ARGS
+            type: string
+          - name: DEPLOY_FRONTENDS
+            type: string
+          - name: DEPLOY_TIMEOUT
+            type: string
+          - name: OPTIONAL_DEPS_METHOD
+            type: string
+        workspaces:
+          - name: artifacts
+        steps:
+          - name: deploy
+            image: "$(params.BONFIRE_IMAGE)"
+            env:
+              - name: APP_INTERFACE_USERNAME
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.APP_INTERFACE_SECRET)
+                    key: username
+              - name: APP_INTERFACE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.APP_INTERFACE_SECRET)
+                    key: password
+              - name: APP_INTERFACE_BASE_URL
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.APP_INTERFACE_SECRET)
+                    key: baseurl
+              - name: OC_LOGIN_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.EPHEMERAL_ENV_PROVIDER_SECRET)
+                    key: token
+              - name: OC_LOGIN_SERVER
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.EPHEMERAL_ENV_PROVIDER_SECRET)
+                    key: url
+              - name: APP_NAME
+                value: $(params.APP_NAME)
+              - name: BONFIRE_COMPONENT_NAME
+                value: $(params.BONFIRE_COMPONENT_NAME)
+              - name: COMPONENTS
+                value: $(params.COMPONENTS)
+              - name: COMPONENTS_W_RESOURCES
+                value: $(params.COMPONENTS_W_RESOURCES)
+              - name: SNAPSHOT
+                value: $(params.SNAPSHOT)
+              - name: BONFIRE_BOT
+                value: "true"
+              - name: EXTRA_DEPLOY_ARGS
+                value: "$(params.EXTRA_DEPLOY_ARGS)"
+              - name: DEPLOY_FRONTENDS
+                value: "$(params.DEPLOY_FRONTENDS)"
+              - name: DEPLOY_TIMEOUT
+                value: "$(params.DEPLOY_TIMEOUT)"
+              - name: OPTIONAL_DEPS_METHOD
+                value: "$(params.OPTIONAL_DEPS_METHOD)"
+            script: |
+              #!/bin/bash
+              set +e
+
+              DEPLOY_LOG="$(workspaces.artifacts.path)/deploy.log"
+              EXIT_CODE_FILE="$(workspaces.artifacts.path)/deploy-exit-code"
+
+              {
+                echo "Connecting to the ephemeral namespace cluster"
+                login.sh
+
+                echo "deploying to ephemeral"
+                if [ -z "${EXTRA_DEPLOY_ARGS}" ]; then
+                  EXTRA_DEPLOY_ARGS="$(parse-snapshot.py)"
+                else
+                  EXTRA_DEPLOY_ARGS+=" $(parse-snapshot.py) "
+                fi
+                export EXTRA_DEPLOY_ARGS
+                deploy.sh "$(params.NS)" "$(params.NS_REQUESTER)"
+              } 2>&1 | tee "$DEPLOY_LOG"
+
+              EXIT_CODE=${PIPESTATUS[0]}
+              echo "$EXIT_CODE" > "$EXIT_CODE_FILE"
+              echo "Deploy exit code: $EXIT_CODE"
+              exit $EXIT_CODE
+    - name: post-deploy-failure-comment
+      onError: continue
       runAfter:
-        - reserve-namespace
-        - update-extra-deploy-args
+        - deploy-application
+      when:
+        - input: "$(tasks.extract-metadata.results.IS_PULL_REQUEST)"
+          operator: in
+          values: ["true"]
+        - input: "$(tasks.extract-metadata.results.PR_NUMBER)"
+          operator: notin
+          values: ["none", ""]
+      workspaces:
+        - name: artifacts
+          workspace: shared-workspace
+      params:
+        - name: PROJECT_REPO
+          value: "$(params.PROJECT_REPO)"
+        - name: PR_NUMBER
+          value: "$(tasks.extract-metadata.results.PR_NUMBER)"
+        - name: PIPELINE_NAME
+          value: "$(context.pipelineRun.name)"
+        - name: COMMENT_TITLE
+          value: "Deploy Failed: $(params.COMPONENT_NAME)"
+        - name: COMMENT_MARKER
+          value: "<!-- swatch-ct-results:$(params.COMPONENT_NAME) -->"
+        - name: GITHUB_TOKEN_SECRET
+          value: "$(params.GITHUB_TOKEN_SECRET)"
       taskRef:
         resolver: git
         params:
           - name: url
-            value: "$(params.BONFIRE_REPO)"
+            value: "https://github.com/$(params.PROJECT_REPO).git"
           - name: revision
-            value: "$(params.BONFIRE_REVISION)"
+            value: "$(params.PROJECT_TASKS_REVISION)"
           - name: pathInRepo
-            value: tasks/deploy-frontends.yaml
+            value: .tekton/tasks/github-post-deploy-failure.yaml
+
     - name: clone-repository
       params:
         - name: url
-          value: "$(params.PROJECT_REPO)"
+          value: "https://github.com/$(params.PROJECT_REPO)"
         - name: revision
-          value: "$(tasks.extract-revision.results.GIT_REVISION)"
+          value: "$(tasks.extract-metadata.results.GIT_REVISION)"
       taskRef:
         params:
           - name: name
@@ -286,6 +482,7 @@ spec:
       runAfter:
         - deploy-application
     - name: run-tests-task
+      onError: continue
       params:
         - name: SERVICE
           value: "$(params.COMPONENT_NAME)"
@@ -343,6 +540,7 @@ spec:
               #!/bin/bash
               ./mvnw clean install --no-transfer-progress -Pcomponent-tests -am -pl ${SERVICE}/ct -Dswatch.component-tests.global.target=openshift -Dlog.disable-color=true -Dlog.level=FINE -Dlog.print-errors-to-std-err=true -Dswatch.component-tests.services.all.log.enabled=true
     - name: send-results-task
+      onError: continue
       params:
         - name: SERVICE
           value: "$(params.COMPONENT_NAME)"
@@ -389,7 +587,7 @@ spec:
               - name: PIPELINE_NAME
                 value: "$(context.pipelineRun.name)"
               - name: GIT_REVISION
-                value: "$(tasks.extract-revision.results.GIT_REVISION)"
+                value: "$(tasks.extract-metadata.results.GIT_REVISION)"
               - name: INTEGRATION_TEST_NAME
                 valueFrom:
                   fieldRef:
@@ -486,3 +684,46 @@ spec:
               echo -n "$ROUTING_ID" > $(results.routing-id.path)
               
               exit $FINAL_EXIT_CODE
+
+    - name: post-pr-comment
+      onError: continue
+      runAfter:
+        - run-tests-task
+      when:
+        - input: "$(tasks.extract-metadata.results.IS_PULL_REQUEST)"
+          operator: in
+          values: ["true"]
+        - input: "$(tasks.extract-metadata.results.PR_NUMBER)"
+          operator: notin
+          values: ["none", ""]
+      workspaces:
+        - name: artifacts
+          workspace: shared-workspace
+      params:
+        - name: PROJECT_REPO
+          value: "$(params.PROJECT_REPO)"
+        - name: PR_NUMBER
+          value: "$(tasks.extract-metadata.results.PR_NUMBER)"
+        - name: PIPELINE_NAME
+          value: "$(context.pipelineRun.name)"
+        - name: JUNIT_FILE
+          value: ""
+        - name: JUNIT_DIR
+          value: "source/$(params.COMPONENT_NAME)/ct/target/surefire-reports"
+        - name: COMMENT_MARKER
+          value: "<!-- swatch-ct-results:$(params.COMPONENT_NAME) -->"
+        - name: COMMENT_TITLE
+          value: "Component Tests: $(params.COMPONENT_NAME)"
+        - name: POST_ON_SUCCESS
+          value: "false"
+        - name: GITHUB_TOKEN_SECRET
+          value: "$(params.GITHUB_TOKEN_SECRET)"
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: "https://github.com/$(params.PROJECT_REPO).git"
+          - name: revision
+            value: "$(params.PROJECT_TASKS_REVISION)"
+          - name: pathInRepo
+            value: .tekton/tasks/github-post-test-results.yaml

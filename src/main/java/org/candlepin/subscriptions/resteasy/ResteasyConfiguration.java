@@ -62,6 +62,7 @@ public class ResteasyConfiguration implements WebMvcConfigurer {
     // Configure webjars resource handler for Swagger UI
     registry
         .addResourceHandler("/webjars/**")
-        .addResourceLocations("classpath:/META-INF/resources/webjars/");
+        .addResourceLocations("classpath:/META-INF/resources/webjars/")
+        .resourceChain(true);
   }
 }

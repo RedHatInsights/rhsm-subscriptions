@@ -62,3 +62,12 @@ spec:
       value: "false"
     - name: IQE_LOG_LEVEL
       value: "debug"
+  workspaces:
+    - name: artifacts
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi
