@@ -37,4 +37,15 @@ public class TallyTaskQueueConfiguration {
   TaskQueueProperties tallyTaskQueueProperties() {
     return new TaskQueueProperties();
   }
+
+  /**
+   * Task queue for hourly snapshot tasks only. Isolates hourly tally from the main (nightly) task
+   * queue so hourly runs are not backed up behind the multi-hour nightly batch.
+   */
+  @Bean
+  @Qualifier("tallyHourlyTaskQueueProperties")
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.tally-hourly-tasks")
+  TaskQueueProperties tallyHourlyTaskQueueProperties() {
+    return new TaskQueueProperties();
+  }
 }
