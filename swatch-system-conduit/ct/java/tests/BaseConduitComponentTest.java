@@ -23,12 +23,12 @@ package tests;
 import static com.redhat.swatch.component.tests.utils.Topics.CONDUIT_TASKS;
 import static com.redhat.swatch.component.tests.utils.Topics.INVENTORY_HOST_INGRESS;
 
+import api.ConduitSwatchService;
 import api.ConduitWiremockService;
 import com.redhat.swatch.component.tests.api.ComponentTest;
 import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.SpringBoot;
-import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.api.Wiremock;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,7 +45,7 @@ public class BaseConduitComponentTest {
   @Wiremock static ConduitWiremockService wiremock = new ConduitWiremockService();
 
   @SpringBoot(service = "swatch-system-conduit")
-  static SwatchService service = new SwatchService();
+  static ConduitSwatchService service = new ConduitSwatchService();
 
   protected String orgId;
 

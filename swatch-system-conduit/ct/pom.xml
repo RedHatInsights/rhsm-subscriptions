@@ -23,7 +23,7 @@
       <dependencies>
           <dependency>
               <groupId>com.redhat.swatch</groupId>
-              <artifactId>swatch-quarkus-parent</artifactId>
+              <artifactId>swatch-spring-parent</artifactId>
               <version>${project.version}</version>
               <type>pom</type>
               <scope>import</scope>
@@ -56,7 +56,7 @@
     <!-- Required so the Maven reactor compiles this dependency -->
     <dependency>
       <groupId>com.redhat.swatch</groupId>
-      <artifactId>swatch-quarkus-parent</artifactId>
+      <artifactId>swatch-spring-parent</artifactId>
       <version>${project.version}</version>
       <type>pom</type>
       <scope>provided</scope>
