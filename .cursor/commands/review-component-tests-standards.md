@@ -242,9 +242,24 @@ public class BaseContractComponentTest {
 ### Test Naming and Documentation
 
 - Test method names should be descriptive and start with `should` or `test`
+- Test and helper method names must not exceed **65 characters** (improves readability in IDEs and diffs)
 - Use `@TestPlanName` annotation to link to test plans
-- Include Javadoc comments for complex tests
+- **NEVER add Javadoc comments to methods whose name already explains what they do.** Javadocs are only justified for genuinely complex methods where the name alone cannot convey the intent, constraints, or non-obvious behavior. Helper methods like `givenContractIsCreated`, `whenContractIsDeleted`, or `thenCapacityIsDecreased` are self-explanatory and MUST NOT have Javadoc.
 - Assertion messages should be clear and actionable
+
+```java
+// ✅ Correct - No Javadoc needed, the method name is self-explanatory
+protected void givenContractIsCreated(Contract contract) { ... }
+protected void whenContractIsDeleted(String contractUuid) { ... }
+protected void thenContractShouldNotExist(String orgId) { ... }
+
+// ❌ Wrong - Redundant Javadoc that just restates the method name
+/** Helper method to delete a contract by UUID and verify success. */
+protected void whenContractIsDeleted(String contractUuid) { ... }
+
+/** Helper method to verify that a contract no longer exists for the organization. */
+protected void thenContractShouldNotExist(String orgId) { ... }
+```
 
 ### Helper Methods in Tests
 
@@ -337,11 +352,36 @@ public class BaseContractComponentTest {
 
 ### 2. Code Reusability
 
+**CRITICAL: Before creating a new method, always check whether the parent class or sibling test classes already provide equivalent functionality.** Reuse existing methods or extend them with parameters instead of duplicating logic. When multiple specific methods share the same structure but differ only in one or two parameters (e.g., metric type, report category), consolidate them into a single generic method with parameters and let callers create thin convenience wrappers if needed.
+
+```java
+// ✅ Correct - Single generic method in base class
+protected double getDailyCapacityByCategoryAndMetric(
+    Product product, String orgId, OffsetDateTime beginning, OffsetDateTime ending,
+    ReportCategory category, MetricId metric) { ... }
+
+// ✅ Correct - Thin convenience wrapper in child class
+private double getDailyHypervisorSocketCapacity() {
+    return getDailyCapacityByCategoryAndMetric(
+        Product.RHEL, orgId, beginning, ending, ReportCategory.HYPERVISOR, SOCKETS);
+}
+
+// ❌ Wrong - Multiple nearly-identical methods in base class
+protected double getHypervisorCoreCapacity(...) { ... }
+protected double getHypervisorSocketCapacity(...) { ... }
+protected double getPhysicalCoreCapacity(...) { ... }
+protected double getPhysicalSocketCapacity(...) { ... }
+```
+
 **Look for:**
 - Duplicated setup code → Extract to `@BeforeEach` or helper method
 - Repeated assertion patterns → Create custom assertion methods
 - Similar test data creation → Use test helpers or domain object builders
 - Common cleanup logic → Use `@AfterEach` or base class teardown
+- Multiple methods with same body differing only by a parameter → Consolidate into one parameterized method
+- **Unused methods left behind after refactoring** → Remove dead code when modifying files
+- **New method needed** → Before creating one, search for existing similar methods that could be extended (e.g. by adding parameters or overloads) instead of introducing a new, duplicate method
+
 
 ### 3. Method Ordering and Structure
 
@@ -360,7 +400,7 @@ public class BaseContractComponentTest {
 - Multiple `given` methods are scattered → Group them together
 - Helper methods don't follow naming conventions → Rename appropriately
 
-### 4. Naming Conventions
+### 4. Naming Conventions and Style
 
 **Classes:**
 - Test classes: `*ComponentTest`
@@ -377,19 +417,38 @@ public class BaseContractComponentTest {
 - `tests` - Test classes
 - `utils` - Utility classes
 
-### 4. Assertion Quality
+### 5. Assertion Quality
+
+**CRITICAL: Always use JUnit 5 Assertion API (not Hamcrest Matchers)**
+
+Tests MUST use JUnit 5 Assertions (`assertEquals`, `assertNotNull`, `assertTrue`, `assertFalse`) instead of Hamcrest Matchers (`assertThat` with `is()`, `equalTo()`, `notNullValue()`, etc.).
+
+The only exception is when a Hamcrest Matcher provides genuinely better readability with no JUnit 5 equivalent (e.g., `closeTo()` for floating-point tolerance comparisons via Awaitility matchers).
+
+```java
+// ✅ Correct - JUnit 5 Assertion API
+assertEquals(HttpStatus.SC_OK, response.statusCode(), "Sync offering should succeed");
+assertNotNull(skuCapacity.get().getProductName(), "Product name should not be null");
+assertEquals(expectedCapacity, finalCapacity, "Capacity should match expected");
+
+// ❌ Wrong - Hamcrest Matchers
+assertThat("Sync offering should succeed", response.statusCode(), is(HttpStatus.SC_OK));
+assertThat("Product name should not be null", skuCapacity.get().getProductName(), notNullValue());
+assertThat("Capacity should match expected", finalCapacity, equalTo(expectedCapacity));
+```
 
 **Prefer:**
 - Descriptive assertion messages to explain what is being verified
 - Multiple specific assertions over complex conditions
-- Clear assertion methods that express intent (whether using JUnit 5, Hamcrest, or AssertJ)
+- JUnit 5 Assertions for all standard checks
 
 **Avoid:**
 - `assertTrue` or `assertFalse` with complex boolean expressions
 - Assertions without messages
 - Testing multiple unrelated things in one assertion
+- Using Hamcrest `assertThat`/`is`/`equalTo`/`notNullValue` when a JUnit 5 assertion exists
 
-### 5. Test Naming and Structure
+### 6. Test Naming and Structure
 
 **Test Class Naming Convention:**
 - Test class names MUST follow the test plan naming pattern
@@ -421,7 +480,43 @@ public OfferingProductTags getSkuProductTagsExpectSuccess(String sku) { }
 public Response getProductTagsBySku(String sku) { }
 ```
 
-### 7. Test Data Management
+### 7. Awaitility Usage (AwaitilityUtils)
+
+**CRITICAL: Always use `AwaitilityUtils` instead of raw `Awaitility.await()` calls.**
+
+The framework provides `AwaitilityUtils` (in `swatch-test-framework`) which wraps Awaitility with sensible defaults (timeout, poll interval). Using raw `await()` leads to verbose, inconsistent timeout/poll configurations scattered across tests.
+
+```java
+// ✅ Correct - Using AwaitilityUtils
+import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
+
+int count = AwaitilityUtils.until(
+    () -> service.getSkuCapacityBySubscription(subscription).getMeta().getCount(),
+    capacity -> capacity > 0);
+
+// ✅ Correct - Using AwaitilityUtils with custom settings
+import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
+
+AwaitilityUtils.until(
+    capacitySupplier,
+    capacity -> Math.abs(capacity - expectedCapacity) < 0.01,
+    AwaitilitySettings.defaults().timeoutMessage("Capacity should match"));
+
+// ✅ Correct - Using AwaitilityUtils with a Hamcrest Matcher
+AwaitilityUtils.until(
+    () -> getDailyHypervisorCapacityByMetricId(CORES),
+    closeTo(expectedCores, 0.01));
+
+// ❌ Wrong - Raw Awaitility with manual configuration
+import static org.awaitility.Awaitility.await;
+
+await("Capacity should increase")
+    .atMost(1, MINUTES)
+    .pollInterval(1, SECONDS)
+    .until(() -> service.getCapacity(), capacity -> capacity > 0);
+```
+
+### 8. Test Data Management
 
 **Best Practices:**
 - Use `RandomUtils.generateRandom()` for unique identifiers
@@ -430,7 +525,7 @@ public Response getProductTagsBySku(String sku) { }
 - Make test data creation intention-revealing
 - Avoid hardcoded test data when uniqueness matters
 
-### 8. Maven Dependencies Review
+### 9. Maven Dependencies Review
 
 ### Performance Concerns
 
@@ -489,6 +584,7 @@ When reviewing a component test:
 - [ ] Does the test follow Given-When-Then structure with clearly identifiable sections?
 - [ ] Is there only ONE action (When) per test?
 - [ ] Is the test method name descriptive?
+- [ ] Do test and helper method names not exceed 65 characters?
 - [ ] Is `@TestPlanName` annotation present (if applicable)?
 - [ ] If `@TestPlanName` is used, does the service have a `TEST_PLAN.md` file?
 - [ ] If `TEST_PLAN.md` exists, does the test implementation match the test case definition?
@@ -498,12 +594,18 @@ When reviewing a component test:
 
 - [ ] Are methods reasonably sized (< 30 lines guideline)?
 - [ ] Is duplicated code extracted to helper methods?
+- [ ] Are there no unused methods left behind in modified files?
 - [ ] Are helper methods named appropriately (`given*`, `when*`, `then*`)?
 - [ ] Are methods ordered correctly (static → public → protected → private)?
 - [ ] Within each access level, are helper methods ordered by given-when-then sequence?
+- [ ] Are assertions using JUnit 5 Assertion API (NOT Hamcrest Matchers)?
 - [ ] Are assertions clear with descriptive messages?
 - [ ] Is test data creation using domain objects and helpers?
 - [ ] Do test class names follow the test plan naming convention (e.g., `offering-tags-TC001` → `OfferingTagsComponentTest`)?
+- [ ] Are Javadocs absent on self-explanatory methods (only present on genuinely complex ones)?
+- [ ] Is `AwaitilityUtils` used instead of raw `Awaitility.await()` calls?
+- [ ] Before adding a new helper method, was the parent class and sibling tests checked for existing equivalent functionality?
+- [ ] Are near-duplicate methods consolidated into a single parameterized method?
 
 ### 3. Pattern Consistency Review
 
@@ -567,7 +669,7 @@ void shouldCreateContractSuccessfully() {
   Response response = service.createContract(contract);
   
   // Then: Contract is created successfully
-  assertThat("Contract creation should succeed", response.statusCode(), is(HttpStatus.SC_OK));
+  assertEquals(HttpStatus.SC_OK, response.statusCode(), "Contract creation should succeed");
   
   var contracts = service.getContractsByOrgId(orgId);
   assertEquals(1, contracts.size(), "Should have exactly one contract");
@@ -594,8 +696,8 @@ protected void givenAwsContractIsCreated(String orgId, String sku, Map<MetricId,
 // Instead of:
 assertTrue(contracts.size() > 0);
 
-// Consider:
-assertThat("Should have at least one contract", contracts, hasSize(greaterThan(0)));
+// Consider (using JUnit 5 Assertion API):
+assertFalse(contracts.isEmpty(), "Should have at least one contract");
 // Or if exact count is known:
 assertEquals(2, contracts.size(), "Should have exactly two contracts");
 ```
@@ -608,6 +710,10 @@ assertEquals(2, contracts.size(), "Should have exactly two contracts");
 - **Always verify** test class names match test plan naming convention (remove `-TCXXX` suffix, add `ComponentTest`)
 - **Always verify** service facade methods match OpenAPI `operationId` names exactly
 - **Always verify** methods are ordered according to Java conventions (static → public → protected → private) and helper methods follow given-when-then order
+- **Always use JUnit 5 Assertion API** (`assertEquals`, `assertNotNull`, `assertTrue`) instead of Hamcrest Matchers (`assertThat` with `is()`, `equalTo()`, `notNullValue()`)
+- **Always use `AwaitilityUtils`** instead of raw `Awaitility.await()` calls
+- **Always check parent/sibling classes** for existing methods before creating new ones — reuse or extend instead of duplicating
+- **Never add Javadoc** to methods whose names are already self-explanatory
 - **Always respond in English** regardless of user's language
 - **Focus on patterns** used in existing component tests
 - **Prioritize performance** when reviewing dependencies

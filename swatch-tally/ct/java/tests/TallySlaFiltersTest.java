@@ -23,6 +23,7 @@ package tests;
 import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
 import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 
+import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallySummary;
 import java.time.OffsetDateTime;
@@ -42,10 +43,11 @@ public class TallySlaFiltersTest extends BaseTallyComponentTest {
   private static final List<Sla> slas = List.of(Sla.PREMIUM, Sla.STANDARD, Sla.SELF_SUPPORT);
 
   @Test
+  @TestPlanName("tally-sla-filters-TC001")
   public void testTallySlaFiltersCount() {
+    // Given: Events for each SLA type and one event with no SLA
     OffsetDateTime now = OffsetDateTime.now();
 
-    // Produce events for each SLA
     for (Sla sla : slas) {
       Event event =
           helpers.createEventWithTimestamp(
@@ -62,7 +64,6 @@ public class TallySlaFiltersTest extends BaseTallyComponentTest {
       kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event);
     }
 
-    // Produce some "no SLA" event
     Event noSlaEvent =
         helpers.createEventWithTimestamp(
             orgId,
@@ -77,12 +78,12 @@ public class TallySlaFiltersTest extends BaseTallyComponentTest {
             TEST_PRODUCT_TAG);
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, noSlaEvent);
 
-    // Poll for tally summaries
+    // When: Polling for tally summaries
     List<TallySummary> tallySummaries =
         helpers.pollForTallySyncAndMessages(
             orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.HOURLY, 4, service, kafkaBridge);
 
-    // Compute counts for each SLA
+    // Then: SLA-filtered counts should sum to the total tally value
     double finalFilterCount = 0;
     for (Sla sla : slas) {
       double value =
@@ -96,7 +97,6 @@ public class TallySlaFiltersTest extends BaseTallyComponentTest {
       finalFilterCount += value;
     }
 
-    // No-SLA bucket: sla = EMPTY
     double noSla =
         helpers.getTallySummaryValue(
             tallySummaries,
@@ -106,13 +106,19 @@ public class TallySlaFiltersTest extends BaseTallyComponentTest {
             Granularity.HOURLY,
             Sla.__EMPTY__.toString());
 
-    // All tally summary values total: no SLA filter applied
     double allTallySummaries =
         helpers.getTallySummaryValue(
             tallySummaries, orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.HOURLY, null);
 
-    // Verify count with SLA filters
-    Assertions.assertEquals(allTallySummaries - finalFilterCount, noSla, 0.0001);
-    Assertions.assertEquals(finalFilterCount + noSla, allTallySummaries, 0.0001);
+    Assertions.assertEquals(
+        allTallySummaries - finalFilterCount,
+        noSla,
+        0.0001,
+        "No-SLA value should equal total minus SLA-filtered values");
+    Assertions.assertEquals(
+        finalFilterCount + noSla,
+        allTallySummaries,
+        0.0001,
+        "SLA-filtered values plus no-SLA should equal total");
   }
 }

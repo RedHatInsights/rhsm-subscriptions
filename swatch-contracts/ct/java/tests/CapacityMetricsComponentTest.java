@@ -20,22 +20,23 @@
  */
 package tests;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
+import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
+import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.contract.test.model.ReportCategory;
 import domain.Offering;
 import domain.Product;
 import domain.Subscription;
 import io.restassured.response.Response;
 import java.time.OffsetDateTime;
 import java.util.Map;
-import java.util.concurrent.Callable;
+import java.util.function.Supplier;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,7 +47,8 @@ public class CapacityMetricsComponentTest extends BaseContractComponentTest {
   private OffsetDateTime ending;
 
   @BeforeEach
-  void setUpDateRange() {
+  void setUp() {
+    super.setUp();
     beginning = clock.now().minusDays(1);
     ending = clock.now().plusDays(1);
   }
@@ -63,14 +65,14 @@ public class CapacityMetricsComponentTest extends BaseContractComponentTest {
 
     // When: Reconcile capacity for the offering
     Response response = service.forceReconcileOffering(sku);
-    assertThat("Force reconcile should succeed", response.statusCode(), is(HttpStatus.SC_OK));
+    assertEquals(HttpStatus.SC_OK, response.statusCode(), "Force reconcile should succeed");
 
     // Then: PHYSICAL Cores measurement should equal 40 (8 * 5)
     double expectedCapacity = offeringCores * quantity;
-    assertCapacityEquals(
-        "Physical cores capacity should be calculated correctly",
-        () -> getPhysicalCoreCapacity(Product.RHEL, orgId, beginning, ending),
-        expectedCapacity);
+    thenCapacityIsEqualTo(
+        expectedCapacity,
+        () -> getDailyPhysicalCapacityByMetricId(CORES),
+        "Physical cores capacity should be calculated correctly");
   }
 
   @TestPlanName("capacity-metrics-TC002")
@@ -85,14 +87,14 @@ public class CapacityMetricsComponentTest extends BaseContractComponentTest {
 
     // When: Reconcile capacity for the offering
     Response response = service.forceReconcileOffering(sku);
-    assertThat("Force reconcile should succeed", response.statusCode(), is(HttpStatus.SC_OK));
+    assertEquals(HttpStatus.SC_OK, response.statusCode(), "Force reconcile should succeed");
 
     // Then: PHYSICAL Sockets measurement should equal 40 (4 * 10)
     double expectedCapacity = offeringSockets * quantity;
-    assertCapacityEquals(
-        "Physical sockets capacity should be calculated correctly",
-        () -> getPhysicalSocketCapacity(Product.RHEL, orgId, beginning, ending),
-        expectedCapacity);
+    thenCapacityIsEqualTo(
+        expectedCapacity,
+        () -> getDailyPhysicalCapacityByMetricId(SOCKETS),
+        "Physical sockets capacity should be calculated correctly");
   }
 
   @TestPlanName("capacity-metrics-TC003")
@@ -107,14 +109,14 @@ public class CapacityMetricsComponentTest extends BaseContractComponentTest {
 
     // When: Reconcile capacity for the offering
     Response response = service.forceReconcileOffering(sku);
-    assertThat("Force reconcile should succeed", response.statusCode(), is(HttpStatus.SC_OK));
+    assertEquals(HttpStatus.SC_OK, response.statusCode(), "Force reconcile should succeed");
 
     // Then: HYPERVISOR Cores measurement should equal 32 (16 * 2)
     double expectedCapacity = offeringHypervisorCores * quantity;
-    assertCapacityEquals(
-        "Hypervisor cores capacity should be calculated correctly",
-        () -> getHypervisorCoreCapacity(Product.RHEL, orgId, beginning, ending),
-        expectedCapacity);
+    thenCapacityIsEqualTo(
+        expectedCapacity,
+        () -> getDailyHypervisorCapacityByMetricId(CORES),
+        "Hypervisor cores capacity should be calculated correctly");
   }
 
   @TestPlanName("capacity-metrics-TC004")
@@ -129,23 +131,14 @@ public class CapacityMetricsComponentTest extends BaseContractComponentTest {
 
     // When: Reconcile capacity for the offering
     Response response = service.forceReconcileOffering(sku);
-    assertThat("Force reconcile should succeed", response.statusCode(), is(HttpStatus.SC_OK));
+    assertEquals(HttpStatus.SC_OK, response.statusCode(), "Force reconcile should succeed");
 
     // Then: HYPERVISOR Sockets measurement should equal 40 (2 * 20)
     double expectedCapacity = offeringHypervisorSockets * quantity;
-    assertCapacityEquals(
-        "Hypervisor sockets capacity should be calculated correctly",
-        () -> getHypervisorSocketCapacity(Product.RHEL, orgId, beginning, ending),
-        expectedCapacity);
-  }
-
-  /** Awaits the capacity to reach the expected value. */
-  private void assertCapacityEquals(
-      String message, Callable<Double> capacitySupplier, double expectedCapacity) {
-    await(message)
-        .atMost(1, MINUTES)
-        .pollInterval(2, SECONDS)
-        .until(capacitySupplier, capacity -> Math.abs(capacity - expectedCapacity) < 0.01);
+    thenCapacityIsEqualTo(
+        expectedCapacity,
+        () -> getDailyHypervisorCapacityByMetricId(SOCKETS),
+        "Hypervisor sockets capacity should be calculated correctly");
   }
 
   /** Stubs and syncs an offering with the product API. */
@@ -169,32 +162,44 @@ public class CapacityMetricsComponentTest extends BaseContractComponentTest {
     return subscription;
   }
 
-  /** Helper method to create a RHEL offering with cores capacity and a subscription. */
   private void givenRhelOfferingAndSubscriptionWithCores(String sku, double cores, int quantity) {
     givenOfferingIsSynced(Offering.buildRhelOffering(sku, cores, null));
     givenSubscriptionWithMetricAndQuantity(sku, CORES, cores, quantity);
   }
 
-  /** Helper method to create a RHEL offering with sockets capacity and a subscription. */
   private void givenRhelOfferingAndSubscriptionWithSockets(
       String sku, double sockets, int quantity) {
     givenOfferingIsSynced(Offering.buildRhelOffering(sku, null, sockets));
     givenSubscriptionWithMetricAndQuantity(sku, SOCKETS, sockets, quantity);
   }
 
-  /** Helper method to create a RHEL hypervisor offering with cores capacity and a subscription. */
   private void givenRhelHypervisorOfferingAndSubscriptionWithCores(
       String sku, double hypervisorCores, int quantity) {
     givenOfferingIsSynced(Offering.buildRhelHypervisorOffering(sku, hypervisorCores, null));
     givenSubscriptionWithMetricAndQuantity(sku, CORES, hypervisorCores, quantity);
   }
 
-  /**
-   * Helper method to create a RHEL hypervisor offering with sockets capacity and a subscription.
-   */
   private void givenRhelHypervisorOfferingAndSubscriptionWithSockets(
       String sku, double hypervisorSockets, int quantity) {
     givenOfferingIsSynced(Offering.buildRhelHypervisorOffering(sku, null, hypervisorSockets));
     givenSubscriptionWithMetricAndQuantity(sku, SOCKETS, hypervisorSockets, quantity);
+  }
+
+  private void thenCapacityIsEqualTo(
+      double expectedCapacity, Supplier<Double> capacitySupplier, String message) {
+    AwaitilityUtils.until(
+        capacitySupplier,
+        capacity -> Math.abs(capacity - expectedCapacity) < 0.01,
+        AwaitilitySettings.defaults().timeoutMessage(message));
+  }
+
+  private double getDailyHypervisorCapacityByMetricId(MetricId metricId) {
+    return getDailyCapacityByCategoryAndMetric(
+        Product.RHEL, orgId, beginning, ending, ReportCategory.HYPERVISOR, metricId);
+  }
+
+  private double getDailyPhysicalCapacityByMetricId(MetricId metricId) {
+    return getDailyCapacityByCategoryAndMetric(
+        Product.RHEL, orgId, beginning, ending, ReportCategory.PHYSICAL, metricId);
   }
 }

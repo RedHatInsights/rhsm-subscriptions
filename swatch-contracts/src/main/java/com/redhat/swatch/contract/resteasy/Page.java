@@ -35,7 +35,7 @@ public class Page<T> {
   }
 
   public boolean hasNext() {
-    return pageable.getNextOffset() < content.size();
+    return pageable.getNextOffset() < pageable.getSize();
   }
 
   public Integer getPreviousOffset() {

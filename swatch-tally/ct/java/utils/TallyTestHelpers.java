@@ -38,6 +38,17 @@ import java.util.stream.Stream;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement;
 
+/**
+ * Helper methods for swatch-tally component tests.
+ *
+ * <p>Methods are organized into sections following the given-when-then pattern:
+ *
+ * <ul>
+ *   <li>Given helpers - Create test data and setup preconditions
+ *   <li>When/Then helpers - Perform actions and wait for results
+ *   <li>Then helpers - Retrieve and verify test results
+ * </ul>
+ */
 public class TallyTestHelpers {
 
   // Test configuration constants
@@ -50,9 +61,20 @@ public class TallyTestHelpers {
       TallyTestProducts.RHEL_FOR_X86_ELS_PAYG.metricIds().get(1);
   private static final int EVENT_EXPIRATION_DAYS = 25;
 
-  /** Default constructor. */
   public TallyTestHelpers() {}
 
+  // --- Given helper methods: Create test data and setup preconditions ---
+
+  /**
+   * Creates an event with default product configuration and specified timestamp.
+   *
+   * @param orgId the organization ID
+   * @param instanceId the instance ID
+   * @param timestampStr the timestamp as a string
+   * @param eventIdStr the event ID as a string
+   * @param value the metric value
+   * @return configured Event object
+   */
   public Event createEventWithTimestamp(
       String orgId, String instanceId, String timestampStr, String eventIdStr, float value) {
 
@@ -69,6 +91,21 @@ public class TallyTestHelpers {
         DEFAULT_PRODUCT_TAG);
   }
 
+  /**
+   * Creates an event with full configuration options.
+   *
+   * @param orgId the organization ID
+   * @param instanceId the instance ID
+   * @param timestampStr the timestamp as a string
+   * @param eventIdStr the event ID as a string
+   * @param metricId the metric ID
+   * @param value the metric value
+   * @param sla the service level agreement
+   * @param hardwareType the hardware type
+   * @param productId the product ID
+   * @param productTag the product tag
+   * @return configured Event object
+   */
   public Event createEventWithTimestamp(
       String orgId,
       String instanceId,
@@ -98,7 +135,6 @@ public class TallyTestHelpers {
     event.setSla(sla);
     event.setHardwareType(hardwareType);
 
-    // Product id and tag from parameters
     event.setProductIds(List.of(productId));
     event.setProductTag(Set.of(productTag));
 
@@ -106,7 +142,6 @@ public class TallyTestHelpers {
     event.setUsage(Event.Usage.PRODUCTION);
     event.setServiceType("RHEL System");
 
-    // Only set cloud/billing when hardware type is CLOUD
     if (hardwareType == Event.HardwareType.CLOUD) {
       event.setCloudProvider(Event.CloudProvider.AWS);
       event.setBillingProvider(Event.BillingProvider.AWS);
@@ -126,7 +161,7 @@ public class TallyTestHelpers {
   }
 
   /**
-   * Temporary nightly-tally pre-req seeding for CTs.
+   * Seeds nightly tally host buckets for component tests.
    *
    * <p>Nightly tally expects host-buckets to already exist. In CT we seed them directly into the DB
    * (via {@link TallyDbHostSeeder}). This is intentionally isolated so it can be removed later.
@@ -134,6 +169,11 @@ public class TallyTestHelpers {
    * <p>Implementation detail: reconciliation deletes swatch-only HBI_HOST systems unless the host
    * is considered "metered" (currently mapped to PAYG eligibility), so we seed one PAYG bucket to
    * keep the host and one non-PAYG bucket that we assert on.
+   *
+   * @param orgId the organization ID
+   * @param productId the product ID
+   * @param inventoryId the inventory ID
+   * @param service the tally service
    */
   public void seedNightlyTallyHostBuckets(
       String orgId, String productId, String inventoryId, TallySwatchService service) {
@@ -153,6 +193,27 @@ public class TallyTestHelpers {
     TallyDbHostSeeder.insertBuckets(hostId, productId, "Premium", "Production", 4, 2, "PHYSICAL");
   }
 
+  // --- When/Then helper methods: Perform actions and wait for results ---
+
+  /**
+   * Polls for tally sync and waits for expected Kafka messages with custom retry configuration.
+   *
+   * <p>This method repeatedly attempts to sync tally and wait for the expected number of messages,
+   * retrying on failure up to maxAttempts times with the specified poll interval.
+   *
+   * @param testOrgId the organization ID to sync
+   * @param productId the product ID to match
+   * @param metricId the metric ID to match
+   * @param granularity the granularity to match
+   * @param expectedMessageCount the expected number of messages
+   * @param maxAttempts maximum number of retry attempts
+   * @param pollInterval delay between retry attempts
+   * @param awaitTimeout timeout for waiting for Kafka messages per attempt
+   * @param service the tally service
+   * @param kafkaBridge the Kafka bridge service
+   * @return list of matching TallySummary messages
+   * @throws RuntimeException if sync fails after all retry attempts
+   */
   public List<TallySummary> pollForTallySyncAndMessages(
       String testOrgId,
       String productId,
@@ -173,12 +234,8 @@ public class TallyTestHelpers {
     while (attempts < maxAttempts) {
       attempts++;
       try {
-        // Run hourly tally sync
         service.performHourlyTallyForOrg(testOrgId);
 
-        // Wait for tally messages with a short timeout
-
-        // If successful, return
         return kafkaBridge.waitForKafkaMessage(
             TALLY,
             MessageValidators.tallySummaryMatches(testOrgId, productId, metricId, granularity),
@@ -201,6 +258,20 @@ public class TallyTestHelpers {
         String.format("Failed to sync tally after %d attempts", maxAttempts), lastException);
   }
 
+  /**
+   * Polls for tally sync and waits for expected Kafka messages with default retry configuration.
+   *
+   * <p>Uses default values: 10 max attempts, 2 second poll interval, 3 second await timeout.
+   *
+   * @param testOrgId the organization ID to sync
+   * @param productId the product ID to match
+   * @param metricId the metric ID to match
+   * @param granularity the granularity to match
+   * @param expectedMessageCount the expected number of messages
+   * @param service the tally service
+   * @param kafkaBridge the Kafka bridge service
+   * @return list of matching TallySummary messages
+   */
   public List<TallySummary> pollForTallySyncAndMessages(
       String testOrgId,
       String productId,
@@ -215,13 +286,29 @@ public class TallyTestHelpers {
         metricId,
         granularity,
         expectedMessageCount,
-        10, // max attempts
-        Duration.ofSeconds(2), // delay between attempts
-        Duration.ofSeconds(3), // await timeout per attempt
+        10,
+        Duration.ofSeconds(2),
+        Duration.ofSeconds(3),
         service,
         kafkaBridge);
   }
 
+  // --- Then helper methods: Retrieve and verify test results ---
+
+  /**
+   * Extracts and sums tally measurement values from TallySummary messages.
+   *
+   * <p>Filters summaries by organization, product, metric, granularity, and optionally by SLA.
+   * Returns the sum of all matching measurement values.
+   *
+   * @param tallySummaries the list of tally summaries to search
+   * @param orgId the organization ID to match
+   * @param productId the product ID to match
+   * @param metricId the metric ID to match
+   * @param granularity the granularity to match
+   * @param sla the SLA to match (null to include all SLAs)
+   * @return the sum of all matching measurement values
+   */
   public double getTallySummaryValue(
       List<TallySummary> tallySummaries,
       String orgId,
@@ -230,21 +317,14 @@ public class TallyTestHelpers {
       Granularity granularity,
       String sla) {
     return tallySummaries.stream()
-        // Only consider summaries for the requested org
         .filter(summary -> orgId.equalsIgnoreCase(summary.getOrgId()))
-        // Flatten to snapshots
         .flatMap(
             summary ->
                 summary.getTallySnapshots() == null
                     ? Stream.empty()
                     : summary.getTallySnapshots().stream())
-        // Match product and granularity
         .filter(snapshot -> productId.equalsIgnoreCase(snapshot.getProductId()))
         .filter(snapshot -> granularity.equals(snapshot.getGranularity()))
-        // Optional SLA filter:
-        //  - if sla == null  -> include all SLAs
-        //  - if sla != null -> only include snapshots whose SLA string matches,
-        //                      including the empty-string SLA bucket.
         .filter(
             snapshot -> {
               if (sla == null) {
@@ -253,15 +333,12 @@ public class TallyTestHelpers {
               String snapshotSla = snapshot.getSla() == null ? "" : snapshot.getSla().toString();
               return snapshotSla.equalsIgnoreCase(sla);
             })
-        // Flatten to measurements
         .flatMap(
             snapshot ->
                 snapshot.getTallyMeasurements() == null
                     ? Stream.empty()
                     : snapshot.getTallyMeasurements().stream())
-        // Match the desired metric
         .filter(m -> metricId.equalsIgnoreCase(m.getMetricId()))
-        // Sum all matching values
         .mapToDouble(m -> m.getValue() == null ? 0.0 : m.getValue())
         .sum();
   }

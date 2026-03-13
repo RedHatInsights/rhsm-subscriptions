@@ -26,11 +26,6 @@ Execute tests for a specific service. For example, to run tests for `swatch-syst
 ./mvnw clean install -Pcomponent-tests -pl swatch-system-conduit/ct
 ```
 
-**Note**: The component tests require:
-- `RHSM_USE_STUB=true` to use the stub RHSM API instead of the real API
-- `INVENTORY_ENABLE_KAFKA=true` to enable Kafka-based inventory updates (required for reading from `platform.inventory.host-ingress` topic)
-- `KAFKA_SEEK_OVERRIDE_END=true` to skip old messages in the Kafka topic (prevents processing messages from previous test runs)
-
 ## Running Tests Against OpenShift (Bonfire)
 
 ### 1. Deploy Dependencies in OpenShift

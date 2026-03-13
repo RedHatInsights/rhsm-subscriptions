@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package utils;
+package api;
 
 import static com.redhat.swatch.component.tests.utils.SwatchUtils.SECURITY_HEADERS;
 
@@ -27,26 +27,23 @@ import com.redhat.swatch.component.tests.logging.Log;
 import io.restassured.response.Response;
 import java.util.Map;
 
-public class ConduitTestHelpers {
+public class ConduitSwatchService extends SwatchService {
 
   private static final String SYNC_ORG_ENDPOINT = "/api/rhsm-subscriptions/v1/internal/rpc/syncOrg";
-
-  public ConduitTestHelpers() {}
 
   /**
    * Sync rhsm-conduit for org.
    *
-   * @param service SwatchService
    * @param orgId Org-id
    * @throws RuntimeException if the sync fails
    */
-  public void syncConduitByOrgId(SwatchService service, String orgId) {
+  public void syncConduitByOrgId(String orgId) {
     Log.info("Syncing conduit for org: %s", orgId);
 
     Response response =
-        service
-            .given()
+        given()
             .headers(SECURITY_HEADERS)
+            .header("x-rh-swatch-synchronous-request", "true")
             .contentType("application/json")
             .body(Map.of("org_id", orgId))
             .when()

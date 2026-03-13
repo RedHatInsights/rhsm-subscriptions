@@ -208,7 +208,7 @@ class TallySnapshotControllerTest implements ExtendWithEmbeddedKafka {
     assertTrue(retryListener.didRetryOccur(), "Expected a forced retry to occur but it didn't!!!");
 
     Map<String, Host> hosts =
-        hostRepository.findAll().stream()
+        hostRepository.findAllEagerly().stream()
             .collect(
                 Collectors.toMap(
                     Host::getInstanceId,

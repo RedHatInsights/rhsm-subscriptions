@@ -1,0 +1,77 @@
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: github-get-pr-labels
+spec:
+  description: Fetches labels from a GitHub pull request.
+  params:
+    - name: PROJECT_REPO
+      type: string
+    - name: PR_NUMBER
+      type: string
+    - name: GITHUB_TOKEN_SECRET
+      type: string
+      default: "swatch-ci-github-token"
+  results:
+    - name: LABELS
+      description: Comma-separated list of PR labels
+  steps:
+    - name: get-labels
+      image: quay.io/konflux-ci/appstudio-utils:latest
+      env:
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: $(params.GITHUB_TOKEN_SECRET)
+              key: github_token
+      script: |
+        #!/bin/bash
+        set -euo pipefail
+
+        GITHUB_TOKEN=$(echo -n "$GITHUB_TOKEN" | tr -d '[:space:]')
+        REPO="$(params.PROJECT_REPO)"
+        PR="$(params.PR_NUMBER)"
+
+        echo "=== github-get-pr-labels ==="
+        echo "REPO: ${REPO}"
+        echo "PR: ${PR}"
+        echo "Token length: ${#GITHUB_TOKEN}"
+        echo ""
+
+        URL="https://api.github.com/repos/${REPO}/pulls/${PR}"
+        echo "Calling: ${URL}"
+
+        set +e
+        HTTP_CODE=$(curl -sS --http1.1 --retry 5 --retry-connrefused \
+          --connect-timeout 10 --max-time 30 \
+          -o /tmp/pr.json -w "%{http_code}" \
+          -H "Authorization: token ${GITHUB_TOKEN}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          "${URL}" 2>&1)
+        CURL_EXIT=$?
+        set -e
+
+        echo "curl exit: ${CURL_EXIT}"
+        echo "HTTP response: ${HTTP_CODE}"
+
+        if [ $CURL_EXIT -ne 0 ]; then
+          echo "ERROR: curl failed (exit $CURL_EXIT): $HTTP_CODE"
+          exit 1
+        fi
+
+        if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+          echo "ERROR: GitHub API returned HTTP ${HTTP_CODE}"
+          cat /tmp/pr.json 2>/dev/null || true
+          exit 1
+        fi
+
+        echo "PR Title: $(jq -r '.title' /tmp/pr.json)"
+        echo "PR State: $(jq -r '.state' /tmp/pr.json)"
+
+        LABELS=$(jq -r '[.labels[].name] | join(",")' /tmp/pr.json)
+        echo "Labels: ${LABELS}"
+        printf "%s" "$LABELS" > "$(results.LABELS.path)"
+
+        echo ""
+        echo "=== github-get-pr-labels DONE ==="

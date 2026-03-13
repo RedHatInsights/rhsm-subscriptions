@@ -1,0 +1,95 @@
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: github-delete-comment
+spec:
+  description: Deletes previous PR comments matching a marker string.
+  params:
+    - name: PROJECT_REPO
+      type: string
+    - name: PR_NUMBER
+      type: string
+    - name: COMMENT_MARKER
+      type: string
+      default: "<!-- swatch-iqe-test-results -->"
+    - name: GITHUB_TOKEN_SECRET
+      type: string
+      default: "swatch-ci-github-token"
+  steps:
+    - name: delete-comments
+      image: quay.io/konflux-ci/appstudio-utils:latest
+      env:
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: $(params.GITHUB_TOKEN_SECRET)
+              key: github_token
+      script: |
+        #!/bin/bash
+        set -euo pipefail
+
+        GITHUB_TOKEN=$(echo -n "$GITHUB_TOKEN" | tr -d '[:space:]')
+        REPO="$(params.PROJECT_REPO)"
+        PR="$(params.PR_NUMBER)"
+        MARKER="$(params.COMMENT_MARKER)"
+        API="https://api.github.com/repos/${REPO}"
+        AUTH="Authorization: token ${GITHUB_TOKEN}"
+
+        echo "=== github-delete-comment ==="
+        echo "REPO: ${REPO}"
+        echo "PR: ${PR}"
+        echo "MARKER: ${MARKER}"
+        echo "Token length: ${#GITHUB_TOKEN}"
+        echo ""
+
+        page=1
+        while true; do
+          echo "Fetching comments page ${page}..."
+          set +e
+          RESP=$(curl -sS --http1.1 --retry 5 --retry-connrefused \
+            --connect-timeout 10 --max-time 30 \
+            -o /tmp/comments.json -w "%{http_code}" \
+            -H "$AUTH" -H "Accept: application/vnd.github.v3+json" \
+            "${API}/issues/${PR}/comments?per_page=100&page=${page}" 2>&1)
+          CURL_EXIT=$?
+          set -e
+
+          if [ $CURL_EXIT -ne 0 ]; then
+            echo "ERROR: curl failed listing comments (exit $CURL_EXIT): $RESP"
+            exit 1
+          fi
+
+          echo "HTTP response: ${RESP}"
+
+          if [ "$RESP" -lt 200 ] || [ "$RESP" -ge 300 ]; then
+            echo "ERROR: GitHub API returned HTTP ${RESP}"
+            cat /tmp/comments.json 2>/dev/null || true
+            exit 1
+          fi
+
+          COUNT=$(jq 'length' /tmp/comments.json)
+          echo "Comments on page ${page}: ${COUNT}"
+          [ "$COUNT" -eq 0 ] && break
+
+          MATCHING=$(jq -r --arg m "$MARKER" '[.[] | select(.body | contains($m))] | length' /tmp/comments.json)
+          echo "Comments matching marker: ${MATCHING}"
+
+          jq -r --arg m "$MARKER" '.[] | select(.body | contains($m)) | .id' /tmp/comments.json | while read -r id; do
+            echo "Deleting comment ${id}..."
+            set +e
+            DEL_RESP=$(curl -sS --http1.1 --retry 5 --retry-connrefused \
+              --connect-timeout 10 --max-time 30 \
+              -o /dev/null -w "%{http_code}" \
+              -X DELETE -H "$AUTH" "${API}/issues/comments/${id}" 2>&1)
+            DEL_EXIT=$?
+            set -e
+            echo "Delete comment ${id}: HTTP ${DEL_RESP} (curl exit ${DEL_EXIT})"
+          done
+
+          [ "$COUNT" -lt 100 ] && break
+          page=$((page + 1))
+        done
+
+        echo ""
+        echo "=== github-delete-comment DONE ==="
