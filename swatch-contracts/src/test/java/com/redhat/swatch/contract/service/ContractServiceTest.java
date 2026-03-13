@@ -74,6 +74,7 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -230,38 +231,73 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   @Test
-  void syncContractByOrgWithPreCleanupDeletesContractsWithNullEndDateOrBillingProviderId() {
-    // Given: A contract with end_date=null, which matches the pre-cleanup delete predicate
+  void syncContractByOrgWithPreCleanupDeletesContractsWithNullEndDate() throws Exception {
+    // Given: A contract with end_date=null — matches the pre-cleanup delete predicate
     // (billing_provider_id IS NULL OR billing_provider_id='' OR end_date IS NULL)
     givenContractEntityWithNullEndDate();
-    assertEquals(1, contractRepository.getContractsByOrgId(ORG_ID).size());
+
+    // Upstream returns nothing — isolates the count assertion from re-sync side effects
+    var stub = mockPartnerApi(new PartnerEntitlements().content(Collections.emptyList()));
 
     // When: Per-org sync with isPreCleanup=true
-    StatusResponse statusResponse = contractService.syncContractByOrgId(ORG_ID, true);
+    contractService.syncContractByOrgId(ORG_ID, true);
 
-    // Then: The incomplete contract is deleted before re-sync; none come back from upstream
-    assertEquals("Contracts Synced for " + ORG_ID, statusResponse.getMessage());
-    assertEquals(
-        0,
-        contractRepository.getContractsByOrgId(ORG_ID).size(),
-        "Pre-cleanup must delete contracts with null end_date before re-syncing");
+    // Then: The delete ran and the contract is gone
+    verify(contractRepository).deleteContractsByOrgIdForEmptyValues(ORG_ID);
+    assertEquals(0, contractRepository.getContractsByOrgId(ORG_ID).size());
+    wireMockServer.removeStub(stub);
   }
 
   @Test
-  void syncContractByOrgWithoutPreCleanupPreservesContractsWithNullEndDate() {
+  void syncContractByOrgWithPreCleanupDeletesContractsWithNullBillingProviderId() throws Exception {
+    // Given: A contract with billing_provider_id=null — also matches the pre-cleanup predicate
+    givenContractEntityWithNullBillingProviderId();
+
+    // Upstream returns nothing — isolates the count assertion from re-sync side effects
+    var stub = mockPartnerApi(new PartnerEntitlements().content(Collections.emptyList()));
+
+    // When: Per-org sync with isPreCleanup=true
+    contractService.syncContractByOrgId(ORG_ID, true);
+
+    // Then: The delete ran and the contract is gone
+    verify(contractRepository).deleteContractsByOrgIdForEmptyValues(ORG_ID);
+    assertEquals(0, contractRepository.getContractsByOrgId(ORG_ID).size());
+    wireMockServer.removeStub(stub);
+  }
+
+  @Test
+  void syncContractByOrgWithoutPreCleanupPreservesContractsWithNullEndDate() throws Exception {
     // Given: A contract with end_date=null
     givenContractEntityWithNullEndDate();
-    assertEquals(1, contractRepository.getContractsByOrgId(ORG_ID).size());
+
+    // Upstream returns nothing — isolates the count assertion from re-sync side effects
+    var stub = mockPartnerApi(new PartnerEntitlements().content(Collections.emptyList()));
 
     // When: Per-org sync with isPreCleanup=false (the global sync default per ADR-0004)
-    StatusResponse statusResponse = contractService.syncContractByOrgId(ORG_ID, false);
+    contractService.syncContractByOrgId(ORG_ID, false);
 
-    // Then: The contract is not deleted by pre-cleanup; it remains in the DB
-    assertEquals("Contracts Synced for " + ORG_ID, statusResponse.getMessage());
-    assertEquals(
-        1,
-        contractRepository.getContractsByOrgId(ORG_ID).size(),
-        "Without pre-cleanup, contracts with null end_date must be preserved");
+    // Then: The delete was never called and the contract is still present
+    verify(contractRepository, times(0)).deleteContractsByOrgIdForEmptyValues(any());
+    assertEquals(1, contractRepository.getContractsByOrgId(ORG_ID).size());
+    wireMockServer.removeStub(stub);
+  }
+
+  @Test
+  void syncContractByOrgWithoutPreCleanupPreservesContractsWithNullBillingProviderId()
+      throws Exception {
+    // Given: A contract with billing_provider_id=null
+    givenContractEntityWithNullBillingProviderId();
+
+    // Upstream returns nothing — isolates the count assertion from re-sync side effects
+    var stub = mockPartnerApi(new PartnerEntitlements().content(Collections.emptyList()));
+
+    // When: Per-org sync with isPreCleanup=false (the global sync default per ADR-0004)
+    contractService.syncContractByOrgId(ORG_ID, false);
+
+    // Then: The delete was never called and the contract is still present
+    verify(contractRepository, times(0)).deleteContractsByOrgIdForEmptyValues(any());
+    assertEquals(1, contractRepository.getContractsByOrgId(ORG_ID).size());
+    wireMockServer.removeStub(stub);
   }
 
   @Test
@@ -756,6 +792,24 @@ class ContractServiceTest extends BaseUnitTest {
     entity.setOrgId(ORG_ID);
     entity.setStartDate(DEFAULT_START_DATE);
     entity.setEndDate(null);
+    entity.setBillingProvider("aws");
+    entity.setBillingAccountId("billAcct123");
+    entity.setSubscriptionNumber(SUBSCRIPTION_NUMBER);
+    entity.setVendorProductCode("vendorProductCode");
+    entity.setOffering(offeringRepository.findById(SKU));
+    entity.setLastUpdated(OffsetDateTime.now());
+    contractRepository.persist(entity);
+    reset(contractRepository);
+  }
+
+  @Transactional
+  void givenContractEntityWithNullBillingProviderId() {
+    var entity = new ContractEntity();
+    entity.setUuid(UUID.randomUUID());
+    entity.setOrgId(ORG_ID);
+    entity.setStartDate(DEFAULT_START_DATE);
+    entity.setEndDate(DEFAULT_END_DATE);
+    entity.setBillingProviderId(null);
     entity.setBillingProvider("aws");
     entity.setBillingAccountId("billAcct123");
     entity.setSubscriptionNumber(SUBSCRIPTION_NUMBER);
