@@ -162,11 +162,6 @@
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.redhat.swatch</groupId>
-        <artifactId>swatch-database-migrations</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
         <groupId>io.swagger.parser.v3</groupId>
         <artifactId>swagger-parser</artifactId>
         <version>${swagger-parser.version}</version>
@@ -566,9 +561,7 @@
         <module>swatch-model-events</module>
         <module>swatch-model-metrics-hbi</module>
         <module>swatch-model-billable-usage</module>
-        <module>swatch-database-migrations</module>
         <!-- Services -->
-        <module>swatch-database</module>
         <module>swatch-tally</module>
         <module>swatch-system-conduit</module>
         <module>swatch-billable-usage</module>
