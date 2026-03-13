@@ -19,7 +19,7 @@
     <codegen.skipIfSpecIsUnchanged>true</codegen.skipIfSpecIsUnchanged>
 
     <!-- Dependencies -->
-    <quarkus.platform.version>3.32.2</quarkus.platform.version>
+    <quarkus.platform.version>3.32.3</quarkus.platform.version>
     <spring.boot.version>3.5.11</spring.boot.version>
     <resteasy.version>7.0.0.Final</resteasy.version>
     <!-- Only use as provided in the common dependencies.
@@ -30,7 +30,7 @@
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
     <opentelemetry-api.version>1.60.1</opentelemetry-api.version>
-    <awssdk-bom.version>2.42.11</awssdk-bom.version>
+    <awssdk-bom.version>2.42.12</awssdk-bom.version>
     <guava.version>33.5.0-jre</guava.version>
     <liquibase.version>5.0.2</liquibase.version>
     <postgresql.version>42.7.10</postgresql.version>
@@ -279,7 +279,7 @@
       <dependency>
         <groupId>org.projectlombok</groupId>
         <artifactId>lombok</artifactId>
-        <version>1.18.42</version>
+        <version>1.18.44</version>
       </dependency>
       <dependency>
         <groupId>org.wiremock</groupId>
