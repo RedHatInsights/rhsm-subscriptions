@@ -125,6 +125,8 @@ objects:
               enabled: true
           podSpec:
             image: ${IMAGE}:${IMAGE_TAG}
+            # Run Liquibase migrations in an initContainer since initContainers do not have
+            # liveness or readinessProbes which could potentially abort a migration
             initContainers:
               - env:
                   - name: JAVA_DEBUG
@@ -398,15 +400,15 @@ objects:
               rewrite ^/api/rhsm-subscriptions/v1/subscriptions/billing_account_ids$ /api/swatch-contracts/v1/subscriptions/billing_account_ids break;
               proxy_pass http://swatch-contracts;
             }
-        
+
             location /api/rhsm-subscriptions/v1/subscriptions/products {
               proxy_pass http://swatch-contracts;
             }
-    
+
             location /api/rhsm-subscriptions/v2/subscriptions/products {
               proxy_pass http://swatch-contracts;
             }
-    
+
             location /api/rhsm-subscriptions/v1/capacity/products {
               proxy_pass http://swatch-contracts;
             }

@@ -314,6 +314,8 @@ objects:
             enabled: true
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
+          # Run Liquibase migrations in an initContainer since initContainers do not have
+          # liveness or readinessProbes which could potentially abort a migration
           initContainers:
             - env:
                 - name: JAVA_DEBUG
