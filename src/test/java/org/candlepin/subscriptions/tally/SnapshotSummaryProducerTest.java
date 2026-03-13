@@ -118,7 +118,7 @@ class SnapshotSummaryProducerTest {
                 Usage.PRODUCTION,
                 BillingProvider.RED_HAT,
                 "12345",
-                MetricIdUtils.getCores().getValue(),
+                MetricIdUtils.getSockets().getValue(),
                 20.4)));
     updateMap.put(
         "org2",
@@ -131,7 +131,7 @@ class SnapshotSummaryProducerTest {
                 Usage.PRODUCTION,
                 BillingProvider.AWS,
                 "12345",
-                MetricIdUtils.getCores().getValue(),
+                MetricIdUtils.getSockets().getValue(),
                 22.2)));
     producer.produceTallySummaryMessages(
         updateMap, List.of(Granularity.DAILY), SnapshotSummaryProducer.NIGHTLY_SNAP_FILTER);
@@ -148,7 +148,7 @@ class SnapshotSummaryProducerTest {
         Granularity.DAILY,
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
-        MetricIdUtils.getCores(),
+        MetricIdUtils.getSockets(),
         20.4,
         1,
         false);
@@ -159,7 +159,7 @@ class SnapshotSummaryProducerTest {
         Granularity.DAILY,
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
-        MetricIdUtils.getCores(),
+        MetricIdUtils.getSockets(),
         22.2,
         1,
         false);
