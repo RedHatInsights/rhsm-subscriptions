@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -83,6 +84,7 @@ class ContractsResourceTest {
 
   private static final String SKU = "mw123";
   private static final String ORG_ID = "org123";
+  private static final String ANOTHER_ORG_ID = "org456";
   private static final String ROSA = "rosa";
   private static final String SYNC_ALL_CONTRACTS_ENDPOINT = "/internal/rpc/syncAllContracts";
   private final OffsetDateTime defaultEndDate =
@@ -539,7 +541,24 @@ class ContractsResourceTest {
 
     assertEquals("All Contract are Synced", response.getStatus());
     verify(contractService).getAllContracts();
-    verify(contractService).syncContractByOrgId(ORG_ID, true);
+    verify(contractService).syncContractByOrgId(ORG_ID, false);
+  }
+
+  @Test
+  void testSyncAllContractsDoNotCleanup() {
+    // Global sync must always call per-org sync with isPreCleanup=false (ADR-0004).
+    // Pre-cleanup is an opt-in repair tool for operators; it must not run automatically.
+    ContractEntity contract1 = new ContractEntity();
+    contract1.setOrgId(ORG_ID);
+    ContractEntity contract2 = new ContractEntity();
+    contract2.setOrgId(ANOTHER_ORG_ID);
+    when(contractService.getAllContracts()).thenReturn(List.of(contract1, contract2));
+
+    whenSyncAllContractsRequest();
+
+    verify(contractService, times(0)).syncContractByOrgId(any(), eq(true));
+    verify(contractService).syncContractByOrgId(ORG_ID, false);
+    verify(contractService).syncContractByOrgId(ANOTHER_ORG_ID, false);
   }
 
   private StatusResponse whenSyncAllContractsRequest() {
