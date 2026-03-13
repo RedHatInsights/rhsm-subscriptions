@@ -86,8 +86,8 @@ class SnapshotSummaryProducerTest {
 
   static Stream<Pair> snapshotSummaryProducerParams() {
     return Stream.of(
-        Pair.of("hourly", SnapshotSummaryProducer.hourlySnapFilter),
-        Pair.of("daily", SnapshotSummaryProducer.nightlySnapFilter));
+        Pair.of("hourly", SnapshotSummaryProducer.HOURLY_SNAP_FILTER),
+        Pair.of("daily", SnapshotSummaryProducer.NIGHTLY_SNAP_FILTER));
   }
 
   static class Pair {
@@ -134,7 +134,7 @@ class SnapshotSummaryProducerTest {
                 MetricIdUtils.getCores().getValue(),
                 22.2)));
     producer.produceTallySummaryMessages(
-        updateMap, List.of(Granularity.DAILY), SnapshotSummaryProducer.nightlySnapFilter);
+        updateMap, List.of(Granularity.DAILY), SnapshotSummaryProducer.NIGHTLY_SNAP_FILTER);
     verify(kafka, times(2)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
 
     List<TallySummary> summaries = summaryCaptor.getAllValues();
@@ -195,7 +195,7 @@ class SnapshotSummaryProducerTest {
                 MetricIdUtils.getCores().getValue(),
                 22.2)));
     producer.produceTallySummaryMessages(
-        updateMap, List.of(Granularity.HOURLY), SnapshotSummaryProducer.hourlySnapFilter);
+        updateMap, List.of(Granularity.HOURLY), SnapshotSummaryProducer.HOURLY_SNAP_FILTER);
     verify(kafka, times(2)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
 
     List<TallySummary> summaries = summaryCaptor.getAllValues();
@@ -269,7 +269,7 @@ class SnapshotSummaryProducerTest {
                 MetricIdUtils.getCores().getValue(),
                 42.2)));
     producer.produceTallySummaryMessages(
-        updateMap, List.of(Granularity.HOURLY), SnapshotSummaryProducer.hourlySnapFilter);
+        updateMap, List.of(Granularity.HOURLY), SnapshotSummaryProducer.HOURLY_SNAP_FILTER);
     verify(kafka, times(2)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
 
     List<TallySummary> summaries = summaryCaptor.getAllValues();
@@ -343,7 +343,7 @@ class SnapshotSummaryProducerTest {
                 MetricIdUtils.getCores().getValue(),
                 42.2)));
     producer.produceTallySummaryMessages(
-        updateMap, List.of(Granularity.HOURLY), SnapshotSummaryProducer.hourlySnapFilter);
+        updateMap, List.of(Granularity.HOURLY), SnapshotSummaryProducer.HOURLY_SNAP_FILTER);
     verify(kafka, times(2)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
 
     List<TallySummary> summaries = summaryCaptor.getAllValues();

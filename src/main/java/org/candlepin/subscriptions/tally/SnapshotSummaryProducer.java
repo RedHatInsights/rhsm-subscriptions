@@ -54,7 +54,7 @@ public class SnapshotSummaryProducer {
   private final RetryTemplate kafkaRetryTemplate;
   private final TallySummaryMapper summaryMapper;
 
-  public static Predicate<TallySnapshot> hourlySnapFilter =
+  public static final Predicate<TallySnapshot> HOURLY_SNAP_FILTER =
       snapshot ->
           !ServiceLevel._ANY.equals(snapshot.getServiceLevel())
               && !Usage._ANY.equals(snapshot.getUsage())
@@ -62,13 +62,13 @@ public class SnapshotSummaryProducer {
               && !ResourceUtils.ANY.equals(snapshot.getBillingAccountId())
               && hasMeasurements(snapshot);
 
-  public static Predicate<TallySnapshot> nightlySnapFilter =
+  public static final Predicate<TallySnapshot> NIGHTLY_SNAP_FILTER =
       snapshot ->
           !ServiceLevel._ANY.equals(snapshot.getServiceLevel())
               && !Usage._ANY.equals(snapshot.getUsage())
               && hasMeasurements(snapshot);
 
-  public static Predicate<TallySnapshot> paygSnapFilter =
+  public static final Predicate<TallySnapshot> PAYG_SNAP_FILTER =
       snapshot ->
           Granularity.HOURLY.equals(snapshot.getGranularity())
                   && ProductId.fromString(snapshot.getProductId()).isPayg()
@@ -113,7 +113,7 @@ public class SnapshotSummaryProducer {
                         when we transmit the tally summary message to the BillableUsage component. */
                         snapshots.stream()
                             .filter(filter)
-                            .filter(paygSnapFilter)
+                            .filter(PAYG_SNAP_FILTER)
                             .map(
                                 snapshot -> {
                                   removeTotalMeasurementsForHourly(snapshot);
@@ -139,7 +139,6 @@ public class SnapshotSummaryProducer {
     if (Objects.nonNull(snapshot.getTallyMeasurements())
         && Granularity.DAILY.equals(snapshot.getGranularity())) {
       TallySnapshot snapshotCopy = deepCopy(snapshot);
-      snapshotCopy.getTallyMeasurements().remove(HardwareMeasurementType.TOTAL);
       snapshotCopy
           .getTallyMeasurements()
           .entrySet()
