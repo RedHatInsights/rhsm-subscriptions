@@ -110,7 +110,7 @@ import lombok.Setter;
         h.facts->'rhsm'->>'SYSPURPOSE_SLA' as syspurpose_sla,
         h.facts->'rhsm'->>'SYSPURPOSE_USAGE' as syspurpose_usage,
         h.facts->'rhsm'->>'SYSPURPOSE_UNITS' as syspurpose_units,
-        h.facts->'rhsm'->>'BILLING_MODEL' as  billing_model,
+        h.facts->'rhsm'->>'BILLING_MODEL' as billing_model,
         h.facts->'qpc'->>'IS_RHEL' as is_rhel,
         sps.virtual_host_uuid::text as hypervisor_uuid,
         sps.infrastructure_type as system_profile_infrastructure_type,
@@ -138,8 +138,8 @@ import lombok.Setter;
             sps.virtual_host_uuid::text
         ) as any_hypervisor_uuid
         from hosts h
-        inner join system_profiles_static sps on h.id = sps.host_id
-        left join system_profiles_dynamic spd on h.id = spd.host_id
+        inner join system_profiles_static sps on h.org_id = sps.org_id and h.id = sps.host_id
+        left join system_profiles_dynamic spd on h.org_id = spd.org_id and h.id = spd.host_id
         cross join lateral (
             select string_agg(items, ',') as products
             from jsonb_array_elements_text(h.facts->'rhsm'->'RH_PROD') as items) rhsm_products
@@ -152,7 +152,7 @@ import lombok.Setter;
         where h.org_id=:orgId
            and (h.facts->'rhsm'->>'BILLING_MODEL' IS NULL OR h.facts->'rhsm'->>'BILLING_MODEL' <> 'marketplace')
            and (sps.host_type IS NULL OR sps.host_type <> 'edge')
-           and NOW() < h.stale_timestamp + make_interval(days => :culledOffsetDays)
+           and h.stale_timestamp > NOW() - make_interval(days => :culledOffsetDays)
         -- NOTE: ordering is crucial for correct streaming reconciliation of HBI data
         order by hardware_subman_id, any_hypervisor_uuid, inventory_id, h.org_id
     """,
