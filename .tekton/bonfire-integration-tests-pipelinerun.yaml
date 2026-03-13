@@ -13,10 +13,14 @@ spec:
       - name: url
         value: "https://github.com/RedHatInsights/rhsm-subscriptions.git"
       - name: revision
-        value: "main"
+        value: "jcarvaja/SWATCH-4578"
       - name: pathInRepo
         value: .tekton/bonfire-integration-tests-pipeline.yaml
   params:
+    # Project configuration
+    - name: PROJECT_TASKS_REVISION
+      value: "jcarvaja/SWATCH-4578"
+
     # Bonfire configuration
     - name: BONFIRE_REPO
       value: "https://github.com/RedHatInsights/bonfire-tekton"
@@ -62,3 +66,12 @@ spec:
       value: "false"
     - name: IQE_LOG_LEVEL
       value: "debug"
+  workspaces:
+    - name: artifacts
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi

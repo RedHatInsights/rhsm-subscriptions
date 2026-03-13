@@ -1,0 +1,62 @@
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: extract-metadata
+spec:
+  description: Extracts event type, PR number, and git revision from PipelineRun metadata and SNAPSHOT.
+  params:
+    - name: SNAPSHOT
+      type: string
+    - name: COMPONENT_NAME
+      type: string
+  results:
+    - name: IS_PULL_REQUEST
+      description: Whether the event type is pull_request (true or false)
+    - name: PR_NUMBER
+      description: Pull request number, or "none" if not a PR event
+    - name: GIT_REVISION
+      description: Git revision extracted from the SNAPSHOT
+  steps:
+    - name: extract
+      image: quay.io/konflux-ci/appstudio-utils:latest
+      env:
+        - name: EVENT_TYPE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.labels['pac.test.appstudio.openshift.io/event-type']
+        - name: PAC_PR_NUMBER
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.labels['pac.test.appstudio.openshift.io/pull-request']
+        - name: GROUP_TEST_INFO
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['test.appstudio.openshift.io/group-test-info']
+      script: |
+        #!/bin/bash
+        set -euo pipefail
+        echo "EVENT_TYPE=${EVENT_TYPE:-unknown}"
+        if [ "${EVENT_TYPE:-}" = "pull_request" ]; then
+          printf "true" > "$(results.IS_PULL_REQUEST.path)"
+        else
+          printf "false" > "$(results.IS_PULL_REQUEST.path)"
+        fi
+
+        PR=""
+        if [ -n "${GROUP_TEST_INFO:-}" ]; then
+          PR=$(echo "${GROUP_TEST_INFO}" | jq -r '.[0].pullRequestNumber // empty' 2>/dev/null || echo "")
+        fi
+        if [ -z "$PR" ] && [ -n "${PAC_PR_NUMBER:-}" ]; then
+          PR="${PAC_PR_NUMBER}"
+        fi
+        echo "PR_NUMBER=${PR:-none}"
+        printf "%s" "${PR:-none}" > "$(results.PR_NUMBER.path)"
+
+        echo "Extracting git revision for component: $(params.COMPONENT_NAME)"
+        rev=$(echo '$(params.SNAPSHOT)' | jq -r --arg name '$(params.COMPONENT_NAME)' '.components[] | select(.name==$name) | .source.git.revision // empty')
+        if [ -z "$rev" ] || [ "$rev" = "null" ]; then
+          rev=$(echo '$(params.SNAPSHOT)' | jq -r '.components[0].source.git.revision // empty')
+        fi
+        echo "GIT_REVISION=${rev:-empty}"
+        printf "%s" "$rev" > "$(results.GIT_REVISION.path)"

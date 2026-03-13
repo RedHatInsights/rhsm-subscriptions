@@ -13,6 +13,10 @@ spec:
       - name: pathInRepo
         value: .tekton/bonfire-component-tests-pipeline.yaml
   params:
+    # Project configuration
+    - name: PROJECT_TASKS_REVISION
+      value: "jcarvaja/SWATCH-4578"
+
     # Bonfire configuration
     - name: BONFIRE_REPO
       value: "https://github.com/RedHatInsights/bonfire-tekton"

@@ -1,0 +1,237 @@
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: github-post-test-results
+spec:
+  description: Parses JUnit XML and posts a test results summary as a PR comment.
+  params:
+    - name: PROJECT_REPO
+      type: string
+    - name: PR_NUMBER
+      type: string
+    - name: PIPELINE_NAME
+      type: string
+    - name: JUNIT_FILE
+      type: string
+      description: Filename of the JUnit XML relative to the artifacts workspace (used when JUNIT_DIR is empty)
+    - name: JUNIT_DIR
+      type: string
+      description: Directory relative to artifacts workspace containing TEST-*.xml files. When set, aggregates all XMLs instead of using JUNIT_FILE.
+      default: ""
+    - name: COMMENT_MARKER
+      type: string
+      default: "<!-- swatch-iqe-test-results -->"
+    - name: COMMENT_TITLE
+      type: string
+      description: Title shown in the PR comment header
+    - name: POST_ON_SUCCESS
+      type: string
+      description: Whether to post a comment when all tests pass. Set to "false" to only comment on failures.
+      default: "true"
+    - name: GITHUB_TOKEN_SECRET
+      type: string
+      default: "swatch-ci-github-token"
+  workspaces:
+    - name: artifacts
+  steps:
+    - name: post-comment
+      image: quay.io/konflux-ci/appstudio-utils:latest
+      env:
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: $(params.GITHUB_TOKEN_SECRET)
+              key: github_token
+      script: |
+        #!/usr/bin/env python3
+        import glob, json, os, sys, time, traceback, urllib.request, urllib.error
+        import xml.etree.ElementTree as ET
+
+        GITHUB_TOKEN = os.environ["GITHUB_TOKEN"].strip()
+        REPO = "$(params.PROJECT_REPO)"
+        PR = "$(params.PR_NUMBER)"
+        PIPELINE = "$(params.PIPELINE_NAME)"
+        MARKER = "$(params.COMMENT_MARKER)"
+        COMMENT_TITLE = "$(params.COMMENT_TITLE)"
+        POST_ON_SUCCESS = "$(params.POST_ON_SUCCESS)"
+        JUNIT_DIR = "$(params.JUNIT_DIR)"
+        WS = "$(workspaces.artifacts.path)"
+
+        print("=== github-post-test-results ===")
+        print(f"REPO: {REPO}")
+        print(f"PR: {PR}")
+        print(f"PIPELINE: {PIPELINE}")
+        print(f"COMMENT_TITLE: {COMMENT_TITLE}")
+        print(f"POST_ON_SUCCESS: {POST_ON_SUCCESS}")
+        print(f"JUNIT_DIR: {JUNIT_DIR}")
+        print(f"Token length: {len(GITHUB_TOKEN)}")
+        print()
+
+        def gh_api(method, path, data=None, retries=5):
+            url = f"https://api.github.com/repos/{REPO}{path}"
+            body = json.dumps(data).encode() if data else None
+            print(f"API call: {method} {url}")
+            if body:
+                print(f"Body length: {len(body)} bytes")
+            for attempt in range(1, retries + 1):
+                req = urllib.request.Request(url, data=body, method=method, headers={
+                    "Authorization": f"token {GITHUB_TOKEN}",
+                    "Accept": "application/vnd.github.v3+json",
+                    "Content-Type": "application/json",
+                })
+                try:
+                    with urllib.request.urlopen(req, timeout=30) as resp:
+                        resp_body = resp.read().decode()
+                        print(f"  Attempt {attempt}/{retries}: HTTP {resp.status} (OK)")
+                        return resp.status, json.loads(resp_body)
+                except urllib.error.HTTPError as e:
+                    resp_body = ""
+                    try:
+                        resp_body = e.read().decode()
+                    except Exception:
+                        pass
+                    print(f"  Attempt {attempt}/{retries}: HTTP {e.code}")
+                    print(f"  Response: {resp_body[:500]}")
+                    if e.code >= 500 and attempt < retries:
+                        time.sleep(2 ** attempt)
+                        continue
+                    return e.code, {}
+                except Exception as e:
+                    print(f"  Attempt {attempt}/{retries}: Exception: {e}")
+                    traceback.print_exc()
+                    if attempt < retries:
+                        time.sleep(2 ** attempt)
+                        continue
+                    raise
+
+        # Locate JUnit XML files
+        junit_files = []
+        if JUNIT_DIR:
+            search_dir = os.path.join(WS, JUNIT_DIR)
+            print(f"Scanning directory for JUnit XMLs: {search_dir}")
+            if os.path.isdir(search_dir):
+                junit_files = sorted(glob.glob(os.path.join(search_dir, "TEST-*.xml")))
+                print(f"Found {len(junit_files)} XML files")
+                for f in junit_files:
+                    print(f"  {f}")
+            else:
+                print(f"Directory not found: {search_dir}")
+                try:
+                    print(f"Listing workspace ({WS}):")
+                    for f in os.listdir(WS):
+                        print(f"  {f}")
+                except Exception as e:
+                    print(f"  Cannot list workspace: {e}")
+        else:
+            single = os.path.join(WS, "$(params.JUNIT_FILE)")
+            print(f"Checking JUnit file: {single}")
+            if os.path.isfile(single):
+                junit_files = [single]
+            else:
+                print(f"JUnit file not found: {single}")
+                try:
+                    print(f"Listing workspace ({WS}):")
+                    for f in os.listdir(WS):
+                        print(f"  {f}")
+                except Exception as e:
+                    print(f"  Cannot list workspace: {e}")
+
+        if not junit_files:
+            print("No JUnit XML files found, skipping comment.")
+            sys.exit(0)
+
+        # Aggregate results across all XML files
+        total = failures = errors = skipped = 0
+        duration = 0.0
+        failed_tests = []
+
+        for jf in junit_files:
+            print(f"Parsing: {jf} ({os.path.getsize(jf)} bytes)")
+            tree = ET.parse(jf)
+            root = tree.getroot()
+            suites = [root] if root.tag == "testsuite" else root.findall("testsuite") or [root]
+            for suite in suites:
+                total += int(suite.get("tests", 0))
+                failures += int(suite.get("failures", 0))
+                errors += int(suite.get("errors", 0))
+                skipped += int(suite.get("skipped", 0))
+                duration += float(suite.get("time", 0))
+
+                for tc in suite.iter("testcase"):
+                    fail_el = tc.find("failure")
+                    err_el = tc.find("error")
+                    el = fail_el if fail_el is not None else err_el
+                    if el is None:
+                        continue
+                    classname = tc.get("classname", "")
+                    name = tc.get("name", "")
+                    short_class = classname.replace("tests.component.", "").replace("tests.integration.", "")
+                    full_name = f"{short_class}.{name}" if short_class else name
+
+                    body_text = el.text or ""
+                    assert_line = ""
+                    for line in body_text.splitlines():
+                        s = line.strip()
+                        if s.startswith(("assert ", "Assert", "E ")) or "Error" in s:
+                            assert_line = s.lstrip("E ").strip()
+                            break
+                    msg = assert_line if assert_line else el.get("message", "")
+                    if len(msg) > 300:
+                        msg = msg[:297] + "..."
+                    msg = msg.replace("|", "\\|")
+                    failed_tests.append((full_name, msg))
+
+        failed_count = failures + errors
+        passed = total - failed_count - skipped
+        duration_min = duration / 60
+
+        print(f"Tests: {total}, Passed: {passed}, Failed: {failed_count}, Skipped: {skipped}")
+        print(f"Duration: {duration_min:.1f} min")
+
+        status_text = "PASSED" if failed_count == 0 else "FAILED"
+
+        if status_text == "PASSED" and POST_ON_SUCCESS.lower() != "true":
+            print("All tests passed and POST_ON_SUCCESS=false, skipping comment.")
+            sys.exit(0)
+
+        for full_name, msg in failed_tests:
+            print(f"  Failed: {full_name} -> {msg[:100]}")
+
+        lines = [
+            MARKER,
+            f"**{COMMENT_TITLE}: {status_text}** -- `{PIPELINE}`",
+            "",
+            f"- **{total}** tests ran in **{duration_min:.1f} min**",
+            f"- {passed} passed, {failed_count} failed, {skipped} skipped",
+        ]
+
+        if failed_tests:
+            lines.append("")
+            lines.append(f"**Failed Tests ({len(failed_tests)})**")
+            lines.append("")
+            lines.append("| Test | Assertion / Error |")
+            lines.append("|------|-------------------|")
+            for name, msg in failed_tests:
+                lines.append(f"| `{name}` | {msg} |")
+
+        body = "\n".join(lines)
+
+        print()
+        print("--- Comment body ---")
+        print(body)
+        print("--- End comment body ---")
+        print()
+
+        print(f"Posting comment to PR #{PR}...")
+        status, resp = gh_api("POST", f"/issues/{PR}/comments", {"body": body})
+        if 200 <= status < 300:
+            comment_url = resp.get("html_url", "N/A")
+            print(f"Posted PR comment (HTTP {status})")
+            print(f"Comment URL: {comment_url}")
+        else:
+            print(f"FAILED to post PR comment (HTTP {status})")
+            print(f"Response: {resp}")
+
+        print()
+        print("=== github-post-test-results DONE ===")
