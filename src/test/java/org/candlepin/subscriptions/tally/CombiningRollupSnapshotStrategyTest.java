@@ -65,7 +65,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 @ActiveProfiles({"worker", "test"})
 class CombiningRollupSnapshotStrategyTest {
 
-  private static final String OPEN_SHIFT_HOURLY = "OpenShift Hourly";
+  private static final String OPEN_SHIFT_HOURLY = "OpenShift-metrics";
 
   @Autowired CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy;
 
@@ -600,5 +600,182 @@ class CombiningRollupSnapshotStrategyTest {
         .billingProvider(BillingProvider._ANY)
         .billingAccountId("_ANY")
         .build();
+  }
+
+  @Test
+  void testSnapshotMarkedAsPrimary() {
+    when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
+            any(), any(), any(), any(), any()))
+        .then(invocation -> Stream.empty());
+    when(repo.save(any())).then(invocation -> invocation.getArgument(0));
+
+    // Use a PAYG product with all fields specified to create a primary record
+    UsageCalculation.Key usageKey =
+        new UsageCalculation.Key(
+            "rhel-for-x86-els-payg",
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.AWS,
+            "123456");
+
+    AccountUsageCalculation accountCalc = new AccountUsageCalculation("org123");
+    accountCalc.addUsage(usageKey, HardwareMeasurementType.PHYSICAL, MetricIdUtils.getCores(), 4.0);
+    accountCalc.getProducts().add("rhel-for-x86-els-payg");
+
+    combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
+        "org123",
+        new DateRange(
+            OffsetDateTime.parse("2021-02-24T12:00:00Z"),
+            OffsetDateTime.parse("2021-02-26T12:00:00Z")),
+        Set.of("rhel-for-x86-els-payg"),
+        Map.of(OffsetDateTime.parse("2021-02-25T12:00:00Z"), accountCalc),
+        Granularity.HOURLY,
+        Double::sum);
+
+    ArgumentCaptor<TallySnapshot> talliesSavedCaptor = ArgumentCaptor.forClass(TallySnapshot.class);
+    verify(repo, times(2)).save(talliesSavedCaptor.capture());
+
+    TallySnapshot hourlySnapshot =
+        talliesSavedCaptor.getAllValues().stream()
+            .filter(s -> s.getGranularity() == Granularity.HOURLY)
+            .findFirst()
+            .orElseThrow();
+
+    assertTrue(hourlySnapshot.isPrimary(), "Snapshot should be marked as primary");
+  }
+
+  @Test
+  void testSnapshotNotMarkedAsPrimary() {
+    when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
+            any(), any(), any(), any(), any()))
+        .then(invocation -> Stream.empty());
+    when(repo.save(any())).then(invocation -> invocation.getArgument(0));
+
+    // Use SLA _ANY to create a non-primary record
+    UsageCalculation.Key usageKey =
+        new UsageCalculation.Key(
+            "rhel-for-x86-els-payg",
+            ServiceLevel._ANY,
+            Usage.PRODUCTION,
+            BillingProvider.AWS,
+            "123456");
+
+    AccountUsageCalculation accountCalc = new AccountUsageCalculation("org123");
+    accountCalc.addUsage(usageKey, HardwareMeasurementType.PHYSICAL, MetricIdUtils.getCores(), 4.0);
+    accountCalc.getProducts().add("rhel-for-x86-els-payg");
+
+    combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
+        "org123",
+        new DateRange(
+            OffsetDateTime.parse("2021-02-24T12:00:00Z"),
+            OffsetDateTime.parse("2021-02-26T12:00:00Z")),
+        Set.of("rhel-for-x86-els-payg"),
+        Map.of(OffsetDateTime.parse("2021-02-25T12:00:00Z"), accountCalc),
+        Granularity.HOURLY,
+        Double::sum);
+
+    ArgumentCaptor<TallySnapshot> talliesSavedCaptor = ArgumentCaptor.forClass(TallySnapshot.class);
+    verify(repo, times(2)).save(talliesSavedCaptor.capture());
+
+    TallySnapshot hourlySnapshot =
+        talliesSavedCaptor.getAllValues().stream()
+            .filter(s -> s.getGranularity() == Granularity.HOURLY)
+            .findFirst()
+            .orElseThrow();
+
+    assertFalse(
+        hourlySnapshot.isPrimary(), "Snapshot with SLA _ANY should not be marked as primary");
+  }
+
+  @Test
+  void testRollupSnapshotMarkedAsPrimary() {
+    when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
+            any(), any(), any(), any(), any()))
+        .then(invocation -> Stream.empty());
+    when(repo.save(any())).then(invocation -> invocation.getArgument(0));
+
+    // Use a PAYG product with all fields specified to create a primary record
+    UsageCalculation.Key usageKey =
+        new UsageCalculation.Key(
+            "rhel-for-x86-els-payg",
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.AWS,
+            "123456");
+
+    AccountUsageCalculation accountCalc = new AccountUsageCalculation("org123");
+    accountCalc.addUsage(usageKey, HardwareMeasurementType.PHYSICAL, MetricIdUtils.getCores(), 4.0);
+    accountCalc.getProducts().add("rhel-for-x86-els-payg");
+
+    combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
+        "org123",
+        new DateRange(
+            OffsetDateTime.parse("2021-02-24T12:00:00Z"),
+            OffsetDateTime.parse("2021-02-26T12:00:00Z")),
+        Set.of("rhel-for-x86-els-payg"),
+        Map.of(OffsetDateTime.parse("2021-02-25T12:00:00Z"), accountCalc),
+        Granularity.HOURLY,
+        Double::sum);
+
+    ArgumentCaptor<TallySnapshot> talliesSavedCaptor = ArgumentCaptor.forClass(TallySnapshot.class);
+    verify(repo, times(2)).save(talliesSavedCaptor.capture());
+
+    // Verify the DAILY rollup snapshot is also marked as primary
+    TallySnapshot dailySnapshot =
+        talliesSavedCaptor.getAllValues().stream()
+            .filter(s -> s.getGranularity() == Granularity.DAILY)
+            .findFirst()
+            .orElseThrow();
+
+    assertTrue(dailySnapshot.isPrimary(), "Rollup snapshot should be marked as primary");
+    assertEquals(BillingProvider.AWS, dailySnapshot.getBillingProvider());
+    assertEquals("123456", dailySnapshot.getBillingAccountId());
+  }
+
+  @Test
+  void testRollupSnapshotNotMarkedAsPrimary() {
+    when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
+            any(), any(), any(), any(), any()))
+        .then(invocation -> Stream.empty());
+    when(repo.save(any())).then(invocation -> invocation.getArgument(0));
+
+    // Use Usage _ANY to create a non-primary record
+    UsageCalculation.Key usageKey =
+        new UsageCalculation.Key(
+            "rhel-for-x86-els-payg",
+            ServiceLevel.PREMIUM,
+            Usage._ANY,
+            BillingProvider.AWS,
+            "123456");
+
+    AccountUsageCalculation accountCalc = new AccountUsageCalculation("org123");
+    accountCalc.addUsage(usageKey, HardwareMeasurementType.PHYSICAL, MetricIdUtils.getCores(), 4.0);
+    accountCalc.getProducts().add("rhel-for-x86-els-payg");
+
+    combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
+        "org123",
+        new DateRange(
+            OffsetDateTime.parse("2021-02-24T12:00:00Z"),
+            OffsetDateTime.parse("2021-02-26T12:00:00Z")),
+        Set.of("rhel-for-x86-els-payg"),
+        Map.of(OffsetDateTime.parse("2021-02-25T12:00:00Z"), accountCalc),
+        Granularity.HOURLY,
+        Double::sum);
+
+    ArgumentCaptor<TallySnapshot> talliesSavedCaptor = ArgumentCaptor.forClass(TallySnapshot.class);
+    verify(repo, times(2)).save(talliesSavedCaptor.capture());
+
+    // Verify the DAILY rollup snapshot is not marked as primary
+    TallySnapshot dailySnapshot =
+        talliesSavedCaptor.getAllValues().stream()
+            .filter(s -> s.getGranularity() == Granularity.DAILY)
+            .findFirst()
+            .orElseThrow();
+
+    assertFalse(
+        dailySnapshot.isPrimary(),
+        "Rollup snapshot with Usage _ANY should not be marked as primary");
+    assertEquals(BillingProvider.AWS, dailySnapshot.getBillingProvider());
+    assertEquals("123456", dailySnapshot.getBillingAccountId());
   }
 }

@@ -302,8 +302,6 @@ components:
           enum: [ aws, azure, gcp ]
         conversions_activity:
           type: boolean
-        openshift_cluster_id:
-          type: string
     DefaultResponse:
       properties:
         status:

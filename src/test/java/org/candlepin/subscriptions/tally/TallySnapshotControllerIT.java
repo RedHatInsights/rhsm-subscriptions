@@ -39,7 +39,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.EventRecordRepository;
@@ -48,8 +47,10 @@ import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.TallyStateRepository;
 import org.candlepin.subscriptions.db.model.AccountServiceInventory;
 import org.candlepin.subscriptions.db.model.EventRecord;
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
+import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.TallyState;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
@@ -108,12 +109,14 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   OffsetDateTime end;
   ExpectedReport expectedReport = new ExpectedReport();
   List<ProductData> products = new ArrayList<>();
+  List<InventoryHostFacts> inventoryHosts = new ArrayList<>();
 
   @Transactional
   @BeforeEach
   public void setup() {
     expectedReport.clear();
     products.clear();
+    inventoryHosts.clear();
     tallySnapshotRepository.deleteAll();
     eventRecordRepository.deleteAll();
     hostTallyBucketRepository.deleteAll();
@@ -231,6 +234,10 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   }
 
   private UUID givenInventoryHostWithProductIds(String... productIds) {
+    return givenInventoryHostWithProductIdsAndSla(null, productIds);
+  }
+
+  private UUID givenInventoryHostWithProductIdsAndSla(String sla, String... productIds) {
     UUID inventoryId = UUID.randomUUID();
 
     InventoryHostFacts host = new InventoryHostFacts();
@@ -244,7 +251,11 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
     host.setMarketplace(false);
     host.setSystemProfileInfrastructureType(PHYSICAL);
     host.setDisplayName(host.getInsightsId());
-    when(inventoryRepository.streamFacts(eq(ORG_ID), any())).thenAnswer(i -> Stream.of(host));
+    host.setSyspurposeSla(sla);
+
+    inventoryHosts.add(host);
+    when(inventoryRepository.streamFacts(eq(ORG_ID), any()))
+        .thenAnswer(i -> inventoryHosts.stream());
 
     return inventoryId;
   }
@@ -279,6 +290,27 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   }
 
   private void givenEventAtDay(ProductData product, int dayAt, double value, Event.Sla sla) {
+    givenEventAtDayWithBillingProvider(
+        product, dayAt, value, sla, Event.BillingProvider.AWS, "mktp-123");
+  }
+
+  private void givenEventAtDayWithBillingProvider(
+      ProductData product,
+      int dayAt,
+      double value,
+      Event.BillingProvider billingProvider,
+      String billingAccountId) {
+    givenEventAtDayWithBillingProvider(
+        product, dayAt, value, Event.Sla.PREMIUM, billingProvider, billingAccountId);
+  }
+
+  private void givenEventAtDayWithBillingProvider(
+      ProductData product,
+      int dayAt,
+      double value,
+      Event.Sla sla,
+      Event.BillingProvider billingProvider,
+      String billingAccountId) {
     Event event = new Event();
     event.setEventId(UUID.randomUUID());
     event.setTimestamp(start.plusDays(dayAt));
@@ -294,8 +326,8 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
     event.setExpiration(Optional.of(event.getTimestamp().plusHours(5)));
     event.setMeasurements(List.of(measurement(product.metric, value)));
     event.setServiceType(product.serviceType);
-    event.setBillingProvider(Event.BillingProvider.AWS);
-    event.setBillingAccountId(Optional.of("mktp-123"));
+    event.setBillingProvider(billingProvider);
+    event.setBillingAccountId(Optional.of(billingAccountId));
 
     eventRecordRepository.save(new EventRecord(event));
 
@@ -369,6 +401,340 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
     measurement.setMetricId(metricId);
     measurement.setValue(value);
     return measurement;
+  }
+
+  @WithMockRedHatPrincipal(value = USER_ID)
+  @Test
+  void testProduceSnapshotsForOrgCreatesPrimaryRecord() {
+    String engId = "83";
+    String expectedProduct = "rhel-for-x86-ha";
+
+    givenProduct(ROSA);
+    givenOrgAndAccountInConfig();
+    givenInventoryHostWithProductIds(engId);
+
+    whenProduceSnapshotsForOrg();
+
+    // Traditional products create snapshots for multiple granularities (DAILY, WEEKLY, MONTHLY,
+    // QUARTERLY, YEARLY)
+    // For each granularity, cartesian product on 2 fields: SLA and Usage (2^2 = 4 per granularity)
+    // Query snapshots and verify exactly 1 primary snapshot per granularity
+    List<TallySnapshot> allSnapshots =
+        tallySnapshotRepository.findAll().stream()
+            .filter(s -> expectedProduct.equals(s.getProductId()))
+            .filter(s -> ORG_ID.equals(s.getOrgId()))
+            .toList();
+
+    var snapshotsByGranularity =
+        allSnapshots.stream()
+            .collect(java.util.stream.Collectors.groupingBy(TallySnapshot::getGranularity));
+
+    for (var entry : snapshotsByGranularity.entrySet()) {
+      Granularity granularity = entry.getKey();
+      List<TallySnapshot> snapshots = entry.getValue();
+
+      assertEquals(
+          4, snapshots.size(), "Granularity " + granularity + " should have 4 snapshots (2^2)");
+
+      long primaryCount = snapshots.stream().filter(TallySnapshot::isPrimary).count();
+      assertEquals(
+          1,
+          primaryCount,
+          "Granularity "
+              + granularity
+              + " should have exactly 1 primary snapshot, but had "
+              + primaryCount);
+    }
+  }
+
+  @WithMockRedHatPrincipal(value = USER_ID)
+  @Test
+  void testProduceSnapshotsForOrgWithMultipleSLAsCreatesPrimaryRecords() {
+    String engId = "83";
+    String expectedProduct = "rhel-for-x86-ha";
+
+    givenProduct(ROSA);
+    givenOrgAndAccountInConfig();
+    // Create two inventory hosts with different SLA values
+    givenInventoryHostWithProductIdsAndSla(engId, "Premium");
+    givenInventoryHostWithProductIdsAndSla(engId, "Standard");
+
+    whenProduceSnapshotsForOrg();
+
+    // When two hosts have different SLA values:
+    // - Host 1 (SLA=PREMIUM) creates 4 snapshots (2^2 cartesian product)
+    // - Host 2 (SLA=STANDARD) creates 4 snapshots (2^2 cartesian product)
+    // - They share 2 snapshots where SLA=_ANY
+    // - Total: 4 + 4 - 2 = 6 unique snapshots per granularity
+    // - Primary records: 2 (one for each SLA/Usage combination)
+    List<TallySnapshot> allSnapshots =
+        tallySnapshotRepository.findAll().stream()
+            .filter(s -> expectedProduct.equals(s.getProductId()))
+            .filter(s -> ORG_ID.equals(s.getOrgId()))
+            .toList();
+
+    var snapshotsByGranularity =
+        allSnapshots.stream()
+            .collect(java.util.stream.Collectors.groupingBy(TallySnapshot::getGranularity));
+
+    for (var entry : snapshotsByGranularity.entrySet()) {
+      Granularity granularity = entry.getKey();
+      List<TallySnapshot> snapshots = entry.getValue();
+
+      assertEquals(
+          6,
+          snapshots.size(),
+          "Granularity " + granularity + " should have exactly 6 snapshots (4 + 4 - 2 shared)");
+
+      long primaryCount = snapshots.stream().filter(TallySnapshot::isPrimary).count();
+      assertEquals(
+          2,
+          primaryCount,
+          "Granularity "
+              + granularity
+              + " should have exactly 2 primary snapshots (one per SLA), but had "
+              + primaryCount);
+    }
+  }
+
+  @WithMockRedHatPrincipal(value = USER_ID)
+  @Test
+  void testProduceSnapshotsForOrgUpdatesPrimaryRecordWhenRetallying() {
+    String engId = "83";
+    String expectedProduct = "rhel-for-x86-ha";
+
+    givenProduct(ROSA);
+    givenOrgAndAccountInConfig();
+    givenInventoryHostWithProductIds(engId);
+
+    // First tally - creates initial snapshots
+    whenProduceSnapshotsForOrg();
+
+    // Verify initial snapshots have correct primary flags
+    List<TallySnapshot> initialSnapshots =
+        tallySnapshotRepository.findAll().stream()
+            .filter(s -> expectedProduct.equals(s.getProductId()))
+            .filter(s -> ORG_ID.equals(s.getOrgId()))
+            .toList();
+
+    var initialSnapshotsByGranularity =
+        initialSnapshots.stream()
+            .collect(java.util.stream.Collectors.groupingBy(TallySnapshot::getGranularity));
+
+    for (var entry : initialSnapshotsByGranularity.entrySet()) {
+      Granularity granularity = entry.getKey();
+      List<TallySnapshot> snapshots = entry.getValue();
+
+      assertEquals(
+          4, snapshots.size(), "Granularity " + granularity + " should have 4 snapshots (2^2)");
+
+      long primaryCount = snapshots.stream().filter(TallySnapshot::isPrimary).count();
+      assertEquals(
+          1,
+          primaryCount,
+          "Initial tally for granularity "
+              + granularity
+              + " should have exactly 1 primary snapshot, but had "
+              + primaryCount);
+    }
+
+    // Second tally - updates existing snapshots via updateMaxValues path in BaseSnapshotRoller
+    whenProduceSnapshotsForOrg();
+
+    // Verify updated snapshots still have correct primary flags
+    List<TallySnapshot> updatedSnapshots =
+        tallySnapshotRepository.findAll().stream()
+            .filter(s -> expectedProduct.equals(s.getProductId()))
+            .filter(s -> ORG_ID.equals(s.getOrgId()))
+            .toList();
+
+    var updatedSnapshotsByGranularity =
+        updatedSnapshots.stream()
+            .collect(java.util.stream.Collectors.groupingBy(TallySnapshot::getGranularity));
+
+    for (var entry : updatedSnapshotsByGranularity.entrySet()) {
+      Granularity granularity = entry.getKey();
+      List<TallySnapshot> snapshots = entry.getValue();
+
+      assertEquals(
+          4,
+          snapshots.size(),
+          "Granularity " + granularity + " should still have 4 snapshots (2^2)");
+
+      long primaryCount = snapshots.stream().filter(TallySnapshot::isPrimary).count();
+      assertEquals(
+          1,
+          primaryCount,
+          "After retally, granularity "
+              + granularity
+              + " should have exactly 1 primary snapshot, but had "
+              + primaryCount);
+    }
+  }
+
+  @WithMockRedHatPrincipal(value = USER_ID)
+  @Test
+  void testProduceSnapshotsForOrgCorrectsPrimaryRecordWhenPreviouslyIncorrect() {
+    String engId = "83";
+    String expectedProduct = "rhel-for-x86-ha";
+
+    givenProduct(ROSA);
+    givenOrgAndAccountInConfig();
+    givenInventoryHostWithProductIds(engId);
+
+    // First tally - creates initial snapshots
+    whenProduceSnapshotsForOrg();
+
+    // Manually corrupt the primary flags (simulating old/incorrect data)
+    List<TallySnapshot> snapshots =
+        tallySnapshotRepository.findAll().stream()
+            .filter(s -> expectedProduct.equals(s.getProductId()))
+            .filter(s -> ORG_ID.equals(s.getOrgId()))
+            .toList();
+
+    // Set all primary flags to false
+    snapshots.forEach(s -> s.setPrimary(false));
+    tallySnapshotRepository.saveAll(snapshots);
+
+    // Verify all are now incorrectly set to false
+    List<TallySnapshot> corruptedSnapshots =
+        tallySnapshotRepository.findAll().stream()
+            .filter(s -> expectedProduct.equals(s.getProductId()))
+            .filter(s -> ORG_ID.equals(s.getOrgId()))
+            .toList();
+
+    long primaryCount = corruptedSnapshots.stream().filter(TallySnapshot::isPrimary).count();
+    assertEquals(0, primaryCount, "All primary flags should be false before retally");
+
+    // Retally - should correct the primary flags via updateMaxValues path
+    whenProduceSnapshotsForOrg();
+
+    // Verify primary flags are now corrected
+    List<TallySnapshot> correctedSnapshots =
+        tallySnapshotRepository.findAll().stream()
+            .filter(s -> expectedProduct.equals(s.getProductId()))
+            .filter(s -> ORG_ID.equals(s.getOrgId()))
+            .toList();
+
+    var snapshotsByGranularity =
+        correctedSnapshots.stream()
+            .collect(java.util.stream.Collectors.groupingBy(TallySnapshot::getGranularity));
+
+    for (var entry : snapshotsByGranularity.entrySet()) {
+      Granularity granularity = entry.getKey();
+      List<TallySnapshot> granularitySnapshots = entry.getValue();
+
+      assertEquals(
+          4,
+          granularitySnapshots.size(),
+          "Granularity " + granularity + " should have 4 snapshots (2^2)");
+
+      long correctedPrimaryCount =
+          granularitySnapshots.stream().filter(TallySnapshot::isPrimary).count();
+      assertEquals(
+          1,
+          correctedPrimaryCount,
+          "After retally, granularity "
+              + granularity
+              + " should have exactly 1 primary snapshot (corrected from false), but had "
+              + correctedPrimaryCount);
+    }
+  }
+
+  @WithMockRedHatPrincipal(value = USER_ID)
+  @Test
+  void testProduceHourlySnapshotsForOrgCreatesPrimaryRecord() {
+    var rosa = givenProduct(ROSA);
+    givenOrgAndAccountInConfig();
+    givenFiveDaysOfRangeForReport();
+    givenExistingHostInformation();
+    givenEventAtDay(rosa, 1, 78.4390);
+
+    whenProduceHourlySnapshotsForOrg();
+
+    // PAYG products create snapshots for multiple granularities (HOURLY, DAILY, WEEKLY, MONTHLY,
+    // QUARTERLY, YEARLY)
+    // For each granularity, cartesian product on 4 fields: SLA, Usage, BillingProvider,
+    // BillingAccountId (2^4 = 16 per granularity)
+    // Query snapshots and verify exactly 1 primary snapshot per granularity
+    List<TallySnapshot> allSnapshots =
+        tallySnapshotRepository.findAll().stream()
+            .filter(s -> rosa.id.getValue().equals(s.getProductId()))
+            .filter(s -> ORG_ID.equals(s.getOrgId()))
+            .toList();
+
+    var snapshotsByGranularity =
+        allSnapshots.stream()
+            .collect(java.util.stream.Collectors.groupingBy(TallySnapshot::getGranularity));
+
+    for (var entry : snapshotsByGranularity.entrySet()) {
+      Granularity granularity = entry.getKey();
+      List<TallySnapshot> snapshots = entry.getValue();
+
+      assertEquals(
+          16,
+          snapshots.size(),
+          "Granularity " + granularity + " should have exactly 16 snapshots (2^4)");
+
+      long primaryCount = snapshots.stream().filter(TallySnapshot::isPrimary).count();
+      assertEquals(
+          1,
+          primaryCount,
+          "Granularity "
+              + granularity
+              + " should have exactly 1 primary snapshot, but had "
+              + primaryCount);
+    }
+  }
+
+  @WithMockRedHatPrincipal(value = USER_ID)
+  @Test
+  void testProduceHourlySnapshotsForOrgWithMultipleBillingProvidersCreatesPrimaryRecords() {
+    var rosa = givenProduct(ROSA);
+    givenOrgAndAccountInConfig();
+    givenFiveDaysOfRangeForReport();
+    givenExistingHostInformation();
+
+    // Create two events with different billing providers
+    givenEventAtDayWithBillingProvider(rosa, 1, 78.4390, Event.BillingProvider.AWS, "mktp-123");
+    givenEventAtDayWithBillingProvider(rosa, 1, 50.0, Event.BillingProvider.AZURE, "azure-456");
+
+    whenProduceHourlySnapshotsForOrg();
+
+    // When two events have different billing providers:
+    // - Event 1 creates 16 snapshots (2^4 cartesian product)
+    // - Event 2 creates 16 snapshots (2^4 cartesian product)
+    // - They share 4 snapshots where both BillingProvider=_ANY AND BillingAccountId="_ANY"
+    // - Total: 16 + 16 - 4 = 28 unique snapshots per granularity
+    // - Primary records: 2 (one for each billing provider/account combination)
+    List<TallySnapshot> allSnapshots =
+        tallySnapshotRepository.findAll().stream()
+            .filter(s -> rosa.id.getValue().equals(s.getProductId()))
+            .filter(s -> ORG_ID.equals(s.getOrgId()))
+            .toList();
+
+    var snapshotsByGranularity =
+        allSnapshots.stream()
+            .collect(java.util.stream.Collectors.groupingBy(TallySnapshot::getGranularity));
+
+    for (var entry : snapshotsByGranularity.entrySet()) {
+      Granularity granularity = entry.getKey();
+      List<TallySnapshot> snapshots = entry.getValue();
+
+      assertEquals(
+          28,
+          snapshots.size(),
+          "Granularity " + granularity + " should have exactly 28 snapshots (16 + 16 - 4 shared)");
+
+      long primaryCount = snapshots.stream().filter(TallySnapshot::isPrimary).count();
+      assertEquals(
+          2,
+          primaryCount,
+          "Granularity "
+              + granularity
+              + " should have exactly 2 primary snapshots (one per billing provider), but had "
+              + primaryCount);
+    }
   }
 
   private class ProductData {
