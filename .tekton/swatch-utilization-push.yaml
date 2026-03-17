@@ -354,6 +354,9 @@ spec:
             value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
           - name: CACHI2_ARTIFACT
             value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
+          # SWATCH-4650: workaround - exclude CSRF files from Snyk until known-false-positives filtering is fixed
+          - name: IGNORE_FILE_PATHS
+            value: "src/main/java/org/candlepin/subscriptions/security/ApiSecurityConfiguration.java,swatch-system-conduit/src/main/java/org/candlepin/subscriptions/conduit/security/ApiSecurityConfiguration.java"
         runAfter:
           - build-image-index
         taskRef:
