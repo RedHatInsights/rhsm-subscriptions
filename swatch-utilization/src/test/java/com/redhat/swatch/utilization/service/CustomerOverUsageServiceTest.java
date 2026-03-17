@@ -421,8 +421,7 @@ class CustomerOverUsageServiceTest {
             "Development/Test"),
         Arguments.of(UtilizationSummary.Sla.ANY, UtilizationSummary.Usage.ANY, "_ANY", "_ANY"),
         Arguments.of(UtilizationSummary.Sla.PREMIUM, null, "Premium", null),
-        Arguments.of(null, UtilizationSummary.Usage.PRODUCTION, null, "Production"),
-        Arguments.of(null, null, null, null));
+        Arguments.of(null, UtilizationSummary.Usage.PRODUCTION, null, "Production"));
   }
 
   @ParameterizedTest

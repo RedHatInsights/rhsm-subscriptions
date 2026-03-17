@@ -157,7 +157,7 @@ public class ContractsResource implements DefaultApi {
       return new StatusResponse().status("No active contract found for the orgIds");
     }
     for (ContractEntity org : contracts) {
-      syncContractsByOrg(org.getOrgId(), true, false);
+      syncContractsByOrg(org.getOrgId(), false, false);
     }
     return new StatusResponse().status("All Contract are Synced");
   }

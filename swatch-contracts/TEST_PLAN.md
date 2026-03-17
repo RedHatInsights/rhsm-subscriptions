@@ -596,7 +596,47 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Verification**: Query contracts for org.
 - **Expected Result**:
   - HTTP 204 No Content
-  - No contracts remain for org_id
+  - No contracts remain for the org
+
+**contracts-sync-TC006 - Running the global sync twice does not create duplicate contracts**
+- **Description**: Verify that the global sync is idempotent.
+- **Setup**: An org has one contract created and stubbed upstream.
+- **Action**: POST `/internal/rpc/syncAllContracts` twice.
+- **Verification**: Query contracts after each call.
+- **Expected Result**:
+  - Contract count stays at 1 after both calls
+  - Contract UUID is the same after both calls
+  - Billing provider is unchanged
+
+**contracts-sync-TC007 - Global sync preserves all contracts for an org with multiple providers**
+- **Description**: Verify that when an org has both an AWS and an Azure contract, running the global sync leaves both intact.
+- **Setup**: An org has one AWS contract and one Azure contract.
+- **Action**: POST `/internal/rpc/syncAllContracts`.
+- **Verification**: Query contracts for the org.
+- **Expected Result**:
+  - Both the AWS and Azure contracts still exist
+  - UUIDs of both contracts are unchanged
+
+**contracts-sync-TC008 - Global sync after a per-org sync does not add extra records**
+- **Description**: Verify that running the global sync on top of an already-synced org does not accumulate additional rows in any of the four related tables (contracts, contract metrics, subscriptions, subscription measurements).
+- **Setup**: An org is fully synced via the per-org endpoint; record counts and IDs across all four tables are captured as a baseline.
+- **Action**: POST `/internal/rpc/syncAllContracts`.
+- **Verification**: Re-query all four tables.
+- **Expected Result**:
+  - Contract count, UUID, and metric count are unchanged
+  - Subscription count, subscription ID, and measurement count are unchanged
+
+**contracts-sync-TC009 - Sync correctly populates all related data**
+- **Description**: Verify that after a sync, all contract and subscription data is fully populated and internally consistent — no missing fields, no mismatched identifiers between related tables.
+- **Setup**: An org has one AWS ROSA contract with a known capacity value.
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{org_id}`.
+- **Verification**: Inspect contract fields, contract metrics, subscription fields, and subscription measurements.
+- **Expected Result**:
+  - All contract fields are present and match the upstream definition (org, SKU, billing provider, billing account, dates, subscription number, product tags)
+  - At least one metric exists with a valid ID and positive value; no duplicate metrics per contract
+  - Subscription fields match the parent contract (subscription number, org, SKU, billing provider, dates)
+  - At least one subscription measurement exists with a valid metric ID, positive value, and measurement type
+  - The number of contract metrics equals the number of subscription measurements
 
 ## Subscription Management via UMB
 
