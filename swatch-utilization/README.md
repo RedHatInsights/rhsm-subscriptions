@@ -95,7 +95,9 @@ notifications service:
 - **Application**: "subscriptions" - identifies the specific application
 - **Event Type**: "exceeded-utilization-threshold" - identifies the alert type
 - **Organization ID**: targets the notification to the correct customer
-- **Context**: includes product ID and metric ID for reference
+- **Context**: includes `product_id`, `metric_id`, and — when present on the utilization
+  summary — `service_level` (e.g. `"Premium"`) and `usage` (e.g. `"Production"`). The
+  `_ANY` sentinel is forwarded as-is so the notification template can decide how to render it.
 - **Payload**: includes the utilization percentage for display in the notification
 - **Recipients**: configured to send to all users (not just admins) respecting user preferences
 
