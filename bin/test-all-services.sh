@@ -118,7 +118,7 @@ while [ $batch_start -lt $total ]; do
         IFS=':' read -r service_name management_port <<< "${SERVICES_TO_TEST[$idx]}"
         svc_log="$TMPDIR_BASE/${service_name}.log"
 
-        QUARKUS_LIVE_RELOAD_ENABLED=false make "$service_name" > "$svc_log" 2>&1 &
+        QUARKUS_LIVE_RELOAD_ENABLED=false SUSPEND_DEBUG=true make "$service_name" > "$svc_log" 2>&1 &
         make_pid=$!
 
         ALL_MAKE_PIDS+=("$make_pid")
