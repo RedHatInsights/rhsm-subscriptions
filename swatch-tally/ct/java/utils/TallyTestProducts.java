@@ -28,6 +28,7 @@ import java.util.Optional;
 public enum TallyTestProducts {
   RHEL_FOR_X86("rhel-for-x86", "RHEL for x86", "Sockets", "SOCKETS"),
   RHEL_FOR_X86_ELS_PAYG("204", "rhel-for-x86-els-payg", "vCPUs", "VCPUS"),
+  RHEL_FOR_X86_ELS_PAYG_ADDON("204", "rhel-for-x86-els-payg-addon", "vCPUs", "VCPUS"),
   RHEL_FOR_X86_ELS_UNCONVERTED(
       "rhel-for-x86-els-unconverted", "rhel-for-x86-els-unconverted", "Sockets", "SOCKETS"),
   RHACM("rhacm", "rhacm", "vCPUs"),

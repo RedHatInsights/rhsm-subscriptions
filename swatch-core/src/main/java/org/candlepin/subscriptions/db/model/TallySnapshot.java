@@ -40,6 +40,8 @@ import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -47,6 +49,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Generated;
 
@@ -59,7 +62,7 @@ import org.hibernate.annotations.Generated;
 @Builder
 @Entity
 @Table(name = "tally_snapshots")
-public class TallySnapshot implements Serializable {
+public class TallySnapshot implements Serializable, TallyMeasurement {
 
   @Id
   @GeneratedValue(strategy = GenerationType.AUTO)
@@ -122,6 +125,14 @@ public class TallySnapshot implements Serializable {
   public void setMeasurement(HardwareMeasurementType type, MetricId metricId, Double value) {
     TallyMeasurementKey key = new TallyMeasurementKey(type, metricId.getValue());
     tallyMeasurements.put(key, value);
+  }
+
+  @Override
+  public Double extractRawValue(MetricId metricId, ReportCategory category) {
+    Set<HardwareMeasurementType> contributingTypes = getContributingTypes(category);
+    return contributingTypes.stream()
+        .mapToDouble(type -> Optional.ofNullable(getMeasurement(type, metricId)).orElse(0.0))
+        .sum();
   }
 
   @Override

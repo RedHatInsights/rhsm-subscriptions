@@ -125,6 +125,22 @@
             ],
             "variants": [],
             "createdAt": "2024-01-10T20:20:42.531Z"
+        },
+        {
+            "name": "rhsm-subscriptions.enable-primary-row-searches",
+            "description": "Enable the use of the primary row search for snapshots and buckets.",
+            "type": "operational",
+            "project": "default",
+            "enabled": true,
+            "stale": false,
+            "strategies": [
+                {
+                    "name": "default",
+                    "parameters": {}
+                }
+            ],
+            "variants": [],
+            "createdAt": "2026-03-30T015:18:27.111Z"
         }
     ],
     "strategies": [

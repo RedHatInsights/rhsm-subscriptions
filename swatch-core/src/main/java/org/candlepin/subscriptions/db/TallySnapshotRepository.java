@@ -23,20 +23,33 @@ package org.candlepin.subscriptions.db;
 import static org.hibernate.jpa.AvailableHints.HINT_FETCH_SIZE;
 import static org.hibernate.jpa.AvailableHints.HINT_READ_ONLY;
 
+import com.redhat.swatch.configuration.registry.MetricId;
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.QueryHint;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.MapJoin;
+import jakarta.persistence.criteria.Root;
 import java.time.OffsetDateTime;
 import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.TallyMeasurementAggregate;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.QueryHints;
@@ -45,7 +58,10 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Interface that Spring Data will turn into a DAO for us. */
-public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UUID> {
+public interface TallySnapshotRepository
+    extends JpaRepository<TallySnapshot, UUID>,
+        JpaSpecificationExecutor<TallySnapshot>,
+        EntityManagerLookup {
 
   // suppress line length and params arguments, can't help either easily b/c this is a spring data
   // method
@@ -257,4 +273,204 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
       @Param("anyServiceLevel") ServiceLevel anyServiceLevel,
       @Param("anyUsage") Usage anyUsage,
       @Param("anyBillingProvider") BillingProvider anyBillingProvider);
+
+  /**
+   * Finds aggregated measurements grouped by snapshot date, measurement type, and metric ID.
+   *
+   * <p>This method executes a query that: 1. Filters snapshots using the provided criteria 2.
+   * Groups by (snapshotDate, measurementType, metricId) 3. Sums the measurement values
+   *
+   * <p>Method created with assistance from Claude Code
+   *
+   * @param isPrimary filter by isPrimary flag
+   * @param orgId organization ID
+   * @param productId product ID
+   * @param granularity granularity
+   * @param serviceLevel service level
+   * @param usage usage type
+   * @param billingProvider billing provider
+   * @param billingAccountId billing account ID
+   * @param beginning start date
+   * @param ending end date
+   * @param metricId metric ID to filter by
+   * @param pageable pagination and sorting information (can be null for unpaged)
+   * @return Page of aggregated measurements
+   */
+  @SuppressWarnings("java:S107")
+  default Page<TallyMeasurementAggregate> findAggregatedMeasurements(
+      Boolean isPrimary,
+      String orgId,
+      String productId,
+      MetricId metricId,
+      Granularity granularity,
+      ServiceLevel serviceLevel,
+      Usage usage,
+      BillingProvider billingProvider,
+      String billingAccountId,
+      HardwareMeasurementType hardwareMeasurementType,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      Pageable pageable) {
+
+    // Get EntityManager from JpaSpecificationExecutor
+    EntityManager em = getEntityManager();
+    CriteriaBuilder cb = em.getCriteriaBuilder();
+
+    // Create CriteriaQuery for TallyMeasurementAggregate
+    CriteriaQuery<TallyMeasurementAggregate> query =
+        cb.createQuery(TallyMeasurementAggregate.class);
+    Root<TallySnapshot> root = query.from(TallySnapshot.class);
+
+    // Join to tallyMeasurements map
+    MapJoin<TallySnapshot, TallyMeasurementKey, Double> measurementJoin =
+        root.joinMap("tallyMeasurements", JoinType.LEFT);
+
+    // Build and apply the specification
+    Specification<TallySnapshot> spec =
+        TallySnapshotSpecifications.buildAggregatedMeasurementSpec(
+            measurementJoin,
+            isPrimary,
+            orgId,
+            productId,
+            metricId,
+            granularity,
+            serviceLevel,
+            usage,
+            billingProvider,
+            billingAccountId,
+            hardwareMeasurementType,
+            beginning,
+            ending);
+
+    // Apply specification predicates and modifications to the query
+    var predicate = spec.toPredicate(root, query, cb);
+    if (predicate != null) {
+      query.where(predicate);
+    }
+
+    // SELECT with aggregation
+    query
+        .multiselect(
+            root.get("snapshotDate"),
+            measurementJoin.key().get("measurementType"),
+            measurementJoin.key().get("metricId"),
+            cb.sum(measurementJoin.value()))
+        .distinct(true);
+
+    // GROUP BY
+    query.groupBy(
+        root.get("snapshotDate"),
+        measurementJoin.key().get("measurementType"),
+        measurementJoin.key().get("metricId"));
+
+    // Create typed query
+    var typedQuery = em.createQuery(query);
+
+    // Apply pagination if provided
+    if (pageable != null && pageable.isPaged()) {
+      typedQuery.setFirstResult((int) pageable.getOffset());
+      typedQuery.setMaxResults(pageable.getPageSize());
+    }
+
+    // Execute query to get results
+    List<TallyMeasurementAggregate> results = typedQuery.getResultList();
+
+    // Get accurate total count if pagination is requested
+    long total = results.size();
+    if (pageable != null && pageable.isPaged()) {
+      total =
+          countAggregatedMeasurements(
+              isPrimary,
+              orgId,
+              productId,
+              metricId,
+              granularity,
+              serviceLevel,
+              usage,
+              billingProvider,
+              billingAccountId,
+              hardwareMeasurementType,
+              beginning,
+              ending);
+    }
+
+    return new PageImpl<>(results, pageable != null ? pageable : Pageable.unpaged(), total);
+  }
+
+  /**
+   * Counts the total number of aggregated measurement groups.
+   *
+   * <p>This executes a count query that accounts for GROUP BY, returning the number of distinct
+   * groups that match the criteria.
+   *
+   * <p>Method created with assistance from Claude Code
+   *
+   * @param isPrimary filter by isPrimary flag
+   * @param orgId organization ID
+   * @param productId product ID
+   * @param granularity granularity
+   * @param serviceLevel service level
+   * @param usage usage type
+   * @param billingProvider billing provider
+   * @param billingAccountId billing account ID
+   * @param beginning start date
+   * @param ending end date
+   * @param metricId metric ID to filter by
+   * @return Total count of aggregated measurement groups
+   */
+  @SuppressWarnings("java:S107")
+  default long countAggregatedMeasurements(
+      Boolean isPrimary,
+      String orgId,
+      String productId,
+      MetricId metricId,
+      Granularity granularity,
+      ServiceLevel serviceLevel,
+      Usage usage,
+      BillingProvider billingProvider,
+      String billingAccountId,
+      HardwareMeasurementType hardwareMeasurementType,
+      OffsetDateTime beginning,
+      OffsetDateTime ending) {
+
+    // Get EntityManager
+    EntityManager em = getEntityManager();
+    CriteriaBuilder cb = em.getCriteriaBuilder();
+
+    // For GROUP BY queries, we need to count distinct groups
+    // Create a query that selects the grouped tuples and count the results
+    CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
+    Root<TallySnapshot> root = countQuery.from(TallySnapshot.class);
+    countQuery.select(cb.countDistinct(root.get("snapshotDate")));
+
+    // Join to tallyMeasurements map
+    MapJoin<TallySnapshot, TallyMeasurementKey, Double> measurementJoin =
+        root.joinMap("tallyMeasurements", JoinType.LEFT);
+
+    // Build the specification for filtering
+    Specification<TallySnapshot> spec =
+        TallySnapshotSpecifications.buildAggregatedMeasurementSpec(
+            measurementJoin,
+            isPrimary,
+            orgId,
+            productId,
+            metricId,
+            granularity,
+            serviceLevel,
+            usage,
+            billingProvider,
+            billingAccountId,
+            hardwareMeasurementType,
+            beginning,
+            ending);
+
+    // Apply WHERE clause predicates
+    var predicate = spec.toPredicate(root, countQuery, cb);
+    if (predicate != null) {
+      countQuery.where(predicate);
+    }
+
+    // Execute and count the results
+    return em.createQuery(countQuery).getSingleResult();
+  }
 }
