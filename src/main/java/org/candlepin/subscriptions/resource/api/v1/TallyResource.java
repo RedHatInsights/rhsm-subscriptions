@@ -69,6 +69,7 @@ import org.candlepin.subscriptions.utilization.api.v1.model.UsageType;
 import org.candlepin.subscriptions.utilization.api.v1.resources.TallyApi;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
@@ -89,6 +90,10 @@ public class TallyResource implements TallyApi {
   private final PageLinkCreator pageLinkCreator;
   private final ApplicationClock clock;
   private final ContractsCapacityController capacityController;
+
+  // Using property path with default
+  @Value("${rhsm-subscriptions.enable-primary-row-searches:false}")
+  Boolean primaryRowSearchesEnabled;
 
   @Context private UriInfo uriInfo;
 
@@ -146,17 +151,29 @@ public class TallyResource implements TallyApi {
             limit);
 
     Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage =
-        repository.findSnapshot(
-            reportCriteria.getOrgId(),
-            reportCriteria.getProductId(),
-            reportCriteria.getGranularity(),
-            reportCriteria.getServiceLevel(),
-            reportCriteria.getUsage(),
-            reportCriteria.getBillingProvider(),
-            reportCriteria.getBillingAccountId(),
-            reportCriteria.getBeginning(),
-            reportCriteria.getEnding(),
-            reportCriteria.getPageable());
+        !primaryRowSearchesEnabled
+            ? repository.findSnapshot(
+                reportCriteria.getOrgId(),
+                reportCriteria.getProductId(),
+                reportCriteria.getGranularity(),
+                reportCriteria.getServiceLevel(),
+                reportCriteria.getUsage(),
+                reportCriteria.getBillingProvider(),
+                reportCriteria.getBillingAccountId(),
+                reportCriteria.getBeginning(),
+                reportCriteria.getEnding(),
+                reportCriteria.getPageable())
+            : repository.findSnapshotWithPrimary(
+                reportCriteria.getOrgId(),
+                reportCriteria.getProductId(),
+                reportCriteria.getGranularity(),
+                reportCriteria.getServiceLevel(),
+                reportCriteria.getUsage(),
+                reportCriteria.getBillingProvider(),
+                reportCriteria.getBillingAccountId(),
+                reportCriteria.getBeginning(),
+                reportCriteria.getEnding(),
+                reportCriteria.getPageable());
 
     Map<OffsetDateTime, Integer> capacityByDate =
         Objects.nonNull(billingCategory)

@@ -37,6 +37,7 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.QueryHints;
@@ -45,7 +46,8 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Interface that Spring Data will turn into a DAO for us. */
-public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UUID> {
+public interface TallySnapshotRepository
+    extends JpaRepository<TallySnapshot, UUID>, JpaSpecificationExecutor<TallySnapshot> {
 
   // suppress line length and params arguments, can't help either easily b/c this is a spring data
   // method
@@ -84,6 +86,49 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
       @Param("beginning") OffsetDateTime beginning,
       @Param("ending") OffsetDateTime ending,
       @Param("pageable") Pageable pageable);
+
+  /**
+   * Find snapshots using Specifications for dynamic WHERE clauses. This method uses the
+   * Specification pattern to build queries dynamically, only including WHERE clauses for non-null
+   * parameters.
+   *
+   * <p>Method added with assistance from Claude Code
+   *
+   * @return Page of TallySnapshots matching the criteria
+   */
+  @SuppressWarnings("java:S107")
+  default Page<TallySnapshot> findSnapshotWithPrimary(
+      String orgId,
+      String productId,
+      Granularity granularity,
+      ServiceLevel serviceLevel,
+      Usage usage,
+      BillingProvider billingProvider,
+      String billingAccountId,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      Pageable pageable) {
+
+    var spec =
+        TallySnapshotSpecifications.buildSnapshotSearchSpec(
+            true,
+            orgId,
+            productId,
+            granularity,
+            serviceLevel,
+            usage,
+            billingProvider,
+            billingAccountId,
+            beginning,
+            ending);
+
+    if (pageable != null) {
+      return findAll(spec, pageable);
+    } else {
+      // When no pagination is requested, return all results
+      return findAll(spec, Pageable.unpaged());
+    }
+  }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   @Modifying

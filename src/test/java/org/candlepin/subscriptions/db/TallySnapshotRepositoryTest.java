@@ -169,6 +169,183 @@ class TallySnapshotRepositoryTest {
     assertEquals(1111, cores);
   }
 
+  @SuppressWarnings("linelength")
+  @Test
+  void findByOrgIdAndProductIdAndGranularityAndServiceLevelAndUsageWithPrimary() {
+    TallySnapshot t1 = createUnpersisted("orgHello", "World", Granularity.DAILY, 2, 3, 4, NOWISH);
+    TallySnapshot t2 =
+        createUnpersisted("orgBugs", "Bunny", Granularity.DAILY, 9999, 999, 99, NOWISH);
+    TallySnapshot t3 =
+        createUnpersisted(
+            "orgBugs",
+            "Bunny",
+            Granularity.DAILY,
+            ServiceLevel.STANDARD,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "sellerAcct",
+            8888,
+            888,
+            88,
+            NOWISH);
+    t1.setPrimary(true);
+    t2.setPrimary(true);
+    t3.setPrimary(true);
+
+    repository.saveAll(Arrays.asList(t1, t2, t3));
+    repository.flush();
+
+    List<TallySnapshot> found =
+        repository
+            .findSnapshotWithPrimary(
+                "orgBugs",
+                "Bunny",
+                Granularity.DAILY,
+                ServiceLevel.STANDARD,
+                Usage.PRODUCTION,
+                BillingProvider._ANY,
+                "sellerAcct",
+                LONG_AGO,
+                FAR_FUTURE,
+                PageRequest.of(0, 10))
+            .stream()
+            .collect(Collectors.toList());
+    assertEquals(1, found.size());
+    TallySnapshot snapshot = found.get(0);
+    assertEquals("orgBugs", snapshot.getOrgId());
+    assertEquals("Bunny", snapshot.getProductId());
+    assertEquals(Usage.PRODUCTION, snapshot.getUsage());
+    assertEquals(NOWISH, found.get(0).getSnapshotDate());
+
+    int cores =
+        snapshot.getMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores()).intValue();
+    assertEquals(8888, cores);
+  }
+
+  @SuppressWarnings("linelength")
+  @Test
+  void testFindByEmptyServiceLevelAndUsageWithPrimary() {
+    TallySnapshot t1 =
+        createUnpersisted(
+            "orgA1",
+            "P1",
+            Granularity.DAILY,
+            ServiceLevel.EMPTY,
+            Usage.EMPTY,
+            BillingProvider.EMPTY,
+            "sellerAcct",
+            1111,
+            111,
+            11,
+            NOWISH);
+    t1.setPrimary(true);
+
+    repository.saveAll(Arrays.asList(t1));
+    repository.flush();
+
+    List<TallySnapshot> found =
+        repository
+            .findSnapshotWithPrimary(
+                "orgA1",
+                "P1",
+                Granularity.DAILY,
+                ServiceLevel.EMPTY,
+                Usage.EMPTY,
+                BillingProvider.EMPTY,
+                "sellerAcct",
+                LONG_AGO,
+                FAR_FUTURE,
+                PageRequest.of(0, 10))
+            .stream()
+            .collect(Collectors.toList());
+    assertEquals(1, found.size());
+    TallySnapshot snapshot = found.get(0);
+    assertEquals("orgA1", snapshot.getOrgId());
+    assertEquals(NOWISH, found.get(0).getSnapshotDate());
+
+    int cores =
+        snapshot.getMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores()).intValue();
+    assertEquals(1111, cores);
+  }
+
+  @SuppressWarnings("linelength")
+  @Test
+  void findByOrgIdAndProductIdAndGranularityAndServiceLevelAndUsageOnlyWithPrimary() {
+    TallySnapshot t1 =
+        createUnpersisted(
+            "orgBugs",
+            "Bunny",
+            Granularity.DAILY,
+            ServiceLevel.STANDARD,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "sellerAcct",
+            9999,
+            999,
+            99,
+            NOWISH);
+    t1.setPrimary(false);
+
+    TallySnapshot t2 =
+        createUnpersisted(
+            "orgBugs",
+            "Bunny",
+            Granularity.DAILY,
+            ServiceLevel.STANDARD,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "sellerAcct",
+            8888,
+            888,
+            88,
+            NOWISH);
+    t2.setPrimary(true);
+
+    TallySnapshot t3 =
+        createUnpersisted(
+            "orgBugs",
+            "Bunny",
+            Granularity.DAILY,
+            ServiceLevel.STANDARD,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "sellerAcct",
+            7777,
+            777,
+            77,
+            NOWISH);
+    t3.setPrimary(false);
+
+    repository.saveAll(Arrays.asList(t1, t2, t3));
+    repository.flush();
+
+    List<TallySnapshot> found =
+        repository
+            .findSnapshotWithPrimary(
+                "orgBugs",
+                "Bunny",
+                Granularity.DAILY,
+                ServiceLevel.STANDARD,
+                Usage.PRODUCTION,
+                BillingProvider._ANY,
+                "sellerAcct",
+                LONG_AGO,
+                FAR_FUTURE,
+                PageRequest.of(0, 10))
+            .stream()
+            .collect(Collectors.toList());
+    assertEquals(1, found.size());
+    TallySnapshot snapshot = found.get(0);
+    assertEquals("orgBugs", snapshot.getOrgId());
+    assertEquals("Bunny", snapshot.getProductId());
+    assertEquals(Usage.PRODUCTION, snapshot.getUsage());
+    assertEquals(NOWISH, found.get(0).getSnapshotDate());
+
+    int cores =
+        snapshot.getMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores()).intValue();
+    assertEquals(8888, cores);
+  }
+
   @Test
   void testFindByOrgIdInAndProductIdInAndGranularityAndSnapshotDateBetween() {
     String product1 = "Product1";
