@@ -261,10 +261,19 @@ public class CustomerOverUsageService {
   }
 
   private Context buildContext(UtilizationSummary payload, MetricId metricId) {
-    return new Context.ContextBuilder()
-        .withAdditionalProperty("product_id", payload.getProductId())
-        .withAdditionalProperty("metric_id", metricId.getValue())
-        .build();
+    var builder =
+        new Context.ContextBuilder()
+            .withAdditionalProperty("product_id", payload.getProductId())
+            .withAdditionalProperty("metric_id", metricId.getValue());
+
+    if (payload.getSla() != null) {
+      builder.withAdditionalProperty("service_level", payload.getSla().value());
+    }
+    if (payload.getUsage() != null) {
+      builder.withAdditionalProperty("usage", payload.getUsage().value());
+    }
+
+    return builder.build();
   }
 
   private Recipient buildRecipient() {

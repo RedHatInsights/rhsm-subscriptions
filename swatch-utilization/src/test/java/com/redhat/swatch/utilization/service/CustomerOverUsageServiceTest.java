@@ -40,10 +40,15 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
@@ -399,6 +404,49 @@ class CustomerOverUsageServiceTest {
 
     // Verify no notifications sent (detection disabled)
     verify(notificationsProducer, never()).produce(any(Action.class));
+  }
+
+  static Stream<Arguments> serviceLevelAndUsageContextScenarios() {
+    return Stream.of(
+        // sla, usage, expectedServiceLevel, expectedUsage
+        Arguments.of(
+            UtilizationSummary.Sla.PREMIUM,
+            UtilizationSummary.Usage.PRODUCTION,
+            "Premium",
+            "Production"),
+        Arguments.of(
+            UtilizationSummary.Sla.STANDARD,
+            UtilizationSummary.Usage.DEVELOPMENT_TEST,
+            "Standard",
+            "Development/Test"),
+        Arguments.of(UtilizationSummary.Sla.ANY, UtilizationSummary.Usage.ANY, "_ANY", "_ANY"),
+        Arguments.of(UtilizationSummary.Sla.PREMIUM, null, "Premium", null),
+        Arguments.of(null, UtilizationSummary.Usage.PRODUCTION, null, "Production"));
+  }
+
+  @ParameterizedTest
+  @MethodSource("serviceLevelAndUsageContextScenarios")
+  void shouldPopulateContextWithServiceLevelAndUsage(
+      UtilizationSummary.Sla sla,
+      UtilizationSummary.Usage usage,
+      String expectedServiceLevel,
+      String expectedUsage) {
+    // Given
+    when(featureFlags.sendNotifications()).thenReturn(true);
+    UtilizationSummary summary =
+        givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD)
+            .withSla(sla)
+            .withUsage(usage);
+
+    // When
+    whenCheckSummary(summary);
+
+    // Then
+    var captor = ArgumentCaptor.forClass(Action.class);
+    verify(notificationsProducer, times(1)).produce(captor.capture());
+    var context = captor.getValue().getContext().getAdditionalProperties();
+    assertEquals(expectedServiceLevel, context.get("service_level"));
+    assertEquals(expectedUsage, context.get("usage"));
   }
 
   // Helper methods
