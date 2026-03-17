@@ -70,6 +70,7 @@ import org.candlepin.subscriptions.utilization.api.v1.model.UsageType;
 import org.candlepin.subscriptions.utilization.api.v1.resources.TallyApi;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
@@ -91,6 +92,10 @@ public class TallyResource implements TallyApi {
   private final ApplicationClock clock;
   private final ContractsCapacityController capacityController;
   private final ApplicationProperties applicationProperties;
+
+  // Using property path with default
+  @Value("${rhsm-subscriptions.enable-primary-row-searches:false}")
+  Boolean primaryRowSearchesEnabled;
 
   @Context private UriInfo uriInfo;
 
