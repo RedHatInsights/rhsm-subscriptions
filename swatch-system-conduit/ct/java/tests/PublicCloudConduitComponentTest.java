@@ -22,13 +22,16 @@ package tests;
 
 import static com.redhat.swatch.component.tests.utils.Topics.INVENTORY_HOST_INGRESS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import api.MessageValidators;
 import api.RhsmApiStubs;
 import com.redhat.swatch.system.conduit.test.model.inventory.HbiFactSet;
 import com.redhat.swatch.system.conduit.test.model.inventory.HbiHost;
 import com.redhat.swatch.system.conduit.test.model.inventory.HbiSystemProfile;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import models.CreateUpdateHostMessage;
@@ -65,25 +68,67 @@ public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
     verifyAddHostMessage(message);
   }
 
+  @Test
+  void shouldSetIsMarketplaceWhenAwsBillingCodeIndicatesPayg() {
+    // Given: RHSM API stubbed with AWS billing code set to indicate PAYG
+    String billingCode = "bp-6fa54006";
+    Map<String, Object> extraFacts = new HashMap<>();
+    extraFacts.put("aws_billing_products", billingCode);
+    givenRhsmConsumerWithExtraFacts(extraFacts);
+
+    // When: Conduit syncs for the test org
+    service.syncConduitByOrgId(orgId);
+
+    // Then: Inventory host ingress receives add_host and is_marketplace is true
+    CreateUpdateHostMessage message = thenAddHostMessageReceived();
+    assertTrue(
+        message.getData().getSystemProfile().getIsMarketplace(), "Is marketplace should be true");
+  }
+
+  @Test
+  void shouldNotSetIsMarketplaceWhenAwsBillingCodeIndicatesByos() {
+    // Given: RHSM API stubbed with AWS billing code set to indicate BYOS
+    String billingCode = "bp-63a5400a";
+    Map<String, Object> extraFacts = new HashMap<>();
+    extraFacts.put("aws_billing_products", billingCode);
+    givenRhsmConsumerWithExtraFacts(extraFacts);
+
+    // When: Conduit syncs for the test org
+    service.syncConduitByOrgId(orgId);
+
+    // Then: Inventory host ingress receives add_host and is_marketplace is false
+    CreateUpdateHostMessage message = thenAddHostMessageReceived();
+    assertFalse(
+        message.getData().getSystemProfile().getIsMarketplace(), "Is marketplace should be false");
+  }
+
+  private Map<String, Object> buildDefaultConsumer() {
+    return RhsmApiStubs.buildFullConsumer(
+        orgId,
+        EXPECTED_CONSUMER_ID,
+        EXPECTED_DISPLAY_NAME,
+        EXPECTED_UUID,
+        EXPECTED_FQDN,
+        EXPECTED_BIOS_UUID,
+        null,
+        null,
+        EXPECTED_INSIGHTS_ID,
+        EXPECTED_IP_ADDRESSES,
+        EXPECTED_MAC_ADDRESSES,
+        EXPECTED_ARCH,
+        EXPECTED_CPU_SOCKETS,
+        EXPECTED_CORES_PER_SOCKET,
+        EXPECTED_MEMORY_BYTES);
+  }
+
   private void givenRhsmConsumerWithFullData() {
-    Map<String, Object> consumer =
-        RhsmApiStubs.buildFullConsumer(
-            orgId,
-            EXPECTED_CONSUMER_ID,
-            EXPECTED_DISPLAY_NAME,
-            EXPECTED_UUID,
-            EXPECTED_FQDN,
-            EXPECTED_BIOS_UUID,
-            null, // TODO SWATCH-4637: openshift_cluster_id was backed out (legacy values failed HBI
-            // validation); will be re-added as part of SWATCH-4637
-            null,
-            EXPECTED_INSIGHTS_ID,
-            EXPECTED_IP_ADDRESSES,
-            EXPECTED_MAC_ADDRESSES,
-            EXPECTED_ARCH,
-            EXPECTED_CPU_SOCKETS,
-            EXPECTED_CORES_PER_SOCKET,
-            EXPECTED_MEMORY_BYTES);
+    wiremock.forRhsmApi().stubConsumersForOrg(orgId, List.of(buildDefaultConsumer()));
+  }
+
+  private void givenRhsmConsumerWithExtraFacts(Map<String, Object> extraFacts) {
+    Map<String, Object> consumer = buildDefaultConsumer();
+    ((Map<String, Object>) consumer.get("facts")).putAll(extraFacts);
+
     wiremock.forRhsmApi().stubConsumersForOrg(orgId, List.of(consumer));
   }
 
