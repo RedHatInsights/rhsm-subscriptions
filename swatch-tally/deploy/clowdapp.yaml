@@ -223,6 +223,11 @@ parameters:
     value: 'http://localhost:4317'
   - name: OTEL_EXPORTER_OTLP_PROTOCOL
     value: 'grpc'
+  # Disable OTLP export for logs and metrics when the collector only supports traces
+  - name: OTEL_LOGS_EXPORTER
+    value: 'none'
+  - name: OTEL_METRICS_EXPORTER
+    value: 'none'
   - description: database secret name
     name: FLOORIST_DB_SECRET_NAME
     value: swatch-db-ro
@@ -522,6 +527,10 @@ objects:
               value: ${OTEL_SERVICE_NAME}
             - name: OTEL_JAVAAGENT_ENABLED
               value: ${OTEL_JAVAAGENT_ENABLED}
+            - name: OTEL_LOGS_EXPORTER
+              value: ${OTEL_LOGS_EXPORTER}
+            - name: OTEL_METRICS_EXPORTER
+              value: ${OTEL_METRICS_EXPORTER}
             - name: EVENT_RECORD_RETENTION
               value: ${EVENT_RECORD_RETENTION}
 
