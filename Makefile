@@ -37,11 +37,12 @@ endef
 
 # $1 is the directory with the application to start.
 # $2 is the port number to start on.  The management port will be $2 + 1000
+# Pass SUSPEND_DEBUG=true to disable the JDWP debug agent.
 define QUARKUS_PROXY
     $(call BUILD,$(1))
 	QUARKUS_HTTP_PORT=$(2) QUARKUS_MANAGEMENT_PORT=$(shell echo $$((1000 + $(2)))) \
 	QUARKUS_HTTP_HOST=0.0.0.0 QUARKUS_PROFILE=$(subst $(space),$(comma),$(PROFILES)) \
-	./mvnw -pl $(1) quarkus:dev -DskipTests
+	./mvnw -pl $(1) quarkus:dev -DskipTests $(if $(SUSPEND_DEBUG),-Ddebug=false)
 endef
 
 # Take note that we're using SPRING_PROFILES_INCLUDE rather that

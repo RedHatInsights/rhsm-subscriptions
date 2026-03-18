@@ -436,6 +436,9 @@ spec:
             type: string
         workspaces:
           - name: artifacts
+        results:
+          - name: DEPLOY_SUCCEEDED
+            description: Whether the deploy succeeded ("true" or "false")
         steps:
           - name: deploy
             image: "$(params.BONFIRE_IMAGE)"
@@ -505,13 +508,21 @@ spec:
               EXIT_CODE=${PIPESTATUS[0]}
               echo "$EXIT_CODE" > "$EXIT_CODE_FILE"
               echo "Deploy exit code: $EXIT_CODE"
-              exit $EXIT_CODE
+              if [ "$EXIT_CODE" -eq 0 ]; then
+                printf "true" > $(results.DEPLOY_SUCCEEDED.path)
+              else
+                printf "false" > $(results.DEPLOY_SUCCEEDED.path)
+              fi
+              exit 0
 
     - name: post-deploy-failure-comment
       onError: continue
       runAfter:
         - deploy-application
       when:
+        - input: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
+          operator: in
+          values: ["false"]
         - input: "$(tasks.extract-metadata.results.IS_PULL_REQUEST)"
           operator: in
           values: ["true"]
@@ -553,6 +564,9 @@ spec:
         - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
           operator: in
           values: ["false"]
+        - input: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
+          operator: in
+          values: ["true"]
       params:
         - name: BONFIRE_IMAGE
           value: "$(params.BONFIRE_IMAGE)"
@@ -599,6 +613,9 @@ spec:
         - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
           operator: in
           values: ["false"]
+        - input: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
+          operator: in
+          values: ["true"]
       workspaces:
         - name: artifacts
           workspace: artifacts
@@ -655,6 +672,9 @@ spec:
         - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
           operator: in
           values: ["false"]
+        - input: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
+          operator: in
+          values: ["true"]
       workspaces:
         - name: artifacts
           workspace: artifacts
@@ -804,6 +824,9 @@ spec:
       runAfter:
         - collect-logs
       when:
+        - input: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
+          operator: in
+          values: ["true"]
         - input: "$(tasks.extract-metadata.results.IS_PULL_REQUEST)"
           operator: in
           values: ["true"]
@@ -844,6 +867,9 @@ spec:
         - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
           operator: in
           values: ["false"]
+        - input: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
+          operator: in
+          values: ["true"]
       workspaces:
         - name: artifacts
           workspace: artifacts
@@ -898,13 +924,13 @@ spec:
           operator: in
           values: ["false"]
       params:
-        - name: DEPLOY_STATUS
-          value: "$(tasks.deploy-application.status)"
+        - name: DEPLOY_SUCCEEDED
+          value: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
         - name: IQE_STATUS
           value: "$(tasks.run-iqe-tests.status)"
       taskSpec:
         params:
-          - name: DEPLOY_STATUS
+          - name: DEPLOY_SUCCEEDED
             type: string
           - name: IQE_STATUS
             type: string
@@ -914,8 +940,8 @@ spec:
             script: |
               #!/bin/bash
               FAILED=false
-              echo "Deploy status: $(params.DEPLOY_STATUS)"
-              if [ "$(params.DEPLOY_STATUS)" != "Succeeded" ]; then
+              echo "Deploy succeeded: $(params.DEPLOY_SUCCEEDED)"
+              if [ "$(params.DEPLOY_SUCCEEDED)" != "true" ]; then
                 echo "Deploy did not succeed."
                 FAILED=true
               fi
