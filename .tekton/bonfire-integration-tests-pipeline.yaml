@@ -19,7 +19,7 @@ spec:
     - name: BONFIRE_IMAGE
       type: string
       description: The container Bonfire image to use for the tekton tasks
-    
+
     # Snapshot and pipeline metadata
     - name: SNAPSHOT
       description: The Snapshot JSON containing all component images
@@ -32,7 +32,7 @@ spec:
       description: UID of this PipelineRun
       type: string
       default: ""
-    
+
     # Ephemeral environment configuration
     - name: EPHEMERAL_ENV_PROVIDER_SECRET
       type: string
@@ -50,7 +50,7 @@ spec:
       type: string
       description: Duration to reserve the namespace for
       default: "120m"
-    
+
     # Application configuration
     - name: APP_NAME
       type: string
@@ -68,7 +68,7 @@ spec:
       type: string
       description: Components to keep resources for (passed to --no-remove-resources)
       default: "app:rhsm app:export-service"
-    
+
     # Deployment configuration
     - name: EXTRA_DEPLOY_ARGS
       type: string
@@ -82,7 +82,7 @@ spec:
       type: string
       description: Deploy timeout
       default: "1800"
-    
+
     # IQE test configuration
     - name: IQE_PLUGINS
       type: string
@@ -120,7 +120,7 @@ spec:
       type: string
       description: IQE log level
       default: "debug"
-    
+
     # Data Router configuration
     - name: DATAROUTER_CREDENTIALS_NAME
       type: string
@@ -144,8 +144,7 @@ spec:
       type: string
       description: Git revision used to resolve rhsm-subscriptions task definitions
       default: "main"
-  
-  
+
   workspaces:
     - name: artifacts
 
@@ -153,7 +152,7 @@ spec:
     - name: ARTIFACTS_URL
       description: URL for the test artifacts
       value: $(tasks.upload-artifacts-to-s3.results.ARTIFACTS_URL)
-  
+
   tasks:
     - name: extract-metadata
       params:
@@ -161,6 +160,10 @@ spec:
           value: "$(params.SNAPSHOT)"
         - name: COMPONENT_NAME
           value: "$(params.COMPONENT_NAME)"
+        - name: PROJECT_REPO
+          value: "$(params.PROJECT_REPO)"
+        - name: GITHUB_TOKEN_SECRET
+          value: "$(params.GITHUB_TOKEN_SECRET)"
       taskRef:
         resolver: git
         params:
@@ -191,12 +194,16 @@ spec:
     - name: verify-snapshot-completeness
       runAfter:
         - wait-for-snapshot-verification
+        - extract-metadata
       params:
         - name: SNAPSHOT
           value: $(params.SNAPSHOT)
+        - name: LABELS
+          value: "$(tasks.extract-metadata.results.LABELS)"
       taskSpec:
         params:
           - name: SNAPSHOT
+          - name: LABELS
         results:
           - name: SKIP_TESTS
         steps:
@@ -205,6 +212,13 @@ spec:
             script: |
               #!/bin/bash
               set -euo pipefail
+
+              LABELS=",$(params.LABELS),"
+              if echo "$LABELS" | grep -qi ",skip-integration-tests,"; then
+                echo "skip-integration-tests label found - skipping tests"
+                printf "true" > $(results.SKIP_TESTS.path)
+                exit 0
+              fi
               
               MONOREPO_COMPONENTS="swatch-api swatch-tally swatch-contracts swatch-billable-usage swatch-utilization swatch-producer-aws swatch-producer-azure swatch-metrics swatch-metrics-hbi swatch-system-conduit swatch-database"
               REFERENCE_SHA=""
@@ -297,14 +311,14 @@ spec:
 
     - name: github-delete-old-comments
       runAfter:
-        - extract-metadata
+        - verify-snapshot-completeness
       when:
+        - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
+          operator: in
+          values: ["false"]
         - input: "$(tasks.extract-metadata.results.IS_PULL_REQUEST)"
           operator: in
           values: ["true"]
-        - input: "$(tasks.extract-metadata.results.PR_NUMBER)"
-          operator: notin
-          values: ["none", ""]
       params:
         - name: PROJECT_REPO
           value: "$(params.PROJECT_REPO)"
@@ -322,36 +336,9 @@ spec:
           - name: pathInRepo
             value: .tekton/tasks/github-delete-comment.yaml
 
-    - name: github-get-pr-labels
-      runAfter:
-        - extract-metadata
-      when:
-        - input: "$(tasks.extract-metadata.results.IS_PULL_REQUEST)"
-          operator: in
-          values: ["true"]
-        - input: "$(tasks.extract-metadata.results.PR_NUMBER)"
-          operator: notin
-          values: ["none", ""]
-      params:
-        - name: PROJECT_REPO
-          value: "$(params.PROJECT_REPO)"
-        - name: PR_NUMBER
-          value: "$(tasks.extract-metadata.results.PR_NUMBER)"
-        - name: GITHUB_TOKEN_SECRET
-          value: "$(params.GITHUB_TOKEN_SECRET)"
-      taskRef:
-        resolver: git
-        params:
-          - name: url
-            value: "https://github.com/$(params.PROJECT_REPO).git"
-          - name: revision
-            value: "$(params.PROJECT_TASKS_REVISION)"
-          - name: pathInRepo
-            value: .tekton/tasks/github-get-pr-labels.yaml
-
     - name: reserve-namespace
       runAfter:
-        - extract-metadata
+        - verify-snapshot-completeness
       when:
         - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
           operator: in
@@ -520,15 +507,15 @@ spec:
       runAfter:
         - deploy-application
       when:
+        - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
+          operator: in
+          values: [ "false" ]
         - input: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
           operator: in
           values: ["false"]
         - input: "$(tasks.extract-metadata.results.IS_PULL_REQUEST)"
           operator: in
           values: ["true"]
-        - input: "$(tasks.extract-metadata.results.PR_NUMBER)"
-          operator: notin
-          values: ["none", ""]
       workspaces:
         - name: artifacts
           workspace: artifacts
@@ -563,7 +550,7 @@ spec:
       when:
         - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
           operator: in
-          values: ["false"]
+          values: [ "false" ]
         - input: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
           operator: in
           values: ["true"]
@@ -603,8 +590,7 @@ spec:
             value: "$(params.BONFIRE_REVISION)"
           - name: pathInRepo
             value: tasks/run-iqe-cji.yaml
-    
-  
+
     - name: collect-logs
       onError: continue
       runAfter:
@@ -612,7 +598,7 @@ spec:
       when:
         - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
           operator: in
-          values: ["false"]
+          values: [ "false" ]
         - input: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
           operator: in
           values: ["true"]
@@ -671,7 +657,7 @@ spec:
       when:
         - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
           operator: in
-          values: ["false"]
+          values: [ "false" ]
         - input: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
           operator: in
           values: ["true"]
@@ -824,15 +810,15 @@ spec:
       runAfter:
         - collect-logs
       when:
+        - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
+          operator: in
+          values: [ "false" ]
         - input: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
           operator: in
           values: ["true"]
         - input: "$(tasks.extract-metadata.results.IS_PULL_REQUEST)"
           operator: in
           values: ["true"]
-        - input: "$(tasks.extract-metadata.results.PR_NUMBER)"
-          operator: notin
-          values: ["none", ""]
       workspaces:
         - name: artifacts
           workspace: artifacts
@@ -866,7 +852,7 @@ spec:
       when:
         - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
           operator: in
-          values: ["false"]
+          values: [ "false" ]
         - input: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
           operator: in
           values: ["true"]

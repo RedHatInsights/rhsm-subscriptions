@@ -119,6 +119,10 @@ spec:
       value: $(finally.teardown.results.ARTIFACTS_URL)
   finally:
     - name: check-test-results
+      when:
+        - input: "$(tasks.check-component-label.results.TESTS_SKIPPED)"
+          operator: in
+          values: ["false"]
       params:
         - name: DEPLOY_SUCCEEDED
           value: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
@@ -153,6 +157,10 @@ spec:
               echo "All steps passed."
 
     - name: teardown
+      when:
+        - input: "$(tasks.check-component-label.results.TESTS_SKIPPED)"
+          operator: in
+          values: ["false"]
       params:
         - name: NS
           value: "$(tasks.reserve-namespace.results.NS)"
@@ -180,6 +188,10 @@ spec:
           value: "$(params.SNAPSHOT)"
         - name: COMPONENT_NAME
           value: "$(params.COMPONENT_NAME)"
+        - name: PROJECT_REPO
+          value: "$(params.PROJECT_REPO)"
+        - name: GITHUB_TOKEN_SECRET
+          value: "$(params.GITHUB_TOKEN_SECRET)"
       taskRef:
         resolver: git
         params:
@@ -190,10 +202,61 @@ spec:
           - name: pathInRepo
             value: .tekton/tasks/extract-metadata.yaml
 
-    - name: github-delete-old-comments
+    - name: check-component-label
       runAfter:
         - extract-metadata
+      params:
+        - name: COMPONENT_NAME
+          value: "$(params.COMPONENT_NAME)"
+        - name: LABELS
+          value: "$(tasks.extract-metadata.results.LABELS)"
+      taskSpec:
+        params:
+          - name: COMPONENT_NAME
+            type: string
+          - name: LABELS
+            type: string
+        results:
+          - name: TESTS_SKIPPED
+            description: "true if component tests should be skipped, false to run"
+        steps:
+          - name: check
+            image: quay.io/konflux-ci/appstudio-utils:latest
+            script: |
+              #!/bin/bash
+              set -euo pipefail
+
+              LABELS=",$(params.LABELS),"
+              echo "COMPONENT: $(params.COMPONENT_NAME)"
+              echo "LABELS: $(params.LABELS)"
+
+              # skip-integration-tests label -> always skip
+              if echo "$LABELS" | grep -qi ",skip-integration-tests,"; then
+                echo "TESTS_SKIPPED: true (skip-integration-tests label)"
+                printf "true" > "$(results.TESTS_SKIPPED.path)"
+                exit 0
+              fi
+
+              # No labels (push event or fetch failed) -> run
+              # swatch-all / component label -> run
+              # Otherwise -> skip
+              if [ -z "$(params.LABELS)" ] \
+                || echo "$LABELS" | grep -qi ",swatch-all," \
+                || echo "$LABELS" | grep -qi ",$(params.COMPONENT_NAME),"; then
+                echo "TESTS_SKIPPED: false"
+                printf "false" > "$(results.TESTS_SKIPPED.path)"
+              else
+                echo "TESTS_SKIPPED: true"
+                printf "true" > "$(results.TESTS_SKIPPED.path)"
+              fi
+
+    - name: github-delete-old-comments
+      runAfter:
+        - check-component-label
       when:
+        - input: "$(tasks.check-component-label.results.TESTS_SKIPPED)"
+          operator: in
+          values: ["false"]
         - input: "$(tasks.extract-metadata.results.IS_PULL_REQUEST)"
           operator: in
           values: ["true"]
@@ -220,6 +283,12 @@ spec:
             value: .tekton/tasks/github-delete-comment.yaml
 
     - name: update-extra-deploy-args
+      runAfter:
+        - check-component-label
+      when:
+        - input: "$(tasks.check-component-label.results.TESTS_SKIPPED)"
+          operator: in
+          values: ["false"]
       params:
         - name: EXTRA_DEPLOY_ARGS
           value: "$(params.EXTRA_DEPLOY_ARGS)"
@@ -227,8 +296,6 @@ spec:
           value: "$(params.COMPONENTS)"
         - name: GIT_REVISION
           value: "$(tasks.extract-metadata.results.GIT_REVISION)"
-      runAfter:
-        - extract-metadata
       taskSpec:
         params:
           - name: EXTRA_DEPLOY_ARGS
@@ -267,6 +334,12 @@ spec:
               echo "update-extra-deploy-args: final args='$UPDATED_ARGS'"
               printf "%s" "$UPDATED_ARGS" > $(results.UPDATED_EXTRA_DEPLOY_ARGS.path)
     - name: reserve-namespace
+      runAfter:
+        - check-component-label
+      when:
+        - input: "$(tasks.check-component-label.results.TESTS_SKIPPED)"
+          operator: in
+          values: ["false"]
       params:
         - name: NS_REQUESTER
           value: "$(context.pipelineRun.name)"
@@ -274,8 +347,6 @@ spec:
           value: "$(params.EPHEMERAL_ENV_PROVIDER_SECRET)"
         - name: BONFIRE_IMAGE
           value: "$(params.BONFIRE_IMAGE)"
-      runAfter:
-        - extract-metadata
       taskRef:
         resolver: git
         params:
@@ -290,6 +361,10 @@ spec:
       runAfter:
         - reserve-namespace
         - update-extra-deploy-args
+      when:
+        - input: "$(tasks.check-component-label.results.TESTS_SKIPPED)"
+          operator: in
+          values: ["false"]
       workspaces:
         - name: artifacts
           workspace: shared-workspace
@@ -437,15 +512,15 @@ spec:
       runAfter:
         - deploy-application
       when:
+        - input: "$(tasks.check-component-label.results.TESTS_SKIPPED)"
+          operator: in
+          values: [ "false" ]
         - input: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
           operator: in
           values: ["false"]
         - input: "$(tasks.extract-metadata.results.IS_PULL_REQUEST)"
           operator: in
           values: ["true"]
-        - input: "$(tasks.extract-metadata.results.PR_NUMBER)"
-          operator: notin
-          values: ["none", ""]
       workspaces:
         - name: artifacts
           workspace: shared-workspace
@@ -479,6 +554,9 @@ spec:
         - name: revision
           value: "$(tasks.extract-metadata.results.GIT_REVISION)"
       when:
+        - input: "$(tasks.check-component-label.results.TESTS_SKIPPED)"
+          operator: in
+          values: [ "false" ]
         - input: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
           operator: in
           values: ["true"]
@@ -506,6 +584,13 @@ spec:
           workspace: shared-workspace
       runAfter:
         - clone-repository
+      when:
+        - input: "$(tasks.check-component-label.results.TESTS_SKIPPED)"
+          operator: in
+          values: [ "false" ]
+        - input: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
+          operator: in
+          values: [ "true" ]
       taskSpec:
         params:
           - name: SERVICE
@@ -564,6 +649,13 @@ spec:
           workspace: shared-workspace
       runAfter:
         - run-tests-task
+      when:
+        - input: "$(tasks.check-component-label.results.TESTS_SKIPPED)"
+          operator: in
+          values: [ "false" ]
+        - input: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
+          operator: in
+          values: [ "true" ]
       taskSpec:
         params:
           - name: SERVICE
@@ -705,15 +797,15 @@ spec:
       runAfter:
         - run-tests-task
       when:
+        - input: "$(tasks.check-component-label.results.TESTS_SKIPPED)"
+          operator: in
+          values: [ "false" ]
         - input: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
           operator: in
           values: ["true"]
         - input: "$(tasks.extract-metadata.results.IS_PULL_REQUEST)"
           operator: in
           values: ["true"]
-        - input: "$(tasks.extract-metadata.results.PR_NUMBER)"
-          operator: notin
-          values: ["none", ""]
       workspaces:
         - name: artifacts
           workspace: shared-workspace
