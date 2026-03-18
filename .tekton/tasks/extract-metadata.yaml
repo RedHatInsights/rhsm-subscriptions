@@ -4,19 +4,27 @@ kind: Task
 metadata:
   name: extract-metadata
 spec:
-  description: Extracts event type, PR number, and git revision from PipelineRun metadata and SNAPSHOT.
+  description: Extracts event type, PR number, git revision, and PR labels from PipelineRun metadata and SNAPSHOT.
   params:
     - name: SNAPSHOT
       type: string
     - name: COMPONENT_NAME
       type: string
+    - name: PROJECT_REPO
+      type: string
+      default: "RedHatInsights/rhsm-subscriptions"
+    - name: GITHUB_TOKEN_SECRET
+      type: string
+      default: "swatch-ci-github-token"
   results:
     - name: IS_PULL_REQUEST
-      description: Whether the event type is pull_request (true or false)
+      description: Whether the event is PR-related, i.e. has a valid PR number (true or false)
     - name: PR_NUMBER
       description: Pull request number, or "none" if not a PR event
     - name: GIT_REVISION
       description: Git revision extracted from the SNAPSHOT
+    - name: LABELS
+      description: Comma-separated list of PR labels (empty on push events)
   steps:
     - name: extract
       image: quay.io/konflux-ci/appstudio-utils:latest
@@ -33,18 +41,20 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.annotations['test.appstudio.openshift.io/group-test-info']
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: $(params.GITHUB_TOKEN_SECRET)
+              key: github_token
       script: |
         #!/bin/bash
         set -euo pipefail
         echo "EVENT_TYPE=${EVENT_TYPE:-unknown}"
-        if [ "${EVENT_TYPE:-}" = "pull_request" ]; then
-          printf "true" > "$(results.IS_PULL_REQUEST.path)"
-        else
-          printf "false" > "$(results.IS_PULL_REQUEST.path)"
-        fi
 
+        # Extract PR number from GROUP_TEST_INFO or PAC label
         PR=""
         if [ -n "${GROUP_TEST_INFO:-}" ]; then
+          echo "GROUP_TEST_INFO=${GROUP_TEST_INFO}"
           PR=$(echo "${GROUP_TEST_INFO}" | jq -r '.[0].pullRequestNumber // empty' 2>/dev/null || echo "")
         fi
         if [ -z "$PR" ] && [ -n "${PAC_PR_NUMBER:-}" ]; then
@@ -53,6 +63,15 @@ spec:
         echo "PR_NUMBER=${PR:-none}"
         printf "%s" "${PR:-none}" > "$(results.PR_NUMBER.path)"
 
+        # IS_PULL_REQUEST: true if we have a valid PR number (covers pull_request, retest, etc.)
+        if [ -n "$PR" ] && [ "$PR" != "none" ]; then
+          printf "true" > "$(results.IS_PULL_REQUEST.path)"
+          echo "IS_PULL_REQUEST=true"
+        else
+          printf "false" > "$(results.IS_PULL_REQUEST.path)"
+          echo "IS_PULL_REQUEST=false"
+        fi
+
         echo "Extracting git revision for component: $(params.COMPONENT_NAME)"
         rev=$(echo '$(params.SNAPSHOT)' | jq -r --arg name '$(params.COMPONENT_NAME)' '.components[] | select(.name==$name) | .source.git.revision // empty')
         if [ -z "$rev" ] || [ "$rev" = "null" ]; then
@@ -60,3 +79,37 @@ spec:
         fi
         echo "GIT_REVISION=${rev:-empty}"
         printf "%s" "$rev" > "$(results.GIT_REVISION.path)"
+
+        # Fetch PR labels when we have a valid PR number
+        if [ -z "${PR:-}" ] || [ "${PR:-}" = "none" ]; then
+          printf "" > "$(results.LABELS.path)"
+          echo "LABELS=(empty)"
+          exit 0
+        fi
+
+        GITHUB_TOKEN=$(echo -n "$GITHUB_TOKEN" | tr -d '[:space:]')
+        REPO="$(params.PROJECT_REPO)"
+        URL="https://api.github.com/repos/${REPO}/pulls/${PR}"
+        echo "Fetching PR labels from: ${URL}"
+
+        set +e
+        HTTP_CODE=$(curl -sS --http1.1 --retry 5 --retry-connrefused \
+          --connect-timeout 10 --max-time 30 \
+          -o /tmp/pr.json -w "%{http_code}" \
+          -H "Authorization: token ${GITHUB_TOKEN}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          -H "Cache-Control: no-cache" \
+          -H "If-None-Match: \"\"" \
+          "${URL}" 2>&1)
+        CURL_EXIT=$?
+        set -e
+
+        if [ $CURL_EXIT -ne 0 ] || [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+          echo "WARNING: Failed to fetch PR labels (curl exit: $CURL_EXIT, HTTP: $HTTP_CODE)"
+          printf "" > "$(results.LABELS.path)"
+          exit 0
+        fi
+
+        LABELS=$(jq -r '[.labels[].name] | join(",")' /tmp/pr.json)
+        echo "LABELS=${LABELS}"
+        printf "%s" "$LABELS" > "$(results.LABELS.path)"

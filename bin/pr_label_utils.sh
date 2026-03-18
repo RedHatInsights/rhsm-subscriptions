@@ -11,6 +11,7 @@ SWATCH_LIGHTNING_SERVICES=("swatch-billable-usage" "swatch-contracts" "swatch-pr
 
 # All services (combination of both teams)
 ALL_SERVICES=("${SWATCH_THUNDER_SERVICES[@]}" "${SWATCH_LIGHTNING_SERVICES[@]}")
+SWATCH_ALL_LABEL="swatch-all"
 
 # Get current PR labels
 get_current_labels() {
@@ -129,11 +130,13 @@ manage_service_labels() {
     echo "Current labels: '$current_labels'"
     echo "Modified services: '${MODIFIED_SERVICES[*]}'"
     
+    local any_service_is_modified=false
     for service in "${ALL_SERVICES[@]}"; do
         echo "Processing service: $service"
         local service_is_modified=false
         if [[ " ${MODIFIED_SERVICES[*]} " =~ " $service " ]]; then
             service_is_modified=true
+            any_service_is_modified=true
             echo "  -> Service $service is modified"
         else
             echo "  -> Service $service is NOT modified"
@@ -145,6 +148,12 @@ manage_service_labels() {
             remove_label_if_needed "$pr_number" "$service" "$current_labels"
         fi
     done
+
+    if [ "$any_service_is_modified" = false ]; then
+        add_label_if_needed "$pr_number" "$SWATCH_ALL_LABEL" "$current_labels"
+    else
+        remove_label_if_needed "$pr_number" "$SWATCH_ALL_LABEL" "$current_labels"
+    fi
 }
 
 # Manage team labels
@@ -191,7 +200,8 @@ remove_all_labels() {
         remove_label_if_needed "$pr_number" "$service" "$current_labels"
     done
     
-    # Remove team labels
+    # Remove team and aggregate labels
     remove_label_if_needed "$pr_number" "$SWATCH_THUNDER_LABEL" "$current_labels"
     remove_label_if_needed "$pr_number" "$SWATCH_LIGHTNING_LABEL" "$current_labels"
+    remove_label_if_needed "$pr_number" "$SWATCH_ALL_LABEL" "$current_labels"
 }
