@@ -379,9 +379,29 @@ Test cases should be testable locally and in deployed environments.
     - API validates required parameters
     - Appropriate error message is returned
 
-## SLA Filtering
+**tally-report-granularity-TC009 - Daily report measurements update when same host changes billing account ID**
 
-**tally-sla-filters-TC001 - SLA filter counts**
+- **Description**: Verify that the daily tally report correctly reflects measurements when the same instance reports under different billing account IDs across separate hourly tally syncs
+- **Setup**:
+    - Organization is opted in
+    - A single instance ID is used for both events
+    - Two distinct billing account IDs
+    - Time range covers the current day (daily granularity)
+- **Action**:
+    - Produce an event with the first billing account ID (value 5.0) and run hourly tally
+    - Verify the daily report reflects the value for the first billing account and the total
+    - Produce a second event for the same instance with a different billing account ID (value 8.0) and run hourly tally again
+- **Verification**:
+    - After first event: daily report shows 5.0 for the first billing account and 5.0 total
+    - After second event: daily report shows 5.0 for the first billing account, 8.0 for the second, and 13.0 total
+- **Expected Result**:
+    - Hourly tally produces daily snapshots separated by billing account ID
+    - Each billing account retains its own measurement value
+    - Total report reflects the sum of all billing account values
+
+## Summary Message Filtering
+
+**tally-summary-filters-TC001 - SLA filter counts from tally summaries**
 
 - **Description**: Verify that tally segregates and counts metrics by SLA level
 - **Setup**:
@@ -399,9 +419,7 @@ Test cases should be testable locally and in deployed environments.
     - No-SLA bucket is separate from defined SLA buckets
     - SLA-filtered totals sum to overall total
 
-## Usage Filtering
-
-**tally-usage-filters-TC001 - Usage filter counts**
+**tally-summary-filters-TC002 - Usage filter counts from tally summaries**
 
 - **Description**: Verify that tally segregates and counts metrics by Usage level
 - **Setup**:
@@ -419,26 +437,7 @@ Test cases should be testable locally and in deployed environments.
     - No-Usage bucket is separate from defined Usage buckets
     - Usage-filtered totals sum to overall total
 
-## Billing Provider Filtering
-
-**tally-billing-provider-filters-TC001 - Tally summary separates values by billing provider**
-
-- **Description**: Verify that tally summary Kafka messages separate metric values by billing provider
-- **Setup**:
-    - Two events created from different instances with different billing providers and different metric values
-- **Action**:
-    - Produce events to Kafka
-    - Poll for tally summaries with HOURLY granularity
-- **Verification**:
-    - Each billing provider bucket contains its expected metric value
-    - Sum of per-billing-provider values equals the unfiltered total
-- **Expected Result**:
-    - Tally segregates metrics by billing provider in Kafka summary messages
-    - Per-billing-provider totals sum to overall total
-
-## Billing Account ID Filtering
-
-**tally-billing-account-id-filters-TC001 - Tally summary separates values by billing account ID**
+**tally-summary-filters-TC003 - Tally summary separates values by billing account ID**
 
 - **Description**: Verify that tally summary Kafka messages segregate metric values by billing account ID
 - **Setup**:
@@ -453,26 +452,7 @@ Test cases should be testable locally and in deployed environments.
     - Tally segregates metrics by billing account ID in Kafka summary messages
     - Per-billing-account totals sum to overall total
 
-**tally-billing-account-id-filters-TC002 - Tally report API counts values by billing account ID filter**
-
-- **Description**: Verify that the tally report API returns correct values when filtered by billing account ID, and that the unfiltered report returns the combined total
-- **Setup**:
-    - Organization is opted in
-    - Two events created from different instances with different billing account IDs and different metric values
-- **Action**:
-    - Produce events to Kafka
-    - Run hourly tally
-    - Query tally report API with each billing account ID filter
-    - Query tally report API without billing account ID filter
-- **Verification**:
-    - Report filtered by billing account 1 returns only its metric value
-    - Report filtered by billing account 2 returns only its metric value
-    - Unfiltered report returns the combined total of both billing accounts
-- **Expected Result**:
-    - Tally report API correctly filters results by billing account ID
-    - Unfiltered report aggregates values across all billing accounts
-
-**tally-billing-account-id-filters-TC003 - Tally separates values when single host changes billing account ID**
+**tally-summary-filters-TC004 - Tally separates values when single host changes billing account ID**
 
 - **Description**: Verify that when a single host sends events under different billing account IDs at different times, tally correctly attributes each measurement to the billing account that was active at the time
 - **Setup**:
@@ -488,6 +468,21 @@ Test cases should be testable locally and in deployed environments.
 - **Expected Result**:
     - Tally correctly attributes measurements to the billing account from each event
     - A billing account change on a single instance does not merge or lose values
+
+**tally-summary-filters-TC005 - Tally summary separates values by billing provider**
+
+- **Description**: Verify that tally summary Kafka messages separate metric values by billing provider
+- **Setup**:
+    - Two events created from different instances with different billing providers and different metric values
+- **Action**:
+    - Produce events to Kafka
+    - Poll for tally summaries with HOURLY granularity
+- **Verification**:
+    - Each billing provider bucket contains its expected metric value
+    - Sum of per-billing-provider values equals the unfiltered total
+- **Expected Result**:
+    - Tally segregates metrics by billing provider in Kafka summary messages
+    - Per-billing-provider totals sum to overall total
 
 ## Tally Summary Messages
 
