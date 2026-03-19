@@ -27,6 +27,7 @@ import static com.redhat.swatch.contract.utils.ContractMessageProcessingResult.P
 
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PageRequest;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1;
+import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlements;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.QueryPartnerEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.ApiException;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.PartnerApi;
@@ -85,6 +86,7 @@ public class ContractService {
 
   public static final String SUCCESS_MESSAGE = "SUCCESS";
   public static final String FAILURE_MESSAGE = "FAILED";
+  public static final int PAGE_SIZE = 20;
 
   private final ContractRepository contractRepository;
   private final ContractMetricRepository contractMetricRepository;
@@ -459,7 +461,7 @@ public class ContractService {
   }
 
   @Transactional
-  public StatusResponse syncContractByOrgId(String contractOrgSync, boolean isPreCleanup) {
+  public StatusResponse syncContractsByOrgId(String contractOrgSync, boolean isPreCleanup) {
     StatusResponse statusResponse = new StatusResponse();
 
     try {
@@ -471,21 +473,19 @@ public class ContractService {
             deletedRecords);
       }
 
-      PageRequest page = new PageRequest();
-      page.setSize(20);
-      page.setNumber(0);
-      var result =
-          partnerApi.getPartnerEntitlements(
-              new QueryPartnerEntitlementV1().rhAccountId(contractOrgSync).page(page));
-      log.debug(
-          "Contracts fetched for org {} from upstream {}", contractOrgSync, result.toString());
-      if (Objects.nonNull(result.getContent()) && !result.getContent().isEmpty()) {
-        for (PartnerEntitlementV1 entitlement : result.getContent()) {
-          if (entitlement != null
-              && ContractSourcePartnerEnum.isSupported(entitlement.getSourcePartner())) {
-            tryUpsertPartnerContract(entitlement);
-          }
+      boolean anyContractsSynced = false;
+      int totalPages = 1;
+      for (int pageNumber = 0; pageNumber < totalPages; pageNumber++) {
+        var result = syncContractsByOrgId(contractOrgSync, pageNumber);
+        if (Objects.nonNull(result.getContent()) && !result.getContent().isEmpty()) {
+          anyContractsSynced = true;
         }
+        if (result.getPage() != null && result.getPage().getTotalPages() != null) {
+          totalPages = result.getPage().getTotalPages();
+        }
+      }
+
+      if (anyContractsSynced) {
         statusResponse.setMessage("Contracts Synced for " + contractOrgSync);
         statusResponse.setStatus(SUCCESS_MESSAGE);
       } else {
@@ -529,6 +529,26 @@ public class ContractService {
     log.info("Deleted {} contract for org id {}", contractsToDelete.size(), orgId);
     statusResponse.setStatus(SUCCESS_MESSAGE);
     return statusResponse;
+  }
+
+  private PartnerEntitlements syncContractsByOrgId(String orgId, int pageNumber)
+      throws ApiException {
+    PageRequest page = new PageRequest();
+    page.setSize(PAGE_SIZE);
+    page.setNumber(pageNumber);
+    var result =
+        partnerApi.getPartnerEntitlements(
+            new QueryPartnerEntitlementV1().rhAccountId(orgId).page(page));
+    log.debug("Contracts fetched for org {} from upstream page {}: {}", orgId, pageNumber, result);
+    if (Objects.nonNull(result.getContent()) && !result.getContent().isEmpty()) {
+      for (PartnerEntitlementV1 entitlement : result.getContent()) {
+        if (entitlement != null
+            && ContractSourcePartnerEnum.isSupported(entitlement.getSourcePartner())) {
+          tryUpsertPartnerContract(entitlement);
+        }
+      }
+    }
+    return result;
   }
 
   private void tryUpsertPartnerContract(PartnerEntitlementV1 entitlement) {

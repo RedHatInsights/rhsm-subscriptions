@@ -638,6 +638,19 @@ Test cases should be testable locally and in an ephemeral environment.
   - At least one subscription measurement exists with a valid metric ID, positive value, and measurement type
   - The number of contract metrics equals the number of subscription measurements
 
+**contracts-sync-TC010 - Per-org sync fetches all pages of upstream entitlements**
+- **Description**: Verify that `syncContractByOrgId` fetches and processes all pages of partner entitlements, not just the first page. The IT Partner Gateway returns paginated results (page size 20). If an org has more entitlements than fit on a single page, subsequent pages must also be fetched and upserted.
+- **Setup**:
+  - Prepare more contracts than the Partner Gateway page size (e.g., 21 AWS contracts for the same org)
+  - Stub the Partner API to return paginated responses: page 0 with 20 entitlements and page 1 with 1 entitlement
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{org_id}`
+- **Verification**: Query contracts for the org after sync.
+- **Expected Result**:
+  - HTTP 200 with StatusResponse
+  - All 21 contracts are created in the database (not just the first 20)
+  - Contracts from the second page are present and correctly upserted
+  - Status: "Success"
+
 ## Subscription Management via UMB
 
 **subscriptions-creation-TC001 - Process a valid UMB subscription XML message from UMB**  

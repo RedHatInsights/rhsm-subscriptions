@@ -528,7 +528,7 @@ class ContractsResourceTest {
 
     assertEquals("No active contract found for the orgIds", response.getStatus());
     verify(contractService).getAllContracts();
-    verify(contractService, times(0)).syncContractByOrgId(any(), anyBoolean());
+    verify(contractService, times(0)).syncContractsByOrgId(any(), anyBoolean());
   }
 
   @Test
@@ -541,7 +541,7 @@ class ContractsResourceTest {
 
     assertEquals("All Contract are Synced", response.getStatus());
     verify(contractService).getAllContracts();
-    verify(contractService).syncContractByOrgId(ORG_ID, false);
+    verify(contractService).syncContractsByOrgId(ORG_ID, false);
   }
 
   @Test
@@ -556,9 +556,9 @@ class ContractsResourceTest {
 
     whenSyncAllContractsRequest();
 
-    verify(contractService, times(0)).syncContractByOrgId(any(), eq(true));
-    verify(contractService).syncContractByOrgId(ORG_ID, false);
-    verify(contractService).syncContractByOrgId(ANOTHER_ORG_ID, false);
+    verify(contractService, times(0)).syncContractsByOrgId(any(), eq(true));
+    verify(contractService).syncContractsByOrgId(ORG_ID, false);
+    verify(contractService).syncContractsByOrgId(ANOTHER_ORG_ID, false);
   }
 
   private StatusResponse whenSyncAllContractsRequest() {

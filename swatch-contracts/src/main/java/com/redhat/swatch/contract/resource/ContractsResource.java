@@ -171,7 +171,7 @@ public class ContractsResource implements DefaultApi {
       service.deleteContractsByOrgId(orgId);
       service.deletePaygSubscriptionsByOrgId(orgId);
     }
-    return service.syncContractByOrgId(orgId, isPreCleanup);
+    return service.syncContractsByOrgId(orgId, isPreCleanup);
   }
 
   @Override
