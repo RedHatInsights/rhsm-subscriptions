@@ -62,13 +62,11 @@ Quarkus profiles allow different configurations to be applied based on the runti
 **Key Features**:
 - **Fast Aggregation**: Reduced time windows for billable usage aggregation (3s instead of 3600s)
 - **Mock Endpoints**: Uses WireMock endpoints for external services
-- **OpenTelemetry Disabled**: `DISABLE_OTEL=true` for simpler ephemeral deployments
 - **Test APIs Enabled**: Allows access to test-only API endpoints
 - **Reduced Grace Periods**: Faster processing for quick validation
 
 **Example Configuration**:
 ```properties
-%ephemeral.DISABLE_OTEL=true
 %ephemeral.KSTREAM_BILLABLE_USAGE_AGGREGATION_WINDOW_DURATION=3s
 %ephemeral.KSTREAM_BILLABLE_USAGE_AGGREGATION_GRACE_DURATION=0s
 %ephemeral.SWATCH_TEST_APIS_ENABLED=true
@@ -170,7 +168,7 @@ QUARKUS_PROFILE=dev,kafka-queue
 - **Production/Stage**: Full OpenTelemetry and Splunk integration
 - **Dev**: Console logging only
 - **Test**: Minimal logging
-- **Ephemeral**: OpenTelemetry disabled for simplicity
+- **Ephemeral**: Simplified configuration for quick validation
 
 ### Security
 - **Production**: Full authentication and authorization
