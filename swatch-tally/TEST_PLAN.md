@@ -237,14 +237,14 @@ Test cases should be testable locally and in deployed environments.
 
 ## Report Granularity and Filtering
 
-**tally-report-granularity-TC001 - Daily granularity with all filters**
+**tally-report-filters-TC001 - Daily granularity with all filters**
 
 - **Description**: Verify that tally report API returns daily granularity data with all filter parameters
 - **Setup**:
     - Organization is opted in
     - Daily time range is specified (3 days ago to 2 days ago)
 - **Action**:
-    - Request tally report with granularity=Daily, SLA, usage, billing provider, and billing account ID
+    - Request tally report with granularity=Daily, SLA, usage, billing provider, and random billing account ID
 - **Verification**:
     - Response data is not null
     - Response metadata matches requested filters
@@ -255,83 +255,83 @@ Test cases should be testable locally and in deployed environments.
     - API returns daily tally data with all specified filters
     - Metadata accurately reflects the request parameters
 
-**tally-report-granularity-TC002 - Daily granularity filtered by SLA**
+**tally-report-filters-TC002 - Hourly granularity filtered by SLA**
 
 - **Description**: Verify that tally report API filters data by SLA parameter
 - **Setup**:
     - Organization is opted in
-    - Event 1 created with SLA=PREMIUM
-    - Event 2 created with SLA=STANDARD
+    - Event 1 created with SLA=PREMIUM (value 10.0)
+    - Event 2 created with SLA=STANDARD (value 20.0)
     - Hourly tally is performed
-    - Daily time range is specified
+    - Hourly time range is specified (2 hours ago)
 - **Action**:
-    - Request tally report with granularity=Daily and sla=STANDARD
+    - Request tally report with granularity=Hourly and sla=STANDARD
 - **Verification**:
-    - Response data contains only Event 2's data
+    - Response data contains only Event 2's data (value 20.0)
     - Response metadata includes SLA=STANDARD
     - Response does not include Event 1's data
 - **Expected Result**:
     - API filters tally data by SLA parameter
     - Only data matching the specified SLA is returned
 
-**tally-report-granularity-TC003 - Daily granularity filtered by usage**
+**tally-report-filters-TC003 - Hourly granularity filtered by usage**
 
 - **Description**: Verify that tally report API filters data by usage parameter
 - **Setup**:
     - Organization is opted in
-    - Event 1 created with usage=PRODUCTION
-    - Event 2 created with usage=DEVELOPMENT
+    - Event 1 created with usage=PRODUCTION (value 10.0)
+    - Event 2 created with usage=DEVELOPMENT (value 20.0)
     - Hourly tally is performed
-    - Daily time range is specified
+    - Hourly time range is specified (2 hours ago)
 - **Action**:
-    - Request tally report with granularity=Daily and usage=DEVELOPMENT
+    - Request tally report with granularity=Hourly and usage=PRODUCTION
 - **Verification**:
-    - Response data contains only Event 2's data
-    - Response metadata includes usage=DEVELOPMENT
-    - Response does not include Event 1's data
+    - Response data contains only Event 1's data (value 10.0)
+    - Response metadata includes usage=PRODUCTION
+    - Response does not include Event 2's data
 - **Expected Result**:
     - API filters tally data by usage parameter
     - Only data matching the specified usage is returned
 
-**tally-report-granularity-TC004 - Daily granularity filtered by billing provider**
+**tally-report-filters-TC004 - Hourly granularity filtered by billing provider**
 
 - **Description**: Verify that tally report API filters data by billing provider parameter
 - **Setup**:
     - Organization is opted in
-    - Event 1 created with billing_provider=AWS
-    - Event 2 created with billing_provider=AZURE
+    - Event 1 created with billing_provider=AWS (value 10.0)
+    - Event 2 created with billing_provider=AZURE (value 20.0)
     - Hourly tally is performed
-    - Daily time range is specified
+    - Hourly time range is specified (2 hours ago)
 - **Action**:
-    - Request tally report with granularity=Daily and billing_provider=AZURE
+    - Request tally report with granularity=Hourly and billing_provider=AZURE
 - **Verification**:
-    - Response data contains only Event 2's data
+    - Response data contains only Event 2's data (value 20.0)
     - Response metadata includes billing_provider=AZURE
     - Response does not include Event 1's data
 - **Expected Result**:
     - API filters tally data by billing provider parameter
     - Only data matching the specified billing provider is returned
 
-**tally-report-granularity-TC005 - Daily granularity filtered by billing account ID**
+**tally-report-filters-TC005 - Hourly granularity filtered by billing account ID**
 
 - **Description**: Verify that tally report API filters data by billing account ID parameter
 - **Setup**:
     - Organization is opted in
-    - Event 1 created with billing_account_id=account1
-    - Event 2 created with billing_account_id=account2
+    - Event 1 created with billing_account_id=account-123 (value 10.0)
+    - Event 2 created with billing_account_id=account-456 (value 20.0)
     - Hourly tally is performed
-    - Daily time range is specified
+    - Hourly time range is specified (2 hours ago)
 - **Action**:
-    - Request tally report with granularity=Daily and billing_account_id=account2
+    - Request tally report with granularity=Hourly and billing_account_id=account-456
 - **Verification**:
-    - Response data contains only Event 2's data
-    - Response metadata includes billing_account_id=account2
+    - Response data contains only Event 2's data (value 20.0)
+    - Response metadata includes billing_account_id=account-456
     - Response does not include Event 1's data
 - **Expected Result**:
     - API filters tally data by billing account ID parameter
     - Only data matching the specified billing account ID is returned
 
-**tally-report-granularity-TC006 - Daily granularity with partial filters**
+**tally-report-filters-TC006 - Daily granularity with partial filters**
 
 - **Description**: Verify that tally report API returns daily granularity data with only some filter parameters
 - **Setup**:
@@ -348,14 +348,14 @@ Test cases should be testable locally and in deployed environments.
     - API accepts partial filter sets
     - Unspecified filters are not present in metadata
 
-**tally-report-granularity-TC007 - Hourly granularity with all filters**
+**tally-report-filters-TC007 - Hourly granularity with all filters**
 
 - **Description**: Verify that tally report API returns hourly granularity data with all filter parameters
 - **Setup**:
     - Organization is opted in
     - Hourly time range is specified (4 hours ago to 1 hour from now)
 - **Action**:
-    - Request tally report with granularity=Hourly and all filters
+    - Request tally report with granularity=Hourly and all filters (SLA, usage, billing provider, random billing account ID)
 - **Verification**:
     - Response data is not null
     - Metadata granularity is HOURLY
@@ -364,7 +364,7 @@ Test cases should be testable locally and in deployed environments.
     - API returns hourly tally data
     - Hourly granularity data includes all applied filters
 
-**tally-report-granularity-TC008 - Invalid request without granularity**
+**tally-report-filters-TC008 - Invalid request without granularity**
 
 - **Description**: Verify that tally report API returns validation error when granularity parameter is missing
 - **Setup**:
