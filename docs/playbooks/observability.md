@@ -27,7 +27,6 @@ ENABLE_SPLUNK_HEC=true \
 SPLUNK_HEC_URL=https://localhost:8088 \
 SPLUNK_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75 \
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 \
-DISABLE_OTEL=false \
 EVENT_SOURCE=telemeter \
 PROM_URL="http://localhost:8101/api/v1/" \
 ./mvnw quarkus:dev
@@ -57,7 +56,6 @@ ENABLE_SPLUNK_HEC=true \
 SPLUNK_HEC_URL=https://localhost:8088 \
 SPLUNK_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75 \
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 \
-DISABLE_OTEL=false \
 ./mvnw quarkus:dev
 ```
 
