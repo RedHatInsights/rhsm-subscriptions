@@ -31,6 +31,8 @@ import java.util.Map;
 /** Facade for stubbing Partner Gateway API endpoints. */
 public class PartnerApiStubs {
 
+  public static final int PAGE_SIZE = 20;
+
   private final ContractsWiremockService wiremockService;
 
   public PartnerApiStubs(ContractsWiremockService wiremockService) {
@@ -39,9 +41,63 @@ public class PartnerApiStubs {
 
   /** Stub the partner entitlement API for a given contract test data. */
   public void stubPartnerSubscriptions(PartnerSubscriptionsStubRequest request) {
-    var responseBody = toResponseBody(request);
-    var expectedQuery = toExpectedQuery(request);
+    if (request.queryByOrgIdOnly) {
+      stubPartnerSubscriptionsByOrgId(request);
+    } else {
+      stubPartnerSubscriptionsByContract(request);
+    }
+  }
 
+  private void stubPartnerSubscriptionsByOrgId(PartnerSubscriptionsStubRequest request) {
+    int totalElements = request.contracts.size();
+    int totalPages = Math.max(1, (int) Math.ceil((double) totalElements / PAGE_SIZE));
+
+    for (int pageNumber = 0; pageNumber < totalPages; pageNumber++) {
+      int from = pageNumber * PAGE_SIZE;
+      int to = Math.min(from + PAGE_SIZE, totalElements);
+      List<Contract> pageContracts = request.contracts.subList(from, to);
+
+      var expectedQuery =
+          Map.of(
+              "rhAccountId",
+              request.orgId,
+              "page",
+              Map.of("size", PAGE_SIZE, "number", pageNumber));
+      var responseBody =
+          buildPartnerSubscriptionsResponse(pageContracts, pageNumber, totalElements, totalPages);
+
+      registerPartnerSubscriptionsMapping(expectedQuery, responseBody);
+    }
+  }
+
+  private void stubPartnerSubscriptionsByContract(PartnerSubscriptionsStubRequest request) {
+    if (request.contracts.size() > 1) {
+      throw new UnsupportedOperationException(
+          "Can't stub the Partner Gateway API for "
+              + "multiple contracts without setting the orgId!");
+    }
+
+    Contract contract = request.contracts.get(0);
+    var expectedQuery = buildPartnerSubscriptionsQueryByContract(contract);
+    var responseBody = buildPartnerSubscriptionsResponse(List.of(contract), 0, 1, 1);
+
+    registerPartnerSubscriptionsMapping(expectedQuery, responseBody);
+  }
+
+  private Map<String, Object> buildPartnerSubscriptionsResponse(
+      List<Contract> contracts, int pageNumber, int totalElements, int totalPages) {
+    return Map.of(
+        "content", contracts.stream().map(this::buildPartnerEntitlementBody).toList(),
+        "page",
+            Map.of(
+                "size", PAGE_SIZE,
+                "totalElements", totalElements,
+                "totalPages", totalPages,
+                "number", pageNumber));
+  }
+
+  private void registerPartnerSubscriptionsMapping(
+      Map<String, Object> expectedQuery, Map<String, Object> responseBody) {
     wiremockService
         .given()
         .contentType(ContentType.JSON)
@@ -73,18 +129,7 @@ public class PartnerApiStubs {
         .statusCode(201);
   }
 
-  private Map<String, Object> toExpectedQuery(PartnerSubscriptionsStubRequest request) {
-    if (request.queryByOrgIdOnly) {
-      return Map.of("rhAccountId", request.orgId, "page", Map.of("size", 20, "number", 0));
-    }
-
-    if (request.contracts.size() > 1) {
-      throw new UnsupportedOperationException(
-          "Can't stub the Partner Gateway API for "
-              + "multiple contracts without setting the orgId!");
-    }
-
-    Contract contract = request.contracts.get(0);
+  private Map<String, Object> buildPartnerSubscriptionsQueryByContract(Contract contract) {
     if (contract.getBillingProvider() == BillingProvider.AWS) {
       return buildAwsExpectedQuery(contract);
     } else if (contract.getBillingProvider() == BillingProvider.AZURE) {
@@ -94,25 +139,14 @@ public class PartnerApiStubs {
     }
   }
 
-  private Map<String, Object> toResponseBody(PartnerSubscriptionsStubRequest request) {
-    return Map.of(
-        "content",
-        request.contracts.stream()
-            .map(
-                contract -> {
-                  if (contract.getBillingProvider() == BillingProvider.AWS) {
-                    return buildAwsContractBody(contract);
-                  } else if (contract.getBillingProvider() == BillingProvider.AZURE) {
-                    return buildAzureContractBody(contract);
-                  } else {
-                    throw new UnsupportedOperationException(
-                        contract.getBillingProvider() + " is not supported!");
-                  }
-                })
-            .toList(),
-        "page",
-        Map.of(
-            "size", 20, "totalElements", request.contracts.size(), "totalPages", 1, "number", 0));
+  private Map<String, Object> buildPartnerEntitlementBody(Contract contract) {
+    if (contract.getBillingProvider() == BillingProvider.AWS) {
+      return buildAwsContractBody(contract);
+    } else if (contract.getBillingProvider() == BillingProvider.AZURE) {
+      return buildAzureContractBody(contract);
+    } else {
+      throw new UnsupportedOperationException(contract.getBillingProvider() + " is not supported!");
+    }
   }
 
   private Map<String, Object> buildAwsExpectedQuery(Contract contract) {

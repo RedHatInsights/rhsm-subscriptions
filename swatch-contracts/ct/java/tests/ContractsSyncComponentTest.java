@@ -31,12 +31,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import api.PartnerApiStubs;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.contract.test.model.SkuCapacitySubscription;
 import domain.BillingProvider;
 import domain.Contract;
 import io.restassured.response.Response;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -602,6 +604,25 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
         "contract_metrics and subscription_measurements must have the same number of metric entries");
   }
 
+  @TestPlanName("contracts-sync-TC010")
+  @Test
+  void shouldSyncAllPagesOfUpstreamEntitlements() {
+    // Given: 21 contracts (exceeds the Partner Gateway page size of 20)
+    int totalContracts = PartnerApiStubs.PAGE_SIZE + 1;
+    givenRosaContractsAreStubbed(totalContracts);
+
+    // When
+    Response syncResponse = service.syncContractsByOrg(orgId);
+
+    // Then
+    assertEquals(HttpStatus.SC_OK, syncResponse.statusCode());
+    var contracts = service.getContractsByOrgId(orgId);
+    assertEquals(
+        totalContracts,
+        contracts.size(),
+        "All contracts across all pages should be synced, not just the first page");
+  }
+
   @TestPlanName("contracts-sync-TC005")
   @Test
   void shouldClearAllContractsForOrganization() {
@@ -629,5 +650,26 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     // Verify no contracts remain for org_id
     var finalContracts = service.getContractsByOrgId(orgId);
     assertEquals(0, finalContracts.size(), "No contracts should remain");
+  }
+
+  private void givenRosaContractsAreStubbed(int count) {
+    String sku = RandomUtils.generateRandom();
+    List<Contract> contracts = new java.util.ArrayList<>();
+    for (int i = 0; i < count; i++) {
+      contracts.add(
+          Contract.buildRosaContract(
+              orgId, domain.BillingProvider.AWS, java.util.Map.of(CORES, 10.0), sku));
+    }
+    wiremock.forProductAPI().stubOfferingData(contracts.get(0).getOffering());
+    wiremock
+        .forPartnerAPI()
+        .stubPartnerSubscriptions(
+            PartnerApiStubs.PartnerSubscriptionsStubRequest.forContractsInOrgId(
+                orgId, contracts.toArray(new Contract[0])));
+    wiremock
+        .forSearchApi()
+        .stubGetSubscriptionBySubscriptionNumber(contracts.toArray(new Contract[0]));
+    Response sync = service.syncOffering(sku);
+    assertEquals(HttpStatus.SC_OK, sync.statusCode(), "Sync offering should succeed");
   }
 }

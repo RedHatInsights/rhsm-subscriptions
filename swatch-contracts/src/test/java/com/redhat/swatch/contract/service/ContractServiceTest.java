@@ -21,6 +21,8 @@
 package com.redhat.swatch.contract.service;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static com.redhat.swatch.contract.model.MeasurementMetricIdTransformer.MEASUREMENT_TYPE_DEFAULT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,6 +43,7 @@ import com.redhat.swatch.clients.rh.partner.gateway.api.model.DimensionV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1EntitlementDates;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlements;
+import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementsPage;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerIdentityV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PurchaseV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.RhEntitlementV1;
@@ -76,6 +79,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -215,7 +219,7 @@ class ContractServiceTest extends BaseUnitTest {
   @Test
   void syncContractWithExistingAndNewContracts() {
     givenExistingContract();
-    StatusResponse statusResponse = contractService.syncContractByOrgId(ORG_ID, false);
+    StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID, false);
     assertEquals("Contracts Synced for " + ORG_ID, statusResponse.getMessage());
     // 2 instances of subscription are created, one for the original contract, and one for the
     // update
@@ -226,8 +230,33 @@ class ContractServiceTest extends BaseUnitTest {
 
   @Test
   void syncContractWithEmptyContractsList() {
-    StatusResponse statusResponse = contractService.syncContractByOrgId(ORG_ID, false);
+    StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID, false);
     assertEquals("Contracts Synced for " + ORG_ID, statusResponse.getMessage());
+  }
+
+  @Test
+  void syncContractsByOrgIdFetchesAllPages() throws Exception {
+    var entitlement1 = givenAwsEntitlement("sub-page0", DEFAULT_START_DATE);
+    var entitlement2 = givenAwsEntitlement("sub-page1", DEFAULT_START_DATE.plusDays(1));
+
+    mockPartnerApiPage(List.of(entitlement1), 0, 2, 2);
+    mockPartnerApiPage(List.of(entitlement2), 1, 2, 2);
+
+    StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID, false);
+
+    assertEquals("Contracts Synced for " + ORG_ID, statusResponse.getMessage());
+    verify(subscriptionRepository, times(2)).persist(any(SubscriptionEntity.class));
+  }
+
+  @Test
+  void syncContractsByOrgIdHandlesNullPageMetadata() throws Exception {
+    var entitlement = givenAwsEntitlement(SUBSCRIPTION_NUMBER, DEFAULT_START_DATE);
+    mockPartnerApi(new PartnerEntitlements().content(List.of(entitlement)));
+
+    StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID, false);
+
+    assertEquals("Contracts Synced for " + ORG_ID, statusResponse.getMessage());
+    verify(subscriptionRepository).persist(any(SubscriptionEntity.class));
   }
 
   @Test
@@ -240,7 +269,7 @@ class ContractServiceTest extends BaseUnitTest {
     var stub = mockPartnerApi(new PartnerEntitlements().content(Collections.emptyList()));
 
     // When: Per-org sync with isPreCleanup=true
-    contractService.syncContractByOrgId(ORG_ID, true);
+    contractService.syncContractsByOrgId(ORG_ID, true);
 
     // Then: The delete ran and the contract is gone
     verify(contractRepository).deleteContractsByOrgIdForEmptyValues(ORG_ID);
@@ -257,7 +286,7 @@ class ContractServiceTest extends BaseUnitTest {
     var stub = mockPartnerApi(new PartnerEntitlements().content(Collections.emptyList()));
 
     // When: Per-org sync with isPreCleanup=true
-    contractService.syncContractByOrgId(ORG_ID, true);
+    contractService.syncContractsByOrgId(ORG_ID, true);
 
     // Then: The delete ran and the contract is gone
     verify(contractRepository).deleteContractsByOrgIdForEmptyValues(ORG_ID);
@@ -274,7 +303,7 @@ class ContractServiceTest extends BaseUnitTest {
     var stub = mockPartnerApi(new PartnerEntitlements().content(Collections.emptyList()));
 
     // When: Per-org sync with isPreCleanup=false (the global sync default per ADR-0004)
-    contractService.syncContractByOrgId(ORG_ID, false);
+    contractService.syncContractsByOrgId(ORG_ID, false);
 
     // Then: The delete was never called and the contract is still present
     verify(contractRepository, times(0)).deleteContractsByOrgIdForEmptyValues(any());
@@ -292,7 +321,7 @@ class ContractServiceTest extends BaseUnitTest {
     var stub = mockPartnerApi(new PartnerEntitlements().content(Collections.emptyList()));
 
     // When: Per-org sync with isPreCleanup=false (the global sync default per ADR-0004)
-    contractService.syncContractByOrgId(ORG_ID, false);
+    contractService.syncContractsByOrgId(ORG_ID, false);
 
     // Then: The delete was never called and the contract is still present
     verify(contractRepository, times(0)).deleteContractsByOrgIdForEmptyValues(any());
@@ -818,5 +847,63 @@ class ContractServiceTest extends BaseUnitTest {
     entity.setLastUpdated(OffsetDateTime.now());
     contractRepository.persist(entity);
     reset(contractRepository);
+  }
+
+  private PartnerEntitlementV1 givenAwsEntitlement(
+      String subscriptionNumber, OffsetDateTime startDate) {
+    return new PartnerEntitlementV1()
+        .rhAccountId(ORG_ID)
+        .sourcePartner(ContractSourcePartnerEnum.AWS.getCode())
+        .partnerIdentities(
+            new PartnerIdentityV1()
+                .awsCustomerId("HSwCpt6sqkC")
+                .customerAwsAccountId("568056954830")
+                .sellerAccountId("568056954830"))
+        .rhEntitlements(
+            List.of(new RhEntitlementV1().sku(SKU).subscriptionNumber(subscriptionNumber)))
+        .entitlementDates(
+            new PartnerEntitlementV1EntitlementDates()
+                .startDate(startDate)
+                .endDate(DEFAULT_END_DATE))
+        .purchase(
+            new PurchaseV1()
+                .vendorProductCode("1234567890abcdefghijklmno")
+                .contracts(
+                    List.of(
+                        new SaasContractV1()
+                            .startDate(startDate)
+                            .endDate(DEFAULT_END_DATE)
+                            .dimensions(List.of(fourCpuHourDimension("4"))))));
+  }
+
+  private void mockPartnerApiPage(
+      List<PartnerEntitlementV1> entitlements, int pageNumber, int totalElements, int totalPages)
+      throws Exception {
+    var response =
+        new PartnerEntitlements()
+            .content(entitlements)
+            .page(
+                new PartnerEntitlementsPage()
+                    .size(ContractService.PAGE_SIZE)
+                    .number(pageNumber)
+                    .totalElements(totalElements)
+                    .totalPages(totalPages));
+
+    String requestBody =
+        objectMapper.writeValueAsString(
+            Map.of(
+                "rhAccountId",
+                ORG_ID,
+                "page",
+                Map.of("size", ContractService.PAGE_SIZE, "number", pageNumber)));
+
+    wireMockServer.stubFor(
+        post(urlMatching("/mock/partnerApi/v1/partnerSubscriptions"))
+            .withRequestBody(equalToJson(requestBody, true, true))
+            .atPriority(1)
+            .willReturn(
+                aResponse()
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(objectMapper.writeValueAsString(response))));
   }
 }
