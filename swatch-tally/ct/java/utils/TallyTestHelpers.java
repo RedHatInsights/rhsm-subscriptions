@@ -66,7 +66,7 @@ public class TallyTestHelpers {
   // --- Given helper methods: Create test data and setup preconditions ---
 
   /**
-   * Creates an event with default product configuration and specified timestamp.
+   * Creates a PAYG event with default product configuration and specified timestamp.
    *
    * @param orgId the organization ID
    * @param instanceId the instance ID
@@ -75,10 +75,10 @@ public class TallyTestHelpers {
    * @param value the metric value
    * @return configured Event object
    */
-  public Event createEventWithTimestamp(
+  public Event createPaygEventWithTimestamp(
       String orgId, String instanceId, String timestampStr, String eventIdStr, float value) {
 
-    return createEventWithTimestamp(
+    return createPaygEventWithTimestamp(
         orgId,
         instanceId,
         timestampStr,
@@ -86,13 +86,55 @@ public class TallyTestHelpers {
         DEFAULT_METRIC_ID,
         value,
         Event.Sla.PREMIUM,
+        Event.Usage.PRODUCTION,
+        Event.BillingProvider.AWS,
+        DEFAULT_BILLING_ACCOUNT,
         Event.HardwareType.CLOUD,
         DEFAULT_PRODUCT_ID,
         DEFAULT_PRODUCT_TAG);
   }
 
   /**
-   * Creates an event with full configuration options.
+   * Creates a PAYG event with specified metric, product configuration, and timestamp.
+   *
+   * @param orgId the organization ID
+   * @param instanceId the instance ID
+   * @param timestampStr the timestamp as a string
+   * @param eventIdStr the event ID as a string
+   * @param metricId the metric ID
+   * @param value the metric value
+   * @param productId the product ID
+   * @param productTag the product tag
+   * @return configured Event object
+   */
+  public Event createPaygEventWithTimestamp(
+      String orgId,
+      String instanceId,
+      String timestampStr,
+      String eventIdStr,
+      String metricId,
+      float value,
+      String productId,
+      String productTag) {
+
+    return createPaygEventWithTimestamp(
+        orgId,
+        instanceId,
+        timestampStr,
+        eventIdStr,
+        metricId,
+        value,
+        Event.Sla.PREMIUM,
+        Event.Usage.PRODUCTION,
+        Event.BillingProvider.AWS,
+        DEFAULT_BILLING_ACCOUNT,
+        Event.HardwareType.CLOUD,
+        productId,
+        productTag);
+  }
+
+  /**
+   * Creates a PAYG event with full configuration options.
    *
    * @param orgId the organization ID
    * @param instanceId the instance ID
@@ -101,12 +143,15 @@ public class TallyTestHelpers {
    * @param metricId the metric ID
    * @param value the metric value
    * @param sla the service level agreement
+   * @param usage the usage type
+   * @param billingProvider the billing provider (null to derive from hardware type)
+   * @param billingAccountId the billing account ID (null to use default)
    * @param hardwareType the hardware type
    * @param productId the product ID
    * @param productTag the product tag
    * @return configured Event object
    */
-  public Event createEventWithTimestamp(
+  public Event createPaygEventWithTimestamp(
       String orgId,
       String instanceId,
       String timestampStr,
@@ -114,6 +159,9 @@ public class TallyTestHelpers {
       String metricId,
       float value,
       Event.Sla sla,
+      Event.Usage usage,
+      Event.BillingProvider billingProvider,
+      String billingAccountId,
       Event.HardwareType hardwareType,
       String productId,
       String productTag) {
@@ -133,24 +181,27 @@ public class TallyTestHelpers {
     event.setEventType("snapshot");
 
     event.setSla(sla);
+    event.setUsage(usage);
     event.setHardwareType(hardwareType);
 
     event.setProductIds(List.of(productId));
     event.setProductTag(Set.of(productTag));
 
     event.setRole(Event.Role.RED_HAT_ENTERPRISE_LINUX_SERVER);
-    event.setUsage(Event.Usage.PRODUCTION);
     event.setServiceType("RHEL System");
 
     if (hardwareType == Event.HardwareType.CLOUD) {
       event.setCloudProvider(Event.CloudProvider.AWS);
-      event.setBillingProvider(Event.BillingProvider.AWS);
+      event.setBillingProvider(
+          billingProvider != null ? billingProvider : Event.BillingProvider.AWS);
     } else {
       event.setCloudProvider(null);
-      event.setBillingProvider(null);
+      event.setBillingProvider(
+          billingProvider != null ? billingProvider : Event.BillingProvider.AWS);
     }
 
-    event.setBillingAccountId(Optional.of(DEFAULT_BILLING_ACCOUNT));
+    event.setBillingAccountId(
+        Optional.of(billingAccountId != null ? billingAccountId : DEFAULT_BILLING_ACCOUNT));
 
     var measurement = new Measurement();
     measurement.setValue((double) value);
@@ -296,10 +347,74 @@ public class TallyTestHelpers {
   // --- Then helper methods: Retrieve and verify test results ---
 
   /**
+   * Extracts and sums tally measurement values filtered by SLA only.
+   *
+   * <p>Convenience overload that delegates to {@link #getTallySummaryValue(List, String, String,
+   * String, Granularity, String, String)} with {@code billingAccountId} set to {@code null}.
+   */
+  public double getTallySummaryValueWithSlaFilter(
+      List<TallySummary> tallySummaries,
+      String orgId,
+      String productId,
+      String metricId,
+      Granularity granularity,
+      String sla) {
+    return getTallySummaryValue(
+        tallySummaries, orgId, productId, metricId, granularity, sla, null, null, null);
+  }
+
+  public double getTallySummaryValueWithUsageFilter(
+      List<TallySummary> tallySummaries,
+      String orgId,
+      String productId,
+      String metricId,
+      Granularity granularity,
+      String usage) {
+    return getTallySummaryValue(
+        tallySummaries, orgId, productId, metricId, granularity, null, usage, null, null);
+  }
+
+  /**
+   * Extracts and sums tally measurement values filtered by billing account ID only.
+   *
+   * <p>Convenience overload that delegates to {@link #getTallySummaryValue(List, String, String,
+   * String, Granularity, String, String)} with {@code sla} set to {@code null}.
+   */
+  public double getTallySummaryValueWithBillingAccountIdFilter(
+      List<TallySummary> tallySummaries,
+      String orgId,
+      String productId,
+      String metricId,
+      Granularity granularity,
+      String billingAccountId) {
+    return getTallySummaryValue(
+        tallySummaries,
+        orgId,
+        productId,
+        metricId,
+        granularity,
+        null,
+        null,
+        billingAccountId,
+        null);
+  }
+
+  public double getTallySummaryValueWithBillingProviderFilter(
+      List<TallySummary> tallySummaries,
+      String orgId,
+      String productId,
+      String metricId,
+      Granularity granularity,
+      String billingProvider) {
+    return getTallySummaryValue(
+        tallySummaries, orgId, productId, metricId, granularity, null, null, null, billingProvider);
+  }
+
+  /**
    * Extracts and sums tally measurement values from TallySummary messages.
    *
-   * <p>Filters summaries by organization, product, metric, granularity, and optionally by SLA.
-   * Returns the sum of all matching measurement values.
+   * <p>Filters summaries by organization, product, metric, granularity, and optionally by SLA
+   * and/or billing account ID. Pass {@code null} for any optional filter to skip it.
    *
    * @param tallySummaries the list of tally summaries to search
    * @param orgId the organization ID to match
@@ -307,6 +422,9 @@ public class TallyTestHelpers {
    * @param metricId the metric ID to match
    * @param granularity the granularity to match
    * @param sla the SLA to match (null to include all SLAs)
+   * @param usage the usage to match (null to include all usages)
+   * @param billingAccountId the billing account ID to match (null to include all)
+   * @param billingProvider the billing provider to match (null to include all)
    * @return the sum of all matching measurement values
    */
   public double getTallySummaryValue(
@@ -315,7 +433,10 @@ public class TallyTestHelpers {
       String productId,
       String metricId,
       Granularity granularity,
-      String sla) {
+      String sla,
+      String usage,
+      String billingAccountId,
+      String billingProvider) {
     return tallySummaries.stream()
         .filter(summary -> orgId.equalsIgnoreCase(summary.getOrgId()))
         .flatMap(
@@ -332,6 +453,35 @@ public class TallyTestHelpers {
               }
               String snapshotSla = snapshot.getSla() == null ? "" : snapshot.getSla().toString();
               return snapshotSla.equalsIgnoreCase(sla);
+            })
+        .filter(
+            snapshot -> {
+              if (usage == null) {
+                return true;
+              }
+              String snapshotUsage =
+                  snapshot.getUsage() == null ? "" : snapshot.getUsage().toString();
+              return snapshotUsage.equalsIgnoreCase(usage);
+            })
+        .filter(
+            snapshot -> {
+              if (billingAccountId == null) {
+                return true;
+              }
+              String snapshotBillingAccountId =
+                  snapshot.getBillingAccountId() == null ? "" : snapshot.getBillingAccountId();
+              return snapshotBillingAccountId.equalsIgnoreCase(billingAccountId);
+            })
+        .filter(
+            snapshot -> {
+              if (billingProvider == null) {
+                return true;
+              }
+              String snapshotBillingProvider =
+                  snapshot.getBillingProvider() == null
+                      ? ""
+                      : snapshot.getBillingProvider().toString();
+              return snapshotBillingProvider.equalsIgnoreCase(billingProvider);
             })
         .flatMap(
             snapshot ->

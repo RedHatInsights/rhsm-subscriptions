@@ -149,15 +149,13 @@ public class TallyInstancesComponentTest extends BaseTallyComponentTest {
 
     // Create and publish event for previous month
     Event event =
-        helpers.createEventWithTimestamp(
+        helpers.createPaygEventWithTimestamp(
             orgId,
             instanceId,
             eventTimestamp.toString(),
             eventId,
             metricId,
             1.0f,
-            Event.Sla.PREMIUM,
-            Event.HardwareType.CLOUD,
             RHEL_FOR_X86_ELS_PAYG.productId(),
             RHEL_FOR_X86_ELS_PAYG.productTag());
     event.setBillingAccountId(java.util.Optional.of(billingAccountId));

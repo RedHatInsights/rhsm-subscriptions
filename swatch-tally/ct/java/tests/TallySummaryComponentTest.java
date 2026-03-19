@@ -110,16 +110,16 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
 
     OffsetDateTime now = OffsetDateTime.now();
     Event event1 =
-        helpers.createEventWithTimestamp(
+        helpers.createPaygEventWithTimestamp(
             orgId, testInstanceId, now.minusHours(1).toString(), testEventId, 1.0f);
     Event event2 =
-        helpers.createEventWithTimestamp(
+        helpers.createPaygEventWithTimestamp(
             orgId, testInstanceId, now.minusHours(2).toString(), testEventId, 1.0f);
     Event event3 =
-        helpers.createEventWithTimestamp(
+        helpers.createPaygEventWithTimestamp(
             orgId, testInstanceId, now.minusHours(3).toString(), testEventId, 1.0f);
     Event event4 =
-        helpers.createEventWithTimestamp(
+        helpers.createPaygEventWithTimestamp(
             orgId, testInstanceId, now.minusHours(4).toString(), testEventId, 1.0f);
 
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event1);
@@ -147,16 +147,16 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
 
     OffsetDateTime now = OffsetDateTime.now();
     Event event1 =
-        helpers.createEventWithTimestamp(
+        helpers.createPaygEventWithTimestamp(
             orgId, testInstanceId, now.minusHours(1).toString(), testEventId, 1.0f);
     Event event2 =
-        helpers.createEventWithTimestamp(
+        helpers.createPaygEventWithTimestamp(
             orgId, testInstanceId, now.minusHours(2).toString(), testEventId, 1.0f);
     Event event3 =
-        helpers.createEventWithTimestamp(
+        helpers.createPaygEventWithTimestamp(
             orgId, testInstanceId, now.minusHours(3).toString(), testEventId, 1.0f);
     Event event4 =
-        helpers.createEventWithTimestamp(
+        helpers.createPaygEventWithTimestamp(
             orgId, testInstanceId, now.minusHours(4).toString(), testEventId, 1.0f);
 
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event1);

@@ -31,51 +31,51 @@ import java.util.List;
 import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.HardwareType;
-import org.candlepin.subscriptions.json.Event.Sla;
+import org.candlepin.subscriptions.json.Event.Usage;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class TallySlaFiltersTest extends BaseTallyComponentTest {
+public class TallyUsageFiltersTest extends BaseTallyComponentTest {
 
   private static final String TEST_PRODUCT_TAG = RHEL_FOR_X86_ELS_PAYG.productTag();
   private static final String TEST_METRIC_ID = RHEL_FOR_X86_ELS_PAYG.metricIds().get(1);
   private static final String TEST_PRODUCT_ID = RHEL_FOR_X86_ELS_PAYG.productId();
-  private static final List<Sla> slas = List.of(Sla.PREMIUM, Sla.STANDARD, Sla.SELF_SUPPORT);
+  private static final List<Usage> usages = List.of(Usage.PRODUCTION, Usage.DEVELOPMENT_TEST, Usage.DISASTER_RECOVERY);
 
   @Test
-  @TestPlanName("tally-sla-filters-TC001")
-  public void testTallySlaFiltersCount() {
-    // Given: Events for each SLA type and one event with no SLA
+  @TestPlanName("tally-usage-filters-TC001")
+  public void testTallyUsageFiltersCount() {
+    // Given: Events for each Usage type and one event with no Usage
     OffsetDateTime now = OffsetDateTime.now();
-    for (Sla sla : slas) {
-      publishEvent(now, sla);
+    for (Usage usage : usages) {
+      publishEvent(now, usage);
     }
-    publishEvent(now, Sla.__EMPTY__);
+    publishEvent(now, Usage.__EMPTY__);
 
     // When: Polling for tally summaries
     List<TallySummary> tallySummaries =
         helpers.pollForTallySyncAndMessages(
             orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.HOURLY, 4, service, kafkaBridge);
 
-    // Then: SLA-filtered counts should sum to the total tally value
+    // Then: Usage-filtered counts should sum to the total tally value
     double finalFilterCount =
-        slas.stream().mapToDouble(sla -> tallyValue(tallySummaries, sla.toString())).sum();
-    double noSla = tallyValue(tallySummaries, Sla.__EMPTY__.toString());
+        usages.stream().mapToDouble(usage -> tallyValue(tallySummaries, usage.toString())).sum();
+    double noUsage = tallyValue(tallySummaries, Usage.__EMPTY__.toString());
     double allTallySummaries = tallyValue(tallySummaries, null);
 
     Assertions.assertEquals(
         allTallySummaries - finalFilterCount,
-        noSla,
+        noUsage,
         0.0001,
-        "No-SLA value should equal total minus SLA-filtered values");
+        "No-Usage value should equal total minus Usage-filtered values");
     Assertions.assertEquals(
-        finalFilterCount + noSla,
+        finalFilterCount + noUsage,
         allTallySummaries,
         0.0001,
-        "SLA-filtered values plus no-SLA should equal total");
+        "Usage-filtered values plus no-Usage should equal total");
   }
 
-  private void publishEvent(OffsetDateTime now, Sla sla) {
+  private void publishEvent(OffsetDateTime now, Usage usage) {
     Event event =
         helpers.createPaygEventWithTimestamp(
             orgId,
@@ -84,8 +84,8 @@ public class TallySlaFiltersTest extends BaseTallyComponentTest {
             UUID.randomUUID().toString(),
             TEST_METRIC_ID,
             3.0f,
-            sla,
             null,
+            usage,
             null,
             null,
             HardwareType.CLOUD,
@@ -94,8 +94,8 @@ public class TallySlaFiltersTest extends BaseTallyComponentTest {
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event);
   }
 
-  private double tallyValue(List<TallySummary> summaries, String sla) {
-    return helpers.getTallySummaryValueWithSlaFilter(
-        summaries, orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.HOURLY, sla);
+  private double tallyValue(List<TallySummary> summaries, String usage) {
+    return helpers.getTallySummaryValueWithUsageFilter(
+        summaries, orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.HOURLY, usage);
   }
 }
