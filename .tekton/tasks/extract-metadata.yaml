@@ -18,7 +18,7 @@ spec:
       default: "swatch-ci-github-token"
   results:
     - name: IS_PULL_REQUEST
-      description: Whether the event is PR-related, i.e. has a valid PR number (true or false)
+      description: Whether the event is PR-related (true for all non-push events, false for push)
     - name: PR_NUMBER
       description: Pull request number, or "none" if not a PR event
     - name: GIT_REVISION
@@ -51,26 +51,28 @@ spec:
         set -euo pipefail
         echo "EVENT_TYPE=${EVENT_TYPE:-unknown}"
 
-        # Extract PR number from GROUP_TEST_INFO or PAC label
-        PR=""
-        if [ -n "${GROUP_TEST_INFO:-}" ]; then
-          echo "GROUP_TEST_INFO=${GROUP_TEST_INFO}"
-          PR=$(echo "${GROUP_TEST_INFO}" | jq -r '.[0].pullRequestNumber // empty' 2>/dev/null || echo "")
+        # IS_PULL_REQUEST: false only for push events; true for pull_request, retest, ok-to-test, etc.
+        if [ "${EVENT_TYPE:-}" = "push" ]; then
+          IS_PR=false
+        else
+          IS_PR=true
         fi
-        if [ -z "$PR" ] && [ -n "${PAC_PR_NUMBER:-}" ]; then
-          PR="${PAC_PR_NUMBER}"
+        printf "$IS_PR" > "$(results.IS_PULL_REQUEST.path)"
+        echo "IS_PULL_REQUEST=$IS_PR"
+
+        # Extract PR number (only meaningful for PR events)
+        PR=""
+        if [ "$IS_PR" = "true" ]; then
+          if [ -n "${GROUP_TEST_INFO:-}" ]; then
+            echo "GROUP_TEST_INFO=${GROUP_TEST_INFO}"
+            PR=$(echo "${GROUP_TEST_INFO}" | jq -r '.[0].pullRequestNumber // empty' 2>/dev/null || echo "")
+          fi
+          if [ -z "$PR" ] && [ -n "${PAC_PR_NUMBER:-}" ]; then
+            PR="${PAC_PR_NUMBER}"
+          fi
         fi
         echo "PR_NUMBER=${PR:-none}"
         printf "%s" "${PR:-none}" > "$(results.PR_NUMBER.path)"
-
-        # IS_PULL_REQUEST: true if we have a valid PR number (covers pull_request, retest, etc.)
-        if [ -n "$PR" ] && [ "$PR" != "none" ]; then
-          printf "true" > "$(results.IS_PULL_REQUEST.path)"
-          echo "IS_PULL_REQUEST=true"
-        else
-          printf "false" > "$(results.IS_PULL_REQUEST.path)"
-          echo "IS_PULL_REQUEST=false"
-        fi
 
         echo "Extracting git revision for component: $(params.COMPONENT_NAME)"
         rev=$(echo '$(params.SNAPSHOT)' | jq -r --arg name '$(params.COMPONENT_NAME)' '.components[] | select(.name==$name) | .source.git.revision // empty')
@@ -80,10 +82,10 @@ spec:
         echo "GIT_REVISION=${rev:-empty}"
         printf "%s" "$rev" > "$(results.GIT_REVISION.path)"
 
-        # Fetch PR labels when we have a valid PR number
-        if [ -z "${PR:-}" ] || [ "${PR:-}" = "none" ]; then
+        # Fetch PR labels only for PR events with a valid PR number
+        if [ "$IS_PR" != "true" ] || [ -z "${PR:-}" ] || [ "${PR:-}" = "none" ]; then
           printf "" > "$(results.LABELS.path)"
-          echo "LABELS=(empty)"
+          echo "LABELS=(skipped)"
           exit 0
         fi
 
