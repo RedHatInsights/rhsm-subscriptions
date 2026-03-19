@@ -100,7 +100,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event2);
   }
 
-  private TallyReportData whenQueryingHourlyTallyWithFilter(
+  private TallyReportData whenQueryingTallyReportWithFilter(
       OffsetDateTime timestamp, Map<String, ?> filterParams) {
 
     service.performHourlyTallyForOrg(orgId);
@@ -191,7 +191,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
     // When: Performing tally and querying with SLA=STANDARD filter
     TallyReportData response =
-        whenQueryingHourlyTallyWithFilter(timestamp, Map.of("sla", ServiceLevelType.STANDARD));
+        whenQueryingTallyReportWithFilter(timestamp, Map.of("sla", ServiceLevelType.STANDARD));
 
     // Then: Response should contain only STANDARD SLA data
     assertEquals(
@@ -219,7 +219,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
     // When: Performing tally and querying with usage=PRODUCTION filter
     TallyReportData response =
-        whenQueryingHourlyTallyWithFilter(timestamp, Map.of("usage", UsageType.PRODUCTION));
+        whenQueryingTallyReportWithFilter(timestamp, Map.of("usage", UsageType.PRODUCTION));
 
     // Then: Response should contain only PRODUCTION usage data
     assertEquals(
@@ -249,7 +249,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
     // When: Performing tally and querying with billing_provider=AZURE filter
     TallyReportData response =
-        whenQueryingHourlyTallyWithFilter(
+        whenQueryingTallyReportWithFilter(
             timestamp, Map.of("billing_provider", BillingProviderType.AZURE));
 
     // Then: Response should contain only AZURE billing provider data
@@ -282,7 +282,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
     // When: Performing tally and querying with billing_account_id=account2 filter
     TallyReportData response =
-        whenQueryingHourlyTallyWithFilter(timestamp, Map.of("billing_account_id", billingAccount2));
+        whenQueryingTallyReportWithFilter(timestamp, Map.of("billing_account_id", billingAccount2));
 
     // Then: Response should contain only account2 billing account data
     assertEquals(
