@@ -43,7 +43,8 @@ Limitation:
 4. **Verification:** Check the organization's email inbox for the expected:  
    - Organization ID  
    - Product  
-   - Exact usage percentage  
+   - Exact usage percentage
+   - Absence of SLA and Usage
 5. **Expected Result:** A notification for the over usage with the correct data is received.
 
 ## stage-notification-deduplication-TC001
