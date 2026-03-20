@@ -419,9 +419,22 @@ class CustomerOverUsageServiceTest {
             UtilizationSummary.Usage.DEVELOPMENT_TEST,
             "Standard",
             "Development/Test"),
-        Arguments.of(UtilizationSummary.Sla.ANY, UtilizationSummary.Usage.ANY, "_ANY", "_ANY"),
+        Arguments.of(UtilizationSummary.Sla.ANY, UtilizationSummary.Usage.ANY, null, null),
+        Arguments.of(
+            UtilizationSummary.Sla.__EMPTY__, UtilizationSummary.Usage.__EMPTY__, null, null),
         Arguments.of(UtilizationSummary.Sla.PREMIUM, null, "Premium", null),
-        Arguments.of(null, UtilizationSummary.Usage.PRODUCTION, null, "Production"));
+        Arguments.of(null, UtilizationSummary.Usage.PRODUCTION, null, "Production"),
+        Arguments.of(
+            UtilizationSummary.Sla.__EMPTY__,
+            UtilizationSummary.Usage.PRODUCTION,
+            null,
+            "Production"),
+        Arguments.of(
+            UtilizationSummary.Sla.PREMIUM, UtilizationSummary.Usage.__EMPTY__, "Premium", null),
+        Arguments.of(
+            UtilizationSummary.Sla.ANY, UtilizationSummary.Usage.PRODUCTION, null, "Production"),
+        Arguments.of(
+            UtilizationSummary.Sla.PREMIUM, UtilizationSummary.Usage.ANY, "Premium", null));
   }
 
   @ParameterizedTest
