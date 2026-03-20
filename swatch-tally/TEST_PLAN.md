@@ -399,11 +399,11 @@ Test cases should be testable locally and in deployed environments.
     - Each billing account retains its own measurement value
     - Total report reflects the sum of all billing account values
 
-## Summary Message Filtering
+## Summary Messages Separated By Attribute Value
 
-**tally-summary-filters-TC001 - SLA filter counts from tally summaries**
+**tally-summary-by-attributes-TC001 - Tally summary separates measurements by SLA**
 
-- **Description**: Verify that tally segregates and counts metrics by SLA level
+- **Description**: Verify that tally summary messages contain separate measurement values for each SLA level
 - **Setup**:
     - Events created for each SLA type (PREMIUM, STANDARD, SELF_SUPPORT)
     - One event with no SLA
@@ -411,17 +411,15 @@ Test cases should be testable locally and in deployed environments.
     - Produce events to Kafka
     - Poll for tally summaries with HOURLY granularity
 - **Verification**:
-    - Sum of all SLA-filtered values equals total minus no-SLA value
-    - Sum of SLA-filtered values plus no-SLA value equals total
-    - Each SLA bucket contains correct metric values
+    - Sum of all per-SLA measurement values equals total minus the no-SLA value
+    - Sum of per-SLA values plus no-SLA value equals the total
 - **Expected Result**:
-    - Tally segregates metrics by SLA
-    - No-SLA bucket is separate from defined SLA buckets
-    - SLA-filtered totals sum to overall total
+    - Tally produces separate snapshot measurements for each SLA attribute value
+    - No-SLA measurements are tracked separately from defined SLA values
 
-**tally-summary-filters-TC002 - Usage filter counts from tally summaries**
+**tally-summary-by-attributes-TC002 - Tally summary separates measurements by usage**
 
-- **Description**: Verify that tally segregates and counts metrics by Usage level
+- **Description**: Verify that tally summary messages contain separate measurement values for each usage type
 - **Setup**:
     - Events created for each Usage type (PRODUCTION, DEVELOPMENT_TEST, DISASTER_RECOVERY)
     - One event with no Usage
@@ -429,32 +427,30 @@ Test cases should be testable locally and in deployed environments.
     - Produce events to Kafka
     - Poll for tally summaries with HOURLY granularity
 - **Verification**:
-    - Sum of all Usage-filtered values equals total minus no-Usage value
-    - Sum of Usage-filtered values plus no-Usage value equals total
-    - Each Usage bucket contains correct metric values
+    - Sum of all per-usage measurement values equals total minus the no-usage value
+    - Sum of per-usage values plus no-usage value equals the total
 - **Expected Result**:
-    - Tally segregates metrics by Usage
-    - No-Usage bucket is separate from defined Usage buckets
-    - Usage-filtered totals sum to overall total
+    - Tally produces separate snapshot measurements for each usage attribute value
+    - No-usage measurements are tracked separately from defined usage values
 
-**tally-summary-filters-TC003 - Tally summary separates values by billing account ID**
+**tally-summary-by-attributes-TC003 - Tally summary separates measurements by billing account ID**
 
-- **Description**: Verify that tally summary Kafka messages segregate metric values by billing account ID
+- **Description**: Verify that tally summary messages contain separate measurement values for each billing account ID
 - **Setup**:
     - Two events created from different instances with different billing account IDs and different metric values
 - **Action**:
     - Produce events to Kafka
     - Poll for tally summaries with HOURLY granularity
 - **Verification**:
-    - Each billing account ID bucket contains its expected metric value
-    - Sum of per-billing-account values equals the unfiltered total
+    - Each billing account ID has its expected measurement value
+    - Sum of per-billing-account values equals the total
 - **Expected Result**:
-    - Tally segregates metrics by billing account ID in Kafka summary messages
-    - Per-billing-account totals sum to overall total
+    - Tally produces separate snapshot measurements for each billing account ID
+    - Per-billing-account measurement values sum to the overall total
 
-**tally-summary-filters-TC004 - Tally separates values when single host changes billing account ID**
+**tally-summary-by-attributes-TC004 - Tally summary correctly attributes measurements when a single host changes billing account ID**
 
-- **Description**: Verify that when a single host sends events under different billing account IDs at different times, tally correctly attributes each measurement to the billing account that was active at the time
+- **Description**: Verify that when a single host sends events under different billing account IDs at different times, tally correctly attributes each measurement to the respective billing account
 - **Setup**:
     - Same host sends one event with billing account A at T-2 hours
     - Same host sends another event with billing account B at T-1 hours
@@ -462,27 +458,27 @@ Test cases should be testable locally and in deployed environments.
     - Produce events to Kafka
     - Poll for tally summaries with HOURLY granularity
 - **Verification**:
-    - Billing account A bucket contains the value from the first event (5.0)
-    - Billing account B bucket contains the value from the second event (8.0)
-    - Sum of per-billing-account values equals the unfiltered total
+    - Billing account A has the measurement value from the first event (5.0)
+    - Billing account B has the measurement value from the second event (8.0)
+    - Sum of per-billing-account values equals the total
 - **Expected Result**:
     - Tally correctly attributes measurements to the billing account from each event
-    - A billing account change on a single instance does not merge or lose values
+    - A billing account change on a single instance does not merge or lose measurement values
 
-**tally-summary-filters-TC005 - Tally summary separates values by billing provider**
+**tally-summary-by-attributes-TC005 - Tally summary separates measurements by billing provider**
 
-- **Description**: Verify that tally summary Kafka messages separate metric values by billing provider
+- **Description**: Verify that tally summary messages contain separate measurement values for each billing provider
 - **Setup**:
-    - Two events created from different instances with different billing providers and different metric values
+    - Two events created from different instances with different billing providers (AWS, Azure) and different metric values
 - **Action**:
     - Produce events to Kafka
     - Poll for tally summaries with HOURLY granularity
 - **Verification**:
-    - Each billing provider bucket contains its expected metric value
-    - Sum of per-billing-provider values equals the unfiltered total
+    - Each billing provider has its expected measurement value
+    - Sum of per-billing-provider values equals the total
 - **Expected Result**:
-    - Tally segregates metrics by billing provider in Kafka summary messages
-    - Per-billing-provider totals sum to overall total
+    - Tally produces separate snapshot measurements for each billing provider attribute value
+    - Per-billing-provider measurement values sum to the overall total
 
 ## Tally Summary Messages
 

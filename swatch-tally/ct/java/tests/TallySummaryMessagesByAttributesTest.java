@@ -37,7 +37,7 @@ import org.candlepin.subscriptions.json.Event.Usage;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class TallySummaryFiltersTest extends BaseTallyComponentTest {
+public class TallySummaryMessagesByAttributesTest extends BaseTallyComponentTest {
 
   private static final String TEST_PRODUCT_TAG = RHEL_FOR_X86_ELS_PAYG_ADDON.productTag();
   private static final String TEST_METRIC_ID = RHEL_FOR_X86_ELS_PAYG_ADDON.metricIds().get(1);
@@ -50,11 +50,11 @@ public class TallySummaryFiltersTest extends BaseTallyComponentTest {
   private static final List<BillingProvider> billingProviders =
       List.of(BillingProvider.AWS, BillingProvider.AZURE);
 
-  // ---- SLA filter tests ----
+  // ---- SLA tests ----
 
   @Test
-  @TestPlanName("tally-summary-filters-TC001")
-  public void testTallySlaFiltersCount() {
+  @TestPlanName("tally-summary-by-attributes-TC001")
+  public void testTallySummarySeparatesMeasurementsBySla() {
     // Given: Events for each SLA type and one event with no SLA
     OffsetDateTime now = OffsetDateTime.now();
     for (Sla sla : slas) {
@@ -67,8 +67,8 @@ public class TallySummaryFiltersTest extends BaseTallyComponentTest {
         helpers.pollForTallySyncAndMessages(
             orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.HOURLY, 4, service, kafkaBridge);
 
-    // Then: SLA-filtered counts should sum to the total tally value
-    double finalFilterCount =
+    // Then: Each SLA should have its own tally value and their sum should equal total
+    double slaValues =
         slas.stream().mapToDouble(sla -> slaValue(tallySummaries, sla.toString())).sum();
     double noSla = slaValue(tallySummaries, Sla.__EMPTY__.toString());
     double allTallySummaries = slaValue(tallySummaries, null);
@@ -76,23 +76,23 @@ public class TallySummaryFiltersTest extends BaseTallyComponentTest {
     Assertions.assertAll(
         () ->
             Assertions.assertEquals(
-                allTallySummaries - finalFilterCount,
+                allTallySummaries - slaValues,
                 noSla,
                 0.0001,
-                "No-SLA value should equal total minus SLA-filtered values"),
+                "No-SLA value should equal total minus SLA values"),
         () ->
             Assertions.assertEquals(
-                finalFilterCount + noSla,
+                slaValues + noSla,
                 allTallySummaries,
                 0.0001,
-                "SLA-filtered values plus no-SLA should equal total"));
+                "SLA values plus no-SLA should equal total"));
   }
 
-  // ---- Usage filter tests ----
+  // ---- Usage tests ----
 
   @Test
-  @TestPlanName("tally-summary-filters-TC002")
-  public void testTallyUsageFiltersCount() {
+  @TestPlanName("tally-summary-by-attributes-TC002")
+  public void testTallySummarySeparatesMeasurementsByUsage() {
     // Given: Events for each Usage type and one event with no Usage
     OffsetDateTime now = OffsetDateTime.now();
     for (Usage usage : usages) {
@@ -105,8 +105,8 @@ public class TallySummaryFiltersTest extends BaseTallyComponentTest {
         helpers.pollForTallySyncAndMessages(
             orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.HOURLY, 4, service, kafkaBridge);
 
-    // Then: Usage-filtered counts should sum to the total tally value
-    double finalFilterCount =
+    // Then: Each Usage should have its own tally value and their sum should equal total
+    double usageValues =
         usages.stream().mapToDouble(usage -> usageValue(tallySummaries, usage.toString())).sum();
     double noUsage = usageValue(tallySummaries, Usage.__EMPTY__.toString());
     double allTallySummaries = usageValue(tallySummaries, null);
@@ -114,23 +114,23 @@ public class TallySummaryFiltersTest extends BaseTallyComponentTest {
     Assertions.assertAll(
         () ->
             Assertions.assertEquals(
-                allTallySummaries - finalFilterCount,
+                allTallySummaries - usageValues,
                 noUsage,
                 0.0001,
-                "No-Usage value should equal total minus Usage-filtered values"),
+                "No-Usage value should equal total minus Usage values"),
         () ->
             Assertions.assertEquals(
-                finalFilterCount + noUsage,
+                usageValues + noUsage,
                 allTallySummaries,
                 0.0001,
-                "Usage-filtered values plus no-Usage should equal total"));
+                "Usage values plus no-Usage should equal total"));
   }
 
-  // ---- Billing account ID filter tests ----
+  // ---- Billing account ID tests ----
 
   @Test
-  @TestPlanName("tally-summary-filters-TC003")
-  public void testTallyBillingAccountIdFiltersCount() {
+  @TestPlanName("tally-summary-by-attributes-TC003")
+  public void testTallySummarySeparatesMeasurementsByBillingAccountId() {
     // Given: Events for two different billing account IDs
     OffsetDateTime now = OffsetDateTime.now();
     publishBillingAccountEvent(now, billingAccountIds.get(0), 10.0f);
@@ -162,7 +162,7 @@ public class TallySummaryFiltersTest extends BaseTallyComponentTest {
   }
 
   @Test
-  @TestPlanName("tally-summary-filters-TC004")
+  @TestPlanName("tally-summary-by-attributes-TC004")
   public void testTallySummaryMeasurementsWhenSingleHostChangesBillingAccountId() {
     // Given: Same instance sends events under two different billing account IDs
     OffsetDateTime now = OffsetDateTime.now();
@@ -203,11 +203,11 @@ public class TallySummaryFiltersTest extends BaseTallyComponentTest {
                 "Sum of per-billing-account values should equal total"));
   }
 
-  // ---- Billing provider filter tests ----
+  // ---- Billing provider tests ----
 
   @Test
-  @TestPlanName("tally-summary-filters-TC005")
-  public void testTallyBillingProviderFiltersCount() {
+  @TestPlanName("tally-summary-by-attributes-TC005")
+  public void testTallySummarySeparatesMeasurementsByBillingProvider() {
     // Given: Events for two different billing providers
     OffsetDateTime now = OffsetDateTime.now();
     publishBillingProviderEvent(now, billingProviders.get(0), 10.0f);
@@ -260,7 +260,7 @@ public class TallySummaryFiltersTest extends BaseTallyComponentTest {
   }
 
   private double slaValue(List<TallySummary> summaries, String sla) {
-    return helpers.getTallySummaryValueWithSlaFilter(
+    return helpers.getTallySummaryValueWithSla(
         summaries, orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.HOURLY, sla);
   }
 
@@ -286,7 +286,7 @@ public class TallySummaryFiltersTest extends BaseTallyComponentTest {
   }
 
   private double usageValue(List<TallySummary> summaries, String usage) {
-    return helpers.getTallySummaryValueWithUsageFilter(
+    return helpers.getTallySummaryValueWithUsage(
         summaries, orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.HOURLY, usage);
   }
 
@@ -319,7 +319,7 @@ public class TallySummaryFiltersTest extends BaseTallyComponentTest {
   }
 
   private double billingAccountValue(List<TallySummary> summaries, String billingAccountId) {
-    return helpers.getTallySummaryValueWithBillingAccountIdFilter(
+    return helpers.getTallySummaryValueWithBillingAccountId(
         summaries, orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.HOURLY, billingAccountId);
   }
 
@@ -350,7 +350,7 @@ public class TallySummaryFiltersTest extends BaseTallyComponentTest {
 
   private double billingProviderValue(
       List<TallySummary> summaries, BillingProvider billingProvider) {
-    return helpers.getTallySummaryValueWithBillingProviderFilter(
+    return helpers.getTallySummaryValueWithBillingProvider(
         summaries,
         orgId,
         TEST_PRODUCT_TAG,

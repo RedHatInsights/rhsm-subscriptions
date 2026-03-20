@@ -347,12 +347,9 @@ public class TallyTestHelpers {
   // --- Then helper methods: Retrieve and verify test results ---
 
   /**
-   * Extracts and sums tally measurement values filtered by SLA only.
-   *
-   * <p>Convenience overload that delegates to {@link #getTallySummaryValue(List, String, String,
-   * String, Granularity, String, String)} with {@code billingAccountId} set to {@code null}.
+   * Extracts and sums tally measurement values by SLA value only.
    */
-  public double getTallySummaryValueWithSlaFilter(
+  public double getTallySummaryValueWithSla(
       List<TallySummary> tallySummaries,
       String orgId,
       String productId,
@@ -363,7 +360,10 @@ public class TallyTestHelpers {
         tallySummaries, orgId, productId, metricId, granularity, sla, null, null, null);
   }
 
-  public double getTallySummaryValueWithUsageFilter(
+  /**
+   * Extracts and sums tally measurement values by usage value only.
+   */
+  public double getTallySummaryValueWithUsage(
       List<TallySummary> tallySummaries,
       String orgId,
       String productId,
@@ -375,12 +375,9 @@ public class TallyTestHelpers {
   }
 
   /**
-   * Extracts and sums tally measurement values filtered by billing account ID only.
-   *
-   * <p>Convenience overload that delegates to {@link #getTallySummaryValue(List, String, String,
-   * String, Granularity, String, String)} with {@code sla} set to {@code null}.
+   * Extracts and sums tally measurement values by billing account ID value only.
    */
-  public double getTallySummaryValueWithBillingAccountIdFilter(
+  public double getTallySummaryValueWithBillingAccountId(
       List<TallySummary> tallySummaries,
       String orgId,
       String productId,
@@ -399,7 +396,10 @@ public class TallyTestHelpers {
         null);
   }
 
-  public double getTallySummaryValueWithBillingProviderFilter(
+  /**
+   * Extracts and sums tally measurement values by billing provider value only.
+   */
+  public double getTallySummaryValueWithBillingProvider(
       List<TallySummary> tallySummaries,
       String orgId,
       String productId,
@@ -413,8 +413,9 @@ public class TallyTestHelpers {
   /**
    * Extracts and sums tally measurement values from TallySummary messages.
    *
-   * <p>Filters summaries by organization, product, metric, granularity, and optionally by SLA
-   * and/or billing account ID. Pass {@code null} for any optional filter to skip it.
+   * <p>Grabs summaries by organization, product, metric, granularity, and optionally by SLA, usage,
+   * billing account ID, and billing provider. Pass {@code null} for any optional attribute
+   * to skip it.
    *
    * @param tallySummaries the list of tally summaries to search
    * @param orgId the organization ID to match
