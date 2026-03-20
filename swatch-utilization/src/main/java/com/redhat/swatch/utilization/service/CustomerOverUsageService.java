@@ -274,14 +274,26 @@ public class CustomerOverUsageService {
             .withAdditionalProperty("product_id", payload.getProductId())
             .withAdditionalProperty("metric_id", metricId.getValue());
 
-    if (payload.getSla() != null) {
+    if (isServiceLevelSet(payload.getSla())) {
       builder.withAdditionalProperty("service_level", payload.getSla().value());
     }
-    if (payload.getUsage() != null) {
+    if (isUsageSet(payload.getUsage())) {
       builder.withAdditionalProperty("usage", payload.getUsage().value());
     }
 
     return builder.build();
+  }
+
+  private boolean isServiceLevelSet(UtilizationSummary.Sla sla) {
+    return sla != null
+        && sla != UtilizationSummary.Sla.__EMPTY__
+        && sla != UtilizationSummary.Sla.ANY;
+  }
+
+  private boolean isUsageSet(UtilizationSummary.Usage usage) {
+    return usage != null
+        && usage != UtilizationSummary.Usage.__EMPTY__
+        && usage != UtilizationSummary.Usage.ANY;
   }
 
   private Recipient buildRecipient() {
