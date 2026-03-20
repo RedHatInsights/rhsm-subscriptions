@@ -64,8 +64,6 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
   private void givenTwoEventsPublished(
       OffsetDateTime timestamp,
-      float value1,
-      float value2,
       Consumer<Event> event1Configurator,
       Consumer<Event> event2Configurator) {
 
@@ -76,7 +74,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
             timestamp.toString(),
             UUID.randomUUID().toString(),
             TEST_METRIC_ID,
-            value1,
+                (float) 10.0,
             Event.Sla.PREMIUM,
             Event.HardwareType.CLOUD,
             TEST_PRODUCT_ID,
@@ -91,7 +89,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
             timestamp.toString(),
             UUID.randomUUID().toString(),
             TEST_METRIC_ID,
-            value2,
+                (float) 20.0,
             Event.Sla.PREMIUM,
             Event.HardwareType.CLOUD,
             TEST_PRODUCT_ID,
@@ -129,6 +127,12 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
     assertEquals(expectedValue, totalValue, 0.0001, assertionMessage);
   }
 
+  private TallyReportDataMeta thenMetadataShouldExist(TallyReportData response) {
+    assertNotNull(response, "Response should not be null");
+    assertNotNull(response.getMeta(), "Response metadata should not be null");
+    return response.getMeta();
+  }
+
   @Test
   @TestPlanName("tally-report-filters-TC001")
   public void shouldReturnDailyReportWithAllFilters() {
@@ -155,10 +159,9 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
     // Then: Response metadata should reflect all specified filters
     List<TallyReportDataPoint> data = response.getData();
-    TallyReportDataMeta meta = response.getMeta();
+    TallyReportDataMeta meta = thenMetadataShouldExist(response);
 
     assertNotNull(data, "Response data should not be null");
-    assertNotNull(meta, "Response metadata should not be null");
     assertEquals(data.size(), meta.getCount(), "Data size should match metadata count");
     assertEquals(GranularityType.DAILY, meta.getGranularity(), "Granularity should be DAILY");
     assertEquals(TEST_PRODUCT_TAG, meta.getProduct(), "Product tag should match request");
@@ -184,9 +187,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
     givenTwoEventsPublished(
         timestamp,
-        10.0f,
-        20.0f,
-        event -> {}, // PREMIUM is default
+            event -> {}, // PREMIUM is default
         event -> event.setSla(Event.Sla.STANDARD));
 
     // When: Performing tally and querying with SLA=STANDARD filter
@@ -194,10 +195,8 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         whenQueryingTallyReportWithFilter(timestamp, Map.of("sla", ServiceLevelType.STANDARD));
 
     // Then: Response should contain only STANDARD SLA data
-    assertEquals(
-        ServiceLevelType.STANDARD,
-        response.getMeta().getServiceLevel(),
-        "Metadata SLA should be STANDARD");
+    TallyReportDataMeta meta = thenMetadataShouldExist(response);
+    assertEquals(ServiceLevelType.STANDARD, meta.getServiceLevel(), "Metadata SLA should be STANDARD");
     thenResponseContainsOnlyValue(response, 20.0, "Should only include STANDARD SLA event value");
   }
 
@@ -212,9 +211,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
     givenTwoEventsPublished(
         timestamp,
-        10.0f,
-        20.0f,
-        event -> {}, // PRODUCTION is default
+            event -> {}, // PRODUCTION is default
         event -> event.setUsage(Event.Usage.DEVELOPMENT_TEST));
 
     // When: Performing tally and querying with usage=PRODUCTION filter
@@ -222,8 +219,8 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         whenQueryingTallyReportWithFilter(timestamp, Map.of("usage", UsageType.PRODUCTION));
 
     // Then: Response should contain only PRODUCTION usage data
-    assertEquals(
-        UsageType.PRODUCTION, response.getMeta().getUsage(), "Metadata usage should be PRODUCTION");
+    TallyReportDataMeta meta = thenMetadataShouldExist(response);
+    assertEquals(UsageType.PRODUCTION, meta.getUsage(), "Metadata usage should be PRODUCTION");
     thenResponseContainsOnlyValue(
         response, 10.0, "Should only include PRODUCTION usage event value");
   }
@@ -239,9 +236,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
     givenTwoEventsPublished(
         timestamp,
-        10.0f,
-        20.0f,
-        event -> {}, // AWS is default
+            event -> {}, // AWS is default
         event -> {
           event.setCloudProvider(Event.CloudProvider.AZURE);
           event.setBillingProvider(Event.BillingProvider.AZURE);
@@ -253,10 +248,9 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
             timestamp, Map.of("billing_provider", BillingProviderType.AZURE));
 
     // Then: Response should contain only AZURE billing provider data
+    TallyReportDataMeta meta = thenMetadataShouldExist(response);
     assertEquals(
-        BillingProviderType.AZURE,
-        response.getMeta().getBillingProvider(),
-        "Metadata billing provider should be AZURE");
+        BillingProviderType.AZURE, meta.getBillingProvider(), "Metadata billing provider should be AZURE");
     thenResponseContainsOnlyValue(
         response, 20.0, "Should only include AZURE billing provider event value");
   }
@@ -275,9 +269,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
     givenTwoEventsPublished(
         timestamp,
-        10.0f,
-        20.0f,
-        event -> event.setBillingAccountId(Optional.of(billingAccount1)),
+            event -> event.setBillingAccountId(Optional.of(billingAccount1)),
         event -> event.setBillingAccountId(Optional.of(billingAccount2)));
 
     // When: Performing tally and querying with billing_account_id=account2 filter
@@ -285,10 +277,9 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         whenQueryingTallyReportWithFilter(timestamp, Map.of("billing_account_id", billingAccount2));
 
     // Then: Response should contain only account2 billing account data
+    TallyReportDataMeta meta = thenMetadataShouldExist(response);
     assertEquals(
-        billingAccount2,
-        response.getMeta().getBillingAcountId(),
-        "Metadata billing account ID should match account2");
+        billingAccount2, meta.getBillingAcountId(), "Metadata billing account ID should match account2");
     thenResponseContainsOnlyValue(
         response, 20.0, "Should only include account2 billing account event value");
   }
@@ -322,10 +313,9 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
     // Then: Response metadata should reflect specified filters and omit unspecified ones
     List<TallyReportDataPoint> data = response.getData();
-    TallyReportDataMeta meta = response.getMeta();
+    TallyReportDataMeta meta = thenMetadataShouldExist(response);
 
     assertNotNull(data, "Response data should not be null");
-    assertNotNull(meta, "Response metadata should not be null");
     assertEquals(data.size(), meta.getCount(), "Data size should match metadata count");
     assertEquals(GranularityType.DAILY, meta.getGranularity(), "Granularity should be DAILY");
     assertEquals(TEST_PRODUCT_TAG, meta.getProduct(), "Product tag should match request");
@@ -362,10 +352,9 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
     // Then: Response metadata should reflect hourly granularity and all filters
     List<TallyReportDataPoint> data = response.getData();
-    TallyReportDataMeta meta = response.getMeta();
+    TallyReportDataMeta meta = thenMetadataShouldExist(response);
 
     assertNotNull(data, "Response data should not be null");
-    assertNotNull(meta, "Response metadata should not be null");
     assertEquals(data.size(), meta.getCount(), "Data size should match metadata count");
     assertEquals(GranularityType.HOURLY, meta.getGranularity(), "Granularity should be HOURLY");
     assertEquals(TEST_PRODUCT_TAG, meta.getProduct(), "Product tag should match request");
@@ -463,10 +452,8 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         whenQueryingTallyReportWithFilter(timestamp, Map.of("sla", ServiceLevelType.PREMIUM));
 
     // Then: Response should aggregate all three events
-    assertEquals(
-        ServiceLevelType.PREMIUM,
-        response.getMeta().getServiceLevel(),
-        "Metadata SLA should be PREMIUM");
+    TallyReportDataMeta meta = thenMetadataShouldExist(response);
+    assertEquals(ServiceLevelType.PREMIUM, meta.getServiceLevel(), "Metadata SLA should be PREMIUM");
     thenResponseContainsOnlyValue(
         response, 50.0, "Should aggregate all three PREMIUM SLA event values (15+25+10)");
   }
@@ -527,10 +514,9 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         whenQueryingTallyReportWithFilter(timestamp, Map.of("sla", ServiceLevelType.SELF_SUPPORT));
 
     // Then: Response should contain only SELF_SUPPORT data
+    TallyReportDataMeta meta = thenMetadataShouldExist(response);
     assertEquals(
-        ServiceLevelType.SELF_SUPPORT,
-        response.getMeta().getServiceLevel(),
-        "Metadata SLA should be SELF_SUPPORT");
+        ServiceLevelType.SELF_SUPPORT, meta.getServiceLevel(), "Metadata SLA should be SELF_SUPPORT");
     thenResponseContainsOnlyValue(
         response, 30.0, "Should only include SELF_SUPPORT SLA event value");
   }
@@ -602,8 +588,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         service.getTallyReportData(orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams);
 
     // Then: Response metadata should have null/unset values for optional filters
-    TallyReportDataMeta meta = response.getMeta();
-    assertNotNull(meta, "Response metadata should not be null");
+    TallyReportDataMeta meta = thenMetadataShouldExist(response);
     assertNull(meta.getServiceLevel(), "Service level should be null when not filtered");
     assertNull(meta.getUsage(), "Usage should be null when not filtered");
     assertNull(meta.getBillingProvider(), "Billing provider should be null when not filtered");
@@ -639,8 +624,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         service.getTallyReportData(orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams);
 
     // Then: Response metadata should reflect EMPTY filter value
-    TallyReportDataMeta meta = response.getMeta();
-    assertNotNull(meta, "Response metadata should not be null");
+    TallyReportDataMeta meta = thenMetadataShouldExist(response);
     assertEquals(
         ServiceLevelType.EMPTY,
         meta.getServiceLevel(),
@@ -706,7 +690,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
     // Then: Response should contain data points with hasData indicating gaps
     assertNotNull(response.getData(), "Response data should not be null");
-    assertTrue(response.getData().size() > 0, "Response should have data points");
+    assertFalse(response.getData().isEmpty(), "Response should have data points");
 
     // Verify that data points have the hasData field populated
     long pointsWithData =
