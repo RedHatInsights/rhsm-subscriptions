@@ -530,6 +530,75 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
   }
 
   @Test
+  @TestPlanName("tally-report-filters-TC016")
+  public void shouldReturnAllDataWhenNoOptionalFiltersApplied() {
+    // Given: Events with different filter attributes in the same hour
+    service.createOptInConfig(orgId);
+
+    OffsetDateTime timestamp =
+        OffsetDateTime.now(ZoneOffset.UTC).minusHours(2).truncatedTo(ChronoUnit.HOURS);
+
+    // Event 1: PREMIUM SLA, PRODUCTION usage, AWS billing
+    Event event1 =
+        helpers.createEventWithTimestamp(
+            orgId,
+            UUID.randomUUID().toString(),
+            timestamp.toString(),
+            UUID.randomUUID().toString(),
+            TEST_METRIC_ID,
+            10.0f,
+            Event.Sla.PREMIUM,
+            Event.HardwareType.CLOUD,
+            TEST_PRODUCT_ID,
+            TEST_PRODUCT_TAG);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event1);
+
+    // Event 2: STANDARD SLA, DEVELOPMENT usage, AZURE billing
+    Event event2 =
+        helpers.createEventWithTimestamp(
+            orgId,
+            UUID.randomUUID().toString(),
+            timestamp.toString(),
+            UUID.randomUUID().toString(),
+            TEST_METRIC_ID,
+            20.0f,
+            Event.Sla.STANDARD,
+            Event.HardwareType.CLOUD,
+            TEST_PRODUCT_ID,
+            TEST_PRODUCT_TAG);
+    event2.setUsage(Event.Usage.DEVELOPMENT_TEST);
+    event2.setCloudProvider(Event.CloudProvider.AZURE);
+    event2.setBillingProvider(Event.BillingProvider.AZURE);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event2);
+
+    // Event 3: SELF_SUPPORT SLA, PRODUCTION usage, AWS billing
+    Event event3 =
+        helpers.createEventWithTimestamp(
+            orgId,
+            UUID.randomUUID().toString(),
+            timestamp.toString(),
+            UUID.randomUUID().toString(),
+            TEST_METRIC_ID,
+            30.0f,
+            Event.Sla.SELF_SUPPORT,
+            Event.HardwareType.CLOUD,
+            TEST_PRODUCT_ID,
+            TEST_PRODUCT_TAG);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event3);
+
+    // When: Querying with NO optional filters (only required params)
+    TallyReportData response = whenQueryingTallyReportWithFilter(timestamp, Map.of());
+
+    // Then: Response should contain the sum of ALL events regardless of their attributes
+    TallyReportDataMeta meta = thenMetadataShouldExist(response);
+    assertNull(meta.getServiceLevel(), "Service level should be null when not filtered");
+    assertNull(meta.getUsage(), "Usage should be null when not filtered");
+    assertNull(meta.getBillingProvider(), "Billing provider should be null when not filtered");
+    thenResponseContainsOnlyValue(
+        response, 60.0, "Should aggregate all events when no filters applied (10+20+30)");
+  }
+
+  @Test
   @TestPlanName("tally-report-filters-TC011")
   public void shouldReturnBadRequestWithoutBeginning() {
     // Given: An org with opt-in config and query parameters missing beginning timestamp

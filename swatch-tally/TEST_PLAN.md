@@ -500,6 +500,27 @@ Test cases should be testable locally and in deployed environments.
     - hasData field accurately reflects whether events existed for that time period
     - Time series gaps are identifiable via hasData field
 
+**tally-report-filters-TC016 - All data returned when no optional filters applied**
+
+- **Description**: Verify that tally report API returns all event data aggregated when querying without optional filter parameters
+- **Setup**:
+    - Organization is opted in
+    - Event 1 created with SLA=PREMIUM, usage=PRODUCTION, billing_provider=AWS (value 10.0)
+    - Event 2 created with SLA=STANDARD, usage=DEVELOPMENT, billing_provider=AZURE (value 20.0)
+    - Event 3 created with SLA=SELF_SUPPORT, usage=PRODUCTION, billing_provider=AWS (value 30.0)
+    - All events have same timestamp hour
+    - Hourly tally is performed
+- **Action**:
+    - Request tally report with only required parameters (granularity, beginning, ending) and no optional filters
+- **Verification**:
+    - Response data contains aggregated value of 60.0 (10+20+30)
+    - Response metadata has null values for serviceLevel, usage, billingProvider
+    - All events are summed regardless of their filter attributes
+- **Expected Result**:
+    - API returns complete dataset when no filters are applied
+    - Total reflects sum of all events regardless of SLA, usage, or billing attributes
+    - Metadata correctly indicates no filters were applied (null values)
+
 ## SLA Filtering
 
 **tally-sla-filters-TC001 - SLA filter counts**
