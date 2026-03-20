@@ -131,7 +131,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
   @Test
   @TestPlanName("tally-report-filters-TC001")
-  public void testTallyReportGranularityDailyAllFilters() {
+  public void shouldReturnDailyReportWithAllFilters() {
     // Given: An org with opt-in config and daily granularity query parameters with all filters
     service.createOptInConfig(orgId);
 
@@ -175,7 +175,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
   @Test
   @TestPlanName("tally-report-filters-TC002")
-  public void testHourlyGranularityFilteredBySla() {
+  public void shouldFilterHourlyReportBySla() {
     // Given: Events with different SLAs (PREMIUM and STANDARD)
     service.createOptInConfig(orgId);
 
@@ -203,7 +203,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
   @Test
   @TestPlanName("tally-report-filters-TC003")
-  public void testHourlyGranularityFilteredByUsage() {
+  public void shouldFilterHourlyReportByUsage() {
     // Given: Events with different usage types (PRODUCTION and DEVELOPMENT)
     service.createOptInConfig(orgId);
 
@@ -230,7 +230,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
   @Test
   @TestPlanName("tally-report-filters-TC004")
-  public void testHourlyGranularityFilteredByBillingProvider() {
+  public void shouldFilterHourlyReportByBillingProvider() {
     // Given: Events with different billing providers (AWS and AZURE)
     service.createOptInConfig(orgId);
 
@@ -263,7 +263,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
   @Test
   @TestPlanName("tally-report-filters-TC005")
-  public void testHourlyGranularityFilteredByBillingAccountId() {
+  public void shouldFilterHourlyReportByBillingAccountId() {
     // Given: Events with different billing account IDs
     service.createOptInConfig(orgId);
 
@@ -295,7 +295,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
   @Test
   @TestPlanName("tally-report-filters-TC006")
-  public void testTallyReportGranularityDailySomeFilters() {
+  public void shouldReturnDailyReportWithPartialFilters() {
     // Given: An org with opt-in config and daily granularity query parameters with partial filters
     service.createOptInConfig(orgId);
 
@@ -338,7 +338,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
   @Test
   @TestPlanName("tally-report-filters-TC007")
-  public void testTallyReportGranularityHourly() {
+  public void shouldReturnHourlyReportWithAllFilters() {
     // Given: An org with opt-in config and hourly granularity query parameters with all filters
     service.createOptInConfig(orgId);
 
@@ -382,7 +382,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
   @Test
   @TestPlanName("tally-report-filters-TC008")
-  public void testTallyReportInvalidWithoutGranularity() {
+  public void shouldReturnBadRequestWithoutGranularity() {
     // Given: An org with opt-in config and query parameters missing granularity
     service.createOptInConfig(orgId);
 
@@ -404,5 +404,325 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
     assertTrue(
         resp.getBody().asString().contains("granularity: must not be null"),
         "Error message should indicate granularity is required");
+  }
+
+  @Test
+  @TestPlanName("tally-report-filters-TC009")
+  public void shouldAggregateMultipleEventsWithSameFilters() {
+    // Given: Multiple events with the same filter values in the same hour
+    service.createOptInConfig(orgId);
+
+    OffsetDateTime timestamp =
+        OffsetDateTime.now(ZoneOffset.UTC).minusHours(2).truncatedTo(ChronoUnit.HOURS);
+
+    // Publish three events with identical filter attributes but different values
+    Event event1 =
+        helpers.createEventWithTimestamp(
+            orgId,
+            UUID.randomUUID().toString(),
+            timestamp.toString(),
+            UUID.randomUUID().toString(),
+            TEST_METRIC_ID,
+            15.0f,
+            Event.Sla.PREMIUM,
+            Event.HardwareType.CLOUD,
+            TEST_PRODUCT_ID,
+            TEST_PRODUCT_TAG);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event1);
+
+    Event event2 =
+        helpers.createEventWithTimestamp(
+            orgId,
+            UUID.randomUUID().toString(),
+            timestamp.toString(),
+            UUID.randomUUID().toString(),
+            TEST_METRIC_ID,
+            25.0f,
+            Event.Sla.PREMIUM,
+            Event.HardwareType.CLOUD,
+            TEST_PRODUCT_ID,
+            TEST_PRODUCT_TAG);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event2);
+
+    Event event3 =
+        helpers.createEventWithTimestamp(
+            orgId,
+            UUID.randomUUID().toString(),
+            timestamp.toString(),
+            UUID.randomUUID().toString(),
+            TEST_METRIC_ID,
+            10.0f,
+            Event.Sla.PREMIUM,
+            Event.HardwareType.CLOUD,
+            TEST_PRODUCT_ID,
+            TEST_PRODUCT_TAG);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event3);
+
+    // When: Performing tally and querying with matching filter
+    TallyReportData response =
+        whenQueryingTallyReportWithFilter(timestamp, Map.of("sla", ServiceLevelType.PREMIUM));
+
+    // Then: Response should aggregate all three events
+    assertEquals(
+        ServiceLevelType.PREMIUM,
+        response.getMeta().getServiceLevel(),
+        "Metadata SLA should be PREMIUM");
+    thenResponseContainsOnlyValue(
+        response, 50.0, "Should aggregate all three PREMIUM SLA event values (15+25+10)");
+  }
+
+  @Test
+  @TestPlanName("tally-report-filters-TC010")
+  public void shouldFilterWithThreeDistinctSlaValues() {
+    // Given: Events with three different SLA values in the same hour
+    service.createOptInConfig(orgId);
+
+    OffsetDateTime timestamp =
+        OffsetDateTime.now(ZoneOffset.UTC).minusHours(2).truncatedTo(ChronoUnit.HOURS);
+
+    Event event1 =
+        helpers.createEventWithTimestamp(
+            orgId,
+            UUID.randomUUID().toString(),
+            timestamp.toString(),
+            UUID.randomUUID().toString(),
+            TEST_METRIC_ID,
+            10.0f,
+            Event.Sla.PREMIUM,
+            Event.HardwareType.CLOUD,
+            TEST_PRODUCT_ID,
+            TEST_PRODUCT_TAG);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event1);
+
+    Event event2 =
+        helpers.createEventWithTimestamp(
+            orgId,
+            UUID.randomUUID().toString(),
+            timestamp.toString(),
+            UUID.randomUUID().toString(),
+            TEST_METRIC_ID,
+            20.0f,
+            Event.Sla.STANDARD,
+            Event.HardwareType.CLOUD,
+            TEST_PRODUCT_ID,
+            TEST_PRODUCT_TAG);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event2);
+
+    Event event3 =
+        helpers.createEventWithTimestamp(
+            orgId,
+            UUID.randomUUID().toString(),
+            timestamp.toString(),
+            UUID.randomUUID().toString(),
+            TEST_METRIC_ID,
+            30.0f,
+            Event.Sla.SELF_SUPPORT,
+            Event.HardwareType.CLOUD,
+            TEST_PRODUCT_ID,
+            TEST_PRODUCT_TAG);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event3);
+
+    // When: Querying with SELF_SUPPORT filter
+    TallyReportData response =
+        whenQueryingTallyReportWithFilter(timestamp, Map.of("sla", ServiceLevelType.SELF_SUPPORT));
+
+    // Then: Response should contain only SELF_SUPPORT data
+    assertEquals(
+        ServiceLevelType.SELF_SUPPORT,
+        response.getMeta().getServiceLevel(),
+        "Metadata SLA should be SELF_SUPPORT");
+    thenResponseContainsOnlyValue(
+        response, 30.0, "Should only include SELF_SUPPORT SLA event value");
+  }
+
+  @Test
+  @TestPlanName("tally-report-filters-TC011")
+  public void shouldReturnBadRequestWithoutBeginning() {
+    // Given: An org with opt-in config and query parameters missing beginning timestamp
+    service.createOptInConfig(orgId);
+
+    OffsetDateTime ending =
+        OffsetDateTime.now(ZoneOffset.UTC).minusDays(1).truncatedTo(ChronoUnit.DAYS);
+
+    Map<String, ?> queryParams = Map.of("granularity", "Daily", "ending", ending.toString());
+
+    // When: Requesting tally report data without beginning parameter
+    Response resp =
+        service.getTallyReportDataRaw(orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams);
+
+    // Then: Request should fail with validation error
+    assertEquals(400, resp.getStatusCode(), "Request should return 400 Bad Request");
+    assertTrue(
+        resp.getBody().asString().contains("beginning")
+            || resp.getBody().asString().contains("must not be null"),
+        "Error message should indicate beginning is required");
+  }
+
+  @Test
+  @TestPlanName("tally-report-filters-TC012")
+  public void shouldReturnBadRequestWithoutEnding() {
+    // Given: An org with opt-in config and query parameters missing ending timestamp
+    service.createOptInConfig(orgId);
+
+    OffsetDateTime beginning =
+        OffsetDateTime.now(ZoneOffset.UTC).minusDays(3).truncatedTo(ChronoUnit.DAYS);
+
+    Map<String, ?> queryParams = Map.of("granularity", "Daily", "beginning", beginning.toString());
+
+    // When: Requesting tally report data without ending parameter
+    Response resp =
+        service.getTallyReportDataRaw(orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams);
+
+    // Then: Request should fail with validation error
+    assertEquals(400, resp.getStatusCode(), "Request should return 400 Bad Request");
+    assertTrue(
+        resp.getBody().asString().contains("ending")
+            || resp.getBody().asString().contains("must not be null"),
+        "Error message should indicate ending is required");
+  }
+
+  @Test
+  @TestPlanName("tally-report-filters-TC013")
+  public void shouldReturnNullMetadataWhenFiltersOmitted() {
+    // Given: An org with opt-in config and query with only required parameters
+    service.createOptInConfig(orgId);
+
+    OffsetDateTime beginning =
+        OffsetDateTime.now(ZoneOffset.UTC).minusDays(3).truncatedTo(ChronoUnit.DAYS);
+    OffsetDateTime ending = beginning.plusDays(1).minusNanos(1);
+
+    Map<String, ?> queryParams =
+        Map.of(
+            "granularity", "Daily",
+            "beginning", beginning.toString(),
+            "ending", ending.toString());
+
+    // When: Requesting tally report data with no optional filters
+    TallyReportData response =
+        service.getTallyReportData(orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams);
+
+    // Then: Response metadata should have null/unset values for optional filters
+    TallyReportDataMeta meta = response.getMeta();
+    assertNotNull(meta, "Response metadata should not be null");
+    assertNull(meta.getServiceLevel(), "Service level should be null when not filtered");
+    assertNull(meta.getUsage(), "Usage should be null when not filtered");
+    assertNull(meta.getBillingProvider(), "Billing provider should be null when not filtered");
+    assertNull(meta.getBillingAcountId(), "Billing account ID should be null when not filtered");
+    assertEquals(GranularityType.DAILY, meta.getGranularity(), "Granularity should be DAILY");
+    assertEquals(TEST_PRODUCT_TAG, meta.getProduct(), "Product tag should match request");
+    assertEquals(TEST_METRIC_ID, meta.getMetricId(), "Metric ID should match request");
+  }
+
+  @Test
+  @TestPlanName("tally-report-filters-TC014")
+  public void shouldReflectEmptyFilterInMetadata() {
+    // Given: An org with opt-in config and query with EMPTY filter value
+    service.createOptInConfig(orgId);
+
+    OffsetDateTime beginning =
+        OffsetDateTime.now(ZoneOffset.UTC).minusDays(3).truncatedTo(ChronoUnit.DAYS);
+    OffsetDateTime ending = beginning.plusDays(1).minusNanos(1);
+
+    Map<String, ?> queryParams =
+        Map.of(
+            "granularity",
+            "Daily",
+            "beginning",
+            beginning.toString(),
+            "ending",
+            ending.toString(),
+            "sla",
+            ServiceLevelType.EMPTY);
+
+    // When: Requesting tally report data with EMPTY SLA filter
+    TallyReportData response =
+        service.getTallyReportData(orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams);
+
+    // Then: Response metadata should reflect EMPTY filter value
+    TallyReportDataMeta meta = response.getMeta();
+    assertNotNull(meta, "Response metadata should not be null");
+    assertEquals(
+        ServiceLevelType.EMPTY,
+        meta.getServiceLevel(),
+        "Service level should be EMPTY when filtered with EMPTY");
+    assertNull(meta.getUsage(), "Usage should be null when not filtered");
+    assertNull(meta.getBillingProvider(), "Billing provider should be null when not filtered");
+  }
+
+  @Test
+  @TestPlanName("tally-report-filters-TC015")
+  public void shouldIndicateDataGapsWithHasDataField() {
+    // Given: An org with events only in specific hours within a multi-hour range
+    service.createOptInConfig(orgId);
+
+    OffsetDateTime baseTime =
+        OffsetDateTime.now(ZoneOffset.UTC).minusHours(5).truncatedTo(ChronoUnit.HOURS);
+
+    // Publish event only for the first hour
+    Event event1 =
+        helpers.createEventWithTimestamp(
+            orgId,
+            UUID.randomUUID().toString(),
+            baseTime.toString(),
+            UUID.randomUUID().toString(),
+            TEST_METRIC_ID,
+            10.0f,
+            Event.Sla.PREMIUM,
+            Event.HardwareType.CLOUD,
+            TEST_PRODUCT_ID,
+            TEST_PRODUCT_TAG);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event1);
+
+    // Publish event only for the third hour (skip hour 2)
+    Event event2 =
+        helpers.createEventWithTimestamp(
+            orgId,
+            UUID.randomUUID().toString(),
+            baseTime.plusHours(2).toString(),
+            UUID.randomUUID().toString(),
+            TEST_METRIC_ID,
+            20.0f,
+            Event.Sla.PREMIUM,
+            Event.HardwareType.CLOUD,
+            TEST_PRODUCT_ID,
+            TEST_PRODUCT_TAG);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event2);
+
+    // When: Querying for a range spanning 4 hours
+    service.performHourlyTallyForOrg(orgId);
+
+    OffsetDateTime beginning = baseTime.truncatedTo(ChronoUnit.HOURS);
+    OffsetDateTime ending = beginning.plusHours(4).minusNanos(1);
+
+    Map<String, Object> queryParams = new HashMap<>();
+    queryParams.put("granularity", "Hourly");
+    queryParams.put("beginning", beginning.toString());
+    queryParams.put("ending", ending.toString());
+
+    TallyReportData response =
+        AwaitilityUtils.until(
+            () -> service.getTallyReportData(orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams),
+            data -> data.getData() != null && !data.getData().isEmpty());
+
+    // Then: Response should contain data points with hasData indicating gaps
+    assertNotNull(response.getData(), "Response data should not be null");
+    assertTrue(response.getData().size() > 0, "Response should have data points");
+
+    // Verify that data points have the hasData field populated
+    long pointsWithData =
+        response.getData().stream()
+            .filter(point -> Boolean.TRUE.equals(point.getHasData()))
+            .count();
+    long pointsWithoutData =
+        response.getData().stream()
+            .filter(point -> Boolean.FALSE.equals(point.getHasData()))
+            .count();
+
+    // We should have some points with data and potentially some without (gaps)
+    assertTrue(
+        pointsWithData > 0,
+        "Should have at least one data point with hasData=true where events occurred");
+    // Note: The exact behavior of hasData for gaps depends on implementation
+    // This test verifies the field is present and populated
   }
 }

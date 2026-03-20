@@ -379,6 +379,127 @@ Test cases should be testable locally and in deployed environments.
     - API validates required parameters
     - Appropriate error message is returned
 
+**tally-report-filters-TC009 - Multiple events with same filter values are aggregated**
+
+- **Description**: Verify that multiple events with identical filter attributes are properly aggregated in tally reports
+- **Setup**:
+    - Organization is opted in
+    - Three events created with SLA=PREMIUM (values 15.0, 25.0, 10.0)
+    - All events have same timestamp hour
+    - Hourly tally is performed
+- **Action**:
+    - Request tally report with granularity=Hourly and sla=PREMIUM filter
+- **Verification**:
+    - Response data contains aggregated value of 50.0 (15+25+10)
+    - Response metadata includes SLA=PREMIUM
+    - All three events are summed correctly
+- **Expected Result**:
+    - API correctly aggregates multiple events with same filter values
+    - Total reflects sum of all matching events
+
+**tally-report-filters-TC010 - Three distinct filter value combinations**
+
+- **Description**: Verify that filtering works correctly when three different SLA values exist in the same hour
+- **Setup**:
+    - Organization is opted in
+    - Event 1 created with SLA=PREMIUM (value 10.0)
+    - Event 2 created with SLA=STANDARD (value 20.0)
+    - Event 3 created with SLA=SELF_SUPPORT (value 30.0)
+    - All events have same timestamp hour
+    - Hourly tally is performed
+- **Action**:
+    - Request tally report with granularity=Hourly and sla=SELF_SUPPORT filter
+- **Verification**:
+    - Response data contains only Event 3's data (value 30.0)
+    - Response metadata includes SLA=SELF_SUPPORT
+    - Response does not include Event 1 or Event 2 data
+- **Expected Result**:
+    - API correctly isolates data by filter value
+    - Only matching SLA data is returned when multiple SLA values exist
+
+**tally-report-filters-TC011 - Invalid request without beginning timestamp**
+
+- **Description**: Verify that tally report API returns validation error when beginning parameter is missing
+- **Setup**:
+    - Organization is opted in
+    - Ending timestamp is specified
+- **Action**:
+    - Request tally report with granularity and ending, but without beginning parameter
+- **Verification**:
+    - Response status code is 400 (Bad Request)
+    - Response body contains "beginning" or "must not be null"
+- **Expected Result**:
+    - API validates required beginning parameter
+    - Appropriate error message is returned
+
+**tally-report-filters-TC012 - Invalid request without ending timestamp**
+
+- **Description**: Verify that tally report API returns validation error when ending parameter is missing
+- **Setup**:
+    - Organization is opted in
+    - Beginning timestamp is specified
+- **Action**:
+    - Request tally report with granularity and beginning, but without ending parameter
+- **Verification**:
+    - Response status code is 400 (Bad Request)
+    - Response body contains "ending" or "must not be null"
+- **Expected Result**:
+    - API validates required ending parameter
+    - Appropriate error message is returned
+
+**tally-report-filters-TC013 - Metadata reflects no filters when omitted**
+
+- **Description**: Verify that response metadata correctly shows null values for optional filters when they are not provided
+- **Setup**:
+    - Organization is opted in
+    - Daily time range is specified
+- **Action**:
+    - Request tally report with only required parameters (granularity, beginning, ending)
+- **Verification**:
+    - Response metadata has null values for serviceLevel, usage, billingProvider, billingAccountId
+    - Required fields (granularity, product, metricId) are properly set
+    - Metadata structure is valid
+- **Expected Result**:
+    - API properly differentiates between filtered and unfiltered requests
+    - Null values indicate no filter was applied
+
+**tally-report-filters-TC014 - Metadata with EMPTY filter value**
+
+- **Description**: Verify that response metadata correctly reflects EMPTY enum filter values
+- **Setup**:
+    - Organization is opted in
+    - Daily time range is specified
+- **Action**:
+    - Request tally report with granularity, time range, and sla=EMPTY
+- **Verification**:
+    - Response metadata serviceLevel equals EMPTY
+    - Other unspecified filters remain null
+    - EMPTY value is distinguished from null/unset
+- **Expected Result**:
+    - API properly handles EMPTY enum values in filters
+    - EMPTY is treated as a valid filter value distinct from null
+
+**tally-report-filters-TC015 - Data gaps indicated by hasData field**
+
+- **Description**: Verify that tally report data points correctly indicate gaps in time series data using the hasData field
+- **Setup**:
+    - Organization is opted in
+    - Event created at hour 0 (value 10.0)
+    - Event created at hour 2 (value 20.0)
+    - Hour 1 has no events (gap)
+    - Hourly tally is performed
+- **Action**:
+    - Request tally report for 4-hour range covering all hours
+- **Verification**:
+    - Response data contains data points
+    - Data points have hasData field populated
+    - At least one data point has hasData=true where events occurred
+    - hasData field indicates presence/absence of actual event data
+- **Expected Result**:
+    - API populates hasData field in data points
+    - hasData field accurately reflects whether events existed for that time period
+    - Time series gaps are identifiable via hasData field
+
 ## SLA Filtering
 
 **tally-sla-filters-TC001 - SLA filter counts**
