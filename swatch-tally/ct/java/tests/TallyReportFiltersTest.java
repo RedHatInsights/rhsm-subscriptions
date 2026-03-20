@@ -74,7 +74,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
             timestamp.toString(),
             UUID.randomUUID().toString(),
             TEST_METRIC_ID,
-                (float) 10.0,
+            (float) 10.0,
             Event.Sla.PREMIUM,
             Event.HardwareType.CLOUD,
             TEST_PRODUCT_ID,
@@ -89,7 +89,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
             timestamp.toString(),
             UUID.randomUUID().toString(),
             TEST_METRIC_ID,
-                (float) 20.0,
+            (float) 20.0,
             Event.Sla.PREMIUM,
             Event.HardwareType.CLOUD,
             TEST_PRODUCT_ID,
@@ -187,7 +187,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
     givenTwoEventsPublished(
         timestamp,
-            event -> {}, // PREMIUM is default
+        event -> {}, // PREMIUM is default
         event -> event.setSla(Event.Sla.STANDARD));
 
     // When: Performing tally and querying with SLA=STANDARD filter
@@ -196,7 +196,8 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
     // Then: Response should contain only STANDARD SLA data
     TallyReportDataMeta meta = thenMetadataShouldExist(response);
-    assertEquals(ServiceLevelType.STANDARD, meta.getServiceLevel(), "Metadata SLA should be STANDARD");
+    assertEquals(
+        ServiceLevelType.STANDARD, meta.getServiceLevel(), "Metadata SLA should be STANDARD");
     thenResponseContainsOnlyValue(response, 20.0, "Should only include STANDARD SLA event value");
   }
 
@@ -211,7 +212,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
     givenTwoEventsPublished(
         timestamp,
-            event -> {}, // PRODUCTION is default
+        event -> {}, // PRODUCTION is default
         event -> event.setUsage(Event.Usage.DEVELOPMENT_TEST));
 
     // When: Performing tally and querying with usage=PRODUCTION filter
@@ -236,7 +237,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
     givenTwoEventsPublished(
         timestamp,
-            event -> {}, // AWS is default
+        event -> {}, // AWS is default
         event -> {
           event.setCloudProvider(Event.CloudProvider.AZURE);
           event.setBillingProvider(Event.BillingProvider.AZURE);
@@ -250,7 +251,9 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
     // Then: Response should contain only AZURE billing provider data
     TallyReportDataMeta meta = thenMetadataShouldExist(response);
     assertEquals(
-        BillingProviderType.AZURE, meta.getBillingProvider(), "Metadata billing provider should be AZURE");
+        BillingProviderType.AZURE,
+        meta.getBillingProvider(),
+        "Metadata billing provider should be AZURE");
     thenResponseContainsOnlyValue(
         response, 20.0, "Should only include AZURE billing provider event value");
   }
@@ -269,7 +272,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
     givenTwoEventsPublished(
         timestamp,
-            event -> event.setBillingAccountId(Optional.of(billingAccount1)),
+        event -> event.setBillingAccountId(Optional.of(billingAccount1)),
         event -> event.setBillingAccountId(Optional.of(billingAccount2)));
 
     // When: Performing tally and querying with billing_account_id=account2 filter
@@ -279,7 +282,9 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
     // Then: Response should contain only account2 billing account data
     TallyReportDataMeta meta = thenMetadataShouldExist(response);
     assertEquals(
-        billingAccount2, meta.getBillingAcountId(), "Metadata billing account ID should match account2");
+        billingAccount2,
+        meta.getBillingAcountId(),
+        "Metadata billing account ID should match account2");
     thenResponseContainsOnlyValue(
         response, 20.0, "Should only include account2 billing account event value");
   }
@@ -453,7 +458,8 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
     // Then: Response should aggregate all three events
     TallyReportDataMeta meta = thenMetadataShouldExist(response);
-    assertEquals(ServiceLevelType.PREMIUM, meta.getServiceLevel(), "Metadata SLA should be PREMIUM");
+    assertEquals(
+        ServiceLevelType.PREMIUM, meta.getServiceLevel(), "Metadata SLA should be PREMIUM");
     thenResponseContainsOnlyValue(
         response, 50.0, "Should aggregate all three PREMIUM SLA event values (15+25+10)");
   }
@@ -516,7 +522,9 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
     // Then: Response should contain only SELF_SUPPORT data
     TallyReportDataMeta meta = thenMetadataShouldExist(response);
     assertEquals(
-        ServiceLevelType.SELF_SUPPORT, meta.getServiceLevel(), "Metadata SLA should be SELF_SUPPORT");
+        ServiceLevelType.SELF_SUPPORT,
+        meta.getServiceLevel(),
+        "Metadata SLA should be SELF_SUPPORT");
     thenResponseContainsOnlyValue(
         response, 30.0, "Should only include SELF_SUPPORT SLA event value");
   }
@@ -697,12 +705,8 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         response.getData().stream()
             .filter(point -> Boolean.TRUE.equals(point.getHasData()))
             .count();
-    long pointsWithoutData =
-        response.getData().stream()
-            .filter(point -> Boolean.FALSE.equals(point.getHasData()))
-            .count();
 
-    // We should have some points with data and potentially some without (gaps)
+    // We should have some points with data where events occurred
     assertTrue(
         pointsWithData > 0,
         "Should have at least one data point with hasData=true where events occurred");
