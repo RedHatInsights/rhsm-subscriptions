@@ -20,14 +20,12 @@
  */
 package tests;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.greaterThan;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
+import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.contract.test.model.GranularityType;
@@ -42,12 +40,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 public class SubscriptionTableCapacityGraphComponentTest extends BaseContractComponentTest {
 
-  /**
-   * SWATCH-15: Subscription table and capacity graph must agree.
-   *
-   * <p>This test verifies that the subscription table API and capacity graph API return consistent
-   * capacity values.
-   */
   @TestPlanName("subscription-table-capacity-graph-TC001")
   @ParameterizedTest
   @MethodSource("provideProductsAndMetrics")
@@ -57,24 +49,21 @@ public class SubscriptionTableCapacityGraphComponentTest extends BaseContractCom
 
     givenSubscriptionStartingYesterday(product, sku, metric, capacity);
 
-    await("Table and graph capacity should match")
-        .atMost(2, MINUTES)
-        .pollInterval(2, SECONDS)
-        .untilAsserted(
-            () -> {
-              double tableCapacity = getTableCapacity(product, metric);
-              double graphCapacity = getTodayGraphCapacity(product, metric);
+    AwaitilityUtils.untilAsserted(
+        () -> {
+          double tableCapacity = getTableCapacity(product, metric);
+          double graphCapacity = getTodayGraphCapacity(product, metric);
 
-              assertThat(
-                  "Capacity should be greater than 0 to confirm subscription was added",
-                  tableCapacity,
-                  greaterThan(0.0));
+          assertThat(
+              "Capacity should be greater than 0 to confirm subscription was added",
+              tableCapacity,
+              greaterThan(0.0));
 
-              assertThat(
-                  "Table and graph capacity must match for " + metric,
-                  tableCapacity,
-                  closeTo(graphCapacity, 0.01));
-            });
+          assertThat(
+              "Table and graph capacity must match for " + metric,
+              tableCapacity,
+              closeTo(graphCapacity, 0.01));
+        });
   }
 
   private static Stream<Arguments> provideProductsAndMetrics() {
