@@ -25,6 +25,7 @@ import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.tally.test.model.BillingProviderType;
 import com.redhat.swatch.tally.test.model.GranularityType;
 import com.redhat.swatch.tally.test.model.ServiceLevelType;
+import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallyReportData;
 import com.redhat.swatch.tally.test.model.TallyReportDataMeta;
 import com.redhat.swatch.tally.test.model.TallyReportDataPoint;
@@ -596,6 +597,317 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
     assertNull(meta.getBillingProvider(), "Billing provider should be null when not filtered");
     thenResponseContainsOnlyValue(
         response, 60.0, "Should aggregate all events when no filters applied (10+20+30)");
+  }
+
+  @Test
+  @TestPlanName("tally-report-filters-TC017")
+  public void shouldFilterDailyReportBySlaAfterNightlyTally() {
+    // Given: Events with different SLAs processed through hourly then nightly tally
+    service.createOptInConfig(orgId);
+
+    OffsetDateTime timestamp =
+        OffsetDateTime.now(ZoneOffset.UTC).minusDays(1).truncatedTo(ChronoUnit.DAYS);
+
+    // Event 1: PREMIUM SLA (value 10.0)
+    Event event1 =
+        helpers.createEventWithTimestamp(
+            orgId,
+            UUID.randomUUID().toString(),
+            timestamp.toString(),
+            UUID.randomUUID().toString(),
+            TEST_METRIC_ID,
+            10.0f,
+            Event.Sla.PREMIUM,
+            Event.HardwareType.CLOUD,
+            TEST_PRODUCT_ID,
+            TEST_PRODUCT_TAG);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event1);
+
+    // Event 2: STANDARD SLA (value 20.0)
+    Event event2 =
+        helpers.createEventWithTimestamp(
+            orgId,
+            UUID.randomUUID().toString(),
+            timestamp.toString(),
+            UUID.randomUUID().toString(),
+            TEST_METRIC_ID,
+            20.0f,
+            Event.Sla.STANDARD,
+            Event.HardwareType.CLOUD,
+            TEST_PRODUCT_ID,
+            TEST_PRODUCT_TAG);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event2);
+
+    // When: Running hourly tally (to consume events) then nightly tally (to create daily snapshots)
+    // Wait for hourly snapshots to be created before running nightly tally
+    helpers.pollForTallySyncAndMessages(
+        orgId,
+        TEST_PRODUCT_TAG,
+        TEST_METRIC_ID,
+        Granularity.HOURLY,
+        2, // Expect 2 hourly messages (one for each SLA)
+        service,
+        kafkaBridge);
+
+    // Now run nightly tally to aggregate hourly data into daily snapshots
+    service.tallyOrg(orgId);
+
+    OffsetDateTime beginning = timestamp.truncatedTo(ChronoUnit.DAYS);
+    OffsetDateTime ending = beginning.plusDays(1).minusNanos(1);
+
+    Map<String, Object> queryParams = new HashMap<>();
+    queryParams.put("granularity", "Daily");
+    queryParams.put("beginning", beginning.toString());
+    queryParams.put("ending", ending.toString());
+    queryParams.put("sla", ServiceLevelType.STANDARD);
+
+    TallyReportData response =
+        AwaitilityUtils.until(
+            () -> service.getTallyReportData(orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams),
+            data -> data.getData() != null && !data.getData().isEmpty());
+
+    // Then: Response should contain only STANDARD SLA data from daily snapshot
+    TallyReportDataMeta meta = thenMetadataShouldExist(response);
+    assertEquals(GranularityType.DAILY, meta.getGranularity(), "Granularity should be DAILY");
+    assertEquals(
+        ServiceLevelType.STANDARD, meta.getServiceLevel(), "Metadata SLA should be STANDARD");
+    thenResponseContainsOnlyValue(
+        response, 20.0, "Should only include STANDARD SLA event value from daily snapshot");
+  }
+
+  @Test
+  @TestPlanName("tally-report-filters-TC018")
+  public void shouldFilterDailyReportByUsageAfterNightlyTally() {
+    // Given: Events with different usage types processed through hourly then nightly tally
+    service.createOptInConfig(orgId);
+
+    OffsetDateTime timestamp =
+        OffsetDateTime.now(ZoneOffset.UTC).minusDays(1).truncatedTo(ChronoUnit.DAYS);
+
+    // Event 1: PRODUCTION usage (value 10.0)
+    Event event1 =
+        helpers.createEventWithTimestamp(
+            orgId,
+            UUID.randomUUID().toString(),
+            timestamp.toString(),
+            UUID.randomUUID().toString(),
+            TEST_METRIC_ID,
+            10.0f,
+            Event.Sla.PREMIUM,
+            Event.HardwareType.CLOUD,
+            TEST_PRODUCT_ID,
+            TEST_PRODUCT_TAG);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event1);
+
+    // Event 2: DEVELOPMENT usage (value 20.0)
+    Event event2 =
+        helpers.createEventWithTimestamp(
+            orgId,
+            UUID.randomUUID().toString(),
+            timestamp.toString(),
+            UUID.randomUUID().toString(),
+            TEST_METRIC_ID,
+            20.0f,
+            Event.Sla.PREMIUM,
+            Event.HardwareType.CLOUD,
+            TEST_PRODUCT_ID,
+            TEST_PRODUCT_TAG);
+    event2.setUsage(Event.Usage.DEVELOPMENT_TEST);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event2);
+
+    // When: Running hourly tally then nightly tally
+    helpers.pollForTallySyncAndMessages(
+        orgId,
+        TEST_PRODUCT_TAG,
+        TEST_METRIC_ID,
+        Granularity.HOURLY,
+        2,
+        service,
+        kafkaBridge);
+
+    service.tallyOrg(orgId);
+
+    OffsetDateTime beginning = timestamp.truncatedTo(ChronoUnit.DAYS);
+    OffsetDateTime ending = beginning.plusDays(1).minusNanos(1);
+
+    Map<String, Object> queryParams = new HashMap<>();
+    queryParams.put("granularity", "Daily");
+    queryParams.put("beginning", beginning.toString());
+    queryParams.put("ending", ending.toString());
+    queryParams.put("usage", UsageType.PRODUCTION);
+
+    TallyReportData response =
+        AwaitilityUtils.until(
+            () -> service.getTallyReportData(orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams),
+            data -> data.getData() != null && !data.getData().isEmpty());
+
+    // Then: Response should contain only PRODUCTION usage data from daily snapshot
+    TallyReportDataMeta meta = thenMetadataShouldExist(response);
+    assertEquals(GranularityType.DAILY, meta.getGranularity(), "Granularity should be DAILY");
+    assertEquals(UsageType.PRODUCTION, meta.getUsage(), "Metadata usage should be PRODUCTION");
+    thenResponseContainsOnlyValue(
+        response, 10.0, "Should only include PRODUCTION usage event value from daily snapshot");
+  }
+
+  @Test
+  @TestPlanName("tally-report-filters-TC019")
+  public void shouldFilterDailyReportByBillingProviderAfterNightlyTally() {
+    // Given: Events with different billing providers processed through hourly then nightly tally
+    service.createOptInConfig(orgId);
+
+    OffsetDateTime timestamp =
+        OffsetDateTime.now(ZoneOffset.UTC).minusDays(1).truncatedTo(ChronoUnit.DAYS);
+
+    // Event 1: AWS billing provider (value 10.0)
+    Event event1 =
+        helpers.createEventWithTimestamp(
+            orgId,
+            UUID.randomUUID().toString(),
+            timestamp.toString(),
+            UUID.randomUUID().toString(),
+            TEST_METRIC_ID,
+            10.0f,
+            Event.Sla.PREMIUM,
+            Event.HardwareType.CLOUD,
+            TEST_PRODUCT_ID,
+            TEST_PRODUCT_TAG);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event1);
+
+    // Event 2: AZURE billing provider (value 20.0)
+    Event event2 =
+        helpers.createEventWithTimestamp(
+            orgId,
+            UUID.randomUUID().toString(),
+            timestamp.toString(),
+            UUID.randomUUID().toString(),
+            TEST_METRIC_ID,
+            20.0f,
+            Event.Sla.PREMIUM,
+            Event.HardwareType.CLOUD,
+            TEST_PRODUCT_ID,
+            TEST_PRODUCT_TAG);
+    event2.setCloudProvider(Event.CloudProvider.AZURE);
+    event2.setBillingProvider(Event.BillingProvider.AZURE);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event2);
+
+    // When: Running hourly tally then nightly tally
+    helpers.pollForTallySyncAndMessages(
+        orgId,
+        TEST_PRODUCT_TAG,
+        TEST_METRIC_ID,
+        Granularity.HOURLY,
+        2,
+        service,
+        kafkaBridge);
+
+    service.tallyOrg(orgId);
+
+    OffsetDateTime beginning = timestamp.truncatedTo(ChronoUnit.DAYS);
+    OffsetDateTime ending = beginning.plusDays(1).minusNanos(1);
+
+    Map<String, Object> queryParams = new HashMap<>();
+    queryParams.put("granularity", "Daily");
+    queryParams.put("beginning", beginning.toString());
+    queryParams.put("ending", ending.toString());
+    queryParams.put("billing_provider", BillingProviderType.AZURE);
+
+    TallyReportData response =
+        AwaitilityUtils.until(
+            () -> service.getTallyReportData(orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams),
+            data -> data.getData() != null && !data.getData().isEmpty());
+
+    // Then: Response should contain only AZURE billing provider data from daily snapshot
+    TallyReportDataMeta meta = thenMetadataShouldExist(response);
+    assertEquals(GranularityType.DAILY, meta.getGranularity(), "Granularity should be DAILY");
+    assertEquals(
+        BillingProviderType.AZURE,
+        meta.getBillingProvider(),
+        "Metadata billing provider should be AZURE");
+    thenResponseContainsOnlyValue(
+        response, 20.0, "Should only include AZURE billing provider event value from daily snapshot");
+  }
+
+  @Test
+  @TestPlanName("tally-report-filters-TC020")
+  public void shouldFilterDailyReportByBillingAccountIdAfterNightlyTally() {
+    // Given: Events with different billing account IDs processed through hourly then nightly tally
+    service.createOptInConfig(orgId);
+
+    OffsetDateTime timestamp =
+        OffsetDateTime.now(ZoneOffset.UTC).minusDays(1).truncatedTo(ChronoUnit.DAYS);
+
+    String billingAccount1 = "daily-account-123";
+    String billingAccount2 = "daily-account-456";
+
+    // Event 1: billing_account_id=daily-account-123 (value 10.0)
+    Event event1 =
+        helpers.createEventWithTimestamp(
+            orgId,
+            UUID.randomUUID().toString(),
+            timestamp.toString(),
+            UUID.randomUUID().toString(),
+            TEST_METRIC_ID,
+            10.0f,
+            Event.Sla.PREMIUM,
+            Event.HardwareType.CLOUD,
+            TEST_PRODUCT_ID,
+            TEST_PRODUCT_TAG);
+    event1.setBillingAccountId(Optional.of(billingAccount1));
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event1);
+
+    // Event 2: billing_account_id=daily-account-456 (value 20.0)
+    Event event2 =
+        helpers.createEventWithTimestamp(
+            orgId,
+            UUID.randomUUID().toString(),
+            timestamp.toString(),
+            UUID.randomUUID().toString(),
+            TEST_METRIC_ID,
+            20.0f,
+            Event.Sla.PREMIUM,
+            Event.HardwareType.CLOUD,
+            TEST_PRODUCT_ID,
+            TEST_PRODUCT_TAG);
+    event2.setBillingAccountId(Optional.of(billingAccount2));
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event2);
+
+    // When: Running hourly tally then nightly tally
+    helpers.pollForTallySyncAndMessages(
+        orgId,
+        TEST_PRODUCT_TAG,
+        TEST_METRIC_ID,
+        Granularity.HOURLY,
+        2,
+        service,
+        kafkaBridge);
+
+    service.tallyOrg(orgId);
+
+    OffsetDateTime beginning = timestamp.truncatedTo(ChronoUnit.DAYS);
+    OffsetDateTime ending = beginning.plusDays(1).minusNanos(1);
+
+    Map<String, Object> queryParams = new HashMap<>();
+    queryParams.put("granularity", "Daily");
+    queryParams.put("beginning", beginning.toString());
+    queryParams.put("ending", ending.toString());
+    queryParams.put("billing_account_id", billingAccount2);
+
+    TallyReportData response =
+        AwaitilityUtils.until(
+            () -> service.getTallyReportData(orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams),
+            data -> data.getData() != null && !data.getData().isEmpty());
+
+    // Then: Response should contain only daily-account-456 billing account data from daily snapshot
+    TallyReportDataMeta meta = thenMetadataShouldExist(response);
+    assertEquals(GranularityType.DAILY, meta.getGranularity(), "Granularity should be DAILY");
+    assertEquals(
+        billingAccount2,
+        meta.getBillingAcountId(),
+        "Metadata billing account ID should match daily-account-456");
+    thenResponseContainsOnlyValue(
+        response,
+        20.0,
+        "Should only include daily-account-456 billing account event value from daily snapshot");
   }
 
   @Test

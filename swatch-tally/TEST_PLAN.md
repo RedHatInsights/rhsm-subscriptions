@@ -521,6 +521,90 @@ Test cases should be testable locally and in deployed environments.
     - Total reflects sum of all events regardless of SLA, usage, or billing attributes
     - Metadata correctly indicates no filters were applied (null values)
 
+**tally-report-filters-TC017 - Daily granularity filtered by SLA after nightly tally**
+
+- **Description**: Verify that tally report API filters daily snapshots by SLA after running hourly tally followed by nightly tally
+- **Setup**:
+    - Organization is opted in
+    - Event 1 created with SLA=PREMIUM (value 10.0)
+    - Event 2 created with SLA=STANDARD (value 20.0)
+    - Events timestamped yesterday
+    - Hourly tally is performed and confirmed via Kafka messages
+    - Nightly tally is performed to create daily snapshots
+- **Action**:
+    - Request tally report with granularity=Daily and sla=STANDARD
+- **Verification**:
+    - Response data contains only Event 2's data (value 20.0)
+    - Response metadata includes SLA=STANDARD
+    - Response metadata includes granularity=DAILY
+    - Response does not include Event 1's data
+- **Expected Result**:
+    - API filters daily snapshot data by SLA parameter
+    - Only data matching the specified SLA is returned from daily aggregation
+
+**tally-report-filters-TC018 - Daily granularity filtered by usage after nightly tally**
+
+- **Description**: Verify that tally report API filters daily snapshots by usage after running hourly tally followed by nightly tally
+- **Setup**:
+    - Organization is opted in
+    - Event 1 created with usage=PRODUCTION (value 10.0)
+    - Event 2 created with usage=DEVELOPMENT (value 20.0)
+    - Events timestamped yesterday
+    - Hourly tally is performed and confirmed via Kafka messages
+    - Nightly tally is performed to create daily snapshots
+- **Action**:
+    - Request tally report with granularity=Daily and usage=PRODUCTION
+- **Verification**:
+    - Response data contains only Event 1's data (value 10.0)
+    - Response metadata includes usage=PRODUCTION
+    - Response metadata includes granularity=DAILY
+    - Response does not include Event 2's data
+- **Expected Result**:
+    - API filters daily snapshot data by usage parameter
+    - Only data matching the specified usage is returned from daily aggregation
+
+**tally-report-filters-TC019 - Daily granularity filtered by billing provider after nightly tally**
+
+- **Description**: Verify that tally report API filters daily snapshots by billing provider after running hourly tally followed by nightly tally
+- **Setup**:
+    - Organization is opted in
+    - Event 1 created with billing_provider=AWS (value 10.0)
+    - Event 2 created with billing_provider=AZURE (value 20.0)
+    - Events timestamped yesterday
+    - Hourly tally is performed and confirmed via Kafka messages
+    - Nightly tally is performed to create daily snapshots
+- **Action**:
+    - Request tally report with granularity=Daily and billing_provider=AZURE
+- **Verification**:
+    - Response data contains only Event 2's data (value 20.0)
+    - Response metadata includes billing_provider=AZURE
+    - Response metadata includes granularity=DAILY
+    - Response does not include Event 1's data
+- **Expected Result**:
+    - API filters daily snapshot data by billing provider parameter
+    - Only data matching the specified billing provider is returned from daily aggregation
+
+**tally-report-filters-TC020 - Daily granularity filtered by billing account ID after nightly tally**
+
+- **Description**: Verify that tally report API filters daily snapshots by billing account ID after running hourly tally followed by nightly tally
+- **Setup**:
+    - Organization is opted in
+    - Event 1 created with billing_account_id=daily-account-123 (value 10.0)
+    - Event 2 created with billing_account_id=daily-account-456 (value 20.0)
+    - Events timestamped yesterday
+    - Hourly tally is performed and confirmed via Kafka messages
+    - Nightly tally is performed to create daily snapshots
+- **Action**:
+    - Request tally report with granularity=Daily and billing_account_id=daily-account-456
+- **Verification**:
+    - Response data contains only Event 2's data (value 20.0)
+    - Response metadata includes billing_account_id=daily-account-456
+    - Response metadata includes granularity=DAILY
+    - Response does not include Event 1's data
+- **Expected Result**:
+    - API filters daily snapshot data by billing account ID parameter
+    - Only data matching the specified billing account ID is returned from daily aggregation
+
 ## SLA Filtering
 
 **tally-sla-filters-TC001 - SLA filter counts**
