@@ -111,7 +111,7 @@ public class UtilizationCapacityComponentTest extends BaseUtilizationComponentTe
             Product.ROSA.getFirstMetricId(),
             UtilizationSummary.Sla.PREMIUM,
             UtilizationSummary.Usage.PRODUCTION);
-    double initialAggregate = overUsageMetricCount(Product.ROSA.getFirstMetricId());
+    double initialBothSlaUsageAny = overUsageMetricCount(Product.ROSA.getFirstMetricId());
 
     whenUtilizationEventIsReceived();
 
@@ -124,11 +124,11 @@ public class UtilizationCapacityComponentTest extends BaseUtilizationComponentTe
                   product.getFirstMetricId(),
                   UtilizationSummary.Sla.PREMIUM,
                   UtilizationSummary.Usage.PRODUCTION),
-              "Explicit SLA/usage counter should not change when capacity is invalid");
+              "Counter for Premium/Production labels should not change when capacity is invalid");
           Assertions.assertEquals(
-              initialAggregate,
+              initialBothSlaUsageAny,
               overUsageMetricCount(product.getFirstMetricId()),
-              "Aggregate counter should not change when capacity is invalid");
+              "Counter with both sla and usage _ANY should not change when capacity is invalid");
         });
   }
 

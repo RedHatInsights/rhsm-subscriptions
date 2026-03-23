@@ -89,7 +89,8 @@ public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest
 
   /**
    * Verify that when the summary carries a specific service level and usage type, the counter
-   * increments on that labeled series (not on the aggregate {@code _ANY} series) and the
+   * increments on that time series (not on the series where both {@code sla} and {@code usage} are
+   * {@code _ANY}, which applies when neither dimension is specific on the payload) and the
    * notification context includes them.
    */
   @Test
@@ -105,7 +106,7 @@ public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest
             MetricIdUtils.getCores(),
             UtilizationSummary.Sla.PREMIUM,
             UtilizationSummary.Usage.PRODUCTION);
-    double initialAggregate = overUsageMetricCount(MetricIdUtils.getCores());
+    double initialBothSlaUsageAny = overUsageMetricCount(MetricIdUtils.getCores());
 
     whenUtilizationEventIsReceived();
 
@@ -120,8 +121,8 @@ public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest
                   - initialLabeled,
               equalTo(EXPECTED_SINGLE_INCREMENT));
           assertThat(
-              "Aggregate series (sla and usage _ANY) should be unchanged",
-              overUsageMetricCount(MetricIdUtils.getCores()) - initialAggregate,
+              "Series with both sla and usage _ANY should be unchanged",
+              overUsageMetricCount(MetricIdUtils.getCores()) - initialBothSlaUsageAny,
               equalTo(0.0));
         });
 

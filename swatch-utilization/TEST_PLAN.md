@@ -255,19 +255,19 @@ Kafka messages can be injected for event-driven testing.
 
 **utilization-capacity-TC004 - Zero capacity with positive usage when service level and usage are set**
 
-- **Description**: Verify that zero capacity still skips over-usage detection when the utilization summary includes specific service level and usage values.
+- **Description**: Verify that zero capacity still skips over-usage detection when the utilization summary includes specific service level and usage values (not the case where both dimensions are unset or `ANY` on the payload).
 - **Setup**:
     - An organization has zero capacity for the metric A of the product B
-    - The utilization summary includes specific service level and usage (not aggregate)
+    - The utilization summary sets specific service level and usage (so metric labels are not both `_ANY`)
 - **Action**:
     - Generate positive usage data for the metric A of the product B
     - Trigger utilization calculation process
 - **Verification**:
     - Check absence of notification message on notifications topic
-    - Verify over-usage counter is unchanged for both the aggregate series and the series matching the summary’s service level and usage labels
+    - Verify over-usage counter is unchanged for the series matching the summary’s service level and usage labels, and for the series where both `sla` and `usage` are `_ANY`
 - **Expected Result**:
     - No notification event created
-    - No increment on the over-usage counter (aggregate or labeled series)
+    - No increment on either counter series
 
 ## Org Allowlist for Notifications
 

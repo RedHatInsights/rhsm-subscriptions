@@ -491,17 +491,18 @@ class CustomerOverUsageServiceTest {
   }
 
   /**
-   * Reads the over-usage counter for aggregate SLA/usage (sentinel {@code _ANY} labels). Equivalent
-   * to {@link #getCounterValue(String, String, UtilizationSummary.Sla, UtilizationSummary.Usage)}
-   * with null {@code sla} and {@code usage}.
+   * Reads the over-usage counter for the time series where both SLA and usage labels are {@code
+   * _ANY} (payload has no specific dimensions—{@code null}, {@code ANY}, or empty for both).
+   * Equivalent to {@link #getCounterValue(String, String, UtilizationSummary.Sla,
+   * UtilizationSummary.Usage)} with null {@code sla} and {@code usage}.
    */
   private double getCounterValue(String productId, String metricId) {
     return getCounterValue(productId, metricId, null, null);
   }
 
   /**
-   * @param sla nullable; aggregate / unset uses the {@code _ANY} label (same as {@code null},
-   *     {@code ANY}, or empty enum value on the payload)
+   * @param sla nullable; when not a specific value on the payload, the {@code sla} label is {@code
+   *     _ANY} (same as {@code null}, {@code ANY}, or empty enum value)
    * @param usage same semantics as {@code sla} for usage type
    */
   private double getCounterValue(

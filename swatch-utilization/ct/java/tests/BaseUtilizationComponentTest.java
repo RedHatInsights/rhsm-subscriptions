@@ -133,7 +133,8 @@ public class BaseUtilizationComponentTest {
   }
 
   /**
-   * Over-usage counter when SLA/usage are unset on the payload (sentinel {@code _ANY} labels).
+   * Over-usage counter for the series where both {@code sla} and {@code usage} are {@code _ANY}
+   * (payload has no specific service level or usage—{@code null}, {@code ANY}, or empty for both).
    * Equivalent to {@link #overUsageMetricCount(MetricId, UtilizationSummary.Sla,
    * UtilizationSummary.Usage)} with null {@code sla} and {@code usage}.
    */

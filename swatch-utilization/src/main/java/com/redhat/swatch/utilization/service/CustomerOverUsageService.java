@@ -75,8 +75,8 @@ public class CustomerOverUsageService {
   public static final String OVER_USAGE_METRIC = "swatch_utilization_over_usage";
 
   /**
-   * Prometheus label value for aggregate / unspecified SLA or usage on {@link #OVER_USAGE_METRIC},
-   * aligned with tally snapshot conventions.
+   * Prometheus label value when a dimension is not specific on the payload: missing, empty, or
+   * {@code ANY} (aligned with tally snapshot conventions).
    */
   public static final String OVER_USAGE_DIMENSION_SENTINEL = "_ANY";
 
