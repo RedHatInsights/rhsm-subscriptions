@@ -18,10 +18,16 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.hbi.events.ct;
+package com.redhat.swatch.hbi.events.ct.utils;
 
-public enum SwatchEventType {
-  INSTANCE_CREATED,
-  INSTANCE_UPDATED,
-  INSTANCE_DELETED;
+public enum HbiEventType {
+  INSTANCE_CREATED("created"),
+  INSTANCE_UPDATED("updated"),
+  INSTANCE_DELETED("delete");
+
+  private String value;
+
+  HbiEventType(String value) {
+    this.value = value;
+  }
 }

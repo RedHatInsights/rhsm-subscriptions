@@ -234,6 +234,45 @@ Test cases should be testable locally and in deployed environments.
     - SWatch events contain the correct identifiers, product tags, and measurements for each host
     - Resulting SWatch events are consistent between `created` and `updated` besides for the event type
 
+**metrics-hbi-create-update-TC008 \- Virtual mapped guest re-mapped from one hypervisor to another**
+
+- **Description**: Verify that when a virtual mapped guest's hypervisor UUID is updated to reference a different hypervisor, the service produces the correct SWatch events to reflect the guest's new mapping and the new hypervisor's transition to hypervisor status.
+- **Setup**:
+    - Ensure `EMIT_EVENTS` feature flag is enabled
+    - Kafka topics for HBI events and service instance ingress are available
+    - Prepare test host data representing a physical RHEL hypervisor host (A), a virtual guest host mapped to hypervisor A, and a second physical RHEL host (B) with no guests
+- **Action**:
+    - Two different test runs for event types `created` and `updated`:
+        - Phase 1 — Initial setup:
+            - Produce physical host A `HbiHostCreateUpdateEvent` with event type to HBI event Kafka topic
+            - Produce virtual guest host `HbiHostCreateUpdateEvent` with event type to HBI event Kafka topic (guest references hypervisor A)
+            - Produce physical host B `HbiHostCreateUpdateEvent` with event type to HBI event Kafka topic
+        - Phase 2 — Guest re-mapping:
+            - Produce an `updated` `HbiHostCreateUpdateEvent` for the guest with its `virtual_host_uuid` changed to reference hypervisor B's subscription manager ID
+    - Trigger outbox flush via internal API after each phase
+- **Verification**:
+    - Phase 1:
+        - Confirm outbox records are created after the events are ingested
+        - Messages consumed from the service instance ingress Kafka topic and captured in SWatch event messages
+        - Verify four SWatch event messages exist and match the expected values:
+            - Physical host A initial event
+            - Mapped guest event (referencing hypervisor A)
+            - Updated physical host A event transitioning it to hypervisor status
+            - Physical host B initial event
+    - Phase 2:
+        - Confirm outbox records are created after the re-mapping event is ingested
+        - Messages consumed from the service instance ingress Kafka topic and captured in SWatch event messages
+        - Verify two SWatch event messages exist and match the expected values:
+            - Updated guest event reflecting its new mapping to hypervisor B
+            - Updated hypervisor B event transitioning it to hypervisor status
+- **Expected Result**:
+    - Service successfully ingests all HBI events across both phases
+    - Phase 1 produces exactly four SWatch events establishing the initial hypervisor-guest relationship and standalone host B
+    - Phase 2 produces exactly two SWatch events: the guest re-mapped to hypervisor B, and hypervisor B updated to reflect its new hypervisor status
+    - SWatch events contain the correct identifiers, product tags, and measurements for each host
+    - Resulting SWatch events are consistent between `created` and `updated` besides for the event type
+    - Note: the previous hypervisor (A) does not receive an automatic update event during re-mapping; its hypervisor status is only corrected on its next HBI event
+
 ## Delete HBI Event Ingestion
 
 **metrics-hbi-delete-TC001 \- Delete physical RHEL host event**
