@@ -62,6 +62,10 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
  *   <li>product - Product ID
  *   <li>metric_id - Metric ID (e.g., Cores, Instance-hours)
  *   <li>billing - Billing provider (conditional, only if present)
+ *   <li>sla - Service level from the utilization summary, or {@link #OVER_USAGE_DIMENSION_SENTINEL}
+ *       when unspecified (Java {@code null}, {@code ANY}, or empty on the payload)
+ *   <li>usage - Usage type from the utilization summary, or {@link #OVER_USAGE_DIMENSION_SENTINEL}
+ *       when unspecified
  * </ul>
  */
 @Slf4j
@@ -69,6 +73,13 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 public class CustomerOverUsageService {
 
   public static final String OVER_USAGE_METRIC = "swatch_utilization_over_usage";
+
+  /**
+   * Prometheus label value for aggregate / unspecified SLA or usage on {@link #OVER_USAGE_METRIC},
+   * aligned with tally snapshot conventions.
+   */
+  public static final String OVER_USAGE_DIMENSION_SENTINEL = "_ANY";
+
   private static final double FULL_CAPACITY_PERCENT = 100.0;
   private static final String PERCENT_FORMAT = "%.2f";
   private static final String BUNDLE = "subscription-services";
@@ -213,7 +224,22 @@ public class CustomerOverUsageService {
       tags.addAll(List.of("billing", payload.getBillingProvider().value()));
     }
 
+    tags.addAll(
+        List.of(
+            "sla",
+            metricSlaLabelValue(payload.getSla()),
+            "usage",
+            metricUsageLabelValue(payload.getUsage())));
+
     meterRegistry.counter(OVER_USAGE_METRIC, tags.toArray(new String[0])).increment();
+  }
+
+  static String metricSlaLabelValue(UtilizationSummary.Sla sla) {
+    return isServiceLevelSet(sla) ? sla.value() : OVER_USAGE_DIMENSION_SENTINEL;
+  }
+
+  static String metricUsageLabelValue(UtilizationSummary.Usage usage) {
+    return isUsageSet(usage) ? usage.value() : OVER_USAGE_DIMENSION_SENTINEL;
   }
 
   private void sendNotification(
@@ -284,13 +310,13 @@ public class CustomerOverUsageService {
     return builder.build();
   }
 
-  private boolean isServiceLevelSet(UtilizationSummary.Sla sla) {
+  private static boolean isServiceLevelSet(UtilizationSummary.Sla sla) {
     return sla != null
         && sla != UtilizationSummary.Sla.__EMPTY__
         && sla != UtilizationSummary.Sla.ANY;
   }
 
-  private boolean isUsageSet(UtilizationSummary.Usage usage) {
+  private static boolean isUsageSet(UtilizationSummary.Usage usage) {
     return usage != null
         && usage != UtilizationSummary.Usage.__EMPTY__
         && usage != UtilizationSummary.Usage.ANY;

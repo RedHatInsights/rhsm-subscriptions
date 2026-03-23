@@ -76,8 +76,8 @@ public class UtilizationMultiComponentTest extends BaseUtilizationComponentTest 
     UtilizationSummary rhelProduct = givenUtilizationSummary(Product.RHEL, Granularity.DAILY);
     givenMeasurement(rhelProduct, getSockets(), USAGE_ABOVE_THRESHOLD, CAPACITY, false);
 
-    double initialRosaCount = service.getMetricByTags(OVER_USAGE_METRIC, metricIdTag(getCores()));
-    double initialRhelCount = service.getMetricByTags(OVER_USAGE_METRIC, metricIdTag(getSockets()));
+    double initialRosaCount = overUsageMetricCount(getCores());
+    double initialRhelCount = overUsageMetricCount(getSockets());
 
     // When: Utilization events are processed
     whenUtilizationEventIsReceived(rosaProduct);
@@ -100,9 +100,8 @@ public class UtilizationMultiComponentTest extends BaseUtilizationComponentTest 
     givenMeasurement(rosaProduct, getCores(), USAGE_ABOVE_THRESHOLD, CAPACITY, false);
     givenMeasurement(rosaProduct, getInstanceHours(), USAGE_BELOW_THRESHOLD, CAPACITY, false);
 
-    double initialCoresCount = service.getMetricByTags(OVER_USAGE_METRIC, metricIdTag(getCores()));
-    double initialInstanceHoursCount =
-        service.getMetricByTags(OVER_USAGE_METRIC, metricIdTag(getInstanceHours()));
+    double initialCoresCount = overUsageMetricCount(getCores());
+    double initialInstanceHoursCount = overUsageMetricCount(getInstanceHours());
 
     // When: Utilization event is processed
     whenUtilizationEventIsReceived(rosaProduct);
@@ -113,6 +112,54 @@ public class UtilizationMultiComponentTest extends BaseUtilizationComponentTest 
     thenNotificationShouldBeSent(
         rosaProduct.getProductId(), getCores(), USAGE_ABOVE_THRESHOLD, CAPACITY);
     thenNoNotificationShouldBeSent(rosaProduct.getProductId(), getInstanceHours());
+  }
+
+  /**
+   * Different SLA/usage combinations on the same product and metric produce separate counter time
+   * series.
+   */
+  @Test
+  @TestPlanName("utilization-multi-TC003")
+  void shouldIncrementSeparateOverUsageCounters_forDifferentSlaUsageCombinations() {
+    UtilizationSummary premiumProduction =
+        givenUtilizationSummary(Product.ROSA, Granularity.HOURLY)
+            .withSla(UtilizationSummary.Sla.PREMIUM)
+            .withUsage(UtilizationSummary.Usage.PRODUCTION);
+    givenMeasurement(premiumProduction, getCores(), USAGE_ABOVE_THRESHOLD, CAPACITY, false);
+
+    UtilizationSummary standardDevTest =
+        givenUtilizationSummary(Product.ROSA, Granularity.HOURLY)
+            .withSla(UtilizationSummary.Sla.STANDARD)
+            .withUsage(UtilizationSummary.Usage.DEVELOPMENT_TEST);
+    givenMeasurement(standardDevTest, getCores(), USAGE_ABOVE_THRESHOLD, CAPACITY, false);
+
+    double initialPremiumProd =
+        overUsageMetricCount(
+            getCores(), UtilizationSummary.Sla.PREMIUM, UtilizationSummary.Usage.PRODUCTION);
+    double initialStandardDev =
+        overUsageMetricCount(
+            getCores(), UtilizationSummary.Sla.STANDARD, UtilizationSummary.Usage.DEVELOPMENT_TEST);
+
+    whenUtilizationEventIsReceived(premiumProduction);
+    whenUtilizationEventIsReceived(standardDevTest);
+
+    untilAsserted(
+        () -> {
+          assertThat(
+              overUsageMetricCount(
+                      getCores(),
+                      UtilizationSummary.Sla.PREMIUM,
+                      UtilizationSummary.Usage.PRODUCTION)
+                  - initialPremiumProd,
+              equalTo(1.0));
+          assertThat(
+              overUsageMetricCount(
+                      getCores(),
+                      UtilizationSummary.Sla.STANDARD,
+                      UtilizationSummary.Usage.DEVELOPMENT_TEST)
+                  - initialStandardDev,
+              equalTo(1.0));
+        });
   }
 
   // Given helpers
@@ -137,7 +184,7 @@ public class UtilizationMultiComponentTest extends BaseUtilizationComponentTest 
   private void thenOverUsageCounterShouldBeIncremented(double initialCount, MetricId metricId) {
     untilAsserted(
         () -> {
-          double currentCount = service.getMetricByTags(OVER_USAGE_METRIC, metricIdTag(metricId));
+          double currentCount = overUsageMetricCount(metricId);
           assertThat(
               OVER_USAGE_METRIC
                   + " counter should increment by exactly 1 for "
@@ -153,8 +200,7 @@ public class UtilizationMultiComponentTest extends BaseUtilizationComponentTest 
         .pollDelay(MESSAGE_PROCESSING_DELAY)
         .untilAsserted(
             () -> {
-              double currentCount =
-                  service.getMetricByTags(OVER_USAGE_METRIC, metricIdTag(metricId));
+              double currentCount = overUsageMetricCount(metricId);
               assertThat(
                   "Over-usage counter should not change for " + metricId.getValue(),
                   currentCount,

@@ -135,6 +135,8 @@ The service exposes several metrics for monitoring and alerting:
 - `product`: Product ID
 - `metric_id`: Metric ID
 - `billing`: Billing provider (if present)
+- `sla`: Service level when set on the utilization summary; otherwise `_ANY`
+- `usage`: Usage type when set on the utilization summary; otherwise `_ANY`
 
 These metrics enable:
 - Dashboards showing utilization monitoring coverage
