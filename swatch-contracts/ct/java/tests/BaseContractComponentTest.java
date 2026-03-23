@@ -46,7 +46,9 @@ import domain.Subscription;
 import io.restassured.response.Response;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.apache.http.HttpStatus;
 import org.candlepin.clock.ApplicationClock;
 import org.junit.jupiter.api.AfterEach;
@@ -184,6 +186,52 @@ public class BaseContractComponentTest {
         service.saveSubscriptions(true, hypervisorSubscription).statusCode(),
         "Creating hypervisor subscription should succeed");
     return hypervisorSubscription;
+  }
+
+  protected Subscription givenOpenshiftSubscriptionIsCreated(
+      String openshiftSku, double coresCapacity, double socketsCapacity) {
+    return givenOpenshiftSubscriptionIsCreated(
+        openshiftSku,
+        coresCapacity,
+        socketsCapacity,
+        OffsetDateTime.now().minusDays(1),
+        OffsetDateTime.now().plusDays(1));
+  }
+
+  protected Subscription givenOpenshiftSubscriptionIsCreated(
+      String openshiftSku,
+      double coresCapacity,
+      double socketsCapacity,
+      OffsetDateTime startDate,
+      OffsetDateTime endDate) {
+    wiremock
+        .forProductAPI()
+        .stubOfferingData(
+            domain.Offering.buildOpenShiftOffering(openshiftSku, coresCapacity, socketsCapacity));
+    assertEquals(
+        HttpStatus.SC_OK,
+        service.syncOffering(openshiftSku).statusCode(),
+        "Sync OpenShift offering should succeed");
+
+    Map<MetricId, Double> measurements = new HashMap<>();
+    if (coresCapacity > 0) {
+      measurements.put(CORES, coresCapacity);
+    }
+    if (socketsCapacity > 0) {
+      measurements.put(SOCKETS, socketsCapacity);
+    }
+
+    Subscription openshiftSubscription =
+        Subscription.buildOpenShiftSubscriptionUsingSku(orgId, measurements, openshiftSku)
+            .toBuilder()
+            .startDate(startDate)
+            .endDate(endDate)
+            .build();
+    assertEquals(
+        HttpStatus.SC_OK,
+        service.saveSubscriptions(true, openshiftSubscription).statusCode(),
+        "Creating OpenShift subscription should succeed");
+    return openshiftSubscription;
   }
 
   protected Response whenContractIsDeleted(String contractUuid) {
