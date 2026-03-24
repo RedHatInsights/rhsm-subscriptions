@@ -605,6 +605,57 @@ Test cases should be testable locally and in deployed environments.
     - API filters daily snapshot data by billing account ID parameter
     - Only data matching the specified billing account ID is returned from daily aggregation
 
+**tally-report-filters-TC021 - Monthly granularity with all filters**
+
+- **Description**: Verify that tally report API accepts monthly granularity and returns correct metadata with all filter parameters
+- **Setup**:
+    - Organization is opted in
+    - Query parameters with granularity=Monthly and all available filters (sla, usage, billing_provider, billing_account_id)
+- **Action**:
+    - Request tally report with granularity=Monthly
+- **Verification**:
+    - Response metadata includes granularity=MONTHLY
+    - Response metadata includes all specified filters (sla, usage, billing_provider, billing_account_id)
+    - Response metadata includes product tag and metric ID
+    - Response data size matches metadata count
+- **Expected Result**:
+    - API accepts and processes monthly granularity queries
+    - All filter parameters are properly reflected in response metadata
+
+**tally-report-filters-TC022 - Quarterly granularity with all filters**
+
+- **Description**: Verify that tally report API accepts quarterly granularity and returns correct metadata with all filter parameters
+- **Setup**:
+    - Organization is opted in
+    - Query parameters with granularity=Quarterly and all available filters (sla, usage, billing_provider, billing_account_id)
+- **Action**:
+    - Request tally report with granularity=Quarterly
+- **Verification**:
+    - Response metadata includes granularity=QUARTERLY
+    - Response metadata includes all specified filters (sla, usage, billing_provider, billing_account_id)
+    - Response metadata includes product tag and metric ID
+    - Response data size matches metadata count
+- **Expected Result**:
+    - API accepts and processes quarterly granularity queries
+    - All filter parameters are properly reflected in response metadata
+
+**tally-report-filters-TC023 - Yearly granularity with all filters**
+
+- **Description**: Verify that tally report API accepts yearly granularity and returns correct metadata with all filter parameters
+- **Setup**:
+    - Organization is opted in
+    - Query parameters with granularity=Yearly and all available filters (sla, usage, billing_provider, billing_account_id)
+- **Action**:
+    - Request tally report with granularity=Yearly
+- **Verification**:
+    - Response metadata includes granularity=YEARLY
+    - Response metadata includes all specified filters (sla, usage, billing_provider, billing_account_id)
+    - Response metadata includes product tag and metric ID
+    - Response data size matches metadata count
+- **Expected Result**:
+    - API accepts and processes yearly granularity queries
+    - All filter parameters are properly reflected in response metadata
+
 ## SLA Filtering
 
 **tally-sla-filters-TC001 - SLA filter counts**

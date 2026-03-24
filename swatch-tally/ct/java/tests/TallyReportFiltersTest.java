@@ -25,10 +25,10 @@ import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.tally.test.model.BillingProviderType;
 import com.redhat.swatch.tally.test.model.GranularityType;
 import com.redhat.swatch.tally.test.model.ServiceLevelType;
-import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallyReportData;
 import com.redhat.swatch.tally.test.model.TallyReportDataMeta;
 import com.redhat.swatch.tally.test.model.TallyReportDataPoint;
+import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.UsageType;
 import io.restassured.response.Response;
 import org.candlepin.subscriptions.json.Event;
@@ -717,13 +717,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
     // When: Running hourly tally then nightly tally
     helpers.pollForTallySyncAndMessages(
-        orgId,
-        TEST_PRODUCT_TAG,
-        TEST_METRIC_ID,
-        Granularity.HOURLY,
-        2,
-        service,
-        kafkaBridge);
+        orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.HOURLY, 2, service, kafkaBridge);
 
     service.tallyOrg(orgId);
 
@@ -792,13 +786,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
     // When: Running hourly tally then nightly tally
     helpers.pollForTallySyncAndMessages(
-        orgId,
-        TEST_PRODUCT_TAG,
-        TEST_METRIC_ID,
-        Granularity.HOURLY,
-        2,
-        service,
-        kafkaBridge);
+        orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.HOURLY, 2, service, kafkaBridge);
 
     service.tallyOrg(orgId);
 
@@ -824,7 +812,9 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         meta.getBillingProvider(),
         "Metadata billing provider should be AZURE");
     thenResponseContainsOnlyValue(
-        response, 20.0, "Should only include AZURE billing provider event value from daily snapshot");
+        response,
+        20.0,
+        "Should only include AZURE billing provider event value from daily snapshot");
   }
 
   @Test
@@ -873,13 +863,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
     // When: Running hourly tally then nightly tally
     helpers.pollForTallySyncAndMessages(
-        orgId,
-        TEST_PRODUCT_TAG,
-        TEST_METRIC_ID,
-        Granularity.HOURLY,
-        2,
-        service,
-        kafkaBridge);
+        orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.HOURLY, 2, service, kafkaBridge);
 
     service.tallyOrg(orgId);
 
@@ -1093,5 +1077,101 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         "Should have at least one data point with hasData=true where events occurred");
     // Note: The exact behavior of hasData for gaps depends on implementation
     // This test verifies the field is present and populated
+  }
+
+  @Test
+  @TestPlanName("tally-report-filters-TC021")
+  public void shouldReturnMonthlyReportWithAllFilters() {
+    OffsetDateTime beginning =
+        OffsetDateTime.now(ZoneOffset.UTC)
+            .minusMonths(2)
+            .truncatedTo(ChronoUnit.DAYS)
+            .withDayOfMonth(1);
+    OffsetDateTime ending = beginning.plusMonths(1).minusNanos(1);
+
+    thenGranularityReportWithAllFiltersIsValid(
+        "Monthly", GranularityType.MONTHLY, beginning, ending);
+  }
+
+  @Test
+  @TestPlanName("tally-report-filters-TC022")
+  public void shouldReturnQuarterlyReportWithAllFilters() {
+    OffsetDateTime beginning = calculateQuarterStart();
+    OffsetDateTime ending = beginning.plusMonths(3).minusNanos(1);
+
+    thenGranularityReportWithAllFiltersIsValid(
+        "Quarterly", GranularityType.QUARTERLY, beginning, ending);
+  }
+
+  @Test
+  @TestPlanName("tally-report-filters-TC023")
+  public void shouldReturnYearlyReportWithAllFilters() {
+    OffsetDateTime beginning =
+        OffsetDateTime.now(ZoneOffset.UTC)
+            .minusYears(1)
+            .truncatedTo(ChronoUnit.DAYS)
+            .withDayOfYear(1);
+    OffsetDateTime ending = beginning.plusYears(1).minusNanos(1);
+
+    thenGranularityReportWithAllFiltersIsValid("Yearly", GranularityType.YEARLY, beginning, ending);
+  }
+
+  private OffsetDateTime calculateQuarterStart() {
+    OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+    int currentQuarterStartMonth = ((now.getMonthValue() - 1) / 3) * 3 + 1;
+    return now.minusMonths(6)
+        .truncatedTo(ChronoUnit.DAYS)
+        .withDayOfMonth(1)
+        .withMonth(currentQuarterStartMonth);
+  }
+
+  private void thenGranularityReportWithAllFiltersIsValid(
+      String granularityName,
+      GranularityType expectedGranularity,
+      OffsetDateTime beginning,
+      OffsetDateTime ending) {
+
+    // Given: An org with opt-in config and granularity query parameters with all filters
+    service.createOptInConfig(orgId);
+
+    Map<String, ?> queryParams =
+        Map.of(
+            "granularity",
+            granularityName,
+            "beginning",
+            beginning.toString(),
+            "ending",
+            ending.toString(),
+            "sla",
+            TEST_SLA,
+            "usage",
+            TEST_USAGE,
+            "billing_provider",
+            TEST_BILLING_PROVIDER,
+            "billing_account_id",
+            TEST_BILLING_ACCOUNT_ID);
+
+    // When: Requesting tally report data
+    TallyReportData response =
+        service.getTallyReportData(orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams);
+
+    // Then: Response metadata should reflect granularity and all filters
+    List<TallyReportDataPoint> data = response.getData();
+    TallyReportDataMeta meta = thenMetadataShouldExist(response);
+
+    assertNotNull(data, "Response data should not be null");
+    assertEquals(data.size(), meta.getCount(), "Data size should match metadata count");
+    assertEquals(
+        expectedGranularity, meta.getGranularity(), "Granularity should be " + expectedGranularity);
+    assertEquals(TEST_PRODUCT_TAG, meta.getProduct(), "Product tag should match request");
+    assertEquals(TEST_METRIC_ID, meta.getMetricId(), "Metric ID should match request");
+    assertEquals(TEST_SLA, meta.getServiceLevel(), "Service level should match request");
+    assertEquals(TEST_USAGE, meta.getUsage(), "Usage should match request");
+    assertEquals(
+        TEST_BILLING_PROVIDER, meta.getBillingProvider(), "Billing provider should match request");
+    assertEquals(
+        TEST_BILLING_ACCOUNT_ID,
+        meta.getBillingAcountId(),
+        "Billing account ID should match request");
   }
 }
