@@ -47,6 +47,12 @@ import org.junit.jupiter.api.BeforeEach;
 public class BaseUtilizationComponentTest {
   protected static final String OVER_USAGE_METRIC = "swatch_utilization_over_usage_total";
 
+  /**
+   * Sentinel for unspecified SLA/usage on {@link #OVER_USAGE_METRIC}; must match {@code
+   * CustomerOverUsageService.OVER_USAGE_DIMENSION_SENTINEL} in swatch-utilization.
+   */
+  protected static final String OVER_USAGE_DIMENSION_SENTINEL = "_ANY";
+
   @KafkaBridge
   static KafkaBridgeService kafkaBridge = new KafkaBridgeService().subscribeToTopic(NOTIFICATIONS);
 
@@ -93,15 +99,99 @@ public class BaseUtilizationComponentTest {
     return String.format("metric_id=\"%s\"", metricId.getValue());
   }
 
+  protected static String overUsageMetricSlaTagFragment(String sla) {
+    return String.format("sla=\"%s\"", sla);
+  }
+
+  protected static String overUsageMetricUsageTagFragment(String usage) {
+    return String.format("usage=\"%s\"", usage);
+  }
+
+  /**
+   * SLA string as stored on {@link #OVER_USAGE_METRIC}; mirrors swatch-utilization {@code
+   * CustomerOverUsageService} (null, empty, or {@code ANY} → sentinel).
+   */
+  protected static String slaLabelForOverUsageMetric(UtilizationSummary.Sla sla) {
+    if (sla == null
+        || sla == UtilizationSummary.Sla.__EMPTY__
+        || sla == UtilizationSummary.Sla.ANY) {
+      return OVER_USAGE_DIMENSION_SENTINEL;
+    }
+    return sla.value();
+  }
+
+  /**
+   * Usage string on {@link #OVER_USAGE_METRIC}; same rules as {@link #slaLabelForOverUsageMetric}.
+   */
+  protected static String usageLabelForOverUsageMetric(UtilizationSummary.Usage usage) {
+    if (usage == null
+        || usage == UtilizationSummary.Usage.__EMPTY__
+        || usage == UtilizationSummary.Usage.ANY) {
+      return OVER_USAGE_DIMENSION_SENTINEL;
+    }
+    return usage.value();
+  }
+
+  /**
+   * Over-usage counter for the series where both {@code sla} and {@code usage} are {@code _ANY}
+   * (payload has no specific service level or usage—{@code null}, {@code ANY}, or empty for both).
+   * Equivalent to {@link #overUsageMetricCount(MetricId, UtilizationSummary.Sla,
+   * UtilizationSummary.Usage)} with null {@code sla} and {@code usage}.
+   */
+  protected double overUsageMetricCount(MetricId metricId) {
+    return overUsageMetricCount(metricId, null, null);
+  }
+
+  /**
+   * Over-usage counter for the given metric and SLA/usage dimensions (after the same mapping as
+   * production).
+   */
+  protected double overUsageMetricCount(
+      MetricId metricId, UtilizationSummary.Sla sla, UtilizationSummary.Usage usage) {
+    return service.getMetricByTags(
+        OVER_USAGE_METRIC,
+        metricIdTag(metricId),
+        overUsageMetricSlaTagFragment(slaLabelForOverUsageMetric(sla)),
+        overUsageMetricUsageTagFragment(usageLabelForOverUsageMetric(usage)));
+  }
+
   /** Verifies notification is sent with correct product, metric, and utilization percentage. */
   protected void thenNotificationShouldBeSent(
       String productId, MetricId metricId, double usageValue, double capacity) {
+    thenNotificationShouldBeSent(productId, metricId, usageValue, capacity, null, null);
+  }
+
+  /**
+   * Same as {@link #thenNotificationShouldBeSent(String, MetricId, double, double)}; when non-null,
+   * asserts {@code service_level} and {@code usage} in the notification context.
+   */
+  protected void thenNotificationShouldBeSent(
+      String productId,
+      MetricId metricId,
+      double usageValue,
+      double capacity,
+      String expectedServiceLevel,
+      String expectedUsage) {
     Action notification =
         kafkaBridge.waitForKafkaMessage(
             NOTIFICATIONS, matchesOverageNotification(orgId, productId, metricId.getValue()));
 
     assertThat("Notification should be sent", notification, notNullValue());
     assertThat("Notification should have timestamp", notification.getTimestamp(), notNullValue());
+
+    var context = notification.getContext();
+    assertThat("Context should not be null", context, notNullValue());
+    var props = context.getAdditionalProperties();
+    if (expectedServiceLevel != null) {
+      assertThat(
+          "Context should contain expected service_level",
+          props.get("service_level"),
+          equalTo(expectedServiceLevel));
+    }
+    if (expectedUsage != null) {
+      assertThat(
+          "Context should contain expected usage", props.get("usage"), equalTo(expectedUsage));
+    }
 
     var events = notification.getEvents();
     assertThat("Notification should contain events list", events, notNullValue());

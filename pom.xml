@@ -30,7 +30,7 @@
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
     <opentelemetry-api.version>1.60.1</opentelemetry-api.version>
-    <awssdk-bom.version>2.42.18</awssdk-bom.version>
+    <awssdk-bom.version>2.42.19</awssdk-bom.version>
     <guava.version>33.5.0-jre</guava.version>
     <liquibase.version>5.0.2</liquibase.version>
     <postgresql.version>42.7.10</postgresql.version>
@@ -41,7 +41,7 @@
     <hibernate-validator.version>9.1.0.Final</hibernate-validator.version>
     <swagger-parser.version>2.1.39</swagger-parser.version>
     <swagger-ui.version>5.32.1</swagger-ui.version>
-    <splunk-otel-javaagent.version>2.26.0</splunk-otel-javaagent.version>
+    <splunk-otel-javaagent.version>2.26.1</splunk-otel-javaagent.version>
     <insights-notification-schemas-java.version>1.1.0</insights-notification-schemas-java.version>
 
     <!-- Plugins -->
@@ -162,11 +162,6 @@
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.redhat.swatch</groupId>
-        <artifactId>swatch-database-migrations</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
         <groupId>io.swagger.parser.v3</groupId>
         <artifactId>swagger-parser</artifactId>
         <version>${swagger-parser.version}</version>
@@ -214,7 +209,7 @@
       <dependency>
         <groupId>org.openapitools</groupId>
         <artifactId>jackson-databind-nullable</artifactId>
-        <version>0.2.9</version>
+        <version>0.2.10</version>
       </dependency>
       <dependency>
         <groupId>org.codehaus.janino</groupId>
@@ -566,9 +561,7 @@
         <module>swatch-model-events</module>
         <module>swatch-model-metrics-hbi</module>
         <module>swatch-model-billable-usage</module>
-        <module>swatch-database-migrations</module>
         <!-- Services -->
-        <module>swatch-database</module>
         <module>swatch-tally</module>
         <module>swatch-system-conduit</module>
         <module>swatch-billable-usage</module>

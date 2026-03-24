@@ -95,6 +95,8 @@ spring:
         order_updates: true
   liquibase:
     change-log: classpath:/liquibase/changelog.xml
+    show-summary: summary
+    show-summary-output: all
   kafka:
     bootstrap-servers: ${clowder.kafka.brokers:localhost:9092}
     properties:

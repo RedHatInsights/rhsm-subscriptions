@@ -1277,6 +1277,28 @@ This section validates capacity calculations across time boundaries. Tests verif
   - Subscription not included in any snapshots
   - All snapshots have value=0 or a minimal value from other subscriptions
 
+## Subscription Table vs Capacity Graph Consistency
+
+This section validates that the subscription table API (V2 SKU capacity) and the capacity graph API (V1 capacity report) return consistent capacity values. These are the two primary consumer-facing views of subscription capacity, and SWATCH-15 requires they agree.
+
+**subscription-table-capacity-graph-TC001 - Subscription table matches capacity graph for active subscription**
+- **Description**: Verify that the subscription table API and the capacity graph API return the same capacity value for a subscription that is currently active. Each product is tested with its primary metric (RHEL → Sockets, OpenShift → Cores).
+- **Setup**:
+  - Create an offering with capacity for the product's primary metric
+  - Sync the offering
+  - Create a subscription ensuring "today" falls within the active window
+  - Save the subscription
+- **Action**:
+  - `GET /api/rhsm-subscriptions/v2/subscriptions/products/{product_id}` — read measurements from the subscription table
+  - `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}` — read today's capacity from the capacity graph
+- **Verification**: Compare the capacity values returned by both APIs.
+- **Expected Results**:
+  - Both APIs return the same non-zero capacity value
+  - Capacity value is greater than 0 (confirming subscription was successfully created and reconciled)
+- **Products tested**:
+  - "RHEL for x86" with metric Sockets
+  - "OpenShift Container Platform" with metric Cores
+
 ## Capacity Reconciliation
 ### Offering-Level Reconciliation
 **capacity-reconciliation-TC001 - Reconcile Capacity for Single Offering**
