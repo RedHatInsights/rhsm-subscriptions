@@ -87,6 +87,54 @@ public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest
     thenNotificationShouldBeSent();
   }
 
+  /**
+   * Verify that when the summary carries a specific service level and usage type, the counter
+   * increments on that time series (not on the series where both {@code sla} and {@code usage} are
+   * {@code _ANY}, which applies when neither dimension is specific on the payload) and the
+   * notification context includes them.
+   */
+  @Test
+  void shouldIncrementOverUsageCounter_whenSlaAndUsageAreSet() {
+    givenUtilizationSummaryForPaygProduct(Granularity.HOURLY);
+    utilizationSummary
+        .withSla(UtilizationSummary.Sla.PREMIUM)
+        .withUsage(UtilizationSummary.Usage.PRODUCTION);
+    givenMetricUsageExceedsThreshold(MetricIdUtils.getCores());
+
+    double initialLabeled =
+        overUsageMetricCount(
+            MetricIdUtils.getCores(),
+            UtilizationSummary.Sla.PREMIUM,
+            UtilizationSummary.Usage.PRODUCTION);
+    double initialBothSlaUsageAny = overUsageMetricCount(MetricIdUtils.getCores());
+
+    whenUtilizationEventIsReceived();
+
+    untilAsserted(
+        () -> {
+          assertThat(
+              "Labeled series (Premium, Production) should gain one increment",
+              overUsageMetricCount(
+                      MetricIdUtils.getCores(),
+                      UtilizationSummary.Sla.PREMIUM,
+                      UtilizationSummary.Usage.PRODUCTION)
+                  - initialLabeled,
+              equalTo(EXPECTED_SINGLE_INCREMENT));
+          assertThat(
+              "Series with both sla and usage _ANY should be unchanged",
+              overUsageMetricCount(MetricIdUtils.getCores()) - initialBothSlaUsageAny,
+              equalTo(0.0));
+        });
+
+    thenNotificationShouldBeSent(
+        Product.ROSA.getName(),
+        MetricIdUtils.getCores(),
+        USAGE_EXCEEDING_THRESHOLD,
+        BASELINE_CAPACITY,
+        "Premium",
+        "Production");
+  }
+
   /** Verify over-usage counter is not incremented when usage is below threshold. */
   @Test
   void shouldNotIncrementOverUsageCounter_whenUsageBelowThreshold() {
@@ -135,8 +183,7 @@ public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest
   /** Verify only measurements exceeding threshold increment counter. */
   @Test
   void shouldIncrementCounterOnlyForMeasurementsExceedingThreshold() {
-    double initialInstanceHoursCount =
-        service.getMetricByTags(OVER_USAGE_METRIC, metricIdTag(MetricIdUtils.getInstanceHours()));
+    double initialInstanceHoursCount = overUsageMetricCount(MetricIdUtils.getInstanceHours());
 
     givenUtilizationSummaryForPaygProduct(Granularity.HOURLY);
     givenMetricUsageDoesNotExceedThreshold(MetricIdUtils.getCores());
@@ -147,9 +194,7 @@ public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest
     // Counter should increment by exactly 1 (only the second measurement)
     untilAsserted(
         () -> {
-          double currentCount =
-              service.getMetricByTags(
-                  OVER_USAGE_METRIC, metricIdTag(MetricIdUtils.getInstanceHours()));
+          double currentCount = overUsageMetricCount(MetricIdUtils.getInstanceHours());
           assertThat(
               "Counter should increment by exactly 1 for the one measurement exceeding threshold",
               currentCount - initialInstanceHoursCount,
@@ -200,8 +245,7 @@ public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest
             .withMeasurements(new ArrayList<>());
 
     for (String metric : List.of(OVER_USAGE_METRIC)) {
-      double initialCount =
-          service.getMetricByTags(metric, metricIdTag(product.getFirstMetricId()));
+      double initialCount = overUsageMetricCount(product.getFirstMetricId());
       initialCounters.put(metric, initialCount);
     }
   }
@@ -221,7 +265,7 @@ public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest
     MetricId metricId = Product.fromString(utilizationSummary.getProductId()).getFirstMetricId();
     untilAsserted(
         () -> {
-          double currentCount = service.getMetricByTags(metric, metricIdTag(metricId));
+          double currentCount = overUsageMetricCount(metricId);
           assertThat(
               metric + " counter should be incremented", currentCount, greaterThan(initialCount));
         });
@@ -234,8 +278,7 @@ public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest
         .pollDelay(MESSAGE_PROCESSING_DELAY)
         .untilAsserted(
             () -> {
-              double currentCount =
-                  service.getMetricByTags(OVER_USAGE_METRIC, metricIdTag(metricId));
+              double currentCount = overUsageMetricCount(metricId);
               assertThat(
                   "Over-usage counter should not change", currentCount, equalTo(initialCount));
             });
