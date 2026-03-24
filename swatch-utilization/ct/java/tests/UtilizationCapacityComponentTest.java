@@ -97,6 +97,41 @@ public class UtilizationCapacityComponentTest extends BaseUtilizationComponentTe
     thenOverUsageCounterShouldNotChange();
   }
 
+  @TestPlanName("utilization-capacity-TC004")
+  @Test
+  void shouldNotIncrementOverUsageCounter_whenCapacityIsZero_withSlaAndUsageSet() {
+    givenUtilizationSummaryForProduct(Product.ROSA);
+    utilizationSummary
+        .withSla(UtilizationSummary.Sla.PREMIUM)
+        .withUsage(UtilizationSummary.Usage.PRODUCTION);
+    givenMeasurementWithCapacity(POSITIVE_USAGE, ZERO_CAPACITY, false);
+
+    double initialExplicit =
+        overUsageMetricCount(
+            Product.ROSA.getFirstMetricId(),
+            UtilizationSummary.Sla.PREMIUM,
+            UtilizationSummary.Usage.PRODUCTION);
+    double initialBothSlaUsageAny = overUsageMetricCount(Product.ROSA.getFirstMetricId());
+
+    whenUtilizationEventIsReceived();
+
+    Product product = Product.ROSA;
+    AwaitilityUtils.untilAsserted(
+        () -> {
+          Assertions.assertEquals(
+              initialExplicit,
+              overUsageMetricCount(
+                  product.getFirstMetricId(),
+                  UtilizationSummary.Sla.PREMIUM,
+                  UtilizationSummary.Usage.PRODUCTION),
+              "Counter for Premium/Production labels should not change when capacity is invalid");
+          Assertions.assertEquals(
+              initialBothSlaUsageAny,
+              overUsageMetricCount(product.getFirstMetricId()),
+              "Counter with both sla and usage _ANY should not change when capacity is invalid");
+        });
+  }
+
   private void givenUtilizationSummaryForProduct(Product product) {
     utilizationSummary =
         new UtilizationSummary()
@@ -106,8 +141,7 @@ public class UtilizationCapacityComponentTest extends BaseUtilizationComponentTe
             .withBillingAccountId(RandomUtils.generateRandom())
             .withMeasurements(new ArrayList<>());
 
-    initialOverUsageCount =
-        service.getMetricByTags(OVER_USAGE_METRIC, metricIdTag(product.getFirstMetricId()));
+    initialOverUsageCount = overUsageMetricCount(product.getFirstMetricId());
   }
 
   private void givenMeasurementWithCapacity(
@@ -131,8 +165,7 @@ public class UtilizationCapacityComponentTest extends BaseUtilizationComponentTe
     Product product = Product.fromString(utilizationSummary.getProductId());
     AwaitilityUtils.untilAsserted(
         () -> {
-          double currentCount =
-              service.getMetricByTags(OVER_USAGE_METRIC, metricIdTag(product.getFirstMetricId()));
+          double currentCount = overUsageMetricCount(product.getFirstMetricId());
           Assertions.assertEquals(
               initialOverUsageCount, currentCount, "Over-usage counter should not change");
         });
