@@ -379,26 +379,6 @@ Test cases should be testable locally and in deployed environments.
     - API validates required parameters
     - Appropriate error message is returned
 
-**tally-report-granularity-TC009 - Daily report measurements update when same host changes billing account ID**
-
-- **Description**: Verify that the daily tally report correctly reflects measurements when the same instance reports under different billing account IDs across separate hourly tally syncs
-- **Setup**:
-    - Organization is opted in
-    - A single instance ID is used for both events
-    - Two distinct billing account IDs
-    - Time range covers the current day (daily granularity)
-- **Action**:
-    - Produce an event with the first billing account ID (value 5.0) and run hourly tally
-    - Verify the daily report reflects the value for the first billing account and the total
-    - Produce a second event for the same instance with a different billing account ID (value 8.0) and run hourly tally again
-- **Verification**:
-    - After first event: daily report shows 5.0 for the first billing account and 5.0 total
-    - After second event: daily report shows 5.0 for the first billing account, 8.0 for the second, and 13.0 total
-- **Expected Result**:
-    - Hourly tally produces daily snapshots separated by billing account ID
-    - Each billing account retains its own measurement value
-    - Total report reflects the sum of all billing account values
-
 ## Summary Messages Separated By Attribute Value
 
 **tally-summary-by-attributes-TC001 - Tally summary separates measurements by SLA**

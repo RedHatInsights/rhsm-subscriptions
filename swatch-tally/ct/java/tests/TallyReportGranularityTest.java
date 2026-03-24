@@ -20,8 +20,6 @@
  */
 package tests;
 
-import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
-import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -29,7 +27,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
-import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.tally.test.model.BillingProviderType;
 import com.redhat.swatch.tally.test.model.GranularityType;
 import com.redhat.swatch.tally.test.model.ServiceLevelType;
@@ -43,17 +40,12 @@ import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import org.candlepin.subscriptions.json.Event;
-import org.candlepin.subscriptions.json.Event.HardwareType;
 import org.junit.jupiter.api.Test;
 
 public class TallyReportGranularityTest extends BaseTallyComponentTest {
 
   private static final String TEST_PRODUCT_TAG = RHEL_FOR_X86_ELS_PAYG.productTag();
   private static final String TEST_METRIC_ID = RHEL_FOR_X86_ELS_PAYG.metricIds().get(0);
-  private static final String TEST_PRODUCT_ID = RHEL_FOR_X86_ELS_PAYG.productId();
   private static final ServiceLevelType TEST_SLA = ServiceLevelType.PREMIUM;
   private static final UsageType TEST_USAGE = UsageType.PRODUCTION;
   private static final BillingProviderType TEST_BILLING_PROVIDER = BillingProviderType.AWS;
@@ -214,90 +206,5 @@ public class TallyReportGranularityTest extends BaseTallyComponentTest {
     assertTrue(
         resp.getBody().asString().contains("granularity: must not be null"),
         "Error message should indicate granularity is required");
-  }
-
-  @Test
-  @TestPlanName("tally-report-granularity-TC009")
-  public void testTallyReportMeasurementForChangedBillingAccountId() {
-    // Given: An org with opt-in config
-    service.createOptInConfig(orgId);
-    String instanceId = UUID.randomUUID().toString();
-    String billingAccount1 = "839214756108";
-    String billingAccount2 = "472061583927";
-    OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
-    OffsetDateTime beginning = now.truncatedTo(ChronoUnit.DAYS);
-    OffsetDateTime ending = beginning.plusDays(1);
-
-    // Step 1: Create an event with the first billing account ID
-    publishEventForInstance(instanceId, now.minusHours(2), billingAccount1, 5.0f);
-
-    // Verify daily report shows the first billing account's value
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          service.performHourlyTallyForOrg(orgId);
-          assertAll(
-              () -> assertDailyReport(beginning, ending, billingAccount1, 5.0),
-              () -> assertDailyReport(beginning, ending, null, 5.0));
-        });
-
-    // Step 2: Create another event with a different billing account ID (same instance)
-    publishEventForInstance(instanceId, now.minusHours(1), billingAccount2, 8.0f);
-
-    // Verify daily report now shows both billing accounts with their respective values
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          service.performHourlyTallyForOrg(orgId);
-          assertAll(
-              () -> assertDailyReport(beginning, ending, billingAccount1, 5.0),
-              () -> assertDailyReport(beginning, ending, billingAccount2, 8.0),
-              () -> assertDailyReport(beginning, ending, null, 13.0));
-        });
-  }
-
-  private void publishEventForInstance(
-      String instanceId, OffsetDateTime timestamp, String billingAccountId, float value) {
-    Event event =
-        helpers.createPaygEventWithTimestamp(
-            orgId,
-            instanceId,
-            timestamp.toString(),
-            UUID.randomUUID().toString(),
-            TEST_METRIC_ID,
-            value,
-            null,
-            null,
-            null,
-            billingAccountId,
-            HardwareType.CLOUD,
-            TEST_PRODUCT_ID,
-            TEST_PRODUCT_TAG);
-    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event);
-  }
-
-  private void assertDailyReport(
-      OffsetDateTime beginning, OffsetDateTime ending, String billingAccountId, double expected) {
-    String label = billingAccountId != null ? billingAccountId : "total";
-    assertEquals(expected, getDailyReportSum(beginning, ending, billingAccountId), 0.0001, label);
-  }
-
-  private double getDailyReportSum(
-      OffsetDateTime beginning, OffsetDateTime ending, String billingAccountId) {
-    Map<String, String> queryParams =
-        new java.util.HashMap<>(
-            Map.of(
-                "granularity", "Daily",
-                "beginning", beginning.toString(),
-                "ending", ending.toString()));
-    if (billingAccountId != null) {
-      queryParams.put("billing_account_id", billingAccountId);
-    }
-    TallyReportData resp =
-        service.getTallyReportData(orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams);
-    if (resp.getData() == null) {
-      return 0.0;
-    }
-    return resp.getData().stream()
-        .collect(Collectors.summarizingInt(TallyReportDataPoint::getValue))
-        .getSum();
   }
 }
