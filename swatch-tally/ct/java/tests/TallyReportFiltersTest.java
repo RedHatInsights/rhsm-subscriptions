@@ -20,6 +20,15 @@
  */
 package tests;
 
+import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
+
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.tally.test.model.BillingProviderType;
@@ -31,9 +40,6 @@ import com.redhat.swatch.tally.test.model.TallyReportDataPoint;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.UsageType;
 import io.restassured.response.Response;
-import org.candlepin.subscriptions.json.Event;
-import org.junit.jupiter.api.Test;
-
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -43,14 +49,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
-
-import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
+import java.util.stream.Collectors;
+import org.candlepin.subscriptions.json.Event;
+import org.junit.jupiter.api.Test;
 
 public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
@@ -1116,6 +1117,44 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
     thenGranularityReportWithAllFiltersIsValid("Yearly", GranularityType.YEARLY, beginning, ending);
   }
 
+  @Test
+  @TestPlanName("tally-report-filters-TC024")
+  public void shouldTrackBillingAccountChangeForSameInstance() {
+    // Given: An org with opt-in config and an instance that will change billing accounts
+    service.createOptInConfig(orgId);
+    String instanceId = UUID.randomUUID().toString();
+    String billingAccount1 = "839214756108";
+    String billingAccount2 = "472061583927";
+    OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+    OffsetDateTime beginning = now.truncatedTo(ChronoUnit.DAYS);
+    OffsetDateTime ending = beginning.plusDays(1);
+
+    // When: First event is published with billing account 1
+    givenEventPublishedForInstance(instanceId, now.minusHours(2), billingAccount1, 5.0f);
+
+    // Then: Daily report shows the first billing account's value
+    AwaitilityUtils.untilAsserted(
+        () -> {
+          service.performHourlyTallyForOrg(orgId);
+          assertAll(
+              () -> thenDailyReportContainsValue(beginning, ending, billingAccount1, 5.0),
+              () -> thenDailyReportContainsValue(beginning, ending, null, 5.0));
+        });
+
+    // When: Second event is published with billing account 2 for the same instance
+    givenEventPublishedForInstance(instanceId, now.minusHours(1), billingAccount2, 8.0f);
+
+    // Then: Daily report shows both billing accounts with their respective values
+    AwaitilityUtils.untilAsserted(
+        () -> {
+          service.performHourlyTallyForOrg(orgId);
+          assertAll(
+              () -> thenDailyReportContainsValue(beginning, ending, billingAccount1, 5.0),
+              () -> thenDailyReportContainsValue(beginning, ending, billingAccount2, 8.0),
+              () -> thenDailyReportContainsValue(beginning, ending, null, 13.0));
+        });
+  }
+
   private OffsetDateTime calculateQuarterStart() {
     OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
     int currentQuarterStartMonth = ((now.getMonthValue() - 1) / 3) * 3 + 1;
@@ -1123,6 +1162,34 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         .truncatedTo(ChronoUnit.DAYS)
         .withDayOfMonth(1)
         .withMonth(currentQuarterStartMonth);
+  }
+
+  private void givenEventPublishedForInstance(
+      String instanceId, OffsetDateTime timestamp, String billingAccountId, float value) {
+    Event event =
+        helpers.createEventWithTimestamp(
+            orgId,
+            instanceId,
+            timestamp.toString(),
+            UUID.randomUUID().toString(),
+            TEST_METRIC_ID,
+            value,
+            Event.Sla.PREMIUM,
+            Event.HardwareType.CLOUD,
+            TEST_PRODUCT_ID,
+            TEST_PRODUCT_TAG);
+    event.setBillingAccountId(Optional.of(billingAccountId));
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event);
+  }
+
+  private void thenDailyReportContainsValue(
+      OffsetDateTime beginning, OffsetDateTime ending, String billingAccountId, double expected) {
+    String label = billingAccountId != null ? billingAccountId : "total";
+    assertEquals(
+        expected,
+        getDailyReportSum(beginning, ending, billingAccountId),
+        0.0001,
+        "Daily report for " + label + " should contain expected value");
   }
 
   private void thenGranularityReportWithAllFiltersIsValid(
@@ -1173,5 +1240,26 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         TEST_BILLING_ACCOUNT_ID,
         meta.getBillingAcountId(),
         "Billing account ID should match request");
+  }
+
+  private double getDailyReportSum(
+      OffsetDateTime beginning, OffsetDateTime ending, String billingAccountId) {
+    Map<String, String> queryParams =
+        new HashMap<>(
+            Map.of(
+                "granularity", "Daily",
+                "beginning", beginning.toString(),
+                "ending", ending.toString()));
+    if (billingAccountId != null) {
+      queryParams.put("billing_account_id", billingAccountId);
+    }
+    TallyReportData response =
+        service.getTallyReportData(orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, queryParams);
+    if (response.getData() == null) {
+      return 0.0;
+    }
+    return response.getData().stream()
+        .collect(Collectors.summarizingInt(TallyReportDataPoint::getValue))
+        .getSum();
   }
 }

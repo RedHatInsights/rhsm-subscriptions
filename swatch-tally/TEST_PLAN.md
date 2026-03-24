@@ -656,6 +656,28 @@ Test cases should be testable locally and in deployed environments.
     - API accepts and processes yearly granularity queries
     - All filter parameters are properly reflected in response metadata
 
+**tally-report-filters-TC024 - Daily report tracks billing account change for same instance**
+
+- **Description**: Verify that daily tally reports correctly track measurements when a single instance changes its billing account ID
+- **Setup**:
+    - Organization is opted in
+    - Single instance identified by instanceId
+    - First event published with billing_account_id=839214756108 (value 5.0) at T-2 hours
+    - Second event published with billing_account_id=472061583927 (value 8.0) at T-1 hour for same instance
+    - Events timestamped within the same day
+    - Hourly tally is performed after each event
+- **Action**:
+    - Request daily tally report filtered by billing_account_id=839214756108
+    - Request daily tally report filtered by billing_account_id=472061583927
+    - Request daily tally report with no billing account filter
+- **Verification**:
+    - Report for billing_account_id=839214756108 shows value 5.0
+    - Report for billing_account_id=472061583927 shows value 8.0
+    - Report with no filter shows total value 13.0 (5.0 + 8.0)
+- **Expected Result**:
+    - Daily reports correctly attribute measurements to respective billing accounts when an instance changes billing account ID
+    - Total aggregated value equals the sum of individual billing account values
+
 ## SLA Filtering
 
 **tally-sla-filters-TC001 - SLA filter counts**
