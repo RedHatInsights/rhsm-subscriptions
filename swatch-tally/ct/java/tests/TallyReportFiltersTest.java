@@ -102,8 +102,22 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
   private TallyReportData whenQueryingTallyReportWithFilter(
       OffsetDateTime timestamp, Map<String, ?> filterParams) {
+    return whenQueryingTallyReportWithFilter(timestamp, filterParams, 2);
+  }
 
-    service.performHourlyTallyForOrg(orgId);
+  private TallyReportData whenQueryingTallyReportWithFilter(
+      OffsetDateTime timestamp, Map<String, ?> filterParams, int expectedMessages) {
+
+    // Wait for hourly tally to complete by polling for Kafka messages
+    // This ensures snapshots are created before we query
+    helpers.pollForTallySyncAndMessages(
+        orgId,
+        TEST_PRODUCT_TAG,
+        TEST_METRIC_ID,
+        Granularity.HOURLY,
+        expectedMessages,
+        service,
+        kafkaBridge);
 
     OffsetDateTime beginning = timestamp.truncatedTo(ChronoUnit.HOURS);
     OffsetDateTime ending = beginning.plusHours(1).minusNanos(1);
@@ -456,7 +470,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
     // When: Performing tally and querying with matching filter
     TallyReportData response =
-        whenQueryingTallyReportWithFilter(timestamp, Map.of("sla", ServiceLevelType.PREMIUM));
+        whenQueryingTallyReportWithFilter(timestamp, Map.of("sla", ServiceLevelType.PREMIUM), 1);
 
     // Then: Response should aggregate all three events
     TallyReportDataMeta meta = thenMetadataShouldExist(response);
@@ -519,7 +533,8 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
     // When: Querying with SELF_SUPPORT filter
     TallyReportData response =
-        whenQueryingTallyReportWithFilter(timestamp, Map.of("sla", ServiceLevelType.SELF_SUPPORT));
+        whenQueryingTallyReportWithFilter(
+            timestamp, Map.of("sla", ServiceLevelType.SELF_SUPPORT), 3);
 
     // Then: Response should contain only SELF_SUPPORT data
     TallyReportDataMeta meta = thenMetadataShouldExist(response);
@@ -589,7 +604,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event3);
 
     // When: Querying with NO optional filters (only required params)
-    TallyReportData response = whenQueryingTallyReportWithFilter(timestamp, Map.of());
+    TallyReportData response = whenQueryingTallyReportWithFilter(timestamp, Map.of(), 3);
 
     // Then: Response should contain the sum of ALL events regardless of their attributes
     TallyReportDataMeta meta = thenMetadataShouldExist(response);
