@@ -66,6 +66,11 @@ public class PrometheusMetricData {
 
   public String toOpenMetrics(String clusterId, String metricName) {
     StringBuilder sb = new StringBuilder();
+    // Do not think this is still needed
+    sb.append("# TYPE system_cpu_logical_count gauge\n");
+    sb.append("# HELP system_cpu_logical_count logical CPU count for metering.\n");
+    sb.append("# TYPE ").append(metricName).append(" gauge\n");
+    sb.append("# HELP ").append(metricName).append(" subscription vCPU labels.\n");
 
     for (TimeValuePair value : values) {
       long timestampSeconds = (long) value.getTimestamp();
@@ -85,7 +90,8 @@ public class PrometheusMetricData {
       sb.append("billing_marketplace_account=\"").append(billingAccountId).append("\",");
       sb.append("product=\"").append(product).append("\",");
       sb.append("metered_by_rh=\"true\"");
-      sb.append("} 1.0 ").append(timestampSeconds).append("\n");
+      // Same for this
+      sb.append("} ").append(value.getValue()).append(' ').append(timestampSeconds).append("\n");
 
       // Write the actual metric value (e.g., subscription_labels_vcpus) - Python line 211-212
       sb.append(metricName).append("{");
@@ -118,7 +124,7 @@ public class PrometheusMetricData {
       sb.append("billing_marketplace_account=\"").append(billingAccountId).append("\",");
       sb.append("product=\"").append(product).append("\",");
       sb.append("metered_by_rh=\"true\"");
-      sb.append("} 1.0 ").append(timestampMillis).append("\n");
+      sb.append("} ").append(value.getValue()).append(' ').append(timestampMillis).append("\n");
 
       // Write the actual metric value (e.g., subscription_labels_vcpus)
       sb.append(metricName).append("{");
