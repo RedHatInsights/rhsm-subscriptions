@@ -38,7 +38,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ResteasyProviderRegistrar {
   @Bean
-  @ConditionalOnClass(name = "org.springframework.boot.test.mock.mockito.MockitoPostProcessor")
+  @ConditionalOnClass(name = "org.springframework.boot.test.context.SpringBootTest")
   public SpringBeanProcessor registerBuiltInProviders(
       @Qualifier("resteasySpringBeanProcessor") BeanFactoryPostProcessor postProcessor) {
     var springBeanProcessor = (SpringBeanProcessor) postProcessor;

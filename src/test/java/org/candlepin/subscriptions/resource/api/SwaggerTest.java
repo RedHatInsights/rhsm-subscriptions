@@ -20,21 +20,23 @@
  */
 package org.candlepin.subscriptions.resource.api;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.client.RestTestClient;
 
 /**
  * This test covers the logic in ResteasyConfiguration and the static swagger resources (to ensure
  * that point out to the correct openapi endpoints).
  */
+@AutoConfigureRestTestClient
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles({"api", "test"})
 class SwaggerTest {
@@ -43,16 +45,24 @@ class SwaggerTest {
 
   @LocalServerPort int port;
 
-  private final TestRestTemplate restTemplate =
-      new TestRestTemplate(TestRestTemplate.HttpClientOption.ENABLE_REDIRECTS);
+  private RestTestClient restClient;
+
+  @BeforeEach
+  void setup() {
+    restClient = RestTestClient.bindToServer().baseUrl(LOCALHOST + port).build();
+  }
 
   @ParameterizedTest
   @ValueSource(strings = {"swatch-tally"})
   void testSwaggerPage(String app) {
-    ResponseEntity<String> response =
-        restTemplate.getForEntity(
-            LOCALHOST + port + "/api/" + app + "/internal/swagger-ui", String.class);
-    assertNotNull(response.getBody());
-    assertTrue(response.getBody().contains("API Docs"));
+    restClient
+        .get()
+        .uri("/api/" + app + "/internal/swagger-ui/index.html")
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectBody(String.class)
+        .value(Assertions::assertNotNull)
+        .value(body -> assertTrue(body.contains("API Docs")));
   }
 }

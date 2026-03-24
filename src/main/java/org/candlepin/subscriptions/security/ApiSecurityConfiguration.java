@@ -26,8 +26,8 @@ import org.candlepin.subscriptions.rbac.RbacProperties;
 import org.candlepin.subscriptions.rbac.RbacService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.boot.actuate.autoconfigure.web.server.ManagementServerProperties;
+import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -43,7 +43,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.csrf.CsrfFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
 /**
  * Configuration class for Spring Security.
@@ -81,16 +81,21 @@ public class ApiSecurityConfiguration {
 
   private static final String[] URLS_PERMITTED_WITHOUT_AUTH =
       new String[] {
-        "/**/*openapi.yaml",
-        "/**/*openapi.json",
-        "/**/version",
-        "/**/error",
+        // Internal tally API specs (e.g. /api/rhsm-subscriptions/internal-tally-openapi.yaml):
+        "/api/rhsm-subscriptions/*openapi.yaml",
+        "/api/rhsm-subscriptions/*openapi.json",
+        // Public v1 API specs (e.g. /api/rhsm-subscriptions/v1/openapi.yaml):
+        "/api/rhsm-subscriptions/v1/*openapi.yaml",
+        "/api/rhsm-subscriptions/v1/*openapi.json",
+        "/api/rhsm-subscriptions/v1/version",
+        "/error",
         "/api-docs/**",
-        "/**/*spec.yaml",
-        // Swagger UI:
-        "/**/swagger-ui",
-        "/**/swagger-ui/index.html",
-        "/**/favicon.ico",
+        "/api/rhsm-subscriptions/*spec.yaml",
+        // Swagger UI (static resources, not under the JAX-RS ApplicationPath):
+        "/api/swatch-tally/internal/swagger-ui",
+        "/api/swatch-tally/internal/swagger-ui/",
+        "/api/swatch-tally/internal/swagger-ui/index.html",
+        "/api/swatch-tally/internal/favicon.ico",
         "/webjars/**",
       };
 
@@ -225,7 +230,7 @@ public class ApiSecurityConfiguration {
         .authorizeHttpRequests(
             requests -> {
               for (String url : URLS_PERMITTED_WITHOUT_AUTH) {
-                requests.requestMatchers(new AntPathRequestMatcher(url)).permitAll();
+                requests.requestMatchers(PathPatternRequestMatcher.pathPattern(url)).permitAll();
               }
               requests.requestMatchers(this::isDummyRequest).permitAll();
               requests
@@ -241,10 +246,14 @@ public class ApiSecurityConfiguration {
                * applied to the defined path ("//metrics") rather than the de facto path ("/metrics").
                * Accordingly, I've put in a custom rule in the security config to allow for access to "/metrics"
                */
-              requests.requestMatchers(new AntPathRequestMatcher("/metrics")).permitAll();
+              requests
+                  .requestMatchers(PathPatternRequestMatcher.pathPattern("/metrics"))
+                  .permitAll();
               // Intentionally not prefixed with "ROLE_"
               requests
-                  .requestMatchers(new AntPathRequestMatcher("/**/internal/**"))
+                  .requestMatchers(
+                      PathPatternRequestMatcher.pathPattern(
+                          "/api/rhsm-subscriptions" + "/v1/internal/**"))
                   .hasRole("INTERNAL");
               /* For Spring Security 6, we can use
                * .access(
@@ -253,10 +262,9 @@ public class ApiSecurityConfiguration {
                */
               requests
                   .requestMatchers(
-                      new AntPathRequestMatcher("/**/capacity/**"),
-                      new AntPathRequestMatcher("/**/tally/**"),
-                      new AntPathRequestMatcher("/**/hosts/**"),
-                      new AntPathRequestMatcher("/**/instances/**"))
+                      PathPatternRequestMatcher.pathPattern("/api/rhsm-subscriptions/v1/tally/**"),
+                      PathPatternRequestMatcher.pathPattern(
+                          "/api/rhsm-subscriptions/v1/instances" + "/**"))
                   .access(
                       (auth, req) ->
                           new AuthorizationDecision(optInChecker.checkAccess(auth.get())));

@@ -21,23 +21,28 @@
 package org.candlepin.subscriptions.deployment;
 
 import static com.redhat.swatch.traceresponse.TraceResponseFilter.TRACE_RESPONSE_HEADER;
+import static org.candlepin.subscriptions.security.IdentityHeaderAuthenticationFilter.RH_IDENTITY_HEADER;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.candlepin.subscriptions.ConduitBaseTest;
 import org.candlepin.subscriptions.SystemConduitApplication;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.test.web.servlet.client.RestTestClient;
 
 class SystemConduitDeploymentTest extends ConduitBaseTest {
 
   @Autowired SystemConduitApplication configuration;
 
-  private final TestRestTemplate restTemplate =
-      new TestRestTemplate(TestRestTemplate.HttpClientOption.ENABLE_REDIRECTS);
+  private RestTestClient restClient;
+
+  @BeforeEach
+  void setup() {
+    restClient = RestTestClient.bindToServer().baseUrl(apiBasePath()).build();
+  }
 
   @Test
   void testDeployment() {
@@ -46,25 +51,27 @@ class SystemConduitDeploymentTest extends ConduitBaseTest {
 
   @Test
   void testSwaggerPage() {
-    ResponseEntity<String> response =
-        restTemplate.getForEntity(
-            basePath() + "/api/swatch-system-conduit/internal/swagger-ui", String.class);
-    assertTrue(response.getStatusCode().is2xxSuccessful());
-    assertNotNull(response.getBody());
-    assertTrue(response.getBody().contains("API Docs"));
+    restClient
+        .get()
+        .uri(basePath() + "/api/swatch-system-conduit/internal/swagger-ui/index.html")
+        .exchange()
+        .expectStatus()
+        .is2xxSuccessful()
+        .expectBody(String.class)
+        .value(Assertions::assertNotNull)
+        .value(body -> assertTrue(body.contains("API Docs")));
   }
 
   @Test
   void testTraceResponseHeader() {
-    ResponseEntity<Object> response =
-        restTemplate.exchange(
-            apiBasePath() + "/internal/organizations-sync-list/123",
-            HttpMethod.GET,
-            request(),
-            Object.class);
-    assertTrue(response.getHeaders().containsKey(TRACE_RESPONSE_HEADER));
-    String traceResponse = response.getHeaders().getFirst(TRACE_RESPONSE_HEADER);
-    assertNotNull(traceResponse);
-    assertTrue(traceResponse.startsWith("00-"));
+    restClient
+        .get()
+        .uri("/internal/organizations-sync-list/123")
+        .header(RH_IDENTITY_HEADER, user())
+        .exchange()
+        .expectHeader()
+        .value(TRACE_RESPONSE_HEADER, Assertions::assertNotNull)
+        .expectHeader()
+        .value(TRACE_RESPONSE_HEADER, value -> assertTrue(value.startsWith("00-")));
   }
 }

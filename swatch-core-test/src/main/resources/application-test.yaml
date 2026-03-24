@@ -22,6 +22,8 @@ logging:
       candlepin: INFO
 spring:
   jpa:
+    hibernate:
+      ddl-auto: none
     properties:
       hibernate:
         # Set the dialect to
@@ -31,3 +33,5 @@ spring:
           # determines the 'current' time in a query. NOTE: This is primarily when tests
           # are run in a local environment and the DB is running in local time zone.
           time_zone: UTC
+  liquibase:
+    drop-first: true

@@ -52,6 +52,12 @@ import org.springframework.expression.spel.support.StandardEvaluationContext;
  * exceed a given Duration. The validator operates on the last 2 string parameters of a method and
  * assumes that the begin parameter precedes the end parameter.
  */
+
+/*
+ * Not annotated as a component since the SpringConstraintValidatorFactory creates
+ * ConstraintValidator instances and then calls setBeanFactory on any BeanFactoryAware
+ * implementations.
+ */
 @SupportedValidationTarget(ValidationTarget.PARAMETERS)
 public class ParameterDurationValidator
     implements ConstraintValidator<ParameterDuration, Object[]>, BeanFactoryAware {
