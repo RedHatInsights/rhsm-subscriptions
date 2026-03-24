@@ -379,7 +379,6 @@ Test cases should be testable locally and in deployed environments.
     - API validates required parameters
     - Appropriate error message is returned
 
-## Summary Messages Separated By Attribute Value
 **tally-report-filters-TC009 - Multiple events with same filter values are aggregated**
 
 - **Description**: Verify that multiple events with identical filter attributes are properly aggregated in tally reports
@@ -679,7 +678,7 @@ Test cases should be testable locally and in deployed environments.
     - Daily reports correctly attribute measurements to respective billing accounts when an instance changes billing account ID
     - Total aggregated value equals the sum of individual billing account values
 
-## SLA Filtering
+## Summary Messages Separated By Attribute Value
 
 **tally-summary-by-attributes-TC001 - Tally summary separates measurements by SLA**
 
