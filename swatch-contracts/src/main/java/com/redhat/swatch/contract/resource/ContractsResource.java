@@ -157,21 +157,20 @@ public class ContractsResource implements DefaultApi {
       return new StatusResponse().status("No active contract found for the orgIds");
     }
     for (ContractEntity org : contracts) {
-      syncContractsByOrg(org.getOrgId(), false, false);
+      service.syncContractsByOrgId(org.getOrgId());
     }
     return new StatusResponse().status("All Contract are Synced");
   }
 
   @Override
   @RolesAllowed({"test", "support"})
-  public StatusResponse syncContractsByOrg(
-      String orgId, Boolean isPreCleanup, Boolean deleteContractsAndSubs)
+  public StatusResponse syncContractsByOrg(String orgId, Boolean deleteContractsAndSubs)
       throws ProcessingException {
     if (Boolean.TRUE.equals(deleteContractsAndSubs)) {
       service.deleteContractsByOrgId(orgId);
       service.deletePaygSubscriptionsByOrgId(orgId);
     }
-    return service.syncContractsByOrgId(orgId, isPreCleanup);
+    return service.syncContractsByOrgId(orgId);
   }
 
   @Override

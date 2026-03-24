@@ -31,8 +31,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -528,7 +526,7 @@ class ContractsResourceTest {
 
     assertEquals("No active contract found for the orgIds", response.getStatus());
     verify(contractService).getAllContracts();
-    verify(contractService, times(0)).syncContractsByOrgId(any(), anyBoolean());
+    verify(contractService, times(0)).syncContractsByOrgId(any());
   }
 
   @Test
@@ -541,13 +539,14 @@ class ContractsResourceTest {
 
     assertEquals("All Contract are Synced", response.getStatus());
     verify(contractService).getAllContracts();
-    verify(contractService).syncContractsByOrgId(ORG_ID, false);
+    verify(contractService).syncContractsByOrgId(ORG_ID);
   }
 
   @Test
-  void testSyncAllContractsDoNotCleanup() {
-    // Global sync must always call per-org sync with isPreCleanup=false (ADR-0004).
-    // Pre-cleanup is an opt-in repair tool for operators; it must not run automatically.
+  void testSyncAllContractsCallsPerOrgSync() {
+    // Global sync calls per-org sync for each org with contracts.
+    // Per ADR-0004, isPreCleanup has been removed - contracts missing from upstream
+    // are now terminated (not deleted) to preserve historical records.
     ContractEntity contract1 = new ContractEntity();
     contract1.setOrgId(ORG_ID);
     ContractEntity contract2 = new ContractEntity();
@@ -556,9 +555,8 @@ class ContractsResourceTest {
 
     whenSyncAllContractsRequest();
 
-    verify(contractService, times(0)).syncContractsByOrgId(any(), eq(true));
-    verify(contractService).syncContractsByOrgId(ORG_ID, false);
-    verify(contractService).syncContractsByOrgId(ANOTHER_ORG_ID, false);
+    verify(contractService).syncContractsByOrgId(ORG_ID);
+    verify(contractService).syncContractsByOrgId(ANOTHER_ORG_ID);
   }
 
   private StatusResponse whenSyncAllContractsRequest() {

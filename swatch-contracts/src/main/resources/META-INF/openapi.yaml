@@ -131,12 +131,6 @@ paths:
             type: string
           in: path
           required: true
-        - name: is_pre_cleanup
-          description: "When present, then delete existing contracts based on criteria"
-          schema:
-            type: boolean
-            default: false
-          in: query
         - name: delete_contracts_and_subs
           description: "When present, then delete existing contract and subscriptions before syncing"
           schema:

@@ -105,16 +105,16 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
         initialContract.toBuilder().startDate(updatedStartDate).endDate(updatedEndDate).build();
     whenContractIsUpdatedViaApi(updatedContract);
 
-    // Then: A new contract is created (old one is deleted, new one has different UUID)
+    // Then: Old contract is deleted, new contract created with different UUID
     var contracts = service.getContractsByOrgId(orgId);
-    Assertions.assertEquals(1, contracts.size(), "Should have exactly one contract");
+    Assertions.assertEquals(
+        1, contracts.size(), "Should have one contract (old deleted, new created)");
 
-    var actual = contracts.get(0);
-    // UUID is different because changing start_date creates a new contract
+    var newContract = contracts.get(0);
     Assertions.assertNotEquals(
-        initialUuid, actual.getUuid(), "UUID should be different (new contract created)");
-    thenContractDatesShouldBeUpdated(actual, updatedStartDate, updatedEndDate);
-    thenContractFieldsShouldRemainUnchanged(actual, initialContract);
+        initialUuid, newContract.getUuid(), "UUID should be different (new contract created)");
+    thenContractDatesShouldBeUpdated(newContract, updatedStartDate, updatedEndDate);
+    thenContractFieldsShouldRemainUnchanged(newContract, initialContract);
   }
 
   @TestPlanName("contracts-update-TC004")

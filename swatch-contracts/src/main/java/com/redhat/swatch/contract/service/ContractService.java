@@ -461,31 +461,22 @@ public class ContractService {
   }
 
   @Transactional
-  public StatusResponse syncContractsByOrgId(String contractOrgSync, boolean isPreCleanup) {
+  public StatusResponse syncContractsByOrgId(String contractOrgSync) {
     StatusResponse statusResponse = new StatusResponse();
 
     try {
-      if (isPreCleanup) {
-        long deletedRecords = deleteCurrentlyActiveContractsByOrgId(contractOrgSync);
-        log.info(
-            "Total contract deleted for org {} during pre cleanup {}",
-            contractOrgSync,
-            deletedRecords);
-      }
-
-      boolean anyContractsSynced = false;
+      Set<String> upstreamBillingProviderIds = new HashSet<>();
       int totalPages = 1;
       for (int pageNumber = 0; pageNumber < totalPages; pageNumber++) {
-        var result = syncContractsByOrgId(contractOrgSync, pageNumber);
-        if (Objects.nonNull(result.getContent()) && !result.getContent().isEmpty()) {
-          anyContractsSynced = true;
-        }
+        var result = syncContractsByOrgId(contractOrgSync, pageNumber, upstreamBillingProviderIds);
         if (result.getPage() != null && result.getPage().getTotalPages() != null) {
           totalPages = result.getPage().getTotalPages();
         }
       }
 
-      if (anyContractsSynced) {
+      terminateContractsNotInUpstream(contractOrgSync, upstreamBillingProviderIds);
+
+      if (!upstreamBillingProviderIds.isEmpty()) {
         statusResponse.setMessage("Contracts Synced for " + contractOrgSync);
         statusResponse.setStatus(SUCCESS_MESSAGE);
       } else {
@@ -504,6 +495,55 @@ public class ContractService {
       return statusResponse;
     }
     return statusResponse;
+  }
+
+  private void terminateContractsNotInUpstream(
+      String orgId, Set<String> upstreamBillingProviderIds) {
+    var now = OffsetDateTime.now();
+    var orphanedContracts =
+        contractRepository.getContractsByOrgId(orgId).stream()
+            .filter(contract -> contract.getEndDate() == null || contract.getEndDate().isAfter(now))
+            .filter(
+                contract ->
+                    contract.getBillingProviderId() == null
+                        || !upstreamBillingProviderIds.contains(contract.getBillingProviderId()))
+            .toList();
+
+    if (!orphanedContracts.isEmpty()) {
+      log.info(
+          "Terminating {} orphaned contract(s) for org {} not found in upstream",
+          orphanedContracts.size(),
+          orgId);
+      orphanedContracts.forEach(
+          contract -> {
+            log.info(
+                "Terminating contract that no longer exists in upstream partner API: {}", contract);
+            contract.setEndDate(now);
+            persistContract(contract, now);
+          });
+
+      // Flush changes to ensure they're written to database
+      contractRepository.flush();
+
+      orphanedContracts.forEach(
+          contract -> {
+            var subscriptions =
+                subscriptionRepository.findBySubscriptionNumber(contract.getSubscriptionNumber());
+            subscriptions.stream()
+                .filter(sub -> sub.getEndDate() == null || sub.getEndDate().isAfter(now))
+                .forEach(
+                    sub -> {
+                      log.info(
+                          "Terminating subscription that no longer exists in upstream partner API: {}",
+                          sub);
+                      sub.setEndDate(now);
+                      subscriptionRepository.persist(sub);
+                    });
+          });
+
+      // Flush subscription changes
+      subscriptionRepository.flush();
+    }
   }
 
   @Transactional
@@ -531,8 +571,8 @@ public class ContractService {
     return statusResponse;
   }
 
-  private PartnerEntitlements syncContractsByOrgId(String orgId, int pageNumber)
-      throws ApiException {
+  private PartnerEntitlements syncContractsByOrgId(
+      String orgId, int pageNumber, Set<String> upstreamBillingProviderIds) throws ApiException {
     PageRequest page = new PageRequest();
     page.setSize(PAGE_SIZE);
     page.setNumber(pageNumber);
@@ -544,6 +584,10 @@ public class ContractService {
       for (PartnerEntitlementV1 entitlement : result.getContent()) {
         if (entitlement != null
             && ContractSourcePartnerEnum.isSupported(entitlement.getSourcePartner())) {
+          String bpId = contractEntityMapper.extractBillingProviderId(entitlement);
+          if (bpId != null) {
+            upstreamBillingProviderIds.add(bpId);
+          }
           tryUpsertPartnerContract(entitlement);
         }
       }
@@ -654,10 +698,6 @@ public class ContractService {
           String.format("Billing provider %s not implemented", contract.getBillingProvider()));
     }
     return contractRepository.findContracts(specification).toList();
-  }
-
-  private long deleteCurrentlyActiveContractsByOrgId(String orgId) {
-    return contractRepository.deleteContractsByOrgIdForEmptyValues(orgId);
   }
 
   private List<ContractEntity> mapUpstreamContractToContractEntities(

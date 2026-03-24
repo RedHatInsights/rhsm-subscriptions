@@ -409,17 +409,15 @@ public class ContractsSwatchService extends SwatchService {
   }
 
   public Response syncContractsByOrg(String orgId) {
-    return syncContractsByOrg(orgId, false, false);
+    return syncContractsByOrg(orgId, false);
   }
 
-  public Response syncContractsByOrg(
-      String orgId, Boolean isPreCleanup, Boolean deleteContractsAndSubs) {
+  public Response syncContractsByOrg(String orgId, Boolean deleteContractsAndSubs) {
     Objects.requireNonNull(orgId, "orgId must not be null");
 
     String endpoint = SYNC_CONTRACTS_BY_ORG_ENDPOINT.formatted(orgId);
     return given()
         .headers(SECURITY_HEADERS)
-        .queryParam("is_pre_cleanup", isPreCleanup)
         .queryParam("delete_contracts_and_subs", deleteContractsAndSubs)
         .when()
         .post(endpoint);

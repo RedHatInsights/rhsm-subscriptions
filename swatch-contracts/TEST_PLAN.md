@@ -366,7 +366,7 @@ Test cases should be testable locally and in an ephemeral environment.
 ## Contract Update via API
 
 **contracts-update-TC003 - Replace contract when start_date changes**
-- **Description**: Verify that changing the contract start_date creates a new contract (the service matches contracts by billing_provider_id + start_date, so changing start_date means it can't find the existing contract to update).
+- **Description**: Verify that changing the contract start_date deletes the old contract and creates a new one (the service matches contracts by billing_provider_id + start_date, so changing start_date means it can't find the existing contract to update).
 - **Setup:**
   - Create a contract with:
   - `subscription_number`: "12585274"
@@ -375,17 +375,17 @@ Test cases should be testable locally and in an ephemeral environment.
   - Cores: 8
 - **Action:** Submit contract update with new start_date: "2024-02-01T00:00:00Z" and end_date: "2025-01-31T23:59:59Z"
 - **Verification:**
-  - Query contracts by `org_id` and verify changes
-  - Check the start date
-  - Check the end date
-  - Check UUID
+  - Query all contracts by `org_id`
+  - Verify only 1 contract exists (old deleted, new created)
+  - Verify UUID is different from original
 - **Expected Result:**
-  - Old contract is deleted (doesn't match IT partner gateway data)
-  - New contract is created with the updated dates
-  - UUID is different (proves new contract created, not updated)
-  - Only 1 contract exists for the org (old one deleted, new one created)
-  - Other fields unchanged (org_id, sku, metrics)
+  - Old contract is deleted
+  - New contract is created with new start_date "2024-02-01T00:00:00Z" and end_date "2025-01-31T23:59:59Z"
+  - UUID is different from original (proves new contract created, not updated)
+  - Only 1 contract exists for the org
+  - Other fields unchanged on new contract (org_id, sku, metrics)
   - Response status: "SUCCESS" (new contract created)
+  - Log message: "Deleting contract that does not align to IT partner gateway"
 
 **contracts-update-TC004 - Update contract end date (renewal)**  
 - **Description**: Verify updating the contract end date ( with a date in the future ) when the customer renews the subscription.  
@@ -650,6 +650,78 @@ Test cases should be testable locally and in an ephemeral environment.
   - All 21 contracts are created in the database (not just the first 20)
   - Contracts from the second page are present and correctly upserted
   - Status: "Success"
+
+## Contract Termination During Sync
+
+This section verifies the automatic contract termination behavior when contracts are missing from upstream during synchronization. Contracts are soft-deleted (endDate set to current timestamp) rather than hard-deleted to preserve historical records for audit and billing purposes. This behavior applies to both individual contract sync and global sync operations.
+
+**contracts-sync-TC011 - Contract missing from upstream is terminated (not deleted)**
+- **Description**: Verify that when a contract exists in SWATCH but is no longer returned by the upstream partner API during sync, it is terminated (endDate set) rather than deleted.
+- **Setup**:
+  - Create a contract for org "org123" with a valid `billing_provider_id` (format: `{vendorProductCode};{awsCustomerId};{sellerAccountId}`) and `end_date` in the future
+  - Stub upstream Partner API to return empty entitlements for the org
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/org123`
+- **Verification**:
+  - Query contract by UUID or `billing_provider_id`
+  - Verify contract record still exists in database
+  - Check `end_date` timestamp
+- **Expected Result**:
+  - HTTP 200 with StatusResponse
+  - StatusResponse message: "No contracts found in upstream for the org org123"
+  - StatusResponse status: "FAILED"
+  - Contract still exists in database (not hard deleted)
+  - Contract `end_date` is set to current timestamp (within 5 seconds of sync time)
+  - Associated subscription also has `end_date` set to same timestamp
+
+**contracts-sync-TC012 - Partial entitlement disappearance terminates only missing contracts**
+- **Description**: Verify that when an org has a contract but upstream returns a different entitlement (different `billing_provider_id`), the original contract is terminated while the new entitlement's contract is created. This handles the case where specific entitlements disappear but others remain.
+- **Setup**:
+  - Create a contract for org "org123" with a known `billing_provider_id` and `end_date` in future
+  - Stub upstream to return a different entitlement (different `vendorProductCode`, `awsCustomerId`, `sellerAccountId`)
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/org123`
+- **Verification**:
+  - Query contracts for the org
+  - Check `end_date` values for both original and new contracts
+  - Verify StatusResponse
+- **Expected Result**:
+  - HTTP 200 with StatusResponse
+  - StatusResponse message: "Contracts Synced for org123"
+  - StatusResponse status: "SUCCESS"
+  - Original contract is terminated (`end_date` set to sync timestamp)
+  - New contract from upstream is active (`end_date` null or in future)
+  - Total contract count is 2 (both preserved in database)
+
+**contracts-sync-TC013 - Already-terminated contracts are not re-terminated**
+- **Description**: Verify that contracts with an `end_date` in the past are not modified during sync when they're missing from upstream. Uses a two-phase sync approach: the first sync terminates the contract, the second sync should leave the termination timestamp unchanged.
+- **Setup**:
+  - Create a contract for org "org123" with a valid `billing_provider_id`
+  - Stub upstream to return empty entitlements
+- **Action**:
+  1. POST `/api/swatch-contracts/internal/rpc/sync/contracts/org123` (terminates the contract)
+  2. Record the `end_date` timestamp
+  3. POST `/api/swatch-contracts/internal/rpc/sync/contracts/org123` (sync again)
+- **Verification**:
+  - Query contract after both syncs
+  - Compare `end_date` values from first and second sync
+- **Expected Result**:
+  - HTTP 200 with StatusResponse on both syncs
+  - Contract `end_date` after second sync equals `end_date` after first sync (not re-terminated)
+
+**contracts-sync-TC014 - Subscription termination follows contract termination**
+- **Description**: Verify that when a contract is terminated due to being missing from upstream, its associated subscription is also terminated.
+- **Setup**:
+  - Create a contract with a valid `billing_provider_id` and `subscription_number`
+  - Stub upstream to return no entitlements for the org
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/org123`
+- **Verification**:
+  - Query contract and subscription after sync
+  - Check both `end_date` timestamps
+- **Expected Result**:
+  - HTTP 200 with StatusResponse
+  - StatusResponse message: "No contracts found in upstream for the org org123"
+  - Contract is terminated (`end_date` set to sync timestamp)
+  - Associated subscription is also terminated (`end_date` set)
+  - Both contract and subscription `end_date` values are approximately the same timestamp
 
 ## Subscription Management via UMB
 

@@ -101,7 +101,7 @@ class ContractServiceTest extends BaseUnitTest {
   private static final OffsetDateTime DEFAULT_START_DATE =
       OffsetDateTime.parse("2023-06-09T13:59:43.035365Z");
   private static final OffsetDateTime DEFAULT_END_DATE =
-      OffsetDateTime.parse("2026-02-15T13:59:43.035365Z");
+      OffsetDateTime.parse("2030-02-15T13:59:43.035365Z");
 
   @Inject ContractService contractService;
   @Inject ObjectMapper objectMapper;
@@ -205,24 +205,15 @@ class ContractServiceTest extends BaseUnitTest {
     StatusResponse statusResponse = contractService.createPartnerContract(request);
     verify(subscriptionRepository, times(2)).persist(any(SubscriptionEntity.class));
     verify(contractRepository, times(2)).persist(any(ContractEntity.class));
-
-    ArgumentCaptor<ContractEntity> contractSaveCapture =
-        ArgumentCaptor.forClass(ContractEntity.class);
-    verify(contractRepository).delete(contractSaveCapture.capture());
-    // Contract with invalid start_date is deleted
-    assertEquals(
-        OffsetDateTime.parse("2023-03-17T12:29:48.569Z"),
-        contractSaveCapture.getValue().getStartDate());
+    verify(contractRepository).delete(any());
     assertEquals("New contract created", statusResponse.getMessage());
   }
 
   @Test
   void syncContractWithExistingAndNewContracts() {
     givenExistingContract();
-    StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID, false);
+    StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID);
     assertEquals("Contracts Synced for " + ORG_ID, statusResponse.getMessage());
-    // 2 instances of subscription are created, one for the original contract, and one for the
-    // update
     verify(subscriptionRepository, times(4)).persist(any(SubscriptionEntity.class));
     verify(measurementMetricIdTransformer, times(4))
         .mapContractMetricsToSubscriptionMeasurements(any());
@@ -230,7 +221,7 @@ class ContractServiceTest extends BaseUnitTest {
 
   @Test
   void syncContractWithEmptyContractsList() {
-    StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID, false);
+    StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID);
     assertEquals("Contracts Synced for " + ORG_ID, statusResponse.getMessage());
   }
 
@@ -242,7 +233,7 @@ class ContractServiceTest extends BaseUnitTest {
     mockPartnerApiPage(List.of(entitlement1), 0, 2, 2);
     mockPartnerApiPage(List.of(entitlement2), 1, 2, 2);
 
-    StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID, false);
+    StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID);
 
     assertEquals("Contracts Synced for " + ORG_ID, statusResponse.getMessage());
     verify(subscriptionRepository, times(2)).persist(any(SubscriptionEntity.class));
@@ -253,79 +244,149 @@ class ContractServiceTest extends BaseUnitTest {
     var entitlement = givenAwsEntitlement(SUBSCRIPTION_NUMBER, DEFAULT_START_DATE);
     mockPartnerApi(new PartnerEntitlements().content(List.of(entitlement)));
 
-    StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID, false);
+    StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID);
 
     assertEquals("Contracts Synced for " + ORG_ID, statusResponse.getMessage());
     verify(subscriptionRepository).persist(any(SubscriptionEntity.class));
   }
 
   @Test
-  void syncContractByOrgWithPreCleanupDeletesContractsWithNullEndDate() throws Exception {
-    // Given: A contract with end_date=null — matches the pre-cleanup delete predicate
-    // (billing_provider_id IS NULL OR billing_provider_id='' OR end_date IS NULL)
-    givenContractEntityWithNullEndDate();
+  @Transactional
+  void syncContractByOrgTerminatesActiveContractsWhenUpstreamReturnsEmpty() throws Exception {
+    var existingContract = givenExistingContract();
 
-    // Upstream returns nothing — isolates the count assertion from re-sync side effects
     var stub = mockPartnerApi(new PartnerEntitlements().content(Collections.emptyList()));
 
-    // When: Per-org sync with isPreCleanup=true
-    contractService.syncContractsByOrgId(ORG_ID, true);
+    StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID);
 
-    // Then: The delete ran and the contract is gone
-    verify(contractRepository).deleteContractsByOrgIdForEmptyValues(ORG_ID);
-    assertEquals(0, contractRepository.getContractsByOrgId(ORG_ID).size());
+    assertEquals(
+        "No contracts found in upstream for the org " + ORG_ID, statusResponse.getMessage());
+
+    var contracts = contractRepository.getContractsByOrgId(ORG_ID);
+    assertEquals(1, contracts.size());
+    var terminatedContract = contracts.get(0);
+    assertNotNull(terminatedContract.getEndDate());
+    assertTrue(
+        terminatedContract.getEndDate().isAfter(OffsetDateTime.now().minusSeconds(5))
+            && terminatedContract.getEndDate().isBefore(OffsetDateTime.now().plusSeconds(5)));
     wireMockServer.removeStub(stub);
   }
 
   @Test
-  void syncContractByOrgWithPreCleanupDeletesContractsWithNullBillingProviderId() throws Exception {
-    // Given: A contract with billing_provider_id=null — also matches the pre-cleanup predicate
-    givenContractEntityWithNullBillingProviderId();
+  @Transactional
+  void syncContractByOrgTerminatesSubscriptionsWhenUpstreamReturnsEmpty() throws Exception {
+    var existingContract = givenExistingContract();
 
-    // Upstream returns nothing — isolates the count assertion from re-sync side effects
     var stub = mockPartnerApi(new PartnerEntitlements().content(Collections.emptyList()));
 
-    // When: Per-org sync with isPreCleanup=true
-    contractService.syncContractsByOrgId(ORG_ID, true);
+    StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID);
 
-    // Then: The delete ran and the contract is gone
-    verify(contractRepository).deleteContractsByOrgIdForEmptyValues(ORG_ID);
-    assertEquals(0, contractRepository.getContractsByOrgId(ORG_ID).size());
+    assertEquals(
+        "No contracts found in upstream for the org " + ORG_ID, statusResponse.getMessage());
+
+    var contracts = contractRepository.getContractsByOrgId(ORG_ID);
+    assertEquals(1, contracts.size());
+    assertNotNull(contracts.get(0).getEndDate());
+
+    var subscriptions =
+        subscriptionRepository.findBySubscriptionNumber(existingContract.getSubscriptionNumber());
+    assertEquals(1, subscriptions.size());
+    assertNotNull(subscriptions.get(0).getEndDate());
+
+    assertEquals(
+        contracts.get(0).getEndDate().toInstant(),
+        subscriptions.get(0).getEndDate().toInstant(),
+        "Contract and subscription should be terminated with the same timestamp");
     wireMockServer.removeStub(stub);
   }
 
   @Test
-  void syncContractByOrgWithoutPreCleanupPreservesContractsWithNullEndDate() throws Exception {
-    // Given: A contract with end_date=null
-    givenContractEntityWithNullEndDate();
+  @Transactional
+  void syncContractByOrgTerminatesContractsFromVanishedEntitlement() throws Exception {
+    var existingContract = givenExistingContract();
 
-    // Upstream returns nothing — isolates the count assertion from re-sync side effects
-    var stub = mockPartnerApi(new PartnerEntitlements().content(Collections.emptyList()));
+    // Upstream returns an entitlement with a DIFFERENT billing identity than the existing contract
+    var differentEntitlement =
+        new PartnerEntitlementV1()
+            .rhAccountId(ORG_ID)
+            .sourcePartner(ContractSourcePartnerEnum.AWS.getCode())
+            .partnerIdentities(
+                new PartnerIdentityV1()
+                    .awsCustomerId("DiffCustomer123")
+                    .customerAwsAccountId("999999999999")
+                    .sellerAccountId("999999999999"))
+            .rhEntitlements(
+                List.of(new RhEntitlementV1().sku(SKU).subscriptionNumber("different-sub")))
+            .entitlementDates(
+                new PartnerEntitlementV1EntitlementDates()
+                    .startDate(DEFAULT_START_DATE)
+                    .endDate(DEFAULT_END_DATE))
+            .purchase(
+                new PurchaseV1()
+                    .vendorProductCode("differentProductCode12345")
+                    .contracts(
+                        List.of(
+                            new SaasContractV1()
+                                .startDate(DEFAULT_START_DATE)
+                                .endDate(DEFAULT_END_DATE)
+                                .dimensions(List.of(fourCpuHourDimension("4"))))));
 
-    // When: Per-org sync with isPreCleanup=false (the global sync default per ADR-0004)
-    contractService.syncContractsByOrgId(ORG_ID, false);
+    var stub = mockPartnerApi(new PartnerEntitlements().content(List.of(differentEntitlement)));
 
-    // Then: The delete was never called and the contract is still present
-    verify(contractRepository, times(0)).deleteContractsByOrgIdForEmptyValues(any());
-    assertEquals(1, contractRepository.getContractsByOrgId(ORG_ID).size());
+    StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID);
+
+    assertEquals("Contracts Synced for " + ORG_ID, statusResponse.getMessage());
+
+    var contracts = contractRepository.getContractsByOrgId(ORG_ID);
+    assertEquals(2, contracts.size(), "Both original and new contracts should exist in database");
+
+    var originalContract =
+        contracts.stream()
+            .filter(c -> c.getUuid().equals(existingContract.getUuid()))
+            .findFirst()
+            .orElseThrow();
+    assertNotNull(
+        originalContract.getEndDate(), "Contract from vanished entitlement should be terminated");
+    assertTrue(
+        originalContract.getEndDate().isAfter(OffsetDateTime.now().minusSeconds(5)),
+        "Termination endDate should be approximately now");
+
+    var newContract =
+        contracts.stream()
+            .filter(c -> !c.getUuid().equals(existingContract.getUuid()))
+            .findFirst()
+            .orElseThrow();
+
+    assertTrue(
+        newContract.getEndDate() == null || newContract.getEndDate().isAfter(OffsetDateTime.now()),
+        "New contract from upstream should be active");
+
     wireMockServer.removeStub(stub);
   }
 
   @Test
-  void syncContractByOrgWithoutPreCleanupPreservesContractsWithNullBillingProviderId()
-      throws Exception {
-    // Given: A contract with billing_provider_id=null
-    givenContractEntityWithNullBillingProviderId();
+  @Transactional
+  void syncContractByOrgDoesNotTerminateAlreadyTerminatedContracts() throws Exception {
+    var existingContract = givenExistingContract();
+    var pastEndDate = OffsetDateTime.now().minusDays(7);
+    existingContract.setEndDate(pastEndDate);
+    contractRepository.persist(existingContract);
+    reset(contractRepository);
 
-    // Upstream returns nothing — isolates the count assertion from re-sync side effects
     var stub = mockPartnerApi(new PartnerEntitlements().content(Collections.emptyList()));
 
-    // When: Per-org sync with isPreCleanup=false (the global sync default per ADR-0004)
-    contractService.syncContractsByOrgId(ORG_ID, false);
+    StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID);
 
-    // Then: The delete was never called and the contract is still present
-    verify(contractRepository, times(0)).deleteContractsByOrgIdForEmptyValues(any());
-    assertEquals(1, contractRepository.getContractsByOrgId(ORG_ID).size());
+    assertEquals(
+        "No contracts found in upstream for the org " + ORG_ID, statusResponse.getMessage());
+
+    var contracts = contractRepository.getContractsByOrgId(ORG_ID);
+    assertEquals(1, contracts.size());
+    var contract = contracts.get(0);
+    assertNotNull(contract.getEndDate());
+    assertTrue(
+        contract.getEndDate().isBefore(OffsetDateTime.now().minusDays(6)),
+        "endDate should remain at original past date, not updated to now");
     wireMockServer.removeStub(stub);
   }
 
@@ -461,15 +522,15 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   @Test
-  void testExistingSubscriptionNotInITGatewayResponseIsDeleted() throws Exception {
+  void testExistingSubscriptionNotInITGatewayResponseIsTerminated() throws Exception {
     var subscription =
         givenExistingSubscriptionWithStartDate(OffsetDateTime.parse("2023-06-09T04:00:00.035365Z"));
     var contract = givenAzurePartnerEntitlementContract();
     mockPartnerApi();
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
     assertEquals("New contract created", statusResponse.getMessage());
-    verify(subscriptionRepository).persist(any(SubscriptionEntity.class));
-    verify(subscriptionRepository, times(1)).delete(argThat(sameSubscription(subscription)));
+    verify(subscriptionRepository, times(1)).persist(any(SubscriptionEntity.class));
+    verify(subscriptionRepository).delete(any());
   }
 
   @Test
@@ -812,41 +873,6 @@ class ContractServiceTest extends BaseUnitTest {
 
   private static ArgumentMatcher<SubscriptionEntity> sameSubscription(SubscriptionEntity expected) {
     return actual -> actual.getSubscriptionNumber().equals(expected.getSubscriptionNumber());
-  }
-
-  @Transactional
-  void givenContractEntityWithNullEndDate() {
-    var entity = new ContractEntity();
-    entity.setUuid(UUID.randomUUID());
-    entity.setOrgId(ORG_ID);
-    entity.setStartDate(DEFAULT_START_DATE);
-    entity.setEndDate(null);
-    entity.setBillingProvider("aws");
-    entity.setBillingAccountId("billAcct123");
-    entity.setSubscriptionNumber(SUBSCRIPTION_NUMBER);
-    entity.setVendorProductCode("vendorProductCode");
-    entity.setOffering(offeringRepository.findById(SKU));
-    entity.setLastUpdated(OffsetDateTime.now());
-    contractRepository.persist(entity);
-    reset(contractRepository);
-  }
-
-  @Transactional
-  void givenContractEntityWithNullBillingProviderId() {
-    var entity = new ContractEntity();
-    entity.setUuid(UUID.randomUUID());
-    entity.setOrgId(ORG_ID);
-    entity.setStartDate(DEFAULT_START_DATE);
-    entity.setEndDate(DEFAULT_END_DATE);
-    entity.setBillingProviderId(null);
-    entity.setBillingProvider("aws");
-    entity.setBillingAccountId("billAcct123");
-    entity.setSubscriptionNumber(SUBSCRIPTION_NUMBER);
-    entity.setVendorProductCode("vendorProductCode");
-    entity.setOffering(offeringRepository.findById(SKU));
-    entity.setLastUpdated(OffsetDateTime.now());
-    contractRepository.persist(entity);
-    reset(contractRepository);
   }
 
   private PartnerEntitlementV1 givenAwsEntitlement(
