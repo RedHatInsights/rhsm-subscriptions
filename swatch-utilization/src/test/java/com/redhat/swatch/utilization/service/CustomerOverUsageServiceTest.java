@@ -121,7 +121,7 @@ class CustomerOverUsageServiceTest {
     whenCheckSummary(summary);
 
     // Then
-    double count = getCounterValue(PRODUCT_ID, ORG_ID, METRIC_ID);
+    double count = getCounterValue(PRODUCT_ID, METRIC_ID);
     assertEquals(EXPECTED_SINGLE_INCREMENT, count, "Counter should be incremented once");
   }
 
@@ -135,7 +135,7 @@ class CustomerOverUsageServiceTest {
     whenCheckSummary(summary);
 
     // Then
-    double count = getCounterValue(PRODUCT_ID, ORG_ID, METRIC_ID);
+    double count = getCounterValue(PRODUCT_ID, METRIC_ID);
     assertEquals(EXPECTED_NO_CHANGE, count, "Counter should not be incremented");
   }
 
@@ -165,12 +165,12 @@ class CustomerOverUsageServiceTest {
     whenCheckSummary(summary);
 
     // Then - each measurement creates its own counter, check cores counter
-    double coresCount = getCounterValue(PRODUCT_ID, ORG_ID, MetricIdUtils.getCores().getValue());
+    double coresCount = getCounterValue(PRODUCT_ID, MetricIdUtils.getCores().getValue());
     assertEquals(EXPECTED_SINGLE_INCREMENT, coresCount, "Cores counter should be incremented");
 
     // And instance hours counter
     double instanceHoursCount =
-        getCounterValue(PRODUCT_ID, ORG_ID, MetricIdUtils.getInstanceHours().getValue());
+        getCounterValue(PRODUCT_ID, MetricIdUtils.getInstanceHours().getValue());
     assertEquals(
         EXPECTED_SINGLE_INCREMENT,
         instanceHoursCount,
@@ -205,11 +205,11 @@ class CustomerOverUsageServiceTest {
     whenCheckSummary(summary);
 
     // Then - only instance hours should be incremented
-    double coresCount = getCounterValue(PRODUCT_ID, ORG_ID, MetricIdUtils.getCores().getValue());
+    double coresCount = getCounterValue(PRODUCT_ID, MetricIdUtils.getCores().getValue());
     assertEquals(EXPECTED_NO_CHANGE, coresCount, "Cores counter should not be incremented");
 
     double instanceHoursCount =
-        getCounterValue(PRODUCT_ID, ORG_ID, MetricIdUtils.getInstanceHours().getValue());
+        getCounterValue(PRODUCT_ID, MetricIdUtils.getInstanceHours().getValue());
     assertEquals(
         EXPECTED_SINGLE_INCREMENT,
         instanceHoursCount,
@@ -301,7 +301,7 @@ class CustomerOverUsageServiceTest {
     whenCheckSummary(summary);
 
     // Then - should NOT increment because 7% < 8% product threshold
-    double count = getCounterValue(PRODUCT_ID, ORG_ID, METRIC_ID);
+    double count = getCounterValue(PRODUCT_ID, METRIC_ID);
     assertEquals(
         EXPECTED_NO_CHANGE,
         count,
@@ -326,7 +326,7 @@ class CustomerOverUsageServiceTest {
     whenCheckSummary(summary);
 
     // Then - should increment because 6% > 5% default threshold
-    double count = getCounterValue(PRODUCT_ID, ORG_ID, METRIC_ID);
+    double count = getCounterValue(PRODUCT_ID, METRIC_ID);
     assertEquals(
         EXPECTED_SINGLE_INCREMENT,
         count,
@@ -396,7 +396,7 @@ class CustomerOverUsageServiceTest {
     whenCheckSummary(summary);
 
     // Then - should NOT increment because negative threshold disables detection
-    double count = getCounterValue(PRODUCT_ID, ORG_ID, METRIC_ID);
+    double count = getCounterValue(PRODUCT_ID, METRIC_ID);
     assertEquals(
         EXPECTED_NO_CHANGE,
         count,
@@ -460,6 +460,12 @@ class CustomerOverUsageServiceTest {
     var context = captor.getValue().getContext().getAdditionalProperties();
     assertEquals(expectedServiceLevel, context.get("service_level"));
     assertEquals(expectedUsage, context.get("usage"));
+
+    double count = getCounterValue(PRODUCT_ID, METRIC_ID, sla, usage);
+    assertEquals(
+        EXPECTED_SINGLE_INCREMENT,
+        count,
+        "Counter should record one increment for this sla/usage label combination");
   }
 
   // Helper methods
@@ -484,14 +490,33 @@ class CustomerOverUsageServiceTest {
     }
   }
 
-  // Bugfix: not part of SWATCH-3793 - removed org_id tag search to align with metric tagging
-  // standards
-  private double getCounterValue(String productId, String orgId, String metricId) {
+  /**
+   * Reads the over-usage counter for the time series where both SLA and usage labels are {@code
+   * _ANY} (payload has no specific dimensions—{@code null}, {@code ANY}, or empty for both).
+   * Equivalent to {@link #getCounterValue(String, String, UtilizationSummary.Sla,
+   * UtilizationSummary.Usage)} with null {@code sla} and {@code usage}.
+   */
+  private double getCounterValue(String productId, String metricId) {
+    return getCounterValue(productId, metricId, null, null);
+  }
+
+  /**
+   * @param sla nullable; when not a specific value on the payload, the {@code sla} label is {@code
+   *     _ANY} (same as {@code null}, {@code ANY}, or empty enum value)
+   * @param usage same semantics as {@code sla} for usage type
+   */
+  private double getCounterValue(
+      String productId,
+      String metricId,
+      UtilizationSummary.Sla sla,
+      UtilizationSummary.Usage usage) {
     var counter =
         Search.in(meterRegistry)
             .name(OVER_USAGE_METRIC)
             .tag("product", productId)
             .tag("metric_id", metricId)
+            .tag("sla", CustomerOverUsageService.metricSlaLabelValue(sla))
+            .tag("usage", CustomerOverUsageService.metricUsageLabelValue(usage))
             .counter();
     return counter != null ? counter.count() : 0.0;
   }

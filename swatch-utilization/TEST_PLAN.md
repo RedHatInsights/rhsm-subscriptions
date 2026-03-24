@@ -196,6 +196,21 @@ Kafka messages can be injected for event-driven testing.
     - Record timestamp reflects current calculation time
     - No notification event for metric C of product A
 
+**utilization-multi-TC003 - Same product and metric with different service level and usage**
+
+- **Description**: Verify that over-usage monitoring records separate counter increments per service level and usage when the same product and metric exceed the threshold under different SLA/usage combinations.
+- **Setup**:
+    - An organization has capacity for metric B of product A
+    - Two utilization summaries for product A and metric B: one with Premium service level and Production usage, one with Standard service level and Development/Test usage
+- **Action**:
+    - Generate usage exceeding the threshold for metric B on both summaries
+    - Trigger utilization calculation once per summary (separate utilization events)
+- **Verification**:
+    - Inspect the over-usage counter for metric B with SLA and usage labels
+- **Expected Result**:
+    - Counter increments by one for the Premium/Production label combination
+    - Counter increments by one for the Standard/Development/Test label combination
+
 ## Capacity Handling
 
 **utilization-capacity-TC001 - Zero capacity with positive usage**
@@ -234,9 +249,25 @@ Kafka messages can be injected for event-driven testing.
   - Trigger utilization calculation process  
 - **Verification**:  
   - Check absence of notification message on notifications topic  
-- **Expected Result**:  
+- **Expected Result**:
   - No notification event created (contracts without dimensions have null capacity and over-usage check is skipped)  
   - Service handles null capacity data gracefully
+
+**utilization-capacity-TC004 - Zero capacity with positive usage when service level and usage are set**
+
+- **Description**: Verify that zero capacity still skips over-usage detection when the utilization summary includes specific service level and usage values (not the case where both dimensions are unset or `ANY` on the payload).
+- **Setup**:
+    - An organization has zero capacity for the metric A of the product B
+    - The utilization summary sets specific service level and usage (so metric labels are not both `_ANY`)
+- **Action**:
+    - Generate positive usage data for the metric A of the product B
+    - Trigger utilization calculation process
+- **Verification**:
+    - Check absence of notification message on notifications topic
+    - Verify over-usage counter is unchanged for the series matching the summary’s service level and usage labels, and for the series where both `sla` and `usage` are `_ANY`
+- **Expected Result**:
+    - No notification event created
+    - No increment on either counter series
 
 ## Org Allowlist for Notifications
 

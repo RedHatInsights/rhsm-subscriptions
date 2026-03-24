@@ -52,7 +52,8 @@ import org.candlepin.subscriptions.json.Measurement;
 public class TallyTestHelpers {
 
   // Test configuration constants
-  private static final String DEFAULT_BILLING_ACCOUNT = "746157280291";
+  private static final String DEFAULT_BILLING_ACCOUNT =
+      String.valueOf(100000000000L + (long) (Math.random() * 900000000000L));
   private static final String DEFAULT_PRODUCT_ID =
       TallyTestProducts.RHEL_FOR_X86_ELS_PAYG.productId();
   private static final String DEFAULT_PRODUCT_TAG =
