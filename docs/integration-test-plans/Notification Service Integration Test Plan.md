@@ -71,8 +71,8 @@ Limitation:
 3. **Actions and Verifications (in sequence):**
    1. Inject baseline hosts for one SLA/usage combo → sync tally → verify first email received.
    2. Sync tally again (identical combo) → assert **exactly 1 email** (baseline deduplication).
-   3. Inject hosts for a different SLA → sync → verify **new email** (SLA is deduplication key). [xfail]
-   4. Inject hosts for a different usage → sync → verify **new email** (usage is deduplication key). [xfail]
+   3. Inject hosts for a different SLA → sync → verify **new email** (SLA is deduplication key).
+   4. Inject hosts for a different usage → sync → verify **new email** (usage is deduplication key).
 4. **Expected Result:**
    - Deduplication fires for identical `product + metric + SLA + usage` combo.
    - A new notification is produced when SLA changes and when usage changes, confirming both are part of the deduplication key.
