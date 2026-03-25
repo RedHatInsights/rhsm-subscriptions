@@ -21,6 +21,7 @@
 package tests;
 
 import static api.PartnerApiStubs.PartnerSubscriptionsStubRequest.forContract;
+import static api.PartnerApiStubs.PartnerSubscriptionsStubRequest.forContractsInOrgId;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -105,6 +106,27 @@ public class BaseContractComponentTest {
         Contract.buildRosaContract(
             orgId, domain.BillingProvider.AWS, java.util.Map.of(CORES, coresCapacity), sku);
     givenContractIsCreated(contract);
+    return contract;
+  }
+
+  protected Contract givenRosaContractIsCreatedForSyncTest(double coresCapacity) {
+    String sku = RandomUtils.generateRandom();
+    Contract contract =
+        Contract.buildRosaContract(
+            orgId, domain.BillingProvider.AWS, Map.of(CORES, coresCapacity), sku);
+
+    wiremock.forProductAPI().stubOfferingData(contract.getOffering());
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContractsInOrgId(orgId, contract));
+    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(contract);
+
+    assertThat(
+        "Sync offering should succeed",
+        service.syncOffering(sku).statusCode(),
+        is(HttpStatus.SC_OK));
+
+    Response create = service.createContract(contract);
+    assertThat("Creating contract should succeed", create.statusCode(), is(HttpStatus.SC_OK));
+
     return contract;
   }
 

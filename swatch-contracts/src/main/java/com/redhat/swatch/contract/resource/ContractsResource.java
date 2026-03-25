@@ -70,7 +70,9 @@ import jakarta.ws.rs.ProcessingException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -152,12 +154,17 @@ public class ContractsResource implements DefaultApi {
   @RolesAllowed({"test", "support"})
   public StatusResponse syncAllContracts() throws ProcessingException {
     log.info("Syncing All Contracts");
-    var contracts = service.getAllContracts();
-    if (contracts.isEmpty()) {
+    Set<String> orgIds =
+        service.getAllContracts().stream()
+            .map(ContractEntity::getOrgId)
+            .collect(Collectors.toSet());
+
+    if (orgIds.isEmpty()) {
       return new StatusResponse().status("No active contract found for the orgIds");
     }
-    for (ContractEntity org : contracts) {
-      service.syncContractsByOrgId(org.getOrgId());
+
+    for (String orgId : orgIds) {
+      service.syncContractsByOrgId(orgId);
     }
     return new StatusResponse().status("All Contract are Synced");
   }

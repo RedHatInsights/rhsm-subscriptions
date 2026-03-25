@@ -76,6 +76,8 @@ import io.quarkus.test.junit.mockito.InjectSpy;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -101,7 +103,7 @@ class ContractServiceTest extends BaseUnitTest {
   private static final OffsetDateTime DEFAULT_START_DATE =
       OffsetDateTime.parse("2023-06-09T13:59:43.035365Z");
   private static final OffsetDateTime DEFAULT_END_DATE =
-      OffsetDateTime.parse("2030-02-15T13:59:43.035365Z");
+      OffsetDateTime.now(ZoneOffset.UTC).plusYears(4).truncatedTo(ChronoUnit.MICROS);
 
   @Inject ContractService contractService;
   @Inject ObjectMapper objectMapper;
@@ -197,7 +199,7 @@ class ContractServiceTest extends BaseUnitTest {
 
   @Test
   void createPartnerContractUpdateContract() {
-    givenExistingContractWithExistingMetrics();
+    ContractEntity existingContract = givenExistingContractWithExistingMetrics();
     givenExistingSubscriptionWithBillingProviderId("1234:agb1:1fa");
 
     var request = givenPartnerEntitlementContractRequest();
@@ -205,7 +207,7 @@ class ContractServiceTest extends BaseUnitTest {
     StatusResponse statusResponse = contractService.createPartnerContract(request);
     verify(subscriptionRepository, times(2)).persist(any(SubscriptionEntity.class));
     verify(contractRepository, times(2)).persist(any(ContractEntity.class));
-    verify(contractRepository).delete(any());
+    verify(contractRepository).delete(existingContract);
     assertEquals("New contract created", statusResponse.getMessage());
   }
 
@@ -522,15 +524,15 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   @Test
-  void testExistingSubscriptionNotInITGatewayResponseIsTerminated() throws Exception {
+  void testExistingSubscriptionNotInITGatewayResponseIsDeleted() throws Exception {
     var subscription =
         givenExistingSubscriptionWithStartDate(OffsetDateTime.parse("2023-06-09T04:00:00.035365Z"));
     var contract = givenAzurePartnerEntitlementContract();
     mockPartnerApi();
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
     assertEquals("New contract created", statusResponse.getMessage());
-    verify(subscriptionRepository, times(1)).persist(any(SubscriptionEntity.class));
-    verify(subscriptionRepository).delete(any());
+    verify(subscriptionRepository).persist(any(SubscriptionEntity.class));
+    verify(subscriptionRepository, times(1)).delete(argThat(sameSubscription(subscription)));
   }
 
   @Test

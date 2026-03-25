@@ -500,17 +500,17 @@ public class ContractService {
   private void terminateContractsNotInUpstream(
       String orgId, Set<String> upstreamBillingProviderIds) {
     var now = OffsetDateTime.now();
-    var orphanedContracts =
-        contractRepository.getContractsByOrgId(orgId).stream()
-            .filter(contract -> contract.getEndDate() == null || contract.getEndDate().isAfter(now))
-            .filter(
-                contract ->
-                    contract.getBillingProviderId() == null
-                        || !upstreamBillingProviderIds.contains(contract.getBillingProviderId()))
-            .toList();
+
+    // Build specification to find active contracts not in upstream (push filtering to database)
+    Specification<ContractEntity> spec =
+        ContractEntity.orgIdEquals(orgId)
+            .and(ContractEntity.activeOn(now))
+            .and(ContractEntity.billingProviderIdNullOrNotIn(upstreamBillingProviderIds));
+
+    var orphanedContracts = contractRepository.findContracts(spec).toList();
 
     if (!orphanedContracts.isEmpty()) {
-      log.info(
+      log.debug(
           "Terminating {} orphaned contract(s) for org {} not found in upstream",
           orphanedContracts.size(),
           orgId);
@@ -522,28 +522,24 @@ public class ContractService {
             persistContract(contract, now);
           });
 
-      // Flush changes to ensure they're written to database
-      contractRepository.flush();
-
-      orphanedContracts.forEach(
-          contract -> {
-            var subscriptions =
-                subscriptionRepository.findBySubscriptionNumber(contract.getSubscriptionNumber());
-            subscriptions.stream()
-                .filter(sub -> sub.getEndDate() == null || sub.getEndDate().isAfter(now))
-                .forEach(
-                    sub -> {
-                      log.info(
-                          "Terminating subscription that no longer exists in upstream partner API: {}",
-                          sub);
-                      sub.setEndDate(now);
-                      subscriptionRepository.persist(sub);
-                    });
-          });
-
-      // Flush subscription changes
-      subscriptionRepository.flush();
+      orphanedContracts.forEach(contract -> terminateSubscriptionsForContract(contract, now));
     }
+  }
+
+  private void terminateSubscriptionsForContract(
+      ContractEntity contract, OffsetDateTime terminationDate) {
+    var subscriptions =
+        subscriptionRepository.findBySubscriptionNumber(contract.getSubscriptionNumber());
+    subscriptions.stream()
+        .filter(sub -> sub.getEndDate() == null || sub.getEndDate().isAfter(terminationDate))
+        .forEach(
+            sub -> {
+              log.info(
+                  "Terminating subscription that no longer exists in upstream partner API: {}",
+                  sub);
+              sub.setEndDate(terminationDate);
+              subscriptionRepository.persist(sub);
+            });
   }
 
   @Transactional
