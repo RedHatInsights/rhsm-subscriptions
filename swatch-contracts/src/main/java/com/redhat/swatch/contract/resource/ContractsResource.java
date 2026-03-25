@@ -164,12 +164,7 @@ public class ContractsResource implements DefaultApi {
 
   @Override
   @RolesAllowed({"test", "support"})
-  public StatusResponse syncContractsByOrg(String orgId, Boolean deleteContractsAndSubs)
-      throws ProcessingException {
-    if (Boolean.TRUE.equals(deleteContractsAndSubs)) {
-      service.deleteContractsByOrgId(orgId);
-      service.deletePaygSubscriptionsByOrgId(orgId);
-    }
+  public StatusResponse syncContractsByOrg(String orgId) throws ProcessingException {
     return service.syncContractsByOrgId(orgId);
   }
 

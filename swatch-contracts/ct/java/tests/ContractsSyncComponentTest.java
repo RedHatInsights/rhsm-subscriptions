@@ -163,8 +163,9 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     wiremock.forPartnerAPI().stubPartnerSubscriptions(forContractsInOrgId(orgId, newContract));
     wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(newContract);
 
-    // When: Sync with delete_contracts_and_subs flag enabled
-    Response syncResponse = service.syncContractsByOrg(orgId, true);
+    // When: Delete existing data and re-sync contracts
+    service.deleteDataForOrg(orgId);
+    Response syncResponse = service.syncContractsByOrg(orgId);
 
     // Then: Verify sync succeeded
     assertThat("Sync should succeed", syncResponse.statusCode(), is(HttpStatus.SC_OK));
