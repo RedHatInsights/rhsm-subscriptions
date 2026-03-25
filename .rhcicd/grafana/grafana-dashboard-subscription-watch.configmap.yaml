@@ -6147,6 +6147,30 @@ data:
                   {
                     "matcher": {
                       "id": "byName",
+                      "options": "sla"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "SLA"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "usage"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Usage"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
                       "options": "Value (max)"
                     },
                     "properties": [
@@ -6198,7 +6222,7 @@ data:
                   },
                   "disableTextWrap": false,
                   "editorMode": "code",
-                  "expr": "sum(increase(swatch_utilization_over_usage_total{service=\"swatch-utilization-service\"}[$__range])) by (product, metric_id)",
+                  "expr": "sum(increase(swatch_utilization_over_usage_total{service=\"swatch-utilization-service\"}[$__range])) by (product, metric_id, sla, usage)",
                   "format": "table",
                   "fullMetaSearch": false,
                   "includeNullMetadata": true,
@@ -6218,9 +6242,11 @@ data:
                     "includeByName": {},
                     "indexByName": {
                       "Time (lastNotNull)": 0,
-                      "Value (max)": 3,
+                      "Value (max)": 5,
                       "metric_id": 2,
-                      "product": 1
+                      "product": 1,
+                      "sla": 3,
+                      "usage": 4
                     },
                     "renameByName": {
                       "Value": "",
@@ -6249,6 +6275,14 @@ data:
                         "operation": "groupby"
                       },
                       "product": {
+                        "aggregations": [],
+                        "operation": "groupby"
+                      },
+                      "sla": {
+                        "aggregations": [],
+                        "operation": "groupby"
+                      },
+                      "usage": {
                         "aggregations": [],
                         "operation": "groupby"
                       }
