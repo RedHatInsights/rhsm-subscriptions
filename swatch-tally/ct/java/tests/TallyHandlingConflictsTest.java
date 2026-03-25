@@ -209,15 +209,13 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
   private void createEventForProduct(
       OffsetDateTime timestamp, TallyTestProducts product, String metricId, float value) {
     Event event =
-        helpers.createEventWithTimestamp(
+        helpers.createPaygEventWithTimestamp(
             setup.orgId,
             setup.instanceId,
             timestamp.toString(),
             UUID.randomUUID().toString(),
             metricId,
             value,
-            Event.Sla.PREMIUM,
-            Event.HardwareType.CLOUD,
             product.productId(),
             product.productTag());
 

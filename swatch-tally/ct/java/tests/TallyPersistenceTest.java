@@ -135,15 +135,13 @@ public class TallyPersistenceTest extends BaseTallyComponentTest {
 
   private void createEvent(String orgId, OffsetDateTime timestamp, float value) {
     Event event =
-        helpers.createEventWithTimestamp(
+        helpers.createPaygEventWithTimestamp(
             orgId,
             UUID.randomUUID().toString(),
             timestamp.toString(),
             UUID.randomUUID().toString(),
             TEST_METRIC_ID,
             value,
-            Event.Sla.PREMIUM,
-            Event.HardwareType.CLOUD,
             TEST_PRODUCT_ID,
             TEST_PRODUCT_TAG);
     event.setServiceType("OpenShift Cluster");
