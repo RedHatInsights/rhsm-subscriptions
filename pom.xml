@@ -19,7 +19,7 @@
     <codegen.skipIfSpecIsUnchanged>true</codegen.skipIfSpecIsUnchanged>
 
     <!-- Dependencies -->
-    <quarkus.platform.version>3.32.4</quarkus.platform.version>
+    <quarkus.platform.version>3.34.1</quarkus.platform.version>
     <spring.boot.version>3.5.12</spring.boot.version>
     <resteasy.version>7.0.0.Final</resteasy.version>
     <!-- Only use as provided in the common dependencies.
