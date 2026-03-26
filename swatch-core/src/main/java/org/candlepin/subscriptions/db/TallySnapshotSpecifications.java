@@ -31,7 +31,6 @@ import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.TallyMeasurementAggregate;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -183,6 +182,8 @@ public class TallySnapshotSpecifications {
    * @return Specification for aggregated query
    */
   public static Specification<TallySnapshot> buildAggregatedMeasurementSpec(
+      boolean forCount,
+      MapJoin<TallySnapshot, TallyMeasurementKey, Double> measurementJoin,
       Boolean isPrimary,
       String orgId,
       String productId,
@@ -232,24 +233,7 @@ public class TallySnapshotSpecifications {
         predicates.add(cb.lessThanOrEqualTo(root.get("snapshotDate"), ending));
       }
 
-      // Join to tallyMeasurements map
-      MapJoin<TallySnapshot, TallyMeasurementKey, Double> measurementJoin =
-          root.joinMap("tallyMeasurements", JoinType.LEFT);
-
-      // Only modify query if it's for TallyMeasurementAggregate
-      if (query.getResultType() == TallyMeasurementAggregate.class) {
-        // Filter by metricId if provided
-        if (metricId != null) {
-          predicates.add(
-              cb.equal(measurementJoin.key().get("metricId"), metricId.toUpperCaseFormatted()));
-        }
-
-        if (hardwareMeasurementType != null) {
-          predicates.add(
-              cb.equal(
-                  measurementJoin.key().get("measurementType"),
-                  hardwareMeasurementType.name().toUpperCase()));
-        }
+      if (!forCount) {
         // SELECT with aggregation
         query
             .multiselect(
@@ -268,7 +252,21 @@ public class TallySnapshotSpecifications {
         // ORDER BY
         query.orderBy(cb.asc(root.get("snapshotDate")));
       }
+      // For count queries, don't modify the select or groupBy - the caller handles it
 
+      // Filter by metricId if provided
+      if (metricId != null) {
+        predicates.add(
+            cb.equal(measurementJoin.key().get("metricId"), metricId.toUpperCaseFormatted()));
+      }
+
+      // Filter by hardwareMeasurementType if provided
+      if (hardwareMeasurementType != null) {
+        predicates.add(
+            cb.equal(
+                measurementJoin.key().get("measurementType"),
+                hardwareMeasurementType.name().toUpperCase()));
+      }
       return predicates.isEmpty() ? null : cb.and(predicates.toArray(new Predicate[0]));
     };
   }

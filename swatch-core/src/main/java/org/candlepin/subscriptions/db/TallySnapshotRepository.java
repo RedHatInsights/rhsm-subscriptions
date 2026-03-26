@@ -29,6 +29,7 @@ import jakarta.persistence.QueryHint;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.MapJoin;
 import jakarta.persistence.criteria.Root;
 import java.time.OffsetDateTime;
 import java.util.Collection;
@@ -363,9 +364,15 @@ public interface TallySnapshotRepository
         cb.createQuery(TallyMeasurementAggregate.class);
     Root<TallySnapshot> root = query.from(TallySnapshot.class);
 
+    // Join to tallyMeasurements map
+    MapJoin<TallySnapshot, TallyMeasurementKey, Double> measurementJoin =
+        root.joinMap("tallyMeasurements", JoinType.LEFT);
+
     // Build and apply the specification
     Specification<TallySnapshot> spec =
         TallySnapshotSpecifications.buildAggregatedMeasurementSpec(
+            false,
+            measurementJoin,
             isPrimary,
             orgId,
             productId,
@@ -461,15 +468,19 @@ public interface TallySnapshotRepository
 
     // For GROUP BY queries, we need to count distinct groups
     // Create a query that selects the grouped tuples and count the results
-    CriteriaQuery<Object[]> groupQuery = cb.createQuery(Object[].class);
-    Root<TallySnapshot> root = groupQuery.from(TallySnapshot.class);
+    CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
+    Root<TallySnapshot> root = countQuery.from(TallySnapshot.class);
+    countQuery.select(cb.countDistinct(root.get("snapshotDate")));
 
-    // Join to measurements
-    var measurementJoin = root.joinMap("tallyMeasurements", JoinType.LEFT);
+    // Join to tallyMeasurements map
+    MapJoin<TallySnapshot, TallyMeasurementKey, Double> measurementJoin =
+        root.joinMap("tallyMeasurements", JoinType.LEFT);
 
     // Build the specification for filtering
     Specification<TallySnapshot> spec =
         TallySnapshotSpecifications.buildAggregatedMeasurementSpec(
+            true,
+            measurementJoin,
             isPrimary,
             orgId,
             productId,
@@ -484,24 +495,12 @@ public interface TallySnapshotRepository
             ending);
 
     // Apply WHERE clause predicates
-    var predicate = spec.toPredicate(root, groupQuery, cb);
+    var predicate = spec.toPredicate(root, countQuery, cb);
     if (predicate != null) {
-      groupQuery.where(predicate);
+      countQuery.where(predicate);
     }
 
-    // Select the grouped columns
-    groupQuery.multiselect(
-        root.get("snapshotDate"),
-        measurementJoin.key().get("measurementType"),
-        measurementJoin.key().get("metricId"));
-
-    // Apply GROUP BY
-    groupQuery.groupBy(
-        root.get("snapshotDate"),
-        measurementJoin.key().get("measurementType"),
-        measurementJoin.key().get("metricId"));
-
     // Execute and count the results
-    return em.createQuery(groupQuery).getResultList().size();
+    return em.createQuery(countQuery).getSingleResult();
   }
 }
