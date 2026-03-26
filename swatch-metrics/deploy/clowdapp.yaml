@@ -54,7 +54,9 @@ parameters:
   - name: ENABLE_SPLUNK_HEC
     value: 'true'
   - name: SPLUNK_SOURCE
-    value: 'rhsm-subscription-hec'
+    value: 'swatch-metrics'
+  - name: SPLUNK_SOURCE_RHEL
+    value: 'swatch-metrics-rhel'
   - name: SPLUNK_SOURCE_TYPE
     value: 'swatch'
   - name: SPLUNK_MESSAGE_FORMAT
@@ -454,7 +456,7 @@ objects:
                     name: splunk-hec-external
                     key: token
               - name: SPLUNK_SOURCE
-                value: ${SPLUNK_SOURCE}
+                value: ${SPLUNK_SOURCE_RHEL}
               - name: SPLUNK_SOURCE_TYPE
                 value: ${SPLUNK_SOURCE_TYPE}
               - name: SPLUNK_MESSAGE_FORMAT
