@@ -24,7 +24,9 @@ import static io.restassured.RestAssured.given;
 
 import com.redhat.swatch.utilization.resources.InMemoryMessageBrokerKafkaResource;
 import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.http.TestHTTPResource;
 import io.quarkus.test.junit.QuarkusTest;
+import java.net.URL;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
 
@@ -34,10 +36,11 @@ import org.junit.jupiter.api.Test;
     restrictToAnnotatedClass = true)
 public class UtilizationDeploymentTest {
 
-  private static final int MANAGEMENT_PORT = 9018;
+  @TestHTTPResource(management = true, value = "/health")
+  URL healthUrl;
 
   @Test
   void testHealthEndpoint() {
-    given().port(MANAGEMENT_PORT).get("/health").then().statusCode(HttpStatus.SC_OK);
+    given().get(healthUrl).then().statusCode(HttpStatus.SC_OK);
   }
 }
