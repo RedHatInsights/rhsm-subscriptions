@@ -33,8 +33,9 @@ import com.redhat.swatch.hbi.events.processing.UnsupportedHbiEventException;
 import com.redhat.swatch.hbi.events.repository.HbiEventOutbox;
 import com.redhat.swatch.hbi.events.repository.HbiEventOutboxRepository;
 import io.micrometer.core.annotation.Timed;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Meter.MeterProvider;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Tags;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import java.util.List;
@@ -51,7 +52,7 @@ public class HbiEventConsumer {
 
   private final HbiEventProcessor hbiEventProcessor;
   private final ObjectMapper objectMapper;
-  private final MeterRegistry meterRegistry;
+  private final MeterProvider<Counter> eventCounter;
   private final HbiEventOutboxRepository outboxRepository;
 
   public HbiEventConsumer(
@@ -61,7 +62,7 @@ public class HbiEventConsumer {
       HbiEventOutboxRepository outboxRepository) {
     this.hbiEventProcessor = hbiEventProcessor;
     this.objectMapper = objectMapper;
-    this.meterRegistry = meterRegistry;
+    this.eventCounter = Counter.builder(COUNTER_EVENTS_METRIC).withRegistry(meterRegistry);
     this.outboxRepository = outboxRepository;
   }
 
@@ -125,8 +126,6 @@ public class HbiEventConsumer {
   }
 
   private void doIncrementCounter(String type, String errorMessage) {
-    meterRegistry
-        .counter(COUNTER_EVENTS_METRIC, Tags.of("type", type).and("error-message", errorMessage))
-        .increment();
+    eventCounter.withTags("type", type, "error-message", errorMessage).increment();
   }
 }
