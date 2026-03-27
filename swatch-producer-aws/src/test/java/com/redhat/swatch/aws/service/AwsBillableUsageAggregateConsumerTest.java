@@ -171,7 +171,8 @@ class AwsBillableUsageAggregateConsumerTest {
             BillableUsage.ErrorCode.REDUNDANT.toString());
 
     successCounter =
-        meteredTotalBuilder.withTag("status", BillableUsage.Status.SUCCEEDED.toString());
+        meteredTotalBuilder.withTags(
+            "status", BillableUsage.Status.SUCCEEDED.toString(), "error_code", "");
 
     meteringClient = mock(MarketplaceMeteringClient.class);
   }
@@ -489,7 +490,8 @@ class AwsBillableUsageAggregateConsumerTest {
                     && BillableUsage.BillingProvider.AWS
                         .toString()
                         .equals(m.getId().getTag("billing_provider"))
-                    && "succeeded".equals(m.getId().getTag("status")))
+                    && "succeeded".equals(m.getId().getTag("status"))
+                    && "".equals(m.getId().getTag("error_code")))
         .findFirst();
   }
 
