@@ -20,6 +20,8 @@
  */
 package com.redhat.swatch.billable.usage.services;
 
+import static java.util.Optional.ofNullable;
+
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceEntity;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceFilter;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
@@ -35,22 +37,21 @@ import com.redhat.swatch.billable.usage.services.model.MetricUnit;
 import com.redhat.swatch.billable.usage.services.model.Quantity;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Meter.MeterProvider;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.List;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.billable.usage.AccumulationPeriodFormatter;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
+import org.candlepin.subscriptions.billable.usage.BillableUsage.Status;
 
 @Slf4j
 @ApplicationScoped
-@AllArgsConstructor
 public class BillableUsageService {
 
   private static final ContractCoverage DEFAULT_CONTRACT_COVERAGE =
@@ -61,7 +62,22 @@ public class BillableUsageService {
   private final BillingProducer billingProducer;
   private final BillableUsageRemittanceRepository billableUsageRemittanceRepository;
   private final ContractsController contractsController;
-  private final MeterRegistry meterRegistry;
+  private final MeterProvider<Counter> coveredUsageCounter;
+  private final MeterProvider<Counter> billableUsageCounter;
+
+  public BillableUsageService(
+      ApplicationClock clock,
+      BillingProducer billingProducer,
+      BillableUsageRemittanceRepository billableUsageRemittanceRepository,
+      ContractsController contractsController,
+      MeterRegistry meterRegistry) {
+    this.clock = clock;
+    this.billingProducer = billingProducer;
+    this.billableUsageRemittanceRepository = billableUsageRemittanceRepository;
+    this.contractsController = contractsController;
+    this.coveredUsageCounter = Counter.builder(COVERED_USAGE_METRIC).withRegistry(meterRegistry);
+    this.billableUsageCounter = Counter.builder(BILLABLE_USAGE_METRIC).withRegistry(meterRegistry);
+  }
 
   public void submitBillableUsage(BillableUsage usage) {
     // transaction to store the usage into database
@@ -250,7 +266,7 @@ public class BillableUsageService {
   }
 
   private void updateBillableUsageMeter(BillableUsage usage, BillableUsageCalculation usageCalc) {
-    incrementMetric(BILLABLE_USAGE_METRIC, usage, usageCalc.getRemittedValue());
+    incrementMetric(billableUsageCounter, usage, usageCalc.getRemittedValue());
   }
 
   private void updateCoveredUsageMeter(BillableUsage usage, ContractCoverage contractCoverage) {
@@ -269,27 +285,23 @@ public class BillableUsageService {
     }
 
     double remainingCoverage = contractCoveredMetric - previousTotalUsageMetric;
-    incrementMetric(COVERED_USAGE_METRIC, usage, Math.min(remainingCoverage, newUsageMetric));
+    incrementMetric(coveredUsageCounter, usage, Math.min(remainingCoverage, newUsageMetric));
   }
 
-  private void incrementMetric(String metric, BillableUsage usage, double value) {
+  private void incrementMetric(
+      MeterProvider<Counter> counterProvider, BillableUsage usage, double value) {
     if (usage.getProductId() == null
         || usage.getMetricId() == null
         || usage.getBillingProvider() == null) {
       return;
     }
 
-    List<String> tags =
-        new ArrayList<>(
-            List.of(
-                "product", usage.getProductId(),
-                "metric_id", MetricId.tryGetValueFromString(usage.getMetricId()),
-                "billing_provider", usage.getBillingProvider().value()));
-
-    if (usage.getStatus() != null) {
-      tags.addAll(List.of("status", usage.getStatus().value()));
-    }
-
-    meterRegistry.counter(metric, tags.toArray(new String[0])).increment(value);
+    counterProvider
+        .withTags(
+            "product", usage.getProductId(),
+            "metric_id", MetricId.tryGetValueFromString(usage.getMetricId()),
+            "billing_provider", usage.getBillingProvider().value(),
+            "status", ofNullable(usage.getStatus()).map(Status::value).orElse(""))
+        .increment(value);
   }
 }

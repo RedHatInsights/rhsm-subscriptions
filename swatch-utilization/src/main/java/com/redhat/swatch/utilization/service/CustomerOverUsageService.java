@@ -20,6 +20,8 @@
  */
 package com.redhat.swatch.utilization.service;
 
+import static java.util.Optional.ofNullable;
+
 import com.redhat.cloud.notifications.ingress.Action;
 import com.redhat.cloud.notifications.ingress.Context;
 import com.redhat.cloud.notifications.ingress.Event;
@@ -31,13 +33,14 @@ import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.utilization.configuration.FeatureFlags;
 import com.redhat.swatch.utilization.model.Measurement;
 import com.redhat.swatch.utilization.model.UtilizationSummary;
+import com.redhat.swatch.utilization.model.UtilizationSummary.BillingProvider;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Meter.MeterProvider;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -61,7 +64,11 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
  * <ul>
  *   <li>product - Product ID
  *   <li>metric_id - Metric ID (e.g., Cores, Instance-hours)
- *   <li>billing - Billing provider (conditional, only if present)
+ *   <li>billing - Billing provider, or {@code unknown} when not present on the payload
+ *   <li>sla - Service level from the utilization summary, or {@link #OVER_USAGE_DIMENSION_SENTINEL}
+ *       when unspecified (Java {@code null}, {@code ANY}, or empty on the payload)
+ *   <li>usage - Usage type from the utilization summary, or {@link #OVER_USAGE_DIMENSION_SENTINEL}
+ *       when unspecified
  * </ul>
  */
 @Slf4j
@@ -69,6 +76,13 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 public class CustomerOverUsageService {
 
   public static final String OVER_USAGE_METRIC = "swatch_utilization_over_usage";
+
+  /**
+   * Prometheus label value when a dimension is not specific on the payload: missing, empty, or
+   * {@code ANY} (aligned with tally snapshot conventions).
+   */
+  public static final String OVER_USAGE_DIMENSION_SENTINEL = "_ANY";
+
   private static final double FULL_CAPACITY_PERCENT = 100.0;
   private static final String PERCENT_FORMAT = "%.2f";
   private static final String BUNDLE = "subscription-services";
@@ -77,12 +91,22 @@ public class CustomerOverUsageService {
   private static final boolean NOTIFY_ONLY_ADMINS = false;
   private static final boolean IGNORE_USER_PREFERENCES = false;
 
-  @Inject MeterRegistry meterRegistry;
-  @Inject NotificationsProducer notificationsProducer;
-  @Inject FeatureFlags featureFlags;
+  private final MeterProvider<Counter> overUsageCounter;
+  private final NotificationsProducer notificationsProducer;
+  private final FeatureFlags featureFlags;
 
   @ConfigProperty(name = "CUSTOMER_OVER_USAGE_DEFAULT_THRESHOLD_PERCENT")
   Double defaultThresholdPercent;
+
+  @Inject
+  public CustomerOverUsageService(
+      MeterRegistry meterRegistry,
+      NotificationsProducer notificationsProducer,
+      FeatureFlags featureFlags) {
+    this.overUsageCounter = Counter.builder(OVER_USAGE_METRIC).withRegistry(meterRegistry);
+    this.notificationsProducer = notificationsProducer;
+    this.featureFlags = featureFlags;
+  }
 
   /**
    * Checks a utilization summary for over-usage and increments metrics if detected.
@@ -205,15 +229,27 @@ public class CustomerOverUsageService {
   }
 
   private void incrementOverUsageCounter(UtilizationSummary payload, MetricId metricId) {
-    List<String> tags =
-        new ArrayList<>(
-            List.of("product", payload.getProductId(), "metric_id", metricId.getValue()));
+    overUsageCounter
+        .withTags(
+            "product",
+            payload.getProductId(),
+            "metric_id",
+            metricId.getValue(),
+            "billing",
+            ofNullable(payload.getBillingProvider()).map(BillingProvider::value).orElse(""),
+            "sla",
+            metricSlaLabelValue(payload.getSla()),
+            "usage",
+            metricUsageLabelValue(payload.getUsage()))
+        .increment();
+  }
 
-    if (Objects.nonNull(payload.getBillingProvider())) {
-      tags.addAll(List.of("billing", payload.getBillingProvider().value()));
-    }
+  static String metricSlaLabelValue(UtilizationSummary.Sla sla) {
+    return isServiceLevelSet(sla) ? sla.value() : OVER_USAGE_DIMENSION_SENTINEL;
+  }
 
-    meterRegistry.counter(OVER_USAGE_METRIC, tags.toArray(new String[0])).increment();
+  static String metricUsageLabelValue(UtilizationSummary.Usage usage) {
+    return isUsageSet(usage) ? usage.value() : OVER_USAGE_DIMENSION_SENTINEL;
   }
 
   private void sendNotification(
@@ -284,13 +320,13 @@ public class CustomerOverUsageService {
     return builder.build();
   }
 
-  private boolean isServiceLevelSet(UtilizationSummary.Sla sla) {
+  private static boolean isServiceLevelSet(UtilizationSummary.Sla sla) {
     return sla != null
         && sla != UtilizationSummary.Sla.__EMPTY__
         && sla != UtilizationSummary.Sla.ANY;
   }
 
-  private boolean isUsageSet(UtilizationSummary.Usage usage) {
+  private static boolean isUsageSet(UtilizationSummary.Usage usage) {
     return usage != null
         && usage != UtilizationSummary.Usage.__EMPTY__
         && usage != UtilizationSummary.Usage.ANY;

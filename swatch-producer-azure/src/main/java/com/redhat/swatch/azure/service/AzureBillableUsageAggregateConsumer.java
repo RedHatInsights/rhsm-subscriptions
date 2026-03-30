@@ -22,6 +22,7 @@ package com.redhat.swatch.azure.service;
 
 import static com.redhat.swatch.azure.configuration.Channels.BILLABLE_USAGE_HOURLY_AGGREGATE;
 import static com.redhat.swatch.configuration.registry.SubscriptionDefinition.getBillingFactor;
+import static java.util.Optional.ofNullable;
 
 import com.redhat.swatch.azure.exception.AzureMarketplaceRequestFailedException;
 import com.redhat.swatch.azure.exception.AzureUnprocessedRecordsException;
@@ -39,6 +40,7 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.faulttolerance.api.RetryWithExponentialBackoff;
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Meter.MeterProvider;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -49,8 +51,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -68,7 +68,7 @@ public class AzureBillableUsageAggregateConsumer {
   protected static final String METERED_TOTAL_METRIC = "swatch_producer_metered_total";
 
   private final BillableUsageStatusProducer billableUsageStatusProducer;
-  private final MeterRegistry meterRegistry;
+  private final MeterProvider<Counter> meteredTotalCounter;
   private final Counter acceptedCounter;
   private final Counter rejectedCounter;
   private final DefaultApi internalSubscriptionsApi;
@@ -84,7 +84,7 @@ public class AzureBillableUsageAggregateConsumer {
       BillableUsageStatusProducer billableUsageStatusProducer,
       @ConfigProperty(name = "ENABLE_AZURE_DRY_RUN") Optional<Boolean> isDryRun,
       @ConfigProperty(name = "AZURE_MARKETPLACE_USAGE_WINDOW") Duration azureUsageWindow) {
-    this.meterRegistry = meterRegistry;
+    this.meteredTotalCounter = Counter.builder(METERED_TOTAL_METRIC).withRegistry(meterRegistry);
     this.acceptedCounter = meterRegistry.counter("swatch_azure_marketplace_batch_accepted_total");
     this.rejectedCounter = meterRegistry.counter("swatch_azure_marketplace_batch_rejected_total");
     this.internalSubscriptionsApi = contractsApi;
@@ -234,7 +234,7 @@ public class AzureBillableUsageAggregateConsumer {
           billableUsageAggregate.getAggregateKey().getUsage(),
           billableUsageAggregate.getAggregateKey().getBillingAccountId());
     } catch (DefaultApiException e) {
-      var optionalErrors = Optional.ofNullable(e.getErrors());
+      var optionalErrors = ofNullable(e.getErrors());
       if (optionalErrors.isPresent()) {
         var isRecentlyTerminatedError =
             optionalErrors.get().getErrors().stream()
@@ -298,30 +298,22 @@ public class AzureBillableUsageAggregateConsumer {
   }
 
   private void incrementMeteredTotal(BillableUsageAggregate usage) {
-    // add metrics for aggregation
-    List<String> tags =
-        new ArrayList<>(
-            List.of(
-                "product",
-                usage.getAggregateKey().getProductId(),
-                "metric_id",
-                MetricId.tryGetValueFromString(usage.getAggregateKey().getMetricId())));
-    if (usage.getAggregateKey().getBillingProvider() != null) {
-      tags.addAll(List.of("billing_provider", usage.getAggregateKey().getBillingProvider()));
-    }
-
-    if (usage.getStatus() != null) {
-      tags.addAll(List.of("status", usage.getStatus().toString()));
-    }
-
-    if (usage.getErrorCode() != null) {
-      tags.addAll(List.of("error_code", usage.getErrorCode().toString()));
-    }
-
     double amount =
         usage.getTotalValue().doubleValue()
             / getBillingFactor(
                 usage.getAggregateKey().getProductId(), usage.getAggregateKey().getMetricId());
-    meterRegistry.counter(METERED_TOTAL_METRIC, tags.toArray(new String[0])).increment(amount);
+    meteredTotalCounter
+        .withTags(
+            "product",
+            usage.getAggregateKey().getProductId(),
+            "metric_id",
+            MetricId.tryGetValueFromString(usage.getAggregateKey().getMetricId()),
+            "billing_provider",
+            ofNullable(usage.getAggregateKey().getBillingProvider()).orElse(""),
+            "status",
+            ofNullable(usage.getStatus()).map(Object::toString).orElse(""),
+            "error_code",
+            ofNullable(usage.getErrorCode()).map(Object::toString).orElse(""))
+        .increment(amount);
   }
 }

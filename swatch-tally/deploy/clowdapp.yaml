@@ -106,7 +106,7 @@ parameters:
   - name: ENABLE_SPLUNK_HEC
     value: 'true'
   - name: SPLUNK_SOURCE
-    value: 'rhsm-subscription-hec'
+    value: 'swatch-tally'
   - name: SPLUNK_SOURCE_TYPE
     value: 'swatch'
   - name: SPLUNK_MESSAGE_FORMAT
@@ -319,6 +319,8 @@ objects:
             enabled: true
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
+          # Run Liquibase migrations in an initContainer since initContainers do not have
+          # liveness or readinessProbes which could potentially abort a migration
           initContainers:
             - env:
                 - name: JAVA_DEBUG
