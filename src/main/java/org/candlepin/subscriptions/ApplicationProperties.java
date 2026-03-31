@@ -120,6 +120,9 @@ public class ApplicationProperties {
   /** If enabled, will allow synchronous operations when requested. */
   private boolean enableSynchronousOperations = false;
 
+  /** When enabled, it will use the primary row search for tallying. */
+  private boolean enablePrimaryRowSearches = false;
+
   /** Sets a hard limit on the size of accounts that HBI-based tally will attempt to process. */
   private int tallyMaxHbiAccountSize;
 

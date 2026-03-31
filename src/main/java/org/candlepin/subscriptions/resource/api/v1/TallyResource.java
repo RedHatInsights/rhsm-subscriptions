@@ -42,6 +42,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.contracts.ContractsCapacityController;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
@@ -69,7 +70,6 @@ import org.candlepin.subscriptions.utilization.api.v1.model.UsageType;
 import org.candlepin.subscriptions.utilization.api.v1.resources.TallyApi;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
@@ -90,10 +90,7 @@ public class TallyResource implements TallyApi {
   private final PageLinkCreator pageLinkCreator;
   private final ApplicationClock clock;
   private final ContractsCapacityController capacityController;
-
-  // Using property path with default
-  @Value("${rhsm-subscriptions.enable-primary-row-searches:false}")
-  Boolean primaryRowSearchesEnabled;
+  private final ApplicationProperties applicationProperties;
 
   @Context private UriInfo uriInfo;
 
@@ -103,12 +100,14 @@ public class TallyResource implements TallyApi {
       TallySnapshotRepository repository,
       PageLinkCreator pageLinkCreator,
       ApplicationClock clock,
-      ContractsCapacityController capacityController) {
+      ContractsCapacityController capacityController,
+      ApplicationProperties applicationProperties) {
     this.mapper = mapper;
     this.repository = repository;
     this.pageLinkCreator = pageLinkCreator;
     this.clock = clock;
     this.capacityController = capacityController;
+    this.applicationProperties = applicationProperties;
   }
 
   @Override
@@ -166,7 +165,7 @@ public class TallyResource implements TallyApi {
                 usageType)
             : Collections.emptyMap();
 
-    if (primaryRowSearchesEnabled) {
+    if (applicationProperties.isEnablePrimaryRowSearches()) {
       HardwareMeasurementType hardwareMeasurementType = HardwareMeasurementType.TOTAL;
       if (Objects.nonNull(reportCriteria.getReportCategory())) {
         hardwareMeasurementType =

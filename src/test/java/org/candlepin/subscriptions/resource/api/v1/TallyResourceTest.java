@@ -51,6 +51,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.contracts.ContractsCapacityController;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
@@ -106,12 +107,13 @@ class TallyResourceTest {
       ProductId.fromString("OpenShift-dedicated-metrics");
   public static final ProductId RHEL_FOR_X86 = RHEL_PRODUCT_ID;
   private static final MetricId METRIC_ID_CORES = MetricIdUtils.getCores();
-  public Object originalEnabledSetting = null;
+  public Object originalApplicationProperites = null;
 
   @MockitoBean TallySnapshotRepository repository;
   @MockitoBean PageLinkCreator pageLinkCreator;
   @MockitoBean OrgConfigRepository orgConfigRepository;
   @MockitoBean ContractsCapacityController capacityController;
+  @MockitoBean ApplicationProperties applicationProperties;
   @Autowired TallyResource resource;
   @Autowired ApplicationClock applicationClock;
 
@@ -127,14 +129,16 @@ class TallyResourceTest {
   class WithPrimaryRowSearchesEnabled {
     @BeforeEach
     void setup() {
-      // Override the configuration field value for this test
-      originalEnabledSetting = ReflectionTestUtils.getField(resource, "primaryRowSearchesEnabled");
-      ReflectionTestUtils.setField(resource, "primaryRowSearchesEnabled", true);
+      when(applicationProperties.isEnablePrimaryRowSearches()).thenReturn(true);
+      originalApplicationProperites =
+          ReflectionTestUtils.getField(resource, "applicationProperties");
+      ReflectionTestUtils.setField(resource, "applicationProperties", applicationProperties);
     }
 
     @AfterEach
     void tearDown() {
-      ReflectionTestUtils.setField(resource, "primaryRowSearchesEnabled", originalEnabledSetting);
+      ReflectionTestUtils.setField(
+          resource, "applicationProperties", originalApplicationProperites);
     }
 
     @Test
@@ -876,14 +880,16 @@ class TallyResourceTest {
   class WithPrimaryRowSearchesDisabled {
     @BeforeEach
     void setup() {
-      // Override the configuration field value for this test
-      originalEnabledSetting = ReflectionTestUtils.getField(resource, "primaryRowSearchesEnabled");
-      ReflectionTestUtils.setField(resource, "primaryRowSearchesEnabled", false);
+      when(applicationProperties.isEnablePrimaryRowSearches()).thenReturn(false);
+      originalApplicationProperites =
+          ReflectionTestUtils.getField(resource, "applicationProperties");
+      ReflectionTestUtils.setField(resource, "applicationProperties", applicationProperties);
     }
 
     @AfterEach
     void tearDown() {
-      ReflectionTestUtils.setField(resource, "primaryRowSearchesEnabled", originalEnabledSetting);
+      ReflectionTestUtils.setField(
+          resource, "applicationProperties", originalApplicationProperites);
     }
 
     @Test
