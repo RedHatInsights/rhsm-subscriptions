@@ -20,29 +20,29 @@
  */
 package tests;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import api.MetricsSwatchService;
 import api.PrometheusService;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import domain.PrometheusMetricData;
 import domain.PrometheusMetricData.TimeValuePair;
+import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.json.Measurement;
+import org.junit.jupiter.api.Test;
+
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import org.candlepin.subscriptions.json.Event;
-import org.candlepin.subscriptions.json.Measurement;
-import org.junit.jupiter.api.Test;
 
-class RhelPaygMeteringComponentTest extends BaseMetricsComponentTest {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class SwatchMetricsPrometheusTest extends BaseMetricsComponentTest {
 
   /** Must match product definition used by metering and event assertions in this class. */
   private static final String RHEL_PAYG_ADDON_PRODUCT_TAG = "rhel-for-x86-els-payg-addon";
@@ -59,13 +59,6 @@ class RhelPaygMeteringComponentTest extends BaseMetricsComponentTest {
 
   private static final Duration PROM_PROBE_TIMEOUT = Duration.ofSeconds(90);
 
-  /** Subclass only to access protected {@code SwatchService.SWATCH_PSK} for RestAssured. */
-  private static final class SwatchPsk extends MetricsSwatchService {
-    static String value() {
-      return SWATCH_PSK;
-    }
-  }
-
   /**
    * Exercises rhelemeter PromQL against imported OpenMetrics, internal metering, and Kafka-bound
    * events. Flow: build aligned fixture → import → wait until query API sees the series → POST
@@ -73,6 +66,7 @@ class RhelPaygMeteringComponentTest extends BaseMetricsComponentTest {
    */
   @Test
   void shouldCreateMeteringEventsForRhelPaygAddonFromPrometheus() {
+    // Given: RHEL PAYG addon metrics imported to Prometheus
     String metricId = VCPUS.getValue();
     String clusterId = "cluster-" + RandomUtils.generateRandom();
     String instanceId = "i-" + RandomUtils.generateRandom();
@@ -89,21 +83,15 @@ class RhelPaygMeteringComponentTest extends BaseMetricsComponentTest {
     String probeQuery = vcpuProbeQuery(instanceId, orgId);
     long lastSampleEpoch = lastSampleEpochSeconds(metricData);
 
-    logPhase("Pushing metrics via importer");
     prometheus.importMetricsExpectSuccess(
         metricData.toOpenMetrics(clusterId, "subscription_labels_vcpus"));
-
-    logPhase("Waiting for Prometheus query API to return the imported series");
     awaitProbeSeriesVisible(prometheus, probeQuery, lastSampleEpoch);
-    System.out.println(
-        "Prometheus probe ok (series count "
-            + probeSeriesCount(prometheus, probeQuery, lastSampleEpoch)
-            + "): "
-            + probeQuery);
 
-    logPhase("Triggering internal metering");
-    triggerInternalMetering(RHEL_PAYG_ADDON_PRODUCT_TAG, orgId, meteringEnd);
+    // When: Internal metering is triggered
+    service.triggerInternalMetering(
+        RHEL_PAYG_ADDON_PRODUCT_TAG, orgId, meteringEnd, METERING_API_RANGE_MINUTES);
 
+    // Then: Metering events are produced with correct data
     var events = thenEventsAreProduced(instanceId, metricId);
     assertFalse(events.isEmpty(), "Events should be produced");
 
@@ -121,10 +109,6 @@ class RhelPaygMeteringComponentTest extends BaseMetricsComponentTest {
    */
   private static OffsetDateTime currentUtcHourStart() {
     return OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.HOURS);
-  }
-
-  private static void logPhase(String title) {
-    System.out.println("=== " + title + " ===");
   }
 
   private static String vcpuProbeQuery(String instanceId, String orgId) {
@@ -157,21 +141,7 @@ class RhelPaygMeteringComponentTest extends BaseMetricsComponentTest {
             .timeoutMessage(
                 "Prometheus did not return probe series for %s within timeout "
                     + "(instant at now or at last sample epoch %d)",
-                probeQuery,
-                lastSampleEpochSeconds));
-  }
-
-  private void triggerInternalMetering(String productTag, String orgId, OffsetDateTime meteringEnd) {
-    service
-        .given()
-        .header("x-rh-swatch-psk", SwatchPsk.value())
-        .queryParam("orgId", orgId)
-        .queryParam("endDate", meteringEnd.toString())
-        .queryParam("rangeInMinutes", METERING_API_RANGE_MINUTES)
-        .when()
-        .post("/api/swatch-metrics/v1/internal/metering/" + productTag)
-        .then()
-        .statusCode(204);
+                probeQuery, lastSampleEpochSeconds));
   }
 
   /**
@@ -228,7 +198,9 @@ class RhelPaygMeteringComponentTest extends BaseMetricsComponentTest {
   private void thenEventHasCorrectBillingInfo(
       Event event, String billingProvider, String billingAccountId) {
     assertEquals(
-        Event.BillingProvider.AWS, event.getBillingProvider(), "billing_provider should be AWS");
+        Event.BillingProvider.valueOf(billingProvider.toUpperCase()),
+        event.getBillingProvider(),
+        "billing_provider should match");
     assertEquals(
         billingAccountId,
         event.getBillingAccountId().orElse(null),

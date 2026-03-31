@@ -21,13 +21,17 @@
 package api;
 
 import com.redhat.swatch.component.tests.api.SwatchService;
+import java.time.OffsetDateTime;
 
 public class MetricsSwatchService extends SwatchService {
 
-  public void performMeteringOperation(String productTag, String metricId, String orgId) {
+  public void triggerInternalMetering(
+      String productTag, String orgId, OffsetDateTime endDate, int rangeInMinutes) {
     given()
         .header("x-rh-swatch-psk", SWATCH_PSK)
         .queryParam("orgId", orgId)
+        .queryParam("endDate", endDate.toString())
+        .queryParam("rangeInMinutes", rangeInMinutes)
         .when()
         .post("/api/swatch-metrics/v1/internal/metering/" + productTag)
         .then()
