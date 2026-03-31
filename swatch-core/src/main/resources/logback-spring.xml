@@ -56,7 +56,7 @@
             <appender name="http" class="com.splunk.logging.HttpEventCollectorLogbackAppender">
                 <url>${SPLUNK_HEC_URL}</url>
                 <token>${SPLUNK_HEC_TOKEN}</token>
-                <source>${LOG_FILE:-/tmp/rhsm-subscriptions.log}</source>
+                <source>${SPLUNK_SOURCE:-rhsm-subscription-hec}</source>
                 <sourcetype>${SPLUNK_SOURCE_TYPE}</sourcetype>
                 <host>${HOST_NAME:-${LOGNAME}@${HOSTNAME}}</host>
                 <messageFormat>${SPLUNK_MESSAGE_FORMAT}</messageFormat>

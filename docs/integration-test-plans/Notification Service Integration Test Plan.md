@@ -39,11 +39,12 @@ Limitation:
    - The organization has a contract for a product.  
    - Usage is added for that product, crossing the threshold.  
    - The organization didn't receive a notification for that product-metric in this calendar month.  
-3. **Action:** Trigger the daily tally sync job.  
+3. **Action:** Trigger the hourly tally sync job.  
 4. **Verification:** Check the organization's email inbox for the expected:  
    - Organization ID  
    - Product  
-   - Exact usage percentage  
+   - Exact usage percentage
+   - Absence of SLA and Usage
 5. **Expected Result:** A notification for the over usage with the correct data is received.
 
 ## stage-notification-deduplication-TC001
@@ -58,3 +59,20 @@ Limitation:
 4. **Verification:** Check the organization's email inbox.  
    * To verify that the notification service is not down after the setup (that would result in the second assertion always passing), a new over usage condition can be injected and finally asserted.   
 5. **Expected Result:** No new notification for the same over usage is received.
+
+
+## stage-notification-deduplication-TC002
+
+1. **Description:** Exercises the **SLA** and **usage** elements of the deduplication key. Uses a non-PAYG product with separate subscriptions per SLA/usage combination so each has its own capacity row. The metric dimension is not exercised here.
+2. **Setup:**
+   - The organization is opted-in for notifications.
+   - Separate subscriptions are added for each SLA/usage combination under test, so each has its own capacity row.
+   - Hosts are registered via Candlepin and synced via conduit to produce usage above threshold.
+3. **Actions and Verifications (in sequence):**
+   1. Inject baseline hosts for one SLA/usage combo → sync tally → verify first email received.
+   2. Sync tally again (identical combo) → assert **exactly 1 email** (baseline deduplication).
+   3. Inject hosts for a different SLA → sync → verify **new email** (SLA is deduplication key).
+   4. Inject hosts for a different usage → sync → verify **new email** (usage is deduplication key).
+4. **Expected Result:**
+   - Deduplication fires for identical `product + metric + SLA + usage` combo.
+   - A new notification is produced when SLA changes and when usage changes, confirming both are part of the deduplication key.
