@@ -37,9 +37,4 @@ public final class MessageValidators {
         String.class,
         Event.class);
   }
-
-  public static MessageValidator<String, Event> isEventForOrgId(String orgId) {
-    return new MessageValidator<>(
-        (key, event) -> event != null && event.getOrgId().equals(orgId), String.class, Event.class);
-  }
 }
