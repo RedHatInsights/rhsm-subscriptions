@@ -20,6 +20,8 @@
  */
 package tests;
 
+import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
+
 import api.MessageValidators;
 import api.MetricsSwatchService;
 import com.redhat.swatch.component.tests.api.ComponentTest;
@@ -29,13 +31,10 @@ import com.redhat.swatch.component.tests.api.Quarkus;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import java.util.List;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-
-import java.util.List;
-
-import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
 
 @ComponentTest(name = "swatch-metrics")
 public class BaseMetricsComponentTest {

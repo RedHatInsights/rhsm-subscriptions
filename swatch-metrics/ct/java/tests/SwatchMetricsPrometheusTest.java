@@ -20,27 +20,26 @@
  */
 package tests;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import api.PrometheusService;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import domain.PrometheusMetricData;
 import domain.PrometheusMetricData.TimeValuePair;
-import org.candlepin.subscriptions.json.Event;
-import org.candlepin.subscriptions.json.Measurement;
-import org.junit.jupiter.api.Test;
-
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.json.Measurement;
+import org.junit.jupiter.api.Test;
 
 class SwatchMetricsPrometheusTest extends BaseMetricsComponentTest {
 
