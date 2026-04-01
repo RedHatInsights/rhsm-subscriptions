@@ -300,7 +300,7 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
   @Test
   void syncAllContractsTwiceShouldNotCreateDuplicateContracts() {
     // Given: One org with a single AWS contract and stubbed upstream data
-    Contract contract = givenRosaContractIsCreatedForSyncTest(10.0);
+    Contract contract = givenRosaContractIsCreated(10.0);
 
     // Verify initial state
     var contractsBefore = service.getContractsByOrgId(orgId);
@@ -409,7 +409,7 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
   @Test
   void syncAllContractsAfterOrgLevelSyncShouldNotInsertAdditionalRecords() {
     // Given: An org already synced via the per-org sync endpoint
-    givenRosaContractIsCreatedForSyncTest(10.0);
+    givenRosaContractIsCreated(10.0);
     Response orgSync = service.syncContractsByOrg(orgId);
     assertThat("Per-org sync should succeed", orgSync.statusCode(), is(HttpStatus.SC_OK));
 
@@ -642,7 +642,7 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
   @Test
   void shouldTerminateContractsAndSubscriptionsWhenMissingFromUpstream() {
     // Given: Create a contract and subscription
-    givenRosaContractIsCreatedForSyncTest(10.0);
+    givenRosaContractIsCreated(10.0);
 
     // Verify contract and subscription exist before sync
     var contractsBeforeSync = service.getContractsByOrgId(orgId);
@@ -699,20 +699,8 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
   @Test
   void shouldTerminateOnlyMissingContractsWhenPartialEntitlementsDisappear() {
     // Setup: Create a contract with known billing_provider_id and end_date in future
-    String sku = RandomUtils.generateRandom();
-    Contract originalContract =
-        Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0), sku);
-
-    wiremock.forProductAPI().stubOfferingData(originalContract.getOffering());
-    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContractsInOrgId(orgId, originalContract));
-    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(originalContract);
-
-    assertThat(
-        "Sync offering should succeed",
-        service.syncOffering(sku).statusCode(),
-        is(HttpStatus.SC_OK));
-
-    givenContractIsCreated(originalContract);
+    Contract originalContract = givenRosaContractIsCreated(10.0);
+    String sku = originalContract.getOffering().getSku();
 
     var contractsBeforeSync = service.getContractsByOrgId(orgId);
     assertEquals(1, contractsBeforeSync.size(), "Should have one contract before sync");
@@ -777,7 +765,7 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
   @TestPlanName("contracts-sync-TC013")
   @Test
   void shouldNotReTerminateAlreadyTerminatedContracts() {
-    givenRosaContractIsCreatedForSyncTest(10.0);
+    givenRosaContractIsCreated(10.0);
 
     // Phase 1: Sync with empty upstream to terminate the contract
     wiremock.forPartnerAPI().stubPartnerSubscriptions(forContractsInOrgId(orgId));
@@ -810,8 +798,7 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     List<Contract> contracts = new java.util.ArrayList<>();
     for (int i = 0; i < count; i++) {
       contracts.add(
-          Contract.buildRosaContract(
-              orgId, domain.BillingProvider.AWS, java.util.Map.of(CORES, 10.0), sku));
+          Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0), sku));
     }
     wiremock.forProductAPI().stubOfferingData(contracts.get(0).getOffering());
     wiremock

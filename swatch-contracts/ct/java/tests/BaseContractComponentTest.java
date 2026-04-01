@@ -21,7 +21,6 @@
 package tests;
 
 import static api.PartnerApiStubs.PartnerSubscriptionsStubRequest.forContract;
-import static api.PartnerApiStubs.PartnerSubscriptionsStubRequest.forContractsInOrgId;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,6 +40,7 @@ import com.redhat.swatch.contract.test.model.CapacityReportByMetricId;
 import com.redhat.swatch.contract.test.model.CapacitySnapshotByMetricId;
 import com.redhat.swatch.contract.test.model.GranularityType;
 import com.redhat.swatch.contract.test.model.ReportCategory;
+import domain.BillingProvider;
 import domain.Contract;
 import domain.Product;
 import domain.Subscription;
@@ -101,32 +101,14 @@ public class BaseContractComponentTest {
     return orgId;
   }
 
-  protected Contract givenRosaContractIsCreated(String sku, double coresCapacity) {
-    Contract contract =
-        Contract.buildRosaContract(
-            orgId, domain.BillingProvider.AWS, java.util.Map.of(CORES, coresCapacity), sku);
-    givenContractIsCreated(contract);
-    return contract;
+  protected Contract givenRosaContractIsCreated(double coresCapacity) {
+    return givenRosaContractIsCreated(RandomUtils.generateRandom(), coresCapacity);
   }
 
-  protected Contract givenRosaContractIsCreatedForSyncTest(double coresCapacity) {
-    String sku = RandomUtils.generateRandom();
+  protected Contract givenRosaContractIsCreated(String sku, double coresCapacity) {
     Contract contract =
-        Contract.buildRosaContract(
-            orgId, domain.BillingProvider.AWS, Map.of(CORES, coresCapacity), sku);
-
-    wiremock.forProductAPI().stubOfferingData(contract.getOffering());
-    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContractsInOrgId(orgId, contract));
-    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(contract);
-
-    assertThat(
-        "Sync offering should succeed",
-        service.syncOffering(sku).statusCode(),
-        is(HttpStatus.SC_OK));
-
-    Response create = service.createContract(contract);
-    assertThat("Creating contract should succeed", create.statusCode(), is(HttpStatus.SC_OK));
-
+        Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, coresCapacity), sku);
+    givenContractIsCreated(contract);
     return contract;
   }
 

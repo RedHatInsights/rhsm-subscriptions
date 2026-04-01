@@ -474,7 +474,7 @@ public class ContractService {
         }
       }
 
-      terminateContractsNotInUpstream(contractOrgSync, upstreamBillingProviderIds);
+      terminateContractsOrphanedByBillingProviders(contractOrgSync, upstreamBillingProviderIds);
 
       if (!upstreamBillingProviderIds.isEmpty()) {
         statusResponse.setMessage("Contracts Synced for " + contractOrgSync);
@@ -497,12 +497,13 @@ public class ContractService {
     return statusResponse;
   }
 
-  private void terminateContractsNotInUpstream(
+  private void terminateContractsOrphanedByBillingProviders(
       String orgId, Set<String> upstreamBillingProviderIds) {
     var now = OffsetDateTime.now();
 
     // Build specification to find active contracts not in upstream (push filtering to database)
     Specification<ContractEntity> spec =
+        // findExistingContractRecords (logic)?
         ContractEntity.orgIdEquals(orgId)
             .and(ContractEntity.activeOn(now))
             .and(ContractEntity.billingProviderIdNullOrNotIn(upstreamBillingProviderIds));
@@ -514,23 +515,17 @@ public class ContractService {
           "Terminating {} orphaned contract(s) for org {} not found in upstream",
           orphanedContracts.size(),
           orgId);
-      orphanedContracts.forEach(
-          contract -> {
-            log.info(
-                "Terminating contract that no longer exists in upstream partner API: {}", contract);
-            contract.setEndDate(now);
-            persistContract(contract, now);
-          });
+      orphanedContracts.forEach(contract -> terminateContract(contract, now));
 
-      orphanedContracts.forEach(contract -> terminateSubscriptionsForContract(contract, now));
+      orphanedContracts.forEach(contract -> terminateActiveSubscriptionsForContract(contract, now));
     }
   }
 
-  private void terminateSubscriptionsForContract(
+  private void terminateActiveSubscriptionsForContract(
       ContractEntity contract, OffsetDateTime terminationDate) {
-    var subscriptions =
-        subscriptionRepository.findBySubscriptionNumber(contract.getSubscriptionNumber());
-    subscriptions.stream()
+    subscriptionRepository
+        .find(SubscriptionEntity.class, SubscriptionEntity.forContract(contract))
+        .stream()
         .filter(sub -> sub.getEndDate() == null || sub.getEndDate().isAfter(terminationDate))
         .forEach(
             sub -> {
@@ -540,6 +535,13 @@ public class ContractService {
               sub.setEndDate(terminationDate);
               subscriptionRepository.persist(sub);
             });
+  }
+
+  private void terminateContract(ContractEntity contract, OffsetDateTime terminationDate) {
+    contract.setEndDate(terminationDate);
+    contract.setLastUpdated(terminationDate);
+    contractRepository.persist(contract);
+    log.info("Contract terminated with UUID {}", contract.getUuid());
   }
 
   @Transactional
