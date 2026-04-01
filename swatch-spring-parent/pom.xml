@@ -164,7 +164,7 @@
       <dependency>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-jackson2</artifactId>
-        <version>4.0.2</version>
+        <version>${spring.boot.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

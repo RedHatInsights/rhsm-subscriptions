@@ -41,7 +41,7 @@ class SystemConduitDeploymentTest extends ConduitBaseTest {
 
   @BeforeEach
   void setup() {
-    restClient = RestTestClient.bindToServer().baseUrl(apiBasePath()).build();
+    restClient = RestTestClient.bindToServer().baseUrl(basePath()).build();
   }
 
   @Test
@@ -53,7 +53,7 @@ class SystemConduitDeploymentTest extends ConduitBaseTest {
   void testSwaggerPage() {
     restClient
         .get()
-        .uri(basePath() + "/api/swatch-system-conduit/internal/swagger-ui/index.html")
+        .uri("/api/swatch-system-conduit/internal/swagger-ui/index.html")
         .exchange()
         .expectStatus()
         .is2xxSuccessful()
@@ -66,7 +66,7 @@ class SystemConduitDeploymentTest extends ConduitBaseTest {
   void testTraceResponseHeader() {
     restClient
         .get()
-        .uri("/internal/organizations-sync-list/123")
+        .uri("/api/rhsm-subscriptions/v1/internal/organizations-sync-list/123")
         .header(RH_IDENTITY_HEADER, user())
         .exchange()
         .expectHeader()

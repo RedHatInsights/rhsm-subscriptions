@@ -215,11 +215,6 @@
         <version>0.2.10</version>
       </dependency>
       <dependency>
-        <groupId>org.codehaus.janino</groupId>
-        <artifactId>janino</artifactId>
-        <version>3.1.12</version>
-      </dependency>
-      <dependency>
         <groupId>jakarta.ws.rs</groupId>
         <artifactId>jakarta.ws.rs-api</artifactId>
         <version>${jakarta.ws.rs-api.version}</version>

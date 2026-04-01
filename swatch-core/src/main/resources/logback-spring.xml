@@ -41,12 +41,12 @@
         <appender-ref ref="FileAppender" />
     </root>
 
-    <!--
-      The Janino library is responsible for parsing and evaluating logback conditionals.  When we
-      start using HEC exclusively for logging, we can remove the flag, conditional, and janin library.
-      http://logback.qos.ch/manual/configuration.html#conditional
-    -->
-    <if condition='property("ENABLE_SPLUNK_HEC").equals("true")'>
+    <!-- See https://logback.qos.ch/manual/configuration.html#conditional -->
+    <condition class="ch.qos.logback.core.boolex.PropertyEqualityCondition">
+      <key>ENABLE_SPLUNK_HEC</key>
+      <value>true</value>
+    </condition>
+    <if>
         <then>
          <!--
           "During substitution, properties are looked up in the local scope first, in the context
