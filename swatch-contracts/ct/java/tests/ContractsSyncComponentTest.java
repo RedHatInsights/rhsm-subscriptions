@@ -793,6 +793,47 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
         firstEndDate, secondEndDate, "Already-terminated contract should not be re-terminated");
   }
 
+  /**
+   * TC015 - Azure contract present in upstream is not terminated
+   *
+   * <p>Verify that an Azure contract with a billing_provider_id matching the upstream response is
+   * recognized as present and NOT terminated during sync.
+   */
+  @TestPlanName("contracts-sync-TC015")
+  @Test
+  void shouldNotTerminateAzureContractPresentInUpstream() {
+    // Given: Create an Azure contract
+    String sku = RandomUtils.generateRandom();
+    Contract azureContract = Contract.buildAzureContract(orgId, Map.of(CORES, 10.0), sku);
+    givenContractIsCreated(azureContract);
+
+    var contractsBefore = service.getContractsByOrgId(orgId);
+    assertEquals(1, contractsBefore.size(), "Should have one contract before sync");
+    var endDateBefore = contractsBefore.get(0).getEndDate();
+    assertNotNull(endDateBefore, "Contract should have an end_date");
+
+    // Stub upstream to return the same Azure entitlement
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContractsInOrgId(orgId, azureContract));
+    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(azureContract);
+
+    // When: Sync contracts
+    Response syncResponse = service.syncContractsByOrg(orgId);
+
+    // Then: Sync succeeds and contract is NOT terminated
+    assertThat("Sync should return OK", syncResponse.statusCode(), is(HttpStatus.SC_OK));
+    syncResponse
+        .then()
+        .body("status", equalTo(STATUS_SUCCESS))
+        .body("message", equalTo("Contracts Synced for " + orgId));
+
+    var contractsAfter = service.getContractsByOrgId(orgId);
+    assertEquals(1, contractsAfter.size(), "Should still have one contract after sync");
+    assertEquals(
+        endDateBefore,
+        contractsAfter.get(0).getEndDate(),
+        "Azure contract end_date should be unchanged (not terminated)");
+  }
+
   private void givenRosaContractsAreStubbed(int count) {
     String sku = RandomUtils.generateRandom();
     List<Contract> contracts = new java.util.ArrayList<>();

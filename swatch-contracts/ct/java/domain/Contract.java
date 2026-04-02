@@ -88,25 +88,58 @@ public class Contract extends Subscription {
 
   public static Contract buildRosaContract(
       String orgId, BillingProvider billingProvider, Map<MetricId, Double> capacity, String sku) {
-    Objects.requireNonNull(orgId, "orgId cannot be null");
     Objects.requireNonNull(billingProvider, "billingProvider cannot be null");
+    String seed = RandomUtils.generateRandom();
+    return buildContract(
+        orgId,
+        capacity,
+        sku,
+        seed,
+        billingProvider,
+        "seller" + seed,
+        Product.ROSA,
+        Offering.buildRosaOffering(Objects.requireNonNullElse(sku, seed)));
+  }
+
+  public static Contract buildAzureContract(
+      String orgId, Map<MetricId, Double> capacity, String sku) {
+    String seed = RandomUtils.generateRandom();
+    return buildContract(
+        orgId,
+        capacity,
+        sku,
+        seed,
+        BillingProvider.AZURE,
+        null,
+        Product.ROSA,
+        Offering.buildRosaOffering(Objects.requireNonNullElse(sku, seed)));
+  }
+
+  private static Contract buildContract(
+      String orgId,
+      Map<MetricId, Double> capacity,
+      String sku,
+      String seed,
+      BillingProvider billingProvider,
+      String sellerAccountId,
+      Product product,
+      Offering offering) {
+    Objects.requireNonNull(orgId, "orgId cannot be null");
     Objects.requireNonNull(capacity, "capacity cannot be null");
 
-    Product product = Product.ROSA;
-    String seed = RandomUtils.generateRandom();
     return Contract.builder()
-        .customerId("customer" + seed)
-        .sellerAccountId("seller" + seed)
-        .productCode("product" + seed)
-        .planId("plan" + seed)
-        .clientId("clientId" + seed)
         .resourceId("resourceId" + seed)
+        .planId("plan" + seed)
+        .productCode("product" + seed)
+        .customerId("customer" + seed)
+        .clientId("clientId" + seed)
+        .sellerAccountId(sellerAccountId)
         .subscriptionMeasurements(capacity)
         .billingProvider(billingProvider)
         .billingAccountId("billing" + seed)
         .orgId(orgId)
         .product(product)
-        .offering(Offering.buildRosaOffering(Objects.requireNonNullElse(sku, seed)))
+        .offering(offering)
         .subscriptionId(seed)
         .subscriptionNumber(seed)
         .startDate(OffsetDateTime.now().minusDays(1))

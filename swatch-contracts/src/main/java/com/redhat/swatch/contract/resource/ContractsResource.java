@@ -45,7 +45,6 @@ import com.redhat.swatch.contract.openapi.resource.DefaultApi;
 import com.redhat.swatch.contract.product.umb.CanonicalMessage;
 import com.redhat.swatch.contract.product.umb.UmbSubscription;
 import com.redhat.swatch.contract.repository.BillingProvider;
-import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.DbReportCriteria;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.service.AccountResetService;
@@ -70,9 +69,7 @@ import jakarta.ws.rs.ProcessingException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -154,10 +151,8 @@ public class ContractsResource implements DefaultApi {
   @RolesAllowed({"test", "support"})
   public StatusResponse syncAllContracts() throws ProcessingException {
     log.info("Syncing All Contracts");
-    Set<String> orgIds =
-        service.getAllContracts().stream()
-            .map(ContractEntity::getOrgId)
-            .collect(Collectors.toSet());
+
+    var orgIds = service.getDistinctOrgIds();
 
     if (orgIds.isEmpty()) {
       return new StatusResponse().status("No active contract found for the orgIds");

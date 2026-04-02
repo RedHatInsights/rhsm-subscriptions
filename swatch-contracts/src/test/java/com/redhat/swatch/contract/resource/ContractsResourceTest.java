@@ -49,7 +49,6 @@ import com.redhat.swatch.contract.openapi.model.ServiceLevelType;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.openapi.model.Subscription;
 import com.redhat.swatch.contract.openapi.model.UsageType;
-import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import com.redhat.swatch.contract.service.ContractService;
@@ -520,25 +519,23 @@ class ContractsResourceTest {
 
   @Test
   void testSyncAllContractsWhenNoActiveContracts() {
-    when(contractService.getAllContracts()).thenReturn(Collections.emptyList());
+    when(contractService.getDistinctOrgIds()).thenReturn(Collections.emptyList());
 
     StatusResponse response = whenSyncAllContractsRequest();
 
     assertEquals("No active contract found for the orgIds", response.getStatus());
-    verify(contractService).getAllContracts();
+    verify(contractService).getDistinctOrgIds();
     verify(contractService, times(0)).syncContractsByOrgId(any());
   }
 
   @Test
   void testSyncAllContractsWithContractsExist() {
-    ContractEntity contract = new ContractEntity();
-    contract.setOrgId(ORG_ID);
-    when(contractService.getAllContracts()).thenReturn(List.of(contract));
+    when(contractService.getDistinctOrgIds()).thenReturn(List.of(ORG_ID));
 
     StatusResponse response = whenSyncAllContractsRequest();
 
     assertEquals("All Contract are Synced", response.getStatus());
-    verify(contractService).getAllContracts();
+    verify(contractService).getDistinctOrgIds();
     verify(contractService).syncContractsByOrgId(ORG_ID);
   }
 
@@ -547,11 +544,7 @@ class ContractsResourceTest {
     // Global sync calls per-org sync for each org with contracts.
     // Per ADR-0004, isPreCleanup has been removed - contracts missing from upstream
     // are now terminated (not deleted) to preserve historical records.
-    ContractEntity contract1 = new ContractEntity();
-    contract1.setOrgId(ORG_ID);
-    ContractEntity contract2 = new ContractEntity();
-    contract2.setOrgId(ANOTHER_ORG_ID);
-    when(contractService.getAllContracts()).thenReturn(List.of(contract1, contract2));
+    when(contractService.getDistinctOrgIds()).thenReturn(List.of(ORG_ID, ANOTHER_ORG_ID));
 
     whenSyncAllContractsRequest();
 

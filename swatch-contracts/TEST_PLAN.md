@@ -723,6 +723,22 @@ This section verifies the automatic contract termination behavior when contracts
   - Associated subscription is also terminated (`end_date` set)
   - Both contract and subscription `end_date` values are approximately the same timestamp
 
+**contracts-sync-TC015 - Azure contract present in upstream is not terminated**
+- **Description**: Verify that an Azure contract with a `billing_provider_id` matching the upstream response is recognized as present and NOT terminated during sync. This is the positive counterpart to TC011, confirming that the termination logic correctly identifies matched contracts by their Azure `billing_provider_id` format (`{azureResourceId};{planId};{vendorProductCode};{azureCustomerId};{clientId}`).
+- **Setup**:
+  - Create an Azure contract for org "org123" with a valid `billing_provider_id`
+  - Stub upstream Partner API to return the same Azure entitlement (same `azureResourceId`, `planId`, `vendorProductCode`, `azureCustomerId`, `clientId`)
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/org123`
+- **Verification**:
+  - Query contract after sync
+  - Compare `end_date` before and after sync
+- **Expected Result**:
+  - HTTP 200 with StatusResponse
+  - StatusResponse message: "Contracts Synced for org123"
+  - StatusResponse status: "SUCCESS"
+  - Contract `end_date` is unchanged (still in the future, not terminated)
+  - Contract count remains 1
+
 ## Subscription Management via UMB
 
 **subscriptions-creation-TC001 - Process a valid UMB subscription XML message from UMB**  

@@ -145,6 +145,10 @@ public class ContractService {
     return contractRepository.findAll().stream().toList();
   }
 
+  public List<String> getDistinctOrgIds() {
+    return contractRepository.getDistinctOrgIds();
+  }
+
   /**
    * Build Specifications based on provided parameters if not null and use to query the database
    * based on specifications.
@@ -501,9 +505,7 @@ public class ContractService {
       String orgId, Set<String> upstreamBillingProviderIds) {
     var now = OffsetDateTime.now();
 
-    // Build specification to find active contracts not in upstream (push filtering to database)
     Specification<ContractEntity> spec =
-        // findExistingContractRecords (logic)?
         ContractEntity.orgIdEquals(orgId)
             .and(ContractEntity.activeOn(now))
             .and(ContractEntity.billingProviderIdNullOrNotIn(upstreamBillingProviderIds));
