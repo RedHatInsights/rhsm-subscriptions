@@ -59,6 +59,53 @@ objects:
               level: info
 
   - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: logging-otel-config
+    data:
+      relay: |
+        extensions:
+          health_check:
+            endpoint: 0.0.0.0:13133
+        receivers:
+          otlp:
+            protocols:
+              grpc:
+                endpoint: 0.0.0.0:4317
+              http:
+                endpoint: 0.0.0.0:4318
+          syslog:
+            protocol: rfc3164
+            udp:
+              listen_address: '0.0.0.0:54526'
+        processors:
+          batch:
+          transform/syslog:
+            log_statements:
+            - context: log
+              statements:
+              - set(resource.attributes["host.name"], attributes["hostname"]) where attributes["hostname"] != nil
+              - set(body, attributes["message"]) where attributes["message"] != nil
+        exporters:
+          debug:
+            verbosity: detailed
+        service:
+          extensions:
+            - health_check
+          pipelines:
+            traces:
+              receivers: [otlp]
+              processors: [batch]
+              exporters: [debug]
+            logs:
+              receivers: [syslog]
+              processors: [batch, transform/syslog]
+              exporters: [debug]
+          telemetry:
+            logs:
+              level: info
+
+  - apiVersion: v1
     kind: Secret
     metadata:
       name: signalfx
