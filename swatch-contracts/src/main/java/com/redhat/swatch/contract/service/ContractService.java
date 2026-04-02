@@ -141,11 +141,7 @@ public class ContractService {
   }
 
   @Transactional
-  public List<ContractEntity> getAllContracts() {
-    return contractRepository.findAll().stream().toList();
-  }
-
-  public List<String> getDistinctOrgIds() {
+  public List<String> getOrgIdUsedInContracts() {
     return contractRepository.getDistinctOrgIds();
   }
 

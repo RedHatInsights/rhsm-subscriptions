@@ -519,23 +519,23 @@ class ContractsResourceTest {
 
   @Test
   void testSyncAllContractsWhenNoActiveContracts() {
-    when(contractService.getDistinctOrgIds()).thenReturn(Collections.emptyList());
+    when(contractService.getOrgIdUsedInContracts()).thenReturn(Collections.emptyList());
 
     StatusResponse response = whenSyncAllContractsRequest();
 
     assertEquals("No active contract found for the orgIds", response.getStatus());
-    verify(contractService).getDistinctOrgIds();
+    verify(contractService).getOrgIdUsedInContracts();
     verify(contractService, times(0)).syncContractsByOrgId(any());
   }
 
   @Test
   void testSyncAllContractsWithContractsExist() {
-    when(contractService.getDistinctOrgIds()).thenReturn(List.of(ORG_ID));
+    when(contractService.getOrgIdUsedInContracts()).thenReturn(List.of(ORG_ID));
 
     StatusResponse response = whenSyncAllContractsRequest();
 
     assertEquals("All Contract are Synced", response.getStatus());
-    verify(contractService).getDistinctOrgIds();
+    verify(contractService).getOrgIdUsedInContracts();
     verify(contractService).syncContractsByOrgId(ORG_ID);
   }
 
@@ -544,7 +544,7 @@ class ContractsResourceTest {
     // Global sync calls per-org sync for each org with contracts.
     // Per ADR-0004, isPreCleanup has been removed - contracts missing from upstream
     // are now terminated (not deleted) to preserve historical records.
-    when(contractService.getDistinctOrgIds()).thenReturn(List.of(ORG_ID, ANOTHER_ORG_ID));
+    when(contractService.getOrgIdUsedInContracts()).thenReturn(List.of(ORG_ID, ANOTHER_ORG_ID));
 
     whenSyncAllContractsRequest();
 

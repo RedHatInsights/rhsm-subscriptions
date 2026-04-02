@@ -30,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static utils.DateUtils.assertDatesAreEqual;
 
 import api.PartnerApiStubs;
 import com.redhat.swatch.component.tests.api.TestPlanName;
@@ -626,18 +627,6 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     assertEquals(0, finalContracts.size(), "No contracts should remain");
   }
 
-  /**
-   * TC011 - Contract and subscription termination when missing from upstream
-   *
-   * <p>Verify that when a contract exists in SWATCH but is no longer returned by the upstream
-   * partner API during sync:
-   *
-   * <ul>
-   *   <li>The contract is terminated (endDate set) rather than hard deleted
-   *   <li>The associated subscription is also terminated
-   *   <li>Both have approximately the same termination timestamp
-   * </ul>
-   */
   @TestPlanName("contracts-sync-TC011")
   @Test
   void shouldTerminateContractsAndSubscriptionsWhenMissingFromUpstream() {
@@ -680,12 +669,7 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     assertNotNull(terminatedSubscription.getEndDate(), "Subscription should be terminated");
 
     // Verify both have approximately the same termination timestamp (within 1 second)
-    assertTrue(
-        Math.abs(
-                terminatedContract.getEndDate().toInstant().toEpochMilli()
-                    - terminatedSubscription.getEndDate().toInstant().toEpochMilli())
-            < 1000,
-        "Contract and subscription should be terminated with approximately the same timestamp");
+    assertDatesAreEqual(terminatedContract.getEndDate(), terminatedSubscription.getEndDate());
   }
 
   /**

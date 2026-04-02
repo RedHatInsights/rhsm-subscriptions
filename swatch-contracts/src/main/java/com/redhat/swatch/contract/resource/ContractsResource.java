@@ -152,7 +152,7 @@ public class ContractsResource implements DefaultApi {
   public StatusResponse syncAllContracts() throws ProcessingException {
     log.info("Syncing All Contracts");
 
-    var orgIds = service.getDistinctOrgIds();
+    var orgIds = service.getOrgIdUsedInContracts();
 
     if (orgIds.isEmpty()) {
       return new StatusResponse().status("No active contract found for the orgIds");
