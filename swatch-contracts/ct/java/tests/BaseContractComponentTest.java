@@ -40,6 +40,7 @@ import com.redhat.swatch.contract.test.model.CapacityReportByMetricId;
 import com.redhat.swatch.contract.test.model.CapacitySnapshotByMetricId;
 import com.redhat.swatch.contract.test.model.GranularityType;
 import com.redhat.swatch.contract.test.model.ReportCategory;
+import domain.BillingProvider;
 import domain.Contract;
 import domain.Product;
 import domain.Subscription;
@@ -100,10 +101,13 @@ public class BaseContractComponentTest {
     return orgId;
   }
 
+  protected Contract givenRosaContractIsCreated(double coresCapacity) {
+    return givenRosaContractIsCreated(RandomUtils.generateRandom(), coresCapacity);
+  }
+
   protected Contract givenRosaContractIsCreated(String sku, double coresCapacity) {
     Contract contract =
-        Contract.buildRosaContract(
-            orgId, domain.BillingProvider.AWS, java.util.Map.of(CORES, coresCapacity), sku);
+        Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, coresCapacity), sku);
     givenContractIsCreated(contract);
     return contract;
   }

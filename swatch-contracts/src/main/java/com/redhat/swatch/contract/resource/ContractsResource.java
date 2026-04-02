@@ -45,7 +45,6 @@ import com.redhat.swatch.contract.openapi.resource.DefaultApi;
 import com.redhat.swatch.contract.product.umb.CanonicalMessage;
 import com.redhat.swatch.contract.product.umb.UmbSubscription;
 import com.redhat.swatch.contract.repository.BillingProvider;
-import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.DbReportCriteria;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.service.AccountResetService;
@@ -152,26 +151,23 @@ public class ContractsResource implements DefaultApi {
   @RolesAllowed({"test", "support"})
   public StatusResponse syncAllContracts() throws ProcessingException {
     log.info("Syncing All Contracts");
-    var contracts = service.getAllContracts();
-    if (contracts.isEmpty()) {
+
+    var orgIds = service.getOrgIdUsedInContracts();
+
+    if (orgIds.isEmpty()) {
       return new StatusResponse().status("No active contract found for the orgIds");
     }
-    for (ContractEntity org : contracts) {
-      syncContractsByOrg(org.getOrgId(), false, false);
+
+    for (String orgId : orgIds) {
+      service.syncContractsByOrgId(orgId);
     }
     return new StatusResponse().status("All Contract are Synced");
   }
 
   @Override
   @RolesAllowed({"test", "support"})
-  public StatusResponse syncContractsByOrg(
-      String orgId, Boolean isPreCleanup, Boolean deleteContractsAndSubs)
-      throws ProcessingException {
-    if (Boolean.TRUE.equals(deleteContractsAndSubs)) {
-      service.deleteContractsByOrgId(orgId);
-      service.deletePaygSubscriptionsByOrgId(orgId);
-    }
-    return service.syncContractsByOrgId(orgId, isPreCleanup);
+  public StatusResponse syncContractsByOrg(String orgId) throws ProcessingException {
+    return service.syncContractsByOrgId(orgId);
   }
 
   @Override

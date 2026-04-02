@@ -243,4 +243,16 @@ public class ContractEntity extends PanacheEntityBase {
     return (root, query, builder) ->
         builder.equal(root.get(ContractEntity_.billingProviderId), billingProviderId);
   }
+
+  public static Specification<ContractEntity> billingProviderIdNullOrNotIn(
+      Set<String> billingProviderIds) {
+    return (root, query, builder) -> {
+      if (billingProviderIds == null || billingProviderIds.isEmpty()) {
+        return builder.conjunction();
+      }
+      return builder.or(
+          builder.isNull(root.get(ContractEntity_.billingProviderId)),
+          builder.not(root.get(ContractEntity_.billingProviderId).in(billingProviderIds)));
+    };
+  }
 }
