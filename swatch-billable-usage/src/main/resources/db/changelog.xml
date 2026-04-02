@@ -7,5 +7,6 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
 
   <include file="/db/202510051200-create-billable-usage-remittance-table.xml"/>
+  <include file="/db/202604021015-add-primary-key-to-changelog-table.xml"/>
 
 </databaseChangeLog>
