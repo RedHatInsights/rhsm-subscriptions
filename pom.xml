@@ -30,7 +30,7 @@
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
     <opentelemetry-api.version>1.60.1</opentelemetry-api.version>
-    <awssdk-bom.version>2.42.23</awssdk-bom.version>
+    <awssdk-bom.version>2.42.26</awssdk-bom.version>
     <guava.version>33.5.0-jre</guava.version>
     <liquibase.version>5.0.2</liquibase.version>
     <postgresql.version>42.7.10</postgresql.version>
@@ -513,7 +513,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>13.3.0</version>
+            <version>13.4.0</version>
           </dependency>
         </dependencies>
       </plugin>
