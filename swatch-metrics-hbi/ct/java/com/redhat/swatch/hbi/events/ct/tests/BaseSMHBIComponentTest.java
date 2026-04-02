@@ -44,7 +44,7 @@ public class BaseSMHBIComponentTest {
   @Unleash static UnleashService unleash = new UnleashService();
 
   @Quarkus(service = "swatch-metrics-hbi")
-  static SwatchMetricsHbiRestService swatchMetricsHbi = new SwatchMetricsHbiRestService();
+  static SwatchMetricsHbiRestService service = new SwatchMetricsHbiRestService();
 
   protected static final String EMIT_EVENTS = "swatch.swatch-metrics-hbi.emit-events";
 
@@ -64,7 +64,7 @@ public class BaseSMHBIComponentTest {
     AwaitilityUtils.untilAsserted(
         () -> {
           // Flush the outbox to ensure events are sent to Kafka
-          swatchMetricsHbi.flushOutboxSynchronously();
+          service.flushOutboxSynchronously();
 
           // Verify each expected message appears in Kafka
           for (var expectedMessage : expectedMessages) {

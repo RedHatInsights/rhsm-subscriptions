@@ -34,13 +34,13 @@ class SimpleSwatchMetricsHbiTest extends BaseSMHBIComponentTest {
   @TestPlanName("metrics-hbi-api-TC001")
   @Test
   void testServiceIsUpAndRunning() {
-    assertTrue(swatchMetricsHbi.isRunning());
+    assertTrue(service.isRunning());
   }
 
   @TestPlanName("metrics-hbi-api-TC002")
   @Test
   void testFlushApi() {
-    FlushResponse body = swatchMetricsHbi.flushOutboxSynchronously();
+    FlushResponse body = service.flushOutboxSynchronously();
     assertEquals(StatusEnum.SUCCESS, body.getStatus());
     assertFalse(body.getAsync());
   }
