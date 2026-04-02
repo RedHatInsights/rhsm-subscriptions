@@ -21,6 +21,7 @@
 package com.redhat.swatch.aws.service;
 
 import static com.redhat.swatch.configuration.registry.SubscriptionDefinition.getBillingFactor;
+import static java.util.Optional.ofNullable;
 
 import com.redhat.swatch.aws.exception.AwsMissingCredentialsException;
 import com.redhat.swatch.aws.exception.AwsThrottlingException;
@@ -38,6 +39,7 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.faulttolerance.api.RetryWithExponentialBackoff;
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Meter.MeterProvider;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -47,8 +49,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -80,7 +80,7 @@ public class AwsBillableUsageAggregateConsumer {
   private final Optional<Boolean> isDryRun;
   private final Duration awsUsageWindow;
   private final BillableUsageStatusProducer billableUsageStatusProducer;
-  private final MeterRegistry meterRegistry;
+  private final MeterProvider<Counter> meteredTotalCounter;
 
   public AwsBillableUsageAggregateConsumer(
       MeterRegistry meterRegistry,
@@ -92,7 +92,7 @@ public class AwsBillableUsageAggregateConsumer {
     acceptedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_accepted_total");
     rejectedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_rejected_total");
     ignoreCounter = meterRegistry.counter("swatch_aws_marketplace_batch_ignored_total");
-    this.meterRegistry = meterRegistry;
+    this.meteredTotalCounter = Counter.builder(METERED_TOTAL_METRIC).withRegistry(meterRegistry);
     this.contractsApi = contractsApi;
     this.awsMarketplaceMeteringClientFactory = awsMarketplaceMeteringClientFactory;
     this.isDryRun = isDryRun;
@@ -208,7 +208,7 @@ public class AwsBillableUsageAggregateConsumer {
           billableUsageAggregate.getAggregateKey().getUsage(),
           billableUsageAggregate.getAggregateKey().getBillingAccountId());
     } catch (DefaultApiException e) {
-      var optionalErrors = Optional.ofNullable(e.getErrors());
+      var optionalErrors = ofNullable(e.getErrors());
       if (optionalErrors.isPresent()) {
         var isRecentlyTerminatedError =
             optionalErrors.get().getErrors().stream()
@@ -363,31 +363,17 @@ public class AwsBillableUsageAggregateConsumer {
 
   private void incrementMeteredTotal(BillableUsageAggregate usage) {
     BillableUsageAggregateKey aggregateKey = usage.getAggregateKey();
-    List<String> tags =
-        new ArrayList<>(
-            List.of(
-                "product",
-                aggregateKey.getProductId(),
-                "metric_id",
-                MetricId.fromString(aggregateKey.getMetricId()).getValue()));
-
-    if (Objects.nonNull(aggregateKey.getBillingProvider())) {
-      tags.addAll(List.of("billing_provider", aggregateKey.getBillingProvider()));
-    }
-
-    if (Objects.nonNull(usage.getStatus())) {
-      tags.addAll(List.of("status", usage.getStatus().toString()));
-    }
-
-    if (Objects.nonNull(usage.getErrorCode())) {
-      tags.addAll(List.of("error_code", usage.getErrorCode().toString()));
-    }
-
     double value =
         usage.getTotalValue().doubleValue()
-            / getBillingFactor(
-                usage.getAggregateKey().getProductId(), usage.getAggregateKey().getMetricId());
-    meterRegistry.counter(METERED_TOTAL_METRIC, tags.toArray(new String[0])).increment(value);
+            / getBillingFactor(aggregateKey.getProductId(), aggregateKey.getMetricId());
+    meteredTotalCounter
+        .withTags(
+            "product", aggregateKey.getProductId(),
+            "metric_id", MetricId.fromString(aggregateKey.getMetricId()).getValue(),
+            "billing_provider", ofNullable(aggregateKey.getBillingProvider()).orElse(""),
+            "status", ofNullable(usage.getStatus()).map(Object::toString).orElse(""),
+            "error_code", ofNullable(usage.getErrorCode()).map(Object::toString).orElse(""))
+        .increment(value);
   }
 
   /**

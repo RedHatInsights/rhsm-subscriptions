@@ -20,16 +20,17 @@
  */
 package com.redhat.swatch.billable.usage.kafka.streams;
 
+import static java.util.Optional.ofNullable;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.configuration.registry.MetricId;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Meter.MeterProvider;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.arc.profile.UnlessBuildProfile;
 import io.quarkus.kafka.client.serialization.ObjectMapperSerde;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
-import java.util.ArrayList;
-import java.util.List;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
@@ -47,7 +48,6 @@ import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 
-@AllArgsConstructor
 @ApplicationScoped
 @Slf4j
 @UnlessBuildProfile("test")
@@ -58,7 +58,17 @@ public class StreamTopologyProducer {
 
   private final BillableUsageAggregationStreamProperties properties;
   private final ObjectMapper objectMapper;
-  private final MeterRegistry meterRegistry;
+  private final MeterProvider<Counter> usageTotalAggregatedCounter;
+
+  public StreamTopologyProducer(
+      BillableUsageAggregationStreamProperties properties,
+      ObjectMapper objectMapper,
+      MeterRegistry meterRegistry) {
+    this.properties = properties;
+    this.objectMapper = objectMapper;
+    this.usageTotalAggregatedCounter =
+        Counter.builder(USAGE_TOTAL_AGGREGATED_METRIC).withRegistry(meterRegistry);
+  }
 
   @Produces
   public Topology buildTopology() {
@@ -105,25 +115,18 @@ public class StreamTopologyProducer {
   private void traceAggregate(
       Windowed<BillableUsageAggregateKey> key, BillableUsageAggregate aggregate) {
     log.info("Sending aggregate to hourly topic: {}", aggregate);
-    if (key.key().getProductId() != null && key.key().getMetricId() != null) {
-      // add metrics for aggregation
-      List<String> tags =
-          new ArrayList<>(
-              List.of(
-                  "product",
-                  key.key().getProductId(),
-                  "metric_id",
-                  MetricId.tryGetValueFromString(key.key().getMetricId())));
-      if (key.key().getBillingProvider() != null) {
-        tags.addAll(List.of("billing_provider", key.key().getBillingProvider()));
-      }
-
-      if (aggregate.getStatus() != null) {
-        tags.addAll(List.of("status", aggregate.getStatus().toString()));
-      }
-
-      meterRegistry
-          .counter(USAGE_TOTAL_AGGREGATED_METRIC, tags.toArray(new String[0]))
+    var aggregateKey = key.key();
+    if (aggregateKey.getProductId() != null && aggregateKey.getMetricId() != null) {
+      usageTotalAggregatedCounter
+          .withTags(
+              "product",
+              aggregateKey.getProductId(),
+              "metric_id",
+              MetricId.tryGetValueFromString(aggregateKey.getMetricId()),
+              "billing_provider",
+              ofNullable(aggregateKey.getBillingProvider()).orElse(""),
+              "status",
+              ofNullable(aggregate.getStatus()).map(Object::toString).orElse(""))
           .increment(aggregate.getTotalValue().doubleValue());
     }
   }

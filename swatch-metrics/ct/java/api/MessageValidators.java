@@ -18,29 +18,23 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.utilization;
+package api;
 
-import static io.restassured.RestAssured.given;
+import com.redhat.swatch.component.tests.api.MessageValidator;
+import org.candlepin.subscriptions.json.Event;
 
-import com.redhat.swatch.utilization.resources.InMemoryMessageBrokerKafkaResource;
-import io.quarkus.test.common.QuarkusTestResource;
-import io.quarkus.test.common.http.TestHTTPResource;
-import io.quarkus.test.junit.QuarkusTest;
-import java.net.URL;
-import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.Test;
+public final class MessageValidators {
 
-@QuarkusTest
-@QuarkusTestResource(
-    value = InMemoryMessageBrokerKafkaResource.class,
-    restrictToAnnotatedClass = true)
-public class UtilizationDeploymentTest {
+  private MessageValidators() {}
 
-  @TestHTTPResource(management = true, value = "/health")
-  URL healthUrl;
-
-  @Test
-  void testHealthEndpoint() {
-    given().get(healthUrl).then().statusCode(HttpStatus.SC_OK);
+  public static MessageValidator<String, Event> isEventForInstance(
+      String instanceId, String metricId) {
+    return new MessageValidator<>(
+        (key, event) ->
+            event != null
+                && event.getInstanceId().equals(instanceId)
+                && event.getMeasurements().stream().anyMatch(m -> m.getMetricId().equals(metricId)),
+        String.class,
+        Event.class);
   }
 }

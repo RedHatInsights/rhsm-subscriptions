@@ -18,29 +18,23 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.utilization;
+package api;
 
-import static io.restassured.RestAssured.given;
+import com.redhat.swatch.component.tests.api.SwatchService;
+import java.time.OffsetDateTime;
 
-import com.redhat.swatch.utilization.resources.InMemoryMessageBrokerKafkaResource;
-import io.quarkus.test.common.QuarkusTestResource;
-import io.quarkus.test.common.http.TestHTTPResource;
-import io.quarkus.test.junit.QuarkusTest;
-import java.net.URL;
-import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.Test;
+public class MetricsSwatchService extends SwatchService {
 
-@QuarkusTest
-@QuarkusTestResource(
-    value = InMemoryMessageBrokerKafkaResource.class,
-    restrictToAnnotatedClass = true)
-public class UtilizationDeploymentTest {
-
-  @TestHTTPResource(management = true, value = "/health")
-  URL healthUrl;
-
-  @Test
-  void testHealthEndpoint() {
-    given().get(healthUrl).then().statusCode(HttpStatus.SC_OK);
+  public void triggerInternalMetering(
+      String productTag, String orgId, OffsetDateTime endDate, int rangeInMinutes) {
+    given()
+        .header("x-rh-swatch-psk", SWATCH_PSK)
+        .queryParam("orgId", orgId)
+        .queryParam("endDate", endDate.toString())
+        .queryParam("rangeInMinutes", rangeInMinutes)
+        .when()
+        .post("/api/swatch-metrics/v1/internal/metering/" + productTag)
+        .then()
+        .statusCode(204);
   }
 }

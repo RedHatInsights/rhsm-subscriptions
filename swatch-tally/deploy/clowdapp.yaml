@@ -106,7 +106,7 @@ parameters:
   - name: ENABLE_SPLUNK_HEC
     value: 'true'
   - name: SPLUNK_SOURCE
-    value: 'rhsm-subscription-hec'
+    value: 'swatch-tally'
   - name: SPLUNK_SOURCE_TYPE
     value: 'swatch'
   - name: SPLUNK_MESSAGE_FORMAT
