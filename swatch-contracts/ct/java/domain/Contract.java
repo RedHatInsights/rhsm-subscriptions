@@ -90,42 +90,7 @@ public class Contract extends Subscription {
       String orgId, BillingProvider billingProvider, Map<MetricId, Double> capacity, String sku) {
     Objects.requireNonNull(billingProvider, "billingProvider cannot be null");
     String seed = RandomUtils.generateRandom();
-    return buildContract(
-        orgId,
-        capacity,
-        sku,
-        seed,
-        billingProvider,
-        "seller" + seed,
-        Product.ROSA,
-        Offering.buildRosaOffering(Objects.requireNonNullElse(sku, seed)));
-  }
-
-  public static Contract buildAzureContract(
-      String orgId, Map<MetricId, Double> capacity, String sku) {
-    String seed = RandomUtils.generateRandom();
-    return buildContract(
-        orgId,
-        capacity,
-        sku,
-        seed,
-        BillingProvider.AZURE,
-        null,
-        Product.ROSA,
-        Offering.buildRosaOffering(Objects.requireNonNullElse(sku, seed)));
-  }
-
-  private static Contract buildContract(
-      String orgId,
-      Map<MetricId, Double> capacity,
-      String sku,
-      String seed,
-      BillingProvider billingProvider,
-      String sellerAccountId,
-      Product product,
-      Offering offering) {
-    Objects.requireNonNull(orgId, "orgId cannot be null");
-    Objects.requireNonNull(capacity, "capacity cannot be null");
+    String sellerAccountId = billingProvider == BillingProvider.AWS ? "seller" + seed : null;
 
     return Contract.builder()
         .resourceId("resourceId" + seed)
@@ -138,12 +103,17 @@ public class Contract extends Subscription {
         .billingProvider(billingProvider)
         .billingAccountId("billing" + seed)
         .orgId(orgId)
-        .product(product)
-        .offering(offering)
+        .product(Product.ROSA)
+        .offering(Offering.buildRosaOffering(Objects.requireNonNullElse(sku, seed)))
         .subscriptionId(seed)
         .subscriptionNumber(seed)
         .startDate(OffsetDateTime.now().minusDays(1))
         .endDate(OffsetDateTime.now().plusDays(1))
         .build();
+  }
+
+  public static Contract buildAzureContract(
+      String orgId, Map<MetricId, Double> capacity, String sku) {
+    return buildRosaContract(orgId, BillingProvider.AZURE, capacity, sku);
   }
 }
