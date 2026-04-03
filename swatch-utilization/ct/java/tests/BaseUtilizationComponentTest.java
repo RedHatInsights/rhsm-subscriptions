@@ -90,6 +90,7 @@ public class BaseUtilizationComponentTest {
         .add(
             new Measurement()
                 .withMetricId(metricId.getValue())
+                .withValue(currentTotal)
                 .withCurrentTotal(currentTotal)
                 .withCapacity(capacity)
                 .withUnlimited(unlimited));
