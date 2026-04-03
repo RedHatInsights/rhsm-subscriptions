@@ -67,8 +67,10 @@ class CustomerOverUsageServiceTest {
 
   // Test data constants
   private static final String ORG_ID = "org123";
-  private static final String PRODUCT_ID = "rosa";
+  private static final String PRODUCT_ID = "rosa"; // PAYG product
+  private static final String NON_PAYG_PRODUCT_ID = "RHEL for x86";
   private static final String METRIC_ID = MetricIdUtils.getCores().getValue();
+  private static final String SOCKETS_METRIC_ID = MetricIdUtils.getSockets().getValue();
   private static final double CAPACITY = 100.0;
   private static final double USAGE_EXCEEDING_THRESHOLD = 110.0; // 10% over
   private static final double USAGE_BELOW_THRESHOLD = 103.0; // 3% over
@@ -466,6 +468,72 @@ class CustomerOverUsageServiceTest {
         EXPECTED_SINGLE_INCREMENT,
         count,
         "Counter should record one increment for this sla/usage label combination");
+  }
+
+  @Test
+  void shouldNotTriggerNotification_forNonPaygProduct_whenValueBelowCapacityButCurrentTotalAbove() {
+    when(featureFlags.sendNotifications()).thenReturn(true);
+    UtilizationSummary summary =
+        new UtilizationSummary()
+            .withOrgId(ORG_ID)
+            .withProductId(NON_PAYG_PRODUCT_ID)
+            .withGranularity(UtilizationSummary.Granularity.DAILY)
+            .withMeasurements(
+                List.of(
+                    new Measurement()
+                        .withMetricId(SOCKETS_METRIC_ID)
+                        .withValue(1.0) // daily point-in-time: 1 socket
+                        .withCurrentTotal(31.0) // MTD cumulative: 31 socket-days
+                        .withCapacity(2.0) // threshold: 2 sockets
+                        .withUnlimited(false)));
+
+    whenCheckSummary(summary);
+
+    verify(notificationsProducer, never()).produce(any(Action.class));
+  }
+
+  @Test
+  void shouldTriggerNotification_forNonPaygProduct_whenValueExceedsCapacity() {
+    when(featureFlags.sendNotifications()).thenReturn(true);
+    UtilizationSummary summary =
+        new UtilizationSummary()
+            .withOrgId(ORG_ID)
+            .withProductId(NON_PAYG_PRODUCT_ID)
+            .withGranularity(UtilizationSummary.Granularity.DAILY)
+            .withMeasurements(
+                List.of(
+                    new Measurement()
+                        .withMetricId(SOCKETS_METRIC_ID)
+                        .withValue(3.0) // daily point-in-time: 3 sockets
+                        .withCurrentTotal(93.0) // MTD cumulative (irrelevant for non-PAYG)
+                        .withCapacity(2.0) // threshold: 2 sockets
+                        .withUnlimited(false)));
+
+    whenCheckSummary(summary);
+
+    verify(notificationsProducer, times(1)).produce(any(Action.class));
+  }
+
+  @Test
+  void shouldUseCurrentTotal_forPaygProduct() {
+    when(featureFlags.sendNotifications()).thenReturn(true);
+    UtilizationSummary summary =
+        new UtilizationSummary()
+            .withOrgId(ORG_ID)
+            .withProductId(PRODUCT_ID)
+            .withGranularity(UtilizationSummary.Granularity.HOURLY)
+            .withMeasurements(
+                List.of(
+                    new Measurement()
+                        .withMetricId(METRIC_ID)
+                        .withValue(4.0) // hourly value (low)
+                        .withCurrentTotal(USAGE_EXCEEDING_THRESHOLD) // MTD cumulative (high)
+                        .withCapacity(CAPACITY)
+                        .withUnlimited(false)));
+
+    whenCheckSummary(summary);
+
+    verify(notificationsProducer, times(1)).produce(any(Action.class));
   }
 
   // Helper methods

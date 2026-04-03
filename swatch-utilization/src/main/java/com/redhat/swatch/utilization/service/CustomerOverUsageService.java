@@ -29,6 +29,7 @@ import com.redhat.cloud.notifications.ingress.Metadata;
 import com.redhat.cloud.notifications.ingress.Payload;
 import com.redhat.cloud.notifications.ingress.Recipient;
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.utilization.configuration.FeatureFlags;
 import com.redhat.swatch.utilization.model.Measurement;
@@ -155,7 +156,7 @@ public class CustomerOverUsageService {
       return;
     }
 
-    double currentTotal = measurement.getCurrentTotal();
+    double effectiveUsage = resolveEffectiveUsage(payload.getProductId(), measurement);
     double capacity = measurement.getCapacity();
 
     // Skip invalid or zero capacity measurements
@@ -171,7 +172,7 @@ public class CustomerOverUsageService {
       return;
     }
 
-    double utilizationPercent = calculateUtilizationPercent(currentTotal, capacity);
+    double utilizationPercent = calculateUtilizationPercent(effectiveUsage, capacity);
     double overagePercent = utilizationPercent - FULL_CAPACITY_PERCENT;
 
     // Over-usage occurs when usage exceeds capacity by more than the threshold
@@ -179,7 +180,7 @@ public class CustomerOverUsageService {
       logOverUsageDetected(
           payload,
           measurement,
-          currentTotal,
+          effectiveUsage,
           capacity,
           utilizationPercent,
           overagePercent,
@@ -188,13 +189,13 @@ public class CustomerOverUsageService {
       sendNotification(payload, metricId, utilizationPercent);
     } else {
       log.debug(
-          "Usage within threshold: orgId={} productId={} metricId={} sla={} usage={} currentTotal={} capacity={} utilizationPercent={}% overagePercent={}% threshold={}%",
+          "Usage within threshold: orgId={} productId={} metricId={} sla={} usage={} effectiveUsage={} capacity={} utilizationPercent={}% overagePercent={}% threshold={}%",
           payload.getOrgId(),
           payload.getProductId(),
           measurement.getMetricId(),
           payload.getSla(),
           payload.getUsage(),
-          currentTotal,
+          effectiveUsage,
           capacity,
           String.format(PERCENT_FORMAT, utilizationPercent),
           String.format(PERCENT_FORMAT, overagePercent),
@@ -202,26 +203,44 @@ public class CustomerOverUsageService {
     }
   }
 
-  private double calculateUtilizationPercent(double currentTotal, double capacity) {
-    return (currentTotal / capacity) * FULL_CAPACITY_PERCENT;
+  /**
+   * For PAYG products, usage is metered cumulatively over the billing period, so the month-to-date
+   * total ({@code currentTotal}) is compared against capacity. For non-PAYG (prepaid) products,
+   * usage is a point-in-time gauge (e.g. sockets in use), so only the snapshot {@code value} is
+   * relevant.
+   */
+  private double resolveEffectiveUsage(String productId, Measurement measurement) {
+    try {
+      if (ProductId.fromString(productId).isPayg()) {
+        return measurement.getCurrentTotal();
+      }
+    } catch (IllegalArgumentException e) {
+      log.warn(
+          "Unknown productId '{}', falling back to snapshot value for over-usage check", productId);
+    }
+    return measurement.getValue();
+  }
+
+  private double calculateUtilizationPercent(double effectiveUsage, double capacity) {
+    return (effectiveUsage / capacity) * FULL_CAPACITY_PERCENT;
   }
 
   private void logOverUsageDetected(
       UtilizationSummary payload,
       Measurement measurement,
-      double currentTotal,
+      double effectiveUsage,
       double capacity,
       double utilizationPercent,
       double overagePercent,
       Double threshold) {
     log.info(
-        "Over-usage detected: orgId={} productId={} metricId={} sla={} usage={} currentTotal={} capacity={} utilizationPercent={}% overagePercent={}% threshold={}%",
+        "Over-usage detected: orgId={} productId={} metricId={} sla={} usage={} effectiveUsage={} capacity={} utilizationPercent={}% overagePercent={}% threshold={}%",
         payload.getOrgId(),
         payload.getProductId(),
         measurement.getMetricId(),
         payload.getSla(),
         payload.getUsage(),
-        currentTotal,
+        effectiveUsage,
         capacity,
         String.format(PERCENT_FORMAT, utilizationPercent),
         String.format(PERCENT_FORMAT, overagePercent),
