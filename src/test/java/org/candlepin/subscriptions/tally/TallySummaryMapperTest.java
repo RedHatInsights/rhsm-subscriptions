@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.tally;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -35,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
@@ -46,20 +48,27 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
 class TallySummaryMapperTest {
 
   @Mock TallySnapshotRepository snapshotRepository;
   @Mock ApplicationClock clock;
+  @Mock ApplicationProperties applicationProperties;
   @InjectMocks TallySummaryMapper mapper;
   private Map<TallyMeasurementKey, Double> expectedTotalValues = new HashMap<>();
 
-  @Test
-  void testMapSnapshots() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testMapSnapshots(boolean isPrimaryRowSearch) {
+    when(applicationProperties.isEnablePrimaryRowSearches()).thenReturn(isPrimaryRowSearch);
     String org = "O1";
     TallySnapshot rosa =
         buildSnapshot(
@@ -70,17 +79,19 @@ class TallySummaryMapperTest {
             Usage.PRODUCTION,
             BillingProvider.AWS,
             "Storage-gibibytes",
-            2);
+            2,
+            isPrimaryRowSearch);
     TallySnapshot rhel =
         buildSnapshot(
             org,
-            "RHEL",
+            "RHEL for x86",
             Granularity.HOURLY,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             BillingProvider.RED_HAT,
             MetricIdUtils.getSockets().getValue(),
-            24);
+            24,
+            isPrimaryRowSearch);
 
     var snapshots = List.of(rosa, rhel);
     TallySummary summary = mapper.mapSnapshots(org, snapshots);
@@ -92,9 +103,78 @@ class TallySummaryMapperTest {
     assertTrue(mappedRosaOptional.isPresent());
     assertMappedSnapshot(rosa, mappedRosaOptional.get());
 
-    var mappedRhelOptional = findSnapshot(summary, "RHEL");
+    var mappedRhelOptional = findSnapshot(summary, "RHEL for x86");
     assertTrue(mappedRhelOptional.isPresent());
     assertMappedSnapshot(rhel, mappedRhelOptional.get());
+  }
+
+  @Test
+  @MockitoSettings(strictness = Strictness.LENIENT)
+  void testMapSnapshotsPrimayRowsWithAny() {
+    when(applicationProperties.isEnablePrimaryRowSearches()).thenReturn(true);
+    String org = "O1";
+    TallySnapshot rosa =
+        buildSnapshot(
+            org,
+            "ROSA",
+            Granularity.HOURLY,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.AWS,
+            "Storage-gibibytes",
+            2,
+            true);
+    TallySummary summary = mapper.mapSnapshots(org, List.of(rosa));
+    assertEquals(org, summary.getOrgId());
+    List<org.candlepin.subscriptions.json.TallySnapshot> summarySnaps = summary.getTallySnapshots();
+    assertEquals(List.of(rosa).size(), summarySnaps.size());
+
+    // Build snapshot without stubs since it's expected to throw
+    TallySnapshot rosaWithAny =
+        buildSnapshot(
+            org,
+            "ROSA",
+            Granularity.HOURLY,
+            ServiceLevel._ANY,
+            Usage._ANY,
+            BillingProvider.AWS,
+            "Storage-gibibytes",
+            2,
+            true);
+    assertThrows(
+        IllegalArgumentException.class, () -> mapper.mapSnapshots(org, List.of(rosaWithAny)));
+
+    TallySnapshot rhelAnyServiceProvider =
+        buildSnapshot(
+            org,
+            "RHEL for x86",
+            Granularity.HOURLY,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            MetricIdUtils.getSockets().getValue(),
+            24,
+            true);
+    summary = mapper.mapSnapshots(org, List.of(rhelAnyServiceProvider));
+    assertEquals(org, summary.getOrgId());
+    summarySnaps = summary.getTallySnapshots();
+    assertEquals(List.of(rhelAnyServiceProvider).size(), summarySnaps.size());
+
+    // Build snapshot without stubs since it's expected to throw
+    TallySnapshot rhelWithAnyUsage =
+        buildSnapshot(
+            org,
+            "RHEL for x86",
+            Granularity.HOURLY,
+            ServiceLevel.PREMIUM,
+            Usage._ANY,
+            BillingProvider._ANY,
+            MetricIdUtils.getSockets().getValue(),
+            24,
+            true);
+
+    assertThrows(
+        IllegalArgumentException.class, () -> mapper.mapSnapshots(org, List.of(rhelWithAnyUsage)));
   }
 
   void assertMappedSnapshot(
@@ -121,18 +201,33 @@ class TallySummaryMapperTest {
           Double expectedValue = expectedMeasurements.get(key);
           assertEquals(expectedValue, m.getValue());
           assertEquals(expectedTotalValues.get(key), m.getCurrentTotal());
-          verify(snapshotRepository)
-              .sumMeasurementValueForPeriod(
-                  eq(expected.getOrgId()),
-                  eq(expected.getProductId()),
-                  eq(Granularity.HOURLY),
-                  eq(expected.getServiceLevel()),
-                  eq(expected.getUsage()),
-                  eq(expected.getBillingProvider()),
-                  eq(expected.getBillingAccountId()),
-                  any(),
-                  eq(expected.getSnapshotDate()),
-                  eq(key));
+          if (applicationProperties.isEnablePrimaryRowSearches()) {
+            verify(snapshotRepository)
+                .sumMeasurementValueForPeriodWithPrimary(
+                    eq(expected.getOrgId()),
+                    eq(expected.getProductId()),
+                    eq(Granularity.HOURLY),
+                    eq(expected.getServiceLevel()),
+                    eq(expected.getUsage()),
+                    eq(expected.getBillingProvider()),
+                    eq(expected.getBillingAccountId()),
+                    any(),
+                    eq(expected.getSnapshotDate()),
+                    eq(key));
+          } else {
+            verify(snapshotRepository)
+                .sumMeasurementValueForPeriod(
+                    eq(expected.getOrgId()),
+                    eq(expected.getProductId()),
+                    eq(Granularity.HOURLY),
+                    eq(expected.getServiceLevel()),
+                    eq(expected.getUsage()),
+                    eq(expected.getBillingProvider()),
+                    eq(expected.getBillingAccountId()),
+                    any(),
+                    eq(expected.getSnapshotDate()),
+                    eq(key));
+          }
         });
     verify(clock, times(mappedMeasurements.size())).startOfMonth(expected.getSnapshotDate());
   }
@@ -145,7 +240,8 @@ class TallySummaryMapperTest {
       Usage usage,
       BillingProvider billingProvider,
       String metricId,
-      double val) {
+      double val,
+      boolean isPrimaryRowSearch) {
     Map<TallyMeasurementKey, Double> measurements = new HashMap<>();
     buildMeasurement(measurements, HardwareMeasurementType.PHYSICAL, metricId, val);
     buildMeasurement(measurements, HardwareMeasurementType.TOTAL, metricId, val);
@@ -159,6 +255,7 @@ class TallySummaryMapperTest {
         .serviceLevel(sla)
         .usage(usage)
         .billingProvider(billingProvider)
+        .isPrimary(isPrimaryRowSearch)
         .build();
   }
 
@@ -170,9 +267,15 @@ class TallySummaryMapperTest {
     var measurementKey = new TallyMeasurementKey(hardwareType, metricId);
     measurements.put(measurementKey, value);
     expectedTotalValues.put(measurementKey, value * 2);
-    when(snapshotRepository.sumMeasurementValueForPeriod(
-            any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(measurementKey)))
-        .thenReturn(value * 2);
+    if (applicationProperties.isEnablePrimaryRowSearches()) {
+      when(snapshotRepository.sumMeasurementValueForPeriodWithPrimary(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(measurementKey)))
+          .thenReturn(value * 2);
+    } else {
+      when(snapshotRepository.sumMeasurementValueForPeriod(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(measurementKey)))
+          .thenReturn(value * 2);
+    }
   }
 
   Optional<org.candlepin.subscriptions.json.TallySnapshot> findSnapshot(

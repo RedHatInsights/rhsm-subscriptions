@@ -20,11 +20,15 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import com.redhat.swatch.common.model.ServiceLevel;
+import com.redhat.swatch.configuration.registry.ProductId;
 import java.util.List;
 import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.TallyMeasurement;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.springframework.stereotype.Component;
@@ -34,10 +38,15 @@ public class TallySummaryMapper {
 
   private final TallySnapshotRepository snapshotRepository;
   private final ApplicationClock clock;
+  private final ApplicationProperties applicationProperties;
 
-  public TallySummaryMapper(TallySnapshotRepository snapshotRepository, ApplicationClock clock) {
+  public TallySummaryMapper(
+      TallySnapshotRepository snapshotRepository,
+      ApplicationClock clock,
+      ApplicationProperties applicationProperties) {
     this.snapshotRepository = snapshotRepository;
     this.clock = clock;
+    this.applicationProperties = applicationProperties;
   }
 
   public TallySummary mapSnapshots(String orgId, List<TallySnapshot> snapshots) {
@@ -95,16 +104,48 @@ public class TallySummaryMapper {
   private Double getCurrentlyMeasuredTotal(
       TallySnapshot snapshot, TallyMeasurementKey measurementKey) {
 
-    return snapshotRepository.sumMeasurementValueForPeriod(
-        snapshot.getOrgId(),
-        snapshot.getProductId(),
-        snapshot.getGranularity(),
-        snapshot.getServiceLevel(),
-        snapshot.getUsage(),
-        snapshot.getBillingProvider(),
-        snapshot.getBillingAccountId(),
-        clock.startOfMonth(snapshot.getSnapshotDate()),
-        snapshot.getSnapshotDate(),
-        measurementKey);
+    if (applicationProperties.isEnablePrimaryRowSearches()) {
+      gateOnAnyValues(snapshot);
+      return snapshotRepository.sumMeasurementValueForPeriodWithPrimary(
+          snapshot.getOrgId(),
+          snapshot.getProductId(),
+          snapshot.getGranularity(),
+          snapshot.getServiceLevel(),
+          snapshot.getUsage(),
+          snapshot.getBillingProvider(),
+          snapshot.getBillingAccountId(),
+          clock.startOfMonth(snapshot.getSnapshotDate()),
+          snapshot.getSnapshotDate(),
+          measurementKey);
+    } else {
+      return snapshotRepository.sumMeasurementValueForPeriod(
+          snapshot.getOrgId(),
+          snapshot.getProductId(),
+          snapshot.getGranularity(),
+          snapshot.getServiceLevel(),
+          snapshot.getUsage(),
+          snapshot.getBillingProvider(),
+          snapshot.getBillingAccountId(),
+          clock.startOfMonth(snapshot.getSnapshotDate()),
+          snapshot.getSnapshotDate(),
+          measurementKey);
+    }
+  }
+
+  public void gateOnAnyValues(TallySnapshot snapshot) {
+    // check to see if there are _ANY values that should not be here
+    if (ServiceLevel._ANY.equals(snapshot.getServiceLevel())
+        || Usage._ANY.equals(snapshot.getUsage())) {
+      throw new IllegalArgumentException(
+          "Primary row search is enabled, but there are _ANY values");
+    }
+    boolean isPaygo = ProductId.fromString(snapshot.getProductId()).isPayg();
+    if (isPaygo) {
+      if ("_ANY".equals(snapshot.getBillingProvider())
+          || "_ANY".equals(snapshot.getBillingAccountId())) {
+        throw new IllegalArgumentException(
+            "Primary row search is enabled, but there are _ANY values");
+      }
+    }
   }
 }
