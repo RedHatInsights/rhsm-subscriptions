@@ -27,6 +27,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
@@ -39,6 +40,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.configuration.FeatureFlags;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
@@ -54,6 +56,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
@@ -68,6 +71,7 @@ class SnapshotSummaryProducerTest {
   @Mock private KafkaTemplate<String, TallySummary> kafka;
   @Mock TallySnapshotRepository snapshotRepository;
   @Mock ApplicationClock clock;
+  @Mock FeatureFlags featureFlags;
   @InjectMocks TallySummaryMapper tallySummaryMapper;
 
   @Captor private ArgumentCaptor<TallySummary> summaryCaptor;
@@ -104,8 +108,10 @@ class SnapshotSummaryProducerTest {
     }
   }
 
-  @Test
-  void testProduceSummaryDaily() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testProduceSummaryDaily(boolean isPrimaryRowSearch) {
+    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(isPrimaryRowSearch);
     Map<String, List<TallySnapshot>> updateMap = new HashMap<>();
     updateMap.put(
         "org1",
@@ -119,7 +125,8 @@ class SnapshotSummaryProducerTest {
                 BillingProvider.RED_HAT,
                 "12345",
                 MetricIdUtils.getSockets().getValue(),
-                20.4)));
+                20.4,
+                isPrimaryRowSearch)));
     updateMap.put(
         "org2",
         List.of(
@@ -132,7 +139,8 @@ class SnapshotSummaryProducerTest {
                 BillingProvider.AWS,
                 "12345",
                 MetricIdUtils.getSockets().getValue(),
-                22.2)));
+                22.2,
+                isPrimaryRowSearch)));
     producer.produceTallySummaryMessages(
         updateMap, List.of(Granularity.DAILY), SnapshotSummaryProducer.NIGHTLY_SNAP_FILTER);
     verify(kafka, times(2)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
@@ -165,8 +173,10 @@ class SnapshotSummaryProducerTest {
         false);
   }
 
-  @Test
-  void testProduceSummaryHourly() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testProduceSummaryHourly(boolean isPrimaryRowSearch) {
+    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(isPrimaryRowSearch);
     Map<String, List<TallySnapshot>> updateMap = new HashMap<>();
     updateMap.put(
         "org1",
@@ -180,7 +190,8 @@ class SnapshotSummaryProducerTest {
                 BillingProvider.RED_HAT,
                 "12345",
                 MetricIdUtils.getCores().getValue(),
-                20.4)));
+                20.4,
+                isPrimaryRowSearch)));
     updateMap.put(
         "org2",
         List.of(
@@ -193,7 +204,8 @@ class SnapshotSummaryProducerTest {
                 BillingProvider.AWS,
                 "12345",
                 MetricIdUtils.getCores().getValue(),
-                22.2)));
+                22.2,
+                isPrimaryRowSearch)));
     producer.produceTallySummaryMessages(
         updateMap, List.of(Granularity.HOURLY), SnapshotSummaryProducer.HOURLY_SNAP_FILTER);
     verify(kafka, times(2)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
@@ -226,8 +238,10 @@ class SnapshotSummaryProducerTest {
         false);
   }
 
-  @Test
-  void testProduceMultiGranularitySummaries() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testProduceMultiGranularitySummaries(boolean isPrimaryRowSearch) {
+    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(isPrimaryRowSearch);
     Map<String, List<TallySnapshot>> updateMap = new HashMap<>();
     updateMap.put(
         "org1",
@@ -241,7 +255,8 @@ class SnapshotSummaryProducerTest {
                 BillingProvider.RED_HAT,
                 "12345",
                 MetricIdUtils.getCores().getValue(),
-                20.4)));
+                20.4,
+                isPrimaryRowSearch)));
     updateMap.put(
         "org2",
         List.of(
@@ -254,7 +269,8 @@ class SnapshotSummaryProducerTest {
                 BillingProvider.AWS,
                 "12345",
                 MetricIdUtils.getCores().getValue(),
-                22.2)));
+                22.2,
+                isPrimaryRowSearch)));
     updateMap.put(
         "org3",
         List.of(
@@ -267,7 +283,8 @@ class SnapshotSummaryProducerTest {
                 BillingProvider.AWS,
                 "12345",
                 MetricIdUtils.getCores().getValue(),
-                42.2)));
+                42.2,
+                isPrimaryRowSearch)));
     producer.produceTallySummaryMessages(
         updateMap, List.of(Granularity.HOURLY), SnapshotSummaryProducer.HOURLY_SNAP_FILTER);
     verify(kafka, times(2)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
@@ -300,8 +317,10 @@ class SnapshotSummaryProducerTest {
         false);
   }
 
-  @Test
-  void testProduceSummariesNoBilling() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testProduceSummariesNoBilling(boolean isPrimaryRowSearch) {
+    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(isPrimaryRowSearch);
     Map<String, List<TallySnapshot>> updateMap = new HashMap<>();
     updateMap.put(
         "org1",
@@ -315,7 +334,8 @@ class SnapshotSummaryProducerTest {
                 BillingProvider.RED_HAT,
                 "12345",
                 MetricIdUtils.getCores().getValue(),
-                20.4)));
+                20.4,
+                isPrimaryRowSearch)));
     updateMap.put(
         "org2",
         List.of(
@@ -328,7 +348,8 @@ class SnapshotSummaryProducerTest {
                 BillingProvider.AWS,
                 "12345",
                 MetricIdUtils.getCores().getValue(),
-                22.2)));
+                22.2,
+                isPrimaryRowSearch)));
     updateMap.put(
         "org3",
         List.of(
@@ -341,7 +362,8 @@ class SnapshotSummaryProducerTest {
                 BillingProvider._ANY,
                 null,
                 MetricIdUtils.getCores().getValue(),
-                42.2)));
+                42.2,
+                isPrimaryRowSearch)));
     producer.produceTallySummaryMessages(
         updateMap, List.of(Granularity.HOURLY), SnapshotSummaryProducer.HOURLY_SNAP_FILTER);
     verify(kafka, times(2)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
@@ -424,7 +446,8 @@ class SnapshotSummaryProducerTest {
                 BillingProvider.RED_HAT,
                 "12345",
                 MetricIdUtils.getCores().getValue(),
-                20.4)));
+                20.4,
+                true)));
     updateMap.get("a1").get(0).getTallyMeasurements().clear();
     producer.produceTallySummaryMessages(updateMap, List.of(granularity), params.predicate);
     verifyNoInteractions(kafka);
@@ -501,7 +524,8 @@ class SnapshotSummaryProducerTest {
       BillingProvider billingProvider,
       String billingAccountId,
       String metricId,
-      double val) {
+      double val,
+      boolean isPrimaryRowSearch) {
     Map<TallyMeasurementKey, Double> measurements = new HashMap<>();
     measurements.put(new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, metricId), val);
     measurements.put(new TallyMeasurementKey(HardwareMeasurementType.TOTAL, metricId), val);
@@ -515,6 +539,7 @@ class SnapshotSummaryProducerTest {
         .usage(usage)
         .billingProvider(billingProvider)
         .billingAccountId(billingAccountId)
+        .isPrimary(isPrimaryRowSearch)
         .build();
   }
 }
