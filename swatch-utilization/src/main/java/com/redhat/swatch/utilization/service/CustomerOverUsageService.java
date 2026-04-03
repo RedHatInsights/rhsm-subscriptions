@@ -28,8 +28,9 @@ import com.redhat.cloud.notifications.ingress.Event;
 import com.redhat.cloud.notifications.ingress.Metadata;
 import com.redhat.cloud.notifications.ingress.Payload;
 import com.redhat.cloud.notifications.ingress.Recipient;
+import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
-import com.redhat.swatch.configuration.registry.ProductId;
+import com.redhat.swatch.configuration.registry.MetricType;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.utilization.configuration.FeatureFlags;
 import com.redhat.swatch.utilization.model.Measurement;
@@ -204,19 +205,25 @@ public class CustomerOverUsageService {
   }
 
   /**
-   * For PAYG products, usage is metered cumulatively over the billing period, so the month-to-date
-   * total ({@code currentTotal}) is compared against capacity. For non-PAYG (prepaid) products,
-   * usage is a point-in-time gauge (e.g. sockets in use), so only the snapshot {@code value} is
-   * relevant.
+   * Resolves the effective usage value for over-usage comparison based on the metric type
+   * configured for the product.
+   *
+   * <p>COUNTER metrics (e.g. Instance-hours, vCPUs) accumulate over the billing period, so the
+   * month-to-date total ({@code currentTotal}) is the correct value to compare against capacity.
+   *
+   * <p>GAUGE metrics (e.g. Sockets, Managed-nodes) are point-in-time measurements, so only the
+   * snapshot {@code value} is meaningful — summing daily gauges across the month produces a
+   * nonsensical number.
    */
   private double resolveEffectiveUsage(String productId, Measurement measurement) {
-    try {
-      if (ProductId.fromString(productId).isPayg()) {
-        return measurement.getCurrentTotal();
-      }
-    } catch (IllegalArgumentException e) {
-      log.warn(
-          "Unknown productId '{}', falling back to snapshot value for over-usage check", productId);
+    MetricType metricType =
+        SubscriptionDefinition.lookupSubscriptionByTag(productId)
+            .flatMap(sub -> sub.getMetric(measurement.getMetricId()))
+            .map(Metric::getType)
+            .orElse(MetricType.GAUGE);
+
+    if (metricType == MetricType.COUNTER) {
+      return measurement.getCurrentTotal();
     }
     return measurement.getValue();
   }
