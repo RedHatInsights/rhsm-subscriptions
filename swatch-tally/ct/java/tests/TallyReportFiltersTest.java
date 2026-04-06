@@ -51,6 +51,8 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.json.Event;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class TallyReportFiltersTest extends BaseTallyComponentTest {
@@ -63,6 +65,16 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
   private static final BillingProviderType TEST_BILLING_PROVIDER = BillingProviderType.AWS;
   private static final String TEST_BILLING_ACCOUNT_ID =
       String.valueOf(100000000000L + (long) (Math.random() * 900000000000L));
+
+  @BeforeAll
+  static void enablePrimaryRowSearchesFlag() {
+    unleash.enablePrimaryRowSearches();
+  }
+
+  @AfterAll
+  static void disablePrimaryRowSearchesFlag() {
+    unleash.disablePrimaryRowSearches();
+  }
 
   private void givenTwoEventsPublished(
       OffsetDateTime timestamp,
