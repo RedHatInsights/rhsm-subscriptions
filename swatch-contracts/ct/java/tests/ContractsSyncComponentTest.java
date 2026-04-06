@@ -30,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static utils.DateUtils.assertDatesAreEqual;
 
 import api.PartnerApiStubs;
 import com.redhat.swatch.component.tests.api.TestPlanName;
@@ -38,6 +39,7 @@ import com.redhat.swatch.contract.test.model.SkuCapacitySubscription;
 import domain.BillingProvider;
 import domain.Contract;
 import io.restassured.response.Response;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -162,8 +164,9 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     wiremock.forPartnerAPI().stubPartnerSubscriptions(forContractsInOrgId(orgId, newContract));
     wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(newContract);
 
-    // When: Sync with delete_contracts_and_subs flag enabled
-    Response syncResponse = service.syncContractsByOrg(orgId, false, true);
+    // When: Delete existing data and re-sync contracts
+    service.deleteDataForOrg(orgId);
+    Response syncResponse = service.syncContractsByOrg(orgId);
 
     // Then: Verify sync succeeded
     assertThat("Sync should succeed", syncResponse.statusCode(), is(HttpStatus.SC_OK));
@@ -298,21 +301,7 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
   @Test
   void syncAllContractsTwiceShouldNotCreateDuplicateContracts() {
     // Given: One org with a single AWS contract and stubbed upstream data
-    String sku = RandomUtils.generateRandom();
-    Contract contract =
-        Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0), sku);
-
-    wiremock.forProductAPI().stubOfferingData(contract.getOffering());
-    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContractsInOrgId(orgId, contract));
-    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(contract);
-
-    assertThat(
-        "Sync offering should succeed",
-        service.syncOffering(sku).statusCode(),
-        is(HttpStatus.SC_OK));
-
-    // Create the initial contract
-    givenContractIsCreated(contract);
+    Contract contract = givenRosaContractIsCreated(10.0);
 
     // Verify initial state
     var contractsBefore = service.getContractsByOrgId(orgId);
@@ -421,21 +410,7 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
   @Test
   void syncAllContractsAfterOrgLevelSyncShouldNotInsertAdditionalRecords() {
     // Given: An org already synced via the per-org sync endpoint
-    String sku = RandomUtils.generateRandom();
-    Contract contract =
-        Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0), sku);
-
-    wiremock.forProductAPI().stubOfferingData(contract.getOffering());
-    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContractsInOrgId(orgId, contract));
-    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(contract);
-
-    assertThat(
-        "Sync offering should succeed",
-        service.syncOffering(sku).statusCode(),
-        is(HttpStatus.SC_OK));
-
-    // First: sync via per-org endpoint (simulates already-synced state)
-    givenContractIsCreated(contract);
+    givenRosaContractIsCreated(10.0);
     Response orgSync = service.syncContractsByOrg(orgId);
     assertThat("Per-org sync should succeed", orgSync.statusCode(), is(HttpStatus.SC_OK));
 
@@ -652,13 +627,203 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     assertEquals(0, finalContracts.size(), "No contracts should remain");
   }
 
+  @TestPlanName("contracts-sync-TC011")
+  @Test
+  void shouldTerminateContractsAndSubscriptionsWhenMissingFromUpstream() {
+    // Given: Create a contract and subscription
+    givenRosaContractIsCreated(10.0);
+
+    // Verify contract and subscription exist before sync
+    var contractsBeforeSync = service.getContractsByOrgId(orgId);
+    assertEquals(1, contractsBeforeSync.size(), "Should have one contract before sync");
+
+    var subscriptionsBeforeSync = service.getSubscriptionsByOrgId(orgId);
+    assertEquals(1, subscriptionsBeforeSync.size(), "Should have one subscription before sync");
+
+    // Stub upstream Partner API to return empty entitlements for the org
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContractsInOrgId(orgId));
+
+    // When: Sync contracts
+    Response syncResponse = service.syncContractsByOrg(orgId);
+
+    // Then: Verify response indicates no contracts found
+    assertThat("Sync should return OK", syncResponse.statusCode(), is(HttpStatus.SC_OK));
+    syncResponse
+        .then()
+        .body("status", equalTo("FAILED"))
+        .body("message", equalTo("No contracts found in upstream for the org " + orgId));
+
+    // Verify contract still exists in database (soft delete, not hard delete)
+    var contractsAfterSync = service.getContractsByOrgId(orgId);
+    assertEquals(1, contractsAfterSync.size(), "Contract should still exist in database");
+
+    // Verify associated subscription still exists in database (soft delete)
+    var subscriptionsAfterSync = service.getSubscriptionsByOrgId(orgId);
+    assertEquals(1, subscriptionsAfterSync.size(), "Subscription should still exist in database");
+
+    var terminatedContract = contractsAfterSync.get(0);
+    var terminatedSubscription = subscriptionsAfterSync.get(0);
+
+    // Verify both contract and subscription are terminated (end_date is set)
+    assertNotNull(terminatedContract.getEndDate(), "Contract should be terminated");
+    assertNotNull(terminatedSubscription.getEndDate(), "Subscription should be terminated");
+
+    // Verify both have approximately the same termination timestamp (within 1 second)
+    assertDatesAreEqual(terminatedContract.getEndDate(), terminatedSubscription.getEndDate());
+  }
+
+  /**
+   * TC012 - Partial entitlement disappearance terminates only missing contracts
+   *
+   * <p>Verify that when an org has a contract but upstream returns a different entitlement
+   * (different billing_provider_id), the original contract is terminated while the new
+   * entitlement's contract is created.
+   */
+  @TestPlanName("contracts-sync-TC012")
+  @Test
+  void shouldTerminateOnlyMissingContractsWhenPartialEntitlementsDisappear() {
+    // Setup: Create a contract with known billing_provider_id and end_date in future
+    Contract originalContract = givenRosaContractIsCreated(10.0);
+    String sku = originalContract.getOffering().getSku();
+
+    var contractsBeforeSync = service.getContractsByOrgId(orgId);
+    assertEquals(1, contractsBeforeSync.size(), "Should have one contract before sync");
+    String originalUuid = contractsBeforeSync.get(0).getUuid();
+
+    // Stub upstream to return a different entitlement (different billing_provider_id)
+    Contract newContract =
+        Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 20.0), sku);
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContractsInOrgId(orgId, newContract));
+    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(newContract);
+
+    // Action: Sync contracts
+    Response syncResponse = service.syncContractsByOrg(orgId);
+
+    // Verification
+    assertThat("Sync should succeed", syncResponse.statusCode(), is(HttpStatus.SC_OK));
+    syncResponse
+        .then()
+        .body("status", equalTo(STATUS_SUCCESS))
+        .body("message", equalTo("Contracts Synced for " + orgId));
+
+    // Verify both contracts exist in database
+    var contractsAfterSync = service.getContractsByOrgId(orgId);
+    assertEquals(2, contractsAfterSync.size(), "Should have 2 contracts in database");
+
+    // Find original and new contracts
+    var originalContractAfterSync =
+        contractsAfterSync.stream()
+            .filter(c -> c.getUuid().equals(originalUuid))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("Original contract not found"));
+
+    var newContractAfterSync =
+        contractsAfterSync.stream()
+            .filter(c -> !c.getUuid().equals(originalUuid))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("New contract not found"));
+
+    // Original contract should be terminated
+    assertNotNull(
+        originalContractAfterSync.getEndDate(),
+        "Original contract should be terminated (not in upstream)");
+    OffsetDateTime now = OffsetDateTime.now();
+    assertTrue(
+        originalContractAfterSync.getEndDate().isAfter(now.minusSeconds(5)),
+        "Termination endDate should be approximately now");
+
+    // New contract from upstream should be active
+    assertNotNull(newContractAfterSync.getEndDate(), "New contract should have end_date");
+    assertTrue(
+        newContractAfterSync.getEndDate().isAfter(now),
+        "New contract from upstream should be active (end_date in future)");
+  }
+
+  /**
+   * TC013 - Already-terminated contracts are not re-terminated
+   *
+   * <p>Verify that contracts with an end_date in the past are not modified during sync when they're
+   * missing from upstream. Uses a two-phase sync: first sync terminates the contract, second sync
+   * should leave the termination timestamp unchanged.
+   */
+  @TestPlanName("contracts-sync-TC013")
+  @Test
+  void shouldNotReTerminateAlreadyTerminatedContracts() {
+    givenRosaContractIsCreated(10.0);
+
+    // Phase 1: Sync with empty upstream to terminate the contract
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContractsInOrgId(orgId));
+    service.syncContractsByOrg(orgId);
+
+    var contractsAfterFirstSync = service.getContractsByOrgId(orgId);
+    assertEquals(1, contractsAfterFirstSync.size());
+    var firstEndDate = contractsAfterFirstSync.get(0).getEndDate();
+    assertNotNull(firstEndDate, "Contract should be terminated after first sync");
+
+    // Phase 2: Sync again with empty upstream — endDate should NOT change
+    Response syncResponse = service.syncContractsByOrg(orgId);
+
+    assertThat("Sync should return OK", syncResponse.statusCode(), is(HttpStatus.SC_OK));
+    syncResponse
+        .then()
+        .body("status", equalTo("FAILED"))
+        .body("message", equalTo("No contracts found in upstream for the org " + orgId));
+
+    var contractsAfterSecondSync = service.getContractsByOrgId(orgId);
+    assertEquals(1, contractsAfterSecondSync.size(), "Contract should still exist");
+    var secondEndDate = contractsAfterSecondSync.get(0).getEndDate();
+
+    assertEquals(
+        firstEndDate, secondEndDate, "Already-terminated contract should not be re-terminated");
+  }
+
+  /**
+   * TC015 - Azure contract present in upstream is not terminated
+   *
+   * <p>Verify that an Azure contract with a billing_provider_id matching the upstream response is
+   * recognized as present and NOT terminated during sync.
+   */
+  @TestPlanName("contracts-sync-TC015")
+  @Test
+  void shouldNotTerminateAzureContractPresentInUpstream() {
+    // Given: Create an Azure contract
+    String sku = RandomUtils.generateRandom();
+    Contract azureContract = Contract.buildAzureContract(orgId, Map.of(CORES, 10.0), sku);
+    givenContractIsCreated(azureContract);
+
+    var contractsBefore = service.getContractsByOrgId(orgId);
+    assertEquals(1, contractsBefore.size(), "Should have one contract before sync");
+    var endDateBefore = contractsBefore.get(0).getEndDate();
+    assertNotNull(endDateBefore, "Contract should have an end_date");
+
+    // Stub upstream to return the same Azure entitlement
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContractsInOrgId(orgId, azureContract));
+    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(azureContract);
+
+    // When: Sync contracts
+    Response syncResponse = service.syncContractsByOrg(orgId);
+
+    // Then: Sync succeeds and contract is NOT terminated
+    assertThat("Sync should return OK", syncResponse.statusCode(), is(HttpStatus.SC_OK));
+    syncResponse
+        .then()
+        .body("status", equalTo(STATUS_SUCCESS))
+        .body("message", equalTo("Contracts Synced for " + orgId));
+
+    var contractsAfter = service.getContractsByOrgId(orgId);
+    assertEquals(1, contractsAfter.size(), "Should still have one contract after sync");
+    assertEquals(
+        endDateBefore,
+        contractsAfter.get(0).getEndDate(),
+        "Azure contract end_date should be unchanged (not terminated)");
+  }
+
   private void givenRosaContractsAreStubbed(int count) {
     String sku = RandomUtils.generateRandom();
     List<Contract> contracts = new java.util.ArrayList<>();
     for (int i = 0; i < count; i++) {
       contracts.add(
-          Contract.buildRosaContract(
-              orgId, domain.BillingProvider.AWS, java.util.Map.of(CORES, 10.0), sku));
+          Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0), sku));
     }
     wiremock.forProductAPI().stubOfferingData(contracts.get(0).getOffering());
     wiremock

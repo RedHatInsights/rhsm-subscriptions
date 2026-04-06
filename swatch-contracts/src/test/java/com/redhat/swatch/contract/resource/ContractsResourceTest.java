@@ -31,8 +31,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -51,7 +49,6 @@ import com.redhat.swatch.contract.openapi.model.ServiceLevelType;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.openapi.model.Subscription;
 import com.redhat.swatch.contract.openapi.model.UsageType;
-import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import com.redhat.swatch.contract.service.ContractService;
@@ -522,43 +519,37 @@ class ContractsResourceTest {
 
   @Test
   void testSyncAllContractsWhenNoActiveContracts() {
-    when(contractService.getAllContracts()).thenReturn(Collections.emptyList());
+    when(contractService.getOrgIdUsedInContracts()).thenReturn(Collections.emptyList());
 
     StatusResponse response = whenSyncAllContractsRequest();
 
     assertEquals("No active contract found for the orgIds", response.getStatus());
-    verify(contractService).getAllContracts();
-    verify(contractService, times(0)).syncContractsByOrgId(any(), anyBoolean());
+    verify(contractService).getOrgIdUsedInContracts();
+    verify(contractService, times(0)).syncContractsByOrgId(any());
   }
 
   @Test
   void testSyncAllContractsWithContractsExist() {
-    ContractEntity contract = new ContractEntity();
-    contract.setOrgId(ORG_ID);
-    when(contractService.getAllContracts()).thenReturn(List.of(contract));
+    when(contractService.getOrgIdUsedInContracts()).thenReturn(List.of(ORG_ID));
 
     StatusResponse response = whenSyncAllContractsRequest();
 
     assertEquals("All Contract are Synced", response.getStatus());
-    verify(contractService).getAllContracts();
-    verify(contractService).syncContractsByOrgId(ORG_ID, false);
+    verify(contractService).getOrgIdUsedInContracts();
+    verify(contractService).syncContractsByOrgId(ORG_ID);
   }
 
   @Test
-  void testSyncAllContractsDoNotCleanup() {
-    // Global sync must always call per-org sync with isPreCleanup=false (ADR-0004).
-    // Pre-cleanup is an opt-in repair tool for operators; it must not run automatically.
-    ContractEntity contract1 = new ContractEntity();
-    contract1.setOrgId(ORG_ID);
-    ContractEntity contract2 = new ContractEntity();
-    contract2.setOrgId(ANOTHER_ORG_ID);
-    when(contractService.getAllContracts()).thenReturn(List.of(contract1, contract2));
+  void testSyncAllContractsCallsPerOrgSync() {
+    // Global sync calls per-org sync for each org with contracts.
+    // Per ADR-0004, isPreCleanup has been removed - contracts missing from upstream
+    // are now terminated (not deleted) to preserve historical records.
+    when(contractService.getOrgIdUsedInContracts()).thenReturn(List.of(ORG_ID, ANOTHER_ORG_ID));
 
     whenSyncAllContractsRequest();
 
-    verify(contractService, times(0)).syncContractsByOrgId(any(), eq(true));
-    verify(contractService).syncContractsByOrgId(ORG_ID, false);
-    verify(contractService).syncContractsByOrgId(ANOTHER_ORG_ID, false);
+    verify(contractService).syncContractsByOrgId(ORG_ID);
+    verify(contractService).syncContractsByOrgId(ANOTHER_ORG_ID);
   }
 
   private StatusResponse whenSyncAllContractsRequest() {

@@ -42,37 +42,37 @@ jobs:
         run: |
           # Source utilities
           source bin/pr_label_utils.sh
-          
+
           MVNW=$(pwd)/mvnw
           BASE_BRANCH="${{ github.event.pull_request.base.ref }}"
           MODIFIED_SERVICES=()
-          
+
           echo "Getting current PR labels..."
           CURRENT_LABELS=$(get_current_labels ${{ github.event.pull_request.number }})
           echo "Current labels: $CURRENT_LABELS"
-          
+
           echo "Fetching base branch $BASE_BRANCH..."
           git fetch origin "$BASE_BRANCH"
-          
+
           # Detect changed top-level Maven modules
           # Note: src/ directory maps to swatch-tally module
           CHANGED=$(git diff --name-only "origin/$BASE_BRANCH...HEAD" | awk -F/ '{print $1}' | sed 's/^src$/swatch-tally/' | sort -u | xargs)
-          
+
           if [ -z "$CHANGED" ]; then
             remove_all_labels ${{ github.event.pull_request.number }} "$CURRENT_LABELS"
             echo "modified-services=" >> $GITHUB_OUTPUT
             exit 0
           fi
-        
+
           echo "Changed modules: $CHANGED"
-          
+
           # Detect modified services using utility function
           detect_modified_services "$MVNW" "$CHANGED"
-          
+
           # Manage all labels using utilities
           manage_service_labels ${{ github.event.pull_request.number }} "$CURRENT_LABELS"
           manage_team_labels ${{ github.event.pull_request.number }} "$CURRENT_LABELS"
-          
+
           # Output for next job
           MODIFIED_SERVICES_STR=$(IFS=' '; echo "${MODIFIED_SERVICES[*]}")
           echo "modified-services=$MODIFIED_SERVICES_STR" >> $GITHUB_OUTPUT
@@ -264,7 +264,7 @@ jobs:
       - name: Verify SWATCH services for local testing
         run: |
           export HOST_NAME="github-runner@ci"
-          
+
           # Check if we have modified services from the labeler job (only in PR context)
           if [ "${{ github.event_name }}" = "pull_request" ] && [ -n "${{ needs.labeler.outputs.modified-services || '' }}" ]; then
             ./bin/test-all-services.sh ${{ needs.labeler.outputs.modified-services }}

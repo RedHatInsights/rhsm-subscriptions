@@ -22,9 +22,9 @@ package com.redhat.swatch.hbi.events.ct.tests;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.Topics;
-import com.redhat.swatch.hbi.events.ct.HbiEventHelper;
-import com.redhat.swatch.hbi.events.ct.SwatchEventHelper;
 import com.redhat.swatch.hbi.events.ct.api.MessageValidators;
+import com.redhat.swatch.hbi.events.ct.utils.HbiEventHelper;
+import com.redhat.swatch.hbi.events.ct.utils.SwatchEventHelper;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
 import java.time.OffsetDateTime;

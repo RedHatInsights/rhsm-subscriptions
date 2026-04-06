@@ -22,9 +22,9 @@ package com.redhat.swatch.hbi.events.ct.tests;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.Topics;
-import com.redhat.swatch.hbi.events.ct.HbiEventHelper;
-import com.redhat.swatch.hbi.events.ct.SwatchEventHelper;
 import com.redhat.swatch.hbi.events.ct.api.MessageValidators;
+import com.redhat.swatch.hbi.events.ct.utils.HbiEventHelper;
+import com.redhat.swatch.hbi.events.ct.utils.SwatchEventHelper;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -270,5 +270,80 @@ class CreateUpdateEventIngestionTest extends BaseSMHBIComponentTest {
         MessageValidators.swatchEventEquals(swatchEventUnmappedGuest),
         MessageValidators.swatchEventEquals(swatchEventHypervisor),
         MessageValidators.swatchEventEquals(swatchEventUpdatedMappedGuest));
+  }
+
+  @TestPlanName("metrics-hbi-create-update-TC008")
+  @ParameterizedTest
+  @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
+  void testHbiVirtualMappedGuestRemappedFromOneHypervisorToAnother(
+      String hbiEventType, String swatchEventType) {
+    OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+
+    // Create hypervisor A with 1 guest
+    List<HbiHostCreateUpdateEvent> initialEvents =
+        HbiEventHelper.getHypervisorAndGuestEvents(
+            hbiEventType, List.of("69"), now, "Self-Support", "Development/Test", 1, 1, 1, 3);
+
+    HbiHostCreateUpdateEvent hypervisorAEvent = initialEvents.get(0);
+    HbiHostCreateUpdateEvent guestEvent = initialEvents.get(1);
+
+    // Create hypervisor B (physical host, no guests yet)
+    HbiHostCreateUpdateEvent hypervisorBEvent =
+        HbiEventHelper.getRhsmHostEvent(
+            hbiEventType,
+            null,
+            List.of("69"),
+            false,
+            "x86_64",
+            now,
+            "Self-Support",
+            "Development/Test",
+            1,
+            1,
+            null,
+            null,
+            null);
+    String hypervisorBSubManId = hypervisorBEvent.getHost().getSubscriptionManagerId();
+
+    Event swatchHypervisorA =
+        SwatchEventHelper.createExpectedEvent(
+            hypervisorAEvent, List.of("69"), Set.of("RHEL for x86"), false, false);
+    Event swatchGuestMapped =
+        SwatchEventHelper.createExpectedEvent(
+            guestEvent, List.of("69"), Set.of("RHEL for x86"), false, false);
+    Event swatchHypervisorAUpdated =
+        SwatchEventHelper.createExpectedEvent(
+            hypervisorAEvent, List.of("69"), Set.of("RHEL for x86"), false, true, true);
+    Event swatchHypervisorB =
+        SwatchEventHelper.createExpectedEvent(
+            hypervisorBEvent, List.of("69"), Set.of("RHEL for x86"), false, false);
+
+    // Send hypervisor A + guest, then hypervisor B
+    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hypervisorAEvent);
+    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, guestEvent);
+    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hypervisorBEvent);
+
+    waitForSwatchEvents(
+        MessageValidators.swatchEventEquals(swatchHypervisorA),
+        MessageValidators.swatchEventEquals(swatchGuestMapped),
+        MessageValidators.swatchEventEquals(swatchHypervisorAUpdated),
+        MessageValidators.swatchEventEquals(swatchHypervisorB));
+
+    // Re-map guest from hypervisor A to hypervisor B
+    guestEvent.getHost().getSystemProfile().put("virtual_host_uuid", hypervisorBSubManId);
+    guestEvent.setType("updated");
+
+    Event swatchGuestRemapped =
+        SwatchEventHelper.createExpectedEvent(
+            guestEvent, List.of("69"), Set.of("RHEL for x86"), false, false, true);
+    Event swatchHypervisorBUpdated =
+        SwatchEventHelper.createExpectedEvent(
+            hypervisorBEvent, List.of("69"), Set.of("RHEL for x86"), false, true, true);
+
+    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, guestEvent);
+
+    waitForSwatchEvents(
+        MessageValidators.swatchEventEquals(swatchGuestRemapped),
+        MessageValidators.swatchEventEquals(swatchHypervisorBUpdated));
   }
 }

@@ -141,8 +141,8 @@ public class ContractService {
   }
 
   @Transactional
-  public List<ContractEntity> getAllContracts() {
-    return contractRepository.findAll().stream().toList();
+  public List<String> getOrgIdUsedInContracts() {
+    return contractRepository.getDistinctOrgIds();
   }
 
   /**
@@ -461,31 +461,22 @@ public class ContractService {
   }
 
   @Transactional
-  public StatusResponse syncContractsByOrgId(String contractOrgSync, boolean isPreCleanup) {
+  public StatusResponse syncContractsByOrgId(String contractOrgSync) {
     StatusResponse statusResponse = new StatusResponse();
 
     try {
-      if (isPreCleanup) {
-        long deletedRecords = deleteCurrentlyActiveContractsByOrgId(contractOrgSync);
-        log.info(
-            "Total contract deleted for org {} during pre cleanup {}",
-            contractOrgSync,
-            deletedRecords);
-      }
-
-      boolean anyContractsSynced = false;
+      Set<String> upstreamBillingProviderIds = new HashSet<>();
       int totalPages = 1;
       for (int pageNumber = 0; pageNumber < totalPages; pageNumber++) {
-        var result = syncContractsByOrgId(contractOrgSync, pageNumber);
-        if (Objects.nonNull(result.getContent()) && !result.getContent().isEmpty()) {
-          anyContractsSynced = true;
-        }
+        var result = syncContractsByOrgId(contractOrgSync, pageNumber, upstreamBillingProviderIds);
         if (result.getPage() != null && result.getPage().getTotalPages() != null) {
           totalPages = result.getPage().getTotalPages();
         }
       }
 
-      if (anyContractsSynced) {
+      terminateContractsOrphanedByBillingProviders(contractOrgSync, upstreamBillingProviderIds);
+
+      if (!upstreamBillingProviderIds.isEmpty()) {
         statusResponse.setMessage("Contracts Synced for " + contractOrgSync);
         statusResponse.setStatus(SUCCESS_MESSAGE);
       } else {
@@ -504,6 +495,51 @@ public class ContractService {
       return statusResponse;
     }
     return statusResponse;
+  }
+
+  private void terminateContractsOrphanedByBillingProviders(
+      String orgId, Set<String> upstreamBillingProviderIds) {
+    var now = OffsetDateTime.now();
+
+    Specification<ContractEntity> spec =
+        ContractEntity.orgIdEquals(orgId)
+            .and(ContractEntity.activeOn(now))
+            .and(ContractEntity.billingProviderIdNullOrNotIn(upstreamBillingProviderIds));
+
+    var orphanedContracts = contractRepository.findContracts(spec).toList();
+
+    if (!orphanedContracts.isEmpty()) {
+      log.debug(
+          "Terminating {} orphaned contract(s) for org {} not found in upstream",
+          orphanedContracts.size(),
+          orgId);
+      orphanedContracts.forEach(contract -> terminateContract(contract, now));
+
+      orphanedContracts.forEach(contract -> terminateActiveSubscriptionsForContract(contract, now));
+    }
+  }
+
+  private void terminateActiveSubscriptionsForContract(
+      ContractEntity contract, OffsetDateTime terminationDate) {
+    subscriptionRepository
+        .find(SubscriptionEntity.class, SubscriptionEntity.forContract(contract))
+        .stream()
+        .filter(sub -> sub.getEndDate() == null || sub.getEndDate().isAfter(terminationDate))
+        .forEach(
+            sub -> {
+              log.info(
+                  "Terminating subscription that no longer exists in upstream partner API: {}",
+                  sub);
+              sub.setEndDate(terminationDate);
+              subscriptionRepository.persist(sub);
+            });
+  }
+
+  private void terminateContract(ContractEntity contract, OffsetDateTime terminationDate) {
+    contract.setEndDate(terminationDate);
+    contract.setLastUpdated(terminationDate);
+    contractRepository.persist(contract);
+    log.info("Contract terminated with UUID {}", contract.getUuid());
   }
 
   @Transactional
@@ -531,8 +567,8 @@ public class ContractService {
     return statusResponse;
   }
 
-  private PartnerEntitlements syncContractsByOrgId(String orgId, int pageNumber)
-      throws ApiException {
+  private PartnerEntitlements syncContractsByOrgId(
+      String orgId, int pageNumber, Set<String> upstreamBillingProviderIds) throws ApiException {
     PageRequest page = new PageRequest();
     page.setSize(PAGE_SIZE);
     page.setNumber(pageNumber);
@@ -544,6 +580,10 @@ public class ContractService {
       for (PartnerEntitlementV1 entitlement : result.getContent()) {
         if (entitlement != null
             && ContractSourcePartnerEnum.isSupported(entitlement.getSourcePartner())) {
+          String bpId = contractEntityMapper.extractBillingProviderId(entitlement);
+          if (bpId != null) {
+            upstreamBillingProviderIds.add(bpId);
+          }
           tryUpsertPartnerContract(entitlement);
         }
       }
@@ -654,10 +694,6 @@ public class ContractService {
           String.format("Billing provider %s not implemented", contract.getBillingProvider()));
     }
     return contractRepository.findContracts(specification).toList();
-  }
-
-  private long deleteCurrentlyActiveContractsByOrgId(String orgId) {
-    return contractRepository.deleteContractsByOrgIdForEmptyValues(orgId);
   }
 
   private List<ContractEntity> mapUpstreamContractToContractEntities(

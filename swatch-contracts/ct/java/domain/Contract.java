@@ -88,29 +88,32 @@ public class Contract extends Subscription {
 
   public static Contract buildRosaContract(
       String orgId, BillingProvider billingProvider, Map<MetricId, Double> capacity, String sku) {
-    Objects.requireNonNull(orgId, "orgId cannot be null");
     Objects.requireNonNull(billingProvider, "billingProvider cannot be null");
-    Objects.requireNonNull(capacity, "capacity cannot be null");
-
-    Product product = Product.ROSA;
     String seed = RandomUtils.generateRandom();
+    String sellerAccountId = billingProvider == BillingProvider.AWS ? "seller" + seed : null;
+
     return Contract.builder()
-        .customerId("customer" + seed)
-        .sellerAccountId("seller" + seed)
-        .productCode("product" + seed)
-        .planId("plan" + seed)
-        .clientId("clientId" + seed)
         .resourceId("resourceId" + seed)
+        .planId("plan" + seed)
+        .productCode("product" + seed)
+        .customerId("customer" + seed)
+        .clientId("clientId" + seed)
+        .sellerAccountId(sellerAccountId)
         .subscriptionMeasurements(capacity)
         .billingProvider(billingProvider)
         .billingAccountId("billing" + seed)
         .orgId(orgId)
-        .product(product)
+        .product(Product.ROSA)
         .offering(Offering.buildRosaOffering(Objects.requireNonNullElse(sku, seed)))
         .subscriptionId(seed)
         .subscriptionNumber(seed)
         .startDate(OffsetDateTime.now().minusDays(1))
         .endDate(OffsetDateTime.now().plusDays(1))
         .build();
+  }
+
+  public static Contract buildAzureContract(
+      String orgId, Map<MetricId, Double> capacity, String sku) {
+    return buildRosaContract(orgId, BillingProvider.AZURE, capacity, sku);
   }
 }
