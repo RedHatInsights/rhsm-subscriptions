@@ -7,7 +7,6 @@ valid_artifacts=('rhsm-subscriptions'
   'swatch-producer-azure'
   'swatch-metrics'
   'swatch-billable-usage'
-  'swatch-unleash-import'
   'swatch-metrics-hbi'
   'swatch-database'
   'swatch-utilization')
