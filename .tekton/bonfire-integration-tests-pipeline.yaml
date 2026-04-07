@@ -75,7 +75,11 @@ spec:
       description: Extra arguments for the deployment
       # Skip not required components:
       # - puptoo: insights-puptoo is the service that processes Ingress flow uploads
-      default: "--timeout 1800 --remove-dependencies ingress/puptoo"
+      # workaround: the host-inventory deployment defaults to quay.io/cloudservices/insights-inventory; use Konflux-promoted image
+      default: >-
+        --timeout 1800 --remove-dependencies ingress/puptoo
+        --set-parameter host-inventory/IMAGE=quay.io/redhat-services-prod/insights-management-tenant/insights-host-inventory/insights-host-inventory
+        --set-parameter host-inventory/IMAGE_TAG=latest
     - name: DEPLOY_FRONTENDS
       type: string
       description: Deploy frontend in the env or not
