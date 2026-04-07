@@ -21,10 +21,10 @@
 package org.candlepin.subscriptions.tally;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -43,7 +43,9 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.json.TallyMeasurement;
 import org.candlepin.subscriptions.json.TallySummary;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -53,132 +55,208 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class TallySummaryMapperTest {
 
+  private static final String ROSA_TAG = "rosa";
+  private static final String RHEL_X86_TAG = "RHEL for x86";
+  private static final String ANSIBLE_AAP_TAG = "ansible-aap-managed";
+  private static final String CORES_METRIC = MetricIdUtils.getCores().toUpperCaseFormatted();
+  private static final String SOCKETS_METRIC = MetricIdUtils.getSockets().toUpperCaseFormatted();
+  private static final String MANAGED_NODES_METRIC =
+      MetricIdUtils.getManagedNodes().toUpperCaseFormatted();
+  private static final String INSTANCE_HOURS_METRIC =
+      MetricIdUtils.getInstanceHours().toUpperCaseFormatted();
+  private static final OffsetDateTime START_OF_MONTH =
+      OffsetDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+
   @Mock TallySnapshotRepository snapshotRepository;
   @Mock ApplicationClock clock;
   @InjectMocks TallySummaryMapper mapper;
-  private Map<TallyMeasurementKey, Double> expectedTotalValues = new HashMap<>();
+
+  @BeforeEach
+  void setUp() {
+    lenient().when(clock.startOfMonth(any(OffsetDateTime.class))).thenReturn(START_OF_MONTH);
+  }
 
   @Test
-  void testMapSnapshots() {
-    String org = "O1";
-    TallySnapshot rosa =
+  void shouldUseSumForCounterMetric() {
+    double snapshotValue = 4.0;
+    double sumValue = 110.0;
+    TallySnapshot snapshot =
         buildSnapshot(
-            org,
-            "ROSA",
-            Granularity.HOURLY,
-            ServiceLevel.PREMIUM,
-            Usage.PRODUCTION,
+            ROSA_TAG, Granularity.HOURLY, BillingProvider.AWS, CORES_METRIC, snapshotValue);
+    var key = new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, CORES_METRIC);
+    when(snapshotRepository.sumMeasurementValueForPeriod(
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(key)))
+        .thenReturn(sumValue);
+
+    TallySummary summary = mapper.mapSnapshots(snapshot.getOrgId(), List.of(snapshot));
+
+    TallyMeasurement measurement = findMeasurement(summary, ROSA_TAG, CORES_METRIC);
+    assertEquals(snapshotValue, measurement.getValue(), "value should be the snapshot value");
+    assertEquals(sumValue, measurement.getCurrentTotal(), "currentTotal should be the SQL SUM");
+    verify(snapshotRepository)
+        .sumMeasurementValueForPeriod(
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(key));
+  }
+
+  @Test
+  void shouldUseValueForGaugeMetric() {
+    double snapshotValue = 1.0;
+    TallySnapshot snapshot =
+        buildSnapshot(
+            RHEL_X86_TAG, Granularity.DAILY, BillingProvider._ANY, SOCKETS_METRIC, snapshotValue);
+
+    TallySummary summary = mapper.mapSnapshots(snapshot.getOrgId(), List.of(snapshot));
+
+    TallyMeasurement measurement = findMeasurement(summary, RHEL_X86_TAG, SOCKETS_METRIC);
+    assertEquals(snapshotValue, measurement.getValue(), "value should be the snapshot value");
+    assertEquals(
+        snapshotValue,
+        measurement.getCurrentTotal(),
+        "currentTotal should equal value for gauge metrics");
+    verify(snapshotRepository, never())
+        .sumMeasurementValueForPeriod(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(TallyMeasurementKey.class));
+  }
+
+  @Test
+  void shouldHandleMixedMetricTypesOnSameProduct() {
+    double gaugeValue = 5.0;
+    double counterValue = 4.0;
+    double counterSum = 150.0;
+
+    TallySnapshot gaugeSnapshot =
+        buildSnapshot(
+            ANSIBLE_AAP_TAG,
+            Granularity.DAILY,
             BillingProvider.AWS,
-            "Storage-gibibytes",
-            2);
-    TallySnapshot rhel =
+            MANAGED_NODES_METRIC,
+            gaugeValue);
+    TallySnapshot counterSnapshot =
         buildSnapshot(
-            org,
-            "RHEL",
+            ANSIBLE_AAP_TAG,
             Granularity.HOURLY,
-            ServiceLevel.PREMIUM,
-            Usage.PRODUCTION,
+            BillingProvider.AWS,
+            INSTANCE_HOURS_METRIC,
+            counterValue);
+
+    var counterKey =
+        new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, INSTANCE_HOURS_METRIC);
+    when(snapshotRepository.sumMeasurementValueForPeriod(
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(counterKey)))
+        .thenReturn(counterSum);
+
+    TallySummary summary = mapper.mapSnapshots("org1", List.of(gaugeSnapshot, counterSnapshot));
+
+    TallyMeasurement gaugeMeasurement =
+        findMeasurement(summary, ANSIBLE_AAP_TAG, MANAGED_NODES_METRIC);
+    assertEquals(
+        gaugeValue,
+        gaugeMeasurement.getCurrentTotal(),
+        "gauge currentTotal should equal snapshot value");
+
+    TallyMeasurement counterMeasurement =
+        findMeasurement(summary, ANSIBLE_AAP_TAG, INSTANCE_HOURS_METRIC);
+    assertEquals(
+        counterSum, counterMeasurement.getCurrentTotal(), "counter currentTotal should be SQL SUM");
+  }
+
+  @Test
+  void shouldDefaultToCounterForUnknownProduct() {
+    double snapshotValue = 42.0;
+    double sumValue = 200.0;
+    String unknownMetric = "UNKNOWN_METRIC";
+    TallySnapshot snapshot =
+        buildSnapshot(
+            "unknown-product",
+            Granularity.DAILY,
+            BillingProvider._ANY,
+            unknownMetric,
+            snapshotValue);
+    var key = new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, unknownMetric);
+    when(snapshotRepository.sumMeasurementValueForPeriod(
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(key)))
+        .thenReturn(sumValue);
+
+    TallySummary summary = mapper.mapSnapshots(snapshot.getOrgId(), List.of(snapshot));
+
+    TallyMeasurement measurement = findMeasurement(summary, "unknown-product", unknownMetric);
+    assertEquals(
+        sumValue,
+        measurement.getCurrentTotal(),
+        "unknown product should default to counter (SQL SUM)");
+    verify(snapshotRepository)
+        .sumMeasurementValueForPeriod(
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(key));
+  }
+
+  @Test
+  void shouldMapSnapshotFieldsCorrectly() {
+    double snapshotValue = 2.0;
+    TallySnapshot snapshot =
+        buildSnapshot(
+            RHEL_X86_TAG,
+            Granularity.DAILY,
             BillingProvider.RED_HAT,
-            MetricIdUtils.getSockets().getValue(),
-            24);
+            SOCKETS_METRIC,
+            snapshotValue);
 
-    var snapshots = List.of(rosa, rhel);
-    TallySummary summary = mapper.mapSnapshots(org, snapshots);
-    assertEquals(org, summary.getOrgId());
-    List<org.candlepin.subscriptions.json.TallySnapshot> summarySnaps = summary.getTallySnapshots();
-    assertEquals(snapshots.size(), summarySnaps.size());
+    TallySummary summary = mapper.mapSnapshots(snapshot.getOrgId(), List.of(snapshot));
 
-    var mappedRosaOptional = findSnapshot(summary, "ROSA");
-    assertTrue(mappedRosaOptional.isPresent());
-    assertMappedSnapshot(rosa, mappedRosaOptional.get());
-
-    var mappedRhelOptional = findSnapshot(summary, "RHEL");
-    assertTrue(mappedRhelOptional.isPresent());
-    assertMappedSnapshot(rhel, mappedRhelOptional.get());
+    assertEquals(snapshot.getOrgId(), summary.getOrgId());
+    var mapped = findSnapshot(summary, RHEL_X86_TAG).orElseThrow();
+    assertEquals(snapshot.getId(), mapped.getId());
+    assertEquals(snapshot.getProductId(), mapped.getProductId());
+    assertEquals(snapshot.getSnapshotDate(), mapped.getSnapshotDate());
+    assertEquals(snapshot.getGranularity().getValue(), mapped.getGranularity().value());
+    assertEquals(snapshot.getServiceLevel().getValue(), mapped.getSla().value());
+    assertEquals(snapshot.getUsage().getValue(), mapped.getUsage().value());
+    assertEquals(snapshot.getBillingProvider().getValue(), mapped.getBillingProvider().value());
   }
 
-  void assertMappedSnapshot(
-      TallySnapshot expected, org.candlepin.subscriptions.json.TallySnapshot mapped) {
-    assertEquals(expected.getId(), mapped.getId());
-    assertEquals(expected.getBillingAccountId(), mapped.getBillingAccountId());
-    assertEquals(expected.getBillingProvider().getValue(), mapped.getBillingProvider().value());
-    assertEquals(expected.getGranularity().getValue(), mapped.getGranularity().value());
-    assertEquals(expected.getProductId(), mapped.getProductId());
-    assertEquals(expected.getSnapshotDate(), mapped.getSnapshotDate());
-    assertEquals(expected.getServiceLevel().getValue(), mapped.getSla().value());
-    assertEquals(expected.getUsage().getValue(), mapped.getUsage().value());
-
-    var expectedMeasurements = expected.getTallyMeasurements();
-    var mappedMeasurements = mapped.getTallyMeasurements();
-    assertEquals(expectedMeasurements.size(), mappedMeasurements.size());
-
-    mappedMeasurements.forEach(
-        m -> {
-          HardwareMeasurementType type =
-              HardwareMeasurementType.valueOf(m.getHardwareMeasurementType());
-          TallyMeasurementKey key = new TallyMeasurementKey(type, m.getMetricId());
-          assertTrue(expectedMeasurements.containsKey(key));
-          Double expectedValue = expectedMeasurements.get(key);
-          assertEquals(expectedValue, m.getValue());
-          assertEquals(expectedTotalValues.get(key), m.getCurrentTotal());
-          verify(snapshotRepository)
-              .sumMeasurementValueForPeriod(
-                  eq(expected.getOrgId()),
-                  eq(expected.getProductId()),
-                  eq(Granularity.HOURLY),
-                  eq(expected.getServiceLevel()),
-                  eq(expected.getUsage()),
-                  eq(expected.getBillingProvider()),
-                  eq(expected.getBillingAccountId()),
-                  any(),
-                  eq(expected.getSnapshotDate()),
-                  eq(key));
-        });
-    verify(clock, times(mappedMeasurements.size())).startOfMonth(expected.getSnapshotDate());
-  }
-
-  TallySnapshot buildSnapshot(
-      String orgId,
+  private TallySnapshot buildSnapshot(
       String productId,
       Granularity granularity,
-      ServiceLevel sla,
-      Usage usage,
       BillingProvider billingProvider,
       String metricId,
-      double val) {
+      double value) {
     Map<TallyMeasurementKey, Double> measurements = new HashMap<>();
-    buildMeasurement(measurements, HardwareMeasurementType.PHYSICAL, metricId, val);
-    buildMeasurement(measurements, HardwareMeasurementType.TOTAL, metricId, val);
+    measurements.put(new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, metricId), value);
 
     return TallySnapshot.builder()
-        .orgId(orgId)
+        .orgId("org-test")
         .productId(productId)
         .snapshotDate(OffsetDateTime.now())
         .tallyMeasurements(measurements)
         .granularity(granularity)
-        .serviceLevel(sla)
-        .usage(usage)
+        .serviceLevel(ServiceLevel.PREMIUM)
+        .usage(Usage.PRODUCTION)
         .billingProvider(billingProvider)
         .build();
   }
 
-  void buildMeasurement(
-      Map<TallyMeasurementKey, Double> measurements,
-      HardwareMeasurementType hardwareType,
-      String metricId,
-      double value) {
-    var measurementKey = new TallyMeasurementKey(hardwareType, metricId);
-    measurements.put(measurementKey, value);
-    expectedTotalValues.put(measurementKey, value * 2);
-    when(snapshotRepository.sumMeasurementValueForPeriod(
-            any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(measurementKey)))
-        .thenReturn(value * 2);
+  private TallyMeasurement findMeasurement(
+      TallySummary summary, String productId, String metricId) {
+    return summary.getTallySnapshots().stream()
+        .filter(s -> productId.equals(s.getProductId()))
+        .flatMap(s -> s.getTallyMeasurements().stream())
+        .filter(m -> metricId.equals(m.getMetricId()))
+        .findFirst()
+        .orElseThrow();
   }
 
-  Optional<org.candlepin.subscriptions.json.TallySnapshot> findSnapshot(
+  private Optional<org.candlepin.subscriptions.json.TallySnapshot> findSnapshot(
       TallySummary summary, String product) {
     return summary.getTallySnapshots().stream()
-        .filter(s -> product.equalsIgnoreCase(s.getProductId()))
+        .filter(s -> product.equals(s.getProductId()))
         .findFirst();
   }
 }

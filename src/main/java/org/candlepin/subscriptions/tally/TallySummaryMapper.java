@@ -20,6 +20,9 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.registry.MetricType;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import java.util.List;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
@@ -88,12 +91,19 @@ public class TallySummaryMapper {
                     .withHardwareMeasurementType(entry.getKey().getMeasurementType().toString())
                     .withMetricId(entry.getKey().getMetricId())
                     .withValue(entry.getValue())
-                    .withCurrentTotal(getCurrentlyMeasuredTotal(snapshot, entry.getKey())))
+                    .withCurrentTotal(
+                        getCurrentlyMeasuredTotal(snapshot, entry.getKey(), entry.getValue())))
         .toList();
   }
 
   private Double getCurrentlyMeasuredTotal(
-      TallySnapshot snapshot, TallyMeasurementKey measurementKey) {
+      TallySnapshot snapshot, TallyMeasurementKey measurementKey, Double snapshotValue) {
+    MetricType metricType =
+        SubscriptionDefinition.getMetricType(
+            snapshot.getProductId(), MetricId.tryGetValueFromString(measurementKey.getMetricId()));
+    if (metricType == MetricType.GAUGE) {
+      return snapshotValue;
+    }
 
     return snapshotRepository.sumMeasurementValueForPeriod(
         snapshot.getOrgId(),

@@ -413,6 +413,13 @@ public class SubscriptionDefinition {
         .orElse(false);
   }
 
+  public static MetricType getMetricType(String productId, String metricId) {
+    return SubscriptionDefinition.lookupSubscriptionByTag(productId)
+        .flatMap(sub -> sub.getMetric(metricId))
+        .map(Metric::getType)
+        .orElse(MetricType.COUNTER);
+  }
+
   public static List<SubscriptionDefinition> getSubscriptionDefinitions() {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions();
   }
