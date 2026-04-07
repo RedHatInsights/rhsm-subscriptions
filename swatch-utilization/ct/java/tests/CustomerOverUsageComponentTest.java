@@ -222,7 +222,6 @@ public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest
         .add(
             new Measurement()
                 .withMetricId(metric.getValue())
-                .withValue(currentTotal)
                 .withCurrentTotal(currentTotal)
                 .withCapacity(BASELINE_CAPACITY)
                 .withUnlimited(unlimited));

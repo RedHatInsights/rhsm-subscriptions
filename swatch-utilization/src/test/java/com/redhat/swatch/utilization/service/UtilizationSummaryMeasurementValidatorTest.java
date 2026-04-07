@@ -109,22 +109,7 @@ public class UtilizationSummaryMeasurementValidatorTest {
             .withMetricId(MetricIdUtils.getSockets().getValue())
             .withUnlimited(false)
             .withCapacity(100.0)
-            .withValue(50.0)
             .withCurrentTotal(null);
-    var payload = createValidNonPaygPayload();
-    boolean result = whenIsMeasurementValid(payload, measurement);
-    assertFalse(result);
-  }
-
-  @Test
-  void testHasValidMeasurements_withNullValue_returnsFalse() {
-    var measurement =
-        new Measurement()
-            .withMetricId(MetricIdUtils.getSockets().getValue())
-            .withUnlimited(false)
-            .withCapacity(100.0)
-            .withValue(null)
-            .withCurrentTotal(50.0);
     var payload = createValidNonPaygPayload();
     boolean result = whenIsMeasurementValid(payload, measurement);
     assertFalse(result);
@@ -137,7 +122,6 @@ public class UtilizationSummaryMeasurementValidatorTest {
             .withMetricId(MetricIdUtils.getSockets().getValue())
             .withUnlimited(false)
             .withCapacity(100.0)
-            .withValue(50.0)
             .withCurrentTotal(50.0);
     var payload = createValidNonPaygPayload();
     boolean result = whenIsMeasurementValid(payload, measurement);
@@ -155,7 +139,6 @@ public class UtilizationSummaryMeasurementValidatorTest {
                     .withMetricId(MetricIdUtils.getSockets().getValue())
                     .withUnlimited(false)
                     .withCapacity(100.0)
-                    .withValue(50.0)
                     .withCurrentTotal(50.0)));
   }
 

@@ -66,11 +66,6 @@ public class UtilizationSummaryMeasurementValidator {
       return false;
     }
 
-    if (measurement.getValue() == null) {
-      logValidationFailure(metricId, payload, "The metric value is null");
-      return false;
-    }
-
     return true;
   }
 
