@@ -73,7 +73,8 @@ spec:
     - name: EXTRA_DEPLOY_ARGS
       type: string
       description: Extra arguments for the deployment
-      default: "--timeout 1800"
+      # Skip puptoo: pulled in via swatch-tally -> host-inventory -> ingress; not needed for typical SWATCH IQE runs
+      default: "--timeout 1800 --remove-dependencies ingress/puptoo"
     - name: DEPLOY_FRONTENDS
       type: string
       description: Deploy frontend in the env or not
