@@ -328,7 +328,6 @@ public interface TallySnapshotRepository
     // Build and apply the specification
     Specification<TallySnapshot> spec =
         TallySnapshotSpecifications.buildAggregatedMeasurementSpec(
-            false,
             measurementJoin,
             isPrimary,
             orgId,
@@ -348,6 +347,21 @@ public interface TallySnapshotRepository
     if (predicate != null) {
       query.where(predicate);
     }
+
+    // SELECT with aggregation
+    query
+        .multiselect(
+            root.get("snapshotDate"),
+            measurementJoin.key().get("measurementType"),
+            measurementJoin.key().get("metricId"),
+            cb.sum(measurementJoin.value()))
+        .distinct(true);
+
+    // GROUP BY
+    query.groupBy(
+        root.get("snapshotDate"),
+        measurementJoin.key().get("measurementType"),
+        measurementJoin.key().get("metricId"));
 
     // Create typed query
     var typedQuery = em.createQuery(query);
@@ -436,7 +450,6 @@ public interface TallySnapshotRepository
     // Build the specification for filtering
     Specification<TallySnapshot> spec =
         TallySnapshotSpecifications.buildAggregatedMeasurementSpec(
-            true,
             measurementJoin,
             isPrimary,
             orgId,
