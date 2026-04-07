@@ -73,7 +73,8 @@ spec:
     - name: EXTRA_DEPLOY_ARGS
       type: string
       description: Extra arguments for the deployment
-      # Skip puptoo: pulled in via swatch-tally -> host-inventory -> ingress; not needed for typical SWATCH IQE runs
+      # Skip not required components:
+      # - puptoo: insights-puptoo is the service that processes Ingress flow uploads
       default: "--timeout 1800 --remove-dependencies ingress/puptoo"
     - name: DEPLOY_FRONTENDS
       type: string
@@ -304,6 +305,10 @@ spec:
                   UPDATED_ARGS="$UPDATED_ARGS --set-template-ref ${component}=${GIT_REVISION}"
                   echo "  Added: --set-template-ref ${component}=${GIT_REVISION}"
                 done
+
+                # Use the same template ref for app-sre "rhsm" (deploy/rhsm-clowdapp.yaml)
+                UPDATED_ARGS="$UPDATED_ARGS --set-template-ref rhsm=${GIT_REVISION}"
+                echo "  Added: --set-template-ref rhsm=${GIT_REVISION}"
               fi
               
               echo ""
