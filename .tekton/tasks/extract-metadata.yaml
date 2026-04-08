@@ -4,7 +4,7 @@ kind: Task
 metadata:
   name: extract-metadata
 spec:
-  description: Extracts event type, PR number, git revision, and PR labels from PipelineRun metadata and SNAPSHOT.
+  description: Extracts event type, PR number, git revision, PR labels, and optional IQE image tag from PR body (same GitHub GET as labels).
   params:
     - name: SNAPSHOT
       type: string
@@ -16,6 +16,10 @@ spec:
     - name: GITHUB_TOKEN_SECRET
       type: string
       default: "swatch-ci-github-token"
+    - name: IQE_IMAGE_TAG_DEFAULT
+      type: string
+      default: ""
+      description: Fallback IQE image tag when no /use-iqe-image-tag=... directive appears in the PR body
   results:
     - name: IS_PULL_REQUEST
       description: Whether the event is PR-related (true for all non-push events, false for push)
@@ -25,6 +29,8 @@ spec:
       description: Git revision extracted from the SNAPSHOT
     - name: LABELS
       description: Comma-separated list of PR labels (empty on push events)
+    - name: IQE_IMAGE_TAG
+      description: IQE image tag from PR body /use-iqe-image-tag=VALUE if present and valid; empty or XXX uses IQE_IMAGE_TAG_DEFAULT
   steps:
     - name: extract
       image: quay.io/konflux-ci/appstudio-utils:latest
@@ -82,9 +88,10 @@ spec:
         echo "GIT_REVISION=${rev:-empty}"
         printf "%s" "$rev" > "$(results.GIT_REVISION.path)"
 
-        # Fetch PR labels only for PR events with a valid PR number
+        # Fetch PR metadata (labels + body) only for PR events with a valid PR number
         if [ "$IS_PR" != "true" ] || [ -z "${PR:-}" ] || [ "${PR:-}" = "none" ]; then
           printf "" > "$(results.LABELS.path)"
+          printf "%s" "$(params.IQE_IMAGE_TAG_DEFAULT)" > "$(results.IQE_IMAGE_TAG.path)"
           echo "LABELS=(skipped)"
           exit 0
         fi
@@ -92,7 +99,7 @@ spec:
         GITHUB_TOKEN=$(echo -n "$GITHUB_TOKEN" | tr -d '[:space:]')
         REPO="$(params.PROJECT_REPO)"
         URL="https://api.github.com/repos/${REPO}/pulls/${PR}"
-        echo "Fetching PR labels from: ${URL}"
+        echo "Fetching PR metadata (labels, body) from: ${URL}"
 
         set +e
         HTTP_CODE=$(curl -sS --http1.1 --retry 5 --retry-connrefused \
@@ -107,11 +114,24 @@ spec:
         set -e
 
         if [ $CURL_EXIT -ne 0 ] || [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
-          echo "WARNING: Failed to fetch PR labels (curl exit: $CURL_EXIT, HTTP: $HTTP_CODE)"
+          echo "WARNING: Failed to fetch PR metadata (curl exit: $CURL_EXIT, HTTP: $HTTP_CODE)"
           printf "" > "$(results.LABELS.path)"
+          printf "%s" "$(params.IQE_IMAGE_TAG_DEFAULT)" > "$(results.IQE_IMAGE_TAG.path)"
           exit 0
         fi
 
         LABELS=$(jq -r '[.labels[].name] | join(",")' /tmp/pr.json)
         echo "LABELS=${LABELS}"
         printf "%s" "$LABELS" > "$(results.LABELS.path)"
+
+        BODY=$(jq -r '.body // ""' /tmp/pr.json)
+        PR_IQE=""
+        if [[ "${BODY}" =~ /use-iqe-image-tag=([^[:space:]]*) ]]; then
+          PR_IQE="${BASH_REMATCH[1]}"
+        fi
+        if [ -n "${PR_IQE}" ] && [ "${PR_IQE}" != "XXX" ]; then
+          echo "IQE_IMAGE_TAG from PR body: ${PR_IQE}"
+          printf "%s" "${PR_IQE}" > "$(results.IQE_IMAGE_TAG.path)"
+        else
+          printf "%s" "$(params.IQE_IMAGE_TAG_DEFAULT)" > "$(results.IQE_IMAGE_TAG.path)"
+        fi
