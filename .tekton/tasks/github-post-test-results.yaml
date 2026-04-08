@@ -32,6 +32,10 @@ spec:
     - name: GITHUB_TOKEN_SECRET
       type: string
       default: "swatch-ci-github-token"
+    - name: IQE_IMAGE
+      type: string
+      default: ""
+      description: Full IQE container reference (e.g. registry/repo:tag) to show in the PR comment; omit line when empty
   workspaces:
     - name: artifacts
   steps:
@@ -56,6 +60,7 @@ spec:
         COMMENT_TITLE = "$(params.COMMENT_TITLE)"
         POST_ON_SUCCESS = "$(params.POST_ON_SUCCESS)"
         JUNIT_DIR = "$(params.JUNIT_DIR)"
+        IQE_IMAGE = "$(params.IQE_IMAGE)".strip()
         WS = "$(workspaces.artifacts.path)"
 
         print("=== github-post-test-results ===")
@@ -205,6 +210,9 @@ spec:
             f"- **{total}** tests ran in **{duration_min:.1f} min**",
             f"- {passed} passed, {failed_count} failed, {skipped} skipped",
         ]
+
+        if IQE_IMAGE:
+            lines.append(f"- **IQE image:** `{IQE_IMAGE}`")
 
         if failed_tests:
             lines.append("")
