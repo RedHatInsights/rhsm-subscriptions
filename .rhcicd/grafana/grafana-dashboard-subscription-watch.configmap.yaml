@@ -27,7 +27,7 @@ data:
       "editable": true,
       "fiscalYearStartMonth": 0,
       "graphTooltip": 1,
-      "id": 1099960,
+      "id": 1102302,
       "links": [],
       "panels": [
         {
@@ -300,7 +300,7 @@ data:
                 "h": 7,
                 "w": 6,
                 "x": 0,
-                "y": 181
+                "y": 190
               },
               "id": 113,
               "options": {
@@ -400,7 +400,7 @@ data:
                 "h": 7,
                 "w": 6,
                 "x": 6,
-                "y": 181
+                "y": 190
               },
               "id": 115,
               "options": {
@@ -510,7 +510,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 313
+                "y": 322
               },
               "id": 103,
               "options": {
@@ -608,7 +608,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 313
+                "y": 322
               },
               "id": 76,
               "options": {
@@ -705,7 +705,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 313
+                "y": 322
               },
               "id": 101,
               "options": {
@@ -815,7 +815,7 @@ data:
                 "h": 8,
                 "w": 12,
                 "x": 0,
-                "y": 422
+                "y": 431
               },
               "id": 88,
               "options": {
@@ -922,7 +922,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 423
+                "y": 432
               },
               "id": 47,
               "options": {
@@ -1059,7 +1059,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 423
+                "y": 432
               },
               "id": 52,
               "options": {
@@ -1193,7 +1193,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 423
+                "y": 432
               },
               "id": 54,
               "options": {
@@ -1374,7 +1374,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 423
+                "y": 432
               },
               "id": 56,
               "options": {
@@ -1507,7 +1507,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 432
+                "y": 441
               },
               "id": 92,
               "options": {
@@ -1610,7 +1610,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 0,
-                "y": 410
+                "y": 419
               },
               "id": 72,
               "options": {
@@ -1712,7 +1712,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 6,
-                "y": 410
+                "y": 419
               },
               "id": 40,
               "options": {
@@ -1842,7 +1842,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 12,
-                "y": 410
+                "y": 419
               },
               "id": 59,
               "options": {
@@ -1935,7 +1935,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 18,
-                "y": 410
+                "y": 419
               },
               "id": 4,
               "options": {
@@ -2028,7 +2028,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 0,
-                "y": 420
+                "y": 429
               },
               "id": 41,
               "options": {
@@ -2156,7 +2156,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 6,
-                "y": 420
+                "y": 429
               },
               "id": 8,
               "options": {
@@ -2248,7 +2248,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 12,
-                "y": 420
+                "y": 429
               },
               "id": 10,
               "options": {
@@ -2342,7 +2342,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 18,
-                "y": 420
+                "y": 429
               },
               "id": 96,
               "options": {
@@ -2455,7 +2455,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 411
+                "y": 420
               },
               "id": 63,
               "options": {
@@ -2584,7 +2584,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 411
+                "y": 420
               },
               "id": 64,
               "options": {
@@ -2712,7 +2712,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 411
+                "y": 420
               },
               "id": 66,
               "options": {
@@ -2810,7 +2810,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 411
+                "y": 420
               },
               "id": 68,
               "options": {
@@ -2903,7 +2903,7 @@ data:
                 "h": 7,
                 "w": 6,
                 "x": 0,
-                "y": 419
+                "y": 428
               },
               "id": 94,
               "options": {
@@ -3320,7 +3320,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 0,
-                "y": 189
+                "y": 198
               },
               "id": 35,
               "options": {
@@ -3414,7 +3414,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 6,
-                "y": 189
+                "y": 198
               },
               "id": 36,
               "options": {
@@ -3510,7 +3510,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 12,
-                "y": 189
+                "y": 198
               },
               "id": 95,
               "options": {
@@ -4039,7 +4039,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 17
+                "y": 26
               },
               "id": 133,
               "options": {
@@ -4167,7 +4167,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 26
+                "y": 35
               },
               "id": 20,
               "options": {
@@ -4274,7 +4274,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 26
+                "y": 35
               },
               "id": 89,
               "options": {
@@ -4377,7 +4377,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 26
+                "y": 35
               },
               "id": 90,
               "options": {
@@ -4466,13 +4466,14 @@ data:
                     ]
                   },
                   "unit": "short"
-                }
+                },
+                "overrides": []
               },
               "gridPos": {
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 26
+                "y": 35
               },
               "id": 128,
               "options": {
@@ -4635,7 +4636,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 53
+                "y": 62
               },
               "id": 132,
               "options": {
@@ -4749,7 +4750,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 53
+                "y": 62
               },
               "id": 118,
               "options": {
@@ -4816,7 +4817,7 @@ data:
                 "h": 10,
                 "w": 18,
                 "x": 0,
-                "y": 61
+                "y": 70
               },
               "id": 121,
               "options": {
@@ -4889,7 +4890,7 @@ data:
                 "h": 10,
                 "w": 18,
                 "x": 0,
-                "y": 71
+                "y": 80
               },
               "id": 122,
               "options": {
@@ -5011,7 +5012,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 27
+                "y": 36
               },
               "id": 83,
               "options": {
@@ -5113,7 +5114,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 27
+                "y": 36
               },
               "id": 120,
               "options": {
@@ -5213,7 +5214,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 27
+                "y": 36
               },
               "id": 107,
               "options": {
@@ -5312,7 +5313,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 27
+                "y": 36
               },
               "id": 98,
               "options": {
@@ -5413,7 +5414,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 36
+                "y": 45
               },
               "id": 78,
               "options": {
@@ -5510,7 +5511,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 36
+                "y": 45
               },
               "id": 80,
               "options": {
@@ -5604,7 +5605,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 36
+                "y": 45
               },
               "id": 119,
               "maxDataPoints": 100,
@@ -5729,7 +5730,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 36
+                "y": 45
               },
               "id": 99,
               "maxDataPoints": 100,
@@ -5912,7 +5913,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 45
+                "y": 54
               },
               "id": 134,
               "options": {
@@ -5965,7 +5966,7 @@ data:
           "type": "row"
         },
         {
-          "collapsed": true,
+          "collapsed": false,
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -5973,430 +5974,410 @@ data:
             "y": 10
           },
           "id": 129,
-          "panels": [
+          "panels": [],
+          "title": "swatch-utilization",
+          "type": "row"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${aws_kafka_datasource}"
+          },
+          "description": "Tracks the Kafka consumer lag for the platform.rhsm-subscriptions.utilization topic",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 7,
+            "x": 0,
+            "y": 11
+          },
+          "id": 130,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.3",
+          "targets": [
             {
               "datasource": {
                 "type": "prometheus",
                 "uid": "${aws_kafka_datasource}"
               },
-              "description": "Tracks the Kafka consumer lag for the platform.rhsm-subscriptions.utilization topic",
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 10,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "auto",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "mappings": [],
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
-                  }
-                },
-                "overrides": []
+              "editorMode": "code",
+              "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=\"platform.rhsm-subscriptions.utilization\",consumer_group!~\"iqe.*\"}) by (consumer_group)",
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Utilization Listener Lag",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
               },
-              "gridPos": {
-                "h": 8,
-                "w": 7,
-                "x": 0,
-                "y": 139
-              },
-              "id": 130,
-              "options": {
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": true
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
                 },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "single",
-                  "sort": "none"
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
                 }
               },
-              "pluginVersion": "11.6.3",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${aws_kafka_datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=\"platform.rhsm-subscriptions.utilization\",consumer_group!~\"iqe.*\"}) by (consumer_group)",
-                  "legendFormat": "__auto",
-                  "range": true,
-                  "refId": "A"
-                }
-              ],
-              "title": "Utilization Listener Lag",
-              "type": "timeseries"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "thresholds"
-                  },
-                  "custom": {
-                    "align": "auto",
-                    "cellOptions": {
-                      "type": "auto"
-                    },
-                    "filterable": true,
-                    "inspect": false
-                  },
-                  "mappings": [],
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
-                  }
-                },
-                "overrides": [
+              "links": [],
+              "mappings": [],
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
                   {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Value (max)"
-                    },
-                    "properties": [
-                      {
-                        "id": "decimals",
-                        "value": 0
-                      },
-                      {
-                        "id": "displayName",
-                        "value": "Total Notifications Sent"
-                      }
-                    ]
+                    "color": "green"
                   },
                   {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "metric_id"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Metric Id"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "product"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Product"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "sla"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "SLA"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "usage"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Usage"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Value (max)"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Most Recent Notification"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Time (lastNotNull)"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Most Recent Time"
-                      }
-                    ]
+                    "color": "red",
+                    "value": 80
                   }
                 ]
               },
-              "gridPos": {
-                "h": 8,
-                "w": 11,
-                "x": 7,
-                "y": 139
-              },
-              "id": 131,
-              "options": {
-                "cellHeight": "sm",
-                "footer": {
-                  "countRows": false,
-                  "fields": "",
-                  "reducer": [
-                    "sum"
-                  ],
-                  "show": false
-                },
-                "showHeader": true
-              },
-              "pluginVersion": "11.6.3",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "disableTextWrap": false,
-                  "editorMode": "code",
-                  "expr": "sum(increase(swatch_utilization_over_usage_total{service=\"swatch-utilization-service\"}[$__range])) by (product, metric_id, sla, usage)",
-                  "format": "table",
-                  "fullMetaSearch": false,
-                  "includeNullMetadata": true,
-                  "instant": false,
-                  "legendFormat": "__auto",
-                  "range": true,
-                  "refId": "A",
-                  "useBackend": false
-                }
-              ],
-              "title": "Notification Sent",
-              "transformations": [
-                {
-                  "id": "organize",
-                  "options": {
-                    "excludeByName": {},
-                    "includeByName": {},
-                    "indexByName": {
-                      "Time (lastNotNull)": 0,
-                      "Value (max)": 5,
-                      "metric_id": 2,
-                      "product": 1,
-                      "sla": 3,
-                      "usage": 4
-                    },
-                    "renameByName": {
-                      "Value": "",
-                      "metric_id": ""
-                    }
-                  }
-                },
-                {
-                  "id": "groupBy",
-                  "options": {
-                    "fields": {
-                      "Time": {
-                        "aggregations": [
-                          "lastNotNull"
-                        ],
-                        "operation": "aggregate"
-                      },
-                      "Value": {
-                        "aggregations": [
-                          "max"
-                        ],
-                        "operation": "aggregate"
-                      },
-                      "metric_id": {
-                        "aggregations": [],
-                        "operation": "groupby"
-                      },
-                      "product": {
-                        "aggregations": [],
-                        "operation": "groupby"
-                      },
-                      "sla": {
-                        "aggregations": [],
-                        "operation": "groupby"
-                      },
-                      "usage": {
-                        "aggregations": [],
-                        "operation": "groupby"
-                      }
-                    }
-                  }
-                }
-              ],
-              "type": "table"
+              "unit": "bytes"
             },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 7,
+            "x": 7,
+            "y": 11
+          },
+          "id": 135,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.3",
+          "targets": [
             {
               "datasource": {
                 "type": "prometheus",
                 "uid": "${datasource}"
               },
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 10,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "never",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "links": [],
-                  "mappings": [],
-                  "min": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
-                  },
-                  "unit": "bytes"
-                },
-                "overrides": []
-              },
-              "gridPos": {
-                "h": 9,
-                "w": 6,
-                "x": 18,
-                "y": 139
-              },
-              "id": 135,
-              "options": {
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.3",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "sum(container_memory_working_set_bytes{pod=~\"swatch-utilization-.*\", container=''}) by (pod)",
-                  "format": "time_series",
-                  "interval": "",
-                  "intervalFactor": 1,
-                  "legendFormat": "{{ pod }}",
-                  "range": true,
-                  "refId": "A"
-                }
-              ],
-              "title": "Memory Used",
-              "type": "timeseries"
+              "editorMode": "code",
+              "expr": "sum(container_memory_working_set_bytes{pod=~\"swatch-utilization-.*\", container=''}) by (pod)",
+              "format": "time_series",
+              "interval": "",
+              "intervalFactor": 1,
+              "legendFormat": "{{ pod }}",
+              "range": true,
+              "refId": "A"
             }
           ],
-          "title": "swatch-utilization",
-          "type": "row"
+          "title": "Memory Used",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "filterable": true,
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Value (max)"
+                },
+                "properties": [
+                  {
+                    "id": "decimals",
+                    "value": 0
+                  },
+                  {
+                    "id": "displayName",
+                    "value": "Total Notifications Sent"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "metric_id"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Metric Id"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "product"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Product"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "sla"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "SLA"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "usage"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Usage"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Value (max)"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Count"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 21,
+            "x": 0,
+            "y": 19
+          },
+          "id": 131,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true
+          },
+          "pluginVersion": "11.6.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "disableTextWrap": false,
+              "editorMode": "code",
+              "expr": "sum(increase(swatch_utilization_over_usage_total{service=\"swatch-utilization-service\"}[$__range])) by (product, metric_id, sla, usage)",
+              "format": "table",
+              "fullMetaSearch": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A",
+              "useBackend": false
+            }
+          ],
+          "title": "Subscriptions over-usages",
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {},
+                "includeByName": {},
+                "indexByName": {
+                  "Value (max)": 4,
+                  "metric_id": 1,
+                  "product": 0,
+                  "sla": 2,
+                  "usage": 3
+                },
+                "renameByName": {
+                  "Value": "",
+                  "metric_id": ""
+                }
+              }
+            },
+            {
+              "id": "groupBy",
+              "options": {
+                "fields": {
+                  "Value": {
+                    "aggregations": [
+                      "max"
+                    ],
+                    "operation": "aggregate"
+                  },
+                  "metric_id": {
+                    "aggregations": [],
+                    "operation": "groupby"
+                  },
+                  "product": {
+                    "aggregations": [],
+                    "operation": "groupby"
+                  },
+                  "sla": {
+                    "aggregations": [],
+                    "operation": "groupby"
+                  },
+                  "usage": {
+                    "aggregations": [],
+                    "operation": "groupby"
+                  }
+                }
+              }
+            }
+          ],
+          "type": "table"
         }
       ],
       "preload": false,
