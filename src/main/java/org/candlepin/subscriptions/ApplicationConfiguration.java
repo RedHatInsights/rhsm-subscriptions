@@ -142,12 +142,12 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
    * @return a KafkaJaasBeanPostProcessor object
    */
   @Bean
-  public KafkaSslBeanPostProcessor kafkaJaasBeanPostProcessor() {
+  public static KafkaSslBeanPostProcessor kafkaJaasBeanPostProcessor() {
     return new KafkaSslBeanPostProcessor();
   }
 
   @Bean
-  public RdsSslBeanPostProcessor rdsSslBeanPostProcessor(Environment env) {
+  public static RdsSslBeanPostProcessor rdsSslBeanPostProcessor(Environment env) {
     return new RdsSslBeanPostProcessor(env);
   }
 
