@@ -111,6 +111,7 @@ public class UtilizationAllowlistComponentTest extends BaseUtilizationComponentT
                     List.of(
                         new Measurement()
                             .withMetricId(Product.RHEL.getFirstMetric().getId())
+                            .withValue(USAGE_EXCEEDING_THRESHOLD)
                             .withCurrentTotal(USAGE_EXCEEDING_THRESHOLD)
                             .withCapacity(BASELINE_CAPACITY)
                             .withUnlimited(false))));

@@ -20,15 +20,19 @@
  */
 package org.candlepin.subscriptions.db.model;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
 
 /**
  * DTO class representing aggregated tally measurement data grouped by snapshot date, measurement
@@ -44,7 +48,7 @@ import lombok.ToString;
 @Getter
 @Setter
 @Builder
-public class TallyMeasurementAggregate implements Serializable {
+public class TallyMeasurementAggregate implements Serializable, TallyMeasurement {
 
   /** The snapshot date for this aggregated measurement */
   private OffsetDateTime snapshotDate;
@@ -76,5 +80,26 @@ public class TallyMeasurementAggregate implements Serializable {
   @Override
   public int hashCode() {
     return Objects.hash(snapshotDate, measurementType, metricId, value);
+  }
+
+  @Override
+  public Double getMeasurement(HardwareMeasurementType type, MetricId metric) {
+    if (!measurementType.equals(type)) {
+      throw new IllegalStateException("Mismatched HardwareMeasurementType " + type);
+    }
+    if (!metricId.equals(metric.getValue())) {
+      throw new IllegalStateException("Mismatched MetricId " + metricId);
+    }
+    return value;
+  }
+
+  @Override
+  public Double extractRawValue(MetricId metricId, ReportCategory category) {
+    Set<HardwareMeasurementType> contributingTypes = getContributingTypes(category);
+    // Check if this aggregate's measurement type is one we care about for this category
+    if (contributingTypes.contains(getMeasurementType())) {
+      return Optional.ofNullable(getValue()).orElse(0.0);
+    }
+    return 0.0;
   }
 }

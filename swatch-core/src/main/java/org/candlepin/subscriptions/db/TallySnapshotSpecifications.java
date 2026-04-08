@@ -23,10 +23,7 @@ package org.candlepin.subscriptions.db;
 import com.redhat.swatch.configuration.registry.MetricId;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.MapJoin;
-import jakarta.persistence.criteria.Predicate;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
@@ -108,6 +105,24 @@ public class TallySnapshotSpecifications {
     };
   }
 
+  public static Specification<TallySnapshot> withMetricId(
+      MapJoin<TallySnapshot, TallyMeasurementKey, Double> measurementJoin, MetricId metricId) {
+    return (root, query, cb) ->
+        metricId == null
+            ? null
+            : cb.equal(measurementJoin.key().get("metricId"), metricId.toUpperCaseFormatted());
+  }
+
+  public static Specification<TallySnapshot> withHardwareMeasurementType(
+      MapJoin<TallySnapshot, TallyMeasurementKey, Double> measurementJoin,
+      HardwareMeasurementType measurementType) {
+    return (root, query, cb) ->
+        measurementType == null
+            ? null
+            : cb.equal(
+                measurementJoin.key().get("measurementType"), measurementType.name().toUpperCase());
+  }
+
   public static Specification<TallySnapshot> withTallyMeasurements() {
     return (root, query, cb) -> {
       // Fetch join for tallyMeasurements to avoid N+1 queries
@@ -182,7 +197,6 @@ public class TallySnapshotSpecifications {
    * @return Specification for aggregated query
    */
   public static Specification<TallySnapshot> buildAggregatedMeasurementSpec(
-      boolean forCount,
       MapJoin<TallySnapshot, TallyMeasurementKey, Double> measurementJoin,
       Boolean isPrimary,
       String orgId,
@@ -197,77 +211,17 @@ public class TallySnapshotSpecifications {
       OffsetDateTime beginning,
       OffsetDateTime ending) {
 
-    return (root, query, cb) -> {
-      // Build the WHERE clause predicates
-      List<Predicate> predicates = new ArrayList<>();
-
-      if (isPrimary != null) {
-        predicates.add(cb.equal(root.get("isPrimary"), isPrimary));
-      }
-      if (orgId != null) {
-        predicates.add(cb.equal(root.get("orgId"), orgId));
-      }
-      if (productId != null) {
-        predicates.add(cb.equal(root.get("productId"), productId));
-      }
-      if (granularity != null) {
-        predicates.add(cb.equal(root.get("granularity"), granularity));
-      }
-      if (serviceLevel != null && !ServiceLevel._ANY.equals(serviceLevel)) {
-        predicates.add(cb.equal(root.get("serviceLevel"), serviceLevel));
-      }
-      if (usage != null && !Usage._ANY.equals(usage)) {
-        predicates.add(cb.equal(root.get("usage"), usage));
-      }
-      if (billingProvider != null && !BillingProvider._ANY.equals(billingProvider)) {
-        predicates.add(cb.equal(root.get("billingProvider"), billingProvider));
-      }
-      if (billingAccountId != null && !"_ANY".equals(billingAccountId)) {
-        predicates.add(cb.equal(root.get("billingAccountId"), billingAccountId));
-      }
-      if (beginning != null && ending != null) {
-        predicates.add(cb.between(root.get("snapshotDate"), beginning, ending));
-      } else if (beginning != null) {
-        predicates.add(cb.greaterThanOrEqualTo(root.get("snapshotDate"), beginning));
-      } else if (ending != null) {
-        predicates.add(cb.lessThanOrEqualTo(root.get("snapshotDate"), ending));
-      }
-
-      if (!forCount) {
-        // SELECT with aggregation
-        query
-            .multiselect(
-                root.get("snapshotDate"),
-                measurementJoin.key().get("measurementType"),
-                measurementJoin.key().get("metricId"),
-                cb.sum(measurementJoin.value()))
-            .distinct(true);
-
-        // GROUP BY
-        query.groupBy(
-            root.get("snapshotDate"),
-            measurementJoin.key().get("measurementType"),
-            measurementJoin.key().get("metricId"));
-
-        // ORDER BY
-        query.orderBy(cb.asc(root.get("snapshotDate")));
-      }
-      // For count queries, don't modify the select or groupBy - the caller handles it
-
-      // Filter by metricId if provided
-      if (metricId != null) {
-        predicates.add(
-            cb.equal(measurementJoin.key().get("metricId"), metricId.toUpperCaseFormatted()));
-      }
-
-      // Filter by hardwareMeasurementType if provided
-      if (hardwareMeasurementType != null) {
-        predicates.add(
-            cb.equal(
-                measurementJoin.key().get("measurementType"),
-                hardwareMeasurementType.name().toUpperCase()));
-      }
-      return predicates.isEmpty() ? null : cb.and(predicates.toArray(new Predicate[0]));
-    };
+    return Specification.where(isPrimary(isPrimary))
+        .and(hasOrgId(orgId))
+        .and(hasProductId(productId))
+        .and(hasGranularity(granularity))
+        .and(hasServiceLevel(serviceLevel))
+        .and(hasUsage(usage))
+        .and(hasBillingProvider(billingProvider))
+        .and(hasBillingAccountId(billingAccountId))
+        .and(snapshotDateBetween(beginning, ending))
+        .and(withMetricId(measurementJoin, metricId))
+        .and(withHardwareMeasurementType(measurementJoin, hardwareMeasurementType))
+        .and(orderBySnapshotDate());
   }
 }
