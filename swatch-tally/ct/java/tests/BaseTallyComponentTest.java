@@ -23,11 +23,13 @@ package tests;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 
 import api.TallySwatchService;
+import api.TallyUnleashService;
 import api.TallyWiremockService;
 import com.redhat.swatch.component.tests.api.ComponentTest;
 import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.SpringBoot;
+import com.redhat.swatch.component.tests.api.Unleash;
 import com.redhat.swatch.component.tests.api.Wiremock;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,6 +64,8 @@ public class BaseTallyComponentTest {
 
   @SpringBoot(service = "swatch-tally")
   static TallySwatchService service = new TallySwatchService();
+
+  @Unleash static TallyUnleashService unleash = new TallyUnleashService();
 
   // --- Instance fields ---
 
