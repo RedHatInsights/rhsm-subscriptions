@@ -88,6 +88,8 @@ parameters:
     value: quay.io/signalfx/splunk-otel-collector:0.140.0
   - name: OTEL_SIDECAR_CONFIG_MAP
     value: swatch-otel-config
+  - name: NGINX_OTEL_SIDECAR_CONFIG_MAP
+    value: logging-otel-config
   - name: OTEL_SIDECAR_SPLUNK_CONFIG
     value: '/etc/otelcol/relay'
   - name: OTEL_ENV_NAME
@@ -336,7 +338,7 @@ objects:
             sidecars:
               - name: otel-collector
                 enabled: true
-                configMap: ${OTEL_SIDECAR_CONFIG_MAP}
+                configMap: ${NGINX_OTEL_SIDECAR_CONFIG_MAP}
                 image: ${OTEL_SIDECAR_IMAGE}
                 envVars:
                   - name: ENV_NAME
@@ -352,6 +354,22 @@ objects:
                     value: ${OTEL_SIDECAR_SPLUNK_CONFIG}
                   - name: SPLUNK_MEMORY_TOTAL_MIB
                     value: '1024'
+                  - name: SPLUNK_HEC_URL
+                    value: ${SPLUNK_HEC_URL}
+                  - name: SPLUNK_HEC_TOKEN
+                    valueFrom:
+                      secretKeyRef:
+                        name: splunk-hec-external
+                        key: token
+                  - name: SPLUNK_SOURCE
+                    value: swatch-api-nginx-proxy
+                  - name: SPLUNK_SOURCE_TYPE
+                    value: ${SPLUNK_SOURCE_TYPE}
+                  - name: K8S_NAMESPACE
+                    valueFrom:
+                      fieldRef:
+                        apiVersion: v1
+                        fieldPath: metadata.namespace
 
   - kind: Service
     apiVersion: v1
@@ -382,6 +400,20 @@ objects:
         http {
           opentelemetry ${OTEL_ENABLED};
           opentelemetry_config /etc/nginx/otel.toml;
+
+          log_format json_combined escape=json
+            '{'
+              '"time_local":"$time_iso8601",'
+              '"remote_addr":"$remote_addr",'
+              '"request":"$request",'
+              '"status":$status,'
+              '"body_bytes_sent":$body_bytes_sent,'
+              '"request_time":$request_time,'
+              '"upstream_response_time":"$upstream_response_time",'
+              '"http_user_agent":"$http_user_agent",'
+              '"http_referer":"$http_referer"'
+            '}';
+
           upstream swatch-api {
             server swatch-api-service:8000;
           }
@@ -390,8 +422,12 @@ objects:
           }
 
           server {
+            # TODO: Replace syslog with filelog once Clowder supports volumeMounts in sidecars:
+            # https://github.com/RedHatInsights/clowder/pull/1759
             error_log  stderr;
+            error_log  syslog:server=127.0.0.1:54526,facility=local7,tag=nginx,severity=error;
             access_log  /dev/stdout;
+            access_log  syslog:server=127.0.0.1:54526,facility=local7,tag=nginx,severity=info json_combined;
             listen 8000;
             client_max_body_size 500M;
             client_header_buffer_size 46k;
