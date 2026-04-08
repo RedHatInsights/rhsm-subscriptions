@@ -39,6 +39,7 @@ import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.TallyMeasurementAggregate;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -167,6 +168,304 @@ class TallySnapshotRepositoryTest {
     int cores =
         snapshot.getMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores()).intValue();
     assertEquals(1111, cores);
+  }
+
+  @SuppressWarnings("linelength")
+  @Test
+  void findByOrgIdAndProductIdAndGranularityAndServiceLevelAndUsageWithPrimary() {
+    TallySnapshot t1 = createUnpersisted("orgHello", "World", Granularity.DAILY, 2, 3, 4, NOWISH);
+    TallySnapshot t2 =
+        createUnpersisted("orgBugs", "Bunny", Granularity.DAILY, 9999, 999, 99, NOWISH);
+    TallySnapshot t3 =
+        createUnpersisted(
+            "orgBugs",
+            "Bunny",
+            Granularity.DAILY,
+            ServiceLevel.STANDARD,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "sellerAcct",
+            8888,
+            888,
+            88,
+            NOWISH);
+    t1.setPrimary(true);
+    t2.setPrimary(true);
+    t3.setPrimary(true);
+
+    repository.saveAll(Arrays.asList(t1, t2, t3));
+    repository.flush();
+
+    List<TallyMeasurementAggregate> found =
+        repository
+            .findAggregatedMeasurements(
+                true,
+                "orgBugs",
+                "Bunny",
+                MetricIdUtils.getCores(),
+                Granularity.DAILY,
+                ServiceLevel.STANDARD,
+                Usage.PRODUCTION,
+                BillingProvider._ANY,
+                "sellerAcct",
+                HardwareMeasurementType.TOTAL,
+                LONG_AGO,
+                FAR_FUTURE,
+                PageRequest.of(0, 10))
+            .stream()
+            .collect(Collectors.toList());
+
+    assertEquals(1, found.size());
+    TallyMeasurementAggregate aggregate = found.get(0);
+    assertEquals(NOWISH, aggregate.getSnapshotDate());
+    assertEquals(HardwareMeasurementType.TOTAL, aggregate.getMeasurementType());
+    assertEquals(8888, aggregate.getValue().intValue());
+  }
+
+  @SuppressWarnings("linelength")
+  @Test
+  void testFindByEmptyServiceLevelAndUsageWithPrimary() {
+    TallySnapshot t1 =
+        createUnpersisted(
+            "orgA1",
+            "P1",
+            Granularity.DAILY,
+            ServiceLevel.EMPTY,
+            Usage.EMPTY,
+            BillingProvider.EMPTY,
+            "sellerAcct",
+            1111,
+            111,
+            11,
+            NOWISH);
+    t1.setPrimary(true);
+
+    repository.saveAll(Arrays.asList(t1));
+    repository.flush();
+
+    List<TallyMeasurementAggregate> found =
+        repository
+            .findAggregatedMeasurements(
+                true,
+                "orgA1",
+                "P1",
+                MetricIdUtils.getCores(),
+                Granularity.DAILY,
+                ServiceLevel.EMPTY,
+                Usage.EMPTY,
+                BillingProvider.EMPTY,
+                "sellerAcct",
+                HardwareMeasurementType.TOTAL,
+                LONG_AGO,
+                FAR_FUTURE,
+                PageRequest.of(0, 10))
+            .stream()
+            .collect(Collectors.toList());
+    assertEquals(1, found.size());
+    TallyMeasurementAggregate aggregate = found.get(0);
+    assertEquals(NOWISH, aggregate.getSnapshotDate());
+    assertEquals(HardwareMeasurementType.TOTAL, aggregate.getMeasurementType());
+    assertEquals(1111, aggregate.getValue().intValue());
+  }
+
+  @SuppressWarnings("linelength")
+  @Test
+  void testFindByEmptyServiceLevelAndUsageOnlyCoresWithPrimary() {
+    TallySnapshot t1 =
+        createUnpersisted(
+            "orgA1",
+            "P1",
+            Granularity.DAILY,
+            ServiceLevel.EMPTY,
+            Usage.EMPTY,
+            BillingProvider.EMPTY,
+            "sellerAcct",
+            1111,
+            111,
+            11,
+            NOWISH);
+    t1.setPrimary(true);
+
+    repository.saveAll(Arrays.asList(t1));
+    repository.flush();
+
+    List<TallyMeasurementAggregate> found =
+        repository
+            .findAggregatedMeasurements(
+                true,
+                "orgA1",
+                "P1",
+                MetricIdUtils.getSockets(),
+                Granularity.DAILY,
+                ServiceLevel.EMPTY,
+                Usage.EMPTY,
+                BillingProvider.EMPTY,
+                "sellerAcct",
+                HardwareMeasurementType.TOTAL,
+                LONG_AGO,
+                FAR_FUTURE,
+                PageRequest.of(0, 10))
+            .stream()
+            .collect(Collectors.toList());
+    assertEquals(1, found.size());
+    TallyMeasurementAggregate aggregate = found.get(0);
+    assertEquals(NOWISH, aggregate.getSnapshotDate());
+    assertEquals(HardwareMeasurementType.TOTAL, aggregate.getMeasurementType());
+    assertEquals(MetricIdUtils.getSockets().getValue().toUpperCase(), aggregate.getMetricId());
+    assertEquals(111, aggregate.getValue().intValue());
+  }
+
+  @SuppressWarnings("linelength")
+  @Test
+  void findByOrgIdAndProductIdAndGranularityAndServiceLevelAndUsageOnlyWithPrimary() {
+    TallySnapshot t1 =
+        createUnpersisted(
+            "orgBugs",
+            "Bunny",
+            Granularity.DAILY,
+            ServiceLevel.STANDARD,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "sellerAcct",
+            9999,
+            999,
+            99,
+            NOWISH);
+    t1.setPrimary(false);
+
+    TallySnapshot t2 =
+        createUnpersisted(
+            "orgBugs",
+            "Bunny",
+            Granularity.DAILY,
+            ServiceLevel.STANDARD,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "sellerAcct",
+            8888,
+            888,
+            88,
+            NOWISH);
+    t2.setPrimary(true);
+
+    TallySnapshot t3 =
+        createUnpersisted(
+            "orgBugs",
+            "Bunny",
+            Granularity.DAILY,
+            ServiceLevel.STANDARD,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "sellerAcct",
+            7777,
+            777,
+            77,
+            NOWISH);
+    t3.setPrimary(false);
+
+    repository.saveAll(Arrays.asList(t1, t2, t3));
+    repository.flush();
+
+    List<TallyMeasurementAggregate> found =
+        repository
+            .findAggregatedMeasurements(
+                true,
+                "orgBugs",
+                "Bunny",
+                MetricIdUtils.getCores(),
+                Granularity.DAILY,
+                ServiceLevel.STANDARD,
+                Usage.PRODUCTION,
+                BillingProvider._ANY,
+                "sellerAcct",
+                HardwareMeasurementType.TOTAL,
+                LONG_AGO,
+                FAR_FUTURE,
+                PageRequest.of(0, 10))
+            .stream()
+            .collect(Collectors.toList());
+
+    assertEquals(1, found.size());
+    TallyMeasurementAggregate aggregate = found.get(0);
+    assertEquals(NOWISH, aggregate.getSnapshotDate());
+    assertEquals(HardwareMeasurementType.TOTAL, aggregate.getMeasurementType());
+  }
+
+  @SuppressWarnings("linelength")
+  @Test
+  void confirmAggregateValue() {
+    TallySnapshot t1 =
+        createUnpersisted(
+            "orgBugs",
+            "Bunny",
+            Granularity.DAILY,
+            ServiceLevel.STANDARD,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "sellerAcct",
+            9999,
+            999,
+            99,
+            NOWISH);
+    t1.setPrimary(true);
+
+    TallySnapshot t2 =
+        createUnpersisted(
+            "orgBugs",
+            "Bunny",
+            Granularity.DAILY,
+            ServiceLevel.STANDARD,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "sellerAcct",
+            8888,
+            888,
+            88,
+            NOWISH);
+    t2.setPrimary(true);
+
+    TallySnapshot t3 =
+        createUnpersisted(
+            "orgBugs",
+            "Bunny",
+            Granularity.DAILY,
+            ServiceLevel.STANDARD,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "sellerAcct",
+            7777,
+            777,
+            77,
+            NOWISH);
+    t3.setPrimary(false);
+
+    repository.saveAll(Arrays.asList(t1, t2, t3));
+    repository.flush();
+
+    List<TallyMeasurementAggregate> found =
+        repository
+            .findAggregatedMeasurements(
+                true,
+                "orgBugs",
+                "Bunny",
+                MetricIdUtils.getCores(),
+                Granularity.DAILY,
+                ServiceLevel.STANDARD,
+                Usage.PRODUCTION,
+                BillingProvider._ANY,
+                "sellerAcct",
+                HardwareMeasurementType.TOTAL,
+                LONG_AGO,
+                FAR_FUTURE,
+                PageRequest.of(0, 10))
+            .stream()
+            .collect(Collectors.toList());
+
+    assertEquals(1, found.size());
+    TallyMeasurementAggregate aggregate = found.get(0);
+    assertEquals(NOWISH, aggregate.getSnapshotDate());
+    assertEquals(HardwareMeasurementType.TOTAL, aggregate.getMeasurementType());
+    assertEquals(18887, aggregate.getValue().intValue());
   }
 
   @Test

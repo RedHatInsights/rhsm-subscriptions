@@ -42,12 +42,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.contracts.ContractsCapacityController;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.TallyMeasurement;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resource.ReportCriteria;
 import org.candlepin.subscriptions.resource.ResourceUtils;
@@ -89,6 +91,7 @@ public class TallyResource implements TallyApi {
   private final PageLinkCreator pageLinkCreator;
   private final ApplicationClock clock;
   private final ContractsCapacityController capacityController;
+  private final ApplicationProperties applicationProperties;
 
   @Context private UriInfo uriInfo;
 
@@ -98,12 +101,14 @@ public class TallyResource implements TallyApi {
       TallySnapshotRepository repository,
       PageLinkCreator pageLinkCreator,
       ApplicationClock clock,
-      ContractsCapacityController capacityController) {
+      ContractsCapacityController capacityController,
+      ApplicationProperties applicationProperties) {
     this.mapper = mapper;
     this.repository = repository;
     this.pageLinkCreator = pageLinkCreator;
     this.clock = clock;
     this.capacityController = capacityController;
+    this.applicationProperties = applicationProperties;
   }
 
   @Override
@@ -145,19 +150,6 @@ public class TallyResource implements TallyApi {
             offset,
             limit);
 
-    Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage =
-        repository.findSnapshot(
-            reportCriteria.getOrgId(),
-            reportCriteria.getProductId(),
-            reportCriteria.getGranularity(),
-            reportCriteria.getServiceLevel(),
-            reportCriteria.getUsage(),
-            reportCriteria.getBillingProvider(),
-            reportCriteria.getBillingAccountId(),
-            reportCriteria.getBeginning(),
-            reportCriteria.getEnding(),
-            reportCriteria.getPageable());
-
     Map<OffsetDateTime, Integer> capacityByDate =
         Objects.nonNull(billingCategory)
             ? getCapacityReport(
@@ -174,12 +166,50 @@ public class TallyResource implements TallyApi {
                 usageType)
             : Collections.emptyMap();
 
-    List<org.candlepin.subscriptions.db.model.TallySnapshot> snapshots =
-        snapshotPage.stream().toList();
+    List<TallyMeasurement> measurements;
+    Page<? extends TallyMeasurement> page;
+    if (applicationProperties.isEnablePrimaryRowSearches()) {
+      HardwareMeasurementType hardwareMeasurementType = HardwareMeasurementType.TOTAL;
+      if (Objects.nonNull(reportCriteria.getReportCategory())) {
+        hardwareMeasurementType =
+            HardwareMeasurementType.fromString(reportCriteria.getReportCategory().toString());
+      }
+
+      page =
+          repository.findAggregatedMeasurements(
+              true, // isPrimary
+              reportCriteria.getOrgId(),
+              reportCriteria.getProductId(),
+              metricId,
+              reportCriteria.getGranularity(),
+              reportCriteria.getServiceLevel(),
+              reportCriteria.getUsage(),
+              reportCriteria.getBillingProvider(),
+              reportCriteria.getBillingAccountId(),
+              hardwareMeasurementType,
+              reportCriteria.getBeginning(),
+              reportCriteria.getEnding(),
+              reportCriteria.getPageable());
+      measurements = new ArrayList<>(page.stream().toList());
+    } else {
+      page =
+          repository.findSnapshot(
+              reportCriteria.getOrgId(),
+              reportCriteria.getProductId(),
+              reportCriteria.getGranularity(),
+              reportCriteria.getServiceLevel(),
+              reportCriteria.getUsage(),
+              reportCriteria.getBillingProvider(),
+              reportCriteria.getBillingAccountId(),
+              reportCriteria.getBeginning(),
+              reportCriteria.getEnding(),
+              reportCriteria.getPageable());
+      measurements = new ArrayList<>(page.stream().toList());
+    }
 
     List<UnroundedTallyReportDataPoint> snaps =
-        snapshots.stream()
-            .map(snapshot -> unroundedDataPointFromSnapshot(metricId, category, snapshot))
+        measurements.stream()
+            .map(snapshot -> unroundedDataPointFromMeasurement(metricId, category, snapshot))
             .collect(Collectors.toList());
 
     TallyReportData report = new TallyReportData();
@@ -211,14 +241,14 @@ public class TallyResource implements TallyApi {
       // gather monthly totals for the month
       OffsetDateTime latestSnapshotDate = null;
       var totalMonthlyValueRaw = 0.0;
-      for (var snapshot : snapshots) {
-        totalMonthlyValueRaw += extractRawValue(metricId, category, snapshot);
-        latestSnapshotDate = snapshot.getSnapshotDate();
+      for (var measurement : measurements) {
+        totalMonthlyValueRaw += measurement.extractRawValue(metricId, category);
+        latestSnapshotDate = measurement.getSnapshotDate();
       }
       var totalMonthlyValue = (int) Math.ceil(totalMonthlyValueRaw);
       TallyReportTotalMonthly totalMonthly =
           new TallyReportTotalMonthly()
-              .hasData(!snapshots.isEmpty())
+              .hasData(!measurements.isEmpty())
               .value(totalMonthlyValue)
               .date(latestSnapshotDate);
       report.getMeta().setTotalMonthly(totalMonthly);
@@ -229,7 +259,7 @@ public class TallyResource implements TallyApi {
 
     // Only set page links if we are paging (not filling).
     if (reportCriteria.getPageable() != null) {
-      report.setLinks(mapper.map(pageLinkCreator.getPaginationLinks(uriInfo, snapshotPage)));
+      report.setLinks(mapper.map(pageLinkCreator.getPaginationLinks(uriInfo, page)));
     }
 
     if (Boolean.TRUE.equals(useRunningTotalsFormat)) {
@@ -351,33 +381,10 @@ public class TallyResource implements TallyApi {
         .build();
   }
 
-  private UnroundedTallyReportDataPoint unroundedDataPointFromSnapshot(
-      MetricId metricId,
-      ReportCategory category,
-      org.candlepin.subscriptions.db.model.TallySnapshot snapshot) {
+  private UnroundedTallyReportDataPoint unroundedDataPointFromMeasurement(
+      MetricId metricId, ReportCategory category, TallyMeasurement measurement) {
     return new UnroundedTallyReportDataPoint(
-        snapshot.getSnapshotDate(), extractRawValue(metricId, category, snapshot), true);
-  }
-
-  private Double extractRawValue(
-      MetricId metricId,
-      ReportCategory category,
-      org.candlepin.subscriptions.db.model.TallySnapshot snapshot) {
-    Set<HardwareMeasurementType> contributingTypes = getContributingTypes(category);
-    return contributingTypes.stream()
-        .mapToDouble(
-            type -> Optional.ofNullable(snapshot.getMeasurement(type, metricId)).orElse(0.0))
-        .sum();
-  }
-
-  private Set<HardwareMeasurementType> getContributingTypes(ReportCategory category) {
-    Set<HardwareMeasurementType> contributingTypes;
-    if (category == null) {
-      contributingTypes = Set.of(HardwareMeasurementType.TOTAL);
-    } else {
-      contributingTypes = CATEGORY_MAP.get(category);
-    }
-    return contributingTypes;
+        measurement.getSnapshotDate(), measurement.extractRawValue(metricId, category), true);
   }
 
   private List<UnroundedTallyReportDataPoint> transformToRunningTotalFormat(
