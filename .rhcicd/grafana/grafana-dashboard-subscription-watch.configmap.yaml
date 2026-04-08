@@ -6176,19 +6176,7 @@ data:
                     "properties": [
                       {
                         "id": "displayName",
-                        "value": "Most Recent Notification"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Time (lastNotNull)"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Most Recent Time"
+                        "value": "Count"
                       }
                     ]
                   }
@@ -6233,7 +6221,7 @@ data:
                   "useBackend": false
                 }
               ],
-              "title": "Notification Sent",
+              "title": "Subscriptions over-usages",
               "transformations": [
                 {
                   "id": "organize",
@@ -6241,12 +6229,11 @@ data:
                     "excludeByName": {},
                     "includeByName": {},
                     "indexByName": {
-                      "Time (lastNotNull)": 0,
-                      "Value (max)": 5,
-                      "metric_id": 2,
-                      "product": 1,
-                      "sla": 3,
-                      "usage": 4
+                      "Value (max)": 4,
+                      "metric_id": 1,
+                      "product": 0,
+                      "sla": 2,
+                      "usage": 3
                     },
                     "renameByName": {
                       "Value": "",
@@ -6258,12 +6245,6 @@ data:
                   "id": "groupBy",
                   "options": {
                     "fields": {
-                      "Time": {
-                        "aggregations": [
-                          "lastNotNull"
-                        ],
-                        "operation": "aggregate"
-                      },
                       "Value": {
                         "aggregations": [
                           "max"
